@@ -1809,6 +1809,9 @@ namespace PerfProbe
             int colonyFrames = 0;
             float windowStart = Time.realtimeSinceStartup;
             int frames = 0;
+            // Each frame's real time in the window, for its slowest 1% (6 of 600 frames).
+            var frameTimes = new float[600];
+            float lastFrame = Time.realtimeSinceStartup;
             long contentions = RuntimeCounters.LockContentions(), paused = RuntimeCounters.GcPauseMs();
             long allocatedBytes = RuntimeCounters.Allocated(), gen0 = System.GC.CollectionCount(0);
             // `alloc.txt`: managed allocation counters every window (AllocMeter), after a calibration.
@@ -1827,6 +1830,9 @@ namespace PerfProbe
             {
                 yield return null;
                 if (Game.Instance == null) yield break;
+                float frameEnd = Time.realtimeSinceStartup;
+                if (frames < frameTimes.Length) frameTimes[frames] = frameEnd - lastFrame;
+                lastFrame = frameEnd;
                 if (alloc) AllocMeter.Frame();
                 // Only when the game has stopped: the search for dialogs walks the whole scene, a
                 // cost the measurement must not carry.
@@ -1871,7 +1877,11 @@ namespace PerfProbe
                 long a = RuntimeCounters.Allocated(), g0 = System.GC.CollectionCount(0);
                 string runtime = c < 0 ? "" : $" contentions {c - contentions} gc-pause {g - paused} ms allocated {(a - allocatedBytes) / 1048576.0:F0} MiB gen0 {g0 - gen0}";
                 contentions = c; paused = g; allocatedBytes = a; gen0 = g0;
-                Debug.Log($"PERF f{Time.frameCount} fps {frames / (now - windowStart):F2} cycle {GameClock.Instance.GetCycle()} time {GameClock.Instance.GetTime():F0} paused {SpeedControlScreen.Instance.IsPaused}{runtime}");
+                System.Array.Sort(frameTimes);
+                float worst = 0;
+                for (int i = frameTimes.Length - frameTimes.Length / 100; i < frameTimes.Length; i++) worst += frameTimes[i];
+                worst /= frameTimes.Length / 100;
+                Debug.Log($"PERF f{Time.frameCount} fps {frames / (now - windowStart):F2} cycle {GameClock.Instance.GetCycle()} time {GameClock.Instance.GetTime():F0} paused {SpeedControlScreen.Instance.IsPaused}{runtime} worst1% {worst * 1000:F1} ms");
                 if (alloc) Debug.Log(AllocMeter.Window());
                 if (alloc && AllocSites.Enabled) Debug.Log(AllocSites.Window());
                 if (awake) Debug.Log($"PERF pointer: mousePosition {Input.mousePosition} present {Input.mousePresent} focused {Application.isFocused}{OsCursor()}");
