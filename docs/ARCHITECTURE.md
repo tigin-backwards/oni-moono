@@ -1698,7 +1698,19 @@ held and starts it anew. Vulkan's side of the mutex is in the submission (Brutal
 `Queue.Submit2`), which reports no timeout: the registry (`vk.xml`) gives `vkQueueSubmit2` one
 success code, `VK_SUCCESS`, and its errors (out of host or device memory, device lost, unknown,
 validation failed) end presenting as a lost device does; `VK_KHR_win32_keyed_mutex` gives each
-acquire a timeout but does not say what a submission whose acquire times out returns or does.
+acquire a timeout but does not say what a submission whose acquire times out returns or does. A
+driver that never completes the acquire would leave the batch's fence unsignaled, so the
+presenter waits for a DXGI picture's batch at most 5 s (five times the acquire's 1 s timeout);
+`vkWaitForFences` reports that with `VK_TIMEOUT`, one of its two success codes in `vk.xml`. That
+ends presenting for good, as a lost device does (the game quits with the error), not restarting
+DXGI: a pending batch cannot be called back, the image, memory, command buffer and fence it uses
+must not be destroyed or reset until it completes, `vkQueueWaitIdle`, which releasing DXGI and
+making Vulkan's swapchain both call, would wait for it as well, and the swapchain's copy would
+queue behind it. Shutdown then releases nothing on the device and leaves it to the process's exit.
+`--dxgi-fault fencetimeout:N` makes the Nth such wait time out at once, standing for a stuck
+acquire. The device thread's own fence waits are not bounded: a stuck batch that also holds up
+the frames submitted after it leaves the game waiting there, with the presenter's error logged,
+before it can quit.
 Restarts come in bursts of ten tries,
 1, 2, 4 then 8 s apart (about a minute, outlasting a slow driver reset); a restart that presents
 for 60 s ends its burst, so a later failure gets ten tries again. Until a restart succeeds the

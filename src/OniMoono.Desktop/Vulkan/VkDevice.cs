@@ -519,6 +519,15 @@ namespace OniMoono.Desktop.Vulkan
             worker.Dispose();
             // The presenter's thread submits too: it ends before the queue is waited for.
             presenter?.Dispose();
+            if (presenter?.Stuck == true)
+            {
+                // A DXGI picture's batch never completed (VkPresenter.WaitDxgiBatch): waiting for
+                // the device would wait for it, and nothing it may use can be destroyed before it
+                // completes, so the device is left as it is for the process's exit to reclaim.
+                EngineLog.Engine("vulkan: a presenter submission is still pending; the device is not released");
+                vk.SavePipelineCache();
+                return;
+            }
             try
             {
                 vk.Device.WaitIdle();
