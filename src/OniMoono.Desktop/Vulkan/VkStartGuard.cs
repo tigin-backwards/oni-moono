@@ -118,17 +118,19 @@ namespace OniMoono.Desktop.Vulkan
     /// Drivers auto does not start Vulkan on (`--renderer vulkan` still does).
     internal static class VkDenyList
     {
-        /// VkDriverId of Mesa's Dozen (Vulkan over Direct3D 12).
-        public const int MesaDozen = 23;
-        public const uint Intel = 0x8086;
+        /// VkDriverId of Mesa's Dozen (Vulkan over Direct3D 12) and of Intel's Windows driver
+        /// (VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS; vk.xml). The 1.3 devices this needs all report
+        /// one (VkPhysicalDeviceDriverProperties is core since 1.2).
+        public const int MesaDozen = 23, IntelWindows = 5;
 
         /// Why auto refuses the driver, or null. Intel's Windows drivers before 101.5333 (the
-        /// threshold Unreal's DriverDenyList uses for its Vulkan and D3D12 problems) and Dozen,
-        /// whose Vulkan is a translation layer, on any system.
-        public static string Reason(VkGpuIdentity id, bool windows)
+        /// threshold Unreal's DriverDenyList uses for its Vulkan and D3D12 problems), known by
+        /// their driver ID, which is what the version encoding below belongs to, and Dozen, whose
+        /// Vulkan is a translation layer.
+        public static string Reason(VkGpuIdentity id)
         {
             if (id.DriverId == MesaDozen) return "Mesa's Dozen driver (Vulkan over Direct3D 12)";
-            if (windows && id.VendorId == Intel)
+            if (id.DriverId == IntelWindows)
             {
                 var (major, build) = IntelWindowsVersion(id.DriverVersion);
                 if (major < 101 || major == 101 && build < 5333) return $"Intel's driver {major}.{build}, older than 101.5333";

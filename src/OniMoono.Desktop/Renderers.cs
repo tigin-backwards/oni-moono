@@ -58,7 +58,7 @@ namespace OniMoono.Desktop
             // Before the device is made: the deny list (auto only), then the start-up guard.
             string Admit(VkGpuIdentity id)
             {
-                if (auto && VkDenyList.Reason(id, OperatingSystem.IsWindows()) is { } denied)
+                if (auto && VkDenyList.Reason(id) is { } denied)
                     return $"{denied} is on the deny list (--renderer vulkan tries it)";
                 if (cacheDirectory == null) return null;
                 guard = new VkStartGuard(VkStartGuard.FileIn(cacheDirectory), VkStartGuard.KeyOf(id, build));

@@ -80,17 +80,17 @@ namespace OniMoono.Tests
         [Fact]
         public void TheDenyList()
         {
-            var arc = new VkGpuIdentity(VkDenyList.Intel, 0x56A0, Intel(101, 2135), 5, "Intel Corporation", "Intel(R) Arc(TM) A770 Graphics");
-            Assert.Contains("101.2135, older than 101.5333", VkDenyList.Reason(arc, windows: true));
-            Assert.Null(VkDenyList.Reason(arc with { DriverVersion = Intel(101, 5333) }, windows: true));
-            Assert.Null(VkDenyList.Reason(arc with { DriverVersion = Intel(101, 6130) }, windows: true));
-            Assert.NotNull(VkDenyList.Reason(arc with { DriverVersion = Intel(100, 9466) }, windows: true));
-            // Intel's Linux driver (Mesa's ANV) encodes its version otherwise: not denied.
-            Assert.Null(VkDenyList.Reason(arc, windows: false));
+            var arc = new VkGpuIdentity(0x8086, 0x56A0, Intel(101, 2135), VkDenyList.IntelWindows, "Intel Corporation", "Intel(R) Arc(TM) A770 Graphics");
+            Assert.Contains("101.2135, older than 101.5333", VkDenyList.Reason(arc));
+            Assert.Null(VkDenyList.Reason(arc with { DriverVersion = Intel(101, 5333) }));
+            Assert.Null(VkDenyList.Reason(arc with { DriverVersion = Intel(101, 6130) }));
+            Assert.NotNull(VkDenyList.Reason(arc with { DriverVersion = Intel(100, 9466) }));
+            // Intel's Linux driver (Mesa's ANV, VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA) encodes its
+            // version otherwise: not denied.
+            Assert.Null(VkDenyList.Reason(arc with { DriverId = 6 }));
             var dozen = new VkGpuIdentity(0x10DE, 0x2204, 0, VkDenyList.MesaDozen, "Dozen", "Microsoft Direct3D12 (NVIDIA GeForce RTX 3090)");
-            Assert.Contains("Dozen", VkDenyList.Reason(dozen, windows: false));
-            Assert.Contains("Dozen", VkDenyList.Reason(dozen, windows: true));
-            Assert.Null(VkDenyList.Reason(new VkGpuIdentity(0x10DE, 0x2204, 0x98C14000, 4, "NVIDIA", "RTX"), windows: true));
+            Assert.Contains("Dozen", VkDenyList.Reason(dozen));
+            Assert.Null(VkDenyList.Reason(new VkGpuIdentity(0x10DE, 0x2204, 0x98C14000, 4, "NVIDIA", "RTX")));
         }
     }
 }
