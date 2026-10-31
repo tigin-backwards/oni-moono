@@ -1811,6 +1811,10 @@ namespace PerfProbe
             int frames = 0;
             // Each frame's real time in the window, for its slowest 1% (6 of 600 frames).
             var frameTimes = new float[600];
+            // `frametimes.txt`: each window's frame times (ms, in order) also go to frametimes.csv
+            // beside the probe, one line a window after its frame number, for percentiles over a
+            // whole run.
+            string frameTimesFile = System.IO.File.Exists(System.IO.Path.Combine(Path, "frametimes.txt")) ? System.IO.Path.Combine(Path, "frametimes.csv") : null;
             float lastFrame = Time.realtimeSinceStartup;
             long contentions = RuntimeCounters.LockContentions(), paused = RuntimeCounters.GcPauseMs();
             long allocatedBytes = RuntimeCounters.Allocated(), gen0 = System.GC.CollectionCount(0);
@@ -1877,6 +1881,8 @@ namespace PerfProbe
                 long a = RuntimeCounters.Allocated(), g0 = System.GC.CollectionCount(0);
                 string runtime = c < 0 ? "" : $" contentions {c - contentions} gc-pause {g - paused} ms allocated {(a - allocatedBytes) / 1048576.0:F0} MiB gen0 {g0 - gen0}";
                 contentions = c; paused = g; allocatedBytes = a; gen0 = g0;
+                if (frameTimesFile != null)
+                    System.IO.File.AppendAllText(frameTimesFile, Time.frameCount + " " + string.Join(" ", System.Array.ConvertAll(frameTimes, t => (t * 1000f).ToString("F2", System.Globalization.CultureInfo.InvariantCulture))) + "\n");
                 System.Array.Sort(frameTimes);
                 float worst = 0;
                 for (int i = frameTimes.Length - frameTimes.Length / 100; i < frameTimes.Length; i++) worst += frameTimes[i];
