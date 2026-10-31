@@ -22,7 +22,7 @@ Sources:
 | Game tweaks | Static review done (2 fixed, overlays left out where U60 does their work); runtime checks need a U60 player. |
 | Linux build | Done: frozen at `~/projects/oni-linux-761015`, DLC content copied (not linked) from the frozen Windows copy, test install `out/local-tools/u60orig`. |
 | Main menu and a save on U60 | Both: Linux (QA dogfood: menu, DeCrew and new game, all 13 scenarios clean) and Windows (frozen copy `E:\oni-builds\oni-win-761015`, RTX 3090, OpenGL 4.5: main menu, DeCrew loaded and dismissed its mod dialog, no errors). |
-| Performance | Measured on Linux, 2026-10-31 (see Performance): the save tweaks, fast-jobs, fast-anim-events and fast-conveyor-paths still pay; the other exact tweaks' gains are below what this machine resolves now. Frame rates do not compare: the machine was GPU-bound at about 6 fps in every configuration, U59 included. | Peak memory: see Memory.
+| Performance | Windows, focused (see Performance): ours 64.9 fps against the original's 11.9 on U60 (about 5.5×). Linux, 2026-10-31: the save tweaks, fast-jobs, fast-anim-events and fast-conveyor-paths still pay; the other exact tweaks' gains are below what this machine resolves now. Frame rates do not compare: the machine was GPU-bound at about 6 fps in every configuration, U59 included. | Peak memory: see Memory.
 | QA and e2e on U60 | QA: unit and all 13 dogfood scenarios pass (references blessed from a reviewed U60 run); verify (U57, every tweak's verify mode) ran 840 game seconds with no mismatches and no errors logged. e2e: not yet run. |
 
 ## The build
@@ -187,6 +187,27 @@ Open checks:
   measured in the original.
 
 ## Performance
+
+**Windows, the game window focused (2026-10-31).** Native Windows 11, Ryzen 7 9800X3D, RTX 3090
+(driver 610.88), U57 save at speed 3, 1280×720 windowed on the second monitor, the game window
+focused at High priority with power throttling off, as PERFORMANCE.md's numbers were taken. Short
+runs (3,600 frames; the 600-frame windows after the first three), so treat the figures as ±10%.
+
+| | Frame rate | Against the original |
+|---|---|---|
+| Original U60 (761015) | 11.9 fps | |
+| Ours, U60 release build (8ce5a5f7: Vulkan, DXGI, default tweaks) | 64.9 fps | about 5.5× |
+| Ours, master on U59 (80e375f1, OpenGL, DXGI, default tweaks) | 73.5 fps | about 6.1× (original U59: 12.1) |
+
+- Runs with the window unfocused under `--background` (pointer pinned at (0,0), input ignored)
+  came out 13–40% slower for ours (EventSystem.Update 0.2–0.8 ms against 0.02): frame rates are
+  taken focused.
+- The UI canvas phase (post-late) is 2.3–2.6 ms a frame against 0.42 ms on 2026-10-22 (U59) in
+  both builds; when it grew is still to be bisected.
+- U60 is about 12% below U59 for ours in these short runs while the original is level; U60's
+  game code against Vulkan + DXGI is not yet separated.
+
+The Linux numbers below are CPU-side direction only.
 
 Measured on Linux (WSL2, Mesa's d3d12 driver on the RTX 3090), 2026-10-31, `u60-perf` (u60
 with `MonoJitOptimizer`, D56): U57 resumed through PerfProbe's `load.txt`, 1024×768 on Xvfb,
