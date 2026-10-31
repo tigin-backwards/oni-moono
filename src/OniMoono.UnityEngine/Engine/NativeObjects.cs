@@ -85,6 +85,9 @@ namespace OniMoono.Engine
         /// subtree hidden by its CanvasGroups, finding no group that ignores its parents; -1 when
         /// not known to be so.
         public long CanvasHiddenAt = -1;
+        /// Likewise for the top of a hidden subtree whose groups let raycasts through, where the
+        /// walk found no enabled raycaster in it or above it to its nearest live canvas.
+        public long CanvasNoRaycastersAt = -1;
         /// CanvasSystem.Unreachable's answer for this object, and the pass it was found in.
         public long UnreachablePass;
         public bool Unreachable;
