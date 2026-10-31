@@ -221,9 +221,13 @@ namespace OniMoono.Desktop.Gl
         {
             if (interopObject != IntPtr.Zero)
             {
-                if (locked) Unlock();
-                // Fails once the device is lost; the object is gone with it then.
-                if (dxUnregisterObject(interopDevice, interopObject) == 0)
+                // An object still locked cannot be unregistered (ERROR_BUSY, the one error
+                // WGL_NV_DX_interop lists for wglDXUnregisterObjectNV), and an unlock that fails
+                // unlocks nothing: it is then left registered (the extension gives no other way to
+                // release it), and the interop device is closed regardless (Dispose).
+                if (locked && !Unlock())
+                    EngineLog.Engine($"present: the shared texture stays locked ({Failure}); it is not unregistered");
+                else if (dxUnregisterObject(interopDevice, interopObject) == 0)
                     EngineLog.Engine($"present: wglDXUnregisterObjectNV failed (error 0x{Dxgi.GetLastError():X})");
                 interopObject = IntPtr.Zero;
             }
@@ -248,8 +252,9 @@ namespace OniMoono.Desktop.Gl
         bool Unlock()
         {
             var o = interopObject;
-            locked = false;
+            // A FALSE return unlocks none of the objects (WGL_NV_DX_interop): it stays locked.
             if (dxUnlockObjects(interopDevice, 1, &o) == 0) return Fail($"wglDXUnlockObjectsNV failed (error 0x{Dxgi.GetLastError():X})");
+            locked = false;
             return true;
         }
 
