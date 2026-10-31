@@ -16,7 +16,9 @@ namespace OniMoono.Desktop.Vulkan
     /// submission that fills it acquires the mutex with key 0 and releases it with key 1
     /// (VK_KHR_win32_keyed_mutex); D3D11 then acquires key 1, copies it into the swap chain's back
     /// buffer and releases key 0 before presenting. The mutex orders the two APIs' GPU work both
-    /// ways, with no CPU wait between them. Vulkan's and D3D11's images are both stored top row
+    /// ways. D3D11's AcquireSync may hold the presenter thread until Vulkan's release (Microsoft:
+    /// the calling CPU thread stalls while another device owns the surface); no other CPU wait
+    /// stands between them. Vulkan's and D3D11's images are both stored top row
     /// first: no flip. The texture is made again only when the window outgrows it.
     ///
     /// Threads: made on the thread that makes the presenter, then used and released by the

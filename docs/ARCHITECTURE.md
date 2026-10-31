@@ -1676,7 +1676,9 @@ which would cap the frame rate; the interop lock or keyed mutex bounds what is i
   row first: no flip), draws the splash, gives it back in `GENERAL` layout and, through
   `VK_KHR_win32_keyed_mutex`, acquires the mutex with key 0 and releases it with key 1; D3D11
   acquires key 1, copies, releases key 0 and presents. The mutex orders the two APIs' GPU work
-  both ways with no CPU wait between them. No VkSwapchainKHR is made while DXGI presents.
+  both ways; D3D11's `AcquireSync` may hold the presenter thread until Vulkan's release is done
+  (Microsoft: the calling CPU thread stalls while another device owns the surface). No
+  VkSwapchainKHR is made while DXGI presents.
 
 A size change calls `ResizeBuffers` before the next picture; between the window's resize and that
 picture DXGI stretches the last one. A minimized window keeps its framebuffer size (§3.6), so the
