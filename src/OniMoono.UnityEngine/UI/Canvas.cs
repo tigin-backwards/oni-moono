@@ -782,6 +782,9 @@ namespace OniMoono.Engine.UI
         /// The element's transform relative to its root canvas at the last build.
         public Matrix4x4? BuiltToCanvas;
         public Matrix4x4 CurrentToCanvas;
+        /// Products of its world matrix kept by CanvasSystem (RelativeCache): with the nearest
+        /// canvas of the canvas walk (BuiltToCanvas), of ToCanvas, and with its batch's space.
+        public CanvasSystem.RelativeCache ToNearestCache, ToCanvasCache, ToSpaceCache;
 
         public bool HasMoved => BuiltToCanvas is not { } built || !built.Equals(CanvasSystem.ToCanvas(this));
 

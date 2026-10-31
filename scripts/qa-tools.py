@@ -168,7 +168,7 @@ def image(reference, new, diff, *options):
 
 # Verify-mode lines: periodic summaries (each kind of check has its own, all counts must be zero)
 # and per-incident lines (any is a failure).
-VERIFY_NAMES = r'(fast-[a-z-]+|canvas skips?|component layouts|texel copies|partial uploads|parallel draws)'
+VERIFY_NAMES = r'(fast-[a-z-]+|canvas skips?|canvas products|component layouts|texel copies|partial uploads|parallel draws)'
 SUMMARY = re.compile(r'^\d+ [a-z ,\d-]*?\d+ (?:wrong skips|wrong|stale items not marked|stale|mismatches|changed while copying)'
                      r'(?:, [a-z\d ]+)?$')
 ZERO_COUNTS = re.compile(r'(\d+) (?:wrong skips|wrong|stale items not marked|stale|mismatches|changed while copying)')

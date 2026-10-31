@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using OniMoono.Engine.Platform;
 using OniMoono.Engine.Rendering;
 using UnityEngine;
@@ -296,9 +297,93 @@ namespace OniMoono.Engine.UI
         public static Matrix4x4 ToCanvas(CanvasRendererNative r)
         {
             var canvas = NearestCanvas(r.GameObject);
-            var local = r.GameObject.Transform.LocalToWorld;
-            return canvas == null ? local : canvas.GameObject.Transform.LocalToWorld.inverse * local;
+            if (canvas == null) return r.GameObject.Transform.LocalToWorld;
+            var space = canvas.GameObject.Transform;
+            long spaceStamp = space.WorldStamp;
+            return Relative(ref r.ToCanvasCache, default, spaceStamp, r.GameObject.Transform, lazySpace: space);
         }
+
+        // ----- Products kept -----
+        //
+        // Matrix4x4's products sum in double as the original's do (ARCHITECTURE D25), at about
+        // three times the cost of float arithmetic; the canvas update takes a few of them for each
+        // element every frame, nearly all of the same matrices as the frame before (on Windows,
+        // U57: 0.6 ms a frame). Each is kept with what it was computed from and computed again
+        // only when that changed, so it is always the value a new computation would give.
+
+        /// An element's world matrix taken into a space: the inverse of the space's world matrix
+        /// times the element's, kept while both world matrices stand (TransformNative.WorldStamp;
+        /// each computation of one takes a new number, never 0).
+        internal struct RelativeCache
+        {
+            public long SpaceStamp, Stamp;
+            public Matrix4x4 Value;
+        }
+
+        /// worldToSpace × t's world matrix, where worldToSpace is the inverse of the world matrix
+        /// numbered spaceStamp. With lazySpace (the transform whose world matrix that is) the
+        /// inverse passed is not used and is taken from it only when the product is computed.
+        static Matrix4x4 Relative(ref RelativeCache cache, in Matrix4x4 worldToSpace, long spaceStamp, TransformNative t, TransformNative lazySpace = null)
+        {
+            long stamp = t.WorldStamp;
+            if (cache.Stamp == stamp && cache.SpaceStamp == spaceStamp && keepProducts)
+            {
+                if (verifyProducts) VerifyProduct(cache.Value, (lazySpace != null ? lazySpace.LocalToWorld.inverse : worldToSpace) * t.LocalToWorld, t);
+                return cache.Value;
+            }
+            cache.Value = (lazySpace != null ? lazySpace.LocalToWorld.inverse : worldToSpace) * t.LocalToWorld;
+            cache.Stamp = stamp;
+            cache.SpaceStamp = spaceStamp;
+            return cache.Value;
+        }
+
+        /// An object's placement in its nested canvas's space (Collect): its parent's times its own
+        /// local matrix, kept while the parent's stands (a number for each computation, 0 for the
+        /// identity at the canvas) and its own position, rotation and scale have the same bits.
+        static Matrix4x4 ToNearest(UiParts parts, in Matrix4x4 parentToNearest, long parentStamp, TransformNative t, out long stamp)
+        {
+            if (parts.ToNearestStamp != 0 && parts.ToNearestParent == parentStamp && SameBits(parts.ToNearestPosition, t.LocalPosition)
+                && SameBits(parts.ToNearestRotation, t.LocalRotation) && SameBits(parts.ToNearestScale, t.LocalScale) && keepProducts)
+            {
+                if (verifyProducts) VerifyProduct(parts.ToNearest, parentToNearest * Matrix4x4.TRS(t.LocalPosition, t.LocalRotation, t.LocalScale), t);
+                stamp = parts.ToNearestStamp;
+                return parts.ToNearest;
+            }
+            parts.ToNearestPosition = t.LocalPosition;
+            parts.ToNearestRotation = t.LocalRotation;
+            parts.ToNearestScale = t.LocalScale;
+            parts.ToNearest = parentToNearest * Matrix4x4.TRS(t.LocalPosition, t.LocalRotation, t.LocalScale);
+            parts.ToNearestParent = parentStamp;
+            parts.ToNearestStamp = stamp = ++toNearestStamps;
+            return parts.ToNearest;
+        }
+
+        static long toNearestStamps;
+
+        /// Tests: false computes every product again (as without the kept ones), and stores it.
+        internal static bool keepProducts = true;
+
+        /// ONI_VERIFY_CANVAS_PRODUCTS=1: each kept product used is computed again and must have
+        /// the same bits.
+        static readonly bool verifyProducts = Environment.GetEnvironmentVariable("ONI_VERIFY_CANVAS_PRODUCTS") == "1";
+        static long productsVerified, productsWrong;
+
+        static void VerifyProduct(in Matrix4x4 kept, in Matrix4x4 computed, TransformNative t)
+        {
+            if (!SameBits(kept, computed)) EngineLog.Engine($"canvas products: wrong ({++productsWrong}) at {t.GameObject.Name}: kept {kept}, computed {computed}");
+            if (++productsVerified % 100000 == 0) EngineLog.Engine($"canvas products: {productsVerified} kept products verified, {productsWrong} wrong");
+        }
+
+        internal static bool SameBits(in Matrix4x4 a, in Matrix4x4 b)
+            => System.Runtime.InteropServices.MemoryMarshal.AsBytes(new ReadOnlySpan<Matrix4x4>(in a))
+                .SequenceEqual(System.Runtime.InteropServices.MemoryMarshal.AsBytes(new ReadOnlySpan<Matrix4x4>(in b)));
+
+        static bool SameBits(Vector3 a, Vector3 b)
+            => Unsafe.As<Vector3, long>(ref a) == Unsafe.As<Vector3, long>(ref b)
+               && BitConverter.SingleToInt32Bits(a.z) == BitConverter.SingleToInt32Bits(b.z);
+
+        static bool SameBits(Quaternion a, Quaternion b)
+            => Unsafe.As<Quaternion, Int128>(ref a) == Unsafe.As<Quaternion, Int128>(ref b);
 
         static Vector2 ScreenSize
         {
@@ -473,6 +558,8 @@ namespace OniMoono.Engine.UI
             public readonly List<CanvasDraw> Draws = new();
             /// The root canvas's local-to-world matrix and its inverse (geometry space).
             public Matrix4x4 SpaceToWorld, WorldToSpace;
+            /// SpaceToWorld's number (TransformNative.WorldStamp).
+            public long SpaceStamp;
         }
 
         internal readonly struct CanvasDraw(CanvasRendererNative renderer, CanvasNative space, Material material, bool pop, float groupAlpha,
@@ -507,7 +594,7 @@ namespace OniMoono.Engine.UI
         static (Matrix4x4 ToSpace, Matrix4x4 SpaceToWorld) SpaceOf(CanvasBatch b, in CanvasDraw d)
         {
             if (NestedSpace(d) is { } nested) return (d.ToNearest, nested.GameObject.Transform.LocalToWorld);
-            return (b.WorldToSpace * d.Renderer.GameObject.Transform.LocalToWorld, b.SpaceToWorld);
+            return (Relative(ref d.Renderer.ToSpaceCache, b.WorldToSpace, b.SpaceStamp, d.Renderer.GameObject.Transform), b.SpaceToWorld);
         }
 
         /// The nested canvas a draw's geometry is baked in, or null for the root canvas's space.
@@ -549,6 +636,7 @@ namespace OniMoono.Engine.UI
             foreach (var b in batches)
             {
                 b.SpaceToWorld = b.Root.GameObject.Transform.LocalToWorld;
+                b.SpaceStamp = b.Root.GameObject.Transform.WorldStamp;
                 b.WorldToSpace = b.SpaceToWorld.inverse;
                 var above = b.Canvas.GameObject.Transform.Parent;
                 var (alpha, blocks) = above == null ? (1f, true) : InheritedGroups(above.GameObject);
@@ -568,7 +656,8 @@ namespace OniMoono.Engine.UI
                     c.DepthEpoch++;
                     if (stats) statsRenumbered++;
                 }
-                Collect(b, c.GameObject, b.Root, isBatchRoot: true, depth, c, c.GameObject.Transform.LocalToWorld.inverse, Matrix4x4.identity, alpha, blocks);
+                var top = c.GameObject.Transform;
+                Collect(b, c.GameObject, b.Root, isBatchRoot: true, depth, c, top.LocalToWorld.inverse, top.WorldStamp, Matrix4x4.identity, 0, alpha, blocks);
             }
             // A canvas no longer a sort root (one moved under a canvas that draws it, or under a
             // disabled one) takes its numbers back, so uGUI does not raycast into it.
@@ -637,7 +726,7 @@ namespace OniMoono.Engine.UI
         /// (ONI_VERIFY_CANVAS_SKIPS=1) check each skipped subtree as the walk would have seen it
         /// and log differences.
         static void Collect(CanvasBatch batch, GameObjectNative go, CanvasNative space, bool isBatchRoot, Counter depth,
-            CanvasNative nearest, Matrix4x4 worldToNearest, Matrix4x4 parentToNearest, float groupAlpha, bool blocksRaycasts)
+            CanvasNative nearest, Matrix4x4 worldToNearest, long nearestStamp, Matrix4x4 parentToNearest, long parentStamp, float groupAlpha, bool blocksRaycasts)
         {
             if (!go.ActiveInHierarchy) return;
             if (stats) statsVisits++;
@@ -682,14 +771,16 @@ namespace OniMoono.Engine.UI
             {
                 nearest = canvasHere;
                 worldToNearest = go.Transform.LocalToWorld.inverse;
+                nearestStamp = go.Transform.WorldStamp;
                 depth.RelativeBase = depth.Value;
             }
             // Below a canvas other than the root, the object's placement in that canvas's space:
             // the product of the local transforms from the canvas down, so it stays exactly the
             // same while the canvas itself moves or scales (SpaceOf).
             var own = nearest != space ? nearest : null;
+            long toNearestStamp = 0;
             var toNearest = own == null || go == own.GameObject ? Matrix4x4.identity
-                : parentToNearest * Matrix4x4.TRS(go.Transform.LocalPosition, go.Transform.LocalRotation, go.Transform.LocalScale);
+                : ToNearest(parts, parentToNearest, parentStamp, go.Transform, out toNearestStamp);
             List<CanvasRendererNative> pops = null;
             bool numbersPop = false;
             foreach (var r in parts.Renderers)
@@ -705,13 +796,13 @@ namespace OniMoono.Engine.UI
                     numbersPop |= r.HasPopInstruction;
                 }
                 if (hidden && !blocksRaycasts) continue;
-                r.BuiltToCanvas = worldToNearest * r.GameObject.Transform.LocalToWorld;
+                r.BuiltToCanvas = Relative(ref r.ToNearestCache, worldToNearest, nearestStamp, r.GameObject.Transform);
                 if (r.Cull || hidden || r.Geometry == null || r.Geometry.Indices.Length == 0) continue;
                 foreach (var m in r.Materials) batch.Draws.Add(new CanvasDraw(r, space, m, pop: false, groupAlpha, own, toNearest));
                 if (r.HasPopInstruction) (pops ??= new()).Add(r);
             }
             foreach (var child in go.Transform.Children)
-                Collect(batch, child.GameObject, space, isBatchRoot: false, depth, nearest, worldToNearest, toNearest, groupAlpha, blocksRaycasts);
+                Collect(batch, child.GameObject, space, isBatchRoot: false, depth, nearest, worldToNearest, nearestStamp, toNearest, toNearestStamp, groupAlpha, blocksRaycasts);
             if (pops != null)
                 foreach (var r in pops)
                     foreach (var m in r.PopMaterials) batch.Draws.Add(new CanvasDraw(r, space, m, pop: true, groupAlpha, own, toNearest));
@@ -1244,9 +1335,9 @@ namespace OniMoono.Engine.UI
             r.BakedGeometry = g;
             r.BakedToSpace = toSpace;
             r.BakedColor = color;
+            toSpace.MultiplyPoints3x4(g.Positions, mesh.Positions);
             for (int i = 0; i < n; i++)
             {
-                mesh.Positions[i] = toSpace.MultiplyPoint3x4(g.Positions[i]);
                 var c = g.Colors != null && i < g.Colors.Length ? g.Colors[i] : Color.white;
                 mesh.Colors[i] = c * color;
             }
@@ -1319,5 +1410,10 @@ namespace OniMoono.Engine.UI
         public CanvasRendererNative[] Renderers;
         /// Its raycasters (EventSystems.BaseRaycaster), enabled or not.
         public BehaviourNative[] Raycasters;
+        /// The object's placement in its nested canvas's space, kept (CanvasSystem.ToNearest).
+        public Matrix4x4 ToNearest;
+        public long ToNearestStamp, ToNearestParent;
+        public Vector3 ToNearestPosition, ToNearestScale;
+        public Quaternion ToNearestRotation;
     }
 }

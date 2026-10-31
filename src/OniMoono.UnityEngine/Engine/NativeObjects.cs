@@ -196,8 +196,25 @@ namespace OniMoono.Engine
             }
             localToWorldAffine = m;
             localToWorld = m.ToMatrix();
+            Volatile.Write(ref worldStamp, Interlocked.Increment(ref worldStamps));
             Volatile.Write(ref worldDirty, false);
         }
+
+        /// A number for the world matrix as computed: each computation takes a new one, from 1
+        /// up, so while it stands so does LocalToWorld, and so does anything computed from it
+        /// alone (CanvasSystem keeps the canvas elements' products with their canvas's inverse
+        /// while both numbers stand).
+        public long WorldStamp
+        {
+            get
+            {
+                if (Volatile.Read(ref worldDirty)) ComputeLocalToWorld();
+                return Volatile.Read(ref worldStamp);
+            }
+        }
+
+        long worldStamp;
+        static long worldStamps;
 
         HierarchyMath.Affine LocalTrs()
         {
