@@ -78,9 +78,9 @@ namespace OniMoono.Desktop.Gl
         uint swapFlags;
         bool tearing, occluded;
         int featureLevel;
-        /// The waitable object's count may be off by pictures not waited for (it starts at the
-        /// latency; an occluded picture; a wait that timed out): taken down to nothing before the
-        /// next Present.
+        /// The waitable object's count may be off by pictures not waited for (its count before
+        /// the first Present, which Microsoft does not document; an occluded picture; a wait that
+        /// timed out): taken down to nothing before the next Present.
         bool resync = true;
         int resizes, presents, waitTimeouts;
 

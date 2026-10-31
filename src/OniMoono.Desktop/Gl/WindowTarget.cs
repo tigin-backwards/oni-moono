@@ -70,7 +70,9 @@ namespace OniMoono.Desktop.Gl
             window.SwapBuffers();
             if (!again && interval > 0)
             {
-                // With vsync the swap is done when the frame is on its way to the display.
+                // With vsync, a fence after the swap, meant to signal once the frame is on its way
+                // to the display. Whether it waits for the vertical blank is the driver's choice:
+                // the specification orders it after the swap's commands, not the display.
                 long t = GlTimings.Now;
                 var swapped = N.glFenceSync(SyncGpuCommandsComplete, default);
                 N.glFlush();
