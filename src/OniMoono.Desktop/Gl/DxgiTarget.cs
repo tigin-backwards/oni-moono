@@ -23,8 +23,9 @@ namespace OniMoono.Desktop.Gl
     /// window's GL context current; no other thread holds any of it.
     internal sealed unsafe class DxgiTarget : IWindowTarget
     {
-        // Read and write: the splash blends over what it drew, which reads the texture; WRITE_DISCARD
-        // promises the GL never reads it.
+        // Read and write: the splash blends over the copied frame, which reads the texture. With
+        // WRITE_DISCARD the previous contents may be discarded and reading anything GL did not
+        // write is undefined (WGL_NV_DX_interop).
         const uint WglAccessReadWrite = 1;
 
         readonly IntPtr hwnd;
