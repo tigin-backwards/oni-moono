@@ -1680,13 +1680,16 @@ which would cap the frame rate; the interop lock or keyed mutex bounds what is i
 
 A size change calls `ResizeBuffers` before the next picture; between the window's resize and that
 picture DXGI stretches the last one. A minimized window keeps its framebuffer size (§3.6), so the
-buffers keep theirs; an occluded `Present` (`DXGI_STATUS_OCCLUDED`) shows nothing and is not
-waited for. Exclusive fullscreen stays the window's (GLFW sets the display mode, a monitor-sized
-window), not DXGI's `SetFullscreenState`; DXGI is told to leave the window alone
-(`DXGI_MWA_NO_WINDOW_CHANGES | NO_ALT_ENTER`). After start-up every DXGI, D3D11 and interop object
-is used and released on the presenter thread alone, so neither `Present` nor `ResizeBuffers`
-sends the window a message the main thread (which may be waiting on the device thread, which may
-be waiting on the presenter) would have to answer. Start-up makes everything that can fail
+buffers keep theirs. Microsoft documents that a flip-model swap chain never returns
+`DXGI_STATUS_OCCLUDED`; should one anyway, the picture is taken as not shown and not waited for.
+Exclusive fullscreen stays the window's (GLFW sets the display mode, a monitor-sized window), not
+DXGI's `SetFullscreenState`, and DXGI is told to leave the window alone
+(`DXGI_MWA_NO_WINDOW_CHANGES | NO_ALT_ENTER`): with no DXGI mode change, neither `Present` nor
+`ResizeBuffers` has a reason to send the window a message the main thread (which may be waiting
+on the device thread, which may be waiting on the presenter) would have to answer, the deadlock
+Microsoft's multithreading notes for DXGI warn of with fullscreen swap chains. After start-up
+every DXGI, D3D11 and interop object is used and released on the presenter thread alone.
+Start-up makes everything that can fail
 (the interop extension, the adapter, the D3D11 device, the registration or import, and on OpenGL
 a first lock; Vulkan's keyed mutex is first acquired by the first picture's submission, in play)
 before it gives the window a swap chain, and a failure there leaves the device's own
