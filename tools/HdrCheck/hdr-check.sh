@@ -8,12 +8,12 @@
 # with the Windows player built (scripts/build-windows.sh) and the original's isolated copy set
 # up (scripts/original-windows.sh; ORIG_DIR names it). Test runs only: own run homes, the offline
 # Steam double; no setting is changed.
-#   tools/HdrCheck/hdr-check.sh [MONITOR]      MONITOR: 1-based, as -monitor (default 1)
+#   tools/HdrCheck/hdr-check.sh [MONITOR]      MONITOR: 1-based, as -monitor (default 2)
 # ONI_HDR_GAME: the game folder Moono runs (default the installed game); ONI_HDR_ONLY: a list of
 # the players to run (original ours-vulkan-dxgi ours-vulkan-own ours-opengl-dxgi ours-opengl-own).
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
-monitor="${1:-1}"
+monitor="${1:-2}"
 [ "$(powershell.exe -NoProfile -Command "(Get-ItemProperty 'HKCU:\Software\Valve\Steam' -ErrorAction SilentlyContinue).RunningAppID" | tr -d '\r')" = 457140 ] \
     && { echo "Oxygen Not Included is running in Steam; close it first." >&2; exit 1; }
 [ -f "$root/out/win/host/OniMoono.exe" ] || { echo "no out/win: run scripts/build-windows.sh first" >&2; exit 1; }
@@ -29,6 +29,12 @@ cp "$root/out/win/steamstub/steam_api64.dll" "$work/steam_api64.dll"
 game="${ONI_HDR_GAME:-C:\\Program Files (x86)\\Steam\\steamapps\\common\\OxygenNotIncluded}"
 only="${ONI_HDR_ONLY:-original ours-vulkan-dxgi ours-vulkan-own ours-opengl-dxgi ours-opengl-own}"
 
+# Monitor 2 by default; on a machine with one monitor, that one.
+screens="$(powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Screen]::AllScreens.Count" | tr -d '\r')"
+if [ "$monitor" -gt "${screens:-1}" ]; then
+    echo "monitor $monitor asked for, but this machine has ${screens:-1}: using monitor 1"
+    monitor=1
+fi
 # The monitor's desktop rectangle (GLFW's and Unity's order is the display order, monitor 1 the
 # primary one): "X Y W H".
 read -r mx my mw mh <<< "$(powershell.exe -NoProfile -Command "
@@ -56,7 +62,9 @@ pfms=()
 for which in $only; do
     home "$which"
     if [ "$which" = original ]; then
-        (cd "$root" && ONI_RUN_HOME="$workw\\original" ORIG_SECONDS=180 ONI_STEAM_STUB="$work/steam_api64.dll" scripts/original-windows.sh -monitor "$monitor" > /dev/null 2>&1) &
+        (cd "$root" && ONI_RUN_HOME="$workw\\original" ORIG_SECONDS=180 ONI_STEAM_STUB="$work/steam_api64.dll" ONI_WIN_MONITOR="$monitor" \
+            scripts/original-windows.sh -screen-fullscreen 1 -screen-width "$mw" -screen-height "$mh" -monitor "$monitor" > /dev/null 2>&1) &
+        # original-windows.sh puts "-screen-fullscreen 0 -monitor 2" first; the ones above win.
         capture original 140 # the original reaches the menu later than Moono
         stop "$workw\\original\\Player.log"
     else
