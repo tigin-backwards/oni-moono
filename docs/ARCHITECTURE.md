@@ -1692,13 +1692,14 @@ a first lock; Vulkan's keyed mutex is first acquired by the first picture's subm
 before it gives the window a swap chain, and a failure there leaves the device's own
 presentation in use, with one `present:` log line saying why. Once the window has a swap chain,
 a failure (the chain's own set-up at start-up; while running a lost device:
-`DXGI_ERROR_DEVICE_REMOVED`/`RESET`/`HUNG`, a failed lock, a keyed-mutex timeout, a failed image
-view, resize or present) releases everything DXGI held and starts it anew. Vulkan calls
-`vkQueueSubmit2` itself for the DXGI submission, under the lock Brutal's `Queue` takes, to see
-`VK_TIMEOUT` from the keyed mutex (Brutal's `Submit2` returns nothing then), which would otherwise
-leave the presenter waiting on a fence that never signals; a Brutal without that lock (its private
-`_lock` field) leaves DXGI off for Vulkan, with the reason on the `present:` line, and Vulkan's
-swapchain presents. Restarts come in bursts of ten tries,
+`DXGI_ERROR_DEVICE_REMOVED`/`RESET`/`HUNG`, a failed lock, a keyed-mutex timeout on D3D11's side
+(`IDXGIKeyedMutex::AcquireSync`), a failed image view, resize or present) releases everything DXGI
+held and starts it anew. Vulkan's side of the mutex is in the submission (Brutal's
+`Queue.Submit2`), which reports no timeout: the registry (`vk.xml`) gives `vkQueueSubmit2` one
+success code, `VK_SUCCESS`, and its errors (out of host or device memory, device lost, unknown,
+validation failed) end presenting as a lost device does; `VK_KHR_win32_keyed_mutex` gives each
+acquire a timeout but does not say what a submission whose acquire times out returns or does.
+Restarts come in bursts of ten tries,
 1, 2, 4 then 8 s apart (about a minute, outlasting a slow driver reset); a restart that presents
 for 60 s ends its burst, so a later failure gets ten tries again. Until a restart succeeds the
 device's own presentation stands in: Vulkan's swapchain reaches the screen then (measured), but

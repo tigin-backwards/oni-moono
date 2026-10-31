@@ -5,13 +5,13 @@ using System.Linq;
 namespace OniMoono.Host
 {
     /// `--dxgi-fault WHAT[,WHAT]` (OniMoono.Desktop.Gl.DxgiSwapChain.Fault): the made-up DXGI
-    /// failures this build has: OpenGL's and Vulkan's (import, queuelock, importview:N and
-    /// mutextimeout:N are Vulkan's). The tests compile it in.
+    /// failures this build has: OpenGL's and Vulkan's (import and importview:N are Vulkan's).
+    /// The tests compile it in.
     internal static class DxgiFaultOption
     {
         /// At start-up, and once DXGI runs (with N, the Nth time), and "norestart".
-        public static readonly string[] Steps = ["extension", "adapter", "device", "register", "swapchain", "association", "import", "queuelock", "norestart"];
-        public static readonly string[] Counted = ["lock", "resize", "removed", "importview", "mutextimeout"];
+        public static readonly string[] Steps = ["extension", "adapter", "device", "register", "swapchain", "association", "import", "norestart"];
+        public static readonly string[] Counted = ["lock", "resize", "removed", "importview"];
 
         public static string Known => string.Join(", ", Steps.Concat(Counted.Select(c => c + ":N")));
 

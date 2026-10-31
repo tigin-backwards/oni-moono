@@ -117,20 +117,6 @@ namespace OniMoono.Tests
             Assert.InRange(PresenterTimings.SplashWait(pacedByPresent: true), 10, 16);
         }
 
-        /// The Vulkan presenter's DXGI submission takes the lock Brutal's Queue.Submit2 takes (its
-        /// only Lock field), to call vkQueueSubmit2 itself and see VK_TIMEOUT; a binding update
-        /// that renames it must not silently drop the serialization with the device thread.
-        [Fact]
-        public void TheQueueLockIsBrutalsOwn()
-        {
-            Assert.NotNull(OniMoono.Desktop.Vulkan.VkPresenter.QueueLockField);
-            Assert.Equal(typeof(System.Threading.Lock), OniMoono.Desktop.Vulkan.VkPresenter.QueueLockField.FieldType);
-            int locks = 0;
-            foreach (var f in typeof(Brutal.VulkanApi.Queue).GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance))
-                if (f.FieldType == typeof(System.Threading.Lock)) locks++;
-            Assert.Equal(1, locks);
-        }
-
         /// Restarts after DXGI fails: ten tries a burst, 1, 2, 4 then 8 s apart (about a minute,
         /// outlasting a slow driver reset); a restart that presents for 60 s ends the burst.
         [Fact]
@@ -228,14 +214,14 @@ namespace OniMoono.Tests
         public void EveryFaultThisBuildHasIsAccepted()
         {
             foreach (var ok in new[] { "extension", "adapter", "device", "register", "swapchain", "association", "norestart",
-                                       "import", "queuelock", "lock:1", "resize:3", "removed:300", "importview:2", "mutextimeout:5",
+                                       "import", "lock:1", "resize:3", "removed:300", "importview:2",
                                        "removed:300,norestart", "association,norestart" })
                 Assert.Null(OniMoono.Host.DxgiFaultOption.Unknown(ok));
             Assert.Equal("bogus", OniMoono.Host.DxgiFaultOption.Unknown("removed:3,bogus"));
             foreach (var bad in new[] { "", "lock", "lock:", "lock:0", "lock:-1", "lock:x", "removed", "norestart:1", "Removed:3", "import:1" })
                 Assert.Equal(bad, OniMoono.Host.DxgiFaultOption.Unknown(bad));
-            Assert.Equal("extension, adapter, device, register, swapchain, association, import, queuelock, norestart, "
-                + "lock:N, resize:N, removed:N, importview:N, mutextimeout:N", OniMoono.Host.DxgiFaultOption.Known);
+            Assert.Equal("extension, adapter, device, register, swapchain, association, import, norestart, "
+                + "lock:N, resize:N, removed:N, importview:N", OniMoono.Host.DxgiFaultOption.Known);
         }
 
         [Fact]

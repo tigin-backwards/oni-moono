@@ -27,12 +27,10 @@ namespace OniMoono.Desktop.Gl
         /// Diagnostics (`--dxgi-fault WHAT[,WHAT]`): failures made up, for testing the ways back.
         /// At start-up (the device's own presentation instead): "adapter", "device", "swapchain",
         /// "association" (after the swap chain is made: DXGI is then restarted);
-        /// OpenGL's "extension" (no WGL_NV_DX_interop2) and "register"; Vulkan's "queuelock" (no lock
-        /// to submit under, as if Brutal's Queue had none), "import" and
+        /// OpenGL's "extension" (no WGL_NV_DX_interop2) and "register"; Vulkan's "import" and
         /// "importview:N" (the Nth image view of the shared texture: 2, a grown one, in play). While
         /// running (DXGI is then restarted): "lock:N" (the Nth interop lock, or keyed-mutex
-        /// acquire), "mutextimeout:N" (Vulkan: the Nth submission timing out on the keyed mutex),
-        /// "resize:N", "removed:N" (the Nth Present failing with
+        /// acquire), "resize:N", "removed:N" (the Nth Present failing with
         /// DXGI_ERROR_DEVICE_REMOVED). "norestart": every restart fails too. Each happens once,
         /// so a restart succeeds.
         public static string Fault;

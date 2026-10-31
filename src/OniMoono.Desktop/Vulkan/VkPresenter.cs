@@ -541,21 +541,10 @@ namespace OniMoono.Desktop.Vulkan
             dxgi.MutexInfo(&mutex, &memoryCell, &acquireKey, &releaseKey, &timeout);
             var buffer = new VkCommandBufferSubmitInfo { CommandBuffer = cb.Handle };
             var submit = new VkSubmitInfo2 { Next = &mutex, CommandBufferInfoCount = 1, CommandBufferInfos = &buffer };
-            var result = SubmitDxgi(&submit, fences[s]);
-            if (result == VkResult.Timeout)
-            {
-                // The keyed mutex was not given back in time: nothing was submitted (the slot's
-                // fence will not signal, so it is not waited for), and DXGI is restarted. The
-                // fence is reset anyway once the queue is idle: the specification leaves its state
-                // after a failed submission open, and a signaled fence must not be submitted again.
-                try { vk.Queue.WaitIdle(); } catch (VkResultError) { }
-                var fence = fences[s];
-                vk.Device.PInvoke.vkResetFences.Invoke(vk.Device.Handle, 1, &fence);
-                dxgi.Fail("the Vulkan submission timed out acquiring the keyed mutex");
-                DxgiFailed();
-                return;
-            }
-            VkCheck.Ok(result, "vkQueueSubmit2 (presenter, DXGI)");
+            // vkQueueSubmit2's only success code is VK_SUCCESS (vk.xml); its errors throw and end
+            // presenting (Failure). VK_KHR_win32_keyed_mutex does not say what a submission whose
+            // acquire times out returns or does, so no timeout is looked for here.
+            vk.Queue.Submit2(new Span<VkSubmitInfo2>(&submit, 1), fences[s]);
             submitted[s] = true;
             if (!dxgi.Show(interval))
             {
@@ -564,28 +553,6 @@ namespace OniMoono.Desktop.Vulkan
             }
             lastWait = dxgi.LastWait;
             dxgiRestarts.Presented(GlTimings.Now);
-        }
-
-        /// The queue's lock (Brutal's Queue serializes its submissions with it; the device thread
-        /// submits too): the DXGI picture's submission calls vkQueueSubmit2 itself under the same
-        /// lock, because Queue.Submit2 reports no VK_TIMEOUT, which a keyed mutex not given back
-        /// in time returns. DxgiPresentTests.TheQueueLockIsBrutalsOwn checks the field.
-        internal static readonly System.Reflection.FieldInfo QueueLockField =
-            typeof(Queue).GetField("_lock", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        int dxgiSubmits;
-
-        /// The queue's lock; null when the binding has no such field (VkDxgiTarget then does not
-        /// start DXGI, and Vulkan's swapchain presents).
-        internal static System.Threading.Lock QueueLock(Queue queue) => QueueLockField?.GetValue(queue) as System.Threading.Lock;
-
-        /// Submits the DXGI picture's batch; VkResult.Timeout when the keyed mutex was not given
-        /// back in time (or --dxgi-fault mutextimeout:N, the Nth submission).
-        VkResult SubmitDxgi(VkSubmitInfo2* submit, VkFence fence)
-        {
-            if (DxgiSwapChain.Faulty("mutextimeout", ++dxgiSubmits)) return VkResult.Timeout;
-            // DXGI starts only with the lock (VkDxgiTarget.Start).
-            using (QueueLock(vk.Queue).EnterScope())
-                return vk.Device.PInvoke.vkQueueSubmit2.Invoke(vk.Queue.Handle, 1, submit, fence);
         }
 
         /// DXGI failed while running: everything it held is released, and it is restarted, or

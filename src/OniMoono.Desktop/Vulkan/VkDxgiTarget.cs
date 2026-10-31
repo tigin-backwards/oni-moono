@@ -77,10 +77,6 @@ namespace OniMoono.Desktop.Vulkan
         {
             if (DxgiSwapChain.RestartRefused) return "a restart that fails";
             if (!vk.DxgiInterop) return "the Vulkan driver has no VK_KHR_external_memory_win32 and VK_KHR_win32_keyed_mutex";
-            // The picture's submission must see a keyed-mutex timeout (VkPresenter.SubmitDxgi), which
-            // needs the lock Brutal's Queue submits under; without it a timeout would hang the presenter.
-            if (DxgiSwapChain.Faulty("queuelock") || VkPresenter.QueueLock(vk.Queue) == null)
-                return "Brutal's Queue has no lock the DXGI submission can take (its private _lock field), so a keyed-mutex timeout could not be seen";
             if (DxgiSwapChain.Faulty("adapter") || vk.Luid == 0) return "the Vulkan device gives no LUID to find its DXGI adapter by";
             if (!Importable(out string why)) return why;
             // The device and the import first, the swap chain last: once the window has had one,
