@@ -713,8 +713,14 @@ namespace OniMoono.Desktop.Vulkan
                 recreateFailures = 0;
                 return true;
             }
-            catch (VkResultError e) when (e.Result is VkResult.ErrorOutOfHostMemory or VkResult.ErrorOutOfDeviceMemory or VkResult.ErrorInitializationFailed
-                or VkResult.ErrorNativeWindowInUseKHR or VkResult.ErrorOutOfDateKHR)
+            // What Recreate's calls can return that may pass (vk.xml's error codes of
+            // vkCreateSwapchainKHR, the surface queries and vkGetSwapchainImagesKHR): out of host
+            // or device memory, and a window still held by another swap chain. None of them
+            // returns VK_ERROR_OUT_OF_DATE_KHR. VK_ERROR_INITIALIZATION_FAILED is specified only for
+            // full-screen-exclusive, present-barrier and display-plane swapchains, none of which is
+            // made here: it is tried again as a guard against a driver that returns it anyway.
+            catch (VkResultError e) when (e.Result is VkResult.ErrorOutOfHostMemory or VkResult.ErrorOutOfDeviceMemory
+                or VkResult.ErrorNativeWindowInUseKHR or VkResult.ErrorInitializationFailed)
             {
                 if (recreateFailures++ == 0) firstFailure = now;
                 // Given up only after both RecreateAttempts tries and RecreateGiveUp seconds, so a
