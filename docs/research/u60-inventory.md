@@ -136,9 +136,12 @@ save loaded by PerfProbe's load.txt (colony up at frame 124), and the QA perf ha
     transpiler), and `KMod.Local.Subscribe` is unchanged (ModVersionStamp).
   - A loose-file Workshop mod still needs a runtime check.
 - **VYaml 1.2 to 1.4:** loaded from the game's `Managed` folder with no special handling. POI
-  templates now go through it, so new-game worldgen covers it at runtime.
+  templates now go through it, so new-game worldgen covers it at runtime. Verified: QA's newgame
+  scenario generates a world on U60 with no errors and matches its references (2026-10-31).
 - **Incremental GC:** a Unity player setting plus `gc-max-time-slice`. The game's code adds no
-  `GarbageCollector` calls. Not applicable to CoreCLR.
+  `GarbageCollector` calls. Not applicable to CoreCLR, which ignores the setting. Measured in the
+  original only: removing `gc-max-time-slice` from its boot.config lowered its U57 memory after the
+  load from 13.5 to 12.2 GB and its peak from 15.1 to 14.7 GB (one run each, 2026-10-31).
 - **IMGUI developer tools on Linux:** to be checked with the clean-room IMGUI once the Linux build runs.
 - **Vulkan as the Linux default:** U60's data carries Unity's Vulkan programs as well as the
   OpenGL ones. Moono's `u60` renders with Vulkan by default on Linux and Windows, running those
