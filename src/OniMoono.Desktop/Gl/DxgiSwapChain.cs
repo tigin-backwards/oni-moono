@@ -243,7 +243,7 @@ namespace OniMoono.Desktop.Gl
         /// the back buffer, presents it `interval` vertical blanks after the last (0: at once)
         /// and, with vsync, waits until the picture before it is on its way (MaximumFrameLatency
         /// pictures in flight): the waitable object is signalled as each presented picture
-        /// retires; an occluded picture was not queued and is not waited for. The
+        /// retires; an occluded picture would not be queued and is not waited for. The
         /// caller has made `source` ready for D3D11 (the interop unlock, the keyed mutex).
         public bool Present(void* source, int interval)
         {
@@ -268,6 +268,9 @@ namespace OniMoono.Desktop.Gl
             uint sync = (uint)Math.Clamp(interval, 0, 4);
             uint flags = sync == 0 && tearing ? Dxgi.PresentAllowTearing : 0;
             int hr = Faulty("removed", presents) ? Dxgi.ErrorDeviceRemoved : Dxgi.Present(swapChain, sync, flags);
+            // DXGI_STATUS_OCCLUDED does not come from a flip-model swap chain (Microsoft's
+            // DXGI_STATUS list: "You will not receive DXGI_STATUS_OCCLUDED if you're using a flip
+            // model swap chain"); it is handled only in case a driver or Windows does send it.
             bool nowOccluded = hr == Dxgi.StatusOccluded;
             if (nowOccluded != occluded && PresentTrace.Enabled) PresentTrace.Log($"dxgi: present {presents}: {(nowOccluded ? "occluded (not shown)" : "shown again")}");
             occluded = nowOccluded;
