@@ -187,9 +187,13 @@ namespace OniMoono.Engine.UI
             parts = new UiParts { Source = components };
             List<CanvasGroupNative> groups = null;
             List<CanvasRendererNative> renderers = null;
+            List<BehaviourNative> raycasters = null;
             foreach (var comp in components)
                 switch (comp)
                 {
+                    case Behaviour when comp.Native is BehaviourNative b && IsRaycaster(comp.GetType()):
+                        (raycasters ??= new()).Add(b);
+                        break;
                     case Canvas when comp.Native is CanvasNative c:
                         parts.Canvas ??= c;
                         break;
@@ -202,8 +206,49 @@ namespace OniMoono.Engine.UI
                 }
             parts.Groups = groups?.ToArray() ?? Array.Empty<CanvasGroupNative>();
             parts.Renderers = renderers?.ToArray() ?? Array.Empty<CanvasRendererNative>();
+            parts.Raycasters = raycasters?.ToArray() ?? Array.Empty<BehaviourNative>();
             go.UiParts = parts;
             return parts;
+        }
+
+        /// An EventSystems.BaseRaycaster (the UI package's; GraphicRaycaster derives from it), by name:
+        /// the engine does not reference the package.
+        static bool IsRaycaster(Type type)
+        {
+            lock (raycasterTypes)
+            {
+                if (raycasterTypes.TryGetValue(type, out bool known)) return known;
+                bool found = false;
+                for (var t = type; t != null && !found; t = t.BaseType) found = t.FullName == "UnityEngine.EventSystems.BaseRaycaster";
+                raycasterTypes[type] = found;
+                return found;
+            }
+        }
+
+        static readonly Dictionary<Type, bool> raycasterTypes = new();
+
+        static int EnabledRaycasters(UiParts parts)
+        {
+            int n = 0;
+            foreach (var r in parts.Raycasters)
+                if (r.IsActiveAndEnabledState) n++;
+            return n;
+        }
+
+        /// Whether an enabled raycaster could test graphics below an object through the canvas
+        /// they would belong to above it: one on an object above it, up to its nearest live canvas
+        /// (a graphic's canvas is the nearest live one; uGUI's GraphicRaycaster tests the graphics
+        /// of its own canvas). False when the object has a live canvas of its own.
+        static bool RaycasterAbove(GameObjectNative go)
+        {
+            if (CanvasOn(go) != null) return false;
+            for (var t = go.Transform.Parent; t != null; t = t.Parent)
+            {
+                var parts = PartsOf(t.GameObject);
+                if (EnabledRaycasters(parts) > 0) return true;
+                if (parts.Canvas is { } c && IsLive(c)) return false;
+            }
+            return false;
         }
 
         /// A canvas's root: the topmost canvas above it, up to and including the first disabled
@@ -475,9 +520,13 @@ namespace OniMoono.Engine.UI
             return shader == null || shader.Native is not ShaderNative native || native.ReadsVertexPosition;
         }
 
+        /// Objects the last build walked (tests).
+        internal static int Walked;
+
         static void Build()
         {
             buildNumber++;
+            Walked = 0;
             lastSortRoots.Clear();
             foreach (var b in batches) lastSortRoots.Add(b.Canvas);
             batches.Clear();
@@ -508,6 +557,7 @@ namespace OniMoono.Engine.UI
                 depth.Value = 0;
                 depth.RelativeBase = 0;
                 depth.IgnoringGroups = 0;
+                depth.Raycasters = 0;
                 // A canvas that was not a sort root at the last build (one moved to the top level)
                 // numbers its elements, whatever numbered them before.
                 depth.Renumber = c.DepthDirty || c.SortRootBuild != buildNumber - 1;
@@ -554,6 +604,8 @@ namespace OniMoono.Engine.UI
             public int RelativeBase;
             /// Live CanvasGroups that ignore their parents' groups, met so far in the walk.
             public int IgnoringGroups;
+            /// Enabled raycasters met so far in the walk.
+            public int Raycasters;
         }
 
         static readonly Counter counter = new();
@@ -574,14 +626,22 @@ namespace OniMoono.Engine.UI
         /// the batch renumbers there is nothing to do in it. Its top object records when it was
         /// walked so (CanvasHiddenAt) if no group in it ignores its parents; while nothing at or
         /// below it changes (SubtreeVersion), the walk skips it. Most of a large colony's UI is
-        /// screens hidden this way (about 8,900 of 11,500 objects visited a frame in U57). Test
-        /// runs (ONI_VERIFY_CANVAS_SKIPS=1) check each skipped subtree as the walk would have seen
-        /// it and log differences.
+        /// screens hidden this way (about 8,900 of 11,500 objects visited a frame in U57). So is a
+        /// hidden subtree whose groups let raycasts through when no enabled raycaster could test
+        /// its graphics: none in it, and none above it up to its nearest live canvas (read at each
+        /// skip: an ancestor's raycaster enabled again changes nothing below). Hiding the research
+        /// screen, the game sets its group's alpha to 0 and disables its two raycasters, and keeps
+        /// it active with the group still blocking raycasts (U57: about 6,400 objects a frame).
+        /// Such a top (CanvasNoRaycastersAt) is not one of OutOfSight's: a raycaster's Raycast,
+        /// called while it is disabled, still tests its graphics. Test runs
+        /// (ONI_VERIFY_CANVAS_SKIPS=1) check each skipped subtree as the walk would have seen it
+        /// and log differences.
         static void Collect(CanvasBatch batch, GameObjectNative go, CanvasNative space, bool isBatchRoot, Counter depth,
             CanvasNative nearest, Matrix4x4 worldToNearest, Matrix4x4 parentToNearest, float groupAlpha, bool blocksRaycasts)
         {
             if (!go.ActiveInHierarchy) return;
             if (stats) statsVisits++;
+            Walked++;
             var parts = PartsOf(go);
             var canvasHere = parts.Canvas is { } here && !here.Destroyed ? here : null;
             // A nested sort root is a batch of its own; a disabled canvas draws nothing (its
@@ -589,6 +649,7 @@ namespace OniMoono.Engine.UI
             if (!isBatchRoot && canvasHere != null && (canvasHere.OverrideSorting || !IsLive(canvasHere))) return;
             // CanvasGroups multiply down the hierarchy; one that ignores its parents restarts it.
             bool skippedAbove = groupAlpha <= 0f && !blocksRaycasts;
+            bool hiddenAbove = groupAlpha <= 0f;
             foreach (var g in parts.Groups)
                 if (g.IsActiveAndEnabledState)
                 {
@@ -601,14 +662,21 @@ namespace OniMoono.Engine.UI
             // found it all hidden (only a group ignoring its parents could let raycasts in again,
             // and a subtree with one is never skipped).
             bool hiddenTop = hidden && !blocksRaycasts && !skippedAbove;
-            if (hiddenTop && !depth.Renumber && go.CanvasHiddenAt == go.SubtreeVersion)
+            // The top of a hidden subtree that lets raycasts through, where the parent is not
+            // hidden: skipped likewise while no enabled raycaster can test it.
+            bool unraycastTop = hidden && blocksRaycasts && !hiddenAbove;
+            if (!depth.Renumber && (hiddenTop && go.CanvasHiddenAt == go.SubtreeVersion
+                                    || unraycastTop && go.CanvasNoRaycastersAt == go.SubtreeVersion && !RaycasterAbove(go)))
             {
-                if (verifySkips) VerifySkipped(batch.Canvas, go, isTop: true);
+                if (verifySkips) VerifySkipped(batch.Canvas, go, isTop: true, raycasters: unraycastTop);
                 return;
             }
             go.CanvasHiddenAt = -1;
+            go.CanvasNoRaycastersAt = -1;
             long version = go.SubtreeVersion;
             int ignoringBefore = depth.IgnoringGroups;
+            int raycastersBefore = depth.Raycasters;
+            depth.Raycasters += EnabledRaycasters(parts);
             int relativeBefore = depth.RelativeBase;
             if (canvasHere != null && canvasHere != nearest)
             {
@@ -652,6 +720,8 @@ namespace OniMoono.Engine.UI
                     if (!r.Destroyed && r.HasPopInstruction) depth.Value++;
             depth.RelativeBase = relativeBefore;
             if (hiddenTop && depth.IgnoringGroups == ignoringBefore) go.CanvasHiddenAt = version;
+            if (unraycastTop && depth.IgnoringGroups == ignoringBefore && depth.Raycasters == raycastersBefore && !RaycasterAbove(go))
+                go.CanvasNoRaycastersAt = version;
         }
 
         // ----- Clipping out of sight -----
@@ -778,18 +848,26 @@ namespace OniMoono.Engine.UI
 
         /// A skipped hidden subtree, as the walk would visit it: every element numbered by the
         /// batch's last renumbering and no live group that ignores its parents.
-        static void VerifySkipped(CanvasNative batch, GameObjectNative go, bool isTop)
+        static void VerifySkipped(CanvasNative batch, GameObjectNative go, bool isTop, bool raycasters = false)
         {
             if (isTop && ++skipsVerified % 10000 == 0) EngineLog.Engine($"canvas skips: {skipsVerified} verified, {skipsWrong} wrong");
             if (!go.ActiveInHierarchy) return;
             if (stats) statsVisits++;
             var parts = PartsOf(go);
             if (!isTop && parts.Canvas is { } c && !c.Destroyed && (c.OverrideSorting || !IsLive(c))) return;
-            bool wrong = false;
-            foreach (var g in parts.Groups) wrong |= g.IsActiveAndEnabledState && g.IgnoreParentGroups;
-            foreach (var r in parts.Renderers) wrong |= !r.Destroyed && (r.DepthBatch != batch || !r.HasDepth);
-            if (wrong) EngineLog.Engine($"canvas skip wrong ({++skipsWrong}) at {go.Name}");
-            foreach (var child in go.Transform.Children) VerifySkipped(batch, child.GameObject, isTop: false);
+            // The top's own groups set its alpha (one there may ignore its parents, as the
+            // research screen's does); one below that ignores its parents could show it again.
+            string why = null;
+            if (!isTop)
+                foreach (var g in parts.Groups)
+                    if (g.IsActiveAndEnabledState && g.IgnoreParentGroups) why = "a group ignores its parents";
+            foreach (var r in parts.Renderers)
+                if (!r.Destroyed && (r.DepthBatch != batch || !r.HasDepth)) why = "an element without its depth";
+            // Skipped for want of raycasters: none enabled in it, or above it to its canvas.
+            if (raycasters && EnabledRaycasters(parts) > 0) why = "an enabled raycaster";
+            if (raycasters && isTop && RaycasterAbove(go)) why = "an enabled raycaster above";
+            if (why != null) EngineLog.Engine($"canvas skip wrong ({++skipsWrong}) at {go.Name}: {why}");
+            foreach (var child in go.Transform.Children) VerifySkipped(batch, child.GameObject, isTop: false, raycasters);
         }
 
         /// Diagnostics (`--probe-ui`): the elements of the last build drawn at a screen point
@@ -1239,5 +1317,7 @@ namespace OniMoono.Engine.UI
         public CanvasNative Canvas;
         public CanvasGroupNative[] Groups;
         public CanvasRendererNative[] Renderers;
+        /// Its raycasters (EventSystems.BaseRaycaster), enabled or not.
+        public BehaviourNative[] Raycasters;
     }
 }
