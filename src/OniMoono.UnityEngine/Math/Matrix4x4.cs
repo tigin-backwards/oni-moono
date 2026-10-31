@@ -1,5 +1,8 @@
 using System;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace UnityEngine
 {
@@ -105,11 +108,85 @@ namespace UnityEngine
             return r;
         }
 
-        public static Vector4 operator *(Matrix4x4 lhs, Vector4 v) => new Vector4(
-            Dot(lhs.m00, v.x, lhs.m01, v.y, lhs.m02, v.z, lhs.m03, v.w),
-            Dot(lhs.m10, v.x, lhs.m11, v.y, lhs.m12, v.z, lhs.m13, v.w),
-            Dot(lhs.m20, v.x, lhs.m21, v.y, lhs.m22, v.z, lhs.m23, v.w),
-            Dot(lhs.m30, v.x, lhs.m31, v.y, lhs.m32, v.z, lhs.m33, v.w));
+        public static Vector4 operator *(Matrix4x4 lhs, Vector4 v)
+        {
+            if (Avx2.IsSupported)
+            {
+                var c = Columns(in lhs);
+                var f = Avx.ConvertToVector128Single(Combine(in c, Avx.ConvertToVector256Double(Unsafe.As<Vector4, Vector128<float>>(ref v))));
+                return Unsafe.As<Vector128<float>, Vector4>(ref f);
+            }
+            return new Vector4(
+                Dot(lhs.m00, v.x, lhs.m01, v.y, lhs.m02, v.z, lhs.m03, v.w),
+                Dot(lhs.m10, v.x, lhs.m11, v.y, lhs.m12, v.z, lhs.m13, v.w),
+                Dot(lhs.m20, v.x, lhs.m21, v.y, lhs.m22, v.z, lhs.m23, v.w),
+                Dot(lhs.m30, v.x, lhs.m31, v.y, lhs.m32, v.z, lhs.m33, v.w));
+        }
+
+        // With AVX2 the products of a matrix and a vector run four rows at once: a column of the
+        // matrix widened to double, times an element widened and broadcast, the products added in
+        // the same order (vmulpd and vaddpd round each lane as mulsd and addsd do, and no product
+        // is fused into an add), each lane narrowed to float once. Each product of two floats is
+        // exact in double, so only the adds round, as in Dot: the same bits as the scalar
+        // arithmetic for every input whose result is not NaN, and NaN where it is NaN
+        // (MatrixProductTests). Which NaN, when two NaN operands meet, depends on the order the
+        // JIT puts them in, which changes with optimisation: the two agreed on every payload in a
+        // debug build and not in a release one.
+        // MultiplyPoint3x4 is about three times as fast, and six times over a mesh's vertices
+        // (MultiplyPoints3x4). Matrix times matrix stays scalar: four columns this way measured
+        // no faster, the time going to moving the 64-byte operands.
+
+        /// A matrix's columns widened to double.
+        internal readonly struct WideColumns(Vector256<double> c0, Vector256<double> c1, Vector256<double> c2, Vector256<double> c3)
+        {
+            public readonly Vector256<double> C0 = c0, C1 = c1, C2 = c2, C3 = c3;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static WideColumns Columns(in Matrix4x4 m)
+        {
+            ref float f = ref Unsafe.As<Matrix4x4, float>(ref Unsafe.AsRef(in m));
+            return new WideColumns(
+                Avx.ConvertToVector256Double(Vector128.LoadUnsafe(ref f, 0)),
+                Avx.ConvertToVector256Double(Vector128.LoadUnsafe(ref f, 4)),
+                Avx.ConvertToVector256Double(Vector128.LoadUnsafe(ref f, 8)),
+                Avx.ConvertToVector256Double(Vector128.LoadUnsafe(ref f, 12)));
+        }
+
+        /// The columns times a vector's elements, c0 v0 + c1 v1 + c2 v2 + c3 v3, in that order, the
+        /// elements widened together and broadcast by permutes.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static Vector256<double> Combine(in WideColumns c, Vector256<double> v)
+            => Avx.Add(Avx.Add(Avx.Add(
+                Avx.Multiply(c.C0, Avx2.Permute4x64(v, 0x00)),
+                Avx.Multiply(c.C1, Avx2.Permute4x64(v, 0x55))),
+                Avx.Multiply(c.C2, Avx2.Permute4x64(v, 0xAA))),
+                Avx.Multiply(c.C3, Avx2.Permute4x64(v, 0xFF)));
+
+        /// MultiplyPoint3x4's arithmetic on widened columns, all four rows (the last unused).
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static Vector128<float> AffineAvx(in WideColumns c, Vector3 p)
+            => Avx.ConvertToVector128Single(Avx.Add(Avx.Add(Avx.Add(
+                Avx.Multiply(c.C0, Vector256.Create((double)p.x)),
+                Avx.Multiply(c.C1, Vector256.Create((double)p.y))),
+                Avx.Multiply(c.C2, Vector256.Create((double)p.z))),
+                c.C3));
+
+        /// MultiplyPoint3x4 of each point, the matrix widened once.
+        internal void MultiplyPoints3x4(ReadOnlySpan<Vector3> points, Span<Vector3> result)
+        {
+            if (!Avx2.IsSupported)
+            {
+                for (int i = 0; i < points.Length; i++) result[i] = MultiplyPoint3x4(points[i]);
+                return;
+            }
+            var c = Columns(in this);
+            for (int i = 0; i < points.Length; i++)
+            {
+                var f = AffineAvx(in c, points[i]);
+                result[i] = new Vector3(f.GetElement(0), f.GetElement(1), f.GetElement(2));
+            }
+        }
 
         // The products are evaluated as Unity's own Matrix4x4 is under its Mono (ARCHITECTURE
         // D25: float32 off): each element's sum of products in double, left to right, rounded to
@@ -137,22 +214,54 @@ namespace UnityEngine
         /// Full projective transform with the perspective divide.
         public Vector3 MultiplyPoint(Vector3 point)
         {
-            float x = Affine(m00, point.x, m01, point.y, m02, point.z, m03);
-            float y = Affine(m10, point.x, m11, point.y, m12, point.z, m13);
-            float z = Affine(m20, point.x, m21, point.y, m22, point.z, m23);
-            float w = 1f / Affine(m30, point.x, m31, point.y, m32, point.z, m33);
+            float x, y, z, w;
+            if (Avx2.IsSupported)
+            {
+                var c = Columns(in this);
+                var f = AffineAvx(in c, point);
+                x = f.GetElement(0); y = f.GetElement(1); z = f.GetElement(2);
+                w = 1f / f.GetElement(3);
+            }
+            else
+            {
+                x = Affine(m00, point.x, m01, point.y, m02, point.z, m03);
+                y = Affine(m10, point.x, m11, point.y, m12, point.z, m13);
+                z = Affine(m20, point.x, m21, point.y, m22, point.z, m23);
+                w = 1f / Affine(m30, point.x, m31, point.y, m32, point.z, m33);
+            }
             return new Vector3(x * w, y * w, z * w);
         }
 
-        public Vector3 MultiplyPoint3x4(Vector3 point) => new Vector3(
-            Affine(m00, point.x, m01, point.y, m02, point.z, m03),
-            Affine(m10, point.x, m11, point.y, m12, point.z, m13),
-            Affine(m20, point.x, m21, point.y, m22, point.z, m23));
+        public Vector3 MultiplyPoint3x4(Vector3 point)
+        {
+            if (Avx2.IsSupported)
+            {
+                var c = Columns(in this);
+                var f = AffineAvx(in c, point);
+                return new Vector3(f.GetElement(0), f.GetElement(1), f.GetElement(2));
+            }
+            return new Vector3(
+                Affine(m00, point.x, m01, point.y, m02, point.z, m03),
+                Affine(m10, point.x, m11, point.y, m12, point.z, m13),
+                Affine(m20, point.x, m21, point.y, m22, point.z, m23));
+        }
 
-        public Vector3 MultiplyVector(Vector3 vector) => new Vector3(
-            Dot(m00, vector.x, m01, vector.y, m02, vector.z),
-            Dot(m10, vector.x, m11, vector.y, m12, vector.z),
-            Dot(m20, vector.x, m21, vector.y, m22, vector.z));
+        public Vector3 MultiplyVector(Vector3 vector)
+        {
+            if (Avx2.IsSupported)
+            {
+                var c = Columns(in this);
+                var f = Avx.ConvertToVector128Single(Avx.Add(Avx.Add(
+                    Avx.Multiply(c.C0, Vector256.Create((double)vector.x)),
+                    Avx.Multiply(c.C1, Vector256.Create((double)vector.y))),
+                    Avx.Multiply(c.C2, Vector256.Create((double)vector.z))));
+                return new Vector3(f.GetElement(0), f.GetElement(1), f.GetElement(2));
+            }
+            return new Vector3(
+                Dot(m00, vector.x, m01, vector.y, m02, vector.z),
+                Dot(m10, vector.x, m11, vector.y, m12, vector.z),
+                Dot(m20, vector.x, m21, vector.y, m22, vector.z));
+        }
 
         public static Matrix4x4 Scale(Vector3 vector)
         {
