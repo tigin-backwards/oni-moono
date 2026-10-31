@@ -411,9 +411,13 @@ namespace OniMoono.Desktop.Vulkan
                 {
                     return Device.CreatePipelineCache(info, null);
                 }
-                catch (VkResultError)
+                catch (VkResultError e) when (data != null)
                 {
-                    // A cache from another driver or GPU is refused by some drivers: start empty.
+                    // Data from another driver or GPU gives an empty cache, not an error (the
+                    // specification), and vkCreatePipelineCache's errors are out of memory and
+                    // unknown: tried once more without the data, as a guard against a driver that
+                    // fails on it anyway.
+                    EngineLog.Engine($"vulkan: the pipeline cache was not made from its file ({e.Result}); starting empty");
                     return Device.CreatePipelineCache(new VkPipelineCacheCreateInfo(), null);
                 }
             }
@@ -430,7 +434,14 @@ namespace OniMoono.Desktop.Vulkan
                 fixed (byte* p = data)
                 {
                     nuint written = size;
-                    Device.PInvoke.vkGetPipelineCacheData.Invoke(Device.Handle, PipelineCache, &written, p);
+                    // VK_INCOMPLETE (the cache grew since its size was asked) is a success too:
+                    // what was written is valid cache data (the specification).
+                    var r = Device.PInvoke.vkGetPipelineCacheData.Invoke(Device.Handle, PipelineCache, &written, p);
+                    if (r is not (VkResult.Success or VkResult.Incomplete))
+                    {
+                        EngineLog.Engine($"vulkan: pipeline cache not saved (vkGetPipelineCacheData: {r})");
+                        return;
+                    }
                     System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(pipelineCachePath)!);
                     System.IO.File.WriteAllBytes(pipelineCachePath, data.AsSpan(0, (int)written).ToArray());
                 }
