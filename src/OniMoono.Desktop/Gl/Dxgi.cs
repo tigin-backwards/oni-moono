@@ -15,6 +15,9 @@ namespace OniMoono.Desktop.Gl
         public const int StatusOccluded = 0x087A0001;
         public const int ErrorDeviceRemoved = unchecked((int)0x887A0005), ErrorDeviceHung = unchecked((int)0x887A0006),
             ErrorDeviceReset = unchecked((int)0x887A0007), ErrorDriverInternal = unchecked((int)0x887A0020);
+        /// D3DDDIERR_DEVICEREMOVED: IDXGISwapChain::Present may return it in place of
+        /// DXGI_ERROR_DEVICE_REMOVED after the card is removed or its driver upgraded (Microsoft).
+        public const int DdiErrorDeviceRemoved = unchecked((int)0x88760870);
 
         // ----- Constants -----
         public const uint FormatR8G8B8A8Unorm = 28;
@@ -175,7 +178,7 @@ namespace OniMoono.Desktop.Gl
 
         /// A failure that means the device is gone (removed, reset, hung, or the driver failed):
         /// nothing made on it works again.
-        public static bool DeviceLost(int hr) => hr is ErrorDeviceRemoved or ErrorDeviceReset or ErrorDeviceHung or ErrorDriverInternal;
+        public static bool DeviceLost(int hr) => hr is ErrorDeviceRemoved or ErrorDeviceReset or ErrorDeviceHung or ErrorDriverInternal or DdiErrorDeviceRemoved;
 
         public static string Hr(int hr) => hr switch
         {
@@ -183,6 +186,7 @@ namespace OniMoono.Desktop.Gl
             ErrorDeviceReset => "DXGI_ERROR_DEVICE_RESET",
             ErrorDeviceHung => "DXGI_ERROR_DEVICE_HUNG",
             ErrorDriverInternal => "DXGI_ERROR_DRIVER_INTERNAL_ERROR",
+            DdiErrorDeviceRemoved => "D3DDDIERR_DEVICEREMOVED",
             StatusOccluded => "DXGI_STATUS_OCCLUDED",
             _ => $"0x{hr:X8}",
         };

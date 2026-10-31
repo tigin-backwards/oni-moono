@@ -70,10 +70,12 @@ namespace OniMoono.Tests
             Assert.True(Dxgi.DeviceLost(Dxgi.ErrorDeviceReset));
             Assert.True(Dxgi.DeviceLost(Dxgi.ErrorDeviceHung));
             Assert.True(Dxgi.DeviceLost(Dxgi.ErrorDriverInternal));
+            Assert.True(Dxgi.DeviceLost(Dxgi.DdiErrorDeviceRemoved));
             Assert.False(Dxgi.DeviceLost(Dxgi.StatusOccluded));
             Assert.False(Dxgi.Failed(Dxgi.StatusOccluded));
             Assert.True(Dxgi.Failed(Dxgi.ErrorDeviceRemoved));
             Assert.Equal("DXGI_ERROR_DEVICE_REMOVED", Dxgi.Hr(Dxgi.ErrorDeviceRemoved));
+            Assert.Equal("D3DDDIERR_DEVICEREMOVED", Dxgi.Hr(Dxgi.DdiErrorDeviceRemoved));
             Assert.Equal("0x80070005", Dxgi.Hr(unchecked((int)0x80070005)));
         }
 
