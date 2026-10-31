@@ -63,6 +63,6 @@ namespace OniMoono.Desktop.Vulkan
         /// Out of host or device memory: worth trying again later, never remembered as a refusal.
         public static bool IsOutOfMemory(Exception e)
             => e is VkResultError { Result: VkResult.ErrorOutOfHostMemory or VkResult.ErrorOutOfDeviceMemory or VkResult.ErrorOutOfPoolMemory }
-               || e.InnerException is VkResultError { Result: VkResult.ErrorOutOfHostMemory or VkResult.ErrorOutOfDeviceMemory };
+               || e.InnerException is VkResultError { Result: VkResult.ErrorOutOfHostMemory or VkResult.ErrorOutOfDeviceMemory or VkResult.ErrorOutOfPoolMemory };
     }
 }
