@@ -531,8 +531,10 @@ namespace OniMoono.Desktop.Gl
 
         internal static void UploadArray(TexelUpload t, DeviceTexture g)
         {
-            Begin(g, TexTarget2DArray);
+            // The format first: one with no GL equivalent throws before a texture name is made,
+            // which would have no image (incomplete, and no bindless handle).
             var f = Of(t.Format);
+            Begin(g, TexTarget2DArray);
             var memory = t.Memory;
             int levels = Math.Max(1, t.MipCount);
             long sliceSize = TextureFormats.ImageSize(t.Format, t.Width, t.Height, t.MipCount);
@@ -563,8 +565,10 @@ namespace OniMoono.Desktop.Gl
 
         internal static void Upload3D(TexelUpload t, DeviceTexture g)
         {
-            Begin(g, TexTarget3D);
+            // The format first: one with no GL equivalent throws before a texture name is made,
+            // which would have no image (incomplete, and no bindless handle).
             var f = Of(t.Format);
+            Begin(g, TexTarget3D);
             var memory = t.Memory;
             int levels = Math.Max(1, t.MipCount);
             for (int m = 0; m < levels; m++)
@@ -638,6 +642,9 @@ namespace OniMoono.Desktop.Gl
             bool depthOnly = rt.ColorFormat == GraphicsFormat.None;
             int levels = rt.Levels;
             int samples = rt.Samples;
+            // A colour format with no GL equivalent throws before the old surfaces are replaced
+            // by a texture name with no image.
+            uint internalFormat = depthOnly ? 0 : InternalOf(rt.ColorFormat);
             g.Delete();
             g.Id = GlApi.GenTexture();
             g.Target = TexTarget2D;
@@ -651,7 +658,6 @@ namespace OniMoono.Desktop.Gl
                 N.glTexImage2D(TexTarget2D, 0, (int)DepthComponent32F, rt.Width, rt.Height, 0, DepthComponent, Float, null);
             else
             {
-                uint internalFormat = InternalOf(rt.ColorFormat);
                 for (int m = 0; m < levels; m++)
                     N.glTexImage2D(TexTarget2D, m, (int)internalFormat, Math.Max(1, rt.Width >> m), Math.Max(1, rt.Height >> m), 0, Rgba, Float, null);
             }
@@ -684,7 +690,7 @@ namespace OniMoono.Desktop.Gl
                 GlApi.BindFramebuffer(Framebuffer, g.MultisampleFramebuffer);
                 g.MultisampleColor = GlApi.GenRenderbuffer();
                 N.glBindRenderbuffer(Renderbuffer, new GlRenderbuffer(g.MultisampleColor));
-                N.glRenderbufferStorageMultisample(Renderbuffer, samples, InternalOf(rt.ColorFormat), rt.Width, rt.Height);
+                N.glRenderbufferStorageMultisample(Renderbuffer, samples, internalFormat, rt.Width, rt.Height);
                 N.glFramebufferRenderbuffer(Framebuffer, ColorAttachment0, Renderbuffer, new GlRenderbuffer(g.MultisampleColor));
                 if (rt.DepthBits > 0)
                 {
