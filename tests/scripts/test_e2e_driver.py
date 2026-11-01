@@ -1,7 +1,7 @@
 """e2e.py's E2eDriver client against a small fake server speaking its protocol (JSON lines over TCP,
 replies and element descriptions as tools/E2eDriver/README.md gives them), and the UI steps built
 on it, with a fake XTEST input standing in for the X server."""
-import json, os, socket, socketserver, tempfile, threading, unittest
+import json, os, socket, socketserver, tempfile, threading, time, unittest
 
 import helpers  # noqa: F401
 import e2e
@@ -510,6 +510,27 @@ class DriverTests(unittest.TestCase):
         self.assertEqual([e['name'] for e in run.evidence['world_shot']], ['zoomed'])
         run.step('shot', 'plain', 4)  # the old form
         self.assertTrue(os.path.exists(os.path.join(self.temp.name, 'plain.png')))
+
+    def test_file_shot_copies_a_profile_image_into_the_evidence(self):
+        run = self.run_for()
+        profile = os.path.join(self.temp.name, 'profile')
+        os.makedirs(os.path.join(profile, 'save_files', 'e2e'))
+        run.player.profile = profile
+        for name, age in (('old.png', 100), ('new.png', 0)):
+            path = os.path.join(profile, 'save_files', 'e2e', name)
+            with open(path, 'wb') as f:
+                f.write(name.encode())
+            os.utime(path, (time.time() - age, time.time() - age))
+        run.step('file_shot', {'name': 'preview', 'path': 'save_files/e2e/*.png'}, 1)
+        meta = json.load(open(os.path.join(self.temp.name, 'preview.shot.json')))
+        self.assertEqual((meta['file'], meta['source'], meta['world']), ('preview.png', 'save_files/e2e/new.png', True))
+        self.assertEqual(open(os.path.join(self.temp.name, 'preview.png'), 'rb').read(), b'new.png')
+        self.assertEqual([e['name'] for e in run.evidence['world_shot']], ['preview'])
+        with self.assertRaises(e2e.SpecFailure):
+            run.step('file_shot', {'name': 'none', 'path': 'Timelapse/*.png', 'wait': 0}, 2)
+        self.assertEqual(e2e.check_step('s', 'file_shot', {'name': 'x', 'path': '/etc/passwd'}, False),
+                         ["s: file_shot takes {name, path} (an image in the run's profile, relative, globs allowed), and threshold"])
+        self.assertEqual(e2e.check_step('s', 'file_shot', {'name': 'x', 'path': 'save_files/*.png'}, False), [])
 
     def test_evidence_waits_for_the_build_menu(self):
         self.game.add('Screen/Menu', [0, 0, 100, 100])

@@ -515,6 +515,45 @@ class Translation(unittest.TestCase):
         self.assertIn('`tweaks_menu` is true or false',
                       e2e.check_spec({'from': 'main-menu', 'mods': [], 'tweaks_menu': 'yes', 'steps': []}))
 
+    def test_blocked_plugins_are_file_names(self):
+        for how in ('unreadable', 'missing'):
+            self.assertEqual(e2e.check_spec({'from': 'main-menu', 'blocked_plugins': {'libSimDLL.so': how}, 'steps': []}), [])
+        for bad in ('libSimDLL.so', ['libSimDLL.so'], {'x86_64/libSimDLL.so': 'missing'}, {'libSimDLL.so': 'gone'}):
+            self.assertIn('`blocked_plugins` maps plugin file names to unreadable or missing',
+                          e2e.check_spec({'from': 'main-menu', 'blocked_plugins': bad, 'steps': []}))
+        self.assertIn('`data_collection` is true or false',
+                      e2e.check_spec({'from': 'main-menu', 'data_collection': 'no', 'steps': []}))
+
+    def test_blocked_install_links_all_but_the_blocked_plugin(self):
+        with tempfile.TemporaryDirectory() as root:
+            game, elsewhere = os.path.join(root, 'game'), os.path.join(root, 'depot')
+            os.makedirs(os.path.join(elsewhere, 'x86_64'))
+            os.makedirs(os.path.join(game, 'Game_Data', 'Plugins', 'AnyCPU'))
+            for path in ('x86_64/libSimDLL.so', 'x86_64/libfmod.so'):
+                with open(os.path.join(elsewhere, path), 'w') as f:
+                    f.write(path)
+            # The plugin folder is a link into another install, as in the frozen test installs.
+            os.symlink(os.path.join(elsewhere, 'x86_64'), os.path.join(game, 'Game_Data', 'Plugins', 'x86_64'))
+            for path in ('Game', 'Game_Data/level0', 'Game_Data/Plugins/AnyCPU/libsteam_api.so'):
+                with open(os.path.join(game, path), 'w') as f:
+                    f.write(path)
+            dest = e2e.blocked_install(game, {'libSimDLL.so': 'unreadable'}, os.path.join(root, 'copy'))
+            plugins = os.path.join(dest, 'Game_Data', 'Plugins')
+            blocked = os.path.join(plugins, 'x86_64', 'libSimDLL.so')
+            self.assertFalse(os.path.islink(blocked))
+            self.assertEqual(os.stat(blocked).st_mode & 0o777, 0)
+            for path in ('Game', 'Game_Data/level0', 'Game_Data/Plugins/AnyCPU', 'Game_Data/Plugins/x86_64/libfmod.so'):
+                self.assertTrue(os.path.islink(os.path.join(dest, path)), path)
+            for path in ('Game_Data', 'Game_Data/Plugins', 'Game_Data/Plugins/x86_64'):
+                self.assertFalse(os.path.islink(os.path.join(dest, path)), path)
+            # The install itself is untouched.
+            self.assertEqual(os.stat(os.path.join(elsewhere, 'x86_64', 'libSimDLL.so')).st_mode & 0o444, 0o444)
+            missing = e2e.blocked_install(game, {'libSimDLL.so': 'missing'}, os.path.join(root, 'copy2'))
+            self.assertFalse(os.path.lexists(os.path.join(missing, 'Game_Data', 'Plugins', 'x86_64', 'libSimDLL.so')))
+            self.assertTrue(os.path.islink(os.path.join(missing, 'Game_Data', 'Plugins', 'x86_64', 'libfmod.so')))
+            with self.assertRaises(e2e.SpecFailure):
+                e2e.blocked_install(game, {'nope.so': 'missing'}, os.path.join(root, 'copy3'))
+
     def test_language_is_one_of_the_games_own(self):
         self.assertEqual(e2e.check_spec({'from': 'main-menu', 'mods': [], 'language': 'zh_klei', 'steps': []}), [])
         self.assertTrue(any('`language` is one of' in p for p in

@@ -155,6 +155,10 @@ translation: 929139073           # the language of this translation mod (one of 
 language: zh_klei                # or one of the game's own languages (zh_klei, ko_klei, ru_klei)
 tweaks_menu: true                # ours keeps the main menu's Moono Tweaks button (run with --player ours)
 scaled_screen: true              # the game may render smaller than the display (below)
+blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its install (in the run's folder)
+                                 # with these native plugins `missing` or `unreadable` (mode 000)
+data_collection: false           # the Data Collection option off: an error the spec provokes sends
+                                 # no crash report to Klei (on, the default, a worldgen failure does)
 setup: [...]                     # steps run first; the only place for driver setup.call
 steps: [...]
 ```
@@ -353,7 +357,13 @@ step. The original run itself records it and passes.
 - shot: {name: dialog, crop: "**/Dialog", threshold: 0.04}     # a text-dense screen
 - shot: overview                                               # the whole frame
 - world_shot: {name: zoomed, ortho: 45, at: [128, 210], hide_ui: true, mask: [[600, 300, 80, 80]]}
+- file_shot: {name: preview, path: "save_files/e2e/e2e.png"}   # an image the game wrote in the profile
 ```
+
+- `file_shot` copies an image the game wrote into the run's profile (a save's colony preview, a
+  timelapse frame; `path` relative to the profile, a glob's newest match) into the evidence, once
+  it exists and its size holds for a second (`wait`, default 60 s), and compares it as a
+  `world_shot` (5 %; sizes more than 2 px apart fail).
 
 - `shot` moves the pointer to the bottom-right corner first, then takes the whole frame through
   OniMcp. It records the crop rect (the element's `ui.find` rect) and mask rects (UI paths, or
