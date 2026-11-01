@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3819624656-manual-translation-title.yaml",
+ "mods": [
+  "3819624656"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "7cc9e634",
+ "mod_dlls": {
+  "3819624656": {
+   "ModTitlesManual.dll": "425bb5733da65411678dbf1d2439515d09e3f03d4d623e058e039c26036a2282"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-064427-2b16e9c7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:44:28",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-090618-324fe4f6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:06:18",
+    "lane": 36,
+    "reference_run": "20261101-064427-2b16e9c7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-090618-324fe4f6",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:09:25",
+    "lane": 36,
+    "reference_run": "20261101-064427-2b16e9c7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
