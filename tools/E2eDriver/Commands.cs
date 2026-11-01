@@ -42,6 +42,7 @@ namespace E2eDriver
                 case "keys.log": return KeyLog.Start(a);
                 case "ui.action": return UiAction(a);
                 case "imgui.scrollview": return ImguiProbe.Start(a);
+                case "templates.load": return Templates.Load(a);
                 case null: throw new DriverError("the request has no cmd");
                 default: throw new DriverError("unknown command " + request.Command);
             }

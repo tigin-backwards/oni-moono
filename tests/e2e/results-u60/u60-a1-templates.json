@@ -1,0 +1,57 @@
+{
+ "spec": "u60-a1-templates.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "every template file read through TemplateCache.LoadTemplateYaml at the main menu, one line per file, as in the original",
+ "updated": "2026-11-01",
+ "commit": "2480f909",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-173454-2dccb520",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T17:34:54",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261101-173454-2dccb520",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T17:35:45",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-173454-2dccb520",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T17:36:35",
+    "lane": 1,
+    "reference_run": "20261101-173454-2dccb520",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-173454-2dccb520",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T17:36:52",
+    "lane": 1,
+    "reference_run": "20261101-173454-2dccb520",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

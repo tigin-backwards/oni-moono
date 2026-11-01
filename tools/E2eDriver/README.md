@@ -510,6 +510,18 @@ Shows an IMGUI scroll view 300 by 300 pixels centred on the screen, over content
 resets its scroll position (`on: false` removes it). The wheel over it scrolls it; read the
 position as state: `type:E2eDriver.ImguiProbe::ScrollY`. Answers `{"on": true}`.
 
+### templates.load `{}`
+
+Loads every `.yaml` under StreamingAssets' `templates/` and each `dlc/*/templates/` through the
+game's `TemplateCache.LoadTemplateYaml` (VYaml since U60), in ordinal order of the path, and
+reduces each to one line: `PATH cells=N prefabs=N mass=BITS temp=BITS ids=… hash=HEX`. `mass`
+and `temp` are the sums of the cells' values as a double's bits in hex; `ids` the prefab ids of
+buildings, pickupables, elementalOres, otherEntities and backwallEntities; `hash` an FNV-1a 64
+of every public field and property, floats by their bits. A file the loader rejects reads
+`PATH null`. Each line is also logged (`[E2eDriver] template …`). Read them as state:
+`type:E2eDriver.Templates::Lines`, `::Count`, `::Failed` and `::Digest` (the hash of all
+lines). Answers `{"count", "failed", "digest"}`.
+
 ## Errors
 
 | error | when |

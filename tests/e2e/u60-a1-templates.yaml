@@ -1,0 +1,16 @@
+# U60 QA spec A1 (docs/research/u60-qa-spec.md): templates through VYaml 1.4.
+#
+# U60's TemplateCache.LoadTemplateYaml reads every template with VYaml (KYaml.LoadFile, then
+# ApplyVYamlDefaults) where U59 used YamlDotNet. A value read differently would not log, so
+# E2eDriver's templates.load reads every .yaml under templates/ and dlc/*/templates/ through
+# that loader, at the main menu, and reduces each file to one line (cell and prefab counts, the
+# sums of mass and temperature by their bits, the prefab ids, a hash of every value). The lines
+# must be those of the original.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - driver: {templates.load: {}}
+  - expect_state:
+      "type:E2eDriver.Templates::Count": [">= 300", "== original"]
+      "type:E2eDriver.Templates::Failed": "== original"
+      "type:E2eDriver.Templates::Digest": "== original"
