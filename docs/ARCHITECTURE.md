@@ -1931,16 +1931,37 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   same text); else the shader is not drawn, as on OpenGL. The rewrite lays a program out as
   Unity's Vulkan programs are (loose uniforms in one std140 block per stage and named blocks in
   set 1, samplers and storage buffers in set 0, by name and the same in both stages; inputs at
-  their channels' locations; varyings one location map by name) and ends the vertex stage as
-  Unity's do, negating `gl_Position.y`; the device gives these programs the same projection, so
-  they render alike and share targets, depth and pipelines with the shipped ones. Code the
-  GLCore compile fixed for OpenGL (`UNITY_REVERSED_Z` and `UNITY_UV_STARTS_AT_TOP` branches,
-  `gl_FragCoord`'s origin) keeps OpenGL's meaning; the mods' shaders met (TextMeshPro, particles,
-  tiles) use none of it. `ONI_VULKAN_ROUTE=glcore` sends every shader this way (a diagnostic):
-  against OpenGL's references the menus, options, new game, research, burst and intro
-  scenarios match, while Klei's world comes out black (not pinned down; most likely its GLCore
-  programs' OpenGL depth and render-texture conventions); Klei's shaders always take the
-  shipped route.
+  their channels' locations; varyings one location map by name). Such a program runs in
+  OpenGL's clip space: it reads OpenGL's projection and `_ProjectionParams` (x 1), and its
+  vertex stage ends by mapping that clip space onto the target as the shipped programs lay it
+  out: depth from [-w, w] to the reversed [w, 0] (the mapping `RenderConventions` puts in the
+  shipped programs' projection), y negated into the back buffer and kept into a render texture
+  (`oni_ClipY`, a vertex constant set per draw). What the camera's projection places lands
+  where the shipped programs put it, so both kinds share targets, depth and pipelines.
+  `_ZBufferParams` keeps the reversed form, which linearises the depth Vulkan stores
+  (1 - OpenGL's) as OpenGL's form does OpenGL's. Render textures hold OpenGL's rows for
+  everything a compiled program draws, including what it writes to clip space directly, so the
+  GLCore text's `UNITY_UV_STARTS_AT_TOP` branches read it back as on OpenGL.
+  Until that, compiled programs ended as the shipped ones do, negating `gl_Position.y` under
+  the shipped projection, and with `ONI_VULKAN_ROUTE=glcore` Klei's world came out black.
+  `Klei/TexturePage` copies each page of the world's property textures (light, dig amount,
+  gas, liquid; `TextureBuffer.Unlock`) by writing clip space directly (`y = 1 - 2v`, the same
+  in its GLCore text and shipped SPIR-V), so the negation stored them turned over, as on
+  Unity's Vulkan. The GLCore text of 16 Klei shaders (`Klei/Lightbuffer`,
+  `Klei/PostFX/LightBufferCompositor`, tiles, liquids, gases, fog of war) reads them at
+  `1 - v`, as OpenGL needs, where the shipped SPIR-V reads `v` (compared in
+  `Klei/Lightbuffer`'s vertex stages). Each cell read the cell mirrored about the world's middle
+  row: the lights discarded themselves on unlit cells (the light buffer dumped empty) and the
+  world was drawn unlit. Content written to clip space directly is where the two kinds still
+  disagree: a texture written so by one kind and read through such a branch by the other is
+  read turned over (no mod's shader met does that). Also still OpenGL's in the compiled text
+  and not matched: `UNITY_REVERSED_Z` branches reading raw depth (Unity's depth-blit and debug
+  shaders, no Klei shader), `gl_FragCoord` in the back buffer (y from the top; none of the
+  game's GLCore programs reads it) and `gl_FragDepth`. `ONI_VULKAN_ROUTE=glcore` sends every
+  shader this way: a diagnostic, and the route a build with only GLCore programs would take
+  (all 517 of Klei's Linux GLCore programs are in the macOS data unchanged). Every QA dogfood
+  scenario then matches OpenGL's references, and the scenario `colony-glcore` checks the
+  world that way; Klei's shaders take the shipped route otherwise.
 - *Conventions.* Unity's Vulkan programs are compiled with reversed Z and UVs starting at the
   top, as Unity's manual ("Platform-specific rendering differences") describes; the rest was
   read from the SPIR-V. Each vertex stage ends by negating `gl_Position.y`, so with the camera's
