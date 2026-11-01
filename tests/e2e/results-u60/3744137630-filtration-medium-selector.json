@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3744137630-filtration-medium-selector.yaml",
+ "mods": [
+  "3744137630"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Deodorizer in the dug-out corridor west of the printing pod. It has the selector; selected, its few-option side screen lists the choices (dumped)",
+ "updated": "2026-11-01",
+ "commit": "a252aedc",
+ "mod_dlls": {
+  "3744137630": {
+   "FiltrationMediumSelector.dll": "c5698ec41195756e79e8afb3926dac8938936615537ce86259c483fb1872b6a1"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-084954-7a070a59",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:53:22",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-090321-164c1974",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:03:21",
+    "lane": 40,
+    "reference_run": "20261101-084954-7a070a59",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "options": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-090321-164c1974",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:03:22",
+    "lane": 41,
+    "reference_run": "20261101-084954-7a070a59",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "options": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

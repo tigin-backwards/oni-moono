@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3674431270-canister-filler-max-weight.yaml",
+ "mods": [
+  "3674431270"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Canister Filler in the dug-out corridor west of the printing pod. Its fill amount is its maximum; selected, its capacity side screen shows it (dumped)",
+ "updated": "2026-11-01",
+ "commit": "df954a45",
+ "mod_dlls": {
+  "3674431270": {
+   "CanisterFillerMaxWeight.dll": "d8f748739c0ba10603991fd14592f915e8319c0b23f2fd6223afd2f5956c3687"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014441-b56fec9b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:07:54",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-022150-3883b6be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:21:50",
+    "lane": 45,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "capacity": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-022150-3883b6be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:26:11",
+    "lane": 45,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "capacity": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

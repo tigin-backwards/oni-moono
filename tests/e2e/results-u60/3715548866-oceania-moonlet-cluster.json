@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3715548866-oceania-moonlet-cluster.yaml",
+ "mods": [
+  "3715548866"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "from a colony: the pause menu's Main Menu, Quit Without Saving, New Game, Survival, Spaced Out, the mod's cluster by its coordinate (fixed seed), launched and embarked. Worldgen expectations are functional: the start world is the mod's, 150 x 256, and its companion moonlet is among the cluster's worlds",
+ "updated": "2026-11-01",
+ "commit": "7237c93a",
+ "mod_dlls": {
+  "3715548866": {
+   "VanillaOceaniaMoonlet.dll": "0320f52efccc542b731a086919069ac082493e3742f6efd883fab1e1626d9599"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-015220-ea715534",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:58:09",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-024217-c0976182",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:42:17",
+    "lane": 45,
+    "reference_run": "20261101-015220-ea715534",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-024217-c0976182",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:43:53",
+    "lane": 41,
+    "reference_run": "20261101-015220-ea715534",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

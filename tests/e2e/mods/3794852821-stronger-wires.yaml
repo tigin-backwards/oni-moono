@@ -1,0 +1,19 @@
+# 更强的导线 Stronger wires (3794852821), classes P, O (PLib options).
+#
+# What it does: one wire rating (the game's WattageRating 5) carries what the options say,
+# 4000 W by default, set with a slider or a field and taking effect at once: a postfix on
+# Wire.GetMaxWattageAsFloat reads the config file whenever it changes.
+# How a player reaches it: the mod's options (Mods screen).
+# What changes: a wire tier's capacity.
+#
+# Defaults. The patched rating's capacity and each wire tier's are compared with the original's,
+# and the colony runs on.
+from: early-base
+mods: [3794852821]
+steps:
+  - expect_state:
+      "Wire.GetMaxWattageAsFloat(5)": "== original"
+      "Wire.GetMaxWattageAsFloat(1)": "== original"
+      "Assets.GetBuildingDef(\"WireRefined\").BuildingComplete.GetComponent<Wire>.GetMaxWattageRating()": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

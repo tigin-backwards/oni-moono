@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3409093374-copy-booster-assigned-setting.yaml",
+ "mods": [
+  "3409093374"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Bionic Duplicant's prefab has both components; the colony (with no Bionic) runs on",
+ "updated": "2026-11-01",
+ "commit": "f1ca699d",
+ "mod_dlls": {
+  "3409093374": {
+   "biocaedTmpl.dll": "8365ad0468ee176c7ccbfb3ec470608a486f8d85219c93708aa9c150f5a69c3e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-020114-68ffb98c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:19:50",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-023158-7a8748bc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:31:58",
+    "lane": 45,
+    "reference_run": "20261101-020114-68ffb98c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-023158-7a8748bc",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:32:04",
+    "lane": 43,
+    "reference_run": "20261101-020114-68ffb98c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

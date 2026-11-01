@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3719293749-save-as-new-base.yaml",
+ "mods": [
+  "3719293749"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the pause menu's Save As, its new save button, the name \"e2e-newbase\" typed: the mod's confirmation dialog opens (dumped); \"Yes, save to new folder\" saves, and the file is in a folder of that name",
+ "updated": "2026-11-01",
+ "commit": "39e4f234",
+ "mod_dlls": {
+  "3719293749": {
+   "PLib.dll": "893dc1ea3eddd02c85d433231aae356be27be07ddfc1a98fb2c51d84748208e8",
+   "SaveAsNewBase.dll": "c036f2987582db19c6b2ac88c31a017e6b28748ac9c2dfdcd204f9de0ee4be7d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-075025-21b2d5ac",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:55:28",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-081909-d4c7afa7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:19:09",
+    "lane": 42,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "confirm": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-081909-d4c7afa7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:19:10",
+    "lane": 43,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "confirm": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,34 @@
+{
+ "spec": "mods/3820168351-reactor-meltdown-choice.yaml",
+ "mods": [
+  "3820168351"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3820168351": {
+   "NuclearMeltdownEvent.dll": "2a28c65d1825b583c5f0f1b5500d99fc8b0deb1c7215065a9b2a717dbeb40f4f",
+   "PLib.dll": "3dc9bc06c6b54660b833d314192e6b34c578754facc6aff3c7e803b5cdc6616e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T08:33:15",
+    "lane": 53,
+    "reasons": [
+     "step start: the player exited (1) before OniMcp started"
+    ],
+    "signatures": 2
+   }
+  ],
+  "ours": []
+ }
+}

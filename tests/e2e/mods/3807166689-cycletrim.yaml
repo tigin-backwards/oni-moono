@@ -1,0 +1,21 @@
+# CycleTrim (Early Development) (3807166689), classes P, O (PLib options, CycleTrimOptions.json).
+#
+# What it does: trims per-frame work: fewer fetch pickup candidates, pickup and chore refreshes
+# limited to active Duplicants, and less navigation probing for critters that stand still
+# (patches on the brain manager's NextTask, TickFrame, Unregister and Shutdown, and
+# Navigator.TakeResult); an option switches to an experimental simulation core.
+# How a player reaches it: playing; its options.
+# What changes: frame time, not the colony's behaviour.
+#
+# Defaults. A cell of the floor west of the printing pod is dug and its debris carried off: the
+# Duplicants still do their errands, the dig is done, and after 300 s they are as many as in
+# the original.
+from: early-base
+mods: [3807166689]
+steps:
+  - dig: [108, 205, 108, 205]
+  - run: {seconds: 600, until: {pending_digs: 0}}
+  - expect: {pending_digs: 0}
+  - run: {seconds: 300}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

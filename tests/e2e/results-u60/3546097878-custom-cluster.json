@@ -1,0 +1,31 @@
+{
+ "spec": "mods/3546097878-custom-cluster.yaml",
+ "mods": [
+  "3546097878"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3546097878": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T05:49:18",
+    "lane": 53,
+    "reasons": [
+     "step 17: CustomGameSettings.Instance.GetCurrentQualitySetting(\"ClusterLayout\").id is \"expansion1::clusters/VanillaSandstoneCluster\", wanted {'contains': 'CustomCluster'}"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

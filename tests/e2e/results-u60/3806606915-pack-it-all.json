@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3806606915-pack-it-all.yaml",
+ "mods": [
+  "3806606915"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Storage Bin in the dug-out corridor west of the printing pod. Selected, its user menu's Pack is clicked; a Duplicant packs it, and a package lies where it stood",
+ "updated": "2026-11-01",
+ "commit": "610c7867",
+ "mod_dlls": {
+  "3806606915": {
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70",
+   "PackedBuildings.dll": "724867443db1edf5677af2bcda8b57ccbf57bb520c30cb7dd189d06eda201ef0"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-050306-80757503",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:08:53",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-093715-c64e691c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:37:15",
+    "lane": 40,
+    "reference_run": "20261101-050306-80757503",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-093715-c64e691c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:37:16",
+    "lane": 41,
+    "reference_run": "20261101-050306-80757503",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

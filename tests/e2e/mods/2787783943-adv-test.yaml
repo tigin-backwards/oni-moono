@@ -1,0 +1,13 @@
+# adv test (2787783943), class B.
+#
+# What it does: four generators: an eco-friendly methane generator, a naphtha generator, a
+# refined carbon generator and a thermoelectric generator.
+# How a player reaches it: the build menu (Power).
+# What changes: more power sources.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [2787783943]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

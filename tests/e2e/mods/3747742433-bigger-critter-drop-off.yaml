@@ -1,0 +1,21 @@
+# Bigger Critter Drop Off (3747742433), class P.
+#
+# What it does: critter drop-offs hold up to 1000 critters (the game: 20): a postfix on
+# BaggableCritterCapacityTracker.creatureLimit, one on its OnSpawn setting maximumCreatures and
+# the user's capacity to 1000, and a coroutine after load raising existing ones.
+# How a player reaches it: a Critter Drop-Off's capacity slider.
+# What changes: far more critters per drop-off.
+#
+# setup places a Critter Drop-Off in the corridor west of the printing pod (118,207): its
+# capacity is 1000, and the log says so.
+from: early-base
+mods: [3747742433]
+require_log: ['\[BiggerCritterDropOff\] Set BaggableCritterCapacityTracker limit to 1000']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CreatureDeliveryPoint\")", method: Build, args: [131770, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 5}
+  - expect: {buildings: {CreatureDeliveryPoint: 1}}
+  - expect_state:
+      "all:CreatureDeliveryPoint::[0].GetComponent<BaggableCritterCapacityTracker>.maximumCreatures": 1000
+      "all:CreatureDeliveryPoint::[0].GetComponent<BaggableCritterCapacityTracker>.creatureLimit": 1000

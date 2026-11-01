@@ -1,0 +1,59 @@
+# Smooth Borders (3824097055), class P (a worldgen mod).
+#
+# What it does: a new world's neutronium border is drawn flat, at a set thickness per kind of
+# asteroid, where the game draws it 10 tiles thick, give or take a random 6 (moonlets thinner):
+# a transpiler on WorldGen.DrawWorldBorder reads the thickness from the mod and the range as 0
+# while the mod's prefix has set them, and a reverse patch of the game's draw keeps its POI
+# rectangles. PLib options (Mods screen) set the thickness of each group: Primary 4 (1-16),
+# Small 3, Moonlets 2, Tiny moonlets 1.
+# How a player reaches it: a new game (existing worlds keep their borders).
+# What changes: the border of the worlds a new game generates.
+#
+# From a colony: the pause menu's Main Menu, Quit Without Saving, New Game, Survival, Classic;
+# the Terra cluster (V-SNDST-C, fixed seed) is launched and embarked. The log names each world's
+# group and flat thickness; the start world's left and right edges are neutronium 4 tiles deep
+# over most of its height, and the fifth tile in is not. Worldgen expectations are functional
+# (mod-play-testing.md, "Worldgen mods").
+from: early-base
+mods: [3824097055]
+memory_gb: 8
+require_log: ['\[SmoothBorders\] .*VanillaSandstoneDefault.*: group Primary, flat wall 4 tiles']
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Main MenuButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Main MenuButton"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton"}   # Quit Without Saving
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "V-SNDST-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/Section - Destination/DestinationDetailsHeader/ClusterName", cond: text, value: "~Terra"}
+  - expect_state:
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"ClusterLayout\").id": expansion1::clusters/VanillaSandstoneCluster
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
+  - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
+  - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  - expect_state:
+      "ClusterManager.Instance.GetStartWorld().worldName": expansion1::worlds/VanillaSandstoneDefault
+      "ClusterManager.Instance.GetStartWorld().WorldOffset.x": 0
+      "ClusterManager.Instance.GetStartWorld().WorldOffset.y": 0
+      "ClusterManager.Instance.GetStartWorld().WorldSize.x": 240
+  # Neutronium's hardness is 255. The left and right edges (x 0-3 and 236-239) and the bottom
+  # (y 0-3) are neutronium all along the bands checked, and the tile next in (x 4, x 235, y 4)
+  # mostly is not: a flat wall 4 deep, where the game's depth varies along the edge.
+  - expect_state:
+      "cells:0,100..3,300::Grid.Element[{cell}].hardness": 205020
+      "cells:236,100..239,300::Grid.Element[{cell}].hardness": 205020
+      "cells:40,0..200,3::Grid.Element[{cell}].hardness": 164220
+  - expect_state:
+      "cells:4,100..4,300::Grid.Element[{cell}].hardness": "< 0.5 * 255 * 201"
+      "cells:235,100..235,300::Grid.Element[{cell}].hardness": "< 0.5 * 255 * 201"
+      "cells:40,4..200,4::Grid.Element[{cell}].hardness": "< 0.5 * 255 * 161"

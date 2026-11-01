@@ -1,0 +1,33 @@
+{
+ "spec": "mods/2564623737-smart-pump.yaml",
+ "mods": [
+  "2564623737"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "2564623737": {
+   "SmartPumps.dll": "661e93ee0ccd5ffae432ec961953fcbd52b15e0f547dc968fb6cf25eec6a2794"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T05:10:24",
+    "lane": 52,
+    "reasons": [
+     "step start: the player exited (1) while loading"
+    ],
+    "signatures": 1
+   }
+  ],
+  "ours": []
+ }
+}

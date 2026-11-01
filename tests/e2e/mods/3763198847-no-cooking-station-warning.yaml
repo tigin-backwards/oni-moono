@@ -1,0 +1,23 @@
+# 厨具不再提示缺少原料 no more Warning for Cooking_Station (3763198847), class P.
+#
+# What it does: the six cooking buildings (Electric Grill, Gas Range, Microbe Musher, Smoker,
+# Sushi Bar, Deep Fryer) no longer show the "missing ingredients" status: a postfix on their
+# configs adds a HideMissingIngredientStatus, and a patch on adding status items drops it.
+# How a player reaches it: cooking buildings without ingredients.
+# What changes: no missing-ingredient warnings.
+#
+# setup builds a Microbe Musher in the dug-out corridor west of the printing pod, with nothing to
+# cook. Selected, it has the mod's component and its status shows no missing ingredients (its
+# status list dumped).
+from: early-base
+mods: [3763198847]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"MicrobeMusher\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 5}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: MicrobeMusher}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<NoCookStatus.HideMissingIngredientStatus>": exists
+  - ui_dump: {name: details, root: "**/DetailsScreen", mask_text: ['\d+(\.\d+)?']}

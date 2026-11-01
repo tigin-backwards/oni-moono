@@ -1,0 +1,20 @@
+# 珊瑚不再消耗盐水 / Coral uses no brine (3744828843), class P.
+#
+# What it does: a prefix replaces OxyCoralConfig.CreatePrefab (the Thalassaire coral, OxyCoral)
+# with a copy that is not irrigated (it no longer consumes brine) and is fertilized with lime
+# instead, 0.0087 kg/s (about 0.2 kg a cycle more than before); its oxygen, light and seed are
+# the game's.
+# How a player reaches it: growing the coral.
+# What changes: a coral that needs no brine.
+#
+# The coral's prefab has a fertilization monitor and no irrigation monitor, and it still makes
+# oxygen; the colony runs.
+from: early-base
+mods: [3744828843]
+steps:
+  - expect_state:
+      "count:Assets.GetPrefab(\"OxyCoral\").GetComponent<StateMachineController>.cmpdef.defs[*] if .GetType().FullName == IrrigationMonitor+Def": 0
+      "count:Assets.GetPrefab(\"OxyCoral\").GetComponent<StateMachineController>.cmpdef.defs[*] if .GetType().FullName == FertilizationMonitor+Def": 1
+      "Assets.GetPrefab(\"OxyCoralSeed\")": exists
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

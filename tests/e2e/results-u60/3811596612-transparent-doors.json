@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3811596612-transparent-doors.yaml",
+ "mods": [
+  "3811596612"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Transparent Door placed (world shot), with the mod's eight doors defined and the small ones researched with Luxury",
+ "updated": "2026-11-01",
+ "commit": "aa54c6a6",
+ "mod_dlls": {
+  "3811596612": {
+   "TransparentDoor.dll": "64a61c95b5a989a21b7eca5ddee245be41be25c257319c434973d7cbed42af9e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-012312-d12567fd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:35:34",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-093334-c144de71",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:33:34",
+    "lane": 36,
+    "reference_run": "20261101-012312-d12567fd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "door": 0.011235
+    }
+   },
+   {
+    "run": "20261101-093334-c144de71",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:38:31",
+    "lane": 36,
+    "reference_run": "20261101-012312-d12567fd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "door": 0.008376
+    }
+   }
+  ]
+ }
+}

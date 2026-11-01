@@ -1,0 +1,19 @@
+# RandomBalloonSkin (3773836172), class P.
+#
+# What it does: each Duplicant given a balloon by a Balloon Artist gets a random balloon skin
+# (one of the game's balloon artist facades) instead of the artist's own: a prefix on
+# EquippableBalloon.SetBalloonOverride picks one, per Duplicant (cached) or every time, from
+# a seed in a JSON config; a postfix on Game.OnSpawn seeds it and lists the skins found.
+# How a player reaches it: a Duplicant with the Balloon Artist trait handing out balloons.
+# What changes: balloons of every look.
+#
+# early-base has no Balloon Artist: the log names the balloon skins the mod found at the
+# colony's start (as many as the original's), and the colony runs on.
+from: early-base
+mods: [3773836172]
+require_log: ['\[RandomBalloonSkin\] found \d+ balloon skins']
+steps:
+  - expect_state:
+      "Db.Get().Permits.BalloonArtistFacades.Count": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

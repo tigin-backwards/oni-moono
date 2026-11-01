@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3782934153-rover-charger.yaml",
+ "mods": [
+  "3782934153"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns a Rover and a charged Power Bank on the floor of the dug-out corridor west of the printing pod. A Duplicant delivers the bank to the Rover, which then has bank charge",
+ "updated": "2026-11-01",
+ "commit": "4d3afd24",
+ "mod_dlls": {
+  "3782934153": {
+   "ONI Rover Charger.dll": "368014ec1e31acb13ba9a666739382b0c901b2e0fa5025a433a153c9dcbf78bc"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-033851-137d5e8f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:44:25",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-051651-58d2abb9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:16:51",
+    "lane": 44,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-051651-58d2abb9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:24:20",
+    "lane": 44,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

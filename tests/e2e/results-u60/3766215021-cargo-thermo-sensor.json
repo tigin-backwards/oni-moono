@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3766215021-cargo-thermo-sensor.yaml",
+ "mods": [
+  "3766215021"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds the sensor in the dug-out corridor west of the printing pod, out of the Duplicants' way. It sends Green with no carried cargo in range; selected, its threshold side screen shows",
+ "updated": "2026-11-01",
+ "commit": "d9383eea",
+ "mod_dlls": {
+  "3766215021": {
+   "CargoThermoSensor.dll": "04b07bfe34a93faf15256c7406e9fb3d19006805534d2021b158b9aeec3e366a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-025945-1a714f70",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:05:15",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-035451-98fda7aa",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:54:51",
+    "lane": 44,
+    "reference_run": "20261101-025945-1a714f70",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-035451-98fda7aa",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:02:08",
+    "lane": 45,
+    "reference_run": "20261101-025945-1a714f70",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

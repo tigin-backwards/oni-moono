@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3449802370-zombies.yaml",
+ "mods": [
+  "3449802370"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the setting is registered (off in this colony); the colony runs on with healthy Duplicants, as many as in the original",
+ "updated": "2026-11-01",
+ "commit": "0bdd14ad",
+ "mod_dlls": {
+  "3449802370": {
+   "Zombies.dll": "6c8f360665d7df59de636a6f14278c77591f4f23164e70cc25ab59e19c971959"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014426-dd59a92f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:44:26",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-020143-02151757",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:01:43",
+    "lane": 44,
+    "reference_run": "20261101-014426-dd59a92f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-020143-02151757",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:10:05",
+    "lane": 44,
+    "reference_run": "20261101-014426-dd59a92f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

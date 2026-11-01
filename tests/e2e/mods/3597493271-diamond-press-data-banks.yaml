@@ -1,0 +1,18 @@
+# 钻石压机制作磁盘 (Diamond Press Can Make Data Banks) (3597493271), class P.
+#
+# What it does: the Diamond Press gets a recipe for 10 data banks from 100 kg of plastic (or
+# bioplastic) and 200 kg of refined carbon in 200 s (a postfix on
+# DiamondPressConfig.ConfigureBuildingTemplate).
+# How a player reaches it: a Diamond Press's recipe list.
+# What changes: data banks from the Diamond Press.
+#
+# The recipe exists for the Diamond Press with the mod's ingredients, result and time.
+from: early-base
+mods: [3597493271]
+steps:
+  - expect_state:
+      "count:ComplexRecipeManager.Get().recipes[*] if .id.StartsWith(\"DiamondPress_I_\") == true and .results[0].material.Name == OrbitalResearchDatabank": 1
+  - expect_state:
+      "sum:ComplexRecipeManager.Get().recipes[*].time if .results[0].material.Name == OrbitalResearchDatabank and .id.StartsWith(\"DiamondPress_I_\") == true": 200
+      "sum:ComplexRecipeManager.Get().recipes[*].results[0].amount if .results[0].material.Name == OrbitalResearchDatabank and .id.StartsWith(\"DiamondPress_I_\") == true": 10
+  - run: {seconds: 30}

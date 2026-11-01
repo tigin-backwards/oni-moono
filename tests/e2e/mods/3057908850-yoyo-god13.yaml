@@ -1,0 +1,14 @@
+# yoyo缺氧自用mod-god13 (3057908850), class P (PLib options).
+#
+# What it does: a personal pack; with its option 皮肤全解锁 on (the default) a postfix on
+# PermitItems.GetOwnedCount adds one to every permit's owned count, so all skins count as
+# unlocked in the Supply Closet and the skin pickers.
+# How a player reaches it: the Supply Closet, skin pickers; the mod's options.
+# What changes: every skin unlocked.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3057908850]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

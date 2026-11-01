@@ -1,0 +1,25 @@
+# 瓦力瓦力Biobot and 卡哇伊Rover will be changed（侦察者） (3063884795), class P (Spaced Out).
+#
+# What it does: meant to make the Rover (ScoutRover) three times as athletic with 1000 more
+# battery, and the Biobot (MorbRover) nearly endless (a 114,514 bio battery): prefixes on both
+# configs' CreatePrefab build the robots with those values. The prefixes return nothing, so
+# the game's CreatePrefab runs after them and its prefab is the one kept.
+# How a player reaches it: Rovers and Biobots.
+# What changes: stronger robots, as far as the game keeps the mod's prefabs.
+#
+# setup spawns a Rover in the dug-out corridor west of the printing pod. Its battery and
+# athletics are compared with the original's, and it and the colony run on.
+from: early-base
+mods: [3063884795]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, ScoutRover, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "last:GetComponent<KPrefabID>.PrefabTag.Name": ScoutRover
+      "last:GetComponent<Modifiers>.amounts.Get(\"InternalChemicalBattery\").GetMax()": "== original"
+      "last:GetComponent<Modifiers>.attributes.Get(\"Athletics\").GetTotalValue()": "== original"
+      "Assets.GetPrefab(\"MorbRover\").GetComponent<Modifiers>": exists
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

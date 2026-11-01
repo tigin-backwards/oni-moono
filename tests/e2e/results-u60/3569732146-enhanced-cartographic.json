@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3569732146-enhanced-cartographic.yaml",
+ "mods": [
+  "3569732146"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "early-base has no rocket: the module's scanner definition is read (radius 2), and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "6e02f9bd",
+ "mod_dlls": {
+  "3569732146": {
+   "EnhancedCartographic.dll": "81c0781f159159586b877a9bb52c8b21b1d209dd349dd8ecc4d84d6b31835557"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-062032-efda9416",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:39:58",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-070250-db3f312c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:02:50",
+    "lane": 45,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-070250-db3f312c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:12:37",
+    "lane": 45,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

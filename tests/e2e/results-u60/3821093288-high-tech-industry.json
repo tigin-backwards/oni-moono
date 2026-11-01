@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3821093288-high-tech-industry.yaml",
+ "mods": [
+  "3821093288"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "8af05eb6",
+ "mod_dlls": {
+  "3821093288": {
+   "HighTechIndustry.dll": "5ab5d494f94fe9e0b9dab63b56ca7c2bf2093f0d1777dfee438e4875c6347137"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032714-f98abda9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:35:34",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084503-46f14f04",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:45:03",
+    "lane": 36,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-084503-46f14f04",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:47:54",
+    "lane": 36,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

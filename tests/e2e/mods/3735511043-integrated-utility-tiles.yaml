@@ -1,0 +1,34 @@
+# Integrated Utility Tiles(集成式多功能砖) (3735511043), classes B, O (PLib options).
+#
+# What it does: adds five buildings to the Base menu: a Water Tile, a Solid Tile (a conveyor
+# output), an Electricity Tile, a Black Hole Tile (its liquid input's contents vanish, a little
+# every second) and a 3x3 Artificial Iron Volcano whose storage fills itself with iron (an
+# IronVolcanoStorageFiller; options also let it make fertilizer, refined iron, dirt or bombs).
+# How a player reaches it: the build menu (Base).
+# What changes: free resources and voids, one cell each.
+#
+# setup builds an Artificial Iron Volcano in the dug-out corridor west of the printing pod. All
+# five buildings show in the Base menu; after 60 s the volcano's storage holds iron.
+from: early-base
+mods: [3735511043]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ArtificialIronVolcano\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/WaterTile Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/WaterTile Group*": {active: true}
+      "**/BuildingGroups/**/Grid/SolidTile Group*": {active: true}
+      "**/BuildingGroups/**/Grid/ElectricityTile Group*": {active: true}
+      "**/BuildingGroups/**/Grid/BlackHoleTile Group*": {active: true}
+      "**/BuildingGroups/**/Grid/ArtificialIronVolcano Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: ArtificialIronVolcano}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - key: {code: Escape}
+  - run: {seconds: 60}
+  - expect_state:
+      "all:IronVolcanoStorageFiller::[0].GetComponent<Storage>.MassStored()": "> 0"
+  - expect: {duplicants: 3}

@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3748948822-phosphorite-refinery.yaml",
+ "mods": [
+  "3748948822"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the recipe is among the game's; setup builds a Metal Refinery in the dug-out corridor west of the printing pod, and selected its recipe list is dumped",
+ "updated": "2026-11-01",
+ "commit": "80319a59",
+ "mod_dlls": {
+  "3748948822": {
+   "PhosphoriteRefinery.dll": "e585b33501a4e393a9c85fb1f0a0cc7fefe2baabca1f92647cb966195f313edc"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-023439-6f6eed7e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:41:50",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-031950-ae783862",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:19:50",
+    "lane": 43,
+    "reference_run": "20261101-023439-6f6eed7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-031950-ae783862",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:22:01",
+    "lane": 41,
+    "reference_run": "20261101-023439-6f6eed7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

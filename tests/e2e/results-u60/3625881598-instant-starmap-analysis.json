@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3625881598-instant-starmap-analysis.yaml",
+ "mods": [
+  "3625881598"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "options turn it on outside sandbox. In the base-game colony the starmap opens; the first destination not yet analysed is picked and its Analyze button clicked: it is analysed",
+ "updated": "2026-11-01",
+ "commit": "0d4c98fc",
+ "mod_dlls": {
+  "3625881598": {
+   "InstantStarmapAnalysis.dll": "458e0a9eed548658b160421da69277f930260fa6b5c6fdb4526618a3b0b4a313"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-062032-efda9416",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:43:32",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071252-1c5ff555",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:12:52",
+    "lane": 44,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071252-1c5ff555",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:18:16",
+    "lane": 44,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

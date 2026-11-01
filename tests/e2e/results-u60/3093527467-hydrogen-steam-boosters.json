@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3093527467-hydrogen-steam-boosters.yaml",
+ "mods": [
+  "3093527467"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Steam Engine's building takes hydrogen and exhausts oxygen, and stores 1800 kg",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3093527467": {
+   "HydrogenSteamBoosters.dll": "97936372bd2701420c79fffcca12680ddca9466b3835ab4b8195aab6ba550898"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:26:51",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:19:09",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T00:19:50",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

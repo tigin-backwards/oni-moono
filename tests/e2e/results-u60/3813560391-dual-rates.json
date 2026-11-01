@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3813560391-dual-rates.yaml",
+ "mods": [
+  "3813560391"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the game's mass formatter answers a per-second rate with both rates; the outhouse's details shot as in the original",
+ "updated": "2026-11-01",
+ "commit": "7cc9e634",
+ "mod_dlls": {
+  "3813560391": {
+   "DualRates.dll": "3067ef14a9468d4e44893f711deea05c88568a77a291969466d77c66952f5083"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082034-fb651133",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:25:01",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092205-4edcb5e7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:22:05",
+    "lane": 36,
+    "reference_run": "20261101-082034-fb651133",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 8e-06
+    }
+   },
+   {
+    "run": "20261101-092205-4edcb5e7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:23:50",
+    "lane": 36,
+    "reference_run": "20261101-082034-fb651133",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 8e-06
+    }
+   }
+  ]
+ }
+}

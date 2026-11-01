@@ -1,0 +1,34 @@
+# ONI Superpowers (3751752771), classes P, S (user menu).
+#
+# What it does: three traits a player grants a chosen Duplicant from its user menu ("Grant
+# Superspeed", "Grant Flight", "Grant Amphibious"): Superspeed (+50 Athletics), Flight
+# (crosses open space and liquids) and Amphibious (breathes in water, polluted water, salt
+# water and brine: a patch on the oxygen breather's CanBreath). The traits are also added to
+# the pool new Duplicants can roll.
+# How a player reaches it: a selected Duplicant's user menu.
+# What changes: superhuman Duplicants.
+#
+# setup moves a Duplicant to the dug-out corridor west of the printing pod; the game is
+# paused and he is selected. His user menu's Grant Superspeed gives him the trait and its
+# +50 Athletics.
+from: early-base
+mods: [3751752771]
+require_log: ['\[Superpowers\] Registered trait .Superpowers_Superspeed.']
+setup:
+  - driver: {setup.call: {type: TransformExtensions, method: SetPosition, args: [{"$": "Components.LiveMinionIdentities.Items[1].transform"}, {"$": "Grid.CellToPosCBC(131762, \"Move\")"}]}}
+steps:
+  - key: {code: Space}
+  - driver: {camera.set: {cell: [110, 208], ortho: 8}}
+  - click_world: {cell: [110, 207], select: Minion}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Grant SuperspeedButton", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Traits>.HasTrait(\"Superpowers_Superspeed\")": false
+      "selected:GetComponent<Modifiers>.attributes.Get(\"Athletics\").GetTotalValue()": {save_as: athletics}
+  - ui_dump: {name: buttons, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}
+  - click: {ui: "**/UserMenuScreen/Buttons/Grant SuperspeedButton"}
+  - expect_state:
+      "selected:GetComponent<Traits>.HasTrait(\"Superpowers_Superspeed\")": true
+      "selected:GetComponent<Modifiers>.attributes.Get(\"Athletics\").GetTotalValue()": "== athletics + 50"
+  - key: {code: Space}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

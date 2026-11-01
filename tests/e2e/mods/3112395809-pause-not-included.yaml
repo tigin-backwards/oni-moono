@@ -1,0 +1,20 @@
+# Pause not included 无法暂停 (3112395809), classes P, O (PLib options).
+#
+# What it does: the game cannot be paused outside sandbox mode: a prefix on
+# SpeedControlScreen.Pause skips it, and SetSpeed takes the speed modulo 3 (an option sets a
+# minimum speed, 1 to 3).
+# How a player reaches it: the pause key (Space), the speed buttons.
+# What changes: time never stops.
+#
+# Space (the pause key) leaves the game running; the colony runs on.
+from: early-base
+mods: [3112395809]
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "SpeedControlScreen.Instance.IsPaused": false
+  - key: {code: Space}
+  - expect_state:
+      "SpeedControlScreen.Instance.IsPaused": false
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

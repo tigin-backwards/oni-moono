@@ -1,0 +1,29 @@
+# 飞寻机掉水里不会炸了 / Flydos survive water (3743970658), class P (PLib options).
+#
+# What it does: Flydos (FetchDrone, Bionic) may fly in water without drowning
+# (DrowningMonitor.IsCellSafe), at 0.7 times their speed there (a navigator layer), their
+# power banks take no water damage (Electrobank.EvaluateWaterDamage), and their carry amount
+# is set by its options (FetchDroneConfig.CreatePrefab: the trait's CarryAmount modifier, 200 kg
+# by default, times a multiplier or a custom amount).
+# How a player reaches it: Flydos at work; the mod's options on the Mods screen.
+# What changes: Flydos that cross water and carry more.
+#
+# With a custom carry amount of 500 kg (and its debug log on), the mod reads its options, but a
+# Flydo spawned in the corridor west of the printing pod can still carry the game's 400 kg, in
+# the original too: on U60 the carry patch finds no CarryAmount modifier in the Flydo's traits
+# (it logs none). Water poured on the Flydo leaves it alive after 30 s.
+from: early-base
+mods: [3743970658]
+options:
+  "3743970658": {CustomCarryAmount: 500.0, DebugLog: true}
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131129, 0, 0, "FetchDrone", "Creatures"]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: SimMessages, method: ReplaceElement, args: [131129, Water, {"$": "CellEventLogger.Instance.DebugTool"}, 1000, 300]}}
+require_log: ['\[FetchDroneEnhance\] 配置: 搬运量=500kg']
+steps:
+  - expect_state:
+      "all:FetchDrone::[0].GetComponent<Modifiers>.attributes.Get(\"CarryAmount\").GetTotalValue()": "== original"
+  - run: {seconds: 30}
+  - expect_state:
+      "count:all:FetchDrone::[*] if .gameObject.activeSelf == true": 1

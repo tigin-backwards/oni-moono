@@ -1,0 +1,18 @@
+# Enhanced Cartographic (3569732146), class P (Spaced Out).
+#
+# What it does: the Cartographic Module (ScannerModule) reveals the starmap within 2 hexes of
+# its rocket (the game's 1): a postfix on ScannerModuleConfig.ConfigureBuildingTemplate sets
+# its scanner's scanRadius to 2.
+# How a player reaches it: a rocket with a Cartographic Module in flight.
+# What changes: a wider starmap reveal.
+#
+# early-base has no rocket: the module's state machine definitions (its scanner's radius among
+# them) are compared with the original's, and the colony runs on.
+from: early-base
+mods: [3569732146]
+steps:
+  - expect_state:
+      "count:Assets.GetPrefab(\"ScannerModule\").GetComponent<StateMachineController>.cmpdef.defs[*] if .GetType().FullName == \"ScannerModule+Def\"": 1
+      "Assets.GetPrefab(\"ScannerModule\").GetComponent<StateMachineController>.cmpdef.defs": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

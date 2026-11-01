@@ -1,0 +1,33 @@
+# Underground Vault (3798414538), class B.
+#
+# What it does: adds the Underground Vault (UndergroundVault), a 3x3 vault door built into the
+# wall with a storage of 2,000,000 kg behind it, in the Base menu's storage group, researched
+# with Monuments.
+# How a player reaches it: the build menu (Base), after the research.
+# What changes: storage that never fills.
+#
+# setup grants Monuments and builds a vault in the dug-out corridor west of the printing pod. It
+# shows in the Base menu; it holds 2,000,000 kg, and selected its details screen names it.
+from: early-base
+mods: [3798414538]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Monuments\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"UndergroundVault\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Monuments\").unlockedItemIDs": {contains: UndergroundVault}
+      "Assets.GetBuildingDef(\"UndergroundVault\").BuildingComplete.GetComponent<Storage>.capacityKg": 2000000
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/UndergroundVault Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/UndergroundVault Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: UndergroundVault}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_ui:
+      "**/DetailsScreen/TitleBar/Border/LabelGroup/Label": {text: "~Underground Vault"}
+  - expect_state:
+      "selected:GetComponent<Storage>.capacityKg": 2000000

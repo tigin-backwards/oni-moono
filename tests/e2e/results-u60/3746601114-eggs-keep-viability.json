@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3746601114-eggs-keep-viability.yaml",
+ "mods": [
+  "3746601114"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns a Hatch egg on the floor of the dug-out corridor west of the printing pod. Its incubation monitor's suppressed effect carries no viability loss, and after 600 s its viability is as it was",
+ "updated": "2026-11-01",
+ "commit": "3b08ceb3",
+ "mod_dlls": {
+  "3746601114": {
+   "InactivationOfEggs.dll": "05b9890cab8077c9aff1e89ebc625f4252dd153ed577907c93082721592ab072"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-023439-6f6eed7e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:34:39",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-031154-e4a5a29a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:11:54",
+    "lane": 44,
+    "reference_run": "20261101-023439-6f6eed7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-031154-e4a5a29a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:13:25",
+    "lane": 43,
+    "reference_run": "20261101-023439-6f6eed7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

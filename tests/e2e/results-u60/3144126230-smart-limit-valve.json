@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3144126230-smart-limit-valve.yaml",
+ "mods": [
+  "3144126230"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "loads with its one patch on LimitValve.OnMassTransfer; a minute of play",
+ "updated": "2026-10-31",
+ "commit": "c74fbb33",
+ "mod_dlls": {
+  "3144126230": {
+   "railway.dll": "7fb62c6903e16cc84dfab43cabb3824f3db4dd2a582ee634a808a1a26c97750a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214713-0ac1044b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:00:55",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-222708-ea8d18ef",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:27:09",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-222708-ea8d18ef",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:30:26",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

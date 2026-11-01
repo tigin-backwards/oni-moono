@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3759056573-metal-bird-volcano.yaml",
+ "mods": [
+  "3759056573"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds the converter in the dug-out corridor west of the printing pod. It shows in the Equipment menu; selected, its details screen is dumped, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "6b8e8eb4",
+ "mod_dlls": {
+  "3759056573": {
+   "MetalBirdVolcano.dll": "cadb74fd5d25b2a98458f6d8a1a302b0b8e53cd49f7c6ff1c693ab953b2d9133"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-050536-ab9a3d76",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:19:39",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-053307-b94186d0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:33:07",
+    "lane": 44,
+    "reference_run": "20261101-050536-ab9a3d76",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-053307-b94186d0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:38:49",
+    "lane": 44,
+    "reference_run": "20261101-050536-ab9a3d76",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

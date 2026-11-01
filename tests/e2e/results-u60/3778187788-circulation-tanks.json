@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3778187788-circulation-tanks.yaml",
+ "mods": [
+  "3778187788"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a liquid circulation tank in the dug-out corridor west of the printing pod. Both tanks are in the game's definitions (with the reservoirs' capacities); selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "2fcd784c",
+ "mod_dlls": {
+  "3778187788": {
+   "CirculationTanks.dll": "8db16f22efdbfe7de33086b063373a6517b1a0333a751829bf623d4dfa7f5f96"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041850-de3664d6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:18:51",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-045218-ff50a93b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:52:18",
+    "lane": 44,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-045218-ff50a93b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:54:45",
+    "lane": 44,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,19 @@
+# 舒适版脱盐器/Easy-Living Desalt (3763186877), classes P, O.
+#
+# What it does: the Desalinator runs without stopping to be emptied: its three converters
+# (salt water, brine, murky brine) take 5 kg/s times an input multiplier (PLib option, 1-10,
+# default 2) and its salt drops as 10 kg chunks instead of filling storage; its intake buffer
+# (20-200 kg, default 40) and self heat (0-8 kW, default 8) are options too.
+# How a player reaches it: the Mods screen's options; building a Desalinator.
+# What changes: a faster desalinator that needs no Duplicant to empty it.
+#
+# With the default options, the Desalinator's salt water converter takes 10 kg/s and its
+# intake holds 40 kg.
+from: early-base
+mods: [3763186877]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"Desalinator\").GetComponents<ElementConverter>[0].consumedElements[0].MassConsumptionRate": 10
+      "Assets.GetPrefab(\"Desalinator\").GetComponent<ConduitConsumer>.capacityKG": 40
+      "Assets.GetPrefab(\"Desalinator\").GetComponent<ElementDropper>.emitMass": 10
+  - run: {seconds: 30}

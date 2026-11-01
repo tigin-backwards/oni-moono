@@ -1,0 +1,19 @@
+# Disable Instant Build On Save Game Load (1843349957), class P.
+#
+# What it does: with the game's debug mode on and Instant Build active, a key press on the
+# Load screen turns Instant Build off first (a prefix on LoadScreen.OnKeyDown), so a loaded
+# save does not build everything at once.
+# How a player reaches it: debug mode (a debug_enable.txt file), Instant Build, then loading a
+# save.
+# What changes: nothing outside debug mode.
+#
+# Debug mode is off here (as for a subscriber): the mod loads with its one patch and its
+# BokLib banner, and the colony runs a minute with it.
+from: early-base
+mods: [1843349957]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == Bokonon.DisableInstantBuildOnSaveGameLoad and .loaded_mod_data.patched_methods.Count == 1": 1
+      "DebugHandler.InstantBuildMode": false
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

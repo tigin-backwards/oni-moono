@@ -1,0 +1,26 @@
+# Superior Cooler (3773291842), class B.
+#
+# What it does: adds a Superior Liquid Cooler (GgSuperiorLiquidCooler, 3x1, researched with
+# Liquid Temperature) and a Superior Gas Cooler (GgSuperiorGasCooler, 3x1, HVAC): coolers for
+# pipes of liquid and gas.
+# How a player reaches it: the build menus, after the research.
+# What changes: stronger pipe cooling.
+#
+# setup grants Liquid Temperature and builds a Superior Liquid Cooler in the dug-out corridor
+# west of the printing pod; the gas cooler is researched with HVAC; selected, the liquid cooler's
+# details screen is dumped.
+from: early-base
+mods: [3773291842]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LiquidTemperature\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"GgSuperiorLiquidCooler\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"LiquidTemperature\").unlockedItemIDs": {contains: GgSuperiorLiquidCooler}
+      "Db.Get().Techs.Get(\"HVAC\").unlockedItemIDs": {contains: GgSuperiorGasCooler}
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: GgSuperiorLiquidCooler}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

@@ -1,0 +1,34 @@
+{
+ "spec": "mods/3820112013-dont-puke-yourself-to-death.yaml",
+ "mods": [
+  "3820112013"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3820112013": {
+   "PLib.dll": "3dc9bc06c6b54660b833d314192e6b34c578754facc6aff3c7e803b5cdc6616e",
+   "VomitCalorieGuard.dll": "0c1f7d86f80d843301dbf6565ed4ec5ca7b181d96c0350f54c359f9dde291c12"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T08:29:51",
+    "lane": 53,
+    "reasons": [
+     "step start: the player exited (1) while loading"
+    ],
+    "signatures": 2
+   }
+  ],
+  "ours": []
+ }
+}

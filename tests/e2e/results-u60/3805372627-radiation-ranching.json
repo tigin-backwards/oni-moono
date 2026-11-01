@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3805372627-radiation-ranching.yaml",
+ "mods": [
+  "3805372627"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "fe07ac02",
+ "mod_dlls": {
+  "3805372627": {
+   "RadiationRanching.dll": "68c8319945417409bb45e8de16cea0ce8272ff62b8ec0508cc99795441ba524d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041630-1ee599cc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:16:31",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-100746-7549eeef",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:07:46",
+    "lane": 36,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-100746-7549eeef",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:12:34",
+    "lane": 36,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

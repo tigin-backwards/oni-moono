@@ -1,0 +1,27 @@
+# Plant Growth Multiplier (3779820242), class P (PLib options).
+#
+# What it does: a prefix on the AttributeModifier constructor scales the value of the growth
+# modifiers plants get, by its options: the domestic one (MATURITY.GROWING) by the domestic
+# multiplier and the wild one (MATURITY.GROWINGWILD) by the wild multiplier (1.0 each by
+# default).
+# How a player reaches it: the mod's options on the Mods screen; growing plants.
+# What changes: plants grow faster or slower.
+#
+# With the domestic multiplier at 3, a Mealwood seed planted by setup in a planter box in the
+# corridor west of the printing pod grows three times as fast as the game's 1/cycle rate.
+from: early-base
+mods: [3779820242]
+options:
+  "3779820242": {DomesticGrowthMultiplier: 3.0, WildGrowthMultiplier: 1.0}
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"PlanterBox\")", method: Build, args: [131129, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131126, 0, 0, "BasicSingleHarvestPlantSeed", "Ore"]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {PlanterBox: 1}}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: PlanterBox}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<PlantablePlot>": exists

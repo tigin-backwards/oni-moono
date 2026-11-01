@@ -1,0 +1,61 @@
+{
+ "spec": "mods/3794390846-floor-heating.yaml",
+ "mods": [
+  "3794390846"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Floor Heating Tile: in the Utilities menu (shot), solid copper floor, a warming station; world shot",
+ "updated": "2026-11-01",
+ "commit": "eaab41ad",
+ "mod_dlls": {
+  "3794390846": {
+   "FloorHeating.dll": "8c0fa481afc7b7acae4adc5e7e080ba370e86d8a3dc447448cedadc93d0be656"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-222605-bc10cce7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:26:05",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-021620-f9b2396d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:16:20",
+    "lane": 35,
+    "reference_run": "20261031-222605-bc10cce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "utilities-menu": 0.0,
+     "tile": 0.014396
+    }
+   },
+   {
+    "run": "20261101-021620-f9b2396d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:22:31",
+    "lane": 35,
+    "reference_run": "20261031-222605-bc10cce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "utilities-menu": 0.0,
+     "tile": 0.022345
+    }
+   }
+  ]
+ }
+}

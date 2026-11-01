@@ -45,11 +45,14 @@ Plugins); E2E_ORIGINAL_ENV holds NAME=VALUE settings for the original player onl
 `GALLIUM_DRIVER=llvmpipe` with a shared MESA_SHADER_CACHE_DIR runs it 3-4 times faster; see
 tests/e2e/README.md, "Run time"). Our player runs with the users' default game tweaks (`--game-tweak exact`), or with
 E2E_GAME_TWEAKS, space-separated `--game-tweak` values (`none`, `background-save`, `exact
--no-save-gc`). Each invocation has a run id; each run's log, results and evidence are in
+-no-save-gc`); E2E_PLAYER_ARGS adds host arguments (`--renderer vulkan`). Each invocation
+has a run id; each run's log, results and evidence are in
 out/e2e/SPEC/RUN_ID/PLAYER-N, and out/e2e/runs/RUN_ID.json holds one record per spec run.
 --record writes tests/e2e/results/SPEC.json, the committed record of the spec's verdict (played,
-warning, failed or pending), which scripts/modtable.py reads. ui_dump differences that
-tests/e2e/known-findings.yaml explains make a run of ours a warning, not a failure.
+warning, failed or pending), which scripts/modtable.py reads. ONI_RESULTS_DIR (absolute, or
+relative to the checkout) writes the records elsewhere: tests/e2e/results-u60 holds those played
+on another game update, beside the main ones, and modtable.py reads both. ui_dump differences
+that tests/e2e/known-findings.yaml explains make a run of ours a warning, not a failure.
 
 --hold keeps each player running after its steps (--hold-on-fail: after a failing step) until
 the hold file in its run folder is removed, for a look through OniMcp and E2eDriver while
@@ -2475,7 +2478,9 @@ class Player:
                        *(a for t in os.environ.get('E2E_GAME_TWEAKS', 'exact').split() for a in ('--game-tweak', t)),
                        # The original's main menu has no Moono Tweaks button: the menus compare
                        # (a spec of the Moono Tweaks screen keeps it: `tweaks_menu: true`).
-                       *([] if self.tweaks_menu else ['--no-tweaks-menu'])]
+                       *([] if self.tweaks_menu else ['--no-tweaks-menu']),
+                       # E2E_PLAYER_ARGS: more host arguments for our player (e.g. --renderer vulkan).
+                       *os.environ.get('E2E_PLAYER_ARGS', '').split()]
             stdout = self.log
         # The runner's own display (a desktop's) must reach neither the player nor xvfb-run's
         # server, whose environment find_display reads: input would land on the desktop.
@@ -4099,7 +4104,7 @@ def relative_masks(masks, crop):
 
 # ---------------------------------------------------------------- the results record (§7)
 
-RESULTS = os.path.join(SPECS, 'results')
+RESULTS = os.path.join(ROOT, os.environ.get('ONI_RESULTS_DIR') or os.path.join(SPECS, 'results'))
 OURS_RUNS_NEEDED = 2  # Played: once in the original, twice in ours (§2)
 VERDICTS = ('played', 'warning', 'failed', 'pending')
 

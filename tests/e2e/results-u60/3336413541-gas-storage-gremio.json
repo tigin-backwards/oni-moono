@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3336413541-gas-storage-gremio.yaml",
+ "mods": [
+  "3336413541"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Improved Oxygen and builds the reservoir in the dug-out corridor west of the printing pod. It shows in the Oxygen menu; built, it holds 1000 kg and wears the team's anim, and selected its details screen names it",
+ "updated": "2026-11-01",
+ "commit": "f5358e32",
+ "mod_dlls": {
+  "3336413541": {
+   "GasStorageTeam.dll": "69fb66470e4746d7ece23f3141d30cfefc7959d6a6d73c84f1903087c73cd8de",
+   "YamlDotNet.dll": "e05c9c033c5d333e35feebbb87598ef81c178a6e28ae98cab99b2fd01be6cd9e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-054807-3828ce3f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:56:43",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-060954-b4036f17",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:09:54",
+    "lane": 44,
+    "reference_run": "20261101-054807-3828ce3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-060954-b4036f17",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:09:55",
+    "lane": 45,
+    "reference_run": "20261101-054807-3828ce3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

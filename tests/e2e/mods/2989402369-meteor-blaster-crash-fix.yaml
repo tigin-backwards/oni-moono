@@ -1,0 +1,16 @@
+# Meteor Blaster Crash Fix (2989402369), class P.
+#
+# What it does: a postfix on MissileProjectile.StatesInstance.TriggerExplosion makes a new
+# smoke trail when the missile's has been destroyed, which otherwise crashed the game when a
+# Meteor Blaster's shot exploded.
+# How a player reaches it: a Meteor Blaster firing at a meteor.
+# What changes: no crash there.
+#
+# The mod loads and the colony plays for 30 s; a missile's explosion is not set up here.
+from: early-base
+mods: [2989402369]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"MissileBasic\")": exists
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

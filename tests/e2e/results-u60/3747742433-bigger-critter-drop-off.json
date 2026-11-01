@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3747742433-bigger-critter-drop-off.yaml",
+ "mods": [
+  "3747742433"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Critter Drop-Off placed: its capacity is 1000 critters, and the log says so",
+ "updated": "2026-11-01",
+ "commit": "924042c4",
+ "mod_dlls": {
+  "3747742433": {
+   "BiggerCritterDropOff.dll": "cd81008a43c2b8a6979381f61f23d7b96d2dcde045e19beec7755f2b05b0a458"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-023431-568b7364",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:38:32",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-073848-ed00a2bf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:38:48",
+    "lane": 35,
+    "reference_run": "20261101-023431-568b7364",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-073848-ed00a2bf",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:44:11",
+    "lane": 35,
+    "reference_run": "20261101-023431-568b7364",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

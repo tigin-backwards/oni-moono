@@ -1,0 +1,30 @@
+# Extended Auto-Sweeper 扩展自动清扫器/机械臂 (3790489341), classes P, S ("Double Sweeper Range").
+#
+# What it does: the Auto-Sweeper (SolidTransferArm) reaches 8 cells (the game's 4), its range
+# preview drawn to match, and it gets a storage filter (TreeFilterable, the storage bins'
+# categories) used as a blacklist, Oxylite and Bleach Stone in it from the start, plus a
+# temperature filter. An arm that loses power drops what it holds.
+# How a player reaches it: an Auto-Sweeper and its filter side screen.
+# What changes: a wider sweep, and what it skips.
+#
+# setup builds an Auto-Sweeper in the dug-out corridor west of the
+# printing pod. It reaches 8 cells, its filter holds Oxylite and Bleach Stone, and selected,
+# its filter side screen shows.
+from: early-base
+mods: [3790489341]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SolidTransferArm\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "Assets.GetBuildingDef(\"SolidTransferArm\").BuildingComplete.GetComponent<SolidTransferArm>.pickupRange": 8
+      "all:SolidTransferArm::[0].pickupRange": 8
+      "all:SolidTransferArm::[0].GetComponent<TreeFilterable>.AcceptedTags": [{contains: Oxylite}, {contains: BleachStone}]
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: SolidTransferArm}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/TreeFilterableSideScreen", cond: stable}
+  - expect_ui:
+      "**/TreeFilterableSideScreen": {active: true}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

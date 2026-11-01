@@ -1,0 +1,24 @@
+# Critter Sensor Tracker (3783179366), classes P, U (UI of its own).
+#
+# What it does: each Critter Sensor gets a row in a panel under the notifications
+# (SharedNotificationModContainer, at the screen's left), with its room's critters and eggs;
+# clicking a row opens a submenu of details, and rows can be reordered. It notifies when a
+# critter in a tracked room is ready to lay, an egg is about to hatch, or a critter will
+# starve.
+# How a player reaches it: building Critter Sensors; the panel under the notifications.
+# What changes: ranch rooms tracked at a glance.
+#
+# setup builds a Critter Sensor in the dug-out corridor west of the printing pod. The tracker
+# runs and its panel is in the notification screen (dumped).
+from: early-base
+mods: [3783179366]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicCritterCountSensor\")", method: Build, args: [{"$": "Grid.XYToCell(109, 208)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 5}
+  - expect_state:
+      "type:CritterSensorTracker.CritterSensorTrackerManager::Instance": exists
+  - ui_wait: {path: "**/NotificationScreen/**/SharedNotificationModContainer", cond: stable}
+  - ui_dump: {name: tracker, root: "**/NotificationScreen/**/SharedNotificationModContainer"}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

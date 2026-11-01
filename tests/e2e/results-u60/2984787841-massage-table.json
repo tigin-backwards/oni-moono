@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2984787841-massage-table.yaml",
+ "mods": [
+  "2984787841"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Massage Table relieves 1000 stress and draws 10 W with no heat",
+ "updated": "2026-11-01",
+ "commit": "23b2ff9e",
+ "mod_dlls": {
+  "2984787841": {
+   "░┤─ª┤▓.dll": "1b4e2f3ec253ec9333e2a994dea18818563dae29d70d891f79c447557ca4ef39"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-011236-1e84a883",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:12:36",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-033148-e76ecedc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:31:48",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-033148-e76ecedc",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:36:15",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

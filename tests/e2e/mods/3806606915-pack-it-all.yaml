@@ -1,0 +1,26 @@
+# Pack It All / 统统打包 (3806606915), classes P, S, O (user menu; PLib options).
+#
+# What it does: a building's user menu gets "Pack": a Duplicant spends about 5 s packing it into
+# a movable item (PackedBuildingItem) that keeps its materials, temperature, damage and quality;
+# stored solids drop, liquids and gases come out bottled. The package's own user menu has
+# "Install" (a build tool that places the building again) and it can be deconstructed into the
+# original materials. Relics can be packed too (an option).
+# How a player reaches it: a building's user menu.
+# What changes: buildings moved without rebuilding.
+#
+# setup builds a Storage Bin in the dug-out corridor west of the printing pod. Selected, its user
+# menu's Pack is clicked; a Duplicant packs it, and a package lies where it stood.
+from: early-base
+mods: [3806606915]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: StorageLocker}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/PackButton", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/PackButton"}
+  - run: {seconds: 600, until: {buildings: {StorageLocker: 0}}}
+  - expect: {buildings: {StorageLocker: 0}}
+  - expect_state:
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == PackedBuildingItem": 1

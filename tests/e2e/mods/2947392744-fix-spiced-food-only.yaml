@@ -1,0 +1,32 @@
+# Fix Spiced Food Only for Refrigerator/冰箱仅限香料修正 (2947392744), class P.
+#
+# What it does: a prefix replaces FoodStorage.SpicedFoodOnly's setter: the refrigerator's (and
+# ration box's) "spiced food only" check box forbids unspiced food in its filtered storage and
+# drops what it holds of it, and unticked lets it in again.
+# How a player reaches it: a refrigerator's filter side screen, its spiced food check box.
+# What changes: the check box works.
+#
+# setup builds a Refrigerator in the dug-out corridor west of the printing pod. Selected, its
+# filter side screen's spiced food check box is ticked: unspiced food is then forbidden; it is
+# unticked again: allowed.
+from: early-base
+mods: [2947392744]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Refrigerator\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: Refrigerator}
+  - ui_wait: {path: "**/DetailsScreen/SideScreen/**/TreeFilterableSideScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<FoodStorage>.SpicedFoodOnly": false
+  - ui_wait: {path: "**/TreeFilterableSideScreen/**/ConfigurationRows/OnlyAllowSpicedItems/CheckBox", cond: stable}
+  - click: {ui: "**/TreeFilterableSideScreen/**/ConfigurationRows/OnlyAllowSpicedItems/CheckBox"}
+  - expect_state:
+      "selected:GetComponent<FoodStorage>.SpicedFoodOnly": true
+      "selected:GetComponent<FoodStorage>.FilteredStorage.forbiddenTags": {contains: UnspicedFood}
+  - ui_dump: {name: config-rows, root: "**/TreeFilterableSideScreen/ContentMask/Content/ConfigurationRows"}
+  - click: {ui: "**/TreeFilterableSideScreen/**/ConfigurationRows/OnlyAllowSpicedItems/CheckBox"}
+  - expect_state:
+      "selected:GetComponent<FoodStorage>.SpicedFoodOnly": false
+      "count:selected:GetComponent<FoodStorage>.FilteredStorage.forbiddenTags[*] if .Name == UnspicedFood": 0

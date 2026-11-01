@@ -1,0 +1,101 @@
+{
+ "spec": "mods/1731968154-galego.yaml",
+ "mods": [
+  "1731968154"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "played Galician on a colony's research and priorities screens and pause menu, then the main menu, its options and Game options screens, dumped and shot",
+ "updated": "2026-10-31",
+ "commit": "6b083995",
+ "mod_dlls": {
+  "1731968154": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-222609-5b174342",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:26:10",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-224345-4086319d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:43:45",
+    "lane": 44,
+    "reference_run": "20261031-222609-5b174342",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 0.0,
+     "game-options": 0.0
+    }
+   },
+   {
+    "run": "20261031-224345-4086319d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:43:46",
+    "lane": 45,
+    "reference_run": "20261031-222609-5b174342",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 0.000972,
+     "game-options": 0.0
+    }
+   }
+  ]
+ }
+}

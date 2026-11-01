@@ -1,0 +1,17 @@
+# Liquid Tepidizer Power Tweak - 액체미온기 전력 조정 (3690500190), class P (options).
+#
+# What it does: a postfix on LiquidHeaterConfig.CreateBuildingDef sets the Liquid Tepidizer's
+# power use from its option (120 W by default; the game's is 960 W).
+# How a player reaches it: the mod's options; the Liquid Tepidizer, as before.
+# What changes: a cheaper tepidizer.
+#
+# With its option at 300 W, the Liquid Tepidizer's definition draws 300 W; the colony runs.
+from: early-base
+mods: [3690500190]
+options:
+  "3690500190": {TepidizerWatts: 300.0}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"LiquidHeater\").EnergyConsumptionWhenActive": 300
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

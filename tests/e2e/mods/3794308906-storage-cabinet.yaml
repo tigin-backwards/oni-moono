@@ -1,0 +1,24 @@
+# Storage Cabinet (3794308906), class B.
+#
+# What it does: a 2x2 Storage Cabinet (raw minerals or metals; Base menu's storage group,
+# researched with Smart Storage) that hangs on any wall and holds far more than a Storage Bin,
+# with its own Database entry.
+# How a player reaches it: the research screen, then the build menu (Base).
+# What changes: compact wall storage.
+#
+# setup places one in the pit of the dug-out room west of the printing pod (110,206): it is complete, selected it shows its details
+# (shot), and it is shot in the world.
+from: early-base
+mods: [3794308906]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageCabinet\")", method: Build, args: [131126, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {StorageCabinet: 1}}
+  - expect_state:
+      "CodexCache.entries.ContainsKey(\"STORAGECABINET\")": true
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 206], select: StorageCabinet}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
+  - world_shot: {name: building, ortho: 5, at: [110, 207]}

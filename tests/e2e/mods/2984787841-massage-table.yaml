@@ -1,0 +1,18 @@
+# 按摩床 (Massage table) (2984787841), class P.
+#
+# What it does: the Massage Table relieves 1000 stress a use (and in its room) and draws
+# 10 W with no heat (postfixes on MassageTableConfig's CreateBuildingDef and
+# ConfigureBuildingTemplate).
+# How a player reaches it: building a Massage Table.
+# What changes: one massage clears any stress.
+#
+# The Massage Table's definition and prefab carry the mod's figures.
+from: early-base
+mods: [2984787841]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"MassageTable\").EnergyConsumptionWhenActive": 10
+      "Assets.GetBuildingDef(\"MassageTable\").SelfHeatKilowattsWhenActive": 0
+      "Assets.GetPrefab(\"MassageTable\").GetComponent<MassageTable>.stressModificationValue": -1000
+      "Assets.GetPrefab(\"MassageTable\").GetComponent<MassageTable>.roomStressModificationValue": -1000
+  - run: {seconds: 30}

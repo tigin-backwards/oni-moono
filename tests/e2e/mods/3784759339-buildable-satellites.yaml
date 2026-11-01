@@ -1,0 +1,23 @@
+# Buildable Satellites (3784759339), classes B, P (Spaced Out).
+#
+# What it does: the crashed satellites become buildable (BuildablePropSurfaceSatellite1-3,
+# 3x3, 4x4 and 6x6, in the Radiation menu) from steel and enriched uranium, once a wrecked
+# satellite on the planet has been studied (its study button unlocks the blueprint); built ones
+# emit radiation as the wrecks do (a RadiationEmitter).
+# How a player reaches it: studying a crashed satellite, then the build menu (Radiation).
+# What changes: radiation sources to build.
+#
+# setup builds the smallest satellite in the dug-out corridor west of the printing pod. It emits
+# radiation (its emitter's rads as in the original); selected, its details screen is dumped.
+from: early-base
+mods: [3784759339]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"BuildablePropSurfaceSatellite1\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"BuildablePropSurfaceSatellite1\").GetComponent<RadiationEmitter>.emitRads": ["> 0", "== original"]
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: BuildablePropSurfaceSatellite1}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

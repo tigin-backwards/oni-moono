@@ -1,0 +1,38 @@
+# Unlimited Mop / 大力擦拭 (3767642253), class T.
+#
+# What it does: the Mop tool marks liquid cells of any mass: a postfix on Db.Initialize sets
+# the game's limit of 150 kg a cell (MopTool.maxMopAmt) to float.MaxValue. The game's other
+# rule, that the cell below must be solid, stays.
+# How a player reaches it: the toolbar's Mop tool, dragged over a pool.
+# What changes: deep liquid can be mopped; the game alone shows "Too much liquid" and marks
+# nothing.
+#
+# setup pours 300 kg of water into each of the five cells of the pit in the floor of the
+# dug-out room west of the printing pod (x 106-110, y 206, on solid ground), as the No Mop
+# Limits spec does. The game alone marks none of them; with the mod all five get a mop order,
+# and Duplicants mop water out of the pit.
+from: early-base
+mods: [3767642253]
+require_log: ['\[UnlimitedMop\]']
+setup:
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131122, Water, null, 300, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131123, Water, null, 300, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131124, Water, null, 300, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131125, Water, null, 300, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131126, Water, null, 300, 300, 255, 0]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "cells:106,206..110,206::Grid.Mass.get_Item({cell})": "> 1200"
+      "Grid.Mass.get_Item(131124)": "> 150"
+      "all:Moppable::Length": 0
+      "MopTool.maxMopAmt": "> 1000000000"
+  - expect_state: {"cells:106,206..110,206::Grid.Mass.get_Item({cell})": {save_as: before}}
+  - driver: {camera.set: {cell: [108, 208], ortho: 8}}
+  - tool: {toolbar: Mop}
+  - drag: {from: [106, 206], to: [110, 206]}
+  - key: {code: Escape}
+  # Every cell of the pit is marked, each holding more than the game's limit.
+  - expect_state: {"all:Moppable::Length": 5}
+  - run: {seconds: 600}
+  - expect_state: {"cells:106,206..110,206::Grid.Mass.get_Item({cell})": "< before - 100"}

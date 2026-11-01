@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3626669146-clean-ethanol-distillery.yaml",
+ "mods": [
+  "3626669146"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the distiller's definition and converter are read: no heat, and ethanol its only output; setup builds one in the dug-out corridor west of the printing pod, and selected its title is dumped; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "a51d6734",
+ "mod_dlls": {
+  "3626669146": {
+   "CleanEthanolDistillery.dll": "639f12858468cffaa1ac305ca16555f45bcebf58032d7934143fdb5160abba3a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-015759-2e339275",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:07:24",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-015337-b28918fb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:53:37",
+    "lane": 45,
+    "reference_run": "20261101-015759-2e339275",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-015337-b28918fb",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:57:17",
+    "lane": 45,
+    "reference_run": "20261101-015759-2e339275",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

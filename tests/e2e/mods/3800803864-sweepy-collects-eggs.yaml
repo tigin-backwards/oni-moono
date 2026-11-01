@@ -1,0 +1,27 @@
+# Sweepy Collects Eggs (3800803864), classes P, S.
+#
+# What it does: the Sweepy's Dock (SweepBotStation) gets a "Collect Eggs" check box
+# (SweepyEggOption, an ICheckboxControl, off by default). The game's Sweepy never picks up
+# eggs; with the box ticked a prefix on SweepStates.TryStore lets it store them in its dustbin
+# and take them home.
+# How a player reaches it: a Sweepy's Dock's check box side screen.
+# What changes: Sweepy gathers loose eggs.
+#
+# setup builds a Sweepy's Dock in the dug-out corridor west of the printing pod. Selected, its
+# check box side screen offers Collect Eggs, off; ticked, its option is on.
+from: early-base
+mods: [3800803864]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SweepBotStation\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: SweepBotStation}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/SingleCheckboxSideScreen/Contents/CheckboxGroup", cond: stable}
+  - expect_state:
+      "selected:GetComponent<SweepyCollectsEggs.SweepyEggOption>.collectEggs": false
+  - ui_dump: {name: checkbox, root: "**/SingleCheckboxSideScreen"}
+  - click: {ui: "**/SingleCheckboxSideScreen/Contents/CheckboxGroup/CheckBox"}
+  - expect_state:
+      "selected:GetComponent<SweepyCollectsEggs.SweepyEggOption>.collectEggs": true

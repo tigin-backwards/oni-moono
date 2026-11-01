@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3789925075-light-building-menu.yaml",
+ "mods": [
+  "3789925075"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Base menu opens; its building panel is dumped and shot, as in the original; it closes",
+ "updated": "2026-11-01",
+ "commit": "1c6cd60a",
+ "mod_dlls": {
+  "3789925075": {
+   "LightBuildingMenu.dll": "20937359d9df4ba519550b5446750004eb65cd654d9fd1c166b441f606b37d60"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-084500-3cab7d1c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:45:46",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-085620-97e05b67",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:56:20",
+    "lane": 44,
+    "reference_run": "20261101-084500-3cab7d1c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "base-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-085620-97e05b67",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:56:21",
+    "lane": 45,
+    "reference_run": "20261101-084500-3cab7d1c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "base-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

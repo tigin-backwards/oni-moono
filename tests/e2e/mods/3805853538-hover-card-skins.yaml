@@ -1,0 +1,14 @@
+# Hover Card Skins · 悬浮卡片皮肤 (3805853538), class V.
+#
+# What it does: skins for the hover cards (patches on HoverTextDrawer): frames and backgrounds,
+# and a light that runs round the card when it shows the selected object.
+# How a player reaches it: hovering anything in the colony.
+# What changes: the hover cards' look.
+#
+# The mod starts, as its log says, and the colony plays for 30 s.
+from: early-base
+mods: [3805853538]
+require_log: ['\[HoverCardSkins\] 启动完成']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

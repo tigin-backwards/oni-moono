@@ -1,0 +1,23 @@
+# 液培砖不再漏温 Hydroponic Farm keeps its heat (3745455710), class P.
+#
+# What it does: the liquid a Hydroponic Farm holds takes the temperature of its surroundings,
+# so the tile no longer moves heat through its liquid: a HydroponicFarmThermalController added
+# in HydroponicFarmConfig.ConfigureBuildingTemplate, which remembers and resets the stored
+# items' temperatures. The mod ships a copy of the game's HydroponicFarmConfig in its own
+# assembly, and patches that type's ConfigureBuildingTemplate.
+# How a player reaches it: Hydroponic Farms.
+# What changes: hydroponic tiles that do not leak heat.
+#
+# setup builds a Hydroponic Farm in the pit in the floor of the dug-out room west of the
+# printing pod. Its prefab has the controller, and the
+# colony runs on.
+from: early-base
+mods: [3745455710]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"HydroponicFarm\")", method: Build, args: [131124, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"HydroponicFarm\").GetComponent<HydroponicFarmThermalController>": exists
+  - run: {seconds: 30}
+  - expect: {buildings: {HydroponicFarm: 1}}
+  - expect: {duplicants: 3}

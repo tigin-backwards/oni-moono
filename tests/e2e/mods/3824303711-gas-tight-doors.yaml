@@ -1,0 +1,14 @@
+# Gas-Tight Doors (3824303711), class P.
+#
+# What it does: doors keep gas and liquid out while open, closing or closed (Door.OnPrefabInit and
+# Door.SetSimState patches), so Duplicants pass without letting the atmosphere through;
+# Pneumatic Doors and doors set to Open behave as the game's.
+# How a player reaches it: building doors.
+# What changes: every door an airlock.
+#
+# The mod loads and the colony plays for 30 s; no door between two atmospheres is set up here.
+from: early-base
+mods: [3824303711]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

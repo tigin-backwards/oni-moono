@@ -1,0 +1,23 @@
+# Better_Atmo_Sensor更好的气压传感器 (3757503951), class P.
+#
+# What it does: a postfix on LogicPressureSensorGasConfig.DoPostConfigureComplete raises the
+# Atmo Sensor's range from 0-20 kg to 0-1000 kg.
+# How a player reaches it: the built Atmo Sensor's threshold side screen.
+# What changes: gas pressure thresholds up to 1000 kg.
+#
+# setup builds an Atmo Sensor in the corridor west of the printing pod; selected, it reads
+# a 1000 kg range and its threshold screen is dumped.
+from: early-base
+mods: [3757503951]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicPressureSensorGas\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"LogicPressureSensorGas\").BuildingComplete.GetComponent<LogicPressureSensor>.rangeMax": 1000
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: LogicPressureSensorGas}
+  - ui_wait: {path: "**/ThresholdSwitchSideScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<LogicPressureSensor>.RangeMax": 1000
+  - ui_dump: {name: threshold, root: "**/ThresholdSwitchSideScreen", mask_text: ['\d+(\.\d+)?']}

@@ -1,0 +1,31 @@
+# Ranch Restocker (3765789851), classes B, S.
+#
+# What it does: a 4x3 automation chip for a critter ranch (RanchRestocker, the Automation menu,
+# researched with Logic Circuits) laid out around a three-door, four-sensor ranch so its ports
+# line up with theirs: it opens and closes the doors to restock the ranch from the sensors'
+# counts.
+# How a player reaches it: the build menu (Automation), after the research.
+# What changes: ranch restocking without hand-wired gates.
+#
+# setup grants Logic Circuits and builds the chip in the dug-out corridor west of the printing
+# pod. It shows in the Automation menu; selected, its details screen is dumped.
+from: early-base
+mods: [3765789851]
+require_log: ['\[RanchRestocker\] OnLoad complete']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicCircuits\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"RanchRestocker\")", method: Build, args: [{"$": "Grid.XYToCell(110, 207)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"LogicCircuits\").unlockedItemIDs": {contains: RanchRestocker}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Automation"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/RanchRestocker Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/RanchRestocker Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [110, 208], ortho: 8}}
+  - click_world: {cell: [110, 207], select: RanchRestocker}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}

@@ -1,0 +1,14 @@
+# AI Advisor (3828163036), class S (network, on request).
+#
+# What it does: an AI advice button sends the colony's state and a screenshot to the AI chosen
+# in its settings (a local model server, an API key, or a subscription) and shows up to three
+# next steps it suggests.
+# How a player reaches it: its button in a colony; its settings.
+# What changes: advice from an AI.
+#
+# The mod loads and the colony plays for 30 s; no advice is asked for (nothing is sent).
+from: early-base
+mods: [3828163036]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

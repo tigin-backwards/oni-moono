@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3559166624-microchip-bugfix.yaml",
+ "mods": [
+  "3559166624"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Microchip prefab is the mod's, with its splitter and tag; half a minute of play",
+ "updated": "2026-11-01",
+ "commit": "5ae9d9db",
+ "mod_dlls": {
+  "3559166624": {
+   "microchip-fix.dll": "31176d664f39ecfcf414fa42e18f62d61a71996387a3d0eac08cd4fc9168c63a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-013538-93de7980",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:35:39",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-052523-bf3b8eb9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:25:23",
+    "lane": 35,
+    "reference_run": "20261101-013538-93de7980",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-052523-bf3b8eb9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:30:20",
+    "lane": 35,
+    "reference_run": "20261101-013538-93de7980",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

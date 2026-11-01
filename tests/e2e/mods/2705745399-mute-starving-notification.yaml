@@ -1,0 +1,16 @@
+# Mute Starving Notification (2705745399), class P.
+#
+# What it does: a prefix on NotificationScreen.PlayDingSound turns off the sound of a
+# notification titled "Starvation".
+# How a player reaches it: nothing to click; a starving Duplicant's notification is silent.
+# What changes: no ding for starvation (useful on Ravenous difficulty).
+#
+# The mod loads with its one patch on NotificationScreen.PlayDingSound, and the colony runs two
+# minutes with it (its Duplicants are hungry, not starving: no sound to check).
+from: early-base
+mods: [2705745399]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == MuteStarvingNotification and .loaded_mod_data.patched_methods.Count == 1": 1
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}

@@ -1,0 +1,17 @@
+# Smart Limit Valve (3144126230), class P.
+#
+# What it does: a Limit Valve whose reset port holds a green signal keeps counting what flows
+# through it (a prefix on LimitValve.OnMassTransfer adds the mass, or the units on a conveyor
+# rail), where the game's valve resets.
+# How a player reaches it: a Limit Valve with an automation signal on its reset port.
+# What changes: the valve's count goes on while held at reset.
+#
+# The mod loads with its one patch on LimitValve.OnMassTransfer, and the colony runs a minute
+# with it (early-base has no limit valve).
+from: early-base
+mods: [3144126230]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == CQZ.LIMIT and .loaded_mod_data.patched_methods.Count == 1": 1
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

@@ -1,0 +1,18 @@
+# Slogos Desalinate (3745353707), class P (Prehistoric Planet Pack critter).
+#
+# What it does: an adult Slogo (SnailConfig.CreateSnail) desalinates the liquids around it:
+# three passive consumers and converters take brine, salt water and a third liquid, turning
+# them into water (0.2 kg/s each, within 3 cells) that bubbles out, and drop salt; a postfix on
+# SnailConfig.OnSpawn turns the consumers on.
+# How a player reaches it: nothing to click; Slogos in brine or salt water.
+# What changes: Slogos are living desalinators.
+#
+# The Slogo prefab carries the mod's three converters and its salt dropper.
+from: early-base
+mods: [3745353707]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"Snail\").GetComponents<ElementConverter>.Length": 3
+      "Assets.GetPrefab(\"Snail\").GetComponents<PassiveElementConsumer>.Length": 3
+      "Assets.GetPrefab(\"Snail\").GetComponent<ElementDropper>": exists
+  - run: {seconds: 30}

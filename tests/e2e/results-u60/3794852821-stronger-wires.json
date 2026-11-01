@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3794852821-stronger-wires.yaml",
+ "mods": [
+  "3794852821"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "defaults. The patched rating's capacity and each wire tier's are compared with the original's, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "9139495f",
+ "mod_dlls": {
+  "3794852821": {
+   "PLib.dll": "55ce409618e6d102a1bcd0298911f3df49dda9a94ee153d02403035a1d6101d6",
+   "Strongerwire.dll": "6d45738a2de476109dd56afcdc438109522328312961005f933bc69757434759"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-042312-89fc5911",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:33:38",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-090502-6ac1cfe1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:05:02",
+    "lane": 44,
+    "reference_run": "20261101-042312-89fc5911",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-090502-6ac1cfe1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:05:03",
+    "lane": 45,
+    "reference_run": "20261101-042312-89fc5911",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3800803864-sweepy-collects-eggs.yaml",
+ "mods": [
+  "3800803864"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Sweepy's Dock in the dug-out corridor west of the printing pod. Selected, its check box side screen offers Collect Eggs, off; ticked, its option is on",
+ "updated": "2026-11-01",
+ "commit": "706297bc",
+ "mod_dlls": {
+  "3800803864": {
+   "SweepyCollectsEggs.dll": "61ad29bac80d18f6abd612bd6a2446a2eb8cce606ec1467a109193147d1a411d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043754-067196ed",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:42:27",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091906-3b55dadb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:19:06",
+    "lane": 40,
+    "reference_run": "20261101-043754-067196ed",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "checkbox": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-091906-3b55dadb",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:19:07",
+    "lane": 41,
+    "reference_run": "20261101-043754-067196ed",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "checkbox": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

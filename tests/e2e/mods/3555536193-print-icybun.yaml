@@ -1,0 +1,21 @@
+# Print IcyBun - Mutant Race Mod (3555536193), class X (content for Dupery).
+#
+# What it does: no code. With Dupery (here Dupery Fixed, 3172734005; its description requires
+# Dupery), its personalities.json adds a printable Duplicant personality, Icybun
+# (female, Aggressive stress reaction, Balloon Artist joy trait, model FurryMinion), with its hair, eyes, mouth and head shape from the mod's anim folder.
+# How a player reaches it: Duplicants printed or picked for a new colony; the Duplicant's
+# Personality tab.
+# What changes: another personality in the pool.
+#
+# Dupery imports the personality into the game's Personalities and loads its accessories.
+from: early-base
+mods: [3172734005, 3555536193]
+require_log: ['\[Dupery\]: accessory hair_icybun successfully loaded']
+steps:
+  - expect_state:
+      "Db.Get().Personalities.TryGet(\"ICYBUN\")": exists
+      "Db.Get().Personalities.TryGet(\"ICYBUN\").Disabled": false
+      "Db.Get().Accessories.TryGet(\"hair_icybun\")": exists
+      "Db.Get().Personalities.Count": "== original"
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

@@ -1,0 +1,16 @@
+# Megaminer (2608487669), class P.
+#
+# What it does: the Robo-Miner (AutoMiner) digs anything short of neutronium and digs it at
+# once: transpilers on ValidDigCell and DigBlockingCB raise its hardness limit from 150 to
+# 254, and one on UpdateDig replaces the frame's time with 10000 s of work.
+# How a player reaches it: building a Robo-Miner.
+# What changes: robo-miners dig abyssalite and the like instantly.
+#
+# The mod loads with its three transpilers applied (game code, where ours must accept the
+# rewritten IL); the colony runs a minute with them.
+from: early-base
+mods: [2608487669]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .label.id == 2608487669 and .loaded_mod_data.patched_methods.Count == 3": 1
+  - run: {seconds: 60}

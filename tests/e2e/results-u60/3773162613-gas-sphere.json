@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3773162613-gas-sphere.yaml",
+ "mods": [
+  "3773162613"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "it shows in the Utilities menu. setup builds a Gas Ball of carbon dioxide in the dug-out corridor west of the printing pod: it is gone a moment later",
+ "updated": "2026-11-01",
+ "commit": "1ed4c55e",
+ "mod_dlls": {
+  "3773162613": {
+   "GasBall.dll": "91a6004f448228488f2cf89690a258ec09c83fe80a6fedaa3393116e7e9c18a4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-054821-21d56bdb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:56:48",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-072443-8b07c331",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:24:43",
+    "lane": 44,
+    "reference_run": "20261101-054821-21d56bdb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-072443-8b07c331",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:29:41",
+    "lane": 44,
+    "reference_run": "20261101-054821-21d56bdb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

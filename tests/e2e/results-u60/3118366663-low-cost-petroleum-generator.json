@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3118366663-low-cost-petroleum-generator.yaml",
+ "mods": [
+  "3118366663"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Petroleum Generator's definition is rated 100 kW with no self heat and no overheating",
+ "updated": "2026-11-01",
+ "commit": "e68d5731",
+ "mod_dlls": {
+  "3118366663": {
+   "PLib.dll": "b862c5db2b3cd6df09a62d4a30782e91e2b24e8e1bfac08d991c9cc89a984ba9",
+   "╡═║──▄╩»╙═╡τ╗·.dll": "4e4f7c458e78cf145b1924aa504dcfbcb242c7d258d6048356d46d19e09a3264"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-011236-1e84a883",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:27:02",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-034938-8c5fd884",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:49:38",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-034938-8c5fd884",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:54:09",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

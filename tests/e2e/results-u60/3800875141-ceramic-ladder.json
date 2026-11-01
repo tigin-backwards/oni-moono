@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3800875141-ceramic-ladder.yaml",
+ "mods": [
+  "3800875141"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Luxury and builds the ladder in the dug-out corridor west of the printing pod. It shows in the Base menu; its climbing speed is faster than the Ladder's; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "72624f17",
+ "mod_dlls": {
+  "3800875141": {
+   "CeramicLadder.dll": "3c7a3757c9bc7e35ff2a7dd0ddeca4369db8accb489eae7e5622b66a71510bbe"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-061016-fa5218a2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:27:54",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092115-e16a0aaa",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:21:15",
+    "lane": 44,
+    "reference_run": "20261101-061016-fa5218a2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-092115-e16a0aaa",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:21:16",
+    "lane": 45,
+    "reference_run": "20261101-061016-fa5218a2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

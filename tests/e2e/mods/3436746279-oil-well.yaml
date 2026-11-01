@@ -1,0 +1,19 @@
+# oilwell油井自用 (oil well) (3436746279), class P.
+#
+# What it does: the Oil Well (OilWellCap) makes 10 kg/s of crude oil from 3 kg/s of water
+# (the game's: 3.33 kg/s from 1 kg/s), builds up its natural gas pressure slower (0.1/s,
+# up to 240) and draws 720 W with 6 kW of heat: postfixes on OilWellCapConfig's
+# CreateBuildingDef and ConfigureBuildingTemplate.
+# How a player reaches it: building an Oil Well on an oil reservoir.
+# What changes: a far more productive oil well.
+#
+# The Oil Well's definition and prefab carry the mod's figures; the colony runs a minute.
+from: early-base
+mods: [3436746279]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"OilWellCap\").EnergyConsumptionWhenActive": 720
+      "Assets.GetPrefab(\"OilWellCap\").GetComponent<ElementConverter>.outputElements[0].massGenerationRate": 10
+      "Assets.GetPrefab(\"OilWellCap\").GetComponent<ElementConverter>.consumedElements[0].MassConsumptionRate": 3
+      "Assets.GetPrefab(\"OilWellCap\").GetComponent<OilWellCap>.maxGasPressure": 240
+  - run: {seconds: 60}

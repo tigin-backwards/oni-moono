@@ -1,0 +1,28 @@
+# Smarter Container (3756824697), class S (side screens on vanilla buildings).
+#
+# What it does: Storage Bins and Smart Storage Bins get SmartStorageThresholds, an
+# IMultiSliderControl ("Smart Storage": total capacity and a refill threshold in percent) in
+# place of the game's capacity slider (CapacityControlSideScreen no longer takes them):
+# Duplicants refill a bin only once it falls below the threshold, and fill it back to its
+# capacity; the Smart Storage Bin's logic port reports "not requesting a refill".
+# How a player reaches it: selecting a storage bin; its side screen.
+# What changes: bins refill in batches instead of topping up after every take.
+#
+# setup places a Storage Bin in the corridor west of the printing pod (118,207); selected, it
+# shows the mod's two sliders and not the game's capacity control.
+from: early-base
+mods: [3756824697]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [131770, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {StorageLocker: 1}}
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: StorageLocker}
+  - ui_wait: {path: "**/DetailsScreen/SideScreen/**/MultiSliderSideScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<SmarterContainer.SmartStorageThresholds>": exists
+  - expect_ui:
+      "**/DetailsScreen/SideScreen/**/CapacityControlSideScreen": {exists: false}
+  - ui_dump: {name: sliders, root: "**/MultiSliderSideScreen"}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}

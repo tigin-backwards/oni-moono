@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3734958591-remote-worker-farming.yaml",
+ "mods": [
+  "3734958591"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Remote Worker's prefab is set up for farm chores (as in the original); the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "2bfcfd37",
+ "mod_dlls": {
+  "3734958591": {
+   "RemoteWorkerFarming.dll": "8a5273fe731a8d3134bab290bd533a01533026ba3d056f3704cfaef35bbbdf5c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024504-a96eb81a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:00:01",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-030821-1b9e274f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:08:21",
+    "lane": 45,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-030821-1b9e274f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:12:22",
+    "lane": 45,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

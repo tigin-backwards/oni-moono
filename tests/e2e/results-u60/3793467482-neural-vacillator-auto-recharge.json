@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3793467482-neural-vacillator-auto-recharge.yaml",
+ "mods": [
+  "3793467482"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Neural Vacillator in the dug-out corridor west of the printing pod (charged, as found); it is not consumed, and the colony runs on through a new cycle with it",
+ "updated": "2026-11-01",
+ "commit": "3c16b9bd",
+ "mod_dlls": {
+  "3793467482": {
+   "NeuralVacillatorAutoRecharge.dll": "37a0f20b1700b3f64eefacad38e1022ac3177a27b9a0b65456206c41d20b4254"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-080617-aed2badb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:06:17",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-085833-9b8230e4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:58:33",
+    "lane": 44,
+    "reference_run": "20261101-080617-aed2badb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-085833-9b8230e4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:58:34",
+    "lane": 45,
+    "reference_run": "20261101-080617-aed2badb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

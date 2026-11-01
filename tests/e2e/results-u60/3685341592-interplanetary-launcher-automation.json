@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3685341592-interplanetary-launcher-automation.yaml",
+ "mods": [
+  "3685341592"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds an Interplanetary Launcher in the dug-out corridor west of the printing pod. Its definition has the new ports; built, it has no radbolts, so the empty port sends Green",
+ "updated": "2026-11-01",
+ "commit": "9a150f00",
+ "mod_dlls": {
+  "3685341592": {
+   "InterPlanetaryLauncherAutomationMod.dll": "e75b84ad98f491ccca7cf626ad544e563f555a26fea0e697445a926bd99796a6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-015220-ea715534",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:56:29",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-023708-0df658bf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:37:08",
+    "lane": 44,
+    "reference_run": "20261101-015220-ea715534",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-023708-0df658bf",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:42:29",
+    "lane": 44,
+    "reference_run": "20261101-015220-ea715534",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

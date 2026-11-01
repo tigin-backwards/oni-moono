@@ -1,0 +1,18 @@
+# 4.2_制作模组动画 / Making a mod animation (3173559513), class V (anims).
+#
+# What it does: a tutorial mod: a postfix on LadderConfig.CreateBuildingDef gives the Ladder its
+# own animation, 4.2_kanim, from the mod's anim folder.
+# How a player reaches it: building ladders.
+# What changes: the ladder's look.
+#
+# The Ladder's definition uses 4.2_kanim; setup builds a ladder in the corridor west of the
+# printing pod and a world shot of it is compared with the original.
+from: early-base
+mods: [3173559513]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Ladder\")", method: Build, args: [131129, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Ladder\").AnimFiles[0].name": 4.2_kanim
+  - run: {seconds: 2}
+  - world_shot: {name: ladder, ortho: 4, at: [113, 207], hide_ui: true}

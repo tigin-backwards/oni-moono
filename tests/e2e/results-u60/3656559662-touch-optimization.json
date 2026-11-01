@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3656559662-touch-optimization.yaml",
+ "mods": [
+  "3656559662"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "loads with its two patches; with a mouse, the wheel still zooms the camera out as in the original",
+ "updated": "2026-11-01",
+ "commit": "5174a525",
+ "mod_dlls": {
+  "3656559662": {
+   "ONITouchOptimization.dll": "b4eab99fbd7e62d6e8efa43a291f18209ae9fe4dd1f59c2a4f23df0e7e742f15"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-003243-f188626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:32:43",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-054545-2bb93452",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:45:45",
+    "lane": 35,
+    "reference_run": "20261101-003243-f188626a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-054545-2bb93452",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:50:17",
+    "lane": 35,
+    "reference_run": "20261101-003243-f188626a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

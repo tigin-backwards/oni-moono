@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3755183612-better-build-menu.yaml",
+ "mods": [
+  "3755183612"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod's Build button opens its menu (dumped and shot); typing \"battery\" in its search keeps the battery cards (dumped); Escape closes it",
+ "updated": "2026-11-01",
+ "commit": "3324eae5",
+ "mod_dlls": {
+  "3755183612": {
+   "BetterBuildMenu.dll": "05ffe8531de197610d3e9852a936d1c69516bf737d3a6887a0663a8155670c5c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-065235-08404b0b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:09:24",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-072407-9c330e60",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:24:07",
+    "lane": 41,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-072407-9c330e60",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:24:08",
+    "lane": 45,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3805786609-flydo-enhanced.yaml",
+ "mods": [
+  "3805786609"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns a Flydo with a charged power bank in the pit in the floor of the dug-out room west of the printing pod and floods the pit with 1500 kg of water. After 300 s under water the Flydo is alive",
+ "updated": "2026-11-01",
+ "commit": "f9356c7b",
+ "mod_dlls": {
+  "3805786609": {
+   "FlydoEnhanced.dll": "5fdc90febd6fc8db5a3b872cc6e9e5144ddf0036171e8bee0f0ab05166f8ee57"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-050306-80757503",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:03:06",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-093020-6fa0b39d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:30:20",
+    "lane": 40,
+    "reference_run": "20261101-050306-80757503",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-093020-6fa0b39d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:30:21",
+    "lane": 41,
+    "reference_run": "20261101-050306-80757503",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

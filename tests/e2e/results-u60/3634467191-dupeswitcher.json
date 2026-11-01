@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3634467191-dupeswitcher.yaml",
+ "mods": [
+  "3634467191"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Shift+E twice selects the second and third Duplicants by name, Shift+Q goes back to the second; each is the one the original selects",
+ "updated": "2026-10-31",
+ "commit": "638f3abf",
+ "mod_dlls": {
+  "3634467191": {
+   "DupeSwitcher.dll": "62722c86c901c0cf2a81595e59cad9ee973214dbfe2668cd71656ed819ecf035"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214422-a6bc97d0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:58:22",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-221209-53db458e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:21:19",
+    "lane": 54,
+    "reference_run": "20261031-214422-a6bc97d0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-221209-53db458e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:22:31",
+    "lane": 55,
+    "reference_run": "20261031-214422-a6bc97d0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

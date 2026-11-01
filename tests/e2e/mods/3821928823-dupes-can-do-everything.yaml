@@ -1,0 +1,16 @@
+# Dupes Can Do Everything (复制人万金油) (3821928823), class M.
+#
+# What it does: Duplicants without the interest or skill may take skill-gated errands (a
+# Workable.WorkTick patch: such work takes twice as long) and learn the matching interest from
+# doing it; they move 1.5 times as fast (BipedTransitionLayer.GetMovementSpeedMultiplier) and
+# gain experience twice as fast (MinionResume.AddExperience patches).
+# How a player reaches it: playing.
+# What changes: generalist Duplicants.
+#
+# The mod loads, logs that skill-gated errands are open, and the colony plays for 60 s.
+from: early-base
+mods: [3821928823]
+require_log: ['\[DoEverything\] Skill-perk chore gate unlocked']
+steps:
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

@@ -1,0 +1,26 @@
+# Hide or Delete Asteroid_new删除星球 (3672585131), classes P, S (user menu on the starmap).
+#
+# What it does: an asteroid selected on the starmap gets two user menu buttons: "Hide" (takes a
+# discovered asteroid off the map until the colony is reloaded) and "!Delete!" (marks it for
+# deletion: its buildings and objects are destroyed and its space freed when the colony is next
+# saved). The start asteroid is never hidden or deleted. Patches on AsteroidGridEntity.OnSpawn
+# and SaveLoader.Save.
+# How a player reaches it: the starmap, an asteroid, its user menu.
+# What changes: unwanted asteroids gone.
+#
+# The asteroid's user menu does not show off the starmap, and the starmap's asteroid icons take
+# no clicks on U60, so the mod's handlers are checked directly: its user-menu handler exists,
+# and the mod's delete on the start asteroid (what "!Delete!" calls) is refused: it logs that
+# it skips the start world, and the colony keeps its worlds.
+from: early-base
+mods: [3672585131]
+require_log: ['---> Delete IsStartWorld skiped <---']
+setup:
+  - driver: {setup.call: {type: "DeleteAsteroidMod.CoverAsteroidMod_Patch", method: DeleteCurrAsteroid, args: [{"$": "ClusterManager.Instance.GetStartWorld().GetComponent<AsteroidGridEntity>"}]}}
+steps:
+  - expect_state:
+      "ClusterManager.Instance.WorldContainers.Count": {save_as: worlds}
+      "type:DeleteAsteroidMod.CoverAsteroidMod_Patch::OnRefreshUserMenuDelegate": exists
+  - run: {seconds: 2}
+  - expect_state:
+      "ClusterManager.Instance.WorldContainers.Count": "== worlds"

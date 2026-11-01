@@ -1,0 +1,14 @@
+# 超可持续可造发电肉食无周期限制 (3763270801), class P.
+#
+# What it does: a postfix on Db.Initialize clears the Super Sustainable achievement's list of
+# forbidden generators and removes the Carnivore achievement's cycle limit.
+# How a player reaches it: the colony achievements.
+# What changes: two achievements easier to earn.
+#
+# The achievements are changed, as the mod logs, and the colony plays for 30 s.
+from: early-base
+mods: [3763270801]
+require_log: ['\[IFI\] Db.Initialize Postfix', '\[IFI\] .* Super Sustainable blacklist cleared\.', '\[IFI\] .* Carnivore cycle limit \(BeforeCycleNumber\) removed\.']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

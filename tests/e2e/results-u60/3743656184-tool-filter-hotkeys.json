@@ -1,0 +1,69 @@
+{
+ "spec": "mods/3743656184-tool-filter-hotkeys.yaml",
+ "mods": [
+  "3743656184"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Deconstruct tool opens; F2 picks its second filter (the menu dumped before and after), as in the original; Escape puts it away",
+ "updated": "2026-11-01",
+ "commit": "1566e924",
+ "mod_dlls": {
+  "3743656184": {
+   "ToolFilterHotkeys.dll": "71ef25d614c0e318477663d758607c8daa758610575d232772d10b31bb954605"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-075025-21b2d5ac",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:59:07",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-081951-1ddcf895",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:19:51",
+    "lane": 44,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "before": {
+      "differences": 0
+     },
+     "after": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-081951-1ddcf895",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:19:52",
+    "lane": 45,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "before": {
+      "differences": 0
+     },
+     "after": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3826451400-true-smart-mopping.yaml",
+ "mods": [
+  "3826451400"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3826451400": {
+   "TrueSmartMopping.dll": "d14cfe6344ca96d324a5ef82b5c55bac68a22b3bcaecc37ae6b59e83804de419"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T03:48:34",
+    "lane": 53,
+    "reasons": [
+     "step start: Canvas/ConfirmDialog/GameObject/Panel/OKButton is occluded by ErrorCanvas/CrashReportScreen(Clone)/InfoBox/ModsInfo/ModsList/Files/Viewport/Content/Entry/BG (hits there: ErrorCanvas/CrashReportScreen(Clone)/InfoBox/ModsInfo/ModsList/Files/Viewport/Content/Entry/BG, ErrorCanvas/CrashRepor"
+    ],
+    "signatures": 1
+   }
+  ],
+  "ours": []
+ }
+}

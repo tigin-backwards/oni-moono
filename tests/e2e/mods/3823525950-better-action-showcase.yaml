@@ -1,0 +1,20 @@
+# 动作与心情扩展 | Better Action Showcase (3823525950), classes M, V.
+#
+# What it does: a postfix on BaseMinionConfig.BaseMinion gives every Duplicant a
+# ShowcaseController that, each second, picks among 19 sets of gestures in one of three
+# styles (config.json): after meals, after work, on stress relief, admiring the surroundings,
+# replying to a neighbour, and Bionic battery and joint gestures, played from its own
+# animations (registered through ModUtil.AddKAnimMod) over the Duplicant's own hair, skin and
+# clothes.
+# How a player reaches it: watching Duplicants.
+# What changes: more ambient animation.
+#
+# Each of the three Duplicants carries the controller, and the colony plays for 120 s.
+from: early-base
+mods: [3823525950]
+require_log: ['\[BetterActionShowcase\] Loaded 0\.3\.1']
+steps:
+  - expect_state:
+      "count:Components.LiveMinionIdentities.Items[*] if .GetComponent<BetterActionShowcase.ShowcaseController>.enabled == true": 3
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}

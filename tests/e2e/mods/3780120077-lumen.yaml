@@ -1,0 +1,34 @@
+# Lumen (3780120077), class B.
+#
+# What it does: five motion-activated light fixtures (a floor lamp, a spotlight, a panel light,
+# a floodlight and another) in the Furniture menu's lights, researched with the Duplicant
+# Motion Sensor (Smart Home, LogicControl): each draws 1 W and lights only while a Duplicant
+# is in range, and their light shape preview follows their rotation.
+# How a player reaches it: the build menu (Furniture), after the research.
+# What changes: lights that are on only when needed.
+#
+# setup grants Smart Home and builds a floor lamp in the dug-out corridor west of the printing
+# pod. The fixtures show in the Furniture menu; selected, the lamp's details screen is dumped.
+from: early-base
+mods: [3780120077]
+require_log: ['\[Lumen\] Loaded']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicControl\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LumenFloorLamp\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"LogicControl\").unlockedItemIDs": {contains: LumenFloorLamp}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/LumenFloorLamp Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/LumenFloorLamp Group*": {active: true}
+      "**/BuildingGroups/**/Grid/LumenSpotlight Group*": {active: true}
+      "**/BuildingGroups/**/Grid/LumenPanelLight Group*": {active: true}
+      "**/BuildingGroups/**/Grid/LumenFloodlight Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: LumenFloorLamp}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3791493802-ceramic-auto-miner.yaml",
+ "mods": [
+  "3791493802"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Robotic Tools and builds one in the dug-out corridor west of the printing pod. It shows in the Conveyance menu; its definition makes no heat, and selected its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "75be204d",
+ "mod_dlls": {
+  "3791493802": {
+   "CeramicAutoMiner.dll": "b00bd0d0706a49625cb8acf7c6ee5a5eed619bc9fa105a903daadb3429dfff5b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043324-145195fb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:36:18",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084334-e4a73508",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:43:34",
+    "lane": 41,
+    "reference_run": "20261101-043324-145195fb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-084334-e4a73508",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:43:35",
+    "lane": 42,
+    "reference_run": "20261101-043324-145195fb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

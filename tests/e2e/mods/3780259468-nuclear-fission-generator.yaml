@@ -1,0 +1,28 @@
+# 核裂变发电机 Nuclear fission generator (3780259468), class B (Spaced Out).
+#
+# What it does: a small nuclear fission power plant (NuclearFissionPowerPlant, 5x5, Power): it
+# burns enriched uranium with cooling water for 32.5 kW and room-temperature solid nuclear
+# waste; when its warm water cannot leave, the coolant boils off as steam, and some 15 s without
+# coolant melts its core down.
+# How a player reaches it: the build menu (Power).
+# What changes: a compact reactor.
+#
+# setup builds the plant in the dug-out corridor west of the printing pod. It shows in the Power
+# menu; it rates 32.5 kW, and selected its details screen is dumped.
+from: early-base
+mods: [3780259468]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"NuclearFissionPowerPlant\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"NuclearFissionPowerPlant\").GeneratorWattageRating": 32500
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/NuclearFissionPowerPlant Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/NuclearFissionPowerPlant Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [109, 207], ortho: 8}}
+  - click_world: {cell: [109, 206], select: NuclearFissionPowerPlant}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

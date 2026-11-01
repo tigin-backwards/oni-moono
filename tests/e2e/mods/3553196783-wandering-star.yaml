@@ -1,0 +1,26 @@
+# 会移动的星 Wandering Star (3553196783), class P.
+#
+# What it does: asteroids orbit the starmap's centre: a postfix on ClusterGridEntity.OnSpawn
+# gives every asteroid an AstroMover with a ring-shaped trajectory at its distance from the
+# centre; every N cycles (N its ring) it steps to the next hex, taking rockets parked beside it
+# along and refreshing meteor showers' paths, and rockets next to it are turned around it
+# every sixth of a cycle. The starmap's hover text shows the countdown.
+# How a player reaches it: nothing to click; the starmap shows it.
+# What changes: the cluster's layout changes as cycles pass.
+#
+# Every asteroid gets its mover and orbit. Their positions' sum stayed the same through 12
+# minutes of play in the original's run (an asteroid of ring N steps at cycle multiples of N),
+# so the spec checks the countdown to the next step of the asteroids with an orbit instead,
+# which a minute of play shortens.
+from: early-base
+mods: [3553196783]
+steps:
+  - expect_state:
+      "all:AsteroidGridEntity::Length": {save_as: asteroids}
+  - expect_state:
+      "all:AstroMover::Length": "== asteroids"
+      "count:all:AstroMover::[*] if .trajectory.Count != 0": [">= 1", "== original"]   # the centre one has none
+      "sum:all:AstroMover::[*].remainingCycles if .trajectory.Count != 0": [{save_as: left}, "> 0"]
+  - run: {seconds: 60}
+  - expect_state:
+      "sum:all:AstroMover::[*].remainingCycles if .trajectory.Count != 0": ["< left", "> 0"]

@@ -1,0 +1,28 @@
+# Deep Freeze Ration Box / 超冷口粮箱 (3786902588), class B.
+#
+# What it does: adds a Deep Freeze Ration Box (DeepFreezeRationBox, 2x2, refined metal, the Food
+# menu): a powered ration box of 8000 kg with the ration box's look that cools its food to -30 C
+# and keeps it deep-frozen while powered.
+# How a player reaches it: the build menu (Food).
+# What changes: big frozen food stores.
+#
+# setup builds the box in the dug-out corridor west of the printing pod. It shows in the Food
+# menu; it holds 8000 kg, and selected its details screen is dumped.
+from: early-base
+mods: [3786902588]
+require_log: ['\[DeepFreezeRationBox\] registered in Food plan screen']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"DeepFreezeRationBox\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"DeepFreezeRationBox\").BuildingComplete.GetComponent<Storage>.capacityKg": 8000
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Food"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/DeepFreezeRationBox Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/DeepFreezeRationBox Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: DeepFreezeRationBox}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

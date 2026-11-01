@@ -1,0 +1,67 @@
+{
+ "spec": "mods/3756824697-smarter-container.yaml",
+ "mods": [
+  "3756824697"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Storage Bin's side screen has the mod's two sliders (dumped and shot) in place of the game's capacity control",
+ "updated": "2026-11-01",
+ "commit": "74d735d7",
+ "mod_dlls": {
+  "3756824697": {
+   "SmarterContainer.dll": "91fec4f9158534165c7ab2dd8d61fe5669930469fcc9bb40aba671df42af41e4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221303-afe4ed80",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:13:03",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-012109-bfd08b5f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:21:09",
+    "lane": 35,
+    "reference_run": "20261031-221303-afe4ed80",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "sliders": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "details": 0.0
+    }
+   },
+   {
+    "run": "20261101-012109-bfd08b5f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:28:38",
+    "lane": 35,
+    "reference_run": "20261031-221303-afe4ed80",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "sliders": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "details": 0.0
+    }
+   }
+  ]
+ }
+}

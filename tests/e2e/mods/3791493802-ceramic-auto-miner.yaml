@@ -1,0 +1,31 @@
+# Ceramic Auto-Miner / 陶瓷无热自动采矿机 (3791493802), class B.
+#
+# What it does: adds a Ceramic Auto-Miner (CeramicAutoMiner, 2x2, the Conveyance menu after the
+# Robo-Miner, researched with Robotic Tools): a Robo-Miner built of ceramic only, with no heat of
+# its own and no heat exchange with its surroundings.
+# How a player reaches it: the build menu (Conveyance), after the research.
+# What changes: a robo-miner that does not heat its room.
+#
+# setup grants Robotic Tools and builds one in the dug-out corridor west of the printing pod. It
+# shows in the Conveyance menu; its definition makes no heat, and selected its details screen is
+# dumped.
+from: early-base
+mods: [3791493802]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"RoboticTools\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CeramicAutoMiner\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Ceramic], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"RoboticTools\").unlockedItemIDs": {contains: CeramicAutoMiner}
+      "Assets.GetBuildingDef(\"CeramicAutoMiner\").SelfHeatKilowattsWhenActive": 0
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Shipping"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CeramicAutoMiner Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/CeramicAutoMiner Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: CeramicAutoMiner}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

@@ -1,0 +1,19 @@
+# FastLevelUp 快速升级 (3818537352), classes P, O.
+#
+# What it does: raises the attribute level cap (default 50, up to 500) and speeds levelling to
+# reach it in a target number of cycles (default 150), with a speed multiplier and curve shape:
+# patches on AttributeLevel's LevelUp, GetExperienceForNextLevel and AddExperience; PLib options
+# (main menu, Mods, its options).
+# How a player reaches it: nothing to click; the Mods screen's options.
+# What changes: Duplicants level faster and further.
+#
+# The mod loads (logging its options file) with its three patches; the colony runs two
+# minutes of work.
+from: early-base
+mods: [3818537352]
+require_log: ['\[FastLevelUp\] v1\.1\.2']
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .label.id == 3818537352 and .loaded_mod_data.patched_methods.Count == 3": 1
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}

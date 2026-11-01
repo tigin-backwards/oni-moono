@@ -1,0 +1,29 @@
+# Just Reroll (3789408036), classes P, U (screens of the game's, changed).
+#
+# What it does: the printing pod's choice screen gets the reroll (reshuffle) buttons of the
+# new-colony Duplicant selection on each Duplicant card, and its name and model fields (patches
+# on ImmigrantScreen.Initialize and OnShow).
+# How a player reaches it: the printing pod, when printables are available.
+# What changes: printables can be rerolled.
+#
+# setup makes printables available (the immigration timer run out, as time does) and seeds the
+# random numbers. The printing pod is selected and its choices opened: the cards have reroll
+# buttons. The offers themselves (care packages or Duplicants, and which) follow random numbers
+# the seed does not fix, so the four cards are counted and only the bottom buttons dumped.
+from: early-base
+mods: [3789408036]
+setup:
+  - driver: {seed: 12345}
+  - driver: {setup.call: {target: "Immigration.Instance", method: "Sim200ms", args: [100000]}}
+steps:
+  - expect_state: {"Immigration.Instance.ImmigrantsAvailable": true}
+  - driver: {camera.set: {cell: [124, 209], ortho: 8}}
+  - click_world: {cell: [124, 208], select: Headquarters}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/TelepadSideScreen/Contents/Immigration/ViewButton", cond: stable}
+  - click: {ui: "**/TelepadSideScreen/Contents/Immigration/ViewButton"}
+  - ui_wait: {path: "**/ImmigrantScreen/Layout", cond: stable}
+  - expect_ui:
+      "**/ImmigrantScreen": {active: true}
+      "**/ImmigrantScreen/Layout/Content/*Container": {count: 4}
+  - ui_dump: {name: buttons, root: "**/ImmigrantScreen/Layout/BottomButtons"}

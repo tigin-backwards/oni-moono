@@ -1,0 +1,18 @@
+# 毛绒树鼠：生育母神！The Mother God Of Fertility：Pips！ (3464220419), class P.
+#
+# What it does: a postfix on ModifierSet.CreateCritteEffects strengthens the "EggHug" effect a
+# critter's hug gives an egg (what Pips and the Cuddle Pip give): it lasts 3000 s instead of
+# 600 s, and its incubation bonus is +4 a second. (Its description talks of Slicksters; its
+# code changes only this.)
+# How a player reaches it: nothing to click; eggs hugged by critters.
+# What changes: hugged eggs hatch much sooner, for longer.
+#
+# The game's EggHug effect has the mod's duration and incubation rate, and the log says so.
+from: early-base
+mods: [3464220419]
+require_log: ['\[毛绒树鼠MOD\] 已强化EggHug效果']
+steps:
+  - expect_state:
+      "Db.Get().effects.Get(\"EggHug\").duration": 3000
+      "Db.Get().effects.Get(\"EggHug\").SelfModifiers[0].Value": 4
+  - run: {seconds: 60}

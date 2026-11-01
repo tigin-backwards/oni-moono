@@ -1,0 +1,20 @@
+# ONI_ParameterTuning (3513558219), classes P, O (PLib options).
+#
+# What it does: options for a handful of buildings: research speed of the Materials Study
+# Terminal, radiation pill making speed, the gas pressure sensor's maximum, gas reservoir,
+# bottle emptier and bottle filler capacities, the telescope's range, travel tube crossings and
+# rotations of the pressure door and liquid reservoir; patches on each config.
+# How a player reaches it: the mod's options (Mods screen).
+# What changes: those buildings' figures.
+#
+# Defaults. The patched buildings' definitions (gas reservoir and bottle filler capacity) are as
+# in the original; the colony runs on.
+from: early-base
+mods: [3513558219]
+require_log: ['Patch_GasReservoirConfig_ConfigureBuildingTemplate called']
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"GasReservoir\").GetComponent<Storage>.capacityKg": "== original"
+      "Assets.GetPrefab(\"LiquidBottler\").GetComponent<Storage>.capacityKg": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

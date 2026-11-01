@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3782720488-sweeper-bottles.yaml",
+ "mods": [
+  "3782720488"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "water and oxygen tags count as conveyable by a sweeper, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "750605c0",
+ "mod_dlls": {
+  "3782720488": {
+   "BottledWaterSweeper.dll": "96d49108965cb5e646e15ab63c16722daa1817eb3f023829a8c0480298776047"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-075025-21b2d5ac",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:50:25",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-082948-a7b050c4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:29:48",
+    "lane": 42,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-082948-a7b050c4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:29:49",
+    "lane": 43,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

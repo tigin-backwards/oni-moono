@@ -1,0 +1,27 @@
+# 去除变压器发热 Transformers make no heat (3745973251), class P.
+#
+# What it does: the Power Transformer and the Large Power Transformer give off no heat while
+# active: postfixes on both configs' CreateBuildingDef set SelfHeatKilowattsWhenActive to 0
+# (the game's 1 kW).
+# How a player reaches it: building transformers.
+# What changes: no cooling needed around transformers.
+#
+# Both definitions are read; setup builds a Power Transformer in the dug-out corridor west of
+# the printing pod, and selected its details screen lists no heat production among its effects
+# (dumped).
+from: early-base
+mods: [3745973251]
+require_log: ['\[NotProducingHeat\] Mod loaded']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"PowerTransformerSmall\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"PowerTransformer\").SelfHeatKilowattsWhenActive": 0
+      "Assets.GetBuildingDef(\"PowerTransformerSmall\").SelfHeatKilowattsWhenActive": 0
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: PowerTransformerSmall}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Building>.Def.SelfHeatKilowattsWhenActive": 0
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

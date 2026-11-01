@@ -1,0 +1,21 @@
+# Cool Epic Pneumatic Door Skin That Makes You Frost Burgers and Calls You Wonderful in The
+# Morning (1947452187), class V.
+#
+# What it does: the Pneumatic Door (DoorConfig) is drawn with the mod's glassdoor_kanim (from
+# its anim folder) instead of the game's door animation.
+# How a player reaches it: building a Pneumatic Door.
+# What changes: the door's look.
+#
+# setup places a Pneumatic Door in the corridor west of the printing pod (118,207); its
+# animation is the mod's, and the door is shot in the world, closed.
+from: early-base
+mods: [1947452187]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Door\")", method: Build, args: [131770, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {Door: 2}}   # with the base's own door
+  - expect_state:
+      "Assets.GetBuildingDef(\"Door\").AnimFiles[0].name": glassdoor_kanim
+      "all:Door::[0].GetComponent<KBatchedAnimController>.AnimFiles[0].name": glassdoor_kanim
+  - world_shot: {name: door, ortho: 4, at: [118, 208]}

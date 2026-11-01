@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3604308501-fossil-dig-speedup.yaml",
+ "mods": [
+  "3604308501"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the dig site's recipe time is compared with the original's (a tenth of the game's), and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "07ad4cc9",
+ "mod_dlls": {
+  "3604308501": {
+   "ClassLibrary4.dll": "2177fff822271634f05396b3d64a4221e0637a5401855c8b51aac424d0d1189a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-030516-f8747b98",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:08:22",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-033256-1a6f089d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:32:56",
+    "lane": 45,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-033256-1a6f089d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:37:26",
+    "lane": 45,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

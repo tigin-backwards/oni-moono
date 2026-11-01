@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3810981754-no-fertilizer-wheezewort.yaml",
+ "mods": [
+  "3810981754"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Wheezewort's prefab consumes nothing; setup builds a Flower Pot in the dug-out corridor west of the printing pod and plants a Wheezewort in it (as a Duplicant's planting does). After 300 s it grows on, with no fertilizer delivered, as in the original",
+ "updated": "2026-11-01",
+ "commit": "6016554a",
+ "mod_dlls": {
+  "3810981754": {
+   "NoFertilizerWheezewort.dll": "6d6ba79a87dc23886b0dc4371bb24628e5a19a68809864b9ddf06109e263c7fa"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-050306-80757503",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:16:43",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-101357-4b78a87e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:13:57",
+    "lane": 40,
+    "reference_run": "20261101-050306-80757503",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-101357-4b78a87e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:13:58",
+    "lane": 41,
+    "reference_run": "20261101-050306-80757503",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3800936934-ceramic-insulated-liquid-conduit.yaml",
+ "mods": [
+  "3800936934"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Improved Liquid Piping and builds a segment in the dug-out corridor west of the printing pod. It shows in the Plumbing menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "585412ee",
+ "mod_dlls": {
+  "3800936934": {
+   "CeramicInsulatedLiquidConduit.dll": "3f3a90a72a6ed83c40ddf450f3ec97655b9a9882b4f4e81e0bf0d158d52dbdee"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-053127-e9ca470e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:42:33",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092251-ade4bb74",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:22:51",
+    "lane": 44,
+    "reference_run": "20261101-053127-e9ca470e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-092251-ade4bb74",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:22:52",
+    "lane": 45,
+    "reference_run": "20261101-053127-e9ca470e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

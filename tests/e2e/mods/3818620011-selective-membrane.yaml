@@ -1,0 +1,27 @@
+# 【个人开发测试版】选择性分子筛 / Selective Membrane (3818620011), classes B, S.
+#
+# What it does: adds a selective membrane tile and door (BaiyeSelectiveMembraneTile,
+# BaiyeSelectiveMembraneDoor, in the Base menu, researched with Advanced Filtration) that
+# keep gas and liquid apart: Duplicants walk through, and the membrane either balances the
+# two sides passively or moves chosen elements one way along its axis (its MembraneSideScreen);
+# the build preview shows the axis and what blocks it (BuildToolHoverTextCard patch), and
+# damage, deconstruction and copy settings are handled.
+# How a player reaches it: the build menu (Base), after the research; its side screen.
+# What changes: walls that let Duplicants through but not gas.
+#
+# setup grants Advanced Filtration. Both membranes are listed in the Base menu (shot).
+from: early-base
+mods: [3818620011]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedFiltration\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"AdvancedFiltration\").unlockedItemIDs": [{contains: BaiyeSelectiveMembraneTile}, {contains: BaiyeSelectiveMembraneDoor}]
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BaiyeSelectiveMembraneDoor Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/BaiyeSelectiveMembraneTile Group*": {active: true}
+  - shot: {name: base, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}

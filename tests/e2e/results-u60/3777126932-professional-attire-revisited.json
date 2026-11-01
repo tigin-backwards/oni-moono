@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3777126932-professional-attire-revisited.yaml",
+ "mods": [
+  "3777126932"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the new clothes are recipes of the loom (as many as in the original); setup builds a Textile Loom in the dug-out corridor west of the printing pod, and selected its recipe list is dumped",
+ "updated": "2026-11-01",
+ "commit": "4a87c6a1",
+ "mod_dlls": {
+  "3777126932": {
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70",
+   "ProfessionalAttireRevisited.dll": "6d858ba746fb2137c7aaf5506dc4f6367499838bf224fc7c13b560095b062eba"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-033851-137d5e8f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:38:51",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-044239-581ce3ae",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:42:39",
+    "lane": 45,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-044239-581ce3ae",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:46:26",
+    "lane": 41,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

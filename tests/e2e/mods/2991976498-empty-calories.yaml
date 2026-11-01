@@ -1,0 +1,19 @@
+# Empty Calories [Deprecated] (2991976498), class P.
+#
+# What it does: Berry Sludge (FruitCake) gives 2100 kcal at quality 1 (a Db.Initialize postfix
+# on its food info), and its Microbe Musher recipe becomes 2 Sleet Wheat Grain and 1 Bristle
+# Berry.
+# How a player reaches it: the Microbe Musher's recipes; eating Berry Sludge.
+# What changes: a cheaper, weaker Berry Sludge.
+#
+# Berry Sludge's food info and the Microbe Musher's recipe carry the new values.
+from: early-base
+mods: [2991976498]
+steps:
+  - expect_state:
+      "EdiblesManager.GetFoodInfo(\"FruitCake\").CaloriesPerUnit": 2100000
+      "EdiblesManager.GetFoodInfo(\"FruitCake\").Quality": 1
+      "FruitCakeConfig.recipe.ingredients.Length": 2
+      "FruitCakeConfig.recipe.ingredients[0].amount": 2
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

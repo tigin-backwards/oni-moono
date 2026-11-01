@@ -1,0 +1,32 @@
+# Very Large Battery (3248854308), class B.
+#
+# What it does: adds a smart battery (LargeBatterySmart) of endless capacity (float.MaxValue
+# joules) to the Power menu, researched with Advanced Power Regulation (Micro-Power).
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: one battery that stores everything.
+#
+# setup grants Advanced Power Regulation and builds the battery in the dug-out corridor west of
+# the printing pod. It shows in the Power menu; built, its capacity is past 10^30 J, and selected
+# its details screen is dumped.
+from: early-base
+mods: [3248854308]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedPowerRegulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LargeBatterySmart\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"AdvancedPowerRegulation\").unlockedItemIDs": {contains: LargeBatterySmart}
+      "Assets.GetBuildingDef(\"LargeBatterySmart\").BuildingComplete.GetComponent<Battery>.capacity": "> 1e30"
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/LargeBatterySmart Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/LargeBatterySmart Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: LargeBatterySmart}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Battery>.capacity": "> 1e30"
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

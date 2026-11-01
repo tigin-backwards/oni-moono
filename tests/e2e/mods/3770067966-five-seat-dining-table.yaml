@@ -1,0 +1,35 @@
+# 可以坐5个人的餐桌 A dining table for five (3770067966), class B.
+#
+# What it does: adds a Bigger Table (BiggerTable, Furniture, researched with Fine Dining) where
+# five Duplicants eat at once (it extends the game's multi-Duplicant dining table list), a
+# Better Jukebot (BetterPhonobox, Furniture, Luxury), and removes the Banquet Hall's
+# requirement of a decor piece.
+# How a player reaches it: the build menu (Furniture), after the research.
+# What changes: big mess halls, an easier Banquet Hall.
+#
+# setup grants Fine Dining and builds a Bigger Table in the dug-out corridor west of the
+# printing pod. Both buildings show in the Furniture menu; selected, the table's details screen
+# is dumped.
+from: early-base
+mods: [3770067966]
+require_log: ['\[MoreBuilding\] Loaded']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FineDining\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Luxury\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"BiggerTable\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"FineDining\").unlockedItemIDs": {contains: BiggerTable}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BiggerTable Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/BiggerTable Group*": {active: true}
+      "**/BuildingGroups/**/Grid/BetterPhonobox Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: BiggerTable}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

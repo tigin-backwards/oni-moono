@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3780120077-lumen.yaml",
+ "mods": [
+  "3780120077"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Smart Home and builds a floor lamp in the dug-out corridor west of the printing pod. The fixtures show in the Furniture menu; selected, the lamp's details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "1ed4c55e",
+ "mod_dlls": {
+  "3780120077": {
+   "Lumen.dll": "08d787fded62305d65bde30a91d14e209a53559aeb3056088c60964332cc50a8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-054821-21d56bdb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:58:47",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-072923-c247e96a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:29:23",
+    "lane": 41,
+    "reference_run": "20261101-054821-21d56bdb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-072923-c247e96a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:29:24",
+    "lane": 45,
+    "reference_run": "20261101-054821-21d56bdb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

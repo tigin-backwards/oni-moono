@@ -1,0 +1,33 @@
+# 2格凝胶门 / Two-Tile Visco-Gel Lock (3800957907), class B.
+#
+# What it does: adds a two-cell visco-gel lock (SoonViscoGelGate100, 1x2, the Utilities menu,
+# researched with Liquid Piping): a frame holding 100 kg of visco-gel in each of its cells, a
+# liquid lock Duplicants walk through (patches on BuildingDef's area marking).
+# How a player reaches it: the build menu (Utilities), after the research.
+# What changes: a liquid lock in one building.
+#
+# setup grants Liquid Piping and builds the lock across the dug-out corridor west of the
+# printing pod. It shows in the Utilities menu; selected, its details screen is dumped, and the
+# colony runs on.
+from: early-base
+mods: [3800957907]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LiquidPiping\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SoonViscoGelGate100\")", method: Build, args: [{"$": "Grid.XYToCell(116, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"LiquidPiping\").unlockedItemIDs": {contains: SoonViscoGelGate100}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Utilities"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/SoonViscoGelGate100 Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/SoonViscoGelGate100 Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [116, 207], ortho: 8}}
+  - click_world: {cell: [116, 206], select: SoonViscoGelGate100}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

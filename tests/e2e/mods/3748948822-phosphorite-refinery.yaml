@@ -1,0 +1,21 @@
+# Phosphorite Refinery (3748948822), class P.
+#
+# What it does: the Metal Refinery gets a recipe turning 100 kg of Phosphorite into 100 kg of
+# Refined Phosphorus (added with the buildings).
+# How a player reaches it: a Metal Refinery's recipe side screen.
+# What changes: refined phosphorus from the refinery.
+#
+# The recipe is among the game's; setup builds a Metal Refinery in the dug-out corridor west of
+# the printing pod, and selected its recipe list is dumped.
+from: early-base
+mods: [3748948822]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"MetalRefinery\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "count:ComplexRecipeManager.Get().recipes[*] if .fabricators[0].Name == MetalRefinery and .ingredients[0].material.Name == Phosphorite": 1
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: MetalRefinery}
+  - ui_wait: {path: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView", cond: stable}
+  - ui_dump: {name: recipes, root: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView"}

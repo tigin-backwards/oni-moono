@@ -1,0 +1,24 @@
+# Flower Vase Enhancement-花盆加强 (3732705092), classes B, P, O.
+#
+# What it does: the Flower Pot (FlowerVase) takes any seed (crop, aquatic, large and backwall
+# seeds), can be flipped vertically, and with Flower pot auto irrigation on (the default) gets
+# an AutoIrrigatedFlowerPot that draws the liquid its plant needs from the cells around it;
+# PLib options (Config.json, shared) scale every plant's fertilizer and liquid use (percent)
+# and set the Wheezewort's cooling, which also becomes fertilizable.
+# How a player reaches it: building a Flower Pot; the Mods screen's options.
+# What changes: flower pots grow anything, watering themselves.
+#
+# The spec halves fertilizer and liquid use: a Mealwood takes half the game's 10 kg of dirt a
+# cycle. The Flower Pot's prefab accepts crop and aquatic seeds, flips vertically and has the
+# irrigation component; the colony runs a minute.
+from: early-base
+mods: [3732705092]
+options:
+  huapenwudi: {$file: Config.json, feiliao: 50, yeti: 50}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"FlowerVase\").GetComponent<花盆种植一切.AutoIrrigatedFlowerPot>": exists
+      "Assets.GetPrefab(\"FlowerVase\").GetComponent<PlantablePlot>.possibleDepositObjectTags": [{contains: CropSeed}, {contains: WaterSeed}]
+      "Assets.GetBuildingDef(\"FlowerVase\").PermittedRotations": FlipV
+      "Assets.GetPrefab(\"BasicSingleHarvestPlant\").GetComponent<StateMachineController>.cmpdef.defs[2].consumedElements[0].massConsumptionRate": ["< 0.009", "== original"]
+  - run: {seconds: 60}

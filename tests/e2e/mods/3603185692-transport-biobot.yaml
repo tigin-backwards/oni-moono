@@ -1,0 +1,27 @@
+# Transport Biobot (3603185692), class P (Spaced Out; "Modified Biobot").
+#
+# What it does: the Biobot (MorbRover) becomes a hauler: its base trait disables twelve chore
+# groups (all but supply, storage, toggling and building), and its Athletics becomes 20 and
+# its carry capacity 2000 kg (a postfix on MorbRoverConfig.CreatePrefab edits the trait).
+# How a player reaches it: Biobots (from the Biobot Builder's morbs).
+# What changes: Biobots that carry and build fast.
+#
+# The Biobot's base trait is read; setup spawns a Biobot in the dug-out corridor west of the
+# printing pod, and it carries at least 2000 kg; the colony
+# runs on.
+from: early-base
+mods: [3603185692]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, MorbRover, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "Db.Get().traits.Get(\"MorbRoverBaseTrait\").disabledChoreGroups.Length": 12
+      "sum:Db.Get().traits.Get(\"MorbRoverBaseTrait\").SelfModifiers[*].Value if .AttributeId == CarryAmount": 2000
+      "sum:Db.Get().traits.Get(\"MorbRoverBaseTrait\").SelfModifiers[*].Value if .AttributeId == Athletics": 20
+  - run: {seconds: 2}
+  - expect_state:
+      "last:GetComponent<KPrefabID>.PrefabTag.Name": MorbRover
+      "last:GetComponent<Modifiers>.attributes.Get(\"CarryAmount\").GetTotalValue()": [">= 2000", "== original"]
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

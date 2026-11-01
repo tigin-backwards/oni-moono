@@ -1,0 +1,34 @@
+{
+ "spec": "mods/2787783943-adv-test.yaml",
+ "mods": [
+  "2787783943"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "2787783943": {
+   "AdvancedGenerators.dll": "16ec565091e4bcf6213ef56a30079dd5becdf3602338bae29ecff783a2f62f1b",
+   "MissileLib.dll": "c9725cac486b07584015e2788cd27d2cc0c13cb92833b4e3f4222f9481c8fb68"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T05:15:09",
+    "lane": 52,
+    "reasons": [
+     "step start: the player exited (1) while loading"
+    ],
+    "signatures": 4
+   }
+  ],
+  "ours": []
+ }
+}

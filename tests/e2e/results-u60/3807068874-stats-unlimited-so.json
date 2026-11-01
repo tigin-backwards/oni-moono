@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3807068874-stats-unlimited-so.yaml",
+ "mods": [
+  "3807068874"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "options set skill experience 2x and Excavation (Digging) experience 10x. setup hands Nikola experience through the game's own calls for work done: 100 skill experience (his total is 226.5 in early-base) and 10 s of Digging (his Digging is level 3 with 154.9 experience). Both count more than the game's (326.5 and 164.9) and as in the original; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "bef528fd",
+ "mod_dlls": {
+  "3807068874": {
+   "PLib.dll": "55ce409618e6d102a1bcd0298911f3df49dda9a94ee153d02403035a1d6101d6",
+   "StatsUnlimitedSOMerged.dll": "8505f70f5177b4632ed1bdb75e3067511c985313c82551600dba0d19202e25dd"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-050306-80757503",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:12:00",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-093911-13f774be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:39:11",
+    "lane": 44,
+    "reference_run": "20261101-050306-80757503",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-093911-13f774be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:39:12",
+    "lane": 45,
+    "reference_run": "20261101-050306-80757503",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

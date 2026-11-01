@@ -1,0 +1,67 @@
+{
+ "spec": "mods/3793266236-korean-translation-complete.yaml",
+ "mods": [
+  "3793266236"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the spec plays in the game's own Korean (`language: ko_klei`): the log counts what it wrote and re-translated, room criteria read as in the original, and the pause menu is dumped and shot",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3793266236": {
+   "KoreanComplete.dll": "b9f64691e63da7a4d800fa97adff2867b61b7f5123e7c9aa8081af10b79dde58"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:45:23",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-020342-53693410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:48:51",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "pause": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "pause": 0.0
+    }
+   },
+   {
+    "run": "20261101-020342-53693410",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:49:12",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "pause": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "pause": 0.0
+    }
+   }
+  ]
+ }
+}

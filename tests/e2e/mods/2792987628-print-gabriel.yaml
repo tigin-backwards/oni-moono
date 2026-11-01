@@ -1,0 +1,21 @@
+# Print Gabriel - It's Me With Game Mod (2792987628), class X (content for Dupery).
+#
+# What it does: no code. With Dupery (here Dupery Fixed, 3172734005; its description requires
+# Dupery), its personalities.json adds a printable Duplicant personality, Gabriel
+# (male, Aggressive stress reaction, Sticker Bomber joy trait), with its hair and head shape from the mod's anim folder.
+# How a player reaches it: Duplicants printed or picked for a new colony; the Duplicant's
+# Personality tab.
+# What changes: another personality in the pool.
+#
+# Dupery imports the personality into the game's Personalities and loads its accessories.
+from: early-base
+mods: [3172734005, 2792987628]
+require_log: ['\[Dupery\]: accessory hair_gabriel successfully loaded']
+steps:
+  - expect_state:
+      "Db.Get().Personalities.TryGet(\"GABRIEL\")": exists
+      "Db.Get().Personalities.TryGet(\"GABRIEL\").Disabled": false
+      "Db.Get().Accessories.TryGet(\"hair_gabriel\")": exists
+      "Db.Get().Personalities.Count": "== original"
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

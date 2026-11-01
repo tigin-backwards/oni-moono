@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3805024403-sterile-powered-refrigerator.yaml",
+ "mods": [
+  "3805024403"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Refrigerator in the dug-out corridor west of the printing pod (unpowered there, so the game's rules apply to it) and puts Mush Bars in it. The mod loads and its fridge holds the food; the food's freshness after 300 s is as in the original",
+ "updated": "2026-11-01",
+ "commit": "23583a26",
+ "mod_dlls": {
+  "3805024403": {
+   "SterileRefrigerator.dll": "7022294bcb9c6249a2401ca6b7aaf895e911e07147119ca435f3533be72a2b93"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-100530-b5e299fe",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:05:30",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-101328-67d168b5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:13:28",
+    "lane": 44,
+    "reference_run": "20261101-100530-b5e299fe",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-101328-67d168b5",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:13:29",
+    "lane": 45,
+    "reference_run": "20261101-100530-b5e299fe",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

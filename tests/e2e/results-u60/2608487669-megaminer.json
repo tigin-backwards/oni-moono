@@ -1,0 +1,33 @@
+{
+ "spec": "mods/2608487669-megaminer.yaml",
+ "mods": [
+  "2608487669"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "3f4475ee",
+ "mod_dlls": {
+  "2608487669": {
+   "(Darth Nihilus)_Megaminer.dll": "35c1ed154e8c60ef79eabb3d615cc0e93c10a9b0b0dd2223a7a3b8ae90654358"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-012312-d12567fd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T01:29:21",
+    "lane": 32,
+    "reasons": [
+     "step start: <urlopen error [Errno 111] Connection refused>"
+    ],
+    "signatures": 2
+   }
+  ],
+  "ours": []
+ }
+}

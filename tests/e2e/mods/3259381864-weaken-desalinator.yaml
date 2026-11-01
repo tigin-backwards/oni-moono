@@ -1,0 +1,24 @@
+# WeakenDesalinator浓盐水淡化成盐水 (3259381864), class B.
+#
+# What it does: a 4x3 淡盐水机 (WeakenDesalinator, raw metal, powered; Refinement menu, researched
+# with Liquid Filtering) that turns 5 kg/s of brine into 3.85 kg/s of salt water and
+# 1.15 kg/s of salt.
+# How a player reaches it: the research screen, then the build menu (Refinement).
+# What changes: brine made into salt water.
+#
+# setup places one in the pit of the dug-out room west of the printing pod (110,206): it is complete, selected it shows its details
+# (shot), and it is shot in the world.
+from: early-base
+mods: [3259381864]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"WeakenDesalinator\")", method: Build, args: [131126, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {WeakenDesalinator: 1}}
+  - expect_state:
+      "Db.Get().Techs.Get(\"LiquidFiltering\").unlockedItemIDs": {contains: WeakenDesalinator}
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 206], select: WeakenDesalinator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
+  - world_shot: {name: building, ortho: 5, at: [110, 207]}

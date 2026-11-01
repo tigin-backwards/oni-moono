@@ -1,0 +1,31 @@
+# R 玩偶Doll 1.0 (3399465500), classes B, O (PLib options, R008GGG0.json).
+#
+# What it does: decor dolls for the Furniture menu (R008GGG1 to R008GGG6, and R000GGG1), each
+# shown only when its PLib option is on (otherwise its definition is marked deprecated and the
+# build menu leaves it out); a details screen tooltip of their own.
+# How a player reaches it: the mod's options, then the build menu (Furniture).
+# What changes: more decor.
+#
+# Options turn on R008GGG1. setup builds one in the dug-out corridor west of the printing pod.
+# It shows in the Furniture menu (R008GGG2, off, does not); selected, its details screen is
+# dumped.
+from: early-base
+mods: [3399465500]
+options:
+  "3399465500": {$file: R008GGG0.json, R008GGG1: true, R008GGG2: false}
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"R008GGG1\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"R008GGG1\").Deprecated": false
+      "Assets.GetBuildingDef(\"R008GGG2\").Deprecated": true
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/R008GGG1 Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/R008GGG1 Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: R008GGG1}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

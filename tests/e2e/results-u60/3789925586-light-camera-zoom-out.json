@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3789925586-light-camera-zoom-out.yaml",
+ "mods": [
+  "3789925586"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the camera's limit is 200: forty wheel notches zoom far past the game's 20, as in the original; world shot from there",
+ "updated": "2026-11-01",
+ "commit": "5af6c0c8",
+ "mod_dlls": {
+  "3789925586": {
+   "LightCameraZoomOut.dll": "a4c61b0558ce7ff3bef98e200678fdefc41ea65fa9831cdd87e9e3dfd11110a9"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-010148-6d65f38c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:07:11",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-094142-b4d4a927",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:41:42",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "far": 0.000826
+    }
+   },
+   {
+    "run": "20261101-094142-b4d4a927",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:00:59",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "far": 0.00082
+    }
+   }
+  ]
+ }
+}

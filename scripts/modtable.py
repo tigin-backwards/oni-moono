@@ -10,18 +10,23 @@ notLoading, else empty ("unanalysed" for a mod the catalog has no analysis of). 
 all there, flagged ones included. Beyond 750 the TSV holds only the mods that work in the
 original as far as onimaxxing knows: those flagged notLoading, crashesAtStartup or malware are
 left out, down to the rank (2274) where the mods kept, ranks 1-750 counted too, make 2000.
-Every rank in the TSV is listed in the table (LAST_RANK is its highest).
+Every rank in the TSV is listed in the table (LAST_RANK is its highest). scripts/mod-catalog-u60.tsv
+(or ONI_CATALOG_U60; read beside a CATALOG argument only when that is set) adds, in the same format,
+the U60 catalog's mods the TSV lacks (less those flagged brokenByUpdate or malware), with their U60
+ranks, sorted in among its rows.
 
 What our runs recorded:
 - the load sweeps of scripts/mod-sweep.py, tests/e2e/sweeps/*.tsv (or ONI_SWEEP_RESULTS): per mod
   whether it fails in the original, and if not whether it fails in ours, at the main menu or in
   the colony; a later file (by name) overrides an earlier one, and these override the older
-  sweeps below;
+  sweeps below; one whose name starts with u60 (u60-2000.tsv) swept on U60;
 - the older sweeps' sweep-*.txt ID lists and modtable-*.tsv results in out/ (or ONI_SWEEP_DIR; in
   a worktree whose out/ has none, the main checkout's out/);
 - the spec results in tests/e2e/results/*.json (or ONI_RESULTS_DIR), written by
   `scripts/e2e.py --record`: a record's verdict and note decide the Played column, ahead of the
-  hand-written status sets below, which stay for mods no spec has played yet."""
+  hand-written status sets below, which stay for mods no spec has played yet;
+- then those played on U60, tests/e2e/results-u60/*.json (or ONI_RESULTS_U60_DIR): a mod's U60
+  record wins over its main one, and its note starts "on U60:"."""
 import glob, json, os, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -68,26 +73,29 @@ def read_results(folder):
 
 def read_sweeps(folder):
     """scripts/mod-sweep.py's results (tests/e2e/sweeps/NAME.tsv: id, rank, original, ours, note)
-    as {mod id: (original, ours, note)}; a later file overrides an earlier one."""
+    as {mod id: (original, ours, note, game)}; a later file overrides an earlier one. game is 'U60 '
+    for a file whose name starts with u60 (a sweep on U60), else ''."""
     by_mod = {}
     for path in sorted(glob.glob(os.path.join(folder, '*.tsv'))):
+        game = 'U60 ' if os.path.basename(path).startswith('u60') else ''
         for line in open(path, encoding='utf-8'):
             if line.startswith('#') or line.startswith('id\t'):
                 continue
             mid, _, original, ours, note = (line.rstrip('\n').split('\t') + [''] * 5)[:5]
-            by_mod[mid] = (original, ours, note)
+            by_mod[mid] = (original, ours, note, game)
     return by_mod
 
 
-def sweep_status(original, ours, note):
+def sweep_status(original, ours, note, game=''):
     """(Loads, Colony, Played, note) from a load sweep's verdicts."""
+    batch = f'in its {game}sweep batch'
     if original in ('menu', 'colony'):
         where = 'at the main menu' if original == 'menu' else 'in the colony'
-        return X, X, N, f'fails to load in the original as well, {where}, in its sweep batch' + (f': {note}' if note else '')
+        return X, X, N, f'fails to load in the original as well, {where}, {batch}' + (f': {note}' if note else '')
     if ours == 'menu':
-        return N, N, N, f'fails in ours at the main menu, in its sweep batch: {note}'
+        return N, N, N, f'fails in ours at the main menu, {batch}: {note}'
     if ours == 'colony':
-        return Y, N, N, f'its colony fails in ours, in its sweep batch: {note}'
+        return Y, N, N, f'its colony fails in ours, {batch}: {note}'
     if ours == 'ok':
         return Y, Y, N, note
     return N, N, N, note
@@ -107,27 +115,40 @@ def finding_text(ident, findings):
 
 
 def record_status(record, findings):
-    """(Played mark, note) of a spec record."""
-    note = f'spec tests/e2e/{record["spec"]}' + (f': {record["note"]}' if record.get('note') else '')
+    """(Played mark, note) of a spec record; a U60 one's note starts "on U60:"."""
+    on = 'on U60: ' if record.get('u60') else ''
+    note = f'tests/e2e/{record["spec"]}' + (f': {record["note"]}' if record.get('note') else '')
     if record['verdict'] == 'played':
-        return '✅', note
+        return '✅', f'{on}spec {note}'
     if record['verdict'] == 'warning':
         cited = ', '.join(finding_text(i, findings) for i in record.get('findings', []))
-        return '⚠️', note + (f'; known findings: {cited}' if cited else '')
-    return '⬜', f'spec fails in ours: {note[5:]}' + (f' ({record["why"]})' if record.get('why') else '')
+        return '⚠️', f'{on}spec {note}' + (f'; known findings: {cited}' if cited else '')
+    return '⬜', f'{on}spec fails in ours: {note}' + (f' ({record["why"]})' if record.get('why') else '')
 
 
 SWEEPS = sweep_dir()
 RESULTS = os.environ.get('ONI_RESULTS_DIR') or os.path.join(ROOT, 'tests', 'e2e', 'results')
+RESULTS_U60 = os.environ.get('ONI_RESULTS_U60_DIR') or os.path.join(ROOT, 'tests', 'e2e', 'results-u60')
 SWEPT = read_sweeps(os.environ.get('ONI_SWEEP_RESULTS') or os.path.join(ROOT, 'tests', 'e2e', 'sweeps'))
 FINDINGS = read_findings(os.path.join(ROOT, 'tests', 'e2e', 'known-findings.yaml'))
 if len(sys.argv) > 2: sys.exit(__doc__)
 catalog = sys.argv[1] if len(sys.argv) == 2 else os.path.join(ROOT, 'scripts', 'mod-catalog.tsv')
 cat = [l.rstrip('\n').split('\t') for l in open(catalog, encoding='utf-8')]
-by_id = {r[1]: r for r in cat}
 LAST_RANK = max(int(r[0]) for r in cat)
+U60_IDS = set()
+CATALOG_U60 = os.environ.get('ONI_CATALOG_U60') or (
+    None if len(sys.argv) == 2 else os.path.join(ROOT, 'scripts', 'mod-catalog-u60.tsv'))
+if CATALOG_U60 and os.path.exists(CATALOG_U60):
+    known = {r[1] for r in cat}
+    u60 = [r for r in (l.rstrip('\n').split('\t') for l in open(CATALOG_U60, encoding='utf-8')) if r[1] not in known]
+    U60_IDS = {r[1] for r in u60}
+    cat += u60
+    cat.sort(key=lambda r: int(r[0]))  # stable: the TSV's row first at a rank both have
+by_id = {r[1]: r for r in cat}
 FULL_RANKS = 750  # every mod up to this rank; beyond it, those that work in the original
 results = read_results(RESULTS)
+for mid, record in read_results(RESULTS_U60).items():
+    results[mid] = dict(record, u60=True)
 
 def ids(pattern):
     s = set()
@@ -166,11 +187,15 @@ differences = {
 }
 # Loads and Colony as swept, Played withdrawn until a spec drives the mod's UI (mod-play-testing.md).
 unplayed = {
+    '3530534502': 'loads and plays in its U60 sweep batch; not played: in the original\'s run the cot\'s assignment rows had no label tooltip with the world\'s name (no row\'s first label carried one string), so its spec (withdrawn) could not show what the mod adds',
     # Batch 17.
     # Batch 21.
 }
 # Loads and Colony as swept; a session cannot be played here, in either player (no Played verdict).
 not_playable = {
+    '2799868449': "not playable here, the same in the original: its personality (TJ) is for Dupery, which reads a mod's PERSONALITIES.json, and the mod ships personalities.json, which only a case-insensitive file system (Windows) finds under that name; on Linux the original loads the mod's strings and animation and no personality (not run in ours)",
+    '2799871913': "not playable here, the same in the original: its personality (Blug) is for Dupery, which reads a mod's PERSONALITIES.json, and the mod ships personalities.json, which only a case-insensitive file system (Windows) finds under that name; on Linux the original loads the mod's strings and animation and no personality (not run in ours)",
+    '2681795804': "not playable here, the same in the original: its personality (Moona) is for Dupery, which reads a mod's PERSONALITIES.json, and the mod ships personalities.json, which only a case-insensitive file system (Windows) finds under that name; on Linux the original loads the mod's strings and animation and no personality (not run in ours)",
     '3807965885': 'not playable here, the same in the original: a session is a host and a client game over TCP (or Steam P2P), and an e2e run has one game process; its hub and JOIN A GAME dialog open, and a connect to an address nobody listens on is refused and retried (spec tests/e2e/mods/3807965885-oni-multiplayer.yaml, recorded in the original only)',
     '3635632392': 'not playable here, the same in the original: a session is a Steam lobby (its LiteNetLib backend is never used), and the offline Steam double creates and joins no lobby; its lobby screen opens, HOST GAME and JOIN GAME stay at their first status, on two players at once (spec tests/e2e/mods/3635632392-antigravity-multiplayer.yaml); a session needs two real Steam accounts',
 }
@@ -387,6 +412,78 @@ broken.update({
     '1729794261': 'broken upstream: its light class `PixelPack2` lacks three methods the game\'s interfaces now have (`ISliderControl.GetSliderTooltip(int)`, `ISidescreenButtonControl.SetButtonTextOverride` and `HorizontalGroupID`), so the original fails its Color Ceiling Light in RegisterBuilding and the game\'s prefab setup in `Assets.OnPrefabInit` ("VTable setup of type OniLight.PixelPack2 failed"), and the error dialog opens as the game starts; ours happens to load it: Mono checks a class\'s interface methods when it sets up the class\'s vtable at first use, where ours gives the class the methods it lacks, which throw only when called (ARCHITECTURE D22)',
 })
 loads_in_ours = {'1729794261'}
+# Found on U60 (build 761015), in the original only: its colony does not load there, so ours did
+# not run it.
+broken.update({
+    '3823893994': 'broken on U60 (build 761015), version 1.0.1: its Temperature overlay patch reads the field `TemperatureOverlayInfraredVisualizerBase.updateCBHandle`, which U60 no longer has; the TypeInitializationException in Game.OnPrefabInit leaves Immigration and GlobalChoreProvider null, and the original exits (1) while loading a colony; not run in ours',
+    '3771895170': 'broken on U60 (build 761015): mastering every skill on load (MinionResume.MasterSkill in its OnSpawn postfix) throws a NullReferenceException in a SkillAttributePerk, and loading a colony stops at the crash screen (spec tests/e2e/mods/3771895170-stronger-duplicants.yaml); not run in ours',
+    '3313952440': 'broken on U60 (build 761015): U60 sends building damage as a `Boxed<BuildingHP.DamageSourceInfo>`, and its prefix on BuildingHP.OnDoBuildingDamage casts the event data to `DamageSourceInfo`, so it throws an InvalidCastException at every hit (found in the U60 sweep)',
+    '3047352164': 'broken upstream: a translation whose .po is named strings_installed_ge_alien.po, and the game reads a translation mod\'s strings.po only, so it finds no translation in it; with it chosen in the prefs (as a subscriber choosing it before would have) the original exits at the main menu on a NullReferenceException in LanguageOptionsScreen.GetLanguageFilename (it finds no such mod); not run in ours',
+    '3786286342': 'broken on U60 (build 761015): Mono rejects its plant patch\'s prefix, run from Db.Initialize, as invalid IL at a callvirt (InvalidProgramException), and the original exits while loading assets, before the main menu (spec run in the original only); not run in ours',
+    '3735115168': 'broken on U60 (build 761015): its replacement of ClusterGrid.GetPath calls `Cmps<T>.GetEnumerator()`, which U60 no longer has, so the MissingMethodException at a meteor shower\'s path stops the colony at the crash screen while loading (spec run in the original only); not run in ours',
+    '2608487669': 'broken on U60 (build 761015): its transpiler targets AutoMiner.DigBlockingCB, which U60 no longer has, so loading the mod throws a HarmonyException and the original exits at start (spec tests/e2e/mods/2608487669-megaminer.yaml); not run in ours',
+})
+not_run_in_ours = {'3823893994', '3771895170'}
+# Found on U60 in ranks 2501-2775, in the original only.
+broken.update({
+    '1353979712': 'broken upstream: its translation is sv_SE.po (with two .po files for the Korean and Chinese fonts) and no strings.po, which the game reads for a translation mod; picked as the language, the original logs "strings.po missing for mod 1353979712", throws a NullReferenceException in LanguageOptionsScreen.GetLanguageFilename and exits (1) while loading a colony; not run in ours',
+    '2590563970': 'broken upstream: its `VariablePowerTransformer` implements `GetSliderTooltip()`, not the `ISliderControl.GetSliderTooltip(int)` the game\'s interface now has, so the original fails its prefab setup in `Assets.OnPrefabInit` ("VTable setup of type VariablePowerTransformer failed"), the colony\'s load then throws NullReferenceExceptions, and the player aborts (-6); not run in ours',
+    '3088988489': 'broken upstream: its transpiler on `SelectToolHoverTextCard.UpdateHoverElements` emits a branch the IL generator rejects (ArgumentException: opcode), so the original fails to load it, and the player then exits before its colony starts; not run in ours',
+    '3213620129': 'broken upstream: its Sulfur Bath sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player aborts (-6) while loading a colony; not run in ours',
+    '3465430183': 'broken on U60 (build 761015): its prefix on `Light2D.GetDescriptors` finds no such method, so the original fails to load it (HarmonyException), its Torch has no anim, and the player exits (1) while loading a colony; not run in ours',
+    '3700898401': 'broken on U60 (build 761015) through More Plants (2819853217), which it patches and needs: More Plants reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException in its prefabs), and the original aborts (-6) while loading a colony; not run in ours',
+    '3290446954': 'broken on U60 (build 761015): it calls `InputField.onEndEdit` with the old `SubmitEvent` signature, which U60\'s Unity UI no longer has, so the original\'s Mods screen throws (MissingMethodException) and does not open; the colony itself loads; not run in ours',
+    '3502415157': 'broken on U60 (build 761015): at Db.PostProcess it patches `BionicOilMonitor.WantsOilChange` by name, which U60 overloads, so Harmony throws (AmbiguousMatchException) and the original exits (1) while loading a colony; not run in ours',
+    '2774609489': 'broken on U60 (build 761015): its postfix on the `KMod.Mod` constructor finds no constructor of that signature, so the original fails to load it (HarmonyException), its main menu patch then throws, and the player exits (1) while loading a colony; not run in ours',
+    '3264249301': 'broken upstream: it patches `ConduitTemperatureManager.ConduitTemperatureManager_Add` and the other native (DllImport) entry points, which Harmony cannot patch, so the original fails to load it (HarmonyException) and exits (1) while loading a colony; not run in ours',
+    '3447471118': 'broken on U60 (build 761015): it reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has, so the original fails to load it (MissingFieldException) and exits (1) before its main menu; not run in ours',
+    '3818353735': 'broken on U60 (build 761015): its patch on `PathFinder.AddPotentials` fails, it logs an error ("Disabled; vanilla navigation retained"), and the original exits (1) at the main menu before a colony loads; not run in ours',
+    '3816726470': 'broken on U60 (build 761015): its patch on `MechanicalSurfboard` descriptors finds no target method (TargetMethod returns null), so the original fails to load it (HarmonyException) and exits (1) before its main menu; not run in ours',
+    '3785981861': 'broken upstream: it references PLib (4.24) but does not ship PLib.dll, so the original fails to load it (FileNotFoundException for PLib) and exits (1) before its main menu; not run in ours',
+    '3789616217': 'broken on U60 (build 761015): it checks the game assembly\'s hash, finds U60\'s unknown, and turns its dig patch off ("[OtherHalf/DigComplete.disabled] assembly_hash_mismatch"), so in the original a dug cell still drops half its mass at 100 % recovery; the colony runs; not run in ours',
+    '3457870408': 'broken upstream: its Neutronium Generator sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player exits (1) while loading a colony; not run in ours',
+    '3775497869': 'broken on U60 (build 761015): it patches a game method by name through PLib\'s `Patch` extension, which U60 overloads, so the lookup throws (AmbiguousMatchException) and the original exits (1) at the main menu before a colony loads; not run in ours',
+    '3746629588': 'broken upstream: it references PLib (4.8.1) but does not ship PLib.dll, so the original fails to load it (FileNotFoundException for PLib) and exits (1) at the main menu before a colony loads; not run in ours',
+    '3564852497': 'broken upstream: its Insect Trap sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player exits (1) while loading a colony; not run in ours',
+    '3734918401': 'broken upstream: the upload is its source project, with its DLL under bin/ rather than beside mod_info.yaml, so the game finds no content to load ("No supported content for mod, skipping content"); the original runs the colony without it; not run in ours',
+    '3741456698': 'broken on U60 (build 761015): its prefix on `PropertyTextures.UpdateFogOfWar` finds no method of that signature, so the original fails to load it (HarmonyException) and exits (1) at the main menu before a colony loads; not run in ours',
+    '3619073345': 'broken upstream: its wires use anims (3x1_5wire_kanim and others) the upload does not ship (no anim folder), so the original logs "Missing Anim", fails its Wire_3x1_5 in RegisterBuilding (NullReferenceException) and exits (1) while loading a colony; not run in ours',
+    '3779615427': 'broken on U60 (build 761015): its backwalls use `natural_tile_kanim`, which it does not ship and the game does not load on this build, so the original logs "Missing Anim", fails NaturalBackwall in RegisterBuilding (NullReferenceException) and exits (1) while loading a colony; not run in ours',
+    '3764098079': 'broken on U60 (build 761015): its postfix on `Db.Initialize` adds PlasmaDoor to the build menu without a guard, and the original then throws on a duplicate key ("An item with the same key has already been added. Key: PlasmaDoor", also in the codex) and opens its crash screen while loading a colony; not run in ours',
+    '3754121151': 'broken on U60 (build 761015): with its power transmitter built, the original throws a NullReferenceException in `CellChangeMonitor.RenderEveryTick` under its `Game.Update` patch a few seconds into play and opens its crash screen; not run in ours',
+    '3801593061': 'broken on U60 (build 761015): it reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException), and the original exits (1) while loading a colony; not run in ours',
+    '3807856018': 'broken on U60 (build 761015): its postfix on `GameScenePartitioner.OnPrefabInit` adds a scene partitioner layer, and `ScenePartitioner.CreateMask` fails its assert ("Assert failed") on this build, so the original opens its crash screen while loading a colony; not run in ours',
+})
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869', '3746629588', '3564852497', '3734918401', '3741456698', '3619073345', '3779615427', '3764098079', '3754121151', '3801593061', '3807856018'}
+# Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
+# interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
+skipped = {
+    '3827209375': 'upload analysed by onimaxxing (version 1.2.0) but not reviewed',
+    '3822615860': 'upload not analysed by onimaxxing (it has analysed a newer one)',
+    '3713252151': 'upload analysed by onimaxxing but not reviewed',
+    '2965290662': 'it needs 2679326313, which onimaxxing has not analysed',
+}
+# Found by the e2e specs of the U60 catalog's ranks 2776 to 3047: each fails, or does nothing
+# it should, in the original on U60 (build 761015) as well, so ours did not run it.
+broken.update({
+    '3571343650': "broken on U60 (build 761015): it loads without errors, but its patches on the Sleet Wheat's and Nosh Sprout's prefabs no longer take: in the original, both crops keep the game's yields (18 and 12 seeds) and temperature range (spec tests/e2e/mods/3571343650-sleet-wheat-nosh-bean-tweaks.yaml)",
+    '3826451400': 'broken on U60 (build 761015), in the original too: once the colony runs, CellChangeMonitor.RenderEveryTick throws InvalidCastException in a cell-change handler and the crash screen opens (spec tests/e2e/mods/3826451400-true-smart-mopping.yaml)',
+    '2644972743': 'broken on U60 (build 761015): its transpiler on WorldDamage.OnDigComplete no longer finds the code it hooks (it logs "*Regolith Reducer* could not be applied!"), so a dig of 1000 kg of regolith still leaves 500 kg of debris, in the original too (spec tests/e2e/mods/2644972743-less-regolith.yaml)',
+    '2564623737': "broken on U60 (build 761015), in the original too: one of its PLib patches fails at load (AmbiguousMatchException in PLib's Patch), its three pumps are not added to the build menu, and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/2564623737-smart-pump.yaml)",
+    '2787783943': "broken on U60 (build 761015), in the original too: its generators' ConfigureBuildingTemplate writes ManualDeliveryKG.requestedItemTag, which U60 no longer exposes (FieldAccessException in RegisterBuilding), and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/2787783943-adv-test.yaml)",
+    '3299743963': 'broken on U60 (build 761015), in the original too: its patch on HydrogenGeneratorConfig.DoPostConfigureComplete asks for a parameter "def" the method does not have (HarmonyException), KMod reports the mod failed to load, and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3299743963-test-mod-3299743963.yaml)',
+    '3375426994': 'broken on U60 (build 761015), in the original too: its prefix Patch_b fails with InvalidProgramException (invalid IL, a call into an API U60 changed), CustomGameSettings then throws NullReferenceException, and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3375426994-test-mod-dont-subscribe.yaml)',
+    '3546097878': 'broken on U60 (build 761015), in the original too: KMod skips its content ("No supported content for mod": its mod_info.yaml lists EXPANSION1_ID, DLC2_ID and DLC4_ID as supported content), so its cluster (coordinate V-CSTCLST-C) is never offered and the coordinate picks Terra (spec tests/e2e/mods/3546097878-custom-cluster.yaml)',
+    '3731259018': "broken on U60 (build 761015), in the original too: with its asteroids added, CodexEntryGenerator.GenerateBiomeEntries throws NullReferenceException when the colony's management menu builds the codex, and the crash screen opens while the colony loads (spec tests/e2e/mods/3731259018-new-star-region.yaml)",
+    '3772683214': 'broken upstream: it uses PLib (4.17) but ships none, so alone it fails to load (FileNotFoundException for PLib), KMod disables it and the original exits (1) before its colony loads; not run in ours (spec tests/e2e/mods/3772683214-custom-lead-suit-temperature.yaml)',
+    '3792181624': 'broken on U60 (build 761015), in the original too: its Techs.Init postfix formats a string from its own string manager, which throws NullReferenceException (AsStringManager.Get), and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3792181624-asteroid-belt-0200.yaml)',
+    '3799362960': 'broken upstream: its strings.po sits in strings/, not at the mod\'s root, so the game finds no translation to load ("Failed to load language from mod: 3799362960"), clears the language and exits (1) while loading a colony, in the original too; not run in ours (spec tests/e2e/mods/3799362960-bahasa-indonesia-translation.yaml)',
+    '3820112013': 'broken on U60 (build 761015), in the original too: its patch on the VomitChore constructor matches no U60 method (HarmonyException: undefined target method), KMod reports the mod failed to load and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3820112013-dont-puke-yourself-to-death.yaml)',
+    '3820168351': 'broken on U60 (build 761015), in the original too: its patch on a Research Reactor state lambda fails (HarmonyException, its InvalidOperationException), KMod reports the mod failed to load and the original exits (1) before its colony loads; not run in ours (spec tests/e2e/mods/3820168351-reactor-meltdown-choice.yaml)',
+    '3821447025': 'broken on U60 (build 761015), in the original too: its transpiler on GameScenePartitioner.OnPrefabInit refuses U60\'s code ("Unsupported GameScenePartitioner layout: 2"), KMod reports the mod failed to load and the original exits (1) before its colony loads; not run in ours (spec tests/e2e/mods/3821447025-multi-channel-utilities.yaml)',
+    '3828163036': 'broken on U60 (build 761015), in the original too: its prefix on KIconToggleMenu.Setup matches no U60 method (HarmonyException: undefined target method), KMod reports the mod failed to load and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3828163036-ai-advisor.yaml)',
+})
+not_run_in_ours |= {'3571343650', '3826451400', '2644972743', '2564623737', '2787783943', '3299743963', '3375426994', '3546097878', '3731259018', '3772683214', '3792181624', '3799362960', '3820112013', '3820168351', '3821447025', '3828163036'}
 # Titles of played mods the catalog TSV does not rank (none since it reaches rank 2274).
 unranked = {}
 # Worldgen mods no sweep ran, as their specs' runs of ours found them (id -> (loads, colony)): a
@@ -402,13 +499,32 @@ for extra in glob.glob(os.path.join(SWEEPS, 'modtable-*.tsv')):
         third_results[i] = (loads, colony, note)
 
 Y, N, X, W = '✅', '⬜', '❌', '⚠️'
+# A mod onimaxxing's analysis finds broken in the game itself is not run here (no sweep, no
+# spec): its row says so, from the catalog TSV's flags.
+ONIMAXXING_BROKEN = {
+    'notLoading': 'does not load in vanilla (onimaxxing analysis, not run here)',
+    'crashesAtStartup': 'crashes vanilla at startup (onimaxxing analysis, not run here)',
+}
 
 def row(rank, mid, title, loads, colony, play, note):
     link = f'[{title.replace("|", "/")}](https://steamcommunity.com/sharedfiles/filedetails/?id={mid})' if mid else title
     return f'| {rank} | {link} | {loads} | {colony} | {play} | {note} |'
 
+# Mods not played because onimaxxing has not reviewed the upload we have (or flags it): id, reason,
+# from the interim hash check (scripts/mod-skipped-u60.tsv). Revisit them when it does.
+SKIPPED = {}
+_skipped = os.path.join(ROOT, 'scripts', 'mod-skipped-u60.tsv')
+if os.path.exists(_skipped):
+    for _line in open(_skipped, encoding='utf-8'):
+        if _line.strip() and not _line.startswith('#'):
+            _mid, _, _why = _line.rstrip('\n').partition('\t')
+            SKIPPED[_mid] = _why
+
+
 def status(mid, flags):
     """(Loads, Colony, Played, note) of a mod from the sweeps and the hand-written sets."""
+    if mid in SKIPPED and mid not in results:
+        return N, N, N, f'skipped: {SKIPPED[mid]}'
     if mid in played:
         return Y, Y, Y, played[mid]
     if mid in differences:
@@ -418,11 +534,15 @@ def status(mid, flags):
     if mid in not_playable:
         return Y, Y, N, not_playable[mid]
     if mid in broken:
-        return X, X, N, broken[mid] + ('' if mid in loads_in_ours else ' (same in the original)')
+        return X, X, N, broken[mid] + ('' if mid in loads_in_ours or mid in not_run_in_ours else ' (same in the original)')
+    if mid in skipped:
+        return N, N, N, f'skipped: not reviewed by onimaxxing in this upload yet ({skipped[mid]})'
     if mid in SWEPT:
         return sweep_status(*SWEPT[mid])
     if flags == 'unanalysed':
         return N, N, N, 'not analysed by onimaxxing (no malware check); not tested'
+    if flags in ONIMAXXING_BROKEN:
+        return X, X, N, ONIMAXXING_BROKEN[flags]
     if flags:
         return N, N, N, f'flagged by onimaxxing ({flags}); not tested'
     if mid in worldgen:
@@ -451,7 +571,7 @@ rows = [row('–', None, 'Fast Track (GitHub)', Y, Y, Y, 'about 30 fps on U57, w
 listed = set()
 for r in cat:
     rank, mid, _, flags, title = int(r[0]), r[1], r[2], r[3], r[4]
-    if rank > LAST_RANK and mid not in played and mid not in results: continue
+    if rank > LAST_RANK and mid not in U60_IDS and mid not in played and mid not in results: continue
     listed.add(mid)
     rows.append(row(rank, mid, title, *with_record(mid, flags)))
 for mid in list(played) + [m for m in results if m not in played]:
@@ -467,7 +587,8 @@ Which Workshop mods have been tried in this player, by popularity in
 [onimaxxing's catalog](https://onimaxxing.com/mods): the {FULL_RANKS} most-subscribed, then down to
 rank {LAST_RANK} those the catalog flags neither as broken (not loading, crashing at startup) nor
 as malware, the 2000 that work in the original game by the catalog's analysis; and mods players
-reported.
+reported. The rest of the U60 catalog (to rank 3047) is listed with its U60 ranks, tried on U60
+(build 761015), less the mods it flags as broken by that update or as malware.
 Worldgen mods are played with functional expectations (their worlds generate with their content),
 not identical layouts.
 

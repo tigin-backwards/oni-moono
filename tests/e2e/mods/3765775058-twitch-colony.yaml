@@ -1,0 +1,24 @@
+# Twitch Colony (3765775058), classes S, M (network).
+#
+# What it does: Twitch chat in the colony. On Game.OnSpawn it starts its vote controller, vote
+# HUD and critter adoption, resolves its login on a background thread and opens an IRC client
+# for the channel in its config (none by default): chat lines starting with !say show as
+# speech bubbles over the Duplicant of the same name, !adopt names a critter, and chat or
+# polls vote on colony events, started from the pause menu's "Start Twitch Votes" button (or
+# "Start Solo Chaos" with AutoFireEvents).
+# How a player reaches it: the pause menu; a Twitch channel in its config.
+# What changes: viewers name critters, talk through Duplicants and pick events.
+#
+# With no channel configured, the colony loads and plays, and the pause menu carries the
+# Start Twitch Votes button (dumped and shot).
+from: early-base
+mods: [3765775058]
+steps:
+  - run: {seconds: 10}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - expect_ui:
+      "**/PauseScreen/LayoutContent/ButtonContent/**": {any_text: "~Start Twitch Votes"}
+  - ui_dump: {name: pause, root: "**/PauseScreen/LayoutContent"}
+  - shot: {name: pause, crop: "**/PauseScreen/LayoutContent"}
+  - key: {code: Escape}

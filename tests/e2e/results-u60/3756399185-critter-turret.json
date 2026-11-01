@@ -1,0 +1,61 @@
+{
+ "spec": "mods/3756399185-critter-turret.yaml",
+ "mods": [
+  "3756399185"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Critter Turret placed: in the Shipping menu, researched with Critter Ranching II; its details shot and the turret world-shot",
+ "updated": "2026-11-01",
+ "commit": "2029df72",
+ "mod_dlls": {
+  "3756399185": {
+   "CritterTurret.dll": "4bdcd62f94540cadd3414ef29c08e20386bd867654df879f080181fe94a29aca"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-072717-39d6a410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:35:49",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-082843-bd4e4515",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:28:43",
+    "lane": 35,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "turret": 0.010917
+    }
+   },
+   {
+    "run": "20261101-082843-bd4e4515",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:30:55",
+    "lane": 35,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "turret": 0.014845
+    }
+   }
+  ]
+ }
+}

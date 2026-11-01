@@ -1,0 +1,69 @@
+{
+ "spec": "mods/3079327779-meteor-comets-modify.yaml",
+ "mods": [
+  "3079327779"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the pause menu opens, and its Options; the screens are dumped as the original's; Escape closes them, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "e0f298e0",
+ "mod_dlls": {
+  "3079327779": {
+   "MeteorChangeMod.dll": "d8f77f0c2ed31a17d5d7272d3159514204973827faa075b0954f97297dfc3c65"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040445-8c3b913a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:04:45",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-042010-cb0f0d98",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:20:10",
+    "lane": 42,
+    "reference_run": "20261101-040445-8c3b913a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "pause": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-042010-cb0f0d98",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:20:11",
+    "lane": 44,
+    "reference_run": "20261101-040445-8c3b913a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "pause": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

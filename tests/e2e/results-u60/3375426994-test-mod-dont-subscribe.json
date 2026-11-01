@@ -1,0 +1,34 @@
+{
+ "spec": "mods/3375426994-test-mod-dont-subscribe.yaml",
+ "mods": [
+  "3375426994"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3375426994": {
+   "PLib.dll": "dcbf61d8876760e2e270e9884215422fefe63950caeef2897a57f72298d617c2",
+   "test1.dll": "acc9b69b248e27596f08f31fbe3d9f308e27caa1bd7b4260eb3127bd3081e2a5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T05:44:57",
+    "lane": 52,
+    "reasons": [
+     "step start: the player exited (1) while loading"
+    ],
+    "signatures": 8
+   }
+  ],
+  "ours": []
+ }
+}

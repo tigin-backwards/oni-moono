@@ -1,0 +1,38 @@
+# Utility Plates (3798414552), class B.
+#
+# What it does: three 1x1 buildings. The Cooling Plate (ThermoPlate) and the Warming Plate
+# (ThermoPlateWarm), in the Utilities menu after the Tempshift Plate and researched with
+# Temperature Modulation, pull the cell they stand in, and anything built into it, towards
+# -20 °C or 25 °C (not insulated buildings, nor a pipe's contents); the Display Case
+# (Furniture, Renaissance Art, diamond or gold) cancels negative decor within 5 tiles.
+# How a player reaches it: the research screen, then the build menu.
+# What changes: a cell's temperature held by a small building; decor penalties hidden.
+#
+# setup researches Temperature Modulation and places a Cooling Plate in the corridor west of
+# the printing pod (118,207), unwired. It shows in the Utilities menu, and without power it
+# cools nothing.
+from: early-base
+mods: [3798414552]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"TemperatureModulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ThermoPlate\")", method: Build, args: [131770, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"TemperatureModulation\").unlockedItemIDs": [{contains: ThermoPlate}, {contains: ThermoPlateWarm}]
+      "Db.Get().Techs.Get(\"RenaissanceArt\").unlockedItemIDs": {contains: DisplayCase}
+  - run: {seconds: 2}
+  - expect: {buildings: {ThermoPlate: 1}}
+  - click: {ui: "**/PlanScreen/Toggle:Utilities"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/ThermoPlate Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/ThermoPlate Group*": {active: true}
+      "**/BuildingGroups/**/Grid/ThermoPlateWarm Group*": {active: true}
+  - shot: {name: utilities-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}
+  # Unwired, it waits for power (50 W) and cools nothing.
+  - run: {seconds: 10}
+  - expect_state:
+      "Assets.GetBuildingDef(\"ThermoPlate\").EnergyConsumptionWhenActive": 50
+      "all:AmirH.ThermoPlate.ThermoPlate::[0].GetComponent<Operational>.IsOperational": false
+      "all:AmirH.ThermoPlate.ThermoPlate::[0].targetsLastTick": 0

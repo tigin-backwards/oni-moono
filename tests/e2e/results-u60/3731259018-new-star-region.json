@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3731259018-new-star-region.yaml",
+ "mods": [
+  "3731259018"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3731259018": {
+   "newStarRegion.dll": "770d5bb14ebf47bda04a56334517af108808e5e231e59dcf6355fd7e9dfd4448"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T06:18:07",
+    "lane": 52,
+    "reasons": [
+     "step start: Canvas/ConfirmDialog/GameObject/Panel/OKButton is occluded by ErrorCanvas/CrashReportScreen(Clone)/InfoBox/ModsInfo/ModsList/Files/Viewport/Content/Entry/BG (hits there: ErrorCanvas/CrashReportScreen(Clone)/InfoBox/ModsInfo/ModsList/Files/Viewport/Content/Entry/BG, ErrorCanvas/CrashRepor"
+    ],
+    "signatures": 2
+   }
+  ],
+  "ours": []
+ }
+}

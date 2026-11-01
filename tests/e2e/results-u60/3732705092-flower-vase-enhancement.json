@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3732705092-flower-vase-enhancement.yaml",
+ "mods": [
+  "3732705092"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with fertilizer use at 50%, a Mealwood takes half the game's dirt; the Flower Pot accepts crop and aquatic seeds, flips and irrigates itself",
+ "updated": "2026-11-01",
+ "commit": "3986d683",
+ "mod_dlls": {
+  "3732705092": {
+   "PLib.dll": "79350ee2d4eea7a879c6eebc12acca89bdd1d2a93ed7b396b875a7907a91d1e2",
+   "╗¿┼Φ╓╓╓▓╥╗╟╨.dll": "6f89cbb3a5568c61c4e1a726614e0790093176b8af361eff52369920272eabee"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-235402-acab431d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:19:52",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-061820-d0a2eed9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:18:20",
+    "lane": 35,
+    "reference_run": "20261031-235402-acab431d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-061820-d0a2eed9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:26:59",
+    "lane": 35,
+    "reference_run": "20261031-235402-acab431d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

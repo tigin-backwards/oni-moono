@@ -1,0 +1,28 @@
+# 不耗电不发热的净水器 / Water Sieve without power (3775581454), class P.
+#
+# What it does: a postfix on WaterPurifierConfig.CreateBuildingDef makes the Water Sieve need
+# no power (no power input, 0 W) and give off no heat while it runs.
+# How a player reaches it: the build menu (Plumbing), as before.
+# What changes: a Water Sieve that runs unwired.
+#
+# The Water Sieve's definition has no power input and no self-heat, so its building has no
+# power consumer; setup builds one in the corridor west of the printing pod and its card
+# shows no power requirement.
+from: early-base
+mods: [3775581454]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"WaterPurifier\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"WaterPurifier\").RequiresPowerInput": false
+      "Assets.GetBuildingDef(\"WaterPurifier\").EnergyConsumptionWhenActive": 0
+      "Assets.GetBuildingDef(\"WaterPurifier\").SelfHeatKilowattsWhenActive": 0
+      "Assets.GetBuildingDef(\"WaterPurifier\").BuildingComplete.GetComponent<EnergyConsumer>": missing
+  - run: {seconds: 5}
+  - expect: {buildings: {WaterPurifier: 1}}
+  - driver: {camera.set: {cell: [114, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: WaterPurifier}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<EnergyConsumer>": missing
+      "selected:GetComponent<ElementConverter>": exists

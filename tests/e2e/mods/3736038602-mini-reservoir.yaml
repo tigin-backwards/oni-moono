@@ -1,0 +1,31 @@
+# Mini Reservoir (3736038602), class B.
+#
+# What it does: two 1x2 mini reservoirs, one for liquids (minil, Plumbing, 2000 kg) and one for
+# gases (minig, Ventilation, 500 kg), both researched with Advanced Research.
+# How a player reaches it: the build menus, after the research.
+# What changes: small reservoirs.
+#
+# setup grants Advanced Research and builds a liquid mini reservoir in the dug-out corridor west
+# of the printing pod. It shows in the Plumbing menu; it holds 2000 kg, and selected its details
+# screen is dumped.
+from: early-base
+mods: [3736038602]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedResearch\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"minil\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"AdvancedResearch\").unlockedItemIDs": {contains: minil}
+      "Assets.GetBuildingDef(\"minil\").BuildingComplete.GetComponent<Storage>.capacityKg": 2000
+      "Assets.GetBuildingDef(\"minig\").BuildingComplete.GetComponent<Storage>.capacityKg": 500
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/minil Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/minil Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: minil}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

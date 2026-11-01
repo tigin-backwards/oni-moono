@@ -1,0 +1,17 @@
+# 8格的地堡门 / 8-tile bunker door (3791879610), class B.
+#
+# What it does: a prefix on the Bunker Door's (BunkerDoor) definition makes it 8 tiles wide
+# instead of 4, built of 500 kg of steel.
+# How a player reaches it: the build menu (Rocketry), as before.
+# What changes: a wider bunker door.
+#
+# The Bunker Door's definition is 8x1 and costs 500 kg of steel; the colony runs.
+from: early-base
+mods: [3791879610]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"BunkerDoor\").WidthInCells": 8
+      "Assets.GetBuildingDef(\"BunkerDoor\").HeightInCells": 1
+      "Assets.GetBuildingDef(\"BunkerDoor\").Mass[0]": 500
+      "Assets.GetBuildingDef(\"BunkerDoor\").MaterialCategory[0]": Steel
+  - run: {seconds: 5}

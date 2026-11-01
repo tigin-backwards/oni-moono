@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3735660726-storage-bin-solid-input.yaml",
+ "mods": [
+  "3735660726"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Storage Bin's definition has a solid input; setup builds one in the dug-out corridor west of the printing pod, and selected its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "f558f5d2",
+ "mod_dlls": {
+  "3735660726": {
+   "StorageLockerConduit.dll": "44f712fd4836f7bd849cd714274d6c55ed13608eeb15acf3ee6a3afca79506fa"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032706-5e3764f7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:36:38",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-034615-4a3e5929",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:46:15",
+    "lane": 45,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-034615-4a3e5929",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:51:06",
+    "lane": 45,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

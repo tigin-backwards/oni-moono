@@ -1,0 +1,20 @@
+# Achievement Quick Complete - 成就快速完成 (3745108397), class P.
+#
+# What it does: two Spaced Out colony achievements, First Teleport and Soft Launch, take the
+# requirement of Build Outside the Start Biome instead of their own: a postfix on
+# Db.Initialize replaces their checklists with that one requirement.
+# How a player reaches it: the colony summary's achievements.
+# What changes: those achievements come with a building outside the start biome.
+#
+# Both achievements' checklists are read: one requirement each, Build Outside Start Biome's.
+# The colony runs on.
+from: early-base
+mods: [3745108397]
+steps:
+  - expect_state:
+      "Db.Get().ColonyAchievements.FirstTeleport.requirementChecklist.Count": 1
+      "Db.Get().ColonyAchievements.SoftLaunch.requirementChecklist.Count": 1
+      "Db.Get().ColonyAchievements.SoftLaunch.requirementChecklist[0].GetType().Name": BuildOutsideStartBiome
+      "Db.Get().ColonyAchievements.FirstTeleport.requirementChecklist[0].GetType().Name": BuildOutsideStartBiome
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

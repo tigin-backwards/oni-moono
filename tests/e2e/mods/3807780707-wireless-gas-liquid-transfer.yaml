@@ -1,0 +1,37 @@
+# 無線氣體液體傳輸 (Wireless Gas & Liquid Transfer) (3807780707), classes B, S.
+#
+# What it does: adds wireless gas and liquid senders (WGPSender, WGPLiquidSender, 2x2) and
+# receivers (WGPReceiver, WGPLiquidReceiver, 1x1), of any metal, in the Ventilation and
+# Plumbing menus, researched with Ventilation (GasPiping) and Plumbing (LiquidPiping): a
+# sender pumps gas or liquid from where it stands and sends it at once to every receiver set
+# to the same channel number, which lets it out, no pipes.
+# How a player reaches it: the build menu (Ventilation, Plumbing), after the research; their
+# channel side screens.
+# What changes: gas and liquid moved without pipes.
+#
+# setup grants both techs. The Ventilation menu lists the gas sender and receiver and the
+# Plumbing menu the liquid ones (both shot).
+from: early-base
+mods: [3807780707]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"GasPiping\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LiquidPiping\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+require_log: ['\[WirelessGasPipe\] 無線氣體傳輸模組已載入。']
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"GasPiping\").unlockedItemIDs": [{contains: WGPSender}, {contains: WGPReceiver}]
+      "Db.Get().Techs.Get(\"LiquidPiping\").unlockedItemIDs": [{contains: WGPLiquidSender}, {contains: WGPLiquidReceiver}]
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Ventilation"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/WGPReceiver Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/WGPSender Group*": {active: true}
+  - shot: {name: ventilation, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/WGPLiquidReceiver Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/WGPLiquidSender Group*": {active: true}
+  - shot: {name: plumbing, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}

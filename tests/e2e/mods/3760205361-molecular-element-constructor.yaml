@@ -1,0 +1,33 @@
+# 分子构元仪 Molecular Element Constructor (3760205361), classes B, O (PLib options).
+#
+# What it does: adds the Molecular Element Constructor (MolecularElementConstructor), a 4x4
+# fabricator in the Refining menu's advanced group, researched with Catalytics: recipes that
+# make elements out of others (each a ComplexRecipe of a few inputs to 100 kg of an element);
+# its power draw is an option.
+# How a player reaches it: the build menu (Refining), then its recipe side screen.
+# What changes: elements made to order.
+#
+# setup grants Catalytics and builds the constructor in the dug-out corridor west of the
+# printing pod. It shows in the Refining menu; it has recipes as many as in the original, and
+# selected its recipe side screen is dumped.
+from: early-base
+mods: [3760205361]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Catalytics\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"MolecularElementConstructor\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Catalytics\").unlockedItemIDs": {contains: MolecularElementConstructor}
+      "count:ComplexRecipeManager.Get().recipes[*] if .fabricators[0].Name == MolecularElementConstructor": ["> 0", "== original"]
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Refinement"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/MolecularElementConstructor Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/MolecularElementConstructor Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: MolecularElementConstructor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView", cond: stable}
+  - ui_dump: {name: recipes, root: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView"}

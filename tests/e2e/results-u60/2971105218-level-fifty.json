@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2971105218-level-fifty.yaml",
+ "mods": [
+  "2971105218"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "loads with its two AttributeLevel patches; a Duplicant's next Athletics level needs what the original's does; two minutes of work",
+ "updated": "2026-11-01",
+ "commit": "d8c2fc8c",
+ "mod_dlls": {
+  "2971105218": {
+   "LevelFifty.dll": "1bfa9ae40caa89f89f5c2785605c1456368b02a059b6378a5b295e79d5820db5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-223506-a7565501",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:35:06",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-003623-5b17fdb9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:36:23",
+    "lane": 35,
+    "reference_run": "20261031-223506-a7565501",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-003623-5b17fdb9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T00:45:51",
+    "lane": 35,
+    "reference_run": "20261031-223506-a7565501",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

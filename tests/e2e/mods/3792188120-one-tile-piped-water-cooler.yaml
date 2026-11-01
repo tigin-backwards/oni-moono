@@ -1,0 +1,29 @@
+# 一格宽加水管饮水机 One-tile piped water cooler (3792188120), class P.
+#
+# What it does: the Water Cooler becomes 1 cell wide and 2 high with a liquid pipe input (at its
+# base), so it is filled by pipe; its manual delivery requests no item (Tag.Invalid). Patches (a
+# transpiler and a postfix) on WaterCoolerConfig.CreateBuildingDef and DoPostConfigureComplete.
+# How a player reaches it: building a Water Cooler and piping water to it.
+# What changes: water coolers without bottle runs.
+#
+# The definition is read (1x2, a liquid input); setup builds one in the dug-out corridor west of
+# the printing pod. On U60 the built cooler's manual delivery still requests its beverage (the
+# mod's Tag.Invalid on the prefab does not reach the built cooler, likely reset by the game's
+# beverage choice), as in the original; selected, its details screen is dumped.
+from: early-base
+mods: [3792188120]
+require_log: ['\[OneTilePipedWaterCooler\] All patches applied']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"WaterCooler\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"WaterCooler\").WidthInCells": 1
+      "Assets.GetBuildingDef(\"WaterCooler\").HeightInCells": 2
+      "Assets.GetBuildingDef(\"WaterCooler\").InputConduitType": Liquid
+  - run: {seconds: 2}
+  - expect_state:
+      "count:all:ManualDeliveryKG::[*] if .GetComponent<KPrefabID>.PrefabTag.Name == WaterCooler and .RequestedItemTag.IsValid == true": "== original"
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: WaterCooler}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

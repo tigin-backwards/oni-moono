@@ -1,0 +1,34 @@
+# Critter Turret (3756399185), classes B, S.
+#
+# What it does: a Critter Turret (2x2, refined metal, 120 W; Shipping menu after the
+# Robo-Miner, researched with Critter Ranching II): a robo-miner that shoots critters within a
+# directional arc and line of sight, culling a species once its population in the room passes
+# a threshold; it mounts on floor, wall or ceiling.
+# How a player reaches it: the research screen, then the build menu; its side screens.
+# What changes: automatic culling of surplus critters.
+#
+# setup researches Critter Ranching II and places a Critter Turret on the floor of the
+# dug-out room west of the printing pod (110-111, 206-207). It shows in the Shipping menu, and
+# selected, it shows its side screen (shot).
+from: early-base
+mods: [3756399185]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AnimalControl\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CritterTurret\")", method: Build, args: [131126, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {CritterTurret: 1}}
+  - expect_state:
+      "Db.Get().Techs.Get(\"AnimalControl\").unlockedItemIDs": {contains: CritterTurret}
+      "Assets.GetBuildingDef(\"CritterTurret\").EnergyConsumptionWhenActive": 120
+  - click: {ui: "**/PlanScreen/Toggle:Shipping"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CritterTurret Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/CritterTurret Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 206], select: CritterTurret}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
+  - world_shot: {name: turret, ortho: 4, at: [110, 207]}

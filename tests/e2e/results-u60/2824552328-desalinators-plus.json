@@ -1,0 +1,63 @@
+{
+ "spec": "mods/2824552328-desalinators-plus.yaml",
+ "mods": [
+  "2824552328"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Desalinator's converters carry the uranium ore output; setup builds one in the dug-out corridor west of the printing pod, and selected its title is dumped; the colony runs on",
+ "updated": "2026-10-31",
+ "commit": "ace7f90a",
+ "mod_dlls": {
+  "2824552328": {
+   "DesalinatorsPlus.dll": "a3589966b496b52aa0f6c8fe1ceef20132f3ac0f9d5b31dba871956e2f8b5a9c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-223759-08eb2164",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:37:59",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-234842-6285ff67",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:48:42",
+    "lane": 44,
+    "reference_run": "20261031-223759-08eb2164",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261031-234842-6285ff67",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T23:48:43",
+    "lane": 45,
+    "reference_run": "20261031-223759-08eb2164",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,26 @@
+# Duplicant Location Profiles (3794775623), classes P, U, O (PLib options).
+#
+# What it does: each Duplicant's diet permissions and personal priorities are remembered per
+# world (asteroid) and applied when it moves there: patches on ChoreConsumer.SetPersonalPriority,
+# ConsumableConsumer.SetPermitted and the table screens (profile indicators, a welcome guide).
+# How a player reaches it: the priorities and consumables screens; Duplicants moving between
+# asteroids.
+# What changes: per-asteroid priorities and diets.
+#
+# The priorities screen opens with the mod's indicators (its header dumped), then the
+# consumables screen; both close, and the colony runs on.
+from: early-base
+mods: [3794775623]
+require_log: ['\[DuplicantLocationProfiles\] 0.5.4']
+steps:
+  - run: {seconds: 2}
+  - open: {key: L}
+  - ui_wait: {path: "**/JobsTableScreen", cond: stable}
+  - ui_dump: {name: priorities, root: "**/JobsTableScreen/HeaderContent"}
+  - key: {code: Escape}
+  - open: {key: F}
+  - ui_wait: {path: "**/ConsumablesTableScreen", cond: stable}
+  - run: {seconds: 1}
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

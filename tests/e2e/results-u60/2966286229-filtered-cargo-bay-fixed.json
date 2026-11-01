@@ -1,0 +1,70 @@
+{
+ "spec": "mods/2966286229-filtered-cargo-bay-fixed.yaml",
+ "mods": [
+  "2966286229"
+ ],
+ "verdict": "warning",
+ "why": "known findings: unused-input-caret-layout",
+ "findings": [
+  "unused-input-caret-layout"
+ ],
+ "note": "setup builds a Cargo Bay in the open air of the base-game colony. It has a filter over the solids, and selected, its filter side screen shows",
+ "updated": "2026-11-01",
+ "commit": "340045d1",
+ "mod_dlls": {
+  "2966286229": {
+   "FilteredCargoBay.dll": "afd6f8634d4e986d0626abcc2d53fa7102691ee447a182ad8e0c858f8a2af624"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034335-ff601a44",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:51:08",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-040752-cfc2a45c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:07:52",
+    "lane": 42,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "filter": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-040752-cfc2a45c",
+    "index": 2,
+    "verdict": "warn",
+    "date": "2026-11-01T04:09:48",
+    "lane": 44,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [
+     "unused-input-caret-layout"
+    ],
+    "ui_dump": {
+     "filter": {
+      "differences": 0,
+      "known": {
+       "unused-input-caret-layout": 1
+      }
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

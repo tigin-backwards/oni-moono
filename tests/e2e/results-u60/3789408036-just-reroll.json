@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3789408036-just-reroll.yaml",
+ "mods": [
+  "3789408036"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup makes printables available (the immigration timer run out, as time does) and seeds the random numbers. The printing pod is selected and its choices opened: the cards have reroll buttons (the screen dumped, its names and traits masked: they follow random numbers)",
+ "updated": "2026-11-01",
+ "commit": "5740d65e",
+ "mod_dlls": {
+  "3789408036": {
+   "JustReroll.dll": "da4c935055bc7912dd4f93716a2c74099bb4c4e4b3574add01d99b8e1530cf5f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-084500-3cab7d1c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:45:00",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-085422-1ca1c011",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:54:22",
+    "lane": 40,
+    "reference_run": "20261101-084500-3cab7d1c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-085422-1ca1c011",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:54:23",
+    "lane": 41,
+    "reference_run": "20261101-084500-3cab7d1c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

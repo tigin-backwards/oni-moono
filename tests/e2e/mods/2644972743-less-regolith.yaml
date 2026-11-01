@@ -1,0 +1,23 @@
+# Less Regolith (from mining) (2644972743), class P.
+#
+# What it does: a transpiler on WorldDamage.OnDigComplete multiplies the debris a dig leaves by
+# 0.1 when the dug element is regolith (after the game's halving), so dug regolith yields a
+# tenth of what it would.
+# How a player reaches it: digging regolith.
+# What changes: far less regolith debris.
+#
+# setup turns a floor cell of the corridor west of the printing pod into 1000 kg of
+# regolith; dug out, it leaves about 50 kg of debris instead of 500.
+from: early-base
+mods: [2644972743]
+setup:
+  - driver: {setup.call: {type: SimMessages, method: ReplaceElement, args: [130493, Regolith, {"$": "CellEventLogger.Instance.DebugTool"}, 1000, 300]}}
+steps:
+  - run: {seconds: 1}
+  - expect_state:
+      "Grid.Element[130493].id": Regolith      # (113, 205)
+  - dig: [113, 205, 113, 205]
+  - run: {seconds: 600, until: {pending_digs: 0}}
+  - run: {seconds: 2}
+  - expect_state:
+      "sum:all:Pickupable::[*].GetComponent<PrimaryElement>.Mass if .GetComponent<PrimaryElement>.ElementID == Regolith": ["> 30", "< 70"]

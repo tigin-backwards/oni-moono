@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3792356047-rocket-idle-notifier.yaml",
+ "mods": [
+  "3792356047"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the rockets of rockets-so carry the idle notifier; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "fe07ac02",
+ "mod_dlls": {
+  "3792356047": {
+   "Rocket Idle Notifier.dll": "26d79b7fe586d1c44c3aaec922504d618573e104d57d2b870e04af1ca91a4dd3"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-072717-39d6a410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:27:17",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-100640-18e2ca55",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:06:40",
+    "lane": 35,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-100640-18e2ca55",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:12:12",
+    "lane": 35,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

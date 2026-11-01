@@ -1,0 +1,35 @@
+# Very Large Refrigerator (3248853673), class B.
+#
+# What it does: adds 指数级冰箱 (VeryLargeRefrigerator, 1x2, raw minerals, in the Food menu,
+# researched with Food Repurposing / FoodRepurposing): a refrigerator whose storage holds
+# float.MaxValue kg of food, using no power and giving off no heat, with the fridge's
+# full-signal port.
+# How a player reaches it: the build menu (Food), after the research.
+# What changes: one fridge that never fills.
+#
+# setup grants the research. The fridge is in the Food menu; built of sandstone in the
+# corridor west of the printing pod and selected, its storage's capacity is the float maximum.
+from: early-base
+mods: [3248853673]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FoodRepurposing\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"FoodRepurposing\").unlockedItemIDs": {contains: VeryLargeRefrigerator}
+      "Assets.GetBuildingDef(\"VeryLargeRefrigerator\").BuildingComplete.GetComponent<Storage>.capacityKg": "> 1e38"
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Food"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/VeryLargeRefrigerator Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/VeryLargeRefrigerator Group*": {active: true}
+  - key: {code: Escape}
+  - build: {prefab: VeryLargeRefrigerator, at: [114, 206], material: SandStone}
+  - expect: {blueprints: {VeryLargeRefrigerator: 1}}
+  - run: {seconds: 1500, until: {buildings: {VeryLargeRefrigerator: 1}, pending_construction: 0}}
+  - driver: {camera.set: {cell: [114, 208], ortho: 8}}
+  - click_world: {cell: [114, 206], select: VeryLargeRefrigerator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Storage>.capacityKg": "> 1e38"
+      "selected:GetComponent<Refrigerator>": exists

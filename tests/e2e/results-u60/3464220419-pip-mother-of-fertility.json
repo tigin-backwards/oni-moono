@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3464220419-pip-mother-of-fertility.yaml",
+ "mods": [
+  "3464220419"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the EggHug effect lasts 3000 s with +4 incubation, and the log says so; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "4c1b972b",
+ "mod_dlls": {
+  "3464220419": {
+   "PLib.dll": "93073fdf44dbe9fd7c0afe19e56341be862cc2d732090dee30999cf60e2e160d",
+   "╩≈╩≤┬█_╔·╙²╓«─╕.dll": "16299d99669427033a6873c808a2c631bc6063b33a55ddbd63a882d22801aad8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-222605-bc10cce7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:30:41",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-012357-03c49958",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:23:57",
+    "lane": 35,
+    "reference_run": "20261031-222605-bc10cce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-012357-03c49958",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:30:18",
+    "lane": 35,
+    "reference_run": "20261031-222605-bc10cce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

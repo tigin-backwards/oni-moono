@@ -1,0 +1,101 @@
+{
+ "spec": "mods/2733975344-russian-ony.yaml",
+ "mods": [
+  "2733975344"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "played Russian on a colony's research and priorities screens and pause menu, then the main menu, its options and Game options screens, dumped and shot",
+ "updated": "2026-10-31",
+ "commit": "38c9ed99",
+ "mod_dlls": {
+  "2733975344": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-222609-5b174342",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:31:31",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-232931-0907456a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:29:31",
+    "lane": 44,
+    "reference_run": "20261031-222609-5b174342",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 2e-06,
+     "pause": 0.0,
+     "menu": 0.0,
+     "game-options": 0.0
+    }
+   },
+   {
+    "run": "20261031-232931-0907456a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T23:29:32",
+    "lane": 45,
+    "reference_run": "20261031-222609-5b174342",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 9.8e-05,
+     "game-options": 0.0
+    }
+   }
+  ]
+ }
+}

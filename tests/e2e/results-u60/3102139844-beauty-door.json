@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3102139844-beauty-door.yaml",
+ "mods": [
+  "3102139844"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Pneumatic Door's definition uses the mod's anim; setup builds one across the dug-out corridor west of the printing pod, and the Duplicants walk through it as the colony runs",
+ "updated": "2026-11-01",
+ "commit": "c6336be8",
+ "mod_dlls": {
+  "3102139844": {
+   "GoodDoorMod.dll": "ba4f4e316aa4600b95e5d58ea4ad564d827f9a1ba6d68225430a836200bbc45d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-062032-efda9416",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:29:39",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-065159-50353ab8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:51:59",
+    "lane": 45,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-065159-50353ab8",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:52:15",
+    "lane": 44,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

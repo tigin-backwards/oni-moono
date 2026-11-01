@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3771260909-rocket-speed-orbital-lab-10x.yaml",
+ "mods": [
+  "3771260909"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "rockets-so's rockets fly at the original's tenfold speed, and the orbital lab's recipe takes 50 kg of plastic for 10 data banks",
+ "updated": "2026-11-01",
+ "commit": "7cc9e634",
+ "mod_dlls": {
+  "3771260909": {
+   "RocketSpeedAndOrbitalLab10x.dll": "f68347d938c9f49421c6f06cd354f0c23537c72c6399debd6bfaeddc793e3c49"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-010148-6d65f38c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:15:04",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-090410-138beb8b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:04:10",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-090410-138beb8b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:07:09",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

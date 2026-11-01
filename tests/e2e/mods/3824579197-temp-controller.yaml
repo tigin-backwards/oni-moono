@@ -1,0 +1,34 @@
+# 温度控制器 / Temperature Controller (3824579197), classes B, S (PLib options).
+#
+# What it does: adds the Temperature Controller (TempController, 1x1, any buildable material,
+# in the Utilities menu after the Thermo Regulator, researched with Temperature Modulation): a
+# thermostat that heats or cools what lies within its radius (2 cells) towards its target
+# temperature (20 °C by default, set in its side screen), at 100 kW, with a 1 degree dead band,
+# drawing 240 W; options choose what it affects (gas and liquid, buildings, items, tiles) and
+# whether it protects elements from changing phase.
+# How a player reaches it: the build menu (Utilities), after the research; its side screen.
+# What changes: a cell-sized heater and cooler.
+#
+# setup grants Temperature Modulation and builds a controller in the corridor west of the
+# printing pod; the Utilities menu lists it, and selected it shows its side screen (dumped).
+from: early-base
+mods: [3824579197]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"TemperatureModulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"TempController\")", method: Build, args: [131129, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"TemperatureModulation\").unlockedItemIDs": {contains: TempController}
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Utilities"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/TempController Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/TempController Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: TempController}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<KPrefabID>.PrefabTag.Name": TempController
+  - ui_dump: {name: side-screen, root: "**/DetailsScreen/SideScreen", mask_text: ['-?\d+(\.\d+)?']}

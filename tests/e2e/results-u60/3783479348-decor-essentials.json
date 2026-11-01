@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3783479348-decor-essentials.yaml",
+ "mods": [
+  "3783479348"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "defaults. The decor cap is 250 and the three negative levels are effects in the game's database. After 300 s the vitals screen opens, and the colony has its three Duplicants",
+ "updated": "2026-11-01",
+ "commit": "2a5fd584",
+ "mod_dlls": {
+  "3783479348": {
+   "DecorEssentials.dll": "d644d453ea9fa957b955c230d4420117498062fd7e1af360addd870fb22e3009",
+   "PLib.dll": "55ce409618e6d102a1bcd0298911f3df49dda9a94ee153d02403035a1d6101d6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-033851-137d5e8f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:54:35",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-054433-cc41faeb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:44:33",
+    "lane": 44,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-054433-cc41faeb",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:44:49",
+    "lane": 42,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3798414552-utility-plates.yaml",
+ "mods": [
+  "3798414552"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Cooling Plate in the corridor: in the Utilities menu (shot); unwired, it needs its 50 W and cools nothing",
+ "updated": "2026-11-01",
+ "commit": "f99dd8c4",
+ "mod_dlls": {
+  "3798414552": {
+   "ThermoPlate.dll": "10d08cf4601d54e48fdcb32f0f69f26347f0e12ebc3bb784476091d979f8b852"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-230339-bc48bbaa",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:03:40",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-022634-88113749",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:26:34",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "utilities-menu": 0.0
+    }
+   },
+   {
+    "run": "20261101-022634-88113749",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:32:14",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "utilities-menu": 0.0
+    }
+   }
+  ]
+ }
+}

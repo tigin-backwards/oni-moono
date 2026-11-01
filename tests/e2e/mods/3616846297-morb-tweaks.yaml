@@ -1,0 +1,20 @@
+# Morb Tweaks (3616846297), class P.
+#
+# What it does: Morbs (Glom) are a little more useful: a higher chance to make polluted oxygen,
+# less of it each time, and twice the cap of polluted oxygen around them before they stop (a
+# prefix replacing GlomConfig.CreatePrefab, and one on the drop cell check).
+# How a player reaches it: Morbs.
+# What changes: how Morbs make polluted oxygen.
+#
+# setup spawns a Morb in the dug-out corridor west of the printing pod; it lives on through 300 s
+# of the colony, as in the original.
+from: early-base
+mods: [3616846297]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, Glom, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 300}
+  - expect_state:
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == Glom": 1
+  - expect: {duplicants: 3}

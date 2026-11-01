@@ -1,0 +1,35 @@
+# Move This Here Fix (3802645529), class B, T.
+#
+# What it does: makes "Move This Here" (HaulingPoint) a building of the Base menu's storage
+# group, after the Storage Bin: a 1x1 storage for any solid, liquid or gas (20 t) that needs no
+# materials. Choosing it starts the build tool with vacuum as its "material" (the card's
+# material panel is hidden, the cursor says no resources are required), and placing it builds
+# it at once (a prefix on BuildingDef.Instantiate calls Build). It may be placed over other
+# buildings but not in solid cells, tiles cannot be built over it, its enable button toggles at
+# once, and it is removed with its own deconstruct button.
+# How a player reaches it: the build menu (Base); the selected point's side screens.
+# What changes: hauling targets placed instantly, anywhere open.
+#
+# Base menu, Move This Here: the card has no material panel; a click on the corridor west of
+# the printing pod places one at once, already complete, with the mod's storage and
+# deconstruct components.
+from: early-base
+mods: [3802645529]
+steps:
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/HaulingPoint Group*", cond: stable}
+  - click: {ui: "**/BuildingGroups/**/Grid/HaulingPoint Group*"}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/ProductInfoScreen", cond: stable}
+  - expect_ui:
+      "**/ProductInfoScreen/**/MaterialSelectionPanel": {active: false}
+  - shot: {name: product, crop: "**/ProductInfoScreen", threshold: 0.04, pointer: stay}
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207]}
+  - key: {code: Escape}
+  # Built at once: no blueprint, no errand.
+  - expect: {buildings: {HaulingPoint: 1}, blueprints: {HaulingPoint: 0}}
+  - expect_state:
+      "all:MoveThisHere.HaulingPoint::[0].totalMaxCapacity": 20000
+      "all:MoveThisHere.HaulingPoint::[0].GetComponent<MoveThisHere.DeconstructableHaulingPoint>": exists
+      "all:MoveThisHere.HaulingPoint::[0].GetComponent<Deconstructable>": missing
+      "all:MoveThisHere.HaulingPoint::[0].GetComponent<BuildingComplete>": exists

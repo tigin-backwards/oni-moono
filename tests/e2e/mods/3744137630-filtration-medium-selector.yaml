@@ -1,0 +1,27 @@
+# Filtration Medium Selector (3744137630), classes P, S.
+#
+# What it does: buildings that consume a filtration medium (the Deodorizer, the Water Sieve and
+# others whose deliveries ask for the Filter tag) get a FiltrationMediumSelector, a few-option
+# side screen (IFewOptionSideScreen): any filter medium, sand, or regolith. The choice rewrites
+# the building's delivery request and storage filters.
+# How a player reaches it: a Deodorizer's or Water Sieve's side screen.
+# What changes: which filter medium Duplicants bring.
+#
+# setup builds a Deodorizer in the dug-out corridor west of the printing pod. It has the
+# selector; selected, its few-option side screen lists the choices (dumped).
+from: early-base
+mods: [3744137630]
+require_log: ['\[FiltrationMediumSelector\] Attached selector to \d+ filtration building prefab']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"AirFilter\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:FiltrationMediumSelector.FiltrationMediumSelector::Length": 1
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: AirFilter}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/DetailsScreen/SideScreen", cond: stable}
+  - expect_ui:
+      "**/DetailsScreen/SideScreen": {active: true}
+  - ui_dump: {name: options, root: "**/DetailsScreen/SideScreen"}

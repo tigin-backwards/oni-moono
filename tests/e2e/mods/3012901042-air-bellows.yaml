@@ -1,0 +1,26 @@
+# Air Bellows (3012901042), classes K, P (a tool; PLib action, unbound).
+#
+# What it does: a Bellows tool in the tool menu (its icon "sprinkle"): the first click picks a
+# source cell holding gas, each click after that moves up to 0.1 kg of that gas from the
+# source into the clicked cell (emitted into gas or vacuum, displacing a liquid), with a
+# floating text saying what happened; a right click forgets the source.
+# How a player reaches it: the tool menu's Bellows.
+# What changes: small amounts of gas moved by hand.
+#
+# The Bellows tool is picked from the tool menu; a click on the air of the dug-out corridor
+# west of the printing pod sets the source cell; a click on the next cell over moves gas.
+from: early-base
+mods: [3012901042]
+steps:
+  - run: {seconds: 2}
+  - tool: {toolbar: Bellows}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.GetType().Name": OxyBellowsTool
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [110, 207]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.rememberedCellIndex": 131762
+  - click_world: {cell: [113, 207]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.rememberedCellIndex": 131762
+  - key: {code: Escape}

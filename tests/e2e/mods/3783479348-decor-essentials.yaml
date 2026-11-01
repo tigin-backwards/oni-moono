@@ -1,0 +1,27 @@
+# Decor Essentials (3783479348), classes P, O (PLib options).
+#
+# What it does: reworks decor's effect on morale. Negative decor gets morale penalties of its
+# own (effects DecorMinus1 to DecorMinus3, thresholds and penalties in its options), the
+# positive levels' thresholds scale with the maximum decor (250 by default, the game's 120),
+# decor still counts at night while Duplicants sleep, a hard mode changes how decor sums at a
+# cell, decor colours change, and the decor tooltip in the vitals shows the cap. Patches on
+# DecorMonitor, DecorProvider, GameUtil.GetDecorAtCell and the decor displayer.
+# How a player reaches it: Duplicants' decor expectations (the vitals screen, a Duplicant's
+# status); the decor overlay; the mod's options.
+# What changes: morale from decor.
+#
+# Defaults. The decor cap is 250 and the three negative levels are effects in the game's
+# database. After 300 s the vitals screen opens, and the colony has its three Duplicants.
+from: early-base
+mods: [3783479348]
+steps:
+  - expect_state:
+      "DecorMonitor.MAXIMUM_DECOR_VALUE": 250
+      "Db.Get().effects.TryGet(\"DecorMinus1\")": exists
+      "Db.Get().effects.TryGet(\"DecorMinus3\")": exists
+  - run: {seconds: 300}
+  - open: {key: V}
+  - ui_wait: {path: "**/VitalsTableScreen", cond: stable}
+  - run: {seconds: 2}
+  - key: {code: Escape}
+  - expect: {duplicants: 3}

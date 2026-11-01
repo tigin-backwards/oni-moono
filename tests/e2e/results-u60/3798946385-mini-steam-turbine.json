@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3798946385-mini-steam-turbine.yaml",
+ "mods": [
+  "3798946385"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Renewable Energy and builds a Mini Steam Turbine in the dug-out corridor west of the printing pod. Both show in the Power menu; the mini rates 200 W, and selected its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "1322a345",
+ "mod_dlls": {
+  "3798946385": {
+   "MiniSteamTurbine.dll": "a896e1da119aa2349f348abaa0bad5aaa26261102dc654dcbbef5c58cacb6493"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043324-145195fb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:36:54",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091526-266c56a1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:15:26",
+    "lane": 40,
+    "reference_run": "20261101-043324-145195fb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-091526-266c56a1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:15:27",
+    "lane": 41,
+    "reference_run": "20261101-043324-145195fb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

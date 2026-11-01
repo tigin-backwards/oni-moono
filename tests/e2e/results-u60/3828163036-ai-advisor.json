@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3828163036-ai-advisor.yaml",
+ "mods": [
+  "3828163036"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3828163036": {
+   "ONIAIAdvisor.dll": "fea4441a939e023d75e4fe6c7b4b11118b9bedfd6ffb7cac2ce192226c86eaab"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T09:09:14",
+    "lane": 53,
+    "reasons": [
+     "step start: the player exited (1) while loading"
+    ],
+    "signatures": 2
+   }
+  ],
+  "ours": []
+ }
+}

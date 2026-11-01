@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3611639726-logic-gates-900.yaml",
+ "mods": [
+  "3611639726"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Generic Sensors and builds a Buffer Gate in the dug-out corridor west of the printing pod. Selected, its slider side screen goes up to 900; its slider is dumped",
+ "updated": "2026-11-01",
+ "commit": "fbdca3c4",
+ "mod_dlls": {
+  "3611639726": {
+   "LogicGates900.dll": "9d830106f9f1cd9cc5f383a59e2b554b3e7b5c5610a16af29ea52620d9f3ad94"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-012842-2786154e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:51:56",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-013316-0ecee3ef",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:33:16",
+    "lane": 43,
+    "reference_run": "20261101-012842-2786154e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-013316-0ecee3ef",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:33:17",
+    "lane": 45,
+    "reference_run": "20261101-012842-2786154e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

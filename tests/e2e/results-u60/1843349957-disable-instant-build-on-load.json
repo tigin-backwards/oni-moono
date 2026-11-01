@@ -1,0 +1,55 @@
+{
+ "spec": "mods/1843349957-disable-instant-build-on-load.yaml",
+ "mods": [
+  "1843349957"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "loads with its one patch on LoadScreen.OnKeyDown (debug mode off); a minute of play",
+ "updated": "2026-10-31",
+ "commit": "6d9e231a",
+ "mod_dlls": {
+  "1843349957": {
+   "DisableInstantBuildOnSavegameLoad.dll": "4b58221c20ee31de8badc35ebf75e385b61a0ba0943e43854791dc4f39503beb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214713-0ac1044b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:04:17",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-221303-ca517c5e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:13:03",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-221303-ca517c5e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:17:14",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

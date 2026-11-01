@@ -1,0 +1,37 @@
+# Point-to-Point Utilities (3776878792), classes P, K (PLib actions), user menu.
+#
+# What it does: routes wires and pipes between two buildings for the player. A building with a
+# power, liquid or gas port gets user menu buttons ("Wire: start", then on a second building
+# "Wire: route"; "Liquid"/"Gas" likewise): the mod finds a path and places the wire or pipe
+# blueprints, with bridges where it must cross. Two rebindable actions (PLib): Shift+N upgrades
+# a connected 1 kW wire network to 2 kW conductive wire, Shift+Delete marks a whole connected
+# network for deconstruction.
+# How a player reaches it: a building's user menu; the two hotkeys.
+# What changes: utility runs planned in two clicks.
+#
+# early-base has a manual generator and an unpowered research station beside the printing
+# pod; setup spawns copper ore by them. The generator's "Wire: start", then the research station's "Wire: route", lay wire
+# blueprints between them; built, the research station is on the generator's circuit.
+from: early-base
+mods: [3776878792]
+require_log: ['\[PointToPointUtilities\]\[Input\] Registered rebindable action: id=PointToPointUtilities.UpgradeConnectedWireNetwork']
+setup:
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Cuprite\").substance", method: SpawnResource, args: [[125.5, 207.5, -12], 200, 300, 255, 0]}}
+steps:
+  - expect: {blueprints: {Wire: 0}}
+  - driver: {camera.set: {cell: [128, 208], ortho: 8}}
+  - click_world: {cell: [129, 207], select: ManualGenerator}
+  - ui_wait: {path: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons", cond: stable}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Wire: startButton", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/Wire: startButton"}
+  - click_world: {cell: [127, 207], select: ResearchCenter}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Wire: routeButton", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/Wire: routeButton"}
+  - run: {seconds: 1}
+  - expect: {blueprints: {Wire: ">= 1"}}
+  - run: {seconds: 900, until: {pending_construction: 0}}
+  - expect: {buildings: {Wire: ">= 1"}}
+  - expect_state:
+      "all:ManualGenerator::[0].GetComponent<Generator>.CircuitID": {save_as: circuit}
+  - expect_state:
+      "all:ResearchCenter::[0].GetComponent<EnergyConsumer>.CircuitID": "== circuit"

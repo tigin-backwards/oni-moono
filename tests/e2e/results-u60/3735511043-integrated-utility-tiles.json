@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3735511043-integrated-utility-tiles.yaml",
+ "mods": [
+  "3735511043"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds an Artificial Iron Volcano in the dug-out corridor west of the printing pod. All five buildings show in the Base menu; after 60 s the volcano's storage holds iron",
+ "updated": "2026-11-01",
+ "commit": "745e6bf9",
+ "mod_dlls": {
+  "3735511043": {
+   "MultiFunctionaBrick.dll": "ba222dbe913850468e1a08cc7a1348f9123b348787c87c750a7e2eef37105d47",
+   "PLib.dll": "3dc9bc06c6b54660b833d314192e6b34c578754facc6aff3c7e803b5cdc6616e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-052816-8592cb3e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:28:17",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-055414-ea02bd27",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:54:14",
+    "lane": 45,
+    "reference_run": "20261101-052816-8592cb3e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-055414-ea02bd27",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:54:35",
+    "lane": 44,
+    "reference_run": "20261101-052816-8592cb3e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

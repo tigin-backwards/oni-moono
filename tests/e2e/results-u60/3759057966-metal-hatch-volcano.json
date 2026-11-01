@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3759057966-metal-hatch-volcano.yaml",
+ "mods": [
+  "3759057966"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds the converter in the dug-out corridor west of the printing pod. It shows in the Equipment menu; selected, its details screen is dumped, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "4a47d3fb",
+ "mod_dlls": {
+  "3759057966": {
+   "MetalHatchVolcano.dll": "b0bb33e57c4c19a30f9d3cb83d046d0c35815b586313213912092edbd7bedc17"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-052816-8592cb3e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:38:45",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-055831-5c8fce83",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:58:31",
+    "lane": 44,
+    "reference_run": "20261101-052816-8592cb3e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-055831-5c8fce83",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:04:09",
+    "lane": 44,
+    "reference_run": "20261101-052816-8592cb3e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

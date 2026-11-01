@@ -1,0 +1,16 @@
+# Base Game Loading Screen Song (2877011131), class V (audio).
+#
+# What it does: the main menu plays the base game's title theme instead of Spaced Out's: a
+# prefix on MainMenu.StartFEAudio sets its menuMusicEventName to Music_TitleTheme.
+# How a player reaches it: the main menu.
+# What changes: the menu music.
+#
+# At the main menu the menu's music event is the base game's theme.
+from: main-menu
+mods: [2877011131]
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_state:
+      "all:MainMenu::[0].menuMusicEventName": Music_TitleTheme

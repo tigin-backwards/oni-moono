@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3764319223-geotuner-cooling-mode.yaml",
+ "mods": [
+  "3764319223"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Geotuner's mode button reads Heating; its click turns cooling on and the button says so",
+ "updated": "2026-11-01",
+ "commit": "0df53f3a",
+ "mod_dlls": {
+  "3764319223": {
+   "GeotunerCoolingMode.dll": "ff29c27c5ce376db290a59c9f7e210f7614618d50ea5254d7c9f8b13ff96c55f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-021912-0ce14da8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:28:02",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084636-66abb810",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:46:36",
+    "lane": 35,
+    "reference_run": "20261101-021912-0ce14da8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-084636-66abb810",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:48:58",
+    "lane": 35,
+    "reference_run": "20261101-021912-0ce14da8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,26 @@
+# [CLD] Fill with Backwalls / Preencha com paredes de fundo (3763297759), classes P, U, O (PLib
+# options).
+#
+# What it does: placing a backwall (Drywall and the like) with the build menu's new "fill cavity"
+# toggle (FillWithBackwallsFillCavityToggle, added to the building's card, ProductInfoScreen)
+# fills the whole enclosed cavity under the pointer with backwall blueprints of the material and
+# look picked, up to a maximum size (an option); patches on BuildTool's clicks and TryBuild.
+# How a player reaches it: the build menu, a backwall, its fill toggle.
+# What changes: walls of backwall in one click.
+#
+# The Drywall is picked in the Base menu (researched with Clothing): its card has the mod's
+# fill toggle (the card dumped); Escape closes the menu.
+from: early-base
+mods: [3763297759]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Clothing\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/ExteriorWall Group*", cond: stable}
+  - click: {ui: "**/BuildingGroups/**/Grid/ExteriorWall Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen/**/FillWithBackwallsFillCavityToggle", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}

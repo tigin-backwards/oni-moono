@@ -1,0 +1,19 @@
+# Faster Horizontal Scrolling (2962807892), class U (screens of the game's, changed).
+#
+# What it does: wide table screens (the consumables screen and others) scroll sideways faster:
+# a postfix on KScrollRect's constructor raises its horizontal scroll inertia scale to 20 (the
+# screens' serialized values are set after the constructor runs).
+# How a player reaches it: the wheel over a wide table screen.
+# What changes: sideways scrolling speed.
+#
+# The consumables screen opens; the scroll rects at an inertia scale of 20 are as many as in the
+# original; the screen closes.
+from: early-base
+mods: [2962807892]
+steps:
+  - run: {seconds: 2}
+  - open: {key: F}
+  - ui_wait: {path: "**/ConsumablesTableScreen", cond: stable}
+  - expect_state:
+      "count:all:KScrollRect::[*] if .horizontalScrollInertiaScale == 20": "== original"
+  - key: {code: Escape}

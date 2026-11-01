@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3784311959-reservoir-capacity.yaml",
+ "mods": [
+  "3784311959"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Liquid Reservoir's capacity slider (dumped): 500 typed in sets its storage and intake to 500 kg",
+ "updated": "2026-11-01",
+ "commit": "03ac9f34",
+ "mod_dlls": {
+  "3784311959": {
+   "ReservoirCapacity.dll": "7d85ce1b9265b2d674526fac3aefc3b6daccd10f1955e2fd1050eddac88fa293"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-021912-0ce14da8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:25:07",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092613-f33b4ce8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:26:13",
+    "lane": 35,
+    "reference_run": "20261101-021912-0ce14da8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-092613-f33b4ce8",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:28:06",
+    "lane": 35,
+    "reference_run": "20261101-021912-0ce14da8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

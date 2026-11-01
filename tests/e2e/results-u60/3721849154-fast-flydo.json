@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3721849154-fast-flydo.yaml",
+ "mods": [
+  "3721849154"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with 300% set in its options, the mod logs its 3x Flydo speed; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "2175fdd0",
+ "mod_dlls": {
+  "3721849154": {
+   "FastFlydo.dll": "e5a5ba7c7d923a24d9815524e6207ccba66c6e1f89cb1c9434f0a3ef42b16b92"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-011236-1e84a883",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:12:37",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-060331-b10b86d9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:03:31",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-060331-b10b86d9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:09:23",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

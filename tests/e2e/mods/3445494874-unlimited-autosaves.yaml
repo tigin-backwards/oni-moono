@@ -1,0 +1,21 @@
+# Unlimited Autosaves (3445494874), classes P, O.
+#
+# What it does: keeps more autosaves than the game's 10. With its PLib option Unlimited
+# Autosaves on (the default) it sets GenericGameSettings.keepAllAutosaves; off, a transpiler
+# on SaveLoader.Save replaces the game's limit (9, the last index kept) with Autosaves - 1.
+# How a player reaches it: the Mods screen's options; then autosaves.
+# What changes: how many autosaves stay in the save folder.
+#
+# The spec turns Unlimited Autosaves off and sets 20 autosaves. On U60 the transpiler no longer
+# finds the game's limit in SaveLoader.Save (the original's run showed it), so it falls back
+# to keeping every autosave, as it logs; the colony runs a minute.
+from: early-base
+mods: [3445494874]
+options:
+  Unlimited_Autosaves: {unlimitedAutosaves: false, numAutosaves: 20}
+require_log: ['\[UnlimitedAutosaves\] Autosave Transpiler Failed, codeMatch not found', '\[UnlimitedAutosaves\] keepAllAutosaves: True']
+steps:
+  - expect_state:
+      "GenericGameSettings.instance.keepAllAutosaves": true
+      "type:Unlimited_Autosaves.Config::Instance.numAutosaves": 20
+  - run: {seconds: 60}

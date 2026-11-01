@@ -1,0 +1,19 @@
+# AutoOilMachines (2893639021), class P.
+#
+# What it does: meant to make the Oil Refinery work without an operator: a prefix on
+# OilRefineryConfig.ConfigureBuildingTemplate sets it not manually operated, but returns true,
+# so the game's own method runs after it and sets it back (on U60 the refinery still needs an
+# operator, in both players). A postfix on OilWellCap.AddGasPressure releases an Oil Well's gas
+# pressure on its own whenever it passes 10%.
+# How a player reaches it: building an Oil Refinery or an Oil Well.
+# What changes: oil wells that vent themselves.
+#
+# The mod loads with its two patches; the refinery is manually operated as in the original;
+# the colony runs a minute.
+from: early-base
+mods: [2893639021]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == AutoOilMachines and .loaded_mod_data.patched_methods.Count == 2": 1
+      "Assets.GetPrefab(\"OilRefinery\").GetComponent<BuildingComplete>.isManuallyOperated": true
+  - run: {seconds: 60}

@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3760205361-molecular-element-constructor.yaml",
+ "mods": [
+  "3760205361"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Catalytics and builds the constructor in the dug-out corridor west of the printing pod. It shows in the Refining menu; it has recipes as many as in the original, and selected its recipe side screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "b753b724",
+ "mod_dlls": {
+  "3760205361": {
+   "MolecularElementConstructor.dll": "77012b8b75b30c0b83ca0c54e9aaf5fd678a8cbf6d656c52ae4ebfbb0501be4c",
+   "PLib.dll": "48c63fd4654b6fbb390afdac71a3d29194eeb9405eca4290cba6e4fbf60805ce"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-052816-8592cb3e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:42:43",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-061303-2973418b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:13:03",
+    "lane": 43,
+    "reference_run": "20261101-052816-8592cb3e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-061303-2973418b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:18:34",
+    "lane": 44,
+    "reference_run": "20261101-052816-8592cb3e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

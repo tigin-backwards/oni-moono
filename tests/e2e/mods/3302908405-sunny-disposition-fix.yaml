@@ -1,0 +1,15 @@
+# 乐观阳光不再傻乐 (SunnyDispositionFix) (3302908405), class M.
+#
+# What it does: the Sunny Disposition trait keeps its attribute effect but loses its added
+# behaviour (the cheerful emotes and joy reactions): a prefix on
+# TraitUtil.CreateAttributeEffectTrait drops the trait's on-add callback.
+# How a player reaches it: a Duplicant with Sunny Disposition.
+# What changes: no forced cheerfulness from that trait.
+#
+# The Sunny Disposition trait's on-add callback is gone; the colony runs a minute.
+from: early-base
+mods: [3302908405]
+steps:
+  - expect_state:
+      "Db.Get().traits.Get(\"SunnyDisposition\").OnAddTrait": missing
+  - run: {seconds: 60}

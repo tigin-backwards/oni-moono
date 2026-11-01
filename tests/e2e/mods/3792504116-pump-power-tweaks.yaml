@@ -1,0 +1,21 @@
+# Gas and Liquid Pump Power Tweaks (3792504116), classes P, O (PLib options).
+#
+# What it does: the power use of the Gas Pump, Mini Gas Pump, Liquid Pump, Mini Liquid Pump and
+# both filters, and the heat of the liquid pumps and filter, are options: postfixes on their
+# CreateBuildingDef set them.
+# How a player reaches it: the mod's options (Mods screen).
+# What changes: pumps' power and heat.
+#
+# Options set the Liquid Pump to 120 W and the Gas Pump to 60 W. Their definitions draw that, as
+# in the original; the filters keep theirs; the colony runs on.
+from: early-base
+mods: [3792504116]
+options:
+  "3792504116": {LiquidPumpWatts: 120, GasPumpWatts: 60}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"LiquidPump\").EnergyConsumptionWhenActive": ["== 120", "== original"]
+      "Assets.GetBuildingDef(\"GasPump\").EnergyConsumptionWhenActive": ["== 60", "== original"]
+      "Assets.GetBuildingDef(\"LiquidFilter\").EnergyConsumptionWhenActive": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

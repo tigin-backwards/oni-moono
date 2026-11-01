@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2705745399-mute-starving-notification.yaml",
+ "mods": [
+  "2705745399"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "loads with its one patch on NotificationScreen.PlayDingSound; two minutes of play (no starving Duplicant to silence)",
+ "updated": "2026-10-31",
+ "commit": "58a73e93",
+ "mod_dlls": {
+  "2705745399": {
+   "MuteStarvingNotification.dll": "2bf91b28889c1872dedc1a92b205b397524c38b5cb4e96c19b26d11a4021734f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-210418-28504fa7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:14:37",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-215859-c1b13d8d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:58:59",
+    "lane": 35,
+    "reference_run": "20261031-210418-28504fa7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-215859-c1b13d8d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:10:12",
+    "lane": 35,
+    "reference_run": "20261031-210418-28504fa7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

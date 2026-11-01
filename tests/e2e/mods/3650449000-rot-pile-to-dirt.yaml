@@ -1,0 +1,24 @@
+# Rot Pile To Dirt (3650449000), class P.
+#
+# What it does: a rot pile decays into dirt instead of polluted dirt: a transpiler on
+# RotPile.ConvertToElement swaps the element it spawns (ToxicSand for Dirt).
+# How a player reaches it: food left to rot.
+# What changes: what rotten food leaves behind.
+#
+# setup spawns a rot pile on the floor of the dug-out corridor west of the printing pod; once
+# 1800 s later the rot piles are as in the original (the outhouse makes polluted dirt meanwhile,
+# so its mass proves nothing).
+from: early-base
+mods: [3650449000]
+require_log: ['\[RotPileToDirt\] ']
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, RotPile, Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "sum:all:Pickupable::[*].GetComponent<PrimaryElement>.Mass if .GetComponent<PrimaryElement>.ElementID == ToxicSand": {save_as: toxic}
+      "sum:all:Pickupable::[*].GetComponent<PrimaryElement>.Mass if .GetComponent<PrimaryElement>.ElementID == Dirt": {save_as: dirt}
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == RotPile": 1
+  - run: {seconds: 1800}
+  - expect_state:
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == RotPile": "== original"

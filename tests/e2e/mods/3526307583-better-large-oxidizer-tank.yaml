@@ -1,0 +1,23 @@
+# Better Large Oxidizer Tank (3526307583), class P (Spaced Out).
+#
+# What it does: the Large Solid Oxidizer Tank rocket module (OxidizerTankCluster) holds
+# 1250 kg (the game's 900) and its burden is moderate (4, the game's 5): a postfix on its
+# DoPostConfigureComplete sets its storage and OxidizerTank fill masses and extends it to a
+# rocket module again with the lower burden.
+# How a player reaches it: a rocket's module list (Add Module on a launch pad's rocket).
+# What changes: a bigger, lighter oxidizer tank.
+#
+# early-base has no rocket: the module's prefab is read (its capacity, fill masses and
+# burden), and the colony runs on.
+from: early-base
+mods: [3526307583]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"OxidizerTankCluster\").GetComponent<Storage>.capacityKg": 1250
+      "Assets.GetPrefab(\"OxidizerTankCluster\").GetComponent<OxidizerTank>.maxFillMass": 1250
+      "Assets.GetPrefab(\"OxidizerTankCluster\").GetComponent<OxidizerTank>.targetFillMass": 1250
+      "Assets.GetPrefab(\"OxidizerTankCluster\").GetComponent<RocketModuleCluster>.performanceStats.Burden": 4
+  - expect_state:
+      "Assets.GetPrefab(\"OxidizerTankCluster\").GetComponent<RocketModuleCluster>.performanceStats.Burden": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

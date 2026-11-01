@@ -1,0 +1,30 @@
+# 陶瓷隔热水管 / Ceramic Insulated Liquid Conduit (3800936934), class B.
+#
+# What it does: adds a ceramic-only insulated liquid pipe (CeramicInsulatedLiquidConduit, the
+# Plumbing menu after the Insulated Liquid Pipe, researched with Improved Liquid Piping) that
+# makes no heat, exchanges none with its surroundings, and is not damaged by freezing or boiling
+# contents (patches on Conduit.OnConduitBoiling and OnConduitFrozen, and ConduitFlow).
+# How a player reaches it: the build menu (Plumbing), after the research.
+# What changes: a pipe that keeps its contents' heat.
+#
+# setup grants Improved Liquid Piping and builds a segment in the dug-out corridor west of the
+# printing pod. It shows in the Plumbing menu; selected, its details screen is dumped.
+from: early-base
+mods: [3800936934]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"ImprovedLiquidPiping\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CeramicInsulatedLiquidConduit\")", method: Build, args: [{"$": "Grid.XYToCell(113, 207)"}, Neutral, null, [Ceramic], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"ImprovedLiquidPiping\").unlockedItemIDs": {contains: CeramicInsulatedLiquidConduit}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CeramicInsulatedLiquidConduit Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/CeramicInsulatedLiquidConduit Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: CeramicInsulatedLiquidConduit}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

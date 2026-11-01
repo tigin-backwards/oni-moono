@@ -1,0 +1,25 @@
+# Food Lab (3733618814), class B.
+#
+# What it does: a Food Lab with the Geotuner's size and art (refined metal): a fabricator that
+# makes food ingredients (egg, meat, fish, grain, lettuce, berries, peppernut, nosh bean,
+# mushroom) from algae and piped water, worked by a Duplicant with the Grilling skill.
+# How a player reaches it: the build menu, after its reference building.
+# What changes: ingredients without farms or ranches.
+#
+# setup places one in the pit of the dug-out room west of the printing pod (110,206): it is complete, selected it shows its details
+# (shot), and it is shot in the world.
+from: early-base
+mods: [3733618814]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"FoodLab\")", method: Build, args: [131126, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {FoodLab: 1}}
+  - expect_state:
+      "Assets.GetBuildingDef(\"FoodLab\").WidthInCells": "== original"
+      "count:ComplexRecipeManager.Get().recipes[*] if .id.StartsWith(\"FoodLab_\") == true": [">= 1", "== original"]
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 206], select: FoodLab}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
+  - world_shot: {name: building, ortho: 5, at: [110, 207]}

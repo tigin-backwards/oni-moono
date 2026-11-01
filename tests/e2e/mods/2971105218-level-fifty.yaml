@@ -1,0 +1,16 @@
+# Level Fifty (2971105218), class P.
+#
+# What it does: Duplicants' attributes level up to 50 instead of the game's 20: a prefix on
+# AttributeLevel.AddExperience stops at level 50, and a postfix on GetExperienceForNextLevel
+# scales the experience every level needs by 0.2106 (so level 50 costs what level 20 did).
+# How a player reaches it: nothing to click; Duplicants gaining experience.
+# What changes: faster attribute levels, up to 50.
+#
+# The mod loads with its two patches, and the colony runs two minutes of work with it.
+from: early-base
+mods: [2971105218]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == 69bf497c-b59c-475b-b9ab-78a2da32dfd8 and .loaded_mod_data.patched_methods.Count == 2": 1
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}

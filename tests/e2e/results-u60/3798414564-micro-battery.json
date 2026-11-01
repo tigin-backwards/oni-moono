@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3798414564-micro-battery.yaml",
+ "mods": [
+  "3798414564"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Space Power and spawns refined copper. The battery shows in the Power menu; it is built in mid-air in the dug-out corridor west of the printing pod, and once built and selected it holds 20 kJ",
+ "updated": "2026-11-01",
+ "commit": "1322a345",
+ "mod_dlls": {
+  "3798414564": {
+   "MicroBattery.dll": "4a19f9b581ffc6db3eb7c4d694d24177c9d5a5f747992a31a459622c50766ac6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-080617-aed2badb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:21:42",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091506-9f04a843",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:15:06",
+    "lane": 44,
+    "reference_run": "20261101-080617-aed2badb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-091506-9f04a843",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:15:07",
+    "lane": 45,
+    "reference_run": "20261101-080617-aed2badb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

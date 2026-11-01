@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3766350328-onilocaltweaks.yaml",
+ "mods": [
+  "3766350328"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "options turn on the batteries' tweak. The Battery's capacity is ten times the game's (as in the original), the Smart Battery's too; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "f740c458",
+ "mod_dlls": {
+  "3766350328": {
+   "OniLocalTweaks.dll": "f4f389dcc7f0cf2852b0e6bb25f691fd95f1b48fcb5613e456e2b8cb0e7c3a27",
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-030516-f8747b98",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:13:43",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-040334-4f18eb97",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:03:34",
+    "lane": 41,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-040334-4f18eb97",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:03:35",
+    "lane": 42,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

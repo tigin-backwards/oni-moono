@@ -1,0 +1,173 @@
+# scripts/mod-sweep.py u60-3047: 171 mods, batches of 12, the save 2minnow, 90 s of play; commit 12f05587, 2026-11-01
+id	rank	original	ours	note
+3821093288	2079	ok	ok	
+3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3804085929	2231	ok	ok	
+3788121619	2257	ok	ok	
+3621935132	2273	ok	ok	
+3802645529	2277	ok	ok	
+3811893109	2282	ok	ok	
+3722623212	2284	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3579403539	2286	ok	ok	
+3798414552	2289	ok	ok	
+3767642253	2290	ok	ok	
+3615615035	2292	ok	ok	
+2705745399	2293	ok	ok	
+3012403917	2294	ok	ok	
+3804025857	2296	ok	ok	
+3794308883	2297	ok	ok	
+3465340506	2298	ok	ok	
+1122444147	2299	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3808290956	2300	ok	ok	
+3386141624	2301	ok	ok	
+3553196783	2302	ok	ok	
+1947452187	2303	ok	ok	
+2971581472	2304	ok	ok	
+3530534502	2305	ok	ok	
+1843349957	2306	ok	ok	
+3464220419	2307	ok	ok	
+3794308871	2308	ok	ok	
+3460253861	2309	ok	ok	
+3028011269	2311	ok	ok	
+3794390846	2312	ok	ok	
+3756824697	2313	ok	ok	
+3810810633	2316	ok	ok	
+3144126230	2318	ok	ok	
+3815156097	2319	ok	ok	
+3649847425	2320	menu	-	step start: the player exited (1) before OniMcp started; [PLib/TeleVault.merged] System.Reflection.AmbiguousMatchException Ambiguous match found @ PeterHan.PLib.Core.ExtensionMethods.Patch
+3624889022	2321	ok	ok	
+3504841018	2322	ok	ok	
+2971105218	2323	ok	ok	
+2618474424	2324	ok	ok	
+1984088916	2325	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3792356047	2326	ok	ok	
+3656559662	2327	ok	ok	
+3701419178	2328	ok	ok	
+3732705092	2329	ok	ok	
+3750063080	2330	ok	ok	
+3801689112	2331	menu	-	the original disables it ("Failed to load mod ...disabling"): step start: the player exited (1) before OniMcp started; HarmonyLib.HarmonyException: Patching exception in method static System.Reflection.MethodBase HighFridgeUpgrade.Patch_HightechSmallFridge_GasInput::TargetMethod() ---> System.Exception: Method static System.Reflection.MethodBase HighFridgeUpgrade.Patch_HightechSmallFridge_GasInput::TargetMethod() returned an unexpected result: null @ HarmonyLib.PatchClassProcessor.RunMethod[S,T]; null Exception while loading mod pie.HighFridgeUpgrade at RU
+3445494874	2333	ok	ok	
+3372288234	2334	ok	ok	
+2636014832	2335	ok	ok	
+3735999362	2338	ok	ok	
+3775374548	2341	ok	ok	
+3792025973	2343	ok	ok	
+3742784298	2344	ok	ok	
+3241795238	2345	ok	ok	
+3597493271	2346	ok	ok	
+2893639021	2347	ok	ok	
+3802029308	2348	ok	ok	
+3775377258	2349	ok	ok	
+3771895170	2350	colony	-	the crash screen opens while the save loads; System.NullReferenceException: Object reference not set to an instance of an object @ Database.SkillAttributePerk+<>c__DisplayClassN_N.<.ctor>b__N; ~~~!System.NullReferenceException: Object r
+3810073556	2352	menu	-	the original disables it ("Failed to load mod ...disabling"): step start: the player exited (1) while loading; System.Reflection.AmbiguousMatchException: Ambiguous match in Harmony patch for SeedProducer:CropPickedInternal ---> System.Reflection.AmbiguousMatchException: Ambiguous match found @ HarmonyLib.AccessTools+<>c__DisplayClassN_N.<Method>b__N; null Exception while loading mod ZK.ColonyFlowMonitor at RUN/home/config/unityNd/Klei/Oxygen Not Included/mods/Local/N @ HarmonyLib.AccessTools+<>c__DisplayClassN_N.<Method>b__N
+3774781370	2357	ok	ok	
+3783751491	2358	ok	ok	
+3756399185	2359	ok	ok	
+3771756510	2360	ok	ok	
+3638085127	2361	ok	ok	
+3436746279	2364	ok	ok	
+2734396435	2365	ok	ok	
+3790434066	2367	menu	-	the player exits (1) while loading; LoadMyAssets() Failed to load AssetBundle: temperatureeffects @ Debug.LogError
+3301255234	2368	ok	ok	
+3784211480	2370	ok	ok	
+3280297616	2371	menu	-	the original disables it ("Failed to load mod ...disabling"): step start: the player exited (1) before OniMcp started; HarmonyLib.HarmonyException: Patching exception in method static System.IntN ConduitTemperatureManager::ConduitTemperatureManager_Add(System.Single contents_temperature, System.Single contents_mass, System.IntN contents_element_hash, System.IntN conduit_structure_temperature_handle, System.Single conduit_heat_capacity, System.Single conduit_thermal_conductivity, System.Boolean conduit_insulated) ---> System.InvalidProgramException: Invalid
+2242620896	2372	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3313952440	2376	ok	ok	
+2877011131	2377	ok	ok	
+3789925586	2380	ok	ok	
+3771260909	2381	ok	ok	
+3764501663	2382	ok	ok	
+3743964594	2383	ok	ok	
+2681795804	2385	ok	ok	
+3340693682	2386	ok	ok	
+3805372627	2387	ok	ok	
+3756115269	2388	ok	ok	
+2608487669	2389	menu	-	the original disables it ("Failed to load mod ...disabling"): step start: the player exited (1) while loading; HarmonyLib.HarmonyException: Patching exception in method null ---> System.ArgumentException: Undefined target method for patch method static System.Collections.Generic.IEnumerable`N<HarmonyLib.CodeInstruction> Megaminer.AutoMiner_MassN::Transpiler(System.Collections.Generic.IEnumerable`N<HarmonyLib.CodeInstruction> instructions) @ HarmonyLib.PatchClassProcessor.PatchWithAttributes; System.FieldAccessException: Field `ManualDeliveryKG:requestedIte
+3776639133	2390	ok	ok	
+3416289379	2391	ok	ok	
+3817699615	2393	ok	ok	
+3092345898	2394	colony	-	the player exits (1) while loading; System.FieldAccessException: Field `ManualDeliveryKG:requestedItemTag" is inaccessible from method `NeutroniumEnergy.NeutroniumGeneratorConfig:ConfigureBuildingTemplate (UnityEngine.GameObject,Tag)" @ BuildingConfigManager.RegisterBuilding; null Exception in RegisterBuilding for type NeutroniumEnergy.NeutroniumGeneratorConfig from NeutroniumEnergy @ BuildingConfigManager.RegisterBuilding
+3818537352	2395	ok	ok	
+3810270516	2396	ok	ok	
+3797210652	2397	ok	ok	
+3748718831	2398	ok	ok	
+3781546582	2399	ok	ok	
+3321924710	2400	ok	ok	
+2750666333	2401	colony	-	the crash screen opens while the save loads; System.NullReferenceException: Object reference not set to an instance of an object @ Meteor_Seasons.Patches.NotifyActiveSeason; ~~~!System.NullReferenceException: Object reference not
+2460908134	2402	ok	ok	
+3811596612	2403	ok	ok	
+3820021771	2404	ok	ok	
+2802886201	2405	ok	ok	
+2517171327	2406	colony	-	the player exits (1) while loading; System.FieldAccessException: Field `ManualDeliveryKG:requestedItemTag" is inaccessible from method `CustomN.buildN:ConfigureBuildingTemplate (UnityEngine.GameObject,Tag)" @ BuildingConfigManager.RegisterBuilding; null Exception in RegisterBuilding for type CustomN.buildN from LiquidTile @ BuildingConfigManager.RegisterBuilding
+3441163627	2407	ok	ok	
+3794308891	2408	ok	ok	
+3765105326	2409	ok	ok	
+3771251560	2410	ok	ok	
+3826538392	2413	ok	ok	
+2106218601	2414	ok	ok	
+3749021783	2416	ok	ok	
+3803959510	2417	ok	ok	
+3767757725	2418	colony	-	the player exits (-6) while loading; Assert failed: Cannot send a frame to the sim with zero active regions; Assert failed: NewGameFrame cannot be called with zero activeRegions
+3760687013	2419	ok	colony	MissingMethodException: Method not found: "IntN Unity.Jobs.LowLevel.Unsafe.JobsUtility.get_JobWorkerCount()" @ GCSentinel.Sentinel.RunChecks
+2984787841	2420	ok	ok	
+3794395157	2421	ok	ok	
+3132418101	2422	ok	ok	
+3259381864	2425	ok	ok	
+3774325260	2426	ok	ok	
+3721849154	2428	ok	ok	
+3047352164	2429	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3786286342	2430	menu	-	the player exits (1) while loading; System.NullReferenceException: Object reference not set to an instance of an object @ CustomGameSettings.OnPrefabInit; System.InvalidProgramException: Invalid IL code in 基础倍增.总目录N/植物/Patch_b:Prefix (): IL_Nd: callvirt N @ Db.Initialize
+3779245518	2431	ok	ok	
+3747652766	2433	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+2799868449	2434	ok	ok	
+3763112327	2437	ok	ok	
+2337612362	2438	ok	menu	step start: the player exited (1) before OniMcp started; ours disables it ("Failed to load mod ...disabling"); System.NullReferenceException: Null method for ZEROs @ HarmonyLib.PatchProcessor.Patch; null Exception while loading mod ZEROs at RUN/home/config/unityNd/Klei/Oxygen Not Included/mods/Local/N @ HarmonyLib.PatchProcessor.Patch
+3769709089	2439	ok	ok	
+3717106379	2441	ok	ok	
+3666034876	2442	ok	ok	
+2607108385	2443	ok	ok	
+3455898860	2444	ok	ok	
+3784311959	2445	ok	ok	
+3464348651	2447	ok	ok	
+3118366663	2448	ok	ok	
+3802814827	2449	ok	colony	step start: E2eDriver ui.wait {"path": "Canvas/ConfirmDialog", "cond": "gone", "frames": 120}: timeout: gone not met within 120 frames; ArgumentOutOfRangeException: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter "index") @ PlanScreen.RefreshToolTip; [ANTPL] 建造类别注册异常: System.IO.FileNotFoundException: Could not load file or assembly "System.Drawing.Common, Version=N.N, Culture=neutral, PublicKeyToken=ccNbNffcdNdddN". The system cannot find the file specified @ ArtificialNaturalTiles.BuildCategoryPatch.TryLoadSprite
+3764319223	2451	ok	ok	
+3773126839	2453	ok	ok	
+3625975736	2454	ok	ok	
+3789353358	2455	ok	ok	
+3048357236	2456	ok	ok	
+2799871913	2457	ok	ok	
+3798414576	2458	ok	ok	
+3559166624	2459	ok	ok	
+3794308906	2460	ok	ok	
+3302908405	2461	ok	ok	
+2614119545	2463	colony	-	the player exits (1) while loading; NullReferenceException: Object reference not set to an instance of an object @ BiggerCapacity.BiggerCapacity+WoodLogConfig_CreatePrefab_Patch.Postfix
+3738353497	2466	ok	ok	
+3062610703	2467	ok	ok	
+3617659567	2469	ok	ok	
+3307467464	2470	ok	ok	
+3762529967	2471	ok	ok	
+3239757042	2472	ok	ok	
+3747742433	2473	ok	ok	
+3789310279	2475	ok	ok	
+3638064148	2476	ok	ok	
+3558877754	2477	ok	ok	
+3556895379	2478	ok	ok	
+3529504347	2479	ok	ok	
+3728180259	2480	ok	ok	
+3534269375	2481	ok	ok	
+3745353707	2482	ok	ok	
+3157640934	2483	ok	ok	
+3750293146	2485	ok	ok	
+3628643997	2486	ok	ok	
+2683038637	2487	menu	-	step start: <urlopen error [Errno 111] Connection refused>; System.IO.FileNotFoundException: Could not load file or assembly "ResearchQueue, Version=N.N, Culture=neutral, PublicKeyToken=null" or one of its dependencies @ KMod.DLLLoader.PostLoadDLLs; null Exception while postLoading mod ResearchQueueShiftReverse @ KMod.DLLLoader.PostLoadDLLs
+3528296441	2489	ok	ok	
+3733618814	2490	ok	ok	
+3733215837	2491	ok	ok	
+3763186877	2492	ok	ok	
+3735115168	2493	colony	-	the crash screen opens while the save loads; System.MissingMethodException: Method not found: System.Collections.IEnumerator .Cmps`N.GetEnumerator() @ ClusterGrid.GetPath; ~~~!System.MissingMethodException: Method not found:
+3713328789	2494	ok	ok	
+3813560391	2497	ok	ok	
+3771255252	2498	ok	ok	
+3675711837	2499	ok	ok	
+3819624656	2500	ok	ok	

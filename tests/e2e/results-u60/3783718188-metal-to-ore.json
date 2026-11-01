@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3783718188-metal-to-ore.yaml",
+ "mods": [
+  "3783718188"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the granulator has more recipes than the game's (as many as in the original), one taking refined copper; setup builds one in the dug-out corridor west of the printing pod, and selected its recipe list is dumped",
+ "updated": "2026-11-01",
+ "commit": "203448fd",
+ "mod_dlls": {
+  "3783718188": {
+   "MetalToOre.dll": "72c048623b1193fec6406cd2ad31c686e120642bed83ff1627a6913aec86a8e3"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-011947-7dece9cf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:32:19",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-054534-8fc231c0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:45:34",
+    "lane": 45,
+    "reference_run": "20261101-011947-7dece9cf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-054534-8fc231c0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:49:57",
+    "lane": 45,
+    "reference_run": "20261101-011947-7dece9cf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

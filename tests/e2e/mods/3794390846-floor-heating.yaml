@@ -1,0 +1,34 @@
+# Floor Heating (3794390846), class B.
+#
+# What it does: two powered, rotatable floor tiles (Utilities menu, temperature group,
+# researched with Temperature Modulation): the Floor Heating Tile and an insulated one. Below a
+# set temperature each heats a 3x2 area on its facing side; they count as warming stations for
+# Duplicants, take an automation signal, and show their heat range in the Temperature overlay.
+# How a player reaches it: the research screen, then the build menu (Utilities).
+# What changes: tiles that heat the cells above them.
+#
+# setup researches Temperature Modulation and places a Floor Heating Tile in the corridor west
+# of the printing pod (118,207). It shows in the Utilities menu; it is solid floor, a warming
+# station with an automation port, and is shot in the world.
+from: early-base
+mods: [3794390846]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"TemperatureModulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"FloorHeatingTile\")", method: Build, args: [131770, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {FloorHeatingTile: 1}}
+  - expect_state:
+      "Db.Get().Techs.Get(\"TemperatureModulation\").unlockedItemIDs": [{contains: FloorHeatingTile}, {contains: InsulatedFloorHeatingTile}]
+      "Grid.Element[131770].id": Copper
+      "all:FloorHeating.FloorHeatingController::Length": 1
+      "Assets.GetPrefab(\"FloorHeatingTile\").GetComponent<KPrefabID>.HasTag(\"WarmingStation\")": true
+  - click: {ui: "**/PlanScreen/Toggle:Utilities"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/FloorHeatingTile Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/FloorHeatingTile Group*": {active: true}
+      "**/BuildingGroups/**/Grid/InsulatedFloorHeatingTile Group*": {active: true}
+  - shot: {name: utilities-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}
+  - world_shot: {name: tile, ortho: 4, at: [118, 208]}

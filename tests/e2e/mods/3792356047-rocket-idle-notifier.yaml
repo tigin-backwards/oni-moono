@@ -1,0 +1,18 @@
+# Rocket Idle Notifier by Antisfera (3792356047), class P (Spaced Out rockets).
+#
+# What it does: a postfix on Clustercraft.OnSpawn gives every rocket a RocketIdleNotifier
+# (ISim4000ms): once a rocket has sat in space at its destination for 8 s, not drilling or
+# collecting, it posts a "Rocket awaiting orders" notification naming it, once per arrival.
+# How a player reaches it: nothing to click; a rocket that reaches its destination.
+# What changes: a notification when a rocket idles in space.
+#
+# The rockets-so colony's rockets, on their pads, each carry the notifier; the colony runs a
+# minute.
+from: rockets-so
+mods: [3792356047]
+steps:
+  - expect_state:
+      "all:Clustercraft::Length": {save_as: rockets}
+  - expect_state:
+      "all:ONI_Mod1.Patches+RocketIdleNotifier::Length": ["== rockets", ">= 1"]
+  - run: {seconds: 60}

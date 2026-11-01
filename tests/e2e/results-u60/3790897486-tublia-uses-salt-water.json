@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3790897486-tublia-uses-salt-water.yaml",
+ "mods": [
+  "3790897486"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Tublia's irrigation takes salt water, as many elements as in the original; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "06033b03",
+ "mod_dlls": {
+  "3790897486": {
+   "TubeWormSaltWater.dll": "57df15f7fc854f2757d35b74b3f9104d2dacb2479ba317407c0c9aad7ed79193"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024504-a96eb81a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:55:38",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084022-5ee5a119",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:40:22",
+    "lane": 42,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-084022-5ee5a119",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:40:23",
+    "lane": 43,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

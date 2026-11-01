@@ -1,0 +1,26 @@
+# 液体与气体瓶即时清空 / Instant Bottle Emptying (3810706315), class P.
+#
+# What it does: a bottle of liquid or canister of gas lying on the ground empties at once when
+# its Empty button is clicked: a prefix on Dumpable.ToggleDumping dumps its contents into the
+# world instead of making an errand for a Duplicant.
+# How a player reaches it: a bottle's user menu.
+# What changes: bottles emptied without a Duplicant's walk.
+#
+# setup spawns a 50 kg bottle of water on the floor of the dug-out corridor west of the printing
+# pod. Selected, its user menu's Empty is clicked: the bottle is gone at once, and no dump
+# errand was made.
+from: early-base
+mods: [3810706315]
+setup:
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Water\").substance", method: SpawnResource, args: [[113.5, 206.5, -12], 50, 300, 255, 0]}}
+steps:
+  - run: {seconds: 1}
+  - expect_state:
+      "count:all:Dumpable::[*] if .GetComponent<PrimaryElement>.ElementID == Water": 1
+  - driver: {camera.set: {cell: [113, 207], ortho: 6}}
+  - click_world: {pos: [113.5, 206.2], select: Water}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/EmptyButton", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/EmptyButton"}
+  - run: {seconds: 1}
+  - expect_state:
+      "count:all:Dumpable::[*] if .GetComponent<PrimaryElement>.ElementID == Water": 0

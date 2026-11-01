@@ -1,0 +1,36 @@
+# Freezer Tiles (3794308871), class B.
+#
+# What it does: a walkable floor tile (Food menu, after the Refrigerator, researched with Food
+# Repurposing; refined metal and plastic) that stores 100 kg of food at -20 °C, powered
+# (30 W), so it never spoils, with a food filter and its own Database entry.
+# How a player reaches it: the research screen, then the build menu (Food).
+# What changes: floors that are fridges.
+#
+# setup researches Food Repurposing and places a freezer tile in the corridor west of the
+# printing pod (118,207). It shows in the Food menu and in the Database; it is solid floor,
+# and selected, it holds 100 kg of food.
+from: early-base
+mods: [3794308871]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FoodRepurposing\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"FreezerTile\")", method: Build, args: [131770, Neutral, null, [Steel, Polypropylene], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {FreezerTile: 1}}
+  - expect_state:
+      "Db.Get().Techs.Get(\"FoodRepurposing\").unlockedItemIDs": {contains: FreezerTile}
+      "CodexCache.entries.ContainsKey(\"FREEZERTILE\")": true
+      "Grid.Element[131770].id": Steel
+  - click: {ui: "**/PlanScreen/Toggle:Food"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/FreezerTile Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/FreezerTile Group*": {active: true}
+  - shot: {name: food-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: FreezerTile}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Storage>.capacityKg": 100
+      "selected:GetComponent<Refrigerator>": exists

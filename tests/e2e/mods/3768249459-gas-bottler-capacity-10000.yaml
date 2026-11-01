@@ -1,0 +1,26 @@
+# GasBottlerCapacity10000 (3768249459), classes P, S.
+#
+# What it does: the Canister Filler's (GasBottler) capacity slider goes up to 10000 kg instead
+# of 200 kg: patches on GasBottlerConfig.DoPostConfigureComplete and Bottler.OnSpawn raise its
+# storage, and one on Bottler's MaxCapacity getter raises the slider's limit.
+# How a player reaches it: a built Canister Filler's capacity side screen.
+# What changes: canisters of up to 10 t of gas.
+#
+# setup builds a Canister Filler in the corridor west of the printing pod; selected, its
+# capacity screen reaches 10000 kg (dumped), and 5000 typed in sets it.
+from: early-base
+mods: [3768249459]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"GasBottler\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+require_log: ['\[GasBottlerCapacityMod\] Gas bottler capacity limit set to 10000 kg\.']
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: GasBottler}
+  - ui_wait: {path: "**/DetailsScreen/SideScreen/**/CapacityControlSideScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Bottler>.MaxCapacity": 10000
+  - ui_dump: {name: capacity, root: "**/CapacityControlSideScreen"}
+  - type: {ui: "**/CapacityControlSideScreen/**/InputField", text: "5000", enter: true, clear: true}
+  - expect_state:
+      "selected:GetComponent<Bottler>.UserMaxCapacity": 5000

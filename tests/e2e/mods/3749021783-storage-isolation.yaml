@@ -1,0 +1,15 @@
+# 储物隔绝 (Storage Isolation) (3749021783), class P.
+#
+# What it does: everything stored in any building is sealed from the world: prefixes on
+# Storage.SetDefaultStoredItemModifiers and Storage.OnSpawn give every storage the modifiers
+# Hide, Seal, Insulate and Preserve, whatever the building asked for.
+# How a player reaches it: nothing to click; any storage.
+# What changes: stored items neither exchange heat nor give off gas or germs.
+#
+# The ration box east of the outhouse has the mod's four modifiers; the colony runs a minute.
+from: early-base
+mods: [3749021783]
+steps:
+  - expect_state:
+      "all:RationBox::[0].GetComponent<Storage>.defaultStoredItemModifers.Count": 4   # the game gives a ration box 1
+  - run: {seconds: 60}

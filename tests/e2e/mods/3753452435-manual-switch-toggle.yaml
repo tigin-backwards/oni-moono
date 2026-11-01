@@ -1,0 +1,24 @@
+# ManualSwitchToggle (3753452435), classes P, U.
+#
+# What it does: Signal Switches and Power Switches need a Duplicant again: a SwitchToggleLink
+# on each (DoPostConfigureComplete postfixes) turns a toggle into an errand a Duplicant walks to
+# and works, instead of switching at once.
+# How a player reaches it: a switch's toggle button.
+# What changes: switches toggled by hand.
+#
+# setup builds a Power Switch in the corridor west of the printing pod; both switches carry the
+# link, and the built switch's user menu is dumped.
+from: early-base
+mods: [3753452435]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Switch\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+require_log: ['\[ManualSwitchToggle\] Cargado']
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Switch\").BuildingComplete.GetComponent<ManualSwitchToggle.SwitchToggleLink>": exists
+      "Assets.GetBuildingDef(\"LogicSwitch\").BuildingComplete.GetComponent<ManualSwitchToggle.SwitchToggleLink>": exists
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: Switch}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: user-menu, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}

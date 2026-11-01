@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3788121619-submersible-everything.yaml",
+ "mods": [
+  "3788121619"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Manual Generator under 2 t of water a cell in the pit has no Floodable; no building definition is floodable",
+ "updated": "2026-11-01",
+ "commit": "aa54c6a6",
+ "mod_dlls": {
+  "3788121619": {
+   "SubmersibleEverything.dll": "25ce8142e35e71fa94096866839f38356c86a86287c4d2f1fb1464b6ac65333c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-070700-31a00fb4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:18:22",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-093202-c394c199",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:32:02",
+    "lane": 35,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-093202-c394c199",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:38:24",
+    "lane": 35,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

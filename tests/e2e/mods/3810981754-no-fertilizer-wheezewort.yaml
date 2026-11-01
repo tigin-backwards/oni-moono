@@ -1,0 +1,25 @@
+# No Fertilizer Wheezewort (3810981754), class P.
+#
+# What it does: a planted Wheezewort needs no phosphorite: a postfix on ColdBreatherConfig's
+# CreatePrefab empties its fertilization monitor's consumed elements, and a prefix on the
+# monitor's UpdateFertilization marks it fertilized.
+# How a player reaches it: Wheezeworts planted in farm tiles or pots.
+# What changes: Wheezeworts that cool without fertilizer.
+#
+# The Wheezewort's prefab consumes nothing; setup builds a Flower Pot in the dug-out corridor
+# west of the printing pod and plants a Wheezewort in it (as a Duplicant's planting does).
+# After 300 s it grows on, with no fertilizer delivered, as in the original.
+from: early-base
+mods: [3810981754]
+require_log: ['\[NoFertilizerWheezewort\] Fertilizer consumption removed']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"FlowerVase\")", method: Build, args: [131129, Neutral, null, [SandStone], 300.0, DEFAULT_FACADE]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131129, 0, 0, ColdBreatherSeed, Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "all:PlantablePlot::[0]", method: ForceDeposit, args: [{"$": "last:"}]}}
+steps:
+  - run: {seconds: 300}
+  - expect_state:
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == ColdBreather": 1
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == ColdBreather and .HasTag(\"Wilting\") == false": "== original"
+  - expect: {duplicants: 3}

@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3063884795-biobot-and-rover-changed.yaml",
+ "mods": [
+  "3063884795"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns a Rover in the dug-out corridor west of the printing pod. Its battery and athletics are compared with the original's, and it and the colony run on",
+ "updated": "2026-11-01",
+ "commit": "14adf460",
+ "mod_dlls": {
+  "3063884795": {
+   "FsdScout30.dll": "8a85e01fc2af04fbc475009c06a24dba5f94f5651478ae2318c1425c5254b649",
+   "PLib.dll": "432e28fbecb2d422a46eafe489a446f946ec828acfb2b721f7fe6df19d84cd7c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034335-ff601a44",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:55:46",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-040955-f27f7539",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:09:55",
+    "lane": 45,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-040955-f27f7539",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:14:23",
+    "lane": 45,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

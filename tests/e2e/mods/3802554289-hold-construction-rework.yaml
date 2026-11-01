@@ -1,0 +1,31 @@
+# Hold Construction Rework (3802554289), classes U (user menu), T.
+#
+# What it does: a blueprint's user menu gets Hold Construction: held, its build errand is
+# cancelled (materials are still delivered) and it shows the Construction Held status until
+# Finish Construction resumes it. A building's deconstruct order can likewise hold its
+# materials on site (Hold Materials / Drop Materials), and a Hold Construction tool in the
+# tool menu (and the priority screen's extra toggle) applies either to an area.
+# How a player reaches it: a blueprint's or building's user menu; the tool menu.
+# What changes: blueprints that wait to be finished.
+#
+# A sandstone tile blueprint is placed in the corridor west of the printing pod and held from
+# its user menu: it is not built in 60 s of play; Finish Construction resumes it and it is
+# built.
+from: early-base
+mods: [3802554289]
+steps:
+  - build: {prefab: Tile, cells: [[114, 207]], material: SandStone}
+  - expect: {blueprints: {Tile: 1}}
+  - run: {seconds: 1}
+  - driver: {camera.set: {cell: [114, 208], ortho: 8}}
+  - click_world: {cell: [114, 207], select: TileUnderConstruction}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Hold ConstructionButton", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/Hold ConstructionButton"}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Finish ConstructionButton", cond: stable}
+  - run: {seconds: 60}
+  - expect: {blueprints: {Tile: 1}}
+  - click_world: {cell: [114, 207], select: TileUnderConstruction}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Finish ConstructionButton", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/Finish ConstructionButton"}
+  - run: {seconds: 600, until: {blueprints: {Tile: 0}}}
+  - expect: {blueprints: {Tile: 0}}

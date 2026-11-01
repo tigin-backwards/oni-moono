@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3781498375-lag-fix.yaml",
+ "mods": [
+  "3781498375"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a floor cell west of the printing pod is dug and its debris carried off over 300 s of errands: the Duplicants still find and fetch items (the dig done, the debris stored or used), as in the original",
+ "updated": "2026-11-01",
+ "commit": "296beea1",
+ "mod_dlls": {
+  "3781498375": {
+   "ONILagFix.dll": "4ac224d8c9ead86dabb1ec489e987456dc5aeba7bd117d19ab51b1da7ba5c589",
+   "PLib.dll": "d17686d90670c40bd9ae84ce9cb9964985657ad6d79f84eb1243f901cb39b04d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014441-b56fec9b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:55:37",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-050518-073bb1b9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:05:18",
+    "lane": 44,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-050518-073bb1b9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:05:19",
+    "lane": 45,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

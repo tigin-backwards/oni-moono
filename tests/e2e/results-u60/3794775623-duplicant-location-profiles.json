@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3794775623-duplicant-location-profiles.yaml",
+ "mods": [
+  "3794775623"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the priorities screen opens with the mod's indicators (its header dumped), then the consumables screen; both close, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "ac844983",
+ "mod_dlls": {
+  "3794775623": {
+   "DuplicantLocationProfiles.dll": "50926370cb64fd569bea51436ad8abd41fa2574317b8527695e30283920d2c70",
+   "PLib.dll": "3dc9bc06c6b54660b833d314192e6b34c578754facc6aff3c7e803b5cdc6616e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014441-b56fec9b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:00:16",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-085945-086eae23",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:59:45",
+    "lane": 40,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "priorities": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-085945-086eae23",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:59:46",
+    "lane": 41,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "priorities": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

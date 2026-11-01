@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3763198847-no-cooking-station-warning.yaml",
+ "mods": [
+  "3763198847"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Microbe Musher in the dug-out corridor west of the printing pod, with nothing to cook. Selected, it has the mod's component and its status shows no missing ingredients (its status list dumped)",
+ "updated": "2026-11-01",
+ "commit": "f07a97c4",
+ "mod_dlls": {
+  "3763198847": {
+   "NoCookStatus.dll": "bf090e11241ded73b53e8d466a84f37cbc9a239906bf54e1fb599df79944b9bb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-011947-7dece9cf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:26:57",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-034247-4df0482d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:42:47",
+    "lane": 40,
+    "reference_run": "20261101-011947-7dece9cf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-034247-4df0482d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:42:48",
+    "lane": 45,
+    "reference_run": "20261101-011947-7dece9cf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

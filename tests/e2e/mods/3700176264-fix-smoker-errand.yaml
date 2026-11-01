@@ -1,0 +1,18 @@
+# [OBSOLETE] Fix Smoker Errand (3700176264), class P.
+#
+# What it does: the Smoker's peat delivery and its fabricator's ingredient fetches use the
+# Cook Fetch errand type instead of the operating one (a SmokerConfig.ConfigureBuildingTemplate
+# postfix on its ManualDeliveryKG, a ComplexFabricator.UpdateFetches prefix on its
+# fetchChoreTypeIdHash), so cooks supply it.
+# How a player reaches it: a Smoker's errands.
+# What changes: the Smoker's supply errands go to cooks.
+#
+# The Smoker's peat delivery is a Cook Fetch errand.
+from: early-base
+mods: [3700176264]
+steps:
+  - expect_state:
+      "Db.Get().ChoreTypes.CookFetch.IdHash.HashValue": {save_as: cook}
+  - expect_state:
+      "sum:Assets.GetBuildingDef(\"Smoker\").BuildingComplete.GetComponents<ManualDeliveryKG>[*].choreTypeIDHash.HashValue if .RequestedItemTag.Name == Peat": "== cook"
+  - run: {seconds: 5}

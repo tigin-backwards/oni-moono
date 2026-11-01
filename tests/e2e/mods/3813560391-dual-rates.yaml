@@ -1,0 +1,21 @@
+# Dual Rates (3813560391), class V (text).
+#
+# What it does: every rate the game prints as mass per second or per cycle shows both: a
+# prefix on GameUtil.GetFormattedMass formats a per-second rate as "X/s (Y/cycle)" and a
+# per-cycle one the other way round, for buildings, critters, plants and Duplicants.
+# How a player reaches it: any rate in a details screen, tooltip or codex.
+# What changes: rates read in both units.
+#
+# The game's formatter, asked for 1 kg per second, answers with both rates; the outhouse's
+# details screen is shot as in the original.
+from: early-base
+mods: [3813560391]
+require_log: ['\[Dual Rates\] Mod loaded successfully']
+steps:
+  - expect_state:
+      "GameUtil.GetFormattedMass(1, 2, 1, true, \"0.#\")": {contains: "("}   # the game alone: 1 kg/s
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [116, 208], ortho: 8}}
+  - click_world: {cell: [116, 207], select: Outhouse}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}

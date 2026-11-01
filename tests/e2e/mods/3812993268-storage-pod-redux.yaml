@@ -1,0 +1,31 @@
+# Storage Pod Redux (3812993268), class B (PLib options).
+#
+# What it does: two 1x1 storage buildings of refined metal, buildable anywhere, rockets
+# included: the Storage Pod (StoragePodConfig, 5 t of solids, no power, in the Base menu after
+# the Storage Bin, researched with Refined Objects) and the Cool Pod (CoolPodConfig, a powered
+# 50 kg fridge, in the Food menu after the Refrigerator, researched with Agriculture); options
+# set capacities, whether the pod takes food and the Cool Pod's mode. A rewrite of Skyrunner's.
+# How a player reaches it: the build menu (Base, Food), after the research.
+# What changes: small stores that fit anywhere.
+#
+# setup grants Refined Objects. Both pods hold what their options say, and the Storage Pod is
+# listed in the Base menu, its card opened from there (dumped).
+from: early-base
+mods: [3812993268]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"RefinedObjects\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"RefinedObjects\").unlockedItemIDs": {contains: StoragePodConfig}
+      "Assets.GetBuildingDef(\"StoragePodConfig\")": exists
+      "Assets.GetBuildingDef(\"StoragePodConfig\").BuildingComplete.GetComponent<Storage>.capacityKg": 5000
+      "Assets.GetBuildingDef(\"CoolPodConfig\").BuildingComplete.GetComponent<Storage>.capacityKg": 50
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/StoragePodConfig Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/StoragePodConfig Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}

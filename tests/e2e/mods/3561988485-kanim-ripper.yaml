@@ -1,0 +1,15 @@
+# KAnim Ripper (3561988485), classes K, U (an IMGUI tool).
+#
+# What it does: a modder's tool that exports the game's kanims (their textures and build and
+# anim files) as they load (patches on KBatchedAnimController.LoadAnims and OnAwake): Ctrl+O opens
+# its options, Ctrl+F9 runs an export.
+# How a player reaches it: Ctrl+O and Ctrl+F9 in a colony.
+# What changes: nothing in the game; files written for modders.
+#
+# The mod attaches its behaviour at the colony's start (its log line); the colony runs on.
+from: early-base
+mods: [3561988485]
+require_log: ['\[KanimRipper\] Loaded', '\[KanimRipper\] Behaviour attached']
+steps:
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

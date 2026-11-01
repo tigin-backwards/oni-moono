@@ -1,0 +1,37 @@
+# Ceiling Sculptures (3810810633), class B.
+#
+# What it does: four sculptures hung from a ceiling (Furniture menu, after the Sculpting Block,
+# researched with Interior Decor): Stone Pendant (raw minerals, 1x2), Ice, Rock and Glass
+# Pendants (2 wide); each is built unfinished and an artist carves it into one of its variants
+# (forty artwork shapes, registered as artable stages: rough, fine, masterpiece), for decor.
+# How a player reaches it: the research screen, then the build menu (Furniture).
+# What changes: decor that hangs from ceilings.
+#
+# setup researches Interior Decor and hangs a Stone Pendant from the ceiling above the
+# corridor west of the printing pod (119,207-208, under the rock at 119,209). It shows in the
+# Furniture menu; selected, it waits for an artist; the log counts its recipes and stages.
+from: early-base
+mods: [3810810633]
+require_log: ['\[HangingDecor\] Registered 4 Furniture recipes', '\[HangingDecor\] Registered \d+ sculpture stages and 4 unfinished stages']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"InteriorDecor\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SamHangingPendant\")", method: Build, args: [131771, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {SamHangingPendant: 1}}
+  - expect_state:
+      "Db.Get().Techs.Get(\"InteriorDecor\").unlockedItemIDs": [{contains: SamHangingPendant}, {contains: SamHangingGlassyPendant}]
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/SamHangingPendant Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/SamHangingPendant Group*": {active: true}
+      "**/BuildingGroups/**/Grid/SamHangingIcePendant Group*": {active: true}
+  - shot: {name: furniture-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [119, 208], ortho: 6}}
+  - click_world: {cell: [119, 208], select: SamHangingPendant}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Artable>.CurrentStage": Default   # not yet carved
+  - world_shot: {name: pendant, ortho: 4, at: [119, 208]}

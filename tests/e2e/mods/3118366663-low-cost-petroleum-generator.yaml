@@ -1,0 +1,17 @@
+# 低耗能石油电机 (Low-cost petroleum generator) (3118366663), class P.
+#
+# What it does: the Petroleum Generator's definition gets a 100 kW rating, no exhaust or self
+# heat and no overheating (a postfix on PetroleumGeneratorConfig.CreateBuildingDef); a second
+# patch class meant to change its fuel formula has no Harmony attribute and does nothing.
+# How a player reaches it: building a Petroleum Generator.
+# What changes: a cool generator with a huge rating.
+#
+# The generator's definition carries the mod's figures.
+from: early-base
+mods: [3118366663]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"PetroleumGenerator\").GeneratorWattageRating": 100000
+      "Assets.GetBuildingDef(\"PetroleumGenerator\").SelfHeatKilowattsWhenActive": 0
+      "Assets.GetBuildingDef(\"PetroleumGenerator\").Overheatable": false
+  - run: {seconds: 30}

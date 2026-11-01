@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3786111555-suit-station-boundary-coordinator.yaml",
+ "mods": [
+  "3786111555"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds an Atmo Suit Checkpoint in the dug-out corridor west of the printing pod; the Duplicants go about their errands for 120 s, and are as many as in the original",
+ "updated": "2026-11-01",
+ "commit": "42014ba3",
+ "mod_dlls": {
+  "3786111555": {
+   "SuitStationBoundaryCoordinator.dll": "2265a515cecfac3315795c7c764001dbb8fb467ed05b69333c65982991ec7cfa"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-020114-68ffb98c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:25:35",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-073723-cdd2e284",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:37:23",
+    "lane": 44,
+    "reference_run": "20261101-020114-68ffb98c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-073723-cdd2e284",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:37:24",
+    "lane": 45,
+    "reference_run": "20261101-020114-68ffb98c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

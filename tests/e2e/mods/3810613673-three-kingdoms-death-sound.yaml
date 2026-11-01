@@ -1,0 +1,20 @@
+# 殖民者死亡自动播放新三国 / Three Kingdoms death sound (3810613673), class P (sound).
+#
+# What it does: subscribes to the game's DuplicantDied event and, when a Duplicant dies, plays
+# one of its two clips (Death_1.ogg, Death_2.ogg, from its folder) through FMOD's core system,
+# reached by reflection on FMODUnity's RuntimeManager, at the game's volume; a clip already
+# playing is not interrupted.
+# How a player reaches it: a Duplicant dying.
+# What changes: a clip from the 2010 Three Kingdoms series on each death.
+#
+# setup wounds the first Duplicant beyond recovery; it bleeds out in about 120 s, and the mod
+# plays a clip, as its log says.
+from: early-base
+mods: [3810613673]
+setup:
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[0].GetComponent<Health>", method: Damage, args: [1000]}}
+require_log: ['\[3K/Death\] ★ 检测到复制人死亡', '\[3K/Death\] ▶ 正在播放 Death_[12]\.ogg']
+steps:
+  - run: {seconds: 600, until: {duplicants: 2}}
+  - expect: {duplicants: 2}
+  - run: {seconds: 2}

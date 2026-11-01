@@ -1,0 +1,19 @@
+# 铁锈配方 (Rust recipe) (3460253861), class P.
+#
+# What it does: the Metal Refinery gets a recipe turning 100 kg of rust into 90 kg of iron and
+# 10 kg of oxygen in 40 s (a postfix on MetalRefineryConfig.ConfigureBuildingTemplate; its
+# static OnLoad applies the patches).
+# How a player reaches it: a Metal Refinery's recipe list.
+# What changes: rust can be refined into iron.
+#
+# The recipe exists for the Metal Refinery, with the mod's ingredients, results and time.
+from: early-base
+mods: [3460253861]
+steps:
+  - expect_state:
+      "count:ComplexRecipeManager.Get().recipes[*] if .id.StartsWith(\"MetalRefinery_I_Rust\") == true": 1
+  - expect_state:
+      "sum:ComplexRecipeManager.Get().recipes[*].time if .id.StartsWith(\"MetalRefinery_I_Rust\") == true": 40
+      "sum:ComplexRecipeManager.Get().recipes[*].ingredients[0].amount if .id.StartsWith(\"MetalRefinery_I_Rust\") == true": 100
+      "sum:ComplexRecipeManager.Get().recipes[*].results[0].amount if .id.StartsWith(\"MetalRefinery_I_Rust\") == true": 90
+  - run: {seconds: 30}

@@ -1,0 +1,20 @@
+# 小行星带 0200（星舰修复版）/ Asteroid Belt 0200 (3792181624), class B, worldgen (PLib options).
+#
+# What it does: an asteroid-belt cluster for new games (Cluster.BeginGeneration and its game
+# files), a huge habitat module (HabitatModuleHuge) and a low-tech nosecone (LowTechNosecone)
+# unlocked with the small habitat's tech, rocket interiors placed for them
+# (ClusterManager.CreateRocketInteriorWorld, WorldContainer.PlaceInteriorTemplate), and a PLib
+# menu on the main menu.
+# How a player reaches it: a new game; the Rocketry menu.
+# What changes: a belt start and bigger rockets.
+#
+# Both rocket modules' definitions load, unlocked with the small habitat, and the Terra colony
+# plays for 30 s; no new game is made here.
+from: early-base
+mods: [3792181624]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"HabitatModuleHuge\")": exists
+      "Assets.GetBuildingDef(\"LowTechNosecone\")": exists
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,41 @@
+# SubmersibleEverything (3788121619), class P.
+#
+# What it does: every building works under liquid: a prefix on
+# BuildingLoader.CreateBuildingComplete clears each BuildingDef's Floodable (so no Floodable
+# component is added), a postfix on RegisterBuilding removes any left, the Critter Condo's
+# operational check stops asking for one, and gas-emitting converters and generators release
+# their gas as bubbles under liquid. Its config (mods/config/SubmersibleEverything/config.json)
+# turns it off or blacklists buildings.
+# How a player reaches it: nothing to click; any building standing in liquid.
+# What changes: no "Flooded" status: buildings keep working underwater.
+#
+# The mod logs how many building definitions it patched. setup places a Manual Generator in
+# the pit of the dug-out room west of the printing pod (110-111, 206-207) and fills the pit's
+# ten cells with 2 t of water each: the generator stands under water and has no Floodable to
+# flood it.
+from: early-base
+mods: [3788121619]
+require_log: ['\[SubmersibleEverything\] Enabled\. \d+ building definitions patched']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ManualGenerator\")", method: Build, args: [131126, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131122, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131123, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131124, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131125, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131128, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131129, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131130, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131131, Water, null, 2000, 300, 255, 0]}}
+steps:
+  - run: {seconds: 10}
+  - expect: {buildings: {ManualGenerator: 2}}
+  - expect_state:
+      "Assets.GetBuildingDef(\"Outhouse\").Floodable": false
+      "Assets.GetBuildingDef(\"ManualGenerator\").Floodable": false
+      "Assets.GetPrefab(\"ManualGenerator\").GetComponent<Floodable>": missing
+      "Grid.Element[131762].id": Water
+      "Grid.Element[131126].id": Water
+  # Neither generator, the one under water included, has the Floodable that would flood it.
+  - expect_state:
+      "all:ManualGenerator::[0].GetComponent<Floodable>": missing
+      "all:ManualGenerator::[1].GetComponent<Floodable>": missing

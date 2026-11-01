@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2989821295-no-meteor-pause.yaml",
+ "mods": [
+  "2989821295"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "early-base is a current save, so the upgrade's pause never comes into play: the mod loads and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "292b8bbb",
+ "mod_dlls": {
+  "2989821295": {
+   "NoMeteorPause.dll": "2b998afc19e90f720a829420e7af1375073ab753e0a4bedb30d677a6089dc599"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-011947-7dece9cf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:27:48",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-014952-084c4ca4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:49:52",
+    "lane": 40,
+    "reference_run": "20261101-011947-7dece9cf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-014952-084c4ca4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:50:53",
+    "lane": 45,
+    "reference_run": "20261101-011947-7dece9cf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

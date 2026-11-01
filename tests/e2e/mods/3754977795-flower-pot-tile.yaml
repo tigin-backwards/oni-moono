@@ -1,0 +1,43 @@
+# Flower Pot Tile (3754977795), class B.
+#
+# What it does: adds the Flower Pot Tile (FlowerPotTile) to the Furniture menu, researched with
+# Interior Decor: a walkable 1x1 foundation tile of raw mineral that insulates its cell (an
+# Insulator, conductivity 0.01) and holds one decor plant growing from the floor (a
+# PlantablePlot taking decor seeds, the plant on the cell above).
+# How a player reaches it: the build menu (Furniture), then the tile's planting side screen.
+# What changes: a floor tile with a decor plant.
+#
+# setup grants Interior Decor and spawns sandstone and a Buddy Bud seed. The tile fills one
+# cell of the pit in the floor of the dug-out room west of the printing pod; once built its cell
+# insulates, and its planting side screen lists the Buddy Bud.
+from: early-base
+mods: [3754977795]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"InteriorDecor\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[113.5, 207.5, -12], 400, 300, 255, 0]}}
+  - driver: {setup.call: {target: "Scenario.SpawnPrefab(131757, 0, 0, \"BulbPlantSeed\", \"Ore\")", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"InteriorDecor\").unlockedItemIDs": {contains: FlowerPotTile}
+      "Assets.GetBuildingDef(\"FlowerPotTile\").ThermalConductivity": 0.01
+      "Assets.GetBuildingDef(\"FlowerPotTile\").BuildingComplete.GetComponent<PlantablePlot>.possibleDepositObjectTags": {contains: DecorSeed}
+      "cells:108,206..108,206::Grid.Insulation.get_Item({cell})": 255
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/FlowerPotTile Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/FlowerPotTile Group*": {active: true}
+  - key: {code: Escape}
+  - build: {prefab: FlowerPotTile, at: [108, 206], material: SandStone}
+  - expect: {blueprints: {FlowerPotTile: 1}}
+  - run: {seconds: 900, until: {buildings: {FlowerPotTile: 1}, pending_construction: 0}}
+  - expect_state: {"cells:108,206..108,206::Grid.Insulation.get_Item({cell})": ["< 255", "== original"]}
+  - driver: {camera.set: {cell: [108, 207], ortho: 8}}
+  - click_world: {cell: [108, 206], select: FlowerPotTile}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/Config Tab - body instance/PlanterSideScreen", cond: stable}
+  - expect_ui:
+      "**/DetailsScreen/TitleBar/Border/LabelGroup/Label": {text: "~Flower Pot Tile"}
+      "**/PlanterSideScreen/**/GridLayout/Toggle/RequestToggle/Label": {any_text: "~Buddy Bud"}
+  - ui_dump: {name: planter, root: "**/Config Tab - body instance/PlanterSideScreen/Contents/ScrollRow"}

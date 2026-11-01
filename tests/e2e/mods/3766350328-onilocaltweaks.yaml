@@ -1,0 +1,21 @@
+# OniLocalTweaks (3766350328), classes P, O (PLib options, OniLocalTweaks.json).
+#
+# What it does: a set of ×10 cheats, each an option (all off by default): batteries ×10 and
+# lossless, generators ×10, the kiln, oven, oxygen diffuser, polymer press, water sieve and rock
+# granulator ×10 or cheaper, refrigerators, the massage table, and digs that keep the cell's whole
+# mass. Postfixes on each building's config and on ComplexRecipeManager.PostProcess.
+# How a player reaches it: the mod's options (Mods screen).
+# What changes: whatever is switched on.
+#
+# Options turn on the batteries' tweak. The Battery's capacity is ten times the game's (as in the
+# original), the Smart Battery's too; the colony runs on.
+from: early-base
+mods: [3766350328]
+options:
+  "3766350328": {$file: OniLocalTweaks.json, Battery: true}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Battery\").BuildingComplete.GetComponent<Battery>.capacity": ["== 100000", "== original"]
+      "Assets.GetBuildingDef(\"BatterySmart\").BuildingComplete.GetComponent<Battery>.capacity": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

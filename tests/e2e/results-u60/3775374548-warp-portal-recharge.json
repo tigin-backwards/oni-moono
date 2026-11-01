@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3775374548-warp-portal-recharge.yaml",
+ "mods": [
+  "3775374548"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod's transpiler targets and its 3000 -> 600 replacement are logged as in the original; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "90d0cd27",
+ "mod_dlls": {
+  "3775374548": {
+   "WarpPortalRecharge5x.dll": "265eb4b1855bcbcbc0a8916d4814c59b0cb9ccab8c20f796ea177929654e426b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-223506-a7565501",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:50:20",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-013533-225407e8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:35:33",
+    "lane": 35,
+    "reference_run": "20261031-223506-a7565501",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-013533-225407e8",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:49:46",
+    "lane": 35,
+    "reference_run": "20261031-223506-a7565501",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

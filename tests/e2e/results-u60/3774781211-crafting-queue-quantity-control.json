@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3774781211-crafting-queue-quantity-control.yaml",
+ "mods": [
+  "3774781211"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Rock Granulator in the dug-out corridor west of the printing pod. Selected, its first recipe's queue screen opens; Shift held, the wheel turned up over its order count raises the recipe's queued count, as far as in the original",
+ "updated": "2026-11-01",
+ "commit": "d9a9e743",
+ "mod_dlls": {
+  "3774781211": {
+   "CraftingQueueQuantityControl.dll": "e092c0dcae2cb9e9e4d0a96c3af9d85631dcc9e1a63460134ef162a7c6fef6db"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-090056-9edc52bc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:00:57",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091020-2d8d8b2c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:10:20",
+    "lane": 44,
+    "reference_run": "20261101-090056-9edc52bc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-091020-2d8d8b2c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:10:21",
+    "lane": 45,
+    "reference_run": "20261101-090056-9edc52bc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,17 @@
+# superMicrobeMusher (3743964594), class P.
+#
+# What it does: adds many recipes to the Microbe Musher (a postfix on
+# ComplexRecipeManager.PostProcess registers them): safe craftable items, each using a tiny
+# amount of water, and logs how many.
+# How a player reaches it: a Microbe Musher's recipe list.
+# What changes: the Microbe Musher makes many more things.
+#
+# The Microbe Musher has as many recipes as in the original, more than the game's, and the
+# log counts them.
+from: early-base
+mods: [3743964594]
+require_log: ['\[superMicrobeMusher\] Loaded', '\[superMicrobeMusher\] Registered']
+steps:
+  - expect_state:
+      "count:ComplexRecipeManager.Get().recipes[*] if .id.StartsWith(\"MicrobeMusher_\") == true": ["> 10", "== original"]
+  - run: {seconds: 30}

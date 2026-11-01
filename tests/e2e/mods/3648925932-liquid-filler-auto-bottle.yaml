@@ -1,0 +1,23 @@
+# Liquid Filler Auto Bottle (3648925932), classes P, S (user menu).
+#
+# What it does: a Bottle Filler (LiquidBottler) gets a user menu toggle, "Disallow Auto Bottle" /
+# "Allow Auto Bottle" (on by default): whether Duplicants may carry its bottles to Bottle
+# Emptiers on their own (patches on the Bottler, its states and Storage.Store; settings saved by
+# a LiquidFillerStationSettingsManager).
+# How a player reaches it: a Bottle Filler's user menu.
+# What changes: filler bottles kept for the player.
+#
+# setup builds a Bottle Filler in the dug-out corridor west of the printing pod. Selected, its
+# user menu offers Disallow Auto Bottle; clicked, it offers Allow Auto Bottle.
+from: early-base
+mods: [3648925932]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LiquidBottler\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: LiquidBottler}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Disallow Auto BottleButton", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/Disallow Auto BottleButton"}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Allow Auto BottleButton", cond: stable}
+  - ui_dump: {name: buttons, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}

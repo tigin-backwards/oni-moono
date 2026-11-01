@@ -1,0 +1,26 @@
+# 全能机器人 / All-Purpose Robot (3744937394), classes B, M.
+#
+# What it does: adds the Robot assembler (RobotAssembler, 2x2, raw metal, in the Base menu, no
+# research). Once built, it spawns one Duplicant next to it, a "robot" named Robot-NAME and
+# marked with a RobotMarker: its amounts never change (an AmountInstance.GetDelta prefix: no
+# hunger, stress or other deltas), it does not breathe (OxygenBreather.Sim200ms) and it cannot
+# fall sick (Sicknesses.Infect).
+# How a player reaches it: the build menu (Base).
+# What changes: extra workers that need nothing.
+#
+# setup spawns copper ore. The assembler is ordered in the corridor west of the printing pod;
+# once built, a fourth Duplicant stands there, named Robot-*.
+from: early-base
+mods: [3744937394]
+setup:
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Cuprite\").substance", method: SpawnResource, args: [[111.5, 207.5, -12], 600, 300, 255, 0]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"RobotAssembler\").BuildingComplete.GetComponent<AllPurposeRobot.Buildings.RobotSpawnOnBuild>": exists
+  - build: {prefab: RobotAssembler, at: [114, 206]}
+  - expect: {blueprints: {RobotAssembler: 1}}
+  - run: {seconds: 1500, until: {buildings: {RobotAssembler: 1}, pending_construction: 0}}
+  - run: {seconds: 2}
+  - expect: {duplicants: 4}
+  - expect_state:
+      "count:Components.LiveMinionIdentities.Items[*] if .GetProperName().StartsWith(\"Robot-\") == true": 1

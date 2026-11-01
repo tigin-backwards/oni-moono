@@ -1,0 +1,12 @@
+# 测试test mod 不要订阅 Dont subscribe (3375426994), class P (PLib options).
+#
+# What it does: a test mod with a settings class and a few patches.
+# How a player reaches it: nothing to reach.
+# What changes: nothing meant for players.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3375426994]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

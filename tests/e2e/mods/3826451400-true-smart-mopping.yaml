@@ -1,0 +1,24 @@
+# TRUE Smart Mopping (3826451400), classes T, M, V.
+#
+# What it does: mopping tweaks. The mop tool becomes a smart one (SmartMopTool): an order on a
+# puddle marks where a Duplicant stands to mop it and covers the whole puddle; an
+# AutoMopMonitor on each Duplicant (a MinionIdentity.OnSpawn patch) mops puddles nearby by
+# itself, shown in its own overlay mode; its orders are saved with the colony.
+# How a player reaches it: the Mop tool (M); the auto-mop overlay.
+# What changes: puddles mopped without micromanagement.
+#
+# setup pours 20 kg of water on the corridor floor west of the printing pod; the Mop tool's
+# click on it places the mod's order, as its log says; the colony plays on for 120 s.
+from: early-base
+mods: [3826451400]
+setup:
+  - driver: {setup.call: {type: SimMessages, method: ReplaceElement, args: [131128, Water, {"$": "CellEventLogger.Instance.DebugTool"}, 20, 300]}}
+require_log: ['\[TrueSmartMopping\] PlaceOrder click=']
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - tool: {key: M}
+  - click_world: {cell: [112, 206]}
+  - key: {code: Escape}
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}

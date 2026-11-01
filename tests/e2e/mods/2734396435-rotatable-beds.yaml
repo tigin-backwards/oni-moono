@@ -1,0 +1,16 @@
+# Rotatable Beds (2734396435), class B.
+#
+# What it does: the Cot (BedConfig) and the Comfy Bed (LuxuryBedConfig) can be rotated:
+# postfixes on their CreateBuildingDef set PermittedRotations to 2, R360.
+# How a player reaches it: placing a Cot or Comfy Bed (the rotate key turns it).
+# What changes: beds turn in four directions.
+#
+# Both beds' definitions allow R360; the colony runs a minute.
+from: early-base
+mods: [2734396435]
+require_log: ['Roatable Beds: Loaded']
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Bed\").PermittedRotations": R360
+      "Assets.GetBuildingDef(\"LuxuryBed\").PermittedRotations": R360
+  - run: {seconds: 60}

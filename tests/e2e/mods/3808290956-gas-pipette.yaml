@@ -1,0 +1,34 @@
+# 气体滴管 (Gas Pipette) (3808290956), classes T, S, O.
+#
+# What it does: a Gas Pipette tool in the toolbar (PlayerController and ToolMenu patches, a
+# PAction for a hotkey): pressing on a gas cell takes up to its capacity of that gas
+# (SimMessages.ConsumeMass), releasing over an open cell puts it there (pushing the gas there
+# aside). Selecting the tool opens its capacity dialog (a PLib PDialog: a grams field with a
+# g/mg unit toggle, and a slider from 1 mg to 20 kg); its value is the mod's PLib option
+# (Capacity, grams) and is saved when it changes.
+# How a player reaches it: the toolbar's Gas Pipette tool; its dialog; a press and release.
+# What changes: small amounts of gas moved by hand.
+#
+# The spec sets the capacity to 500 g. The tool is chosen from the toolbar: its dialog opens
+# showing 500, and 1000 typed into its field becomes the capacity; then a press on the gas
+# above the corridor west of the printing pod and a release four cells west.
+from: early-base
+mods: [3808290956]
+options:
+  GasPipettePlus: {Capacity: 500, Version: 1}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "type:GasPipettePlus.Integration::Settings.Capacity": 500
+  - driver: {camera.set: {cell: [116, 208], ortho: 9}}
+  - tool: {toolbar: Gas Pipette}
+  - expect_state: {"PlayerController.Instance.ActiveTool.name": GasPipettePlusTool}
+  - ui_wait: {path: "**/GasPipettePlusCapacity", cond: stable}
+  - expect_ui:
+      "**/GasPipettePlusCapacity/**/CapacityField": {active: true}
+  - ui_dump: {name: dialog, root: "**/GasPipettePlusCapacity"}
+  - shot: {name: dialog, crop: "**/GasPipettePlusCapacity", threshold: 0.04}
+  - type: {ui: "**/GasPipettePlusCapacity/**/CapacityField", text: "1000", enter: true, clear: true}
+  - expect_state: {"type:GasPipettePlus.Integration::Settings.Capacity": 1000}
+  - drag: {from: [118, 208], to: [114, 208]}
+  - key: {code: Escape}

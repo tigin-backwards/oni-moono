@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2989402369-meteor-blaster-crash-fix.yaml",
+ "mods": [
+  "2989402369"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads and the colony plays for 30 s; a missile's explosion is not set up here",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "2989402369": {
+   "Meteor Blaster Crash Fix.dll": "6d59e26ec3b5572abe147707e830bc75f4a528b410549fd6ad2ffb4fd2010691"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:19:32",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:44:43",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T23:45:50",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3615615035-jiffy-tube.yaml",
+ "mods": [
+  "3615615035"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "both players log the zero tube-to-tube costs and the BuildPath transpiler's find, and the Duplicant nav grid's tube transitions cost 0; a minute of play",
+ "updated": "2026-10-31",
+ "commit": "a5887f2e",
+ "mod_dlls": {
+  "3615615035": {
+   "JiffyTube.dll": "9284c0880c18abbed5794053da4188d97c5ef83d677d7cd9b71a76471b0e1996"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-210418-28504fa7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:12:04",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-215658-13c0764f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:56:58",
+    "lane": 35,
+    "reference_run": "20261031-210418-28504fa7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-215658-13c0764f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T21:58:00",
+    "lane": 35,
+    "reference_run": "20261031-210418-28504fa7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

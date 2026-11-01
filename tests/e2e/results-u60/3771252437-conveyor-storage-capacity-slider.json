@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3771252437-conveyor-storage-capacity-slider.yaml",
+ "mods": [
+  "3771252437"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Conveyor Receptacle in the dug-out corridor west of the printing pod. It holds 100 kg; selected, its slider side screen goes to 50,000; 2000 typed into the slider's field sets its storage to 2000 kg",
+ "updated": "2026-11-01",
+ "commit": "40635540",
+ "mod_dlls": {
+  "3771252437": {
+   "ConveyorStorageCapacitySlider.dll": "572ffe60e3cc754af7ad43ce7c7395785973e048c29cca09da935c45fcd3df11"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-025945-1a714f70",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:08:25",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-041734-08810ca1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:17:34",
+    "lane": 45,
+    "reference_run": "20261101-025945-1a714f70",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-041734-08810ca1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:20:54",
+    "lane": 45,
+    "reference_run": "20261101-025945-1a714f70",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

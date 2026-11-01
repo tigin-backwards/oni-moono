@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3713328789-rebalanced-skills.yaml",
+ "mods": [
+  "3713328789"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the skill tree's prerequisites and tiers are the mod's (Mechatronics after Electrical Engineering and Improved Construction)",
+ "updated": "2026-11-01",
+ "commit": "909fc1d0",
+ "mod_dlls": {
+  "3713328789": {
+   "rebalancedSkills.dll": "376891779fc36f2f6b471370e4de0294acd6499b129fee4a9f5db3792841c11a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-021912-0ce14da8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:19:13",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-055417-30600ca7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:54:17",
+    "lane": 35,
+    "reference_run": "20261101-021912-0ce14da8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-055417-30600ca7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:58:12",
+    "lane": 35,
+    "reference_run": "20261101-021912-0ce14da8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

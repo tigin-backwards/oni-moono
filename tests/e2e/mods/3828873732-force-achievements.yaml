@@ -1,0 +1,16 @@
+# 沙盒debug解锁成就 - ForceAchievements (3828873732), class P.
+#
+# What it does: Steam achievements unlock even after sandbox mode, instant build or the debug
+# tools were used (ColonyAchievementTracker and Global patches), its force_unlock.cfg toggling it
+# and a retroactive unlock of those already earned; the colony summary screen follows.
+# How a player reaches it: playing with sandbox or debug tools.
+# What changes: achievements no longer disabled by debugging.
+#
+# The mod loads with force unlock on, as its log says, and the colony plays for 30 s (the
+# offline Steam double has no achievement service).
+from: early-base
+mods: [3828873732]
+require_log: ['\[ForceAchievements\] loaded\. force_unlock=']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

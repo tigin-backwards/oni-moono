@@ -1,0 +1,23 @@
+# 放电器增强 大型4000W+袖珍2000W / Discharger Boost (3750329747), class P.
+#
+# What it does: postfixes on the Large and Compact Power Bank Dischargers' CreateBuildingDef
+# raise their generator ratings (480 W to 4000 W, 60 W to 2000 W), and one on
+# ElectrobankDischarger.OnSpawn sets each built discharger's wattageRating to match.
+# How a player reaches it: the build menu (Power), as before.
+# What changes: dischargers that drain power banks faster into the circuit.
+#
+# Both definitions carry the new ratings; setup builds a Large Power Bank Discharger in the
+# corridor west of the printing pod, and once spawned it is rated 4000 W.
+from: early-base
+mods: [3750329747]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LargeElectrobankDischarger\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+require_log: ['\[DischargerBoost\] Loaded! Large=4000W, Compact=2000W\.', '\[DischargerBoost\] OnSpawn LargeElectrobankDischarger wattageRating -> 4000']
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"LargeElectrobankDischarger\").GeneratorWattageRating": 4000
+      "Assets.GetBuildingDef(\"SmallElectrobankDischarger\").GeneratorWattageRating": 2000
+  - run: {seconds: 5}
+  - expect: {buildings: {LargeElectrobankDischarger: 1}}
+  - expect_state:
+      "all:ElectrobankDischarger::[0].wattageRating": 4000

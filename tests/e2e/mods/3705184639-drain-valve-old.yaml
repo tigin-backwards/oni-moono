@@ -1,0 +1,17 @@
+# 排水阀（旧版本）Drain Valve(old version) (3705184639), class P.
+#
+# What it does: the Steam Turbine gets a drain limit: patches on
+# SteamTurbineConfig2.DoPostConfigureComplete and SteamTurbine.EnergySim200ms buffer the water it
+# makes and release it in batches (2 kg by default) instead of at once.
+# How a player reaches it: a Steam Turbine.
+# What changes: a turbine that drains in batches.
+#
+# The Steam Turbine's definition loads with the mod, and the colony plays for 30 s; a running
+# turbine is not set up here.
+from: early-base
+mods: [3705184639]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"SteamTurbine2\")": exists
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

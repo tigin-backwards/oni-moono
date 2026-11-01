@@ -1,0 +1,30 @@
+# 【个人开发测试版】生命重建仓（复活舱） / Life Reconstruction Chamber (3818614249), classes B, M.
+#
+# What it does: adds the Life Reconstruction Chamber (BaiyeLifeReconstructionChamber, 4x4,
+# 800 kg refined metal and 200 kg plastic, in the Medicine menu, researched with MedicineIV):
+# a dead Duplicant's stored copy (StoredMinionConfig and BaseMinionConfig patches keep what it
+# needs) is rebuilt in stages a doctor checks, consuming water, oxygen, refined metal, plastic
+# and good food (Edible patch), and then recovers inside it before it is released.
+# How a player reaches it: the build menu (Medicine), after the research.
+# What changes: dead Duplicants brought back, at a price.
+#
+# setup grants the research. The chamber is listed in the Medicine menu and its card names
+# its two ingredients (dumped).
+from: early-base
+mods: [3818614249]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"MedicineIV\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"MedicineIV\").unlockedItemIDs": {contains: BaiyeLifeReconstructionChamber}
+      "Assets.GetBuildingDef(\"BaiyeLifeReconstructionChamber\").WidthInCells": 4
+      "Assets.GetBuildingDef(\"BaiyeLifeReconstructionChamber\").MaterialCategory": [{contains: RefinedMetal}, {contains: Plastic}]
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Medicine"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BaiyeLifeReconstructionChamber Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/BaiyeLifeReconstructionChamber Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}

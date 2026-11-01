@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3616846297-morb-tweaks.yaml",
+ "mods": [
+  "3616846297"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns a Morb in the dug-out corridor west of the printing pod; it lives on through 300 s of the colony, as in the original",
+ "updated": "2026-11-01",
+ "commit": "94a84ae1",
+ "mod_dlls": {
+  "3616846297": {
+   "Morb Mod.dll": "e9e80dd6dbbc564a9a5e544dc36c010c10e7a3c3fb8a748b9a6413d875ec151a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-020114-68ffb98c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:15:01",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-023622-f04ce131",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:36:22",
+    "lane": 43,
+    "reference_run": "20261101-020114-68ffb98c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-023622-f04ce131",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:36:23",
+    "lane": 45,
+    "reference_run": "20261101-020114-68ffb98c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

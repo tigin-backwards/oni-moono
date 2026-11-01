@@ -1,0 +1,21 @@
+# Pleasant Power (3791232801), classes P, O (PLib options, PleasantPower.json).
+#
+# What it does: a light rebalance of power: every wire tier carries 4x its rating (a postfix
+# on Wire.GetMaxWattageAsFloat), combustion generators burn 6x less fuel for the same output,
+# and batteries leak less (Battery 5 %, Jumbo 2 %, Smart 1 % a cycle; edited as Assets adds
+# their definitions); solar panels are patched too. Each factor is an option.
+# How a player reaches it: building power; the mod's options.
+# What changes: power grids carry more and burn less.
+#
+# Defaults. A plain wire carries 4000 W; the coal generator's fuel use is a sixth of the
+# game's (compared with the original); the colony runs on.
+from: early-base
+mods: [3791232801]
+steps:
+  - expect_state:
+      "Wire.GetMaxWattageAsFloat(\"Max1000\")": 4000
+      "Wire.GetMaxWattageAsFloat(\"Max2000\")": 8000
+      "Assets.GetPrefab(\"Generator\").GetComponent<EnergyGenerator>.formula.inputs[0].consumptionRate": ["< 0.2", "== original"]
+      "Assets.GetPrefab(\"Battery\").GetComponent<Battery>.joulesLostPerSecond": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

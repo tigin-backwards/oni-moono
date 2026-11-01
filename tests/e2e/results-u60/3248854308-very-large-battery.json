@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3248854308-very-large-battery.yaml",
+ "mods": [
+  "3248854308"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Advanced Power Regulation and builds the battery in the dug-out corridor west of the printing pod. It shows in the Power menu; built, its capacity is past 10^30 J, and selected its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "ed05bbea",
+ "mod_dlls": {
+  "3248854308": {
+   "VeryLargeBattery.dll": "eaddc456dd42dc1270e24209dbf39c8580775c2fe7d9fb2cbd4a819b3bd22514"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-054807-3828ce3f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:55:27",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-060247-bd218d36",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:02:47",
+    "lane": 45,
+    "reference_run": "20261101-054807-3828ce3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-060247-bd218d36",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:07:43",
+    "lane": 43,
+    "reference_run": "20261101-054807-3828ce3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

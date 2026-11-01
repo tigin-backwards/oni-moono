@@ -1,0 +1,25 @@
+# More Interplanetary Launcher Automation (3685341592), class P (Spaced Out).
+#
+# What it does: the Interplanetary Launcher (RailGun) gets two more logic outputs: one Green
+# while it holds enough radbolts to launch, one Green while it has none
+# (InterplanetaryLauncherRadboltsEmpty), sent by an InterplanetaryLauncherAutomation component
+# on each change of its charge; postfixes on RailGunConfig's CreateBuildingDef and
+# ConfigureBuildingTemplate.
+# How a player reaches it: the launcher's automation ports (the automation overlay).
+# What changes: automation can follow the launcher's radbolts.
+#
+# setup builds an Interplanetary Launcher in the dug-out corridor west of the printing pod.
+# Its definition has the new ports; built, it has no radbolts, so the empty port sends Green.
+from: early-base
+mods: [3685341592]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"RailGun\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"RailGun\").LogicOutputPorts.Count": ["> 1", "== original"]
+  - run: {seconds: 3}
+  - expect_state:
+      "all:InterPlanetaryLauncherAutomation.InterplanetaryLauncherAutomation::Length": 1
+      "all:RailGun::[0].GetComponent<LogicPorts>.GetOutputValue(\"InterplanetaryLauncherRadboltsEmpty\")": 1
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

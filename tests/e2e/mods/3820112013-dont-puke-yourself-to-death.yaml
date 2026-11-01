@@ -1,0 +1,14 @@
+# 不要呕吐致死（Don't puke yourself to death） (3820112013), class M (PLib options).
+#
+# What it does: a Duplicant stops vomiting at 1000 kcal or less, vomiting from stress waits
+# while it is low on calories or eating, and an option (off by default) turns vomit into debris;
+# suits keep their storage.
+# How a player reaches it: sick or stressed Duplicants.
+# What changes: no starving from vomiting.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3820112013]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

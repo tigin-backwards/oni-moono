@@ -1,0 +1,25 @@
+# 让飞寻机固定在房间工作Let Feixunji work fixedly in the room (3781509996), class B, M.
+#
+# What it does: adds the Flydo dispatch station (FlydoWorkstation, 1x1 of refined metal, in the
+# Automation menu): a slider picks how many Flydos (0-6) it binds to its room; bound Flydos
+# work only inside it (RobotPathFinderAbilities.TraversePath), free ones come and go, and Flydos
+# in the open are recruited first.
+# How a player reaches it: the build menu (Automation); its side screen.
+# What changes: Flydos kept to one room.
+#
+# The building is listed in the Automation menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3781509996]
+require_log: ['\[FlydoWorkstation\] 已加入建造菜单：FlydoWorkstation']
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"FlydoWorkstation\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Automation"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/FlydoWorkstation Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/FlydoWorkstation Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}

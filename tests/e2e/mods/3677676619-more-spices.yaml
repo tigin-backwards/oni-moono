@@ -1,0 +1,27 @@
+# More Spices (3677676619), class P ("MoreSpice: Eden Spices").
+#
+# What it does: six spices for the Spice Grinder (LEARNING_SPICE, JOY_SPICE, INSOMNIA_SPICE,
+# SNAIL_SPICE, FRONTIER_SPICE, OVERCLOCK_SPICE), each from its own ingredients, with effects
+# on the Duplicant who eats spiced food (Learning +5 for the first; others through patches on
+# Edible.ApplySpiceEffects and StopConsuming).
+# How a player reaches it: a Spice Grinder's recipe side screen.
+# What changes: more ways to season food.
+#
+# The spices are in the game's database; setup builds a Spice Grinder in the dug-out corridor
+# west of the printing pod, and selected its spice side screen lists them (dumped).
+from: early-base
+mods: [3677676619]
+require_log: ['\[EdenMod\] Spice strings registered']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SpiceGrinder\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Spices.TryGet(\"LEARNING_SPICE\")": exists
+      "Db.Get().Spices.TryGet(\"OVERCLOCK_SPICE\")": exists
+      "Db.Get().Spices.Count": "== original"
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: SpiceGrinder}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/DetailsScreen/SideScreen", cond: stable}
+  - ui_dump: {name: spices, root: "**/DetailsScreen/SideScreen"}

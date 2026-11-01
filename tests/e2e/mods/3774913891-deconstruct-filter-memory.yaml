@@ -1,0 +1,24 @@
+# Deconstruct Filter Memory (3774913891), class P.
+#
+# What it does: the Deconstruct tool remembers the filter the player last picked in its filter
+# menu (Buildings, Wires, Pipes, Backwall...) and restores it when the tool opens again and after
+# a save loads; with nothing saved it starts on Buildings (the game's default is All). Postfixes
+# on FilteredDragTool's OnActivateTool, OnOverlayChanged and OnParametersChanged.
+# How a player reaches it: the Deconstruct tool (X) and its filter menu.
+# What changes: the tool's filter stays where it was set.
+#
+# The Deconstruct tool opens on the Buildings filter (its filter menu dumped); the colony's
+# tool closes, and opens again on Buildings.
+from: early-base
+mods: [3774913891]
+steps:
+  - run: {seconds: 2}
+  - tool: {key: X}
+  - ui_wait: {path: "**/ToolParameters", cond: stable}
+  - ui_dump: {name: filters, root: "**/ToolParameters"}
+  - key: {code: Escape}
+  - run: {seconds: 1}
+  - tool: {key: X}
+  - ui_wait: {path: "**/ToolParameters", cond: stable}
+  - ui_dump: {name: filters-again, root: "**/ToolParameters"}
+  - key: {code: Escape}

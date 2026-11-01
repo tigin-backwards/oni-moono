@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3747262473-marinea-moonlet-cluster.yaml",
+ "mods": [
+  "3747262473"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "from a colony: the pause menu's Main Menu, Quit Without Saving, New Game, Survival, Spaced Out, the mod's cluster by its coordinate (fixed seed), launched and embarked. Worldgen expectations are functional: the start world is the mod's, 128 x 153, and its warp moonlet is among the cluster's worlds",
+ "updated": "2026-11-01",
+ "commit": "60dfc486",
+ "mod_dlls": {
+  "3747262473": {
+   "MarineaMoonletCluster.dll": "dca25c04960f431ad1fc13bbcb0600aa1e0acf7caa1c3f32630befdf1122c235"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-023133-63191ed3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:31:33",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-031634-c3d9f536",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:16:34",
+    "lane": 45,
+    "reference_run": "20261101-023133-63191ed3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-031634-c3d9f536",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:18:20",
+    "lane": 44,
+    "reference_run": "20261101-023133-63191ed3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

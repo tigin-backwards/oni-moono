@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3766198980-eat-nearby.yaml",
+ "mods": [
+  "3766198980"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup moves a Duplicant to the dug-out corridor west of the printing pod; the game is paused and he is selected: his side screen has the mod's slider (dumped)",
+ "updated": "2026-11-01",
+ "commit": "19a012e3",
+ "mod_dlls": {
+  "3766198980": {
+   "EatNearby.dll": "888565e0f0ba6e27d63dee1441918266a35690abbd74fd6fc58ccba57f9a3e6d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-071706-22499823",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:17:06",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-074043-aaa575f4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:40:43",
+    "lane": 41,
+    "reference_run": "20261101-071706-22499823",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-074043-aaa575f4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:40:44",
+    "lane": 42,
+    "reference_run": "20261101-071706-22499823",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3792188120-one-tile-piped-water-cooler.yaml",
+ "mods": [
+  "3792188120"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the definition is read (1x2, a liquid input); setup builds one in the dug-out corridor west of the printing pod: it has no manual delivery, and selected its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "d9a9e743",
+ "mod_dlls": {
+  "3792188120": {
+   "OneTilePipedWaterCooler.dll": "6e0e3615dd7a2815eee035fae255bc098c5ad3040162347399a778db5a8f55b5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-090056-9edc52bc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:04:55",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091042-92055b64",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:10:42",
+    "lane": 40,
+    "reference_run": "20261101-090056-9edc52bc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-091042-92055b64",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:10:43",
+    "lane": 41,
+    "reference_run": "20261101-090056-9edc52bc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

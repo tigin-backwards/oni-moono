@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3748718831-ladder-chain-deconstruction.yaml",
+ "mods": [
+  "3748718831"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a three-ladder column marked with the Deconstruct tool is gone within a minute",
+ "updated": "2026-11-01",
+ "commit": "6ba87339",
+ "mod_dlls": {
+  "3748718831": {
+   "LadderOneClickDeconstruct.dll": "2a60dc84d1160e6572ae2fd85f8a7a9a79472e8941ae17335aa0002e0fcb166c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-012312-d12567fd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:31:16",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-074853-4b9ce019",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:48:53",
+    "lane": 35,
+    "reference_run": "20261101-012312-d12567fd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-074853-4b9ce019",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:53:54",
+    "lane": 35,
+    "reference_run": "20261101-012312-d12567fd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

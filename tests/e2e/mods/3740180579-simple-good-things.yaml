@@ -1,0 +1,31 @@
+# 简单好物 / Simple Good Things (3740180579), classes P, elements.
+#
+# What it does: two assemblies. BetterL adds a liquid element, BetterL (星辉, from its
+# elements/liquid.yaml, registered through SimHashes Parse/ToString patches and
+# Assets.SubstanceListHookup), made at the Molecular Forge (ChemicalRefinery): 100 kg from
+# 1 kg of SimHashes 1836671383 in 1200 s. MoreSushi adds three sashimi dishes made at the
+# Sushi Bar (生鱼片刺身 ShengYvPianCiShen from Pacu fillet, 针胆黄刺身 ZhenDanHuangCiShen and
+# the platter 鱼肉卷针胆黄刺身拼盘 YvRouJuanZhenDanPinPan), and a spice, STAR_SPICE, made from
+# BetterL.
+# How a player reaches it: the Sushi Bar's and Molecular Forge's recipes; the Spice Grinder.
+# What changes: new foods, a spice and a liquid.
+#
+# The element, the three foods with their Sushi Bar recipes and the spice are loaded; a
+# 10 kg of BetterL poured into the corridor stays a liquid there.
+from: early-base
+mods: [3740180579]
+setup:
+  - driver: {setup.call: {type: SimMessages, method: ReplaceElement, args: [131129, {"$": "ElementLoader.FindElementByName(\"BetterL\").id"}, {"$": "CellEventLogger.Instance.DebugTool"}, 10, 300, 255, 0]}}
+steps:
+  - expect_state:
+      "ElementLoader.FindElementByName(\"BetterL\").IsLiquid": true
+      "Assets.GetPrefab(\"ShengYvPianCiShen\").GetComponent<Edible>": exists
+      "Assets.GetPrefab(\"ZhenDanHuangCiShen\").GetComponent<Edible>": exists
+      "Assets.GetPrefab(\"YvRouJuanZhenDanPinPan\").GetComponent<Edible>": exists
+      "Db.Get().Spices.TryGet(\"STAR_SPICE\")": exists
+      "count:ComplexRecipeManager.Get().recipes[*] if .results[0].material.Name == ShengYvPianCiShen": 1
+      "count:ComplexRecipeManager.Get().recipes[*] if .results[0].material.Name == BetterL": 1
+  - run: {seconds: 2}
+  - expect_state:
+      "Grid.Element[131129].name": "== original"      # (113, 206)
+      "Grid.Element[131129].IsLiquid": true

@@ -1,0 +1,26 @@
+# Multi Channel Utilities — 채널식 설비 (3821447025), class B.
+#
+# What it does: three independent channels for liquid pipes, gas pipes, conveyor rails and wires,
+# each its own network: channel pipes, bridges and conduits (MCPLiquidPipe, MCPGasConduit2,
+# ...), channel adapters and inlets/outlets that pick, per port, which channel a machine uses;
+# all in a build menu category of its own (MCPChannels). Experimental.
+# How a player reaches it: its build menu category.
+# What changes: more pipe networks in the same cells.
+#
+# The channel buildings load, and the channel liquid pipe is listed in the mod's own build menu
+# category, its card opened from there (dumped).
+from: early-base
+mods: [3821447025]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"MCPLiquidPipe\")": exists
+      "Assets.GetBuildingDef(\"MCPChannelInlet\")": exists
+      "Assets.GetBuildingDef(\"MCPGasConduit2\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:MCPChannels"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/MCPLiquidPipe Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/MCPLiquidPipe Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}

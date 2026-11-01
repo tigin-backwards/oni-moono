@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2877011131-base-game-loading-song.yaml",
+ "mods": [
+  "2877011131"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the main menu's music event is the base game's title theme",
+ "updated": "2026-11-01",
+ "commit": "1af1c794",
+ "mod_dlls": {
+  "2877011131": {
+   "BaseGameLoadingScreenSong.dll": "8444d8cccf60e5c2d19e4be744bdce1b126360836a2bb3c88d500b4a164d4b2e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-003243-f188626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:50:30",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-032337-95100fdd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:23:37",
+    "lane": 35,
+    "reference_run": "20261101-003243-f188626a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-032337-95100fdd",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:27:27",
+    "lane": 35,
+    "reference_run": "20261101-003243-f188626a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

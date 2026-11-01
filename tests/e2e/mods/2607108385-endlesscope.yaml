@@ -1,0 +1,14 @@
+# Endlesscope (2607108385), class P.
+#
+# What it does: the Telescope (ClusterTelescope) reveals the starmap within 20 hexes instead
+# of the game's 4 (a postfix on ClusterTelescopeConfig.ConfigureBuildingTemplate).
+# How a player reaches it: building a Telescope.
+# What changes: one telescope reveals most of the starmap.
+#
+# The Telescope's prefab analyses a radius of 20.
+from: early-base
+mods: [2607108385]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"ClusterTelescope\").GetComponent<StateMachineController>.cmpdef.defs[0].analyzeClusterRadius": 20   # the game: 3
+  - run: {seconds: 30}

@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3751752771-oni-superpowers.yaml",
+ "mods": [
+  "3751752771"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup moves a Duplicant to the dug-out corridor west of the printing pod; the game is paused and he is selected. His user menu's Grant Superspeed gives him the trait and its +50 Athletics",
+ "updated": "2026-11-01",
+ "commit": "f28c3067",
+ "mod_dlls": {
+  "3751752771": {
+   "SuperpowersMod.dll": "52bc625887c6b61f1bfca7a23af23f336243460b238951154ea7f6a39f8404a7"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-023439-6f6eed7e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:46:01",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-032537-12104d3a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:25:37",
+    "lane": 44,
+    "reference_run": "20261101-023439-6f6eed7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-032537-12104d3a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:25:38",
+    "lane": 45,
+    "reference_run": "20261101-023439-6f6eed7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

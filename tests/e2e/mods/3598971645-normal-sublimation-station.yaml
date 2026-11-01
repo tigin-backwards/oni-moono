@@ -1,0 +1,21 @@
+# 正常的昇華機 A normal Sublimation Station (3598971645), class P (Spaced Out).
+#
+# What it does: the Sublimation Station makes its polluted oxygen at 1 kg/s: a postfix on
+# SublimationStationConfig.ConfigureBuildingTemplate sets its converter's first output rate.
+# How a player reaches it: building a Sublimation Station.
+# What changes: how fast the station turns polluted dirt into polluted oxygen.
+#
+# The station's converter outputs 1 kg/s; setup builds one in the dug-out corridor west of the
+# printing pod, and selected its title is dumped.
+from: early-base
+mods: [3598971645]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SublimationStation\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"SublimationStation\").GetComponent<ElementConverter>.outputElements[0].massGenerationRate": 1
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: SublimationStation}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

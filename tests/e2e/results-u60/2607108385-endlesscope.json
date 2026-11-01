@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2607108385-endlesscope.yaml",
+ "mods": [
+  "2607108385"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Telescope's prefab reveals a radius of 20 hexes",
+ "updated": "2026-11-01",
+ "commit": "fbe3d845",
+ "mod_dlls": {
+  "2607108385": {
+   "(Darth Nihilus)_Endlesscope.dll": "26cae5b7afd853ba50e33e7423e73ec3f957a82cbdbd4dc3c42a4c08007ce094"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-011236-1e84a883",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:19:49",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-031212-73e8ee45",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:12:12",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-031212-73e8ee45",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:15:44",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

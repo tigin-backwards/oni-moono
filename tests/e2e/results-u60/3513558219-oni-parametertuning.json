@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3513558219-oni-parametertuning.yaml",
+ "mods": [
+  "3513558219"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "defaults. The patched buildings' definitions (gas reservoir and bottle filler capacity) are as in the original; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "f558f5d2",
+ "mod_dlls": {
+  "3513558219": {
+   "ONI_ParameterTuning.dll": "8b07781769d48c6031879e2528df65d3009c0069db06c371d3a1c47a747cf762"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032706-5e3764f7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:27:06",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-034533-cc235474",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:45:33",
+    "lane": 44,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-034533-cc235474",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:50:30",
+    "lane": 44,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,19 @@
+# 更多的间歇泉 / More Geysers (3829424242), class P, worldgen (PLib options).
+#
+# What it does: a postfix on GeyserGenericConfig.GenerateConfigs adds ten volcanoes (3x3:
+# molten glass, lead, salt, carbon, steel, iridium, zinc, nickel, sucrose, uranium with Spaced
+# Out) and two springs (4x2: liquid phosphorus, molten sucrose), each switched by its option, to
+# the geysers worldgen may place (the sucrose volcano only in sandbox).
+# How a player reaches it: new worlds' geysers; the sandbox's geyser list.
+# What changes: new geyser types.
+#
+# The new geysers' prefabs load (the glass, steel and zinc volcanoes) and the colony runs.
+from: early-base
+mods: [3829424242]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"GeyserGeneric_glass_volcano\")": exists
+      "Assets.GetPrefab(\"GeyserGeneric_steel_volcano\")": exists
+      "Assets.GetPrefab(\"GeyserGeneric_zinc_volcano\")": exists
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

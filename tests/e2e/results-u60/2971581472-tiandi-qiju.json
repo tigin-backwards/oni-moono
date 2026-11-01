@@ -1,0 +1,59 @@
+{
+ "spec": "mods/2971581472-tiandi-qiju.yaml",
+ "mods": [
+  "2971581472"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the chessboard in the Furniture menu, with its decor; world shot as in the original",
+ "updated": "2026-11-01",
+ "commit": "a8d4ef4b",
+ "mod_dlls": {
+  "2971581472": {
+   "╠∞╡╪╞σ╛╓.dll": "541bc3d54f342ec54cff74800954770e2a66ccdde841bbc1cff2311ee9125f7e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221303-afe4ed80",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:17:12",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-005341-61336675",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:53:41",
+    "lane": 35,
+    "reference_run": "20261031-221303-afe4ed80",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "board": 0.009278
+    }
+   },
+   {
+    "run": "20261101-005341-61336675",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:03:17",
+    "lane": 35,
+    "reference_run": "20261031-221303-afe4ed80",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "board": 0.011593
+    }
+   }
+  ]
+ }
+}

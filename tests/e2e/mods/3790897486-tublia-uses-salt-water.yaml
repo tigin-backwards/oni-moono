@@ -1,0 +1,18 @@
+# 管虫可用盐水 / Tublia Uses Salt Water (3790897486), class P (Aquatic Planet Pack).
+#
+# What it does: the Tublia (TubeWorm) plant grows on salt water too, besides brine and polluted
+# brine, at the same 30 kg a cycle: a postfix on TubeWormConfig.OnPrefabInit appends salt water to
+# its irrigation's consumed elements.
+# How a player reaches it: Tublias planted with salt water.
+# What changes: Tublias irrigated with salt water.
+#
+# The Tublia's state machine definitions (its irrigation's consumed elements among them) are
+# compared with the original's; the colony runs on.
+from: early-base
+mods: [3790897486]
+steps:
+  - expect_state:
+      "count:Assets.GetPrefab(\"TubeWorm\").GetComponent<StateMachineController>.cmpdef.defs[*] if .GetType().FullName == \"IrrigationMonitor+Def\"": 1
+      "Assets.GetPrefab(\"TubeWorm\").GetComponent<StateMachineController>.cmpdef.defs": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

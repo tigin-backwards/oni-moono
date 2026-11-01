@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3764376075-smart-materials-study-terminal.yaml",
+ "mods": [
+  "3764376075"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a terminal in the dug-out corridor west of the printing pod. Built, it holds no radbolts; selected, its activation range side screen shows (dumped)",
+ "updated": "2026-11-01",
+ "commit": "c00fc2ee",
+ "mod_dlls": {
+  "3764376075": {
+   "SmartMaterialsStudyTerminal.dll": "8d64cbf9b2f54469892cdf8ecb9c5a3642c18903768116881dca4e8b8b1207ed"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-023439-6f6eed7e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:55:46",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-035447-dae70737",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:54:47",
+    "lane": 45,
+    "reference_run": "20261101-023439-6f6eed7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "range": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-035447-dae70737",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:58:44",
+    "lane": 42,
+    "reference_run": "20261101-023439-6f6eed7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "range": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

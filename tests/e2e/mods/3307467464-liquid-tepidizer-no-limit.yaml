@@ -1,0 +1,14 @@
+# Liquid Tepidizer no temperature limit (3307467464), class P.
+#
+# What it does: the Liquid Tepidizer (LiquidHeater) no longer overheats (a postfix on
+# LiquidHeaterConfig.CreateBuildingDef).
+# How a player reaches it: building a Liquid Tepidizer.
+# What changes: it can heat liquids past its old limit.
+#
+# The Liquid Tepidizer's definition is not overheatable.
+from: early-base
+mods: [3307467464]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"LiquidHeater\").Overheatable": false
+  - run: {seconds: 30}

@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3804085929-natural-farm.yaml",
+ "mods": [
+  "3804085929"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Natural Farm Tile: in the Food menu (shot), its plot takes no fertilizer or irrigation, and its 100%变异 side screen button sets its mutation mode",
+ "updated": "2026-11-01",
+ "commit": "546fe517",
+ "mod_dlls": {
+  "3804085929": {
+   "NaturalFarm.dll": "a5c8403319b8b6c96d7564fdb9ef73fe306aa4020f36e349fe7e88878bf59225"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-230339-bc48bbaa",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:03:39",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-024424-663ac1d0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:44:24",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "food-menu": 0.0
+    }
+   },
+   {
+    "run": "20261101-024424-663ac1d0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:49:00",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "food-menu": 0.0
+    }
+   }
+  ]
+ }
+}

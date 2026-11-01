@@ -1,0 +1,61 @@
+{
+ "spec": "mods/3784211480-coal-synthesizer.yaml",
+ "mods": [
+  "3784211480"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Coal Synthesizer placed: in the Oxygen menu (shot), researched with Brute-Force Refinement, turning carbon dioxide into oxygen and coal; world shot",
+ "updated": "2026-11-01",
+ "commit": "7cc9e634",
+ "mod_dlls": {
+  "3784211480": {
+   "CoalSynth.dll": "6386bd81abc6110c711c47c8b9b8ba240d9c7c0623726e085c1051242c345b35"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-010148-6d65f38c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:01:49",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092216-ec5ac521",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:22:16",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "oxygen-menu": 2.5e-05,
+     "synthesizer": 0.00994
+    }
+   },
+   {
+    "run": "20261101-092216-ec5ac521",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:23:56",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "oxygen-menu": 2.5e-05,
+     "synthesizer": 0.01037
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3783179366-critter-sensor-tracker.yaml",
+ "mods": [
+  "3783179366"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Critter Sensor in the dug-out corridor west of the printing pod. The tracker runs and its panel is in the notification screen (dumped)",
+ "updated": "2026-11-01",
+ "commit": "f1cb54e3",
+ "mod_dlls": {
+  "3783179366": {
+   "ONI-critter-senson-tracker.dll": "57f591d7194d17f3bf538a90e617c3d7c012c7645bac1289e416eccc8cd9756e",
+   "PLib.dll": "3dc9bc06c6b54660b833d314192e6b34c578754facc6aff3c7e803b5cdc6616e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-033851-137d5e8f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:49:16",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-052328-43cf3bb2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:23:28",
+    "lane": 45,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "tracker": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-052328-43cf3bb2",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:28:39",
+    "lane": 45,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "tracker": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

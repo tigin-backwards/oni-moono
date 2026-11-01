@@ -1,0 +1,24 @@
+# Bitshifter (3812973685), classes P, S.
+#
+# What it does: the Automation Ribbon Reader and Writer select any of bits 1-31 instead of
+# 1-4 (GetBitDepth answers 31; their visuals, definitions and the NOT gate's mask follow), and
+# the bit selector side screen gets a scrolling list of the 31 bits, four rows visible. It
+# turns itself off when another mod already widens ribbons.
+# How a player reaches it: a built Ribbon Reader or Writer's side screen.
+# What changes: one ribbon carries up to 31 signals.
+#
+# setup builds a Ribbon Reader in the corridor west of the printing pod; selected, it has a
+# bit depth of 31 and its bit selector side screen is dumped.
+from: early-base
+mods: [3812973685]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicRibbonReader\")", method: Build, args: [131765, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+require_log: ['\[Bitshifter\] Ribbon Reader and Writer can select bits 1-31']
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: LogicRibbonReader}
+  - ui_wait: {path: "**/LogicBitSelectorSideScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<LogicRibbonReader>.GetBitDepth()": 31
+  - ui_dump: {name: bits, root: "**/LogicBitSelectorSideScreen"}

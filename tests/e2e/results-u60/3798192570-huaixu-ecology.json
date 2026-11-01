@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3798192570-huaixu-ecology.yaml",
+ "mods": [
+  "3798192570"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a high-pressure liquid reservoir in the dug-out corridor west of the printing pod. It holds 10,000,000 kg; the generators are researched with Improved Combustion; selected, the reservoir's details screen is dumped, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "c89ad87b",
+ "mod_dlls": {
+  "3798192570": {
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70",
+   "SummerDawnEcology.dll": "551ba81fbb9600b9306b50fdbb23c2c0c0ffc9e509f8b373845ef84dc700fafe"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043754-067196ed",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:37:54",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091242-d9555401",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:12:42",
+    "lane": 44,
+    "reference_run": "20261101-043754-067196ed",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-091242-d9555401",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:12:43",
+    "lane": 45,
+    "reference_run": "20261101-043754-067196ed",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

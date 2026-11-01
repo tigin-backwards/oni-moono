@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3810270516-mod-manager-plus.yaml",
+ "mods": [
+  "3810270516"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "fc36f597",
+ "mod_dlls": {
+  "3810270516": {
+   "ModManagerPlus.dll": "9d6e2c2346eea0a54c40558e035cc8ba8dcff91c08b875c3c9068ef202cb0af5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041630-1ee599cc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:29:08",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-094147-772d083e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:41:47",
+    "lane": 36,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-094147-772d083e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:01:44",
+    "lane": 36,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

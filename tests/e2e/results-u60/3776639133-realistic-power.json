@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3776639133-realistic-power.yaml",
+ "mods": [
+  "3776639133"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads and logs its version; two minutes of the colony's power with it",
+ "updated": "2026-11-01",
+ "commit": "7cc9e634",
+ "mod_dlls": {
+  "3776639133": {
+   "RealisticPower.Core.dll": "5b1e94e3ab86209dbb491c192f607153be2cb16a90f3966ab6df25fde83e14de",
+   "RealisticPower.ONI.dll": "7f173e6965b8cfa49db4339268bdc73b7881964379aca84eb3e955ae7f364c42"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-012312-d12567fd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:23:12",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091403-ce2dcb4b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:14:03",
+    "lane": 35,
+    "reference_run": "20261101-012312-d12567fd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-091403-ce2dcb4b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:16:44",
+    "lane": 35,
+    "reference_run": "20261101-012312-d12567fd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

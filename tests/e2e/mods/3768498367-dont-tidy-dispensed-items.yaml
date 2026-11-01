@@ -1,0 +1,25 @@
+# Don't Tidy Dispensed Items (3768498367), class P.
+#
+# What it does: items a storage drops on purpose (Storage.Drop: a dispenser, an emptied bin) are
+# tagged so that Duplicants' storage errands do not pick them back up (a postfix on
+# FetchManager.IsFetchablePickup refuses them for StorageFetch).
+# How a player reaches it: emptying storage where it should stay emptied.
+# What changes: dropped items stay where they were dropped.
+#
+# setup builds a Storage Bin in the dug-out corridor west of the printing pod accepting
+# sandstone, and drops sandstone from storage nearby (as an emptied bin does); after 300 s the
+# dropped sandstone has not been carried into the bin.
+from: early-base
+mods: [3768498367]
+require_log: ['\[DontTidyDispensedItems\] loaded']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [{"$": "Grid.XYToCell(110, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "all:StorageLocker::[0].GetComponent<TreeFilterable>", method: AddTagToFilter, args: [SandStone]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[114.5, 206.5, -12], 50, 300, 255, 0]}}
+  - driver: {setup.call: {target: "all:StorageLocker::[0].GetComponent<Storage>", method: Store, args: [{"$": "last:"}]}}
+  - driver: {setup.call: {target: "all:StorageLocker::[0].GetComponent<Storage>", method: Drop, args: [{"$": "all:StorageLocker::[0].GetComponent<Storage>.items[0]"}, true]}}
+steps:
+  - run: {seconds: 300}
+  - expect_state:
+      "all:StorageLocker::[0].GetComponent<Storage>.MassStored()": "== original"
+  - expect: {duplicants: 3}

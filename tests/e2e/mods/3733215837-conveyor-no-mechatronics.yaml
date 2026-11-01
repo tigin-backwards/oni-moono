@@ -1,0 +1,18 @@
+# Basic Conveyor Shipping No Mechatronics Engineering Required (3733215837), class P.
+#
+# What it does: the Auto-Sweeper, Conveyor Rail, Conveyor Bridge, Conveyor Loader and
+# Conveyor Chute can be built without the Mechatronics Engineering skill: postfixes on their
+# configs' DoPostConfigureUnderConstruction clear the construction's required skill perk.
+# How a player reaches it: building those, with no engineer.
+# What changes: early shipping without the skill.
+#
+# Their under-construction prefabs require no skill, and the log names each.
+from: early-base
+mods: [3733215837]
+require_log: ['\[NoElectricalEngineering\] 成功抹除 SolidTransferArm 的技能需求']
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"SolidTransferArm\").BuildingUnderConstruction.GetComponent<Constructable>.requiredSkillPerk": missing
+      "Assets.GetBuildingDef(\"SolidConduit\").BuildingUnderConstruction.GetComponent<Constructable>.requiredSkillPerk": missing
+      "Assets.GetBuildingDef(\"SolidVent\").BuildingUnderConstruction.GetComponent<Constructable>.requiredSkillPerk": missing
+  - run: {seconds: 30}

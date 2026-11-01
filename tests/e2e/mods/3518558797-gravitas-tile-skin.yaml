@@ -1,0 +1,39 @@
+# Gravitas Tile Skin (3518558797), with True Tiles (2815406414), which it extends. Class P
+# (content only: no DLL).
+#
+# What it does: a True Tiles texture pack (true_tiles_addon/MyTextures: metadata.json,
+# tiles.json and two PNGs) that draws Ceramic tiles with the look of the Gravitas facility's
+# tiles. True Tiles scans every mod for that folder at start-up, lists the pack (Order 2,
+# enabled) and loads its textures over its own.
+# How a player reaches it: Ceramic tiles; the Mods screen's Texture Packs button on its row.
+# What changes: how Ceramic tiles look.
+#
+# The pack is checked in True Tiles' pack list, enabled, and the texture used for a Ceramic
+# tile comes from its folder. Then, from the main menu, the Mods screen's Texture Packs button
+# on its row opens True Tiles' settings, which list it (dumped: OniMcp cannot shoot the main
+# menu).
+from: early-base
+mods: [2815406414, 3518558797]
+steps:
+  - expect_state:
+      "type:TrueTiles.Cmps.TexturePacksManager::Instance.packs.Count": "== original"
+      "count:type:TrueTiles.Cmps.TexturePacksManager::Instance.packs[*] if .Id == \"Gravitas building tile skin addon\" and .Enabled == true": 1
+  - expect_state:
+      "type:TrueTiles.Cmps.TileAssetLoader::Instance.tiles[\"Tile\"][\"Ceramic\"].Root": {contains: MyTextures}
+  - expect_state:
+      "type:TrueTiles.Cmps.TileAssets::Instance.Get(\"Tile\", \"Ceramic\").main.width": "> 0"
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Main MenuButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Main MenuButton"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton"}   # Quit Without Saving
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "MODS", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModsScreen/Panel", cond: stable}
+  - expect_ui:
+      "**/ModsScreen/Panel/ListView/Files/Viewport/Content/Gravitas building tile skin addon/**/Title": {text: "~Mod managed by True Tiles"}
+  - click: {text: "Texture Packs", under: "**/ModsScreen/Panel/ListView/Files/Viewport/Content/Gravitas building tile skin addon"}
+  - ui_wait: {path: "**/SettingsDialog(Clone)/ScrollView/Viewport/Content", cond: stable}
+  - expect_ui:
+      "**/SettingsDialog(Clone)/ScrollView/Viewport/Content/Entry(Clone)/Title/Text": {any_text: "Gravitas building tile skin addon"}
+  - ui_dump: {name: packs, root: "**/SettingsDialog(Clone)/ScrollView/Viewport/Content"}

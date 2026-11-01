@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3248853673-very-large-refrigerator.yaml",
+ "mods": [
+  "3248853673"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants the research. The fridge is in the Food menu; built of sandstone in the corridor west of the printing pod and selected, its storage's capacity is the float maximum",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3248853673": {
+   "VeryLargeRefrigerator.dll": "6f53a4be0ac85f61e9c0f207d02b9dfd0c84b5cdfedda4667db658368388e9dc"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:32:44",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:56:13",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T00:56:20",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

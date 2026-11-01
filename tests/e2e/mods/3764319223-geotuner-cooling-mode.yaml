@@ -1,0 +1,25 @@
+# Geotuner Cooling Mode (3764319223), class S (a side screen button on a vanilla building).
+#
+# What it does: the Geotuner gets a mode button (CoolingModeSetting, ISidescreenButtonControl):
+# in Cooling mode the geyser it tunes loses the temperature and output a Geotuner would add
+# (a patch on the tuner's RefreshModification), copied with its settings.
+# How a player reaches it: selecting a Geotuner; its side screen button.
+# What changes: geysers can be cooled and slowed.
+#
+# setup places a Geotuner on the floor of the dug-out room west of the printing pod; selected,
+# its button reads "Mode: Heating (click for Cooling)", and a click turns cooling on.
+from: early-base
+mods: [3764319223]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"GeoTuner\")", method: Build, args: [131126, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {GeoTuner: 1}}
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 207], select: GeoTuner}
+  - ui_wait: {path: "**/ButtonMenuSideScreen/**", cond: stable}
+  - expect_ui: {"**/ButtonMenuSideScreen/**": {any_text: "Mode: Heating (click for Cooling)"}}
+  - expect_state: {"selected:GetComponent<GeotunerCoolingMode.CoolingModeSetting>.CoolingMode": false}
+  - click: {ui: "**/ButtonMenuSideScreen/Buttons/Button"}
+  - expect_state: {"selected:GetComponent<GeotunerCoolingMode.CoolingModeSetting>.CoolingMode": true}
+  - expect_ui: {"**/ButtonMenuSideScreen/**": {any_text: "Mode: Cooling (click for Heating)"}}

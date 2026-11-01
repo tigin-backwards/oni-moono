@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3598971645-normal-sublimation-station.yaml",
+ "mods": [
+  "3598971645"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the station's converter outputs 1 kg/s; setup builds one in the dug-out corridor west of the printing pod, and selected its title is dumped",
+ "updated": "2026-11-01",
+ "commit": "3891c7fb",
+ "mod_dlls": {
+  "3598971645": {
+   "Ñ┐▒`¬║¬@╡╪╛≈.dll": "46109cb77041c947419e1e9ba2a59cfaa6c0d7cc52de547f3a71aef464006ad9"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014441-b56fec9b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:09:42",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-011702-723d244a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:17:02",
+    "lane": 45,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-011702-723d244a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:26:10",
+    "lane": 45,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

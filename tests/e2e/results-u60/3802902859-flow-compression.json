@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3802902859-flow-compression.yaml",
+ "mods": [
+  "3802902859"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a liquid compressor in the dug-out corridor west of the printing pod. The three compressors are in the game's definitions; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "3ad0d2b8",
+ "mod_dlls": {
+  "3802902859": {
+   "FlowCompression.dll": "8cdbc777274df24d4e2f7617e6042be54edce4cc56d80ba257336515d734e582"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043754-067196ed",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:53:17",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092426-e3357767",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:24:26",
+    "lane": 44,
+    "reference_run": "20261101-043754-067196ed",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-092426-e3357767",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:24:27",
+    "lane": 45,
+    "reference_run": "20261101-043754-067196ed",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,23 @@
+# 한글 초성 검색 (3771756510), class P (a load spec).
+#
+# What it does: see the mod's page; its decompiled code has Harmony patches on
+# AllResourcesScreen.Init, AllResourcesScreen.PassesSearchFilter,
+# AllResourcesScreen.SearchFilter, Category.FilterItemsBySearch,
+# SingleItemSelectionSideScreenBase.OnPrefabInit,
+# SingleItemSelectionSideScreenBase.OnSearchBarValueChanged,
+# SingleItemSelectionSideScreenBase.TagContainsSearchWord, TreeFilterableSideScreen.InitSearch
+# and 2 more.
+# How a player reaches it: through its own screens or buildings, which this spec does not
+# drive yet.
+# What changes: what its patches change.
+#
+# A load spec: the colony loads with the mod, its patched methods counted as in the original,
+# and two minutes of play pass with the Duplicants alive.
+from: early-base
+mods: [3771756510]
+steps:
+  - expect_state:
+      "sum:Global.Instance.modManager.mods[*].loaded_mod_data.patched_methods.Count if .label.id == 3771756510": "== original"
+      "count:Global.Instance.modManager.mods[*] if .label.id == 3771756510 and .IsEnabledForActiveDlc() == true": 1
+  - run: {seconds: 120}
+  - expect: {duplicants: ">= 1"}

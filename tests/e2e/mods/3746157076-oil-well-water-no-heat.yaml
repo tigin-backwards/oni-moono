@@ -1,0 +1,16 @@
+# 油井内的水不再参与换热 Oil well water exchanges no heat (3746157076), class P.
+#
+# What it does: the water in an Oil Well (OilWellCap) no longer takes heat from the natural gas
+# and oil, so it does not boil away: a postfix on OilWellCapConfig.ConfigureBuildingTemplate adds
+# an OilWellCapThermalController that resets its stored water's temperature on each change.
+# How a player reaches it: an Oil Well on an oil reservoir.
+# What changes: oil wells whose water stays liquid.
+#
+# The Oil Well's prefab has the controller; the colony runs on.
+from: early-base
+mods: [3746157076]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"OilWellCap\").GetComponent<OilWellCapThermalController>": exists
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

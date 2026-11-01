@@ -1,0 +1,21 @@
+# Stronger Duplicants (Rewrite) (3771895170), class M.
+#
+# What it does: postfixes on MinionResume.OnSpawn make every Duplicant master every skill and
+# add +1000 to sixteen attributes (Construction, Digging, ..., Immunity), +10 HP regeneration
+# and -10 stress a second, each as a "Stronger Dupes" modifier.
+# How a player reaches it: nothing to click; every Duplicant, on load or when printed.
+# What changes: Duplicants with every skill and huge attributes.
+#
+# Every Duplicant of the colony has mastered every skill and carries +1000 Digging and
+# Construction; the colony runs two minutes with them.
+from: early-base
+mods: [3771895170]
+require_log: ['\[StrongerDupes\] loaded']
+steps:
+  - expect_state:
+      "Components.LiveMinionIdentities.Items[0].GetComponent<MinionResume>.HasMasteredSkill(\"Mining1\")": true
+      "Components.LiveMinionIdentities.Items[2].GetComponent<MinionResume>.HasMasteredSkill(\"Engineering1\")": true
+      "Components.LiveMinionIdentities.Items[1].GetComponent<MinionModifiers>.attributes.Get(\"Digging\").GetTotalValue()": ">= 1000"
+      "Components.LiveMinionIdentities.Items[1].GetComponent<MinionModifiers>.attributes.Get(\"Construction\").GetTotalValue()": ">= 1000"
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}

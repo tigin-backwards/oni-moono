@@ -1,0 +1,19 @@
+# Suit Station Boundary Coordinator / 气压服检测站强制穿服 (3786111555), class P.
+#
+# What it does: a Duplicant passing an Atmo Suit Checkpoint into the suited side must put a suit
+# on (a postfix on SuitMarker's EquipSuitReactable run), so the checkpoint keeps the boundary
+# between suited and unsuited areas.
+# How a player reaches it: Atmo Suit Checkpoints and Docks.
+# What changes: no suitless Duplicants past a checkpoint.
+#
+# setup builds an Atmo Suit Checkpoint in the dug-out corridor west of the printing pod; the
+# Duplicants go about their errands for 120 s, and are as many as in the original.
+from: early-base
+mods: [3786111555]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SuitMarker\")", method: Build, args: [{"$": "Grid.XYToCell(116, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 120}
+  - expect: {buildings: {SuitMarker: 1}}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

@@ -1,0 +1,62 @@
+{
+ "spec": "mods/3738353497-bio-fuel-generator.yaml",
+ "mods": [
+  "3738353497"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Bio Fuel Generator placed and selected (details shot); world shot",
+ "updated": "2026-11-01",
+ "commit": "8ffb7c6f",
+ "mod_dlls": {
+  "3738353497": {
+   "PLib.dll": "79350ee2d4eea7a879c6eebc12acca89bdd1d2a93ed7b396b875a7907a91d1e2",
+   "╔·╬∩╚╝┴╧╖ó╡τ╗·.dll": "e8c5cdf34cc15505efb2f69c063f0b7c67e3f011fa8dbc93a2bff4ce53d14cee"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024344-c6853c58",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:52:34",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-070210-6f5bb9ef",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:02:10",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "building": 0.010547
+    }
+   },
+   {
+    "run": "20261101-070210-6f5bb9ef",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:12:08",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "building": 0.008201
+    }
+   }
+  ]
+ }
+}

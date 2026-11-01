@@ -1,0 +1,24 @@
+# Ice Melter (3794308891), class B.
+#
+# What it does: a 2x2 Ice Melter (steel; Plumbing menu's pumps group, unlocked by the
+# LiquidTemperature tech) that melts any ice delivered to it into its own liquid and pipes it
+# out, with its own Database entry.
+# How a player reaches it: the research screen, then the build menu (Plumbing).
+# What changes: ice turned into liquid in a building.
+#
+# setup places one in the pit of the dug-out room west of the printing pod (110,206): it is complete, selected it shows its details
+# (shot), and it is shot in the world.
+from: early-base
+mods: [3794308891]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"IceMelter\")", method: Build, args: [131126, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {IceMelter: 1}}
+  - expect_state:
+      "CodexCache.entries.ContainsKey(\"ICEMELTER\")": true
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 206], select: IceMelter}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
+  - world_shot: {name: building, ortho: 5, at: [110, 207]}

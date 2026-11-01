@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3773836172-random-balloon-skin.yaml",
+ "mods": [
+  "3773836172"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "early-base has no Balloon Artist: the log names the balloon skins the mod found at the colony's start (as many as the original's), and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "f9f55194",
+ "mod_dlls": {
+  "3773836172": {
+   "RandomBalloonSkin.dll": "c2ed4fb17fa6f1d1f59f19ff37324afdee60dbddf560dbd8de5e939b61007108"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032651-6c23d32c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:26:51",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-042512-0c9b9b68",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:25:12",
+    "lane": 45,
+    "reference_run": "20261101-032651-6c23d32c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-042512-0c9b9b68",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:31:20",
+    "lane": 45,
+    "reference_run": "20261101-032651-6c23d32c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

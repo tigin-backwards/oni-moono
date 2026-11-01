@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3782032937-auto-refinement.yaml",
+ "mods": [
+  "3782032937"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "options turn on the refinement group. setup builds a Rock Granulator in the dug-out corridor west of the printing pod: it no longer needs an operator, as in the original",
+ "updated": "2026-11-01",
+ "commit": "d3c2baa6",
+ "mod_dlls": {
+  "3782032937": {
+   "AutoRefinement.dll": "f48b8d79c06bd79336697345b4911e768840453b327793be699bde308b36cc51",
+   "PLib.dll": "893dc1ea3eddd02c85d433231aae356be27be07ddfc1a98fb2c51d84748208e8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-064852-62246d7e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:09:23",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-082738-62984a10",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:27:38",
+    "lane": 40,
+    "reference_run": "20261101-064852-62246d7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-082738-62984a10",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:27:39",
+    "lane": 42,
+    "reference_run": "20261101-064852-62246d7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

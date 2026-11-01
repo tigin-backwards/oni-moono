@@ -1,0 +1,56 @@
+# Oxygen Not Included – Ελληνική Μετάφραση 100% (3782912808), class X (a translation: strings.po, no code).
+#
+# What it does: translates the game's strings into Greek.
+# How a player reaches it: the main menu's Translations screen lists it (any installed mod
+# with a strings.po, Local ones too); picking it and restarting loads it. The spec sets what
+# that choice saves (`translation:` writes SelectedLanguageType UGC and InstalledLanguage
+# 3782912808 into the prefs) and leaves the mod disabled, as a subscription does.
+# What changes: every screen's text. Checked: a colony's research and priorities screens and
+# its pause menu, then (Main Menu, Quit Without Saving) the main menu's buttons, the options
+# menu and its Game options screen, each dumped and (but the research tree) shot.
+from: early-base
+mods: [3782912808]
+translation: 3782912808
+require_log: ['Loaded language from mod: 3782912808']
+steps:
+  - expect_state:
+      "Localization.GetLocale().Code": "== original"
+  - open: {key: R}
+  - ui_wait: {path: "**/FullScreenUICanvases/ResearchScreen", cond: stable}
+  - ui_wait: {path: "**/ResearchScreen/Content/ScrollRectRoot/ScrollContent", cond: stable, frames: 600}
+  # The tree pans and zooms towards its resting place by the frame's time (ResearchScreen's
+  # Update), so where it rests on screen varies by a pixel or two between runs: its layout is
+  # compared without screen positions, and not shot.
+  - ui_dump: {name: research, root: "**/ResearchScreen/Content/ScrollRectRoot/ScrollContent", ignore_fields: [world, screen]}
+  - key: {code: Escape}
+  - open: {key: L}
+  - ui_wait: {path: "**/JobsTableScreen", cond: stable}
+  # Its column headers (the rows' scroll view reads as known finding scroll-normalized-position,
+  # whatever the language).
+  - ui_dump: {name: priorities, root: "**/JobsTableScreen/HeaderContent"}
+  - shot: {name: priorities, crop: "**/JobsTableScreen", threshold: 0.04, mask: ["**/JobsTableScreen/**/Portrait*"]}
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - ui_dump: {name: pause, root: "**/PauseScreen/LayoutContent"}
+  - shot: {name: pause, crop: "**/PauseScreen/LayoutContent"}
+  # Main Menu (the eighth button), then Quit Without Saving.
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/*Button", index: 7}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton"}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_ui:
+      "**/MainMenuButtons/ButtonTemplate": {count: 8}
+  - ui_dump: {name: menu, root: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons"}
+  # Ours draws BRUTAL's credit tile (IMGUI) left of the news tiles, over the lower buttons'
+  # right edge: masked.
+  - shot: {name: menu, crop: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", mask: [[210, 525, 60, 195]]}
+  # Options (the seventh of New Game, Load Game, Colony Summaries, Supply Closet,
+  # Translations, Mods, Options, Quit; Resume is apart), then its Game options.
+  - click: {ui: "**/MainMenuButtons/ButtonTemplate", index: 6}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/OptionsMenu/CenterContent", cond: stable}
+  - ui_dump: {name: options, root: "**/MainMenu_SpacedOut/OptionsMenu/CenterContent"}
+  - click: {ui: "**/OptionsMenu/CenterContent/Content/Buttons/*Button", index: 2}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/GameOptionsScreen", cond: stable}
+  - ui_dump: {name: game-options, root: "**/MainMenu_SpacedOut/GameOptionsScreen"}
+  - shot: {name: game-options, crop: "**/MainMenu_SpacedOut/GameOptionsScreen"}

@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3677676619-more-spices.yaml",
+ "mods": [
+  "3677676619"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the spices are in the game's database; setup builds a Spice Grinder in the dug-out corridor west of the printing pod, and selected its spice side screen lists them (dumped)",
+ "updated": "2026-11-01",
+ "commit": "eb669509",
+ "mod_dlls": {
+  "3677676619": {
+   "EdenMod.dll": "203909e232c0f9bc00d4f89aed1c909faee0df11007e8971541c3c69e65ca387"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-075025-21b2d5ac",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:51:16",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-081653-da6959e7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:16:53",
+    "lane": 44,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "spices": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-081653-da6959e7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:16:54",
+    "lane": 45,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "spices": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

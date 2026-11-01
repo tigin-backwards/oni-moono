@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3761681684-lollipop.yaml",
+ "mods": [
+  "3761681684"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Food Repurposing and builds a Lollipop in the dug-out corridor west of the printing pod. It shows in the Furniture menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "301f95d4",
+ "mod_dlls": {
+  "3761681684": {
+   "Lollipop.dll": "c5dd7b240162ef80eebb450f79cd5a2a4bba1ceed03440fa35cc4649db35a97b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-053127-e9ca470e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:31:28",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-061843-1ccd21a8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:18:43",
+    "lane": 45,
+    "reference_run": "20261101-053127-e9ca470e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-061843-1ccd21a8",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:27:35",
+    "lane": 45,
+    "reference_run": "20261101-053127-e9ca470e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

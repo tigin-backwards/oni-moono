@@ -1,0 +1,24 @@
+# Metal to Ore (3783718188), class P (Spaced Out).
+#
+# What it does: the Rock Granulator (RockCrusher) gets recipes that turn 100 kg of a refined
+# metal back into 80 kg of its ore and 20 kg of sand (a postfix on RockCrusherConfig's
+# ConfigureBuildingTemplate adds one per metal).
+# How a player reaches it: a Rock Granulator's recipe side screen.
+# What changes: refined metal recycled into ore.
+#
+# The granulator has more recipes than the game's (as many as in the original), one taking
+# refined copper; setup builds one in the dug-out corridor west of the printing pod, and
+# selected its recipe list is dumped.
+from: early-base
+mods: [3783718188]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"RockCrusher\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "count:ComplexRecipeManager.Get().recipes[*] if .fabricators[0].Name == RockCrusher and .ingredients[0].material.Name == Copper": 1
+      "count:ComplexRecipeManager.Get().recipes[*] if .fabricators[0].Name == RockCrusher": "== original"
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: RockCrusher}
+  - ui_wait: {path: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView", cond: stable}
+  - ui_dump: {name: recipes, root: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView"}

@@ -1,0 +1,24 @@
+# 空中游泳（Air Swim） (3779636414), class P.
+#
+# What it does: Duplicants swim through open air as through water: a prefix on
+# DupeSwimValidator.UpdateCell makes every clear, non-solid cell valid for the Swim navigation
+# type; the Atmo Suit's swimming penalty goes, swimming speed follows Athletics, and being
+# "submerged" or soaked no longer follows from it (patches on SteppedInMonitor, the swim
+# monitor, the path cost of being submerged and the transition layer).
+# How a player reaches it: Duplicants moving about; nothing to build.
+# What changes: Duplicants cross open space without ladders.
+#
+# A cell of open air in the dug-out corridor west of the printing pod is valid for swimming in
+# the Duplicants' navigation grid (in the game only liquid is), and the colony runs on, its
+# Duplicants dry.
+from: early-base
+mods: [3779636414]
+steps:
+  - run: {seconds: 5}
+  - expect_state:
+      "Grid.Element[131762].IsGas": true
+      "Pathfinding.Instance.GetNavGrid(\"MinionNavGrid\").NavTable.IsValid(131762, \"Swim\")": true
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}
+  - expect_state:
+      "count:Components.LiveMinionIdentities.Items[*] if .GetComponent<Effects>.HasEffect(\"SoakingWet\") == true": 0

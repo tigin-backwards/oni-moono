@@ -1,0 +1,23 @@
+# [Vanilla + DLC] Vacillator Recharge Recipe (3773941117), class P.
+#
+# What it does: the Molecular Forge (SupermaterialRefinery) gets a recipe for a Vacillator
+# Recharge (GeneShufflerRecharge, which recharges a used Neural Vacillator): 25 kg each of two
+# rare materials and 250 kg each of two more (a postfix on its ConfigureBuildingTemplate).
+# How a player reaches it: a Molecular Forge's recipe side screen.
+# What changes: Neural Vacillators can be recharged from made items.
+#
+# The forge's recipes include one making a Vacillator Recharge; setup builds a forge in the
+# dug-out corridor west of the printing pod, and selected its recipe list is dumped.
+from: early-base
+mods: [3773941117]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SupermaterialRefinery\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "count:ComplexRecipeManager.Get().recipes[*] if .results[0].material.Name == GeneShufflerRecharge": 1
+      "count:ComplexRecipeManager.Get().recipes[*] if .fabricators[0].Name == SupermaterialRefinery": "== original"
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: SupermaterialRefinery}
+  - ui_wait: {path: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView", cond: stable}
+  - ui_dump: {name: recipes, root: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView"}

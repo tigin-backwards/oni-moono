@@ -1,0 +1,22 @@
+# Jiffy Tube (3615615035), class P.
+#
+# What it does: travel through transit tubes takes no time: the cost of a tube-to-tube
+# transition is set to 0 as the game builds its nav grids (a prefix on NavGrid.Transition's
+# constructor, logged for each), a transpiler on PathGrid.BuildPath turns a ">=" on a cell's
+# cost into ">" so zero-cost steps still compete, and a prefix on Navigator.BeginTransition
+# skips a Duplicant entering a tube straight to the tube's last cell.
+# How a player reaches it: any transit tube network.
+# What changes: Duplicants cross tube networks at once, and pathing prefers them.
+#
+# The patches all apply at load: both players log the zero costs and the transpiler's find,
+# and the Duplicant nav grid's tube-to-tube transitions cost 0. The colony runs a minute with
+# them. (early-base has no tubes to ride.)
+from: early-base
+mods: [3615615035]
+require_log: ['\[JiffyTube\] Changing transition cost:Tube Tube \d+ -> 0', '\[JiffyTube\]Found target instruction']
+steps:
+  - expect_state:
+      "count:Pathfinding.Instance.GetNavGrid(\"MinionNavGrid\").transitions[*] if .start == Tube and .end == Tube": "> 0"
+      "count:Pathfinding.Instance.GetNavGrid(\"MinionNavGrid\").transitions[*] if .start == Tube and .end == Tube and .cost != 0": 0
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

@@ -1,0 +1,20 @@
+# No More Supplying Errands (3441163627), class P.
+#
+# What it does: no errand is in the Supply (Hauling) group any more: a prefix on ChoreType's
+# constructor moves errands that were only Supply into Storage and drops Supply from those
+# with other groups too.
+# How a player reaches it: nothing to click; the Priorities screen's Supply column has no
+# errands.
+# What changes: deliveries are prioritised as storage work or by their other group.
+#
+# The farm and repair fetches (Farming or Repair, and Supply, in the game) keep only their
+# other group; the colony runs two minutes of errands.
+from: early-base
+mods: [3441163627]
+steps:
+  - expect_state:
+      "Db.Get().ChoreTypes.FarmFetch.groups.Length": 1
+      "Db.Get().ChoreTypes.RepairFetch.groups.Length": 1
+      "Db.Get().ChoreTypes.FarmFetch.groups[0].Id": "!= 'Hauling'"
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}

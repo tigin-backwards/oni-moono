@@ -1,0 +1,31 @@
+# 제작 주문 수량 조절 Crafting Queue Quantity Control (3774781211), classes P, O (PLib options).
+#
+# What it does: in a fabricator's recipe queue (refineries, smelters, kitchens, medicine and
+# equipment makers), Shift and the mouse wheel over a recipe's order count raise or lower it
+# quickly (a step from its options); without Shift the wheel scrolls the recipe list as before.
+# Patches on ComplexFabricatorSideScreen.Initialize and RefreshQueueTooltip.
+# How a player reaches it: a fabricator's recipe side screen, Shift+wheel over a recipe.
+# What changes: big crafting orders without many clicks.
+#
+# setup builds a Rock Granulator in the dug-out corridor west of the printing pod. Selected,
+# its first recipe's queue screen opens; Shift held, the wheel turned up over its order count
+# raises the recipe's queued count, as far as in the original. The recipe list is not dumped:
+# the wheel also scrolls it a little, 0.5 px in the original and 5.8 px in ours (a scroll-rect
+# difference like the known scroll-normalized-position finding), which is not the mod's.
+from: early-base
+mods: [3774781211]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"RockCrusher\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: RockCrusher}
+  - ui_wait: {path: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView", cond: stable}
+  - click: {ui: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView/**/RecipeButtonWithQueue*", index: 0}
+  - ui_wait: {path: "**/SelectedRecipeQueueScreen", cond: stable}
+  - key: {code: LeftShift, down: true}
+  - scroll: {at: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView", notches: 3}
+  - key: {code: LeftShift, up: true}
+  - run: {seconds: 1}
+  - expect_state:
+      "all:ComplexFabricator::[0].recipeQueueCounts": "== original"

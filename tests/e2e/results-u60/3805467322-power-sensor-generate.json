@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3805467322-power-sensor-generate.yaml",
+ "mods": [
+  "3805467322"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Advanced Power Regulation and builds the sensor in the dug-out corridor west of the printing pod. It shows in the Automation menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "5de1fc04",
+ "mod_dlls": {
+  "3805467322": {
+   "PowerSensor.dll": "920ce8c0f1c2ce94b517ab6916187b4dd9869097072b1aa60259a778b954bde5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-044630-c52a1484",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:01:40",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092831-32e635e3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:28:31",
+    "lane": 44,
+    "reference_run": "20261101-044630-c52a1484",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-092831-32e635e3",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:28:32",
+    "lane": 45,
+    "reference_run": "20261101-044630-c52a1484",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

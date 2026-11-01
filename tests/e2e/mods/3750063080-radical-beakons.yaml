@@ -1,0 +1,19 @@
+# Radical Beacons (3750063080), class P.
+#
+# What it does: Beakons (ParrotFishConfig) emit radiation, like Shine Bugs emit light, so they
+# kill germs around them: a postfix on ParrotFishConfig.CreatePrefab adds a RadiationEmitter of
+# 60 rads in a 6-tile radius, both read from RadicalBeakons.ini beside its DLL (written with
+# the defaults on first start).
+# How a player reaches it: nothing to click; any Beakon.
+# What changes: Beakons are radiation sources.
+#
+# The Beakon prefab carries the mod's emitter, and the log reports its config.
+from: early-base
+mods: [3750063080]
+require_log: ['\[RadicalBeakons\] Loaded config: RadiationIntensity=60, RadiationRange=6', '\[RadicalBeakons\] ParrotFish now emits 60 rads']
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"ParrotFish\").GetComponent<RadiationEmitter>.emitRads": 60
+      "Assets.GetPrefab(\"ParrotFish\").GetComponent<RadiationEmitter>.emitRadiusX": 6
+      "Assets.GetPrefab(\"ParrotFish\").GetComponent<RadiationEmitter>.emitRadiusY": 6
+  - run: {seconds: 60}

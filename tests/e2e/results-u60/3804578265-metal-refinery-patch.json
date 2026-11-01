@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3804578265-metal-refinery-patch.yaml",
+ "mods": [
+  "3804578265"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Metal Refinery in the dug-out corridor west of the printing pod. It has the mod's coolant output (its storages as in the original), and selected its recipe list is dumped",
+ "updated": "2026-11-01",
+ "commit": "7fb6ce4a",
+ "mod_dlls": {
+  "3804578265": {
+   "MetalRefineryPatch.dll": "175c75a25bd7a05b214d901a08b0542dce2e3a5880946c1b4a6351141414e99f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032706-5e3764f7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:37:57",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092639-823dae47",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:26:39",
+    "lane": 44,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-092639-823dae47",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:26:40",
+    "lane": 45,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

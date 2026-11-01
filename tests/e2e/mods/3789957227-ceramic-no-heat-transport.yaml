@@ -1,0 +1,28 @@
+# Ceramic No-Heat Transport Buildings / 陶瓷无热抓取器装载器 (3789957227), class B.
+#
+# What it does: adds a Ceramic Conveyor Loader (CeramicSolidLoader) and a Ceramic Auto-Sweeper
+# (CeramicSolidTransferArm), built of ceramic only, in the Shipping menu beside the game's,
+# researched with Solid Transport: they give off no heat and exchange none with their
+# surroundings.
+# How a player reaches it: the build menu (Shipping), after the research.
+# What changes: conveyor buildings for hot or cold rooms.
+#
+# setup grants Solid Transport. Both are listed in the Shipping menu (shot), ceramic only,
+# with no self-heat.
+from: early-base
+mods: [3789957227]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"SolidTransport\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"SolidTransport\").unlockedItemIDs": [{contains: CeramicSolidLoader}, {contains: CeramicSolidTransferArm}]
+      "Assets.GetBuildingDef(\"CeramicSolidTransferArm\").MaterialCategory[0]": Ceramic
+      "Assets.GetBuildingDef(\"CeramicSolidTransferArm\").SelfHeatKilowattsWhenActive": 0
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Shipping"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CeramicSolidTransferArm Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/CeramicSolidLoader Group*": {active: true}
+  - shot: {name: shipping, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}

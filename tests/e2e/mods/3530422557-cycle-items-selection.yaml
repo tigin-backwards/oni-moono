@@ -1,0 +1,32 @@
+# CycleItemsSelection / 相同物品切換選擇 (3530422557), class K (keys).
+#
+# What it does: with something selected, ] and [ select the next or previous object of the
+# same kind (every Duplicant, critters of one species, buildings of one type, items of one
+# element), sorted top to bottom then left to right: a postfix on SelectTool.Select lists
+# them, and one on Game.Update reads the two keys.
+# How a player reaches it: select something, then press ] or [.
+# What changes: stepping through like objects without hunting for them.
+#
+# setup builds two Storage Bins in the dug-out corridor west of the printing pod. The western
+# one is selected; ] selects the eastern one, and [ the western one again.
+from: early-base
+mods: [3530422557]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [{"$": "Grid.XYToCell(110, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [{"$": "Grid.XYToCell(114, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 208], ortho: 8}}
+  - click_world: {cell: [110, 207], select: StorageLocker}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:transform.position.x": "< 112"
+  - key: {code: RightBracket}
+  - run: {seconds: 1}
+  - expect_state:
+      "selected:GetComponent<KPrefabID>.PrefabTag.Name": StorageLocker
+      "selected:transform.position.x": "> 112"
+  - key: {code: LeftBracket}
+  - run: {seconds: 1}
+  - expect_state:
+      "selected:transform.position.x": "< 112"

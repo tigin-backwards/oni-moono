@@ -1,0 +1,24 @@
+# Mini Freezer (3756115269), class B.
+#
+# What it does: a 1x1 Mini Freezer (MiniFreezer) in the Food menu's storage group after the
+# Mini Fridge: 50 kg of food kept frozen, powered, with PLib options (MiniFridgeFreezer.json)
+# and an energy saver patch on the fridge's state machine.
+# How a player reaches it: the build menu (Food).
+# What changes: a small powered freezer.
+#
+# setup places a Mini Freezer in the corridor west of the printing pod (118,207): selected,
+# it stores 50 kg of food.
+from: early-base
+mods: [3756115269]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"MiniFreezer\")", method: Build, args: [131770, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {MiniFreezer: 1}}
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: MiniFreezer}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Storage>.capacityKg": 50
+      "selected:GetComponent<Refrigerator>": exists
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}

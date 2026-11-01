@@ -1,0 +1,67 @@
+{
+ "spec": "mods/3804025857-motion-sensor-range.yaml",
+ "mods": [
+  "3804025857"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Duplicant Motion Sensor's range slider (dumped): 10 typed into its field sets the sensor's range and visualizer; details shot",
+ "updated": "2026-10-31",
+ "commit": "a9878f14",
+ "mod_dlls": {
+  "3804025857": {
+   "MotionSensorRange.dll": "6262924c0a5668db83dea4bc45dc851322025a4a065a4a6f8be74d2ecb1effba"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-211206-4612e68b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:12:06",
+    "lane": 36,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-233012-3a2e2991",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:30:12",
+    "lane": 35,
+    "reference_run": "20261031-211206-4612e68b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "details": 0.0
+    }
+   },
+   {
+    "run": "20261031-233012-3a2e2991",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T23:40:45",
+    "lane": 35,
+    "reference_run": "20261031-211206-4612e68b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "details": 0.0
+    }
+   }
+  ]
+ }
+}

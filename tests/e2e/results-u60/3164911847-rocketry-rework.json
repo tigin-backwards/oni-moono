@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3164911847-rocketry-rework.yaml",
+ "mods": [
+  "3164911847"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "early-base has no rocket: the modules' definitions are read (the solar panel module's wattage, the sugar engine's fuel storage) as in the original, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "b4a8abf4",
+ "mod_dlls": {
+  "3164911847": {
+   "RocketryRework.dll": "161a15b172969654898d71fc696d120d783deb8816a3b30daaf5b948af12fe67"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-075025-21b2d5ac",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:54:55",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-080807-415f5752",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:08:07",
+    "lane": 42,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-080807-415f5752",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:08:08",
+    "lane": 45,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

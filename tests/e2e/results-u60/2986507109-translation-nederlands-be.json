@@ -1,0 +1,101 @@
+{
+ "spec": "mods/2986507109-translation-nederlands-be.yaml",
+ "mods": [
+  "2986507109"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "played Belgian Dutch on a colony's research and priorities screens and pause menu, then the main menu, its options and Game options screens, dumped and shot",
+ "updated": "2026-11-01",
+ "commit": "5e932a0f",
+ "mod_dlls": {
+  "2986507109": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-223759-08eb2164",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:47:25",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-000555-ccc3cce6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:05:55",
+    "lane": 44,
+    "reference_run": "20261031-223759-08eb2164",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 0.0,
+     "game-options": 0.0
+    }
+   },
+   {
+    "run": "20261101-000555-ccc3cce6",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T00:05:56",
+    "lane": 45,
+    "reference_run": "20261031-223759-08eb2164",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 2e-06,
+     "pause": 0.0,
+     "menu": 0.0,
+     "game-options": 0.0
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,19 @@
+# 超级煤炭发电机Super Coal Generator+ (3785023349), class P.
+#
+# What it does: postfixes on GeneratorConfig make the Coal Generator a 32768 W generator that
+# burns 1 g of coal a second and gives off 1 kg/s of oxygen at -10 °C instead of carbon dioxide.
+# How a player reaches it: the build menu (Power), as before.
+# What changes: a coal generator that makes oxygen and much more power.
+#
+# The Coal Generator's definition and its building's formula carry the new rates; the colony
+# runs.
+from: early-base
+mods: [3785023349]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Generator\").GeneratorWattageRating": 32768
+      "Assets.GetBuildingDef(\"Generator\").BuildingComplete.GetComponent<EnergyGenerator>.formula.inputs[0].consumptionRate": "< 0.0011"
+      "Assets.GetBuildingDef(\"Generator\").BuildingComplete.GetComponent<EnergyGenerator>.formula.outputs[0].element": Oxygen
+      "Assets.GetBuildingDef(\"Generator\").BuildingComplete.GetComponent<EnergyGenerator>.formula.outputs[0].creationRate": 1
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

@@ -1,0 +1,20 @@
+# Custom Lead Suit Temperature 铅服自定义 (3772683214), class P (PLib options).
+#
+# What it does: a postfix on LeadSuitConfig.CreateEquipmentDef replaces the Lead Suit's scalding
+# and frostbite threshold modifiers with its options' values (+1000 and -1000 by default, the
+# game's).
+# How a player reaches it: the mod's options on the Mods screen (restart required).
+# What changes: how hot or cold a Lead Suit wearer may go.
+#
+# With the scalding bonus at 2000 and the frostbite one at -1500, the Lead Suit's definition
+# carries those modifiers; the colony runs.
+from: early-base
+mods: [3772683214]
+options:
+  "3772683214": {ScaldingThreshold: 2000.0, FrostbiteThreshold: -1500.0}
+steps:
+  - expect_state:
+      "sum:Assets.GetPrefab(\"Lead_Suit\").GetComponent<Equippable>.def.AttributeModifiers[*].Value if .AttributeId == ScaldingThreshold": 2000
+      "sum:Assets.GetPrefab(\"Lead_Suit\").GetComponent<Equippable>.def.AttributeModifiers[*].Value if .AttributeId == ScoldingThreshold": -1500
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

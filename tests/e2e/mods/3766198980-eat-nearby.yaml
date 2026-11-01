@@ -1,0 +1,28 @@
+# Eat Nearby (3766198980), classes P, S, O (PLib options).
+#
+# What it does: a Duplicant whose mess station (or, for a Bionic, its power bank errand) is too
+# far away, 10 cells by default, eats where it stands instead of walking there: patches on
+# the eat chore's GetPreferredMessStation, UpdateMessStation and CreateLocator. Each Duplicant
+# gets a slider (DuplicantDistanceOverride, an ISingleSliderControl) that sets its own limit.
+# How a player reaches it: a selected Duplicant's slider side screen; the mod's options.
+# What changes: Duplicants stop walking across the map to eat.
+#
+# setup moves a Duplicant to the dug-out corridor west of the printing pod; the game is
+# paused and he is selected: he has the mod's slider control (its side screen is not on the
+# details screen's first tab).
+from: early-base
+mods: [3766198980]
+setup:
+  - driver: {setup.call: {type: TransformExtensions, method: SetPosition, args: [{"$": "Components.LiveMinionIdentities.Items[1].transform"}, {"$": "Grid.CellToPosCBC(131762, \"Move\")"}]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"Minion\").GetComponent<EatNearby.DuplicantDistanceOverride>": exists
+  - key: {code: Space}
+  - driver: {camera.set: {cell: [110, 208], ortho: 8}}
+  - click_world: {cell: [110, 207], select: Minion}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<EatNearby.DuplicantDistanceOverride>": exists
+  - key: {code: Space}
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

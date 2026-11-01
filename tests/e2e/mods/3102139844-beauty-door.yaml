@@ -1,0 +1,22 @@
+# Beauty Door 对称的门 (3102139844), class P.
+#
+# What it does: the Pneumatic Door, Manual Airlock and Mechanized Airlock get symmetrical
+# anims of the mod's (door_internal_beauty_kanim and the others): postfixes on their configs'
+# CreateBuildingDef swap their first anim file, and a postfix on Door.SetWorldState plays it.
+# How a player reaches it: building doors.
+# What changes: how doors look.
+#
+# The Pneumatic Door's definition uses the mod's anim; setup builds one across the dug-out
+# corridor west of the printing pod, and the Duplicants walk through it as the colony runs.
+from: early-base
+mods: [3102139844]
+require_log: ['---->CreateBuildingDefPatch: door_external_beauty_kanim']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Door\")", method: Build, args: [{"$": "Grid.XYToCell(116, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Door\").AnimFiles[0].name": door_internal_beauty_kanim
+      "Assets.GetBuildingDef(\"ManualPressureDoor\").AnimFiles[0].name": door_manual_beauty_kanim
+  - run: {seconds: 120}
+  - expect: {buildings: {Door: ">= 1"}}
+  - expect: {duplicants: 3}

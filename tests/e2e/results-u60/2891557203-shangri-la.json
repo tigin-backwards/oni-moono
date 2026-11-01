@@ -1,0 +1,79 @@
+{
+ "spec": "mods/2891557203-shangri-la.yaml",
+ "mods": [
+  "2891557203"
+ ],
+ "verdict": "failed",
+ "why": "a run of ours failed",
+ "findings": [],
+ "note": "setup grants Directed Air Streams and builds it in the dug-out corridor west of the printing pod. It shows in the Oxygen menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "3ab6ed9d",
+ "mod_dlls": {
+  "2891557203": {
+   "╩└═Γ╠╥╘┤.dll": "48358f4245e752cc9f3ef13b4af93f072bdd9694434f9583baea8135f3f8084a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-053127-e9ca470e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:31:27",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-055037-b99f1912",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T05:50:37",
+    "lane": 44,
+    "reasons": [
+     "ui_dump details: 1 difference(s)"
+    ],
+    "reference_run": "20261101-053127-e9ca470e",
+    "new_signatures": 0,
+    "findings": [
+     "float-tostring-shortest"
+    ],
+    "ui_dump": {
+     "details": {
+      "differences": 1,
+      "known": {
+       "float-tostring-shortest": 1
+      }
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-055037-b99f1912",
+    "index": 2,
+    "verdict": "fail",
+    "date": "2026-11-01T05:50:38",
+    "lane": 42,
+    "reasons": [
+     "ui_dump details: 1 difference(s)"
+    ],
+    "reference_run": "20261101-053127-e9ca470e",
+    "new_signatures": 0,
+    "findings": [
+     "float-tostring-shortest"
+    ],
+    "ui_dump": {
+     "details": {
+      "differences": 1,
+      "known": {
+       "float-tostring-shortest": 1
+      }
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

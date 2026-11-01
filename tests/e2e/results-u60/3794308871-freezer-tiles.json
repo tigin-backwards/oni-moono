@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3794308871-freezer-tiles.yaml",
+ "mods": [
+  "3794308871"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a freezer tile: in the Food menu (shot) and the Database; solid floor holding 100 kg of food",
+ "updated": "2026-11-01",
+ "commit": "cc4cd298",
+ "mod_dlls": {
+  "3794308871": {
+   "FreezerTile.dll": "ef66bae855dc9f73064d51153cd478b3e4bdbac6e5cdb0649fa97a1a37c76232"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-235402-acab431d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:54:02",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-015415-921ba7a9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:54:15",
+    "lane": 35,
+    "reference_run": "20261031-235402-acab431d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "food-menu": 0.0
+    }
+   },
+   {
+    "run": "20261101-015415-921ba7a9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:58:13",
+    "lane": 35,
+    "reference_run": "20261031-235402-acab431d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "food-menu": 0.0
+    }
+   }
+  ]
+ }
+}

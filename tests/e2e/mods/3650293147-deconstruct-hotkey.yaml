@@ -1,0 +1,20 @@
+# Deconstruct Hotkey (3650293147), classes K, P.
+#
+# What it does: a selected building's Deconstruct user menu button gets the Building Utility 2
+# hotkey (a transpiler on Deconstructable.OnRefreshUserMenu swaps its action, 280, for 141), so
+# the key deconstructs what is selected.
+# How a player reaches it: select a building, press the Building Utility 2 key.
+# What changes: deconstruction from the keyboard.
+#
+# setup builds a Storage Bin in the dug-out corridor west of the printing pod. Selected, its user
+# menu's Deconstruct button is dumped (its hotkey shown in its tooltip), as in the original.
+from: early-base
+mods: [3650293147]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: StorageLocker}
+  - ui_wait: {path: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons", cond: stable}
+  - ui_dump: {name: buttons, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}

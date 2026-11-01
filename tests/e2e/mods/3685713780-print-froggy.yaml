@@ -1,0 +1,21 @@
+# Print Froggy - Mutant Race Mod (3685713780), class X (content for Dupery).
+#
+# What it does: no code. With Dupery (here Dupery Fixed, 3172734005; its description requires
+# Dupery), its personalities.json adds a printable Duplicant personality, Froggy
+# (non-binary, Aggressive stress reaction, Balloon Artist joy trait, model AmphibianMinion), with its head shape and empty eyes and hair from the mod's anim folder.
+# How a player reaches it: Duplicants printed or picked for a new colony; the Duplicant's
+# Personality tab.
+# What changes: another personality in the pool.
+#
+# Dupery imports the personality into the game's Personalities and loads its accessories.
+from: early-base
+mods: [3172734005, 3685713780]
+require_log: ['\[Dupery\]: accessory eyes_none successfully loaded']
+steps:
+  - expect_state:
+      "Db.Get().Personalities.TryGet(\"FROGGY\")": exists
+      "Db.Get().Personalities.TryGet(\"FROGGY\").Disabled": false
+      "Db.Get().Accessories.TryGet(\"eyes_none\")": exists
+      "Db.Get().Personalities.Count": "== original"
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

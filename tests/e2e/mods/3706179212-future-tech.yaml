@@ -1,0 +1,29 @@
+# 未来科技 / Future Tech (3706179212), class B.
+#
+# What it does: adds eight buildings to the Utilities menu, no research: a vacuum machine that
+# draws in all the gas nearby (VacuumMachines), a powered liquid pump (PowerLiquidPump), a
+# graphite press (GraphitePress), a niobium press (NiobiumPress), three light blocks
+# (LightBlock, LightBlock2, LightBlock3) and a buildable radiation lamp (DiyRadiationLight).
+# How a player reaches it: the build menu (Utilities).
+# What changes: shortcuts for gas, liquids, materials, light and radiation.
+#
+# The eight buildings are listed in the Utilities menu (shot).
+from: early-base
+mods: [3706179212]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"VacuumMachines\")": exists
+      "Assets.GetBuildingDef(\"DiyRadiationLight\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Utilities"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/DiyRadiationLight Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/VacuumMachines Group*": {active: true}
+      "**/BuildingGroups/**/Grid/PowerLiquidPump Group*": {active: true}
+      "**/BuildingGroups/**/Grid/GraphitePress Group*": {active: true}
+      "**/BuildingGroups/**/Grid/NiobiumPress Group*": {active: true}
+      "**/BuildingGroups/**/Grid/LightBlock Group*": {active: true}
+      "**/BuildingGroups/**/Grid/LightBlock2 Group*": {active: true}
+      "**/BuildingGroups/**/Grid/LightBlock3 Group*": {active: true}
+  - shot: {name: utilities, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}

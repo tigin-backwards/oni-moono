@@ -1,0 +1,34 @@
+# Gas Storage of Flamengo Team (3339009099), class B.
+#
+# What it does: adds a gas reservoir in Flamengo's colours (GasStorageTeamFla), researched with Improved
+# Oxygen (the Oxygen menu): metal, a gas input and output, 1000 kg of gas (the game's Gas
+# Reservoir holds 150 kg); a postfix on BuildingComplete.OnSpawn swaps its anim for the
+# team's.
+# How a player reaches it: the build menu (Oxygen), after the research.
+# What changes: a bigger gas reservoir with a football club's look.
+#
+# setup grants Improved Oxygen and builds the reservoir in the dug-out corridor west of the
+# printing pod. It shows in the Oxygen menu; built, it holds 1000 kg and wears the team's
+# anim, and selected its details screen names it.
+from: early-base
+mods: [3339009099]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"ImprovedOxygen\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"GasStorageTeamFla\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"ImprovedOxygen\").unlockedItemIDs": {contains: GasStorageTeamFla}
+      "Assets.GetBuildingDef(\"GasStorageTeamFla\").BuildingComplete.GetComponent<Storage>.capacityKg": 1000
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Oxygen"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/GasStorageTeamFla Group*", cond: stable}
+  - key: {code: Escape}
+  - expect_state:
+      "count:all:BuildingComplete::[*] if .name == GasStorageTeamFlaComplete": 1
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: GasStorageTeamFla}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<KBatchedAnimController>.AnimFiles[0].name": {contains: gasstorageteam}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

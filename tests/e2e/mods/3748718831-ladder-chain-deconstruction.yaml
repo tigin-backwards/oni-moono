@@ -1,0 +1,28 @@
+# 拆除梯子 (Ladder Chain Deconstruction) (3748718831), class T.
+#
+# What it does: when a Duplicant finishes deconstructing a ladder, every other ladder of the
+# same kind on that world that is marked for deconstruction goes with it (a prefix on
+# Deconstructable.OnCompleteWork queues them; a processor drops their materials and removes up
+# to seven a frame while the game runs).
+# How a player reaches it: the Deconstruct tool dragged over a ladder.
+# What changes: a marked ladder column comes down in one go.
+#
+# setup places a three-ladder column in the corridor west of the printing pod (117, 207-209);
+# the Deconstruct tool is dragged over it, and after a minute no ladder is left.
+from: early-base
+mods: [3748718831]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Ladder\")", method: Build, args: [131769, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Ladder\")", method: Build, args: [132405, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Ladder\")", method: Build, args: [133041, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {Ladder: 3}}
+  - driver: {camera.set: {cell: [117, 208], ortho: 8}}
+  - tool: {toolbar: Deconstruct}
+  - drag: {from: [117, 209], to: [117, 207]}
+  - key: {code: Escape}
+  - expect_state:
+      "count:all:Deconstructable::[*] if .IsMarkedForDeconstruction() == true": ">= 3"
+  - run: {seconds: 60}
+  - expect: {buildings: {Ladder: 0}}

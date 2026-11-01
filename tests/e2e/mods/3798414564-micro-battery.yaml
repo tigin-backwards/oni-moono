@@ -1,0 +1,38 @@
+# Micro Battery (3798414564), class B.
+#
+# What it does: adds the Micro Battery (MicroBattery) to the Power menu, researched with
+# Space Power: a 1x1 battery of refined metal holding 20 kJ (a Smart Battery's charge),
+# losing 2 J/s, that needs no floor (built anywhere) and lets Duplicants walk through it.
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: a battery that fits in one cell.
+#
+# setup grants Space Power and spawns 500 kg of copper (it costs 400). The battery shows in
+# the Power menu; it is built in mid-air in the dug-out corridor west of the printing pod,
+# and once built and selected it holds 20 kJ.
+from: early-base
+mods: [3798414564]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"SpacePower\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Copper\").substance", method: SpawnResource, args: [[111.5, 206.5, -12], 500, 300, 255, 0]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"SpacePower\").unlockedItemIDs": {contains: MicroBattery}
+      "Assets.GetBuildingDef(\"MicroBattery\").BuildLocationRule": Anywhere
+      "Assets.GetBuildingDef(\"MicroBattery\").BuildingComplete.GetComponent<Battery>.capacity": 20000
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/MicroBattery Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/MicroBattery Group*": {active: true}
+  - key: {code: Escape}
+  - build: {prefab: MicroBattery, at: [114, 207], material: Copper}
+  - expect: {blueprints: {MicroBattery: 1}}
+  - run: {seconds: 1500, until: {buildings: {MicroBattery: 1}, pending_construction: 0}}
+  - driver: {camera.set: {cell: [114, 207], ortho: 8}}
+  - click_world: {cell: [114, 207], select: MicroBattery}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Battery>.capacity": 20000
+  - expect_ui:
+      "**/DetailsScreen/TitleBar/Border/LabelGroup/Label": {text: "~Micro Battery"}

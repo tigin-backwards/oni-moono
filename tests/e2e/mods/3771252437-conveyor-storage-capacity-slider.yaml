@@ -1,0 +1,33 @@
+# 运输存储器容量滑条 Conveyor Storage Capacity Slider (3771252437), classes P, S.
+#
+# What it does: the Conveyor Receptacle (SolidConduitOutbox) gets a capacity slider, 0 to
+# 50,000 kg (100 kg by default, the game's fixed capacity): a ConveyorStorageCapacityControl
+# (ISingleSliderControl) added in its ConfigureBuildingTemplate and on spawn sets its storage's
+# and conveyor consumer's capacity.
+# How a player reaches it: a Conveyor Receptacle's slider side screen.
+# What changes: how much a receptacle holds.
+#
+# setup builds a Conveyor Receptacle in the dug-out corridor west of the printing pod. It holds
+# 100 kg; selected, its slider side screen goes to 50,000; 2000 typed into the slider's field
+# sets its storage to 2000 kg.
+from: early-base
+mods: [3771252437]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SolidConduitOutbox\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:ConveyorStorageCapacitySlider.ConveyorStorageCapacityControl::Length": 1
+      "all:SolidConduitOutbox::[0].GetComponent<Storage>.capacityKg": 100
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: SolidConduitOutbox}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/Config Tab - body instance/SingleSliderSideScreen", cond: stable}
+  - expect_state:
+      "ui:**/SingleSliderSideScreen/**/Slider::GetComponent<KSlider>.maxValue": 50000
+  - ui_dump: {name: slider, root: "**/Config Tab - body instance/SingleSliderSideScreen"}
+  - click: {ui: "**/SingleSliderSideScreen/**/NumberInputField"}
+  - type: {ui: "**/SingleSliderSideScreen/**/NumberInputField", text: "2000", clear: true, enter: true}
+  - run: {seconds: 1}
+  - expect_state:
+      "all:SolidConduitOutbox::[0].GetComponent<Storage>.capacityKg": 2000

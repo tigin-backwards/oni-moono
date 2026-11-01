@@ -1,0 +1,17 @@
+# 喷气服加速jet suit speed (3628643997), class P.
+#
+# What it does: Duplicants in a jet suit fly at their walking speed: a transpiler on
+# BipedTransitionLayer.BeginTransition reads floorSpeed where the game reads jetPackSpeed, and
+# a postfix recomputes the transition's speed for jet-suit moves.
+# How a player reaches it: nothing to click; a Duplicant flying a jet suit.
+# What changes: faster jet suit flight.
+#
+# The mod loads with its transpiler and postfix on BeginTransition (game code), and the
+# colony runs a minute of walking with them.
+from: early-base
+mods: [3628643997]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == JetSpeed and .loaded_mod_data.patched_methods.Count == 1": 1
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

@@ -486,7 +486,7 @@ MODTABLE = os.path.join(helpers.SCRIPTS, 'modtable.py')
 class ModTable(unittest.TestCase):
     """modtable.py's Played column from tests/e2e/results records, beside its hand-written sets."""
 
-    def table(self, records, load_sweep=''):
+    def table(self, records, load_sweep='', u60_records=None):
         with tempfile.TemporaryDirectory() as temp:
             load_sweeps = os.path.join(temp, 'load-sweeps')
             os.makedirs(load_sweeps)
@@ -504,12 +504,17 @@ class ModTable(unittest.TestCase):
             for name, record in records.items():
                 with open(os.path.join(results, name + '.json'), 'w') as f:
                     json.dump(record, f)
+            results_u60 = os.path.join(temp, 'results-u60')
+            os.makedirs(results_u60)
+            for name, record in (u60_records or {}).items():
+                with open(os.path.join(results_u60, name + '.json'), 'w') as f:
+                    json.dump(record, f)
             sweeps = os.path.join(temp, 'sweeps')
             os.makedirs(sweeps)
             with open(os.path.join(sweeps, 'sweep-b0.txt'), 'w') as f:
                 f.write('9990003\n9990004\n')
             out = subprocess.run([sys.executable, MODTABLE, catalog], capture_output=True, text=True, check=True,
-                                 env=dict(os.environ, ONI_RESULTS_DIR=results, ONI_SWEEP_DIR=sweeps,
+                                 env=dict(os.environ, ONI_RESULTS_DIR=results, ONI_RESULTS_U60_DIR=results_u60, ONI_SWEEP_DIR=sweeps,
                                           ONI_SWEEP_RESULTS=load_sweeps)).stdout
         return {line.split(' | ')[1].split(']')[0].lstrip('['): line for line in out.splitlines()
                 if line.startswith('| ') and '](https://steam' in line}
@@ -517,6 +522,16 @@ class ModTable(unittest.TestCase):
     def record(self, mid, verdict, note, findings=()):
         return {'spec': f'mods/{mid}-x.yaml', 'mods': [mid], 'verdict': verdict, 'why': 'a run of ours failed',
                 'findings': list(findings), 'note': note, 'runs': {}}
+
+    def test_u60_records_win_and_say_so(self):
+        rows = self.table({'a': self.record('9990001', 'failed', 'the button does nothing')},
+                          u60_records={'a': self.record('9990001', 'played', 'its tool marks only sandstone'),
+                                       'c': self.record('9990003', 'failed', 'the button does nothing')})
+        self.assertTrue(rows['Played Mod'].endswith('| ✅ | ✅ | ✅ | on U60: spec tests/e2e/mods/9990001-x.yaml: '
+                                                    'its tool marks only sandstone |'))
+        self.assertTrue(rows['Failing Mod'].endswith('| ✅ | ✅ | ⬜ | on U60: spec fails in ours: '
+                                                     'tests/e2e/mods/9990003-x.yaml: the button does nothing '
+                                                     '(a run of ours failed) |'))
 
     def test_records_decide_the_played_column(self):
         rows = self.table({'a': self.record('9990001', 'played', 'its tool marks only sandstone'),

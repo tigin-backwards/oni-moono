@@ -1,0 +1,23 @@
+# 冰霜小麦与小吃豆修改 / Sleet Wheat and Nosh Bean tweaks (3571343650), class P.
+#
+# What it does: postfixes on the Sleet Wheat's (ColdWheat) and Nosh Sprout's (BeanPlant)
+# prefabs make them need 10 micrograms of dirt and water a cycle, grow in any atmosphere and
+# pressure and at any temperature (about ±2000 °C), give 100 of their seeds (ColdWheatSeed,
+# BeanPlantSeed) every 1800 s, and decorate (+100).
+# How a player reaches it: planting the two crops.
+# What changes: two crops that grow anywhere and yield heaps of seeds.
+#
+# Both plants' prefabs carry the new crop (100 seeds per harvest) and the wide temperature
+# range; the colony runs.
+from: early-base
+mods: [3571343650]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"ColdWheat\").GetComponent<Crop>.cropVal.products[0].cropId": ColdWheatSeed
+      "Assets.GetPrefab(\"ColdWheat\").GetComponent<Crop>.cropVal.products[0].quantity": 100
+      "Assets.GetPrefab(\"BeanPlant\").GetComponent<Crop>.cropVal.products[0].cropId": BeanPlantSeed
+      "Assets.GetPrefab(\"BeanPlant\").GetComponent<Crop>.cropVal.products[0].quantity": 100
+      "Assets.GetPrefab(\"ColdWheat\").GetComponent<TemperatureVulnerable>.internalTemperatureLethal_High": "> 2000"
+      "Assets.GetPrefab(\"BeanPlant\").GetComponent<TemperatureVulnerable>.internalTemperatureLethal_High": "> 2000"
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

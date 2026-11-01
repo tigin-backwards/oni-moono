@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3263141178-improved-rocket-platform-logic.yaml",
+ "mods": [
+  "3263141178"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "early-base has no rocket: the mod loads and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "464fe643",
+ "mod_dlls": {
+  "3263141178": {
+   "ImprovedRocketPlatformLogic.dll": "1409b98fc1ffe327e89adf614acfa07ab719009f4b043229bd6317e54b869cec"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024504-a96eb81a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:45:04",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-030607-493fce53",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:06:07",
+    "lane": 41,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-030607-493fce53",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:07:13",
+    "lane": 44,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

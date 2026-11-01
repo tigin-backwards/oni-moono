@@ -1,0 +1,24 @@
+# 火箭发射检查清单修改-燃料充足警告修改 / Rocket launch checklist: fuel check (3582265048), classes P, U (PLib options).
+#
+# What it does: the launch checklist's fuel and oxidizer conditions (ConditionProperlyFueled,
+# ConditionSufficientOxidizer) can be relaxed: its option picks Original, OneWayAllow (a one-way
+# trip may launch) or AlwaysAllow, and each Launch Pad gets a user menu button, 忽略燃料检查
+# ("ignore the fuel check"), which turns into 启用燃料检查 ("enable the fuel check") once
+# pressed; the condition list side screen follows.
+# How a player reaches it: a Launch Pad's user menu; the mod's options.
+# What changes: rockets launch without full tanks.
+#
+# setup builds a Launch Pad in the corridor west of the printing pod; selected, its user menu
+# has the ignore button, and pressing it switches it to the enable button.
+from: early-base
+mods: [3582265048]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LaunchPad\")", method: Build, args: [131130, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [114, 208], ortho: 8}}
+  - click_world: {cell: [114, 206], select: LaunchPad}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/忽略燃料检查Button", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/忽略燃料检查Button"}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/启用燃料检查Button", cond: stable}
+  - ui_dump: {name: user-menu, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}

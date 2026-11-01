@@ -1,0 +1,17 @@
+# 装桶器容量上限10吨 Bottler Capacity 10t (3771251560), class P.
+#
+# What it does: the Bottle Filler and Canister Filler (LiquidBottler, GasBottler) store up to
+# 10000 kg (postfixes on their ConfigureBuildingTemplate set the storage capacity, and their
+# conduit intake to the bottler's).
+# How a player reaches it: building a bottler; its capacity slider.
+# What changes: much larger bottles.
+#
+# Both bottlers' prefabs hold 10 t; the log says the mod loaded.
+from: early-base
+mods: [3771251560]
+require_log: ['\[BottlerCapacity10000Kg\] Loaded']
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"LiquidBottler\").GetComponent<Storage>.capacityKg": 10000
+      "Assets.GetPrefab(\"GasBottler\").GetComponent<Storage>.capacityKg": 10000
+  - run: {seconds: 30}

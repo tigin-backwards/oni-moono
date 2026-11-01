@@ -1,0 +1,27 @@
+# Suit Dock Settings Copier (3774781370), class S (a vanilla tool on more buildings).
+#
+# What it does: every suit locker (the Atmo Suit Dock and the other suit docks) gets the
+# game's Copy Settings (CopyBuildingSettings, added in a prefix on
+# BuildingLoader.CreateBuildingComplete), and copying settings between docks also copies
+# whether each requests a suit or has its suit removed (OnCopySettings on SuitLocker).
+# How a player reaches it: selecting a suit dock; its Copy Settings button.
+# What changes: suit dock settings can be painted onto other docks.
+#
+# The mod loads ("vanilla setting copies include suit request state"); setup places an Atmo
+# Suit Dock in the corridor west of the printing pod (118,207), which has Copy Settings in
+# its user menu.
+from: early-base
+mods: [3774781370]
+require_log: ['\[SuitDockSettingsCopier\] loaded; vanilla setting copies include suit request state']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SuitLocker\")", method: Build, args: [131770, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {SuitLocker: 1}}
+  - expect_state:
+      "Assets.GetPrefab(\"SuitLocker\").GetComponent<CopyBuildingSettings>": exists
+      "Assets.GetPrefab(\"JetSuitLocker\").GetComponent<CopyBuildingSettings>": exists
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: SuitLocker}
+  - ui_wait: {path: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons", cond: stable}
+  - ui_dump: {name: user-menu, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}

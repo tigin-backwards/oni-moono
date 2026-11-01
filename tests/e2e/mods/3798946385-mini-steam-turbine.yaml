@@ -1,0 +1,33 @@
+# Mini Steam Turbine / 迷你蒸汽涡轮机 (3798946385), class B.
+#
+# What it does: a Mini Steam Turbine (CompactSteamTurbine1x3, 1x3, 200 W from 0.4 kg/s of steam)
+# and a Medium one (CompactSteamTurbine3x3, 3x3, 600 W, 1.2 kg/s) in the Power menu, researched
+# with Renewable Energy, with codex pages of their own.
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: small steam turbines.
+#
+# setup grants Renewable Energy and builds a Mini Steam Turbine in the dug-out corridor west of
+# the printing pod. Both show in the Power menu; the mini rates 200 W, and selected its details
+# screen is dumped.
+from: early-base
+mods: [3798946385]
+require_log: ['\[MiniSteamTurbine\] loaded']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"RenewableEnergy\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CompactSteamTurbine1x3\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"RenewableEnergy\").unlockedItemIDs": {contains: CompactSteamTurbine1x3}
+      "Assets.GetBuildingDef(\"CompactSteamTurbine1x3\").GeneratorWattageRating": 200
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CompactSteamTurbine1x3 Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/CompactSteamTurbine1x3 Group*": {active: true}
+      "**/BuildingGroups/**/Grid/CompactSteamTurbine3x3 Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: CompactSteamTurbine1x3}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

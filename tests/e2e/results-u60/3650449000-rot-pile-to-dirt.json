@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3650449000-rot-pile-to-dirt.yaml",
+ "mods": [
+  "3650449000"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns a rot pile on the floor of the dug-out corridor west of the printing pod; once it has decayed, no polluted dirt was made of it",
+ "updated": "2026-11-01",
+ "commit": "4425341a",
+ "mod_dlls": {
+  "3650449000": {
+   "RotPileToDirt.dll": "a5a974fc8e071bb538a47c85210aa75c7df76ab9bb8e6cc24a532d58b5e18653"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-064852-62246d7e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:14:27",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-075238-555eb7a2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:52:38",
+    "lane": 45,
+    "reference_run": "20261101-064852-62246d7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-075238-555eb7a2",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:01:44",
+    "lane": 44,
+    "reference_run": "20261101-064852-62246d7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

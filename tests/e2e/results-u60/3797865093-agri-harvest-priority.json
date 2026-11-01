@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3797865093-agri-harvest-priority.yaml",
+ "mods": [
+  "3797865093"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Harvest tool opens with the mod's options in its filter menu (dumped, as in the original); Escape puts it away",
+ "updated": "2026-11-01",
+ "commit": "541788b4",
+ "mod_dlls": {
+  "3797865093": {
+   "AgriHarvestPriority.dll": "65d5611d90f52e9f5dd68e862ceb2e99aa667c206fa44546530f2e24f6bf6ff1"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024504-a96eb81a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:50:25",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-090759-d4da271b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:07:59",
+    "lane": 44,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "filters": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-090759-d4da271b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:08:00",
+    "lane": 45,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "filters": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

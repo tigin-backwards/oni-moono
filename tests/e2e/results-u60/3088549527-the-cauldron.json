@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3088549527-the-cauldron.yaml",
+ "mods": [
+  "3088549527"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Renewable Energy and builds the Cauldron in the dug-out corridor west of the printing pod. It shows in the Utilities menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "2a5aabac",
+ "mod_dlls": {
+  "3088549527": {
+   "daguolu.dll": "04df096719979110dbb18ed0a101be81f1bc9c8c8605c899dd75c6c67ce298e5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043324-145195fb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:40:29",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-045020-9ab48478",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:50:20",
+    "lane": 41,
+    "reference_run": "20261101-043324-145195fb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-045020-9ab48478",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:50:21",
+    "lane": 45,
+    "reference_run": "20261101-043324-145195fb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

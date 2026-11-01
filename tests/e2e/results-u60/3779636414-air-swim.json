@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3779636414-air-swim.yaml",
+ "mods": [
+  "3779636414"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a cell of open air in the dug-out corridor west of the printing pod is valid for swimming in the Duplicants' navigation grid (in the game only liquid is), and the colony runs on, its Duplicants dry",
+ "updated": "2026-11-01",
+ "commit": "ea24c67a",
+ "mod_dlls": {
+  "3779636414": {
+   "AirSwim.dll": "41dfb793d59f474ded6e327d251cfc6ff2b797588ac3c47ed1410c5f859f8ce9"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-071706-22499823",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:22:12",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-074200-2d4a19a0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:42:00",
+    "lane": 44,
+    "reference_run": "20261101-071706-22499823",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-074200-2d4a19a0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:42:01",
+    "lane": 45,
+    "reference_run": "20261101-071706-22499823",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

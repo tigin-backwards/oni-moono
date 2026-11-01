@@ -1,0 +1,15 @@
+# Dev Loader (3581544588), classes K, U.
+#
+# What it does: force-loads (or unloads) the mods in the game's Mods/DEV folder, with a small
+# button of its own on the main menu and the management menu, and hotkeys: Ctrl+F1 toggles
+# the loader, Ctrl+1 quits to the menu without saving and resumes the last game.
+# How a player reaches it: its button; Ctrl+F1 and Ctrl+1.
+# What changes: developer mods without the Mods screen.
+#
+# A run has no Mods/DEV folder: the loader says so and the colony runs on.
+from: early-base
+mods: [3581544588]
+require_log: ['\[DevLoader\] Hotkeys listo', '\[DevLoader\] Mods/DEV no existe']
+steps:
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

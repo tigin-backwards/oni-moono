@@ -1,0 +1,19 @@
+# Atomic Bank Tweaks (3796741033), class P.
+#
+# What it does: the Atomic Power Bank (SelfChargingElectrobank) is crafted from 50 kg of uranium
+# ore (its recipes are rewritten after Db.Initialize, each ComplexRecipeManager.Add and the
+# forge's configuration), and at the end of its life it despawns and drops 50 kg of depleted
+# uranium instead of exploding into nuclear waste (prefixes on the bank's explode and expire
+# methods).
+# How a player reaches it: the fabricator's recipe; an atomic bank running out.
+# What changes: cheaper, cleaner atomic banks.
+#
+# The atomic bank's recipe takes uranium ore, as the mod rewrote it; the colony runs.
+from: early-base
+mods: [3796741033]
+require_log: ['\[AtomicBankTweaks\] loaded', '\[AtomicBankTweaks\] explode hooks: [1-9]']
+steps:
+  - expect_state:
+      "count:ComplexRecipeManager.Get().recipes[*] if .results[0].material.Name == SelfChargingElectrobank and .ingredients[0].material.Name == UraniumOre": ">= 1"
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

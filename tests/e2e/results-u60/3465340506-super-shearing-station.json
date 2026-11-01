@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3465340506-super-shearing-station.yaml",
+ "mods": [
+  "3465340506"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with Drecko at 10x and Glossy Drecko at 3x, their shearing drops are 20 kg and 450 kg",
+ "updated": "2026-11-01",
+ "commit": "d7bff7e7",
+ "mod_dlls": {
+  "3465340506": {
+   "PLib.dll": "c4bb22f1bc06ebcb0dbba75a7f1bc46f63eaa3dae12c22a08729f1a6d3362dda",
+   "SuperShearingStation.dll": "d9a7b611e85db15f9567933b246ccbfbfad47aa5a92892f8d90cfb797599d6e4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-015529-05c1d77a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:12:26",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-051445-14d19cba",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:14:45",
+    "lane": 35,
+    "reference_run": "20261101-015529-05c1d77a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-051445-14d19cba",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:18:39",
+    "lane": 35,
+    "reference_run": "20261101-015529-05c1d77a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

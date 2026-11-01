@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3431400353-goldbelly-scales-growth-rate.yaml",
+ "mods": [
+  "3431400353"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "options set 1 % a second. setup spawns a Gold Belly in the dug-out corridor west of the printing pod and gives it the well-fed effect (as eating does). After 60 s its scale growth is past 50 %, as in the original",
+ "updated": "2026-11-01",
+ "commit": "7cafe6c0",
+ "mod_dlls": {
+  "3431400353": {
+   "GoldBellyWellFedMod.dll": "8517332ac6bd0175a807aee9097caeb46179fa0a123ebba3c6a5397eefe1d736",
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-060041-4bcefaa6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:05:11",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-064606-4b0ee241",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:46:06",
+    "lane": 44,
+    "reference_run": "20261101-060041-4bcefaa6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-064606-4b0ee241",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:47:32",
+    "lane": 40,
+    "reference_run": "20261101-060041-4bcefaa6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
