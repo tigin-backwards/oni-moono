@@ -1,0 +1,65 @@
+{
+ "spec": "mods/3518558797-gravitas-tile-skin.yaml",
+ "mods": [
+  "2815406414",
+  "3518558797"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the pack is checked in True Tiles' pack list, enabled, and the texture used for a Ceramic tile comes from its folder. Then, from the main menu, the Mods screen's Texture Packs button on its row opens True Tiles' settings, which list it (dumped: OniMcp cannot shoot the main menu)",
+ "updated": "2026-11-01",
+ "commit": "feb8a066",
+ "mod_dlls": {
+  "2815406414": {
+   "TrueTiles.dll": "ccd24cf608fa27ada9eef6f7dbcc25498329d553db6dbdf7985c137a7c0034ac"
+  },
+  "3518558797": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-010456-4ec6cb36",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:17:23",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-014249-7c6b5047",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:42:49",
+    "lane": 45,
+    "reference_run": "20261101-010456-4ec6cb36",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "packs": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-014249-7c6b5047",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:42:55",
+    "lane": 44,
+    "reference_run": "20261101-010456-4ec6cb36",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "packs": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
