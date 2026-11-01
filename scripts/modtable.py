@@ -451,8 +451,9 @@ broken.update({
     '3779615427': 'broken on U60 (build 761015): its backwalls use `natural_tile_kanim`, which it does not ship and the game does not load on this build, so the original logs "Missing Anim", fails NaturalBackwall in RegisterBuilding (NullReferenceException) and exits (1) while loading a colony; not run in ours',
     '3764098079': 'broken on U60 (build 761015): its postfix on `Db.Initialize` adds PlasmaDoor to the build menu without a guard, and the original then throws on a duplicate key ("An item with the same key has already been added. Key: PlasmaDoor", also in the codex) and opens its crash screen while loading a colony; not run in ours',
     '3754121151': 'broken on U60 (build 761015): with its power transmitter built, the original throws a NullReferenceException in `CellChangeMonitor.RenderEveryTick` under its `Game.Update` patch a few seconds into play and opens its crash screen; not run in ours',
+    '3801593061': 'broken on U60 (build 761015): it reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException), and the original exits (1) while loading a colony; not run in ours',
 })
-not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869', '3746629588', '3564852497', '3734918401', '3741456698', '3619073345', '3779615427', '3764098079', '3754121151'}
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869', '3746629588', '3564852497', '3734918401', '3741456698', '3619073345', '3779615427', '3764098079', '3754121151', '3801593061'}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
