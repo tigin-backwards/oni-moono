@@ -1,0 +1,21 @@
+# Smart Radbolt Storage (3423159242), classes P, S (Spaced Out).
+#
+# What it does: radbolt storages (the Radbolt Chamber HEPBattery, the Diamond Press, the
+# Materials Study Terminal, the Interplanetary Launcher and others) get an automation output in
+# activation range mode, with low and high thresholds: their HighEnergyParticleStorage becomes a
+# SmartHEPStorage (IActivationRangeTarget, the activation range side screen).
+# How a player reaches it: a radbolt storage's activation range side screen.
+# What changes: automation that keeps radbolts topped up.
+#
+# setup builds a Radbolt Chamber in the dug-out corridor west of the printing pod. It has the
+# smart storage (counted as in the original).
+from: early-base
+mods: [3423159242]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"HEPBattery\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "Assets.GetPrefab(\"HEPBattery\").GetComponent<HighEnergyParticleStorage>.GetType().Name": SmartHEPStorage
+  - expect_state:
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == HEPBattery": "== original"
