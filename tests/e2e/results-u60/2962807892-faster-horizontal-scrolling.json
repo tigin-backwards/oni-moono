@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2962807892-faster-horizontal-scrolling.yaml",
+ "mods": [
+  "2962807892"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the consumables screen opens; its scroll rect's horizontal inertia scale is 20, as in the original; the screen closes",
+ "updated": "2026-11-01",
+ "commit": "a15c1c5b",
+ "mod_dlls": {
+  "2962807892": {
+   "FasterHorizontalScrolling.dll": "66abded033d3ab217ab67f22aacbcd0b0811bb71cd03f59447894bb040649b04"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082806-3c2b3be2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:39:42",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084613-182d4ac6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:46:13",
+    "lane": 42,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-084613-182d4ac6",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:46:14",
+    "lane": 43,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
