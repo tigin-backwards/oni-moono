@@ -10,6 +10,16 @@
 # ONI_SCOPE=NAME.scope names the scope, inside a contained command too: a test runner
 # (scripts/e2e.py, scripts/qa.sh) starts each player in a scope of its own and stops that scope
 # whole when the run ends, so nothing the player started outlives it. It is not passed on.
+# The user's desktop display reaches no command run here: WSLg's Wayland compositor always stays
+# out, and so does DISPLAY when it is WSLg's desktop (:0), as scripts/e2e.py does for its
+# players. A player, a probe or a check mode that makes a render context would otherwise put a
+# window on the user's Windows desktop, even a hidden one for a moment (2026-11-01: --check-shaders
+# showed a 1x1 one). Test displays (an Xvfb's :N) pass. ONI_DESKTOP_DISPLAY=1 keeps the desktop's,
+# for a deliberate WSLg run (on the second monitor only).
+if [ "${ONI_DESKTOP_DISPLAY:-}" != 1 ]; then
+    unset WAYLAND_DISPLAY XDG_SESSION_TYPE
+    case "${DISPLAY:-}" in :0|:0.0) [ -d /mnt/wslg ] && unset DISPLAY XAUTHORITY ;; esac
+fi
 set -euo pipefail
 echo 1000 > /proc/self/oom_score_adj 2> /dev/null || true
 scope="${ONI_SCOPE:-}"
