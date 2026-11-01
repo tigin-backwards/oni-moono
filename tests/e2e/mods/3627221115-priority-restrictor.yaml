@@ -1,0 +1,13 @@
+# Priority Restrictor (3627221115), class M.
+#
+# What it does: each Duplicant, by name, may be limited to errands within a priority range (a
+# ChoreConsumer patch reading its configuration).
+# How a player reaches it: its configuration file.
+# What changes: Duplicants kept to some priorities.
+#
+# The mod loads and the colony plays for 30 s with no restriction configured.
+from: early-base
+mods: [3627221115]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
