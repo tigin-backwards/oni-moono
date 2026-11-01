@@ -413,7 +413,8 @@ def needs_driver(spec):
 # Every runner on the machine, in whichever worktree, meets in one directory (shared_dir):
 #   lane-L.lock       held (flock) by the runner using lane L; it holds that runner's pid and root
 #   players.json      the players running now and the memory each one is counted for
-#   players.lock      guards players.json
+#   waiters.json      the runners waiting for a player, oldest first (Budget.hold's tickets)
+#   players.lock      guards players.json and waiters.json
 #   perf.lock         held shared by every spec run; a perf job takes it exclusively
 #   xvfb.lock         serialises xvfb-run -a starts (--xvfb-run)
 #   reserved          ports and displays that others use, which no lane takes
@@ -1129,13 +1130,21 @@ class Budget:
     """The players running on the machine, from every runner: a ledger (players.json, guarded
     by players.lock) of who runs one and for how many GB. A player starts only while the total
     stays within E2E_MEMORY_GB and the count within E2E_MAX_PLAYERS (a player bigger than the
-    whole budget starts alone). An entry whose process has gone is dropped."""
+    whole budget starts alone). An entry whose process has gone is dropped.
+
+    Waiting is first come, first served across every runner: hold() takes a ticket at the end
+    of a queue (waiters.json), and only the oldest live waiter may take a player. A runner that
+    has just freed a player waits behind those already waiting, and try_acquire without a ticket
+    gets nothing while anyone waits. The oldest waiter's turn still depends on what runs, qa.sh
+    included: it starts once its player fits. A ticket whose process has gone is dropped, so a
+    dead waiter never holds up the queue."""
 
     def __init__(self, directory=None, gb=None, players=None):
         self.dir = directory or shared_dir()
         self.gb = float(gb or os.environ.get('E2E_MEMORY_GB') or MEMORY_GB)
         self.players = int(players or os.environ.get('E2E_MAX_PLAYERS') or MAX_PLAYERS)
         self.ledger = os.path.join(self.dir, 'players.json')
+        self.queue = os.path.join(self.dir, 'waiters.json')
         self.guard = threading.Lock()
 
     @contextlib.contextmanager
@@ -1148,32 +1157,58 @@ class Budget:
             finally:
                 fcntl.flock(f, fcntl.LOCK_UN)
 
-    def _read(self):
+    def _read(self, path=None):
         try:
-            with open(self.ledger) as f:
+            with open(path or self.ledger) as f:
                 entries = json.load(f)
         except (OSError, ValueError):
             entries = []
         return [e for e in entries if alive_owner(e)]
 
-    def _write(self, entries):
-        temp = f'{self.ledger}.{os.getpid()}.{threading.get_ident()}'
+    def _write(self, entries, path=None):
+        path = path or self.ledger
+        temp = f'{path}.{os.getpid()}.{threading.get_ident()}'
         with open(temp, 'w') as f:
             json.dump(entries, f, indent=1)
-        os.replace(temp, self.ledger)
+        os.replace(temp, path)
 
     def entries(self):
         with self._locked():
             return self._read()
 
+    def waiters(self):
+        """The live waiters' tickets, oldest first."""
+        with self._locked():
+            return self._read(self.queue)
+
+    def enqueue(self, gb, label):
+        """A ticket at the end of the queue of waiters."""
+        with self._locked():
+            waiters = self._read(self.queue)
+            ticket = f'{os.getpid()}-{threading.get_ident()}-{time.time_ns()}'
+            waiters.append(dict(owner_record(), ticket=ticket, gb=gb, label=label))
+            self._write(waiters, self.queue)
+            return ticket
+
+    def dequeue(self, ticket):
+        with self._locked():
+            self._write([w for w in self._read(self.queue) if w['ticket'] != ticket], self.queue)
+
     @staticmethod
     def describe(entries):
         return ', '.join(f'{e["label"]} ({e["gb"]:g} GB, pid {e["pid"]})' for e in entries) or 'none'
 
-    def try_acquire(self, gb, label):
+    def try_acquire(self, gb, label, ticket=None):
         """A token for one player of GB, or (None, why not). A running qa.sh counts as one player
-        of QA_GB."""
+        of QA_GB. Only the oldest live waiter's TICKET may take a player while anyone waits (no
+        ticket: none); the ticket leaves the queue with the token."""
         with self._locked():
+            waiters = self._read(self.queue)
+            if waiters and waiters[0]['ticket'] != ticket:
+                ahead = next((i for i, w in enumerate(waiters) if w['ticket'] == ticket), len(waiters))
+                first = waiters[0]
+                return None, (f'{ahead} waiter(s) ahead in the queue, first {first["label"]} '
+                              f'({first["gb"]:g} GB, pid {first["pid"]})')
             entries = self._read()
             qa_gb = float(os.environ.get('E2E_QA_GB', QA_GB))
             counted = entries + ([dict(label='qa.sh', gb=qa_gb, pid=pid) for pid, _, _ in qa_processes()]
@@ -1185,6 +1220,8 @@ class Budget:
             token = f'{os.getpid()}-{threading.get_ident()}-{time.time_ns()}'
             entries.append(dict(owner_record(), token=token, gb=gb, label=label))
             self._write(entries)
+            if waiters:
+                self._write(waiters[1:], self.queue)
             return token, None
 
     def release(self, token):
@@ -1194,12 +1231,17 @@ class Budget:
     @contextlib.contextmanager
     def hold(self, gb, label, log=say, max_wait=None):
         waiter = Waiter(f'memory for a player ({gb:g} GB)', log, max_wait)
-        while True:
-            token, why = self.try_acquire(gb, label)
-            if token:
-                break
-            waiter.tick(why, key=why.split(':')[0])
-            time.sleep(5)
+        ticket = self.enqueue(gb, label)
+        try:
+            while True:
+                token, why = self.try_acquire(gb, label, ticket)
+                if token:
+                    break
+                waiter.tick(why, key=why.split(':')[0].split(',')[0])
+                time.sleep(5)
+        except BaseException:
+            self.dequeue(ticket)
+            raise
         try:
             yield token
         finally:
