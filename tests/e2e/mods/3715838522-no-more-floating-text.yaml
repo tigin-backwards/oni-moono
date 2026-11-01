@@ -1,0 +1,21 @@
+# No More Floating Text (3715838522), class P ("No Ressource Floating Text").
+#
+# What it does: no floating text pops up over the world (picked up and delivered amounts,
+# resources, damage and the like): a prefix on every PopFXManager.SpawnFX overload skips it.
+# How a player reaches it: playing; nothing to set.
+# What changes: no pop-up numbers.
+#
+# A cell of the floor west of the printing pod is dug, and its debris carried off over 300 s
+# of the colony's errands: no floating text is ever on screen.
+from: early-base
+mods: [3715838522]
+require_log: ['\[NoPickupDeliveryNotifications\] \d+ surcharge\(s\) de SpawnFX patchée\(s\)']
+steps:
+  - dig: [108, 205, 108, 205]
+  - run: {seconds: 120, until: {pending_digs: 0}}
+  - expect_state:
+      "all:PopFX::Length": 0
+  - run: {seconds: 180}
+  - expect_state:
+      "all:PopFX::Length": 0
+  - expect: {duplicants: 3}
