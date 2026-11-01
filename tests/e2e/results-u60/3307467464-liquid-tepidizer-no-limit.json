@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3307467464-liquid-tepidizer-no-limit.yaml",
+ "mods": [
+  "3307467464"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Liquid Tepidizer's definition cannot overheat",
+ "updated": "2026-11-01",
+ "commit": "f0a16381",
+ "mod_dlls": {
+  "3307467464": {
+   "Heaters.dll": "47908fb9737a129ab7e6a126b87e52a69fedf166283afcc3d9494b37733d56ca"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-011236-1e84a883",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:28:01",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-042450-1c72e6e1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:24:50",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-042450-1c72e6e1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:30:46",
+    "lane": 35,
+    "reference_run": "20261101-011236-1e84a883",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
