@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3561988485-kanim-ripper.yaml",
+ "mods": [
+  "3561988485"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod attaches its behaviour at the colony's start (its log line); the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "77acb98f",
+ "mod_dlls": {
+  "3561988485": {
+   "Kanim Ripper.dll": "7f27ea5adefaf9e146dab430bbc1d99121b20bcae416051f23c575eae20f1609"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014426-dd59a92f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:44:27",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-021537-2454a9e1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:15:37",
+    "lane": 42,
+    "reference_run": "20261101-014426-dd59a92f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-021537-2454a9e1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:15:38",
+    "lane": 45,
+    "reference_run": "20261101-014426-dd59a92f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
