@@ -1,0 +1,23 @@
+# BCONI Trainer and Trait Editor Dev tools (3821143242), classes U, K, P (a panel of its own).
+#
+# What it does: a cheat menu on F9 (BconiPanel, a draggable, resizable uGUI panel): free
+# construction, instant research, unlimited items, invincible Duplicants, free power, all
+# research, item printing and a trait editor; patches on AmountInstance.Sim200ms,
+# EnergyConsumer.WattsUsed, FetchList2.Submit, Health.Damage, the research points, Storage and
+# the build menu.
+# How a player reaches it: F9 in a colony.
+# What changes: whatever the cheats switch on (all off at first).
+#
+# F9 opens the panel (dumped); F9 again closes it; the colony runs on, its cheats off.
+from: early-base
+mods: [3821143242]
+steps:
+  - run: {seconds: 2}
+  - key: {code: F9}
+  - ui_wait: {path: "**/BconiPanel", cond: stable}
+  - ui_dump: {name: panel, root: "**/BconiPanel"}
+  - key: {code: F9}
+  - expect_ui:
+      "**/BconiPanel": {exists: false}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
