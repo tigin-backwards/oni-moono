@@ -1,0 +1,15 @@
+# Crazy Hatch + Flesh and Blood Power Generation (3665332055), class P.
+#
+# What it does: the Coal Generator also burns meat (an EnergyGenerator.EnergySim200ms patch on
+# its formula) and Hatches turn wild: their brains and burrowing change (BaseHatchConfig,
+# CreatureBrain.OnSpawn and burrow monitor patches).
+# How a player reaches it: Hatches; a Coal Generator.
+# What changes: meat as fuel, unruly Hatches.
+#
+# The mod loads, as its log says, and the colony plays for 60 s.
+from: early-base
+mods: [3665332055]
+require_log: ['\[MeatAsFuel\] 血肉发电机 \+ 极端哈奇 已加载']
+steps:
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
