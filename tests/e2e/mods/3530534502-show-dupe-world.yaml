@@ -19,5 +19,5 @@ steps:
       "ClusterManager.Instance.GetStartWorld().GetComponent<AsteroidGridEntity>.Name": {save_as: world}
   # Every Duplicant's row names the world; none says "Unknown World".
   - expect_state:
-      "count:all:AssignableSideScreenRow::[*] if .GetComponentInChildren<LocText>.GetComponent<ToolTip>.toolTip == 'Unknown World'": 0
-      "ui:**/Rows/AssignableSideScreenRow::GetComponentInChildren<LocText>.GetComponent<ToolTip>.toolTip": "!= ''"
+      "count:all:AssignableSideScreenRow::[*] if .GetComponentInChildren<LocText>.GetComponent<ToolTip>.GetMultiString(0) == 'Unknown World'": 0
+      "ui:**/Rows/AssignableSideScreenRow::GetComponentInChildren<LocText>.GetComponent<ToolTip>.GetMultiString(0)": "!= ''"
