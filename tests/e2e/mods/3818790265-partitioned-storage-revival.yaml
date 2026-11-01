@@ -1,0 +1,37 @@
+# Partitioned Storage - Revival (3818790265), classes K, S (no PLib; a side screen of its own).
+#
+# What it does: storage bins, smart bins, ration boxes, refrigerators, conveyor loaders (and
+# rocket cargo bays, reservoirs) get partitions: per material quotas in kg, fetched up to
+# each quota, instead of one capacity for whatever the filter accepts. Each storage gets an
+# ImprovedTreeFilterable (off by default) and user menu buttons: "Enable Partitions", and once
+# on, "Disable Partitions", a remove-excess button and the mod's options.
+# How a player reaches it: a storage building's user menu, then its configuration side screen
+# (PartitionedStorageRevival, added to the details screen's config tab), one row per accepted
+# material with a quota field. While on, the game's capacity side screen is hidden.
+# What changes: what a storage fetches and holds.
+#
+# setup builds a Storage Bin in the dug-out corridor west of the printing pod. Selected, its
+# user menu offers Enable Partitions; clicking it turns the partitions on, the capacity side
+# screen gives way to the mod's, and the menu offers Disable Partitions.
+from: early-base
+mods: [3818790265]
+require_log: ['\[PartitionedStorage.Revival\] Registered configuration side screen', '\[PartitionedStorage.Revival\] Supported storage prefab: StorageLocker']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [131129, Neutral, null, [SandStone], 300.0, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: StorageLocker}
+  - ui_wait: {path: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons", cond: stable}
+  - expect_state:
+      "selected:GetComponent<ImprovedFilteredStorage.ImprovedTreeFilterable>.Enabled": false
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Enable PartitionsButton", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/Enable PartitionsButton"}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Disable PartitionsButton", cond: stable}
+  - expect_state:
+      "selected:GetComponent<ImprovedFilteredStorage.ImprovedTreeFilterable>.Enabled": true
+  - ui_wait: {path: "**/Config Tab - body instance/PartitionedStorageRevival", cond: stable}
+  - expect_ui:
+      "**/Config Tab - body instance/PartitionedStorageRevival": {active: true}
+  - ui_dump: {name: buttons, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}
+  - ui_dump: {name: partitions, root: "**/Config Tab - body instance/PartitionedStorageRevival"}
