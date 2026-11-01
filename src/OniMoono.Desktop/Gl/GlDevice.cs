@@ -243,8 +243,11 @@ namespace OniMoono.Desktop.Gl
             if (!Glfw.ExtensionSupported(windows ? "WGL_AMD_gpu_association" : "GLX_AMD_gpu_association")) return 0;
             var contextGpu = (delegate* unmanaged<IntPtr, uint>)Glfw.GetProcAddress(windows ? "wglGetContextGPUIDAMD"u8 : "glXGetContextGPUIDAMD"u8);
             var info = (delegate* unmanaged<uint, int, uint, uint, void*, int>)Glfw.GetProcAddress(windows ? "wglGetGPUInfoAMD"u8 : "glXGetGPUInfoAMD"u8);
-            if (contextGpu == null || info == null) return 0;
-            uint id = contextGpu(windows ? WglGetCurrentContext() : GlxGetCurrentContext());
+            // glXGetProcAddress gives core GLX functions too (GLX 1.4, section 3.3.12), from the
+            // libGL GLFW loaded; wglGetProcAddress does not, so WGL's comes from opengl32.dll.
+            var glxCurrent = windows ? null : (delegate* unmanaged<IntPtr>)Glfw.GetProcAddress("glXGetCurrentContext"u8);
+            if (contextGpu == null || info == null || (!windows && glxCurrent == null)) return 0;
+            uint id = contextGpu(windows ? WglGetCurrentContext() : glxCurrent());
             if (id == 0) return 0;
             uint mb = 0;
             return info(id, GpuRamAmd, UnsignedIntType, 1, &mb) >= 1 && mb is > 0 and <= int.MaxValue ? (int)mb : 0;
@@ -252,9 +255,6 @@ namespace OniMoono.Desktop.Gl
 
         [DllImport("opengl32.dll", EntryPoint = "wglGetCurrentContext")]
         static extern IntPtr WglGetCurrentContext();
-
-        [DllImport("libGL.so.1", EntryPoint = "glXGetCurrentContext")]
-        static extern IntPtr GlxGetCurrentContext();
 
         /// The NVIDIA extension's free dedicated memory and evictions (count and size since the
         /// context was made), or the AMD one's free memory in the texture pool and the auxiliary
