@@ -1,0 +1,32 @@
+# 钅鸟火山（Metal Bird Volcano） (3759056573), class B.
+#
+# What it does: adds a 1x1 converter (MetalBirdVolcanoConverter) to the Equipment menu that, once
+# its work is done, replaces itself with a 3x3 Metal Bird Volcano (MetalBirdVolcano), a building
+# that erupts metal every so often.
+# How a player reaches it: the build menu (Equipment).
+# What changes: a buildable metal volcano.
+#
+# setup builds the converter in the dug-out corridor west of the printing pod. It shows in the
+# Equipment menu; selected, its details screen is dumped, and the colony runs on.
+from: early-base
+mods: [3759056573]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Ranching\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"MetalBirdVolcanoConverter\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"MetalBirdVolcano\").WidthInCells": 3
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Operations"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/MetalBirdVolcanoConverter Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/MetalBirdVolcanoConverter Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: MetalBirdVolcanoConverter}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
