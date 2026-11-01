@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using UnityEngine;
 
 namespace OniMoono.Engine
@@ -10,6 +11,13 @@ namespace OniMoono.Engine
     /// The player's log: what Unity's default log handler does natively. Writes Player.log and
     /// stdout, and calls the log callbacks on the logging thread: logMessageReceived only for a
     /// message logged on the main thread, logMessageReceivedThreaded for every message.
+    ///
+    /// Locks, always taken in this order: Console.Out's (EnterConsole), then fileLock, then the
+    /// original console's. A Console.WriteLine holds Console.Out's (TextWriter.Synchronized) when
+    /// it reaches LogWriter, and on Linux and macOS .NET's console stream takes Console.Out's again
+    /// on every write (ConsolePal.Unix's WriteFromConsoleStream), whatever stdout is. So whatever
+    /// writes to the original console under fileLock takes Console.Out's first; else a game line
+    /// on one thread and an engine line on another wait for each other forever (#44).
     internal static class EngineLog
     {
         static readonly object fileLock = new();
@@ -41,26 +49,49 @@ namespace OniMoono.Engine
                 try { File.Move(path, previous, overwrite: true); }
                 catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
             }
-            lock (fileLock)
+            var held = EnterConsole();
+            try
             {
-                EngineLog.scrubber = scrubber;
-                pending.Clear();
-                file = new CappedLogFile(path);
-                console ??= Console.Out;
-                Console.SetOut(new LogWriter(console));
+                lock (fileLock)
+                {
+                    EngineLog.scrubber = scrubber;
+                    pending.Clear();
+                    file = new CappedLogFile(path);
+                    console ??= Console.Out;
+                    Console.SetOut(new LogWriter(console));
+                }
             }
+            finally { Monitor.Exit(held); }
         }
 
         public static void Close()
         {
-            lock (fileLock)
+            var held = EnterConsole();
+            try
             {
-                if (console != null) WritePending();
-                if (console != null) Console.SetOut(console);
-                console = null;
-                file?.Dispose();
-                file = null;
-                scrubber = null;
+                lock (fileLock)
+                {
+                    if (console != null) WritePending();
+                    if (console != null) Console.SetOut(console);
+                    console = null;
+                    file?.Dispose();
+                    file = null;
+                    scrubber = null;
+                }
+            }
+            finally { Monitor.Exit(held); }
+        }
+
+        /// Takes the lock of Console.Out, the writer it still is once the lock is held (Open and
+        /// Close replace it only under that lock), and returns that writer, for Monitor.Exit.
+        static TextWriter EnterConsole()
+        {
+            while (true)
+            {
+                var writer = Console.Out;
+                Monitor.Enter(writer);
+                if (ReferenceEquals(Console.Out, writer)) return writer;
+                Monitor.Exit(writer);
             }
         }
 
@@ -111,7 +142,8 @@ namespace OniMoono.Engine
         }
 
         /// The console's writer while the log is open: each write goes to the original console and
-        /// the log file.
+        /// the log file. It is reached only through TextWriter.Synchronized, so its callers hold
+        /// Console.Out's lock, and it takes only fileLock.
         sealed class LogWriter(TextWriter console) : TextWriter
         {
             public override Encoding Encoding => console.Encoding;
@@ -185,16 +217,21 @@ namespace OniMoono.Engine
         {
             text = Scrub(text);
             // To the original console and the log file while the log is open.
-            lock (fileLock)
+            var held = EnterConsole();
+            try
             {
-                if (file != null && console != null)
+                lock (fileLock)
                 {
-                    WritePending();
-                    console.WriteLine(text);
-                    file.WriteLine(text);
+                    if (file != null && console != null)
+                    {
+                        WritePending();
+                        console.WriteLine(text);
+                        file.WriteLine(text);
+                    }
+                    else held.WriteLine(text);
                 }
-                else Console.Out.WriteLine(text);
             }
+            finally { Monitor.Exit(held); }
         }
 
         public static void Message(LogType type, string message, string stackTrace) => Message(type, message, stackTrace, stackTrace);
