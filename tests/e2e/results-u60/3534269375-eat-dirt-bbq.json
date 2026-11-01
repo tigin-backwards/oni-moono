@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3534269375-eat-dirt-bbq.yaml",
+ "mods": [
+  "3534269375"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "its patches are applied from a method KMod never calls: the Electric Grill has the game's recipes only, as in the original",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3534269375": {
+   "EatDirt.dll": "77abd9b6567f75a35d14b7cdc3af19d21211aebf8e7cb7b9d469d24039126ba6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082923-99275c78",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:29:23",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-125746-a08c1fd2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:57:46",
+    "lane": 35,
+    "reference_run": "20261101-082923-99275c78",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-125746-a08c1fd2",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:59:01",
+    "lane": 35,
+    "reference_run": "20261101-082923-99275c78",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
