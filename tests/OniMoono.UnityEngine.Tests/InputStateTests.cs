@@ -111,6 +111,17 @@ namespace OniMoono.Tests
             Assert.Equal("", InputStateFeed.TextOf(0x110000));
         }
 
+        // Windows' double clicks: within the time-out and the rectangle centred on the first click
+        // (the defaults: 500 ms, 4x4 pixels).
+        [Fact]
+        public void AWindowsDoubleClickIsWithinTheSystemsTimeAndRectangle()
+        {
+            Assert.True(InputStateFeed.IsWithin(0.5f, new Vector2(2f, -2f), 0.5f, 4, 4));
+            Assert.False(InputStateFeed.IsWithin(0.501f, Vector2.zero, 0.5f, 4, 4));
+            Assert.False(InputStateFeed.IsWithin(0.1f, new Vector2(3f, 0f), 0.5f, 4, 4));
+            Assert.True(InputStateFeed.IsWithin(0.1f, new Vector2(0f, 9f), 0.5f, 4, 20));
+        }
+
         // IMGUI's ScrollWheel event: down for wheel-down, one per notch on Linux and three on
         // Windows, as the original players report it (Linux: tests/e2e/scroll-zoom.yaml; Windows:
         // real WHEEL_DELTA notches in the U59 player, delta 3 and 60 px a notch in a scroll view).
