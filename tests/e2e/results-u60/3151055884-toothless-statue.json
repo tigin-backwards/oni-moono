@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3151055884-toothless-statue.yaml",
+ "mods": [
+  "3151055884"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds the statue in the dug-out corridor west of the printing pod. It shows in the Furniture menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "46af5b87",
+ "mod_dlls": {
+  "3151055884": {
+   "GG120240131.dll": "2c2c2af298849cb2169cec91108d55b8ab3aeb9679ed8aa8c9626039b99695bd"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-232935-3c71633c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:48:38",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-004338-ed89e74d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:43:38",
+    "lane": 44,
+    "reference_run": "20261031-232935-3c71633c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-004338-ed89e74d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T00:43:40",
+    "lane": 45,
+    "reference_run": "20261031-232935-3c71633c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

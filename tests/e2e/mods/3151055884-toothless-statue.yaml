@@ -1,0 +1,23 @@
+# 无牙仔-Driftveil City (3151055884), class B.
+#
+# What it does: adds a decor statue of Toothless (GG120240131) to the Furniture menu.
+# How a player reaches it: the build menu (Furniture).
+# What changes: one more decor piece.
+#
+# setup builds the statue in the dug-out corridor west of the printing pod. It shows in the
+# Furniture menu; selected, its details screen is dumped.
+from: early-base
+mods: [3151055884]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"GG120240131\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/GG120240131 Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/GG120240131 Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: GG120240131}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
