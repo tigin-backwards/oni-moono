@@ -1,0 +1,75 @@
+{
+ "spec": "mods/1703611962-bigger-building-menu.yaml",
+ "mods": [
+  "1703611962"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "be1682c9",
+ "mod_dlls": {
+  "1703611962": {
+   "BiggerBuildingMenu.dll": "1f3a8f6b07be7f010e55dd17c0d103253d03f421c770af65922674f99386da41"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-154228-64bb86ec",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:42:28",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-154645-cf2daf6e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:46:45",
+    "lane": 40,
+    "reference_run": "20261101-154228-64bb86ec",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "grid": {
+      "differences": 0
+     },
+     "list": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "grid": 5e-05,
+     "list": 0.0
+    }
+   },
+   {
+    "run": "20261101-154645-cf2daf6e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T15:47:30",
+    "lane": 40,
+    "reference_run": "20261101-154228-64bb86ec",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "grid": {
+      "differences": 0
+     },
+     "list": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "grid": 5e-05,
+     "list": 0.0
+    }
+   }
+  ]
+ }
+}
