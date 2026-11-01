@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3820154933-reactor-meltdown-alarm.yaml",
+ "mods": [
+  "3820154933"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads and the colony plays for 30 s; no reactor is set up here",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3820154933": {
+   "NuclearMeltdownAlarm.dll": "6a0b35a55c7d020838eeef86d258d5e2b8ce74003f6a0a42aad210bc63068ed9",
+   "PLib.dll": "3dc9bc06c6b54660b833d314192e6b34c578754facc6aff3c7e803b5cdc6616e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:32:23",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:18:09",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:19:19",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

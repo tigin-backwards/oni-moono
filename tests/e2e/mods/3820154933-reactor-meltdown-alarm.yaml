@@ -1,0 +1,13 @@
+# 自用-核易危 / Reactor meltdown alarm (3820154933), class S (PLib options, Spaced Out).
+#
+# What it does: an alarm when a Research Reactor melts down; options choose whether it pauses the
+# game and zooms to the reactor (both on by default).
+# How a player reaches it: a melting Research Reactor.
+# What changes: no meltdown unnoticed.
+#
+# The mod loads and the colony plays for 30 s; no reactor is set up here.
+from: early-base
+mods: [3820154933]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
