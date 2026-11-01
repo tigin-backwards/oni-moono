@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3750063080-radical-beakons.yaml",
+ "mods": [
+  "3750063080"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Beakon prefab emits 60 rads in a 6-tile radius, from the mod's default config; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "aef8790b",
+ "mod_dlls": {
+  "3750063080": {
+   "RadicalBeakons.dll": "b51bcddcd6c655a3ec7065b6766dfc7fa75bbc2c81f0c66df26dd82b9cf528d1"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-235402-acab431d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:54:03",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-080908-13f2afd6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:09:08",
+    "lane": 35,
+    "reference_run": "20261031-235402-acab431d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-080908-13f2afd6",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:17:48",
+    "lane": 35,
+    "reference_run": "20261031-235402-acab431d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
