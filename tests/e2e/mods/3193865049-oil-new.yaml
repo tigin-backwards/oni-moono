@@ -1,0 +1,13 @@
+# oil new (3193865049), class P.
+#
+# What it does: a patch on OilWellCap.AddGasPressure releases 60 of an Oil Well's gas pressure
+# whenever it reaches 70 %.
+# How a player reaches it: Oil Wells.
+# What changes: oil wells that never blow out.
+#
+# The mod loads and the colony plays for 30 s; no Oil Well is set up here.
+from: early-base
+mods: [3193865049]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
