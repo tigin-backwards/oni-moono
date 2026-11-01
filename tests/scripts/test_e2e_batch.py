@@ -151,6 +151,100 @@ class SharedLocks(unittest.TestCase):
         with budget.hold(6, 'second', messages.append):
             self.assertEqual([e['label'] for e in budget.entries()], ['second'])
 
+    def fast_sleep(self):
+        sleep = e2e.time.sleep
+        e2e.time.sleep = lambda s: sleep(0.01)
+        self.addCleanup(setattr, e2e.time, 'sleep', sleep)
+
+    def test_waiters_get_players_first_come_first_served(self):
+        self.fast_sleep()
+        budget = e2e.Budget(self.locks, gb=10, players=1)
+        first, _ = budget.try_acquire(6, 'first')
+        order, got = [], {}
+
+        def wait(label):
+            with budget.hold(6, label, lambda s: None):
+                order.append(label)
+                got[label].wait(5)
+        threads = {}
+        for label in ('a', 'b'):
+            got[label] = threading.Event()
+            threads[label] = threading.Thread(target=wait, args=(label,))
+            threads[label].start()
+            deadline = time.time() + 5
+            while label not in [w['label'] for w in budget.waiters()] and time.time() < deadline:
+                time.sleep(0.01)
+        self.assertEqual([w['label'] for w in budget.waiters()], ['a', 'b'])
+        # A runner that frees its player and asks again gets nothing while others wait.
+        budget.release(first)
+        token, why = budget.try_acquire(6, 'first again')
+        self.assertIsNone(token)
+        self.assertIn('waiter(s) ahead in the queue, first', why)
+        deadline = time.time() + 5
+        while order != ['a'] and time.time() < deadline:
+            time.sleep(0.01)
+        self.assertEqual(order, ['a'])
+        self.assertEqual([w['label'] for w in budget.waiters()], ['b'])
+        got['a'].set()
+        threads['a'].join(5)
+        got['b'].set()
+        threads['b'].join(5)
+        self.assertEqual(order, ['a', 'b'])
+        self.assertEqual(budget.waiters(), [])
+        self.assertEqual(budget.entries(), [])
+
+    def test_a_dead_waiter_leaves_the_queue(self):
+        child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], stdout=subprocess.PIPE)
+        self.children.append(child)
+        budget = e2e.Budget(self.locks, gb=10, players=2)
+        os.makedirs(self.locks, exist_ok=True)
+        with open(os.path.join(self.locks, 'waiters.json'), 'w') as f:
+            json.dump([dict(pid=child.pid, start=e2e.process_start(child.pid), ticket='t', gb=6, label='dead')], f)
+        self.assertEqual([w['label'] for w in budget.waiters()], ['dead'])
+        self.assertIsNone(budget.try_acquire(6, 'mine')[0])
+        child.send_signal(signal.SIGKILL)
+        child.wait(10)
+        self.assertEqual(budget.waiters(), [])
+        token, _ = budget.try_acquire(6, 'mine')
+        self.assertTrue(token)
+        budget.release(token)
+
+    def test_a_waiter_that_gives_up_leaves_the_queue(self):
+        self.fast_sleep()
+        budget = e2e.Budget(self.locks, gb=10, players=1)
+        first, _ = budget.try_acquire(6, 'first')
+        with self.assertRaises(e2e.WaitTimeout):
+            with budget.hold(6, 'second', lambda s: None, max_wait=0.05):
+                pass
+        self.assertEqual(budget.waiters(), [])
+        budget.release(first)
+
+    def test_the_oldest_waiter_waits_for_qa_like_any_player(self):
+        self.fast_sleep()
+        processes = e2e.qa_processes
+        running = [[(4242, 60, 'bash scripts/qa.sh')]]
+        e2e.qa_processes = lambda: running[0]
+        self.addCleanup(setattr, e2e, 'qa_processes', processes)
+        os.environ['E2E_QA_GB'] = '15'
+        budget = e2e.Budget(self.locks, gb=20, players=4)
+        held, done = threading.Event(), threading.Event()
+
+        def wait():
+            with budget.hold(6, 'waiter', lambda s: None):
+                held.set()
+                done.wait(5)
+        thread = threading.Thread(target=wait)
+        thread.start()
+        time.sleep(0.2)
+        self.assertFalse(held.is_set())              # 15 + 6 > 20
+        self.assertIsNone(budget.try_acquire(1, 'small')[0])   # it fits, but the waiter is first
+        running[0] = []                              # qa.sh ends
+        self.assertTrue(held.wait(5))
+        self.assertEqual([e['label'] for e in budget.entries()], ['waiter'])
+        done.set()
+        thread.join(5)
+        self.assertEqual(budget.entries(), [])
+
     def test_player_memory_by_fixture(self):
         with tempfile.NamedTemporaryFile() as small:
             self.assertEqual(e2e.player_gb({'from': 'early-base'}, small.name), e2e.SMALL_GB)
