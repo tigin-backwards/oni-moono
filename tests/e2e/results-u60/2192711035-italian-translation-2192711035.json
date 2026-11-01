@@ -1,0 +1,101 @@
+{
+ "spec": "mods/2192711035-italian-translation-2192711035.yaml",
+ "mods": [
+  "2192711035"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "in Italian (picked through the prefs, as its Translations screen does), a colony's research and priorities screens and pause menu, then the main menu, the options menu and its Game options screen, laid out and drawn as in the original",
+ "updated": "2026-11-01",
+ "commit": "3f4d358f",
+ "mod_dlls": {
+  "2192711035": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:12:09",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:42:03",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 0.000526,
+     "game-options": 0.0
+    }
+   },
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:42:05",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 0.000161,
+     "game-options": 0.0
+    }
+   }
+  ]
+ }
+}
