@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3818614249-life-reconstruction-chamber.yaml",
+ "mods": [
+  "3818614249"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants the research. The chamber is listed in the Medicine menu and its card names its two ingredients (dumped)",
+ "updated": "2026-11-01",
+ "commit": "2018e684",
+ "mod_dlls": {
+  "3818614249": {
+   "BaiyeResurrectionChamber.dll": "a74bc2052b6806f57472b807b6ebdd584998352e035a15d9df860e9b24cf23b4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:59:41",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:18:46",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:19:25",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
