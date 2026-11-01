@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3764501663-real-insulated-door.yaml",
+ "mods": [
+  "3764501663"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "an Insulated Door placed: its definition conducts no heat",
+ "updated": "2026-11-01",
+ "commit": "43c9fc49",
+ "mod_dlls": {
+  "3764501663": {
+   "PLib.dll": "b862c5db2b3cd6df09a62d4a30782e91e2b24e8e1bfac08d991c9cc89a984ba9",
+   "real Insulated Door.dll": "db1c33abab2dd10deba9650506096a96b0dea3b32694d5b41cd3e2ee8b8111ee"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-010148-6d65f38c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:07:41",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-085124-fd427661",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:51:24",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-085124-fd427661",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:55:12",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
