@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3757503951-better-atmo-sensor.yaml",
+ "mods": [
+  "3757503951"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds an Atmo Sensor in the corridor west of the printing pod; selected, it reads a 1000 kg range and its threshold screen is dumped",
+ "updated": "2026-10-31",
+ "commit": "638f3abf",
+ "mod_dlls": {
+  "3757503951": {
+   "Better_Atmo_Sensor.dll": "2f4e1f562464e9e48ad02e57f0d5e21086dc1524e93090b4c0363c8746079322"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214422-a6bc97d0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:08:45",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-221209-53db458e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:32:38",
+    "lane": 54,
+    "reference_run": "20261031-214422-a6bc97d0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "threshold": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261031-221209-53db458e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:34:42",
+    "lane": 55,
+    "reference_run": "20261031-214422-a6bc97d0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "threshold": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
