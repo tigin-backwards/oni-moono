@@ -1,17 +1,18 @@
 # Make Dirt, Sand, Rock, Clay,... To BarBaQue (Eat Dirt Mod) (3534269375), class P.
 #
-# What it does: meant to add Electric Grill recipes turning 10 kg of sand, rock, dirt, clay and
-# other minerals into barbeque (a postfix on CookingStationConfig.ConfigureBuildingTemplate).
-# Its patches are applied from MakeMeatMod.Load, a static method KMod never calls (it calls
-# OnLoad), and it has no UserMod2, so in both players they never apply.
+# What it does: adds Electric Grill recipes turning 10 kg of sand, rock, dirt, clay and other
+# minerals (nine elements) into barbeque, in a postfix on
+# CookingStationConfig.ConfigureBuildingTemplate. It has no UserMod2, so KMod's default one
+# applies its Harmony patches.
 # How a player reaches it: an Electric Grill's recipe list.
-# What changes: nothing, in this build of the mod.
+# What changes: minerals can be grilled into barbeque.
 #
-# The Electric Grill has the game's recipes only, as in the original: no barbeque from dirt.
+# The grill's recipes include one from dirt, and count as many as in the original.
 from: early-base
 mods: [3534269375]
+require_log: ['\[MakeMeat\] Adding crazy BBQ recipes']
 steps:
   - expect_state:
       "count:ComplexRecipeManager.Get().recipes[*] if .id.StartsWith(\"CookingStation_\") == true": "== original"
-      "count:ComplexRecipeManager.Get().recipes[*] if .id.StartsWith(\"CookingStation_I_Dirt\") == true": 0
+      "count:ComplexRecipeManager.Get().recipes[*] if .id.StartsWith(\"CookingStation_I_Dirt\") == true": [1, "== original"]
   - run: {seconds: 30}
