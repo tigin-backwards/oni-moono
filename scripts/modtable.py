@@ -187,6 +187,7 @@ differences = {
 }
 # Loads and Colony as swept, Played withdrawn until a spec drives the mod's UI (mod-play-testing.md).
 unplayed = {
+    '3530534502': 'loads and plays in its U60 sweep batch; not played: in the original\'s run the cot\'s assignment rows had no label tooltip with the world\'s name (no row\'s first label carried one string), so its spec (withdrawn) could not show what the mod adds',
     # Batch 17.
     # Batch 21.
 }
