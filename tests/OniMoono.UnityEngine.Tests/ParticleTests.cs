@@ -114,6 +114,43 @@ namespace OniMoono.Tests
             }
         }
 
+        /// Issue #47: the passes of the game's particle materials keep their LightMode in their
+        /// state's tags, upper-case. A camera draws only the forward one: the missile smoke
+        /// trail's lit shader (Particles/Standard Surface) also has ShadowCaster and Deferred
+        /// passes, which drew its puffs as an opaque white ribbon (Deferred writes albedo with
+        /// alpha 1), and Particles/Standard Unlit's ShadowCaster drew black dither under the
+        /// missile's sparkles and the pollination effect.
+        [Theory]
+        [InlineData("smoke_trail", "Particles/Standard Surface", "FORWARDBASE")]   // fx_missile_smoke_trail/TrailFX2
+        [InlineData("missile_sparkle", "Particles/Standard Unlit", null)]          // fx_missile_smoke_trail/TrailFX
+        [InlineData("pollinated_fx", "Particles/Standard Unlit", null)]            // fx_plant_pollinated
+        [InlineData("long_smoke_trail", "Klei/Standard Unlit", "FORWARDBASE")]     // fx_long_range_missile_smoke_trail
+        public void GameParticleMaterialsDrawOnlyTheirForwardPass(string materialName, string shaderName, string lightMode)
+        {
+            ParticleSystem ps = null;
+            foreach (long id in GameEffects)
+            {
+                ps = FromGame(id);
+                if (ps.GetComponent<ParticleSystemRenderer>().sharedMaterial.name == materialName) break;
+                Object.DestroyImmediate(ps.gameObject);
+                ps = null;
+            }
+            Assert.NotNull(ps);
+            var material = ps.GetComponent<ParticleSystemRenderer>().sharedMaterial;
+            var shader = (ShaderNative)material.shader.NativeOrThrow;
+            Assert.Equal(shaderName, shader.ShaderName);
+            var passes = new List<(ShaderNative Shader, ShaderPass Pass)>();
+            Assert.True(OniMoono.Desktop.Gl.GlDrawRecorder.Passes(passes, shader, material.Data, -1, false));
+            var drawn = Assert.Single(passes);
+            // Tag names compare without case.
+            Assert.Equal(lightMode, drawn.Pass.Tags.TryGetValue("lightmode", out var mode) ? mode : null);
+            // Every pass carries its LightMode from its state: the smoke's shader has its
+            // GrabPass, ShadowCaster, Forward and Deferred passes in that order.
+            if (shaderName == "Particles/Standard Surface")
+                Assert.Equal(["GRABPASS", "SHADOWCASTER", "FORWARDBASE", "DEFERRED"], shader.ActiveSubShader.Passes.Select(p => p.Tags["LightMode"]));
+            Object.DestroyImmediate(ps.gameObject);
+        }
+
         [Fact]
         public void AddComponentAddsARendererAndUnityDefaults()
         {

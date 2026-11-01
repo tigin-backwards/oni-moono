@@ -1740,6 +1740,12 @@ renderer, restricted to what the game uses (*usage §1*):
 - Unity's built-in shader constants are maintained per draw/camera (`unity_ObjectToWorld`,
   `unity_MatrixVP`, `_ProjectionParams`, `_ScreenParams`, `_Time`, `_ZBufferParams`, …) with GL
   clip-space conventions as Unity's GLCore device sets them.
+- A renderer draws its material's forward passes: those whose LightMode is none, `Always`,
+  `ForwardBase` or `Vertex`. A pass keeps its tags in its state (`m_State.m_Tags`, the
+  subshader's merged in), and the build stores LightMode upper-case, so values compare without
+  case. ShadowCaster, Deferred and ForwardAdd passes are not drawn. The game has no lights, so
+  a lit pass (Particles/Standard Surface, the missile smoke trail's) draws dark, as in the
+  original (issue #47).
 - `RenderTexture` (incl. MRT via `SetTargetBuffers`, temporaries pool, `active`), `Texture2D`
   (CPU copy + `GetRawTextureData<T>` aliasing NativeArray, `Apply`, DXT/BC upload,
   `LoadRawTextureData(IntPtr)`), `Texture2DArray`, `Texture3D`, `Mesh` (dynamic buffers,
