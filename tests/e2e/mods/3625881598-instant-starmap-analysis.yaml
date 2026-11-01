@@ -1,0 +1,19 @@
+# Instant Starmap Analysis (3625881598), classes P, O (PLib options; base game).
+#
+# What it does: the base game's starmap analyses a destination at once when its Analyze button
+# is clicked (a postfix on StarmapScreen.RefreshAnalyzeButton), by default only in sandbox mode
+# (option OnlyInSandbox).
+# How a player reaches it: the starmap (Z), a destination, its Analyze button.
+# What changes: no telescope time to learn a destination.
+#
+# Options turn it on outside sandbox; the base-game colony has no telescope (its starmap is not
+# open yet), so the mod's setting is read and the colony runs on.
+from: vanilla-base
+mods: [3625881598]
+options:
+  "3625881598": {OnlyInSandbox: false}
+steps:
+  - expect_state:
+      "type:InstantStarmapAnalysis.Options::Instance.OnlyInSandbox": false
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
