@@ -1,0 +1,25 @@
+# Dynamic Plants : Decor (3239756065), classes P, O (PLib options).
+#
+# What it does: PLib options (DynamicDecorPlants.json) for each decor plant (Bluff Briar, Buddy
+# Bud, Mirth Leaf, Jumping Joya, Sporechid, Bliss Burst, Mellow Mallow): its temperature and
+# pressure range, the atmospheres it grows in (gases, liquids, vacuum), its harvest time, and
+# a gas it emits (none by default) and how much. Postfixes on the plants' CreatePrefab rebuild
+# them as basic plants with those values and add an ElementEmitter. Flower pots and farm tiles
+# get a drop-all workable.
+# How a player reaches it: the mod's options (Mods screen), then decor plants.
+# What changes: what decor plants tolerate and emit.
+#
+# Options make the Buddy Bud emit oxygen, 20 g/s. Its prefab then has an emitter of oxygen at
+# that rate, the Flower Pot has a drop-all errand, and the colony runs on.
+from: early-base
+mods: [3239756065]
+options:
+  "3239756065": {$file: DynamicDecorPlants.json, D02GasToEmit: 1, D02GasToEmitQty: 20.0}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"BulbPlant\").GetComponent<ElementEmitter>.outputElement.elementHash": Oxygen
+      "Assets.GetPrefab(\"BulbPlant\").GetComponent<ElementEmitter>.outputElement.massGenerationRate": 0.02
+      "Assets.GetPrefab(\"FlowerVase\").GetComponent<DropAllWorkable>": exists
+      "Assets.GetPrefab(\"LeafyPlant\").GetComponent<ElementEmitter>": missing
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

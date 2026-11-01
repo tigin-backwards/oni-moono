@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3239756065-dynamic-plants-decor.yaml",
+ "mods": [
+  "3239756065"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "options make the Buddy Bud emit oxygen, 20 g/s. Its prefab then has an emitter of oxygen at that rate, the Flower Pot has a drop-all errand, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "3513ef7c",
+ "mod_dlls": {
+  "3239756065": {
+   "(Darth Nihilus)_DynamicDecorPlants.dll": "072b5d9a9a4e15a72a68d0387a906d37c6a7bbb6f45d4dc8de8eb5b0a6cc1cab",
+   "PLib.dll": "c4bb22f1bc06ebcb0dbba75a7f1bc46f63eaa3dae12c22a08729f1a6d3362dda"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-235819-c8d79a5e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:58:20",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010126-1956b5a8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:01:26",
+    "lane": 44,
+    "reference_run": "20261031-235819-c8d79a5e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-010126-1956b5a8",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:01:27",
+    "lane": 45,
+    "reference_run": "20261031-235819-c8d79a5e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
