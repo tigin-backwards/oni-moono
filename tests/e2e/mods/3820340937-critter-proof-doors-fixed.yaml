@@ -1,0 +1,27 @@
+# Critter Proof Doors Fixed (3820340937), class B.
+#
+# What it does: three doors critters cannot pass (CritterProofDoor, researched with Ranching;
+# CritterProofPressureDoor and CritterProofManualPressureDoor, with Animal Control): a patch on
+# CreaturePathFinderAbilities.TraversePath keeps critter paths out of their cells. They are
+# added to the plan screen's "base" category, which the game's names do not match (its Base
+# category is "Base").
+# How a player reaches it: the build menus, after the research.
+# What changes: doors that fence in ranches.
+#
+# setup grants Ranching and builds a Critter Proof Door in the dug-out corridor west of the
+# printing pod; selected, its details screen is dumped.
+from: early-base
+mods: [3820340937]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Ranching\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CritterProofDoor\")", method: Build, args: [{"$": "Grid.XYToCell(116, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Ranching\").unlockedItemIDs": {contains: CritterProofDoor}
+      "Db.Get().Techs.Get(\"AnimalControl\").unlockedItemIDs": [{contains: CritterProofPressureDoor}, {contains: CritterProofManualPressureDoor}]
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [116, 207], ortho: 8}}
+  - click_world: {cell: [116, 206], select: CritterProofDoor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

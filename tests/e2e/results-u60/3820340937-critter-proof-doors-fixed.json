@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3820340937-critter-proof-doors-fixed.yaml",
+ "mods": [
+  "3820340937"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Ranching and builds a Critter Proof Door in the dug-out corridor west of the printing pod; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "2259495a",
+ "mod_dlls": {
+  "3820340937": {
+   "CritterProofDoors.dll": "681a588564aead58da7e3eabedd370409db905f8e744d766eeafd2f35f413059"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-234738-a2a9c3d8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:03:50",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-111523-548b705e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:15:23",
+    "lane": 44,
+    "reference_run": "20261031-234738-a2a9c3d8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-111523-548b705e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:15:24",
+    "lane": 45,
+    "reference_run": "20261031-234738-a2a9c3d8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
