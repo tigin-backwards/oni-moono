@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3775377258-wire-type-material-switcher.yaml",
+ "mods": [
+  "3775377258"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "ad96c930",
+ "mod_dlls": {
+  "3775377258": {
+   "ONIWireSet.dll": "4d3b8b65d2ae3eab908c5d95e39cf8b340164fe28d5513385bf0fefcde294ef0"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040314-a46ee8e3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:03:15",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-114553-e4798032",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:45:53",
+    "lane": 36,
+    "reference_run": "20261101-040314-a46ee8e3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-114553-e4798032",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:48:20",
+    "lane": 36,
+    "reference_run": "20261101-040314-a46ee8e3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
