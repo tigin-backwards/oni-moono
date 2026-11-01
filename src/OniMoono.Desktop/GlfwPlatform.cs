@@ -558,6 +558,9 @@ namespace OniMoono.Desktop
 
         public bool PollEvents(InputState input)
         {
+            // The IME mode the last frame left goes on before the messages since are read, so
+            // their keys go through the input context it asks for.
+            if (OperatingSystem.IsWindows()) ApplyIme();
             // What came in while the last frame pumped messages, in the order it came, then the
             // messages since.
             inGlfw++;
@@ -577,7 +580,6 @@ namespace OniMoono.Desktop
             }
             ThrowCallbackFailure();
             ReadFramebufferSize();
-            if (OperatingSystem.IsWindows()) ApplyIme();
             if (!scripted) FollowCursorOutside();
             // Each close of the window is one quit request: Application.wantsToQuit may refuse it.
             bool open = !closeRequested;
