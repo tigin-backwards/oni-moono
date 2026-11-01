@@ -404,6 +404,12 @@ broken.update({
     '1729794261': 'broken upstream: its light class `PixelPack2` lacks three methods the game\'s interfaces now have (`ISliderControl.GetSliderTooltip(int)`, `ISidescreenButtonControl.SetButtonTextOverride` and `HorizontalGroupID`), so the original fails its Color Ceiling Light in RegisterBuilding and the game\'s prefab setup in `Assets.OnPrefabInit` ("VTable setup of type OniLight.PixelPack2 failed"), and the error dialog opens as the game starts; ours happens to load it: Mono checks a class\'s interface methods when it sets up the class\'s vtable at first use, where ours gives the class the methods it lacks, which throw only when called (ARCHITECTURE D22)',
 })
 loads_in_ours = {'1729794261'}
+# Found on U60 (build 761015), in the original only: its colony does not load there, so ours did
+# not run it.
+broken.update({
+    '3823893994': 'broken on U60 (build 761015), version 1.0.1: its Temperature overlay patch reads the field `TemperatureOverlayInfraredVisualizerBase.updateCBHandle`, which U60 no longer has; the TypeInitializationException in Game.OnPrefabInit leaves Immigration and GlobalChoreProvider null, and the original exits (1) while loading a colony; not run in ours',
+})
+not_run_in_ours = {'3823893994'}
 # Titles of played mods the catalog TSV does not rank (none since it reaches rank 2274).
 unranked = {}
 # Worldgen mods no sweep ran, as their specs' runs of ours found them (id -> (loads, colony)): a
@@ -441,7 +447,7 @@ def status(mid, flags):
     if mid in not_playable:
         return Y, Y, N, not_playable[mid]
     if mid in broken:
-        return X, X, N, broken[mid] + ('' if mid in loads_in_ours else ' (same in the original)')
+        return X, X, N, broken[mid] + ('' if mid in loads_in_ours or mid in not_run_in_ours else ' (same in the original)')
     if mid in SWEPT:
         return sweep_status(*SWEPT[mid])
     if flags == 'unanalysed':
