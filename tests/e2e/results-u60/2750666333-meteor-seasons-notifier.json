@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2750666333-meteor-seasons-notifier.yaml",
+ "mods": [
+  "2750666333"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "0e89685c",
+ "mod_dlls": {
+  "2750666333": {
+   "MeteorSeasons.dll": "95390b978ee7cba05270295e8a301a804316425c26792eec06b71f39ba05e953"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043432-f3c99dcd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:39:42",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-115030-bd098434",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:50:30",
+    "lane": 35,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-115030-bd098434",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:52:01",
+    "lane": 35,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
