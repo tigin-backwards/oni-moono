@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3706179212-future-tech.yaml",
+ "mods": [
+  "3706179212"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the eight buildings are listed in the Utilities menu (shot)",
+ "updated": "2026-11-01",
+ "commit": "74d059eb",
+ "mod_dlls": {
+  "3706179212": {
+   "ClassLibrary.dll": "83159a68a4f4f05dcf302143fdc39325ef0ac048c974397740a6b833ca74fc87"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:51:39",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:12:14",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "utilities": 0.0
+    }
+   },
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:12:20",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "utilities": 0.0
+    }
+   }
+  ]
+ }
+}
