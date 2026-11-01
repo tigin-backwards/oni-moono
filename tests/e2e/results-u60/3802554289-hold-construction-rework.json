@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3802554289-hold-construction-rework.yaml",
+ "mods": [
+  "3802554289"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a sandstone tile blueprint is placed in the corridor west of the printing pod and held from its user menu: it is not built in 60 s of play; Finish Construction resumes it and it is built",
+ "updated": "2026-11-01",
+ "commit": "2018e684",
+ "mod_dlls": {
+  "3802554289": {
+   "HoldConstruction.dll": "0710620b06caa930d962ceef0ca2593e600083176952fdefe0e23771dd905fd5",
+   "PLib.dll": "55ce409618e6d102a1bcd0298911f3df49dda9a94ee153d02403035a1d6101d6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:03:52",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:21:46",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:23:24",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
