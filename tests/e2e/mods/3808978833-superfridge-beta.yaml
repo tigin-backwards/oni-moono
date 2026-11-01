@@ -1,0 +1,26 @@
+# Superfridge-Beta (3808978833), class B.
+#
+# What it does: adds a Superfridge (TianHe_SuperFridge, in the Food menu beside the
+# Refrigerator, researched with Finer Dining) that slows food spoilage further.
+# How a player reaches it: the build menu (Food), after the research.
+# What changes: food keeps longer.
+#
+# setup grants the research. The building is listed in the Food menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3808978833]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FinerDining\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"FinerDining\").unlockedItemIDs": {contains: TianHe_SuperFridge}
+      "Assets.GetBuildingDef(\"TianHe_SuperFridge\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Food"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/TianHe_SuperFridge Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/TianHe_SuperFridge Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
