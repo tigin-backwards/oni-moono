@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3817977238-wireweaver.yaml",
+ "mods": [
+  "3817977238"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the research station in the base (powered, unwired) is selected: its user menu has the Wire button (dumped), and pressing it starts the route planner (the details panel gives way to it)",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3817977238": {
+   "WireWeaver.dll": "b150925e96252f04e94c225f355469f8cbcead2672ca29f2d81f1530e2517c36"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-092050-8b8babe3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:32:59",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:05:36",
+    "lane": 54,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:06:29",
+    "lane": 55,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

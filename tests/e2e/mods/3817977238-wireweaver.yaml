@@ -1,0 +1,25 @@
+# WireWeaver (3817977238), classes U, T (PLib options).
+#
+# What it does: powered buildings get a "Wire" user menu button that plans a wire route from the
+# building to a power network: it previews the path (preferring hidden routes, ladders and
+# bridges and avoiding digging, by its options) and Connect places the wire blueprints, Cancel
+# route drops the plan.
+# How a player reaches it: a powered building's user menu.
+# What changes: wires laid by the game's pathing.
+#
+# The research station in the base (powered, unwired) is selected: its user menu has the Wire
+# button (dumped), and pressing it starts the route planner (the details panel gives way to
+# it).
+from: early-base
+mods: [3817977238]
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [128, 208], ortho: 8}}
+  - click_world: {cell: [127, 207], select: ResearchCenter}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/WireButton", cond: stable}
+  - ui_dump: {name: user-menu, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}
+  - click: {ui: "**/UserMenuScreen/Buttons/WireButton"}
+  - run: {seconds: 1}
+  - expect_ui:
+      "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons": {exists: false}
+  - key: {code: Escape}
