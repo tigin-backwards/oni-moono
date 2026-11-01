@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3339009099-gas-storage-flamengo.yaml",
+ "mods": [
+  "3339009099"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Improved Oxygen and builds the reservoir in the dug-out corridor west of the printing pod. It shows in the Oxygen menu; built, it holds 1000 kg and wears the team's anim, and selected its details screen names it",
+ "updated": "2026-11-01",
+ "commit": "f8f13fa7",
+ "mod_dlls": {
+  "3339009099": {
+   "GasStorageTeamFla.dll": "36ceda06cf4394854ce0ff4e905807ba698bf96e55ec80e601d4569ed78644e6",
+   "YamlDotNet.dll": "e05c9c033c5d333e35feebbb87598ef81c178a6e28ae98cab99b2fd01be6cd9e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-060041-4bcefaa6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:00:41",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-062701-41e1e49a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:27:01",
+    "lane": 44,
+    "reference_run": "20261101-060041-4bcefaa6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-062701-41e1e49a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:36:43",
+    "lane": 44,
+    "reference_run": "20261101-060041-4bcefaa6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
