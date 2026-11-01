@@ -1485,6 +1485,16 @@ descendant that Destroy left enabled before its OnDestroy. Loading a save, Game'
 before its first Update) destroys the new-colony screen, whose CharacterContainers register in
 their Start and unregister in OnDestroy.
 
+An Awake that destroys its own GameObject while the object activates leaves nothing of it to
+start, measured in the original (UnityProbe's `PROBE_SCENARIO=awakedestroy`): that behaviour and
+the ones awake before it get OnDisable at once (the destroying one without an OnEnable), the ones
+not awake yet, the object's and its direct children's, still get Awake reporting `enabled =
+false`, no OnEnable or Start follows, and all of them get OnDestroy. An object destroyed while
+inactive and activated before its destruction gets the same: Awake, disabled, then OnDestroy.
+The game depends on it: PlantBranch, from KPrefabID's Awake, destroys a tree branch whose cell
+is taken, and a started KPrefabID would start the branch's other state machines without it
+(issue #45).
+
 Coroutines are Unity's state machine: an `IEnumerator` is advanced immediately by
 `StartCoroutine`; nested `IEnumerator`/`Coroutine` yields wait for the child;
 `CustomYieldInstruction` is re-polled each frame via `keepWaiting` (the shared cached

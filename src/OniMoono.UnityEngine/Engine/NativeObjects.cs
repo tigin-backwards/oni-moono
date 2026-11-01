@@ -112,6 +112,8 @@ namespace OniMoono.Engine
         /// OnEnable has run and OnDisable has not run since (Unity's "is in enabled state").
         public bool IsActiveAndEnabledState;
         public bool AwakeCalled;
+        /// Its Awake is running, while its GameObject activates (Lifecycle.AwakeAndEnable).
+        public bool InAwake;
         public bool StartCalled;
         /// Scheduled for Start in the next Start phase.
         public bool StartPending;

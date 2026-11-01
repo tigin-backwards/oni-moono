@@ -33,6 +33,32 @@ namespace OniMoono.Tests
         void OnDestroy() => Recorder.Log.Add(label + ":OnDestroy peer " + (peer == null ? "gone" : "alive"));
     }
 
+    /// Records its callbacks as Recorder does, and in Awake whether it is disabled.
+    public class AwakeRecorder : MonoBehaviour
+    {
+        public string label = "";
+        protected virtual void Awake() => Recorder.Log.Add(label + ":Awake" + (enabled ? "" : " enabled=False"));
+        void OnEnable() => Recorder.Log.Add(label + ":OnEnable");
+        void Start() => Recorder.Log.Add(label + ":Start");
+        void Update() => Recorder.Log.Add(label + ":Update");
+        void OnDisable() => Recorder.Log.Add(label + ":OnDisable");
+        void OnDestroy() => Recorder.Log.Add(label + ":OnDestroy");
+    }
+
+    /// Destroys its GameObject from its Awake while Armed, as the game's PlantBranch does (from
+    /// KPrefabID's Awake) for a branch whose cell is taken.
+    public class AwakeDestroyer : AwakeRecorder
+    {
+        public static bool Armed;
+        protected override void Awake()
+        {
+            base.Awake();
+            if (!Armed) return;
+            Destroy(gameObject);
+            Recorder.Log.Add(label + ":after Destroy enabled=" + enabled);
+        }
+    }
+
     public class LateRecorder : MonoBehaviour
     {
         void Start() => Recorder.Log.Add("late:Start");
@@ -328,6 +354,86 @@ namespace OniMoono.Tests
             Assert.False(x.isActiveAndEnabled);
             Frame();
             Assert.Equal(["x:OnDisable", "x:OnDestroy"], Recorder.Log);
+        }
+
+        /// Destroy(gameObject) from an Awake while the object activates, as the game's PlantBranch
+        /// does from KPrefabID's Awake for a branch whose cell is taken (issue #45). Measured in
+        /// the original player (UnityProbe, PROBE_SCENARIO=awakedestroy): the destroying behaviour
+        /// and those awake before it get OnDisable at once, the destroying one without an
+        /// OnEnable; the behaviours after it and the child's still get Awake, disabled; nothing
+        /// gets OnEnable after that or Start, and every one of them gets OnDestroy.
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void DestroyFromAnAwakeDuringActivationStartsNothing(bool clone)
+        {
+            var go = new GameObject("o");
+            go.SetActive(false);
+            go.AddComponent<AwakeRecorder>().label = "P";
+            go.AddComponent<AwakeDestroyer>().label = "D";
+            go.AddComponent<AwakeRecorder>().label = "Q";
+            var child = new GameObject("c");
+            child.transform.SetParent(go.transform, false);
+            child.AddComponent<AwakeRecorder>().label = "C";
+            if (clone) go = Object.Instantiate(go);
+            Recorder.Log.Clear();
+            AwakeDestroyer.Armed = true;
+            try
+            {
+                go.SetActive(true);
+            }
+            finally
+            {
+                AwakeDestroyer.Armed = false;
+            }
+            Assert.Equal(["P:Awake", "P:OnEnable", "D:Awake", "P:OnDisable", "D:OnDisable", "D:after Destroy enabled=False",
+                          "Q:Awake enabled=False", "C:Awake enabled=False"], Recorder.Log);
+            Frame();
+            Frame();
+            Assert.Equal(["P:OnDestroy", "D:OnDestroy", "Q:OnDestroy", "C:OnDestroy"], Recorder.Log.GetRange(8, Recorder.Log.Count - 8));
+            Assert.True(go == null);
+        }
+
+        [Fact]
+        public void DestroyFromTheFirstAwakeStillAwakensTheRest()
+        {
+            var go = new GameObject("o");
+            go.SetActive(false);
+            go.AddComponent<AwakeDestroyer>().label = "D";
+            go.AddComponent<AwakeRecorder>().label = "P";
+            Recorder.Log.Clear();
+            AwakeDestroyer.Armed = true;
+            try
+            {
+                go.SetActive(true);
+            }
+            finally
+            {
+                AwakeDestroyer.Armed = false;
+            }
+            Frame();
+            Frame();
+            Assert.Equal(["D:Awake", "D:OnDisable", "D:after Destroy enabled=False", "P:Awake enabled=False", "D:OnDestroy", "P:OnDestroy"], Recorder.Log);
+        }
+
+        /// An object never active, destroyed while inactive and activated before its destruction:
+        /// its behaviours get Awake, disabled, and OnDestroy, nothing else (the same probe).
+        [Fact]
+        public void ActivatingAnObjectDestroyedWhileInactiveOnlyAwakensIt()
+        {
+            var go = new GameObject("o");
+            go.SetActive(false);
+            go.AddComponent<AwakeRecorder>().label = "P";
+            var child = new GameObject("c");
+            child.transform.SetParent(go.transform, false);
+            child.AddComponent<AwakeRecorder>().label = "C";
+            Recorder.Log.Clear();
+            Object.Destroy(go);
+            go.SetActive(true);
+            Frame();
+            Frame();
+            Assert.Equal(["P:Awake enabled=False", "C:Awake enabled=False", "P:OnDestroy", "C:OnDestroy"], Recorder.Log);
+            Assert.True(go == null);
         }
 
         [Fact]

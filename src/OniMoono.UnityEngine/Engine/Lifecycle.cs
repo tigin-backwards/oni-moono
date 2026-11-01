@@ -305,10 +305,19 @@ namespace OniMoono.Engine
         }
 
         /// Awake (once) and OnEnable (if enabled) for a component whose GameObject is active.
+        ///
+        /// When an Awake destroys its GameObject while the object activates (the game's
+        /// PlantBranch does, from KPrefabID's Awake, for a branch whose cell is taken: issue #45),
+        /// that behaviour is not enabled after its Awake, and the behaviours not awake yet, the
+        /// object's and its direct children's, still get Awake, reporting enabled = false, and
+        /// nothing else: none of them gets OnEnable or Start, and each gets OnDestroy at the
+        /// destruction (measured in Unity's player, UnityProbe's PROBE_SCENARIO=awakedestroy). So
+        /// do the behaviours of an object destroyed while inactive and activated before its
+        /// destruction (the same probe).
         public static void AwakeAndEnable(Component c)
         {
             var native = c.Native as ComponentNative;
-            if (native == null || native.DestroyPending) return;
+            if (native == null) return;
             if (native is BehaviourNative bn)
             {
                 if (!bn.AwakeCalled)
@@ -321,27 +330,36 @@ namespace OniMoono.Engine
                     // Its place among the update callbacks is taken then too: a component that an
                     // Awake adds (the game's MyCmpAdd) is enabled before the component adding it,
                     // and updates after it (UnityProbe scenario 19).
-                    bool reserved = bn.Script != null && bn.Enabled;
+                    bool reserved = bn.Script != null && bn.Enabled && !bn.DestroyPending;
                     if (reserved)
                     {
                         if (!bn.StartCalled && !bn.StartPending) BehaviourManager.ScheduleStart(bn);
                         BehaviourManager.Register(bn);
                     }
                     c.EngineAwake();
-                    if (bn.Script?.Awake != null) Invoke(bn.Script.Awake, (MonoBehaviour)c);
+                    bn.InAwake = true;
+                    try
+                    {
+                        if (bn.Script?.Awake != null) Invoke(bn.Script.Awake, (MonoBehaviour)c);
+                    }
+                    finally
+                    {
+                        bn.InAwake = false;
+                    }
                     if (c.Native == null || !native.GameObject.ActiveInHierarchy)
                     {
                         if (reserved && !bn.IsActiveAndEnabledState) BehaviourManager.Unregister(bn);
                         return;
                     }
-                    if (bn.Enabled) Enable(c, bn);
-                    if (reserved && !bn.IsActiveAndEnabledState) BehaviourManager.Unregister(bn); // disabled by Awake
+                    if (bn.Enabled && !bn.DestroyPending) Enable(c, bn);
+                    if (reserved && !bn.IsActiveAndEnabledState) BehaviourManager.Unregister(bn); // disabled or destroyed by Awake
                     return;
                 }
-                if (bn.Enabled) Enable(c, bn);
+                if (bn.Enabled && !bn.DestroyPending) Enable(c, bn);
             }
             else
             {
+                if (native.DestroyPending) return;
                 if (!native.AwakeCalledForComponent)
                 {
                     native.AwakeCalledForComponent = true;
@@ -452,8 +470,21 @@ namespace OniMoono.Engine
                 if (c.Native is ComponentNative cn)
                 {
                     cn.DestroyPending = true;
-                    if (cn is BehaviourNative) Disable(c);
+                    if (cn is BehaviourNative bn)
+                    {
+                        if (bn.InAwake) DisableInAwake(c, bn);
+                        else Disable(c);
+                    }
                 }
+        }
+
+        /// A behaviour whose Awake destroys its GameObject gets OnDisable then, although it had
+        /// no OnEnable (measured in Unity's player, UnityProbe's PROBE_SCENARIO=awakedestroy). That
+        /// a disabled one gets none is only a guard, not measured.
+        static void DisableInAwake(Component c, BehaviourNative bn)
+        {
+            if (!bn.Enabled || bn.IsActiveAndEnabledState) { Disable(c); return; }
+            if (bn.Script?.OnDisable != null) Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
         }
 
         /// Carries out the Destroy requests made so far: the player loop calls it after the fixed
