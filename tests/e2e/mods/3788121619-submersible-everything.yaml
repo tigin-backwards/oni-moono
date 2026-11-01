@@ -11,8 +11,8 @@
 #
 # The mod logs how many building definitions it patched. setup places a Manual Generator in
 # the pit of the dug-out room west of the printing pod (110-111, 206-207) and fills the pit's
-# ten cells with 2 t of water each: the generator stands under water, has no Floodable, and
-# stays operational.
+# ten cells with 2 t of water each: the generator stands under water and has no Floodable to
+# flood it.
 from: early-base
 mods: [3788121619]
 require_log: ['\[SubmersibleEverything\] Enabled\. \d+ building definitions patched']
@@ -35,5 +35,7 @@ steps:
       "Assets.GetPrefab(\"ManualGenerator\").GetComponent<Floodable>": missing
       "Grid.Element[131762].id": Water
       "Grid.Element[131126].id": Water
+  # Neither generator, the one under water included, has the Floodable that would flood it.
   - expect_state:
-      "count:all:ManualGenerator::[*] if .GetComponent<Operational>.IsOperational == true": 2
+      "all:ManualGenerator::[0].GetComponent<Floodable>": missing
+      "all:ManualGenerator::[1].GetComponent<Floodable>": missing
