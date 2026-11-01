@@ -1,0 +1,57 @@
+{
+ "spec": "mods/3685713780-print-froggy.yaml",
+ "mods": [
+  "3172734005",
+  "3685713780"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Dupery imports the personality into the game's Personalities and loads its accessories",
+ "updated": "2026-10-31",
+ "commit": "638f3abf",
+ "mod_dlls": {
+  "3172734005": {
+   "DuperyFixed.dll": "9ef4a93958b6b80fbf086cab57821955dd344324d2192086db7ea7845e71f7f2"
+  },
+  "3685713780": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214422-a6bc97d0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:01:41",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-221209-53db458e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:26:47",
+    "lane": 54,
+    "reference_run": "20261031-214422-a6bc97d0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-221209-53db458e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:27:51",
+    "lane": 55,
+    "reference_run": "20261031-214422-a6bc97d0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
