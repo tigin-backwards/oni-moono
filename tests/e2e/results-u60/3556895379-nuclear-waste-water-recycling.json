@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3556895379-nuclear-waste-water-recycling.yaml",
+ "mods": [
+  "3556895379"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3556895379": {
+   "NuclearWaste.dll": "9fecacf4d250ecf03f14a184a62aa007afe8489185e88579d90b198dc6c9fc52",
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-055458-7737530a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:07:48",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-130216-9d06eb3d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:02:16",
+    "lane": 35,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-130216-9d06eb3d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:03:30",
+    "lane": 35,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
