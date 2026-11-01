@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3648925932-liquid-filler-auto-bottle.yaml",
+ "mods": [
+  "3648925932"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Bottle Filler in the dug-out corridor west of the printing pod. Selected, its user menu offers Disallow Auto Bottle; clicked, it offers Allow Auto Bottle",
+ "updated": "2026-11-01",
+ "commit": "1866206f",
+ "mod_dlls": {
+  "3648925932": {
+   "Isu.OniMods.LiquidFillerAutoBottle.dll": "3932d208a3990adaa1b4ea5e5267d3f61efd735d224b8101afcbb1ac3d761472"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-005219-2e014fd0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:03:11",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-014802-40e937ca",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:48:03",
+    "lane": 43,
+    "reference_run": "20261101-005219-2e014fd0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-014802-40e937ca",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:48:04",
+    "lane": 45,
+    "reference_run": "20261101-005219-2e014fd0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
