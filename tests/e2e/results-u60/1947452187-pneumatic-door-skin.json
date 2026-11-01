@@ -3,12 +3,12 @@
  "mods": [
   "1947452187"
  ],
- "verdict": "pending",
- "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
- "updated": "2026-10-31",
- "commit": "8a004ed3",
+ "note": "a Pneumatic Door is drawn with the mod's glassdoor_kanim; world shot as in the original",
+ "updated": "2026-11-01",
+ "commit": "711c6594",
  "mod_dlls": {
   "1947452187": {
    "ss13doors.dll": "006c34bdca1b1975d7c27dd904603a1068248bf8cde17245af01cf9de173b931"
@@ -17,17 +17,43 @@
  "runs": {
   "original": [
    {
-    "run": "20261031-214159-a5f53be5",
+    "run": "20261031-230339-bc48bbaa",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-10-31T21:46:10",
-    "lane": 32,
-    "reasons": [
-     "step 2: buildings.Door is 2, wanted 1"
-    ],
+    "verdict": "pass",
+    "date": "2026-10-31T23:46:48",
+    "lane": 31,
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261101-001105-8db30ddf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:11:05",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "door": 0.012043
+    }
+   },
+   {
+    "run": "20261101-001105-8db30ddf",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T00:23:45",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "door": 0.011788
+    }
+   }
+  ]
  }
 }
