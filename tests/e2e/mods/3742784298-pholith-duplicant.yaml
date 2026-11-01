@@ -8,10 +8,11 @@
 # drive yet.
 # What changes: what its patches change.
 #
-# A load spec: the colony loads with the mod, its patched methods counted as in the original,
-# and two minutes of play pass with the Duplicants alive.
+# It needs Dupery Fixed (3172734005), whose assembly it references: alone, the original
+# cannot load it. A load spec: the colony loads with both, the mod's patched methods counted
+# as in the original, and two minutes of play pass with the Duplicants alive.
 from: early-base
-mods: [3742784298]
+mods: [3172734005, 3742784298]
 steps:
   - expect_state:
       "sum:Global.Instance.modManager.mods[*].loaded_mod_data.patched_methods.Count if .label.id == 3742784298": "== original"
