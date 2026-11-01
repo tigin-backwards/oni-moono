@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3820540318-interface-extended.yaml",
+ "mods": [
+  "3820540318"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads, as its log says, and the colony plays for 30 s",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3820540318": {
+   "CenteredHud.dll": "7dbe7cf1693824462359c4fe077c07b87aa745172da31b1fdaa1843e6e21a91d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:35:12",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:20:12",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:22:15",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
