@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3302908405-sunny-disposition-fix.yaml",
+ "mods": [
+  "3302908405"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Sunny Disposition trait has no on-add behaviour; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "3428856a",
+ "mod_dlls": {
+  "3302908405": {
+   "onimod.dll": "4a987a3b410cca600c609ed95c97838c6e1dd2b4d4b4015f73e75c96c069dfdb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-025721-44d9d471",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:57:21",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-041602-101154ff",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:16:02",
+    "lane": 35,
+    "reference_run": "20261101-025721-44d9d471",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-041602-101154ff",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:19:48",
+    "lane": 35,
+    "reference_run": "20261101-025721-44d9d471",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
