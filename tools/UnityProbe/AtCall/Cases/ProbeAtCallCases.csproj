@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Built against the original's class libraries in Managed/ (Mono's mscorlib and System.Drawing),
+       not .NET Standard's facades: the cases name Mono's System.Drawing.Bitmap as a mod built for
+       the game does. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>ProbeAtCallCases</AssemblyName>
+    <Version>1.0.0.0</Version>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <NoStdLib>true</NoStdLib>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <OniManaged Condition="'$(OniManaged)' == ''">$(HOME)/projects/oni-linux/OxygenNotIncluded_Data/Managed</OniManaged>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(OniManaged)/mscorlib.dll" Private="false" />
+    <Reference Include="$(OniManaged)/System.dll" Private="false" />
+    <Reference Include="$(OniManaged)/System.Core.dll" Private="false" />
+    <Reference Include="$(OniManaged)/System.Drawing.dll" Private="false" />
+    <Reference Include="$(OniManaged)/netstandard.dll" Private="false" />
+    <ProjectReference Include="../Absent/ProbeAbsent.csproj" />
+    <ProjectReference Include="../../Gone/v1/ProbeGoneV1.csproj" />
+  </ItemGroup>
+</Project>
