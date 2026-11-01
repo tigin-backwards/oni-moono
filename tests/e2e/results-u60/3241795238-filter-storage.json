@@ -1,0 +1,60 @@
+{
+ "spec": "mods/3241795238-filter-storage.yaml",
+ "mods": [
+  "3241795238"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Liquid Filter Storage placed and selected (details shot): the mod's storage with a filter; the mass cap is lifted",
+ "updated": "2026-11-01",
+ "commit": "3ffbc0cf",
+ "mod_dlls": {
+  "3241795238": {
+   "PLib.dll": "93073fdf44dbe9fd7c0afe19e56341be862cc2d732090dee30999cf60e2e160d",
+   "Storage.dll": "d7a1752471509ef7e8a46ef7aec208fd0fff936743361b692eb01cea0283340d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-003243-f188626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:42:23",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-040118-512a7a39",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:01:18",
+    "lane": 35,
+    "reference_run": "20261101-003243-f188626a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0
+    }
+   },
+   {
+    "run": "20261101-040118-512a7a39",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:05:13",
+    "lane": 35,
+    "reference_run": "20261101-003243-f188626a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0
+    }
+   }
+  ]
+ }
+}
