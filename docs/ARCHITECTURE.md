@@ -49,7 +49,7 @@ OniMoono.Host (exe OniMoono)             entry point; ALC setup; main loop; CLI 
  │     │                                  LZ4/LZMA, object readers, managed-layout builder. No engine types.
  │     ├─ OniMoono.Graphics.dll          GL 4.5 core device: buffers, textures, programs, state,
  │     │                                  framebuffers; Unity shader-blob runtime. No engine types.
- │     ├─ OniMoono.Platform.dll          GLFW window, GL context, input events, clipboard, cursors,
+ │     ├─ OniMoono.Desktop.dll           GLFW window, GL context, input events, clipboard, cursors,
  │     │                                  display modes, timing.
  │     └─ BRUTAL packages                 Ahwoo.BRUTAL.{Core,Glfw,OpenGl,Numerics,Stb,…}
  └─ game assemblies from Managed/ (unmodified on disk)
@@ -1730,7 +1730,7 @@ merging is an optimisation we may add only where it cannot change the result).
 
 ### 3.6 Platform
 
-`OniMoono.Platform` wraps `Brutal.Glfw`: one window with a GL 4.5 core context, vsync,
+`OniMoono.Desktop` wraps `Brutal.Glfw`: one window with a GL 4.5 core context, vsync,
 resize, fullscreen/windowed modes (`Screen.*`), monitors/resolutions, DPI, keyboard
 (GLFW key → Unity `KeyCode`; character keys through the active layout, as the game's Input
 Manager has "Use Physical Keys" off: `KeyboardLayout`, measured on AZERTY), text input (whole code points through our own GLFW character
@@ -1761,7 +1761,25 @@ A minimized window keeps the size it had, as in Unity's player: Windows reports 
 as 0x0, but `Screen.width`/`height`, `Display.renderingWidth`/`Height` and the cameras' pixel
 sizes stay what they were, and frames go on rendering at that size until the window is restored
 (measured in the original, windowed and fullscreen; issue #29, where the game's
-`LightBufferCompositor` asked for a temporary of `Screen.width / 8` pixels).
+`LightBufferCompositor` asked for a temporary of `Screen.width / 8` pixels). Minimized, a
+Windows window sits at -32000,-32000, on no monitor; it keeps the monitor it was on.
+
+Known limitations, not handled:
+- X11 layouts with several groups (us,ru and a group switch) are unmeasured in the original;
+  ours maps keys through the group in effect at each press.
+- Wayland has no window positions (`-monitor`, centring and restore placement do nothing there),
+  no window icons, and a layout's first level only for key codes; the original's Wayland app ID
+  is unmeasured.
+- On X11 a fullscreen window is an undecorated monitor-sized window, without
+  `_NET_WM_STATE_FULLSCREEN`, so a window manager may keep its panels above it.
+- Outside the window the pointer is read each frame (`FollowCursorOutside`); over another window
+  that covers ours it is inside our client area, where GLFW reports no movement, so
+  `Input.mousePosition` stays where the pointer was last over ours.
+- At start a windowed window's client area is centred on its monitor (not its frame, as for a
+  restored window: about 11 pixels higher at 100% scaling). The original on Windows starts where
+  it saved its window last (its registry key's `Screenmanager Window Position X/Y`: measured with
+  the U59 copy, which held 0,0, as a 1024x768 client at 2561,31 on a second monitor at 2560,0);
+  ours saves no position, and the original's first start, with none saved, is unmeasured.
 
 ### 3.7 Text and fonts
 
@@ -1988,7 +2006,7 @@ and GC-poll time that perf does not), so it is not used for self time.
 docs/                     PLAN.md, ARCHITECTURE.md, research/, decisions are recorded inline
 src/OniMoono.Assets/     file formats and readers
 src/OniMoono.Graphics/   GL device and Unity shader runtime
-src/OniMoono.Platform/   window/input
+src/OniMoono.Desktop/    window, input, GL device and presenters
 src/OniMoono.UnityEngine/ engine API implementation (namespaces mirror Unity's)
 src/OniMoono.Host/       executable
 src/Facades/              generated UnityEngine.*Module facade projects (do not edit)
