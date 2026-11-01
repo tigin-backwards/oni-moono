@@ -1,0 +1,21 @@
+# Ultimate Power Tweaks (3792767193), classes P, O (PLib options, dynamic).
+#
+# What it does: options for every electrical building, mods' ones found at start-up included,
+# and the wires: consumption, generation, charge rate, battery capacity and loss, each off,
+# a value or a multiplier (dynamic option entries with a search field). Patches on the
+# buildings' definitions, EnergyConsumer.BaseWattageRating and the formatted wattages.
+# How a player reaches it: the mod's options (Mods screen).
+# What changes: the colony's power figures, as the player sets them.
+#
+# Options double the Manual Generator's generation (a multiplier of 2). Its definition then
+# rates 800 W (the game's 400), as in the original; the colony runs on.
+from: early-base
+mods: [3792767193]
+options:
+  "3792767193": {ManualGenerator: {GenerationWatts: {Enabled: true, UseMultiplier: true, Value: 2.0}}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"ManualGenerator\").GeneratorWattageRating": ["== 800", "== original"]
+      "all:ManualGenerator::[0].GetComponent<Generator>.WattageRating": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
