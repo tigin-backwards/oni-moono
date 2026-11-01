@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3553196783-wandering-star.yaml",
+ "mods": [
+  "3553196783"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "every asteroid gets its orbit, and after a cycle of play the asteroids have moved as in the original",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3553196783": {
+   "bigClusterGrid.dll": "a7df7779836e45060a2d0f43c6f6a71af34342f76b47d337d8cfc1ebc95c93e0"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-074535-befa48bb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:45:35",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-125956-898a31b1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:59:56",
+    "lane": 35,
+    "reference_run": "20261101-074535-befa48bb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-125956-898a31b1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:01:20",
+    "lane": 35,
+    "reference_run": "20261101-074535-befa48bb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
