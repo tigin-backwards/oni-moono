@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3789310279-custom-rocket-interior.yaml",
+ "mods": [
+  "3789310279"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "21fb404f",
+ "mod_dlls": {
+  "3789310279": {
+   "CustomRocketInterior.dll": "ffe6edd2ce03970cebd1cccb03191f4445ba38d6574572fce53a0f8d606f9635",
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-055458-7737530a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:54:59",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-113117-778f976b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:31:17",
+    "lane": 36,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-113117-778f976b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:33:54",
+    "lane": 36,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
