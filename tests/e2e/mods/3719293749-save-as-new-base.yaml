@@ -1,0 +1,29 @@
+# Save As New Base (3719293749), classes P, U (a dialog).
+#
+# What it does: saving under a filename that differs from the colony's base name asks first
+# ("Confirm Save Location": save to a new base folder, or keep the current one): patches on
+# SaveScreen.OnClickNewSave, SaveLoader.Save and SaveGame.GetSaveHeader (a transpiler using
+# the save's unique ID), and on Fast Save's autosave cleanup when it is installed.
+# How a player reaches it: the pause menu's Save As, a new name.
+# What changes: a colony saved under a new name can start a base folder of its own.
+#
+# The pause menu's Save As, its new save button, the name "e2e-newbase" typed: the mod's
+# confirmation dialog opens (dumped); "Yes, save to new folder" saves, and the file is in a
+# folder of that name.
+from: early-base
+mods: [3719293749]
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Save AsButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Save AsButton"}
+  - ui_wait: {path: "**/SaveScreen", cond: stable}
+  - click: {ui: "**/SaveScreen/**/NewSaveButton"}
+  - ui_wait: {path: "**/FileNameDialog", cond: stable}
+  - type: {ui: "**/FileNameDialog/**/*Input*", text: "e2e-newbase", clear: true}
+  - click: {text: "Confirm", under: "**/FileNameDialog"}
+  - ui_wait: {path: "**/ConfirmDialog", cond: stable}
+  - ui_dump: {name: confirm, root: "**/ConfirmDialog"}
+  - click: {text: "Yes, save to new folder", under: "**/ConfirmDialog"}
+  - ui_wait: {path: "**/ConfirmDialog", cond: gone, frames: 3000}
+  - expect_state:
+      "file:save_files/e2e-newbase/e2e-newbase.sav": exists
