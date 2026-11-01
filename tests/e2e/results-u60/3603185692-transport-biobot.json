@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3603185692-transport-biobot.yaml",
+ "mods": [
+  "3603185692"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Biobot's base trait is read; setup spawns a Biobot in the dug-out corridor west of the printing pod, and it carries at least 2000 kg; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "7078dd1b",
+ "mod_dlls": {
+  "3603185692": {
+   "morbpatch.dll": "b98b1148a7f0d5e5df2e7b64693b72bc21decd331466286c2a4c561087585ec7"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-012842-2786154e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:44:25",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-013236-a30f604f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:32:36",
+    "lane": 44,
+    "reference_run": "20261101-012842-2786154e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-013236-a30f604f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:46:24",
+    "lane": 44,
+    "reference_run": "20261101-012842-2786154e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
