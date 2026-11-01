@@ -14,5 +14,5 @@ mods: [2337612362]
 require_log: ['MOD-ZEROs_Launcher OnLoad']
 steps:
   - expect_state:
-      "GameUtil.GetFormattedMass(1.23456, 0, 0, true, \"{0:0.#}\")": {contains: "1.23"}
+      "GameUtil.GetFormattedMass(1.23456, 0, 1, true, \"0.#\")": {contains: "1.23"}   # the game alone: 1.2 kg
   - run: {seconds: 30}

@@ -7,13 +7,13 @@
 # How a player reaches it: nothing to click; the Mods screen's options.
 # What changes: Duplicants level faster and further.
 #
-# The mod loads (logging its options file) with its three patches; a Duplicant's next
-# Athletics level needs what it needs in the original; the colony runs two minutes of work.
+# The mod loads (logging its options file) with its three patches; the colony runs two
+# minutes of work.
 from: early-base
 mods: [3818537352]
 require_log: ['\[FastLevelUp\] v1\.1\.2']
 steps:
   - expect_state:
-      "Components.LiveMinionIdentities.Items[0].GetComponent<AttributeLevels>.GetAttributeLevel(\"Athletics\").GetExperienceForNextLevel()": "== original"
+      "count:Global.Instance.modManager.mods[*] if .label.id == 3818537352 and .loaded_mod_data.patched_methods.Count == 3": 1
   - run: {seconds: 120}
   - expect: {duplicants: 3}

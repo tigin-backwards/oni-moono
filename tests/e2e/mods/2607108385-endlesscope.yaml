@@ -10,5 +10,5 @@ from: early-base
 mods: [2607108385]
 steps:
   - expect_state:
-      "sum:Assets.GetPrefab(\"ClusterTelescope\").GetComponent<StateMachineController>.cmpdef.defs[*].analyzeClusterRadius if .GetType().FullName == 'ClusterTelescope+Def'": 20
+      "Assets.GetPrefab(\"ClusterTelescope\").GetComponent<StateMachineController>.cmpdef.defs[0].analyzeClusterRadius": 20   # the game: 3
   - run: {seconds: 30}

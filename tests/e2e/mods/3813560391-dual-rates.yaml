@@ -13,7 +13,7 @@ mods: [3813560391]
 require_log: ['\[Dual Rates\] Mod loaded successfully']
 steps:
   - expect_state:
-      "GameUtil.GetFormattedMass(1, 2, 0, true, \"{0:0.#}\")": {contains: "("}
+      "GameUtil.GetFormattedMass(1, 2, 1, true, \"0.#\")": {contains: "("}   # the game alone: 1 kg/s
   - run: {seconds: 2}
   - driver: {camera.set: {cell: [116, 208], ortho: 8}}
   - click_world: {cell: [116, 207], select: Outhouse}

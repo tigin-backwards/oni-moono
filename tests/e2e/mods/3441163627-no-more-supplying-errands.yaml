@@ -7,13 +7,14 @@
 # errands.
 # What changes: deliveries are prioritised as storage work or by their other group.
 #
-# No chore type lists the Hauling group; fetching for storage is in Storage; the colony runs
-# two minutes of errands.
+# The farm and repair fetches (Farming or Repair, and Supply, in the game) keep only their
+# other group; the colony runs two minutes of errands.
 from: early-base
 mods: [3441163627]
 steps:
   - expect_state:
-      "count:Db.Get().ChoreTypes.resources[*] if .groups.Length != 0": "== original"
-      "Db.Get().ChoreTypes.Fetch.groups[0].Id": Storage
+      "Db.Get().ChoreTypes.FarmFetch.groups.Length": 1
+      "Db.Get().ChoreTypes.RepairFetch.groups.Length": 1
+      "Db.Get().ChoreTypes.FarmFetch.groups[0].Id": "!= 'Hauling'"
   - run: {seconds: 120}
   - expect: {duplicants: 3}

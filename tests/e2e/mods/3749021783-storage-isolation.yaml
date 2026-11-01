@@ -11,5 +11,5 @@ from: early-base
 mods: [3749021783]
 steps:
   - expect_state:
-      "all:RationBox::[0].GetComponent<Storage>.defaultStoredItemModifers.Count": 4
+      "all:RationBox::[0].GetComponent<Storage>.defaultStoredItemModifers.Count": 4   # the game gives a ration box 1
   - run: {seconds: 60}
