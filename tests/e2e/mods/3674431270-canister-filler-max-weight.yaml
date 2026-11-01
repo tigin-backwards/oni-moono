@@ -1,0 +1,27 @@
+# Canister Filler Max Weight 200kg (3674431270), class P.
+#
+# What it does: a new Canister Filler (GasBottler) starts at its maximum fill, 200 kg (the
+# game's default is lower): a postfix on GasBottlerConfig.DoPostConfigureComplete sets the
+# Bottler's UserMaxCapacity to its MaxCapacity.
+# How a player reaches it: building a Canister Filler; its capacity side screen.
+# What changes: full canisters without touching the slider.
+#
+# setup builds a Canister Filler in the dug-out corridor west of the printing pod. Its fill amount
+# is its maximum; selected, its capacity side screen shows it (dumped).
+from: early-base
+mods: [3674431270]
+require_log: ['CanisterFillerMaxWeight: Loaded successfully']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"GasBottler\")", method: Build, args: [{"$": "Grid.XYToCell(114, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:Bottler::[0].MaxCapacity": {save_as: max}
+  - expect_state:
+      "all:Bottler::[0].UserMaxCapacity": "== max"
+  - driver: {camera.set: {cell: [114, 207], ortho: 8}}
+  - click_world: {cell: [114, 206], select: GasBottler}
+  - ui_wait: {path: "**/CapacityControlSideScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Bottler>.UserMaxCapacity": 200
+  - ui_dump: {name: capacity, root: "**/CapacityControlSideScreen"}
