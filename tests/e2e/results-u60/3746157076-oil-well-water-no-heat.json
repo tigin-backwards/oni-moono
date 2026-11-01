@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3746157076-oil-well-water-no-heat.yaml",
+ "mods": [
+  "3746157076"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Oil Well's prefab has the controller; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "1df40822",
+ "mod_dlls": {
+  "3746157076": {
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db",
+   "╙═╛«─┌╡─╦«▓╗▓╬╙δ╗╗╚╚.dll": "d5851590b92a6012780568ae426f59bd8845ad97977b920f0481c68e0c9d9206"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-030516-f8747b98",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:20:10",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-033650-9c572f18",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:36:50",
+    "lane": 44,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-033650-9c572f18",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:42:31",
+    "lane": 44,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
