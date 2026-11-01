@@ -21,7 +21,9 @@ What our runs recorded:
   a worktree whose out/ has none, the main checkout's out/);
 - the spec results in tests/e2e/results/*.json (or ONI_RESULTS_DIR), written by
   `scripts/e2e.py --record`: a record's verdict and note decide the Played column, ahead of the
-  hand-written status sets below, which stay for mods no spec has played yet."""
+  hand-written status sets below, which stay for mods no spec has played yet;
+- then those played on U60, tests/e2e/results-u60/*.json (or ONI_RESULTS_U60_DIR): a mod's U60
+  record wins over its main one, and its note starts "on U60:"."""
 import glob, json, os, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -107,18 +109,20 @@ def finding_text(ident, findings):
 
 
 def record_status(record, findings):
-    """(Played mark, note) of a spec record."""
-    note = f'spec tests/e2e/{record["spec"]}' + (f': {record["note"]}' if record.get('note') else '')
+    """(Played mark, note) of a spec record; a U60 one's note starts "on U60:"."""
+    on = 'on U60: ' if record.get('u60') else ''
+    note = f'tests/e2e/{record["spec"]}' + (f': {record["note"]}' if record.get('note') else '')
     if record['verdict'] == 'played':
-        return '✅', note
+        return '✅', f'{on}spec {note}'
     if record['verdict'] == 'warning':
         cited = ', '.join(finding_text(i, findings) for i in record.get('findings', []))
-        return '⚠️', note + (f'; known findings: {cited}' if cited else '')
-    return '⬜', f'spec fails in ours: {note[5:]}' + (f' ({record["why"]})' if record.get('why') else '')
+        return '⚠️', f'{on}spec {note}' + (f'; known findings: {cited}' if cited else '')
+    return '⬜', f'{on}spec fails in ours: {note}' + (f' ({record["why"]})' if record.get('why') else '')
 
 
 SWEEPS = sweep_dir()
 RESULTS = os.environ.get('ONI_RESULTS_DIR') or os.path.join(ROOT, 'tests', 'e2e', 'results')
+RESULTS_U60 = os.environ.get('ONI_RESULTS_U60_DIR') or os.path.join(ROOT, 'tests', 'e2e', 'results-u60')
 SWEPT = read_sweeps(os.environ.get('ONI_SWEEP_RESULTS') or os.path.join(ROOT, 'tests', 'e2e', 'sweeps'))
 FINDINGS = read_findings(os.path.join(ROOT, 'tests', 'e2e', 'known-findings.yaml'))
 if len(sys.argv) > 2: sys.exit(__doc__)
@@ -128,6 +132,8 @@ by_id = {r[1]: r for r in cat}
 LAST_RANK = max(int(r[0]) for r in cat)
 FULL_RANKS = 750  # every mod up to this rank; beyond it, those that work in the original
 results = read_results(RESULTS)
+for mid, record in read_results(RESULTS_U60).items():
+    results[mid] = dict(record, u60=True)
 
 def ids(pattern):
     s = set()
