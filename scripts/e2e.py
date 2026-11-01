@@ -168,7 +168,8 @@ KEYBOARD_LAYOUT = r'[a-z]{2,8}(\([\w-]+\))?'
 # Steps that talk to E2eDriver (a spec with any of them needs it installed).
 DRIVER_STEPS = {'click', 'toggle', 'dropdown', 'type', 'drag', 'tool', 'expect_ui', 'expect_state', 'ui_dump',
                 'ui_wait', 'world_shot', 'driver', 'click_world', 'scroll', 'expect_hit'}
-STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_shot', 'open', 'key', 'keyboard'} | DRIVER_STEPS
+STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_shot', 'open', 'key', 'keyboard',
+              'expect_exit'} | DRIVER_STEPS
 DRIVER_COMMANDS = {'ping', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
                    'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'keys.log', 'imgui.scrollview',
                    'buildmenu.settled'}
@@ -226,6 +227,10 @@ def check_step(where, kind, value, in_setup):
         need(isinstance(value, dict) and value.get('name') and isinstance(value.get('path'), str) and value['path']
              and not os.path.isabs(value['path']) and '..' not in value['path'].split('/'),
              'file_shot takes {name, path} (an image in the run\'s profile, relative, globs allowed), and threshold')
+    elif kind == 'expect_exit':
+        need(isinstance(value, dict) and isinstance(value.get('seconds', 120), (int, float))
+             and (value.get('code', 0) is None or isinstance(value.get('code', 0), int)),
+             'expect_exit takes {seconds, code} (the exit code, default 0; null for any)')
     elif kind == 'world_shot':
         need(isinstance(value, dict) and value.get('name'), 'world_shot takes {name, ortho, at, hide_ui, mask}')
         if isinstance(value, dict):
@@ -3308,6 +3313,7 @@ class Run:
         self.out = run_folder(spec['name'], self.run_id, kind, index)
         self.perf_wait = perf_wait
         self.hold = hold  # 'fail' or 'end': keep the player up for a look (--hold)
+        self.exited = False  # the player quit in an expect_exit step
         self.mcp = Mcp(lane.mcp_port)
         self.driver = self.input = None
         self.saves, self.values, self.saved, self.evidence = [], [], {}, {'ui_dump': [], 'shot': [], 'world_shot': []}
@@ -3480,6 +3486,8 @@ class Run:
             self.world_shot(value)
         elif kind == 'file_shot':
             self.file_shot(value)
+        elif kind == 'expect_exit':
+            self.expect_exit(value)
         elif kind == 'open':
             self.open(value)
         elif kind == 'keyboard':
@@ -3805,6 +3813,21 @@ class Run:
             json.dump(meta, f)
         self.evidence['world_shot'].append(meta)
 
+    def expect_exit(self, value):
+        """The player quits by itself (Quit to Desktop): waits for its process to end, with
+        `code` (default 0; null for any). Only steps that need no player may follow (file_shot,
+        expect_state on file: paths)."""
+        end = time.time() + float(value.get('seconds', 120))
+        while self.player.alive():
+            if time.time() > end:
+                raise SpecFailure(f'expect_exit: the player still runs after {value.get("seconds", 120)} s')
+            self.player.watchdog.progress()
+            time.sleep(0.5)
+        code = self.player.process.returncode
+        if value.get('code', 0) is not None and code != value.get('code', 0):
+            raise SpecFailure(f'expect_exit: the player exited with {code}, wanted {value.get("code", 0)}')
+        self.exited = True
+
     def file_shot(self, value):
         """An image the game wrote into the run's profile (a save's preview, a timelapse frame),
         copied into the evidence and compared as a world_shot is (5 % by default; a size more than
@@ -3882,9 +3905,10 @@ class Run:
             label = 'end'
             # A look for a person, not a check: OniMcp cannot take it at the main menu (a spec
             # of a menu mod ends there).
-            with contextlib.suppress(SpecFailure):
-                screenshot(self.mcp, self.out, 'end')
-            if not self.player.alive():
+            if not self.exited:
+                with contextlib.suppress(SpecFailure):
+                    screenshot(self.mcp, self.out, 'end')
+            if not self.player.alive() and not self.exited:
                 raise SpecFailure('the player is not alive at the end')
             errors = driver_errors(self.player.log) if uses_driver else []
             if errors:

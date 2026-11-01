@@ -532,6 +532,25 @@ class DriverTests(unittest.TestCase):
                          ["s: file_shot takes {name, path} (an image in the run's profile, relative, globs allowed), and threshold"])
         self.assertEqual(e2e.check_step('s', 'file_shot', {'name': 'x', 'path': 'save_files/*.png'}, False), [])
 
+    def test_expect_exit_waits_for_the_player_to_quit(self):
+        import subprocess
+        run = self.run_for()
+        run.player.process = subprocess.Popen(['sleep', '0.3'])
+        run.player.alive = lambda: run.player.process.poll() is None
+
+        class Watchdog:
+            def progress(self):
+                pass
+        run.player.watchdog = Watchdog()
+        run.step('expect_exit', {'seconds': 10}, 1)
+        self.assertTrue(run.exited)
+        run.player.process = subprocess.Popen(['sh', '-c', 'exit 3'])
+        with self.assertRaises(e2e.SpecFailure):
+            run.step('expect_exit', {'seconds': 10}, 2)
+        run.step('expect_exit', {'seconds': 10, 'code': None}, 3)
+        self.assertEqual(e2e.check_step('s', 'expect_exit', {'seconds': 60, 'code': None}, False), [])
+        self.assertTrue(e2e.check_step('s', 'expect_exit', {'code': 'x'}, False))
+
     def test_evidence_waits_for_the_build_menu(self):
         self.game.add('Screen/Menu', [0, 0, 100, 100])
         run = self.run_for()
