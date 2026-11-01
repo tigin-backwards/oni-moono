@@ -4,13 +4,14 @@ to the main menu and then a colony played for a short while; a failing batch is 
 each failure names its mod.
   scripts/mod-sweep.py NAME [--ranks A-B] [--ids ID...] [--batch N] [--seconds S] [--from SAVE]
                        [--first-lane L] [--last-lane L] [--players N] [--download] [--batches I,J-K]
-                       [--dry-run]
+                       [--flagged] [--dry-run]
 NAME names the sweep: its results go to tests/e2e/sweeps/NAME.tsv (scripts/modtable.py reads
 every file there), its runs and state to out/sweep/NAME/ (E2E_OUT moves out/sweep). A sweep that
 is run again goes on where it stopped: a batch whose state file exists is not run again (delete
-out/sweep/NAME/batch-NN.json to rerun one). The mods are the catalog's (scripts/mod-catalog.tsv)
-ranks A-B (default all), or the IDS given, less those it flags notLoading, crashesAtStartup or
-unanalysed, and never one onimaxxing's catalog.json (ONI_CATALOG_JSON) flags as malware.
+out/sweep/NAME/batch-NN.json to rerun one). The mods are the catalog's (scripts/mod-catalog.tsv,
+then scripts/mod-catalog-u60.tsv) ranks A-B (default all), or the IDS given, less those it flags
+notLoading, crashesAtStartup or unanalysed (unless --flagged, a sweep that records how they fail
+in the original), and never one onimaxxing's catalog.json (ONI_CATALOG_JSON) flags as malware.
 Translations (a .po and no assembly) are recorded and not batched: the players install them
 disabled, as a subscription leaves them. --download fetches with SteamCMD (scripts/ws-mods.py)
 the mods out/ws lacks; a mod that is still missing is recorded as not downloadable. A mod the
@@ -56,6 +57,7 @@ SWEEP_OUT = os.environ.get('E2E_OUT') or os.path.join(ROOT, 'out', 'sweep')
 os.environ.setdefault('E2E_OUT', SWEEP_OUT)  # e2e.py's run folders, set before it is loaded
 RESULTS = os.path.join(ROOT, 'tests', 'e2e', 'sweeps')
 CATALOG = os.path.join(ROOT, 'scripts', 'mod-catalog.tsv')
+CATALOG_U60 = os.path.join(ROOT, 'scripts', 'mod-catalog-u60.tsv')
 CATALOG_JSON = os.environ.get('ONI_CATALOG_JSON') or os.path.expanduser(
     '~/projects/onimaxxing/apps/onimaxxing/.mods-data/public/catalog.json')
 SKIPPED_FLAGS = ('notLoading', 'crashesAtStartup', 'unanalysed')
@@ -86,11 +88,18 @@ def say(text):
 
 # ---------------------------------------------------------------- the mods
 
-def read_catalog(path=CATALOG):
-    rows = []
-    for line in open(path, encoding='utf-8'):
-        rank, mid, subs, flags, title = (line.rstrip('\n').split('\t') + [''] * 5)[:5]
-        rows.append({'rank': int(rank), 'id': mid, 'flags': flags, 'title': title})
+def read_catalog(paths=(CATALOG, CATALOG_U60)):
+    """The catalog's rows, then those of the U60 catalog it lacks (scripts/mod-catalog-u60.tsv:
+    their U60 ranks, which may repeat the main TSV's)."""
+    rows, seen = [], set()
+    for path in paths:
+        if not os.path.exists(path):
+            continue
+        for line in open(path, encoding='utf-8'):
+            rank, mid, subs, flags, title = (line.rstrip('\n').split('\t') + [''] * 5)[:5]
+            if mid not in seen:
+                seen.add(mid)
+                rows.append({'rank': int(rank), 'id': mid, 'flags': flags, 'title': title})
     return rows
 
 
@@ -390,6 +399,8 @@ def parse_args(argv):
     p.add_argument('--screen', default='1280x1024',
                    help="the players' screen: tall enough for the MOD DIFFERENCES dialog of a whole batch")
     p.add_argument('--download', action='store_true')
+    p.add_argument('--flagged', action='store_true',
+                   help='sweep the mods flagged notLoading, crashesAtStartup or unanalysed too (never malware)')
     p.add_argument('--batches', help='only these batch numbers: 0,3,5-7')
     p.add_argument('--dry-run', action='store_true', help='print the batches and stop')
     return p.parse_args(argv)
@@ -439,7 +450,8 @@ def main(argv):
     else:
         a, _, b = (opts.ranks or '1-999999').partition('-')
         chosen = [r for r in catalog if int(a) <= r['rank'] <= int(b or a)]
-    chosen = [r for r in chosen if r['flags'] not in SKIPPED_FLAGS]
+    if not opts.flagged:
+        chosen = [r for r in chosen if r['flags'] not in SKIPPED_FLAGS]
     malware = [r['id'] for r in chosen if info.get(r['id'], {}).get('malware')]
     chosen = [r for r in chosen if r['id'] not in malware]
     if malware:
