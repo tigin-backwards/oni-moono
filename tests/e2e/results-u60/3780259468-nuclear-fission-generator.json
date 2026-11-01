@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3780259468-nuclear-fission-generator.yaml",
+ "mods": [
+  "3780259468"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds the plant in the dug-out corridor west of the printing pod. It shows in the Power menu; it rates 32.5 kW, and selected its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "a018219c",
+ "mod_dlls": {
+  "3780259468": {
+   "NuclearFissionPowerPlant.dll": "4bff19eca3a870d7ee1c2d191aa9f41adb5c7594c743923ded8b0f65f0f34704"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041850-de3664d6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:24:05",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-050049-d9298e24",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:00:49",
+    "lane": 44,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-050049-d9298e24",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:00:50",
+    "lane": 45,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
