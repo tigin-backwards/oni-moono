@@ -1,0 +1,20 @@
+# 液体水管容量倍率/Liquid Pipe Capacity Multiplier (3763112327), classes P, O.
+#
+# What it does: liquid pipes hold a multiple of the game's 10 kg a segment (a PLib option,
+# 1-20, default 1): a prefix on ConduitFlow's constructor scales the liquid flow's maximum
+# mass, and a postfix on ConduitFlow.Sim200ms rereads the option every 2 s and applies it.
+# How a player reaches it: the Mods screen's options; any liquid pipe.
+# What changes: more liquid per pipe segment.
+#
+# The spec sets 3x: the liquid conduit flow's maximum is 30 kg, the gas one's the game's, and
+# the log says so.
+from: early-base
+mods: [3763112327]
+options:
+  YRY.LiquidPipeCapacityMod: {Multiplier: 3}
+require_log: ['\[LiquidPipeCapacityMod\] .*: 3x']
+steps:
+  - run: {seconds: 5}
+  - expect_state:
+      "Game.Instance.liquidConduitFlow.MaxMass": 30
+      "Game.Instance.gasConduitFlow.MaxMass": "== original"

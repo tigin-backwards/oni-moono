@@ -1,0 +1,17 @@
+# 皇犸兔产出更多头冠 More Crowns (3464348651), classes P, O.
+#
+# What it does: shearing a Gold Belly (its WellFedShearable) drops several crowns instead of
+# one: a postfix on WellFedShearable.Instance.Shear spawns CrownsPerShear - 1 more (a PLib
+# option, 1-100, default 10).
+# How a player reaches it: the Mods screen's options; shearing a Gold Belly.
+# What changes: more crowns per shearing.
+#
+# The spec sets 5 crowns a shearing: the mod reads it, and loads with its one patch.
+from: early-base
+mods: [3464348651]
+options:
+  "3464348651": {CrownsPerShear: 5}
+steps:
+  - expect_state:
+      "type:皇犸兔剪毛数量调整.ModConfig::Instance.CrownsPerShear": 5
+  - run: {seconds: 30}
