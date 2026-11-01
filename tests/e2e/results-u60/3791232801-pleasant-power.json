@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3791232801-pleasant-power.yaml",
+ "mods": [
+  "3791232801"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "defaults. A plain wire carries 4000 W; the coal generator's fuel use is a sixth of the game's (compared with the original); the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "b1b8eff9",
+ "mod_dlls": {
+  "3791232801": {
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70",
+   "PleasantPower.dll": "24ce9e6c55f5f4a9f588b1ed659a2a18bd49e6759eb46fa17c9b2742758a68cb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-071706-22499823",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:26:53",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084055-b7150bc3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:40:55",
+    "lane": 44,
+    "reference_run": "20261101-071706-22499823",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-084055-b7150bc3",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:40:56",
+    "lane": 45,
+    "reference_run": "20261101-071706-22499823",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
