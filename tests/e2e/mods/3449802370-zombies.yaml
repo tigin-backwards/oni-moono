@@ -1,0 +1,20 @@
+# Zombies! (3449802370), class P (a new-game setting).
+#
+# What it does: a Zombie Challenge setting for new games (a ToggleSettingConfig "Zombies", off by
+# default): with it on, every Duplicant starts with a Zombie Spore infection of infinite length,
+# cured only by a Serum Vial; patches on BaseMinionConfig, CustomGameSettings and MinionStorage
+# keep track of the infections.
+# How a player reaches it: a new game's settings.
+# What changes: a colony of zombies.
+#
+# The setting is registered (off in this colony); the colony runs on with healthy Duplicants, as
+# many as in the original.
+from: early-base
+mods: [3449802370]
+steps:
+  - expect_state:
+      "CustomGameSettings.Instance.QualitySettings[\"Zombies\"]": exists
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"Zombies\").id": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"
