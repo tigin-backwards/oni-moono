@@ -3,12 +3,12 @@
  "mods": [
   "3794308883"
  ],
- "verdict": "pending",
- "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
- "updated": "2026-10-31",
- "commit": "58a73e93",
+ "note": "a freezer bank: in the Food menu (shot) and the Database; selected, 10 t of food storage with its filter side screen (shot)",
+ "updated": "2026-11-01",
+ "commit": "a9b13ceb",
  "mod_dlls": {
   "3794308883": {
    "AntiqueFreezer.dll": "22b74a84ee310176969b805f4abcb77c10a93426522e791b3c3cbcdfb15443df"
@@ -17,17 +17,45 @@
  "runs": {
   "original": [
    {
-    "run": "20261031-214713-0ac1044b",
+    "run": "20261031-230339-bc48bbaa",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-10-31T22:06:52",
+    "verdict": "pass",
+    "date": "2026-10-31T23:47:12",
     "lane": 32,
-    "reasons": [
-     "step 3: CodexCache.entries is {\"DUPLICANTS\": {\"$type\": \"CodexEntry\", \"log\": {\"$type\": \"EntryDevLog\", \"$str\": \"EntryDevLog\"}, \"contentContainers\": {\"$type\": \"System.Collections.Generic.List<ContentContainer>\", \"$count\": 7, \"$str\": , wanted {'contains': 'ANTIQUEFREEZER'}"
-    ],
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261101-020152-b2e6ca0f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:01:52",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "food-menu": 0.0,
+     "details": 0.0
+    }
+   },
+   {
+    "run": "20261101-020152-b2e6ca0f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:10:26",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "food-menu": 0.0,
+     "details": 0.0
+    }
+   }
+  ]
  }
 }
