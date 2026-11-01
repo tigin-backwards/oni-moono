@@ -1,0 +1,27 @@
+# StatsUnlimitedSO (3807068874), classes P, O (PLib options, StatsUnlimited.json).
+#
+# What it does: Duplicant stats past the game's cap of 20 (up to 50 by default), experience
+# multipliers (global, skill, and one per attribute), the starting stats and hit points of new
+# Duplicants, oxygen use, an optional Regenerative trait and a harsher Injured effect. Patches
+# on AttributeLevel.AddExperience, MinionResume.AddExperience, AttributeInstance.GetTotalValue
+# and the printing of new Duplicants.
+# How a player reaches it: the mod's options (Mods screen), then Duplicants working.
+# What changes: how far and how fast Duplicants grow.
+#
+# Options set skill experience 2x and Excavation (Digging) experience 10x. setup hands Nikola
+# experience through the game's own calls for work done: 100 skill experience (his total is
+# 226.5 in early-base) and 10 s of Digging (his Digging is level 3 with 154.9 experience). Both
+# count more than the game's (326.5 and 164.9) and as in the original; the colony runs on.
+from: early-base
+mods: [3807068874]
+options:
+  "3807068874": {$file: StatsUnlimited.json, SkillExpMultiplier: 2.0, DiggingMultiplier: 10.0, GlobalMultiplier: 1.0}
+setup:
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[1].GetComponent<MinionResume>", method: AddExperience, args: [100]}}
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[1].GetComponent<AttributeLevels>", method: AddExperience, args: [Digging, 10, 1]}}
+steps:
+  - expect_state:
+      "Components.LiveMinionIdentities.Items[1].GetComponent<MinionResume>.TotalExperienceGained": ["> 327", "== original"]
+      "Components.LiveMinionIdentities.Items[1].GetComponent<AttributeLevels>.GetAttributeLevel(\"Digging\").experience": ["> 165", "== original"]
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
