@@ -1,0 +1,69 @@
+{
+ "spec": "mods/3825795220-better-build-menu-cn.yaml",
+ "mods": [
+  "3825795220"
+ ],
+ "verdict": "failed",
+ "why": "a run of ours failed",
+ "findings": [],
+ "note": "defaults. The Base menu opens; its building panel is dumped and shot, as in the original",
+ "updated": "2026-11-01",
+ "commit": "83bf5433",
+ "mod_dlls": {
+  "3825795220": {
+   "╕ⁿ║├╡─╜¿╓■▓╦╡Ñ.dll": "f1810b316b46144a29ecc052b50b9c093ecf3be159bb64ca39a062c617e1fd29"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-113332-087413b5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:33:32",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-113704-3922e6da",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T11:37:04",
+    "lane": 44,
+    "reasons": [
+     "ui_dump base-menu: 2 difference(s)"
+    ],
+    "reference_run": "20261101-113332-087413b5",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "base-menu": {
+      "differences": 2
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-113704-3922e6da",
+    "index": 2,
+    "verdict": "fail",
+    "date": "2026-11-01T11:37:05",
+    "lane": 45,
+    "reasons": [
+     "ui_dump base-menu: 2 difference(s)"
+    ],
+    "reference_run": "20261101-113332-087413b5",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "base-menu": {
+      "differences": 2
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,22 @@
+# 更好的建筑菜单 Better build menu (3825795220), classes U, O (UI; options of its own).
+#
+# What it does: the build menu and the rocket module menu show more rows and columns of
+# buildings, sizes the player sets (its options screen, from the game's options menu and its
+# Mods screen row): patches on PlanScreen's panel size, scale and button list, on the details
+# screen's secondary side screen, and on the rocket module side screen.
+# How a player reaches it: the build menu.
+# What changes: the build menu's layout.
+#
+# Defaults. The Base menu opens; its building groups are dumped, as in the original (not the
+# category toggles, which bounce for new buildings while the menu opens).
+from: early-base
+mods: [3825795220]
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/BuildingGroups", cond: stable}
+  - ui_dump: {name: base-menu, root: "**/PlanBuildingSelectionPanel/BuildingGroups"}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/BuildingGroups", cond: stable}
+  - key: {code: Escape}
