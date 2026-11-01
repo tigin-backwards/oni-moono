@@ -1,0 +1,22 @@
+# RemovePipPlantingRestrictions(解除树鼠种植数量限制) (3820779042), class P.
+#
+# What it does: a prefix on PlantableCellQuery.CheckValidPlotCell sets the query's
+# maxPlantsInRadius to 100, so a Pip looking for a cell to plant a seed in no longer refuses
+# cells with plants nearby.
+# How a player reaches it: Pips that plant seeds.
+# What changes: Pips plant densely.
+#
+# A Pip and a Bristle Blossom seed are spawned in the corridor west of the printing pod;
+# the colony plays for 120 s with the Pip foraging there.
+from: early-base
+mods: [3820779042]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131127, 0, 0, "Squirrel", "Creatures"]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131130, 0, 0, "PrickleFlowerSeed", "Ore"]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 120}
+  - expect_state:
+      "count:all:CreatureBrain::[*] if .gameObject.name == Squirrel": 1
+  - expect: {duplicants: 3}
