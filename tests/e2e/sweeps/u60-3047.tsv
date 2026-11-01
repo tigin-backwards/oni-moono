@@ -1,4 +1,4 @@
-# scripts/mod-sweep.py u60-3047: 79 mods, batches of 12, the save 2minnow, 90 s of play; commit 90d0cd27, 2026-11-01
+# scripts/mod-sweep.py u60-3047: 91 mods, batches of 12, the save 2minnow, 90 s of play; commit 654d2a1f, 2026-11-01
 id	rank	original	ours	note
 3821093288	2079	ok	ok	
 3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
@@ -77,5 +77,17 @@ id	rank	original	ours	note
 3789925586	2380	ok	ok	
 3771260909	2381	ok	ok	
 3764501663	2382	ok	ok	
+3743964594	2383	ok	ok	
+2681795804	2385	ok	ok	
+3340693682	2386	ok	ok	
+3805372627	2387	ok	ok	
+3756115269	2388	ok	ok	
+2608487669	2389	menu	-	the original disables it ("Failed to load mod ...disabling"): step start: the player exited (1) while loading; HarmonyLib.HarmonyException: Patching exception in method null ---> System.ArgumentException: Undefined target method for patch method static System.Collections.Generic.IEnumerable`N<HarmonyLib.CodeInstruction> Megaminer.AutoMiner_MassN::Transpiler(System.Collections.Generic.IEnumerable`N<HarmonyLib.CodeInstruction> instructions) @ HarmonyLib.PatchClassProcessor.PatchWithAttributes; System.FieldAccessException: Field `ManualDeliveryKG:requestedIte
+3776639133	2390	ok	ok	
+3416289379	2391	ok	ok	
+3817699615	2393	ok	ok	
+3092345898	2394	colony	-	the player exits (1) while loading; System.FieldAccessException: Field `ManualDeliveryKG:requestedItemTag" is inaccessible from method `NeutroniumEnergy.NeutroniumGeneratorConfig:ConfigureBuildingTemplate (UnityEngine.GameObject,Tag)" @ BuildingConfigManager.RegisterBuilding; null Exception in RegisterBuilding for type NeutroniumEnergy.NeutroniumGeneratorConfig from NeutroniumEnergy @ BuildingConfigManager.RegisterBuilding
+3818537352	2395	ok	ok	
+3810270516	2396	ok	ok	
 3047352164	2429	-	-	a translation: installed disabled, as a subscription leaves it; not swept
 3747652766	2433	-	-	a translation: installed disabled, as a subscription leaves it; not swept
