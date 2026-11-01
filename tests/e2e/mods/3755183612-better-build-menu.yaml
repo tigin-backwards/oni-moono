@@ -1,0 +1,30 @@
+# Better Build Menu (3755183612), classes U, K (UI of its own; PLib actions).
+#
+# What it does: a full-screen build menu in the manner of Satisfactory's: a "Build" button
+# (OpenButton) and a rebindable action open BuildMenuScreen, with categories, a search field
+# (BBM_Search), building cards with tooltips, favourites and "new" badges; picking a card
+# starts the game's build tool. The game's category panel stays hidden (a postfix on
+# PlanScreen.OpenCategoryPanel), and the Copy button is moved beside the mod's button.
+# How a player reaches it: its Build button; its hotkey.
+# What changes: how buildings are found and picked.
+#
+# The mod's Build button opens its menu; "battery" is typed in its search; Escape closes it. (The
+# runner's dumps wait for the game's build menu, which the mod keeps hidden: none is taken.)
+from: early-base
+mods: [3755183612]
+require_log: ['\[BetterBuildMenu\] Build menu UI controller attached']
+steps:
+  - run: {seconds: 2}
+  - ui_wait: {path: "**/OpenButton", cond: stable}
+  - click: {ui: "**/OpenButton"}
+  - ui_wait: {path: "**/BuildMenuScreen", cond: stable}
+  - expect_ui:
+      "**/BuildMenuScreen": {active: true}
+  - click: {ui: "**/BuildMenuScreen/**/BBM_Search"}
+  - type: {ui: "**/BuildMenuScreen/**/BBM_Search", text: "battery", clear: true}
+  - run: {seconds: 1}
+  - expect_ui:
+      "**/BuildMenuScreen/**/BBM_Search": {active: true}
+  - key: {code: Escape}
+  - expect_ui:
+      "**/BuildMenuScreen": {exists: false}
