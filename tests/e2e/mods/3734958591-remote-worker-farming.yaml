@@ -1,0 +1,17 @@
+# Remote Worker Farming/远程操控坞支持收获植物 (3734958591), class P (Bionic Booster Pack).
+#
+# What it does: the Remote Worker robots of a Remote Worker Dock can harvest and uproot plants
+# (patches on RemoteWorkerConfig.CreatePrefab and on Harvestable and Uprootable spawning, which
+# register their chores for remote workers).
+# How a player reaches it: a Remote Worker Dock near farms.
+# What changes: remote farming.
+#
+# The Remote Worker's prefab is set up for farm chores (as in the original); the colony runs on.
+from: early-base
+mods: [3734958591]
+require_log: ['\[RemoteWorkerFarming\] Loaded remote farming bridge patches']
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"RemoteWorker\").GetComponents<KMonoBehaviour>.Length": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
