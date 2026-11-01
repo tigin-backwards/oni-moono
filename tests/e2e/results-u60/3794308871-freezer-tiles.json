@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3794308871-freezer-tiles.yaml",
+ "mods": [
+  "3794308871"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "58a73e93",
+ "mod_dlls": {
+  "3794308871": {
+   "FreezerTile.dll": "ef66bae855dc9f73064d51153cd478b3e4bdbac6e5cdb0649fa97a1a37c76232"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214713-0ac1044b",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-10-31T22:07:51",
+    "lane": 32,
+    "reasons": [
+     "step 3: CodexCache.entries is {\"DUPLICANTS\": {\"$type\": \"CodexEntry\", \"log\": {\"$type\": \"EntryDevLog\", \"$str\": \"EntryDevLog\"}, \"contentContainers\": {\"$type\": \"System.Collections.Generic.List<ContentContainer>\", \"$count\": 7, \"$str\": , wanted {'contains': 'FREEZERTILE'}"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

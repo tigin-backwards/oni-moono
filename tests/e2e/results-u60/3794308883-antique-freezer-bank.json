@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3794308883-antique-freezer-bank.yaml",
+ "mods": [
+  "3794308883"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "58a73e93",
+ "mod_dlls": {
+  "3794308883": {
+   "AntiqueFreezer.dll": "22b74a84ee310176969b805f4abcb77c10a93426522e791b3c3cbcdfb15443df"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214713-0ac1044b",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-10-31T22:06:52",
+    "lane": 32,
+    "reasons": [
+     "step 3: CodexCache.entries is {\"DUPLICANTS\": {\"$type\": \"CodexEntry\", \"log\": {\"$type\": \"EntryDevLog\", \"$str\": \"EntryDevLog\"}, \"contentContainers\": {\"$type\": \"System.Collections.Generic.List<ContentContainer>\", \"$count\": 7, \"$str\": , wanted {'contains': 'ANTIQUEFREEZER'}"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

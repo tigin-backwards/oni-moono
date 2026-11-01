@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3788121619-submersible-everything.yaml",
+ "mods": [
+  "3788121619"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "8a004ed3",
+ "mod_dlls": {
+  "3788121619": {
+   "SubmersibleEverything.dll": "25ce8142e35e71fa94096866839f38356c86a86287c4d2f1fb1464b6ac65333c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214159-a5f53be5",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-10-31T21:44:55",
+    "lane": 31,
+    "reasons": [
+     "step 2: Grid.Mass.get_Item(131768) is 4.3879585, wanted > 100"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

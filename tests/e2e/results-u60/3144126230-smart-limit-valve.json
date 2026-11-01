@@ -1,0 +1,30 @@
+{
+ "spec": "mods/3144126230-smart-limit-valve.yaml",
+ "mods": [
+  "3144126230"
+ ],
+ "verdict": "pending",
+ "why": "0 run(s) of ours against original run 20261031-214713-0ac1044b; 2 needed",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "58a73e93",
+ "mod_dlls": {
+  "3144126230": {
+   "railway.dll": "7fb62c6903e16cc84dfab43cabb3824f3db4dd2a582ee634a808a1a26c97750a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214713-0ac1044b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:00:55",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

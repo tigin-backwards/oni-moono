@@ -1,0 +1,30 @@
+{
+ "spec": "mods/3460253861-rust-recipe.yaml",
+ "mods": [
+  "3460253861"
+ ],
+ "verdict": "pending",
+ "why": "0 run(s) of ours against original run 20261031-214713-0ac1044b; 2 needed",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "58a73e93",
+ "mod_dlls": {
+  "3460253861": {
+   "RustRecipeTable.dll": "aee0dfbf9e5153d2d0bea3e88d6ddb448e43935c14d1728aee267222f29fd500"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214713-0ac1044b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:47:14",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3798414552-utility-plates.yaml",
+ "mods": [
+  "3798414552"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "8a004ed3",
+ "mod_dlls": {
+  "3798414552": {
+   "ThermoPlate.dll": "10d08cf4601d54e48fdcb32f0f69f26347f0e12ebc3bb784476091d979f8b852"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214159-a5f53be5",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-10-31T21:43:00",
+    "lane": 32,
+    "reasons": [
+     "step 11: Grid.Temperature.get_Item(131770) is 294.97138, wanted < before - 2; all:AmirH.ThermoPlate.ThermoPlate::[0].targetsLastTick is 0, wanted >= 1"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

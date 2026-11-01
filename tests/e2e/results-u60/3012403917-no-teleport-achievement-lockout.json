@@ -1,0 +1,30 @@
+{
+ "spec": "mods/3012403917-no-teleport-achievement-lockout.yaml",
+ "mods": [
+  "3012403917"
+ ],
+ "verdict": "pending",
+ "why": "0 run(s) of ours against original run 20261031-214713-0ac1044b; 2 needed",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "58a73e93",
+ "mod_dlls": {
+  "3012403917": {
+   "No Teleport Achievement Lockout.dll": "b2a86e57e51c7b514ccb1fe054c70cb9361c299eae94bb75ba052f9385b36121"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214713-0ac1044b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:47:13",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

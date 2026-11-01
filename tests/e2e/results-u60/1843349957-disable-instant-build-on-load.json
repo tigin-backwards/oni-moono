@@ -1,0 +1,30 @@
+{
+ "spec": "mods/1843349957-disable-instant-build-on-load.yaml",
+ "mods": [
+  "1843349957"
+ ],
+ "verdict": "pending",
+ "why": "0 run(s) of ours against original run 20261031-214713-0ac1044b; 2 needed",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "58a73e93",
+ "mod_dlls": {
+  "1843349957": {
+   "DisableInstantBuildOnSavegameLoad.dll": "4b58221c20ee31de8badc35ebf75e385b61a0ba0943e43854791dc4f39503beb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214713-0ac1044b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:04:17",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

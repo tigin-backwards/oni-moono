@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3802645529-move-this-here-fix.yaml",
+ "mods": [
+  "3802645529"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "8a004ed3",
+ "mod_dlls": {
+  "3802645529": {
+   "MoveThisHere.dll": "2fa462a9311f76f0c47be7f36e0f19a3b91280e10d77307174e33e1046e3e0cd"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214159-a5f53be5",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-10-31T21:43:15",
+    "lane": 31,
+    "reasons": [
+     "step 12: no HaulingPoint selected at [118, 207] after 5 clicks (last: None)"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

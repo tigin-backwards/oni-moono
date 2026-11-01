@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3820896200-sweeper-harvest.yaml",
+ "mods": [
+  "3820896200"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "8a004ed3",
+ "mod_dlls": {
+  "3820896200": {
+   "SweeperHarvest.dll": "bc356d90ebf11bdd0c6e94d316f45b5701274cdfa440a061fda871ad4e3ddd7b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214159-a5f53be5",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-10-31T21:41:59",
+    "lane": 31,
+    "reasons": [
+     "step 10: blueprints.Wire is 0, wanted 17"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

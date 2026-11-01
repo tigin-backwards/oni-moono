@@ -1,0 +1,33 @@
+{
+ "spec": "mods/1947452187-pneumatic-door-skin.yaml",
+ "mods": [
+  "1947452187"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "8a004ed3",
+ "mod_dlls": {
+  "1947452187": {
+   "ss13doors.dll": "006c34bdca1b1975d7c27dd904603a1068248bf8cde17245af01cf9de173b931"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214159-a5f53be5",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-10-31T21:46:10",
+    "lane": 32,
+    "reasons": [
+     "step 2: buildings.Door is 2, wanted 1"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}
