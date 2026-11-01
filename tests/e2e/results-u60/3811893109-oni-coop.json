@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3811893109-oni-coop.yaml",
+ "mods": [
+  "3811893109"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "1699bc44",
+ "mod_dlls": {
+  "3811893109": {
+   "OniCoop.dll": "73415250094604d2d5123b78712f1687a051a55c2f3ef2f5eb1dbf807d90b2d7"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-070700-31a00fb4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:15:29",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092559-c7006c7f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:25:59",
+    "lane": 36,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-092559-c7006c7f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:28:07",
+    "lane": 36,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
