@@ -1,0 +1,38 @@
+# TransferWire (3776180631), class B.
+#
+# What it does: adds the TransferWire (TransferWire, a 1x1 refined-metal transformer in the
+# Power menu, researched with Pretty Good Conductors): the game's PowerTransformer rated
+# 2000 W, with a battery of that capacity, so high-wattage circuits feed low ones without the
+# Power Transformer's loss; it has its own codex entry (CodexCache and DetailsScreen patches).
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: a small lossless transformer.
+#
+# setup grants the research and spawns copper. The TransferWire is in the Power menu; built in
+# the corridor west of the printing pod and selected, it is a 2000 W transformer.
+from: early-base
+mods: [3776180631]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"PrettyGoodConductors\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Copper\").substance", method: SpawnResource, args: [[111.5, 207.5, -12], 200, 300, 255, 0]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"PrettyGoodConductors\").unlockedItemIDs": {contains: TransferWire}
+      "Assets.GetBuildingDef(\"TransferWire\").GeneratorWattageRating": 2000
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/TransferWire Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/TransferWire Group*": {active: true}
+  - key: {code: Escape}
+  - build: {prefab: TransferWire, at: [114, 206], material: Copper}
+  - expect: {blueprints: {TransferWire: 1}}
+  - run: {seconds: 1500, until: {buildings: {TransferWire: 1}, pending_construction: 0}}
+  - driver: {camera.set: {cell: [114, 208], ortho: 8}}
+  - click_world: {cell: [114, 206], select: TransferWire}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<PowerTransformer>": exists
+      "selected:GetComponent<Battery>.capacity": 2000
+  - expect_ui:
+      "**/DetailsScreen/TitleBar/Border/LabelGroup/Label": {exists: true}
