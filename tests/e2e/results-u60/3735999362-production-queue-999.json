@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3735999362-production-queue-999.yaml",
+ "mods": [
+  "3735999362"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3735999362": {
+   "PLib.dll": "79350ee2d4eea7a879c6eebc12acca89bdd1d2a93ed7b396b875a7907a91d1e2",
+   "╢╙┴╨╔╧╧▐.dll": "0bdc551b545e845ab402cfea820d4a227569d3752c6cefb41f616156ed84367c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034242-c7177ccf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:51:31",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-124158-d4d8063c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:41:58",
+    "lane": 36,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-124158-d4d8063c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:43:34",
+    "lane": 36,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
