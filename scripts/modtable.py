@@ -415,6 +415,14 @@ broken.update({
     '3771895170': 'broken on U60 (build 761015): mastering every skill on load (MinionResume.MasterSkill in its OnSpawn postfix) throws a NullReferenceException in a SkillAttributePerk, and loading a colony stops at the crash screen (spec tests/e2e/mods/3771895170-stronger-duplicants.yaml); not run in ours',
 })
 not_run_in_ours = {'3823893994', '3771895170'}
+# Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
+# interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
+skipped = {
+    '3827209375': 'upload analysed by onimaxxing (version 1.2.0) but not reviewed',
+    '3822615860': 'upload not analysed by onimaxxing (it has analysed a newer one)',
+    '3713252151': 'upload analysed by onimaxxing but not reviewed',
+    '2965290662': 'it needs 2679326313, which onimaxxing has not analysed',
+}
 # Titles of played mods the catalog TSV does not rank (none since it reaches rank 2274).
 unranked = {}
 # Worldgen mods no sweep ran, as their specs' runs of ours found them (id -> (loads, colony)): a
@@ -466,6 +474,8 @@ def status(mid, flags):
         return Y, Y, N, not_playable[mid]
     if mid in broken:
         return X, X, N, broken[mid] + ('' if mid in loads_in_ours or mid in not_run_in_ours else ' (same in the original)')
+    if mid in skipped:
+        return N, N, N, f'skipped: not reviewed by onimaxxing in this upload yet ({skipped[mid]})'
     if mid in SWEPT:
         return sweep_status(*SWEPT[mid])
     if flags == 'unanalysed':
