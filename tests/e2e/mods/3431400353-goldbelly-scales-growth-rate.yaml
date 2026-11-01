@@ -1,0 +1,27 @@
+# GoldBelly scales growth rate【皇犸兔鳞片生长速度调整】 (3431400353), classes P, O (PLib options).
+#
+# What it does: a well-fed Gold Belly grows its gold scales faster: a postfix on
+# WellFedShearable.UpdateScales adds GrowthPerSecond (an option, 0.033 % a second by default)
+# to its scale growth while it has the GoldBellyWellFed effect.
+# How a player reaches it: ranching Gold Bellies; the mod's options.
+# What changes: more gold from Gold Bellies.
+#
+# Options set 1 % a second. setup spawns a Gold Belly in the dug-out corridor west of the
+# printing pod and gives it the well-fed effect (as eating does). After 60 s its scale growth
+# is past 50 %, as in the original.
+from: early-base
+mods: [3431400353]
+options:
+  "3431400353": {GrowthPerSecond: 1.0}
+require_log: ['GoldBellyWellFedMod loaded']
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, GoldBelly, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "last:GetComponent<Effects>", method: Add, args: [GoldBellyWellFed, true]}}
+steps:
+  - run: {seconds: 60}
+  - expect_state:
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == GoldBelly": 1
+  - expect_state:
+      "last:gameObject.GetComponent<StateMachineController>.GetSMI(\"WellFedShearable+Instance\").scaleGrowth.value": ["> 50", "== original"]
+  - expect: {duplicants: 3}
