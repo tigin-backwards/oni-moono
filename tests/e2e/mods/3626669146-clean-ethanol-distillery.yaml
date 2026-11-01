@@ -1,0 +1,31 @@
+# 清洁乙醇蒸馏器 Clean ethanol distiller (3626669146), class P.
+#
+# What it does: the Ethanol Distiller makes no heat and gives off no carbon dioxide or polluted
+# dirt: postfixes on EthanolDistilleryConfig's CreateBuildingDef (its self and exhaust heat
+# set to 0) and ConfigureBuildingTemplate (its converter keeps only the ethanol output).
+# How a player reaches it: building an Ethanol Distiller.
+# What changes: a clean distiller.
+#
+# The distiller's definition and converter are read: no heat, and ethanol its only output;
+# setup builds one in the dug-out corridor west of the printing pod, and selected its title is
+# dumped; the colony runs on.
+from: early-base
+mods: [3626669146]
+require_log: ['CleanEthanolDistillery Mod Loaded']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"EthanolDistillery\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"EthanolDistillery\").SelfHeatKilowattsWhenActive": 0
+      "Assets.GetBuildingDef(\"EthanolDistillery\").ExhaustKilowattsWhenActive": 0
+      "count:Assets.GetPrefab(\"EthanolDistillery\").GetComponent<ElementConverter>.outputElements[*] if .elementHash == CarbonDioxide": 0
+      "count:Assets.GetPrefab(\"EthanolDistillery\").GetComponent<ElementConverter>.outputElements[*] if .elementHash == ToxicSand": 0
+      "count:Assets.GetPrefab(\"EthanolDistillery\").GetComponent<ElementConverter>.outputElements[*] if .elementHash == Ethanol": 1
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: EthanolDistillery}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
