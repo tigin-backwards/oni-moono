@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
+using System.Threading;
 using OniMoono.Engine;
 using UnityEngine;
 using Xunit;
@@ -163,6 +165,119 @@ namespace OniMoono.Tests
                 Console.SetOut(stdout);
             }
             Assert.Equal([@"C:\Users\Admin\x"], File.ReadAllLines(path));
+            Directory.Delete(Path.GetDirectoryName(path)!, true);
+        }
+
+        /// A console writer that takes Console.Out's lock on every write, as .NET's console stream
+        /// does on Linux and macOS (ConsolePal.Unix.cs, WriteFromConsoleStream: `lock
+        /// (Console.Out)` around each write, whatever stdout is). It waits for the lock at most
+        /// Patience and then throws, counting it, so a lock-order inversion fails the test
+        /// instead of hanging it.
+        sealed class UnixConsole : TextWriter
+        {
+            static readonly TimeSpan Patience = TimeSpan.FromSeconds(2);
+            readonly StringBuilder text = new();
+            public int GaveUp;
+
+            public override Encoding Encoding => Encoding.UTF8;
+
+            public override void Write(char value)
+            {
+                var console = Console.Out;
+                if (!Monitor.TryEnter(console, Patience))
+                {
+                    Interlocked.Increment(ref GaveUp);
+                    throw new TimeoutException("the console's lock was held by a thread waiting for this one");
+                }
+                try { lock (text) text.Append(value); }
+                finally { Monitor.Exit(console); }
+            }
+
+            public override string ToString() { lock (text) return text.ToString().Replace("\r\n", "\n"); }
+        }
+
+        /// Runs `other` on another thread while this one holds Console.Out's lock, as the game's
+        /// Console.WriteLine does, and once that thread waits, runs `mine` (still holding it).
+        /// What `other` threw, if anything.
+        static Exception WhileTheConsoleIsLocked(Action other, Action mine)
+        {
+            Exception thrown = null;
+            var thread = new Thread(() =>
+            {
+                try { other(); }
+                catch (Exception e) { thrown = e; }
+            });
+            lock (Console.Out)
+            {
+                thread.Start();
+                var until = DateTime.UtcNow.AddSeconds(10);
+                while ((thread.ThreadState & (ThreadState.WaitSleepJoin | ThreadState.Stopped)) == 0 && DateTime.UtcNow < until)
+                    Thread.Sleep(1);
+                mine();
+            }
+            Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "the other thread did not finish");
+            return thrown;
+        }
+
+        // An engine line from another thread (the presenter's splash lines at start-up) while the
+        // game's Console.WriteLine holds the console: the engine line waits for the console first,
+        // as that write does, and does not take the log's lock that the write needs next. Taking
+        // them the other way round hung macOS start-ups (#44).
+        [Fact]
+        public void AnEngineLineFromAnotherThreadWaitsForTheConsoleBeforeTheLog()
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"enginelog-{Guid.NewGuid():N}", "Player.log");
+            var stdout = Console.Out;
+            var console = new UnixConsole();
+            Exception thrown;
+            try
+            {
+                Console.SetOut(console);
+                EngineLog.Open(path);
+                EngineLog.Engine("first");
+                thrown = WhileTheConsoleIsLocked(
+                    () => EngineLog.Engine("from another thread"),
+                    () => Console.WriteLine("[INFO] from the game's logger"));
+            }
+            finally
+            {
+                EngineLog.Close();
+                Console.SetOut(stdout);
+            }
+            Assert.Null(thrown);
+            Assert.Equal(0, console.GaveUp);
+            const string expected = "[engine] first\n[INFO] from the game's logger\n[engine] from another thread\n";
+            Assert.Equal(expected, File.ReadAllText(path).Replace("\r\n", "\n"));
+            Assert.Equal(expected, console.ToString());
+            Directory.Delete(Path.GetDirectoryName(path)!, true);
+        }
+
+        // Close writes the pending text to the console, so it too waits for the console first:
+        // here another thread holds it and writes an engine line.
+        [Fact]
+        public void CloseWaitsForTheConsoleBeforeTheLog()
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"enginelog-{Guid.NewGuid():N}", "Player.log");
+            var stdout = Console.Out;
+            var console = new UnixConsole();
+            Exception thrown;
+            try
+            {
+                Console.SetOut(console);
+                EngineLog.Open(path, scrubber: Scrubber);
+                Console.Write("partial ");
+                thrown = WhileTheConsoleIsLocked(EngineLog.Close, () => EngineLog.Engine("an engine line"));
+            }
+            finally
+            {
+                EngineLog.Close();
+                Console.SetOut(stdout);
+            }
+            Assert.Null(thrown);
+            Assert.Equal(0, console.GaveUp);
+            const string expected = "partial [engine] an engine line\n";
+            Assert.Equal(expected, File.ReadAllText(path).Replace("\r\n", "\n"));
+            Assert.Equal(expected, console.ToString());
             Directory.Delete(Path.GetDirectoryName(path)!, true);
         }
     }
