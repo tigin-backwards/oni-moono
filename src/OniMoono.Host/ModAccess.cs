@@ -104,6 +104,11 @@ namespace OniMoono.Host
             if (replaced != 1) throw new InvalidOperationException($"ModAccess: expected one Assembly.LoadFrom in LoadDLLs, found {replaced}");
         }
 
+        /// A game assembly from Managed/ that AssemblyPolicy loaded from a rewritten image: its
+        /// Location stays its file's, as on Mono. System Performance Observer hashes the files of
+        /// Assembly-CSharp and Assembly-CSharp-firstpass and stops at load on an empty path.
+        public static void RecordGameLocation(Assembly assembly, string path) => locations[assembly] = path;
+
         static void LocationPostfix(Assembly __instance, ref string __result)
         {
             if (__result.Length == 0 && locations.TryGetValue(__instance, out var path)) __result = path;

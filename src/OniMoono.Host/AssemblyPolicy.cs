@@ -101,7 +101,10 @@ namespace OniMoono.Host
             // Its conversions of floats to integers give Mono's values out of range (MonoConversions)
             // and its directory listings come in Mono's order (MonoDirectoryListing).
             if (MonoConversions.AdjustGame(image ?? File.ReadAllBytes(path), path) is { } converted) image = converted;
-            return image == null ? context.LoadFromAssemblyPath(path) : context.LoadFromStream(new MemoryStream(image));
+            if (image == null) return context.LoadFromAssemblyPath(path);
+            var assembly = context.LoadFromStream(new MemoryStream(image));
+            ModAccess.RecordGameLocation(assembly, path);
+            return assembly;
         }
 
         /// Development and test runs only (`--native-override NAME=PATH`): a native library

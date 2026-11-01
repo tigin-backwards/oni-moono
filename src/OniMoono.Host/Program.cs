@@ -1295,6 +1295,17 @@ namespace OniMoono.Host
                     try { Directory.Delete(dir, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
                 }
             });
+            Check("The game's assemblies report their files as Location (ModAccess)", () =>
+            {
+                ModAccess.Install();
+                foreach (var name in new[] { "Assembly-CSharp", "Assembly-CSharp-firstpass" })
+                {
+                    var location = Assembly.Load(name).Location;
+                    var expected = Path.Combine(AssemblyPolicy.ReferenceDirectories[0], name + ".dll");
+                    if (Path.GetFullPath(location) != Path.GetFullPath(expected)) throw new InvalidOperationException($"{name}'s location is '{location}'");
+                }
+                return "as on Mono, whether or not their images were rewritten";
+            });
             Check("A mod built to run in 32-bit processes only (ModAccess)", () =>
             {
                 ModAccess.Install();
