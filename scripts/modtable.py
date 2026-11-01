@@ -419,6 +419,12 @@ for extra in glob.glob(os.path.join(SWEEPS, 'modtable-*.tsv')):
         third_results[i] = (loads, colony, note)
 
 Y, N, X, W = '✅', '⬜', '❌', '⚠️'
+# A mod onimaxxing's analysis finds broken in the game itself is not run here (no sweep, no
+# spec): its row says so, from the catalog TSV's flags.
+ONIMAXXING_BROKEN = {
+    'notLoading': 'does not load in vanilla (onimaxxing analysis, not run here)',
+    'crashesAtStartup': 'crashes vanilla at startup (onimaxxing analysis, not run here)',
+}
 
 def row(rank, mid, title, loads, colony, play, note):
     link = f'[{title.replace("|", "/")}](https://steamcommunity.com/sharedfiles/filedetails/?id={mid})' if mid else title
@@ -440,6 +446,8 @@ def status(mid, flags):
         return sweep_status(*SWEPT[mid])
     if flags == 'unanalysed':
         return N, N, N, 'not analysed by onimaxxing (no malware check); not tested'
+    if flags in ONIMAXXING_BROKEN:
+        return X, X, N, ONIMAXXING_BROKEN[flags]
     if flags:
         return N, N, N, f'flagged by onimaxxing ({flags}); not tested'
     if mid in worldgen:
