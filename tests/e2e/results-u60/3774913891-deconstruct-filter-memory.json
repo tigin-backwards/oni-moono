@@ -1,0 +1,69 @@
+{
+ "spec": "mods/3774913891-deconstruct-filter-memory.yaml",
+ "mods": [
+  "3774913891"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Deconstruct tool opens on the Buildings filter (its filter menu dumped); the colony's tool closes, and opens again on Buildings",
+ "updated": "2026-11-01",
+ "commit": "fba3b907",
+ "mod_dlls": {
+  "3774913891": {
+   "DeconstructFilterMemory.dll": "301ad54ed15768b755ee382ea91b378220d0f6d2e297480187d2d85c72556668"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032651-6c23d32c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:34:05",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-044042-d4724be9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:40:42",
+    "lane": 44,
+    "reference_run": "20261101-032651-6c23d32c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "filters": {
+      "differences": 0
+     },
+     "filters-again": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-044042-d4724be9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:46:56",
+    "lane": 44,
+    "reference_run": "20261101-032651-6c23d32c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "filters": {
+      "differences": 0
+     },
+     "filters-again": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
