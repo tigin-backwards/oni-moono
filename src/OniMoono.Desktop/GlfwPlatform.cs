@@ -191,8 +191,9 @@ namespace OniMoono.Desktop
                 });
                 renderWindow.MakeContextCurrent();
             }
+            // Showing it focuses it unless FocusOnShow is off (glfwShowWindow). An exclusive
+            // fullscreen window is already shown and focused (_glfwCreateWindowWin32).
             window.Visible = true;
-            if (!settings.IgnoreUserInput && !settings.NoFocus) window.Focus();
 
             // Scripted runs (host --input) take input only from the script.
             scripted = settings.IgnoreUserInput;
