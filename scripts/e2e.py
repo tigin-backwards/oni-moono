@@ -2534,7 +2534,8 @@ class Player:
                 executable = copy
             else:
                 executable = original_player(executable, self.lane.number)
-            command = [executable, *size, '-logFile', self.log]
+            # E2E_ORIGINAL_ARGS: more Unity player arguments for the original (e.g. -force-vulkan).
+            command = [executable, *size, '-logFile', self.log, *os.environ.get('E2E_ORIGINAL_ARGS', '').split()]
             stdout = os.path.join(self.out, 'stdout.txt')
         else:
             game = self.env['QA_U57_GAME']
@@ -2737,6 +2738,10 @@ def original_player(executable, lane, root=OUT):
             if not os.path.exists(target) or os.path.getmtime(target) < os.path.getmtime(executable):
                 shutil.copy2(executable, target)
         elif not os.path.lexists(target):
+            os.symlink(os.path.join(source, name), target)
+        elif os.path.islink(target) and os.readlink(target) != os.path.join(source, name):
+            # A link into another install (E2E_ORIGINAL changed since the folder was made).
+            os.remove(target)
             os.symlink(os.path.join(source, name), target)
     return os.path.join(folder, os.path.basename(executable))
 
