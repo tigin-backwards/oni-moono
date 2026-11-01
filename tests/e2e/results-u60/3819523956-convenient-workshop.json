@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3819523956-convenient-workshop.yaml",
+ "mods": [
+  "3819523956"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Ghost Door across the dug-out corridor west of the printing pod. It shows in the Base menu; selected, its details screen is dumped, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "a714c7f9",
+ "mod_dlls": {
+  "3819523956": {
+   "GhostDoorTest.dll": "936a47e459b8b52a3504733b753d266bc7da24ac89c0dbbe169f2cfdd13e18e5",
+   "PLib.dll": "893dc1ea3eddd02c85d433231aae356be27be07ddfc1a98fb2c51d84748208e8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082806-3c2b3be2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:31:21",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-111236-2ff3d701",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:12:36",
+    "lane": 44,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-111236-2ff3d701",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:12:37",
+    "lane": 45,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

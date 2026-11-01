@@ -1,0 +1,30 @@
+# 便捷工坊 · Convenient Workshop (3819523956), classes B, P, O (PLib options).
+#
+# What it does: the game's "ghost door" trick made a building: a Ghost Door (GhostDoor, the Base
+# menu's doors) built without a save and reload, with the tile kind and material picked, and an
+# option to build heavi-watt wires overlapping tiles; patches on the block tile renderer,
+# BuildingDef's Build, Create and area marking, and Door.
+# How a player reaches it: the build menu (Base); the mod's options.
+# What changes: ghost doors without exploits.
+#
+# setup builds a Ghost Door across the dug-out corridor west of the printing pod. It shows in the
+# Base menu; selected (built, it is a ManualPressureDoor object, as the mod makes it), its
+# details screen is dumped, and the colony runs on.
+from: early-base
+mods: [3819523956]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"GhostDoor\")", method: Build, args: [{"$": "Grid.XYToCell(116, 206)"}, Neutral, null, [Copper, SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/GhostDoor Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/GhostDoor Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [116, 207], ortho: 8}}
+  - click_world: {cell: [116, 206], select: ManualPressureDoor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
