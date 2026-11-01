@@ -1,0 +1,16 @@
+# Hatches Don't Eat Dupe Food (3742386195), class P.
+#
+# What it does: postfixes on HatchConfig.CreateHatch and HatchVeggieConfig.CreateHatch give the
+# Hatch and the Sage Hatch diets without Duplicant food; the Sage Hatch eats only dirt
+# (SimHashes 947100397 here).
+# How a player reaches it: Hatches near food.
+# What changes: Hatches leave the rations alone.
+#
+# The Sage Hatch's diet is the mod's (one item, as in the original); the colony runs.
+from: early-base
+mods: [3742386195]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"HatchVeggie\").GetComponent<StateMachineController>.cmpdef.defs.Count": "== original"
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
