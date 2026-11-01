@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3789957227-ceramic-no-heat-transport.yaml",
+ "mods": [
+  "3789957227"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Solid Transport. Both are listed in the Shipping menu (shot), ceramic only, with no self-heat",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3789957227": {
+   "CeramicThermalBuildings.dll": "6b2bf039a092d76a02ced8ce0bc3eb3aa1d52d18791c1629ccab014a549abd35"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:25:28",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-020342-53693410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:36:12",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "shipping": 0.0
+    }
+   },
+   {
+    "run": "20261101-020342-53693410",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:36:49",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "shipping": 0.0
+    }
+   }
+  ]
+ }
+}
