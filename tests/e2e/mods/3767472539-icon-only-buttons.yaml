@@ -7,16 +7,15 @@
 # How a player reaches it: the colony's HUD; the mod's options.
 # What changes: a compact HUD.
 #
-# The build categories and the tool bar are dumped and shot, as in the original, and the
-# colony plays for 30 s.
+# The build categories (dumped and shot) and the tool bar (dumped) are as in the original,
+# and the colony plays for 30 s.
 from: early-base
 mods: [3767472539]
 steps:
   - ui_dump: {name: plan, root: "**/PlanScreen"}
   - shot: {name: plan, crop: "**/PlanScreen", threshold: 0.04}
   - ui_dump: {name: tools, root: "**/ToolMenu"}
-  # The bottom-right corner holds the pointer's hover card and, in the original only, Unity's
-  # Development Build label: masked.
-  - shot: {name: tools, crop: "**/ToolMenu", threshold: 0.04, mask: [[1100, 660, 180, 60]]}
+  # The tool bar is compared by its dump only: its shot takes in the world behind it, the
+  # pointer's hover card and, in the original only, Unity's Development Build label.
   - run: {seconds: 30}
   - expect: {duplicants: 3}
