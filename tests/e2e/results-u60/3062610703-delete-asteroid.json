@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3062610703-delete-asteroid.yaml",
+ "mods": [
+  "3062610703"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "efa9dfc5",
+ "mod_dlls": {
+  "3062610703": {
+   "DeleteAsteroidMod.dll": "b5355e5845abe25fc659a185511cbd8ba39fea554d2f9f03f972ddab05c7bff1"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-053436-9013cf89",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:46:27",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-120611-d7768406",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:06:11",
+    "lane": 35,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-120611-d7768406",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:07:51",
+    "lane": 35,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
