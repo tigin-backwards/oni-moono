@@ -1,0 +1,23 @@
+# Neural Vacillator Auto Recharge / 神经震荡仪自动充能 (3793467482), class P.
+#
+# What it does: a Neural Vacillator (GeneShuffler) recharges itself at the start of the next
+# cycle after a successful vacillation, without a Vacillator Recharge: a postfix on
+# GeneShuffler.ApplyRandomTrait schedules it, a new-day handler (hooked on GameClock) recharges
+# it, and GeneShuffler.OnSpawn picks up pending ones after a load.
+# How a player reaches it: using a Neural Vacillator.
+# What changes: Neural Vacillators that can be used once a cycle.
+#
+# setup spawns a Neural Vacillator in the pit west of the printing pod (charged, as found; it is
+# a prop, not a building definition); it is not consumed, and the colony runs on a new cycle.
+from: early-base
+mods: [3793467482]
+setup:
+  - driver: {setup.call: {target: "Scenario.SpawnPrefab(131124, 0, 0, \"GeneShuffler\", \"Building\")", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:GeneShuffler::[0].IsConsumed": "== original"
+  - run: {seconds: 600}
+  - expect_state:
+      "all:GeneShuffler::Length": 1
+  - expect: {duplicants: 3}
