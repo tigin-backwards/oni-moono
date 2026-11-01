@@ -1,0 +1,16 @@
+# Dupe Murmur (3828148039), class M, V.
+#
+# What it does: Duplicants say a short line over their heads in their own voice when a status
+# comes or goes (low oxygen, a bad smell, hunger, stress), after a meal, when they start a job or
+# dig into a material, and so on (ConversationManager, NameDisplayScreen and ChoreConsumer
+# patches).
+# How a player reaches it: watching Duplicants.
+# What changes: chatty Duplicants.
+#
+# The mod loads, as its log says, and the colony plays for 120 s.
+from: early-base
+mods: [3828148039]
+require_log: ['\[DupeMurmur\]\[Core\] v0\.1\.0 loaded']
+steps:
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}
