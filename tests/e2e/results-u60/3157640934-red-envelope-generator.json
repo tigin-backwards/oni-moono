@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3157640934-red-envelope-generator.yaml",
+ "mods": [
+  "3157640934"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "19304fd6",
+ "mod_dlls": {
+  "3157640934": {
+   "RedPocketSpawner.dll": "9ba0c2239e473eb5e1c6a002e4a8ce36d294cbc00a9749294b6679d0e841d378"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-061650-113d2065",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:16:51",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-121831-274bd423",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:18:31",
+    "lane": 35,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-121831-274bd423",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:21:44",
+    "lane": 35,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
