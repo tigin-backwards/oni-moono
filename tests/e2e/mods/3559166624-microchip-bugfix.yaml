@@ -1,0 +1,18 @@
+# Microchip Bugfix (Test text bug). (3559166624), class P.
+#
+# What it does: replaces PowerStationToolsConfig.CreatePrefab (a prefix that returns false)
+# with its own loose entity for the Microchip (PowerStationTools: 5 kg, the electrician kit
+# animation, an industrial product), with an EntitySplitter; a postfix on
+# Tinkerable.MakePowerTinkerable returns its result unchanged.
+# How a player reaches it: nothing to click; Microchips made at a Power Control Station.
+# What changes: the Microchip's prefab (its text).
+#
+# The Microchip prefab is the mod's, with its splitter and tags.
+from: early-base
+mods: [3559166624]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"PowerStationTools\").GetComponent<EntitySplitter>": exists
+      "Assets.GetPrefab(\"PowerStationTools\").GetComponent<KPrefabID>.HasTag(\"IndustrialProduct\")": true
+      "Assets.GetPrefab(\"PowerStationTools\").GetComponent<PrimaryElement>.Mass": 5
+  - run: {seconds: 30}

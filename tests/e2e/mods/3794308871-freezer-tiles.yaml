@@ -20,7 +20,7 @@ steps:
   - expect: {buildings: {FreezerTile: 1}}
   - expect_state:
       "Db.Get().Techs.Get(\"FoodRepurposing\").unlockedItemIDs": {contains: FreezerTile}
-      "CodexCache.entries": {contains: FREEZERTILE}
+      "CodexCache.entries.ContainsKey(\"FREEZERTILE\")": true
       "Grid.Element[131770].id": Steel
   - click: {ui: "**/PlanScreen/Toggle:Food"}
   - ui_wait: {path: "**/BuildingGroups/**/Grid/FreezerTile Group*", cond: stable}

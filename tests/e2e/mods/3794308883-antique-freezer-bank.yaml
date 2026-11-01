@@ -21,7 +21,7 @@ steps:
   - expect: {buildings: {AntiqueFreezer: 1}}
   - expect_state:
       "Db.Get().Techs.Get(\"FoodRepurposing\").unlockedItemIDs": {contains: AntiqueFreezer}
-      "CodexCache.entries": {contains: ANTIQUEFREEZER}
+      "CodexCache.entries.ContainsKey(\"ANTIQUEFREEZER\")": true
   - click: {ui: "**/PlanScreen/Toggle:Food"}
   - ui_wait: {path: "**/BuildingGroups/**/Grid/AntiqueFreezer Group*", cond: stable}
   - expect_ui:
