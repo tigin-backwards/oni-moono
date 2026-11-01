@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3733215837-conveyor-no-mechatronics.yaml",
+ "mods": [
+  "3733215837"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the shipping buildings' constructions need no skill, and the log names each",
+ "updated": "2026-11-01",
+ "commit": "0e76c997",
+ "mod_dlls": {
+  "3733215837": {
+   "NoMechatronicsEngineering.dll": "37a803fa7974c43a483dd8a97b667d574277335aec7bac8f754d65088098ebd0"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-021912-0ce14da8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:29:04",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-063606-dc1c4f13",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:36:06",
+    "lane": 35,
+    "reference_run": "20261101-021912-0ce14da8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-063606-dc1c4f13",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:45:42",
+    "lane": 35,
+    "reference_run": "20261101-021912-0ce14da8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
