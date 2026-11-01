@@ -1,0 +1,30 @@
+# 重水发电工业 / Heavy Water Power (3823512918), classes B, E (elements).
+#
+# What it does: a heavy water reactor (WHHW_7A5C_Reactor, Refining) that turns water into heavy
+# water using steel, and a heavy water generator (WHHW_7A5C_Generator, Power, 10 kW base) that
+# burns it and gives the water back; heavy water as gas, liquid and solid (ElementLoader
+# patches), with automation and engineers' tune-ups.
+# How a player reaches it: the build menus.
+# What changes: power from heavy water.
+#
+# setup builds a heavy water generator in the dug-out corridor west of the printing pod. It shows
+# in the Power menu (the reactor in Refining); selected, its details screen is dumped.
+from: early-base
+mods: [3823512918]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"RenewableEnergy\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"WHHW_7A5C_Generator\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"WHHW_7A5C_Reactor\")": exists
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/WHHW_7A5C_Generator Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/WHHW_7A5C_Generator Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: WHHW_7A5C_Generator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
