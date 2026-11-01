@@ -1731,7 +1731,9 @@ resizes, 300 minimize/restore cycles and 300 mode switches (30 exclusive) on Vul
 on the iGPU and on OpenGL, showed no failure and no growth in video memory. Each
 `--dxgi-fault` step that DXGI restarts after (start-up before and after the swap chain, a lost
 device, a keyed-mutex timeout, a failed image view of a grown texture) ended with the window
-showing new frames on both devices. With every restart failing (`norestart`), Vulkan's swapchain
+showing new frames on both devices. The keyed-mutex timeout was the made-up one (`lock:N`: D3D11's
+`AcquireSync` reported as timed out while Vulkan had in fact released the key); a real one has not
+been seen. With every restart failing (`norestart`), Vulkan's swapchain
 kept showing new frames; OpenGL's SwapBuffers did when the fault came at start-up after the swap
 chain was made but before it presented (`association,norestart`), and did not when DXGI had
 presented first (`removed:300,norestart`: the window kept DXGI's last picture, as above).
