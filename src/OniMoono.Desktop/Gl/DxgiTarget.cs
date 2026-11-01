@@ -220,6 +220,7 @@ namespace OniMoono.Desktop.Gl
 
         void ReleaseShared()
         {
+            bool stillRegistered = false;
             if (interopObject != IntPtr.Zero)
             {
                 // An object still locked cannot be unregistered (ERROR_BUSY, the one error
@@ -227,10 +228,23 @@ namespace OniMoono.Desktop.Gl
                 // unlocks nothing: it is then left registered (the extension gives no other way to
                 // release it), and the interop device is closed regardless (Dispose).
                 if (locked && !Unlock())
+                {
                     EngineLog.Engine($"present: the shared texture stays locked ({Failure}); it is not unregistered");
+                    stillRegistered = true;
+                }
                 else if (dxUnregisterObject(interopDevice, interopObject) == 0)
                     EngineLog.Engine($"present: wglDXUnregisterObjectNV failed (error 0x{Dxgi.GetLastError():X})");
                 interopObject = IntPtr.Zero;
+            }
+            if (stillRegistered)
+            {
+                // The GL texture and the D3D11 texture stay too: the extension does not say either
+                // may be freed while registered, freeing them under the driver is the kind of
+                // use-after-free Godot PR #94503 ran into, and one texture is a small leak.
+                texture = 0;
+                attached = 0;
+                shared = null;
+                return;
             }
             if (texture != 0)
             {
