@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3786142647-camera-return-button-last-sibling.yaml",
+ "mods": [
+  "3786142647"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the temporary actions' row is the last child of its parent, and the notification list is dumped",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3786142647": {
+   "CameraReturnButtonLastSibling.dll": "abb79f1bd055449822976ae67a4a4f2f79d3c0bfd9733a21897e1bec93425035"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:16:16",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-020342-53693410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:27:25",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-020342-53693410",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:27:28",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
