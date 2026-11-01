@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3504841018-critter-kill-point.yaml",
+ "mods": [
+  "3504841018"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Critter Pick-Up's user menu (dumped): Open Autokill turns autokill on and becomes Close Autokill",
+ "updated": "2026-11-01",
+ "commit": "1da4c767",
+ "mod_dlls": {
+  "3504841018": {
+   "killpoint.dll": "862f0db6df64769f047579faa8fd4487cc57e51088448a8789772ea725563420"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-222605-bc10cce7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:31:21",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-013809-eb901c9e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:38:09",
+    "lane": 35,
+    "reference_run": "20261031-222605-bc10cce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-013809-eb901c9e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:45:02",
+    "lane": 35,
+    "reference_run": "20261031-222605-bc10cce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
