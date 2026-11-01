@@ -2519,14 +2519,22 @@ class Player:
         if self.kind == 'original':
             env.update(original_environment(self.env.get('E2E_ORIGINAL_ENV')))
         # `blocked_plugins`: each player runs a copy of its install with those plugins unreadable.
-        install = os.path.join(self.out, 'install')
+        # The copy is the lane's (both players of a run use it in turn), at the same path for both,
+        # so the plugin's path in a load error is the same in their logs.
+        install = os.path.join(OUT, f'.blocked-{self.lane.number}')
         if self.kind == 'original':
             executable = self.env['E2E_ORIGINAL']
             if self.blocked_plugins:
                 blocked_install(os.path.dirname(executable), self.blocked_plugins, install)
-                executable = os.path.join(install, os.path.basename(executable))
-            command = [original_player(executable, self.lane.number, *([self.out] if self.blocked_plugins else [])),
-                       *size, '-logFile', self.log]
+                # The executable itself copied (Unity's unity.lock goes beside it; the copy is
+                # the lane's own, as original_player's folder is).
+                copy = os.path.join(install, os.path.basename(executable))
+                os.remove(copy)
+                shutil.copy2(os.path.realpath(executable), copy)
+                executable = copy
+            else:
+                executable = original_player(executable, self.lane.number)
+            command = [executable, *size, '-logFile', self.log]
             stdout = os.path.join(self.out, 'stdout.txt')
         else:
             game = self.env['QA_U57_GAME']
@@ -2738,7 +2746,7 @@ def blocked_install(source, plugins, dest):
     operating system or an antivirus blocks them. `plugins` maps file names to how
     (`blocked_plugins`): `unreadable` copies the plugin with mode 000, `missing` leaves it out.
     Everything else is linked, with real folders only on the way to a blocked plugin. Built in
-    the run's own folder, never in the install."""
+    the runner's output folder, never in the install."""
     names = list(plugins)
     source = os.path.realpath(source)
     found = {}
