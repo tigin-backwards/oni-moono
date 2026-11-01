@@ -1,0 +1,46 @@
+# P1 (docs/research/u60-qa-spec.md): the crash reporter's "operating system blocked" message.
+#
+# U60's KCrashReporter.IsOperatingSystemBlockedError looks for "DllNotFoundException: SimDLL" in
+# an error's message or stack trace. WorldGen catches the DllNotFoundException its settle step
+# throws when SimDLL does not load and queues it (QueueSimDLLLoadError); the crash reporter then
+# shows its error screen and, over it, the "OS Error" popup.
+#
+# On a copy of the test install without libSimDLL.so (blocked_plugins), as an antivirus that
+# quarantines it leaves the game: New Game, Survival, Classic, Terra at a fixed coordinate,
+# Launch. Worldgen fails at its settle step. Unity's Mono names the library as the DllImport
+# does: "SimDLL assembly:<unknown assembly> type:<unknown type> member:(null)". The popup, its
+# title and text, and the queued report's message are compared. The error screen lists the
+# active mods (OniMcp, E2eDriver), as any error with mods does.
+from: main-menu
+blocked_plugins: {libSimDLL.so: missing}
+# The error reports no crash to Klei's server.
+data_collection: false
+steps:
+  # A first start: the intro short plays, closed.
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "SNDST-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput/Text Area/Text", cond: text, value: "~SNDST-C-12345-0-0-0"}
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "ErrorCanvas/ConfirmDialog/GameObject/Panel/OKButton", cond: stable, frames: 6000}
+  - expect_ui:
+      "ErrorCanvas/ConfirmDialog/GameObject/Header/Label": {text: "OS Error"}
+      "ErrorCanvas/ConfirmDialog/GameObject/Text": {text: "~Your operating system is preventing the sim from loading."}
+      "ErrorCanvas/CrashReportScreen(Clone)": {active: true}
+  - expect_state:
+      # The report queued: Mono's message, then the exception's text, from SIM_Initialize.
+      "all:ReportErrorDialog::[0].m_stackTrace.StartsWith(\"SimDLL assembly:<unknown assembly> type:<unknown type> member:(null)\")": true
+      "all:ReportErrorDialog::[0].m_stackTrace.Contains(\"DllNotFoundException: SimDLL assembly:<unknown assembly> type:<unknown type> member:(null)\")": true
+      "all:ReportErrorDialog::[0].m_stackTrace.Contains(\"Sim.SIM_Initialize\")": true
+  - ui_dump: {name: popup, root: "ErrorCanvas/ConfirmDialog"}
+  - shot: {name: popup}

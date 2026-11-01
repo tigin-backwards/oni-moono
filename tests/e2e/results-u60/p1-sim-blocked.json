@@ -1,0 +1,61 @@
+{
+ "spec": "u60/p1-sim-blocked.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "New Game to worldgen without libSimDLL.so: the OS Error popup, its title and text, and the queued report's Mono message",
+ "updated": "2026-11-01",
+ "commit": "1b876641",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-175115-64208ce7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T17:51:15",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-175152-c8e38dab",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T17:51:52",
+    "lane": 50,
+    "reference_run": "20261101-175115-64208ce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "popup": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "popup": 0.000613
+    }
+   },
+   {
+    "run": "20261101-175152-c8e38dab",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T17:52:30",
+    "lane": 50,
+    "reference_run": "20261101-175115-64208ce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "popup": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "popup": 0.000613
+    }
+   }
+  ]
+ }
+}

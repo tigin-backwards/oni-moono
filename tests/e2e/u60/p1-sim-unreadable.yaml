@@ -1,0 +1,37 @@
+# P1 (docs/research/u60-qa-spec.md), as the item words it: libSimDLL.so unreadable.
+#
+# p1-sim-blocked.yaml with the plugin present but unreadable (mode 000) in the run's copy of the
+# install. Unity's Mono then names the file and the dynamic loader's error in place of the
+# DllImport's name ("/.../libSimDLL.so: cannot open shared object file: Permission denied
+# assembly:<unknown assembly> type:<unknown type> member:(null)"), so U60's
+# IsOperatingSystemBlockedError does not match and no "OS Error" popup appears: WorldGen reports
+# a generic worldgen failure, and the crash reporter's error screen comes up for it. Ours must do
+# the same.
+from: main-menu
+blocked_plugins: {libSimDLL.so: unreadable}
+# The error reports no crash to Klei's server.
+data_collection: false
+steps:
+  # A first start: the intro short plays, closed.
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "SNDST-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput/Text Area/Text", cond: text, value: "~SNDST-C-12345-0-0-0"}
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "ErrorCanvas/CrashReportScreen(Clone)/Buttons", cond: stable, frames: 6000}
+  - expect_ui:
+      "ErrorCanvas/ConfirmDialog": {exists: false}
+  - expect_state:
+      "all:ReportErrorDialog::[0].m_stackTrace.Contains(\"libSimDLL.so: cannot open shared object file: Permission denied assembly:<unknown assembly> type:<unknown type> member:(null)\")": true
+      "all:ReportErrorDialog::[0].m_stackTrace.Contains(\"DllNotFoundException: SimDLL\")": false
+  - ui_dump: {name: error, root: "ErrorCanvas/CrashReportScreen(Clone)/Buttons"}
