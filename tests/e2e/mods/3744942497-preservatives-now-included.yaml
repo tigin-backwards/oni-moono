@@ -1,0 +1,26 @@
+# Preservatives Now Included (3744942497), classes P, O (PLib options).
+#
+# What it does: preserved foods do not spoil: at load the mod clears CanRot on the Pickled Meal
+# and the Grubfruit Preserve by default, and, as options, on Sleet Wheat Grain, Nosh Beans and
+# Mimillet; an option makes oxygen count as a sterile atmosphere for food.
+# How a player reaches it: the mod's options; food in storage.
+# What changes: those foods keep forever.
+#
+# Defaults. The Pickled Meal's and Grubfruit Preserve's food info cannot rot, Nosh Beans still
+# can; a Pickled Meal spawned on the floor of the dug-out corridor west of the printing pod has
+# no Rottable after it spawns, as in the original.
+from: early-base
+mods: [3744942497]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, PickledMeal, Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "TUNING.FOOD.FOOD_TYPES.PICKLEDMEAL.CanRot": false
+      "TUNING.FOOD.FOOD_TYPES.WORMSUPERFOOD.CanRot": false
+      "TUNING.FOOD.FOOD_TYPES.BEAN.CanRot": true
+  - run: {seconds: 2}
+  - expect_state:
+      "last:GetComponent<KPrefabID>.PrefabTag.Name": PickledMeal
+      "last:GetComponent<StateMachineController>.GetSMI(\"Rottable+Instance\")": "== original"
+  - expect: {duplicants: 3}
