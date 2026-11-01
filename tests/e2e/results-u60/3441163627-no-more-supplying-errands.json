@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3441163627-no-more-supplying-errands.yaml",
+ "mods": [
+  "3441163627"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "fetching is a Storage errand, no longer Supply; two minutes of errands",
+ "updated": "2026-11-01",
+ "commit": "4a58a85d",
+ "mod_dlls": {
+  "3441163627": {
+   "NoMoreSupplyErrand.dll": "da410f6a600519c8f0a40f555ad6242291fd9d8a972762467f2b420b907d6042"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014523-8577f8ea",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:57:00",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-045256-3dc0bf54",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:52:56",
+    "lane": 35,
+    "reference_run": "20261101-014523-8577f8ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-045256-3dc0bf54",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:56:47",
+    "lane": 35,
+    "reference_run": "20261101-014523-8577f8ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
