@@ -97,7 +97,8 @@ def sweep_status(original, ours, note, game=''):
     if ours == 'colony':
         return Y, N, N, f'its colony fails in ours, {batch}: {note}'
     if ours == 'ok':
-        return Y, Y, N, note
+        # A sweep that passed both is not a play: say where it was swept when no note says more.
+        return Y, Y, N, note or f'swept on {game.strip() or "U59"}, not played'
     return N, N, N, note
 
 
@@ -554,7 +555,7 @@ def status(mid, flags):
         loads, colony, note = third_results[mid]
         return loads, colony, N, note
     if mid in fifth or mid in swept:
-        return Y, Y, N, ''
+        return Y, Y, N, 'swept, not played'
     return N, N, N, ''
 
 
