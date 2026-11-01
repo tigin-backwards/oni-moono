@@ -1,4 +1,4 @@
-# scripts/mod-sweep.py u60-3047: 103 mods, batches of 12, the save 2minnow, 90 s of play; commit 2148fd7f, 2026-11-01
+# scripts/mod-sweep.py u60-3047: 115 mods, batches of 12, the save 2minnow, 90 s of play; commit 7e113ef6, 2026-11-01
 id	rank	original	ours	note
 3821093288	2079	ok	ok	
 3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
@@ -101,5 +101,17 @@ id	rank	original	ours	note
 2517171327	2406	colony	-	the player exits (1) while loading; System.FieldAccessException: Field `ManualDeliveryKG:requestedItemTag" is inaccessible from method `CustomN.buildN:ConfigureBuildingTemplate (UnityEngine.GameObject,Tag)" @ BuildingConfigManager.RegisterBuilding; null Exception in RegisterBuilding for type CustomN.buildN from LiquidTile @ BuildingConfigManager.RegisterBuilding
 3441163627	2407	ok	ok	
 3794308891	2408	ok	ok	
+3765105326	2409	ok	ok	
+3771251560	2410	ok	ok	
+3826538392	2413	ok	ok	
+2106218601	2414	ok	ok	
+3749021783	2416	ok	ok	
+3803959510	2417	ok	ok	
+3767757725	2418	colony	-	the player exits (-6) while loading; Assert failed: Cannot send a frame to the sim with zero active regions; Assert failed: NewGameFrame cannot be called with zero activeRegions
+3760687013	2419	ok	colony	MissingMethodException: Method not found: "IntN Unity.Jobs.LowLevel.Unsafe.JobsUtility.get_JobWorkerCount()" @ GCSentinel.Sentinel.RunChecks
+2984787841	2420	ok	ok	
+3794395157	2421	ok	ok	
+3132418101	2422	ok	ok	
+3259381864	2425	ok	ok	
 3047352164	2429	-	-	a translation: installed disabled, as a subscription leaves it; not swept
 3747652766	2433	-	-	a translation: installed disabled, as a subscription leaves it; not swept
