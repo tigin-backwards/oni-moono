@@ -1,0 +1,23 @@
+# Always Show Item Info 悬停信息常显 (3778431283), classes U, O (PLib options).
+#
+# What it does: the hover card shows each item's and building's temperature and germs in the
+# normal view, without the temperature or germ overlay (patches on HoverTextDrawer and
+# SelectToolHoverTextCard.UpdateHoverElements); options for germs, temperature, a multi-column
+# layout and moving the card up when it does not fit.
+# How a player reaches it: hovering over things.
+# What changes: the hover card's contents.
+#
+# The pointer rests over the printing pod: the hover card is up, drawn by the game's hover text
+# drawer as in the original (its text depends on temperatures, so it is not dumped); the colony
+# runs on.
+from: early-base
+mods: [3778431283]
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [121, 208], ortho: 8}}
+  - key: {code: LeftShift, at: [121, 207]}
+  - run: {seconds: 1}
+  - expect_state:
+      "HoverTextScreen.Instance": exists
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3778431283-always-show-item-info.yaml",
+ "mods": [
+  "3778431283"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the pointer rests over the printing pod: the hover card is up, drawn by the game's hover text drawer as in the original (its text depends on temperatures, so it is not dumped); the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "0e236021",
+ "mod_dlls": {
+  "3778431283": {
+   "AlwaysShowItemInfo.dll": "29fac16dc6f04a1a80e055b379d8a9164d60fdb369d12a0f249b5eac0b58d1d8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-023133-63191ed3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:39:27",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-045352-36c989a5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:53:52",
+    "lane": 45,
+    "reference_run": "20261101-023133-63191ed3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-045352-36c989a5",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:57:23",
+    "lane": 43,
+    "reference_run": "20261101-023133-63191ed3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
