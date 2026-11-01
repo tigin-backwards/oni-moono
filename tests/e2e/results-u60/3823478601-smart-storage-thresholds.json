@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3823478601-smart-storage-thresholds.yaml",
+ "mods": [
+  "3823478601"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Storage Bin in the dug-out corridor west of the printing pod. It has the hysteresis component; selected, its activation range side screen shows (dumped)",
+ "updated": "2026-11-01",
+ "commit": "4ce3f37b",
+ "mod_dlls": {
+  "3823478601": {
+   "SmartStorageThresholds.dll": "6ccf5e7594c1540c6d5f3edd02617204b8d471f55f355347e21cfbc71fa15fdf"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-065235-08404b0b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:52:35",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112426-5e5166cf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:24:26",
+    "lane": 44,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "range": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-112426-5e5166cf",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:24:27",
+    "lane": 45,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "range": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
