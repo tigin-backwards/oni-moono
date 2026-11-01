@@ -1,0 +1,29 @@
+# 存储权限(存,取) / Storage permissions (3747652306), classes P, S.
+#
+# What it does: every Storage gets a StoragePermComp (a Storage.OnSpawn postfix) with a toggle
+# side screen (INToggleSideScreenControl, titled 存储权限): 仅限存 (store only: nothing is taken
+# out; Drop and Transfer prefixes refuse) or 仅限取 (retrieve only: nothing is stored; Store and
+# fetch-chore prefixes refuse), or neither.
+# How a player reaches it: a storage building's side screen.
+# What changes: storage that only fills or only empties.
+#
+# setup builds a Storage Bin in the corridor west of the printing pod; selected, its
+# permission screen offers two buttons (dumped; on U60 both read "Open", in the original too),
+# and the second, 仅限取, picks retrieve only.
+from: early-base
+mods: [3747652306]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [131129, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: StorageLocker}
+  - ui_wait: {path: "**/NToggleSideScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<StoragePermissionMod.StoragePermComp>.permissionMode": 0
+  - ui_dump: {name: permission, root: "**/NToggleSideScreen"}
+  # On U60 both buttons read "Open" (the screen does not take its labels), in the original too:
+  # the second is 仅限取.
+  - click: {ui: "**/NToggleSideScreen/Contents/Buttons/ButtonPrefab", index: 1}
+  - expect_state:
+      "selected:GetComponent<StoragePermissionMod.StoragePermComp>.permissionMode": ["!= 0", "== original"]
