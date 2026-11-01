@@ -1,0 +1,28 @@
+# 所有蛋的活性不在减少！！！ Eggs keep their viability (3746601114), class P.
+#
+# What it does: an egg's viability never drops, wherever it lies and at any temperature: a
+# postfix on IncubationMonitor.InitializeStates zeroes the suppressed effect's viability
+# modifier (the game's eggs lose viability while suppressed: out of an incubator, too hot or
+# too cold).
+# How a player reaches it: eggs left lying about.
+# What changes: no eggs go dead.
+#
+# setup spawns a Hatch egg on the floor of the dug-out corridor west of the printing pod. Its
+# incubation monitor's suppressed effect carries no viability loss, and after 600 s its
+# viability is as it was.
+from: early-base
+mods: [3746601114]
+require_log: ['InactivationOfEggs: ']
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131129, 0, 0, HatchEgg, Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "last:GetComponent<KPrefabID>.PrefabTag.Name": HatchEgg
+      "sum:last:GetComponent<StateMachineController>.GetSMI(\"IncubationMonitor+Instance\").sm.suppressedEffect.SelfModifiers[*].Value": 0
+      "last:GetComponent<Modifiers>.amounts.Get(\"Viability\").value": {save_as: viability}
+  - run: {seconds: 600}
+  - expect_state:
+      "last:GetComponent<Modifiers>.amounts.Get(\"Viability\").value": ">= viability"
+  - expect: {duplicants: 3}
