@@ -1,0 +1,28 @@
+# 世外桃源 Shangri-La (2891557203), class B.
+#
+# What it does: adds a building (Hui) to the Oxygen menu, researched with Directed Air Streams,
+# with a storage of 330 kg.
+# How a player reaches it: the build menu (Oxygen), after the research.
+# What changes: one more oxygen building.
+#
+# setup grants Directed Air Streams and builds it in the dug-out corridor west of the printing
+# pod. It shows in the Oxygen menu; selected, its details screen is dumped.
+from: early-base
+mods: [2891557203]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"DirectedAirStreams\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Hui\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"DirectedAirStreams\").unlockedItemIDs": {contains: Hui}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Oxygen"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/Hui Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/Hui Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: Hui}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}
