@@ -1,0 +1,25 @@
+# Desalinator Metal Deposits / 脱盐器金属沉积 (3789165863), class P.
+#
+# What it does: the Desalinator recovers trace refined metals from salt water and brine: a
+# DesalinatorMetalDropper added in its ConfigureBuildingTemplate drops small amounts of metal
+# as it works (elements registered at Db.Initialize).
+# How a player reaches it: a working Desalinator.
+# What changes: a little metal from desalination.
+#
+# The Desalinator's prefab has the dropper; setup builds one in the dug-out corridor west of
+# the printing pod, and selected its title is dumped; the colony runs on.
+from: early-base
+mods: [3789165863]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Desalinator\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"Desalinator\").GetComponent<DesalinatorMetalDeposits.DesalinatorMetalDropper>": exists
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: Desalinator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

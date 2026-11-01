@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3789165863-desalinator-metal-deposits.yaml",
+ "mods": [
+  "3789165863"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Desalinator's prefab has the dropper; setup builds one in the dug-out corridor west of the printing pod, and selected its title is dumped; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "25537b4c",
+ "mod_dlls": {
+  "3789165863": {
+   "DesalinatorMetalDeposits.dll": "e1965ad34136500788e8b6ac6f65bf7eec443ec3dd5090ab97e6bc7195182ad6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040631-cdd7ce2a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:14:17",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-083320-81d5a163",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:33:20",
+    "lane": 42,
+    "reference_run": "20261101-040631-cdd7ce2a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-083320-81d5a163",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:33:21",
+    "lane": 43,
+    "reference_run": "20261101-040631-cdd7ce2a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
