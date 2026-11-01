@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3436746279-oil-well.yaml",
+ "mods": [
+  "3436746279"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Oil Well's definition and prefab carry the mod's 10 kg/s of crude from 3 kg/s of water at 720 W; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "cbf2d21c",
+ "mod_dlls": {
+  "3436746279": {
+   "oxmod.dll": "b45131a2db6458ec615f6659e8bbca4f1ce26bac779af9a097517fb968a2801e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-010148-6d65f38c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:01:48",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-044117-f14216f5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:41:17",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-044117-f14216f5",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:47:24",
+    "lane": 35,
+    "reference_run": "20261101-010148-6d65f38c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
