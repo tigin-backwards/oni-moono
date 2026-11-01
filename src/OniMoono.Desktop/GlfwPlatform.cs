@@ -11,8 +11,9 @@ using static Brutal.GlfwApi.Glfw.Constants;
 namespace OniMoono.Desktop
 {
     /// Window startup settings: Unity's player defaults from PlayerSettings, overridable with
-    /// Unity's standard command-line arguments (-screen-width, -screen-height,
-    /// -screen-fullscreen, -window-mode, -monitor).
+    /// Unity's player arguments -screen-width, -screen-height, -screen-fullscreen, -monitor and
+    /// -window-mode. Unity documents -window-mode exclusive|borderless, for Windows only; ours
+    /// takes them everywhere (exclusive is a fullscreen window off Windows), and windowed too.
     internal sealed record WindowSettings(string Title, int Width, int Height, FullScreenMode Mode)
     {
         /// Development runs driven by scripted input ignore the window's own mouse and keyboard.
@@ -69,7 +70,9 @@ namespace OniMoono.Desktop
         {
             Glfw.ErrorCallback += (code, description) => Debug.LogWarning($"GLFW {code}: {description}");
             // Unity's Linux player is an X11 client (XWayland under Wayland compositors), where
-            // window positions exist; prefer GLFW's X11 backend, else whatever GLFW finds.
+            // window positions exist; prefer GLFW's X11 backend, else whatever GLFW finds. The
+            // retry for when X11 is supported and DISPLAY set but its init fails is a guard only:
+            // no such display has been seen.
             bool initialized = false;
             if (OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("DISPLAY") is { Length: > 0 }
                 && Glfw.IsPlatformSupported(Brutal.GlfwApi.GlfwPlatform.X11))
@@ -110,12 +113,16 @@ namespace OniMoono.Desktop
             int width = settings.Width > 0 ? settings.Width : desktop.Width;
             int height = settings.Height > 0 ? settings.Height : desktop.Height;
             if (mode is FullScreenMode.FullScreenWindow) Glfw.WindowHint(GlfwWindowHint.Decorated, GLFW_FALSE);
-            // The window is created where it will be placed. On Windows the placement it is
-            // created with is the one it restores to when it was maximized while hidden (GLFW
-            // then maximizes by hand, and Windows records a restore placement only when a
-            // window is maximized through ShowWindow or its placement is read): created at the
-            // system's default position, a window maximized on the second monitor came back on
-            // the first when it was restored.
+            // The window is created where it will be placed, so that the placement it restores to
+            // after being maximized while hidden is on its monitor. GLFW maximizes a hidden
+            // window by hand (maximizeWindowManually: WS_MAXIMIZE and a move to the work area),
+            // not through ShowWindow. Observed on Windows 11 (build 26200) with a hidden test
+            // window: after a SetWindowPos to the second monitor and that manual maximize,
+            // GetWindowPlacement still gave the CW_USEDEFAULT rectangle it was created with
+            // (unless the placement had been read after the move), and our window, created at
+            // the default position, came back on the first monitor when restored (06e61962).
+            // Created at its position it is fine: GLFW's createNativeWindow itself reads and
+            // sets the new window's placement (Get/SetWindowPlacement) after creating it.
             if (mode != FullScreenMode.ExclusiveFullScreen)
             {
                 var position = mode == FullScreenMode.FullScreenWindow
@@ -188,10 +195,12 @@ namespace OniMoono.Desktop
             Glfw.MonitorCallback += (_, _) => Report(RefreshWindowState);
             // The window may have moved to another monitor.
             window.OnPosition += (_, _) => Report(RefreshWindowState);
-            // The system may have discarded what the window showed (exposure, or the compositor
-            // changing how it presents a fullscreen window as it gains or loses the focus). Told
-            // at once, during a pump too: the presenter shows the last frame again, which changes
-            // nothing the frame sees.
+            // The system may have discarded what the window showed: GLFW's refresh callback says
+            // so (exposure). Told at once, during a pump too: the presenter shows the last frame
+            // again, which changes nothing the frame sees. Focus changes are told too, in case a
+            // compositor changes how it presents a fullscreen window as it gains or loses the
+            // focus without an expose; that is unconfirmed (never observed), but a present
+            // again costs little.
             window.OnRefresh += _ => ContentsDamaged?.Invoke();
             window.OnFocus += (_, _) => ContentsDamaged?.Invoke();
             if (Gl.PresentTrace.Enabled)

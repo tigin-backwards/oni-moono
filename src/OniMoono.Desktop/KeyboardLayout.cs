@@ -130,6 +130,8 @@ namespace OniMoono.Desktop
         }
 
         /// Set once the platform's layout functions turned out to be missing: positions from then.
+        /// A guard only: libX11 and user32 have always been there (GLFW's X11 backend loads
+        /// libX11 itself), so it is not known to happen.
         static bool unavailable;
 
         // ---- X11: the keysyms on the key's first two levels in the active group.
@@ -140,7 +142,7 @@ namespace OniMoono.Desktop
         {
             if (scancode is < 8 or > 255) return null;
             var display = X11Extensions.GetX11Display();
-            if (display == 0) return null;
+            if (display == 0) return null; // a guard: GLFW's X11 backend always has a display
             // XkbStateRec starts with the effective group (one byte); the rest is not read.
             Span<byte> state = stackalloc byte[64];
             int group = XkbGetState(display, XkbUseCoreKbd, ref MemoryMarshal.GetReference(state)) == 0 ? state[0] : 0;
