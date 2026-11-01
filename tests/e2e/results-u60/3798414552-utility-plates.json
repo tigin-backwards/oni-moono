@@ -3,12 +3,12 @@
  "mods": [
   "3798414552"
  ],
- "verdict": "pending",
- "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
- "updated": "2026-10-31",
- "commit": "8a004ed3",
+ "note": "a Cooling Plate in the corridor: in the Utilities menu (shot); unwired, it needs its 50 W and cools nothing",
+ "updated": "2026-11-01",
+ "commit": "f99dd8c4",
  "mod_dlls": {
   "3798414552": {
    "ThermoPlate.dll": "10d08cf4601d54e48fdcb32f0f69f26347f0e12ebc3bb784476091d979f8b852"
@@ -17,17 +17,43 @@
  "runs": {
   "original": [
    {
-    "run": "20261031-214159-a5f53be5",
+    "run": "20261031-230339-bc48bbaa",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-10-31T21:43:00",
+    "verdict": "pass",
+    "date": "2026-10-31T23:03:40",
     "lane": 32,
-    "reasons": [
-     "step 11: Grid.Temperature.get_Item(131770) is 294.97138, wanted < before - 2; all:AmirH.ThermoPlate.ThermoPlate::[0].targetsLastTick is 0, wanted >= 1"
-    ],
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261101-022634-88113749",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:26:34",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "utilities-menu": 0.0
+    }
+   },
+   {
+    "run": "20261101-022634-88113749",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:32:14",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "utilities-menu": 0.0
+    }
+   }
+  ]
  }
 }
