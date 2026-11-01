@@ -439,8 +439,9 @@ broken.update({
     '3816726470': 'broken on U60 (build 761015): its patch on `MechanicalSurfboard` descriptors finds no target method (TargetMethod returns null), so the original fails to load it (HarmonyException) and exits (1) before its main menu; not run in ours',
     '3785981861': 'broken upstream: it references PLib (4.24) but does not ship PLib.dll, so the original fails to load it (FileNotFoundException for PLib) and exits (1) before its main menu; not run in ours',
     '3789616217': 'broken on U60 (build 761015): it checks the game assembly\'s hash, finds U60\'s unknown, and turns its dig patch off ("[OtherHalf/DigComplete.disabled] assembly_hash_mismatch"), so in the original a dug cell still drops half its mass at 100 % recovery; the colony runs; not run in ours',
+    '3457870408': 'broken upstream: its Neutronium Generator sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player exits (1) while loading a colony; not run in ours',
 })
-not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217'}
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408'}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
