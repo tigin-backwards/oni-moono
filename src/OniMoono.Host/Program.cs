@@ -2900,7 +2900,7 @@ namespace OniMoono.Host
                         if (!OniMoono.Desktop.Renderers.IsChoice(o.Renderer))
                         {
                             Console.Error.WriteLine($"Unknown renderer {o.Renderer}; known: {string.Join(", ", OniMoono.Desktop.Renderers.Choices)}");
-                            return null;
+                            return false;
                         }
                         break;
                     case "--vulkan-validation": o.VulkanValidation = true; break;
