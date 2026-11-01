@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3757214429-firekylingun-skin.yaml",
+ "mods": [
+  "3757214429"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the game's dig gun anims are the mod's (their textures' sizes), and a Duplicant digs out a floor tile of the corridor west of the printing pod with it",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "3757214429": {
+   "FireKylinGun.dll": "fe12352f31391b22246358a1f791141a6c21d46575db93ce913db83b9f728ab3"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:18:28",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:42:40",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:44:05",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
