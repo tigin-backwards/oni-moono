@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3818537352-fast-level-up.yaml",
+ "mods": [
+  "3818537352"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "loads with its AttributeLevel patches and logs its options file; the next Athletics level needs what the original's does; two minutes of work",
+ "updated": "2026-11-01",
+ "commit": "7cc9e634",
+ "mod_dlls": {
+  "3818537352": {
+   "FastLevelUp.dll": "1832dedc6927c889f53794f4458565ebf9f469e7b7f6c07257584c25c264026a",
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014523-8577f8ea",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:45:24",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091202-ce542cdf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:12:02",
+    "lane": 36,
+    "reference_run": "20261101-014523-8577f8ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-091202-ce542cdf",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:14:12",
+    "lane": 36,
+    "reference_run": "20261101-014523-8577f8ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
