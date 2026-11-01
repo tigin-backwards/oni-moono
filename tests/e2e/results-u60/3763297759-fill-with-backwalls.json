@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3763297759-fill-with-backwalls.yaml",
+ "mods": [
+  "3763297759"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Drywall is picked in the Utilities menu: its card has the mod's fill toggle (the card dumped); Escape closes the menu",
+ "updated": "2026-11-01",
+ "commit": "037ae539",
+ "mod_dlls": {
+  "3763297759": {
+   "FillWithBackwalls.dll": "2ced321462244f38465b3973158c1d0cb8e68b450e1703fb5f48aa2beabbaf0c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-073756-2a3320d7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:53:10",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-082257-0741eb6a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:22:57",
+    "lane": 44,
+    "reference_run": "20261101-073756-2a3320d7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-082257-0741eb6a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:22:58",
+    "lane": 45,
+    "reference_run": "20261101-073756-2a3320d7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
