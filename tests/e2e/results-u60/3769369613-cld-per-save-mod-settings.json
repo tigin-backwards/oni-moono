@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3769369613-cld-per-save-mod-settings.yaml",
+ "mods": [
+  "3769369613"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads and the colony plays for 30 s; its list in the options menu is not opened here",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3769369613": {
+   "CLD01_PerSaveModSettings.dll": "c7ed9fd11f63f91422e0adafcc006b56b92e23c84eff053290a4cf05137b4ac0"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-101548-4b701367",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:15:48",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:29:40",
+    "lane": 54,
+    "reference_run": "20261101-101548-4b701367",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:30:28",
+    "lane": 55,
+    "reference_run": "20261101-101548-4b701367",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
