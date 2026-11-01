@@ -257,6 +257,8 @@ namespace OniMoono.Desktop
             ReadFramebufferSize();
             desktopMode = null;
             dpi = null;
+            // Where the window is after a move, for when it is on no monitor (CurrentMonitor).
+            if (window.Monitor.IsNull() && MonitorHolding(Glfw.GetMonitors()) is { } holding) lastMonitor = holding;
         }
 
         void ReadFramebufferSize() => framebufferSize = KeptFramebufferSize(window.FramebufferSize, framebufferSize);
@@ -362,17 +364,31 @@ namespace OniMoono.Desktop
                 // A window (a fullscreen window too, which is a monitor-sized window): the
                 // monitor holding its centre, so a mode change keeps it on that monitor rather
                 // than moving it to the primary one.
-                var position = window.Position;
-                var size = window.Size;
-                int cx = position.X + size.X / 2, cy = position.Y + size.Y / 2;
-                foreach (var monitor in Glfw.GetMonitors())
-                {
-                    var p = monitor.Position;
-                    var mode = monitor.VideoMode;
-                    if (cx >= p.X && cy >= p.Y && cx < p.X + mode.Width && cy < p.Y + mode.Height) return monitor;
-                }
+                var monitors = Glfw.GetMonitors();
+                if (MonitorHolding(monitors) is { } holding) return lastMonitor = holding;
+                // On none (minimized on Windows, the window is at -32000,-32000): the last one it
+                // was seen on, while that is still connected.
+                foreach (var monitor in monitors)
+                    if (monitor.NativeHandle == lastMonitor.NativeHandle) return monitor;
                 return Glfw.PrimaryMonitor;
             }
+        }
+
+        /// The monitor CurrentMonitor last found the window's centre on.
+        GlfwMonitor lastMonitor;
+
+        GlfwMonitor? MonitorHolding(ReadOnlySpan<GlfwMonitor> monitors)
+        {
+            var position = window.Position;
+            var size = window.Size;
+            int cx = position.X + size.X / 2, cy = position.Y + size.Y / 2;
+            foreach (var monitor in monitors)
+            {
+                var p = monitor.Position;
+                var mode = monitor.VideoMode;
+                if (cx >= p.X && cy >= p.Y && cx < p.X + mode.Width && cy < p.Y + mode.Height) return monitor;
+            }
+            return null;
         }
 
         static OniMoono.Engine.Platform.DisplayMode ModeOf(GlfwVidMode m) => new(m.Width, m.Height, (uint)m.RefreshRate, 1);
