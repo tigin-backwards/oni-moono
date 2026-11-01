@@ -3,12 +3,12 @@
  "mods": [
   "3767642253"
  ],
- "verdict": "pending",
- "why": "0 run(s) of ours against original run 20261031-210418-28504fa7; 2 needed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
+ "note": "the Mop tool marks five pit cells of 300 kg of water each (the game's limit is 150 kg), and Duplicants mop water out of them",
  "updated": "2026-10-31",
- "commit": "ba34464e",
+ "commit": "a5887f2e",
  "mod_dlls": {
   "3767642253": {
    "UnlimitedMop.dll": "5b6bf13d2f0e779347f0cc0ed6b59049ffd7177698ed7f842a7c2b040ee35be6"
@@ -25,6 +25,31 @@
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261031-214432-21ddb9e7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:44:32",
+    "lane": 35,
+    "reference_run": "20261031-210418-28504fa7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-214432-21ddb9e7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T21:52:41",
+    "lane": 35,
+    "reference_run": "20261031-210418-28504fa7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
  }
 }
