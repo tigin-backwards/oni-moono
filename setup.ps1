@@ -124,8 +124,6 @@ if (Test-Path (Join-Path $here 'player\OniMoono.exe')) {
 
 # Installed to one place, so the launch options never change.
 $player = Join-Path $env:LOCALAPPDATA 'oni-moono\player'
-# The player from before the Moono name: left alone, but no longer used.
-$oldPlayer = Join-Path $env:LOCALAPPDATA 'oni-brutal'
 if (Get-Process -Name OniMoono, OniBrutal -ErrorAction SilentlyContinue) { Die 'the game is running on Moono; quit it first' }
 if (Test-Path $player) { Remove-Item -Recurse -Force $player }
 New-Item -ItemType Directory -Force (Split-Path $player) | Out-Null
@@ -166,9 +164,6 @@ if ($steam) {
 function Is-Set($options) { $options -and $options.Contains("`"$exe`"") -and $options.Contains('%command%') }
 # Old: the options start the player from before the Moono name (oni-brutal's OniBrutal.exe).
 function Is-Old($options) { $options -and $options -match '\\OniBrutal\.exe"' -and $options.Contains('%command%') }
-function Old-Note {
-    if (Test-Path $oldPlayer) { Write-Host "The old oni-brutal player in $oldPlayer isn't used any more and can be deleted." }
-}
 # Options from before the Moono Tweaks screen: they still work, and win over the screen.
 function Says-Set($a) {
     Write-Host "Steam already starts Oxygen Not Included on Moono for $($a.Persona)." -ForegroundColor Green
@@ -185,7 +180,6 @@ if ($accounts.Count -gt 0 -and $unset.Count -eq 0) {
     Write-Host ''
     Write-Host 'Done. Nothing else to do: press Play in Steam. The optional tweaks are on the main menu: Moono Tweaks.'
     Write-Host 'To play the original game again, clear the launch options (right-click Oxygen Not Included -> Properties).'
-    Old-Note
     Finish 0
 }
 foreach ($a in $accounts) {
@@ -204,5 +198,4 @@ Write-Host "    $launch" -ForegroundColor Green
 Write-Host ''
 Write-Host 'Then press Play as usual. The optional tweaks are on the main menu: Moono Tweaks.'
 Write-Host 'To play the original game again, clear the launch options.'
-Old-Note
 Finish 0
