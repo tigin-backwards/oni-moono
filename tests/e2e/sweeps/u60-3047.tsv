@@ -1,4 +1,4 @@
-# scripts/mod-sweep.py u60-3047: 151 mods, batches of 12, the save 2minnow, 90 s of play; commit 2df73971, 2026-11-01
+# scripts/mod-sweep.py u60-3047: 163 mods, batches of 12, the save 2minnow, 90 s of play; commit 17e4680a, 2026-11-01
 id	rank	original	ours	note
 3821093288	2079	ok	ok	
 3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
@@ -151,3 +151,15 @@ id	rank	original	ours	note
 3747742433	2473	ok	ok	
 3789310279	2475	ok	ok	
 3638064148	2476	ok	ok	
+3558877754	2477	ok	ok	
+3556895379	2478	ok	ok	
+3529504347	2479	ok	ok	
+3728180259	2480	ok	ok	
+3534269375	2481	ok	ok	
+3745353707	2482	ok	ok	
+3157640934	2483	ok	ok	
+3750293146	2485	ok	ok	
+3628643997	2486	ok	ok	
+2683038637	2487	menu	-	step start: <urlopen error [Errno 111] Connection refused>; System.IO.FileNotFoundException: Could not load file or assembly "ResearchQueue, Version=N.N, Culture=neutral, PublicKeyToken=null" or one of its dependencies @ KMod.DLLLoader.PostLoadDLLs; null Exception while postLoading mod ResearchQueueShiftReverse @ KMod.DLLLoader.PostLoadDLLs
+3528296441	2489	ok	ok	
+3733618814	2490	ok	ok	
