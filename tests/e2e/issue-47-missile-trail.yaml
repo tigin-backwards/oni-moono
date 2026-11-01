@@ -1,0 +1,52 @@
+# Issue #47: a Meteor Blaster's missile left a jagged, opaque white ribbon behind it in ours; in
+# the original its smoke trail is a column of translucent dark puffs.
+#
+# The trail (EffectPrefabs.MissileSmokeTrailFX, child TrailFX2) is a particle system whose
+# material uses Particles/Standard Surface. That shader has ShadowCaster, Forward and Deferred
+# passes, with each pass's LightMode in its state's tags, upper-case ("FORWARDBASE"). Ours read
+# the tags from the pass's own (empty) tag list, so it drew all three: the Deferred pass writes
+# the albedo, white, with alpha 1, over each particle's whole quad. A camera draws only the
+# Forward pass, which with no lights in the game leaves the puffs dark.
+#
+# Setup builds a powered Meteor Blaster on the regolith at the starting asteroid's surface (a
+# dev generator and two wires), stores missiles in it, reveals the sky and drops a rock comet
+# from high above. The launcher scans, turns and fires on its own. Two seconds in, the missile
+# is in flight in both players and its trail rises from the barrel; the shot is compared in a
+# column above the barrel only (masked elsewhere): the white ribbon differed there in 60 % of
+# the pixels, the dark puffs, which fall differently in each run, in 27 to 30 %.
+from: landing
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"MissileLauncher\")", method: Build, args: [200463, Neutral, null, [Steel], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"DevGenerator\")", method: Build, args: [200461, Neutral, null, [Steel], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [200461, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [200462, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: AddConnection, args: [Right, 200461, true]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: AddConnection, args: [Left, 200462, true]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: ForceRebuildNetworks}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"MissileBasic\")"}, [123.5, 316, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "Components.MissileLaunchers.Items[0].MissileStorage", method: Store, args: [{"$": "last:"}]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"MissileBasic\")"}, [123.5, 316, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "Components.MissileLaunchers.Items[0].MissileStorage", method: Store, args: [{"$": "last:"}]}}
+  - driver: {setup.call: {type: GridVisibility, method: Reveal, args: [123, 340, 40, 40.0]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"RockComet\")"}, [124.5, 372.5, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "Components.MissileLaunchers.Count": 1
+      "Components.MissileLaunchers.Items[0].MissileStorage.MassStored()": {save_as: missiles}
+  - world_shot: {name: before, ortho: 14, at: [123, 330]}
+  - run: {seconds: 1, speed: 1}
+  - run: {seconds: 1, speed: 1}
+  # The column above the barrel: x 590 to 690, y 380 to 640.
+  - world_shot:
+      name: trail
+      ortho: 14
+      at: [123, 330]
+      threshold: 0.45
+      mask: [[0, 0, 1280, 380], [0, 640, 1280, 80], [0, 380, 590, 260], [690, 380, 590, 260]]
+  - expect_state:
+      "Components.MissileLaunchers.Items[0].MissileStorage.MassStored()": "< missiles"
+  - run: {seconds: 2, speed: 1}
+  - world_shot: {name: after, ortho: 14, at: [123, 330]}

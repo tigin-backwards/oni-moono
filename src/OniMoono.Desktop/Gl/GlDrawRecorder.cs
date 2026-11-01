@@ -126,16 +126,22 @@ namespace OniMoono.Desktop.Gl
         // ----- Serial recording -----
 
         /// Forward rendering draws the passes for unlit and base lighting; others serve other
-        /// rendering paths, shadows or lightmapping.
+        /// rendering paths, shadows or lightmapping (ShadowCaster, Deferred, and ForwardAdd,
+        /// which only additional lights would need). Values compare without case: the build
+        /// stores the passes' LightMode upper-case ("FORWARDBASE").
         static bool IsForwardPass(ShaderPass pass, SubShader sub)
         {
             if (!pass.Tags.TryGetValue("LightMode", out var mode) && !sub.Tags.TryGetValue("LightMode", out mode)) return true;
-            return mode is "" or "Always" or "ForwardBase" or "Vertex" or "SRPDefaultUnlit";
+            foreach (var forward in ForwardLightModes)
+                if (string.Equals(mode, forward, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
         }
+
+        static readonly string[] ForwardLightModes = ["", "Always", "ForwardBase", "Vertex", "SRPDefaultUnlit"];
 
         /// Adds the passes a draw runs to `passes`; false (and none added) when one is a UsePass,
         /// which `resolveUsePasses` false leaves unresolved (resolving can load a shader).
-        static bool Passes(List<(ShaderNative Shader, ShaderPass Pass)> passes, ShaderNative shader, MaterialNative material, int pass, bool allPasses, bool resolveUsePasses = true)
+        internal static bool Passes(List<(ShaderNative Shader, ShaderPass Pass)> passes, ShaderNative shader, MaterialNative material, int pass, bool allPasses, bool resolveUsePasses = true)
         {
             var sub = shader.ActiveSubShader;
             if (sub == null) return true;

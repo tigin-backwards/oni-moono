@@ -406,7 +406,8 @@ namespace OniMoono.Engine.Rendering
         public bool EnableInstancing;
         public bool DoubleSidedGI;
         public readonly Dictionary<string, string> Tags = new(StringComparer.OrdinalIgnoreCase);
-        public readonly HashSet<string> DisabledPasses = new(StringComparer.Ordinal);
+        /// LightMode values of the passes not drawn; compared without case, as pass tags are.
+        public readonly HashSet<string> DisabledPasses = new(StringComparer.OrdinalIgnoreCase);
 
         /// Bumped on every change that affects rendering.
         public int Version;

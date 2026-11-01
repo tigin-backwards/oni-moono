@@ -54,6 +54,8 @@ namespace OniMoono.Engine.Rendering
         /// 0 normal pass, 1 UsePass, 2 GrabPass.
         public int Type;
         public string UseName;
+        /// The pass's tags. A normal pass keeps them in its state (`m_State.m_Tags`, with the
+        /// subshader's merged in: LightMode, RenderType...); a GrabPass keeps its own in `m_Tags`.
         public Dictionary<string, string> Tags;
         /// The pass's SerializedPass data (render state and programs) for the device.
         public Fields Data;
@@ -210,7 +212,7 @@ namespace OniMoono.Engine.Rendering
                     Name = p.Struct("m_State").String("m_Name"),
                     Type = p.Int("m_Type"),
                     UseName = p.String("m_UseName"),
-                    Tags = TagMap(p.Struct("m_Tags")),
+                    Tags = PassTags(p),
                     Data = p,
                     Variants = legacy ? ShaderPrograms.LegacyVariants(p) : ShaderPrograms.Variants(p, KeywordNames),
                     MetalVertexVariants = legacy ? Array.Empty<ProgramVariant>() : ShaderPrograms.StageVariants(p, "progVertex", KeywordNames, MetalPlatform),
@@ -234,6 +236,14 @@ namespace OniMoono.Engine.Rendering
         {
             var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (Fields pair in tagMap.Array("tags")) map[pair.String("first")] = pair.String("second");
+            return map;
+        }
+
+        /// A pass's tags: those of its state over its own (ShaderPass.Tags).
+        static Dictionary<string, string> PassTags(Fields pass)
+        {
+            var map = TagMap(pass.Struct("m_Tags"));
+            foreach (var kv in TagMap(pass.Struct("m_State").Struct("m_Tags"))) map[kv.Key] = kv.Value;
             return map;
         }
 
