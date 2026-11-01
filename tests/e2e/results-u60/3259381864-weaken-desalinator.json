@@ -1,0 +1,62 @@
+{
+ "spec": "mods/3259381864-weaken-desalinator.yaml",
+ "mods": [
+  "3259381864"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a 淡盐水机 placed and selected (details shot), researched with Liquid Filtering; world shot",
+ "updated": "2026-11-01",
+ "commit": "73895e34",
+ "mod_dlls": {
+  "3259381864": {
+   "PLib.dll": "432e28fbecb2d422a46eafe489a446f946ec828acfb2b721f7fe6df19d84cd7c",
+   "salt.dll": "f1097c684eed77faf4aa412d5309480b7b9bbeed82d5cac9050d7a1d75f03dc4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024344-c6853c58",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:53:22",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-040921-ec25808a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:09:21",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 8e-06,
+     "building": 0.008958
+    }
+   },
+   {
+    "run": "20261101-040921-ec25808a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:12:41",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 8e-06,
+     "building": 0.009304
+    }
+   }
+  ]
+ }
+}
