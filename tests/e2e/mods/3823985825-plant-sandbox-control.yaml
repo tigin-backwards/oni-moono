@@ -1,0 +1,25 @@
+# Sandbox: Plant Control 植物沙盒工具 (3823985825), classes S, sandbox.
+#
+# What it does: in sandbox mode or debug Instant Build, every plant (an Assets.AddPrefab
+# postfix) gets a PlantSandboxControl: a multi-slider side screen (IMultiSliderControl) that
+# sets its growth progress, and, for plants that can mutate, a PlantMutationControl button that
+# cycles its mutation (or none).
+# How a player reaches it: a selected plant's side screen, in sandbox mode.
+# What changes: plants grown or mutated by hand.
+#
+# setup turns sandbox mode on and spawns a wild Mealwood in the corridor west of the printing
+# pod; it carries both controls, and selected its slider screen is dumped.
+from: early-base
+mods: [3823985825]
+setup:
+  - driver: {setup.call: {target: "Game.Instance", method: set_SandboxModeActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131128, 0, 0, "BasicSingleHarvestPlant", "BuildingFront"]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"BasicSingleHarvestPlant\").GetComponent<PlantSandboxControl.PlantSandboxControl>": exists
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 208], ortho: 8}}
+  - click_world: {cell: [112, 206], select: BasicSingleHarvestPlant}
+  - ui_wait: {path: "**/MultiSliderSideScreen", cond: stable}
+  - ui_dump: {name: sliders, root: "**/MultiSliderSideScreen", mask_text: ['\d+(\.\d+)?']}
