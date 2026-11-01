@@ -1,0 +1,14 @@
+# yk_ui（自用） (3748475305), class S, V (PLib options).
+#
+# What it does: a UI pack for U58: automation labels, pipe flow, info cards, a smart drag tool and
+# more, each switched by an option.
+# How a player reaches it: the colony's HUD and overlays.
+# What changes: a busier, more informative UI.
+#
+# The mod loads, as its log says, and the colony plays for 30 s.
+from: early-base
+mods: [3748475305]
+require_log: ['\[UI QoL Pack\] ']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
