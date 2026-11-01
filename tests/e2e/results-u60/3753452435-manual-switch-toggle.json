@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3753452435-manual-switch-toggle.yaml",
+ "mods": [
+  "3753452435"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Power Switch in the corridor west of the printing pod; both switches carry the link, and the built switch's user menu is dumped",
+ "updated": "2026-11-01",
+ "commit": "74d059eb",
+ "mod_dlls": {
+  "3753452435": {
+   "ManualSwitchToggle.dll": "ad8c9b537ab44ae6a6a818d806df3bca17f82ed481345a8ce58a22086c291a9d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:39:47",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:57:38",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:57:54",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
