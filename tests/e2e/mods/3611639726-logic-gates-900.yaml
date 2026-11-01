@@ -1,0 +1,30 @@
+# 900秒的逻辑门 900-second logic gate (3611639726), class P (no UserMod2: a static OnLoad).
+#
+# What it does: the Buffer Gate's and the Filter Gate's time sliders reach 900 s (the game's
+# stop at 200 s): postfixes on LogicGateBuffer.GetSliderMax and LogicGateFilter.GetSliderMax.
+# How a player reaches it: a Buffer or Filter Gate's slider side screen.
+# What changes: longer delays.
+#
+# setup grants Generic Sensors and builds a Buffer Gate in the dug-out corridor west of the
+# printing pod. Selected, its slider side screen goes up to 900; its slider is dumped.
+from: early-base
+mods: [3611639726]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"GenericSensors\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicGateBUFFER\")", method: Build, args: [{"$": "Grid.XYToCell(112, 207)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicGateFILTER\")", method: Build, args: [{"$": "Grid.XYToCell(115, 207)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:LogicGateBuffer::[0].GetSliderMax(0)": 900
+      "all:LogicGateFilter::[0].GetSliderMax(0)": 900
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [112, 207], select: LogicGateBUFFER}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/Config Tab - body instance/SingleSliderSideScreen", cond: stable}
+  - expect_ui:
+      "**/SingleSliderSideScreen/**/Slider": {active: true}
+  - expect_state:
+      "ui:**/SingleSliderSideScreen/**/Slider::GetComponent<KSlider>.maxValue": 900
+  - ui_dump: {name: slider, root: "**/Config Tab - body instance/SingleSliderSideScreen"}
