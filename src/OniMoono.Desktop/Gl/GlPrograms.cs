@@ -236,12 +236,18 @@ namespace OniMoono.Desktop.Gl
                 var name = rawName.EndsWith("[0]", StringComparison.Ordinal) ? rawName[..^3] : rawName;
                 if (IsSampler(type))
                 {
-                    // This device samples no multisample textures: such a sampler would read a 2D
-                    // default, which is undefined for it. Reported once a name.
-                    if (type == Sampler2DMultisample && unsupportedSamplers.Add(name))
-                        OniMoono.Engine.EngineLog.Engine($"shader sampler '{name}' is a multisample sampler; no texture of that kind is bound");
+                    // This device has no textures of the other targets (multisample, cube array,
+                    // 1D, rectangle, buffer). Such a sampler gets its own unit, where nothing is
+                    // bound to its target (bindless: no handle is set, so it reads its unit), and
+                    // reads texture object 0, which is not complete: a lookup returns (0, 0, 0, 1)
+                    // (OpenGL 4.6 section 11.1.3.5), a texel fetch (all a multisample sampler
+                    // does) is undefined without robust access (section 11.1.3.2). Reported once
+                    // a name.
+                    uint target = SamplerTarget(type);
+                    if (!HasTextures(target) && unsupportedSamplers.Add(name))
+                        OniMoono.Engine.EngineLog.Engine($"shader sampler '{name}' (type 0x{type:X}) reads a kind of texture this device has none of; nothing is bound to it");
                     int location = GlApi.UniformLocation(p.Id, rawName);
-                    var s = new SamplerBinding { Location = location, Unit = unit++, Target = SamplerTarget(type), PropertyId = ShaderPropertyIds.Get(name) };
+                    var s = new SamplerBinding { Location = location, Unit = unit++, Target = target, PropertyId = ShaderPropertyIds.Get(name) };
                     if (!GlBindless.Enabled) N.glUniform1i(location, s.Unit);
                     p.Samplers.Add(s);
                     continue;
@@ -302,16 +308,31 @@ namespace OniMoono.Desktop.Gl
             u.Name = name;
         }
 
-        static bool IsSampler(uint type) => type is Sampler2D or Sampler3D or SamplerCube or Sampler2DShadow or Sampler2DArray or Sampler2DMultisample or IntSampler2D or UnsignedIntSampler2D;
+        /// Every sampler type of GLSL 4.50 (section 4.1.7), as its GL type token (OpenGL 4.6,
+        /// table 7.3): float, int and uint samplers of each dimensionality, and the shadow ones.
+        /// A sampler missed here became a loose uniform, left pointing at unit 0 alongside a
+        /// sampler of another type, which makes the draw INVALID_OPERATION (section 7.11).
+        internal static bool IsSampler(uint type) => SamplerTarget(type) != 0;
 
-        static uint SamplerTarget(uint type) => type switch
+        /// The texture target a sampler type reads (0: not a sampler type).
+        internal static uint SamplerTarget(uint type) => type switch
         {
-            Sampler3D => TexTarget3D,
-            Sampler2DArray => TexTarget2DArray,
-            Sampler2DMultisample => TexTarget2DMultisample,
-            SamplerCube => TexTargetCubeMap,
-            _ => TexTarget2D,
+            Sampler2D or Sampler2DShadow or IntSampler2D or UnsignedIntSampler2D => TexTarget2D,
+            Sampler3D or IntSampler3D or UnsignedIntSampler3D => TexTarget3D,
+            SamplerCube or SamplerCubeShadow or IntSamplerCube or UnsignedIntSamplerCube => TexTargetCubeMap,
+            Sampler2DArray or Sampler2DArrayShadow or IntSampler2DArray or UnsignedIntSampler2DArray => TexTarget2DArray,
+            Sampler1D or Sampler1DShadow or IntSampler1D or UnsignedIntSampler1D => TexTarget1D,
+            Sampler1DArray or Sampler1DArrayShadow or IntSampler1DArray or UnsignedIntSampler1DArray => TexTarget1DArray,
+            Sampler2DRect or Sampler2DRectShadow or IntSampler2DRect or UnsignedIntSampler2DRect => TexTargetRectangle,
+            SamplerBuffer or IntSamplerBuffer or UnsignedIntSamplerBuffer => TexTargetBuffer,
+            SamplerCubeMapArray or SamplerCubeMapArrayShadow or IntSamplerCubeMapArray or UnsignedIntSamplerCubeMapArray => TexTargetCubeMapArray,
+            Sampler2DMultisample or IntSampler2DMultisample or UnsignedIntSampler2DMultisample => TexTarget2DMultisample,
+            Sampler2DMultisampleArray or IntSampler2DMultisampleArray or UnsignedIntSampler2DMultisampleArray => TexTarget2DMultisampleArray,
+            _ => 0,
         };
+
+        /// Targets a texture or a default texture of the device can have: 2D, 2D array, 3D, cube.
+        internal static bool HasTextures(uint target) => target is TexTarget2D or TexTarget2DArray or TexTarget3D or TexTargetCubeMap;
     }
 
     /// The conventions a device's programs were compiled for, which the built-in values follow.
