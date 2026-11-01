@@ -8,7 +8,7 @@
  "findings": [],
  "note": "the build categories and the tool bar are dumped and shot, as in the original, and the colony plays for 30 s",
  "updated": "2026-11-01",
- "commit": "a42eafd4",
+ "commit": "91861a01",
  "mod_dlls": {
   "3767472539": {
    "HideManagementMenuText.dll": "2df32a2a675516c2f43cf3cab28b9059935a063b2943f4ad6159417ec20618c2",
@@ -28,13 +28,13 @@
   ],
   "ours": [
    {
-    "run": "20261101-071838-c866451a",
+    "run": "20261101-110624-7373c4be",
     "index": 1,
     "verdict": "fail",
-    "date": "2026-11-01T10:49:50",
-    "lane": 55,
+    "date": "2026-11-01T12:59:32",
+    "lane": 54,
     "reasons": [
-     "shot tools: 18.92% of pixels differ (> 4%)"
+     "shot tools: 21.26% of pixels differ (> 4%)"
     ],
     "reference_run": "20261101-040745-53cd01cd",
     "new_signatures": 0,
@@ -49,17 +49,17 @@
     },
     "shots": {
      "plan": 0.0,
-     "tools": 0.189243
+     "tools": 0.212554
     }
    },
    {
-    "run": "20261101-071838-c866451a",
+    "run": "20261101-110624-7373c4be",
     "index": 2,
     "verdict": "fail",
-    "date": "2026-11-01T10:50:37",
-    "lane": 54,
+    "date": "2026-11-01T12:59:53",
+    "lane": 55,
     "reasons": [
-     "shot tools: 18.92% of pixels differ (> 4%)"
+     "shot tools: 21.26% of pixels differ (> 4%)"
     ],
     "reference_run": "20261101-040745-53cd01cd",
     "new_signatures": 0,
@@ -74,7 +74,7 @@
     },
     "shots": {
      "plan": 0.0,
-     "tools": 0.189243
+     "tools": 0.212554
     }
    }
   ]
