@@ -8,7 +8,7 @@
  "findings": [],
  "note": "the Smoker's peat delivery is a Cook Fetch errand",
  "updated": "2026-11-01",
- "commit": "74d059eb",
+ "commit": "43626d80",
  "mod_dlls": {
   "3700176264": {
    "FixSmoker.dll": "9f4a4417dedfbe89c1e3eff6541c91e2b7d896080c9b65e86944a9b22734b869"

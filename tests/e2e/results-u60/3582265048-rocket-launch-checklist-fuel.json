@@ -8,7 +8,7 @@
  "findings": [],
  "note": "setup builds a Launch Pad in the corridor west of the printing pod; selected, its user menu has the ignore button, and pressing it switches it to the enable button",
  "updated": "2026-11-01",
- "commit": "74d059eb",
+ "commit": "43626d80",
  "mod_dlls": {
   "3582265048": {
    "OxygenNotIncluded_Fmod_pxh.dll": "0a9f22ebf6e9a9aab1a5a1503e72ae5d2426f68f03163fa84e32597072d33ac9",

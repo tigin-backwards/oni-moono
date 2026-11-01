@@ -8,7 +8,7 @@
  "findings": [],
  "note": "in Italian (picked through the prefs, as its Translations screen does), a colony's research and priorities screens and pause menu, then the main menu, the options menu and its Game options screen, laid out and drawn as in the original",
  "updated": "2026-11-01",
- "commit": "74d059eb",
+ "commit": "43626d80",
  "mod_dlls": {
   "3645836377": {}
  },

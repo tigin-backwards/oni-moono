@@ -8,7 +8,7 @@
  "findings": [],
  "note": "Berry Sludge's food info and the Microbe Musher's recipe carry the new values",
  "updated": "2026-11-01",
- "commit": "3f4d358f",
+ "commit": "43626d80",
  "mod_dlls": {
   "2991976498": {
    "EmptyCalories.dll": "c02010fc2a39f830659c34ee23c2a0547b59d7a5dea7ea7a667c7fab96a7ae73"

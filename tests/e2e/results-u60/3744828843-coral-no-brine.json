@@ -8,7 +8,7 @@
  "findings": [],
  "note": "the coral's prefab has a fertilization monitor and no irrigation monitor, and it still makes oxygen; the colony runs",
  "updated": "2026-11-01",
- "commit": "74d059eb",
+ "commit": "43626d80",
  "mod_dlls": {
   "3744828843": {
    "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db",

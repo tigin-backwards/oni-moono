@@ -8,7 +8,7 @@
  "findings": [],
  "note": "both definitions carry the new ratings; setup builds a Large Power Bank Discharger in the corridor west of the printing pod, and once spawned it is rated 4000 W",
  "updated": "2026-11-01",
- "commit": "74d059eb",
+ "commit": "43626d80",
  "mod_dlls": {
   "3750329747": {
    "DischargerBoost.dll": "84df237a2233255f49e90e98a2d36cf4b44f923a76fe1a25d9b8255279f84625"

@@ -8,7 +8,7 @@
  "findings": [],
  "note": "setup grants the research. The fridge is in the Food menu; built of sandstone in the corridor west of the printing pod and selected, its storage's capacity is the float maximum",
  "updated": "2026-11-01",
- "commit": "3f4d358f",
+ "commit": "43626d80",
  "mod_dlls": {
   "3248853673": {
    "VeryLargeRefrigerator.dll": "6f53a4be0ac85f61e9c0f207d02b9dfd0c84b5cdfedda4667db658368388e9dc"

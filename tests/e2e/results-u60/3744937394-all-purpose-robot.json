@@ -8,7 +8,7 @@
  "findings": [],
  "note": "setup spawns copper ore. The assembler is ordered in the corridor west of the printing pod; once built, a fourth Duplicant stands there, named Robot-*",
  "updated": "2026-11-01",
- "commit": "74d059eb",
+ "commit": "43626d80",
  "mod_dlls": {
   "3744937394": {
    "AllPurposeRobot.dll": "caf8f29ad2e0b57bbd4b93c8f163813426611ebdb1c657c89af5a99b86caf3ac"

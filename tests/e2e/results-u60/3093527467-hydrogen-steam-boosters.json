@@ -8,7 +8,7 @@
  "findings": [],
  "note": "the Steam Engine's building takes hydrogen and exhausts oxygen, and stores 1800 kg",
  "updated": "2026-11-01",
- "commit": "3f4d358f",
+ "commit": "43626d80",
  "mod_dlls": {
   "3093527467": {
    "HydrogenSteamBoosters.dll": "97936372bd2701420c79fffcca12680ddca9466b3835ab4b8195aab6ba550898"

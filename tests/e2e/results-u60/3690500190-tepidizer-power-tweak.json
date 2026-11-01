@@ -8,7 +8,7 @@
  "findings": [],
  "note": "with its option at 300 W, the Liquid Tepidizer's definition draws 300 W; the colony runs",
  "updated": "2026-11-01",
- "commit": "74d059eb",
+ "commit": "43626d80",
  "mod_dlls": {
   "3690500190": {
    "TepidizerTweak.dll": "e66391c9b7f54e916ccd6941c460db3462c0d35592646e9dc3babdf84ad6a937"

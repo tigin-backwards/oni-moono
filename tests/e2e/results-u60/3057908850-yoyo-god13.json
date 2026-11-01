@@ -8,7 +8,7 @@
  "findings": [],
  "note": "the mod loads and the colony plays for 30 s",
  "updated": "2026-11-01",
- "commit": "3f4d358f",
+ "commit": "43626d80",
  "mod_dlls": {
   "3057908850": {
    "God_13.dll": "ed819d7dc0604e2d6c73d21a881a3a9c45509b9c6cf9b4ddda3688d791c0097b"
