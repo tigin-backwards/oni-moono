@@ -108,7 +108,10 @@ namespace OniMoono.Host
                 image = optimized;
                 EngineLog.Engine($"game image: {simple}.dll asks for its code unoptimised (Debuggable); compiled optimised, as on Mono");
             }
-            return image == null ? context.LoadFromAssemblyPath(path) : context.LoadFromStream(new MemoryStream(image));
+            if (image == null) return context.LoadFromAssemblyPath(path);
+            var assembly = context.LoadFromStream(new MemoryStream(image));
+            ModAccess.RecordGameLocation(assembly, path);
+            return assembly;
         }
 
         /// Development and test runs only (`--native-override NAME=PATH`): a native library
