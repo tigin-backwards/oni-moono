@@ -311,7 +311,10 @@ namespace TMPro
                         right = (float)((double)last.Pen + last.MonoOffset + ((double)gm.horizontalBearingX + gm.width + bold) * last.Scale * last.XScale) + last.OffsetX;
                     }
                     else right = (float)((double)last.Pen + last.MonoOffset + last.Right) + last.OffsetX;
-                    li.length = right - (lineLeft + line.StartX);
+                    // From the line's left edge, its indent included (measured on the shipped
+                    // package: "<indent=1em>•Polluted Dirt" in NotoSans 12 pt is 87.125 long,
+                    // "•Polluted Dirt" 75.125).
+                    li.length = right - lineLeft;
                 }
                 else
                 {
