@@ -1,0 +1,25 @@
+# Professional Attire Revisited (3777126932), classes P, O (PLib options).
+#
+# What it does: twelve profession clothes (ArtistAttire, BuildingAttire and ten more), each +2 to
+# one Duplicant attribute while worn, made at the Textile Loom (ClothingFabricator) from fibre
+# and a profession material (costs are options); patches on GeneratedEquipment, the loom's
+# recipes and the pilots' navigation efficiency.
+# How a player reaches it: a Textile Loom's recipe side screen; Duplicants' clothes.
+# What changes: clothes that boost a skill.
+#
+# The new clothes are recipes of the loom (as many as in the original); setup builds a Textile
+# Loom in the dug-out corridor west of the printing pod, and selected its recipe list is dumped.
+from: early-base
+mods: [3777126932]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ClothingFabricator\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"ArtistAttire\")": exists
+      "Assets.GetPrefab(\"BuildingAttire\")": exists
+      "count:ComplexRecipeManager.Get().recipes[*] if .fabricators[0].Name == ClothingFabricator": [">= 12", "== original"]
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: ClothingFabricator}
+  - ui_wait: {path: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView", cond: stable}
+  - ui_dump: {name: recipes, root: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView"}
