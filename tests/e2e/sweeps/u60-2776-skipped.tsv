@@ -1,0 +1,18 @@
+# U60 ranks 2776-3047 not played: hashcheck.py (the interim security gate) skips them; revisit when onimaxxing reviews the upload we have, 2026-10-31
+id	rank	original	ours	note
+3750329747	2782	-	-	skipped: not reviewed by onimaxxing in this upload yet (the upload holds DischargerBoost.dll.old-1.0.0, which the analysed one does not)
+3828504119	2846	-	-	skipped: not reviewed by onimaxxing in this upload yet (the Workshop upload is newer than the one analysed)
+3792181624	2865	-	-	skipped: not reviewed by onimaxxing in this upload yet (the upload holds PLib.dll.bak, which the analysed one does not)
+3827102675	2904	-	-	skipped: SteamCMD cannot download it
+3829847809	2932	-	-	skipped: not reviewed by onimaxxing in this upload yet (analysed, not reviewed)
+3812025156	2934	-	-	skipped: SteamCMD cannot download it
+3829465909	2955	-	-	skipped: not reviewed by onimaxxing in this upload yet (the Workshop upload is newer than the one analysed)
+3820759411	2986	-	-	skipped: not reviewed by onimaxxing in this upload yet (analysed, not reviewed)
+3830046708	2988	-	-	skipped: not reviewed by onimaxxing in this upload yet (analysed, not reviewed)
+3795567543	2995	-	-	skipped: SteamCMD cannot download it
+3823501325	3019	-	-	skipped: SteamCMD cannot download it
+2922002878	3031	-	-	skipped: its requirement 2679326313 is not downloaded
+3798891001	3035	-	-	skipped: SteamCMD cannot download it
+3798890854	3036	-	-	skipped: SteamCMD cannot download it
+3798887287	3038	-	-	skipped: SteamCMD cannot download it
+3810178081	3045	-	-	skipped: SteamCMD cannot download it
