@@ -135,7 +135,7 @@ stage_unit()
 }
 
 # ---- dogfood ----
-SCENARIOS=(menu options newgame colony codex management research naming overlays saveload resize burst intro)
+SCENARIOS=(menu options newgame colony colony-glcore codex management research naming overlays saveload resize burst intro)
 [ -n "${QA_SCENARIOS:-}" ] && read -ra SCENARIOS <<< "$QA_SCENARIOS"
 
 run_scenario() # NAME
@@ -149,7 +149,11 @@ run_scenario() # NAME
     # a given frame follows its audio clock, so it is not compared with a reference).
     # DUMP_MATCH / DUMP_ABSENT: "FRAME:REGEX" pairs; the UI dump of that frame must have / must
     # not have a line matching the extended regex (game state a capture comparison may miss).
+    # ENV: NAME=VALUE settings for the player. REFERENCE: another scenario whose references this
+    # one is compared with (a variant of it; never blessed). VULKAN=1: skipped when the player
+    # cannot start Vulkan.
     SAVE=""; FRAMES=0; DUMPS=""; ARGS=(); TOLERANCE=0.03; DLC=0; KEPT_MAX=1; REQUIRE=(); MOVING=""
+    ENV=(); REFERENCE=""; VULKAN=0
     DUMP_MATCH=(); DUMP_ABSENT=()
     source "$file"
     # DLC=1: the scenario needs the DLC content and a DLC-owning Steam double (qa.env).
@@ -172,7 +176,7 @@ run_scenario() # NAME
     local caps=() f
     for f in $DUMPS; do caps+=(--capture "$f:$out/f$f.png" --dump-ui "$f:$out/f$f.txt"); done
     # In the background and waited for, so that a signal's trap runs at once.
-    ONI_GAME_DIR="$gamedir" ONI_RUN_HOME="$home" ONI_CONFIG=release player "dogfood-$name" timeout 1800 xvfb-run -a -s "-screen 0 1280x1024x24" \
+    ONI_GAME_DIR="$gamedir" ONI_RUN_HOME="$home" ONI_CONFIG=release player "dogfood-$name" timeout 1800 env "${ENV[@]}" xvfb-run -a -s "-screen 0 1280x1024x24" \
         "$root/scripts/audio-sink/record.sh" "$out/audio.raw" "${runner[@]}" \
         -screen-width 1024 -screen-height 768 -screen-fullscreen 0 --frames "$FRAMES" --max-frame-rate 60 \
         --log "$out/log.txt" "${caps[@]}" "${ARGS[@]}" > "$out/stdout.txt" 2>&1
@@ -181,8 +185,14 @@ run_scenario() # NAME
     rm -f "$out/audio.raw"
     # The game's own log (Debug.Log, exceptions) goes to stdout with the engine's.
     { echo "exit $status"; python3 "$tools" signatures "$out/stdout.txt"; } > "$out/signatures.txt"
-    local rdir="$ref/dogfood/$name"
-    if [ $bless -eq 1 ]; then
+    if [ "$VULKAN" = 1 ] && grep -aq "renderer: OpenGL (Vulkan unavailable" "$out/stdout.txt"; then
+        note "dogfood $name: skipped ($(grep -aoE 'Vulkan unavailable[^)]*' "$out/stdout.txt" | head -1))"; return
+    fi
+    local rdir="$ref/dogfood/${REFERENCE:-$name}"
+    if [ $bless -eq 1 ] && [ -n "$REFERENCE" ]; then
+        note "dogfood $name: not blessed (compared with $REFERENCE's references)"
+    fi
+    if [ $bless -eq 1 ] && [ -z "$REFERENCE" ]; then
         [ $status -eq 0 ] || { fail "dogfood $name: the player exited $status; not blessed"; return; }
         local f; for f in $DUMPS; do [ -f "$out/f$f.png" ] || { fail "dogfood $name: no capture f$f; not blessed"; return; }; done
         rm -rf "$rdir"; mkdir -p "$rdir"; cp "$out/signatures.txt" "$rdir/"
