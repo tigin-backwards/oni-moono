@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3773291842-superior-cooler.yaml",
+ "mods": [
+  "3773291842"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Liquid Temperature and builds a Superior Liquid Cooler in the dug-out corridor west of the printing pod; the gas cooler is researched with HVAC; selected, the liquid cooler's details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "22cf06d0",
+ "mod_dlls": {
+  "3773291842": {
+   "GGCooler.dll": "658f1363db9a67e2a0dfd4d6930a975bbcad0ed53fd3c4b36d983fa27017fbb4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-025945-1a714f70",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:09:18",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-042451-f330196d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:24:51",
+    "lane": 44,
+    "reference_run": "20261101-025945-1a714f70",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-042451-f330196d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:30:56",
+    "lane": 44,
+    "reference_run": "20261101-025945-1a714f70",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
