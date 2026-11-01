@@ -1555,9 +1555,15 @@ used to unwind only that draw. The GL thread renders into an offscreen back buff
 texture + depth-stencil); at present it fences the frame and hands it to a presenter thread
 current on the window's context, which waits for the fence on its own thread (neither context's
 GPU queue waits on the other's), blits to the window, fences the copy and swaps with
-`QualitySettings.vSyncCount` as the interval. Up to two frames are queued for presentation, as
-Unity's default of two queued frames, and three back buffers rotate; the GL thread waits (on the
-GPU) for a buffer's copy fence before drawing into it again. Back-buffer reads (`ReadPixels` of the screen,
+`QualitySettings.vSyncCount` as the interval. Without vSync up to two frames are queued for
+presentation (`QualitySettings.maxQueuedFrames` is 2 by default on PC, though Unity documents it
+for Direct3D 11 and 12 only). With vSync one is, and it counts as queued until a fence placed
+after the swap has signalled: the driver returned from `SwapBuffers` at once and queued frames of
+its own on top. That fence waiting for the swap is driver behaviour, not a GL guarantee; with it a
+key press reached the screen in 50 ms instead of 83, as in the original (19827d58: Windows 11, 60
+Hz, windowed, an RTX 3090 on NVIDIA's driver 610.88; other drivers and compositors unmeasured).
+Three back buffers rotate; the GL thread waits (on the GPU) for a buffer's copy fence before
+drawing into it again. Back-buffer reads (`ReadPixels` of the screen,
 captures) read the offscreen buffer of the current frame. Pacing follows Unity's desktop
 player: with vSync the swap paces frames; otherwise `Application.targetFrameRate` when set;
 otherwise none. Without a display (`--headless`, `--batchmode`) frames are paced at
