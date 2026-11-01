@@ -1,0 +1,57 @@
+{
+ "spec": "mods/3372288234-rocket-speed-adjustment.yaml",
+ "mods": [
+  "3372288234"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a base-game colony with the return time multiplier at 0.5: the mod reads it; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "8f4c8149",
+ "mod_dlls": {
+  "3372288234": {
+   "ModTool.dll": "c523c694a478b5fff570d1cb10fb97ce7ea986f2b31dc87bfbd4443d73fc8f12",
+   "PLib.dll": "d87814a7d5d74fa0e94bc5435cd770d3746438f494208b6f356a2ab999169c52",
+   "usually.dll": "da6f815a6e232052cbee42868859238a9315cdbbf7d0f06823de609b9745a6b4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-235402-acab431d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:05:02",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-043409-24abf0f7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:34:09",
+    "lane": 35,
+    "reference_run": "20261031-235402-acab431d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-043409-24abf0f7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:37:11",
+    "lane": 35,
+    "reference_run": "20261031-235402-acab431d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
