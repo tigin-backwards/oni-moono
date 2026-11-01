@@ -1,0 +1,17 @@
+# Print Alien! (Boy) - Mutant Race Mod (2725873441), class P (no code; content for Dupery).
+#
+# What it does: a personalities.json and accessory kanims for Dupery: an alien personality (Kimon, head shape, mouth and hair kanims of its own) joins the pool
+# of printable Duplicants. It has no code; Dupery (3172734005, installed first) imports it.
+# How a player reaches it: printing pod and new-colony Duplicants.
+# What changes: who can be printed.
+#
+# Dupery's log of what it imports from the mod and the size of the personality pool are
+# compared with the original's; the colony runs on.
+from: early-base
+mods: [3172734005, 2725873441]
+require_log: ['\[Dupery\] .*Print Alien Boy']
+steps:
+  - expect_state:
+      "Db.Get().Personalities.Count": "== original"
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
