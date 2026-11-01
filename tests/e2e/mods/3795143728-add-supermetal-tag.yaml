@@ -1,0 +1,16 @@
+# Add Supermetal Tag (3795143728), class P.
+#
+# What it does: tags Steel and Thermium as super metals (at the main menu and as strings load),
+# so the mod it is made for (2633732356, the catalog's requirement, installed with it) no
+# longer needs Automated Colony for them.
+# How a player reaches it: building with steel or thermium.
+# What changes: two metals count as super metals.
+#
+# Steel's element carries the Supermetal tag, as in the original; the colony runs.
+from: early-base
+mods: [2633732356, 3795143728]
+steps:
+  - expect_state:
+      "ElementLoader.FindElementByName(\"Steel\").oreTags": {contains: SUPERMETAL}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

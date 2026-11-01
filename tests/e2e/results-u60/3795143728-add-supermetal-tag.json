@@ -1,0 +1,60 @@
+{
+ "spec": "mods/3795143728-add-supermetal-tag.yaml",
+ "mods": [
+  "2633732356",
+  "3795143728"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Steel's element carries the Supermetal tag, as in the original; the colony runs",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "2633732356": {
+   "RainbowCommons.dll": "284e5ba2da33b556a8d8d5b02dc522eef1ae28f062fb6a100665c0a93151bca7",
+   "RealisticNuclearPowerPlant.dll": "896cc50c3888f4d5bdc93ef753e5cf8678f7cb8b04b726a9c7eacae07f6fab9a"
+  },
+  "3795143728": {
+   "SupermetalTagFix.dll": "0c3b6868220feab576734f1d89ab3d64e32a5c3d1acf1fde6c6d0375f6f1a556"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-092050-8b8babe3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:25:37",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:46:51",
+    "lane": 54,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:47:51",
+    "lane": 55,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
