@@ -155,13 +155,23 @@ namespace OniMoono.Desktop
             if (scripted) InputState.Instance.MousePresent = true;
             else
             {
-                window.OnKey += (w, key, scancode, action, mods) => Report(() => OnKey(w, key, scancode, action, mods));
+                // The modifiers held are read as each event comes in: one reported later (pumped
+                // meanwhile) would otherwise take those of the last event GLFW has seen.
+                window.OnKey += (w, key, scancode, action, mods) =>
+                {
+                    var held = Modifiers();
+                    Report(() => OnKey(key, scancode, action, mods, held));
+                };
                 // BRUTAL's own character thunk cuts the code point to 16 bits ((ushort)point), so
                 // characters above U+FFFF (emoji) arrived as others, or as a lone surrogate:
                 // ours replaces it, with the whole code point. BRUTAL's other callbacks stay.
                 charCallback = OnCharNative;
                 Glfw.PInvoke.SetCharCallback(window, charCallback);
-                window.OnMouseButton += (w, button, action, mods) => Report(() => OnMouseButton(w, button, action, mods));
+                window.OnMouseButton += (w, button, action, mods) =>
+                {
+                    var held = Modifiers();
+                    Report(() => OnMouseButton(button, action, held));
+                };
                 window.OnCursorPos += (_, pos) => Report(() => feed.MouseMoved(ToPixels(pos)));
                 window.OnScroll += (_, offset) => Report(() => feed.Scrolled(new Vector2((float)offset.X, (float)offset.Y), MouseGuiPosition()));
                 window.OnCursorEnter += (_, entered) => Report(() => InputState.Instance.MousePresent = entered);
@@ -487,7 +497,8 @@ namespace OniMoono.Desktop
         {
             try
             {
-                Report(() => feed.Text(codepoint, Modifiers()));
+                var held = Modifiers();
+                Report(() => feed.Text(codepoint, held));
             }
             catch (Exception e)
             {
@@ -679,6 +690,9 @@ namespace OniMoono.Desktop
             return PointerPixels.Gui(InputState.Instance.MousePosition, FramebufferHeight);
         }
 
+        /// The modifier keys held as GLFW has them now: read in the callback, the state just
+        /// after the event (a Shift press holds Shift). GLFW's own `mods` would differ on X11,
+        /// whose events carry the state from before them (translateState of the event's state).
         EventModifiers Modifiers()
         {
             EventModifiers m = 0;
@@ -694,7 +708,7 @@ namespace OniMoono.Desktop
         /// when the layout changed in between.
         readonly Dictionary<int, KeyCode> pressed = new();
 
-        void OnKey(GlfwWindow w, GlfwKey key, int scancode, GlfwKeyAction action, GlfwModifier mods)
+        void OnKey(GlfwKey key, int scancode, GlfwKeyAction action, GlfwModifier mods, EventModifiers held)
         {
             KeyCode code;
             if (action == GlfwKeyAction.Release && pressed.Remove(scancode, out var down)) code = down;
@@ -708,7 +722,7 @@ namespace OniMoono.Desktop
                 if (action == GlfwKeyAction.Press) pressed[scancode] = code;
             }
             if (code == KeyCode.None) return;
-            var modifiers = Modifiers();
+            var modifiers = held;
             if ((mods & GlfwModifier.CapsLock) != 0) modifiers |= EventModifiers.CapsLock;
             if (KeyMap.IsKeypad(code)) modifiers |= EventModifiers.Numeric;
             if (KeyMap.IsFunction(code)) modifiers |= EventModifiers.FunctionKey;
@@ -726,12 +740,12 @@ namespace OniMoono.Desktop
             }
         }
 
-        void OnMouseButton(GlfwWindow w, GlfwMouseButton button, GlfwButtonAction action, GlfwModifier mods)
+        void OnMouseButton(GlfwMouseButton button, GlfwButtonAction action, EventModifiers held)
         {
             int index = (int)button;
             if (index > 6) return;
-            if (action == GlfwButtonAction.Press) feed.MouseDown(index, Modifiers(), MouseGuiPosition());
-            else feed.MouseUp(index, Modifiers(), MouseGuiPosition());
+            if (action == GlfwButtonAction.Press) feed.MouseDown(index, held, MouseGuiPosition());
+            else feed.MouseUp(index, held, MouseGuiPosition());
         }
     }
 
