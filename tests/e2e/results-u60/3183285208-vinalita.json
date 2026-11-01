@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3183285208-vinalita.yaml",
+ "mods": [
+  "3183285208"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds the statue in the dug-out corridor west of the printing pod. It shows in the Furniture menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "0673dccb",
+ "mod_dlls": {
+  "3183285208": {
+   "╬¼─╔└√╦■.dll": "8f9b7ad2ea63835e406d767e96d232e432b37571583cdbc89a2397bd34fc44f8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-232935-3c71633c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:50:05",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-005113-ff1464a3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:51:13",
+    "lane": 45,
+    "reference_run": "20261031-232935-3c71633c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-005113-ff1464a3",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T00:51:34",
+    "lane": 44,
+    "reference_run": "20261031-232935-3c71633c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
