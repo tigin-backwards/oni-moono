@@ -66,17 +66,35 @@ namespace OniMoono.Desktop.Gl
             return body[..m.Index] + "layout(bindless_sampler) uniform;\n" + body[m.Index..];
         }
 
-        /// The resident handle of a texture with its current sampler object.
+        /// The resident handle of a texture with its current sampler object, or 0 when GL gives
+        /// it none. GetTextureSamplerHandleARB returns 0, with an error, for a texture name that
+        /// has no texture object or a texture that is not complete; 0 is never a valid handle,
+        /// and a shader sampling through one that is not a valid resident handle has undefined
+        /// results that may include program termination (ARB_bindless_texture, section
+        /// 3.9.X and its edits to section 2.14.6, Samplers). A 0 is neither made resident
+        /// nor kept, so a texture that becomes complete gets its handle then. The caller samples
+        /// a default texture instead, as a unit with an incomplete texture bound reads
+        /// (0, 0, 0, 1) (OpenGL 4.6 section 11.1.3.5).
         public static ulong Handle(DeviceTexture t)
         {
             uint sampler = t.Sampler != 0 ? t.Sampler : GlSamplers.Default;
-            t.Handles ??= new Dictionary<uint, ulong>();
-            if (t.Handles.TryGetValue(sampler, out var handle)) return handle;
-            handle = getTextureSamplerHandle(t.Id, sampler);
+            if (t.Handles != null && t.Handles.TryGetValue(sampler, out var handle)) return handle;
+            handle = t.Id == 0 ? 0 : getTextureSamplerHandle(t.Id, sampler);
+            if (handle == 0)
+            {
+                if (!loggedNoHandle)
+                {
+                    loggedNoHandle = true;
+                    OniMoono.Engine.EngineLog.Engine($"bindless: no handle for texture {t.Id} ({t.Width}x{t.Height}, target 0x{t.Target:X}, sampler {sampler}): not a texture or not complete; sampling the default texture instead (logged once)");
+                }
+                return 0;
+            }
             makeResident(handle);
-            t.Handles[sampler] = handle;
+            (t.Handles ??= new Dictionary<uint, ulong>())[sampler] = handle;
             return handle;
         }
+
+        static bool loggedNoHandle;
 
         public static bool HasHandles(DeviceTexture t) => t.Handles is { Count: > 0 };
 

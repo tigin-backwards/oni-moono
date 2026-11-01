@@ -563,8 +563,11 @@ namespace OniMoono.Desktop.Gl
                 var handles = program.SamplerHandles ??= new ulong[program.Samplers.Count];
                 for (int i = 0; i < recorded.TextureCount; i++)
                 {
-                    ulong h = GlBindless.Handle(recorded.Textures[i].Texture);
-                    if (handles[i] == h) continue;
+                    var texture = recorded.Textures[i].Texture;
+                    ulong h = GlBindless.Handle(texture);
+                    // No handle (an incomplete texture): the default the sampler reads unbound.
+                    if (h == 0) h = GlBindless.Handle(DefaultTexture(Unbound, texture.Target));
+                    if (h == 0 || handles[i] == h) continue;
                     handles[i] = h;
                     GlBindless.SetSampler(program.Id, program.Samplers[i].Location, h);
                 }
