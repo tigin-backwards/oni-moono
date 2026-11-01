@@ -1,0 +1,21 @@
+# V_红色-RED (3243578119), class B.
+#
+# What it does: adds a red decoration (V003GG1, in the Furniture menu).
+# How a player reaches it: the build menu (Furniture).
+# What changes: one more decoration.
+#
+# The building is listed in the Furniture menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3243578119]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"V003GG1\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/V003GG1 Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/V003GG1 Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
