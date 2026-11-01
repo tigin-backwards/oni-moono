@@ -422,8 +422,10 @@ broken.update({
     '2590563970': 'broken upstream: its `VariablePowerTransformer` implements `GetSliderTooltip()`, not the `ISliderControl.GetSliderTooltip(int)` the game\'s interface now has, so the original fails its prefab setup in `Assets.OnPrefabInit` ("VTable setup of type VariablePowerTransformer failed"), the colony\'s load then throws NullReferenceExceptions, and the player aborts (-6); not run in ours',
     '3088988489': 'broken upstream: its transpiler on `SelectToolHoverTextCard.UpdateHoverElements` emits a branch the IL generator rejects (ArgumentException: opcode), so the original fails to load it, and the player then exits before its colony starts; not run in ours',
     '3213620129': 'broken upstream: its Sulfur Bath sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player aborts (-6) while loading a colony; not run in ours',
+    '3465430183': 'broken on U60 (build 761015): its prefix on `Light2D.GetDescriptors` finds no such method, so the original fails to load it (HarmonyException), its Torch has no anim, and the player exits (1) while loading a colony; not run in ours',
+    '3700898401': 'broken on U60 (build 761015) through More Plants (2819853217), which it patches and needs: More Plants reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException in its prefabs), and the original aborts (-6) while loading a colony; not run in ours',
 })
-not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129'}
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401'}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
