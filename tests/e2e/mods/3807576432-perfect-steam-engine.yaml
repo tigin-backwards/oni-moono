@@ -1,0 +1,27 @@
+# 完美蒸汽机Perfect steam engine (3807576432), class B.
+#
+# What it does: adds a steam engine (CustomSteamTurbine, in the Power menu, researched with
+# Renewable Energy) that takes in hot steam to make power and gives off as waste heat only 10 %
+# of the heat the steam loses, exchanging with its surroundings.
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: a cooler steam turbine.
+#
+# setup grants the research. The building is listed in the Power menu (shot).
+from: early-base
+mods: [3807576432]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"RenewableEnergy\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"RenewableEnergy\").unlockedItemIDs": {contains: CustomSteamTurbine}
+      "Assets.GetBuildingDef(\"CustomSteamTurbine\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CustomSteamTurbine Group*", cond: stable, stable: 120, frames: 600}
+  # Its button may lie outside the panel's view, so the menu is checked and shot rather than
+  # the card opened.
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/CustomSteamTurbine Group*": {active: true}
+  - shot: {name: menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}
