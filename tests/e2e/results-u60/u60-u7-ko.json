@@ -1,0 +1,57 @@
+{
+ "spec": "u60-u7-ko.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the game's Korean: the translation check rejects the same keys as in the original (one block, DIET_HEADER), and no other",
+ "updated": "2026-11-01",
+ "commit": "e2046969",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-181018-7e23013d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T18:10:18",
+    "lane": 2,
+    "signatures": 0
+   },
+   {
+    "run": "20261101-181018-7e23013d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T18:10:34",
+    "lane": 2,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-181018-7e23013d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T18:10:54",
+    "lane": 2,
+    "reference_run": "20261101-181018-7e23013d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-181018-7e23013d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T18:11:21",
+    "lane": 2,
+    "reference_run": "20261101-181018-7e23013d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

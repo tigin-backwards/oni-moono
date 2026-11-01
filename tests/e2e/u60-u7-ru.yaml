@@ -1,0 +1,17 @@
+# U60 QA spec U7 (docs/research/u60-qa-spec.md): translation validation, in the game's own
+# Russian (ru_klei).
+#
+# U60's Localization.OverloadStrings rejects a translated string whose parameters do not match
+# the English, that has more links than the English or whose link tags do not balance
+# (ValidateTranslatedString, new). Each kind is logged at start-up as one "TRANSLATION ERROR!"
+# block listing the rejected keys. The scan uses String.Split and the culture-sensitive
+# String.IndexOf(string, int) (ICU in ours, Mono's collation in the original). require_log holds
+# each block the original logs, whole (761211: 2 block(s)); no other block is logged.
+from: main-menu
+language: ru_klei
+require_log:
+  - 'TRANSLATION ERROR! The following have missing or mismatched parameters:\n\tSTRINGS\.UI\.BUILDINGEFFECTS\.DIET_HEADER\n\n'
+  - 'TRANSLATION ERROR! The following do not have the same amount of <link> tags as the english string which can cause nested link errors:\n\tSTRINGS\.UI\.ROLES_SCREEN\.PERKS\.EXOSUIT_EXPERTISE\.DESCRIPTION\n\n'
+  - '(?s)\A(?!.*TRANSLATION ERROR!(?! The following have missing or mismatched parameters:\n\tSTRINGS\.UI\.BUILDINGEFFECTS\.DIET_HEADER\n\n)(?! The following do not have the same amount of <link> tags as the english string which can cause nested link errors:\n\tSTRINGS\.UI\.ROLES_SCREEN\.PERKS\.EXOSUIT_EXPERTISE\.DESCRIPTION\n\n))'
+steps:
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
