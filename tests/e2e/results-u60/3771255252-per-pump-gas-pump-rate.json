@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3771255252-per-pump-gas-pump-rate.yaml",
+ "mods": [
+  "3771255252"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "ae8a1569",
+ "mod_dlls": {
+  "3771255252": {
+   "GasPump1Kg.dll": "b3b01aeb4298e439c78128ddacd18504058dab920befcee811a82754b99b0605"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-061650-113d2065",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:32:40",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-120439-394dff2b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:04:39",
+    "lane": 36,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-120439-394dff2b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:06:45",
+    "lane": 36,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
