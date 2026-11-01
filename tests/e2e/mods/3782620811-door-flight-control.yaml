@@ -1,0 +1,28 @@
+# Door Flight Control (3782620811), classes B, S, M.
+#
+# What it does: every door (BuildingConfigManager.RegisterBuilding) gets a DoorFlightControl
+# with per-direction flight rules, set in rows added to the door's access side screen once
+# Jetpacks is researched: past a door set to Cannot fly, a Duplicant in a Jet Suit stays on the
+# ground (MinionPathFinderAbilities and Navigator patches, a MinionFlightState on each
+# Duplicant) and stops releasing CO2 (JetSuitMonitor.Emit), as if out of fuel.
+# How a player reaches it: a door's access side screen, after Jetpacks.
+# What changes: no-fly zones for Jet Suits.
+#
+# setup grants Jetpacks and builds a Pneumatic Door in the corridor west of the printing pod;
+# it carries the flight control, each Duplicant a flight state, and the door's access screen
+# with the mod's rows is dumped.
+from: early-base
+mods: [3782620811]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Jetpacks\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Door\")", method: Build, args: [131129, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Door\").BuildingComplete.GetComponent<CannotFly.DoorFlightControl>": exists
+      "count:Components.LiveMinionIdentities.Items[*] if .GetComponent<CannotFly.MinionFlightState>.enabled == true": 3
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: Door}
+  - ui_wait: {path: "**/AccessControlSideScreen", cond: stable}
+  - ui_dump: {name: access, root: "**/AccessControlSideScreen", mask_text: ['\S+']}
