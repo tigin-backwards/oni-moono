@@ -1,0 +1,30 @@
+# 【个人开发测试版】恒温气调保鲜柜 / Cryogenic Pantry (3818607382), classes B, M.
+#
+# What it does: adds the Cryogenic Pantry (BaiyeCryogenicPantry, 2x3, 400 kg refined metal and
+# 200 kg plastic, in the Food menu, researched with Liquid Tempering / LiquidTemperature): a
+# deep-freezing, sealed-atmosphere food store (Rottable.RefrigerationLevel and
+# AtmosphereQuality patches) that also makes four drinks Duplicants (standard and Bionic,
+# CreatePrefab patches) take in their free time; a side screen controls it.
+# How a player reaches it: the build menu (Food), after the research.
+# What changes: food that keeps forever, and drinks.
+#
+# setup grants the research. The pantry is listed in the Food menu and its card names its two
+# ingredients (dumped).
+from: early-base
+mods: [3818607382]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LiquidTemperature\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"LiquidTemperature\").unlockedItemIDs": {contains: BaiyeCryogenicPantry}
+      "Assets.GetBuildingDef(\"BaiyeCryogenicPantry\").HeightInCells": 3
+      "Assets.GetBuildingDef(\"BaiyeCryogenicPantry\").MaterialCategory": [{contains: RefinedMetal}, {contains: Plastic}]
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Food"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BaiyeCryogenicPantry Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/BaiyeCryogenicPantry Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}

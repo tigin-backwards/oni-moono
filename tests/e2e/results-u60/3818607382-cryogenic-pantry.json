@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3818607382-cryogenic-pantry.yaml",
+ "mods": [
+  "3818607382"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants the research. The pantry is listed in the Food menu and its card names its two ingredients (dumped)",
+ "updated": "2026-11-01",
+ "commit": "2018e684",
+ "mod_dlls": {
+  "3818607382": {
+   "BaiyeCryogenicPantry.dll": "5202f3c93d59d5afa7ee91ebac3cff1f8189f0db6c5601ecbcc11a21aed5a1c7"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:57:42",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:14:58",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:15:23",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
