@@ -10,6 +10,7 @@ namespace OniMoono.Desktop.Gl
     internal static class GlConst
     {
         public const uint TexTarget2D = 0x0DE1, TexTarget3D = 0x806F, TexTarget2DArray = 0x8C1A, TexTarget2DMultisample = 0x9100, TexTargetCubeMap = 0x8513, TexCubeMapPositiveX = 0x8515;
+        public const uint TexTarget1D = 0x0DE0, TexTarget1DArray = 0x8C18, TexTargetRectangle = 0x84F5, TexTargetBuffer = 0x8C2A, TexTargetCubeMapArray = 0x9009, TexTarget2DMultisampleArray = 0x9102;
         public const uint Texture0 = 0x84C0;
         public const uint TextureMinFilter = 0x2801, TextureMagFilter = 0x2800, TextureWrapS = 0x2802, TextureWrapT = 0x2803, TextureWrapR = 0x8072;
         public const uint TextureMaxLevel = 0x813D, TextureBaseLevel = 0x813C, TextureLodBias = 0x8501, TextureMaxAnisotropy = 0x84FE;
@@ -47,7 +48,16 @@ namespace OniMoono.Desktop.Gl
         public const uint UniformBlockDataSize = 0x8A40;
         public const uint FloatType = 0x1406, FloatVec2 = 0x8B50, FloatVec3 = 0x8B51, FloatVec4 = 0x8B52, IntType = 0x1404, IntVec2 = 0x8B53, IntVec3 = 0x8B54, IntVec4 = 0x8B55;
         public const uint UnsignedIntType = 0x1405, UintVec2 = 0x8DC6, UintVec3 = 0x8DC7, UintVec4 = 0x8DC8, BoolType = 0x8B56, BoolVec2 = 0x8B57, BoolVec3 = 0x8B58, BoolVec4 = 0x8B59, FloatMat4 = 0x8B5C;
-        public const uint Sampler2D = 0x8B5E, Sampler3D = 0x8B5F, SamplerCube = 0x8B60, Sampler2DShadow = 0x8B62, Sampler2DArray = 0x8DC1, Sampler2DMultisample = 0x9108, IntSampler2D = 0x8DCA, UnsignedIntSampler2D = 0x8DD2;
+        // The sampler types (uniform type tokens, OpenGL 4.6 table 7.3; glcorearb.h).
+        public const uint Sampler1D = 0x8B5D, Sampler2D = 0x8B5E, Sampler3D = 0x8B5F, SamplerCube = 0x8B60, Sampler1DShadow = 0x8B61, Sampler2DShadow = 0x8B62;
+        public const uint Sampler2DRect = 0x8B63, Sampler2DRectShadow = 0x8B64, Sampler1DArray = 0x8DC0, Sampler2DArray = 0x8DC1, SamplerBuffer = 0x8DC2;
+        public const uint Sampler1DArrayShadow = 0x8DC3, Sampler2DArrayShadow = 0x8DC4, SamplerCubeShadow = 0x8DC5;
+        public const uint IntSampler1D = 0x8DC9, IntSampler2D = 0x8DCA, IntSampler3D = 0x8DCB, IntSamplerCube = 0x8DCC, IntSampler2DRect = 0x8DCD, IntSampler1DArray = 0x8DCE, IntSampler2DArray = 0x8DCF, IntSamplerBuffer = 0x8DD0;
+        public const uint UnsignedIntSampler1D = 0x8DD1, UnsignedIntSampler2D = 0x8DD2, UnsignedIntSampler3D = 0x8DD3, UnsignedIntSamplerCube = 0x8DD4;
+        public const uint UnsignedIntSampler2DRect = 0x8DD5, UnsignedIntSampler1DArray = 0x8DD6, UnsignedIntSampler2DArray = 0x8DD7, UnsignedIntSamplerBuffer = 0x8DD8;
+        public const uint SamplerCubeMapArray = 0x900C, SamplerCubeMapArrayShadow = 0x900D, IntSamplerCubeMapArray = 0x900E, UnsignedIntSamplerCubeMapArray = 0x900F;
+        public const uint Sampler2DMultisample = 0x9108, IntSampler2DMultisample = 0x9109, UnsignedIntSampler2DMultisample = 0x910A;
+        public const uint Sampler2DMultisampleArray = 0x910B, IntSampler2DMultisampleArray = 0x910C, UnsignedIntSampler2DMultisampleArray = 0x910D;
         public const uint Vendor = 0x1F00, RendererName = 0x1F01, Version = 0x1F02, ShadingLanguageVersion = 0x8B8C, Extensions = 0x1F03, NumExtensions = 0x821D;
         public const uint MaxTextureSize = 0x0D33, MaxDrawBuffers = 0x8824, MaxTextureImageUnits = 0x8872, MaxCombinedTextureImageUnits = 0x8B4D, MaxSamples = 0x8D57;
         public const uint UniformBufferOffsetAlignment = 0x8A34;

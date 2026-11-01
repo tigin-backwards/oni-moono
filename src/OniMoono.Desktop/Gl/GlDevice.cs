@@ -596,6 +596,10 @@ namespace OniMoono.Desktop.Gl
                 var handles = program.SamplerHandles ??= new ulong[program.Samplers.Count];
                 for (int i = 0; i < recorded.TextureCount; i++)
                 {
+                    // A sampler of a target the device has no textures of reads its unit (where
+                    // nothing of that target is bound) rather than a handle of another target,
+                    // whose results are undefined (ARB_bindless_texture, section 2.14.6).
+                    if (!GlPrograms.HasTextures(program.Samplers[i].Target)) continue;
                     var texture = recorded.Textures[i].Texture;
                     ulong h = GlBindless.Handle(texture);
                     // No handle (an incomplete texture): the default the sampler reads unbound.
