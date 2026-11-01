@@ -7,7 +7,8 @@ Items are Steam's legacy zips (Windows paths); a mod's archived_versions are kep
 the right one. Mods are installed as Local mods, the nearest to a Workshop subscription: Dev mods
 get KMod's developer checks (ModDevLogError turns a deprecated mod_info.yaml key into an error),
 which subscribers never see. A Local mod's version is its folder name's Mono string hash, as KMod
-computes it (Local.Subscribe), or KMod disables it as changed.
+computes it (Local.Subscribe), or KMod disables it as changed. Every mod passes the mod gate
+(scripts/mod-gate.py) before it is installed: profile installs none of them when it skips one.
 
 Environment:
   ONI_STEAMCMD       SteamCMD's folder, holding steamcmd.sh (default out/local-tools/steamcmd)
@@ -43,7 +44,9 @@ def unpack(i):
     if bins:
         z = zipfile.ZipFile(os.path.join(src, bins[0]))
         for info in z.infolist():
-            parts = info.filename.replace('\\', '/').split('/')
+            parts = [p for p in info.filename.replace('\\', '/').split('/') if p not in ('', '.')]
+            if not parts or '..' in parts or ':' in parts[0]:
+                continue  # an entry that would land outside the mod's folder
             path = os.path.join(dest, *parts)
             if info.filename.endswith(('/', '\\')):
                 os.makedirs(path, exist_ok=True)
@@ -73,7 +76,35 @@ def yaml_value(text, key):
     return m.group(1) if m else None
 
 
+class GateSkipped(Exception):
+    """Mods the mod gate skipped: {id: its verdict}."""
+
+    def __init__(self, skipped):
+        self.skipped = skipped
+        super().__init__('skipped by the mod gate: ' + '; '.join(f'{i}: {v["reason"]}' for i, v in skipped.items()))
+
+
+def gate(ids):
+    """{id: verdict} from the mod gate (scripts/mod-gate.py, run isolated, as it reads downloaded
+    files) for the unpacked mods IDS."""
+    if not ids:
+        return {}
+    done = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'scripts', 'mod-gate.py'), '--json', *ids],
+                          capture_output=True, text=True, env=dict(os.environ, ONI_WS=WS, ONI_STEAMCMD=STEAMCMD))
+    try:
+        verdicts = json.loads(done.stdout.strip().splitlines()[-1])
+    except (IndexError, ValueError):
+        verdicts = {}
+    failed = {'verdict': 'skip', 'reason': f'the mod gate gave no verdict: {done.stderr.strip()[-300:]}'}
+    return {i: verdicts.get(i) or dict(failed, id=i) for i in ids}
+
+
 def profile(out, ids):
+    for i in ids:
+        unpack(i)
+    skipped = {i: v for i, v in gate(list(ids)).items() if v['verdict'] != 'pass'}
+    if skipped:
+        raise GateSkipped(skipped)
     os.makedirs(os.path.join(out, 'Local'), exist_ok=True)
     os.makedirs(os.path.join(out, 'config'), exist_ok=True)
     mods = []
@@ -94,4 +125,8 @@ def profile(out, ids):
 if __name__ == '__main__':
     if len(sys.argv) < 3 or sys.argv[1] not in ('download', 'profile'): sys.exit(__doc__)
     if sys.argv[1] == 'download': download(sys.argv[2:])
-    else: profile(sys.argv[2], sys.argv[3:])
+    else:
+        try:
+            profile(sys.argv[2], sys.argv[3:])
+        except GateSkipped as e:
+            sys.exit(str(e))

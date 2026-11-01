@@ -14,7 +14,9 @@ unanalysed, and never one onimaxxing's catalog.json (ONI_CATALOG_JSON) flags as 
 Translations (a .po and no assembly) are recorded and not batched: the players install them
 disabled, as a subscription leaves them. --download fetches with SteamCMD (scripts/ws-mods.py)
 the mods out/ws lacks; a mod that is still missing is recorded as not downloadable. A mod the
-catalog says requires others is installed with them.
+catalog says requires others is installed with them. A mod is batched only when it and the mods
+it requires pass the mod gate (scripts/mod-gate.py); one it skips is recorded as not run, with
+the gate's reason.
 
 Each run is scripts/e2e.py's (its Run, lanes, players' budget and perf lock): a spec with the
 batch as its mods, `from: SAVE` (default 2minnow, tests/e2e/fixtures/2minnow.sav, the Colony
@@ -44,7 +46,8 @@ file:" in its log), else the colony.
 tests/e2e/sweeps/NAME.tsv: comment lines (#), then a header and one line per mod: id, rank,
 original, ours, note. original and ours are ok, menu (fails by or at the main menu), colony (the
 main menu is fine; loading or playing the colony fails) or - (not run: a translation, a mod that
-cannot be downloaded, or ours after the original failed). The note gives the error.
+cannot be downloaded, one the mod gate skips, or ours after the original failed). The note
+gives the error.
 """
 import argparse, concurrent.futures, contextlib, io, json, os, re, shutil, sys, tempfile, threading, time
 
@@ -463,6 +466,18 @@ def main(argv):
             batchable.append(r['id'])
             names[r['id']] = titles(folder, r['id'])
             OWN[r['id']] = assemblies(folder)
+    # The mod gate (scripts/mod-gate.py) on every mod a batch installs, those required among
+    # them: a mod it skips, or one that requires a mod it skips, is not batched.
+    requires = {m: [q for q in info.get(m, {}).get('requires', []) if q in info and downloaded(q)] for m in batchable}
+    for q in {q for m in batchable for q in requires[m]}:
+        ws.unpack(q)
+    verdicts = ws.gate(list(dict.fromkeys(batchable + [q for m in batchable for q in requires[m]])))
+    for m in list(batchable):
+        why = [f'{q}: {verdicts[q]["reason"]}' for q in [m] + requires[m] if verdicts[q]['verdict'] != 'pass']
+        if why:
+            batchable.remove(m)
+            skipped.append({'id': m, 'original': '-', 'ours': '-', 'note': 'skipped by the mod gate: ' + '; '.join(why)})
+            say(f'{m}: skipped by the mod gate: {"; ".join(why)}')
     json.dump({'mods': skipped}, open(os.path.join(state_dir, 'skipped.json'), 'w'), indent=1)
     batches = [batchable[i:i + opts.batch] for i in range(0, len(batchable), opts.batch)]
     say(f'{opts.name}: {len(batchable)} mods in {len(batches)} batches; {len(skipped)} not batched')
