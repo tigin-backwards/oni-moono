@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3582265048-rocket-launch-checklist-fuel.yaml",
+ "mods": [
+  "3582265048"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Launch Pad in the corridor west of the printing pod; selected, its user menu has the ignore button, and pressing it switches it to the enable button",
+ "updated": "2026-11-01",
+ "commit": "74d059eb",
+ "mod_dlls": {
+  "3582265048": {
+   "OxygenNotIncluded_Fmod_pxh.dll": "0a9f22ebf6e9a9aab1a5a1503e72ae5d2426f68f03163fa84e32597072d33ac9",
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:58:48",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:29:25",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:30:07",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
