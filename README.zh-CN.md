@@ -14,6 +14,8 @@ Moono 运行 Klei 原版的 DLL，并在加载时按照 Mono 与 .NET 的[差异
 
 你需要拥有 Steam 上的正版游戏，支持 Linux 或 Windows（不支持 macOS）。目前不支持 Epic Games Store 和 WeGame（中国）版本。由于本方案替换的是游戏引擎而非给游戏打补丁，因此无法作为普通 Harmony 模组发布。取而代之的是，安装脚本会把它挂接到游戏的 Steam 启动选项中，因此你仍然像往常一样从 Steam 启动游戏。
 
+### 简易安装
+
 1. 从[发布页面](https://github.com/tigin-backwards/oni-moono/releases/latest)下载最新版本：
    `oni-moono-…-windows-x64.zip` 或 `oni-moono-…-linux-x64.tar.gz`，并解压到任意位置。
    （也可以直接克隆本仓库；此时安装脚本会自行构建 Moono 本体，如果你没有安装 .NET SDK，它还会为当前用户安装。）
@@ -31,6 +33,112 @@ Moono 运行 Klei 原版的 DLL，并在加载时按照 Mono 与 .NET 的[差异
 在 Linux 上，以 Flatpak 或 Snap 方式安装的 Steam 会在沙盒中运行游戏，而该沙盒看不到你家目录的大部分内容；安装脚本会识别这种情况，并把 Moono 本体安装到沙盒自己的文件夹中。（Snap 已测试，Flatpak 尚未测试。）
 
 你需要 OpenGL 4.5 显卡驱动。游戏会使用你平常的 Steam 账户、DLC、存档、设置和模组。
+
+### 手动安装
+
+对大多数系统来说，安装脚本（见上文）是最简单的安装方式。如果你想要更多控制、需要自定义安装，或者在沙盒环境中运行、不想在沙盒外运行脚本，可以按照以下手动步骤操作。这些步骤不包括如何从源码构建 Moono 本体；构建步骤请参阅安装脚本或 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
+
+<details>
+<summary>Linux</summary>
+
+示例路径与 `setup.sh` 使用的路径一致，并假设下载并解压的文件位于 `~/Downloads/oni-moono/`。你可以选择其他路径，但需要在下面的命令和 Steam 启动选项中统一修改。
+
+1. **找到游戏文件夹。** 它必须包含 `OxygenNotIncluded` 和 `OxygenNotIncluded_Data/Managed`。常见的 Steam 库位置有：
+
+   - 默认 Steam：`~/.steam/steam/steamapps/common/OxygenNotIncluded` 或
+     `~/.local/share/Steam/steamapps/common/OxygenNotIncluded`
+   - Snap 版 Steam：`~/snap/steam/common/.local/share/Steam/steamapps/common/OxygenNotIncluded`
+   - Flatpak 版 Steam：
+     `~/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/OxygenNotIncluded`
+
+   如果游戏在其他 Steam 库中，请改用该库的 `steamapps/common/OxygenNotIncluded` 文件夹。确认 `OxygenNotIncluded` 是 Linux 可执行文件；通过兼容层（Proton）安装的 Windows 版本无法使用。
+
+2. **把 Moono 本体放到 Steam 能访问的位置。** 在下载的压缩包中，`player` 文件夹应包含 `OniMoono` 可执行文件及其附带文件。
+
+   （以下示例中的 `rm -rf` 命令会删除之前的 `player` 文件夹，用于更新的情况。运行前请检查路径，或改用文件管理器操作。）
+
+   对于普通安装的 Steam，你可以把 `player` 文件夹留在解压的位置（`setup.sh` 就是这样做的），也可以把它复制到方便的位置：
+
+   ```bash
+   # Default Steam
+   mkdir -p "$HOME/.local/bin/oni-moono"
+   rm -rf "$HOME/.local/bin/oni-moono/player"
+   cp -rp "$HOME/Downloads/oni-moono/player" "$HOME/.local/bin/oni-moono/player"
+   ```
+
+   Snap 版和 Flatpak 版 Steam 在沙盒中运行，可能无法访问你家目录中其他位置的文件。请把 Moono 本体复制到 Steam 沙盒可见的位置：
+
+   ```bash
+   # Snap Steam
+   mkdir -p "$HOME/snap/steam/common/oni-moono"
+   rm -rf "$HOME/snap/steam/common/oni-moono/player"
+   cp -rp "$HOME/Downloads/oni-moono/player" "$HOME/snap/steam/common/oni-moono/player"
+   ```
+
+   ```bash
+   # Flatpak Steam
+   mkdir -p "$HOME/.var/app/com.valvesoftware.Steam/data/oni-moono"
+   rm -rf "$HOME/.var/app/com.valvesoftware.Steam/data/oni-moono/player"
+   cp -rp "$HOME/Downloads/oni-moono/player" \
+     "$HOME/.var/app/com.valvesoftware.Steam/data/oni-moono/player"
+   ```
+
+3. **检查可执行权限。** Moono 本体的可执行文件 `OniMoono` 必须具有可执行权限。如有需要，用你放置 Moono 本体的路径设置它：
+
+   ```bash
+   chmod +x "$HOME/.local/bin/oni-moono/player/OniMoono"
+   ```
+
+   对于 Snap 或 Flatpak，请使用上面对应的路径。可以用 `ls -l` 检查文件是否存在且可执行。
+
+4. **设置 Steam 启动选项。** 在 Steam 中右键点击《缺氧》→“属性”→“启动选项”。输入一行命令，把示例路径替换为你的 Moono 本体的完整路径：
+
+   ```text
+   "/home/your-username/.local/bin/oni-moono/player/OniMoono" -- %command%
+   ```
+
+   对于 Snap，可执行文件路径通常是：
+
+   ```text
+   "/home/your-username/snap/steam/common/oni-moono/player/OniMoono" -- %command%
+   ```
+
+   对于 Flatpak，通常是：
+
+   ```text
+   "/home/your-username/.var/app/com.valvesoftware.Steam/data/oni-moono/player/OniMoono" -- %command%
+   ```
+
+   把 `/home/your-username` 替换为你实际的家目录路径。不要在启动选项中直接写 `~` 或 `$HOME`。保留可执行文件路径两侧的引号，尤其是路径中包含空格时。
+
+在 Steam 中点击“开始游戏”。如果游戏没有启动，请检查启动选项中的路径是否与 Moono 本体的实际位置一致、`OniMoono` 是否具有可执行权限，以及游戏文件夹中是否为 Linux 版本。如果仍然不行，请从终端启动 Steam，点击“开始游戏”后查看输出中的提示。
+
+如需更新，下载新版本的压缩包并重复以上步骤，替换 `player` 文件夹即可。
+
+若要卸载 Moono 并回到原版游戏，删除你放置的 `player` 文件夹，并在 Steam 中清除启动选项。
+
+</details>
+
+<details>
+<summary>Windows</summary>
+
+1. **放置 Moono 本体。** 在下载的压缩包中，`player` 文件夹包含 `OniMoono.exe` 及其附带文件。把它复制到 `%LOCALAPPDATA%\oni-moono\player`，也就是 `setup.ps1` 使用的位置（在资源管理器的地址栏中粘贴 `%LOCALAPPDATA%` 即可打开）。你也可以选择其他文件夹，但使用这个位置时，日后再运行安装脚本会保持相同的启动选项。如果是更新，请先删除之前的 `player` 文件夹。
+
+2. **设置 Steam 启动选项。** 在 Steam 中右键点击《缺氧》→“属性”→“启动选项”。输入一行命令，把示例路径替换为你的 Moono 本体的完整路径：
+
+   ```text
+   "C:\Users\your-username\AppData\Local\oni-moono\player\OniMoono.exe" -- %command%
+   ```
+
+   把 `C:\Users\your-username` 替换为你实际的用户文件夹路径。不要在启动选项中使用 `%LOCALAPPDATA%`。保留可执行文件路径两侧的引号。
+
+在 Steam 中点击“开始游戏”。如果游戏没有启动，请检查启动选项中的路径是否与 Moono 本体的实际位置一致。
+
+如需更新，下载新版本的压缩包并重复以上步骤，替换 `player` 文件夹即可。
+
+若要卸载 Moono 并回到原版游戏，删除 `player` 文件夹，并在 Steam 中清除启动选项。
+
+</details>
 
 ## 性能表现
 
