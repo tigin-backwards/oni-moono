@@ -545,7 +545,7 @@ class ModTable(unittest.TestCase):
                                                     'same; known findings: `scroll-normalized-position` |'))
         self.assertTrue(rows['Failing Mod'].endswith('| ✅ | ✅ | ⬜ | spec fails in ours: tests/e2e/mods/9990003-x.yaml: '
                                                      'the button does nothing (a run of ours failed) |'))
-        self.assertTrue(rows['Pending Mod'].endswith('| ✅ | ✅ | ⬜ |  |'))      # as swept, no record yet
+        self.assertTrue(rows['Pending Mod'].endswith('| ✅ | ✅ | ⬜ | swept, not played |'))  # no record yet
         # The hand-written entries still work where no record is.
         self.assertIn('| ✅ | ✅ | ✅ | spec tests/e2e/mods/1717463209-bigger-camera-zoom-out.yaml', rows['Bigger Camera Zoom Out'])
         self.assertIn('| ❌ | ❌ | ⬜ | broken upstream', rows['Upstream Mod'])
@@ -560,7 +560,7 @@ class ModTable(unittest.TestCase):
                                                     'menu, in its sweep batch: the original disables it |'))
         self.assertTrue(rows['Failing Mod'].endswith('| ✅ | ⬜ | ⬜ | its colony fails in ours, in its sweep batch: '
                                                      'NullReferenceException @ Foo.Bar |'))
-        self.assertTrue(rows['Pending Mod'].endswith('| ✅ | ✅ | ⬜ |  |'))
+        self.assertTrue(rows['Pending Mod'].endswith('| ✅ | ✅ | ⬜ | swept on U59, not played |'))
         self.assertIn('| ❌ | ❌ | ⬜ | broken upstream', rows['Upstream Mod'])   # the hand-written set still decides
 
     def test_a_record_replaces_a_hand_written_entry(self):
