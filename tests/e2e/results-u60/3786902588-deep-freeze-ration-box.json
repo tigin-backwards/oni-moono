@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3786902588-deep-freeze-ration-box.yaml",
+ "mods": [
+  "3786902588"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds the box in the dug-out corridor west of the printing pod. It shows in the Food menu; it holds 8000 kg, and selected its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "425807b3",
+ "mod_dlls": {
+  "3786902588": {
+   "DeepFreezeRationBox.dll": "150145d2b764df4c2ddd2516541ab960273d07260c74866db8cbea2a2aca8b3b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-054821-21d56bdb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:01:49",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-074738-eb1a9e56",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:47:38",
+    "lane": 44,
+    "reference_run": "20261101-054821-21d56bdb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-074738-eb1a9e56",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:47:39",
+    "lane": 45,
+    "reference_run": "20261101-054821-21d56bdb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
