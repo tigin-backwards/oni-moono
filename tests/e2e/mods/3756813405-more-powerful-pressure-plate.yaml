@@ -1,0 +1,15 @@
+# A_more_powerful_pressure_plate (3756813405), class P.
+#
+# What it does: a postfix on FloorSwitchConfig's building widens the Weight Plate's
+# (FloorSwitch) range from 0-2000 kg to 0-20000 kg.
+# How a player reaches it: a built Weight Plate's threshold side screen.
+# What changes: weight plates for heavy loads.
+#
+# The Weight Plate's building reads a 20000 kg range; the colony runs.
+from: early-base
+mods: [3756813405]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"FloorSwitch\").BuildingComplete.GetComponent<LogicMassSensor>.rangeMax": 20000
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
