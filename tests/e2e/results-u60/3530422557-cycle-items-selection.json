@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3530422557-cycle-items-selection.yaml",
+ "mods": [
+  "3530422557"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds two Storage Bins in the dug-out corridor west of the printing pod. The western one is selected; ] selects the eastern one, and [ the western one again",
+ "updated": "2026-11-01",
+ "commit": "798778f4",
+ "mod_dlls": {
+  "3530422557": {
+   "CycleItemsSelection.dll": "df6f60e459d487f1c7d23dfa59b95466e927c62f4bbd81379725b86aa7e0ffa0"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-010456-4ec6cb36",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:22:35",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-015634-105b8961",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:56:34",
+    "lane": 42,
+    "reference_run": "20261101-010456-4ec6cb36",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-015634-105b8961",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:56:35",
+    "lane": 45,
+    "reference_run": "20261101-010456-4ec6cb36",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
