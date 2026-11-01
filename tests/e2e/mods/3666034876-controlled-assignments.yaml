@@ -1,0 +1,28 @@
+# Controlled Assignments (3666034876), class S (side screens on vanilla buildings).
+#
+# What it does: showers, sinks (HandSanitizer) and lubrication stations become ownable, like
+# beds and toilets: a postfix on BuildingConfigManager.RegisterBuilding adds an Ownable (slots
+# Shower, Sink, LubricationStation; public allowed), and lubrication stations take only bionic
+# Duplicants (a postfix on Assignable.CanAssignTo).
+# How a player reaches it: selecting a shower or sink; its assignment side screen.
+# What changes: washing stations can be reserved.
+#
+# The Shower's and Wash Basin's prefabs are ownable in their slots; setup places a Wash Basin in
+# the corridor west of the printing pod (118,207), whose assignment list shows the colony's
+# Duplicants.
+from: early-base
+mods: [3666034876]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"WashBasin\")", method: Build, args: [131770, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {WashBasin: 1}}
+  - expect_state:
+      "Assets.GetPrefab(\"Shower\").GetComponent<Ownable>.slotID": Shower
+      "Assets.GetPrefab(\"WashBasin\").GetComponent<Ownable>.slotID": Sink
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: WashBasin}
+  - ui_wait: {path: "**/AssignableSideScreen/ValidContent/Contents/ContentScrollRect/RowContainer/Rows", cond: stable}
+  - expect_state:
+      "count:all:AssignableSideScreenRow::[*] if .gameObject.activeInHierarchy == true": ">= 3"
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
