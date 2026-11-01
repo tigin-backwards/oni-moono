@@ -135,6 +135,11 @@ namespace OniMoono.Desktop.Gl
                 }
             }
             caps.Rgtc |= true; // core since OpenGL 3.0
+            // Core since OpenGL 4.2 (its spec, appendix L.1), where a driver need not list the
+            // extension. (S3TC is never core: only its extension says.)
+            const uint MajorVersion = 0x821B, MinorVersion = 0x821C;
+            int major = GlApi.GetInteger(MajorVersion), minor = GlApi.GetInteger(MinorVersion);
+            if (major > 4 || (major == 4 && minor >= 2)) caps.Bptc = true;
             GlTextures.Caps = caps;
             caps.MemoryMB = QueryVideoMemoryMB();
             GlBindless.Initialize(caps.Vendor);
@@ -208,12 +213,14 @@ namespace OniMoono.Desktop.Gl
                 if (kb > 0) return kb / 1024;
             }
             if (AmdGpuRamMB() is > 0 and var amd) return amd;
-            const int GlxRendererVideoMemoryMesa = 0x8187;
-            var query = (delegate* unmanaged[Cdecl]<int, uint*, int>)Glfw.GetProcAddress("glXQueryCurrentRendererIntegerMESA"u8);
-            if (query != null)
+            // An address from glXGetProcAddress does not mean the function is supported; the
+            // extension string says whether it is (GLX 1.4, section 3.3.12).
+            if (Glfw.ExtensionSupported("GLX_MESA_query_renderer"))
             {
+                const int GlxRendererVideoMemoryMesa = 0x8187;
+                var query = (delegate* unmanaged[Cdecl]<int, uint*, int>)Glfw.GetProcAddress("glXQueryCurrentRendererIntegerMESA"u8);
                 uint mb = 0;
-                if (query(GlxRendererVideoMemoryMesa, &mb) != 0 && mb > 0) return (int)mb;
+                if (query != null && query(GlxRendererVideoMemoryMesa, &mb) != 0 && mb > 0) return (int)mb;
             }
             if (GlPrograms.Extensions.Contains("GL_ATI_meminfo"))
             {
