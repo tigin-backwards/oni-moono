@@ -1,0 +1,27 @@
+# Reservoir Capacity Slider (3784311959), class S (a side screen on a vanilla building).
+#
+# What it does: the Liquid Reservoir gets LiquidReservoirCapacity (IUserControlledCapacity: the
+# game's capacity slider side screen, 0-100 t): its storage and pipe intake stop at the set
+# amount, and lowering it pushes the excess out of its output pipe.
+# How a player reaches it: selecting a Liquid Reservoir; its capacity slider.
+# What changes: reservoirs that fill only so far.
+#
+# setup places a Liquid Reservoir on the floor of the dug-out room west of the printing pod
+# (110-111, 206-208); selected, it has the capacity slider, and 500 typed into it sets its
+# storage and intake to 500 kg.
+from: early-base
+mods: [3784311959]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LiquidReservoir\")", method: Build, args: [131126, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {LiquidReservoir: 1}}
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 207], select: LiquidReservoir}
+  - ui_wait: {path: "**/DetailsScreen/SideScreen/**/CapacityControlSideScreen", cond: stable}
+  - ui_dump: {name: slider, root: "**/CapacityControlSideScreen"}
+  - type: {ui: "**/CapacityControlSideScreen/**/InputField", text: "500", enter: true, clear: true}
+  - expect_state:
+      "selected:GetComponent<ReservoirCapacity.LiquidReservoirCapacity>.UserMaxCapacity": 500
+      "selected:GetComponent<Storage>.capacityKg": 500
+      "selected:GetComponent<ConduitConsumer>.capacityKG": 500

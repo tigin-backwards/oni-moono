@@ -7,7 +7,7 @@
 # What changes: rates read in both units.
 #
 # The game's formatter, asked for 1 kg per second, answers with both rates; the outhouse's
-# details screen is dumped as in the original.
+# details screen is shot as in the original.
 from: early-base
 mods: [3813560391]
 require_log: ['\[Dual Rates\] Mod loaded successfully']
