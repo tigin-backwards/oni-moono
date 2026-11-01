@@ -1,0 +1,18 @@
+# workers,hurry up!小子们，干活抓点紧！ (3785024911), class P.
+#
+# What it does: prefixes on Workable make all work fast: the efficiency multiplier is 16, the
+# skill experience multiplier 128 and the attribute experience multiplier 16 (digging,
+# building, deconstructing, operating and the rest).
+# How a player reaches it: any errand.
+# What changes: work done in a moment.
+#
+# A dig order on six floor cells of the corridor west of the printing pod is done within
+# 25 s of play, which takes Duplicants far longer in the game, and the colony plays on.
+from: early-base
+mods: [3785024911]
+steps:
+  - dig: [111, 204, 113, 205]
+  - run: {seconds: 25, until: {pending_digs: 0}}
+  - expect: {pending_digs: 0}
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}
