@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3399465500-r-doll.yaml",
+ "mods": [
+  "3399465500"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a doll in the dug-out corridor west of the printing pod. The dolls show in the Furniture menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "7d16e40f",
+ "mod_dlls": {
+  "3399465500": {
+   "PLib.dll": "b862c5db2b3cd6df09a62d4a30782e91e2b24e8e1bfac08d991c9cc89a984ba9",
+   "R_═µ┼╝.dll": "f8ec35ca57ed5d222e9e1d891bc6127a0dd83ffe993669de42f928450d31a104"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-060041-4bcefaa6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:00:42",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-063724-05434994",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:37:24",
+    "lane": 45,
+    "reference_run": "20261101-060041-4bcefaa6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-063724-05434994",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:46:16",
+    "lane": 45,
+    "reference_run": "20261101-060041-4bcefaa6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
