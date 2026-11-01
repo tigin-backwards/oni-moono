@@ -96,9 +96,12 @@ namespace OniMoono.Host
             var signature = reference.DecodeMethodSignature(provider, context);
             if (signature.Header.CallingConvention == SignatureCallingConvention.VarArgs) return null;
             if (signature.ReturnType.Type == null || signature.ParameterTypes.Any(p => p.Type == null)) return null;
+            // A generic instantiation over a class tagged `valuetype` is another type on Mono than
+            // any the member's signature names (D57).
+            bool distinct = signature.ReturnType.Distinct || signature.ParameterTypes.Any(p => p.Distinct);
             bool Matches(MethodBase method)
             {
-                if (method.Name != name || method.IsStatic == signature.Header.IsInstance) return false;
+                if (distinct || method.Name != name || method.IsStatic == signature.Header.IsInstance) return false;
                 var arity = method.IsGenericMethodDefinition ? method.GetGenericArguments().Length : 0;
                 if (arity != signature.GenericParameterCount) return false;
                 var parameters = method.GetParameters();
@@ -131,7 +134,7 @@ namespace OniMoono.Host
             // Mono looks by name and type in the class and its bases (class.c,
             // mono_class_get_field_from_name_full).
             foreach (var level in Bases(type))
-                if (Declared(level, name).Any(m => m is FieldInfo f && Same(fieldType.Type, f.FieldType))) return null;
+                if (!fieldType.Distinct && Declared(level, name).Any(m => m is FieldInfo f && Same(fieldType.Type, f.FieldType))) return null;
             return $"Field not found: {fieldType.Desc} {klass}.{name} Due to: Could not find field in class";
         }
 
@@ -169,8 +172,11 @@ namespace OniMoono.Host
         }
 
         /// A decoded type: the runtime's (null where it cannot be resolved here) and Mono's text
-        /// for it (debug-helpers.c, mono_type_get_desc with namespaces).
-        internal readonly record struct Sig(Type? Type, string Desc);
+        /// for it (debug-helpers.c, mono_type_get_desc with namespaces); whether the signature
+        /// tags it `valuetype` while it is a class of an assembly the same in both players, and
+        /// whether it is built from a generic instantiation over such a type, which Mono keeps
+        /// apart from the instantiation over the class (D57).
+        internal readonly record struct Sig(Type? Type, string Desc, bool Tagged = false, bool Distinct = false);
 
         internal sealed class Context(Type[] typeArguments)
         {
@@ -279,8 +285,9 @@ namespace OniMoono.Host
             public Sig GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
             {
                 var type = Resolve(handle);
+                bool tagged = rawTypeKind == (byte)SignatureTypeKind.ValueType && type is { IsValueType: false } && SameInBothPlayers(type);
                 // A class library type written as a reference is the primitive Mono reads it as.
-                return new Sig(type, type != null && Primitive(type) is { Length: > 0 } primitive ? primitive : Name(handle));
+                return new Sig(type, type != null && Primitive(type) is { Length: > 0 } primitive ? primitive : Name(handle), tagged);
             }
 
             /// The mod's own type: not loaded yet.
@@ -289,29 +296,30 @@ namespace OniMoono.Host
             public Sig GetTypeFromSpecification(MetadataReader reader, Context genericContext, TypeSpecificationHandle handle, byte rawTypeKind) =>
                 reader.GetTypeSpecification(handle).DecodeSignature(this, genericContext);
 
-            public Sig GetSZArrayType(Sig elementType) => new(elementType.Type?.MakeArrayType(), elementType.Desc + "[]");
+            public Sig GetSZArrayType(Sig elementType) => new(elementType.Type?.MakeArrayType(), elementType.Desc + "[]", Distinct: elementType.Distinct);
 
             public Sig GetArrayType(Sig elementType, ArrayShape shape) =>
-                new(elementType.Type?.MakeArrayType(shape.Rank), elementType.Desc + "[" + new string(',', Math.Max(shape.Rank - 1, 0)) + "]");
+                new(elementType.Type?.MakeArrayType(shape.Rank), elementType.Desc + "[" + new string(',', Math.Max(shape.Rank - 1, 0)) + "]", Distinct: elementType.Distinct);
 
-            public Sig GetByReferenceType(Sig elementType) => new(elementType.Type?.MakeByRefType(), elementType.Desc + "&");
+            public Sig GetByReferenceType(Sig elementType) => new(elementType.Type?.MakeByRefType(), elementType.Desc + "&", Distinct: elementType.Distinct);
 
-            public Sig GetPointerType(Sig elementType) => new(elementType.Type?.MakePointerType(), elementType.Desc + "*");
+            public Sig GetPointerType(Sig elementType) => new(elementType.Type?.MakePointerType(), elementType.Desc + "*", Distinct: elementType.Distinct);
 
             public Sig GetPinnedType(Sig elementType) => elementType;
 
             public Sig GetModifiedType(Sig modifier, Sig unmodifiedType, bool isRequired) =>
-                new(unmodifiedType.Type, unmodifiedType.Desc + (isRequired ? " modreq(" : " modopt(") + modifier.Desc + ")");
+                unmodifiedType with { Desc = unmodifiedType.Desc + (isRequired ? " modreq(" : " modopt(") + modifier.Desc + ")" };
 
             public Sig GetFunctionPointerType(MethodSignature<Sig> signature) => new(null, "*()");
 
             public Sig GetGenericInstantiation(Sig genericType, ImmutableArray<Sig> typeArguments)
             {
                 var desc = genericType.Desc + "<" + string.Join(", ", typeArguments.Select(a => a.Desc)) + ">";
+                bool distinct = typeArguments.Any(a => a.Tagged || a.Distinct);
                 if (genericType.Type is not { IsGenericTypeDefinition: true } definition || typeArguments.Any(a => a.Type == null)
                     || definition.GetGenericArguments().Length != typeArguments.Length)
-                    return new(null, desc);
-                return new(Type.MakeGenericSignatureType(definition, typeArguments.Select(a => a.Type!).ToArray()), desc);
+                    return new(null, desc, Distinct: distinct);
+                return new(Type.MakeGenericSignatureType(definition, typeArguments.Select(a => a.Type!).ToArray()), desc, Distinct: distinct);
             }
 
             public Sig GetGenericTypeParameter(Context genericContext, int index) =>
