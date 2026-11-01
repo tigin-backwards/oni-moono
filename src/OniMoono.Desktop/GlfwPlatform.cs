@@ -393,9 +393,15 @@ namespace OniMoono.Desktop
         ];
 
         /// Unity supports exclusive fullscreen only in its Windows player; elsewhere a request for
-        /// it gives a fullscreen window (as the Linux player reports: FullScreenWindow).
-        static FullScreenMode Supported(FullScreenMode mode)
-            => mode == FullScreenMode.ExclusiveFullScreen && !OperatingSystem.IsWindows() ? FullScreenMode.FullScreenWindow : mode;
+        /// it gives a fullscreen window (as the Linux player reports: FullScreenWindow). Maximized
+        /// windows are Windows' and macOS's only, and "on other platforms, this mode falls back
+        /// to FullScreenWindow" (Unity's FullScreenMode.MaximizedWindow reference, 6000.3).
+        static FullScreenMode Supported(FullScreenMode mode) => mode switch
+        {
+            FullScreenMode.ExclusiveFullScreen when !OperatingSystem.IsWindows() => FullScreenMode.FullScreenWindow,
+            FullScreenMode.MaximizedWindow when !OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS() => FullScreenMode.FullScreenWindow,
+            _ => mode,
+        };
 
         /// Windows keeps a window within the monitor's size with its frame: a windowed request as
         /// tall as the monitor (the game's windowed mode at the native resolution) came out shorter
