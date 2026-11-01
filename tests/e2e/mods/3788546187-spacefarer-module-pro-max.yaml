@@ -1,0 +1,19 @@
+# SpacefaerModuleProMax (3788546187), class B (Spaced Out).
+#
+# What it does: adds a Spacefarer Module Pro Max (GgHabitatModuleProMax, 5x4, raw metal, a
+# habitat rocket module drawn as the medium habitat), listed among the rocket modules a
+# rocket's module side screen offers (SelectModuleSideScreen.moduleButtonSortOrder) and in the
+# build menu.
+# How a player reaches it: a rocket's add-module side screen.
+# What changes: a bigger crew module.
+#
+# The module's definition loads and is in the module side screen's order; the colony runs.
+from: early-base
+mods: [3788546187]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"GgHabitatModuleProMax\").WidthInCells": 5
+      "Assets.GetBuildingDef(\"GgHabitatModuleProMax\").HeightInCells": 4
+      "SelectModuleSideScreen.moduleButtonSortOrder": {contains: GgHabitatModuleProMax}
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}
