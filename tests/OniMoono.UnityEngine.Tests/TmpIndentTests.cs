@@ -322,11 +322,7 @@ namespace OniMoono.Tests
         [Fact]
         public void PreferredSizesMatchTheShippedPackage()
         {
-            // One case still differs by 0.01, from a pen a float step off at a scale that is not
-            // a power of two (not the indent): the shipped package's last pen is 110.499992,
-            // a float step under 110.5, this implementation's on or over it (110.51).
             var wrong = Preferred
-                .Where(c => !(c.Font == "NotoSans-Regular" && c.Size == 16f && c.Text == 12 && !c.Wrap))
                 .Select(c => (c, t: Label(c.Font, c.Size, Texts[c.Text], c.Wrap ? 60f : 400f, c.Wrap)))
                 .Where(x => x.t.preferredWidth != x.c.Width || x.t.preferredHeight != x.c.Height)
                 .Select(x => $"{x.c.Font} {x.c.Size} t{x.c.Text}{(x.c.Wrap ? " w60" : "")}: {x.t.preferredWidth.ToString("R", CultureInfo.InvariantCulture)}x{x.t.preferredHeight.ToString("R", CultureInfo.InvariantCulture)}, shipped {x.c.Width.ToString("R", CultureInfo.InvariantCulture)}x{x.c.Height.ToString("R", CultureInfo.InvariantCulture)}")
@@ -434,11 +430,8 @@ namespace OniMoono.Tests
                     var info = t.textInfo;
                     var ours = Enumerable.Range(0, info.characterCount).Select(i => info.characterInfo[i].origin).ToArray();
                     var shipped = c.Origins.Split(' ').Select(v => float.Parse(v, CultureInfo.InvariantCulture)).ToArray();
-                    // NotoSans at 12 pt (scale 0.5) to the bit; at other scales the pens may be a
-                    // float step apart, as without indents ("Preferred sizes to the hundredth",
-                    // "Also seen").
-                    float tolerance = c.Font == "NotoSans-Regular" && c.Size == 12f ? 0f : 1e-4f;
-                    return (c, ours, same: ours.Length == shipped.Length && ours.Zip(shipped).All(z => System.Math.Abs(z.First - z.Second) <= tolerance));
+                    // To the bit at every scale ("Pens to the bit").
+                    return (c, ours, same: ours.Length == shipped.Length && ours.Zip(shipped).All(z => z.First == z.Second));
                 })
                 .Where(x => !x.same)
                 .Select(x => $"{x.c.Font} {x.c.Size} t{x.c.Text}: {string.Join(" ", x.ours.Select(v => v.ToString("G9", CultureInfo.InvariantCulture)))}\n  shipped {x.c.Origins}")

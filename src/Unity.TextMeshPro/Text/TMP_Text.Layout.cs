@@ -76,6 +76,9 @@ namespace TMPro
             // must fit in the rect (the hyphen is drawn after the line was found to fit).
             public float FitDescender;
             public float Length;         // pen advance to the end of the last visible character
+            // Where that character's glyph advance ends, from the line's left edge (its indent
+            // included): the pen plus the advance, rounded to float once.
+            public float End;
             // The last tab's start and end, from the line's start (-1: no tab).
             public float TabStart, TabEnd;
             public float Width;          // the width available to the line
@@ -630,6 +633,7 @@ namespace TMPro
             line.Height = height;
             line.MaxAscent = maxAscent;
             line.Length = line.LastVisible >= 0 ? (float)(pl[line.LastVisible].X + pl[line.LastVisible].GlyphAdvance - line.StartX) : 0f;
+            line.End = line.LastVisible >= 0 ? (float)(pl[line.LastVisible].X + pl[line.LastVisible].GlyphAdvance) : 0f;
         }
 
         float PointSizeOf(TextState state, float baseSize) => state.SizeScale * baseSize + state.SizeOffset;
