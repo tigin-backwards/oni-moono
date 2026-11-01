@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3820021771-upgrade-planner.yaml",
+ "mods": [
+  "3820021771"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "4960ad1c",
+ "mod_dlls": {
+  "3820021771": {
+   "UpgradePlanner.dll": "a2314f529f7e09e96a0a77b37c79755692aed30ce76b181c64130e2391cd4036"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043432-f3c99dcd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:39:48",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-085843-492f67af",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:58:43",
+    "lane": 36,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-085843-492f67af",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:02:38",
+    "lane": 36,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
