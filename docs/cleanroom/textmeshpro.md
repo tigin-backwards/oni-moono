@@ -696,7 +696,9 @@ three pivots, under a `HorizontalLayoutGroup` beside a 24-wide icon, and copied 
 `LayoutElement`. `tools/UnityProbe/tw-check.py` compares two logs and checks the rule below.
 - **The rule.** Let x be the widest line's width, as a float: the pen at the end of its last
   visible character (that character's origin plus its glyph's advance, without the
-  character or style spacing after it), measured from where the line's pen starts.
+  character or style spacing after it, rounded to float once), measured from the line's left
+  edge (where an indented line's pen starts is not the origin; see "Indents opened part-way
+  along a line").
   `preferredWidth` is (⌊x × 100⌋ + 1) / 100, with x × 100 taken exactly (in double, not
   rounded to a float first), stored as the nearest float. So a width already on a
   hundredth goes up by 0.01 (67.25 gives 67.26, 139 gives 139.01), and any other goes to
@@ -3020,7 +3022,11 @@ line's metrics and the links. `TmpIndentTests` encodes the values. In the shippe
   hundredth": the widest line's pen at the end of its last visible character, measured from
   the left edge, so the jump to the inner indent counts in full. The details screen's line is
   144.25 (its last character, "s" of "g/s", ends at 144.242508); without the link and bold,
-  139.57.
+  139.57. That end is the pen plus the glyph's advance rounded to float once from the left
+  edge, not from the line's indent: `<indent=1em>•<indent=3em>Polluted Dirt` in NotoSans 16 pt
+  ends at 142.499995, the float 142.5, and is 142.51 wide; measured from the line's indent (16)
+  the end is the float 126.49999, which gives 142.5. `<indent=2em>ABCD<indent=1em>Polluted
+  Dirt` ends at the float 110.49999 and is 110.5 wide.
 - **Links and styles** take no part: `<link>` around the text after the inner indent leaves the
   pens as they are, and the link's first character is the "P".
 - **`lineInfo.length` counts from the line's left edge**, its indent included: "•Polluted Dirt"
@@ -3038,10 +3044,8 @@ Not measured: `<line-indent>` together with an indent opened part-way along a li
 the start of an indented line, percent indents with margins, and em indents inside `<size>`.
 
 **This implementation** now follows these rules. Against the shipped package all 248 preferred
-sizes match but one (NotoSans-Regular 16 pt `<indent=2em>ABCD<indent=1em>Polluted Dirt`, 110.51
-for 110.5), and NotoSans-Regular 12 pt's pens match to the bit. At scales that are not a power of
-two some pens are a float step off, as they are without indents (see "Also seen" under
-"Preferred sizes to the hundredth"); that case is one of them.
+sizes match, and every pen of the 84 texts to the bit, with the pens summed as "Pens to the
+bit" says.
 
 ## Verification
 

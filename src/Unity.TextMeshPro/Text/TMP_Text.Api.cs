@@ -152,11 +152,14 @@ namespace TMPro
             {
                 ref var line = ref s_Lines[k];
                 if (line.LastVisible < 0 && line.TabStart < 0f) continue;
-                // Length is the float pen from the line's start; indents and the line's margin
-                // are added to it. A tab counts at its start (measured on the shipped package:
-                // "\t" is 0.01 wide, "\t\t" one tab stop and 0.01).
-                double length = Math.Max(line.LastVisible >= 0 ? line.Length : 0f, line.TabStart);
-                max = Math.Max(max, length + line.MarginLeft + line.StartX);
+                // The float pen at the end, from the line's left edge, its indent included; the
+                // line's margin is added to it. A tab counts at its start (measured on the shipped
+                // package: "\t" is 0.01 wide, "\t\t" one tab stop and 0.01). The end is the pen
+                // plus the advance rounded once from the left edge, not from the line's indent
+                // (measured: "<indent=1em>\u2022<indent=3em>Polluted Dirt" in NotoSans 16 pt ends
+                // at 142.499995, the float 142.5, and is 142.51 wide).
+                double length = Math.Max(line.LastVisible >= 0 ? line.End : 0f, (double)line.TabStart + line.StartX);
+                max = Math.Max(max, length + line.MarginLeft);
             }
             return NextHundredth(max + m_margin.x + m_margin.z);
         }
