@@ -228,6 +228,11 @@ namespace SemanticsProbe
                 go.AddComponent<EmptyText>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "u60")
+            {
+                go.AddComponent<U60Bcl>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "wordcount")
             {
                 go.AddComponent<WordCount>();

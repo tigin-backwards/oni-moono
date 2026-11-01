@@ -1,0 +1,6 @@
+# u60-bcl-probe.yaml in the game's own Russian (ru_klei): the building names whose tokens
+# the probe sorts, and FuzzySharp's TokenizedString, are the translated ones. Same set-up.
+from: main-menu
+language: ru_klei
+steps:
+  - ui_wait: {path: "**/U60ProbeCanvas/U60ProbeDone", cond: exists, frames: 20000}
