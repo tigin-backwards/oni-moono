@@ -1751,7 +1751,8 @@ field focused. Otherwise its input context is taken away, so an IME such as Micr
 leaves the game's hotkeys alone (issue #30). Measured in the original with the Chinese layout on
 its window and UnityPlayer.dll's imm32 calls logged: `ImmAssociateContext(hwnd, NULL)` outside
 text fields, `ImmAssociateContextEx(hwnd, NULL, IACE_DEFAULT)` in one, applied at the window's
-next focus, layout or key message; ours applies the mode at the next frame's event poll.
+next focus, layout or key message; ours applies the mode at the start of the next frame's
+event poll, before the messages since are read.
 Committed IME text arrives as typed characters; ours reports no composition string (the
 original's TMP fields show the composition inline, ours leave it to the IME's own window), and
 X11 input methods are untouched (none was available to measure).
