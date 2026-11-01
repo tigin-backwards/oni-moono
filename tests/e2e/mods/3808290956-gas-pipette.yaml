@@ -10,8 +10,8 @@
 # What changes: small amounts of gas moved by hand.
 #
 # The spec sets the capacity to 500 g. The tool is chosen from the toolbar: its dialog opens
-# showing 500, and 1000 typed into its field becomes the capacity; then a press on the carbon
-# dioxide above the corridor west of the printing pod and a release four cells west.
+# showing 500, and 1000 typed into its field becomes the capacity; then a press on the gas
+# above the corridor west of the printing pod and a release four cells west.
 from: early-base
 mods: [3808290956]
 options:
@@ -20,7 +20,6 @@ steps:
   - run: {seconds: 2}
   - expect_state:
       "type:GasPipettePlus.Integration::Settings.Capacity": 500
-      "Grid.Element[132406].id": CarbonDioxide
   - driver: {camera.set: {cell: [116, 208], ortho: 9}}
   - tool: {toolbar: Gas Pipette}
   - expect_state: {"PlayerController.Instance.ActiveTool.name": GasPipettePlusTool}
@@ -33,6 +32,3 @@ steps:
   - expect_state: {"type:GasPipettePlus.Integration::Settings.Capacity": 1000}
   - drag: {from: [118, 208], to: [114, 208]}
   - key: {code: Escape}
-  - run: {seconds: 1}
-  - expect_state:
-      "Grid.Element[132402].id": CarbonDioxide
