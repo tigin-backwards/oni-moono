@@ -119,8 +119,8 @@ msgid "For laptops with two GPUs: which one the game draws with. Needs a restart
 msgstr "适用于双显卡笔记本——选择游戏用哪块 GPU 渲染。需要重启。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GPU.DETAIL"
-msgid "Default: as the original game (on Windows the faster, discrete GPU; on Linux the system's choice). Discrete: the faster GPU. Integrated: the power-saving one. Windows' Graphics settings page wins over this. On Linux, on a desktop whose display is on the discrete card, discrete may pick the integrated GPU."
-msgstr "默认：与原版游戏相同（Windows 上选较快的独立显卡；Linux 上由系统决定）。独立：较快的 GPU。集成：省电的那块。Windows 的“图形设置”页面优先级高于此项。在 Linux 上，如果桌面显示输出接在独立显卡上，选“独立”可能会选中集成显卡。"
+msgid "Default: as the original game (on Windows the faster, discrete GPU; on Linux the system's choice). Discrete: the faster GPU. Integrated: the power-saving one, on Linux; on Windows, choose it in Windows' Graphics settings, which win over this. On Linux, on a desktop whose display is on the discrete card, discrete may pick the integrated GPU."
+msgstr "默认：与原版游戏相同（Windows 上选较快的独立显卡；Linux 上由系统决定）。独立：较快的 GPU。集成：省电的那块，仅限 Linux；在 Windows 上请在 Windows 的“图形设置”中选择，它的优先级高于此项。在 Linux 上，如果桌面显示输出接在独立显卡上，选“独立”可能会选中集成显卡。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.GPU.DEFAULT"
 msgid "default"
