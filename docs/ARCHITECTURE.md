@@ -1969,8 +1969,8 @@ merging is an optimisation we may add only where it cannot change the result).
 surface (made again for OpenGL when Vulkan cannot start on it), vsync,
 resize, fullscreen/windowed modes (`Screen.*`), monitors/resolutions, DPI, keyboard
 (GLFW key → Unity `KeyCode`; character keys through the active layout, as the game's Input
-Manager has "Use Physical Keys" off: `KeyboardLayout`, measured on AZERTY), text input (UTF-32 via our own char-callback handling where
-BRUTAL's 16-bit truncation would corrupt input), mouse buttons/position (bottom-left origin)
+Manager has "Use Physical Keys" off: `KeyboardLayout`, measured on AZERTY), text input (whole code points through our own GLFW character
+callback, as BRUTAL's cuts them to 16 bits), mouse buttons/position (bottom-left origin)
 and scroll, hardware cursors from `Texture2D`, clipboard, focus events. Legacy Input Manager
 axes/buttons come from `globalgamemanagers` `InputManager` settings, with Unity's gravity /
 sensitivity / dead-zone smoothing.

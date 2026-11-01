@@ -98,6 +98,19 @@ namespace OniMoono.Tests
             Assert.Equal(0f, input.GetAxis("Mouse ScrollWheel"));
         }
 
+        // Typed characters keep their whole code point: one above U+FFFF is two UTF-16 units, and
+        // a value that is no character's types nothing.
+        [Fact]
+        public void TypedCodePointsBecomeTheirUtf16Units()
+        {
+            Assert.Equal("a", InputStateFeed.TextOf('a'));
+            Assert.Equal("\U0001F914", InputStateFeed.TextOf(0x1F914));
+            Assert.Equal("\U0001D800", InputStateFeed.TextOf(0x1D800));
+            Assert.Equal("", InputStateFeed.TextOf(0xD83E));
+            Assert.Equal("", InputStateFeed.TextOf(0xDD14));
+            Assert.Equal("", InputStateFeed.TextOf(0x110000));
+        }
+
         // IMGUI's ScrollWheel event: down for wheel-down, one per notch on Linux and three on
         // Windows, as the original players report it (Linux: tests/e2e/scroll-zoom.yaml; Windows:
         // real WHEEL_DELTA notches in the U59 player, delta 3 and 60 px a notch in a scroll view).
