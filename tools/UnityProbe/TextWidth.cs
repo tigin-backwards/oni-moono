@@ -35,7 +35,7 @@ namespace SemanticsProbe
         {
             "Ethanol Gas", "Super Coolant Gas", "Nuclear Fallout", "Mercury Gas", "Oxygen", "Hydrogen",
             "Polluted Oxygen", "Carbon Dioxide", "Chlorine", "Natural Gas", "Steam", "Search", "Room",
-            "A", "i", "W", " ", "  ", "",
+            "A", "i", "W", " ", "  ", "", "Light Collector",
         };
 
         void Update()

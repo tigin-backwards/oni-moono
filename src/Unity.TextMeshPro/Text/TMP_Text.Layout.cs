@@ -15,8 +15,10 @@ namespace TMPro
         {
             public int Element;
             public float X;              // pen position on its line (before alignment)
-            public float Advance;        // pen advance: the glyph's and the spacing after it
-            public float GlyphAdvance;   // the glyph's own advance (what xAdvance and line lengths use)
+            // The advances stay in double until a pen position takes them, as the shipped package
+            // evaluates them on Unity's Mono (ARCHITECTURE D25; PROBE_SCENARIO=textwidth).
+            public double Advance;       // pen advance: the glyph's and the spacing after it
+            public double GlyphAdvance;  // the glyph's own advance (what xAdvance and line lengths use)
             public float PreSpace;       // <space> before the character
             public float SetPen;         // <pos> or <indent> before the character (NaN: none)
             public bool IndentPen;       // SetPen is an indent's (a line starting there has it already)
@@ -319,12 +321,12 @@ namespace TMPro
                     var second = pair.secondAdjustmentRecord.glyphValueRecord;
                     ref var pa = ref pl[i];
                     ref var pb = ref pl[i + 1];
-                    pa.Advance += first.xAdvance * pa.Scale * pa.XScale;
-                    pa.GlyphAdvance += first.xAdvance * pa.Scale * pa.XScale;
+                    pa.Advance += (double)first.xAdvance * pa.Scale * pa.XScale;
+                    pa.GlyphAdvance += (double)first.xAdvance * pa.Scale * pa.XScale;
                     pa.MonoOffset += first.xPlacement * pa.Scale * pa.XScale;
                     pa.KernY += first.yPlacement * pa.Scale;
-                    pb.Advance += second.xAdvance * pb.Scale * pb.XScale;
-                    pb.GlyphAdvance += second.xAdvance * pb.Scale * pb.XScale;
+                    pb.Advance += (double)second.xAdvance * pb.Scale * pb.XScale;
+                    pb.GlyphAdvance += (double)second.xAdvance * pb.Scale * pb.XScale;
                     pb.MonoOffset += second.xPlacement * pb.Scale * pb.XScale;
                     pb.KernY += second.yPlacement * pb.Scale;
                 }
@@ -445,7 +447,7 @@ namespace TMPro
                     }
                     if (cutWide && horizontalCut < 0 && p.Visible && x + p.GlyphAdvance > lineWidth + 0.0001f) horizontalCut = i;
                     p.X = x;
-                    x += p.Advance;
+                    x = (float)(x + p.Advance);
                     if (p.BreakAfter) lastBreak = i;
                 }
                 line.Last = end;
@@ -612,7 +614,7 @@ namespace TMPro
                 if (p.TabStop > 0f)
                 {
                     line.TabStart = p.X - line.StartX;
-                    line.TabEnd = p.X + p.Advance - line.StartX;
+                    line.TabEnd = (float)(p.X + p.Advance - line.StartX);
                 }
                 if (p.Visible)
                 {
@@ -627,7 +629,7 @@ namespace TMPro
             line.FitDescender = fitDesc;
             line.Height = height;
             line.MaxAscent = maxAscent;
-            line.Length = line.LastVisible >= 0 ? pl[line.LastVisible].X + pl[line.LastVisible].GlyphAdvance - line.StartX : 0f;
+            line.Length = line.LastVisible >= 0 ? (float)(pl[line.LastVisible].X + pl[line.LastVisible].GlyphAdvance - line.StartX) : 0f;
         }
 
         float PointSizeOf(TextState state, float baseSize) => state.SizeScale * baseSize + state.SizeOffset;
@@ -720,7 +722,7 @@ namespace TMPro
             float em = baseSize * 0.01f;
             if (p.LineBreak || c == 3) return;
 
-            float advance, spacing = 0f;
+            double advance, spacing = 0.0;
             if (el.Kind == ElementKind.Sprite)
             {
                 var sprite = (TMP_SpriteCharacter)el.Element;
@@ -739,7 +741,7 @@ namespace TMPro
                 p.Right = (gm.horizontalBearingX + gm.width) * s * p.XScale;
                 p.Top = gm.horizontalBearingY * s + shift;
                 p.Bottom = (gm.horizontalBearingY - gm.height) * s + shift;
-                advance = gm.horizontalAdvance * s * p.XScale;
+                advance = (double)gm.horizontalAdvance * s * p.XScale;
                 p.Visible = true;
             }
             else
@@ -754,7 +756,7 @@ namespace TMPro
                 p.Right = (gm.horizontalBearingX + gm.width) * s * p.XScale;
                 p.Top = gm.horizontalBearingY * s + shift;
                 p.Bottom = (gm.horizontalBearingY - gm.height) * s + shift;
-                advance = gm.horizontalAdvance * s * p.XScale;
+                advance = (double)gm.horizontalAdvance * s * p.XScale;
                 // Every character that is not white space draws its glyph's quad; the zero-width
                 // space only where white space is preserved (measured on the shipped package).
                 p.Visible = !p.Whitespace && glyph != null && (c != 0x200B || m_TextWrappingMode == TextWrappingModes.PreserveWhitespace || m_TextWrappingMode == TextWrappingModes.PreserveWhitespaceNoWrap);
@@ -765,23 +767,23 @@ namespace TMPro
                 bool boldTypefaceEllipsis = metricsFont != null && el.AlternateTypeface
                     && ((state.Style & FontStyles.Bold) != 0 || state.Weight >= FontWeight.Bold);
                 float styleSpacing = p.Bold ? font.boldSpacing : boldTypefaceEllipsis ? metricsFont.boldSpacing : font.normalSpacingOffset;
-                spacing = (m_characterSpacing + styleSpacing) * em;
-                if (c == 32 || c == 0xA0) spacing += m_wordSpacing * em;
+                spacing = ((double)m_characterSpacing + styleSpacing) * em;
+                if (c == 32 || c == 0xA0) spacing += (double)m_wordSpacing * em;
                 if (c == 9 && el.Kind == ElementKind.Character)
                 {
                     // T = tabSize x the face's tabWidth, at the size (measured on the shipped
                     // package: 364.58333 for NotoSans 14 pt, 300 for GRAYSTROKE 12 pt).
                     var tabFace = font.faceInfo;
                     advance = font.tabSize * tabFace.tabWidth * (size / tabFace.pointSize * tabFace.scale);
-                    p.TabStop = advance;
-                    spacing = 0f;
+                    p.TabStop = (float)advance;
+                    spacing = 0.0;
                 }
             }
             if (!state.CharacterSpacing.IsZero) spacing += state.CharacterSpacing.Resolve(size, 0f);
             if (!state.Monospace.IsZero)
             {
                 float mono = state.Monospace.Resolve(size, 0f);
-                p.MonoOffset = (mono - advance) * 0.5f;
+                p.MonoOffset = (float)((mono - advance) * 0.5);
                 advance = mono;
             }
             p.GlyphAdvance = advance;
@@ -793,7 +795,7 @@ namespace TMPro
             if (c == 0x200B && el.Kind == ElementKind.Character) p.Checked = p.Visible;
             if (c == 0xAD && el.Kind == ElementKind.Character && p.Visible)
             {
-                p.SoftHyphen = advance;
+                p.SoftHyphen = (float)advance;
                 p.Visible = false;
                 p.GlyphAdvance = p.Advance = 0f;
             }

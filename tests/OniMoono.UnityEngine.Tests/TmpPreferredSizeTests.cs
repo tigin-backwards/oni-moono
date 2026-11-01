@@ -56,6 +56,12 @@ namespace OniMoono.Tests
         [InlineData("GRAYSTROKE OUTLINE SDF", 14f, "A", 8.51f)]
         [InlineData("NotoSansCJKjp-Regular", 12f, "Oxygen", 41.86f)]
         [InlineData("NotoSansCJKjp-Regular", 12f, "i", 3.3f)]
+        // The pen ends a float step past the hundredth in the shipped package (102.400009,
+        // 59.1000023, 65.5600052), where advances rounded to float before the sum fell on or
+        // under it (measured 2026-11-01, PROBE_SCENARIO=textwidth).
+        [InlineData("GRAYSTROKE REGULAR SDF", 16f, "Light Collector", 102.41f)]
+        [InlineData("GRAYSTROKE OUTLINE SDF", 14f, "Hydrogen", 59.11f)]
+        [InlineData("NotoSansCJKjp-Regular", 12f, "Natural Gas", 65.57f)]
         public void TheWidthIsTheNextHundredthAboveThePen(string font, float size, string text, float expected)
         {
             var t = Alone(font, size, text);
@@ -175,6 +181,27 @@ namespace OniMoono.Tests
             var face = t.font.faceInfo;
             double x = (double)(face.ascentLine * (size / face.pointSize * face.scale)) - face.descentLine * (size / face.pointSize * face.scale);
             Assert.Equal((float)((System.Math.Floor(x * 100.0) + 1.0) / 100.0), t.preferredHeight);
+        }
+
+        // Each pen is the previous one plus the glyph's advance × scale, summed in double and
+        // rounded to float once: the shipped package's pens at pivot 0, bit for bit (measured
+        // 2026-11-01). Rounding the advance to float first put "Light Collector"'s "C" one
+        // float step short (48.246773) and its end two (102.399994).
+        [Theory]
+        [InlineData("GRAYSTROKE REGULAR SDF", 16f, "Light Collector", new[] { 8.637096f, 13.0080643f, 21.64516f, 30.2822571f, 36.25f, 39.2870979f, 48.2467766f, 56.883873f, 61.25484f, 65.62581f, 74.26291f, 81.82742f, 87.795166f, 96.43227f, 102.400009f })]
+        [InlineData("GRAYSTROKE OUTLINE SDF", 14f, "Hydrogen", new[] { 8.5f, 16.0625f, 23.625f, 28.85f, 36.4125023f, 43.9750023f, 51.5375023f, 59.1000023f })]
+        [InlineData("NotoSansCJKjp-Regular", 12f, "Natural Gas", new[] { 8.675f, 15.4500008f, 19.975f, 27.25f, 31.9f, 38.675f, 42.1f, 44.885f, 53.16f, 59.935f, 65.5600052f })]
+        public void PensSumTheAdvancesInDouble(string font, float size, string text, float[] pens)
+        {
+            var t = Alone(font, size, text, pivot: 0f);
+            t.ForceMeshUpdate();
+            var info = t.textInfo;
+            Assert.Equal(pens.Length, info.characterCount);
+            for (int i = 0; i < pens.Length; i++)
+            {
+                Assert.Equal(pens[i], info.characterInfo[i].xAdvance);
+                if (i + 1 < pens.Length) Assert.Equal(pens[i], info.characterInfo[i + 1].origin);
+            }
         }
 
         [Fact]
