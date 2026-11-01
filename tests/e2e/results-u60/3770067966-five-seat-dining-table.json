@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3770067966-five-seat-dining-table.yaml",
+ "mods": [
+  "3770067966"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Fine Dining and builds a Bigger Table in the dug-out corridor west of the printing pod. Both buildings show in the Furniture menu; selected, the table's details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "0dd538ca",
+ "mod_dlls": {
+  "3770067966": {
+   "MoreBuilding.dll": "0d6321e68d9f075989bd12b4e45eeec7cde5e39b6acc55b68d40c9d326791eb1"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-080617-aed2badb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:19:53",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-082811-057e2a4c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:28:11",
+    "lane": 44,
+    "reference_run": "20261101-080617-aed2badb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-082811-057e2a4c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:28:12",
+    "lane": 45,
+    "reference_run": "20261101-080617-aed2badb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
