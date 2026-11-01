@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3597493271-diamond-press-data-banks.yaml",
+ "mods": [
+  "3597493271"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Diamond Press's data bank recipe exists with the mod's result and time",
+ "updated": "2026-11-01",
+ "commit": "43eaa923",
+ "mod_dlls": {
+  "3597493271": {
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db",
+   "╤╣╦⌡╗·╘∞┤┼┼╠.dll": "f02239b29214d2f357059ab53d1f7fd8dd6874bfc4f33e5304fe7422242747d8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-223506-a7565501",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:43:00",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-015345-5ed7c08c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:53:45",
+    "lane": 35,
+    "reference_run": "20261031-223506-a7565501",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-015345-5ed7c08c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:00:04",
+    "lane": 35,
+    "reference_run": "20261031-223506-a7565501",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
