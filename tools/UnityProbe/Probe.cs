@@ -320,6 +320,11 @@ namespace SemanticsProbe
                 go.AddComponent<VitalsOpen>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "scrollvis")
+            {
+                go.AddComponent<ScrollVis>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "zeroscale")
             {
                 go.AddComponent<ZeroScale>();
