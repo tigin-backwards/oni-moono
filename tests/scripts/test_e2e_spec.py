@@ -524,6 +524,12 @@ class Translation(unittest.TestCase):
         self.assertIn('`data_collection` is true or false',
                       e2e.check_spec({'from': 'main-menu', 'data_collection': 'no', 'steps': []}))
 
+    def test_extra_saves_are_fixture_names(self):
+        self.assertEqual(e2e.check_spec({'from': 'main-menu', 'extra_saves': ['terra-wide'], 'steps': []}), [])
+        for bad in ('terra-wide', ['../x'], [1]):
+            self.assertIn('`extra_saves` is a list of fixture names',
+                          e2e.check_spec({'from': 'main-menu', 'extra_saves': bad, 'steps': []}))
+
     def test_blocked_install_links_all_but_the_blocked_plugin(self):
         with tempfile.TemporaryDirectory() as root:
             game, elsewhere = os.path.join(root, 'game'), os.path.join(root, 'depot')

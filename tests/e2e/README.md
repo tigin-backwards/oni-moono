@@ -157,6 +157,8 @@ tweaks_menu: true                # ours keeps the main menu's Moono Tweaks butto
 scaled_screen: true              # the game may render smaller than the display (below)
 blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its install (out/e2e/.blocked-LANE)
                                  # with these native plugins `missing` or `unreadable` (mode 000)
+extra_saves: [terra-wide]        # more colonies in the profile: fixtures/NAME.sav (and NAME.png)
+                                 # as save_files/NAME/NAME.sav, for the Load screen
 data_collection: false           # the Data Collection option off: an error the spec provokes sends
                                  # no crash report to Klei (on, the default, a worldgen failure does)
 setup: [...]                     # steps run first; the only place for driver setup.call
