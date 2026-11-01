@@ -7,8 +7,8 @@
 # What changes: how many autosaves stay in the save folder.
 #
 # The spec turns Unlimited Autosaves off and sets 20 autosaves. On U60 the transpiler no longer
-# finds the game's limit in SaveLoader.Save (the original's run showed it), so it falls back to keeping
-# every autosave, as it logs; the colony runs a minute.
+# finds the game's limit in SaveLoader.Save (the original's run showed it), so it falls back
+# to keeping every autosave, as it logs; the colony runs a minute.
 from: early-base
 mods: [3445494874]
 options:
