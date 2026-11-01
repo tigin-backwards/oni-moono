@@ -1,0 +1,61 @@
+{
+ "spec": "mods/3810810633-ceiling-sculptures.yaml",
+ "mods": [
+  "3810810633"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Stone Pendant hung from the ceiling: in the Furniture menu (shot), awaiting an artist; the log counts its recipes and stages; world shot",
+ "updated": "2026-11-01",
+ "commit": "ef741555",
+ "mod_dlls": {
+  "3810810633": {
+   "CeilingSculptures.dll": "bbd3a802645afc8a0c94c67ccfd982a27844c2326c555f13f9e5fdb570dc8b3f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-015529-05c1d77a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:55:30",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-030315-1ad8e236",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:03:15",
+    "lane": 35,
+    "reference_run": "20261101-015529-05c1d77a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "furniture-menu": 0.0,
+     "pendant": 0.020041
+    }
+   },
+   {
+    "run": "20261101-030315-1ad8e236",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:06:28",
+    "lane": 35,
+    "reference_run": "20261101-015529-05c1d77a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "furniture-menu": 0.0,
+     "pendant": 0.011463
+    }
+   }
+  ]
+ }
+}
