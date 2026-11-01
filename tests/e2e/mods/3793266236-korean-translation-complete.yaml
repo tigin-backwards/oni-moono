@@ -1,0 +1,28 @@
+# 한국어 번역 - Korean Translation Complete (3793266236), class P (strings).
+#
+# What it does: for a player who plays in Korean, a postfix on Localization.Initialize
+# overlays its translations/ko_extra.po (its own text wins), then fills the keys still not in
+# Hangul from the game's own ko_klei .po, and pushes the result into the STRINGS LocString
+# fields; a postfix on Db.Initialize re-translates the room criteria (RoomConstraints) from
+# its snapshot table.
+# How a player reaches it: the game in Korean (its Translations screen).
+# What changes: Korean text where the game's Korean leaves English.
+#
+# The spec plays in the game's own Korean (`language: ko_klei`): the log counts what it wrote
+# and re-translated, room criteria read as in the original, and the pause menu is dumped and
+# shot.
+from: early-base
+mods: [3793266236]
+language: ko_klei
+require_log: ['\[KoreanComplete\] wrote \d+ keys from this mod', '\[KoreanComplete\] re-translated \d+ room criteria fields']
+steps:
+  - expect_state:
+      "Localization.GetCurrentLanguageCode()": ko_klei
+      "RoomConstraints.CEILING_HEIGHT_4.name": "== original"
+      "RoomConstraints.MINIMUM_SIZE_12.name": "== original"
+      "Strings.Get(\"STRINGS.UI.FRONTEND.PAUSE_SCREEN.LOCKERMENU\").String": "== original"
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - ui_dump: {name: pause, root: "**/PauseScreen/LayoutContent"}
+  - shot: {name: pause, crop: "**/PauseScreen/LayoutContent"}
+  - key: {code: Escape}
