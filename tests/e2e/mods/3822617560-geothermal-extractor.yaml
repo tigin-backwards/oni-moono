@@ -1,0 +1,28 @@
+# 地热提取器 / Geothermal Extractor [私密测试] (3822617560), classes B, S.
+#
+# What it does: adds a standalone geothermal extractor (GE_Extractor, in the Utilities menu,
+# no research): a 3x4 drill head of 200 kg steel, 2000 kg diamond and 3200 kg insulation
+# that reaches up to 10 layers down, with a diamond core that evens out the temperature and
+# heating and cooling outputs; patches to the build tool, select tool, sandbox brush and info
+# screen handle its extension below ground.
+# How a player reaches it: the build menu (Utilities).
+# What changes: a buildable heat source and sink.
+#
+# The extractor is in the Utilities menu with its three ingredients (its card is shot).
+from: early-base
+mods: [3822617560]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"GE_Extractor\").MaterialCategory": [{contains: Diamond}, {contains: Insulator}, {contains: Steel}]
+      "Assets.GetBuildingDef(\"GE_Extractor\").WidthInCells": "== original"
+      "Assets.GetBuildingDef(\"GE_Extractor\").HeightInCells": "== original"
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Utilities"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/GE_Extractor Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/GE_Extractor Group*": {active: true}
+  - click: {ui: "**/BuildingGroups/**/Grid/GE_Extractor Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
