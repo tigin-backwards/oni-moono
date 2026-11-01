@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3815622876-anywhere-impactor-challenge.yaml",
+ "mods": [
+  "3815622876"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "from a colony: Main Menu, Quit Without Saving, New Game, Survival, Classic; the Terra cluster (V-SNDST-C, fixed seed) is launched and embarked. The start world carries the LargeImpactor season, the impactor's flight is initialized, and worldgen placed the research portal",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "3815622876": {
+   "AnywhereImpactor.dll": "90fc70386ec40d9bf5b9e55204abdc566e25a0c07e1a40bd8274fc2a6616679a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:49:39",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:26:50",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:28:42",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

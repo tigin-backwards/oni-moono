@@ -1,0 +1,46 @@
+# Difficulty Upgrade--Anywhere Impactor Challenge (3815622876), classes P, worldgen.
+#
+# What it does: with the Prehistoric Planet Pack owned and on, any official start (base game
+# or Spaced Out) gets the pack's impactor challenge: the new game's settings panel offers the
+# game's Demolior difficulty (Default unless No Sweat on a Prehistoric start), the start world
+# gets the LargeImpactor season and the fragments trait (WorldContainer.SetWorldDetails and
+# the presets' patches), its worldgen places the research portal ruin
+# (TemplateSpawning.DetermineTemplatesForWorld), a ResearchPortalRepair keeps it there, and the
+# impactor's flight is set up as the game's (logged). Only new games get the event.
+# How a player reaches it: a new game.
+# What changes: Demolior heads for any asteroid.
+#
+# From a colony: Main Menu, Quit Without Saving, New Game, Survival, Classic; the Terra cluster
+# (V-SNDST-C, fixed seed) is launched and embarked. The start world carries the LargeImpactor
+# season, the impactor's flight is initialized, and worldgen placed the research portal.
+from: early-base
+mods: [3815622876]
+memory_gb: 8
+require_log: ['\[AnywhereImpactor\] v0\.2\.3 loaded', '\[AnywhereImpactor\] Flight initialized: world=0', '\[AnywhereImpactor\] Research portal worldgen placements=1']
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Main MenuButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Main MenuButton"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton"}   # Quit Without Saving
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "V-SNDST-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/Section - Destination/DestinationDetailsHeader/ClusterName", cond: text, value: "~Terra"}
+  - expect_state:
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"DemoliorDifficulty\").id": "== original"
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
+  - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
+  - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  - expect_state:
+      "ClusterManager.Instance.GetStartWorld().worldName": expansion1::worlds/VanillaSandstoneDefault
+      "ClusterManager.Instance.GetStartWorld().m_seasonIds": {contains: LargeImpactor}
+  - run: {seconds: 5}
