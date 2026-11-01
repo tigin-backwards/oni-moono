@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3816993485-enhanced-printing-pod.yaml",
+ "mods": [
+  "3816993485"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup makes printables available (the immigration timer run out, as time does) and seeds the random numbers. The printing pod is selected and its choices opened: the mod's screen lists its cards (dumped, names and traits masked: they follow random numbers)",
+ "updated": "2026-11-01",
+ "commit": "79a67c1c",
+ "mod_dlls": {
+  "3816993485": {
+   "EnhancedPrintingPod.dll": "325e8a6ae5a050b378cbd61af89c93eb4be804a4fe2a9b7951a04e820ec38312"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-110104-8040a61d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:01:04",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-111015-dd142eaf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:10:15",
+    "lane": 40,
+    "reference_run": "20261101-110104-8040a61d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-111015-dd142eaf",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:10:16",
+    "lane": 41,
+    "reference_run": "20261101-110104-8040a61d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
