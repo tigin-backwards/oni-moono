@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3173559513-ladder-anim-tutorial.yaml",
+ "mods": [
+  "3173559513"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Ladder's definition uses 4.2_kanim; setup builds a ladder in the corridor west of the printing pod and a world shot of it is compared with the original",
+ "updated": "2026-11-01",
+ "commit": "3f4d358f",
+ "mod_dlls": {
+  "3173559513": {
+   "4.2_╓╞╫≈─ú╫Θ╢»╗¡.dll": "69cb5e520669bdb565c9c1d1081f0975e135fa04191f63cb40ac5d4e06b6ed33"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:30:19",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:40:02",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "ladder": 0.007262
+    }
+   },
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T00:40:32",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "ladder": 0.007193
+    }
+   }
+  ]
+ }
+}
