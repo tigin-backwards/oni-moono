@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3773434382-sanishell-roe-in-more-liquids.yaml",
+ "mods": [
+  "3773434382"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "options set the rate 4x. setup spawns a Pokeshell at the bottom of the pit west of the printing pod and pours 1500 kg of salt water into it. The modifier's function is the mod's; after 600 s the Pokeshell is still in salt water, and the colony has its three Duplicants",
+ "updated": "2026-11-01",
+ "commit": "c7bb3840",
+ "mod_dlls": {
+  "3773434382": {
+   "SanishellRoeInLiquids.dll": "65426511af99762e0b0d3a3615e5c3dbf9a5d369e88a75e007b350e88f986ff5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082806-3c2b3be2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:32:26",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084846-bd3c6387",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:48:46",
+    "lane": 40,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-084846-bd3c6387",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:48:47",
+    "lane": 41,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

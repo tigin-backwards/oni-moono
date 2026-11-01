@@ -1,0 +1,27 @@
+# Sanishell Roe in More Liquids (3773434382), classes P, O (PLib options).
+#
+# What it does: the Pokeshell's Sanishell morph (fertility modifier PokeFreshWater, vanilla:
+# its egg chance grows while it sits in water) grows in salt water, brine, polluted water and
+# polluted brine as well, each a PLib option, at a rate times a multiplier (0.1 to 25). A
+# postfix on Db.Initialize replaces the modifier's ApplyFunction.
+# How a player reaches it: Pokeshells living in those liquids; the mod's options.
+# What changes: Sanishell eggs from more liquids.
+#
+# Options set the rate 4x. setup spawns a Pokeshell at the bottom of the pit west of the
+# printing pod and pours 1500 kg of salt water into it. The modifier's function is the mod's;
+# after 600 s the Pokeshell is still in salt water, and the colony has its three Duplicants.
+from: early-base
+mods: [3773434382]
+options:
+  SanishellRoeInLiquids: {Water: true, SaltWater: true, Brine: true, PollutedWater: true, PollutedBrine: true, RateMultiplier: 4.0}
+setup:
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131124, SaltWater, null, 1500, 300, 255, 0]}}
+  - driver: {setup.call: {target: "Scenario.SpawnPrefab(131124, 0, 0, \"Crab\", \"Creatures\")", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "Db.Get().FertilityModifiers.Get(\"PokeFreshWater\").ApplyFunction.Method.DeclaringType.FullName": {contains: SanishellRoeInLiquids}
+  - run: {seconds: 600}
+  - expect_state:
+      "Grid.Element[131124].id": SaltWater
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == Crab": ">= 1"
+  - expect: {duplicants: 3}
