@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3745353707-slogos-desalinate.yaml",
+ "mods": [
+  "3745353707"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Slogo prefab carries the mod's three desalinating converters and its salt dropper",
+ "updated": "2026-11-01",
+ "commit": "23d4f735",
+ "mod_dlls": {
+  "3745353707": {
+   "Slogos Desalinate.dll": "aa47f3aafbf8be3fd3212577ee5095c470c51a820fac30a1a97a6d4e90103fcd"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-013538-93de7980",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:51:21",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-072658-88dd0380",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:26:58",
+    "lane": 35,
+    "reference_run": "20261101-013538-93de7980",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-072658-88dd0380",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:32:11",
+    "lane": 35,
+    "reference_run": "20261101-013538-93de7980",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
