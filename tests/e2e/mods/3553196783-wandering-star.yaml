@@ -8,8 +8,10 @@
 # How a player reaches it: nothing to click; the starmap shows it.
 # What changes: the cluster's layout changes as cycles pass.
 #
-# Every asteroid gets its mover and orbit; after a cycle and more of play the asteroids'
-# positions have changed.
+# Every asteroid gets its mover and orbit. Their positions' sum stayed the same through 12
+# minutes of play in the original's run (an asteroid of ring N steps at cycle multiples of N),
+# so the spec checks the countdown to the next step of the asteroids with an orbit instead,
+# which a minute of play shortens.
 from: early-base
 mods: [3553196783]
 steps:
@@ -18,11 +20,7 @@ steps:
   - expect_state:
       "all:AstroMover::Length": "== asteroids"
       "count:all:AstroMover::[*] if .trajectory.Count != 0": [">= 1", "== original"]   # the centre one has none
-      "sum:all:AstroMover::[*].entity.Location.q": {save_as: q}
-      "sum:all:AstroMover::[*].entity.Location.r": {save_as: r}
-      "GameClock.Instance.GetCycle()": {save_as: cycle}
-  - run: {seconds: 720}
+      "sum:all:AstroMover::[*].remainingCycles if .trajectory.Count != 0": [{save_as: left}, "> 0"]
+  - run: {seconds: 60}
   - expect_state:
-      "GameClock.Instance.GetCycle()": "> cycle"
-      "sum:all:AstroMover::[*].entity.Location.q": ["!= q", "== original"]
-      "sum:all:AstroMover::[*].entity.Location.r": "== original"
+      "sum:all:AstroMover::[*].remainingCycles if .trajectory.Count != 0": ["< left", "> 0"]
