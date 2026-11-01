@@ -1,0 +1,19 @@
+# No Damage With Exception (3313952440), class P.
+#
+# What it does: buildings take damage only from comets and micrometeorites: a prefix on
+# BuildingHP.OnDoBuildingDamage skips every other source (overheating, overpressure,
+# overloaded wires, critters ...).
+# How a player reaches it: nothing to click; any building damage.
+# What changes: buildings no longer break down from anything but space rocks.
+#
+# The mod loads with its one patch, and the colony's buildings keep their hit points through
+# a minute of play (nothing here damages them: no source to exclude).
+from: early-base
+mods: [3313952440]
+steps:
+  - expect_state:
+      "sum:all:BuildingHP::[*].HitPoints": {save_as: hp}
+      "count:Global.Instance.modManager.mods[*] if .staticID == Kirito.NoDamageWithException and .loaded_mod_data.patched_methods.Count == 1": 1
+  - run: {seconds: 60}
+  - expect_state:
+      "sum:all:BuildingHP::[*].HitPoints": "== hp"

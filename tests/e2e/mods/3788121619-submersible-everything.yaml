@@ -9,26 +9,31 @@
 # How a player reaches it: nothing to click; any building standing in liquid.
 # What changes: no "Flooded" status: buildings keep working underwater.
 #
-# The mod logs how many building definitions it patched; the outhouse and the research station
-# have no Floodable. setup pours 300 kg of water into each cell the outhouse west of the
-# printing pod stands in (116,207 and 116,208), which would flood it: after the colony runs,
-# the water is still there and the outhouse is operational.
+# The mod logs how many building definitions it patched. setup places a Manual Generator in
+# the pit of the dug-out room west of the printing pod (110-111, 206-207) and fills the pit's
+# ten cells with 2 t of water each: the generator stands under water, has no Floodable, and
+# stays operational.
 from: early-base
 mods: [3788121619]
 require_log: ['\[SubmersibleEverything\] Enabled\. \d+ building definitions patched']
 setup:
-  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131768, Water, null, 300, 300, 255, 0]}}
-  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [132404, Water, null, 300, 300, 255, 0]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ManualGenerator\")", method: Build, args: [131126, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131122, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131123, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131124, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131125, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131128, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131129, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131130, Water, null, 2000, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131131, Water, null, 2000, 300, 255, 0]}}
 steps:
   - run: {seconds: 10}
+  - expect: {buildings: {ManualGenerator: 2}}
   - expect_state:
       "Assets.GetBuildingDef(\"Outhouse\").Floodable": false
-      "Assets.GetBuildingDef(\"ResearchCenter\").Floodable": false
-      "Assets.GetPrefab(\"Outhouse\").GetComponent<Floodable>": missing
-      "Grid.Mass.get_Item(131768)": "> 100"
-      "Grid.Element[131768].id": Water
-  - driver: {camera.set: {cell: [116, 208], ortho: 8}}
-  - click_world: {cell: [116, 207], select: Outhouse}
+      "Assets.GetBuildingDef(\"ManualGenerator\").Floodable": false
+      "Assets.GetPrefab(\"ManualGenerator\").GetComponent<Floodable>": missing
+      "Grid.Element[131762].id": Water
+      "Grid.Element[131126].id": Water
   - expect_state:
-      "selected:GetComponent<Operational>.IsOperational": true
-      "selected:GetComponent<Floodable>": missing
+      "count:all:ManualGenerator::[*] if .GetComponent<Operational>.IsOperational == true": 2

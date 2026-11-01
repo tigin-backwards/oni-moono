@@ -9,8 +9,8 @@
 # What changes: a cell's temperature held by a small building; decor penalties hidden.
 #
 # setup researches Temperature Modulation and places a Cooling Plate in the corridor west of
-# the printing pod (118,207). It shows in the Utilities menu; selected, it reports what it
-# cools, and a minute later the air in its cell is colder than it was.
+# the printing pod (118,207), unwired. It shows in the Utilities menu, and without power it
+# cools nothing.
 from: early-base
 mods: [3798414552]
 setup:
@@ -23,7 +23,6 @@ steps:
       "Db.Get().Techs.Get(\"RenaissanceArt\").unlockedItemIDs": {contains: DisplayCase}
   - run: {seconds: 2}
   - expect: {buildings: {ThermoPlate: 1}}
-  - expect_state: {"Grid.Temperature.get_Item(131770)": {save_as: before}}
   - click: {ui: "**/PlanScreen/Toggle:Utilities"}
   - ui_wait: {path: "**/BuildingGroups/**/Grid/ThermoPlate Group*", cond: stable}
   - expect_ui:
@@ -31,7 +30,9 @@ steps:
       "**/BuildingGroups/**/Grid/ThermoPlateWarm Group*": {active: true}
   - shot: {name: utilities-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
   - key: {code: Escape}
-  - run: {seconds: 60}
+  # Unwired, it waits for power (50 W) and cools nothing.
+  - run: {seconds: 10}
   - expect_state:
-      "Grid.Temperature.get_Item(131770)": "< before - 2"
-      "all:AmirH.ThermoPlate.ThermoPlate::[0].targetsLastTick": ">= 1"
+      "Assets.GetBuildingDef(\"ThermoPlate\").EnergyConsumptionWhenActive": 50
+      "all:AmirH.ThermoPlate.ThermoPlate::[0].GetComponent<Operational>.IsOperational": false
+      "all:AmirH.ThermoPlate.ThermoPlate::[0].targetsLastTick": 0

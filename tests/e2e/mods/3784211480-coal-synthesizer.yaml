@@ -1,0 +1,33 @@
+# Coal Synthesizer [Updated] (3784211480), class B.
+#
+# What it does: adds the Coal Synthesizer (COALCOMP, 2x3, raw metals, 240 W; Oxygen menu,
+# researched with Brute-Force Refinement): it takes in 1 kg/s of carbon dioxide and gives
+# 0.75 kg/s of oxygen and 0.25 kg/s of coal, stored for Duplicants to empty; a second, unlisted
+# CoalRebootF (2x2, 60 W) turns 0.25 kg/s of oxygen into coal.
+# How a player reaches it: the research screen, then the build menu (Oxygen).
+# What changes: carbon dioxide recycled into oxygen and coal.
+#
+# setup researches Brute-Force Refinement and places a Coal Synthesizer on the floor of the
+# dug-out room west of the printing pod (110-111, 206-208). It shows in the Oxygen menu, and
+# its converter is the mod's.
+from: early-base
+mods: [3784211480]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"BasicRefinement\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"COALCOMP\")", method: Build, args: [131126, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {COALCOMP: 1}}
+  - expect_state:
+      "Db.Get().Techs.Get(\"BasicRefinement\").unlockedItemIDs": {contains: COALCOMP}
+      "Assets.GetPrefab(\"COALCOMP\").GetComponent<ElementConverter>.consumedElements[0].MassConsumptionRate": 1
+      "Assets.GetPrefab(\"COALCOMP\").GetComponent<ElementConverter>.outputElements[0].elementHash": Oxygen
+      "Assets.GetPrefab(\"COALCOMP\").GetComponent<ElementConverter>.outputElements[1].elementHash": Carbon
+  - click: {ui: "**/PlanScreen/Toggle:Oxygen"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/COALCOMP Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/COALCOMP Group*": {active: true}
+  - shot: {name: oxygen-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}
+  - world_shot: {name: synthesizer, ortho: 5, at: [110, 208]}

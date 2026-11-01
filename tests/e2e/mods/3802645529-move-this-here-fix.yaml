@@ -11,7 +11,8 @@
 # What changes: hauling targets placed instantly, anywhere open.
 #
 # Base menu, Move This Here: the card has no material panel; a click on the corridor west of
-# the printing pod places one at once, already complete, with its storage filter.
+# the printing pod places one at once, already complete, with the mod's storage and
+# deconstruct components.
 from: early-base
 mods: [3802645529]
 steps:
@@ -25,12 +26,10 @@ steps:
   - driver: {camera.set: {cell: [118, 208], ortho: 8}}
   - click_world: {cell: [118, 207]}
   - key: {code: Escape}
-  - key: {code: Escape}
   # Built at once: no blueprint, no errand.
   - expect: {buildings: {HaulingPoint: 1}, blueprints: {HaulingPoint: 0}}
-  - click_world: {cell: [118, 207], select: HaulingPoint}
-  - ui_wait: {path: "**/DetailsScreen", cond: stable}
   - expect_state:
-      "selected:GetComponent<MoveThisHere.HaulingPoint>.totalMaxCapacity": 20000
-      "selected:GetComponent<MoveThisHere.DeconstructableHaulingPoint>": exists
-      "selected:GetComponent<Deconstructable>": missing
+      "all:MoveThisHere.HaulingPoint::[0].totalMaxCapacity": 20000
+      "all:MoveThisHere.HaulingPoint::[0].GetComponent<MoveThisHere.DeconstructableHaulingPoint>": exists
+      "all:MoveThisHere.HaulingPoint::[0].GetComponent<Deconstructable>": missing
+      "all:MoveThisHere.HaulingPoint::[0].GetComponent<BuildingComplete>": exists

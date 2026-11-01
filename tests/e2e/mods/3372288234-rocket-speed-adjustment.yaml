@@ -1,0 +1,18 @@
+# [base] Rocket speed adjustment/火箭速度调整 (3372288234), classes P, O (base game rockets).
+#
+# What it does: a prefix on Spacecraft.BeginMission (the base game's starmap missions) scales a
+# rocket's mission time by its PLib option, the return time multiplier (0 to 1, default 1).
+# How a player reaches it: the Mods screen's options; then a base-game rocket mission.
+# What changes: rockets come back sooner.
+#
+# The spec sets the multiplier to 0.5 in a base-game colony: the mod reads it, and the
+# colony runs a minute with its patch (vanilla-base has no rocket).
+from: vanilla-base
+mods: [3372288234]
+options:
+  "3372288234": {rocketSpeed: 0.5}
+steps:
+  - expect_state:
+      "type:Setting::Get().rocketSpeed": 0.5
+      "count:Global.Instance.modManager.mods[*] if .label.id == 3372288234": 1
+  - run: {seconds: 60}

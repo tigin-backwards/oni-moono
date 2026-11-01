@@ -1,0 +1,28 @@
+# Rotatable Beds (2734396435), class B.
+#
+# What it does: the Cot (BedConfig) and the Comfy Bed (LuxuryBedConfig) can be flipped left
+# to right (PermittedRotations FlipH), set in postfixes on their CreateBuildingDef.
+# How a player reaches it: placing a Cot or Comfy Bed (the rotate key flips it).
+# What changes: beds face either way.
+#
+# Both beds' definitions allow the flip. A Cot is chosen from the Furniture menu, flipped with
+# the rotate key (O) and placed in the dug-out room west of the printing pod: its blueprint
+# faces the other way.
+from: early-base
+mods: [2734396435]
+require_log: ['Roatable Beds: Loaded']
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Bed\").PermittedRotations": FlipH
+      "Assets.GetBuildingDef(\"LuxuryBed\").PermittedRotations": FlipH
+  - driver: {camera.set: {cell: [112, 208], ortho: 8}}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/Bed Group*", cond: stable}
+  - click: {ui: "**/BuildingGroups/**/Grid/Bed Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - key: {code: O, at: [112, 206]}
+  - click_world: {cell: [112, 206]}
+  - key: {code: Escape}
+  - expect: {blueprints: {Bed: 1}}
+  - expect_state:
+      "count:all:Constructable::[*] if .GetComponent<Rotatable>.Orientation == FlipH": 1

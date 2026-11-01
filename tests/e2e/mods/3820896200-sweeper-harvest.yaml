@@ -42,7 +42,6 @@ steps:
   - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
   - drag: {from: [114, 206], via: [[114, 207]], to: [129, 207]}
   - key: {code: Escape}
-  - key: {code: Escape}
   - expect: {blueprints: {SolidTransferArm: 1, Wire: 17}}
   - run: {seconds: 1200, until: {buildings: {SolidTransferArm: 1}, pending_construction: 0}}
   - expect_state:

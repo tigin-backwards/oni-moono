@@ -9,21 +9,22 @@
 # How a player reaches it: the build menu (Food); a planter's side screens.
 # What changes: planters that need no fertilizer or water.
 #
-# setup researches Basic Farming and places a Natural Farm Tile in the corridor west of the
-# printing pod (118,207). It shows in the Food menu after the Farm Tile; selected, its plot
+# setup researches the Farm Tile's tech (Fine Dining on U60) and places a Natural Farm Tile in
+# the corridor west of the printing pod (118,207). It shows in the Food menu after the Farm
+# Tile, researched with it; selected, its plot
 # takes neither fertilizer nor irrigation, and its "100%变异" button sets its mutation mode.
 from: early-base
 mods: [3804085929]
 require_log: ['\[NaturalFarm\] 已加入建造菜单: NaturalFarmTile']
 setup:
-  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FarmingTech\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FineDining\")"}, true]}}
   - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
   - driver: {setup.call: {target: "Assets.GetBuildingDef(\"NaturalFarmTile\")", method: Build, args: [131770, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
 steps:
   - run: {seconds: 2}
   - expect: {buildings: {NaturalFarmTile: 1}}
   - expect_state:
-      "Db.Get().Techs.TryGetTechForTechItem(\"NaturalFarmTile\").Id": FarmingTech
+      "Db.Get().Techs.TryGetTechForTechItem(\"FarmTile\").unlockedItemIDs": {contains: NaturalFarmTile}
   - click: {ui: "**/PlanScreen/Toggle:Food"}
   - ui_wait: {path: "**/BuildingGroups/**/Grid/NaturalFarmTile Group*", cond: stable}
   - expect_ui:

@@ -1,0 +1,21 @@
+# TouchOptimization (3656559662), class K (touch input).
+#
+# What it does: touch-screen camera control: a postfix on CameraController.Update pans the
+# camera with one finger dragged over the world (with the select tool) and zooms with two
+# (pinch, orthographic size 2-100); a prefix on KScreen.OnKeyDown keeps the starmap from taking
+# a right click just after a pinch.
+# How a player reaches it: a touch screen.
+# What changes: nothing with a mouse; panning and pinch zoom by touch.
+#
+# There is no touch screen here: the mod loads with its two patches, and with a mouse the
+# camera still zooms by the wheel as the game's does.
+from: early-base
+mods: [3656559662]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == XiaoQvan.TouchOptimization and .loaded_mod_data.patched_methods.Count == 2": 1
+  - driver: {camera.set: {cell: [121, 208], ortho: 12}}
+  - scroll: {at: center, notches: -5}
+  - run: {seconds: 2}
+  - expect_state:
+      "CameraController.Instance.targetOrthographicSize": ["> 12", "== original"]

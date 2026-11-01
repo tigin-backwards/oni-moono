@@ -14,7 +14,7 @@ setup:
   - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Door\")", method: Build, args: [131770, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
 steps:
   - run: {seconds: 2}
-  - expect: {buildings: {Door: 1}}
+  - expect: {buildings: {Door: 2}}   # with the base's own door
   - expect_state:
       "Assets.GetBuildingDef(\"Door\").AnimFiles[0].name": glassdoor_kanim
       "all:Door::[0].GetComponent<KBatchedAnimController>.AnimFiles[0].name": glassdoor_kanim

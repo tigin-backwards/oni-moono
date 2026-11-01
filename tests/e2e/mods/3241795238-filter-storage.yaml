@@ -1,0 +1,32 @@
+# 筛选储存 (Filter storage) (3241795238), class B.
+#
+# What it does: three 1x2 storages (raw metals) placed on a pipe or rail: 过滤储存 (rail,
+# SolidFilterStorage, Shipping menu after the Conveyor Filter), 液体过滤储存 (liquid pipe,
+# LiquidFilterStorage, Plumbing after the Liquid Filter) and 气体过滤储存 (gas pipe,
+# GasFilterStorage, Ventilation after the Gas Filter): what their filter picks goes to their
+# output or into storage, the rest back to their input; a side screen button toggles them, and
+# a checkbox. OnLoad also lifts PrimaryElement.MAX_MASS to float.MaxValue.
+# How a player reaches it: the build menu; the storage's side screens.
+# What changes: filtering storages on pipes and rails.
+#
+# setup places a Liquid Filter Storage in the corridor west of the printing pod (118,207);
+# selected, it has the storage filter side screen; the three prefabs exist and the mass cap is
+# lifted.
+from: early-base
+mods: [3241795238]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LiquidFilterStorage\")", method: Build, args: [131770, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {LiquidFilterStorage: 1}}
+  - expect_state:
+      "PrimaryElement.MAX_MASS": "> 1000000000"
+      "Assets.GetBuildingDef(\"SolidFilterStorage\").PrefabID": SolidFilterStorage
+      "Assets.GetBuildingDef(\"GasFilterStorage\").PrefabID": GasFilterStorage
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: LiquidFilterStorage}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<LStorage.FilterStorage>": exists
+      "selected:GetComponent<TreeFilterable>": exists
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
