@@ -1,0 +1,35 @@
+# 系统性能观察器 System Performance Observer (3800923048), classes P, U (IMGUI panel).
+#
+# What it does: a local, experimental profiler: an ObserverHost times the game's systems
+# frame by frame, and Ctrl+Shift+F8 shows a draggable IMGUI panel ranking them by cost, with an
+# active deep inspection of a chosen system and reports written to disk.
+# How a player reaches it: Ctrl+Shift+F8 in a colony.
+# What changes: nothing in the game; a panel of timings.
+#
+# The host is running in the colony, its panel shown (ShowPanel, the default). Ctrl+Shift+F8
+# hides it, and again shows it (an IMGUI panel: no UI path finds it, and its rankings are
+# timings, not shot). The colony runs on.
+#
+# Its shipped observer-config.json names the author's Windows report folder (a D:\ path),
+# which is not an absolute path on Linux, so as shipped it stops at load there
+# ("OutputDirectory must be absolute"); options clear it, and reports go to the mod's own
+# reports folder, its default.
+from: early-base
+mods: [3800923048]
+options:
+  "3800923048": {$file: observer-config.json, OutputDirectory: ""}
+steps:
+  - run: {seconds: 5}
+  - expect_state:
+      "type:PerformanceObserver.Runtime.ObserverHost::Instance": exists
+      "type:PerformanceObserver.Runtime.ObserverHost::Instance.Config.ShowPanel": true
+  - key: {code: "Ctrl+Shift+F8"}
+  - run: {seconds: 2}
+  - expect_state:
+      "type:PerformanceObserver.Runtime.ObserverHost::Instance.Config.ShowPanel": false
+  - key: {code: "Ctrl+Shift+F8"}
+  - run: {seconds: 2}
+  - expect_state:
+      "type:PerformanceObserver.Runtime.ObserverHost::Instance.Config.ShowPanel": true
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
