@@ -1,0 +1,67 @@
+{
+ "spec": "mods/3765775058-twitch-colony.yaml",
+ "mods": [
+  "3765775058"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with no channel configured, the colony loads and plays, and the pause menu carries the Start Twitch Votes button (dumped and shot)",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3765775058": {
+   "TwitchColony.dll": "c7f8c49b9feddacc35faa5fc1e94e16f758c7b25ceb82c52b9ab541f751a1ad6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:10:57",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-020342-53693410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:17:03",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "pause": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "pause": 0.0
+    }
+   },
+   {
+    "run": "20261101-020342-53693410",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:17:09",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "pause": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "pause": 0.0
+    }
+   }
+  ]
+ }
+}
