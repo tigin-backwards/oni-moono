@@ -1,0 +1,18 @@
+# Agri-HarvestPriority (3797865093), class P (a tool's options).
+#
+# What it does: the Harvest tool's filter menu gets "Uproot" and "Cancel uproot" options (UPROOT,
+# CANCEL_UPROOT) that mark or unmark many plants for uprooting with a drag; patches on the
+# harvest tool, FilteredDragTool and HarvestDesignatable.
+# How a player reaches it: the Harvest tool (Y), its filter menu.
+# What changes: plants uprooted in bulk.
+#
+# The Harvest tool opens with the mod's options in its filter menu (dumped, as in the original);
+# Escape puts it away.
+from: early-base
+mods: [3797865093]
+steps:
+  - run: {seconds: 2}
+  - tool: {key: Y}
+  - ui_wait: {path: "**/ToolParameters", cond: stable}
+  - ui_dump: {name: filters, root: "**/ToolParameters"}
+  - key: {code: Escape}
