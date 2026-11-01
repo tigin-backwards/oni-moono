@@ -146,7 +146,7 @@ Legend: `[x]` verified · `[ ]` not yet verified · `[~]` deviation (see the not
 
 ## Debug mode
 
-- [x] Dev tools (debug mode, Ctrl+\`): `ImGuiRenderer` creates its target (`RenderTextureDescriptor`, `GetTemporary`) as in the original; the game's Linux `cimgui.so` has no `SetKAssertCB`, so both players log `EntryPointNotFoundException` and then crash natively in `igRender` (the dev tools do not work in the Linux build). The command-buffer path ImGui draws with (`DrawMesh`, scissor rectangles, view/projection matrices, `Graphics.ExecuteCommandBuffer`) is implemented for a cimgui that has the entry point
+- [x] Dev tools (debug mode, Ctrl+\`): `ImGuiRenderer` creates its target (`RenderTextureDescriptor`, `GetTemporary`) as in the original; U60's Linux `cimgui.so` (now in `Plugins/x86_64`) exports `SetKAssertCB`, which U59's lacked (both players then crashed in `igRender`), so the dev tools work on Linux in both players. ImGui draws through the command-buffer path (`DrawMesh`, scissor rectangles, view/projection matrices, `Graphics.ExecuteCommandBuffer`); ours matches the original pixel for pixel on OpenGL and Vulkan (menu bar, warning, StringsTable, scrolling, typing; u60-inventory.md)
 - [x] Instant build (Ctrl+F4), Dev Life Support, Dev Generator in the build menu
 
 ## M9: this project's UI packages against the shipped ones
