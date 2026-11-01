@@ -3,12 +3,12 @@
  "mods": [
   "3815156097"
  ],
- "verdict": "pending",
- "why": "0 run(s) of ours against original run 20261031-211206-4612e68b; 2 needed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
- "updated": "2026-10-31",
- "commit": "ba34464e",
+ "note": "every Duplicant carries 1,000,000 kg, and the Super Solid Input Box exists; three minutes of errands",
+ "updated": "2026-11-01",
+ "commit": "15081b97",
  "mod_dlls": {
   "3815156097": {
    "CarryAmount100k.dll": "9a409e137950439834826dca15bb60d8fa7ab000bfeda40b5c14fa9c41e8b55d"
@@ -25,6 +25,31 @@
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261031-234927-99ebb660",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:49:27",
+    "lane": 35,
+    "reference_run": "20261031-211206-4612e68b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-234927-99ebb660",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T23:58:48",
+    "lane": 35,
+    "reference_run": "20261031-211206-4612e68b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
  }
 }
