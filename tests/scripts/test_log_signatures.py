@@ -171,6 +171,16 @@ class LogSignatures(unittest.TestCase):
         self.assertEqual(qa_tools.unknown(['X: msg. @ Mod.F'], ['X: msg']), [])
         self.assertEqual(qa_tools.unknown(['X: other @ Mod.F'], ['X: msg']), ['X: other @ Mod.F'])
 
+    def test_signature_without_frame_matches_any_frame(self):
+        # Ours logs an error without the trace Unity prints after it.
+        self.assertEqual(qa_tools.unknown(['X: msg'], ['X: msg @ Debug.LogError']), [])
+        self.assertEqual(qa_tools.unknown(['X: other'], ['X: msg @ Debug.LogError']), ['X: other'])
+
+    def test_invalid_cast_messages(self):
+        ours = 'InvalidCastException: Unable to cast object of type "Boxed`N[A+B]" to type "B". @ Mod.Prefix'
+        self.assertEqual(qa_tools.unknown([ours], ['InvalidCastException: Specified cast is not valid. @ Mod.Prefix']), [])
+        self.assertEqual(qa_tools.unknown([ours], ['InvalidCastException: Specified cast is not valid. @ Mod.Other']), [ours])
+
     def test_a_different_frame_is_new(self):
         self.assertEqual(qa_tools.unknown(['X: msg @ Mod.G'], ['X: msg @ Mod.F']), ['X: msg @ Mod.G'])
 

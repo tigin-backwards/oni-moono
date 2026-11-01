@@ -47,6 +47,10 @@ def canonical(signature):
         if not RUNTIME_FRAME.search(first):
             frame = first
     message = re.sub(r'\.$', '', message.replace("'", '"').rstrip())
+    # Mono says only "Specified cast is not valid." of a failed unbox or cast; .NET names both
+    # types ("Unable to cast object of type "A" to type "B"."): the frame tells them apart.
+    message = re.sub(r'(InvalidCastException: )Unable to cast object of type ".*" to type ".*"$',
+                     r'\1Specified cast is not valid', message)
     # A path into the run's own folder (out/e2e/SPEC/RUN_ID/PLAYER-N/home/...) names the run
     # id, which differs between the invocations that ran the original and ours.
     message = re.sub(r'/[^"\s]*/(?:original|ours)-N/home/', 'RUN/home/', message)
@@ -74,10 +78,16 @@ def clean_frame(frame):
 
 def unknown(signatures, reference):
     """The SIGNATURES not in REFERENCE once both are canonical. A reference entry with no frame
-    (written when its first frame was runtime internals) stands for its message with any frame."""
+    (written when its first frame was runtime internals) stands for its message with any frame,
+    and a signature with no frame matches its message with any: ours writes a logged error
+    without the stack trace Unity's player prints after one from a worker thread."""
     known = {canonical(s) for s in reference}
-    return sorted(s for s in signatures
-                  if canonical(s) not in known and canonical(s).partition(' @ ')[0] not in known)
+    messages = {k.partition(' @ ')[0] for k in known}
+    def new(s):
+        c = canonical(s)
+        message, _, frame = c.partition(' @ ')
+        return c not in known and message not in known and (frame or message not in messages)
+    return sorted(s for s in signatures if new(s))
 
 def new_signatures(reference, new):
     read = lambda path: open(path, encoding='utf-8', errors='replace').read().splitlines()
