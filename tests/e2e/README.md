@@ -453,7 +453,8 @@ mods no spec has recorded.
 A mod's spec is `mods/ID-slug.yaml`, its header the mod card: what the mod does, how a player
 reaches each feature, what changes when it is used. Run it with its path under `tests/e2e`
 (`scripts/e2e.py --player both --bless mods/ID-slug`): the original first, which blesses the
-references, then ours, compared with them.
+references, then ours, compared with them. A spec naming OniMcp's Workshop item (3807166922)
+runs with that build as the runner's OniMcp, in place of `E2E_ONIMCP`'s.
 
 Fixtures are blessed saves (`--bless` copies a spec's `save:` into `fixtures/`, not kept in git):
 
