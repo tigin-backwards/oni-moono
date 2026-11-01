@@ -55,17 +55,17 @@ settings and mods.
 
 ### Manual installation
 
-We recommend using the setup script (see above) for the easiest installation on most systems. If
-you want more control, need to customize the installation, or run a sandboxed environment and
-prefer not to run a script outside of that, follow these manual steps. They don't include
-instructions on how to build the player from scratch; see the setup scripts for the build steps,
-or [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+The setup script (see above) is the easiest installation on most systems. If you want more
+control, need to customize the installation, or run a sandboxed environment and prefer not to run
+a script outside of that, follow these manual steps. They don't include instructions on how to
+build the player from scratch; see the setup scripts for the build steps, or
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 <details>
 <summary>Linux</summary>
 
-The example paths match those used by `setup.sh`, and we assume `~/Downloads/oni-moono/` as the
-location of the downloaded and extracted files. You can choose different paths, but update them
+The example paths match those used by `setup.sh`, with `~/Downloads/oni-moono/` as the location
+of the downloaded and extracted files. You can choose different paths, but update them
 consistently in the commands and Steam launch options below.
 
 1. **Locate the game folder.** It must contain `OxygenNotIncluded` and
