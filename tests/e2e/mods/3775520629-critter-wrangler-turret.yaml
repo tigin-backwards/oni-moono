@@ -1,0 +1,29 @@
+# Critter Wrangler Turret (3775520629), classes B, M.
+#
+# What it does: adds the Critter Wrangler (CritterWrangler, 2x2, refined metal, in the Shipping
+# menu after the Robo-Miner, researched with Animal Control): a robo-miner-like turret, on a
+# floor, wall or ceiling, that wrangles the critters its room has more of than wanted, at
+# range and in line of sight, leaving them to be carried off.
+# How a player reaches it: the build menu (Shipping), after the research.
+# What changes: automatic wrangling.
+#
+# setup grants Animal Control. The turret is listed in the Shipping menu (shot) and its card
+# opens (dumped).
+from: early-base
+mods: [3775520629]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AnimalControl\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"AnimalControl\").unlockedItemIDs": {contains: CritterWrangler}
+      "Assets.GetBuildingDef(\"CritterWrangler\").WidthInCells": 2
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Shipping"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CritterWrangler Group*", cond: stable, stable: 120, frames: 600}
+  - shot: {name: shipping-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - click: {ui: "**/BuildingGroups/**/Grid/CritterWrangler Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
