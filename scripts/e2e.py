@@ -3513,6 +3513,14 @@ class Run:
         elif kind == 'click' and 'at' in value:
             self.need_input().click(*value['at'], button=value.get('button', 'left'), mods=value.get('mods', ()),
                                     double=bool(value.get('double')))
+        elif kind == 'click' and value.get('quits'):
+            # A click that ends the game (Save and Quit to the desktop): E2eDriver goes with it
+            # while the click waits its last frames; an expect_exit step checks the exit.
+            try:
+                self.click_element(value, value.get('mods', ()), value.get('button', 'left'), bool(value.get('double')))
+            except (SpecFailure, ConnectionError, OSError) as e:
+                if not re.search(r'closed the connection|Connection|refused|reset', str(e)):
+                    raise
         elif kind == 'click':
             self.click_element(value, value.get('mods', ()), value.get('button', 'left'), bool(value.get('double')))
         elif kind == 'click_world':

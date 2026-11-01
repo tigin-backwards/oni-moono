@@ -367,7 +367,8 @@ step. The original run itself records it and passes.
   it exists and its size holds for a second (`wait`, default 60 s), and compares it as a
   `world_shot` (5 %; sizes more than 2 px apart fail).
 - `expect_exit: {seconds: 120, code: 0}` waits for the player to quit by itself (Quit to
-  Desktop), with that exit code (`null` for any). Only steps that need no player may follow:
+  Desktop), with that exit code (`null` for any). The click that quits says `quits: true`, so
+  E2eDriver going away during its last frames is not a failure. Only steps that need no player may follow:
   `file_shot` and `expect_state` on `file:` paths. The run then needs no live player at its end.
 
 - `shot` moves the pointer to the bottom-right corner first, then takes the whole frame through
