@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3048357236-liquid-pumping-auto-bottle.yaml",
+ "mods": [
+  "3048357236"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Pitcher Pump's user menu (dumped): Disallow Auto Bottle turns into Allow Auto Bottle",
+ "updated": "2026-11-01",
+ "commit": "809e165a",
+ "mod_dlls": {
+  "3048357236": {
+   "Isu.OniMods.LiquidPumpAutoBottle.dll": "8440d7b2f65484fd63bcd5ef61f7286fca58acac43a9a5d554d4926afba4f3eb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032714-f98abda9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:27:15",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-120327-789074f3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:03:27",
+    "lane": 35,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-120327-789074f3",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:05:17",
+    "lane": 35,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
