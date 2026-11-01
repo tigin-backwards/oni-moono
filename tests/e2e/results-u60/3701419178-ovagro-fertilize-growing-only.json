@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3701419178-ovagro-fertilize-growing-only.yaml",
+ "mods": [
+  "3701419178"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Prehistoric colony loads with its two VineBranch patches; two minutes of play",
+ "updated": "2026-11-01",
+ "commit": "f7fcc347",
+ "mod_dlls": {
+  "3701419178": {
+   "OvagroTinkerOnLastSegmentOnly.dll": "9e2e3fb1fc16b5ca175d4eeaa042690e55433848f76d2bd68ea4876aefd27af1"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-223506-a7565501",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:35:07",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010815-16323914",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:08:15",
+    "lane": 35,
+    "reference_run": "20261031-223506-a7565501",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-010815-16323914",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:13:57",
+    "lane": 35,
+    "reference_run": "20261031-223506-a7565501",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
