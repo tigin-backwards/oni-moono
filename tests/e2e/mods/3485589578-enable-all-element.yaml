@@ -1,0 +1,19 @@
+# Enable All Element (3485589578), classes P, E (elements).
+#
+# What it does: every hidden or disabled element (abandoned, preserved and unused substances)
+# is loaded as a usable one, and every resource counts as discovered: patches on
+# ElementLoader.CollectElementsFromYAML and CopyEntryToElement, and a prefix on
+# DiscoveredResources.IsDiscovered that answers true.
+# How a player reaches it: the resources list, the codex, material pickers.
+# What changes: all elements available (the mod warns of odd behaviour).
+#
+# Algae, not discovered in early-base, counts as discovered; the elements loaded are as many as
+# in the original; the colony runs on.
+from: early-base
+mods: [3485589578]
+steps:
+  - expect_state:
+      "DiscoveredResources.Instance.IsDiscovered(\"Algae\")": true
+      "ElementLoader.elements.Count": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

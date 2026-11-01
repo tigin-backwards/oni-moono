@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3485589578-enable-all-element.yaml",
+ "mods": [
+  "3485589578"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "algae, not discovered in early-base, counts as discovered; the elements loaded are as many as in the original; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "ae37abd7",
+ "mod_dlls": {
+  "3485589578": {
+   "EnableAllElement.dll": "5a856951591d72073999ef62310982ada13190525d14a70b0a62ea9fa3e9b633"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014426-dd59a92f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:53:03",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-020757-efb8ae56",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:07:57",
+    "lane": 45,
+    "reference_run": "20261101-014426-dd59a92f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-020757-efb8ae56",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:09:08",
+    "lane": 42,
+    "reference_run": "20261101-014426-dd59a92f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
