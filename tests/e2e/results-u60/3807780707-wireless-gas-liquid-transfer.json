@@ -1,0 +1,62 @@
+{
+ "spec": "mods/3807780707-wireless-gas-liquid-transfer.yaml",
+ "mods": [
+  "3807780707"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants both techs. The Ventilation menu lists the gas sender and receiver and the Plumbing menu the liquid ones (both shot)",
+ "updated": "2026-11-01",
+ "commit": "2018e684",
+ "mod_dlls": {
+  "3807780707": {
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70",
+   "WirelessGasPipe.dll": "dc23af2567f0509a6da7f968a65575ac5c50fd5ec9113899534c8f8bb13cf1b2"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:27:42",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:35:02",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "ventilation": 0.0,
+     "plumbing": 0.0
+    }
+   },
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:35:20",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "ventilation": 0.0,
+     "plumbing": 0.0
+    }
+   }
+  ]
+ }
+}
