@@ -70,7 +70,10 @@ namespace OniMoono.Desktop.Gl
         /// resync).
         int freeSlots;
         /// How long a present waits for its picture to be on its way before going on regardless.
-        /// A guard: a wait that long is not known to happen.
+        /// It does happen: on Windows 11 25H2 with an RTX 3090, a switch to borderless fullscreen
+        /// (from windowed, or from exclusive) and an outside display-mode change each logged
+        /// "not on its way after 1000 ms" once, a stall of about 1 s, then frames went on (the
+        /// cleanup QA of 2026-10-31, OpenGL and Vulkan, 1 in about 150 switches).
         const uint WaitMilliseconds = 1000;
 
         // COM objects (one reference each, released once in Dispose).
@@ -80,9 +83,9 @@ namespace OniMoono.Desktop.Gl
         bool tearing, occluded;
         int featureLevel;
         /// The waitable object's count may be off by pictures not waited for (its count before
-        /// the first Present, which Microsoft does not document; an occluded picture or a wait
-        /// that timed out, neither known to happen): taken down to nothing before the next
-        /// Present.
+        /// the first Present, which Microsoft does not document; a wait that timed out, seen on
+        /// mode switches (WaitMilliseconds); an occluded picture, which flip model is documented
+        /// never to report): taken down to nothing before the next Present.
         bool resync = true;
         int resizes, presents, waitTimeouts;
 
