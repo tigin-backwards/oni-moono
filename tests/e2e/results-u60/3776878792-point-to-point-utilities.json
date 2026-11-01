@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3776878792-point-to-point-utilities.yaml",
+ "mods": [
+  "3776878792"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "early-base has a manual generator and an unpowered research station beside the printing pod; setup spawns copper ore by them. The generator's \"Wire: start\", then the research station's \"Wire: route\", lay wire blueprints between them; built, the research station is on the generator's circuit",
+ "updated": "2026-11-01",
+ "commit": "62469220",
+ "mod_dlls": {
+  "3776878792": {
+   "PLib.dll": "55ce409618e6d102a1bcd0298911f3df49dda9a94ee153d02403035a1d6101d6",
+   "PointToPointUtilities.dll": "5ca8e51095f5e843986ba1a824586eb90e871f360b2163086ccafdbd6ac560a3"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082806-3c2b3be2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:35:24",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-085217-ea1ccb60",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:52:17",
+    "lane": 44,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-085217-ea1ccb60",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:52:18",
+    "lane": 45,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
