@@ -3,12 +3,12 @@
  "mods": [
   "3460253861"
  ],
- "verdict": "pending",
- "why": "0 run(s) of ours against original run 20261031-214713-0ac1044b; 2 needed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
+ "note": "the Metal Refinery's rust-to-iron recipe exists with the mod's ingredients, results and time",
  "updated": "2026-10-31",
- "commit": "58a73e93",
+ "commit": "045b1429",
  "mod_dlls": {
   "3460253861": {
    "RustRecipeTable.dll": "aee0dfbf9e5153d2d0bea3e88d6ddb448e43935c14d1728aee267222f29fd500"
@@ -25,6 +25,31 @@
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261031-223341-5472a997",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:33:41",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-223341-5472a997",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:39:41",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
  }
 }
