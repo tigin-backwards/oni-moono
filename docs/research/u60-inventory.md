@@ -19,11 +19,11 @@ Sources:
 | Version check | Done on `u60` and master: a Moono build names the game update it needs. |
 | Engine API | Done: ApiCheck back to the 13 known UI Toolkit members. |
 | UI packages | Done: `TMP_Text.SetCharArray(ReadOnlySpan<char>)` from the spec; package ApiCheck 0 missing. |
-| Game tweaks | Static review done (2 fixed, overlays left out where U60 does their work); runtime checks need a U60 player. |
+| Game tweaks | Done: each tweak reviewed against the decomp diff (fast-anim-batches updated, fast-overlays and fast-overlay-textures retired, the rest unchanged) and run on U60: QA verify (U57, every tweak's verify mode) found no mismatches. |
 | Linux build | Done: frozen at `~/projects/oni-linux-761015`, DLC content copied (not linked) from the frozen Windows copy, test install `out/local-tools/u60orig`. |
 | Main menu and a save on U60 | Both: Linux (QA dogfood: menu, DeCrew and new game, all 13 scenarios clean) and Windows (frozen copy `E:\oni-builds\oni-win-761015`, RTX 3090, OpenGL 4.5: main menu, DeCrew loaded and dismissed its mod dialog, no errors). |
-| Performance | Windows, focused (see Performance): ours 64.9 fps against the original's 11.9 on U60 (about 5.5×). Linux, 2026-10-31: the save tweaks, fast-jobs, fast-anim-events and fast-conveyor-paths still pay; the other exact tweaks' gains are below what this machine resolves now. Frame rates do not compare: the machine was GPU-bound at about 6 fps in every configuration, U59 included. | Peak memory: see Memory.
-| QA and e2e on U60 | QA: unit and all 13 dogfood scenarios pass (references blessed from a reviewed U60 run); verify (U57, every tweak's verify mode) ran 840 game seconds with no mismatches and no errors logged. e2e: not yet run. |
+| Performance | Windows, focused (see Performance): ours 64.9 fps against the original's 11.9 on U60 (about 5.5×). Linux, 2026-10-31: the save tweaks, fast-jobs, fast-anim-events and fast-conveyor-paths still pay; the other exact tweaks' gains are below what this machine resolves now. Frame rates do not compare: the machine was GPU-bound at about 6 fps in every configuration, U59 included, from a WSL update (see Performance). | Peak memory: see Memory.
+| QA and e2e on U60 | QA: unit and all 13 dogfood scenarios pass (references blessed from a reviewed U60 run); verify (U57, every tweak's verify mode) ran 840 game seconds with no mismatches and no errors logged. e2e: the specs of mods already covered on U59 were not re-run (the user's call: they were for parity confidence, and U59 or U60 makes no difference to a mod that didn't break). Mods new to the table are played on U60 (`tests/e2e/results-u60`), and only mods onimaxxing reviewed in the exact upload are installed (`scripts/mod-gate.py`). |
 
 ## The build
 
@@ -127,6 +127,12 @@ save loaded by PerfProbe's load.txt (colony up at frame 124), and the QA perf ha
     probably to place the IME candidate window. To be measured on Windows before anything is
     specified (relates to issue #30).
 
+Testing and parity for U60 were closed on 2026-11-01 (the user's call). Left out then: a runtime
+run of a loose-file Workshop mod, a Linux tweaks on/off frame-rate comparison on a working GPU, a
+Windows U60 against U59 re-measure after the canvas fix, and measuring whether Unity's TMP skips
+an unchanged `SetCharArray`. Real-hardware Linux Vulkan can't be tested here (WSL only), and the
+merge into master waits for U60 to ship.
+
 ## Host and platform items from the patch notes
 
 - **Steam's loose-file mod format:**
@@ -134,7 +140,7 @@ save loaded by PerfProbe's load.txt (colony up at frame 124), and the QA perf ha
     from the legacy zip. It re-downloads corrupt items.
   - Our hooks still match: `KMod.DLLLoader.LoadDLLs` has one `Assembly.LoadFrom` (ModAccess's
     transpiler), and `KMod.Local.Subscribe` is unchanged (ModVersionStamp).
-  - A loose-file Workshop mod still needs a runtime check.
+  - A loose-file Workshop mod was not run at runtime (left out when testing closed).
 - **VYaml 1.2 to 1.4:** loaded from the game's `Managed` folder with no special handling. POI
   templates now go through it, so new-game worldgen covers it at runtime. Verified: QA's newgame
   scenario generates a world on U60 with no errors and matches its references (2026-10-31).
@@ -205,10 +211,12 @@ runs (3,600 frames; the 600-frame windows after the first three), so treat the f
 - Runs with the window unfocused under `--background` (pointer pinned at (0,0), input ignored)
   came out 13–40% slower for ours (EventSystem.Update 0.2–0.8 ms against 0.02): frame rates are
   taken focused.
-- The UI canvas phase (post-late) is 2.3–2.6 ms a frame against 0.42 ms on 2026-10-22 (U59) in
-  both builds; when it grew is still to be bisected.
-- U60 is about 12% below U59 for ours in these short runs while the original is level; U60's
-  game code against Vulkan + DXGI is not yet separated.
+- The UI canvas phase (post-late) was 2.3–2.6 ms a frame against 0.42 ms on 2026-10-22 (U59) in
+  both builds. The cause was the hidden research screen being walked every frame; the walk now
+  skips it (4b6457bb, on both branches): on U59 post-late went to 0.5–0.6 ms and the frame rate
+  from 61–67 to 81–90 fps (PERFORMANCE.md). The U60 figures above predate that fix.
+- U60 was about 12% below U59 for ours in these short runs while the original was level; not
+  re-measured after the fix.
 
 The Linux numbers below are CPU-side direction only.
 
@@ -231,7 +239,9 @@ was no different (GL thread 153 ms, the same uploads, `Game.Update` 21.5 ms), ag
 in QA's perf runs on 2026-10-23/24. So every configuration below ran at about 6 fps and the
 frame rates say nothing about the tweaks or the players; the main thread's own time (the
 engine's `--frame-stats`, at the same frame rate in every run), PerfProbe's stopwatches, the
-autosave freeze and the load are CPU-bound and do compare. Frame rates need a rerun on a
+autosave freeze and the load are CPU-bound and do compare. The cause, found later: a WSL
+auto-update to 3.0.3 (kernel 6.18.54.1) made Mesa d3d12 texture uploads about 10 times slower
+(microsoft/WSL#41756); back on WSL 2.7.14 the same lane runs at about 45–60 fps. Frame rates need a rerun on a
 machine whose GPU clocks up (Windows, or this one once it does).
 
 | U57, Linux | Frame rate | Frame time p50 / p95 / p99 | Load average (start; mean) |
