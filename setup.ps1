@@ -24,7 +24,7 @@ function Find-Game {
     if (-not $steam) { return $null }
     $folders = Join-Path $steam 'steamapps\libraryfolders.vdf'
     if (-not (Test-Path $folders)) { return $null }
-    foreach ($line in Get-Content $folders) {
+    foreach ($line in Get-Content -Encoding UTF8 -LiteralPath $folders) {
         if ($line -match '^\s*"path"\s*"(.*)"\s*$') {
             $dir = Join-Path ($Matches[1] -replace '\\\\', '\') 'steamapps\common\OxygenNotIncluded'
             if (Test-Path (Join-Path $dir 'OxygenNotIncluded_Data')) { return $dir }
