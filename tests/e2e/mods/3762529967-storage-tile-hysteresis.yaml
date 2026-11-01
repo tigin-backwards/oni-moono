@@ -1,0 +1,26 @@
+# 储物砖延迟补充 (Storage Tile hysteresis) (3762529967), class S (a user menu button on a
+# vanilla building).
+#
+# What it does: Storage Tiles get a user menu toggle (未启用 / 已启用): enabled, Duplicants refill
+# a tile only once its stock falls below a threshold (a PLib option, 25% by default) and then
+# fill it up (a prefix on FilteredStorage.OnFilterChanged); its icons are added to the user
+# menu's sprites.
+# How a player reaches it: selecting a Storage Tile; its user menu.
+# What changes: storage tiles refill in batches.
+#
+# setup places a Storage Tile in the corridor west of the printing pod (118,207): its user menu
+# (dumped) has the toggle off (未启用), and a click turns it on (已启用).
+from: early-base
+mods: [3762529967]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageTile\")", method: Build, args: [131770, Neutral, null, [Copper, Glass], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {StorageTile: 1}}
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: StorageTile}
+  - ui_wait: {path: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons", cond: stable}
+  - expect_state: {"selected:GetComponent<StorageTileHysteresis.StorageTileHysteresisComponent>.IsEnabled": false}
+  - ui_dump: {name: user-menu, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}
+  - click: {ui: "**/UserMenuScreen/Buttons/未启用Button"}
+  - expect_state: {"selected:GetComponent<StorageTileHysteresis.StorageTileHysteresisComponent>.IsEnabled": true}
