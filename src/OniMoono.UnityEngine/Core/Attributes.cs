@@ -123,6 +123,16 @@ namespace UnityEngine
         public string URL => helpUrl;
     }
 
+    /// Read for a mod's MonoBehaviours, which no MonoScript describes (ScriptInfo.DefaultOrder):
+    /// Unity's player orders them by it, as UnityProbe's execorder measured. Unsealed, as in
+    /// Unity's CoreModule.
+    public partial class DefaultExecutionOrder
+    {
+        private readonly int executionOrder;
+        public DefaultExecutionOrder(int order) { executionOrder = order; }
+        public int order => executionOrder;
+    }
+
     partial class AssetFileNameExtensionAttribute
     {
         public AssetFileNameExtensionAttribute(string preferredExtension, params string[] otherExtensions)

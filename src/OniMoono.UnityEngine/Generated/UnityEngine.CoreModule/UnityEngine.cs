@@ -86,6 +86,10 @@ namespace UnityEngine
     public partial class Debug
     {
     }
+    [global::System.AttributeUsage(global::System.AttributeTargets.Class)]
+    public partial class DefaultExecutionOrder : global::System.Attribute
+    {
+    }
     [global::System.Flags]
     public enum DepthTextureMode
     {
