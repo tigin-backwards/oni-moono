@@ -1,0 +1,13 @@
+# AfterEscaping (3765878881), class P (Spaced Out).
+#
+# What it does: an endless goal after the Temporal Tear: the tear becomes a target rockets'
+# hex cell collectors can gather from (RocketModuleHexCellCollector, TemporalTear patches).
+# How a player reaches it: rockets at the Temporal Tear.
+# What changes: something to do after escaping.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3765878881]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
