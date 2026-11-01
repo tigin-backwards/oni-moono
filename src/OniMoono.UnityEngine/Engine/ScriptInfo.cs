@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using UnityEngine;
 
@@ -28,7 +29,8 @@ namespace OniMoono.Engine
         public Action<MonoBehaviour> OnCanvasGroupChanged, OnCanvasHierarchyChanged, OnDidApplyAnimationProperties;
         public Action<MonoBehaviour> OnBecameVisible, OnBecameInvisible;
 
-        /// Script execution order (MonoScript.m_ExecutionOrder); 0 unless the project sets one.
+        /// Script execution order: the MonoScript's m_ExecutionOrder, or for a type without one (a
+        /// mod's) its [DefaultExecutionOrder], inherited; 0 when neither sets one.
         public int ExecutionOrder;
 
         static readonly ConcurrentDictionary<Type, ScriptInfo> cache = new();
@@ -45,7 +47,7 @@ namespace OniMoono.Engine
         static ScriptInfo Build(Type type)
         {
             var info = new ScriptInfo(type);
-            info.ExecutionOrder = executionOrders.TryGetValue(type.FullName ?? type.Name, out var order) ? order : 0;
+            info.ExecutionOrder = executionOrders.TryGetValue(type.FullName ?? type.Name, out var order) ? order : DefaultOrder(type);
             info.Awake = Void(type, "Awake");
             info.OnEnable = Void(type, "OnEnable");
             info.OnDisable = Void(type, "OnDisable");
@@ -81,6 +83,24 @@ namespace OniMoono.Engine
             var renderImage = Find(type, "OnRenderImage", [typeof(RenderTexture), typeof(RenderTexture)]);
             if (renderImage != null) info.OnRenderImage = Bind<Action<MonoBehaviour, RenderTexture, RenderTexture>>(renderImage, nameof(Thunks.Action2));
             return info;
+        }
+
+        /// A type no MonoScript describes (one from an assembly loaded at runtime) takes its order
+        /// from [DefaultExecutionOrder], its base classes' included. Measured in the original
+        /// player (UnityProbe's execorder): a mod's -1000 and 1000 types, and a subclass of the
+        /// -1000 one, run FixedUpdate, Update and LateUpdate in that order around unmarked ones,
+        /// and an object's Awake and OnEnable go by it too; Starts of separate objects do not.
+        static int DefaultOrder(Type type)
+        {
+            try
+            {
+                return Attribute.GetCustomAttribute(type, typeof(DefaultExecutionOrder), true) is DefaultExecutionOrder a ? a.order : 0;
+            }
+            catch (Exception e) when (e is TypeLoadException or FileNotFoundException or CustomAttributeFormatException)
+            {
+                // Another of the type's attributes cannot be loaded: no order read.
+                return 0;
+            }
         }
 
         const BindingFlags Declared = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;

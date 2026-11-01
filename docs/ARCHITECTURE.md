@@ -1345,7 +1345,9 @@ citing why.
   - Exceptions in a message are logged through `Debug.LogException` and do not stop the frame,
     as in Unity.
 - **Script execution order** comes from `MonoScript.m_ExecutionOrder` in
-  `globalgamemanagers.assets`; within one order, update order is the order components' activation
+  `globalgamemanagers.assets`, and for a type no MonoScript describes (a mod's) from its
+  `[DefaultExecutionOrder]`, inherited, as Unity's player applies it (UnityProbe's execorder);
+  within one order, update order is the order components' activation
   began (or they were enabled later), matching Unity's behaviour list. Pending `Start` calls are not sorted by it: they run in
   the order the behaviours were scheduled (became active and enabled), as Unity's delayed-call
   queue does.
