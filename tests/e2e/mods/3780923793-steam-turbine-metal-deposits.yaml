@@ -1,0 +1,21 @@
+# Steam Turbine Metal Deposits / 蒸汽涡轮冷凝金属 (3780923793), class P.
+#
+# What it does: Steam Turbines recover tiny deposits of refined metal from the steam they
+# condense (a component added on KPrefabID.OnSpawn, picking a metal by weighted chance; options
+# of its own).
+# How a player reaches it: a working Steam Turbine.
+# What changes: a little metal from steam power.
+#
+# setup builds a Steam Turbine in the dug-out corridor west of the printing pod; it stands with
+# the mod's component, as in the original, and the colony runs on.
+from: early-base
+mods: [3780923793]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SteamTurbine2\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {SteamTurbine2: 1}}
+  - expect_state:
+      "all:SteamTurbine::[0].GetComponents<KMonoBehaviour>.Length": "== original"
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3780923793-steam-turbine-metal-deposits.yaml",
+ "mods": [
+  "3780923793"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Steam Turbine in the dug-out corridor west of the printing pod; it stands with the mod's component, as in the original, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "afb92b3b",
+ "mod_dlls": {
+  "3780923793": {
+   "SteamTurbineCondensedMetals.dll": "95945b1fdbfbca718afc47102d5642335cc06a13512938c4841d714a4744afa6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014426-dd59a92f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:56:59",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-050355-626da32c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:03:55",
+    "lane": 43,
+    "reference_run": "20261101-014426-dd59a92f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-050355-626da32c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:04:51",
+    "lane": 41,
+    "reference_run": "20261101-014426-dd59a92f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
