@@ -1,0 +1,24 @@
+# Rocket Flight Planning (3822936830), classes S, V (Spaced Out).
+#
+# What it does: multi-stop rocket flights on the starmap. Every rocket (ClustercraftConfig's
+# prefab) gets a RocketRoute that, each second, sends the rocket on to the next stop once it
+# has waited its cycles at the current one; in the starmap's destination mode, Shift-clicks
+# queue stops (drawn by a RouteDrawer the patched ClusterMapScreen.OnShow adds) and a click
+# on the last one finishes the route; a PLib side screen (RouteSideScreen) lists the stops
+# and their waits.
+# How a player reaches it: a rocket's starmap destination, with Shift; its side screen.
+# What changes: rockets that fly routes.
+#
+# The early-base colony has no rocket. The rocket prefab carries the route, and opening the
+# starmap adds the route drawer to the starmap screen.
+from: early-base
+mods: [3822936830]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"Clustercraft\").GetComponent<RocketRoutes.RocketRoute>": exists
+  - open: {key: Z}
+  - expect_state:
+      "ClusterMapScreen.Instance.gameObject.activeInHierarchy": true
+  - expect_state:
+      "ClusterMapScreen.Instance.GetComponent<RocketRoutes.RouteDrawer>": exists
+  - key: {code: Escape}
