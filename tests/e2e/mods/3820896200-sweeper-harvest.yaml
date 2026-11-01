@@ -14,8 +14,8 @@
 # setup grants Smart Storage, gives two Duplicants the Mechatronics Engineering skill an
 # Auto-Sweeper takes to build, spawns steel, and plants a ripe wild Mealwood on the floor west
 # of the outhouse; the options pick AllRipe (a wild plant is not set to be harvested, so no
-# Duplicant harvests it either). A sweeper is built east of the plant, and a wire dragged from
-# it to the manual generator east of the printing pod. With the checkbox clear the plant stays ripe;
+# Duplicant harvests it either). A sweeper is built east of the plant, wired by OniMcp to a
+# power source. With the checkbox clear the plant stays ripe;
 # ticked, the sweeper harvests it.
 from: early-base
 mods: [3820896200]
@@ -31,18 +31,10 @@ setup:
   - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
   - driver: {setup.call: {target: "last:GetComponent<Growing>", method: OverrideMaturityLevel, args: [1.0]}}
 steps:
-  - build: {prefab: SolidTransferArm, at: [113, 206], material: Steel}
-  # A wire dragged with the build tool from the sweeper's cell (it stands at 114,206) up and
-  # east along the corridor to the generator's power port (129,207): a drag connects its
-  # pieces, single blueprints do not.
-  - driver: {camera.set: {cell: [121, 208], ortho: 10}}
-  - click: {ui: "**/PlanScreen/Toggle:Power"}
-  - ui_wait: {path: "**/BuildingGroups/**/Grid/Wire Group*", cond: stable}
-  - click: {ui: "**/BuildingGroups/**/Grid/Wire Group*"}
-  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
-  - drag: {from: [114, 206], via: [[114, 207]], to: [129, 207]}
-  - key: {code: Escape}
-  - expect: {blueprints: {SolidTransferArm: 1, Wire: 17}}
+  # OniMcp wires the sweeper to a power source (wire: true): blueprints dragged with the build
+  # tool or placed one by one did not connect here.
+  - build: {prefab: SolidTransferArm, at: [113, 206], material: Steel, wire: true}
+  - expect: {blueprints: {SolidTransferArm: 1, Wire: ">= 1"}}
   - run: {seconds: 1200, until: {buildings: {SolidTransferArm: 1}, pending_construction: 0}}
   - expect_state:
       "last:GetComponent<Growing>.IsGrown()": true

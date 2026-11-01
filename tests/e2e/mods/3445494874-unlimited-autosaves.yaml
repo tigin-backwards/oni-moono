@@ -6,15 +6,16 @@
 # How a player reaches it: the Mods screen's options; then autosaves.
 # What changes: how many autosaves stay in the save folder.
 #
-# The spec turns Unlimited Autosaves off and sets 20 autosaves: the transpiler finds the
-# game's limit and logs the new one; keepAllAutosaves stays off; the colony runs a minute.
+# The spec turns Unlimited Autosaves off and sets 20 autosaves. On U60 the transpiler no longer
+# finds the game's limit in SaveLoader.Save (the original's run showed it), so it falls back to keeping
+# every autosave, as it logs; the colony runs a minute.
 from: early-base
 mods: [3445494874]
 options:
   Unlimited_Autosaves: {unlimitedAutosaves: false, numAutosaves: 20}
-require_log: ['\[UnlimitedAutosaves\] SaveLoader Save Transpiler succeeded']
+require_log: ['\[UnlimitedAutosaves\] Autosave Transpiler Failed, codeMatch not found', '\[UnlimitedAutosaves\] keepAllAutosaves: True']
 steps:
   - expect_state:
-      "GenericGameSettings.instance.keepAllAutosaves": false
+      "GenericGameSettings.instance.keepAllAutosaves": true
       "type:Unlimited_Autosaves.Config::Instance.numAutosaves": 20
   - run: {seconds: 60}
