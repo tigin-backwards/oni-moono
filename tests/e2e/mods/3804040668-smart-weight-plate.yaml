@@ -1,0 +1,40 @@
+# Smart Weight Plate (3804040668), classes B, S.
+#
+# What it does: adds the Smart Weight Plate (SmartWeightPlate, a 1x1 refined-metal tile in the
+# Automation menu beside the Weight Plate, researched with Computing / LogicCircuits). It
+# weighs what lies or stands on it (solids, debris, critters, Duplicants) and sends a green
+# signal once the weight reaches its high threshold (100 kg) and red again once it falls to
+# its low one (10 kg), like a smart battery; Invert swaps them. Its side screen is the game's
+# activation range screen (ActiveRangeSideScreen, patched to show kilograms).
+# How a player reaches it: the build menu (Automation); the built plate's side screen.
+# What changes: weight plates with hysteresis.
+#
+# setup grants the research and spawns copper. The plate is built in the corridor west of the
+# printing pod and selected: it holds the 10 and 100 kg thresholds, and its side screen is
+# dumped.
+from: early-base
+mods: [3804040668]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicCircuits\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Copper\").substance", method: SpawnResource, args: [[111.5, 207.5, -12], 200, 300, 255, 0]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"LogicCircuits\").unlockedItemIDs": {contains: SmartWeightPlate}
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Automation"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/SmartWeightPlate Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/SmartWeightPlate Group*": {active: true}
+  - key: {code: Escape}
+  - build: {prefab: SmartWeightPlate, cells: [[114, 207]], material: Copper}
+  - expect: {blueprints: {SmartWeightPlate: 1}}
+  - run: {seconds: 1500, until: {buildings: {SmartWeightPlate: 1}, pending_construction: 0}}
+  - driver: {camera.set: {cell: [114, 208], ortho: 8}}
+  - click_world: {cell: [114, 207], select: SmartWeightPlate}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<SmartWeightPlate.SmartWeightPlate>.ActivateValue": 100
+      "selected:GetComponent<SmartWeightPlate.SmartWeightPlate>.DeactivateValue": 10
+      "selected:GetComponent<SmartWeightPlate.SmartWeightPlate>.IsSignalOn": false
+  - ui_dump: {name: side-screen, root: "**/DetailsScreen/SideScreen", mask_text: ['\d+(\.\d+)?']}
