@@ -70,6 +70,7 @@ namespace OniMoono.Desktop.Gl
         /// resync).
         int freeSlots;
         /// How long a present waits for its picture to be on its way before going on regardless.
+        /// A guard: a wait that long is not known to happen.
         const uint WaitMilliseconds = 1000;
 
         // COM objects (one reference each, released once in Dispose).
@@ -79,8 +80,9 @@ namespace OniMoono.Desktop.Gl
         bool tearing, occluded;
         int featureLevel;
         /// The waitable object's count may be off by pictures not waited for (its count before
-        /// the first Present, which Microsoft does not document; an occluded picture; a wait that
-        /// timed out): taken down to nothing before the next Present.
+        /// the first Present, which Microsoft does not document; an occluded picture or a wait
+        /// that timed out, neither known to happen): taken down to nothing before the next
+        /// Present.
         bool resync = true;
         int resizes, presents, waitTimeouts;
 
