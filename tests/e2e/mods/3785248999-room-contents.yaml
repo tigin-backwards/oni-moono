@@ -1,0 +1,25 @@
+# Room Contents (3785248999), classes S, V (PLib options).
+#
+# What it does: in the Rooms overlay, a left click (a SelectTool.OnLeftClickDown postfix) on
+# a cell of an enclosed space opens a panel listing everything in that cavity: its gases and
+# liquids with their masses, debris, items held in storage, and optionally a count of every
+# building, pipe, wire and ladder; it refreshes while open and closes when the overlay
+# changes (OverlayScreen.ToggleOverlay).
+# How a player reaches it: the Rooms overlay (F11), then a click in a room.
+# What changes: a room's whole inventory at a glance.
+#
+# The Rooms overlay is opened and the corridor west of the printing pod clicked: the panel
+# opens for that cavity; leaving the overlay closes it.
+from: early-base
+mods: [3785248999]
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [115, 208], ortho: 10}}
+  - open: {key: F11}
+  - ui_wait: {path: "**/TopRight/OverlayLegend", cond: stable}
+  - click_world: {cell: [116, 208]}
+  - expect_state:
+      "type:RoomContents.RoomContentsPanel::Instance.IsOpen": true
+  - open: {key: F11}
+  - expect_state:
+      "type:RoomContents.RoomContentsPanel::Instance.IsOpen": false
