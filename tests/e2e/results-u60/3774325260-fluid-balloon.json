@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3774325260-fluid-balloon.yaml",
+ "mods": [
+  "3774325260"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "08c86bad",
+ "mod_dlls": {
+  "3774325260": {
+   "MiniStorage.dll": "7873d7fef2072c21012b1587d4e4bf352c9b91815e93b565193b29d143a91296"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-051213-a3c25292",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:12:13",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-115032-76832ac4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:50:32",
+    "lane": 36,
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-115032-76832ac4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:53:01",
+    "lane": 36,
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
