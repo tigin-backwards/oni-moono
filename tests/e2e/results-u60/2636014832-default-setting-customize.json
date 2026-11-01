@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2636014832-default-setting-customize.yaml",
+ "mods": [
+  "2636014832"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "d785bdc9",
+ "mod_dlls": {
+  "2636014832": {
+   "DefaultSettingCustomize.dll": "159e8b4195c86a888966b77fb8ced2cc6776b10358c8f444bf1e4fedde56e6a9"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034242-c7177ccf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:48:09",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-113852-21741d18",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:38:52",
+    "lane": 35,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-113852-21741d18",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:41:01",
+    "lane": 35,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
