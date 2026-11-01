@@ -1,0 +1,37 @@
+# Clockmaker's Collection (Decor) (3808168410), class B.
+#
+# What it does: decor clocks in the Furniture menu's decor group, researched with Interior
+# Decor: a grandfather clock, cuckoo clocks, a carriage clock, an anniversary clock, a portico
+# clock, a plain clock and a mantel shelf, with anims of their own (loaded through a patch on
+# KAnimGroupFile.Load); some need winding (a status of their own).
+# How a player reaches it: the build menu (Furniture), after the research.
+# What changes: decor with a ticking face.
+#
+# setup grants Fine Art and builds a grandfather clock in the dug-out corridor west of the
+# printing pod. The clocks show in the Furniture menu; selected, its details screen is dumped,
+# and the colony runs on.
+from: early-base
+mods: [3808168410]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FineArt\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CMC_GrandfatherClock\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"FineArt\").unlockedItemIDs": {contains: CMC_GrandfatherClock}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CMC_GrandfatherClock Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/CMC_GrandfatherClock Group*": {active: true}
+      "**/BuildingGroups/**/Grid/CMC_CuckooClock Group*": {active: true}
+      "**/BuildingGroups/**/Grid/CMC_CarriageClock Group*": {active: true}
+      "**/BuildingGroups/**/Grid/CMC_MantelShelf Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: CMC_GrandfatherClock}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3808168410-clockmakers-collection.yaml",
+ "mods": [
+  "3808168410"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Interior Decor and builds a grandfather clock in the dug-out corridor west of the printing pod. The clocks show in the Furniture menu; selected, its details screen is dumped, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "225d39b6",
+ "mod_dlls": {
+  "3808168410": {
+   "ClockmakersCollection.dll": "7befc4df5ce0b99d937b243bb6518b48bbf48c9fcadd7508eef9fad3f2b310f8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-073756-2a3320d7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:55:52",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-100459-f1474960",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:04:59",
+    "lane": 44,
+    "reference_run": "20261101-073756-2a3320d7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-100459-f1474960",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:05:00",
+    "lane": 45,
+    "reference_run": "20261101-073756-2a3320d7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
