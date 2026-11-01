@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3802029308-bigger-planets.yaml",
+ "mods": [
+  "3802029308"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "37ea2df4",
+ "mod_dlls": {
+  "3802029308": {
+   "BiggerPlanets.dll": "11d041a57a1cbebda94d4173f9aa9a5a56edae07e8fb2be9a4d035df2ed5b01d",
+   "PLib.dll": "55ce409618e6d102a1bcd0298911f3df49dda9a94ee153d02403035a1d6101d6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-070700-31a00fb4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:07:00",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-105151-d8994815",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:51:51",
+    "lane": 36,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-105151-d8994815",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:59:33",
+    "lane": 36,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
