@@ -1,4 +1,4 @@
-# scripts/mod-sweep.py u60-3047: 127 mods, batches of 12, the save 2minnow, 90 s of play; commit 909fc1d0, 2026-11-01
+# scripts/mod-sweep.py u60-3047: 139 mods, batches of 12, the save 2minnow, 90 s of play; commit 3986d683, 2026-11-01
 id	rank	original	ours	note
 3821093288	2079	ok	ok	
 3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
@@ -127,3 +127,15 @@ id	rank	original	ours	note
 3666034876	2442	ok	ok	
 2607108385	2443	ok	ok	
 3455898860	2444	ok	ok	
+3784311959	2445	ok	ok	
+3464348651	2447	ok	ok	
+3118366663	2448	ok	ok	
+3802814827	2449	ok	colony	step start: E2eDriver ui.wait {"path": "Canvas/ConfirmDialog", "cond": "gone", "frames": 120}: timeout: gone not met within 120 frames; ArgumentOutOfRangeException: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter "index") @ PlanScreen.RefreshToolTip; [ANTPL] 建造类别注册异常: System.IO.FileNotFoundException: Could not load file or assembly "System.Drawing.Common, Version=N.N, Culture=neutral, PublicKeyToken=ccNbNffcdNdddN". The system cannot find the file specified @ ArtificialNaturalTiles.BuildCategoryPatch.TryLoadSprite
+3764319223	2451	ok	ok	
+3773126839	2453	ok	ok	
+3625975736	2454	ok	ok	
+3789353358	2455	ok	ok	
+3048357236	2456	ok	ok	
+2799871913	2457	ok	ok	
+3798414576	2458	ok	ok	
+3559166624	2459	ok	ok	
