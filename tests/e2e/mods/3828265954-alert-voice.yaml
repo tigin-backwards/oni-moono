@@ -1,0 +1,13 @@
+# 警报语音 / Alert voice (3828265954), class P (sound).
+#
+# What it does: plays a pre-recorded Chinese voice line (offline, no text-to-speech) with each
+# alert the game raises.
+# How a player reaches it: alerts in the colony.
+# What changes: spoken alerts.
+#
+# The mod loads and the colony plays for 60 s.
+from: early-base
+mods: [3828265954]
+steps:
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
