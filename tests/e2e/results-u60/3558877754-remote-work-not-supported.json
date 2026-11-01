@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3558877754-remote-work-not-supported.yaml",
+ "mods": [
+  "3558877754"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3558877754": {
+   "RemoteWork.dll": "e37574340c56f4ae9b4a33be2dcd7e0bc4ed3ca3ce18b255fd23680265fce16c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-055458-7737530a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:01:19",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-130448-d8995c68",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:04:48",
+    "lane": 35,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-130448-d8995c68",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:06:08",
+    "lane": 35,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
