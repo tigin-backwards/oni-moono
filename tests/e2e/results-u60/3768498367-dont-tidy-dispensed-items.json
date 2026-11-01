@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3768498367-dont-tidy-dispensed-items.yaml",
+ "mods": [
+  "3768498367"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Storage Bin in the dug-out corridor west of the printing pod accepting sandstone, and drops sandstone from storage nearby (as an emptied bin does); after 300 s the dropped sandstone has not been carried into the bin",
+ "updated": "2026-11-01",
+ "commit": "9a5f2d06",
+ "mod_dlls": {
+  "3768498367": {
+   "DontTidyDispensedItems.dll": "6932c87ed589fb97e1c75c1a36f55f7b32ad72ae4c98c4d3360cc7acb435fdfc"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-064852-62246d7e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:01:02",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-075603-bc2eb375",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:56:03",
+    "lane": 44,
+    "reference_run": "20261101-064852-62246d7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-075603-bc2eb375",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:01:04",
+    "lane": 42,
+    "reference_run": "20261101-064852-62246d7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
