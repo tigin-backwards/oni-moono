@@ -1,0 +1,16 @@
+# No Sneeze Curry (3765323226), class P.
+#
+# What it does: a postfix on Db.Initialize removes the Sneezyness modifiers from the HotStuff
+# effect Curried Beans give, keeping its other modifiers.
+# How a player reaches it: eating Curried Beans.
+# What changes: curry without sneezing.
+#
+# The HotStuff effect has no Sneezyness modifier left, as the mod logs, and keeps the others.
+from: early-base
+mods: [3765323226]
+require_log: ['\[ONIMod\] Removed Sneezyness modifier from HotStuff effect']
+steps:
+  - expect_state:
+      "count:Db.Get().effects.Get(\"HotStuff\").SelfModifiers[*] if .AttributeId == Sneezyness": 0
+      "Db.Get().effects.Get(\"HotStuff\").SelfModifiers.Count": [">= 1", "== original"]
+  - run: {seconds: 5}
