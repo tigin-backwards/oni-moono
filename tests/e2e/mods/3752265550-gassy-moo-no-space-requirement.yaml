@@ -1,0 +1,24 @@
+# Gassy Moo No Space Requirement (3752265550), class P (PLib options).
+#
+# What it does: a postfix on BeckoningMonitor.Instance.IsSpaceVisible always answers true, so
+# a Gassy Moo beckons for a new moo from the starmap without seeing space; prefixes on
+# IsReadyToBeckon and UpdateBlockedStatusItem scale the modifiers of its Accu-Moo-lation
+# meter by its option (AccuMoolationRate, 1.0 by default) and log what they scaled.
+# How a player reaches it: Gassy Moos kept indoors; the mod's options on the Mods screen.
+# What changes: moos that call for company underground, at a chosen rate.
+#
+# With the rate set to 2, a Gassy Moo spawned in the corridor west of the printing pod, deep
+# underground, has its Accu-Moo-lation modifiers doubled as it is checked while the colony
+# runs.
+from: early-base
+mods: [3752265550]
+options:
+  "3752265550": {AccuMoolationRate: 2.0}
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131129, 0, 0, "Moo", "Creatures"]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+require_log: ['\[GassyMooRate\] Scaled .* -> .* \(rate=2\)']
+steps:
+  - run: {seconds: 60}
+  - expect_state:
+      "count:all:CreatureBrain::[*] if .gameObject.name == Moo": 1

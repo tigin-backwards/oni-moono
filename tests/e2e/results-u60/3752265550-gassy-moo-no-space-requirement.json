@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3752265550-gassy-moo-no-space-requirement.yaml",
+ "mods": [
+  "3752265550"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with the rate set to 2, a Gassy Moo spawned in the corridor west of the printing pod, deep underground, has its Accu-Moo-lation modifiers doubled as it is checked while the colony runs",
+ "updated": "2026-10-31",
+ "commit": "638f3abf",
+ "mod_dlls": {
+  "3752265550": {
+   "GassyMooNoSpaceRequirement.dll": "360427f149304ba5227709f8c1f37e210f43e0868ff1bd2c2350c3bfcf8a084c",
+   "PLib.dll": "893dc1ea3eddd02c85d433231aae356be27be07ddfc1a98fb2c51d84748208e8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-214422-a6bc97d0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:06:21",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-221209-53db458e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:29:36",
+    "lane": 54,
+    "reference_run": "20261031-214422-a6bc97d0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-221209-53db458e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:30:56",
+    "lane": 55,
+    "reference_run": "20261031-214422-a6bc97d0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
