@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3821991870-warehouse-room-mod.yaml",
+ "mods": [
+  "3821991870"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Smart Storage and builds a ledger in the dug-out corridor west of the printing pod. It shows in the Base menu; the loader and extractor are researched with Solid Transport; selected, the ledger's details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "3750e839",
+ "mod_dlls": {
+  "3821991870": {
+   "WarehouseLedgerMod.dll": "e293672242b9f9e952585ba70ff9470918821921aeb12ef37863f56c0cf099cc"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041850-de3664d6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:18:50",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112002-0890da43",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:20:02",
+    "lane": 44,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-112002-0890da43",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:20:03",
+    "lane": 45,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

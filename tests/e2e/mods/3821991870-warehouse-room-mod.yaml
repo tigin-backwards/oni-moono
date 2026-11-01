@@ -1,0 +1,33 @@
+# Warehouse Room Mod (3821991870), class B.
+#
+# What it does: room-scaled bulk storage: a Warehouse Ledger (WarehouseLedger, 2x2, Base menu's
+# storage, Smart Storage) placed in an enclosed room makes it a Warehouse whose capacity grows
+# with its size; a Warehouse Loader and Extractor (Conveyance, Solid Transport) feed it from
+# and to rails.
+# How a player reaches it: the build menus, after the research; a room.
+# What changes: storage by room instead of by bin.
+#
+# setup grants Smart Storage and builds a ledger in the dug-out corridor west of the printing
+# pod. It shows in the Base menu; the loader and extractor are researched with Solid Transport;
+# selected, the ledger's details screen is dumped.
+from: early-base
+mods: [3821991870]
+require_log: ['\[WarehouseLedgerMod\] Loaded successfully']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"SmartStorage\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"WarehouseLedger\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"SmartStorage\").unlockedItemIDs": {contains: WarehouseLedger}
+      "Db.Get().Techs.Get(\"SolidTransport\").unlockedItemIDs": [{contains: WarehouseLoader}, {contains: WarehouseExtractor}]
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/WarehouseLedger Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/WarehouseLedger Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: WarehouseLedger}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}
