@@ -6,10 +6,11 @@
 # How a player reaches it: an Orbital Cargo Module's filter side screen.
 # What changes: bottles can be dropped from orbit.
 #
-# The module's storage takes solids, food, liquids and gases.
+# The module's storage takes solids and food (as in the game) and liquids and gases (the
+# Liquid, Breathable and Unbreathable tags).
 from: early-base
 mods: [2460908134]
 steps:
   - expect_state:
-      "Assets.GetPrefab(\"OrbitalCargoModule\").GetComponent<Storage>.storageFilters": [{contains: Liquid}, {contains: Gas}, {contains: Edible}]
+      "Assets.GetPrefab(\"OrbitalCargoModule\").GetComponent<Storage>.storageFilters": [{contains: Liquid}, {contains: Breathable}, {contains: Unbreathable}, {contains: Edible}]
   - run: {seconds: 30}
