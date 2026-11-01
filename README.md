@@ -24,7 +24,7 @@ the engine rather than patching the game, it can't ship as an ordinary Harmony m
 setup script hooks it into the game's Steam launch options, so you still start the game from
 Steam as usual.
 
-### Easy installation (Windows and Linux)
+### Easy installation
 
 1. Download the latest release from the
    [releases page](https://github.com/tigin-backwards/oni-moono/releases/latest):
@@ -53,30 +53,42 @@ your home folder; the setup notices and installs the player inside the sandbox's
 You'll need an OpenGL 4.5 graphics driver. The game uses your normal Steam account, DLCs, saves,
 settings and mods.
 
-### Manual installation (Linux)
+### Manual installation
 
-We recommend using `setup.sh` (see above) for the easiest installation on most systems. If you want more control, need to customize the installation, or run a sandboxed environment and prefer not to run a script outside of that, follow these manual steps.
+We recommend using the setup script (see above) for the easiest installation on most systems. If
+you want more control, need to customize the installation, or run a sandboxed environment and
+prefer not to run a script outside of that, follow these manual steps. They don't include
+instructions on how to build the player from scratch; see the setup scripts for the build steps,
+or [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 <details>
-<summary>Show manual installation steps (Linux)</summary>
+<summary>Linux</summary>
 
-These steps don't include instructions on how to build the player from scratch. See `setup.sh` for the build steps, or [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+The example paths match those used by `setup.sh`, and we assume `~/Downloads/oni-moono/` as the
+location of the downloaded and extracted files. You can choose different paths, but update them
+consistently in the commands and Steam launch options below.
 
-The example paths match those used by `setup.sh`, and we assume `~/Downloads/oni-moono/` as the location of the downloaded and extracted files. You can choose different paths, but update them consistently in the commands and Steam launch options below.
+1. **Locate the game folder.** It must contain `OxygenNotIncluded` and
+   `OxygenNotIncluded_Data/Managed`. Common Steam library locations include:
 
-1. **Locate the game directory.** It must contain `OxygenNotIncluded` and `OxygenNotIncluded_Data/Managed`. Common Steam library locations include:
-
-   - Default Steam: `~/.steam/steam/steamapps/common/OxygenNotIncluded` or `~/.local/share/Steam/steamapps/common/OxygenNotIncluded`
+   - Default Steam: `~/.steam/steam/steamapps/common/OxygenNotIncluded` or
+     `~/.local/share/Steam/steamapps/common/OxygenNotIncluded`
    - Snap Steam: `~/snap/steam/common/.local/share/Steam/steamapps/common/OxygenNotIncluded`
-   - Flatpak Steam: `~/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/OxygenNotIncluded`
+   - Flatpak Steam:
+     `~/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/OxygenNotIncluded`
 
-   If the game is in another Steam library, use that library’s `steamapps/common/OxygenNotIncluded` directory instead. Confirm that `OxygenNotIncluded` is the Linux executable; a Windows installation via compatibility tools (Proton) will not work.
+   If the game is in another Steam library, use that library's `steamapps/common/OxygenNotIncluded`
+   folder instead. Confirm that `OxygenNotIncluded` is the Linux executable; a Windows installation
+   via compatibility tools (Proton) will not work.
 
-2. **Place the player where Steam can access it.** In the downloaded archive, the `player` folder should contain the `OniMoono` executable and its accompanying files.
+2. **Place the player where Steam can access it.** In the downloaded archive, the `player` folder
+   should contain the `OniMoono` executable and its accompanying files.
 
-   (The `rm -rf` commands in the following examples will remove a previous `player` folder, in case you are updating. Dangerous, be precise. Omit and use your GUI file manager if uncertain.)
+   (The `rm -rf` commands in the following examples remove a previous `player` folder, in case you
+   are updating. Check the path before running them, or use your file manager instead.)
 
-   For a regular Steam installation, you can leave the `player` folder where you extracted the archive (`setup.sh` does so), or copy it somewhere convenient:
+   For a regular Steam installation, you can leave the `player` folder where you extracted the
+   archive (`setup.sh` does so), or copy it somewhere convenient:
 
    ```bash
    # Default Steam
@@ -85,7 +97,8 @@ The example paths match those used by `setup.sh`, and we assume `~/Downloads/oni
    cp -rp "$HOME/Downloads/oni-moono/player" "$HOME/.local/bin/oni-moono/player"
    ```
 
-   Snap and Flatpak Steam run in sandboxes and may not be able to access files elsewhere in your home directory. Copy the player into Steam’s sandbox-visible location:
+   Snap and Flatpak Steam run in sandboxes and may not be able to access files elsewhere in your
+   home folder. Copy the player into Steam's sandbox-visible location:
 
    ```bash
    # Snap Steam
@@ -98,19 +111,22 @@ The example paths match those used by `setup.sh`, and we assume `~/Downloads/oni
    # Flatpak Steam
    mkdir -p "$HOME/.var/app/com.valvesoftware.Steam/data/oni-moono"
    rm -rf "$HOME/.var/app/com.valvesoftware.Steam/data/oni-moono/player"
-   cp -rp "$HOME/Downloads/oni-moono/player" "$HOME/.var/app/com.valvesoftware.Steam/data/oni-moono/player"
+   cp -rp "$HOME/Downloads/oni-moono/player" \
+     "$HOME/.var/app/com.valvesoftware.Steam/data/oni-moono/player"
    ```
 
-
-3. **Check the executable bit.** The player binary `OniMoono` must be executable. Set it if needed, using the path where you placed the player:
+3. **Check the executable bit.** The player binary `OniMoono` must be executable. Set it if needed,
+   using the path where you placed the player:
 
    ```bash
    chmod +x "$HOME/.local/bin/oni-moono/player/OniMoono"
    ```
 
-   For Snap or Flatpak, use the corresponding paths above. Check that the file exists and is executable with `ls -l`.
+   For Snap or Flatpak, use the corresponding paths above. Check that the file exists and is
+   executable with `ls -l`.
 
-4. **Set Steam’s launch options.** In Steam, right-click **Oxygen Not Included** → **Properties** → **Launch Options**. Enter one line, replacing the example path with the full path to your player:
+4. **Set Steam's launch options.** In Steam, right-click Oxygen Not Included → Properties → Launch
+   Options. Enter one line, replacing the example path with the full path to your player:
 
    ```text
    "/home/your-username/.local/bin/oni-moono/player/OniMoono" -- %command%
@@ -128,13 +144,48 @@ The example paths match those used by `setup.sh`, and we assume `~/Downloads/oni
    "/home/your-username/.var/app/com.valvesoftware.Steam/data/oni-moono/player/OniMoono" -- %command%
    ```
 
-   Replace `/home/your-username` with your actual home-directory path. Do not use a literal `~` or `$HOME` in the launch options. Keep the quotes around the executable path, especially if it contains spaces.
+   Replace `/home/your-username` with your actual home folder path. Do not use a literal `~` or
+   `$HOME` in the launch options. Keep the quotes around the executable path, especially if it
+   contains spaces.
 
-Press **Play** in Steam. If the game does not start, check that the launch-options path matches the player’s actual location, `OniMoono` has its execute bit set, and the game directory contains the Linux build. If that doesn't help, launch Steam from a terminal and watch the output for a hint after clicking **Play**.
+Press Play in Steam. If the game does not start, check that the launch options path matches the
+player's actual location, `OniMoono` has its execute bit set, and the game folder contains the
+Linux build. If that doesn't help, launch Steam from a terminal and watch the output for a hint
+after clicking Play.
 
 For updates, download the new release archive and repeat the steps, replacing the `player` folder.
 
-To remove OniMoono and return to the original game, remove the `player` folder from where you put it, and clear the launch options in Steam.
+To remove Moono and return to the original game, remove the `player` folder from where you put
+it, and clear the launch options in Steam.
+
+</details>
+
+<details>
+<summary>Windows</summary>
+
+1. **Place the player.** In the downloaded archive, the `player` folder contains `OniMoono.exe`
+   and its accompanying files. Copy it to `%LOCALAPPDATA%\oni-moono\player`, the location
+   `setup.ps1` uses (paste `%LOCALAPPDATA%` into Explorer's address bar to open it). You can
+   choose a different folder, but with this one, running the setup later keeps the same launch
+   options. In case you are updating, remove the previous `player` folder first.
+
+2. **Set Steam's launch options.** In Steam, right-click Oxygen Not Included → Properties → Launch
+   Options. Enter one line, replacing the example path with the full path to your player:
+
+   ```text
+   "C:\Users\your-username\AppData\Local\oni-moono\player\OniMoono.exe" -- %command%
+   ```
+
+   Replace `C:\Users\your-username` with your actual user folder path. Do not use
+   `%LOCALAPPDATA%` in the launch options. Keep the quotes around the executable path.
+
+Press Play in Steam. If the game does not start, check that the launch options path matches the
+player's actual location.
+
+For updates, download the new release archive and repeat the steps, replacing the `player` folder.
+
+To remove Moono and return to the original game, remove the `player` folder, and clear the launch
+options in Steam.
 
 </details>
 
