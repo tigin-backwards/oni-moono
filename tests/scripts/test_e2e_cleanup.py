@@ -263,6 +263,31 @@ time.sleep(120)
         self.assertIsNone(e2e.process_start(player))
 
 
+class SignalTeardown(unittest.TestCase):
+    def test_teardown_runs_when_the_signal_lands_inside_print(self):
+        # A signal that arrives while the main thread is inside print() makes a print from the
+        # handler raise RuntimeError (reentrant call into the buffered stdout). The handler must
+        # still tear down and exit 128 + signum: here every print raises, as it would then.
+        import builtins, signal as sig
+        from unittest import mock
+        saved = {s: sig.getsignal(s) for s in (sig.SIGTERM, sig.SIGINT, sig.SIGHUP)}
+        try:
+            e2e.install_teardown()
+            handler = sig.getsignal(sig.SIGTERM)
+            exits, torn = [], []
+
+            def reentrant(*a, **k):
+                raise RuntimeError("reentrant call inside <_io.BufferedWriter name='<stdout>'>")
+            with mock.patch.object(builtins, 'print', reentrant), \
+                 mock.patch.object(e2e, 'teardown_all', lambda log=None: torn.append(log)), \
+                 mock.patch.object(e2e.os, '_exit', exits.append):
+                handler(sig.SIGTERM, None)
+            self.assertEqual((len(torn), exits), (1, [128 + sig.SIGTERM]))
+        finally:
+            for s, h in saved.items():
+                sig.signal(s, h)
+
+
 class Status(unittest.TestCase):
     def test_compress_numbers(self):
         self.assertEqual(e2e.compress_numbers([5, 1, 2, 3, 9, 10]), '1-3, 5, 9-10')
