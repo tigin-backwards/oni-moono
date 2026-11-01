@@ -1,0 +1,28 @@
+# 棒棒糖（Lollipop） (3761681684), class B.
+#
+# What it does: adds a Lollipop (Lollipop, 1x2, the Furniture menu, researched with Food
+# Repurposing), a decor piece with a small storage of 4 kg.
+# How a player reaches it: the build menu (Furniture), after the research.
+# What changes: a sweet decor piece.
+#
+# setup grants Food Repurposing and builds a Lollipop in the dug-out corridor west of the
+# printing pod. It shows in the Furniture menu; selected, its details screen is dumped.
+from: early-base
+mods: [3761681684]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FoodRepurposing\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Lollipop\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"FoodRepurposing\").unlockedItemIDs": {contains: Lollipop}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/Lollipop Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/Lollipop Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: Lollipop}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}
