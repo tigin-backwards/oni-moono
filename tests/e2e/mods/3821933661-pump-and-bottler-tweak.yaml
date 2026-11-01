@@ -1,0 +1,16 @@
+# Pump & Bottler Tweak (手压泵与装桶器增强) (3821933661), class P.
+#
+# What it does: the Pitcher Pump gets 1000 kg of liquid storage and a liquid input on its right
+# walkable cell, and the Bottle Filler (LiquidBottler) fills 800 kg bottles instead of 200 kg
+# (its storage, conduit intake and bottler).
+# How a player reaches it: the two buildings, as before.
+# What changes: bigger bottles, a pump that takes pipes.
+#
+# The Bottle Filler's building stores 800 kg; the colony runs.
+from: early-base
+mods: [3821933661]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"LiquidBottler\").BuildingComplete.GetComponent<Storage>.capacityKg": 800
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
