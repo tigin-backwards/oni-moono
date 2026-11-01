@@ -1,0 +1,63 @@
+# I2 (docs/research/u60-qa-spec.md): the mouse wheel on sliders.
+#
+# U60's KSlider implements IScrollHandler: each wheel event moves the value one step up or down
+# a 16-step table chosen by the slider's range (Mathf.Ceil of the step for wholeNumbers), then
+# plays the move sound (PlayMoveSound). Our event system must hand the wheel to the slider, not
+# to the details screen's ScrollRect around it, with one event per notch.
+#
+# From early-base: setup builds a Temperature Sensor, a Timer Sensor and a Smart Storage Bin
+# (BuildingDef.Build with their default elements; the buildings are the test's furniture). Each
+# is selected with a click; the wheel turns +1, +3 and -2 notches over its slider's handle:
+# the threshold slider (fractional), the timer's green duration (fractional) and the bin's
+# activation and deactivation sliders (whole numbers). After each, the value is compared with
+# the original's, as are the side screen's scroll position and the move sound's call count.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicTemperatureSensor\")", method: Build, args: [{"$": "Grid.XYToCell(115, 207)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"LogicTemperatureSensor\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicTimerSensor\")", method: Build, args: [{"$": "Grid.XYToCell(116, 207)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"LogicTimerSensor\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLockerSmart\")", method: Build, args: [{"$": "Grid.XYToCell(117, 207)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"StorageLockerSmart\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {camera.set: {pos: [118.5, 209.5], ortho: 10}}
+  - driver: {count: {methods: ["KSlider:PlayMoveSound"]}}
+steps:
+  # The Temperature Sensor's threshold, in the details screen's scroll view.
+  - click_world: {cell: [115, 207], select: LogicTemperatureSensor}
+  - ui_wait: {path: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", cond: stable}
+  - expect_state:
+      "ui:**/DetailsScreen/SideScreen::GetComponentInChildren<KScrollRect>.verticalNormalizedPosition": {save_as: scroll}
+  - scroll: {at: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", notches: 1}
+  - expect_state: {"ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": "== original"}
+  - scroll: {at: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", notches: 3}
+  - expect_state: {"ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": "== original"}
+  - scroll: {at: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", notches: -2}
+  - expect_state:
+      "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": "== original"
+      "ui:**/DetailsScreen/SideScreen::GetComponentInChildren<KScrollRect>.verticalNormalizedPosition": ["== scroll", "== original"]
+  - ui_dump: {name: threshold, root: "**/ThresholdSwitchSideScreen/ValidContent"}
+  # The Timer Sensor's green duration.
+  - click_world: {cell: [116, 207], select: LogicTimerSensor}
+  - ui_wait: {path: "**/TimerSideScreen/Contents/GreenDurationSliderContainer/Slider/Handle Slide Area/Handle", cond: stable}
+  - scroll: {at: "**/TimerSideScreen/Contents/GreenDurationSliderContainer/Slider/Handle Slide Area/Handle", notches: 1}
+  - expect_state: {"ui:**/TimerSideScreen/Contents/GreenDurationSliderContainer/Slider::GetComponent<KSlider>.value": "== original"}
+  - scroll: {at: "**/TimerSideScreen/Contents/GreenDurationSliderContainer/Slider/Handle Slide Area/Handle", notches: 3}
+  - expect_state: {"ui:**/TimerSideScreen/Contents/GreenDurationSliderContainer/Slider::GetComponent<KSlider>.value": "== original"}
+  - scroll: {at: "**/TimerSideScreen/Contents/GreenDurationSliderContainer/Slider/Handle Slide Area/Handle", notches: -2}
+  - expect_state:
+      "ui:**/TimerSideScreen/Contents/GreenDurationSliderContainer/Slider::GetComponent<KSlider>.value": "== original"
+      "ui:**/DetailsScreen/SideScreen::GetComponentInChildren<KScrollRect>.verticalNormalizedPosition": "== original"
+  # The Smart Storage Bin's activation range, whole numbers.
+  - click_world: {cell: [117, 207], select: StorageLockerSmart}
+  - ui_wait: {path: "**/ActivationRangeSideScreen/Sliders/Dactivate/Slider/Handle Slide Area/Handle", cond: stable}
+  - scroll: {at: "**/ActivationRangeSideScreen/Sliders/Dactivate/Slider/Handle Slide Area/Handle", notches: 1}
+  - expect_state: {"ui:**/ActivationRangeSideScreen/Sliders/Dactivate/Slider::GetComponent<KSlider>.value": "== original"}
+  - scroll: {at: "**/ActivationRangeSideScreen/Sliders/Dactivate/Slider/Handle Slide Area/Handle", notches: 3}
+  - expect_state: {"ui:**/ActivationRangeSideScreen/Sliders/Dactivate/Slider::GetComponent<KSlider>.value": "== original"}
+  - scroll: {at: "**/ActivationRangeSideScreen/Sliders/Dactivate/Slider/Handle Slide Area/Handle", notches: -2}
+  - expect_state: {"ui:**/ActivationRangeSideScreen/Sliders/Dactivate/Slider::GetComponent<KSlider>.value": "== original"}
+  - scroll: {at: "**/ActivationRangeSideScreen/Sliders/Activate/Slider/Handle Slide Area/Handle", notches: -2}
+  - expect_state: {"ui:**/ActivationRangeSideScreen/Sliders/Activate/Slider::GetComponent<KSlider>.value": "== original"}
+  - scroll: {at: "**/ActivationRangeSideScreen/Sliders/Activate/Slider/Handle Slide Area/Handle", notches: 1}
+  - expect_state:
+      "ui:**/ActivationRangeSideScreen/Sliders/Activate/Slider::GetComponent<KSlider>.value": "== original"
+      "ui:**/DetailsScreen/SideScreen::GetComponentInChildren<KScrollRect>.verticalNormalizedPosition": "== original"
+      'E2eDriver.Counting.Of("KSlider:PlayMoveSound")': "== original"
+  - ui_dump: {name: activation, root: "**/ActivationRangeSideScreen/Sliders"}

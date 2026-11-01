@@ -523,6 +523,9 @@ button number). Windows needs a separate manual check with a five-button mouse.
 
 ### I2 Mouse wheel on sliders
 
+**Status:** passes (436e1fce, OpenGL; Windows: pending). `tests/e2e/u60/i2-slider-wheel.yaml`:
+all 15 values, the side screen's scroll position and the 21 move sounds equal the original's.
+
 **Risk: high.**
 
 **Patch note:** "The mouse wheel can now be used to adjust sliders."
