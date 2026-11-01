@@ -1,0 +1,17 @@
+# 地爆天星 / Extinction (3544012910), class P (Prehistoric Planet Pack).
+#
+# What it does: Demolior, the Prehistoric Planet Pack's large impactor, digs deeper impact zones
+# and arrives in a tenth of the cycles the difficulty setting gives (patches on
+# LargeImpactorEvent.GetImpactTime, LargeImpactorVanillaConfig.ConfigCommon and
+# CustomGameSettings.OnPrefabInit).
+# How a player reaches it: a Prehistoric colony with Demolior.
+# What changes: far less time before the impact.
+#
+# From the prehistoric1 colony (a Prehistoric cluster at cycle 1, Demolior on its way): the mod
+# loads, and the colony runs 120 s with as many Duplicants as in the original.
+from: prehistoric1
+mods: [3544012910]
+steps:
+  - run: {seconds: 120}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

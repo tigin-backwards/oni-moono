@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3544012910-extinction.yaml",
+ "mods": [
+  "3544012910"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "from the prehistoric1 colony (a Prehistoric cluster at cycle 1, Demolior on its way): the mod loads, and the colony runs 120 s with as many Duplicants as in the original",
+ "updated": "2026-11-01",
+ "commit": "bd3f7b59",
+ "mod_dlls": {
+  "3544012910": {
+   "Extinction.dll": "2a822303fe251aafe8c55b3a35142a7949825dd52b34b7a513959e7c10996fed"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-012842-2786154e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:28:42",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010138-91aec1d1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:01:38",
+    "lane": 45,
+    "reference_run": "20261101-012842-2786154e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-010138-91aec1d1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:11:01",
+    "lane": 45,
+    "reference_run": "20261101-012842-2786154e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
