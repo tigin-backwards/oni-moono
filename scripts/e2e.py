@@ -1063,12 +1063,19 @@ def install_teardown():
     """The teardown on SIGTERM, SIGINT and SIGHUP (`timeout`, ^C, a closed terminal) and at exit."""
     import atexit
 
+    def signal_say(*parts):
+        # The signal can arrive while the interrupted code is inside print(): a print from the
+        # handler then raises RuntimeError (a reentrant call into the buffered stdout), which
+        # skipped the teardown. os.write goes past the buffer; a failed write is dropped.
+        with contextlib.suppress(OSError):
+            os.write(sys.stdout.fileno(), (' '.join(map(str, parts)) + '\n').encode())
+
     def on_signal(signum, frame):
-        for s in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
-            signal.signal(s, signal.SIG_IGN)
-        say(f'e2e: {signal.Signals(signum).name}: stopping this run\'s players')
         try:
-            teardown_all(log=say)
+            for s in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+                signal.signal(s, signal.SIG_IGN)
+            signal_say(f'e2e: {signal.Signals(signum).name}: stopping this run\'s players')
+            teardown_all(log=signal_say)
         finally:
             os._exit(128 + signum)
     for s in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
