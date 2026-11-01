@@ -346,6 +346,11 @@ namespace SemanticsProbe
                 go.AddComponent<ParticleEmit>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "awakedestroy")
+            {
+                go.AddComponent<AwakeDestroy>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "startdestroy")
             {
                 go.AddComponent<SDScenario>();
