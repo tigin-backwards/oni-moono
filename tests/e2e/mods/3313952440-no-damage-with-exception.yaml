@@ -7,7 +7,10 @@
 # What changes: buildings no longer break down from anything but space rocks.
 #
 # The mod loads with its one patch, and the colony's buildings keep their hit points through
-# a minute of play (nothing here damages them: no source to exclude).
+# a minute of play (nothing here damages them: no source to exclude). That passes but proves
+# little: on U60 the damage event's data is a Boxed<DamageSourceInfo>, the prefix's cast throws
+# at every hit (the U60 sweep's 2minnow colony logs it in both players), and the table lists the
+# mod as broken on U60.
 from: early-base
 mods: [3313952440]
 steps:
