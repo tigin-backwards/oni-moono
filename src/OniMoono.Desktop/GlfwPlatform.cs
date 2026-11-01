@@ -50,6 +50,8 @@ namespace OniMoono.Desktop
         const int GLFW_ANY_PLATFORM = 0x00060000;
         // GLFW 3.4's string hint, which the binding's GlfwWindowHint does not name.
         const GlfwWindowHint GLFW_WAYLAND_APP_ID = (GlfwWindowHint)0x00026001;
+        // GLFW_POSITION_X/Y's "no position" (the system picks one).
+        const int GLFW_ANY_POSITION = unchecked((int)0x80000000);
         /// The original Linux player's executable name, its X11 WM_CLASS.
         const string ApplicationId = "OxygenNotIncluded";
 
@@ -98,12 +100,28 @@ namespace OniMoono.Desktop
             int width = settings.Width > 0 ? settings.Width : desktop.Width;
             int height = settings.Height > 0 ? settings.Height : desktop.Height;
             if (mode is FullScreenMode.FullScreenWindow) Glfw.WindowHint(GlfwWindowHint.Decorated, GLFW_FALSE);
+            // The window is created where it will be placed. On Windows the placement it is
+            // created with is the one it restores to when it was maximized while hidden (GLFW
+            // then maximizes by hand, and Windows records a restore placement only when a
+            // window is maximized through ShowWindow or its placement is read): created at the
+            // system's default position, a window maximized on the second monitor came back on
+            // the first when it was restored.
+            if (mode != FullScreenMode.ExclusiveFullScreen)
+            {
+                var position = mode == FullScreenMode.FullScreenWindow
+                    ? monitor.Position
+                    : monitor.Position + (new int2(desktop.Width, desktop.Height) - new int2(width, height)) / 2;
+                Glfw.WindowHint(GlfwWindowHint.PositionX, position.X);
+                Glfw.WindowHint(GlfwWindowHint.PositionY, position.Y);
+            }
             window = Glfw.CreateWindow(new GlfwWindow.CreateInfo
             {
                 Title = settings.Title,
                 Size = mode == FullScreenMode.FullScreenWindow ? new int2(desktop.Width, desktop.Height) : new int2(width, height),
                 Monitor = mode == FullScreenMode.ExclusiveFullScreen ? monitor : GlfwMonitor.Null,
             });
+            Glfw.WindowHint(GlfwWindowHint.PositionX, GLFW_ANY_POSITION);
+            Glfw.WindowHint(GlfwWindowHint.PositionY, GLFW_ANY_POSITION);
             windowedSize = new int2(width, height);
             if (mode == FullScreenMode.FullScreenWindow) window.Position = monitor.Position;
             else if (mode != FullScreenMode.ExclusiveFullScreen) window.CenterToMonitor(monitor);
@@ -372,6 +390,12 @@ namespace OniMoono.Desktop
         internal static bool FitsWorkArea(int2 size, int frameHeight, int2 workArea)
             => size.X <= workArea.X && size.Y + frameHeight <= workArea.Y;
 
+        /// Where a window's client area goes for its frame (as GLFW reports it, Windows' invisible
+        /// resize borders included) to be centred on the monitor.
+        internal static int2 CentredPosition(int2 monitorPosition, int2 monitorSize, int2 size, int left, int top, int right, int bottom)
+            => new(monitorPosition.X + (monitorSize.X - (size.X + left + right)) / 2 + left,
+                monitorPosition.Y + (monitorSize.Y - (size.Y + top + bottom)) / 2 + top);
+
         public void SetResolution(int width, int height, FullScreenMode newMode, uint refreshNumerator, uint refreshDenominator)
         {
             newMode = Supported(newMode);
@@ -405,10 +429,22 @@ namespace OniMoono.Desktop
                     window.SetAttribute(GlfwWindowAttribute.Decorated, GLFW_TRUE);
                     var size = new int2(width, height);
                     bool maximize = newMode == FullScreenMode.MaximizedWindow || TooLargeForWorkArea(monitor, size);
-                    if (window.IsMaximised && !maximize) window.Restore();
+                    bool restored = window.IsMaximised && !maximize;
+                    if (restored) window.Restore();
                     if (mode is FullScreenMode.ExclusiveFullScreen or FullScreenMode.FullScreenWindow)
                         window.SetWindowed(windowedPosition, size);
-                    else if (!window.IsMaximised) window.Size = size;
+                    else if (restored)
+                    {
+                        // A maximized window made smaller is centred on the monitor it was
+                        // maximized on, as Unity does (measured: the original maximized on a
+                        // 2560x1440 second monitor at 2560,0, then 1024x768 windowed, gave a
+                        // 1024x768 client at 3328,347: its frame centred on the whole monitor).
+                        window.GetWindowFrameSize(out int left, out int top, out int right, out int bottom);
+                        window.SetWindowed(CentredPosition(monitor.Position, new int2(desktop.Width, desktop.Height), size, left, top, right, bottom), size);
+                    }
+                    // A window about to be maximized keeps its size: what it has when maximized
+                    // is the size it restores to.
+                    else if (!window.IsMaximised && !maximize) window.Size = size;
                     if (maximize) window.Maximize();
                     break;
                 }
