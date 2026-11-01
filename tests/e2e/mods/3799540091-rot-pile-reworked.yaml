@@ -1,0 +1,23 @@
+# Rot Pile Reworked (3799540091), classes P, O (PLib options).
+#
+# What it does: rot piles become a hazard: they carry germs, give off a putrid odour every so
+# often to Duplicants within a range (the "Smelled a Putrid Odor" effect), attract Morbs, and
+# change what they turn into, with exposure times by mass; each figure is an option. The codex's
+# element pages get a rot pile panel. Patches on RotPileConfig and the codex.
+# How a player reaches it: rotten food left about; the codex.
+# What changes: rot piles worth clearing away.
+#
+# setup spawns a rot pile on the floor of the dug-out corridor west of the printing pod. Its
+# germs are as in the original, and the colony runs 300 s beside it with its Duplicants.
+from: early-base
+mods: [3799540091]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, RotPile, Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "last:GetComponent<KPrefabID>.PrefabTag.Name": RotPile
+      "last:GetComponent<PrimaryElement>.DiseaseCount": "== original"
+  - run: {seconds: 300}
+  - expect: {duplicants: 3}

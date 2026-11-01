@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3799540091-rot-pile-reworked.yaml",
+ "mods": [
+  "3799540091"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns a rot pile on the floor of the dug-out corridor west of the printing pod. Its germs are as in the original, and the colony runs 300 s beside it with its Duplicants",
+ "updated": "2026-11-01",
+ "commit": "706297bc",
+ "mod_dlls": {
+  "3799540091": {
+   "RotPileReworked.dll": "b788177731f84422dffd4535d456cb8c2f4552da824fd744052430743ff34bf5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043754-067196ed",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:42:05",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091741-b992485c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:17:41",
+    "lane": 44,
+    "reference_run": "20261101-043754-067196ed",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-091741-b992485c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:17:42",
+    "lane": 45,
+    "reference_run": "20261101-043754-067196ed",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
