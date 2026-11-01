@@ -586,7 +586,7 @@ scripts/mod-sweep.py again --ids 3467986764 3760101842 --batch 2 --first-lane 7 
 ```
 
 - **Which mods.** Catalog ranks (or `--ids`), less the ones onimaxxing flags `notLoading`,
-  `crashesAtStartup` or `unanalysed`, and never a malware-flagged one. A translation is recorded,
+  `crashesAtStartup`, `brokenByUpdate` or `unanalysed`, and never a malware-flagged one. A translation is recorded,
   not batched (the players install it disabled); a mod's catalog requirements are installed with
   it.
 - **A batch.** First, once per sweep, both players run the save without mods: signatures only

@@ -12,8 +12,9 @@ original as far as onimaxxing knows: those flagged notLoading, crashesAtStartup 
 left out, down to the rank (2274) where the mods kept, ranks 1-750 counted too, make 2000.
 Every rank in the TSV is listed in the table (LAST_RANK is its highest). scripts/mod-catalog-u60.tsv
 (or ONI_CATALOG_U60; read beside a CATALOG argument only when that is set) adds, in the same format,
-the U60 catalog's mods the TSV lacks (less those flagged brokenByUpdate or malware), with their U60
-ranks, sorted in among its rows.
+the U60 catalog's mods the TSV lacks (less those flagged malware), with their U60 ranks (build
+761015's, then build 761211's for the mods onimaxxing added since), sorted in among its rows; a mod
+flagged brokenByUpdate has that flag, ahead of its others.
 
 What our runs recorded:
 - the load sweeps of scripts/mod-sweep.py, tests/e2e/sweeps/*.tsv (or ONI_SWEEP_RESULTS): per mod
@@ -506,6 +507,7 @@ Y, N, X, W = '✅', '⬜', '❌', '⚠️'
 ONIMAXXING_BROKEN = {
     'notLoading': 'does not load in vanilla (onimaxxing analysis, not run here)',
     'crashesAtStartup': 'crashes vanilla at startup (onimaxxing analysis, not run here)',
+    'brokenByUpdate': 'broken by the U60 update (onimaxxing analysis, not run here)',
 }
 
 def row(rank, mid, title, loads, colony, play, note):
@@ -589,8 +591,9 @@ Which Workshop mods have been tried in this player, by popularity in
 [onimaxxing's catalog](https://onimaxxing.com/mods): the {FULL_RANKS} most-subscribed, then down to
 rank {LAST_RANK} those the catalog flags neither as broken (not loading, crashing at startup) nor
 as malware, the 2000 that work in the original game by the catalog's analysis; and mods players
-reported. The rest of the U60 catalog (to rank 3047) is listed with its U60 ranks, tried on U60
-(build 761015), less the mods it flags as broken by that update or as malware.
+reported. The rest of the U60 catalog is listed with its U60 ranks, tried on U60 (builds 761015
+and 761211), less the mods it flags as malware; those it flags as broken by the update are listed
+from its analysis, not run here.
 Worldgen mods are played with functional expectations (their worlds generate with their content),
 not identical layouts.
 
