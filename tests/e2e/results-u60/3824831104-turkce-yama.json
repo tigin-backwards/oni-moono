@@ -1,0 +1,101 @@
+{
+ "spec": "mods/3824831104-turkce-yama.yaml",
+ "mods": [
+  "3824831104"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "played Turkish on a colony's research and priorities screens and pause menu, then the main menu, its options and Game options screens, dumped and shot",
+ "updated": "2026-11-01",
+ "commit": "e96cc9a3",
+ "mod_dlls": {
+  "3824831104": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-002233-ee983349",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:44:32",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-113011-ac4cc65e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:30:11",
+    "lane": 40,
+    "reference_run": "20261101-002233-ee983349",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 0.0,
+     "game-options": 0.0
+    }
+   },
+   {
+    "run": "20261101-113011-ac4cc65e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:30:12",
+    "lane": 41,
+    "reference_run": "20261101-002233-ee983349",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 1.8e-05,
+     "game-options": 0.0
+    }
+   }
+  ]
+ }
+}
