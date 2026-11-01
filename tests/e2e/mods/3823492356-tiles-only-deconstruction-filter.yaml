@@ -1,0 +1,32 @@
+# Tiles Only Deconstruction Filter (3823492356), class T.
+#
+# What it does: postfixes (applied by hand) on FilteredDragTool.GetDefaultFilters and
+# GetFilterLayerFromGameObject give the Deconstruct and Cancel tools a "Tiles" filter: with it,
+# a drag takes only floor and wall tiles (foundation buildings that are not doors: mesh,
+# airflow, insulated tiles and the like).
+# How a player reaches it: the Deconstruct (X) or Cancel tool's filter menu.
+# What changes: tiles removed without touching what stands on them.
+#
+# setup builds two tiles and a lamp in the corridor west of the printing pod. With the
+# Deconstruct tool's Tiles filter on, a drag over all three marks only the tiles.
+from: early-base
+mods: [3823492356]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Tile\")", method: Build, args: [131128, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Tile\")", method: Build, args: [131130, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"FloorLamp\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - tool: {key: X}
+  - expect_ui:
+      "**/ToolMenu/ToolParameters/**": {any_text: "Tiles"}
+  - ui_dump: {name: filters, root: "**/ToolMenu/ToolParameters"}
+  # The filters are All, Wires, Liquid Pipes, Gas Pipes, Conveyor Rails, Buildings, Automation,
+  # Backwall, then the mod's Tiles: the ninth toggle (its label lies under the toggle's collider).
+  - click: {ui: "**/ToolMenu/ToolParameters/Content/List/toggleEntry/Toggle/collider", index: 8}
+  - drag: {from: [112, 206], to: [114, 207]}
+  - expect_state:
+      "count:all:Deconstructable::[*] if .IsMarkedForDeconstruction() == true": 2
+      "count:all:Deconstructable::[*] if .IsMarkedForDeconstruction() == true and .gameObject.name == FloorLampComplete": 0
+  - key: {code: Escape}

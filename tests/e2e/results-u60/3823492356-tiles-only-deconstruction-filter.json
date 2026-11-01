@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3823492356-tiles-only-deconstruction-filter.yaml",
+ "mods": [
+  "3823492356"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds two tiles and a lamp in the corridor west of the printing pod. With the Deconstruct tool's Tiles filter on, a drag over all three marks only the tiles",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3823492356": {
+   "TilesOnlyDeconstructionFilter.dll": "4eab79f92ca933ecb94950831402b3441a9e794c0b203b41d4d38fc3aa726779"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-104728-205496c5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:47:28",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:22:48",
+    "lane": 54,
+    "reference_run": "20261101-104728-205496c5",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "filters": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:23:47",
+    "lane": 55,
+    "reference_run": "20261101-104728-205496c5",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "filters": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
