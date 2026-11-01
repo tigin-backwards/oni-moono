@@ -1,0 +1,31 @@
+# Cargo Thermo Sensor (3766215021), classes B, S.
+#
+# What it does: adds the Cargo Thermo Sensor (CargoThermoSensor), a 1x1 automation sensor:
+# it scans the 5x5 area around it and sends Green only while every item carried by the
+# Duplicants in that area is above (or below) its temperature threshold (the game's
+# temperature sensor's threshold side screen). With nobody carrying anything in range it
+# sends Green. Its diagnostics are logged when they change.
+# How a player reaches it: the build menu (Automation), then its threshold side screen.
+# What changes: doors and checkpoints that check what Duplicants carry.
+#
+# setup builds the sensor in the dug-out corridor west of the printing pod, out of the
+# Duplicants' way. It sends Green with no carried cargo in range; selected, its threshold side
+# screen shows.
+from: early-base
+mods: [3766215021]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CargoThermoSensor\")", method: Build, args: [{"$": "Grid.XYToCell(109, 208)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:CargoThermoSensorMod.CargoThermoSensor::Length": 1
+      "all:CargoThermoSensorMod.CargoThermoSensor::[0].HasCarriedCargoInRange": false
+      "all:CargoThermoSensorMod.CargoLogicTemperatureSensor::[0].IsSwitchedOn": true
+  - driver: {camera.set: {cell: [109, 208], ortho: 8}}
+  - click_world: {cell: [109, 208], select: CargoThermoSensor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/ThresholdSwitchSideScreen", cond: stable}
+  - expect_ui:
+      "**/ThresholdSwitchSideScreen": {active: true}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
