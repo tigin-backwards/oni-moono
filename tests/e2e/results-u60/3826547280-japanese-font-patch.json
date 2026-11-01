@@ -1,0 +1,69 @@
+{
+ "spec": "mods/3826547280-japanese-font-patch.yaml",
+ "mods": [
+  "928606476",
+  "3826547280"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the spec plays in Japanese (`translation: 928606476`). The mod's fonts load, and the build menu's category labels are compared with the original (dumped and shot)",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "928606476": {},
+  "3826547280": {
+   "OniFontPatchJp.dll": "a993889fe6aaedd1b2350639971b303b2a32e3b39511a617a7ff0ba68fe3003b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:04:45",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:36:06",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "plan": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "plan": 0.0
+    }
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:37:55",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "plan": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "plan": 0.0
+    }
+   }
+  ]
+ }
+}
