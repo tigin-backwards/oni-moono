@@ -1,0 +1,20 @@
+# 帕庫魚在岩漿裡游泳 / Pacu swim in magma (3694125972), class P.
+#
+# What it does: Pacu, Tropical Pacu and Gulp Fish live in magma: CreatePrefab postfixes give
+# them a MagmaPacuComponent that stops their temperature monitor and keeps removing the
+# Scalding effect (and widen their temperature range where they have one, which U60's
+# critters no longer do).
+# How a player reaches it: Pacu in hot liquids.
+# What changes: fish that swim in lava.
+#
+# The three Pacu prefabs carry the component, as the mod logs; the colony runs.
+from: early-base
+mods: [3694125972]
+require_log: ['\[MagmaPacu\] ']
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"Pacu\").GetComponent<MagmaPacu.MagmaPacuComponent>": exists
+      "Assets.GetPrefab(\"PacuTropical\").GetComponent<MagmaPacu.MagmaPacuComponent>": exists
+      "Assets.GetPrefab(\"PacuCleaner\").GetComponent<MagmaPacu.MagmaPacuComponent>": exists
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
