@@ -356,6 +356,16 @@ namespace SemanticsProbe
                 go.AddComponent<ParticleEmit>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "frametiming")
+            {
+                go.AddComponent<FrameTimings>();
+                return;
+            }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "execorder")
+            {
+                go.AddComponent<ExecOrder>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "awakedestroy")
             {
                 go.AddComponent<AwakeDestroy>();
