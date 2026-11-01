@@ -6,7 +6,7 @@
  "verdict": "played",
  "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "Travaldo selected and right-clicked to the floor ten cells west: the mod's float menu (dumped and shot) offers Go here; its click gives the order, which runs as a MoveTo chore and ends",
+ "note": "Travaldo selected and right-clicked to the floor ten cells west: the mod's float menu (dumped and shot) offers Go here; its click gives the order, which runs as a MoveTo chore and ends; the upload played (v1.1.2, updated 2026-10-31) was not yet reviewed by onimaxxing (a decompiled-code check found nothing risky)",
  "updated": "2026-10-31",
  "commit": "ba34464e",
  "mod_dlls": {
