@@ -1,0 +1,63 @@
+{
+ "spec": "mods/2802886201-infinity-star.yaml",
+ "mods": [
+  "2802886201"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a new game of the mod cluster (fixed seed): its cluster and start world, with as many worlds as the original generates; the asteroid list dumped",
+ "updated": "2026-11-01",
+ "commit": "8d511836",
+ "mod_dlls": {
+  "2802886201": {
+   "infinity_star.dll": "e394fe71d02ad7429b77b86c75f66d4d54ff3a7505bbb90f3016566d0c2dbc71"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082034-fb651133",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:20:35",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-115358-a5e0fcff",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:53:58",
+    "lane": 35,
+    "reference_run": "20261101-082034-fb651133",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "asteroids": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-115358-a5e0fcff",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:57:21",
+    "lane": 35,
+    "reference_run": "20261101-082034-fb651133",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "asteroids": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
