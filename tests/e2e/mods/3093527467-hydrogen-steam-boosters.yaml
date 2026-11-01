@@ -1,0 +1,20 @@
+# Hydrogen Steam Boosters (3093527467), class P (Spaced Out).
+#
+# What it does: a postfix on SteamEngineClusterConfig.DoPostConfigureComplete makes the Steam
+# Engine rocket module burn hydrogen gas instead of steam (its fuel tank, engine fuel tag and
+# conduit intake), at medium efficiency, exhausting oxygen just above its freezing point, with
+# 1800 kg of storage.
+# How a player reaches it: the Steam Engine in the Rocketry menu.
+# What changes: a hydrogen engine that breathes out oxygen.
+#
+# The Steam Engine's building takes hydrogen and exhausts oxygen, and stores 1800 kg.
+from: early-base
+mods: [3093527467]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"SteamEngineCluster\").BuildingComplete.GetComponent<RocketEngineCluster>.fuelTag.Name": Hydrogen
+      "Assets.GetBuildingDef(\"SteamEngineCluster\").BuildingComplete.GetComponent<RocketEngineCluster>.exhaustElement": Oxygen
+      "Assets.GetBuildingDef(\"SteamEngineCluster\").BuildingComplete.GetComponent<FuelTank>.FuelType.Name": Hydrogen
+      "Assets.GetBuildingDef(\"SteamEngineCluster\").BuildingComplete.GetComponent<Storage>.capacityKg": 1800
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}
