@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3813290084-sandbox-critter-control.yaml",
+ "mods": [
+  "3813290084"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns a Hatch in the dug-out corridor west of the printing pod. It carries the mod's control (inactive outside sandbox, as in the original); the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "911b5bfd",
+ "mod_dlls": {
+  "3813290084": {
+   "CritterSandboxControl.dll": "30836470a5ad2e07dd37b883ade6fe0a5a0a19c21bb3b8be8dcdd6acd98f104e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032706-5e3764f7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:34:39",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-102215-24ac1662",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:22:15",
+    "lane": 40,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-102215-24ac1662",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:22:16",
+    "lane": 41,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

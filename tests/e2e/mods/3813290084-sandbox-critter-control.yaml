@@ -1,0 +1,23 @@
+# Sandbox: Critter Control 小动物沙盒工具 (3813290084), classes P, S (sandbox only).
+#
+# What it does: in sandbox or debug instant build mode, a selected critter (or egg) gets a
+# button to tame it at once and sliders for its reproduction, calories, age, scale growth, milk
+# and meteor call progress (eggs: incubation and viability), a CritterSandboxControl
+# (ISidescreenButtonControl and IMultiSliderControl) added to every creature and egg.
+# How a player reaches it: a selected critter's side screens, in sandbox mode.
+# What changes: critters set up at will.
+#
+# setup spawns a Hatch in the dug-out corridor west of the printing pod. It carries the mod's
+# control (inactive outside sandbox, as in the original); the colony runs on.
+from: early-base
+mods: [3813290084]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "Assets.GetPrefab(\"Hatch\").GetComponent<CritterSandboxControl.CritterSandboxControl>": exists
+      "SaveGame.Instance.sandboxEnabled": "== original"
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
