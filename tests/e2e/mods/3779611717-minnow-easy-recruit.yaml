@@ -1,0 +1,19 @@
+# 简单招募只鲤 / Easy Minnow recruiting (3779611717), class P.
+#
+# What it does: a postfix on Assets.CreatePrefabs changes the three Minnow recruitment POIs
+# (MinnowImperativePOIA, B and C, from the Minnow story): the item they ask to be delivered
+# becomes 100 kg of sand, through their delivery definition, their manual
+# delivery (capacity, refill and minimum 100 kg) and their storage (100 kg).
+# How a player reaches it: the Minnow story's POIs.
+# What changes: an easier delivery to recruit a Minnow.
+#
+# Each POI prefab asks for 100 kg of sand; the colony runs.
+from: early-base
+mods: [3779611717]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"MinnowImperativePOIA\").GetComponent<ManualDeliveryKG>.capacity": 100
+      "Assets.GetPrefab(\"MinnowImperativePOIB\").GetComponent<ManualDeliveryKG>.MinimumMass": 100
+      "Assets.GetPrefab(\"MinnowImperativePOIC\").GetComponent<Storage>.capacityKg": 100
+      "Assets.GetPrefab(\"MinnowImperativePOIA\").GetComponent<ManualDeliveryKG>.RequestedItemTag.Name": Sand
+  - run: {seconds: 5}
