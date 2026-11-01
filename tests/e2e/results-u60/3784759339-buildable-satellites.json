@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3784759339-buildable-satellites.yaml",
+ "mods": [
+  "3784759339"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds the smallest satellite in the dug-out corridor west of the printing pod. It emits radiation (its emitter's rads as in the original); selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "8015397e",
+ "mod_dlls": {
+  "3784759339": {
+   "BuildableSatellites.dll": "8e991782722e35abbdf979dd83de3d9bf69923008b4e3b789b13feaf2748ae8c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040631-cdd7ce2a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:06:31",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-073712-b85231a1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:37:12",
+    "lane": 41,
+    "reference_run": "20261101-040631-cdd7ce2a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-073712-b85231a1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:37:13",
+    "lane": 42,
+    "reference_run": "20261101-040631-cdd7ce2a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
