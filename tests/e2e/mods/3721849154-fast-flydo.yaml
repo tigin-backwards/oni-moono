@@ -1,0 +1,15 @@
+# Fast Flydo (3721849154), classes P, O (Bionic Booster Pack).
+#
+# What it does: Flydos (fetch drones) move faster, 400% by default (25-2000, a PLib option):
+# a transition layer added to the drone prefab speeds up each of its moves.
+# How a player reaches it: the Mods screen's options; any Flydo.
+# What changes: Flydos deliver sooner.
+#
+# The spec sets 300%: the mod reads it ("Speed: 300% (3x)"); the colony runs a minute.
+from: early-base
+mods: [3721849154]
+options:
+  gavga.fastflydo: {SpeedPercent: 300}
+require_log: ['\[Fast Flydo\] Settings loaded\. Speed: 300% \(3x\)', '\[Fast Flydo\] loaded\. Speed multiplier: 3x']
+steps:
+  - run: {seconds: 60}

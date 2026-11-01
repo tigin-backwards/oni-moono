@@ -1,0 +1,15 @@
+# Liquid and Gas Orbital Cargo (2460908134), class P.
+#
+# What it does: the Orbital Cargo Module (OrbitalCargoModuleConfig) carries bottled liquids
+# and gases and food as well as solids: a postfix on ConfigureBuildingTemplate widens its
+# storage filters (it has a static OnLoad; its patches apply through Harmony's PatchAll).
+# How a player reaches it: an Orbital Cargo Module's filter side screen.
+# What changes: bottles can be dropped from orbit.
+#
+# The module's storage takes solids, food, liquids and gases.
+from: early-base
+mods: [2460908134]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"OrbitalCargoModule\").GetComponent<Storage>.storageFilters": [{contains: Liquid}, {contains: Gas}, {contains: Edible}]
+  - run: {seconds: 30}
