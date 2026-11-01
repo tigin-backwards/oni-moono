@@ -4,7 +4,7 @@
 # the original loads it cleanly. The fixture is the reporter's Old.sav from the issue (cycle 150,
 # 2.5 MB; not kept in git): copy it to tests/e2e/fixtures/issue-45-old.sav. No mods are needed.
 #
-# One Sporb tree branch in the save sits in a cell its trunk occupies. PlantBranch.Instance's
+# One Bonbon Tree (SpaceTree) branch in the save sits in a cell its trunk occupies. PlantBranch.Instance's
 # constructor, run by KPrefabID's Awake (OnPrefabInit, CreateSMIS) as the save's objects
 # activate, logs "PlantBranch.SetOccupyGridSpace already occupied by SpaceTree" and destroys the
 # branch: StateMachineController drops its state machines, and Destroy waits for the next
