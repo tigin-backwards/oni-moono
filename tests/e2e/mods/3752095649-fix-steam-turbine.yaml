@@ -1,0 +1,21 @@
+# Fix Steam Turbine Liquid Deletion & Trapping (3752095649), class P ("Optimize Steam Turbine").
+#
+# What it does: the Steam Turbine no longer deletes water or traps it: it gets a 200 kg storage
+# for the water it condenses (a postfix on SteamTurbineConfig2.DoPostConfigureComplete) and its
+# EnergySim200ms is replaced to handle it; the details screen and save are patched to match.
+# How a player reaches it: a working Steam Turbine.
+# What changes: no water lost in turbines.
+#
+# setup builds a Steam Turbine in the dug-out corridor west of the printing pod. Its storages are
+# as in the original, and the colony runs on.
+from: early-base
+mods: [3752095649]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SteamTurbine2\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {SteamTurbine2: 1}}
+  - expect_state:
+      "all:SteamTurbine::[0].GetComponents<Storage>.Length": "== original"
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3752095649-fix-steam-turbine.yaml",
+ "mods": [
+  "3752095649"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Steam Turbine in the dug-out corridor west of the printing pod. Its storages are as in the original (one of 200 kg), and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "da440886",
+ "mod_dlls": {
+  "3752095649": {
+   "Optimize_Steam_Turbine.dll": "bfeb03ca3f6aea5dd29c960773ceeb86cb7a5d056f41cb45d3ab4c43d386a14d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-075025-21b2d5ac",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:58:43",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-082221-83e77c0d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:22:21",
+    "lane": 42,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-082221-83e77c0d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:22:22",
+    "lane": 43,
+    "reference_run": "20261101-075025-21b2d5ac",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
