@@ -1,0 +1,19 @@
+# 僵尸孢子不在气体中永生/Zombie Spores Not Immortal In Gases (3796117680), class P.
+#
+# What it does: a postfix on ZombieSpores.PopulateElemGrowthInfo adds growth rules for three gases
+# (carbon dioxide, methane and polluted oxygen, as its description says) in which zombie spores
+# die off instead of living on (an under-population death rate, a 12000 s half-life, an
+# over-population half-life of 1200 s).
+# How a player reaches it: zombie spores in those gases.
+# What changes: zombie spores fade in gas.
+#
+# Zombie spores carry the three added rules (more growth rules than without the mod), as in
+# the original; the colony runs.
+from: early-base
+mods: [3796117680]
+steps:
+  - expect_state:
+      "Db.Get().Diseases.ZombieSpores.growthRules.Count": "== original"
+      "count:Db.Get().Diseases.ZombieSpores.growthRules[*] if .populationHalfLife == 12000.0": ">= 3"
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}
