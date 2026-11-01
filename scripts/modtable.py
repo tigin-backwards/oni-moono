@@ -12,7 +12,8 @@ original as far as onimaxxing knows: those flagged notLoading, crashesAtStartup 
 left out, down to the rank (2274) where the mods kept, ranks 1-750 counted too, make 2000.
 Every rank in the TSV is listed in the table (LAST_RANK is its highest). scripts/mod-catalog-u60.tsv
 (or ONI_CATALOG_U60; read beside a CATALOG argument only when that is set) adds, in the same format,
-the mods of the U60 catalog's top 2000 the TSV lacks, with their U60 ranks, sorted in among its rows.
+the U60 catalog's mods the TSV lacks (less those flagged brokenByUpdate or malware), with their U60
+ranks, sorted in among its rows.
 
 What our runs recorded:
 - the load sweeps of scripts/mod-sweep.py, tests/e2e/sweeps/*.tsv (or ONI_SWEEP_RESULTS): per mod
@@ -134,11 +135,14 @@ if len(sys.argv) > 2: sys.exit(__doc__)
 catalog = sys.argv[1] if len(sys.argv) == 2 else os.path.join(ROOT, 'scripts', 'mod-catalog.tsv')
 cat = [l.rstrip('\n').split('\t') for l in open(catalog, encoding='utf-8')]
 LAST_RANK = max(int(r[0]) for r in cat)
+U60_IDS = set()
 CATALOG_U60 = os.environ.get('ONI_CATALOG_U60') or (
     None if len(sys.argv) == 2 else os.path.join(ROOT, 'scripts', 'mod-catalog-u60.tsv'))
 if CATALOG_U60 and os.path.exists(CATALOG_U60):
     known = {r[1] for r in cat}
-    cat += [r for r in (l.rstrip('\n').split('\t') for l in open(CATALOG_U60, encoding='utf-8')) if r[1] not in known]
+    u60 = [r for r in (l.rstrip('\n').split('\t') for l in open(CATALOG_U60, encoding='utf-8')) if r[1] not in known]
+    U60_IDS = {r[1] for r in u60}
+    cat += u60
     cat.sort(key=lambda r: int(r[0]))  # stable: the TSV's row first at a rank both have
 by_id = {r[1]: r for r in cat}
 FULL_RANKS = 750  # every mod up to this rank; beyond it, those that work in the original
@@ -482,7 +486,7 @@ rows = [row('–', None, 'Fast Track (GitHub)', Y, Y, Y, 'about 30 fps on U57, w
 listed = set()
 for r in cat:
     rank, mid, _, flags, title = int(r[0]), r[1], r[2], r[3], r[4]
-    if rank > LAST_RANK and mid not in played and mid not in results: continue
+    if rank > LAST_RANK and mid not in U60_IDS and mid not in played and mid not in results: continue
     listed.add(mid)
     rows.append(row(rank, mid, title, *with_record(mid, flags)))
 for mid in list(played) + [m for m in results if m not in played]:
@@ -498,8 +502,8 @@ Which Workshop mods have been tried in this player, by popularity in
 [onimaxxing's catalog](https://onimaxxing.com/mods): the {FULL_RANKS} most-subscribed, then down to
 rank {LAST_RANK} those the catalog flags neither as broken (not loading, crashing at startup) nor
 as malware, the 2000 that work in the original game by the catalog's analysis; and mods players
-reported. The rest of the U60 catalog's 2000 most-subscribed are listed with their U60 ranks,
-tried on U60 (build 761015).
+reported. The rest of the U60 catalog (to rank 3047) is listed with its U60 ranks, tried on U60
+(build 761015), less the mods it flags as broken by that update or as malware.
 Worldgen mods are played with functional expectations (their worlds generate with their content),
 not identical layouts.
 
