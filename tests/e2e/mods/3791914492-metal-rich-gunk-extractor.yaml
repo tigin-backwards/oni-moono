@@ -1,0 +1,22 @@
+# Metal-Rich Gunk Extractor / 污泥提取器掉落常见金属 (3791914492), class P (options in config.json).
+#
+# What it does: a postfix (applied by hand in Db.Initialize) on the Bionic Gunk Extractor's
+# (GunkEmptier) ConfigureBuildingTemplate adds a GunkExtractorMetalDropper: while the extractor
+# runs, it accumulates trace metal by its options' rate per 100 kg of gunk and drops it above
+# the building as debris of a chosen or weighted-random metal, with a pop-up.
+# How a player reaches it: a working Gunk Extractor.
+# What changes: gunk draining also yields some metal.
+#
+# The extractor's building carries the dropper; setup builds one in the corridor west of the
+# printing pod, and it spawns with it.
+from: early-base
+mods: [3791914492]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"GunkEmptier\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"GunkEmptier\").BuildingComplete.GetComponent<GunkExtractorMetals.GunkExtractorMetalDropper>": exists
+  - run: {seconds: 5}
+  - expect: {buildings: {GunkEmptier: 1}}
+  - expect_state:
+      "all:GunkExtractorMetals.GunkExtractorMetalDropper::[0].pendingKg": 0
