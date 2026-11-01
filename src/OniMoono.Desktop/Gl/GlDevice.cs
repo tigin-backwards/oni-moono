@@ -263,7 +263,9 @@ namespace OniMoono.Desktop.Gl
             return gl;
         }
 
-        string GlMemoryCounters() => worker.Call(() =>
+        string GlMemoryCounters() => worker.TryCall(GlThreadMemoryCounters, out var counters) ? counters : "the OpenGL device has stopped";
+
+        string GlThreadMemoryCounters()
         {
             if (GlPrograms.Extensions.Contains("GL_NVX_gpu_memory_info"))
             {
@@ -280,7 +282,7 @@ namespace OniMoono.Desktop.Gl
                 return $"{info[0] >> 10} MiB free (largest block {info[1] >> 10} MiB), auxiliary {info[2] >> 10} MiB free";
             }
             return null;
-        });
+        }
 
         public override GraphicsCaps Caps => caps;
         public override bool RendersFrames => true;
@@ -825,7 +827,7 @@ namespace OniMoono.Desktop.Gl
             var device = source != null ? GlTextures.Prepare(worker, source) : null;
             bool autoMips = source?.AutoGenerateMips ?? false;
             int fbWidth = platform.FramebufferWidth, fbHeight = platform.FramebufferHeight;
-            var pixels = worker.Call(() =>
+            if (!worker.TryCall(() =>
             {
                 uint framebuffer;
                 if (device != null)
@@ -846,7 +848,13 @@ namespace OniMoono.Desktop.Gl
                 }
                 framebufferValid = false;
                 return read;
-            });
+            }, out var pixels))
+            {
+                // The window has closed: the destination keeps its texels.
+                if (!loggedStoppedRead) EngineLog.Engine("ReadPixels after the OpenGL device stopped: nothing read (logged once)");
+                loggedStoppedRead = true;
+                return;
+            }
             var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
             for (int y = 0; y < h; y++)
                 for (int x = 0; x < w; x++)
@@ -856,6 +864,8 @@ namespace OniMoono.Desktop.Gl
                         new Color(pixels[o], pixels[o + 1], pixels[o + 2], pixels[o + 3]));
                 }
         }
+
+        bool loggedStoppedRead;
 
         public override void Upload(TextureNative texture) => GlTextures.Prepare(worker, texture);
 
@@ -945,7 +955,7 @@ namespace OniMoono.Desktop.Gl
 
         public override string TakeQueueCounters(int frames) => GlDrawRecorder.TakeCounters(frames);
 
-        public override string TakeFrameCounters(int frames) => worker.Call(() =>
+        public override string TakeFrameCounters(int frames) => worker.TryCall(() =>
         {
             var profile = GlGpuProfile.Take(frames);
             string text = (profile != null ? profile + "\n" : "") + GlTimings.Take(frames) + $"; draws {draws / frames}, program binds {GlBindings.ProgramBinds / frames}, texture binds {GlBindings.TextureBinds / frames}, buffer binds {GlBindings.BufferBinds / frames}, vertex array binds {GlBindings.VertexArrayBinds / frames}, skipped binds {GlBindings.Skipped / frames}, uniforms sent {GlUniforms.UniformsSent / frames}, unchanged uniforms {GlUniforms.UniformsSkipped / frames}, texture uploads {GlTextures.Uploads / (double)frames:F1} ({GlTextures.UploadBytes / frames / 1024} KiB), unchanged {GlTextures.UnchangedUploads / (double)frames:F1}; " + PresenterTimings.Take();
@@ -954,15 +964,15 @@ namespace OniMoono.Desktop.Gl
             GlTextures.Uploads = GlTextures.UploadBytes = GlTextures.UnchangedUploads = 0;
             GlBindings.ProgramBinds = GlBindings.TextureBinds = GlBindings.BufferBinds = GlBindings.VertexArrayBinds = GlBindings.Skipped = 0;
             return text;
-        });
+        }, out var counters) ? counters : "the OpenGL device has stopped";
 
         bool gpuTiming, gpuTimingArmed;
         double gpuTotal;
         int gpuFrames;
 
         /// GPU time of a frame's commands (from the first to the present), averaged over the frames
-        /// whose results arrived since the last call; -1 before any.
-        public override double TakeGpuFrameMilliseconds() => worker.Call(() =>
+        /// whose results arrived since the last call; -1 before any, and once the device stopped.
+        public override double TakeGpuFrameMilliseconds() => worker.TryCall(() =>
         {
             if (!gpuTiming)
             {
@@ -975,7 +985,7 @@ namespace OniMoono.Desktop.Gl
             gpuTotal = 0;
             gpuFrames = 0;
             return ms;
-        });
+        }, out var ms) ? ms : -1;
 
         void BeginGpuTiming()
         {
