@@ -49,8 +49,10 @@ E2E_GAME_TWEAKS, space-separated `--game-tweak` values (`none`, `background-save
 has a run id; each run's log, results and evidence are in
 out/e2e/SPEC/RUN_ID/PLAYER-N, and out/e2e/runs/RUN_ID.json holds one record per spec run.
 --record writes tests/e2e/results/SPEC.json, the committed record of the spec's verdict (played,
-warning, failed or pending), which scripts/modtable.py reads. ui_dump differences that
-tests/e2e/known-findings.yaml explains make a run of ours a warning, not a failure.
+warning, failed or pending), which scripts/modtable.py reads. ONI_RESULTS_DIR (absolute, or
+relative to the checkout) writes the records elsewhere: tests/e2e/results-u60 holds those played
+on another game update, beside the main ones, and modtable.py reads both. ui_dump differences
+that tests/e2e/known-findings.yaml explains make a run of ours a warning, not a failure.
 
 --hold keeps each player running after its steps (--hold-on-fail: after a failing step) until
 the hold file in its run folder is removed, for a look through OniMcp and E2eDriver while
@@ -4102,7 +4104,7 @@ def relative_masks(masks, crop):
 
 # ---------------------------------------------------------------- the results record (§7)
 
-RESULTS = os.path.join(SPECS, 'results')
+RESULTS = os.path.join(ROOT, os.environ.get('ONI_RESULTS_DIR') or os.path.join(SPECS, 'results'))
 OURS_RUNS_NEEDED = 2  # Played: once in the original, twice in ours (§2)
 VERDICTS = ('played', 'warning', 'failed', 'pending')
 
