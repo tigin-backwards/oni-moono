@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3638064148-copy-skin-button.yaml",
+ "mods": [
+  "3638064148"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3638064148": {
+   "MoreCopyButton.dll": "88e64194c695f1961e9fe40b361fa144a264984f94e0b002c984a936d3ed1645"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-055458-7737530a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:01:00",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-130404-5480347e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:04:04",
+    "lane": 36,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-130404-5480347e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:05:20",
+    "lane": 36,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
