@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3495259917-time-sensor-limit.yaml",
+ "mods": [
+  "3495259917"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Timer Sensor in the dug-out corridor west of the printing pod. Selected, its timer side screen's sliders go further (dumped, as in the original)",
+ "updated": "2026-11-01",
+ "commit": "6ce4a69d",
+ "mod_dlls": {
+  "3495259917": {
+   "TimeSensorLimit.dll": "a6fcf98122954f4105cb3b64d8e4d5daf46fff2352e550d5d35cfa7a0c37c45f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-030516-f8747b98",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:09:57",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-032808-14be1d13",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:28:08",
+    "lane": 44,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "timer": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-032808-14be1d13",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:32:22",
+    "lane": 44,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "timer": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

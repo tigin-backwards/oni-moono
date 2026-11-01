@@ -1,0 +1,21 @@
+# TimeSensorLimit (3495259917), class P.
+#
+# What it does: the Cycle Sensor's (and timer sensor's) side screen takes up to 150 cycles (a
+# postfix on TimerSideScreen.OnSpawn raises its slider's maximum).
+# How a player reaches it: a timer sensor's side screen.
+# What changes: longer timers.
+#
+# setup builds a Timer Sensor in the dug-out corridor west of the
+# printing pod. Selected, its timer side screen's sliders go further (dumped, as in the
+# original).
+from: early-base
+mods: [3495259917]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicTimerSensor\")", method: Build, args: [{"$": "Grid.XYToCell(109, 208)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [109, 208], ortho: 8}}
+  - click_world: {cell: [109, 208], select: LogicTimerSensor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/TimerSideScreen", cond: stable}
+  - ui_dump: {name: timer, root: "**/TimerSideScreen"}
