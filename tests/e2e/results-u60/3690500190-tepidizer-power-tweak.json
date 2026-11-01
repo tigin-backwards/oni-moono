@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3690500190-tepidizer-power-tweak.yaml",
+ "mods": [
+  "3690500190"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with its option at 300 W, the Liquid Tepidizer's definition draws 300 W; the colony runs",
+ "updated": "2026-11-01",
+ "commit": "74d059eb",
+ "mod_dlls": {
+  "3690500190": {
+   "TepidizerTweak.dll": "e66391c9b7f54e916ccd6941c460db3462c0d35592646e9dc3babdf84ad6a937"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:42:12",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:52:34",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:52:51",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
