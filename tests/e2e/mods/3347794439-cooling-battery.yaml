@@ -1,0 +1,38 @@
+# 制冷电池 Cooling batteries (3347794439), class B.
+#
+# What it does: adds three batteries that cool their surroundings while active (negative self
+# heat and exhaust heat) and need cold to run (minimum operating temperatures of -181 C to
+# -70 C): ColderBattery (2x2, 80 kJ, -0.5 kW), ColderBatteryHalf and ColderBatterySmart (with
+# a smart battery's logic output). All three are researched with Micro-Power (Advanced
+# Power Regulation) and listed in the Power menu.
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: batteries that chill a room.
+#
+# setup grants Advanced Power Regulation and builds a ColderBattery in the dug-out corridor
+# west of the printing pod. The three batteries show in the Power menu; the battery built
+# holds 80 kJ, its heat is negative, and selected its details screen names it.
+from: early-base
+mods: [3347794439]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedPowerRegulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ColderBattery\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"AdvancedPowerRegulation\").unlockedItemIDs": [{contains: ColderBattery}, {contains: ColderBatteryHalf}, {contains: ColderBatterySmart}]
+      "Assets.GetBuildingDef(\"ColderBattery\").SelfHeatKilowattsWhenActive": -0.5
+      "Assets.GetBuildingDef(\"ColderBattery\").BuildingComplete.GetComponent<Battery>.capacity": 80000
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/ColderBattery Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/ColderBattery Group*": {active: true}
+      "**/BuildingGroups/**/Grid/ColderBatteryHalf Group*": {active: true}
+      "**/BuildingGroups/**/Grid/ColderBatterySmart Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: ColderBattery}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Battery>.capacity": 80000
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

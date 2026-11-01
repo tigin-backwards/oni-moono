@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3347794439-cooling-battery.yaml",
+ "mods": [
+  "3347794439"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Advanced Power Regulation and builds a ColderBattery in the dug-out corridor west of the printing pod. The three batteries show in the Power menu; the battery built holds 80 kJ, its heat is negative, and selected its details screen names it",
+ "updated": "2026-11-01",
+ "commit": "08ab450a",
+ "mod_dlls": {
+  "3347794439": {
+   "ColderBattery.dll": "3960500cadb8c2753504ad90b95b8c0b00e08124a616ce37cfa25d4f4b6ef194",
+   "PLib.dll": "5d6a8ef9d87143b90113548016180078efaf112d69afe0cdf1073a6125b33773"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-003847-c34050a4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:38:47",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-011336-09181a35",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:13:36",
+    "lane": 44,
+    "reference_run": "20261101-003847-c34050a4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-011336-09181a35",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:13:37",
+    "lane": 45,
+    "reference_run": "20261101-003847-c34050a4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
