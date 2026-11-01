@@ -875,8 +875,7 @@ namespace OniMoono.Desktop
             buttonsDown[button] = true;
             State.KeyPressed(KeyCode.Mouse0 + button);
             float now = Time.realtimeSinceStartup;
-            // Double clicks: same button within the system interval and a few pixels.
-            if (button == lastClickButton && now - lastClickTime < 0.5f && (guiPosition - dragStart).sqrMagnitude < 25f) clickCount++;
+            if (button == lastClickButton && IsDoubleClick(now - lastClickTime, guiPosition - dragStart)) clickCount++;
             else clickCount = 1;
             lastClickTime = now;
             lastClickButton = button;
@@ -888,6 +887,31 @@ namespace OniMoono.Desktop
                 e.clickCount = clicks;
             });
         }
+
+        /// A click of the same button `seconds` after the last and `offset` pixels from it counts
+        /// on: on Windows within the system's double-click time and rectangle, which is centred
+        /// on the first click (GetDoubleClickTime; GetSystemMetrics SM_CXDOUBLECLK and
+        /// SM_CYDOUBLECLK), read at each click as the user may change them. Elsewhere 0.5 s and
+        /// 5 pixels, values of ours, not measured in Unity's Linux player: X11 itself has no such
+        /// setting, and desktops' own (XSETTINGS Net/DoubleClickTime) are not read.
+        static bool IsDoubleClick(float seconds, Vector2 offset)
+        {
+            if (!OperatingSystem.IsWindows()) return seconds < 0.5f && offset.sqrMagnitude < 25f;
+            const int SM_CXDOUBLECLK = 36, SM_CYDOUBLECLK = 37;
+            return IsWithin(seconds, offset, GetDoubleClickTime() / 1000f, GetSystemMetrics(SM_CXDOUBLECLK), GetSystemMetrics(SM_CYDOUBLECLK));
+        }
+
+        /// Windows' rule (Microsoft Learn, About Mouse Input, "Double-Click Messages"): the second
+        /// click's hot spot still within the rectangle centred on the first's, and "the elapsed
+        /// time does not exceed the double-click time-out value".
+        internal static bool IsWithin(float seconds, Vector2 offset, float time, int width, int height)
+            => seconds <= time && Math.Abs(offset.x) <= width / 2 && Math.Abs(offset.y) <= height / 2;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern uint GetDoubleClickTime();
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern int GetSystemMetrics(int index);
 
         public void MouseUp(int button, EventModifiers modifiers, Vector2 guiPosition)
         {
