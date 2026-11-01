@@ -1,0 +1,28 @@
+# 飞寻机加强 / Flydo Enhanced (3805786609), classes P, U (Bionic Booster Pack).
+#
+# What it does: Flydos (FetchDrone) no longer drown (patches on DrowningMonitor.IsCellSafe and
+# the submerged check), an idle Flydo gets itself out of a dead end, and the power bank meter
+# at the top of the screen shows the Flydos' cached state; clicking it cycles through them,
+# selected and followed.
+# How a player reaches it: Flydos; the power bank meter.
+# What changes: Flydos survive floods and are easy to find.
+#
+# setup spawns a Flydo with a charged power bank in the pit in the floor of the dug-out room west
+# of the printing pod and floods the pit with 1500 kg of water. After 300 s under water the
+# Flydo is alive.
+from: early-base
+mods: [3805786609]
+require_log: ['\[Flydo Enhanced\] Loaded']
+setup:
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131124, Water, null, 1500, 300, 255, 0]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131124, 0, 0, FetchDrone, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131124, 0, 0, Electrobank, Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "all:FetchDrone::[0].GetComponents<Storage>[1]", method: Store, args: [{"$": "last:"}]}}
+steps:
+  - run: {seconds: 300}
+  - expect_state:
+      "all:FetchDrone::Length": 1
+      "count:all:FetchDrone::[*] if .GetComponent<KPrefabID>.HasTag(\"Dead\") == true": 0
+  - expect: {duplicants: 3}
