@@ -136,10 +136,26 @@ namespace OniMoono.Host
             if (NativeOverrides.TryGetValue(name, out var overridePath))
                 return Announced(name, NativeLibrary.Load(overridePath), $"{overridePath} (--native-override)");
             var native = layout?.Native(name, OperatingSystem.IsWindows(), ProcessCpu, ReplacementsDir);
-            if (native == null) return IntPtr.Zero;
+            // Game and mod code sees Mono's DllNotFoundException when nothing loads (D59); the
+            // runtime raises this event only once its own probing has failed.
+            bool monoMessage = !IsHostAssembly(requester);
+            if (native == null) return monoMessage ? throw MonoDllNotFound.Missing(name) : IntPtr.Zero;
             if (native.Value.Replacement)
                 return Announced(name, NativeLibrary.Load(native.Value.Path), $"{native.Value.Path} (the host's replacement: the game's plugin has no {NativeExports.ArchName(ProcessCpu)} code)");
-            return NativeLibrary.Load(native.Value.Path);
+            if (NativeLibrary.TryLoad(native.Value.Path, out var handle)) return handle;
+            return monoMessage ? throw MonoDllNotFound.Failed(name, native.Value.Path) : NativeLibrary.Load(native.Value.Path);
+        }
+
+        /// An assembly of the host's own (its folder, engine/ and packages/), whose P/Invokes keep
+        /// CoreCLR's exceptions; the game's (Managed/, or loaded from an image) and mods' get Mono's.
+        static bool IsHostAssembly(Assembly assembly)
+        {
+            var location = assembly.Location;
+            if (string.IsNullOrEmpty(location)) return false;
+            var dir = Path.GetDirectoryName(location);
+            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            return string.Equals(dir, AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar), comparison)
+                || string.Equals(dir, engineDir, comparison) || string.Equals(dir, packagesDir, comparison);
         }
 
         static readonly HashSet<string> announced = new(StringComparer.Ordinal);
