@@ -147,7 +147,7 @@ msgstr ""
 
 #. Tooltip: how it works (gpu)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GPU.DETAIL"
-msgid "Default: as the original game (on Windows the faster, discrete GPU; on Linux the system's choice). Discrete: the faster GPU. Integrated: the power-saving one. Windows' Graphics settings page wins over this. On Linux, on a desktop whose display is on the discrete card, discrete may pick the integrated GPU."
+msgid "Default: as the original game (on Windows the faster, discrete GPU; on Linux the system's choice). Discrete: the faster GPU. Integrated: the power-saving one, on Linux; on Windows, choose it in Windows' Graphics settings, which win over this. On Linux, on a desktop whose display is on the discrete card, discrete may pick the integrated GPU."
 msgstr ""
 
 #. A choice on the row's button (shown in capitals) and in its tooltip (gpu)

@@ -120,10 +120,13 @@ alone: both exports present, writable and 1, the icon, manifest, version and sub
 
 **The GPU option** (`GpuChoice`; Moono Tweaks' "Graphics card", settings.json `"gpu"`, `--gpu
 default|discrete|integrated`) is applied in `Program.Main` before the window opens, so before
-anything loads the OpenGL driver. On Windows it writes the two exports through
-`GetProcAddress(GetModuleHandle(NULL), …)`: 1 for discrete, 0 for integrated; `default` leaves
-them at 1, as the original has them. The drivers read them when the GL driver loads (not
-verifiable without a hybrid laptop), and Windows' Graphics settings page overrides them. Unity's
+anything loads the OpenGL driver. On Windows it changes nothing: the two exports stay at the 1
+they're compiled with, as the original has them (the documented form: NVIDIA's Optimus guide and
+AMD's GPUOpen say the driver looks them up in the executable), so `default` and `discrete` are the
+same, and Windows' Graphics settings page overrides them. `integrated` can't be asked for on
+Windows' OpenGL: no driver documents seeing a value written at run time, and 0 would only withdraw
+the request, not ask for the integrated GPU. The log says to choose it in Windows' Graphics
+settings. Unity's
 Linux player sets no GPU hints, and `-force-device-index` covers Direct3D, Metal and Vulkan only,
 not ONI's OpenGL build, so on Linux `default` sets nothing. `discrete` asks for PRIME render
 offload: `__NV_PRIME_RENDER_OFFLOAD=1` and `__GLX_VENDOR_LIBRARY_NAME=nvidia` when NVIDIA's
