@@ -37,6 +37,8 @@ namespace OniMoono.Desktop
         /// In exclusive fullscreen, the monitor's mode from before the window took it: GLFW's
         /// video mode is the current one (glfwGetVideoMode), the exclusive mode until it is left.
         GlfwVidMode? desktopBeforeExclusive;
+        /// Whether windowedPosition is one the window had as a window, not a fullscreen start's.
+        bool windowedPositionKnown;
         bool cursorVisible = true;
         CursorLockMode cursorLock;
         GlfwCursor customCursor;
@@ -134,6 +136,7 @@ namespace OniMoono.Desktop
             if (mode == FullScreenMode.FullScreenWindow) window.Position = monitor.Position;
             else if (mode != FullScreenMode.ExclusiveFullScreen) window.CenterToMonitor(monitor);
             windowedPosition = window.Position;
+            windowedPositionKnown = mode is FullScreenMode.Windowed or FullScreenMode.MaximizedWindow;
             if (mode == FullScreenMode.ExclusiveFullScreen) desktopBeforeExclusive = desktop;
             if (settings.Monitor > 0)
                 OniMoono.Engine.EngineLog.Engine($"window: monitor {settings.Monitor} of {monitors.Length} at {monitor.Position.X},{monitor.Position.Y}; window at {window.Position.X},{window.Position.Y}");
@@ -458,6 +461,7 @@ namespace OniMoono.Desktop
             {
                 windowedPosition = window.Position;
                 windowedSize = window.Size;
+                windowedPositionKnown = true;
             }
             switch (newMode)
             {
@@ -489,14 +493,17 @@ namespace OniMoono.Desktop
                     bool maximize = newMode == FullScreenMode.MaximizedWindow || TooLargeForWorkArea(monitor, size);
                     bool restored = window.IsMaximised && !maximize;
                     if (restored) window.Restore();
-                    if (mode is FullScreenMode.ExclusiveFullScreen or FullScreenMode.FullScreenWindow)
+                    bool fromFullscreen = mode is FullScreenMode.ExclusiveFullScreen or FullScreenMode.FullScreenWindow;
+                    if (fromFullscreen && windowedPositionKnown)
                         window.SetWindowed(windowedPosition, size);
-                    else if (restored)
+                    else if (fromFullscreen || restored)
                     {
                         // A maximized window made smaller is centred on the monitor it was
                         // maximized on, as Unity does (measured: the original maximized on a
                         // 2560x1440 second monitor at 2560,0, then 1024x768 windowed, gave a
                         // 1024x768 client at 3328,347: its frame centred on the whole monitor).
+                        // So is a window that started fullscreen and never had a windowed
+                        // position: placed at the monitor's corner, its title bar was off it.
                         window.GetWindowFrameSize(out int left, out int top, out int right, out int bottom);
                         window.SetWindowed(CentredPosition(monitor.Position, new int2(desktop.Width, desktop.Height), size, left, top, right, bottom), size);
                     }
