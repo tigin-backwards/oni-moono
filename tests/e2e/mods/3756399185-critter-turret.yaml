@@ -22,7 +22,7 @@ steps:
   - expect_state:
       "Db.Get().Techs.Get(\"AnimalControl\").unlockedItemIDs": {contains: CritterTurret}
       "Assets.GetBuildingDef(\"CritterTurret\").EnergyConsumptionWhenActive": 120
-  - click: {ui: "**/PlanScreen/Toggle:Conveyance"}
+  - click: {ui: "**/PlanScreen/Toggle:Shipping"}
   - ui_wait: {path: "**/BuildingGroups/**/Grid/CritterTurret Group*", cond: stable}
   - expect_ui:
       "**/BuildingGroups/**/Grid/CritterTurret Group*": {active: true}
