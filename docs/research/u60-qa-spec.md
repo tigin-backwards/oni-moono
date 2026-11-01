@@ -999,6 +999,14 @@ label; Neutronium tooltip.
 
 ### U7 Translation validation
 
+**Status:** passes (d6043974): `tests/e2e/u60-u7-zh.yaml`, `-ru`, `-ko` (results in
+`tests/e2e/results-u60`) require each "TRANSLATION ERROR!" block the original logs, whole, and no
+other: zh and ko reject `STRINGS.UI.BUILDINGEFFECTS.DIET_HEADER` (parameters), ru that and
+`STRINGS.UI.ROLES_SCREEN.PERKS.EXOSUIT_EXPERTISE.DESCRIPTION` (link count). Ours logs the same
+keys in the same order. The culture-sensitive `IndexOf` differs from Mono's around soft hyphens,
+zero-width and combining characters (L2's probe, `IX` lines), but no translated string reaches
+that difference.
+
 **Risk: low.**
 
 **Patch note:** not in the notes.
