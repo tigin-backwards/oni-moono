@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3743970658-flydo-in-water.yaml",
+ "mods": [
+  "3743970658"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with a custom carry amount of 500 kg (and its debug log on), the mod reads its options, but a Flydo spawned in the corridor west of the printing pod can still carry the game's 400 kg, in the original too: on U60 the carry patch finds no CarryAmount modifier in the Flydo's traits (it logs none). Water poured on the Flydo leaves it alive after 30 s",
+ "updated": "2026-11-01",
+ "commit": "74d059eb",
+ "mod_dlls": {
+  "3743970658": {
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db",
+   "╖╔╤░╗·╝╙╟┐.dll": "96b40570e6b18dea54d829697fe4d6641c76aa9605d04fd0f18417e240442ced"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:08:39",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:26:13",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:26:46",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
