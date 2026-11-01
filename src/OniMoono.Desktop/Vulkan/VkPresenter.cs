@@ -645,10 +645,11 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         /// Recreate on the presenter thread: a creation that fails (the driver out of memory
-        /// during a resize, say) leaves no swapchain and is tried again after a delay (0.1 s,
-        /// doubling to 2 s; frames meanwhile are not shown); after RecreateAttempts failures in a
-        /// row spanning RecreateGiveUp seconds, or for a failure that cannot pass (a lost surface,
-        /// a format that takes no copies), it is thrown and presenting ends (Failure).
+        /// during a resize would be one; none has been seen) leaves no swapchain and is tried again
+        /// after a delay (0.1 s, doubling to 2 s; frames meanwhile are not shown); after
+        /// RecreateAttempts failures in a row spanning RecreateGiveUp seconds, or for a failure that
+        /// cannot pass (a lost surface, a format that takes no copies), it is thrown and presenting
+        /// ends (Failure).
         bool TryRecreate(int width, int height, int interval)
         {
             long now = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -668,10 +669,10 @@ namespace OniMoono.Desktop.Vulkan
             }
             // What Recreate's calls can return that may pass (vk.xml's error codes of
             // vkCreateSwapchainKHR, the surface queries and vkGetSwapchainImagesKHR): out of host
-            // or device memory, and a window still held by another swap chain. None of them
-            // returns VK_ERROR_OUT_OF_DATE_KHR. VK_ERROR_INITIALIZATION_FAILED is specified only for
-            // full-screen-exclusive, present-barrier and display-plane swapchains, none of which is
-            // made here: it is tried again as a guard against a driver that returns it anyway.
+            // or device memory, a window still held by another swap chain, and, for
+            // vkCreateSwapchainKHR, VK_ERROR_INITIALIZATION_FAILED (an object's initialization
+            // "could not be completed for implementation-specific reasons", the specification's
+            // general definition). None of them returns VK_ERROR_OUT_OF_DATE_KHR.
             catch (VkResultError e) when (e.Result is VkResult.ErrorOutOfHostMemory or VkResult.ErrorOutOfDeviceMemory
                 or VkResult.ErrorNativeWindowInUseKHR or VkResult.ErrorInitializationFailed)
             {
