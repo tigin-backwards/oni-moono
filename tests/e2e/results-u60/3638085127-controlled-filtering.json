@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3638085127-controlled-filtering.yaml",
+ "mods": [
+  "3638085127"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3638085127": {
+   "ControlledFiltering.dll": "cc7b3ed14be640f97ef271026c016baa0982a4f1743ff7901d2f9758a4fab2b6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040314-a46ee8e3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:09:53",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-130131-b0f48dfc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:01:31",
+    "lane": 36,
+    "reference_run": "20261101-040314-a46ee8e3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-130131-b0f48dfc",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:02:48",
+    "lane": 36,
+    "reference_run": "20261101-040314-a46ee8e3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
