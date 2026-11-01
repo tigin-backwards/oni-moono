@@ -3,12 +3,12 @@
  "mods": [
   "3760687013"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
  "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
  "updated": "2026-11-01",
- "commit": "59862590",
+ "commit": "880e4d98",
  "mod_dlls": {
   "3760687013": {
    "GCSentinel.dll": "9021def6a6938a7418a758202e5bc73551a5fe432fb47a83a47b7194a26cadbf"
@@ -17,41 +17,35 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-045201-d21d0b3f",
+    "run": "mac-o1",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T04:56:28",
-    "lane": 32,
+    "date": "2026-11-01T15:42:38",
+    "lane": 50,
     "signatures": 0
    }
   ],
   "ours": [
    {
-    "run": "20261101-122632-fe6b83ab",
+    "run": "mac-u1",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T12:26:32",
-    "lane": 36,
-    "reasons": [
-     "1 log signature(s) the original lacks"
-    ],
-    "reference_run": "20261101-045201-d21d0b3f",
-    "new_signatures": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:46:14",
+    "lane": 50,
+    "reference_run": "mac-o1",
+    "new_signatures": 0,
     "findings": [],
     "ui_dump": {},
     "shots": {}
    },
    {
-    "run": "20261101-122632-fe6b83ab",
+    "run": "mac-u1",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T12:29:18",
-    "lane": 36,
-    "reasons": [
-     "1 log signature(s) the original lacks"
-    ],
-    "reference_run": "20261101-045201-d21d0b3f",
-    "new_signatures": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:46:15",
+    "lane": 51,
+    "reference_run": "mac-o1",
+    "new_signatures": 0,
     "findings": [],
     "ui_dump": {},
     "shots": {}
