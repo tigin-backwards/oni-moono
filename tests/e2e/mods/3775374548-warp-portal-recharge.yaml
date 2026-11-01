@@ -1,0 +1,19 @@
+# 传送器充能加速 WarpPortalRecharge (Warp Portal Recharge 5x) (3775374548), class P.
+#
+# What it does: the Teleporter (WarpPortal) recharges in 600 s instead of 3000 s: a
+# transpiler replaces the constant 3000 with 600 in four compiler-generated methods found by
+# name (the warp portal state machine's recharge update, WarpPortalSideScreen.Update, and two
+# BuildingStatusItems callbacks), logging each target it finds and each replacement.
+# How a player reaches it: nothing to click; a Teleporter after use.
+# What changes: the Teleporter is ready after one cycle.
+#
+# The mod's targets and replacements are logged as in the original (its targets are lambdas
+# named by the compiler, so which it finds depends on the game build); the colony runs a
+# minute with it.
+from: early-base
+mods: [3775374548]
+require_log: ['\[WarpPortalRecharge5x\] Loaded', '\[WarpPortalRecharge5x\] Targeting recharge update', '\[WarpPortalRecharge5x\] Replaced warp portal recharge constant 3000 -> 600 seconds']
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == Svily.WarpPortalRecharge5x": 1
+  - run: {seconds: 60}

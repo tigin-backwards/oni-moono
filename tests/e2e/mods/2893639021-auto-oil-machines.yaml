@@ -1,0 +1,20 @@
+# AutoOilMachines (2893639021), class P.
+#
+# What it does: the Oil Refinery needs no operator (its ConfigureBuildingTemplate replaced:
+# not manually operated, 10 kg/s of crude oil from a pipe into 5 kg/s of petroleum and
+# 0.09 kg/s of natural gas), and an Oil Well releases its gas pressure on its own whenever it
+# passes 10% (a postfix on OilWellCap.AddGasPressure).
+# How a player reaches it: building an Oil Refinery or an Oil Well.
+# What changes: no Duplicant needed to run either.
+#
+# The Oil Refinery's prefab is not manually operated and converts as the mod says; the colony
+# runs a minute with it.
+from: early-base
+mods: [2893639021]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"OilRefinery\").GetComponent<BuildingComplete>.isManuallyOperated": false
+      "Assets.GetPrefab(\"OilRefinery\").GetComponent<ElementConverter>.consumedElements[0].MassConsumptionRate": 10
+      "Assets.GetPrefab(\"OilRefinery\").GetComponent<ElementConverter>.outputElements[0].elementHash": Petroleum
+      "Assets.GetPrefab(\"OilRefinery\").GetComponent<ElementConverter>.outputElements[0].massGenerationRate": 5
+  - run: {seconds: 60}
