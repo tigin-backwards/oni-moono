@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3792504116-pump-power-tweaks.yaml",
+ "mods": [
+  "3792504116"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "options set the Liquid Pump to 120 W and the Gas Pump to 60 W. Their definitions draw that, as in the original; the filters keep theirs; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "13d44d9d",
+ "mod_dlls": {
+  "3792504116": {
+   "GasLiquidPumpPowerTweaks.dll": "88d5389503614c3c20d69bf875bfb297f33634b21edb6aa29503e118164b57eb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-042312-89fc5911",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:26:59",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084416-7fa0d82f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:44:16",
+    "lane": 44,
+    "reference_run": "20261101-042312-89fc5911",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-084416-7fa0d82f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:44:17",
+    "lane": 45,
+    "reference_run": "20261101-042312-89fc5911",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
