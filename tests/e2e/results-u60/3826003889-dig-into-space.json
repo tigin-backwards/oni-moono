@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3826003889-dig-into-space.yaml",
+ "mods": [
+  "3826003889"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the tool menu has the mod's tool; picked, it is the active tool, and Escape puts it away; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "64e3e7c7",
+ "mod_dlls": {
+  "3826003889": {
+   "SpaceDig.dll": "28c4a9ea2ab6be4f0681bf8d72393be423c5a38ea336e1f2da9e3281f36a8e05"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-062032-efda9416",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:28:22",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-113210-ccb9bda5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:32:10",
+    "lane": 40,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-113210-ccb9bda5",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:32:11",
+    "lane": 41,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
