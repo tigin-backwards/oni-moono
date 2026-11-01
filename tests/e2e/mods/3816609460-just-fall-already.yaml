@@ -1,0 +1,14 @@
+# Just Fall Already! (3816609460), class P.
+#
+# What it does: a critter whose footing a door just took away falls at once (Door.SetWorldState
+# and Pathfinding.AddNavGrid patches), instead of standing there until it notices; it works
+# on its own for pez droppers and beside Critters Fall.
+# How a player reaches it: doors under critters.
+# What changes: critters drop through opened doors.
+#
+# The mod loads and the colony plays for 30 s; no door under a critter is set up here.
+from: early-base
+mods: [3816609460]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
