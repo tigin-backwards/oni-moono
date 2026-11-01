@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3819045849-heavy-wattage-wire-boost.yaml",
+ "mods": [
+  "3819045849"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Heavi-Watt rating reads 200 kW and the conductive one's (Max20000) is the game's",
+ "updated": "2026-11-01",
+ "commit": "2018e684",
+ "mod_dlls": {
+  "3819045849": {
+   "HeavyWattageWireBoost.dll": "2db3a53430179401f77c20bd00e8db225dc7a2890e1bd70b81b7646a3c5e21c9"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:04:35",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:31:32",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:33:35",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

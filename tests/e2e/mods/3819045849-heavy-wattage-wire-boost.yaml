@@ -1,0 +1,17 @@
+# 高负荷导线增强 HeavyWattageWireBoost (3819045849), class P.
+#
+# What it does: a prefix on Wire.GetMaxWattageAsFloat raises the Heavi-Watt rating (Max50000)
+# to 200 kW, or to what its config.txt sets; without the file it uses that default, as it logs.
+# How a player reaches it: Heavi-Watt wires, as before.
+# What changes: four times the load on one heavy wire.
+#
+# The Heavi-Watt rating reads 200 kW and the conductive one's (Max20000) is the game's.
+from: early-base
+mods: [3819045849]
+require_log: ['\[HeavyWattageWireBoost\] config\.txt not found, using built-in defaults\.']
+steps:
+  - expect_state:
+      "Wire.GetMaxWattageAsFloat(\"Max50000\")": 200000
+      "Wire.GetMaxWattageAsFloat(\"Max20000\")": 20000
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}
