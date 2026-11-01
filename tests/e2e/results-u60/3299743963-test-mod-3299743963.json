@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3299743963-test-mod-3299743963.yaml",
+ "mods": [
+  "3299743963"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3299743963": {
+   "4K wire.dll": "963852ea9745405b62caf28d641ac8ae0275f65f1112067aa1e642de65ab0267"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T05:39:28",
+    "lane": 52,
+    "reasons": [
+     "step start: the player exited (1) while loading"
+    ],
+    "signatures": 2
+   }
+  ],
+  "ours": []
+ }
+}

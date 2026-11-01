@@ -1,0 +1,13 @@
+# 自用-核抑危hyw / Reactor meltdown choice (3820168351), class S (PLib options, Spaced Out).
+#
+# What it does: when a Research Reactor is about to melt down, an event window offers to let it
+# melt or to remove it at once; by default the game pauses and zooms to the reactor (options).
+# How a player reaches it: a failing Research Reactor.
+# What changes: a last chance before meltdown.
+#
+# The mod loads and the colony plays for 30 s; no reactor is set up here.
+from: early-base
+mods: [3820168351]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

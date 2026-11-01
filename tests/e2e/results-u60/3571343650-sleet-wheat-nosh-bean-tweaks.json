@@ -1,0 +1,34 @@
+{
+ "spec": "mods/3571343650-sleet-wheat-nosh-bean-tweaks.yaml",
+ "mods": [
+  "3571343650"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3571343650": {
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db",
+   "▒∙╦¬╨í┬≤╙δ╨í│╘╢╣╨▐╕─.dll": "593deb3739be43f49aa92bbeba1d92f38366e0c417a8aac68e62d512de7f1638"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-10-31T22:56:03",
+    "lane": 52,
+    "reasons": [
+     "step 1: Assets.GetPrefab(\"ColdWheat\").GetComponent<Crop>.cropVal.products[0].quantity is 18.0, wanted 100; Assets.GetPrefab(\"BeanPlant\").GetComponent<Crop>.cropVal.products[0].quantity is 12.0, wanted 100; Assets.GetPrefab(\"ColdWheat\").GetComponent<TemperatureVulnerable>.internalTemperatureLethal_Hi"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

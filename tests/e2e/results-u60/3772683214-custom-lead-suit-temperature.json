@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3772683214-custom-lead-suit-temperature.yaml",
+ "mods": [
+  "3772683214"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3772683214": {
+   "CustomLeadSuitTemperature.dll": "e55b8eab72ad6832ce450092b0af00631f19e0cd3f2a5f9c3dd0e8adad5110d7"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T07:28:19",
+    "lane": 53,
+    "reasons": [
+     "step start: the player exited (1) before OniMcp started"
+    ],
+    "signatures": 2
+   }
+  ],
+  "ours": []
+ }
+}

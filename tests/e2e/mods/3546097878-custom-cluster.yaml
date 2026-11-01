@@ -1,0 +1,44 @@
+# Custom Cluster (3546097878), class X (worldgen, no code).
+#
+# What it does: no code. Its dlc/expansion1/worldgen folder adds a Classic-style cluster,
+# CustomCluster (coordinate prefix V-CSTCLST-C, Spaced Out with the Frosty and Prehistoric
+# packs), of "smashed" worlds: a Desolands start (SmashedDesolandsStart), a Metallic Forest
+# warp world, a Ceres moonlet, a Prehistoric moonlet and more.
+# How a player reaches it: New Game, Survival, Classic; its cluster in the carousel or its
+# coordinate.
+# What changes: another cluster to start in.
+#
+# From a colony: Main Menu, Quit Without Saving, New Game, Survival, Classic; the cluster's
+# coordinate with a fixed seed is typed, launched and embarked. The start world is the
+# Desolands start, and the cluster has its warp world (worldgen expectations are functional).
+from: early-base
+mods: [3546097878]
+memory_gb: 8
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Main MenuButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Main MenuButton"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton"}   # Quit Without Saving
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "V-CSTCLST-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/Section - Destination/DestinationDetailsHeader/ClusterName", cond: stable}
+  - expect_state:
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"ClusterLayout\").id": {contains: CustomCluster}
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
+  - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
+  - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  - expect_state:
+      "ClusterManager.Instance.GetStartWorld().worldName": expansion1::worlds/SmashedDesolandsStart
+      "ClusterManager.Instance.WorldContainers.Count": "== original"
+      "count:ClusterManager.Instance.WorldContainers[*] if .worldName == expansion1::worlds/SmashedMetallicForestWarp": 1
+  - run: {seconds: 5}

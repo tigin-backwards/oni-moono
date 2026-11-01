@@ -1,0 +1,15 @@
+# Test mod (3299743963) (3299743963), class P.
+#
+# What it does: a test mod: a patch on ManualGeneratorConfig.CreateBuildingDef from another
+# author's code.
+# How a player reaches it: the Manual Generator.
+# What changes: the Manual Generator's definition.
+#
+# The Manual Generator's definition is as in the original; the colony plays for 30 s.
+from: early-base
+mods: [3299743963]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"ManualGenerator\").GeneratorWattageRating": "== original"
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

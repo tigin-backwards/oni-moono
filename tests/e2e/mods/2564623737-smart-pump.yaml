@@ -1,0 +1,12 @@
+# 聪明泵 / Smart pump (2564623737), class B.
+#
+# What it does: advanced liquid and gas pumps with configurable options.
+# How a player reaches it: the build menu.
+# What changes: smarter pumps.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [2564623737]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,31 @@
+{
+ "spec": "mods/3799362960-bahasa-indonesia-translation.yaml",
+ "mods": [
+  "3799362960"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3799362960": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T07:54:27",
+    "lane": 53,
+    "reasons": [
+     "step start: the player exited (1) while loading"
+    ],
+    "signatures": 1
+   }
+  ],
+  "ours": []
+ }
+}

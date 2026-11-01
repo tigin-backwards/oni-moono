@@ -1,0 +1,14 @@
+# newStarRegion (3731259018), class P, worldgen (Spaced Out).
+#
+# What it does: in Spaced Out with all DLCs, adds seven expedition asteroids on the outer rings
+# of the official clusters, leaving the starting worlds as they are.
+# How a player reaches it: a new Spaced Out game's starmap.
+# What changes: more asteroids to visit.
+#
+# The mod loads and the Terra colony (a Classic cluster) plays for 30 s; no new game is made
+# here.
+from: early-base
+mods: [3731259018]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

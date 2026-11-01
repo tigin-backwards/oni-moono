@@ -1,0 +1,33 @@
+{
+ "spec": "mods/2644972743-less-regolith.yaml",
+ "mods": [
+  "2644972743"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "2644972743": {
+   "RegolithReducer.dll": "90feed535e0b344d2dd51e7a6a1914bcc61354ef74634fb5e1ddd754525d5913"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T04:07:45",
+    "lane": 52,
+    "reasons": [
+     "step 6: sum:all:Pickupable::[*].GetComponent<PrimaryElement>.Mass if .GetComponent<PrimaryElement>.ElementID == Regolith is 500.0, wanted ['> 30', '< 70']"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

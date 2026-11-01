@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3821447025-multi-channel-utilities.yaml",
+ "mods": [
+  "3821447025"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "951bec9f",
+ "mod_dlls": {
+  "3821447025": {
+   "MultiChannelPipes.dll": "06d9854ff546d268db85ae017cbb689c2ef87a61bb95ecbd1e22d6c00326d537"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T08:39:21",
+    "lane": 53,
+    "reasons": [
+     "step start: the player exited (1) before OniMcp started"
+    ],
+    "signatures": 2
+   }
+  ],
+  "ours": []
+ }
+}
