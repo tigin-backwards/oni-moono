@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3823247362-integrated-pumps.yaml",
+ "mods": [
+  "3823247362"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants the research. The building is listed in the Plumbing menu and its card opens from there (dumped)",
+ "updated": "2026-11-01",
+ "commit": "2018e684",
+ "mod_dlls": {
+  "3823247362": {
+   "IntegratedGasCollectors.dll": "387bcf87a6d587b51e4ec19dcf22c0d1b574a351d2bd937ce24fd0ee05e1c76e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:24:37",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:01:21",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:01:52",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

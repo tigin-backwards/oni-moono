@@ -1,0 +1,30 @@
+# IntegratedPumps (3823247362), class B.
+#
+# What it does: adds four dedicated and one general gas collectors (in the Ventilation menu)
+# and an integrated liquid pump (IGC_IntegratedLiquidPump, 1x2 of metal, insulation and
+# plastic, in the Plumbing menu, researched with the Liquid Pump), each holding up to four
+# portable batteries for power and running by default when its automation port is unwired
+# (CircuitManager patches), with their own codex entries.
+# How a player reaches it: the build menu (Plumbing, Ventilation), after the research.
+# What changes: pumps that carry their own power.
+#
+# setup grants the research. The building is listed in the Plumbing menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3823247362]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LiquidPiping\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+require_log: ['\[IntegratedGasCollectors\] v0\.4\.3 loaded']
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"LiquidPiping\").unlockedItemIDs": {contains: IGC_IntegratedLiquidPump}
+      "Assets.GetBuildingDef(\"IGC_IntegratedLiquidPump\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/IGC_IntegratedLiquidPump Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/IGC_IntegratedLiquidPump Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
