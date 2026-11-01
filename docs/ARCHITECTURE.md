@@ -1390,6 +1390,25 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   Bitmap into a Bitmap local and reading a property of its base, testing isinst Bitmap, calling
   a static method of UnityEngine.CoreModule the original has and ours lacks, storing into a
   local of an enum ours lacks, each inside a try, and reading `JobWorkerCount`.
+- **D58 A native library that does not load throws Mono's DllNotFoundException.** U60's crash
+  reporter shows its "OS Error" popup ("Your operating system is preventing the sim from
+  loading") when an error's text holds "DllNotFoundException: SimDLL"
+  (`KCrashReporter.IsOperatingSystemBlockedError`), and WorldGen queues the exception its settle
+  step throws for that. CoreCLR's message ("Unable to load shared library 'SimDLL' or one of its
+  dependencies…") never matches. Measured in Unity's Linux player (761211, e2e
+  `u60/p1-sim-blocked` on the u60 branch): with `libSimDLL.so` absent the message is "SimDLL
+  assembly:<unknown assembly> type:<unknown type> member:(null)", the DllImport's name; with
+  the file there but unreadable, the dynamic loader's error stands for the name
+  ("/…/libSimDLL.so: cannot open shared object file: Permission denied assembly:…"), so no popup.
+  U59 has neither the popup nor the queueing: its worldgen thread ends on the exception
+  unhandled, and the player logs it (D16) with the same messages, which is what game and mod
+  code see there (measured in U59's original, 744825, Linux). **Resolved in**
+  `AssemblyPolicy.ResolveNative` with `MonoDllNotFound`: for a P/Invoke of game or mod code (an
+  assembly not loaded from the host's folder) whose library no file provides, or whose plugin
+  file does not load, the resolver throws DllNotFoundException with Mono's message (dlerror's
+  text for a file that failed). A plugin file it cannot read is taken to have the process's
+  architecture, and so fails at dlopen as in Unity. Windows is assumed to give the name's form in
+  both cases (Klei's matcher expects it for a blocked SimDLL.dll); not measured there yet.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.

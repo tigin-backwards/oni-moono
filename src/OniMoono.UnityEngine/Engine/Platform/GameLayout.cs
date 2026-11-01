@@ -153,12 +153,21 @@ namespace OniMoono.Engine.Platform
             return plugin != null ? (plugin, false) : null;
         }
 
-        /// Whether a library file has code for CPU type `cpu` (a file of unknown format is taken to).
+        /// Whether a library file has code for CPU type `cpu` (a file of unknown format is taken to,
+        /// and so is one that cannot be read, which then fails to load as in Unity: D58).
         public static bool HasArchitecture(string path, int cpu)
         {
             var head = new byte[4096];
             int n;
-            using (var f = File.OpenRead(path)) n = f.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+            try
+            {
+                using var f = File.OpenRead(path);
+                n = f.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException or IOException)
+            {
+                return true;
+            }
             var archs = NativeExports.Architectures(head.AsSpan(0, n));
             return archs.Count == 0 || archs.Contains(cpu);
         }
