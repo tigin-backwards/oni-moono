@@ -894,7 +894,8 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   `TMPro.FaceInfo`, which TextMeshPro no longer has) gets the body Mono's compilation
   gives it, throwing Mono's exception with the token of the mod's file, and is hidden from stack
   traces (`StackTraceHidden`), so the trace starts at its caller as Mono's does. Members
-  missing from a type that exists are D42's. Not covered: missing nested types (D32 binds
+  missing from a type that exists are D42's. Types the original's copy of an engine or class
+  library has and ours lacks are D57's. Not covered: missing nested types (D32 binds
   some of them), and assemblies not loaded yet when the mod loads; a method whose own signature
   names a missing type fails in its callers only. A mod that cannot be rewritten loads unchanged.
   `--check-types` loads a mod whose method calls a game method by a missing return type behind a
@@ -972,11 +973,12 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   message, hidden from stack traces. The engine's Unity-format trace of a logged exception
   (`LogTraces`) now leaves hidden frames out too, as `Exception.StackTrace` does. The probe then
   reports as the original does, but for the trace's format (CoreCLR's "   at A.B()", which the
-  log signatures already treat alike). Not covered: members of Unity's engine and packages and of
-  the class libraries (our API's gaps: D40's assemblies), member references whose signature names
-  a type not resolvable when the mod loads (the mod's own, another mod's not loaded yet: they
-  fail as CoreCLR fails them), vararg and function-pointer signatures. A generic argument tagged
-  `valuetype` for a class is another type on Mono (D56): a reference naming one is missing. A
+  log signatures already treat alike). A member of Unity's engine and packages or of the class
+  libraries that the original's copy has and ours lacks is D57's; one both lack fails as here.
+  Not covered: member references whose signature names a type not resolvable when the mod loads
+  (the mod's own, another mod's not loaded yet: they fail as CoreCLR fails them), vararg and
+  function-pointer signatures. A generic argument tagged `valuetype` for a class is another type
+  on Mono (D56): a reference naming one is missing. A
   member the lookup finds
   is one the runtime binds: across the 2,119 Workshop mods in `out/ws` (2,890 assemblies, 2.2
   million member references), none of the 2,089 references the lookup reports missing resolved on
@@ -1334,6 +1336,73 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   against the game's kinds (169 against U60's), 21 ms each on average, 435 ms at most.
   `--check-types` loads a mod built against a library whose struct is
   now a class, with one method per IL pattern above, and the same mod with SkipVerification.
+- **D57 References to what the original has and ours lacks.** A mod names a type or member of
+  an assembly ours answers for in place of the original's copy in `Managed/` (Unity's engine
+  modules and packages, which ours replace; Mono's class libraries, for which the framework
+  answers), and the original's copy has it where ours does not. ONI Boost Kit's
+  `GCSentinel.Sentinel.RunChecks` reads `JobsUtility.JobWorkerCount` inside a try of its own;
+  Artificial Natural Tiles' `TryLoadSprite` builds a `System.Drawing.Bitmap` (Mono's
+  System.Drawing, which .NET's facade forwards to System.Drawing.Common, an assembly the framework
+  does not carry) inside one. CoreCLR fails each method as a whole when it compiles it, so the
+  catch never sees the exception: the sentinel's notification never appeared (a log signature
+  the original lacks), and the tiles' build category was never registered, so
+  `PlanScreen.RefreshToolTip` threw ArgumentOutOfRangeException and MOD DIFFERENCES stayed up.
+  In the original both methods run. Measured there (`tools/UnityProbe`, `PROBE_SCENARIO=atcall`,
+  build 761211, Linux player): what fails to resolve fails the method as a whole on Mono too, as
+  D40 and D42 measured, a catch inside it never seeing it (none of the method ran, the caller
+  caught it): an assembly that cannot be found gives "Could not load file or assembly
+  'ProbeAbsent, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its
+  dependencies." (FileNotFoundException, FileName the display name) where the JIT keeps the
+  error (a call, newobj, a local, a value-type local), and "Failure has occurred while loading
+  a type." (TypeLoadException) where it drops it (a static field, isinst); a missing member gives
+  D42's message. Mono's `new Bitmap(stream)` compiles and throws inside the try: "The type
+  initializer for 'System.Drawing.GDIPlus' threw an exception." (TypeInitializationException;
+  inner DllNotFoundException "libgdiplus.so.0"; on Windows GDI+ loads the image), and
+  `JobsUtility` has `JobWorkerCount` (get and set, 15 with 16 processors and no
+  `job-worker-count` in boot.config; values outside 0 to `JobWorkerMaximumCount`, also 15, throw
+  ArgumentOutOfRangeException "Invalid JobWorkerCount -1 must be in the range 0 -> 15"),
+  `ResetJobWorkerCount()` and the literals `MaxJobThreadCount` (128) and `CacheLineSize` (64),
+  which ours now has. **Resolved in** `MonoApiGaps`, in `MonoMissingTypes`' pass as a mod loads:
+  a TypeRef (nested ones included) of such an assembly that ours cannot resolve while the
+  original's copy (read as metadata, forwarders followed) has it, and a member reference
+  `MonoMissingMembers` finds no member for while the original's copy has one (by name and
+  signature, bases and interfaces as D42 walks them), is a gap; one both lack fails the method as
+  a whole, as D40 and D42. Each method Mono compiles that names a gap gets its instructions
+  naming one replaced, each by pops of its operands and a throw, and its locals of a gap type
+  become objects (an enum's, its underlying type, from the original's metadata). The rest of the
+  method runs as in the original, and a catch around the instruction sees the exception, as it
+  sees Mono's from a call that fails. The exception is the one Mono gives for such a reference
+  when it does not resolve, by where its JIT meets it: FileNotFoundException naming the
+  assembly ours could not load ("System.Drawing.Common, Version=0.0.0.0, …"), else
+  TypeLoadException with D40's message, or D42's MissingMethodException or
+  MissingFieldException. The tiles' loader then logs its warning and falls back to its
+  placeholder icon, as in the original on Linux; the original's own message (GDI+'s) is not
+  reproduced. Not covered: a method whose own signature or catch clause names a gap (CoreCLR
+  fails it as a whole or its callers' call to it), fields of a gap type, the original's
+  behaviour past the gap (System.Drawing on Windows draws the icon; ours falls back), and
+  assemblies no player can load (D40's "not loaded yet"). Across the 4,010 mod assemblies in
+  `out/ws` (Unity's, the game's and the class libraries' copies left out), 47 name gaps
+  (System.Drawing's Image and Bitmap in 20, UnityWebRequest upload handlers, the video and
+  particle modules, `Input.inputString`, IMGUI's SelectionGrid, ONI Twitch Integration's copies
+  of Unity's internal marshalling helpers); the 307 methods rewritten all compile
+  (`RuntimeHelpers.PrepareMethod`). Against U59's assemblies (build 744825) the same scan finds
+  the same gaps, by file and reference, as against U60's. `--check-types` loads a mod building a
+  Bitmap into a Bitmap local and reading a property of its base, testing isinst Bitmap, calling
+  a static method of UnityEngine.CoreModule the original has and ours lacks, storing into a
+  local of an enum ours lacks, each inside a try, and reading `JobWorkerCount`.
+- **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
+  `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
+  formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.
+  In the original (measured, `PROBE_SCENARIO=atcall`) Mono's mscorlib has that method, every
+  `float.ToString` overload calls it (a postfix ran for `ToString()`, "F2", "G" and "N1"; not for
+  string interpolation, which formats through the ValueStringBuilder overload), so the mod
+  works. CoreLib has no such method: `float.ToString` formats through the generic
+  `Number.FormatFloat<TNumber>(TNumber, string, NumberFormatInfo)`, so `AccessTools.Method`
+  returns null, Harmony reports "Null method for ZEROs" and the mod is disabled. Structural, not
+  shimmed: CoreLib cannot be given a method of Mono's name, so a shim would have to answer
+  reflection's lookup of a Mono-internal method with another one (a redirect for this name, not
+  an API) and have Harmony patch the float instantiation of a generic, precompiled CoreLib
+  method.
 
 ## 3. The engine API (`OniMoono.UnityEngine`)
 
