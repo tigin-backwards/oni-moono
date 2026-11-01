@@ -1,0 +1,23 @@
+# Flow Compression (3802902859), classes B, E (elements).
+#
+# What it does: six buildings that work by the mass in a pipe: solid, liquid and gas compressors
+# (SolidCompressor, LiquidCompressor, GasCompressor, 1x2) and their counterparts, with elements
+# and technology tree nodes of its own (patches on ElementLoader, Techs and Enum parsing).
+# How a player reaches it: the build menus, after the research.
+# What changes: pipe contents packed and unpacked.
+#
+# setup builds a liquid compressor in the dug-out corridor west of the printing pod. The three
+# compressors are in the game's definitions; selected, its details screen is dumped.
+from: early-base
+mods: [3802902859]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LiquidCompressor\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"SolidCompressor\").HeightInCells": 2
+      "Assets.GetBuildingDef(\"GasCompressor\").HeightInCells": 2
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: LiquidCompressor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
