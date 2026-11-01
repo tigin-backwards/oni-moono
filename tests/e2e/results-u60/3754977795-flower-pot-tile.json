@@ -1,0 +1,75 @@
+{
+ "spec": "mods/3754977795-flower-pot-tile.yaml",
+ "mods": [
+  "3754977795"
+ ],
+ "verdict": "warning",
+ "why": "known findings: scroll-normalized-position",
+ "findings": [
+  "scroll-normalized-position"
+ ],
+ "note": "setup grants Interior Decor and spawns sandstone and a Buddy Bud seed. The tile fills one cell of the pit in the floor of the dug-out room west of the printing pod; once built its cell insulates, and its planting side screen lists the Buddy Bud",
+ "updated": "2026-11-01",
+ "commit": "0344be33",
+ "mod_dlls": {
+  "3754977795": {
+   "FlowerPotTile.dll": "4e1fb521004162c358ed5b5cc1a1d1e5a7471cce647ed3fbb17c88df0cd6d613"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-052816-8592cb3e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:36:24",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-055453-6f9b8894",
+    "index": 1,
+    "verdict": "warn",
+    "date": "2026-11-01T05:54:53",
+    "lane": 42,
+    "reference_run": "20261101-052816-8592cb3e",
+    "new_signatures": 0,
+    "findings": [
+     "scroll-normalized-position"
+    ],
+    "ui_dump": {
+     "planter": {
+      "differences": 0,
+      "known": {
+       "scroll-normalized-position": 1
+      }
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-055453-6f9b8894",
+    "index": 2,
+    "verdict": "warn",
+    "date": "2026-11-01T05:57:49",
+    "lane": 45,
+    "reference_run": "20261101-052816-8592cb3e",
+    "new_signatures": 0,
+    "findings": [
+     "scroll-normalized-position"
+    ],
+    "ui_dump": {
+     "planter": {
+      "differences": 0,
+      "known": {
+       "scroll-normalized-position": 1
+      }
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
