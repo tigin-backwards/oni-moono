@@ -220,13 +220,18 @@ namespace OniMoono.Desktop.Gl
         /// red-channel texture read as (0, 0, 0, a); gamma colour space uses no sRGB formats.
         /// Compressed formats the context cannot sample are decoded on upload, as Unity
         /// decompresses them: to RGBA8, BC6H to half-float RGBA.
-        public static GlFormat Of(TextureFormat f)
+        /// `volume`: for a 3D texture (TEXTURE_3D). S3TC and RGTC images are 2D only:
+        /// CompressedTexImage3D with an S3TC format is INVALID_ENUM (EXT_texture_compression_s3tc,
+        /// Errors), and with an RGTC format and a target other than a 2D array or cube map
+        /// (array) INVALID_OPERATION (OpenGL 4.6 section 8.7), so 3D ones are decoded. BPTC has
+        /// no such restriction: its 3D images are slices of 2D blocks (ARB_texture_compression_bptc).
+        public static GlFormat Of(TextureFormat f, bool volume = false)
         {
             bool sampled = f switch
             {
-                TextureFormat.DXT1 or TextureFormat.DXT5 => Caps?.S3tc ?? true,
+                TextureFormat.DXT1 or TextureFormat.DXT5 => !volume && (Caps?.S3tc ?? true),
                 TextureFormat.BC6H or TextureFormat.BC7 => Caps?.Bptc ?? true,
-                TextureFormat.BC4 or TextureFormat.BC5 => Caps?.Rgtc ?? true,
+                TextureFormat.BC4 or TextureFormat.BC5 => !volume && (Caps?.Rgtc ?? true),
                 _ => true,
             };
             if (sampled && Native(f) is { } native) return native;
@@ -567,7 +572,7 @@ namespace OniMoono.Desktop.Gl
         {
             // The format first: one with no GL equivalent throws before a texture name is made,
             // which would have no image (incomplete, and no bindless handle).
-            var f = Of(t.Format);
+            var f = Of(t.Format, volume: true);
             Begin(g, TexTarget3D);
             var memory = t.Memory;
             int levels = Math.Max(1, t.MipCount);
