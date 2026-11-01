@@ -1,0 +1,29 @@
+# Power Sensor Generate (3805467322), classes B, S.
+#
+# What it does: adds a power production sensor (PowerSensorProduction, the Automation menu,
+# researched with Advanced Power Regulation) that sends Green while its circuit's generators make
+# more (or less) than a threshold.
+# How a player reaches it: the build menu (Automation), after the research.
+# What changes: automation on power production.
+#
+# setup grants Advanced Power Regulation and builds the sensor in the dug-out corridor west of
+# the printing pod. It shows in the Automation menu; selected, its details screen is dumped.
+from: early-base
+mods: [3805467322]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedPowerRegulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"PowerSensorProduction\")", method: Build, args: [{"$": "Grid.XYToCell(109, 208)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"AdvancedPowerRegulation\").unlockedItemIDs": {contains: PowerSensorProduction}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Automation"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/PowerSensorProduction Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/PowerSensorProduction Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [109, 209], ortho: 8}}
+  - click_world: {cell: [109, 208], select: PowerSensorProduction}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}
