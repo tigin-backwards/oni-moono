@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2819676282-rocket-ration-module.yaml",
+ "mods": [
+  "2819676282"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "early-base has no rocket: the module is checked in the game's definitions, in the rocket build list and in the Artifact Cargo Module's technology, and the colony runs on",
+ "updated": "2026-10-31",
+ "commit": "bdc86403",
+ "mod_dlls": {
+  "2819676282": {
+   "Ration Box Rocket Module.dll": "6bdd385541f88005f606c0e78c94b7bc5d8495ad0861a60387b87c3f8ae7bb21"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-222609-5b174342",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:32:34",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-233540-4ba2afa2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:35:40",
+    "lane": 44,
+    "reference_run": "20261031-222609-5b174342",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-233540-4ba2afa2",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T23:35:41",
+    "lane": 45,
+    "reference_run": "20261031-222609-5b174342",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

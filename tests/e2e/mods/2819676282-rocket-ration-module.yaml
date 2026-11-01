@@ -1,0 +1,24 @@
+# Rocket Ration Module: Food and Medicine (2819676282), class B (Spaced Out).
+#
+# What it does: adds the Ration Box Cargo Module (SolidCargoBayFood), a 3x3 rocket cargo bay
+# whose storage takes food and medicine (STORAGEFILTERS.FOOD), burden moderate, listed among
+# the rocket modules after the Artifact Cargo Module and researched with it.
+# How a player reaches it: a rocket's Add Module list on a launch pad.
+# What changes: rockets carry rations.
+#
+# early-base has no rocket: the module is checked in the game's definitions, in the rocket
+# build list and in the Artifact Cargo Module's technology, and the colony runs on.
+from: early-base
+mods: [2819676282]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"SolidCargoBayFood\").WidthInCells": 3
+      "Assets.GetPrefab(\"SolidCargoBayFood\").GetComponent<CargoBayCluster>.storageType": Solids
+      "Assets.GetPrefab(\"SolidCargoBayFood\").GetComponent<Storage>.storageFilters": {contains: Edible}
+      "Assets.GetPrefab(\"SolidCargoBayFood\").GetComponent<RocketModuleCluster>": exists
+      "Db.Get().Techs.TryGetTechForTechItem(\"ArtifactCargoBay\").unlockedItemIDs": {contains: SolidCargoBayFood}
+      "SelectModuleSideScreen.moduleButtonSortOrder": {contains: SolidCargoBayFood}
+  - expect_state:
+      "Assets.GetPrefab(\"SolidCargoBayFood\").GetComponent<Storage>.capacityKg": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
