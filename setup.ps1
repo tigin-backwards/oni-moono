@@ -138,7 +138,7 @@ $launch = "`"$exe`" -- %command%"
 # from its localconfig.vdf: Steam keeps them under Software\Valve\Steam\apps\457140, and the
 # account's name under friends\PersonaName.
 function Read-LaunchOptions($file) {
-    $text = Get-Content -Raw -LiteralPath $file
+    $text = Get-Content -Raw -Encoding UTF8 -LiteralPath $file
     $tokens = [regex]::Matches($text, '"((?:[^"\\]|\\.)*)"|[{}]')
     $path = New-Object System.Collections.Generic.List[string]
     $key = $null; $persona = $null; $options = $null
