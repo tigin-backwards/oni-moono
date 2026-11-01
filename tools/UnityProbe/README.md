@@ -411,6 +411,20 @@ whether any of the method ran. Then how such an exception reaches the log throug
 `Debug.LogError(e.ToString())`. Run it through `scripts/e2e.py` as the canvas probes are, with a
 spec that loads any colony. ARCHITECTURE D42 records what it measured; `--check-types` encodes it.
 
+With `PROBE_SCENARIO=kindchange` only the kind-change probe runs (`KindChange.cs`, lines `KC …`,
+at the main menu; a `KindChangeProbeDone` canvas appears at the end). Its cases are
+`Kind/Cases`' ProbeKindCases, built without unsafe code (an unsafe build is SkipVerification,
+which turns off the checks measured), against `Kind/v1`'s ProbeKind, where Flip is a struct and
+Flop a class; put `Kind/v2`'s build (`dotnet build Kind/v2 -c Release`) and ProbeKindCases.dll
+beside SemanticsProbe.dll, where Flip is a class and Flop a struct, as a mod built before U57
+meets LogicValueChanged. Each case is a method using Flip one way (unbox.any into a local, a
+call's result, a static field and an array element stored or reached through their address,
+`new`, a default local, a box, `List<Flip>` as a field, a new object, a parameter and with Add,
+the mod's own field and method, `out`, `ref`, a handler unboxing its event, Flop returned and
+passed), called twice: what it returned, or the exception's type, message and first frame.
+`PROBE_KC_CRASH=1` adds, last, the two cases that crash the player. ARCHITECTURE D57 records what
+it measured; `--check-types` encodes it.
+
 With `PROBE_SCENARIO=quitevents` only the quit-events probe runs (`QuitEvents.cs`, lines `QE …`,
 at the main menu): Application.wantsToQuit, quitting and unloading handlers and OnApplicationQuit,
 around three Application.Quit() calls three frames apart (a handler refuses the first and throws
