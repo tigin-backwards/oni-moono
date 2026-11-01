@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3800957907-two-tile-visco-gel-lock.yaml",
+ "mods": [
+  "3800957907"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Liquid Piping and builds the lock across the dug-out corridor west of the printing pod. It shows in the Utilities menu; selected, its details screen is dumped, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "11935d41",
+ "mod_dlls": {
+  "3800957907": {
+   "ViscoGelGate100.dll": "8a823e9f1ed9ba35f009643b45f6038e5c2d44b43d773100da3efa915c2f002c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-050536-ab9a3d76",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:05:36",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092320-e8594cfd",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:23:21",
+    "lane": 41,
+    "reference_run": "20261101-050536-ab9a3d76",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-092320-e8594cfd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:23:20",
+    "lane": 40,
+    "reference_run": "20261101-050536-ab9a3d76",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
