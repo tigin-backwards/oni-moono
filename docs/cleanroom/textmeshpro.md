@@ -2968,6 +2968,70 @@ and the quads' triangles, bounds zero, and uv and colours not set by the constru
 with the probe's `tmp.*` lines (`diff` of the two players' `MS` lines shows no difference in
 them) and with the spec above, which must reach its last step without the crash dialog.
 
+### Indents opened part-way along a line (measured 2026-11-01)
+
+**Why:** the details screen and the product card write a nested descriptor as a bullet between
+two indents: `<indent=1em>•<indent=1.75em><b><style="KLink"><link="TOXICSAND">Polluted
+Dirt</style></b></link>: 110 g/s</indent>`. Shangri-La (2891557203), Chlorine Sublimation
+Station (3786962460) and Cockpit Commode (3814966327) show such lines. In NotoSans-Regular
+12 pt that line's preferred width is 144.25 in the shipped package and was 139.75 here: this
+implementation took an indent only where a line starts, so the text after the bullet followed it
+at 16.5 (the bullet is 4.5 wide) instead of starting at the inner indent, 21.
+
+**Measured** with `PROBE_SCENARIO=indent` (`tools/UnityProbe/IndentWidth.cs`, lines `IN …`, 10 s
+into the main menu): 28 texts in NotoSans-Regular and GRAYSTROKE REGULAR SDF at 12, 14, 16 and
+20 pt, set up as `SetTextStyleSetting` does, top left at pivot 0 in a 400 × 100 rect, unwrapped,
+and the texts with several lines or a long line also wrapped at 60. Each logs the preferred
+sizes (also from `GetPreferredValues`), each character's origin, advance and vertices, each
+line's metrics and the links. `TmpIndentTests` encodes the values. In the shipped package:
+- **An indent opened part-way along a line moves the pen to it**, measured from the line's left
+  edge, ahead or back. In NotoSans-Regular 12 pt, `<indent=1em>•<indent=1.75em>Polluted Dirt`
+  has the bullet at 12 and the "P" at 21 (at 20 pt: 20 and 35); `<indent=1em>•<indent=1.2em>…`
+  has the "P" at 14.4000006, over the bullet; `<indent=2em>ABCD<indent=1em>Polluted Dirt` has
+  "ABCD" from 24 and the "P" back at 12; `<indent=1em>•<indent=1.75em>X<indent=4em>Y` has the
+  "Y" at 48. A third indent goes to its own value (`<indent=2.5em>` after two: 30).
+- **Closing an indent leaves the pen where it is**: `<indent=1em>•</indent>Polluted Dirt` has
+  the "P" right after the bullet, at 16.5, as `<indent=1em>•Polluted Dirt` does.
+- **Later lines start at the indent in force**: after a line feed or a wrap the next line starts
+  at 1.75 em (21), and a line that opens its own indents starts at the first of them
+  (`…\n<indent=1em>•<indent=1.75em>…` has its second bullet at 12 and text at 21 again). An
+  indent opened where a line starts is where that line starts (`<indent=1em><indent=1.75em>A`:
+  the "A" at 21).
+- **`<pos>` is measured from the line's left edge too**: `<indent=1em>•<pos=1.75em>Polluted
+  Dirt` has the "P" at 21, as with the inner indent (this implementation put it at 33,
+  the line's indent plus the position).
+- **Percent indents are of the rect's width**, for the preferred width as well as the layout:
+  `<indent=10%>•<indent=20%>Polluted Dirt` in the 400-wide rect has the bullet at 40 and the
+  "P" at 80 (exactly; 10 × 0.01 × 400 in floats is 39.999996), and its preferred width is
+  150.88, from `preferredWidth` and `GetPreferredValues` with or without a width (this
+  implementation gave NaN: it took the percentage of the unbounded width it measures with).
+- **The preferred width** follows from the pens with the rule of "Preferred sizes to the
+  hundredth": the widest line's pen at the end of its last visible character, measured from
+  the left edge, so the jump to the inner indent counts in full. The details screen's line is
+  144.25 (its last character, "s" of "g/s", ends at 144.242508); without the link and bold,
+  139.57.
+- **Links and styles** take no part: `<link>` around the text after the inner indent leaves the
+  pens as they are, and the link's first character is the "P".
+- **`lineInfo.length` counts from the line's left edge**, its indent included: "•Polluted Dirt"
+  is 75.125 long, `<indent=1em>•Polluted Dirt` 87.125, the details screen's line 143.680008
+  (this implementation left the line's starting indent out: 75.125, 131.68).
+
+Also seen, not part of these rules (they hold without indents too, as far as the probe shows):
+`lineInfo.width` is the rect's width plus 0.0001 (400.0001; here 400), and for the wrapped
+texts `GetPreferredValues(text)` gives the unwrapped height (32.66 for two lines in NotoSans 12
+pt) and `GetPreferredValues(text, 60, 100)` the wrapped width (59.44), where this
+implementation gives the values of `preferredWidth` and `preferredHeight` for both. Measure
+them without indents before relying on them.
+
+Not measured: `<line-indent>` together with an indent opened part-way along a line, `<pos>` at
+the start of an indented line, percent indents with margins, and em indents inside `<size>`.
+
+**This implementation** now follows these rules. Against the shipped package all 248 preferred
+sizes match but one (NotoSans-Regular 16 pt `<indent=2em>ABCD<indent=1em>Polluted Dirt`, 110.51
+for 110.5), and NotoSans-Regular 12 pt's pens match to the bit. At scales that are not a power of
+two some pens are a float step off, as they are without indents (see "Also seen" under
+"Preferred sizes to the hundredth"); that case is one of them.
+
 ## Verification
 
 1. **Build:**

@@ -18,7 +18,8 @@ namespace TMPro
             public float Advance;        // pen advance: the glyph's and the spacing after it
             public float GlyphAdvance;   // the glyph's own advance (what xAdvance and line lengths use)
             public float PreSpace;       // <space> before the character
-            public float SetPen;         // <pos> before the character (NaN: none)
+            public float SetPen;         // <pos> or <indent> before the character (NaN: none)
+            public bool IndentPen;       // SetPen is an indent's (a line starting there has it already)
             public bool PageBreak;       // <page> before the character
             public float Scale;          // font units → pixels for the glyph
             public float FontScale;      // of the font at the character's size
@@ -257,11 +258,15 @@ namespace TMPro
             float height = rectHeight - m_margin.y - m_margin.w;
             bool wrap = m_TextWrappingMode == TextWrappingModes.Normal || m_TextWrappingMode == TextWrappingModes.PreserveWhitespace;
             if (float.IsInfinity(width) || float.IsNaN(width)) wrap = false;
+            // Indents in percent are of the rect's width, also where the preferred width is
+            // measured without one (measured on the shipped package: "<indent=10%>" in a
+            // 400-wide rect is 40 in both).
+            m_IndentPercentOf = LayoutRect.width - m_margin.x - m_margin.z;
 
             // 1. Characters.
             int count = 0;
             float space = 0f, pos = float.NaN;
-            bool page = false;
+            bool page = false, indentPen = false;
             var rules = TMP_Settings.linebreakingRules;
             for (int e = 0; e < n; e++)
             {
@@ -273,6 +278,11 @@ namespace TMPro
                         continue;
                     case ElementKind.Position:
                         pos = el.Amount.Resolve(PointSizeOf(el.State, baseSize), width);
+                        indentPen = false;
+                        continue;
+                    case ElementKind.Indent:
+                        pos = ResolveIndent(el.Amount, PointSizeOf(el.State, baseSize));
+                        indentPen = true;
                         continue;
                     case ElementKind.PageBreak:
                         page = true;
@@ -287,10 +297,12 @@ namespace TMPro
                 p.Element = e;
                 p.PreSpace = space;
                 p.SetPen = pos;
+                p.IndentPen = indentPen;
                 p.PageBreak = page;
                 space = 0f;
                 pos = float.NaN;
                 page = false;
+                indentPen = false;
                 if (end3) break;
             }
             // Kerning: the font's pair adjustments between consecutive glyphs of the same font
@@ -377,7 +389,12 @@ namespace TMPro
                     ref var p = ref pl[i];
                     if (i > start && p.PageBreak) { end = i - 1; break; }
                     x += p.PreSpace;
-                    if (!float.IsNaN(p.SetPen)) x = line.StartX + p.SetPen;
+                    // <pos> and an indent opened part-way along the line set the pen from the
+                    // line's left edge, not from its indent (measured on the shipped package:
+                    // "<indent=1em>•<pos=1.75em>A" and "<indent=1em>•<indent=1.75em>A" both
+                    // have the "A" at 1.75 em). A line that starts at an indent's tag already
+                    // starts at it, with its line indent.
+                    if (!float.IsNaN(p.SetPen) && !(p.IndentPen && i == start)) x = p.SetPen;
                     if (p.LineBreak)
                     {
                         p.X = x;
@@ -615,6 +632,13 @@ namespace TMPro
 
         float PointSizeOf(TextState state, float baseSize) => state.SizeScale * baseSize + state.SizeOffset;
 
+        float m_IndentPercentOf;
+
+        // An indent in pixels: a percentage of the rect's width (in the shipped package's
+        // floats: 10% of 400 is 40), em of the size at its tag.
+        float ResolveIndent(Measure m, float size) =>
+            m.Unit == MeasureUnit.Percent ? m.Value * m_IndentPercentOf / 100f : m.Resolve(size, 0f);
+
         // White space as .NET classifies it (the zero-width space is not; it is a break
         // opportunity without width).
         static bool IsWhitespace(uint c) => c < 0x10000 && char.IsWhiteSpace((char)c);
@@ -680,7 +704,7 @@ namespace TMPro
             p.WidthLimit = state.HasWidth ? state.Width.Resolve(size, width) : float.NaN;
             p.MarginLeft = state.MarginLeft.Resolve(size, width);
             p.MarginRight = state.MarginRight.Resolve(size, width);
-            p.Indent = state.Indent.Resolve(size, width);
+            p.Indent = ResolveIndent(state.Indent, size);
             p.LineIndent = state.LineIndent.Resolve(size, width);
             p.Align = state.Align != 0 ? state.Align : m_HorizontalAlignment;
             p.NoBreak = state.NoBreak;

@@ -584,7 +584,15 @@ namespace TMPro
                     { if (!TryMeasure(tag.Value, out var m)) return false; Push("voffset").VerticalOffset = m; return true; }
                 case "indent":
                     if (closing) return Pop("indent");
-                    { if (!TryMeasure(tag.Value, out var m)) return false; Push("indent").Indent = m; return true; }
+                    {
+                        if (!TryMeasure(tag.Value, out var m)) return false;
+                        Push("indent").Indent = m;
+                        // An indent opened part-way along a line moves the pen to it, ahead or
+                        // back; one closed leaves the pen where it is (measured on the shipped
+                        // package).
+                        AddInstruction(ElementKind.Indent, m, sourceIndex, tagLength);
+                        return true;
+                    }
                 case "line-indent":
                     if (closing) return Pop("line-indent");
                     { if (!TryMeasure(tag.Value, out var m)) return false; Push("line-indent").LineIndent = m; return true; }

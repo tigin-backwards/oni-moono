@@ -73,10 +73,11 @@ namespace TMPro
     {
         Character,
         Sprite,
-        // A zero-width element: horizontal space (<space>), a new pen position (<pos>) or a
-        // page break (<page>).
+        // A zero-width element: horizontal space (<space>), a new pen position (<pos>), an
+        // opened indent, which also moves the pen (<indent>), or a page break (<page>).
         Space,
         Position,
+        Indent,
         PageBreak,
     }
 
