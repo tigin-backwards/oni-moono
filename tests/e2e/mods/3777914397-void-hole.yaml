@@ -1,0 +1,36 @@
+# 吸收房间物质的黑洞 / A black hole that absorbs matter inside the room (3777914397), class B.
+#
+# What it does: adds the Black Hole and White Hole (BlackHole, WhiteHole, 1x1, 10 kg of raw
+# metal, in the Utilities menu, no research; one of each a save). Inside a recognised room
+# (a cavity whose room type is not None), the black hole swallows the room's gases, liquids
+# and debris at 10 kg/s into a shared void store (VoidStore); a white hole in another room
+# gives what the store holds back as gas, liquid or debris.
+# How a player reaches it: the build menu (Utilities).
+# What changes: matter moved between rooms, or deleted.
+#
+# setup closes the corridor west of the printing pod with a column of tiles at its east end
+# (x 119), making it a room, and builds a Black Hole in it. It takes nothing until its filter
+# lets something through: with All ticked in its filter side screen, after 30 s of play the
+# void store holds the gas it took.
+from: early-base
+mods: [3777914397]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Tile\")", method: Build, args: [131135, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Tile\")", method: Build, args: [131771, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Tile\")", method: Build, args: [132407, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Tile\")", method: Build, args: [133043, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"BlackHole\")", method: Build, args: [131126, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+require_log: ['\[VoidHole\] 已注册 黑洞/白洞 并加入实用建造栏。']
+steps:
+  - expect_state:
+      "type:VoidHole.VoidStore::TotalKg": 0
+  - run: {seconds: 1}
+  - expect: {buildings: {BlackHole: 1}}
+  - driver: {camera.set: {cell: [110, 208], ortho: 8}}
+  - click_world: {cell: [110, 206], select: BlackHole}
+  - ui_wait: {path: "**/TreeFilterableSideScreen/**/AllStandardItemsRowHeader/HorizontalContent/CheckBox", cond: stable}
+  - click: {ui: "**/TreeFilterableSideScreen/**/AllStandardItemsRowHeader/HorizontalContent/CheckBox"}
+  - run: {seconds: 30}
+  - expect_state:
+      "Game.Instance.roomProber.GetCavityForCell(131765).room.roomType.Id": "== original"
+      "type:VoidHole.VoidStore::TotalKg": "> 0"
