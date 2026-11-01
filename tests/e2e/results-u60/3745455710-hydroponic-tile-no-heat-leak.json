@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3745455710-hydroponic-tile-no-heat-leak.yaml",
+ "mods": [
+  "3745455710"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Hydroponic Farm in the pit in the floor of the dug-out room west of the printing pod. Whether its prefab has the controller is compared with the original, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "578b6ee7",
+ "mod_dlls": {
+  "3745455710": {
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db",
+   "╥║┼α╫⌐▓╗╘┘┬⌐╬┬.dll": "e5910f33e892f78ee9112b7445a118f18282bd5e55c9e2d75eb01a06bf16cc4a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-065235-08404b0b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:10:13",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071800-2741fa4c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:18:00",
+    "lane": 41,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071800-2741fa4c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:18:01",
+    "lane": 45,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
