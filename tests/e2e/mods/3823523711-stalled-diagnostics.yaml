@@ -1,0 +1,14 @@
+# 停摆诊断 | Stalled Diagnostics (3823523711), class S.
+#
+# What it does: a colony diagnostic (ColonyDiagnosticUtility.AddWorld) that lists every stalled
+# building and why (no power, no materials, output blocked, environment, broken, no operator,
+# unconnected, switched off), each a link to the building; it only reads.
+# How a player reaches it: the diagnostics panel at the top left.
+# What changes: stalled buildings found at a glance.
+#
+# The mod loads and the colony plays for 30 s with its diagnostic added.
+from: early-base
+mods: [3823523711]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
