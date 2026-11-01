@@ -40,6 +40,11 @@ namespace OniMoono.Desktop
         /// Windows: custom cursors that follow the pointer size (made on first use).
         Win32Cursor win32Cursor;
         bool closeRequested;
+        /// Our character callback, kept alive for as long as GLFW may call it.
+        GlfwCharUnmanagedCallback charCallback;
+        /// What a callback of ours threw, thrown again once GLFW's poll returns (an exception
+        /// must not unwind through GLFW's native frames).
+        Exception callbackFailure;
 
         public GlfwWindow Window => window;
         /// The hidden window whose context the main thread renders with.
@@ -151,7 +156,11 @@ namespace OniMoono.Desktop
             else
             {
                 window.OnKey += (w, key, scancode, action, mods) => Report(() => OnKey(w, key, scancode, action, mods));
-                window.OnChar += (_, codepoint) => Report(() => feed.Text((uint)codepoint, Modifiers()));
+                // BRUTAL's own character thunk cuts the code point to 16 bits ((ushort)point), so
+                // characters above U+FFFF (emoji) arrived as others, or as a lone surrogate:
+                // ours replaces it, with the whole code point. BRUTAL's other callbacks stay.
+                charCallback = OnCharNative;
+                Glfw.PInvoke.SetCharCallback(window, charCallback);
                 window.OnMouseButton += (w, button, action, mods) => Report(() => OnMouseButton(w, button, action, mods));
                 window.OnCursorPos += (_, pos) => Report(() => feed.MouseMoved(ToPixels(pos)));
                 window.OnScroll += (_, offset) => Report(() => feed.Scrolled(new Vector2((float)offset.X, (float)offset.Y), MouseGuiPosition()));
@@ -473,6 +482,26 @@ namespace OniMoono.Desktop
             }
         }
 
+        /// GLFW's character callback: the Unicode code point typed (GLFWcharfun).
+        void OnCharNative(GlfwWindowHandle* handle, uint codepoint)
+        {
+            try
+            {
+                Report(() => feed.Text(codepoint, Modifiers()));
+            }
+            catch (Exception e)
+            {
+                callbackFailure ??= e;
+            }
+        }
+
+        void ThrowCallbackFailure()
+        {
+            if (callbackFailure is not { } failure) return;
+            callbackFailure = null;
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(failure);
+        }
+
         public void PumpEvents()
         {
             if (pumping || inGlfw > 0) return;
@@ -485,6 +514,7 @@ namespace OniMoono.Desktop
             {
                 pumping = false;
             }
+            ThrowCallbackFailure();
         }
 
         public bool PollEvents(InputState input)
@@ -506,6 +536,7 @@ namespace OniMoono.Desktop
             {
                 inGlfw--;
             }
+            ThrowCallbackFailure();
             ReadFramebufferSize();
             if (OperatingSystem.IsWindows()) ApplyIme();
             if (!scripted) FollowCursorOutside();
@@ -745,9 +776,15 @@ namespace OniMoono.Desktop
         /// Typed text: one character event per UTF-16 unit.
         public void Text(uint codepoint, EventModifiers modifiers)
         {
-            foreach (var ch in char.ConvertFromUtf32((int)codepoint))
+            foreach (var ch in TextOf(codepoint))
                 Queue(EventType.KeyDown, modifiers, Vector2.zero, e => e.character = ch);
         }
+
+        /// A typed code point's UTF-16 units; none for a value that is no character's (a
+        /// surrogate, or above U+10FFFF), which no system should send but which must not stop
+        /// the frame's input.
+        internal static string TextOf(uint codepoint)
+            => System.Text.Rune.IsValid(codepoint) ? new System.Text.Rune(codepoint).ToString() : "";
 
         public void MouseMoved(Vector2 pixels)
         {
