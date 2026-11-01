@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3798414538-underground-vault.yaml",
+ "mods": [
+  "3798414538"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Monuments and builds a vault in the dug-out corridor west of the printing pod. It shows in the Base menu; it holds 2,000,000 kg, and selected its details screen names it",
+ "updated": "2026-11-01",
+ "commit": "6e887271",
+ "mod_dlls": {
+  "3798414538": {
+   "Vault.dll": "ee3ee1891ca65c9f1f6c859e2cf993b9d4a12d62595c68034dacbdfcf89a04ed"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-054821-21d56bdb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:04:22",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091254-1b4a9cc9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:12:54",
+    "lane": 40,
+    "reference_run": "20261101-054821-21d56bdb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-091254-1b4a9cc9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:12:55",
+    "lane": 41,
+    "reference_run": "20261101-054821-21d56bdb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
