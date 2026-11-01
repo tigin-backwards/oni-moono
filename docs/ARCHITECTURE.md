@@ -1536,7 +1536,11 @@ Elsewhere (Mesa's d3d12 driver under WSL) textures are bound to units, and so th
 Windows driver (`GL_VENDOR` "ATI Technologies Inc."), which lists the extension but charges a flat
 ~0.25 ms of GPU time per draw and per texture upload with handles resident, against
 0.001-0.009 ms bound to units (an RX 9070 XT: 270-570 GPU ms per frame on a loaded colony,
-26-30 with units; issue #27). `--no-bindless` binds on any driver. A texture without an
+26-30 with units; issue #27). Mesa's AMD driver (radeonsi, `GL_VENDOR` "AMD") binds as well:
+it adds every resident handle's buffer to each command submission, so the cost grows with the
+textures ever sampled, and a save's colony preview, which samples about 4.5 times a normal
+frame's textures, left an RX 9070 colony at 20-25 fps from 40-50, paused or not (issue #43).
+`--no-bindless` binds on any driver; `--bindless` uses handles on AMD's too. A texture without an
 image (zero width or height) is sampled as no texture, (0, 0, 0, 1).
 
 **Render thread, presentation and frame pacing.** Unity's player records rendering on the main
