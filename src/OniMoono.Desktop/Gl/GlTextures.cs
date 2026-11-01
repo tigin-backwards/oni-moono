@@ -652,6 +652,8 @@ namespace OniMoono.Desktop.Gl
             // A colour format with no GL equivalent throws before the old surfaces are replaced
             // by a texture name with no image.
             uint internalFormat = depthOnly ? 0 : InternalOf(rt.ColorFormat);
+            uint depthFormat = DepthFormat(rt.DepthBits);
+            if (samples > 1 && !depthOnly) samples = SupportedSamples(samples, internalFormat, rt.DepthBits > 0 ? depthFormat : 0);
             g.Delete();
             g.Id = GlApi.GenTexture();
             g.Target = TexTarget2D;
@@ -680,16 +682,12 @@ namespace OniMoono.Desktop.Gl
             else
             {
                 N.glFramebufferTexture2D(Framebuffer, ColorAttachment0, TexTarget2D, g.Id, 0);
-                if (rt.DepthBits > 0)
-                {
-                    g.DepthRenderbuffer = GlApi.GenRenderbuffer();
-                    N.glBindRenderbuffer(Renderbuffer, new GlRenderbuffer(g.DepthRenderbuffer));
-                    N.glRenderbufferStorage(Renderbuffer, rt.DepthBits > 24 ? Depth32FStencil8 : rt.DepthBits > 16 ? Depth24Stencil8 : DepthComponent16, rt.Width, rt.Height);
-                    N.glFramebufferRenderbuffer(Framebuffer, rt.DepthBits > 16 ? DepthStencilAttachment : DepthAttachment, Renderbuffer, new GlRenderbuffer(g.DepthRenderbuffer));
-                }
+                // Multisampled, the depth buffer is the multisampled framebuffer's (below): this
+                // one only receives the colour resolve.
+                if (rt.DepthBits > 0 && samples <= 1) AttachDepth(g, depthFormat, 0, rt);
             }
             CheckFramebuffer(rt, name);
-            ClearNewSurfaces(depthOnly, rt.DepthBits > 0);
+            ClearNewSurfaces(depthOnly, rt.DepthBits > 0 && samples <= 1);
             if (samples > 1 && !depthOnly)
             {
                 // Rendering goes to multisampled surfaces, resolved into the texture when it is read.
@@ -699,20 +697,51 @@ namespace OniMoono.Desktop.Gl
                 N.glBindRenderbuffer(Renderbuffer, new GlRenderbuffer(g.MultisampleColor));
                 N.glRenderbufferStorageMultisample(Renderbuffer, samples, internalFormat, rt.Width, rt.Height);
                 N.glFramebufferRenderbuffer(Framebuffer, ColorAttachment0, Renderbuffer, new GlRenderbuffer(g.MultisampleColor));
-                if (rt.DepthBits > 0)
-                {
-                    // The single-sample depth buffer is not used for multisampled rendering.
-                    GlApi.DeleteRenderbuffer(g.DepthRenderbuffer);
-                    g.DepthRenderbuffer = GlApi.GenRenderbuffer();
-                    N.glBindRenderbuffer(Renderbuffer, new GlRenderbuffer(g.DepthRenderbuffer));
-                    N.glRenderbufferStorageMultisample(Renderbuffer, samples, Depth24Stencil8, rt.Width, rt.Height);
-                    N.glFramebufferRenderbuffer(Framebuffer, DepthStencilAttachment, Renderbuffer, new GlRenderbuffer(g.DepthRenderbuffer));
-                }
+                if (rt.DepthBits > 0) AttachDepth(g, depthFormat, samples, rt);
                 CheckFramebuffer(rt, name);
                 ClearNewSurfaces(false, rt.DepthBits > 0);
             }
             GlApi.BindFramebuffer(Framebuffer, 0);
             GlDevice.InvalidateFramebufferBinding();
+        }
+
+        /// The depth buffer format for a render texture's depth bits: 32-bit float, 24-bit or
+        /// 16-bit depth, the first two with 8 bits of stencil.
+        static uint DepthFormat(int depthBits) => depthBits > 24 ? Depth32FStencil8 : depthBits > 16 ? Depth24Stencil8 : DepthComponent16;
+
+        /// A depth renderbuffer (multisampled when `samples` > 0) on the bound framebuffer.
+        static void AttachDepth(DeviceTexture g, uint format, int samples, RenderShape rt)
+        {
+            g.DepthRenderbuffer = GlApi.GenRenderbuffer();
+            N.glBindRenderbuffer(Renderbuffer, new GlRenderbuffer(g.DepthRenderbuffer));
+            N.glRenderbufferStorageMultisample(Renderbuffer, samples, format, rt.Width, rt.Height);
+            N.glFramebufferRenderbuffer(Framebuffer, format == DepthComponent16 ? DepthAttachment : DepthStencilAttachment, Renderbuffer, new GlRenderbuffer(g.DepthRenderbuffer));
+        }
+
+        /// The largest sample count up to `requested` that both formats support (depthFormat 0:
+        /// none) and MAX_SAMPLES allows, 1 when there is none. A count above a format's maximum is
+        /// INVALID_OPERATION (OpenGL 4.6 section 9.2.4); GetInternalformativ gives each format's
+        /// supported counts, largest first (section 22.3). The same count for both, one both
+        /// list: storage gets at least the count asked for, up to the next one supported
+        /// (section 9.2.4), and attachments whose sample counts differ leave the framebuffer
+        /// incomplete (FRAMEBUFFER_INCOMPLETE_MULTISAMPLE, section 9.4.2).
+        static int SupportedSamples(int requested, uint colorFormat, uint depthFormat)
+        {
+            int max = GlApi.GetInteger(MaxSamples);
+            int[] color = SampleCounts(colorFormat), depth = depthFormat != 0 ? SampleCounts(depthFormat) : null;
+            foreach (int n in color)
+                if (n <= requested && n <= max && (depth == null || Array.IndexOf(depth, n) >= 0)) return n;
+            return 1;
+        }
+
+        static int[] SampleCounts(uint format)
+        {
+            const uint NumSampleCounts = 0x9380, SamplesQuery = 0x80A9;
+            int count = 0;
+            N.glGetInternalformativ(Renderbuffer, format, NumSampleCounts, 1, &count);
+            var counts = new int[Math.Max(0, count)];
+            if (count > 0) fixed (int* p = counts) N.glGetInternalformativ(Renderbuffer, format, SamplesQuery, count, p);
+            return counts;
         }
 
         /// New render surfaces start cleared, as Unity's: colour (0, 0, 0, 0), depth at the far
