@@ -1,0 +1,16 @@
+# SkillPilot (3817979523), class M, U (PLib options).
+#
+# What it does: automatic skill progression: each Duplicant (BaseMinionConfig) gets an
+# AutoSkillProfile that, every second, learns the next skill its aptitudes suggest, respecting
+# morale and managing its hat (options), with a user menu toggle per Duplicant and a toggle on
+# the printing pod's cards (CharacterContainer patches); old saves are migrated.
+# How a player reaches it: a Duplicant's user menu; the printing pod; the mod's options.
+# What changes: skills learned by themselves.
+#
+# The mod loads its fixes, as its log says, and the colony plays for 60 s.
+from: early-base
+mods: [3817979523]
+require_log: ['\[SkillPilotFix\] Compatibility and UI fixes 0\.2\.2 loaded\.']
+steps:
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
