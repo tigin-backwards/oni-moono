@@ -2345,7 +2345,8 @@ class Player:
                     + ('' if expansion1 else '  EXPANSION1_ID.ENABLED: 0\n') + 'floats: {}\n')
 
     def install_mods(self, ids, driver):
-        """The spec's Workshop mods as Local mods (ws-mods.py profile), then OniMcp and E2eDriver;
+        """The spec's Workshop mods as Local mods (ws-mods.py profile, which installs them only
+        once the mod gate passes them; one it skips fails the run), then OniMcp and E2eDriver;
         returns {folder: staticID}. A translation (translation_only) is installed and left
         disabled, as a subscription leaves a new mod: KMod loads no content of an enabled
         translation (its Mod.LoadTranslations returns false), so it would mark an enabled one as
@@ -2355,7 +2356,10 @@ class Player:
         entries = []
         if ids:
             ws = ws_mods()
-            ws.profile(mods_dir, ids)
+            try:
+                ws.profile(mods_dir, ids)  # the mod gate first (scripts/mod-gate.py)
+            except ws.GateSkipped as e:
+                raise SpecFailure(str(e)) from None
             with open(os.path.join(mods_dir, 'mods.json')) as f:
                 entries = json.load(f)['mods']
             for entry in entries:
@@ -4306,6 +4310,14 @@ def main(argv):
             reference = Reference.from_runs(spec, originals) if job['after'] else Reference.blessed(spec)
             if job['after'] and reference is None:
                 return dict(record, verdict='skipped', reasons=['the spec fails in the original'], out=None)
+        if spec['mods']:
+            # The mod gate (scripts/mod-gate.py), before a lane is taken; the install checks again.
+            ws = ws_mods()
+            for m in spec['mods']:
+                ws.unpack(m)
+            skipped = {i: v for i, v in ws.gate(spec['mods']).items() if v['verdict'] != 'pass'}
+            if skipped:
+                return dict(record, verdict='skipped', reasons=[str(ws.GateSkipped(skipped))], out=None)
         log(f'== {spec["name"]} in {kind} ({index}/{opts["repeat"]})')
         gb = player_gb(spec, fixture_of(spec))
         job_name = f'{spec["name"]} in {kind} ({index}/{opts["repeat"]}), run {run_id}'

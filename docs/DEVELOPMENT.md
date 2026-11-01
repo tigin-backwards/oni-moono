@@ -181,6 +181,21 @@ other perf jobs can do the same with `flock -x ~/.cache/oni-brutal-e2e/perf.lock
 players, and bisects failing batches; `scripts/modtable.py > docs/MOD_COMPATIBILITY.md`
 regenerates the compatibility table from the results.
 
+Both install Workshop mods only through the mod gate (`scripts/mod-gate.py`, run by `ws-mods.py
+profile`): a mod is played only when onimaxxing has reviewed the exact upload SteamCMD fetched.
+Its upload handle (the `ugchandle` in SteamCMD's `appworkshop_457140.acf`, signed, taken mod
+2^64) must be the `file` of a version with `reviewed: true` in onimaxxing's
+`mods-data/BUILD/mod/ID/index.json`; the unpacked DLLs in `out/ws/ID` must include every
+`managed[].sha256` of that version's facts (`mod/ID/FILE.json`), compared by hash because a
+zip's non-ASCII names unpack under another encoding; and the catalog row must carry no
+`malware`, `credentials`, `chatWebhook` or `obfuscated` flag. A mod with no binaries needs only
+the last. Any other mod is skipped, with the reason ("not reviewed by onimaxxing yet: upload N
+is not analysed"), and waits for onimaxxing's review: `e2e.py` reports its spec as skipped, and
+`mod-sweep.py` records it as not run. `scripts/mod-gate.py ID...` checks mods without playing
+them. onimaxxing's data is cached in `out/modgate/cache/BUILD/` with its fetch time, for an
+hour; the build is the game folder's (761015 for `oni-linux-761015`, else U59's 744825), or
+`ONI_GAME_BUILD`.
+
 ## The OniMoono rename
 
 The internals were renamed from OniBrutal to OniMoono. `scripts/rename-internals.py` does that
