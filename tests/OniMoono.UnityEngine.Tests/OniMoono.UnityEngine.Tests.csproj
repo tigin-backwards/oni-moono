@@ -33,6 +33,8 @@
     <!-- The GPU option's decisions and its native environment (GpuChoiceTests). -->
     <Compile Include="../../src/OniMoono.Host/GpuChoice.cs" Link="Host/GpuChoice.cs" />
     <Compile Include="../../src/OniMoono.Host/DxgiFaultOption.cs" Link="Host/DxgiFaultOption.cs" />
+    <!-- Unity's player arguments, read or ignored (UnityArgumentsTests). -->
+    <Compile Include="../../src/OniMoono.Host/UnityArguments.cs" Link="Host/UnityArguments.cs" />
     <!-- The Moono Tweaks catalog (GameTweakCatalogTests; BackgroundSave names itself from it). -->
     <Compile Include="../../src/OniMoono.Host/GameTweaks/GameTweakNames.cs" Link="Host/GameTweakNames.cs" />
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakStrings.cs" Link="Host/TweakStrings.cs" />
