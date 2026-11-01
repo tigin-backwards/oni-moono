@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3822820206-geyser-retuner.yaml",
+ "mods": [
+  "3822820206"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the sulfur geyser buried west of early-base's printing pod is made selectable (as uncovering it would). Selected, its side screen has \"Edit geyser stats\"; clicked, the mod's window opens (dumped, its numbers masked), and Escape closes it",
+ "updated": "2026-11-01",
+ "commit": "067cfdf5",
+ "mod_dlls": {
+  "3822820206": {
+   "GeyserRetuner.dll": "447288ecabf812e3eaf6a58e1967409a9ef9f49fdddf884d17848dcd1532824a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-062032-efda9416",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:20:32",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112229-bc7ce4c3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:22:29",
+    "lane": 44,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-112229-bc7ce4c3",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:22:30",
+    "lane": 45,
+    "reference_run": "20261101-062032-efda9416",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

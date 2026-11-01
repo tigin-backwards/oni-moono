@@ -1,0 +1,29 @@
+# Geyser Retuner (间歇泉重塑) (3822820206), classes P, U (screens of its own).
+#
+# What it does: each geyser gets settings (GeyserSettings) and a side screen button, "Edit geyser
+# stats", that opens a window of its own (GeyserSettingsScreen) to set its emission rate,
+# temperature, eruption and activity cycles and maximum pressure, with a picker of geyser
+# types; patches on GeyserGenericConfig.CreateGeyser and Geyser.OnSpawn.
+# How a player reaches it: a geyser's side screen.
+# What changes: geysers tuned as the player likes.
+#
+# The sulfur geyser buried west of early-base's printing pod is made selectable (as uncovering
+# it would). Selected, its side screen has "Edit geyser stats"; clicked, the mod's window opens
+# (Geyser Stats, with its rows of figures), and Escape closes it.
+from: early-base
+mods: [3822820206]
+require_log: ['\[GeyserRetuner\] .*loaded']
+setup:
+  - driver: {setup.call: {target: "all:Geyser::[0].GetComponent<KSelectable>", method: set_IsSelectable, args: [true]}}
+steps:
+  - expect_state:
+      "all:Geyser::[0].GetComponent<GeyserRetuner.GeyserSettings>": exists
+  - driver: {camera.set: {cell: [92, 205], ortho: 8}}
+  - click_world: {cell: [89, 203], select: GeyserGeneric_liquid_sulfur}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/ButtonMenuSideScreen/Buttons/Button", cond: stable}
+  - click: {text: "Edit geyser stats", under: "**/ButtonMenuSideScreen"}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "all:GeyserRetuner.GeyserSettingsScreen::Length": 1
+  - key: {code: Escape}
