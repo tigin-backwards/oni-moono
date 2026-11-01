@@ -192,6 +192,9 @@ unplayed = {
 }
 # Loads and Colony as swept; a session cannot be played here, in either player (no Played verdict).
 not_playable = {
+    '2799868449': "not playable here, the same in the original: its personality (TJ) is for Dupery, which reads a mod's PERSONALITIES.json, and the mod ships personalities.json, which only a case-insensitive file system (Windows) finds under that name; on Linux the original loads the mod's strings and animation and no personality (not run in ours)",
+    '2799871913': "not playable here, the same in the original: its personality (Blug) is for Dupery, which reads a mod's PERSONALITIES.json, and the mod ships personalities.json, which only a case-insensitive file system (Windows) finds under that name; on Linux the original loads the mod's strings and animation and no personality (not run in ours)",
+    '2681795804': "not playable here, the same in the original: its personality (Moona) is for Dupery, which reads a mod's PERSONALITIES.json, and the mod ships personalities.json, which only a case-insensitive file system (Windows) finds under that name; on Linux the original loads the mod's strings and animation and no personality (not run in ours)",
     '3807965885': 'not playable here, the same in the original: a session is a host and a client game over TCP (or Steam P2P), and an e2e run has one game process; its hub and JOIN A GAME dialog open, and a connect to an address nobody listens on is refused and retried (spec tests/e2e/mods/3807965885-oni-multiplayer.yaml, recorded in the original only)',
     '3635632392': 'not playable here, the same in the original: a session is a Steam lobby (its LiteNetLib backend is never used), and the offline Steam double creates and joins no lobby; its lobby screen opens, HOST GAME and JOIN GAME stay at their first status, on two players at once (spec tests/e2e/mods/3635632392-antigravity-multiplayer.yaml); a session needs two real Steam accounts',
 }
