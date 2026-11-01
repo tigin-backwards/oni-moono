@@ -10,13 +10,15 @@ notLoading, else empty ("unanalysed" for a mod the catalog has no analysis of). 
 all there, flagged ones included. Beyond 750 the TSV holds only the mods that work in the
 original as far as onimaxxing knows: those flagged notLoading, crashesAtStartup or malware are
 left out, down to the rank (2274) where the mods kept, ranks 1-750 counted too, make 2000.
-Every rank in the TSV is listed in the table (LAST_RANK is its highest).
+Every rank in the TSV is listed in the table (LAST_RANK is its highest). scripts/mod-catalog-u60.tsv
+(or ONI_CATALOG_U60; read beside a CATALOG argument only when that is set) adds, in the same format,
+the mods of the U60 catalog's top 2000 the TSV lacks, with their U60 ranks, sorted in among its rows.
 
 What our runs recorded:
 - the load sweeps of scripts/mod-sweep.py, tests/e2e/sweeps/*.tsv (or ONI_SWEEP_RESULTS): per mod
   whether it fails in the original, and if not whether it fails in ours, at the main menu or in
   the colony; a later file (by name) overrides an earlier one, and these override the older
-  sweeps below;
+  sweeps below; one whose name starts with u60 (u60-2000.tsv) swept on U60;
 - the older sweeps' sweep-*.txt ID lists and modtable-*.tsv results in out/ (or ONI_SWEEP_DIR; in
   a worktree whose out/ has none, the main checkout's out/);
 - the spec results in tests/e2e/results/*.json (or ONI_RESULTS_DIR), written by
@@ -70,26 +72,29 @@ def read_results(folder):
 
 def read_sweeps(folder):
     """scripts/mod-sweep.py's results (tests/e2e/sweeps/NAME.tsv: id, rank, original, ours, note)
-    as {mod id: (original, ours, note)}; a later file overrides an earlier one."""
+    as {mod id: (original, ours, note, game)}; a later file overrides an earlier one. game is 'U60 '
+    for a file whose name starts with u60 (a sweep on U60), else ''."""
     by_mod = {}
     for path in sorted(glob.glob(os.path.join(folder, '*.tsv'))):
+        game = 'U60 ' if os.path.basename(path).startswith('u60') else ''
         for line in open(path, encoding='utf-8'):
             if line.startswith('#') or line.startswith('id\t'):
                 continue
             mid, _, original, ours, note = (line.rstrip('\n').split('\t') + [''] * 5)[:5]
-            by_mod[mid] = (original, ours, note)
+            by_mod[mid] = (original, ours, note, game)
     return by_mod
 
 
-def sweep_status(original, ours, note):
+def sweep_status(original, ours, note, game=''):
     """(Loads, Colony, Played, note) from a load sweep's verdicts."""
+    batch = f'in its {game}sweep batch'
     if original in ('menu', 'colony'):
         where = 'at the main menu' if original == 'menu' else 'in the colony'
-        return X, X, N, f'fails to load in the original as well, {where}, in its sweep batch' + (f': {note}' if note else '')
+        return X, X, N, f'fails to load in the original as well, {where}, {batch}' + (f': {note}' if note else '')
     if ours == 'menu':
-        return N, N, N, f'fails in ours at the main menu, in its sweep batch: {note}'
+        return N, N, N, f'fails in ours at the main menu, {batch}: {note}'
     if ours == 'colony':
-        return Y, N, N, f'its colony fails in ours, in its sweep batch: {note}'
+        return Y, N, N, f'its colony fails in ours, {batch}: {note}'
     if ours == 'ok':
         return Y, Y, N, note
     return N, N, N, note
@@ -128,8 +133,14 @@ FINDINGS = read_findings(os.path.join(ROOT, 'tests', 'e2e', 'known-findings.yaml
 if len(sys.argv) > 2: sys.exit(__doc__)
 catalog = sys.argv[1] if len(sys.argv) == 2 else os.path.join(ROOT, 'scripts', 'mod-catalog.tsv')
 cat = [l.rstrip('\n').split('\t') for l in open(catalog, encoding='utf-8')]
-by_id = {r[1]: r for r in cat}
 LAST_RANK = max(int(r[0]) for r in cat)
+CATALOG_U60 = os.environ.get('ONI_CATALOG_U60') or (
+    None if len(sys.argv) == 2 else os.path.join(ROOT, 'scripts', 'mod-catalog-u60.tsv'))
+if CATALOG_U60 and os.path.exists(CATALOG_U60):
+    known = {r[1] for r in cat}
+    cat += [r for r in (l.rstrip('\n').split('\t') for l in open(CATALOG_U60, encoding='utf-8')) if r[1] not in known]
+    cat.sort(key=lambda r: int(r[0]))  # stable: the TSV's row first at a rank both have
+by_id = {r[1]: r for r in cat}
 FULL_RANKS = 750  # every mod up to this rank; beyond it, those that work in the original
 results = read_results(RESULTS)
 for mid, record in read_results(RESULTS_U60).items():
@@ -473,7 +484,8 @@ Which Workshop mods have been tried in this player, by popularity in
 [onimaxxing's catalog](https://onimaxxing.com/mods): the {FULL_RANKS} most-subscribed, then down to
 rank {LAST_RANK} those the catalog flags neither as broken (not loading, crashing at startup) nor
 as malware, the 2000 that work in the original game by the catalog's analysis; and mods players
-reported.
+reported. The rest of the U60 catalog's 2000 most-subscribed are listed with their U60 ranks,
+tried on U60 (build 761015).
 Worldgen mods are played with functional expectations (their worlds generate with their content),
 not identical layouts.
 
