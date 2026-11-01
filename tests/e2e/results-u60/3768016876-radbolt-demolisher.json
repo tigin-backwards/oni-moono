@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3768016876-radbolt-demolisher.yaml",
+ "mods": [
+  "3768016876"
+ ],
+ "verdict": "failed",
+ "why": "a run of ours failed",
+ "findings": [],
+ "note": "fails in ours: the mod does not load (TypeLoadException: UnityEngine.DefaultExecutionOrder is missing from ours' UnityEngine.CoreModule; its tracker is marked [DefaultExecutionOrder(-1000)]), KMod disables it and ours exits while loading; the original loads it and plays",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3768016876": {
+   "RadboltDemolisher.dll": "0e38ce3434b5205c58c1915f4e5d3303e2b68b53033bdbcd5a1c3657e3ab1268"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:17:32",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T11:31:41",
+    "lane": 54,
+    "reasons": [
+     "step start: the player exited (1) before OniMcp started",
+     "2 log signature(s) the original lacks"
+    ],
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 2,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "fail",
+    "date": "2026-11-01T11:32:29",
+    "lane": 55,
+    "reasons": [
+     "step start: the player exited (1) while loading",
+     "2 log signature(s) the original lacks"
+    ],
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 2,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
