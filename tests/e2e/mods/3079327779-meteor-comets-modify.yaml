@@ -1,0 +1,28 @@
+# Meteor Comets modify 修改陨石雨 (3079327779), classes P, U (screens of the game's, changed).
+#
+# What it does: lets a colony's meteor showers be changed after it starts: the pause menu's game
+# options screen (GameOptionsScreen) gets the meteor settings of a new game, and the base can be
+# renamed from it; the choice is saved with the colony (patches on CustomGameSettings, the save
+# and load screens, SaveLoader.Save and the pause screen).
+# How a player reaches it: the pause menu's Options, then its game options.
+# What changes: meteor showers after the colony's start.
+#
+# The pause menu opens, then its Options and their Game screen, with the mod's settings (dumped,
+# as the original's); Escape closes them, and the colony runs on.
+from: early-base
+mods: [3079327779]
+steps:
+  - run: {seconds: 2}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - ui_dump: {name: pause, root: "**/PauseScreen/LayoutContent"}
+  - click: {ui: "**/PauseScreen/**/OptionsButton"}
+  - ui_wait: {path: "**/OptionsMenu/CenterContent", cond: stable}
+  - click: {ui: "**/OptionsMenu/CenterContent/Content/Buttons/*Button", index: 2}
+  - ui_wait: {path: "**/GameOptionsScreen", cond: stable}
+  - ui_dump: {name: game-options, root: "**/GameOptionsScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
