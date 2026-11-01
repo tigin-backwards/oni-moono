@@ -1,0 +1,57 @@
+{
+ "spec": "mods/3826538392-replace-wire-bridges.yaml",
+ "mods": [
+  "3826538392"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "ed3bf90c",
+ "mod_dlls": {
+  "3826538392": {
+   "JointPlateTiles.dll": "a345d176f37f14edd39717f823734f67c56bcc0696dbd0ef40cc167c04ac2a0a",
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70",
+   "ReplaceWireBridges.dll": "1b3d8984ce17a0cc5f0df0641a86e737660403b7e4c3f85ca696b9dc5f9e809c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043432-f3c99dcd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:45:58",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-083135-bdb09108",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:31:35",
+    "lane": 36,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-083135-bdb09108",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:35:02",
+    "lane": 36,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
