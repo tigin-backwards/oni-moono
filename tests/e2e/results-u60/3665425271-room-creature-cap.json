@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3665425271-room-creature-cap.yaml",
+ "mods": [
+  "3665425271"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns ten Hatches along the dug-out corridor west of the printing pod, one cavity. Two over the cap of 8: after a recount each Hatch has an overcap of 8 and its effect",
+ "updated": "2026-11-01",
+ "commit": "9c6ccfe5",
+ "mod_dlls": {
+  "3665425271": {
+   "RoomCreatureCapMod.dll": "c3e0f6615b7749ca69b43093150a3685f313c1c297bc697a934c7797f1a0a913"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082806-3c2b3be2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:28:06",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084642-1f777982",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:46:42",
+    "lane": 44,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-084642-1f777982",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:46:43",
+    "lane": 45,
+    "reference_run": "20261101-082806-3c2b3be2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

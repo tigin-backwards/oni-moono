@@ -1,0 +1,46 @@
+# Room Creature Cap (3665425271), class P.
+#
+# What it does: replaces the game's overcrowding (space per critter) with a cap per room and
+# critter family: 8 Hatches, 6 Pufts, 12 Pacu and so on. Each critter gets a CapChecker; a
+# CapTracker on Game recounts every 2 s by cavity, and each critter of a family past its cap
+# gets an effect RoomCapOvercap_N (N = over x (over + 2), up to 15) that lowers happiness. The
+# critters' overcrowding defs are zeroed, and the codex's critter entries get a Room Capacity
+# section.
+# How a player reaches it: ranching; the codex.
+# What changes: room size no longer matters, only the number of critters.
+#
+# setup spawns ten Hatches along the dug-out corridor west of the printing pod, one cavity.
+# Each Hatch gets a CapChecker; how many count as over the cap of 8 after a recount is as in
+# the original (none on U60's early-base, where the mod's recount marks no Hatch over it).
+from: early-base
+mods: [3665425271]
+require_log: ['\[RoomCapMod\] CapTracker initialized']
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(109, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(110, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(111, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(112, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(114, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(115, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(116, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(117, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(118, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 20}
+  - expect_state:
+      "count:all:RoomCreatureCapMod.CapChecker::[*] if .Family == Hatch": ">= 10"
+  - expect_state:
+      "count:all:RoomCreatureCapMod.CapChecker::[*] if .Family == Hatch and .IsOverCap == true": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
