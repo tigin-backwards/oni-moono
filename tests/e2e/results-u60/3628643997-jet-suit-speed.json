@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3628643997-jet-suit-speed.yaml",
+ "mods": [
+  "3628643997"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "loads with its transpiler and postfix on BipedTransitionLayer.BeginTransition; a minute of walking",
+ "updated": "2026-11-01",
+ "commit": "231aedcd",
+ "mod_dlls": {
+  "3628643997": {
+   "PLib.dll": "432e28fbecb2d422a46eafe489a446f946ec828acfb2b721f7fe6df19d84cd7c",
+   "jet_speed.dll": "896af00858a2e200600ff4c2f1064ab90cc27da6098a2da7a1e58c93765f1332"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-025721-44d9d471",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:57:22",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-053526-e4ae3eb6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:35:26",
+    "lane": 35,
+    "reference_run": "20261101-025721-44d9d471",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-053526-e4ae3eb6",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:39:50",
+    "lane": 35,
+    "reference_run": "20261101-025721-44d9d471",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
