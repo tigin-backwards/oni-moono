@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3773950918-change-skin.yaml",
+ "mods": [
+  "3773950918"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the tool menu has Change Skin; picked, it is the active tool (its filter menu dumped), and Escape puts it away",
+ "updated": "2026-11-01",
+ "commit": "013cbaac",
+ "mod_dlls": {
+  "3773950918": {
+   "ChangeSkin.dll": "d18b90500711f621214f898d1aca9a50ecc3748dd0921a9b2700d06334c729e4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032651-6c23d32c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:29:45",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-043928-ae7bb95e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:39:28",
+    "lane": 43,
+    "reference_run": "20261101-032651-6c23d32c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "filters": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-043928-ae7bb95e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:39:29",
+    "lane": 45,
+    "reference_run": "20261101-032651-6c23d32c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "filters": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

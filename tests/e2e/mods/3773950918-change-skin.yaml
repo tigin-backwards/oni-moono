@@ -1,0 +1,22 @@
+# ChangeSkin (3773950918), classes K, U (a drag tool; screens of the game's, changed).
+#
+# What it does: a Change Skin tool (WavePlanTool, a filtered drag tool in the tool menu) that
+# gives every drywall, wire and moulding dragged over the blueprint skin picked in its panel
+# (the build menu's facade selector), keys 1-5 for its categories and R to reload its JSON
+# settings; patches on the facade selection panel, the plan screen's keys and the tool menu.
+# How a player reaches it: the tool menu's Change Skin.
+# What changes: skins applied to many buildings at once.
+#
+# The tool menu has Change Skin; picked, it is the active tool (its filter menu dumped), and
+# Escape puts it away.
+from: early-base
+mods: [3773950918]
+require_log: ['\[ChangeSkin\] v1.0.0']
+steps:
+  - run: {seconds: 2}
+  - tool: {toolbar: Change Skin}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.GetType().Name": WavePlanTool
+  - ui_wait: {path: "**/ToolParameters", cond: stable}
+  - ui_dump: {name: filters, root: "**/ToolParameters"}
+  - key: {code: Escape}
