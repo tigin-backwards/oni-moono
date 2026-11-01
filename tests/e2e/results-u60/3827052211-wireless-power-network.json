@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3827052211-wireless-power-network.yaml",
+ "mods": [
+  "3827052211"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Wireless Battery in the dug-out corridor west of the printing pod. The three buildings show in the Power menu; selected, the battery's details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "64e3e7c7",
+ "mod_dlls": {
+  "3827052211": {
+   "SaitoWirelessPower.dll": "6f87c90bf25f293e707c8c3f632a36e29da55fd5535e942885c7e6fa81dc448d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040445-8c3b913a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:13:56",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-113255-57a0dad3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:32:55",
+    "lane": 44,
+    "reference_run": "20261101-040445-8c3b913a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-113255-57a0dad3",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:32:56",
+    "lane": 45,
+    "reference_run": "20261101-040445-8c3b913a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
