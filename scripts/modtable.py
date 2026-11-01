@@ -446,8 +446,9 @@ broken.update({
     '3746629588': 'broken upstream: it references PLib (4.8.1) but does not ship PLib.dll, so the original fails to load it (FileNotFoundException for PLib) and exits (1) at the main menu before a colony loads; not run in ours',
     '3564852497': 'broken upstream: its Insect Trap sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player exits (1) while loading a colony; not run in ours',
     '3734918401': 'broken upstream: the upload is its source project, with its DLL under bin/ rather than beside mod_info.yaml, so the game finds no content to load ("No supported content for mod, skipping content"); the original runs the colony without it; not run in ours',
+    '3741456698': 'broken on U60 (build 761015): its prefix on `PropertyTextures.UpdateFogOfWar` finds no method of that signature, so the original fails to load it (HarmonyException) and exits (1) at the main menu before a colony loads; not run in ours',
 })
-not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869', '3746629588', '3564852497', '3734918401'}
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869', '3746629588', '3564852497', '3734918401', '3741456698'}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
