@@ -1,0 +1,18 @@
+# Z E R O (ZEROs) (2337612362), class V (text).
+#
+# What it does: more decimal places everywhere: Harmony prefixes on the runtime library itself,
+# System.Number.FormatSingle (a float format with a "." gets two more "#", tiny values become
+# "E2") and System.Text.StringBuilder.AppendFormat ("0.#}" becomes "0.###}").
+# How a player reaches it: any number the game prints.
+# What changes: 1.2 kg reads 1.235 kg.
+#
+# The game's mass formatter prints 1.23456 kg with the extra places, as in the original. (The
+# patch names an internal method of Mono's class library; a runtime whose library lacks it
+# cannot apply it.)
+from: early-base
+mods: [2337612362]
+require_log: ['MOD-ZEROs_Launcher OnLoad']
+steps:
+  - expect_state:
+      "GameUtil.GetFormattedMass(1.23456, 0, 0, true, \"{0:0.#}\")": {contains: "1.23"}
+  - run: {seconds: 30}
