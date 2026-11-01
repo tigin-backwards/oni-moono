@@ -1,0 +1,15 @@
+# 气压服修改 / Atmo Suit auto refill (3733233751), class P (options).
+#
+# What it does: an Atmo Suit's oxygen tank refills slowly by itself whenever it is below 75 %
+# (checked every 5 s), and underwater it turns water into oxygen at 0.2 kg/s, by its options
+# (an AtmoSuitConfig patch).
+# How a player reaches it: Duplicants in Atmo Suits.
+# What changes: suits that need no dock.
+#
+# The mod loads, as its log says, and the colony plays for 30 s.
+from: early-base
+mods: [3733233751]
+require_log: ['\[AtmoSuitAutoRefill\] 模组已加载']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
