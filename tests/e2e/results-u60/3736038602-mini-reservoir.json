@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3736038602-mini-reservoir.yaml",
+ "mods": [
+  "3736038602"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Advanced Research and builds a liquid mini reservoir in the dug-out corridor west of the printing pod. It shows in the Plumbing menu; it holds 2000 kg, and selected its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "57028488",
+ "mod_dlls": {
+  "3736038602": {
+   "╡≈╜┌╖º┤ó▓╪.dll": "a0eeb5d4faf7f7e8ec87910b1e7dcb25a89cf0bf7ba135cd79f1e02024228d55"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-044630-c52a1484",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:59:35",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-051114-aa2a10e6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:11:14",
+    "lane": 41,
+    "reference_run": "20261101-044630-c52a1484",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-051114-aa2a10e6",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:14:00",
+    "lane": 44,
+    "reference_run": "20261101-044630-c52a1484",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
