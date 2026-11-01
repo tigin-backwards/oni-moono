@@ -1,0 +1,16 @@
+# Caffeine Included (3825757289), class P.
+#
+# What it does: the Espresso Machine's effect restores 35 % stamina over 60 s and lowers
+# Athletics by 2 instead of raising it by 1 (Db.Initialize and EspressoMachineWorkable patches).
+# How a player reaches it: Duplicants using an Espresso Machine.
+# What changes: espresso as a stamina drink.
+#
+# The Espresso effect's modifiers are the mod's (as in the original) and the colony runs.
+from: early-base
+mods: [3825757289]
+steps:
+  - expect_state:
+      "Db.Get().effects.Get(\"Espresso\").SelfModifiers.Count": "== original"
+      "sum:Db.Get().effects.Get(\"Espresso\").SelfModifiers[*].Value if .AttributeId == Athletics": -2
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
