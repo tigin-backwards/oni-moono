@@ -1,0 +1,25 @@
+# Collecting excrement收集排泄物 (3818993988), classes P, O (PLib options).
+#
+# What it does: when an Atmo Suit, Lead Suit or Jet Suit comes off, the polluted water and
+# gunk an accident left in it drop as bottles (the suit's storage items) instead of spilling
+# as liquid (a wrapper around each suit's OnUnequipCallBack). An option, off by default,
+# bottles a suitless accident's polluted water and gunk too (a transpiler on PeeChore's
+# SpawnDirtyWater and the bionic gunk monitor's ExpellGunk turns their AddRemoveSubstance into
+# a dropped chunk).
+# How a player reaches it: Duplicants in suits with accidents; the mod's options.
+# What changes: accidents leave bottles, not puddles.
+#
+# The option is on. The mod logs that both features are on, each suit's unequip callback is
+# the mod's wrapper, and the colony runs on with its three Duplicants.
+from: early-base
+mods: [3818993988]
+options:
+  "3818993988": {BottleUnstoredLiquids: true}
+require_log: ['\[AtmoSuitWaterBottler\] Loaded 1.0.0; .*Unstored liquid bottling: True']
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"Atmo_Suit\").GetComponent<Equippable>.def.OnUnequipCallBack.Method.DeclaringType.FullName": {contains: AtmoSuitWaterBottler}
+      "Assets.GetPrefab(\"Lead_Suit\").GetComponent<Equippable>.def.OnUnequipCallBack.Method.DeclaringType.FullName": {contains: AtmoSuitWaterBottler}
+      "Assets.GetPrefab(\"Jet_Suit\").GetComponent<Equippable>.def.OnUnequipCallBack.Method.DeclaringType.FullName": {contains: AtmoSuitWaterBottler}
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}

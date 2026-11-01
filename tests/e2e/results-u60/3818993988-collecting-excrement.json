@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3818993988-collecting-excrement.yaml",
+ "mods": [
+  "3818993988"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the option is on. The mod logs that both features are on, each suit's unequip callback is the mod's wrapper, and the colony runs on with its three Duplicants",
+ "updated": "2026-11-01",
+ "commit": "5d29827a",
+ "mod_dlls": {
+  "3818993988": {
+   "AtmoSuitWaterBottler.dll": "822d5fbd1d7ad2243f83940b56345d9a756609eb8c7d94c79daf2b02e2b42743",
+   "PLib.dll": "3dc9bc06c6b54660b833d314192e6b34c578754facc6aff3c7e803b5cdc6616e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-234738-a2a9c3d8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:47:39",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110211-a3fc6abf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:02:11",
+    "lane": 40,
+    "reference_run": "20261031-234738-a2a9c3d8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110211-a3fc6abf",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:02:12",
+    "lane": 41,
+    "reference_run": "20261031-234738-a2a9c3d8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
