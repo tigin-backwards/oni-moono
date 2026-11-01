@@ -1,0 +1,24 @@
+# 多功能蒸汽机(Custom Steam Turbine) (3813100279), classes B, S.
+#
+# What it does: the Steam Turbine (SteamTurbine2) gets a TurbineConfigController: the game's
+# few-option side screen (IFewOptionSideScreen, allowed for it by a patch) picks what it
+# runs on, steam (蒸汽), carbon dioxide (二氧化碳), natural gas (天然气) or ethanol (乙醇).
+# How a player reaches it: a built Steam Turbine's side screen.
+# What changes: turbines that run on other hot gases.
+#
+# setup builds a Steam Turbine in the corridor west of the printing pod; selected, its option
+# screen lists the four (dumped), and picking natural gas sets it.
+from: early-base
+mods: [3813100279]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SteamTurbine2\")", method: Build, args: [131129, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: SteamTurbine2}
+  - expect_ui:
+      "**/DetailsScreen/SideScreen/**": {any_text: "天然气"}
+  - ui_dump: {name: options, root: "**/DetailsScreen/SideScreen"}
+  - click: {text: "天然气", under: "**/DetailsScreen/SideScreen"}
+  - expect_state:
+      "selected:GetComponent<CustomSteamTurbine.TurbineConfigController>.GetSelectedOption().Name": Methane
