@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3816279840-y-tools.yaml",
+ "mods": [
+  "3816279840"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads and the colony plays for 30 s",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3816279840": {
+   "YTools.dll": "cd496dca438abb953234ac75a505b9e39dc632aa8a7cdb202f3e670b5b0b217d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:18:21",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:04:24",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:05:18",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

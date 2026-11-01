@@ -1,0 +1,14 @@
+# Y Tools (3816279840), class P.
+#
+# What it does: practical tweaks: the suit, jet suit, lead suit and oxygen mask lockers' setup
+# is changed (DoPostConfigureComplete patches) and tools and buildings are added at
+# Db.Initialize.
+# How a player reaches it: suit docks; the build menu.
+# What changes: smoother suits handling.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3816279840]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
