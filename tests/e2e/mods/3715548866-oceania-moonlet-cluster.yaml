@@ -1,0 +1,46 @@
+# Oceania Moonlet Cluster (3715548866), class P (worldgen, Spaced Out).
+#
+# What it does: adds a Spaced Out cluster (OceaniaMoonletCluster, coordinate prefix M-OCMN-C)
+# whose start world is a 150 x 256 Oceania moonlet (salt water oceans, marshes, jungle, oil,
+# tundra and a volcanic core), with a Rustwood radioactive moonlet nearby (rings 2-3) and the
+# game's outer moonlets. Its DLL only adds the names.
+# How a player reaches it: the main menu, New Game, Survival, Spaced Out; the destination
+# screen's asteroid list.
+# What changes: a new cluster to start in.
+#
+# From a colony: the pause menu's Main Menu, Quit Without Saving, New Game, Survival, Spaced
+# Out, the mod's cluster by its coordinate (fixed seed), launched and embarked. Worldgen
+# expectations are functional: the start world is the mod's, 150 x 256, and its companion
+# moonlet is among the cluster's worlds.
+from: early-base
+mods: [3715548866]
+memory_gb: 8
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Main MenuButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Main MenuButton"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton"}   # Quit Without Saving
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/SpacedOutGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/SpacedOutGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "M-OCMN-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/Section - Destination/DestinationDetailsHeader/ClusterName", cond: text, value: "~Oceania Moonlet"}
+  - expect_state:
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"ClusterLayout\").id": clusters/OceaniaMoonletCluster
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
+  - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
+  - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  - expect_state:
+      "ClusterManager.Instance.GetStartWorld().worldName": worlds/OceaniaMoonlet
+      "ClusterManager.Instance.GetStartWorld().WorldSize.x": 150
+      "ClusterManager.Instance.GetStartWorld().WorldSize.y": 256
+      "count:ClusterManager.Instance.WorldContainers[*] if .worldName == worlds/RustwoodRadioactiveMoonlet": 1
+      "Components.LiveMinionIdentities.Count": 3
