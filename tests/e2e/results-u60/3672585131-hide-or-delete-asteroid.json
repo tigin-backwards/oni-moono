@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3672585131-hide-or-delete-asteroid.yaml",
+ "mods": [
+  "3672585131"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the starmap opens and the start asteroid is selected: its user menu has both buttons (dumped); \"!Delete!\" on it is refused (the mod logs that it skips the start world), and the colony keeps its worlds",
+ "updated": "2026-11-01",
+ "commit": "541788b4",
+ "mod_dlls": {
+  "3672585131": {
+   "DeleteAsteroidMod.dll": "d9f55ef102b974a3c01dce8d9fb99c7a0b1e9312ee52745ad50fda7937d5ca45"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-090056-9edc52bc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:00:56",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-090907-f77c2642",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:09:07",
+    "lane": 40,
+    "reference_run": "20261101-090056-9edc52bc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-090907-f77c2642",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:09:08",
+    "lane": 41,
+    "reference_run": "20261101-090056-9edc52bc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
