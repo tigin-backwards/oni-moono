@@ -1,0 +1,20 @@
+# StarWarStyleGun Skin (3758962410), class V (anims).
+#
+# What it does: its anim folder replaces the game's excavator_kanim and laser_kanim (KMod loads a mod's anims over
+# the game's of the same name), so a Duplicant's dig gun and its beam look like a rocket launcher; its code only
+# logs that it loaded.
+# How a player reaches it: Duplicants digging.
+# What changes: the dig gun's look.
+#
+# The game's dig gun anims are the mod's (their textures' sizes), and a Duplicant digs out a
+# floor tile of the corridor west of the printing pod with it.
+from: early-base
+mods: [3758962410]
+require_log: ['\[RocketGun\] 火箭筒挖掘枪皮肤已加载！']
+steps:
+  - expect_state:
+      "Assets.GetAnim(\"excavator_kanim\").textureList[0].width": 256
+      "Assets.GetAnim(\"laser_kanim\").textureList[0].width": 2048
+  - dig: [112, 205, 112, 205]
+  - run: {seconds: 600, until: {pending_digs: 0}}
+  - expect: {pending_digs: 0}

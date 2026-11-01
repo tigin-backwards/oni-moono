@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3758962410-starwarstylegun-skin.yaml",
+ "mods": [
+  "3758962410"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the game's dig gun anims are the mod's (their textures' sizes), and a Duplicant digs out a floor tile of the corridor west of the printing pod with it",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "3758962410": {
+   "RocketGun.dll": "c2d7c555aa7a403adb5fbdd0238dfd8a1a50b7922c8955acdedcd6a78b690874"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:23:57",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:52:20",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:53:36",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
