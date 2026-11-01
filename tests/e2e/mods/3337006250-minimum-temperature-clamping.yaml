@@ -1,0 +1,21 @@
+# Minimum Temperature Clamping Restored (3337006250), class P.
+#
+# What it does: restores the pre-U52 rule that a building built of materials colder than 15 °C
+# starts at 15 °C (a Constructable patch raises its initial temperature to 288.15 K unless an
+# ingredient is liquifiable).
+# How a player reaches it: building with cold materials.
+# What changes: no more freezing-cold new buildings.
+#
+# setup spawns 300 kg of granite at -13 °C (260 K). A granite tile ordered in the corridor west
+# of the printing pod is built of it and starts at 15 °C, not at the granite's temperature.
+from: early-base
+mods: [3337006250]
+setup:
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Granite\").substance", method: SpawnResource, args: [[111.5, 206.5, -12], 300, 260, 255, 0]}}
+steps:
+  - build: {prefab: Tile, cells: [[114, 207]], material: Granite}
+  - run: {seconds: 1500, until: {blueprints: {Tile: 0}}}
+  - run: {seconds: 1}
+  - expect_state:
+      "Grid.Objects.get_Item(131766, 9).GetComponent<PrimaryElement>.ElementID": Granite      # (114, 207)
+      "Grid.Objects.get_Item(131766, 9).GetComponent<PrimaryElement>.Temperature": ">= 287"
