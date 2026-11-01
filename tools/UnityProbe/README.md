@@ -295,6 +295,17 @@ the font size and the preferred size. Check the rule with `tools/UnityProbe/et-c
 LOG`, and compare the players with `et-check.py diff ORIG OURS`. `textmeshpro.md` ("Texts with
 nothing to lay out") records what it measured.
 
+With `PROBE_SCENARIO=indent` only the indent probe runs (`IndentWidth.cs`, lines `IN …`, 10 s into
+the main menu, a few seconds). It lays out 28 texts whose `<indent>` changes part-way along a
+line, as the details screen's bulleted descriptors do (`<indent=1em>•<indent=1.75em>…`): nested
+indents in em, px and %, an inner indent behind the pen, `</indent>` part-way, `<link>`,
+`<pos>` and `<size>` beside them, several lines and wrapping, in NotoSans-Regular and GRAYSTROKE
+REGULAR SDF at 12, 14, 16 and 20 pt. Each logs the preferred sizes, each character's origin,
+advance and vertices, each line's metrics and the links, then an `IndentProbeDone` canvas
+appears, for a spec's `ui_wait` as the text-height probe has.
+`textmeshpro.md` ("Indents opened part-way along a line") records what it measured, and
+`TmpIndentTests` encodes it.
+
 With `PROBE_SCENARIO=childactive` only the child-activation probe runs (`ChildActivation.cs`, lines
 `CA …`, 10 s into the main menu, a few seconds). A `GridLayoutGroup` (a subclass counting its
 layout calls and messages) holds nine children; some start inactive and have never been laid
