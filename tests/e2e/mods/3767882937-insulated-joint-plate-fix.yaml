@@ -1,0 +1,37 @@
+# Insulated Joint Plate (FIX) (3767882937), class B.
+#
+# What it does: four heavi-watt joint plates that are also insulated tiles (thermal
+# conductivity 0.01): the Insulated Joint Plate (InsulatedWireBridgeHighWattage) and its
+# conductive version (InsulatedWireRefinedBridgeHighWattage), one tile wide, and long,
+# two-tile versions of both (LongInsulated...). A postfix on BuildingComplete.OnSpawn gives the
+# long ones an InsulatingPlate that sets their cells' insulation. They go in the Power menu,
+# researched with Advanced Power Regulation (plain) and Pretty Good Conductors (conductive).
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: heavi-watt wires through insulated walls.
+#
+# setup grants both techs. The four plates are in the Power menu (shot), with their sizes and
+# conductivity.
+from: early-base
+mods: [3767882937]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"PrettyGoodConductors\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedPowerRegulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"AdvancedPowerRegulation\").unlockedItemIDs": [{contains: InsulatedWireBridgeHighWattage}, {contains: LongInsulatedWireBridgeHighWattage}]
+      "Db.Get().Techs.Get(\"PrettyGoodConductors\").unlockedItemIDs": [{contains: InsulatedWireRefinedBridgeHighWattage}, {contains: LongInsulatedRefinedWireBridgeHighWattage}]
+      "Assets.GetBuildingDef(\"InsulatedWireBridgeHighWattage\").ThermalConductivity": "< 0.0101"
+      "Assets.GetBuildingDef(\"LongInsulatedWireBridgeHighWattage\").WidthInCells": 2
+      "Assets.GetBuildingDef(\"InsulatedWireRefinedBridgeHighWattage\").WidthInCells": 1
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/LongInsulatedRefinedWireBridgeHighWattage Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/InsulatedWireBridgeHighWattage Group*": {active: true}
+      "**/BuildingGroups/**/Grid/InsulatedWireRefinedBridgeHighWattage Group*": {active: true}
+      "**/BuildingGroups/**/Grid/LongInsulatedWireBridgeHighWattage Group*": {active: true}
+      "**/BuildingGroups/**/Grid/LongInsulatedRefinedWireBridgeHighWattage Group*": {active: true}
+  - shot: {name: power-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}
