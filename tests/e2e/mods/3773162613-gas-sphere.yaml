@@ -1,0 +1,25 @@
+# 气体球gas sphere (3773162613), classes B, P.
+#
+# What it does: adds the Gas Ball (GasBall) to the Utilities menu: a 1x1 "building" made of a
+# gas (a GasBallMaterial tag; patches on the material selector and Constructable's recipe let
+# gases be picked) that, once built, releases its gas into its cell and disappears.
+# How a player reaches it: the build menu (Utilities), then a gas as its material.
+# What changes: gas placed where the player wants it.
+#
+# It shows in the Utilities menu. setup builds a Gas Ball of carbon dioxide in the dug-out
+# corridor west of the printing pod: it is gone a moment later.
+from: early-base
+mods: [3773162613]
+require_log: ['\[GasBall\] ']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"TemperatureModulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"GasBall\")", method: Build, args: [{"$": "Grid.XYToCell(113, 207)"}, Neutral, null, [CarbonDioxide], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Utilities"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/GasBall Group*", cond: stable}
+  - key: {code: Escape}
+  - expect_state:
+      "all:GasBallMod.GasBall::Length": 0
+  - expect: {duplicants: 3}
