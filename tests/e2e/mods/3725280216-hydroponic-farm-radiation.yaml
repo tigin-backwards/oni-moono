@@ -1,0 +1,27 @@
+# 让那个水耕砖也能发射辐射 / Aquatic Farm emits radiation (3725280216), classes B, S (PLib options).
+#
+# What it does: an add-on to Aquatic Farm (1910961538, Sanchozz's, which it patches by type and
+# needs, though the catalog names no requirement): the Aquatic Farm tile (AquaticFarm) gets a
+# radiation emitter like the Radiation Farm Tile's (ConfigureBuildingTemplate and
+# DoPostConfigureComplete patches), emitting 2400 rads by default (its option), and a slider
+# side screen to set the intensity per tile.
+# How a player reaches it: a built Aquatic Farm's side screen.
+# What changes: aquatic farms that irradiate their plants.
+#
+# With Aquatic Farm installed too, the Aquatic Farm's building has a radiation emitter (the
+# prefab's at 300 rads, the built tile's as in the original); setup builds one in the corridor west of the printing pod, and selected its side screen
+# is dumped.
+from: early-base
+mods: [1910961538, 3725280216]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"AquaticFarm\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"AquaticFarm\").BuildingComplete.GetComponent<RadiationEmitter>.emitRads": "> 0"
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: AquaticFarm}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<RadiationEmitter>.emitRads": ["> 0", "== original"]
+  - ui_dump: {name: side-screen, root: "**/DetailsScreen/SideScreen", mask_text: ['\d+(\.\d+)?']}
