@@ -1,0 +1,33 @@
+# 化工业与发电扩展 / Industry & Power (3823525164), classes B, E (elements).
+#
+# What it does: a sulfur generator (BIP_SulfurGenerator, Power, after the Hydrogen Generator),
+# a waste sulfur regenerator (BIP_SulfurRegenerator) and a carbon dioxide to coal reducer
+# (BIP_CarbonReducer) in the Refining menu's advanced group, researched with Catalytics and
+# Advanced Power Regulation; elements of its own (ElementLoader patches), wired to the game's
+# power grid, conveyors and engineers' tune-ups.
+# How a player reaches it: the build menus, after the research.
+# What changes: power from sulfur, coal from CO2.
+#
+# setup builds a sulfur generator in the dug-out corridor west of the printing pod. It shows in
+# the Power menu; selected, its details screen is dumped, and the colony runs on.
+from: early-base
+mods: [3823525164]
+require_log: ['\[BetterIndustryPower\] 0.1.3 loaded']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedPowerRegulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"BIP_SulfurGenerator\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BIP_SulfurGenerator Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/BIP_SulfurGenerator Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: BIP_SulfurGenerator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

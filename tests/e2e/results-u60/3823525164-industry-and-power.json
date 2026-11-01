@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3823525164-industry-and-power.yaml",
+ "mods": [
+  "3823525164"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a sulfur generator in the dug-out corridor west of the printing pod. It shows in the Power menu; selected, its details screen is dumped, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "1f6c1d5f",
+ "mod_dlls": {
+  "3823525164": {
+   "BetterIndustryPower.dll": "756f95a822a1fd139e4008f5b6e6dc201f7845b7b3c0d04c8182ffe03c9b53fd"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-065235-08404b0b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:52:36",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112651-dde31f1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:26:51",
+    "lane": 44,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-112651-dde31f1b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:26:52",
+    "lane": 45,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
