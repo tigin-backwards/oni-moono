@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3132418101-priority-ux.yaml",
+ "mods": [
+  "3132418101"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "12dcdfbc",
+ "mod_dlls": {
+  "3132418101": {
+   "oni-prio.dll": "9f59a5d1103ae51b6c2c8eb657a5147f2fcf21685b10496c542e30833383d706"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-045201-d21d0b3f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:04:27",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-121018-fd9cbf4e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:10:18",
+    "lane": 35,
+    "reference_run": "20261101-045201-d21d0b3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-121018-fd9cbf4e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:14:33",
+    "lane": 35,
+    "reference_run": "20261101-045201-d21d0b3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
