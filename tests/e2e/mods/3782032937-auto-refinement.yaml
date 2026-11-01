@@ -1,0 +1,26 @@
+# Auto Refinement (3782032937), classes P, O (PLib options, AutoRefinement.json).
+#
+# What it does: fabricators that need a Duplicant at them (the Metal Refinery, Rock Granulator,
+# kitchens, medicine and clothing makers, research and the rest, by group in its options) run by
+# themselves, as the Kiln does: the game's ComplexFabricator already works without an operator
+# when duplicantOperated is false, and the mod turns that off on spawn (patches on
+# ComplexFabricator and its workable), at a speed of its own (options for unattended and
+# attended speed, and whether Duplicants may still help).
+# How a player reaches it: fabricators with orders; the mod's options.
+# What changes: refineries without operators.
+#
+# Options turn on the refinement group. setup builds a Rock Granulator in the dug-out corridor
+# west of the printing pod: it is no longer a manually operated building, as in the original
+# (Duplicants may still help, by default).
+from: early-base
+mods: [3782032937]
+options:
+  "3782032937": {$file: AutoRefinement.json, Refinement: true}
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"RockCrusher\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:ComplexFabricator::[0].GetComponent<BuildingComplete>.isManuallyOperated": [false, "== original"]
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
