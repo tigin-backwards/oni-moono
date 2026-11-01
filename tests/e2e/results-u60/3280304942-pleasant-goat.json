@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3280304942-pleasant-goat.yaml",
+ "mods": [
+  "3280304942"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds the figure in the dug-out corridor west of the printing pod. It shows in the Furniture menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "ae961fed",
+ "mod_dlls": {
+  "3280304942": {
+   "PLib.dll": "b862c5db2b3cd6df09a62d4a30782e91e2b24e8e1bfac08d991c9cc89a984ba9",
+   "R_╧▓╤≥╤≥╙δ╗╥╠½└╟.dll": "c394aacdf131546b79561dcccbeef5ba473ab2dd13f6eb067d668ab7833cc709"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041850-de3664d6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:29:59",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-043418-e33ee708",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:34:18",
+    "lane": 44,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-043418-e33ee708",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:35:54",
+    "lane": 43,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

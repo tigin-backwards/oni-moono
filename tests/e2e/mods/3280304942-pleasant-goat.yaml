@@ -1,0 +1,24 @@
+# R_喜羊羊与灰太狼_Pleasant_Goat_and_Big_BigWolf (3280304942), class B.
+#
+# What it does: decor figures from the cartoon Pleasant Goat and Big Big Wolf (R008GG1L2 in the
+# Furniture menu, with entities of its own) and a details screen tooltip.
+# How a player reaches it: the build menu (Furniture).
+# What changes: more decor.
+#
+# setup builds the figure in the dug-out corridor west of the printing pod. It shows in the
+# Furniture menu; selected, its details screen is dumped.
+from: early-base
+mods: [3280304942]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"R008GG1L2\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/R008GG1L2 Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/R008GG1L2 Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: R008GG1L2}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
