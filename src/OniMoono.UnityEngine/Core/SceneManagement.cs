@@ -78,6 +78,14 @@ namespace UnityEngine.SceneManagement
 
         public static Scene GetActiveScene() => new(Scenes.Active);
 
+        /// A loaded scene by its place among them. Out of range, the original player throws
+        /// IndexOutOfRangeException with this message (UnityProbe's frametiming).
+        public static Scene GetSceneAt(int index)
+        {
+            if (index < 0 || index >= Scenes.Loaded.Count) throw new IndexOutOfRangeException($"Scene index \"{index}\" is out of range.");
+            return new(Scenes.Loaded[index]);
+        }
+
         /// Single-mode load; completes at the start of the next frame.
         public static void LoadScene(string sceneName)
         {

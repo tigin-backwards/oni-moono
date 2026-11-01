@@ -130,6 +130,7 @@ namespace OniMoono.Engine
         {
             if (!started) throw new InvalidOperationException("PlayerLoop.Initialize must run first");
             FrameStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+            FrameTimingManager.BeginFrame(FrameStartedAt);
             if (FrameStats) statClock.Restart();
             // The device's texel copies from the last frame finish before scripts can write texels.
             Rendering.TexelCopies.Fence();
@@ -202,6 +203,7 @@ namespace OniMoono.Engine
             Mark(7);
             RunPhase(ParticleUpdate);
             Mark(8);
+            FrameTimingManager.Submitting(System.Diagnostics.Stopwatch.GetTimestamp());
             RunPhase(Render);
             Mark(0);
             RunPhase(GUI);
@@ -211,7 +213,9 @@ namespace OniMoono.Engine
             // pass, and that Update still finds the parts (observed in Unity's player).
             Coroutines.RunEndOfFramePhase();
             Mark(2);
+            FrameTimingManager.PresentCalled(System.Diagnostics.Stopwatch.GetTimestamp());
             Present?.Invoke();
+            FrameTimingManager.FrameComplete(System.Diagnostics.Stopwatch.GetTimestamp());
             Event.DiscardUnconsumed();
             // A quit requested this frame is put to Application.wantsToQuit now, after
             // WaitForEndOfFrame (UnityProbe's quitevents); a refusal cancels it.

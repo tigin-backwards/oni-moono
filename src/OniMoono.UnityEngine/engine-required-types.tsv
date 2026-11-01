@@ -74,3 +74,5 @@ UnityEngine.CoreModule	UnityEngine.Internal.DefaultValueAttribute	# as above
 UnityEngine.CoreModule	UnityEngine.Internal.ExcludeFromDocsAttribute	# as above
 UnityEngine.CoreModule	UnityEngine.Scripting.RequiredMemberAttribute	# as above
 UnityEngine.CoreModule	UnityEngine.DefaultExecutionOrder	# mods (Radbolt Demolisher): [DefaultExecutionOrder] on its MonoBehaviours
+UnityEngine.CoreModule	UnityEngine.FrameTiming	# mods (System Performance Observer): FrameTimingManager.GetLatestTimings
+UnityEngine.CoreModule	UnityEngine.FrameTimingManager	# as above
