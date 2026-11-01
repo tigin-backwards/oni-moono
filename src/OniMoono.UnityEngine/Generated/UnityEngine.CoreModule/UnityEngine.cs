@@ -182,6 +182,12 @@ namespace UnityEngine
         None = 0,
         InstanceID = 1,
     }
+    public partial struct FrameTiming
+    {
+    }
+    public static partial class FrameTimingManager
+    {
+    }
     public enum FullScreenMode
     {
         ExclusiveFullScreen = 0,
