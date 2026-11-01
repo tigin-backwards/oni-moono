@@ -1,0 +1,27 @@
+# MusicBox-音乐盒 (3762583359), class B.
+#
+# What it does: adds a Music Box (MusicBox, 1x1 of refined metal, in the Automation menu,
+# researched with Generic Sensors) with a ribbon input: a 4-bit signal plays the matching piano
+# note.
+# How a player reaches it: the build menu (Automation), after the research.
+# What changes: music from automation.
+#
+# setup grants the research. The building is listed in the Automation menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3762583359]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"GenericSensors\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"GenericSensors\").unlockedItemIDs": {contains: MusicBox}
+      "Assets.GetBuildingDef(\"MusicBox\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Automation"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/MusicBox Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/MusicBox Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
