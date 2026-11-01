@@ -1,0 +1,35 @@
+# OniMcp (3807166922), classes O (an in-game MCP server: HTTP on a local port, its tools and
+# resources), P.
+#
+# What it does: serves the Model Context Protocol on localhost (OniMcpConfig.json: host, port,
+# auth); an MCP client reads the colony (oni:// resources) and gives orders through its tools
+# (dig, build, side screens, speed).
+# How a player reaches it: an MCP client (an AI assistant) on the configured port; no game UI.
+# What changes: the colony does what the tools order.
+#
+# This is the server the runner gives its orders through. Named here, its Workshop build (gated
+# and unpacked) is installed as the runner's OniMcp in place of the pinned build (E2E_ONIMCP),
+# so every order below goes through it. Its catalog requirement, CycleTrim (3807166689), is
+# not installed: OniMcp's assembly does not reference it.
+#
+# A dig and a tile ordered through its tools are done by the Duplicants; its building_control
+# tool opens the printing pod's immigrant screen; the Duplicants are as many as in the original.
+from: early-base
+mods: [3807166922]
+setup:
+  - driver: {setup.call: {target: "Immigration.Instance", method: "Sim200ms", args: [100000]}}   # Duplicants on offer now
+steps:
+  - dig: [108, 205, 108, 205]
+  - run: {seconds: 600, until: {pending_digs: 0}}
+  - expect: {pending_digs: 0}
+  - build: {prefab: Tile, at: [108, 205]}
+  - expect: {blueprints: {Tile: 1}}
+  - run: {seconds: 900, until: {pending_construction: 0}}
+  - expect: {pending_construction: 0}
+  - expect_state: {"Immigration.Instance.ImmigrantsAvailable": true}
+  - call: {tool: building_control, args: {domain: side_surface, surface: facility, kind: telepad, action: open_immigrants, confirm: true}}
+  - ui_wait: {path: "**/ImmigrantScreen/Layout", cond: stable}
+  - expect_ui:
+      "**/ImmigrantScreen/Layout/BottomButtons/RejectButton": {active: true}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"
