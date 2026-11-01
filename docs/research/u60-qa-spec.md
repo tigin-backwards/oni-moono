@@ -1632,6 +1632,11 @@ options."
 
 ### P4 Unity 6000.3.17f1 data
 
+**Status:** passes (e58e7da0): `scripts/check.sh` on the 761211 Linux data (check-assets: 0 failures, 0
+unresolved scripts; check-bind: 0 failures, 584 shader variants); `--check-assets`,
+`--check-bind` and `--check-shaders` are also clean on the frozen Windows 761211 data, read from
+Linux (587 variants; 120 shaders, 0 compile or link errors, as on the Linux data).
+
 **Risk: low.** Covered (09a00671, `--check-*` modes on Linux and Windows U60 data).
 
 **Patch note:** "Minor unity version update."
