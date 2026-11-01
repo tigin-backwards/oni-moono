@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3824097055-smooth-borders.yaml",
+ "mods": [
+  "3824097055"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a new game's Terra cluster (V-SNDST-C): the log names each world's flat wall (Primary 4, Moonlets 2, Tiny 1), and the start world's left, right and bottom edges are neutronium exactly 4 deep (hardness sums over 201- and 161-cell bands), the next tile in mostly not",
+ "updated": "2026-10-31",
+ "commit": "ef159f80",
+ "mod_dlls": {
+  "3824097055": {
+   "SmoothBorders.dll": "efe1d5cccc7939b90b175a031bd927dddc8839fe539002d9bcaf744df519fa4b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-204549-4f565ebb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T20:45:49",
+    "lane": 28,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-210142-0160e26f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:01:42",
+    "lane": 28,
+    "reference_run": "20261031-204549-4f565ebb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-210142-0160e26f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T21:04:14",
+    "lane": 28,
+    "reference_run": "20261031-204549-4f565ebb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
