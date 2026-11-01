@@ -525,6 +525,16 @@ class DriverTests(unittest.TestCase):
         with self.assertRaisesRegex(e2e.SpecFailure, 'ui_dump menu: the build menu did not settle'):
             run.step('ui_dump', {'name': 'menu', 'root': 'Screen/Menu'}, 4)
 
+    def test_a_driver_step_waits_for_the_build_menu(self):
+        run = self.run_for()
+        self.game.build_menu = {'settled': True, 'open': True, 'reasons': [], 'frames': 40}
+        run.step('driver', {'buildmenu.settled': {}}, 1)
+        self.assertIn(('buildmenu.settled', {'frames': e2e.BUILD_MENU_FRAMES}), self.game.requests)
+        self.game.build_menu = {'settled': False, 'open': True, 'reasons': ['WireBridge: shows state 1, wants 0 (Complete)']}
+        with self.assertRaisesRegex(e2e.SpecFailure, 'driver buildmenu.settled: the build menu did not settle within 600 frames: WireBridge'):
+            run.step('driver', {'buildmenu.settled': {}}, 2)
+        self.assertEqual(e2e.check_spec({'from': 'early-base', 'steps': [{'driver': {'buildmenu.settled': {}}}]}), [])
+
     def test_driver_and_wait_steps(self):
         run = self.run_for()
         run.step('driver', {'seed': 12345}, 'setup 1')

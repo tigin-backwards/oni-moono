@@ -168,7 +168,8 @@ DRIVER_STEPS = {'click', 'toggle', 'dropdown', 'type', 'drag', 'tool', 'expect_u
                 'ui_wait', 'world_shot', 'driver', 'click_world', 'scroll', 'expect_hit'}
 STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'open', 'key', 'keyboard'} | DRIVER_STEPS
 DRIVER_COMMANDS = {'ping', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
-                   'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'keys.log', 'imgui.scrollview'}
+                   'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'keys.log', 'imgui.scrollview',
+                   'buildmenu.settled'}
 
 
 def _cell(value):
@@ -3457,7 +3458,12 @@ class Run:
         elif kind == 'driver':
             (command, args), = value.items()
             args = args if isinstance(args, dict) else {'n': args}
-            self.need_driver().request(command, **args)
+            if command == 'buildmenu.settled':
+                # Waits for the build menu to catch up, as before a shot, and fails when it does not.
+                self.need_driver()
+                self.settle_build_menu('driver buildmenu.settled')
+            else:
+                self.need_driver().request(command, **args)
         else:
             raise SpecFailure(f'unknown step {kind!r}')
 
