@@ -412,8 +412,9 @@ loads_in_ours = {'1729794261'}
 # not run it.
 broken.update({
     '3823893994': 'broken on U60 (build 761015), version 1.0.1: its Temperature overlay patch reads the field `TemperatureOverlayInfraredVisualizerBase.updateCBHandle`, which U60 no longer has; the TypeInitializationException in Game.OnPrefabInit leaves Immigration and GlobalChoreProvider null, and the original exits (1) while loading a colony; not run in ours',
+    '3771895170': 'broken on U60 (build 761015): mastering every skill on load (MinionResume.MasterSkill in its OnSpawn postfix) throws a NullReferenceException in a SkillAttributePerk, and loading a colony stops at the crash screen (spec tests/e2e/mods/3771895170-stronger-duplicants.yaml); not run in ours',
 })
-not_run_in_ours = {'3823893994'}
+not_run_in_ours = {'3823893994', '3771895170'}
 # Titles of played mods the catalog TSV does not rank (none since it reaches rank 2274).
 unranked = {}
 # Worldgen mods no sweep ran, as their specs' runs of ours found them (id -> (loads, colony)): a
