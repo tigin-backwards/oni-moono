@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3771251560-bottler-capacity-10t.yaml",
+ "mods": [
+  "3771251560"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "both bottlers' prefabs hold 10 t; the log says the mod loaded",
+ "updated": "2026-11-01",
+ "commit": "0b0d26ed",
+ "mod_dlls": {
+  "3771251560": {
+   "BottlerCapacity2000Kg.dll": "ce76a72fde59edf6eba054a8d0db48d3d722d97ba622433cd3bf62bae7c80285"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014523-8577f8ea",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:00:17",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-085720-523667b3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:57:20",
+    "lane": 35,
+    "reference_run": "20261101-014523-8577f8ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-085720-523667b3",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:00:24",
+    "lane": 35,
+    "reference_run": "20261101-014523-8577f8ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
