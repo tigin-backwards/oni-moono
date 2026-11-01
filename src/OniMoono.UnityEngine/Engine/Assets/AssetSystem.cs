@@ -14,6 +14,8 @@ namespace OniMoono.Engine.Assets
     internal static class AssetSystem
     {
         static string dataDir = "";
+        /// A file of the data directory was opened or mapped (Initialize).
+        static bool dataDirUsed;
         static readonly object gate = new();
         static readonly Dictionary<string, SerializedFile> files = new(StringComparer.Ordinal);
         static readonly Dictionary<string, byte[]> bundleNodes = new(StringComparer.Ordinal);
@@ -26,7 +28,18 @@ namespace OniMoono.Engine.Assets
 
         public static string DataDir => dataDir;
 
-        public static void Initialize(string gameDataDir) => dataDir = gameDataDir;
+        /// Sets the data directory. Files opened and mapped are kept by name, so once one has been
+        /// read the directory cannot change: another game build's .assets with this build's .resS
+        /// (or the reverse) would read texels from the wrong places.
+        public static void Initialize(string gameDataDir)
+        {
+            lock (gate)
+            {
+                if (dataDirUsed && Path.TrimEndingDirectorySeparator(Path.GetFullPath(gameDataDir)) != Path.TrimEndingDirectorySeparator(Path.GetFullPath(dataDir)))
+                    throw new InvalidOperationException($"The asset files were read from {dataDir}; they cannot come from {gameDataDir} as well.");
+                dataDir = gameDataDir;
+            }
+        }
 
         /// Maps a name as it appears in externals or loads (`sharedassets0.assets`,
         /// `library/unity default resources`, `archive:/CAB-…/CAB-…`) to a file key.
@@ -54,6 +67,7 @@ namespace OniMoono.Engine.Assets
                 }
                 else
                 {
+                    dataDirUsed = true;
                     f = SerializedFile.Open(Path.Combine(dataDir, key));
                 }
                 files[key] = f;
@@ -152,7 +166,13 @@ namespace OniMoono.Engine.Assets
             var view = streams.GetOrAdd(key, k => new Lazy<MemoryMappedViewAccessor>(() =>
             {
                 System.Threading.Interlocked.Increment(ref mappingsMade);
-                var file = MemoryMappedFile.CreateFromFile(Path.Combine(dataDir, k), FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
+                string path;
+                lock (gate)
+                {
+                    dataDirUsed = true;
+                    path = Path.Combine(dataDir, k);
+                }
+                var file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
                 try
                 {
                     return file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
@@ -175,6 +195,10 @@ namespace OniMoono.Engine.Assets
                 streams.TryRemove(new KeyValuePair<string, Lazy<MemoryMappedViewAccessor>>(key, view));
                 throw;
             }
+            // A range past the mapped file (a .assets file that does not go with this .resS)
+            // throws instead of reading unmapped memory.
+            if (offset < 0 || offset > mapped.Capacity - destination.Length)
+                throw new InvalidDataException($"{key}: {destination.Length} bytes at {offset} are past its end ({mapped.Capacity} bytes).");
             // Straight from the mapping (no intermediate copy).
             byte* start = null;
             mapped.SafeMemoryMappedViewHandle.AcquirePointer(ref start);

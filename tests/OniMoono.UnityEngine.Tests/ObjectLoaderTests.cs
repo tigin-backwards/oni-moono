@@ -70,6 +70,33 @@ namespace OniMoono.Tests
             threads.ForEach(t => t.Join());
             Assert.Equal(before + 1, AssetSystem.MappingsMade);
         }
+
+        // A range past the end of a resource file throws instead of reading unmapped memory
+        // (the test host aborted with an access violation when a test switched game builds and
+        // U59's resources.assets.resS was read at the U60 vista texture's offset).
+        [Fact]
+        public void ARangePastTheEndThrows()
+        {
+            TmpTestSupport.LoadGameData();
+            var path = Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data", "resources.assets.resS");
+            long length = new FileInfo(path).Length;
+            Assert.Equal(16, AssetSystem.ReadStream("resources.assets.resS", length - 16, 16).Length);
+            Assert.Throws<InvalidDataException>(() => AssetSystem.ReadStream("resources.assets.resS", length - 8, 16));
+        }
+
+        // Once its files have been read, the data directory stays: files are kept by name, and
+        // one build's .assets read with another's .resS would read texels from the wrong places.
+        [Fact]
+        public void TheDataDirectoryCannotChangeOnceRead()
+        {
+            TmpTestSupport.LoadGameData();
+            AssetSystem.Get("resources.assets");
+            var dir = Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data");
+            Assert.Throws<InvalidOperationException>(() => AssetSystem.Initialize(Path.Combine(TmpTestSupport.GameDir, "elsewhere")));
+            Assert.Equal(dir, AssetSystem.DataDir);
+            AssetSystem.Initialize(dir + Path.DirectorySeparatorChar);
+            AssetSystem.Initialize(dir);
+        }
     }
 }
 
