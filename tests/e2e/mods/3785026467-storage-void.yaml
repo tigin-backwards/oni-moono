@@ -1,0 +1,13 @@
+# 存储箱之虚空打扫Storage Void (3785026467), class P.
+#
+# What it does: a prefix on Storage.Store deletes what is stored into a storage bin set to
+# Sweep Only, instead of keeping it.
+# How a player reaches it: a Storage Bin's Sweep Only checkbox.
+# What changes: a bin that voids what is swept into it.
+#
+# The mod loads and the colony plays for 30 s; no sweeping into a Sweep Only bin is set up here.
+from: early-base
+mods: [3785026467]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
