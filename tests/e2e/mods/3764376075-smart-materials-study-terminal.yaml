@@ -1,0 +1,28 @@
+# Smart Materials Study Terminal (3764376075), classes P, S (Spaced Out).
+#
+# What it does: the Materials Study Terminal (NuclearResearchCenter) gets an automation output
+# with a low and a high radbolt threshold, as the Gas Reservoir's: Green below the low one
+# until the high one is reached. A SmartHepStorage (IActivationRangeTarget, the game's
+# activation range side screen) is added in its ConfigureBuildingTemplate, the port in its
+# CreateBuildingDef, and its research side screen is sorted after the new one.
+# How a player reaches it: a Materials Study Terminal's threshold side screen.
+# What changes: automation that refills radbolts.
+#
+# setup builds a terminal in the dug-out corridor west of the printing pod. Built, it holds no
+# radbolts; selected, its activation range side screen shows (dumped).
+from: early-base
+mods: [3764376075]
+require_log: ['\[SmartMaterialsStudyTerminal\] Loaded']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"NuclearResearchCenter\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"NuclearResearchCenter\").LogicOutputPorts.Count": [">= 1", "== original"]
+  - run: {seconds: 3}
+  - expect_state:
+      "all:SmartMaterialsStudyTerminal.Automation.SmartHepStorage::Length": 1
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: NuclearResearchCenter}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/ActivationRangeSideScreen", cond: stable}
+  - ui_dump: {name: range, root: "**/ActivationRangeSideScreen"}
