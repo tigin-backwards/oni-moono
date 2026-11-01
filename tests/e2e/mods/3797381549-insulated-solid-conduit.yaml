@@ -1,0 +1,31 @@
+# Insulated Solid Conduit (3797381549), class B.
+#
+# What it does: adds an insulated, sealed conveyor rail (InsulatedSolidConduit, the Conveyance
+# menu, researched with Solid Transport): items on it exchange far less heat with their
+# surroundings and volatile ones do not off-gas (patches on SimMessages' building heat exchange,
+# SimTemperatureTransfer.SimRegister, SolidConduitFlow and SolidConveyor).
+# How a player reaches it: the build menu (Conveyance), after the research.
+# What changes: rails that keep their cargo's temperature.
+#
+# setup grants Solid Transport and builds a segment in the dug-out corridor west of the printing
+# pod. It shows in the Conveyance menu; selected, its details screen is dumped.
+from: early-base
+mods: [3797381549]
+require_log: ['\[InsulatedSolidConduit\] MOD']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"SolidTransport\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"InsulatedSolidConduit\")", method: Build, args: [{"$": "Grid.XYToCell(113, 207)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"SolidTransport\").unlockedItemIDs": {contains: InsulatedSolidConduit}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Shipping"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/InsulatedSolidConduit Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/InsulatedSolidConduit Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: InsulatedSolidConduit}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

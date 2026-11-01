@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3797381549-insulated-solid-conduit.yaml",
+ "mods": [
+  "3797381549"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Solid Transport and builds a segment in the dug-out corridor west of the printing pod. It shows in the Conveyance menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "6331f336",
+ "mod_dlls": {
+  "3797381549": {
+   "InsulatedSolidConduit.dll": "0b91b27873f16a02d006fb52c963204cb83b58780b4a0b9aa0baef5a76028eea"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-053127-e9ca470e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:36:28",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-090626-832a9172",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:06:26",
+    "lane": 40,
+    "reference_run": "20261101-053127-e9ca470e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-090626-832a9172",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:06:27",
+    "lane": 41,
+    "reference_run": "20261101-053127-e9ca470e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
