@@ -3,7 +3,7 @@ using Brutal.OpenGlApi;
 
 namespace OniMoono.Desktop.Gl
 {
-    /// Object bindings of the render context (the main thread's), remembered so that a bind
+    /// Object bindings of the render context (the GL thread's), remembered so that a bind
     /// that would not change anything is not issued: draws rebind their program, textures and
     /// buffers, and most of those binds repeat the previous draw's. Every bind of the render
     /// context goes through here; the presenter thread's context binds directly (GlApi).

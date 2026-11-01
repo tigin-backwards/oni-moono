@@ -423,17 +423,14 @@ namespace OniMoono.Desktop.Gl
             Redraw();
         }
 
-        void PresentBuffer(Buffer b, GlSync? frameFence, int interval, int width, int height)
+        void PresentBuffer(Buffer b, GlSync fence, int interval, int width, int height)
         {
             // The frame's commands complete before the copy reads them. The wait is on this
             // thread rather than on the window context's GPU queue, so neither context's queue
-            // ever waits on the other's. (A frame shown again was complete already.)
+            // ever waits on the other's.
             long t = GlTimings.Now;
-            if (frameFence is { } fence)
-            {
-                while (N.glClientWaitSync(fence, default, WaitSliceNanoseconds) == TimeoutExpired) { }
-                N.glDeleteSync(fence);
-            }
+            while (N.glClientWaitSync(fence, default, WaitSliceNanoseconds) == TimeoutExpired) { }
+            N.glDeleteSync(fence);
             PresenterTimings.Add(ref PresenterTimings.FrameWait, GlTimings.Now - t);
             lastInterval = interval;
             if (b.PresentGeneration != b.Generation)
