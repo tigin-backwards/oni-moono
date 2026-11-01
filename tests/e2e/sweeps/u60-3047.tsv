@@ -1,4 +1,4 @@
-# scripts/mod-sweep.py u60-3047: 67 mods, batches of 12, the save 2minnow, 90 s of play; commit 3c38d86e, 2026-11-01
+# scripts/mod-sweep.py u60-3047: 79 mods, batches of 12, the save 2minnow, 90 s of play; commit 90d0cd27, 2026-11-01
 id	rank	original	ours	note
 3821093288	2079	ok	ok	
 3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
@@ -64,6 +64,18 @@ id	rank	original	ours	note
 3783751491	2358	ok	ok	
 3756399185	2359	ok	ok	
 3771756510	2360	ok	ok	
+3638085127	2361	ok	ok	
+3436746279	2364	ok	ok	
+2734396435	2365	ok	ok	
+3790434066	2367	menu	-	the player exits (1) while loading; LoadMyAssets() Failed to load AssetBundle: temperatureeffects @ Debug.LogError
+3301255234	2368	ok	ok	
+3784211480	2370	ok	ok	
+3280297616	2371	menu	-	the original disables it ("Failed to load mod ...disabling"): step start: the player exited (1) before OniMcp started; HarmonyLib.HarmonyException: Patching exception in method static System.IntN ConduitTemperatureManager::ConduitTemperatureManager_Add(System.Single contents_temperature, System.Single contents_mass, System.IntN contents_element_hash, System.IntN conduit_structure_temperature_handle, System.Single conduit_heat_capacity, System.Single conduit_thermal_conductivity, System.Boolean conduit_insulated) ---> System.InvalidProgramException: Invalid
 2242620896	2372	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3313952440	2376	ok	ok	
+2877011131	2377	ok	ok	
+3789925586	2380	ok	ok	
+3771260909	2381	ok	ok	
+3764501663	2382	ok	ok	
 3047352164	2429	-	-	a translation: installed disabled, as a subscription leaves it; not swept
 3747652766	2433	-	-	a translation: installed disabled, as a subscription leaves it; not swept
