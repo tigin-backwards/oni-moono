@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2734396435-rotatable-beds.yaml",
+ "mods": [
+  "2734396435"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "both beds may be flipped: a Cot from the Furniture menu, flipped with O, is placed as a flipped blueprint",
+ "updated": "2026-11-01",
+ "commit": "ad96c930",
+ "mod_dlls": {
+  "2734396435": {
+   "rotatableBeds.dll": "7fc696697fa5934c3fddf7418a4c793f1ab78e79ea4dc9ecd13a77b8ca45d225"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082923-99275c78",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:29:24",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-114655-2dd47466",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:46:55",
+    "lane": 35,
+    "reference_run": "20261101-082923-99275c78",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-114655-2dd47466",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:49:00",
+    "lane": 35,
+    "reference_run": "20261101-082923-99275c78",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
