@@ -1,0 +1,59 @@
+{
+ "spec": "mods/2683038637-research-queue-shift-reverse.yaml",
+ "mods": [
+  "1893887916",
+  "2683038637"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "installed without Research Queue, as a subscriber may have it: the colony loads and runs a minute, as in the original",
+ "updated": "2026-11-01",
+ "commit": "00eea888",
+ "mod_dlls": {
+  "1893887916": {
+   "ResearchQueue.dll": "07c1d967eda41f9f8baa06393c56e830e591591b25284019e06e5f22fa966284"
+  },
+  "2683038637": {
+   "ResearchQueueShiftReverse.dll": "e0543788d1e7e18471a1809f47349bf7f5db8366bd0fbb1d5ef4aa6aa2a05cd1"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-074535-befa48bb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:45:36",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-114235-4151ee6e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:42:35",
+    "lane": 35,
+    "reference_run": "20261101-074535-befa48bb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-114235-4151ee6e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:44:45",
+    "lane": 35,
+    "reference_run": "20261101-074535-befa48bb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
