@@ -6,9 +6,10 @@
 # What changes: the cluster a new game generates.
 #
 # From a colony: the pause menu's Main Menu, Quit Without Saving, New Game, Survival, Spaced
-# Out; the mod's cluster (P-INFSTR-C, fixed seed) is launched and embarked. Worldgen expectations
-# are functional (mod-play-testing.md, "Worldgen mods"): the cluster and start world are the
-# mod's, with as many worlds as the original generates.
+# Out; the mod's cluster (P-INFSTR-C, seed 1: with seed 12345 the original's worldgen found no
+# room for its space POIs and failed in Cluster.AssignClusterLocations) is launched and
+# embarked. Worldgen expectations are functional (mod-play-testing.md, "Worldgen mods"): the
+# cluster and start world are the mod's, with as many worlds as the original generates.
 from: early-base
 mods: [2802886201]
 memory_gb: 8
@@ -27,7 +28,7 @@ steps:
   - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
   - click: {ui: "**/CoordinateContainer/SeedInput"}
   - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
-  - type: {ui: "**/CoordinateContainer/SeedInput", text: "P-INFSTR-C-12345-0-0-0", clear: true, enter: true}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "P-INFSTR-C-1-0-0-0", clear: true, enter: true}
   - ui_wait: {path: "**/Section - Destination/DestinationDetailsHeader/ClusterName", cond: stable}
   - expect_state:
       "CustomGameSettings.Instance.GetCurrentQualitySetting(\"ClusterLayout\").id.EndsWith(\"InfinityStarCluster\")": true
