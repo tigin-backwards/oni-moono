@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3745973251-transformers-no-heat.yaml",
+ "mods": [
+  "3745973251"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "both definitions are read; setup builds a Power Transformer in the dug-out corridor west of the printing pod, and selected its details screen lists no heat production among its effects (dumped)",
+ "updated": "2026-11-01",
+ "commit": "76c26ad5",
+ "mod_dlls": {
+  "3745973251": {
+   "Not producing heat.dll": "64c1cd20c3b3c922e95d780912f6769a8023d3c8a36598bd7324d541f267e30f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-021100-8b50c5b9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:31:17",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-030515-67c341b8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:05:15",
+    "lane": 44,
+    "reference_run": "20261101-021100-8b50c5b9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-030515-67c341b8",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:05:16",
+    "lane": 45,
+    "reference_run": "20261101-021100-8b50c5b9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
