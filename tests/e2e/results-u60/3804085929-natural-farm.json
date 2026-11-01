@@ -3,12 +3,12 @@
  "mods": [
   "3804085929"
  ],
- "verdict": "pending",
- "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
- "updated": "2026-10-31",
- "commit": "8a004ed3",
+ "note": "a Natural Farm Tile: in the Food menu (shot), its plot takes no fertilizer or irrigation, and its 100%变异 side screen button sets its mutation mode",
+ "updated": "2026-11-01",
+ "commit": "546fe517",
  "mod_dlls": {
   "3804085929": {
    "NaturalFarm.dll": "a5c8403319b8b6c96d7564fdb9ef73fe306aa4020f36e349fe7e88878bf59225"
@@ -17,17 +17,43 @@
  "runs": {
   "original": [
    {
-    "run": "20261031-214159-a5f53be5",
+    "run": "20261031-230339-bc48bbaa",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-10-31T21:42:00",
-    "lane": 32,
-    "reasons": [
-     "step 3: Db.Get().Techs.TryGetTechForTechItem(\"NaturalFarmTile\").Id is \"FineDining\", wanted FarmingTech"
-    ],
+    "verdict": "pass",
+    "date": "2026-10-31T23:03:39",
+    "lane": 31,
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261101-024424-663ac1d0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:44:24",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "food-menu": 0.0
+    }
+   },
+   {
+    "run": "20261101-024424-663ac1d0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:49:00",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "food-menu": 0.0
+    }
+   }
+  ]
  }
 }
