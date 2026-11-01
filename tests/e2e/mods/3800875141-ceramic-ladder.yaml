@@ -1,0 +1,31 @@
+# 陶瓷梯子｜Ceramic Ladder (3800875141), class B.
+#
+# What it does: adds a Ceramic Ladder (CeramicLadder) to the Base menu's ladders after the
+# Ladder, researched with Luxury: built of ceramic with the look of the Gravitas facility's steel
+# ladders, it is climbed 50 % faster.
+# How a player reaches it: the build menu (Base), after the research.
+# What changes: faster ladders.
+#
+# setup grants Luxury and builds the ladder in the dug-out corridor west of the printing pod.
+# It shows in the Base menu; its climbing speed is faster than the Ladder's; selected, its
+# details screen is dumped.
+from: early-base
+mods: [3800875141]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Luxury\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CeramicLadder\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Ceramic], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Luxury\").unlockedItemIDs": {contains: CeramicLadder}
+      "Assets.GetBuildingDef(\"CeramicLadder\").BuildingComplete.GetComponent<Ladder>.upwardsMovementSpeedMultiplier": "> 1"
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CeramicLadder Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/CeramicLadder Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: CeramicLadder}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
