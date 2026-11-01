@@ -1,0 +1,29 @@
+# Iron to Rust Power Generator (3805842075), class B ("Rust Power").
+#
+# What it does: adds an Iron Oxidation Generator (IronOxidationGenerator, 4x3, the Power menu's
+# generators after the Hydrogen Generator, researched with Combustion) that turns refined iron
+# and oxygen into power, heat and rust.
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: power from rusting iron.
+#
+# setup grants Combustion and builds the generator in the dug-out corridor west of the printing
+# pod. It shows in the Power menu; selected, its details screen is dumped.
+from: early-base
+mods: [3805842075]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Combustion\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"IronOxidationGenerator\")", method: Build, args: [{"$": "Grid.XYToCell(110, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Combustion\").unlockedItemIDs": {contains: IronOxidationGenerator}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/IronOxidationGenerator Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/IronOxidationGenerator Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 206], select: IronOxidationGenerator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
