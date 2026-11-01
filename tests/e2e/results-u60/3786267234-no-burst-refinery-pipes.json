@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3786267234-no-burst-refinery-pipes.yaml",
+ "mods": [
+  "3786267234"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a short liquid pipe in the dug-out corridor west of the printing pod and puts 10 kg of water at 380 K (above boiling) into it; after 30 s the pipe still stands, as many segments as were built, and their hit points are as in the original",
+ "updated": "2026-11-01",
+ "commit": "90133f31",
+ "mod_dlls": {
+  "3786267234": {
+   "NoBurstLiquidPipes.dll": "56ec87df521097a7070845a82f3b1f483c27daa55f9391ca0c4eef502a4230fd"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040631-cdd7ce2a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:11:32",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-074623-a3aabdf1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:46:23",
+    "lane": 41,
+    "reference_run": "20261101-040631-cdd7ce2a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-074623-a3aabdf1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T07:46:24",
+    "lane": 42,
+    "reference_run": "20261101-040631-cdd7ce2a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

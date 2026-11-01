@@ -1,0 +1,23 @@
+# 炼钢不爆管 / No Burst Refinery Pipes (3786267234), class P.
+#
+# What it does: liquid that boils or freezes in a pipe no longer damages it: prefixes on
+# ConduitFlow.FreezeConduitContents and MeltConduitContents skip the game's handling for
+# liquid conduits (gas pipes are left alone). Meant for metal refinery cooling loops.
+# How a player reaches it: liquid pipes carrying coolant near its boiling point.
+# What changes: pipes that do not burst.
+#
+# setup builds a short liquid pipe in the dug-out corridor west of the printing pod and puts
+# 10 kg of water at 380 K (above boiling) into it; after 30 s the pipe still stands, as many
+# segments as were built, and their hit points are as in the original.
+from: early-base
+mods: [3786267234]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LiquidConduit\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LiquidConduit\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Game.Instance.liquidConduitFlow", method: AddElement, args: [{"$": "Grid.XYToCell(112, 206)"}, Water, 10, 380, 255, 0]}}
+steps:
+  - run: {seconds: 30}
+  - expect: {buildings: {LiquidConduit: 2}}
+  - expect_state:
+      "sum:all:BuildingHP::[*].HitPoints if .GetComponent<KPrefabID>.PrefabTag.Name == LiquidConduit": "== original"
+  - expect: {duplicants: 3}
