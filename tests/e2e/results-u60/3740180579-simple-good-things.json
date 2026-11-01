@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3740180579-simple-good-things.yaml",
+ "mods": [
+  "3740180579"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the element, the three foods with their Sushi Bar recipes and the spice are loaded; a 10 kg of BetterL poured into the corridor stays a liquid there",
+ "updated": "2026-11-01",
+ "commit": "74d059eb",
+ "mod_dlls": {
+  "3740180579": {
+   "BetterL.dll": "4eae7536aac81715453e1afb9ae91d7345f20d5457faa947cf4e5e32ab26bfc4",
+   "MoreSushi.dll": "83778e383c9c73519883f14b52dd1d94dfb4e88743ca6e9245136979ae485443"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:02:10",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:17:35",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-010755-8a339ca9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:17:46",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
