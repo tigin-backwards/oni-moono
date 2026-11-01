@@ -1,0 +1,20 @@
+# Print Expirement (SAW-01) - Mutant Race Mod (3820830275), class X (content for Dupery).
+#
+# What it does: no code. With Dupery (here Dupery Fixed, 3172734005, which the catalog names as
+# its requirement), its personalities.json adds a printable Duplicant personality, Expirement
+# (male, model FurryMinion, Ugly Crier stress reaction, Balloon Artist joy trait), with its
+# head shape from the mod's anim folder and no hair.
+# How a player reaches it: Duplicants printed or picked for a new colony.
+# What changes: another personality in the pool.
+#
+# Dupery imports the personality into the game's Personalities and loads its head shape.
+from: early-base
+mods: [3172734005, 3820830275]
+require_log: ['\[Dupery\]: accessory headshape_expirement successfully loaded']
+steps:
+  - expect_state:
+      "Db.Get().Personalities.TryGet(\"EXPIREMENT\")": exists
+      "Db.Get().Personalities.TryGet(\"EXPIREMENT\").Disabled": false
+      "Db.Get().Personalities.Count": "== original"
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}
