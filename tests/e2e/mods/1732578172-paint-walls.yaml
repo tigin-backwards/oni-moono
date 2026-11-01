@@ -22,8 +22,8 @@ steps:
   - expect: {blueprints: {ExteriorWall: 12}}
   - run: {seconds: 1500, until: {buildings: {ExteriorWall: 12}, pending_construction: 0}}
   - expect_state:
-      "count:all:BuildingComplete::[*] if .name == 'ExteriorWallComplete' and .GetComponent<PrimaryElement>.ElementID == SandStone and .GetComponent<KBatchedAnimController>.TintColour.r == 152": 6
-      "count:all:BuildingComplete::[*] if .name == 'ExteriorWallComplete' and .GetComponent<PrimaryElement>.ElementID == Granite and .GetComponent<KBatchedAnimController>.TintColour.r == 67": 6
+      "count:all:ZoneTile::[*] if .name == 'ExteriorWallComplete' and .GetComponent<PrimaryElement>.ElementID == SandStone and .GetComponent<KBatchedAnimController>.TintColour.r == 152": 6
+      "count:all:ZoneTile::[*] if .name == 'ExteriorWallComplete' and .GetComponent<PrimaryElement>.ElementID == Granite and .GetComponent<KBatchedAnimController>.TintColour.r == 67": 6
   - world_shot: {name: walls, ortho: 3, at: [110, 208], mask: [[0, 0, 1280, 170], [0, 470, 1280, 250]]}
   - key: {code: F8}
   - key: {code: F8}
