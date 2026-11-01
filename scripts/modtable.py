@@ -432,8 +432,9 @@ broken.update({
     '3502415157': 'broken on U60 (build 761015): at Db.PostProcess it patches `BionicOilMonitor.WantsOilChange` by name, which U60 overloads, so Harmony throws (AmbiguousMatchException) and the original exits (1) while loading a colony; not run in ours',
     '2774609489': 'broken on U60 (build 761015): its postfix on the `KMod.Mod` constructor finds no constructor of that signature, so the original fails to load it (HarmonyException), its main menu patch then throws, and the player exits (1) while loading a colony; not run in ours',
     '3264249301': 'broken upstream: it patches `ConduitTemperatureManager.ConduitTemperatureManager_Add` and the other native (DllImport) entry points, which Harmony cannot patch, so the original fails to load it (HarmonyException) and exits (1) while loading a colony; not run in ours',
+    '3447471118': 'broken on U60 (build 761015): it reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has, so the original fails to load it (MissingFieldException) and exits (1) before its main menu; not run in ours',
 })
-not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301'}
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118'}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
