@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3790489341-extended-auto-sweeper.yaml",
+ "mods": [
+  "3790489341"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds an Auto-Sweeper in the dug-out corridor west of the printing pod. It reaches 8 cells, its filter holds Oxylite and Bleach Stone, and selected, its filter side screen shows",
+ "updated": "2026-11-01",
+ "commit": "02813add",
+ "mod_dlls": {
+  "3790489341": {
+   "ExtendAutoSweeper.dll": "202dc44f54ae94d4ef6c69e1afa901a0fca5400eb7d8f3b878128e99367947fb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040631-cdd7ce2a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:17:54",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-083652-df9183de",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:36:52",
+    "lane": 44,
+    "reference_run": "20261101-040631-cdd7ce2a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-083652-df9183de",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:36:53",
+    "lane": 45,
+    "reference_run": "20261101-040631-cdd7ce2a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
