@@ -200,8 +200,14 @@ namespace OniMoono.Desktop
             RefreshWindowState();
             InputState.Instance.MousePresent = true;
             // Unity's player starts with the pointer where it is (the game's hover card shows for
-            // what is under it before the mouse first moves); GLFW reports only movements.
-            if (!scripted) feed.MouseMoved(ToPixels(window.CursorPos));
+            // what is under it before the mouse first moves); GLFW reports only movements. Asked
+            // of GLFW: the window's CursorPos is what BRUTAL read as it created the window, before
+            // it was moved, maximized and shown.
+            if (!scripted)
+            {
+                Glfw.PInvoke.GetCursorPos(window, out double x, out double y);
+                feed.MouseMoved(ToPixels(new double2(x, y)));
+            }
         }
 
         /// The window's contents may need presenting again (main thread, during PollEvents).
