@@ -3,12 +3,12 @@
  "mods": [
   "3767472539"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
  "note": "the build categories and the tool bar are dumped and shot, as in the original, and the colony plays for 30 s",
  "updated": "2026-11-01",
- "commit": "91861a01",
+ "commit": "b904cafe",
  "mod_dlls": {
   "3767472539": {
    "HideManagementMenuText.dll": "2df32a2a675516c2f43cf3cab28b9059935a063b2943f4ad6159417ec20618c2",
@@ -18,25 +18,22 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-040745-53cd01cd",
+    "run": "20261101-130418-df4f87e5",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T07:11:27",
+    "date": "2026-11-01T13:04:18",
     "lane": 52,
     "signatures": 0
    }
   ],
   "ours": [
    {
-    "run": "20261101-110624-7373c4be",
+    "run": "20261101-130547-0acd2f61",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T12:59:32",
-    "lane": 54,
-    "reasons": [
-     "shot tools: 21.26% of pixels differ (> 4%)"
-    ],
-    "reference_run": "20261101-040745-53cd01cd",
+    "verdict": "pass",
+    "date": "2026-11-01T13:05:47",
+    "lane": 52,
+    "reference_run": "20261101-130418-df4f87e5",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
@@ -48,20 +45,16 @@
      }
     },
     "shots": {
-     "plan": 0.0,
-     "tools": 0.212554
+     "plan": 0.0
     }
    },
    {
-    "run": "20261101-110624-7373c4be",
+    "run": "20261101-130547-0acd2f61",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T12:59:53",
-    "lane": 55,
-    "reasons": [
-     "shot tools: 21.26% of pixels differ (> 4%)"
-    ],
-    "reference_run": "20261101-040745-53cd01cd",
+    "verdict": "pass",
+    "date": "2026-11-01T13:05:48",
+    "lane": 53,
+    "reference_run": "20261101-130418-df4f87e5",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
@@ -73,8 +66,7 @@
      }
     },
     "shots": {
-     "plan": 0.0,
-     "tools": 0.212554
+     "plan": 0.0
     }
    }
   ]
