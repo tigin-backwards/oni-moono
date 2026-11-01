@@ -1,0 +1,27 @@
+# Desalinators+ (2824552328), class P (Spaced Out).
+#
+# What it does: the Desalinator also yields a trace of uranium ore, 10 g/s while it works:
+# a postfix on DesalinatorConfig.ConfigureBuildingTemplate adds an uranium ore output (kept in
+# its storage) to each of its element converters, and a prefix on the emptying errand's
+# OnEmptyComplete drops that ore with the salt.
+# How a player reaches it: a working Desalinator, emptied.
+# What changes: uranium from salt water.
+#
+# The Desalinator's converters carry the uranium ore output; setup builds one in the dug-out
+# corridor west of the printing pod, and selected its title is dumped; the colony runs on.
+from: early-base
+mods: [2824552328]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Desalinator\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "count:Assets.GetPrefab(\"Desalinator\").GetComponents<ElementConverter>[0].outputElements[*] if .elementHash == UraniumOre": 1
+      "count:Assets.GetPrefab(\"Desalinator\").GetComponents<ElementConverter>[1].outputElements[*] if .elementHash == UraniumOre": 1
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: Desalinator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
