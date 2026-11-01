@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3802814827-artificial-natural-tiles.yaml",
+ "mods": [
+  "3802814827"
+ ],
+ "verdict": "failed",
+ "why": "a run of ours failed",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "6b4b2b0c",
+ "mod_dlls": {
+  "3802814827": {
+   "ArtificialNaturalTiles.dll": "337c16f7bd4db5de557f87d45f2cdd717c8949acd315f20c982f6fab009431fa"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-051213-a3c25292",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:27:37",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-103844-ef96d47e",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T10:38:44",
+    "lane": 36,
+    "reasons": [
+     "step start: E2eDriver ui.wait {\"path\": \"Canvas/ConfirmDialog\", \"cond\": \"gone\", \"frames\": 120}: timeout: gone not met within 120 frames",
+     "2 log signature(s) the original lacks"
+    ],
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 2,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-103844-ef96d47e",
+    "index": 2,
+    "verdict": "fail",
+    "date": "2026-11-01T10:45:55",
+    "lane": 36,
+    "reasons": [
+     "step start: E2eDriver ui.wait {\"path\": \"Canvas/ConfirmDialog\", \"cond\": \"gone\", \"frames\": 120}: timeout: gone not met within 120 frames",
+     "2 log signature(s) the original lacks"
+    ],
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 2,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
