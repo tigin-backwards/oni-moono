@@ -1,0 +1,25 @@
+# Remove Scale Growth Penalty (3680212165), class P.
+#
+# What it does: a miserable critter's scales (and fur, wool: the ScaleGrowth amount) keep
+# growing: a postfix on HappinessMonitor.InitializeStates zeroes the scale growth modifier of
+# its miserable effects, tame and wild (the game's miserable effect stops scale growth), and
+# takes it out of the tame one.
+# How a player reaches it: ranching Dreckos, Gold Bellies or Woolly Pips that are miserable.
+# What changes: scales still grow on unhappy critters.
+#
+# setup spawns a Drecko in the dug-out corridor west of the printing pod. Its happiness
+# monitor's miserable effects carry no scale growth penalty (the sum of their ScaleGrowthDelta
+# modifiers is 0), and the colony runs on.
+from: early-base
+mods: [3680212165]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, Drecko, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "last:GetComponent<KPrefabID>.PrefabTag.Name": Drecko
+      "count:last:GetComponent<StateMachineController>.GetSMI(\"HappinessMonitor+Instance\").sm.miserableTameEffect.SelfModifiers[*] if .AttributeId == ScaleGrowthDelta": 0
+      "sum:last:GetComponent<StateMachineController>.GetSMI(\"HappinessMonitor+Instance\").sm.miserableWildEffect.SelfModifiers[*].Value if .AttributeId == ScaleGrowthDelta": 0
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
