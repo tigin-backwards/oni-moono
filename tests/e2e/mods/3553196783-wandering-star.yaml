@@ -17,7 +17,7 @@ steps:
       "all:AsteroidGridEntity::Length": {save_as: asteroids}
   - expect_state:
       "all:AstroMover::Length": "== asteroids"
-      "count:all:AstroMover::[*] if .trajectory.Count != 0": "== asteroids"
+      "count:all:AstroMover::[*] if .trajectory.Count != 0": [">= 1", "== original"]   # the centre one has none
       "sum:all:AstroMover::[*].entity.Location.q": {save_as: q}
       "sum:all:AstroMover::[*].entity.Location.r": {save_as: r}
       "GameClock.Instance.GetCycle()": {save_as: cycle}

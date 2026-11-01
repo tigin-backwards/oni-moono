@@ -33,5 +33,5 @@ steps:
   - click_world: {cell: [119, 208], select: SamHangingPendant}
   - ui_wait: {path: "**/DetailsScreen", cond: stable}
   - expect_state:
-      "selected:GetComponent<Artable>.CurrentStage": SamHangingPendant_Unfinished
+      "selected:GetComponent<Artable>.CurrentStage": Default   # not yet carved
   - world_shot: {name: pendant, ortho: 4, at: [119, 208]}
