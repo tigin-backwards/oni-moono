@@ -1,0 +1,17 @@
+# Abandon Ship With Full Resources (2867177503), class P (Spaced Out).
+#
+# What it does: a rocket abandoned in space (its Abandon Ship button) leaves debris holding all
+# of its modules' materials rather than half: a transpiler on
+# CraftModuleInterface.CompleteSelfDestruct turns the game's 0.5 into 1 (it edits the
+# instructions in place and returns nothing).
+# How a player reaches it: a rocket's Abandon Ship button.
+# What changes: the debris a self-destructed rocket leaves.
+#
+# early-base has no rocket in flight: the mod loads, enabled, and the colony runs on.
+from: early-base
+mods: [2867177503]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .label.id == 2867177503 and .IsEnabledForActiveDlc() == true": 1
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
