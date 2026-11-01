@@ -49,8 +49,11 @@ ONI_CONFIG=release scripts/run.sh
 Both scripts keep saves, settings and mods in `out/run-home` (or `ONI_RUN_HOME`), away from your
 real profile in `~/.config/unity3d`. Any other arguments go to the host. Useful ones for testing
 are `--log FILE`, `--headless --frames N`, `--capture FRAME:PATH` and `--max-frame-rate N`.
-Unity's `-screen-width`, `-screen-height` and `-window-mode` work too. An unknown option, such as
-`scripts/run.sh --help`, prints the host's usage line with every option.
+Unity's `-screen-width`, `-screen-height`, `-screen-fullscreen`, `-window-mode`, `-monitor` and
+`-logFile` work too. Unity's other player arguments (`-popupwindow`, `-force-d3d11`…), and a
+malformed value for one of these, are noted in the log and ignored, as Unity's player ignores
+what it does not know. An unknown `--` option, such as `scripts/run.sh --help`, prints the host's
+usage line with every option.
 
 The player's options come from built-in defaults, then the settings file
 `<persistentDataPath>/oni-moono/settings.json` that the main menu's Moono Tweaks screen writes,

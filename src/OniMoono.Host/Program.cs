@@ -60,6 +60,7 @@ namespace OniMoono.Host
             EngineLog.Engine(settingsProblem != null ? $"settings: {settingsPath} could not be read, so defaults apply: {settingsProblem}"
                 : File.Exists(settingsPath) ? $"settings: {settingsPath}" : $"settings: {settingsPath} (none; defaults apply)");
             foreach (var line in effective.Describe()) EngineLog.Engine("option " + line);
+            foreach (var note in options.ArgumentNotes) EngineLog.Engine("arguments: " + note);
             if (effective.UnknownTweaks.Count > 0) EngineLog.Engine($"settings: not tweaks of this player, ignored: {string.Join(", ", effective.UnknownTweaks)}");
             options.Splash = effective.Splash;
             options.Renderer = effective.Renderer;
@@ -2760,6 +2761,10 @@ namespace OniMoono.Host
         public int ScreenFullscreen = -1;
         public int Monitor;
         public string? WindowMode;
+        /// Unity's -logFile PATH: the log's file when --log names none.
+        public string? UnityLogFile;
+        /// Unity arguments ignored or malformed, for the log once it is open.
+        public readonly List<string> ArgumentNotes = new();
         /// Development: "frame:path.png[:superSize]" calls ScreenCapture.CaptureScreenshot in
         /// that frame.
         public readonly List<(int Frame, string Path, int Scale)> Captures = new();
@@ -2782,7 +2787,27 @@ namespace OniMoono.Host
         public static Options? Parse(string[] args)
         {
             var o = new Options();
-            for (int i = 0; i < args.Length; i++)
+            int i = 0;
+            try
+            {
+                if (!ParseInto(o, args, ref i)) return null;
+            }
+            catch (Exception e) when (e is FormatException or OverflowException or IndexOutOfRangeException or ArgumentException)
+            {
+                // One of ours with a malformed or missing value: said, as an unknown one is.
+                int at = Math.Min(i, args.Length - 1);
+                while (at > 0 && !args[at].StartsWith("--", StringComparison.Ordinal)) at--;
+                Console.Error.WriteLine(e is IndexOutOfRangeException ? $"Option {args[at]} has no value" : $"Option {args[at]} {args[Math.Min(i, args.Length - 1)]}: {e.Message}");
+                return null;
+            }
+            // --log wins over Unity's -logFile.
+            o.LogPath ??= o.UnityLogFile;
+            return o;
+        }
+
+        static bool ParseInto(Options o, string[] args, ref int i)
+        {
+            for (; i < args.Length; i++)
             {
                 switch (args[i])
                 {
@@ -2798,7 +2823,7 @@ namespace OniMoono.Host
                         if (exe < 0)
                         {
                             Console.Error.WriteLine("Moono: no OxygenNotIncluded executable after --; the Steam launch options should end with -- %command%");
-                            return null;
+                            return false;
                         }
                         o.GameDir = OniMoono.Engine.Platform.GameLayout.GameDirOfExecutable(args[exe])!;
                         i = exe;
@@ -2818,7 +2843,7 @@ namespace OniMoono.Host
                         if (!OniMoono.Host.GameTweaks.GameTweakNames.IsKnown(name))
                         {
                             Console.Error.WriteLine($"Unknown game tweak {name}; known: all, none, exact (all but {string.Join(", ", OniMoono.Host.GameTweaks.GameTweakNames.ChangingBehaviour)}), {string.Join(", ", OniMoono.Host.GameTweaks.GameTweakNames.All)}");
-                            return null;
+                            return false;
                         }
                         o.GameTweaks.Add(name);
                         break;
@@ -2840,7 +2865,7 @@ namespace OniMoono.Host
                         if (!PlayerSettings.IsSplash(o.Splash))
                         {
                             Console.Error.WriteLine($"Unknown splash {o.Splash}; known: moo, none");
-                            return null;
+                            return false;
                         }
                         break;
                     case "--log-paths":
@@ -2848,7 +2873,7 @@ namespace OniMoono.Host
                         if (!PlayerSettings.IsLogPaths(o.LogPaths))
                         {
                             Console.Error.WriteLine($"Unknown log paths {o.LogPaths}; known: hidden, full");
-                            return null;
+                            return false;
                         }
                         break;
                     case "--log-pointer-hits": o.LogPointerHits = true; break;
@@ -2867,7 +2892,7 @@ namespace OniMoono.Host
                         if (!GpuChoice.IsChoice(o.Gpu))
                         {
                             Console.Error.WriteLine($"Unknown gpu {o.Gpu}; known: {string.Join(", ", GpuChoice.Choices)}");
-                            return null;
+                            return false;
                         }
                         break;
                     case "--renderer":
@@ -2885,7 +2910,7 @@ namespace OniMoono.Host
                             if (value is not ("on" or "off"))
                             {
                                 Console.Error.WriteLine($"Unknown dxgi {value}; known: on, off");
-                                return null;
+                                return false;
                             }
                             o.Dxgi = value == "on";
                             break;
@@ -2895,7 +2920,7 @@ namespace OniMoono.Host
                         if (DxgiFaultOption.Unknown(o.DxgiFault) is { } fault)
                         {
                             Console.Error.WriteLine($"Unknown dxgi fault {fault}; known: {DxgiFaultOption.Known}");
-                            return null;
+                            return false;
                         }
                         break;
                     case "--no-tweaks-menu": o.NoTweaksMenu = true; break;
@@ -2922,11 +2947,28 @@ namespace OniMoono.Host
                             AssemblyPolicy.NativeOverrides[spec[..eq]] = Path.GetFullPath(spec[(eq + 1)..]);
                             break;
                         }
-                    case "-screen-width": o.ScreenWidth = int.Parse(args[++i]); break;
-                    case "-screen-height": o.ScreenHeight = int.Parse(args[++i]); break;
-                    case "-screen-fullscreen": o.ScreenFullscreen = int.Parse(args[++i]); break;
-                    case "-window-mode": o.WindowMode = args[++i]; break;
-                    case "-monitor": o.Monitor = int.Parse(args[++i]); break;
+                    // Unity's player arguments (UnityArguments): what is wrong with one is noted in
+                    // the log, and the setting keeps its default.
+                    case "-screen-width": o.ScreenWidth = UnityArguments.Int(args, ref i, o.ArgumentNotes, min: 1) ?? o.ScreenWidth; break;
+                    case "-screen-height": o.ScreenHeight = UnityArguments.Int(args, ref i, o.ArgumentNotes, min: 1) ?? o.ScreenHeight; break;
+                    case "-screen-fullscreen": o.ScreenFullscreen = UnityArguments.Int(args, ref i, o.ArgumentNotes, min: 0, max: 1) ?? o.ScreenFullscreen; break;
+                    case "-monitor": o.Monitor = UnityArguments.Int(args, ref i, o.ArgumentNotes, min: 0) ?? o.Monitor; break;
+                    case "-window-mode":
+                    {
+                        // Unity's are exclusive and borderless (Windows only); windowed is ours.
+                        if (UnityArguments.Value(args, ref i, o.ArgumentNotes) is not { } value) break;
+                        if (value is "exclusive" or "borderless" or "windowed") o.WindowMode = value;
+                        else o.ArgumentNotes.Add($"-window-mode {value}: not exclusive, borderless or windowed; ignored");
+                        break;
+                    }
+                    case "-logFile":
+                    {
+                        // Unity's "-" (the console) is not a file: the log stays where it was.
+                        if (UnityArguments.Value(args, ref i, o.ArgumentNotes) is not { } value) break;
+                        if (value == "-") o.ArgumentNotes.Add("-logFile -: the log goes to its file, not the console");
+                        else o.UnityLogFile = value;
+                        break;
+                    }
                     case "--dump-component":
                     {
                         var spec = args[++i];
@@ -2968,13 +3010,18 @@ namespace OniMoono.Host
                         o.Captures.Add((int.Parse(spec[..colon]), path, scale));
                         break;
                     }
+                    // Another of Unity's (-popupwindow, -force-d3d11, -screen-quality…) or a stray
+                    // word: ignored, as Unity's player ignores what it does not know. Ours are strict.
+                    case var unitys when UnityArguments.IsUnitys(unitys):
+                        UnityArguments.Ignore(args, ref i, o.ArgumentNotes);
+                        break;
                     default:
                         Console.Error.WriteLine($"Unknown option {args[i]}");
-                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--renderer auto|vulkan|opengl] [--vulkan-validation] [--dxgi on|off] [--dxgi-fault WHAT] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [--check-types] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [-- STEAM-COMMAND]");
-                        return null;
+                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--renderer auto|vulkan|opengl] [--vulkan-validation] [--dxgi on|off] [--dxgi-fault WHAT] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [-logFile PATH] [other Unity player arguments, ignored] [--check-types] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [-- STEAM-COMMAND]");
+                        return false;
                 }
             }
-            return o;
+            return true;
         }
     }
 
