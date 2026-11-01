@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2598594359-linux-sunlight-fix.yaml",
+ "mods": [
+  "2598594359"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads and the colony plays for 30 s with the patch updating the texture each frame; the save is underground, so no sunlight is compared",
+ "updated": "2026-11-01",
+ "commit": "3f4d358f",
+ "mod_dlls": {
+  "2598594359": {
+   "LinuxSunlightFix.dll": "6c99348de646f401c050196ffa2954831c8e710e8e618457761c0e3d140a331b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:12:10",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:48:16",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-224203-d74e54f0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:48:50",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

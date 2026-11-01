@@ -1,0 +1,16 @@
+# [Deprecated] Linux Sunlight Fix (2598594359), classes P, V.
+#
+# What it does: a prefix on PropertyTextures.UpdateProperty takes over the exposed-to-sunlight
+# property texture: it copies the sim's buffer, flips it top to bottom and loads it into the
+# game's texture, for Linux players whose sunlight was drawn upside down (on other properties
+# it lets the game run).
+# How a player reaches it: playing on Linux, sunlight on the surface.
+# What changes: sunlight drawn where it falls.
+#
+# The mod loads and the colony plays for 30 s with the patch updating the texture each frame;
+# the save is underground, so no sunlight is compared.
+from: early-base
+mods: [2598594359]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
