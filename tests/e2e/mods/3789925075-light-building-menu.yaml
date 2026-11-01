@@ -1,0 +1,17 @@
+# Light Building Menu / 轻量大建造菜单 (3789925075), class U (screens of the game's, changed).
+#
+# What it does: a larger build menu panel, lightly done (a patch on PlanScreen.ConfigurePanelSize
+# sets more rows and columns).
+# How a player reaches it: the build menu.
+# What changes: the build menu's size.
+#
+# The Base menu opens; its building groups are dumped, as in the original (not the category
+# toggles, which bounce for new buildings while the menu opens); it closes.
+from: early-base
+mods: [3789925075]
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/BuildingGroups", cond: stable}
+  - ui_dump: {name: base-menu, root: "**/PlanBuildingSelectionPanel/BuildingGroups"}
+  - key: {code: Escape}
