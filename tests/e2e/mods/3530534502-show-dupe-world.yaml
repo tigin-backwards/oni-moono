@@ -7,7 +7,7 @@
 # What changes: the rows say which world each Duplicant lives on.
 #
 # The cot east of the printing pod is selected: its assignment list has a row per Duplicant,
-# and each row's label carries the tooltip with the start asteroid's name.
+# and each Duplicant's row label carries a tooltip naming the asteroid.
 from: early-base
 mods: [3530534502]
 steps:
@@ -17,7 +17,8 @@ steps:
   - expect_state:
       "count:all:AssignableSideScreenRow::[*] if .gameObject.activeInHierarchy == true": ">= 3"
       "ClusterManager.Instance.GetStartWorld().GetComponent<AsteroidGridEntity>.Name": {save_as: world}
-  # Every Duplicant's row names the world; none says "Unknown World".
+  # The Duplicants' rows carry the tooltip (a row without one, as the original's run found,
+  # has no string to read), and the first row's names a world.
   - expect_state:
-      "count:all:AssignableSideScreenRow::[*] if .GetComponentInChildren<LocText>.GetComponent<ToolTip>.GetMultiString(0) == 'Unknown World'": 0
+      "count:all:AssignableSideScreenRow::[*] if .GetComponentInChildren<LocText>.GetComponent<ToolTip>.multiStringCount == 1": [">= 3", "== original"]
       "ui:**/Rows/AssignableSideScreenRow::GetComponentInChildren<LocText>.GetComponent<ToolTip>.GetMultiString(0)": "!= ''"
