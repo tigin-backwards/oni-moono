@@ -1,0 +1,25 @@
+# Recreation Facility Priority / 娱乐设施优先级 (3498143226), classes P, O (PLib options).
+#
+# What it does: each recreation building's relax errands get a priority from the mod's options
+# (1 to 9, 5 by default; the game's are 5): the Vertical Wind Tunnel, Jukebot, Telephone,
+# Mechanical Surfboard, Espresso Machine, Soda Fountain, Hot Tub, Sauna, Beach Chair, Arcade
+# Cabinet and Juicer. Prefixes replace each one's CreateChore with the same WorkChore at the
+# option's priority.
+# How a player reaches it: the mod's options (Mods screen); Duplicants' downtime.
+# What changes: which recreation building Duplicants pick first.
+#
+# Options set the Beach Chair's priority to 8. setup builds a Beach Chair in the dug-out
+# corridor west of the printing pod; its relax errand then has priority 8.
+from: early-base
+mods: [3498143226]
+options:
+  "3498143226": {BeachChairPriority: 8}
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"BeachChair\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 5}
+  - expect_state:
+      "all:BeachChairWorkable::Length": 1
+      "count:GlobalChoreProvider.Instance.choreWorldMap[0][*] if .choreType.Id == Relax and .masterPriority.priority_value == 8": ">= 1"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
