@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3745108397-achievement-quick-complete.yaml",
+ "mods": [
+  "3745108397"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "both achievements' checklists are read: one requirement each, Build Outside Start Biome's. The colony runs on",
+ "updated": "2026-11-01",
+ "commit": "35ce8e29",
+ "mod_dlls": {
+  "3745108397": {
+   "PLib.dll": "79350ee2d4eea7a879c6eebc12acca89bdd1d2a93ed7b396b875a7907a91d1e2",
+   "│╔╛═┐∞╦┘═Ω│╔.dll": "dd2a7dda1d3877cce29cf0c31dc9eea6d7de2676bfcd4d7f05dccd677d78aeae"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-021100-8b50c5b9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:25:58",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-025648-d7d481e1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:56:48",
+    "lane": 44,
+    "reference_run": "20261101-021100-8b50c5b9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-025648-d7d481e1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:57:09",
+    "lane": 43,
+    "reference_run": "20261101-021100-8b50c5b9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
