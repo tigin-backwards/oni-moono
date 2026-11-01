@@ -22,6 +22,9 @@ namespace OniMoono.Desktop.Gl
         /// Diagnostics (--no-bindless): the binding path even where bindless textures exist.
         public static bool Disabled;
 
+        /// --bindless: bindless textures even on a driver that binds by default (SlowOnDriver).
+        public static bool Forced;
+
         public static bool Enabled { get; private set; }
 
         static delegate* unmanaged[Cdecl]<uint, uint, ulong> getTextureSamplerHandle;
@@ -35,7 +38,15 @@ namespace OniMoono.Desktop.Gl
         /// --no-bindless (issue #27, measured with --gpu-profile; likely also issue #21's collapse,
         /// the same card, worsening as a colony's resident textures grow). Binding to units has
         /// no such cost there, so that driver binds.
-        public static bool SlowOnDriver(string vendor) => vendor.Contains("ATI Technologies", StringComparison.Ordinal);
+        ///
+        /// Mesa's AMD driver (radeonsi, GL_VENDOR "AMD") binds too, as AMD's Windows driver does:
+        /// it adds every resident handle's buffer to each command submission
+        /// (si_resident_buffers_add_all_to_bo_list), so the cost grows with the textures ever
+        /// sampled. A save's colony preview samples about 4.5 times a normal frame's textures, and
+        /// on an RX 9070 a colony that ran at 40-50 fps stayed at 20-25 after its first save,
+        /// paused or not (issue #43). --bindless turns them on there anyway.
+        public static bool SlowOnDriver(string vendor)
+            => vendor.Contains("ATI Technologies", StringComparison.Ordinal) || vendor == "AMD";
 
         /// Why bindless textures are off, or null when they are on.
         public static string Reason { get; private set; }
@@ -45,7 +56,7 @@ namespace OniMoono.Desktop.Gl
         {
             if (Disabled) { Reason = "--no-bindless"; return; }
             if (!GlPrograms.Extensions.Contains("GL_ARB_bindless_texture")) { Reason = "no ARB_bindless_texture"; return; }
-            if (SlowOnDriver(vendor)) { Reason = "AMD's Windows driver, where bindless draws are slow"; return; }
+            if (SlowOnDriver(vendor) && !Forced) { Reason = "AMD's driver, where resident handles slow every draw (--bindless turns them on)"; return; }
             getTextureSamplerHandle = (delegate* unmanaged[Cdecl]<uint, uint, ulong>)Glfw.GetProcAddress("glGetTextureSamplerHandleARB"u8);
             makeResident = (delegate* unmanaged[Cdecl]<ulong, void>)Glfw.GetProcAddress("glMakeTextureHandleResidentARB"u8);
             makeNonResident = (delegate* unmanaged[Cdecl]<ulong, void>)Glfw.GetProcAddress("glMakeTextureHandleNonResidentARB"u8);
