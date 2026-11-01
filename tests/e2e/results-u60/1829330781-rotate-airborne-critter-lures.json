@@ -1,0 +1,63 @@
+{
+ "spec": "mods/1829330781-rotate-airborne-critter-lures.yaml",
+ "mods": [
+  "1829330781"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the definition is read; setup builds the lure on the floor of the dug-out corridor west of the printing pod (where the game's needs a ceiling), and selected its details are dumped",
+ "updated": "2026-11-01",
+ "commit": "1382e235",
+ "mod_dlls": {
+  "1829330781": {
+   "rotateable critter lures.dll": "b899474ad09325aaf48ad05b3a11430b3cdc8b54c0cc03399a522ebbb6ac9606"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-005219-2e014fd0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:52:19",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-012026-25815024",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:20:26",
+    "lane": 44,
+    "reference_run": "20261101-005219-2e014fd0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-012026-25815024",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:20:27",
+    "lane": 45,
+    "reference_run": "20261101-005219-2e014fd0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,24 @@
+# Rotate Airborne Critter Lures (1829330781), class P.
+#
+# What it does: the Airborne Critter Bait (FlyingCreatureBait) can be built anywhere and
+# rotated: a postfix on its CreateBuildingDef sets PermittedRotations to R360 and
+# BuildLocationRule to Anywhere (the game's hangs from a ceiling, unrotated).
+# How a player reaches it: building the lure (the rotate key while placing it).
+# What changes: lures that stand on floors.
+#
+# The definition is read; setup builds the lure on the floor of the dug-out corridor west of
+# the printing pod (where the game's needs a ceiling), and selected its details are dumped.
+from: early-base
+mods: [1829330781]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"FlyingCreatureBait\")", method: Build, args: [{"$": "Grid.XYToCell(114, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"FlyingCreatureBait\").PermittedRotations": R360
+      "Assets.GetBuildingDef(\"FlyingCreatureBait\").BuildLocationRule": Anywhere
+  - run: {seconds: 2}
+  - expect: {buildings: {FlyingCreatureBait: 1}}
+  - driver: {camera.set: {cell: [114, 207], ortho: 8}}
+  - click_world: {cell: [114, 206], select: FlyingCreatureBait}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
