@@ -349,7 +349,7 @@ namespace OniMoono.Tests
             // The game's video screen, ending on its own, destroys its elements at once after the
             // canvases were built for the frame (both in PostLateUpdate); the frame still renders.
             var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761015");
+                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
             AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             ProjectSettings.Load();
             FrameRenderer.Install();
@@ -412,7 +412,7 @@ namespace OniMoono.Tests
         public void ANestedCanvasMovedOrScaledKeepsItsElementsGeometry()
         {
             var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761015");
+                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
             AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             ProjectSettings.Load();
             FrameRenderer.Install();
@@ -489,7 +489,7 @@ namespace OniMoono.Tests
         public void AnElementWhoseShaderReadsNoPositionIsDrawnInTheRootCanvassSpace()
         {
             var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761015");
+                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
             AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             ProjectSettings.Load();
             FrameRenderer.Install();

@@ -1,12 +1,13 @@
 # U60: what changed for Moono
 
-U60 is the game's November 2026 quality-of-life update. It is in public testing as build 761015 on
-Steam's `public_testing` branch, and is built with Unity 6000.3.17f1 (U59: 744825, Unity
-6000.3.5f2). This branch (`u60`) supports U60 only. Master stays on U59 until U60 ships, then
+U60 is the game's November 2026 quality-of-life update. It is in public testing on Steam's
+`public_testing` branch, as build 761211 since its hotfix of build 761015 (`u60-761211.md`), and
+is built with Unity 6000.3.17f1 (U59: 744825, Unity 6000.3.5f2). This branch (`u60`) supports U60 only. Master stays on U59 until U60 ships, then
 `u60` merges into it.
 
 Sources:
-- Klei's decompiled game code for both builds in oni-versioning (`aa9baa00` U59, `4a63c523` U60).
+- Klei's decompiled game code for both builds in oni-versioning (`aa9baa00` U59, `4a63c523` U60
+  761015, `50066d31` U60 761211).
 - The public test's patch notes.
 - `tools/AssemblyDiff`, `tools/ApiCheck` and the player's `--check-*` modes run against the Windows
   U60 install.
@@ -20,7 +21,7 @@ Sources:
 | Engine API | Done: ApiCheck back to the 13 known UI Toolkit members. |
 | UI packages | Done: `TMP_Text.SetCharArray(ReadOnlySpan<char>)` from the spec; package ApiCheck 0 missing. |
 | Game tweaks | Done: each tweak reviewed against the decomp diff (fast-anim-batches updated, fast-overlays and fast-overlay-textures retired, the rest unchanged) and run on U60: QA verify (U57, every tweak's verify mode) found no mismatches. |
-| Linux build | Done: frozen at `~/projects/oni-linux-761015`, DLC content copied (not linked) from the frozen Windows copy, test install `out/local-tools/u60orig`. |
+| Linux build | Done: 761211 frozen at `~/projects/oni-linux-761211`, DLC content copied (not linked) from the frozen Windows copy into `~/projects/oni-dlc-761211`, test install `out/local-tools/u60orig-761211`. 761015's (`oni-linux-761015`, `oni-dlc-761015`, `u60orig`) stay for the runs made on it. |
 | Main menu and a save on U60 | Both: Linux (QA dogfood: menu, DeCrew and new game, all 13 scenarios clean) and Windows (frozen copy `E:\oni-builds\oni-win-761015`, RTX 3090, OpenGL 4.5: main menu, DeCrew loaded and dismissed its mod dialog, no errors). |
 | Performance | Windows, focused (see Performance): ours 64.9 fps against the original's 11.9 on U60 (about 5.5×). Linux, 2026-10-31: the save tweaks, fast-jobs, fast-anim-events and fast-conveyor-paths still pay; the other exact tweaks' gains are below what this machine resolves now. Frame rates do not compare: the machine was GPU-bound at about 6 fps in every configuration, U59 included, from a WSL update (see Performance). | Peak memory: see Memory.
 | QA and e2e on U60 | QA: unit and all 13 dogfood scenarios pass (references blessed from a reviewed U60 run); verify (U57, every tweak's verify mode) ran 840 game seconds with no mismatches and no errors logged. e2e: the specs of mods already covered on U59 were not re-run (the user's call: they were for parity confidence, and U59 or U60 makes no difference to a mod that didn't break). Mods new to the table are played on U60 (`tests/e2e/results-u60`), and only mods onimaxxing reviewed in the exact upload are installed (`scripts/mod-gate.py`). |

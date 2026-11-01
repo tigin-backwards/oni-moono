@@ -16,7 +16,7 @@ namespace OniMoono.Tests
             get
             {
                 var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                           ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761015");
+                           ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
                 return Path.Combine(game, "OxygenNotIncluded_Data");
             }
         }

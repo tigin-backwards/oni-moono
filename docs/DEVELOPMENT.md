@@ -10,9 +10,9 @@ How to build, run and test Moono from source. If you just want to play, the
   Windows x64 with an OpenGL 4.5 driver and the .NET 10 runtime.
 - The .NET SDK pinned in `global.json` (10.0.402, or a later patch release). The scripts use
   `~/.dotnet/dotnet` if it exists.
-- The Linux build of Oxygen Not Included, expected at `~/projects/oni-linux`. To use another
-  location, set `ONI_GAME_DIR` for the scripts and tests, and pass `-p:OniGameDir=...` to
-  `dotnet build`.
+- The Linux build of Oxygen Not Included, expected at `~/projects/oni-linux` (on the `u60`
+  branch, U60 build 761211 at `~/projects/oni-linux-761211`). To use another location, set
+  `ONI_GAME_DIR` for the scripts and tests, and pass `-p:OniGameDir=...` to `dotnet build`.
 - `python3` and binutils (`as`, `ld`), for the offline Steam stub.
 - Optionally `libvpx`, for the one test that compares our VP8 decoder against it. The test is
   skipped without it; the player decodes the game's videos itself.
@@ -196,7 +196,7 @@ the last. Any other mod is skipped, with the reason ("not reviewed by onimaxxing
 is not analysed"), and waits for onimaxxing's review: `e2e.py` reports its spec as skipped, and
 `mod-sweep.py` records it as not run. `scripts/mod-gate.py ID...` checks mods without playing
 them. onimaxxing's data is cached in `out/modgate/cache/BUILD/` with its fetch time, for an
-hour; the build is the game folder's (761015 for `oni-linux-761015`, else U59's 744825), or
+hour; the build is the game folder's (761211 for `oni-linux-761211`, else U59's 744825), or
 `ONI_GAME_BUILD`.
 
 ## The OniMoono rename

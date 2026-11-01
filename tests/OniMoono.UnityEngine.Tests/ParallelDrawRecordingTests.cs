@@ -199,7 +199,7 @@ namespace OniMoono.Tests
         static Shader TestShader(out ShaderNative native, out object previousGpu)
         {
             var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761015");
+                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
             AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             ProjectSettings.Load();
             var shader = Shader.Find("UI/Default");

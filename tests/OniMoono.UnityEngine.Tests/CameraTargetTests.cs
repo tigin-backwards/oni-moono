@@ -11,7 +11,7 @@ namespace OniMoono.Tests
         public void TargetBuffersSizeTheCamera()
         {
             var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761015");
+                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
             OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             OniMoono.Engine.Assets.ProjectSettings.Load();
             var camera = new GameObject("Camera").AddComponent<Camera>();
@@ -32,7 +32,7 @@ namespace OniMoono.Tests
             // The game's MRT proxy destroys its old targets (through RenderTextureDestroyer, two
             // frames later) when it recreates them on a resize.
             var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761015");
+                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
             OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             OniMoono.Engine.Assets.ProjectSettings.Load();
             var device = new RecordingDevice();

@@ -6,7 +6,7 @@ namespace OniMoono.Tests
 {
     public class PrimitiveTests : EngineTest
     {
-        static readonly string DataDir = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects/oni-linux-761015/OxygenNotIncluded_Data");
+        static readonly string DataDir = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects/oni-linux-761211/OxygenNotIncluded_Data");
 
         [Theory]
         [InlineData(PrimitiveType.Cube, typeof(BoxCollider))]
