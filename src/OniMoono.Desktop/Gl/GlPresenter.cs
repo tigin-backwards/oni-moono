@@ -18,8 +18,12 @@ namespace OniMoono.Desktop.Gl
     /// vsync, one, and a frame counts as queued until the GPU has done its swap: the driver
     /// returns from SwapBuffers at once and queues frames of its own, which came on top of ours.
     /// Measured on Windows at 60 Hz (a key press to the screen changing, out/local-tools/winlat):
-    /// the original 50 ms, ours 83 ms before, 50 ms so. Three back buffers rotate, so the GL
-    /// thread never draws into a buffer that is queued or being shown.
+    /// the original 50 ms, ours 83 ms before, 50 ms so. That was an RTX 3090 on NVIDIA's driver
+    /// 610.88, windowed under Windows 11's compositor (19827d58). How long SwapBuffers takes to
+    /// return and that a fence after it signals once the swap is done are that driver's
+    /// behaviour, not documented (GlSwapTarget.Show); other drivers and compositors are
+    /// unmeasured. Three back buffers rotate, so the GL thread never draws into a buffer that is
+    /// queued or being shown.
     internal sealed unsafe class GlPresenter : IDisposable
     {
         const uint SyncGpuCommandsComplete = 0x9117;

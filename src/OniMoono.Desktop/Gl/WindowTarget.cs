@@ -72,9 +72,11 @@ namespace OniMoono.Desktop.Gl
             {
                 // With vsync, a fence after the swap, waited for so that the frame counts as
                 // queued until the driver has done its swap. That it signals only then is driver
-                // behaviour, not a GL guarantee (SwapBuffers is WGL's). Measured on Windows at
-                // 60 Hz with it and one frame queued (19827d58): a key press reached the screen in
-                // 50 ms instead of 83, as in the original.
+                // behaviour, not a GL guarantee (SwapBuffers is the window system's: WGL, GLX,
+                // EGL). Measured on Windows at 60 Hz with it and one frame queued (19827d58): a
+                // key press reached the screen in 50 ms instead of 83, as in the original. That
+                // was an RTX 3090 on NVIDIA's driver 610.88 (OpenGL 4.5), windowed under Windows
+                // 11's compositor; other drivers and compositors are unmeasured.
                 long t = GlTimings.Now;
                 var swapped = N.glFenceSync(SyncGpuCommandsComplete, default);
                 N.glFlush();
