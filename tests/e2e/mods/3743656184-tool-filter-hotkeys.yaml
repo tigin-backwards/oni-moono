@@ -1,0 +1,22 @@
+# Tool Filter Hotkeys/工具筛选快捷键 (3743656184), class K.
+#
+# What it does: the filter options of the filtered tools (Deconstruct, Cancel and others: All,
+# Tiles, Natural Backwall, Uproot Plants...) get context hotkeys, F1 upwards (bindings added in
+# GameInputMapping.SetDefaultKeyBindings; patches on KInputController, PlayerController.OnKeyDown
+# and ToolParameterMenu.PopulateMenu).
+# How a player reaches it: a filtered tool, then F1, F2...
+# What changes: filters picked from the keyboard.
+#
+# The Deconstruct tool opens; F2 picks its second filter (the menu dumped before and after), as
+# in the original; Escape puts it away.
+from: early-base
+mods: [3743656184]
+steps:
+  - run: {seconds: 2}
+  - tool: {key: X}
+  - ui_wait: {path: "**/ToolParameters", cond: stable}
+  - ui_dump: {name: before, root: "**/ToolParameters"}
+  - key: {code: F2}
+  - ui_wait: {path: "**/ToolParameters", cond: stable}
+  - ui_dump: {name: after, root: "**/ToolParameters"}
+  - key: {code: Escape}
