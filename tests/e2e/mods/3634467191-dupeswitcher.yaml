@@ -1,0 +1,27 @@
+# DupeSwitcher (3634467191), class K.
+#
+# What it does: a postfix on Game.Update reads Shift+E and Shift+Q (Unity's Input) and selects
+# the next or previous living Duplicant, in name order, through the select tool, then moves the
+# camera to it. It logs to Documents/Klei/OxygenNotIncluded/mods/DupeSwitcher_log.txt.
+# How a player reaches it: Shift+E and Shift+Q in a colony.
+# What changes: Duplicants picked from the keyboard.
+#
+# Shift+E twice selects the second and third Duplicants by name, Shift+Q goes back to the
+# second; each is the one the original selects.
+from: early-base
+mods: [3634467191]
+steps:
+  - run: {seconds: 1}
+  - key: {code: "Shift+E"}
+  - expect_state:
+      "selected:MinionIdentity": exists
+      "selected:MinionIdentity.name": "== original"
+  - key: {code: "Shift+E"}
+  - expect_state:
+      "selected:MinionIdentity.name": "== original"
+  - key: {code: "Shift+Q"}
+  - expect_state:
+      "selected:MinionIdentity.name": "== original"
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_ui:
+      "**/DetailsScreen/TitleBar/Border/LabelGroup/Label": {exists: true}
