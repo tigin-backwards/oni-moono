@@ -1,0 +1,32 @@
+# Cooperative Colonies - Coop Multiplayer (Co-op) (3824584976), classes P, U, M (multiplayer;
+# MonoMod detours).
+#
+# What it does: private cooperative colonies: a host creates a friends-only Steam lobby (or a
+# LAN session), others join, and the colony's simulation is kept in step between them (Steam
+# P2P sockets, snapshots and resyncs, hundreds of patches across the game: brains, tools,
+# speech, time). A "CO-OP" button on the main menu (and the pause menu) opens its window
+# (CoopMenuWindow, IMGUI, with a fallback when the native button cannot be added).
+# How a player reaches it: the main menu's CO-OP button.
+# What changes: a colony shared between players.
+#
+# A session needs real Steam lobbies and a second game process, which an e2e run lacks (the
+# offline Steam double makes no lobby): only its menu is checked, recorded in the original
+# only, as for the other multiplayer mods. From a colony: the pause menu's Main Menu, Quit
+# Without Saving; the main menu has the CO-OP button, and clicking it opens the mod's window
+# (its modal screen, the native one when the button could be added, is open).
+from: early-base
+mods: [3824584976]
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Main MenuButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Main MenuButton"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton"}   # Quit Without Saving
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_state:
+      "type:CoopColoniesMod.Ui.CoopMenuWindow::NativeButtonInstalled": true
+      "type:CoopColoniesMod.Ui.CoopMenuWindow::Visible": false
+  - click: {text: "CO-OP", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable}
+  - expect_state:
+      "type:CoopColoniesMod.Ui.CoopMenuWindow::nativeScreen": exists
