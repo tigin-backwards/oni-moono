@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3821598547-battery-priority.yaml",
+ "mods": [
+  "3821598547"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Battery in the dug-out corridor west of the printing pod. Selected, its slider side screen shows the priority, up to 10 (dumped)",
+ "updated": "2026-11-01",
+ "commit": "dbffacdc",
+ "mod_dlls": {
+  "3821598547": {
+   "BatteryPriority.dll": "48a58f29d992eae83a5a931c90a0d60f6755a397fb29a5201d0f579538b46016"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024504-a96eb81a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:54:40",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-111829-11b222c2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:18:29",
+    "lane": 40,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-111829-11b222c2",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:18:30",
+    "lane": 41,
+    "reference_run": "20261101-024504-a96eb81a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
