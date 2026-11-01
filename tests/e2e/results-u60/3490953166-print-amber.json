@@ -1,0 +1,57 @@
+{
+ "spec": "mods/3490953166-print-amber.yaml",
+ "mods": [
+  "3172734005",
+  "3490953166"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with Dupery: Dupery imports the mod's personality, and the personality pool is as large as the original's",
+ "updated": "2026-11-01",
+ "commit": "8cb23404",
+ "mod_dlls": {
+  "3172734005": {
+   "DuperyFixed.dll": "9ef4a93958b6b80fbf086cab57821955dd344324d2192086db7ea7845e71f7f2"
+  },
+  "3490953166": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-003847-c34050a4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:55:30",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-012824-374af83f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:28:24",
+    "lane": 45,
+    "reference_run": "20261101-003847-c34050a4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-012824-374af83f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:35:07",
+    "lane": 45,
+    "reference_run": "20261101-003847-c34050a4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

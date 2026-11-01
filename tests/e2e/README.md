@@ -453,7 +453,8 @@ mods no spec has recorded.
 A mod's spec is `mods/ID-slug.yaml`, its header the mod card: what the mod does, how a player
 reaches each feature, what changes when it is used. Run it with its path under `tests/e2e`
 (`scripts/e2e.py --player both --bless mods/ID-slug`): the original first, which blesses the
-references, then ours, compared with them.
+references, then ours, compared with them. A spec naming OniMcp's Workshop item (3807166922)
+runs with that build as the runner's OniMcp, in place of `E2E_ONIMCP`'s.
 
 Fixtures are blessed saves (`--bless` copies a spec's `save:` into `fixtures/`, not kept in git):
 
@@ -461,6 +462,9 @@ Fixtures are blessed saves (`--bless` copies a spec's `save:` into `fixtures/`, 
 - `early-base` (`early-base.yaml`): dug out on both sides of the pod, with an outhouse, a manual
   generator, an unpowered research station and a cot. Debris lies on the floors.
 - `prehistoric1`: a Prehistoric colony at cycle 1 (copied from a played save, not blessed).
+- `decrew`: a late Spaced Out colony with busy gas and liquid networks, copied from
+  onimaxxing's `saves/DeCrew.sav` (not blessed; 145 MB, about 4.5 minutes to load in the
+  original), for [`pipe-flow.yaml`](pipe-flow.yaml).
 - `rockets-so`: a Spaced Out sandbox colony with two rockets on launch pads, copied from a Klei
   bug-tracker save (onimaxxing's `saves/forum-so/351956__Test_-_fuel_oxy.sav`, not blessed),
   for [`rocket-launch.yaml`](rocket-launch.yaml).
@@ -583,7 +587,7 @@ scripts/mod-sweep.py again --ids 3467986764 3760101842 --batch 2 --first-lane 7 
 ```
 
 - **Which mods.** Catalog ranks (or `--ids`), less the ones onimaxxing flags `notLoading`,
-  `crashesAtStartup` or `unanalysed`, and never a malware-flagged one. A translation is recorded,
+  `crashesAtStartup`, `brokenByUpdate` or `unanalysed`, and never a malware-flagged one. A translation is recorded,
   not batched (the players install it disabled); a mod's catalog requirements are installed with
   it.
 - **A batch.** First, once per sweep, both players run the save without mods: signatures only

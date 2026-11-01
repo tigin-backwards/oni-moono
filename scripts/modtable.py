@@ -12,8 +12,9 @@ original as far as onimaxxing knows: those flagged notLoading, crashesAtStartup 
 left out, down to the rank (2274) where the mods kept, ranks 1-750 counted too, make 2000.
 Every rank in the TSV is listed in the table (LAST_RANK is its highest). scripts/mod-catalog-u60.tsv
 (or ONI_CATALOG_U60; read beside a CATALOG argument only when that is set) adds, in the same format,
-the U60 catalog's mods the TSV lacks (less those flagged brokenByUpdate or malware), with their U60
-ranks, sorted in among its rows.
+the U60 catalog's mods the TSV lacks (less those flagged malware), with their U60 ranks (build
+761015's, then build 761211's for the mods onimaxxing added since), sorted in among its rows; a mod
+flagged brokenByUpdate has that flag, ahead of its others.
 
 What our runs recorded:
 - the load sweeps of scripts/mod-sweep.py, tests/e2e/sweeps/*.tsv (or ONI_SWEEP_RESULTS): per mod
@@ -97,7 +98,8 @@ def sweep_status(original, ours, note, game=''):
     if ours == 'colony':
         return Y, N, N, f'its colony fails in ours, {batch}: {note}'
     if ours == 'ok':
-        return Y, Y, N, note
+        # A sweep that passed both is not a play: say where it was swept when no note says more.
+        return Y, Y, N, note or f'swept on {game.strip() or "U59"}, not played'
     return N, N, N, note
 
 
@@ -453,8 +455,9 @@ broken.update({
     '3754121151': 'broken on U60 (build 761015): with its power transmitter built, the original throws a NullReferenceException in `CellChangeMonitor.RenderEveryTick` under its `Game.Update` patch a few seconds into play and opens its crash screen; not run in ours',
     '3801593061': 'broken on U60 (build 761015): it reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException), and the original exits (1) while loading a colony; not run in ours',
     '3807856018': 'broken on U60 (build 761015): its postfix on `GameScenePartitioner.OnPrefabInit` adds a scene partitioner layer, and `ScenePartitioner.CreateMask` fails its assert ("Assert failed") on this build, so the original opens its crash screen while loading a colony; not run in ours',
+    '3180371600': 'broken on U60 (build 761015): the original crashes (SIGSEGV) as the colony finishes loading, right after `InterfaceTool` pushes its tool config ("Pushing config with key: Invalid"), in two runs out of two; not run in ours',
 })
-not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869', '3746629588', '3564852497', '3734918401', '3741456698', '3619073345', '3779615427', '3764098079', '3754121151', '3801593061', '3807856018'}
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869', '3746629588', '3564852497', '3734918401', '3741456698', '3619073345', '3779615427', '3764098079', '3754121151', '3801593061', '3807856018', '3180371600'}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
@@ -504,6 +507,7 @@ Y, N, X, W = '✅', '⬜', '❌', '⚠️'
 ONIMAXXING_BROKEN = {
     'notLoading': 'does not load in vanilla (onimaxxing analysis, not run here)',
     'crashesAtStartup': 'crashes vanilla at startup (onimaxxing analysis, not run here)',
+    'brokenByUpdate': 'broken by the U60 update (onimaxxing analysis, not run here)',
 }
 
 def row(rank, mid, title, loads, colony, play, note):
@@ -553,7 +557,7 @@ def status(mid, flags):
         loads, colony, note = third_results[mid]
         return loads, colony, N, note
     if mid in fifth or mid in swept:
-        return Y, Y, N, ''
+        return Y, Y, N, 'swept, not played'
     return N, N, N, ''
 
 
@@ -587,8 +591,9 @@ Which Workshop mods have been tried in this player, by popularity in
 [onimaxxing's catalog](https://onimaxxing.com/mods): the {FULL_RANKS} most-subscribed, then down to
 rank {LAST_RANK} those the catalog flags neither as broken (not loading, crashing at startup) nor
 as malware, the 2000 that work in the original game by the catalog's analysis; and mods players
-reported. The rest of the U60 catalog (to rank 3047) is listed with its U60 ranks, tried on U60
-(build 761015), less the mods it flags as broken by that update or as malware.
+reported. The rest of the U60 catalog is listed with its U60 ranks, tried on U60 (builds 761015
+and 761211), less the mods it flags as malware; those it flags as broken by the update are listed
+from its analysis, not run here.
 Worldgen mods are played with functional expectations (their worlds generate with their content),
 not identical layouts.
 

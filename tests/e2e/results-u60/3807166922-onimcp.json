@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3807166922-onimcp.yaml",
+ "mods": [
+  "3807166922"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "its Workshop build (0.2.6) served the runner's orders: a dig and a tile ordered through its tools were done, its building_control tool opened the printing pod's immigrant screen, and the Duplicants were as many as in the original; its catalog requirement CycleTrim is not installed (OniMcp does not reference it)",
+ "updated": "2026-11-01",
+ "commit": "13692f4b",
+ "mod_dlls": {
+  "3807166922": {
+   "OniMcp.dll": "fe981cf3f83db5c7af3b56e968014bddd831fa3aab432ba69b9232899b92b79b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-152501-aa94c50b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:25:01",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-152648-d5c58349",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:26:48",
+    "lane": 50,
+    "reference_run": "20261101-152501-aa94c50b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-152648-d5c58349",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T15:28:00",
+    "lane": 50,
+    "reference_run": "20261101-152501-aa94c50b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -10,8 +10,9 @@ every file there), its runs and state to out/sweep/NAME/ (E2E_OUT moves out/swee
 is run again goes on where it stopped: a batch whose state file exists is not run again (delete
 out/sweep/NAME/batch-NN.json to rerun one). The mods are the catalog's (scripts/mod-catalog.tsv,
 then scripts/mod-catalog-u60.tsv) ranks A-B (default all), or the IDS given, less those it flags
-notLoading, crashesAtStartup or unanalysed (unless --flagged, a sweep that records how they fail
-in the original), and never one onimaxxing's catalog.json (ONI_CATALOG_JSON) flags as malware.
+notLoading, crashesAtStartup, brokenByUpdate or unanalysed (unless --flagged, a sweep that records
+how they fail in the original), and never one onimaxxing's catalog.json (ONI_CATALOG_JSON) flags
+as malware.
 Translations (a .po and no assembly) are recorded and not batched: the players install them
 disabled, as a subscription leaves them. --download fetches with SteamCMD (scripts/ws-mods.py)
 the mods out/ws lacks; a mod that is still missing is recorded as not downloadable. A mod the
@@ -60,7 +61,7 @@ CATALOG = os.path.join(ROOT, 'scripts', 'mod-catalog.tsv')
 CATALOG_U60 = os.path.join(ROOT, 'scripts', 'mod-catalog-u60.tsv')
 CATALOG_JSON = os.environ.get('ONI_CATALOG_JSON') or os.path.expanduser(
     '~/projects/onimaxxing/apps/onimaxxing/.mods-data/public/catalog.json')
-SKIPPED_FLAGS = ('notLoading', 'crashesAtStartup', 'unanalysed')
+SKIPPED_FLAGS = ('notLoading', 'crashesAtStartup', 'brokenByUpdate', 'unanalysed')
 LOAD_MARK = 'Loading save file:'
 GL_REFUSED = re.compile(r'failed to create drisw screen|X_GLXCreateContext|VersionUnavailable')
 DISABLED = re.compile(r'Failed to load mod (.*?)\.\.\.disabling')

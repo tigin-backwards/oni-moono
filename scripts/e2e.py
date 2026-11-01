@@ -73,6 +73,9 @@ PROFILE = ('config', 'unity3d', 'Klei', 'Oxygen Not Included')
 # Unity's Mono has ValueTuple in mscorlib but no System.ValueTuple facade, which the
 # System.Text.Json merged into OniMcp references: the original gets the package's forwarder.
 VALUETUPLE = os.path.expanduser('~/.nuget/packages/system.valuetuple/4.6.1/lib/net47/System.ValueTuple.dll')
+# OniMcp's Workshop item: a spec naming it plays it as the runner's OniMcp (its unpacked, gated
+# Workshop build in place of E2E_ONIMCP), since two copies would share a staticID and a port.
+ONIMCP_WORKSHOP = '3807166922'
 MAX_LANES = 6          # the memory budget's hard maximum (§6.2)
 SHOT_THRESHOLD = 0.02  # fraction of pixels differing (§5.3), set per step after calibration
 WORLD_THRESHOLD = 0.05
@@ -2421,6 +2424,11 @@ class Player:
         else:
             hash_of = None
         own = [('OniMcp', self.env['E2E_ONIMCP'])]
+        if ONIMCP_WORKSHOP in ids:
+            # Gated and unpacked above; it moves to the OniMcp folder the runner's copy would take.
+            workshop = os.path.join(mods_dir, 'Local', ONIMCP_WORKSHOP)
+            entries = [e for e in entries if e['label']['id'] != ONIMCP_WORKSHOP]
+            own = [('OniMcp', workshop)]
         if driver:
             own.append(('E2eDriver', self.env['E2E_DRIVER']))
         for folder, source in own:
@@ -2435,6 +2443,8 @@ class Player:
                 for name in ('mod.yaml', 'mod_info.yaml'):
                     shutil.copy(next(p for p in (os.path.join(DRIVER_SOURCE, name), os.path.join(source, name))
                                      if os.path.exists(p)), dest)
+            elif source == os.path.join(mods_dir, 'Local', ONIMCP_WORKSHOP):
+                shutil.move(source, dest)
             else:
                 shutil.copytree(source, dest)
             if folder == 'OniMcp' and self.kind == 'original':
