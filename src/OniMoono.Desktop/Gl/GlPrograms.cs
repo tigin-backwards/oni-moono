@@ -315,6 +315,17 @@ namespace OniMoono.Desktop.Gl
         internal static bool IsSampler(uint type) => SamplerTarget(type) != 0;
 
         /// The texture target a sampler type reads (0: not a sampler type).
+        /// Shadow samplers read the same textures as the others, and none has a compare mode:
+        /// depth-only render textures (the Depth and Shadowmap formats) are DEPTH_COMPONENT32F
+        /// with TEXTURE_COMPARE_MODE left at NONE, and the default textures are RGBA8. A lookup
+        /// through a shadow sampler is undefined for both, a depth texture whose compare mode is
+        /// NONE and a texture that has no depth format (OpenGL 4.6 section 11.1.3.5). No program
+        /// the engine selects has one: the shipped shaders declare them only in the
+        /// shadow-receiving variants of Standard, Legacy Shaders/Diffuse and Particles/Standard
+        /// Surface (SHADOWS_SCREEN, SHADOWS_DEPTH, SHADOWS_CUBE), and the engine renders no
+        /// real-time shadows and sets no SHADOWS_* keyword. Sampling a Shadowmap render texture
+        /// that way (Unity: a format "the GPU can automatically do shadowmap comparisons for")
+        /// would need COMPARE_REF_TO_TEXTURE on the texture, or on the bindless sampler object.
         internal static uint SamplerTarget(uint type) => type switch
         {
             Sampler2D or Sampler2DShadow or IntSampler2D or UnsignedIntSampler2D => TexTarget2D,
