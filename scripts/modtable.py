@@ -425,8 +425,9 @@ broken.update({
     '3465430183': 'broken on U60 (build 761015): its prefix on `Light2D.GetDescriptors` finds no such method, so the original fails to load it (HarmonyException), its Torch has no anim, and the player exits (1) while loading a colony; not run in ours',
     '3700898401': 'broken on U60 (build 761015) through More Plants (2819853217), which it patches and needs: More Plants reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException in its prefabs), and the original aborts (-6) while loading a colony; not run in ours',
     '3290446954': 'broken on U60 (build 761015): it calls `InputField.onEndEdit` with the old `SubmitEvent` signature, which U60\'s Unity UI no longer has, so the original\'s Mods screen throws (MissingMethodException) and does not open; the colony itself loads; not run in ours',
+    '3502415157': 'broken on U60 (build 761015): at Db.PostProcess it patches `BionicOilMonitor.WantsOilChange` by name, which U60 overloads, so Harmony throws (AmbiguousMatchException) and the original exits (1) while loading a colony; not run in ours',
 })
-not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954'}
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157'}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
