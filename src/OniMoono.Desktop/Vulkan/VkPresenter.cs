@@ -84,8 +84,6 @@ namespace OniMoono.Desktop.Vulkan
         readonly CommandBuffer[] commands = new CommandBuffer[Slots];
         readonly VkFence[] fences = new VkFence[Slots];
         readonly bool[] submitted = new bool[Slots];
-        // The slot's last submission was a DXGI picture's (its wait is bounded: WaitDxgiBatch).
-        readonly bool[] dxgiBatch = new bool[Slots];
         readonly VkSemaphore[] acquired = new VkSemaphore[Slots];
         int slot;
 
@@ -351,55 +349,11 @@ namespace OniMoono.Desktop.Vulkan
             if (submitted[s])
             {
                 var fence = fences[s];
-                if (OperatingSystem.IsWindows() && dxgiBatch[s]) WaitDxgiBatch(fence);
-                else VkCheck.Ok(vk.Device.PInvoke.vkWaitForFences.Invoke(vk.Device.Handle, 1, &fence, true, -1), "vkWaitForFences (presenter)");
+                VkCheck.Ok(vk.Device.PInvoke.vkWaitForFences.Invoke(vk.Device.Handle, 1, &fence, true, -1), "vkWaitForFences (presenter)");
                 vk.Device.PInvoke.vkResetFences.Invoke(vk.Device.Handle, 1, &fence);
                 submitted[s] = false;
-                dxgiBatch[s] = false;
             }
             return commands[s];
-        }
-
-        /// How long a DXGI picture's batch is waited for: five times its keyed-mutex acquire's
-        /// timeout (VkDxgiTarget), and past Windows' GPU timeout detection (2 s by default), which
-        /// resets a GPU that hangs (VK_ERROR_DEVICE_LOST) rather than leaving the batch pending.
-        internal const int DxgiBatchTimeoutSeconds = 5;
-        static readonly long DxgiBatchTimeoutNanoseconds = DxgiBatchTimeoutSeconds * 1_000_000_000L;
-        int dxgiWaits;
-        volatile bool stuck;
-
-        /// A DXGI picture's batch never completed (WaitDxgiBatch): its work is still pending, so
-        /// nothing it may use is released (Dispose; VkDevice's shutdown leaves the device to the
-        /// process's exit).
-        public bool Stuck => stuck;
-
-        /// Waits for a DXGI picture's batch, at most DxgiBatchTimeoutSeconds. The batch acquires
-        /// the keyed mutex (VK_KHR_win32_keyed_mutex), whose specification leaves undefined what
-        /// a driver does when the acquire does not complete in its timeout: the submission
-        /// reports nothing (vkQueueSubmit2's only success code is VK_SUCCESS), so a driver that
-        /// never completes it leaves the fence unsignaled. vkWaitForFences does report that:
-        /// vk.xml (1.4.367) lists VK_SUCCESS and VK_TIMEOUT as its success codes, VK_TIMEOUT when the
-        /// timeout passed first. That ends presenting for good (Failure: the game quits with the
-        /// error, as for a lost device) rather than restarting DXGI: a pending batch cannot be
-        /// called back, what it uses (the shared image and its memory, the command buffer, the
-        /// fence) must not be destroyed, freed or reset until it completes, vkQueueWaitIdle (which
-        /// DXGI's release and Vulkan's swapchain wait on) would wait for it too, and the
-        /// swapchain's copy would queue behind it on the one queue. --dxgi-fault fencetimeout:N
-        /// makes the Nth such wait time out at once, as a stuck acquire would (the batch itself
-        /// completes).
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        void WaitDxgiBatch(VkFence fence)
-        {
-            var r = DxgiSwapChain.Faulty("fencetimeout", ++dxgiWaits) ? VkResult.Timeout
-                : vk.Device.PInvoke.vkWaitForFences.Invoke(vk.Device.Handle, 1, &fence, true, (nint)DxgiBatchTimeoutNanoseconds);
-            if (r != VkResult.Timeout)
-            {
-                VkCheck.Ok(r, "vkWaitForFences (presenter, DXGI)");
-                return;
-            }
-            stuck = true;
-            throw new TimeoutException($"a DXGI picture's submission did not complete in {DxgiBatchTimeoutSeconds} s (its keyed-mutex acquire "
-                + $"never did?); its work is left pending{MadeUp}");
         }
 
         /// Records the copy of `b` (null: black) into `target` (in TransferDstOptimal), scaled to
@@ -588,12 +542,11 @@ namespace OniMoono.Desktop.Vulkan
             var buffer = new VkCommandBufferSubmitInfo { CommandBuffer = cb.Handle };
             var submit = new VkSubmitInfo2 { Next = &mutex, CommandBufferInfoCount = 1, CommandBufferInfos = &buffer };
             // vkQueueSubmit2's only success code is VK_SUCCESS (vk.xml); its errors throw and end
-            // presenting (Failure). VK_KHR_win32_keyed_mutex does not say what a submission whose
-            // acquire times out returns or does, so no timeout is looked for here: the wait on
-            // the slot's fence is bounded instead (WaitDxgiBatch).
+            // presenting (Failure). VK_KHR_win32_keyed_mutex does not say what happens when the
+            // acquire times out. One that never completes is not known to happen; if it did, the
+            // waits for the queue would freeze the game. Nothing handles it.
             vk.Queue.Submit2(new Span<VkSubmitInfo2>(&submit, 1), fences[s]);
             submitted[s] = true;
-            dxgiBatch[s] = true;
             if (!dxgi.Show(interval))
             {
                 DxgiFailed();
@@ -840,7 +793,7 @@ namespace OniMoono.Desktop.Vulkan
         public volatile bool FailNextRecreate;
 
         /// Presents what was handed over, stops the thread and releases its objects and the
-        /// back buffers (the device is idle after, unless a batch is Stuck). Safe to call again.
+        /// back buffers (the device is idle after). Safe to call again.
         public void Dispose()
         {
             if (disposed) return;
@@ -854,10 +807,6 @@ namespace OniMoono.Desktop.Vulkan
                 }
                 thread.Join();
             }
-            // A batch that never completed is still pending: vkQueueWaitIdle would wait for it,
-            // and what it uses must not be destroyed before it completes. The process's exit
-            // reclaims it all.
-            if (stuck) return;
             try { vk.Queue.WaitIdle(); } catch (VkResultError) { }
             if (ownsSplash) splash?.Dispose();
             if (OperatingSystem.IsWindows()) dxgi?.Dispose();

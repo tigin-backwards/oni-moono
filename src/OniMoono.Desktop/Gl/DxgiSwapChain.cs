@@ -32,9 +32,7 @@ namespace OniMoono.Desktop.Gl
         /// running (DXGI is then restarted): "lock:N" (the Nth interop lock, or keyed-mutex
         /// acquire), "resize:N", "removed:N" (the Nth Present failing with
         /// DXGI_ERROR_DEVICE_REMOVED). "norestart": every restart fails too. Each happens once,
-        /// so a restart succeeds. Vulkan's "fencetimeout:N" stands for a keyed-mutex acquire in
-        /// the submission that never completes: the Nth wait for a DXGI picture's batch times out
-        /// at once, and presenting ends for good (VkPresenter.WaitDxgiBatch).
+        /// so a restart succeeds.
         public static string Fault;
 
         static bool faultDone;
