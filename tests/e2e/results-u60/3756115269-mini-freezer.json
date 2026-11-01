@@ -1,0 +1,60 @@
+{
+ "spec": "mods/3756115269-mini-freezer.yaml",
+ "mods": [
+  "3756115269"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Mini Freezer placed and selected (details shot): 50 kg of refrigerated food storage",
+ "updated": "2026-11-01",
+ "commit": "1da4e60f",
+ "mod_dlls": {
+  "3756115269": {
+   "MiniFridgeFreezer.dll": "515af4d163b6e4aa33cf82e9a10d9f6fff21b0050af9560136a48f22f222b2da",
+   "PLib.dll": "9bf74a5ec6b897e2f82354c90de45c0ec89181087679c39e76b7cbc77de20fc6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-012312-d12567fd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:23:13",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-082043-9d8f9dda",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:20:43",
+    "lane": 35,
+    "reference_run": "20261101-012312-d12567fd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0
+    }
+   },
+   {
+    "run": "20261101-082043-9d8f9dda",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:24:43",
+    "lane": 35,
+    "reference_run": "20261101-012312-d12567fd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0
+    }
+   }
+  ]
+ }
+}
