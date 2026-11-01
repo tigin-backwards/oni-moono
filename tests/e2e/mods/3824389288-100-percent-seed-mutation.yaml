@@ -1,0 +1,13 @@
+# 种子变异百分百 / Seeds always mutate (3824389288), class P.
+#
+# What it does: a postfix on SeedProducer.RollForMutation makes a harvested seed always mutate
+# when the plant's cell has any radiation and the plant can take radiation.
+# How a player reaches it: harvesting plants under radiation.
+# What changes: every seed from an irradiated plant mutates.
+#
+# The mod loads and the colony plays for 30 s; no irradiated harvest is set up here.
+from: early-base
+mods: [3824389288]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
