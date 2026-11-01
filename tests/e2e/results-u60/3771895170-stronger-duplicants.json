@@ -1,0 +1,33 @@
+{
+ "spec": "mods/3771895170-stronger-duplicants.yaml",
+ "mods": [
+  "3771895170"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "721135ad",
+ "mod_dlls": {
+  "3771895170": {
+   "StrongerDupes.dll": "34606d191e657c51b2852034446ad3eaa17a130b134266402c4c3a8d47d4bc01"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-223506-a7565501",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-10-31T22:42:35",
+    "lane": 31,
+    "reasons": [
+     "step start: Canvas/ConfirmDialog/GameObject/Panel/OKButton is occluded by ErrorCanvas/CrashReportScreen(Clone)/InfoBox/ModsInfo/ModsList/Files/Viewport/Content/Entry (hits there: ErrorCanvas/CrashReportScreen(Clone)/InfoBox/ModsInfo/ModsList/Files/Viewport/Content/Entry/BG, ErrorCanvas/CrashReportSc"
+    ],
+    "signatures": 3
+   }
+  ],
+  "ours": []
+ }
+}
