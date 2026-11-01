@@ -1,0 +1,28 @@
+# Interval Building (3811796030), classes T, K (PLib action).
+#
+# What it does: while on (Ctrl+I toggles it, a small badge on the build tool shows the
+# interval; its icon opens a settings popup, 2 to 20), a horizontal or vertical drag of the
+# build tool places ordinary buildings with N empty tiles between them (4 by default) instead
+# of in every cell (BuildTool and DragTool patches keep a drag session).
+# How a player reaches it: the build tool, Ctrl+I; the badge's popup.
+# What changes: spaced-out rows of buildings in one drag.
+#
+# With Ctrl+I on, a drag of the tile build tool across the nine cells of the corridor west of
+# the printing pod (x 110 to 118, a row above the floor) places a tile every fifth cell: two.
+from: early-base
+mods: [3811796030]
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [114, 208], ortho: 10}}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/Tile Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/Tile Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - key: {code: "Ctrl+I"}
+  - expect_state:
+      "type:IntervalBuilding.Mod::State.Enabled": true
+      "type:IntervalBuilding.Mod::State.Interval": 4
+  - drag: {from: [110, 207], to: [118, 207]}
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - expect: {blueprints: {Tile: 2}}

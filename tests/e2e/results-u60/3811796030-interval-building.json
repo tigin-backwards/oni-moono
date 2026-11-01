@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3811796030-interval-building.yaml",
+ "mods": [
+  "3811796030"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with Ctrl+I on, a drag of the tile build tool across the nine cells of the corridor west of the printing pod (x 110 to 118, a row above the floor) places a tile every fifth cell: two",
+ "updated": "2026-11-01",
+ "commit": "2018e684",
+ "mod_dlls": {
+  "3811796030": {
+   "IntervalBuilding.dll": "e31fd1be7875eeec9679803defb0b6fc50d559a56a8d8cdb5b6e4753f018148c",
+   "PLib.dll": "893dc1ea3eddd02c85d433231aae356be27be07ddfc1a98fb2c51d84748208e8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:33:54",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:37:56",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-041425-a1b1626a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:38:46",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
