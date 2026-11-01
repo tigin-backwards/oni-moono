@@ -412,6 +412,10 @@ namespace OniMoono.Desktop.Gl
                 if (g.Id != 0) { GlBindless.Release(g); GlBindings.DeleteTexture(g.Id); }
                 g.Id = GlApi.GenTexture();
                 g.Target = target;
+                // The texels kept for UploadChanged belong to the old texture: compared with the
+                // next upload into the new one (the same byte count in another shape or format,
+                // 256x128 after 128x256), they would hide rows that changed.
+                g.UploadedTexels = null;
             }
             GlBindings.BindTexture(target, g.Id);
             N.glPixelStorei(UnpackAlignment, 1);
