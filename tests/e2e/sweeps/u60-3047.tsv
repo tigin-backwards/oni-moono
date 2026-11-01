@@ -1,0 +1,45 @@
+# scripts/mod-sweep.py u60-3047: 43 mods, batches of 12, the save 2minnow, 90 s of play; commit b8326c43, 2026-10-31
+id	rank	original	ours	note
+3821093288	2079	ok	ok	
+3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3804085929	2231	ok	ok	
+3788121619	2257	ok	ok	
+3621935132	2273	ok	ok	
+3802645529	2277	ok	ok	
+3811893109	2282	ok	ok	
+3722623212	2284	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3579403539	2286	ok	ok	
+3798414552	2289	ok	ok	
+3767642253	2290	ok	ok	
+3615615035	2292	ok	ok	
+2705745399	2293	ok	ok	
+3012403917	2294	ok	ok	
+3804025857	2296	ok	ok	
+3794308883	2297	ok	ok	
+3465340506	2298	ok	ok	
+1122444147	2299	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3808290956	2300	ok	ok	
+3386141624	2301	ok	ok	
+3553196783	2302	ok	ok	
+1947452187	2303	ok	ok	
+2971581472	2304	ok	ok	
+3530534502	2305	ok	ok	
+1843349957	2306	ok	ok	
+3464220419	2307	ok	ok	
+3794308871	2308	ok	ok	
+3460253861	2309	ok	ok	
+3028011269	2311	ok	ok	
+3794390846	2312	ok	ok	
+3756824697	2313	ok	ok	
+3810810633	2316	ok	ok	
+3144126230	2318	ok	ok	
+3815156097	2319	ok	ok	
+3649847425	2320	menu	-	step start: the player exited (1) before OniMcp started; [PLib/TeleVault.merged] System.Reflection.AmbiguousMatchException Ambiguous match found @ PeterHan.PLib.Core.ExtensionMethods.Patch
+3624889022	2321	ok	ok	
+3504841018	2322	ok	ok	
+2971105218	2323	ok	ok	
+2618474424	2324	ok	ok	
+1984088916	2325	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+2242620896	2372	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3047352164	2429	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3747652766	2433	-	-	a translation: installed disabled, as a subscription leaves it; not swept
