@@ -1,0 +1,19 @@
+# Phosphorus Volcano (3783751491), class P (worldgen content, Spaced Out).
+#
+# What it does: adds a Phosphorus Volcano geyser type (phosphorus_volcano: liquid phosphorus
+# at 553 K in volcano-like dormant and eruption cycles, the small molten volcano's look) to
+# the game's generic geysers, without its own named prefab, and makes each world's first
+# generic geyser that spawns a phosphorus volcano.
+# How a player reaches it: a new world's generic geysers.
+# What changes: a phosphorus source on new asteroids.
+#
+# The game's geyser types include the mod's, emitting liquid phosphorus as the original's
+# does; the colony (whose geysers already exist) runs a minute.
+from: early-base
+mods: [3783751491]
+steps:
+  - expect_state:
+      "count:GeyserConfigurator.geyserTypes[*] if .id == phosphorus_volcano": 1
+      "sum:GeyserConfigurator.geyserTypes[*].temperature if .id == phosphorus_volcano": 553
+      "Assets.GetPrefab(\"GeyserGeneric_phosphorus_volcano\")": missing
+  - run: {seconds: 60}

@@ -1,0 +1,22 @@
+# Transparent Doors Rework (3811596612), class B.
+#
+# What it does: eight see-through doors in the Base menu: Transparent Door and its tiny
+# version (researched with Luxury), and Transparent Bunker Doors from tiny to biggest.
+# How a player reaches it: the research screen, then the build menu (Base).
+# What changes: doors that show what is behind them.
+#
+# The doors' definitions exist and the small ones are Luxury's; setup places a Transparent
+# Door in the corridor west of the printing pod (118,207), which is complete and shot in the
+# world.
+from: early-base
+mods: [3811596612]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"TransparentDoor\")", method: Build, args: [131770, Neutral, null, [Glass, Polypropylene, Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {TransparentDoor: 1}}
+  - expect_state:
+      "Db.Get().Techs.Get(\"Luxury\").unlockedItemIDs": [{contains: TransparentDoor}, {contains: TinyTransparentDoor}]
+      "Assets.GetBuildingDef(\"BiggestTransparentBunkerDoor\").PrefabID": BiggestTransparentBunkerDoor
+      "all:Door::Length": 2
+  - world_shot: {name: door, ortho: 4, at: [118, 208]}
