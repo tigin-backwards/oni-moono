@@ -102,8 +102,7 @@ namespace OniMoono.Desktop.Vulkan
         static (uint Platform, string Why) Route(ShaderNative shader)
         {
             uint fallback = shader.HasOpenGLCorePrograms ? ShaderNative.OpenGLCorePlatform : 0;
-            // Diagnostic: every shader takes the GLCore route (Klei's world shaders then read depth
-            // and render textures with OpenGL's conventions, most likely why the world is black).
+            // Diagnostic: every shader takes the GLCore route.
             if (ForceGlCore && fallback != 0) return (fallback, "ONI_VULKAN_ROUTE=glcore");
             if (!shader.HasProgramsFor(ShaderNative.VulkanPlatform)) return (fallback, "no Vulkan programs");
             try
@@ -435,7 +434,7 @@ namespace OniMoono.Desktop.Vulkan
                     var u = new UniformBinding
                     {
                         Name = m.Name, Type = GlType(m), Size = m.ArrayLength > 0 ? m.ArrayLength : 1, Block = block, Offset = m.Offset,
-                        ArrayStride = m.ArrayLength > 0 ? m.ArrayStride : 0,
+                        ArrayStride = m.ArrayLength > 0 ? m.ArrayStride : 0, OpenGlClip = true,
                     };
                     GlPrograms.Classify(u, m.Name);
                     program.Uniforms.Add(u);

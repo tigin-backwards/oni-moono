@@ -110,5 +110,38 @@ namespace OniMoono.Tests
             Assert.Equal(5f, Record(p, new DrawInputs { Material = material, Block = block })[0]);
             Assert.Equal(1f, Record(p, new DrawInputs { Material = material })[0]);
         }
+
+        /// On Vulkan, Unity's programs read the projection with depth reversed and, into a render
+        /// texture, y negated; a GLCore program compiled for Vulkan (OpenGlClip) reads OpenGL's,
+        /// and its epilogue turns y over into the back buffer only (ClipY).
+        [Fact]
+        public void CompiledGlCoreProgramsReadOpenGlsProjection()
+        {
+            var projection = Matrix4x4.Perspective(60f, 4f / 3f, 0.5f, 100f);
+            float[] Resolve(UniformSource source, bool openGlClip, bool flipped)
+            {
+                var u = new UniformBinding { Source = source, IsMatrix = source == UniformSource.MatrixP, OpenGlClip = openGlClip };
+                var d = new DrawInputs
+                {
+                    Camera = new CameraConstants(Matrix4x4.identity, projection, Vector3.zero, 0.5f, 100f, false, new Vector2(64f, 32f)),
+                    Conventions = new RenderConventions(Vulkan: true, Flipped: flipped),
+                };
+                var o = new float[16];
+                return o[..GlUniforms.Resolve(u, d, o)];
+            }
+            foreach (bool flipped in new[] { false, true })
+            {
+                var shipped = new RenderConventions(Vulkan: true, Flipped: flipped).GpuProjection(projection);
+                Assert.Equal(shipped[1, 1], Resolve(UniformSource.MatrixP, false, flipped)[5]);
+                Assert.Equal(shipped[2, 2], Resolve(UniformSource.MatrixP, false, flipped)[10]);
+                Assert.Equal(projection[1, 1], Resolve(UniformSource.MatrixP, true, flipped)[5]);
+                Assert.Equal(projection[2, 2], Resolve(UniformSource.MatrixP, true, flipped)[10]);
+                Assert.Equal(flipped ? -1f : 1f, Resolve(UniformSource.ProjectionParams, false, flipped)[0]);
+                Assert.Equal(1f, Resolve(UniformSource.ProjectionParams, true, flipped)[0]);
+                Assert.Equal(flipped ? 1f : -1f, Resolve(UniformSource.ClipY, true, flipped)[0]);
+                // The depth both read is Vulkan's (reversed): _ZBufferParams in its reversed form.
+                Assert.Equal(1f, Resolve(UniformSource.ZBufferParams, true, flipped)[1]);
+            }
+        }
 }
 }

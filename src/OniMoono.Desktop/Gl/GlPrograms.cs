@@ -19,6 +19,9 @@ namespace OniMoono.Desktop.Gl
         ObjectToWorld, WorldToObject, MatrixV, MatrixInvV, MatrixP, MatrixVP, MatrixInvVP, MatrixMVP, CameraProjection, CameraInvProjection,
         CameraToWorld, WorldToCamera,
         Time, SinTime, CosTime, DeltaTime, ScreenParams, ProjectionParams, ZBufferParams, OrthoParams, WorldSpaceCameraPos, WorldTransformParams,
+        /// Vulkan, GLCore programs compiled to SPIR-V: the factor their vertex epilogue turns
+        /// OpenGL's clip-space y by (VkGlsl.ClipYUniform).
+        ClipY,
     }
 
     internal sealed class UniformBinding
@@ -37,6 +40,9 @@ namespace OniMoono.Desktop.Gl
         public int Block = -1;
         public int Offset;
         public int ArrayStride;
+        /// A GLCore program compiled for Vulkan (VkGlsl): the projection and _ProjectionParams
+        /// as OpenGL gives them, its vertex epilogue mapping OpenGL's clip space onto the target.
+        public bool OpenGlClip;
     }
 
     internal sealed class SamplerBinding
@@ -297,6 +303,7 @@ namespace OniMoono.Desktop.Gl
                 "unity_OrthoParams" => UniformSource.OrthoParams,
                 "_WorldSpaceCameraPos" => UniformSource.WorldSpaceCameraPos,
                 "unity_WorldTransformParams" => UniformSource.WorldTransformParams,
+                "oni_ClipY" => UniformSource.ClipY,
                 _ => UniformSource.Property,
             };
             if (u.Source != UniformSource.Property) return;
@@ -470,6 +477,8 @@ namespace OniMoono.Desktop.Gl
         internal static int Resolve(UniformBinding u, DrawInputs d, Span<float> o)
         {
             var cam = d.Camera;
+            // A compiled GLCore program reads OpenGL's projection; its epilogue does the rest.
+            var conventions = u.OpenGlClip ? default : d.Conventions;
             if (u.IsMatrix)
             {
                 int matrices = Math.Max(1, u.Size / 4);
@@ -485,12 +494,12 @@ namespace OniMoono.Desktop.Gl
                     UniformSource.WorldToObject => d.ObjectToWorld.inverse,
                     UniformSource.MatrixV => cam.View,
                     UniformSource.MatrixInvV => cam.View.inverse,
-                    UniformSource.MatrixP => d.Conventions.GpuProjection(cam.Projection),
+                    UniformSource.MatrixP => conventions.GpuProjection(cam.Projection),
                     UniformSource.CameraProjection => cam.Projection,
                     UniformSource.CameraInvProjection => cam.Projection.inverse,
-                    UniformSource.MatrixVP => d.Conventions.GpuProjection(cam.Projection) * cam.View,
-                    UniformSource.MatrixInvVP => (d.Conventions.GpuProjection(cam.Projection) * cam.View).inverse,
-                    UniformSource.MatrixMVP => d.Conventions.GpuProjection(cam.Projection) * cam.View * d.ObjectToWorld,
+                    UniformSource.MatrixVP => conventions.GpuProjection(cam.Projection) * cam.View,
+                    UniformSource.MatrixInvVP => (conventions.GpuProjection(cam.Projection) * cam.View).inverse,
+                    UniformSource.MatrixMVP => conventions.GpuProjection(cam.Projection) * cam.View * d.ObjectToWorld,
                     UniformSource.CameraToWorld => cam.View.inverse * Matrix4x4.Scale(new Vector3(1f, 1f, -1f)),
                     UniformSource.WorldToCamera => Matrix4x4.Scale(new Vector3(1f, 1f, -1f)) * cam.View,
                     _ => d.TryMatrix(u.PropertyId, out var pm) ? pm : Matrix4x4.zero,
@@ -531,11 +540,14 @@ namespace OniMoono.Desktop.Gl
                 case UniformSource.ProjectionParams:
                     // OpenGL renders textures upright: no projection flip. Vulkan's programs
                     // render into render textures flipped (RenderConventions).
-                    v = new Vector4(d.Conventions.Flipped ? -1f : 1f, cam.Near, cam.Far, 1f / cam.Far);
+                    v = new Vector4(conventions.Flipped ? -1f : 1f, cam.Near, cam.Far, 1f / cam.Far);
                     break;
                 case UniformSource.ZBufferParams:
                 {
                     // With reversed Z (Vulkan) the documented form: x = -1 + far / near, y = 1.
+                    // Compiled GLCore programs take it too: they sample the depth Vulkan
+                    // stores (1 - OpenGL's), which this form linearises as OpenGL's form does
+                    // OpenGL's depth.
                     float x = d.Conventions.Vulkan ? -1f + cam.Far / cam.Near : 1f - cam.Far / cam.Near, y = d.Conventions.Vulkan ? 1f : cam.Far / cam.Near;
                     v = new Vector4(x, y, x / cam.Far, y / cam.Far);
                     break;
@@ -551,6 +563,11 @@ namespace OniMoono.Desktop.Gl
                     break;
                 case UniformSource.WorldTransformParams:
                     v = new Vector4(0f, 0f, 0f, d.ObjectToWorld.determinant < 0f ? -1f : 1f);
+                    break;
+                case UniformSource.ClipY:
+                    // OpenGL's clip space: y up. Turned over into the back buffer (stored top row
+                    // first), kept into a render texture (rows in OpenGL's order).
+                    v = new Vector4(d.Conventions.Flipped ? 1f : -1f, 0f, 0f, 0f);
                     break;
                 case UniformSource.TextureScaleOffset:
                     // Found on first use; threads recording at once store the same id.

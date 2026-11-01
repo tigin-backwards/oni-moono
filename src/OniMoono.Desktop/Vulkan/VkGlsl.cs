@@ -20,16 +20,23 @@ namespace OniMoono.Desktop.Vulkan
     /// - vertex inputs get the locations of their mesh channels (in_POSITION0 0 … in_TEXCOORD7
     ///   11; others from 12), and the varyings one location map by name for both stages;
     /// - gl_InstanceID reads gl_InstanceIndex (the device draws from instance 0, where they agree);
-    /// - the vertex stage ends as Unity's Vulkan programs do, negating gl_Position.y after the
-    ///   program's own main. The device gives these programs the projection it gives Unity's
-    ///   (RenderConventions: depth reversed into [w, 0], y turned over into render textures), so
-    ///   they render as the shipped programs do. Code the GLCore compile fixed for OpenGL's
-    ///   conventions (UNITY_REVERSED_Z, UNITY_UV_STARTS_AT_TOP branches, gl_FragCoord's origin)
-    ///   keeps OpenGL's meaning; mods' UI and text shaders, the ones met, use none of it.
+    /// - the program runs in OpenGL's clip space: it reads OpenGL's projection and
+    ///   _ProjectionParams (UniformBinding.OpenGlClip), and after its own main the vertex stage
+    ///   maps OpenGL's clip space onto the target as Unity's Vulkan programs lay it out: depth
+    ///   from [-w, w] to the reversed [w, 0], and y turned over into the back buffer (stored top
+    ///   row first) but not into a render texture (`oni_ClipY`, UniformSource.ClipY). Render
+    ///   textures then hold OpenGL's rows for everything drawn, as on OpenGL: what the camera's
+    ///   projection places, as Unity's Vulkan programs leave it too, and what a program writes
+    ///   to clip space directly (Klei's TexturePage pages of the world's property textures),
+    ///   which Unity's Vulkan programs leave turned over and read back with their
+    ///   UNITY_UV_STARTS_AT_TOP branches. The GLCore text reads such textures turned over
+    ///   (1 - v), as OpenGL needs. ARCHITECTURE §3.5.
     internal static class VkGlsl
     {
         public const int VertexGlobalsBinding = 0, FragmentGlobalsBinding = 1;
         public const string VertexGlobalsBlock = "oni_VertexGlobals", FragmentGlobalsBlock = "oni_FragmentGlobals";
+        /// The vertex globals' member holding the epilogue's factor for y (UniformSource.ClipY).
+        public const string ClipYUniform = "oni_ClipY";
 
         /// Mesh channels by vertex input name, in GlMeshes' Channel order.
         public static readonly string[] AttributeNames =
@@ -311,6 +318,13 @@ namespace OniMoono.Desktop.Vulkan
                 }
             }
             o.Append(src, copied, src.Length - copied);
+            if (vertex)
+            {
+                // Read only by the epilogue below: without other loose uniforms, the block goes
+                // at the end.
+                globals.Append($"    vec4 {ClipYUniform};\n");
+                if (globalsAt < 0) globalsAt = o.Length;
+            }
             hasGlobals = globals.Length > 0;
             if (hasGlobals)
             {
@@ -320,7 +334,9 @@ namespace OniMoono.Desktop.Vulkan
             }
             var text = Regex.Replace(o.ToString(), @"\bgl_InstanceID\b", "gl_InstanceIndex");
             if (vertex)
-                text += "\nvoid main()\n{\n    oni_main();\n    gl_Position.y = -gl_Position.y;\n}\n";
+                text += "\nvoid main()\n{\n    oni_main();\n"
+                    + "    gl_Position.z = 0.5 * (gl_Position.w - gl_Position.z);\n"
+                    + $"    gl_Position.y *= {ClipYUniform}.x;\n}}\n";
             return text;
         }
     }

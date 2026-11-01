@@ -52,22 +52,48 @@ namespace OniMoono.Tests
             Assert.Contains("layout(location = 2) in vec2 vs_TEXCOORD0", p.Fragment);
             Assert.Contains("layout(location = 0) out vec4 SV_Target0", p.Fragment);
             Assert.Contains("gl_InstanceIndex", p.Vertex);
-            // Unity's Vulkan vertex epilogue; blocks in set 1, samplers in set 0.
-            Assert.Contains("gl_Position.y = -gl_Position.y;", p.Vertex);
+            // The vertex epilogue maps OpenGL's clip space onto the target: reversed depth, y by
+            // the target; blocks in set 1, samplers in set 0.
+            Assert.Contains("gl_Position.z = 0.5 * (gl_Position.w - gl_Position.z);", p.Vertex);
+            Assert.Contains("gl_Position.y *= oni_ClipY.x;", p.Vertex);
             Assert.Contains("layout(std140, set = 1, binding = 2) uniform UnityPerCamera", p.Vertex);
             Assert.Contains("layout(set = 0, binding = 3) uniform sampler2D _Data", p.Vertex);
 
             var vertexBlocks = SpirvReflection.UniformBlocks(compiled.Vertex).OrderBy(b => b.Binding).ToArray();
             Assert.Equal([(0, VkGlsl.VertexGlobalsBlock), (2, "UnityPerCamera")], vertexBlocks.Select(b => (b.Binding, b.Name)).ToArray());
             var globals = vertexBlocks[0];
-            Assert.Equal(80, globals.Size);
+            Assert.Equal(96, globals.Size);
             var matrix = globals.Members.Single(m => m.Name == "hlslcc_mtx4x4unity_ObjectToWorld");
             Assert.Equal((0, 4, 4, 16), (matrix.Offset, matrix.Components, matrix.ArrayLength, matrix.ArrayStride));
             var scale = globals.Members.Single(m => m.Name == "_Scale");
             Assert.Equal((64, 1, SpirvReflection.Scalar.Float), (scale.Offset, scale.Components, scale.Type));
+            var clipY = globals.Members.Single(m => m.Name == VkGlsl.ClipYUniform);
+            Assert.Equal((80, 4), (clipY.Offset, clipY.Components));
             Assert.Equal(["_Time@0", "_ScreenParams@16"], vertexBlocks[1].Members.Select(m => $"{m.Name}@{m.Offset}").ToArray());
             var fragmentBlocks = SpirvReflection.UniformBlocks(compiled.Fragment).OrderBy(b => b.Binding).ToArray();
             Assert.Equal([(1, VkGlsl.FragmentGlobalsBlock), (2, "UnityPerCamera")], fragmentBlocks.Select(b => (b.Binding, b.Name)).ToArray());
+        }
+
+        /// A vertex stage without loose uniforms (one writing clip space directly, as Klei's
+        /// TexturePage) still gets the globals block for the epilogue's factor, and the factor
+        /// reads as the built-in UniformSource.ClipY.
+        [Fact]
+        public void A_vertex_stage_without_loose_uniforms_gets_the_clip_factor()
+        {
+            const string vertex = Header + "in  vec2 in_TEXCOORD0;\nout vec2 vs_TEXCOORD0;\n"
+                + "void main()\n{\n    gl_Position.xy = in_TEXCOORD0.xy * vec2(2.0, -2.0) + vec2(-1.0, 1.0);\n    gl_Position.zw = vec2(0.0, 1.0);\n"
+                + "    vs_TEXCOORD0.xy = in_TEXCOORD0.xy;\n    return;\n}\n";
+            const string fragment = Header + "UNITY_LOCATION(0) uniform  sampler2D _MainTex;\nin  vec2 vs_TEXCOORD0;\n"
+                + "layout(location = 0) out vec4 SV_Target0;\nvoid main()\n{\n    SV_Target0 = texture(_MainTex, vs_TEXCOORD0.xy);\n    return;\n}\n";
+            using var compiler = new VkShaderCompiler();
+            var compiled = compiler.Compile(vertex, fragment, "page");
+            Assert.True(compiled.Program.VertexGlobals);
+            Assert.False(compiled.Program.FragmentGlobals);
+            var globals = SpirvReflection.UniformBlocks(compiled.Vertex).Single();
+            Assert.Equal((VkGlsl.VertexGlobalsBinding, 16), (globals.Binding, globals.Size));
+            var u = new OniMoono.Desktop.Gl.UniformBinding();
+            OniMoono.Desktop.Gl.GlPrograms.Classify(u, globals.Members.Single().Name);
+            Assert.Equal(OniMoono.Desktop.Gl.UniformSource.ClipY, u.Source);
         }
 
         [Fact]
