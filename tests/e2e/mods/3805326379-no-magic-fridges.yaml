@@ -1,0 +1,23 @@
+# No Magic Fridges (3805326379), class P.
+#
+# What it does: a powered fridge no longer pulls everything inside to 1 °C (which also heats
+# frozen food): every building with a refrigerator definition gets a FridgeThermostat (a
+# GeneratedBuildings.LoadGeneratedBuildings postfix) and SimulatedTemperatureAdjuster's
+# registration is patched, so a powered fridge is an insulated box with a thermostat that
+# only cools what is warmer than its setting.
+# How a player reaches it: Refrigerators, as before.
+# What changes: frozen food stays frozen in a fridge.
+#
+# The Refrigerator's building carries the thermostat, and one built by setup in the corridor
+# west of the printing pod spawns with it.
+from: early-base
+mods: [3805326379]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Refrigerator\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Refrigerator\").BuildingComplete.GetComponent<NoMagicFridges.FridgeThermostat>": exists
+  - run: {seconds: 5}
+  - expect: {buildings: {Refrigerator: 1}}
+  - expect_state:
+      "all:Refrigerator::[0].GetComponent<NoMagicFridges.FridgeThermostat>": exists
