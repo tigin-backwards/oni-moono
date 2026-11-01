@@ -1,0 +1,23 @@
+# Storage Bin Solid Input(存储箱固体输入) (3735660726), class P.
+#
+# What it does: the Storage Bin gets a conveyor rail input (postfixes on StorageLockerConfig's
+# CreateBuildingDef, a solid conduit input, and DoPostConfigureComplete, a consumer feeding its
+# storage).
+# How a player reaches it: rails ending at a Storage Bin.
+# What changes: bins filled by rail.
+#
+# The Storage Bin's definition has a solid input; setup builds one in the dug-out corridor west
+# of the printing pod, and selected its details screen is dumped.
+from: early-base
+mods: [3735660726]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"StorageLocker\").InputConduitType": Solid
+      "Assets.GetPrefab(\"StorageLocker\").GetComponent<SolidConduitConsumer>": exists
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: StorageLocker}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
