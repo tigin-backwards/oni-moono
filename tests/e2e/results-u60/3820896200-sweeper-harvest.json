@@ -3,12 +3,12 @@
  "mods": [
   "3820896200"
  ],
- "verdict": "pending",
- "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
- "updated": "2026-10-31",
- "commit": "8a004ed3",
+ "note": "an Auto-Sweeper built unwired: its Auto Harvest checkbox (side screen dumped and shot) turns harvesting on; unpowered, the sweeper stays idle and leaves the ripe plant (the harvest itself is unchecked)",
+ "updated": "2026-11-01",
+ "commit": "a31cd950",
  "mod_dlls": {
   "3820896200": {
    "SweeperHarvest.dll": "bc356d90ebf11bdd0c6e94d316f45b5701274cdfa440a061fda871ad4e3ddd7b"
@@ -17,17 +17,51 @@
  "runs": {
   "original": [
    {
-    "run": "20261031-214159-a5f53be5",
+    "run": "20261101-072717-39d6a410",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-10-31T21:41:59",
-    "lane": 31,
-    "reasons": [
-     "step 10: blueprints.Wire is 0, wanted 17"
-    ],
+    "verdict": "pass",
+    "date": "2026-11-01T07:27:18",
+    "lane": 32,
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261101-085047-a7465104",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:50:47",
+    "lane": 36,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "checkbox": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "details": 0.0
+    }
+   },
+   {
+    "run": "20261101-085047-a7465104",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:55:38",
+    "lane": 36,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "checkbox": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "details": 0.0
+    }
+   }
+  ]
  }
 }
