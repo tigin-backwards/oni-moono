@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2106218601-dynamic-recipes.yaml",
+ "mods": [
+  "2106218601"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "4097022c",
+ "mod_dlls": {
+  "2106218601": {
+   "(Darth Nihilus)_DynamicRecipes.dll": "85d480fd9f170388015b3c4e085531edf8e3fc4682444032e4631b74e4179324"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-045201-d21d0b3f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:52:01",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-111857-d9427fee",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:18:57",
+    "lane": 35,
+    "reference_run": "20261101-045201-d21d0b3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-111857-d9427fee",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:22:10",
+    "lane": 35,
+    "reference_run": "20261101-045201-d21d0b3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
