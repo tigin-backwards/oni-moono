@@ -1,0 +1,12 @@
+# Printerceptor Unlock Fix (3828904777), class U.
+#
+# What it does: adds an optional action to enter the Printerceptor's access code.
+# How a player reaches it: the Printerceptor's user menu.
+# What changes: the Printerceptor unlocked by its code.
+#
+# The mod loads and the colony plays for 30 s; no Printerceptor is in this colony.
+from: early-base
+mods: [3828904777]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
