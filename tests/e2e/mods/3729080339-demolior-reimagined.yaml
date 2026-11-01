@@ -1,0 +1,17 @@
+# Demolior Reimagined (3729080339), class P (Spaced Out, Prehistoric Planet Pack).
+#
+# What it does: tweaks Demolior, the Prehistoric Planet Pack's large impactor: the debris
+# fields it leaves (DLC4ImpactorDebrisField1 and 2) harvest one of several metals, picked at
+# random, instead of the game's, and patches on LargeImpactorVanillaConfig.ConfigCommon and
+# TemplateCache.GetTemplate change the impactor and its crash site.
+# How a player reaches it: a Prehistoric colony's Demolior event.
+# What changes: what Demolior's remains give.
+#
+# From the prehistoric1 colony (a Prehistoric cluster at cycle 1, Demolior on its way): the
+# mod loads and the colony runs 120 s with its Duplicants, as many as in the original.
+from: prehistoric1
+mods: [3729080339]
+steps:
+  - run: {seconds: 120}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"
