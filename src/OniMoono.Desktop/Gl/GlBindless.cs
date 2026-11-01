@@ -50,6 +50,10 @@ namespace OniMoono.Desktop.Gl
             makeResident = (delegate* unmanaged[Cdecl]<ulong, void>)Glfw.GetProcAddress("glMakeTextureHandleResidentARB"u8);
             makeNonResident = (delegate* unmanaged[Cdecl]<ulong, void>)Glfw.GetProcAddress("glMakeTextureHandleNonResidentARB"u8);
             programUniformHandle = (delegate* unmanaged[Cdecl]<uint, int, ulong, void>)Glfw.GetProcAddress("glProgramUniformHandleui64ARB"u8);
+            // The extension string above is what says the functions are there. These null checks
+            // catch a missing one only where the loader returns null for it, as wglGetProcAddress
+            // does; glXGetProcAddress and eglGetProcAddress may return an address for a function
+            // the context lacks (GLX 1.4 section 3.3.12, EGL 1.5 section 3.11).
             Enabled = getTextureSamplerHandle != null && makeResident != null && makeNonResident != null && programUniformHandle != null;
             if (!Enabled) Reason = "entry points missing";
         }
