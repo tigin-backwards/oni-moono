@@ -1,4 +1,4 @@
-# scripts/mod-sweep.py u60-3047: 115 mods, batches of 12, the save 2minnow, 90 s of play; commit 7e113ef6, 2026-11-01
+# scripts/mod-sweep.py u60-3047: 127 mods, batches of 12, the save 2minnow, 90 s of play; commit 909fc1d0, 2026-11-01
 id	rank	original	ours	note
 3821093288	2079	ok	ok	
 3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
@@ -113,5 +113,17 @@ id	rank	original	ours	note
 3794395157	2421	ok	ok	
 3132418101	2422	ok	ok	
 3259381864	2425	ok	ok	
+3774325260	2426	ok	ok	
+3721849154	2428	ok	ok	
 3047352164	2429	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3786286342	2430	menu	-	the player exits (1) while loading; System.NullReferenceException: Object reference not set to an instance of an object @ CustomGameSettings.OnPrefabInit; System.InvalidProgramException: Invalid IL code in 基础倍增.总目录N/植物/Patch_b:Prefix (): IL_Nd: callvirt N @ Db.Initialize
+3779245518	2431	ok	ok	
 3747652766	2433	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+2799868449	2434	ok	ok	
+3763112327	2437	ok	ok	
+2337612362	2438	ok	menu	step start: the player exited (1) before OniMcp started; ours disables it ("Failed to load mod ...disabling"); System.NullReferenceException: Null method for ZEROs @ HarmonyLib.PatchProcessor.Patch; null Exception while loading mod ZEROs at RUN/home/config/unityNd/Klei/Oxygen Not Included/mods/Local/N @ HarmonyLib.PatchProcessor.Patch
+3769709089	2439	ok	ok	
+3717106379	2441	ok	ok	
+3666034876	2442	ok	ok	
+2607108385	2443	ok	ok	
+3455898860	2444	ok	ok	
