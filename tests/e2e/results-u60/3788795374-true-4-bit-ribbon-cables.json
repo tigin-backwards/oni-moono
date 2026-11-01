@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3788795374-true-4-bit-ribbon-cables.yaml",
+ "mods": [
+  "3788795374"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Ribbon Writer in the dug-out corridor west of the printing pod. Selected, its bit selector side screen is dumped, as in the original",
+ "updated": "2026-11-01",
+ "commit": "0e978f80",
+ "mod_dlls": {
+  "3788795374": {
+   "True4Bit.dll": "c5842ef2e90fffbf6fc5374285d53a7ca6aef74066e39129548911a8b5507518"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-030516-f8747b98",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:14:26",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-083026-23b29642",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:30:26",
+    "lane": 44,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "bits": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-083026-23b29642",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:30:27",
+    "lane": 45,
+    "reference_run": "20261101-030516-f8747b98",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "bits": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

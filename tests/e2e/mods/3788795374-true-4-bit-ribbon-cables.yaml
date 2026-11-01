@@ -1,0 +1,21 @@
+# True 4-bit Ribbon Cables (3788795374), classes P, S.
+#
+# What it does: the Ribbon Reader and Ribbon Writer read and write all four bits of a ribbon
+# cable at once, not one bit picked on their side screen (patches on LogicRibbonReader and
+# Writer's circuit updates, visuals and settings copy, and on the bit selector side screen).
+# How a player reaches it: Ribbon Readers and Writers and their side screen.
+# What changes: four-bit ribbons end to end.
+#
+# setup builds a Ribbon Writer in the dug-out corridor west of the printing pod. Selected, its bit
+# selector side screen is dumped, as in the original.
+from: early-base
+mods: [3788795374]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicRibbonWriter\")", method: Build, args: [{"$": "Grid.XYToCell(109, 208)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [109, 208], ortho: 8}}
+  - click_world: {cell: [109, 208], select: LogicRibbonWriter}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/LogicBitSelectorSideScreen", cond: stable}
+  - ui_dump: {name: bits, root: "**/LogicBitSelectorSideScreen"}
