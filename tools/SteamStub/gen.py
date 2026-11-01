@@ -10,7 +10,16 @@ ONLY: the product loads the game's own library; this one is used only when a run
 
 Every function returns zero (false, null, invalid handle, empty count) except those in
 VALUES, which describe a logged-in Steam user who owns the base game, has no DLC and no
-Workshop subscriptions, with English as the language. No callback is ever delivered."""
+Workshop subscriptions, with English as the language. No callback is ever delivered.
+
+  gen.py NATIVE_METHODS OUT [--dlc | --dlc-except APP_ID] [--ugc]
+
+--dlc describes a user who owns and has installed every DLC (BIsSubscribedApp,
+BIsDlcInstalled and UserHasLicenseForApp answer yes for any app), as the e2e and QA runs'
+all-DLC double does; --dlc-except APP_ID the same, but for that one app (U60 QA spec A4:
+COSMETIC2_ID, app 5315880, whose bundle the data does not ship). --ugc leaves out the
+functions tools/SteamStub/ugc.s defines (one Workshop subscription and its call results, for
+U60 QA spec M1 and M2; Linux only), which build.sh assembles and links beside them."""
 import re, sys
 
 STEAM_ID = 0x0110000100000001  # individual account 1, public universe
@@ -164,10 +173,35 @@ def write_pe(names, out):
     image = headers.ljust(HEADERS, b"\0") + bytes(code).ljust(text_raw, b"\0") + bytes(rdata).ljust(rdata_raw, b"\0")
     open(out, "wb").write(image)
 
-def main(native_methods, out):
+def own_dlc(except_app=None):
+    """VALUES for a user who owns every DLC, or every DLC but EXCEPT_APP."""
+    if except_app is None:
+        VALUES["SteamAPI_ISteamApps_BIsSubscribedApp"] = ("int", 1)
+        VALUES["SteamAPI_ISteamApps_BIsDlcInstalled"] = ("int", 1)
+        VALUES["SteamAPI_ISteamUser_UserHasLicenseForApp"] = ("int", 0)
+    else:
+        VALUES["SteamAPI_ISteamApps_BIsSubscribedApp"] = ("cmp", 2, except_app, "ne")
+        VALUES["SteamAPI_ISteamApps_BIsDlcInstalled"] = ("cmp", 2, except_app, "ne")
+        VALUES["SteamAPI_ISteamUser_UserHasLicenseForApp"] = ("cmp", 3, except_app, "eq")
+
+def ugc_names():
+    """The functions ugc.s defines."""
+    path = __file__.rsplit("/", 1)[0] + "/ugc.s"
+    return set(re.findall(r"^\.globl (\w+)", open(path, encoding="utf-8").read(), re.M))
+
+def main(native_methods, out, options=()):
+    options = list(options)
+    ugc = "--ugc" in options
+    if ugc: options.remove("--ugc")
+    if options[:1] == ["--dlc"] and len(options) == 1: own_dlc()
+    elif options[:1] == ["--dlc-except"] and len(options) == 2: own_dlc(int(options[1]))
+    elif options: sys.exit("usage: gen.py NATIVE_METHODS OUT [--dlc | --dlc-except APP_ID] [--ugc]")
     names = entry_points(native_methods)
+    if ugc:
+        if out.endswith(".dll"): sys.exit("--ugc: Linux only")
+        names = [n for n in names if n not in ugc_names()]
     if out.endswith(".dll"): write_pe(names, out)
     else: write_elf_assembly(names, out)
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], sys.argv[3:])
