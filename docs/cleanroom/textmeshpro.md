@@ -2995,6 +2995,29 @@ U60 ships a newer TextMeshPro. Against our package, the game's assemblies need o
   must not allocate a string per call; the text property, layout, preferred sizes and events are
   those of the `char[]` overload.
 
+#### The same text set again (measured 2026-11-01)
+
+Measured with `PROBE_SCENARIO=u60` (tools/UnityProbe, `U60Bcl.cs`, lines `U60 TS …`) in the
+U60 761211 player at the main menu: a `TextMeshProUGUI` in NotoSans-Regular 14 pt under a
+parent with a layout group that counts its passes, each call on a frame of its own, then two
+frames. Per call: `havePropertiesChanged` right after it, then the `OnPreRenderText` events,
+`TMPro_EventManager.TEXT_CHANGED_EVENT` events and the parent's `SetLayoutHorizontal` and
+`SetLayoutVertical` calls in those frames.
+
+- **The `text` property skips the same text.** Setting it to the string it holds leaves
+  `havePropertiesChanged` false; no event and no layout pass follow (also for "" over "").
+- **Every other setter counts the same text as a change.** `SetText(string)`,
+  `SetText(StringBuilder)`, `SetText(format, arg)`, `SetCharArray(char[])`,
+  `SetCharArray(char[], start, length)` and `SetCharArray(ReadOnlySpan<char>)` with the
+  characters the text already holds (and again on the next frame) each set
+  `havePropertiesChanged`, and are followed by one `OnPreRenderText`, one `TEXT_CHANGED_EVENT`
+  and one layout pass (horizontal and vertical), as a different text is.
+- **Empty.** `SetCharArray` of an empty span over an empty text sets `havePropertiesChanged`
+  and sends one `TEXT_CHANGED_EVENT` and one layout pass, but no `OnPreRenderText` (as for the
+  first change to empty).
+- `LocText.SetContent` (the game's caller) with the same characters sets
+  `havePropertiesChanged` on its text.
+
 The shipped `TMP_InputField` also calls three Windows functions of its own (`GetFocus`,
 `GetWindowRect`, `ClientToScreen`), private members whose purpose is not yet measured; the
 probable one is placing the IME candidate window near the caret. To be measured in the original

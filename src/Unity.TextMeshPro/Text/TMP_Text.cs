@@ -113,9 +113,10 @@ namespace TMPro
 
         public virtual void SetText(string sourceText) => SetText(sourceText, true);
 
+        // Unlike the text property, the same text again counts as a change (measured: the text
+        // is regenerated and laid out again, its events sent).
         public void SetText(string sourceText, bool syncTextInputBox)
         {
-            if (m_text == sourceText) return;
             m_text = sourceText ?? "";
             m_SourceCache = null;
             SourceChanged();
@@ -149,11 +150,12 @@ namespace TMPro
         }
 
         // U60's LocText.SetContent calls this for most UI text: a string is made only when the
-        // characters differ from the current text.
+        // characters differ from the current text. The same characters still count as a change
+        // (measured: the text is regenerated and laid out again, its events sent).
         public void SetCharArray(ReadOnlySpan<char> sourceText)
         {
-            if (m_text != null && sourceText.SequenceEqual(m_text.AsSpan())) return;
-            m_text = sourceText.IsEmpty ? "" : new string(sourceText);
+            if (m_text == null || !sourceText.SequenceEqual(m_text.AsSpan()))
+                m_text = sourceText.IsEmpty ? "" : new string(sourceText);
             m_SourceCache = null;
             SourceChanged();
         }
