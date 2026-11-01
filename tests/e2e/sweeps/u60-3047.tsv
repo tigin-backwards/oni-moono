@@ -1,4 +1,4 @@
-# scripts/mod-sweep.py u60-3047: 163 mods, batches of 12, the save 2minnow, 90 s of play; commit 17e4680a, 2026-11-01
+# scripts/mod-sweep.py u60-3047: 171 mods, batches of 12, the save 2minnow, 90 s of play; commit 12f05587, 2026-11-01
 id	rank	original	ours	note
 3821093288	2079	ok	ok	
 3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
@@ -163,3 +163,11 @@ id	rank	original	ours	note
 2683038637	2487	menu	-	step start: <urlopen error [Errno 111] Connection refused>; System.IO.FileNotFoundException: Could not load file or assembly "ResearchQueue, Version=N.N, Culture=neutral, PublicKeyToken=null" or one of its dependencies @ KMod.DLLLoader.PostLoadDLLs; null Exception while postLoading mod ResearchQueueShiftReverse @ KMod.DLLLoader.PostLoadDLLs
 3528296441	2489	ok	ok	
 3733618814	2490	ok	ok	
+3733215837	2491	ok	ok	
+3763186877	2492	ok	ok	
+3735115168	2493	colony	-	the crash screen opens while the save loads; System.MissingMethodException: Method not found: System.Collections.IEnumerator .Cmps`N.GetEnumerator() @ ClusterGrid.GetPath; ~~~!System.MissingMethodException: Method not found:
+3713328789	2494	ok	ok	
+3813560391	2497	ok	ok	
+3771255252	2498	ok	ok	
+3675711837	2499	ok	ok	
+3819624656	2500	ok	ok	
