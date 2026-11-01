@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3820197532-resource-count-sensor.yaml",
+ "mods": [
+  "3820197532"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Generic Sensors and builds the sensor in the dug-out corridor west of the printing pod. It shows in the Automation menu; selected, its threshold side screen shows",
+ "updated": "2026-11-01",
+ "commit": "386c1bca",
+ "mod_dlls": {
+  "3820197532": {
+   "ResourceCountSensor.dll": "9ec134dce14c36872e528a6f0e0c6934a976e99a3f3710933852ea851fccd76f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-054807-3828ce3f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:52:29",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-111318-9df338fe",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:13:18",
+    "lane": 40,
+    "reference_run": "20261101-054807-3828ce3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "threshold": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-111318-9df338fe",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:13:19",
+    "lane": 41,
+    "reference_run": "20261101-054807-3828ce3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "threshold": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
