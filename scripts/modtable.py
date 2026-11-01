@@ -423,7 +423,7 @@ broken.update({
     '3735115168': 'broken on U60 (build 761015): its replacement of ClusterGrid.GetPath calls `Cmps<T>.GetEnumerator()`, which U60 no longer has, so the MissingMethodException at a meteor shower\'s path stops the colony at the crash screen while loading (spec run in the original only); not run in ours',
     '2608487669': 'broken on U60 (build 761015): its transpiler targets AutoMiner.DigBlockingCB, which U60 no longer has, so loading the mod throws a HarmonyException and the original exits at start (spec tests/e2e/mods/2608487669-megaminer.yaml); not run in ours',
 })
-not_run_in_ours = {'3823893994', '3771895170'}
+not_run_in_ours = {'3823893994', '3771895170', '2608487669', '3047352164', '3786286342', '3735115168'}
 # Found on U60 in ranks 2501-2775, in the original only.
 broken.update({
     '1353979712': 'broken upstream: its translation is sv_SE.po (with two .po files for the Korean and Chinese fonts) and no strings.po, which the game reads for a translation mod; picked as the language, the original logs "strings.po missing for mod 1353979712", throws a NullReferenceException in LanguageOptionsScreen.GetLanguageFilename and exits (1) while loading a colony; not run in ours',
