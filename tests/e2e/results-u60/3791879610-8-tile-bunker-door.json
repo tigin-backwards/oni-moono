@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3791879610-8-tile-bunker-door.yaml",
+ "mods": [
+  "3791879610"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Bunker Door's definition is 8x1 and costs 500 kg of steel; the colony runs",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3791879610": {
+   "PLib.dll": "55ce409618e6d102a1bcd0298911f3df49dda9a94ee153d02403035a1d6101d6",
+   "╡╪▒ñ├┼9╕±┐φ.dll": "e045600119b499c7211bc918b252d49ad2ce8f22fc3f0552cdfa7d188c3600bb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:31:37",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-020342-53693410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:39:31",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-020342-53693410",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:41:35",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
