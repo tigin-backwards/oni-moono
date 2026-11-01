@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3818378649-onipipette.yaml",
+ "mods": [
+  "3818378649"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup pours 100 kg of water into the corridor west of the printing pod. With the Pipette, a click on the water takes some up (the tool holds it) and a click on a cell further east puts it down there",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "3818378649": {
+   "OniPipette.dll": "d8506d4e3a18f940780ba8ae6edd5b02f0b3b04436b6d7d29a17841f82cc5f50"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:51:27",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:29:36",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:30:48",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
