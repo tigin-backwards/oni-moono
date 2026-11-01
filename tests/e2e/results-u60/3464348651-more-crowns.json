@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3464348651-more-crowns.yaml",
+ "mods": [
+  "3464348651"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with 5 crowns a shearing set in its options, the mod reads it; half a minute of play",
+ "updated": "2026-11-01",
+ "commit": "294f166c",
+ "mod_dlls": {
+  "3464348651": {
+   "PLib.dll": "93073fdf44dbe9fd7c0afe19e56341be862cc2d732090dee30999cf60e2e160d",
+   "╗╩ß∩═├▓·│÷╕ⁿ╢α╜≡╣»╞δ.dll": "5935c9e0b405ad9f534f64a044f7cb61c759091c890c002c83c693a35582f736"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-013538-93de7980",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:35:38",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-050339-a0e66478",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:03:39",
+    "lane": 35,
+    "reference_run": "20261101-013538-93de7980",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-050339-a0e66478",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:07:41",
+    "lane": 35,
+    "reference_run": "20261101-013538-93de7980",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
