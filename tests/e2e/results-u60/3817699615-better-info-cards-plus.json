@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3817699615-better-info-cards-plus.yaml",
+ "mods": [
+  "3817699615"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "7cc9e634",
+ "mod_dlls": {
+  "3817699615": {
+   "BetterInfoCardsPlus.dll": "941601ae0d0660ad9895bb56f49d7633287b75a3099a38c0b87ecb72d72bad37"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041630-1ee599cc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:23:01",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091657-4b1c1874",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:16:57",
+    "lane": 36,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-091657-4b1c1874",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:19:15",
+    "lane": 36,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
