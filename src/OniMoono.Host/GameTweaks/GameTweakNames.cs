@@ -80,8 +80,8 @@ namespace OniMoono.Host.GameTweaks
                 "Mods still get the full text.", IsTweak: false),
             new(GpuRow, General, "Graphics card", "For laptops with two GPUs: which one the game draws with. Needs a restart.",
                 "Default: as the original game (on Windows the faster, discrete GPU; on Linux the system's choice). Discrete: the faster GPU. "
-                + "Integrated: the power-saving one. Windows' Graphics settings page wins over this. On Linux, on a desktop whose display is "
-                + "on the discrete card, discrete may pick the integrated GPU.",
+                + "Integrated: the power-saving one, on Linux; on Windows, choose it in Windows' Graphics settings, which win over this. "
+                + "On Linux, on a desktop whose display is on the discrete card, discrete may pick the integrated GPU.",
                 IsTweak: false, Choices: [OniMoono.Host.GpuChoice.Default, OniMoono.Host.GpuChoice.Discrete, OniMoono.Host.GpuChoice.Integrated]),
             new(DxgiRow, General, "Present through Direct3D on Windows", "Windows shows the game as it shows the original: no forced HDR or brightness. Needs a restart.",
                 "Frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through OpenGL's own presentation, "

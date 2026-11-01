@@ -11,14 +11,6 @@ namespace OniMoono.Tests
     public class GpuChoiceTests
     {
         [Fact]
-        public void WindowsDefaultLeavesTheExportsDiscreteAndIntegratedWriteThem()
-        {
-            Assert.Null(GpuChoice.WindowsExportValue("default"));
-            Assert.Equal(1u, GpuChoice.WindowsExportValue("discrete"));
-            Assert.Equal(0u, GpuChoice.WindowsExportValue("integrated"));
-        }
-
-        [Fact]
         public void LinuxVariablesPerChoiceAndDriver()
         {
             Assert.Empty(GpuChoice.LinuxVariables("default", nvidiaOffload: false));

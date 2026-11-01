@@ -23,8 +23,8 @@
 #include "nethost.h"
 #include "hostfxr.h"
 
-/* NVIDIA Optimus and AMD PowerXpress: nonzero asks for the high-performance GPU. Writable, so the
- * player's GPU option can change them before the driver reads them. */
+/* NVIDIA Optimus and AMD PowerXpress: nonzero asks for the high-performance GPU, as the original
+ * game's exe exports them. Nothing changes them at run time (GpuChoice). */
 __declspec(dllexport) DWORD NvOptimusEnablement = 1;
 __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 1;
 
