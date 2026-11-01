@@ -1,0 +1,28 @@
+# Stress Schedules (3770102539), classes P, O (PLib options).
+#
+# What it does: Duplicants under stress move to recovery schedules on their own: the mod adds
+# a "Mild-Stressed" and a "Stressed" schedule (patterned on the colony's first one, with more
+# downtime) and, every second (a postfix on MinionIdentity.Sim1000ms), moves a Duplicant to
+# Mild-Stressed past 35 % stress, to Stressed past 60 %, and back below 20 % and 45 %
+# (options), keeping at least one Duplicant at work; low health counts too.
+# How a player reaches it: the schedule screen; stressed Duplicants.
+# What changes: who works and who rests.
+#
+# setup raises the first Duplicant's stress to 70 %. Within 10 s the two schedules exist and
+# he is on Stressed; the others stay on their schedule. The schedule screen opens.
+from: early-base
+mods: [3770102539]
+require_log: ['\[Stress Schedules\] Mod loaded']
+setup:
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[0].GetComponent<Modifiers>.amounts.Get(\"Stress\")", method: SetValue, args: [70]}}
+steps:
+  - run: {seconds: 10}
+  - expect_state:
+      "count:ScheduleManager.Instance.GetSchedules()[*] if .name == Stressed": 1
+      "count:ScheduleManager.Instance.GetSchedules()[*] if .name == Mild-Stressed": 1
+      "count:ScheduleManager.Instance.GetSchedules()[*] if .name == Stressed and .assigned.Count == 1": 1
+  - open: {key: Period}
+  - ui_wait: {path: "**/ScheduleScreen", cond: stable}
+  - run: {seconds: 1}
+  - key: {code: Escape}
+  - expect: {duplicants: 3}
