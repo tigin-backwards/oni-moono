@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3624889022-space-poi-mover.yaml",
+ "mods": [
+  "3624889022"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3624889022": {
+   "SpacePOIMover.dll": "be4d302312a0dae57bd6774e03a420b6f5c27b624e37509e58590af3b37da136"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034242-c7177ccf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:42:42",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-130910-1cf0254d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:09:10",
+    "lane": 36,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-130910-1cf0254d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:10:58",
+    "lane": 36,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
