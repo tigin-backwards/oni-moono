@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace OniMoono.Engine.Rendering
@@ -59,6 +60,13 @@ namespace OniMoono.Engine.Rendering
         public static void Fence()
         {
             if (pending.Count == 0) return;
+            // A copy that has not run in 10 s is reported, with the pool's own counts, and waited
+            // for still: a copy the pool lost (a worker that could not start, under memory
+            // pressure) once kept the frame waiting here silently.
+            foreach (var copy in pending)
+                for (int seconds = 10; !copy.IsCompleted && !Finished(copy, 10_000); seconds += 10)
+                    if (seconds == 10 || seconds % 60 == 0)
+                        EngineLog.Engine($"texel copies: a copy still {copy.Status} after {seconds} s ({pending.Count(c => !c.IsCompleted)} of {pending.Count} unfinished); pool: {ThreadPoolState.Describe()}");
             Task.WaitAll(pending);
             pending.Clear();
             if (!Verify) return;
@@ -69,6 +77,19 @@ namespace OniMoono.Engine.Rendering
             }
             if (verified % 20000 < checks.Count) EngineLog.Engine($"texel copies: {verified} verified, {torn} changed while copying");
             checks.Clear();
+        }
+
+        /// Whether the copy finished within the time, faulted or not (WaitAll then throws for it).
+        static bool Finished(Task copy, int milliseconds)
+        {
+            try
+            {
+                return copy.Wait(milliseconds);
+            }
+            catch (AggregateException)
+            {
+                return true;
+            }
         }
 
         static unsafe ulong Checksum(PixelMemory memory)
