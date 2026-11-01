@@ -1,4 +1,4 @@
-# scripts/mod-sweep.py u60-3047: 139 mods, batches of 12, the save 2minnow, 90 s of play; commit 3986d683, 2026-11-01
+# scripts/mod-sweep.py u60-3047: 151 mods, batches of 12, the save 2minnow, 90 s of play; commit 2df73971, 2026-11-01
 id	rank	original	ours	note
 3821093288	2079	ok	ok	
 3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
@@ -139,3 +139,15 @@ id	rank	original	ours	note
 2799871913	2457	ok	ok	
 3798414576	2458	ok	ok	
 3559166624	2459	ok	ok	
+3794308906	2460	ok	ok	
+3302908405	2461	ok	ok	
+2614119545	2463	colony	-	the player exits (1) while loading; NullReferenceException: Object reference not set to an instance of an object @ BiggerCapacity.BiggerCapacity+WoodLogConfig_CreatePrefab_Patch.Postfix
+3738353497	2466	ok	ok	
+3062610703	2467	ok	ok	
+3617659567	2469	ok	ok	
+3307467464	2470	ok	ok	
+3762529967	2471	ok	ok	
+3239757042	2472	ok	ok	
+3747742433	2473	ok	ok	
+3789310279	2475	ok	ok	
+3638064148	2476	ok	ok	
