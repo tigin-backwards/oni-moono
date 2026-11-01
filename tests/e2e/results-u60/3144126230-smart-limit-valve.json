@@ -3,12 +3,12 @@
  "mods": [
   "3144126230"
  ],
- "verdict": "pending",
- "why": "0 run(s) of ours against original run 20261031-214713-0ac1044b; 2 needed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
+ "note": "loads with its one patch on LimitValve.OnMassTransfer; a minute of play",
  "updated": "2026-10-31",
- "commit": "58a73e93",
+ "commit": "c74fbb33",
  "mod_dlls": {
   "3144126230": {
    "railway.dll": "7fb62c6903e16cc84dfab43cabb3824f3db4dd2a582ee634a808a1a26c97750a"
@@ -25,6 +25,31 @@
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261031-222708-ea8d18ef",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:27:09",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-222708-ea8d18ef",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:30:26",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
  }
 }
