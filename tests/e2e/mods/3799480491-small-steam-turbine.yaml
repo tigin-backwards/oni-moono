@@ -1,0 +1,32 @@
+# 小型蒸汽机 Small Steam Turbine (3799480491), class B.
+#
+# What it does: adds the Small Steam Turbine (SmallSteamTurbine), a 3x2 steam turbine with the
+# game's Steam Turbine's figures, in the Power menu's generators after it, researched with
+# Renewable Energy.
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: a steam turbine that fits in less room.
+#
+# setup grants Renewable Energy and builds the turbine in the dug-out corridor west of the
+# printing pod. It shows in the Power menu; its wattage is the Steam Turbine's, and selected its
+# details screen is dumped.
+from: early-base
+mods: [3799480491]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"RenewableEnergy\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SmallSteamTurbine\")", method: Build, args: [{"$": "Grid.XYToCell(111, 207)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"RenewableEnergy\").unlockedItemIDs": {contains: SmallSteamTurbine}
+      "Assets.GetBuildingDef(\"SmallSteamTurbine\").HeightInCells": 2
+      "Assets.GetBuildingDef(\"SmallSteamTurbine\").GeneratorWattageRating": "== original"
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/SmallSteamTurbine Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/SmallSteamTurbine Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [111, 208], ortho: 8}}
+  - click_world: {cell: [111, 207], select: SmallSteamTurbine}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
