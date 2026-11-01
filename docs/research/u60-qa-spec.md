@@ -1503,6 +1503,13 @@ manual run on Windows with real Steam.
 
 ### M4 Obsolete game APIs
 
+**Status:** passes (e58e7da0): the U60 burndown (`tests/e2e/results-u60`, 595 records, 761015 and
+761211) played 572 mods; 210 of them carry `IntraObjectHandler` subscriptions, 16 name
+`GetDescriptors`, 14 `GlobalStringBuilderPool` and 172 `CreateEquipmentDef` in their assemblies.
+None of the 23 not played fails on these APIs: 18 fail in the original too (pending), 4 played
+with known findings (warning), and CycleTrim fails in ours for a structural reason (it checks for
+Unity's Mono).
+
 **Risk: low.** The burndown covers it per mod.
 
 **Patch notes:**
