@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3497590979-more-magma.yaml",
+ "mods": [
+  "3497590979"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "from a colony: the pause menu's Main Menu, Quit Without Saving, New Game, Survival, Classic, Terra by its coordinate (fixed seed), launched and embarked. Worldgen expectations are functional: the core's band of cells above the neutronium floor holds far more mass than the game's elements could (more than 5,000,000 kg over 161 x 8 cells: at least 50 cells of 100,000 kg magma), and holds magma",
+ "updated": "2026-11-01",
+ "commit": "6cf259b0",
+ "mod_dlls": {
+  "3497590979": {
+   "MagmaChannelMod.dll": "53e9c1e75a1ab06725717b62ab6c48f2636b1f4496dcff592bb1a6d52fd6ffd2"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-010456-4ec6cb36",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:04:56",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-013305-7eb587cb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:33:05",
+    "lane": 44,
+    "reference_run": "20261101-010456-4ec6cb36",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-013305-7eb587cb",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:41:46",
+    "lane": 40,
+    "reference_run": "20261101-010456-4ec6cb36",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
