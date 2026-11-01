@@ -3,12 +3,12 @@
  "mods": [
   "3786962460"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
  "note": "the Oxygen menu lists the station and its card opens; in ours the card's requirement line (a bullet with nested indents and a link) lays out 4.5 px narrower (preferred width 160.45 vs 164.95)",
  "updated": "2026-11-01",
- "commit": "91861a01",
+ "commit": "0b59689b",
  "mod_dlls": {
   "3786962460": {
    "ChlorineSublimationStation.dll": "25471cb0e7da7bf549a58ccbaa9d5833ea79e4dc68a145aeafc7bade9bc47f6c"
@@ -17,49 +17,43 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-040745-53cd01cd",
+    "run": "20261101-151559-5e7d4c3b",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T07:43:18",
-    "lane": 52,
+    "date": "2026-11-01T15:16:00",
+    "lane": 21,
     "signatures": 0
    }
   ],
   "ours": [
    {
-    "run": "20261101-110624-7373c4be",
+    "run": "20261101-151823-ecdb0a46",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T11:45:51",
-    "lane": 54,
-    "reasons": [
-     "ui_dump card: 2 difference(s)"
-    ],
-    "reference_run": "20261101-040745-53cd01cd",
+    "verdict": "pass",
+    "date": "2026-11-01T15:18:25",
+    "lane": 22,
+    "reference_run": "20261101-151559-5e7d4c3b",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
      "card": {
-      "differences": 2
+      "differences": 0
      }
     },
     "shots": {}
    },
    {
-    "run": "20261101-110624-7373c4be",
+    "run": "20261101-151823-ecdb0a46",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T11:46:50",
-    "lane": 55,
-    "reasons": [
-     "ui_dump card: 2 difference(s)"
-    ],
-    "reference_run": "20261101-040745-53cd01cd",
+    "verdict": "pass",
+    "date": "2026-11-01T15:18:26",
+    "lane": 23,
+    "reference_run": "20261101-151559-5e7d4c3b",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
      "card": {
-      "differences": 2
+      "differences": 0
      }
     },
     "shots": {}

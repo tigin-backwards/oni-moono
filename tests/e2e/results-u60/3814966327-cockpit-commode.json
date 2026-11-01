@@ -3,12 +3,12 @@
  "mods": [
   "3814966327"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
  "note": "setup grants Space Program; the Rocketry menu lists the commode and its card opens; in ours the card's effects section lays out 4.5 px narrower (preferred width 2934.63 vs 2939.13), as the bulleted lines with nested indents and links measure narrower",
  "updated": "2026-11-01",
- "commit": "91861a01",
+ "commit": "0b59689b",
  "mod_dlls": {
   "3814966327": {
    "CockpitCommode.dll": "012b4f5dd4bb3dd12f6353b5dc057fded92cc3ec7623e0fa5ce336e48fa3bb1e"
@@ -17,49 +17,43 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-040745-53cd01cd",
+    "run": "20261101-151559-5e7d4c3b",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T08:14:05",
-    "lane": 52,
+    "date": "2026-11-01T15:16:01",
+    "lane": 22,
     "signatures": 0
    }
   ],
   "ours": [
    {
-    "run": "20261101-110624-7373c4be",
+    "run": "20261101-151823-ecdb0a46",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T12:03:07",
-    "lane": 54,
-    "reasons": [
-     "ui_dump card: 1 difference(s)"
-    ],
-    "reference_run": "20261101-040745-53cd01cd",
+    "verdict": "pass",
+    "date": "2026-11-01T15:19:03",
+    "lane": 20,
+    "reference_run": "20261101-151559-5e7d4c3b",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
      "card": {
-      "differences": 1
+      "differences": 0
      }
     },
     "shots": {}
    },
    {
-    "run": "20261101-110624-7373c4be",
+    "run": "20261101-151823-ecdb0a46",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T12:03:26",
-    "lane": 55,
-    "reasons": [
-     "ui_dump card: 1 difference(s)"
-    ],
-    "reference_run": "20261101-040745-53cd01cd",
+    "verdict": "pass",
+    "date": "2026-11-01T15:19:34",
+    "lane": 21,
+    "reference_run": "20261101-151559-5e7d4c3b",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
      "card": {
-      "differences": 1
+      "differences": 0
      }
     },
     "shots": {}
