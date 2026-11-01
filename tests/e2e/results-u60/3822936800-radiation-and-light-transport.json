@@ -3,12 +3,12 @@
  "mods": [
   "3822936800"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "setup builds a Light Collector in the dug-out corridor west of the printing pod. The light buildings show in the Utilities menu; selected, the collector's details screen is dumped",
+ "note": "setup builds a Light Collector in the dug-out corridor west of the printing pod. The light buildings show in the Utilities menu; selected, the collector's details screen is dumped, as in the original",
  "updated": "2026-11-01",
- "commit": "56cec35b",
+ "commit": "92ec14a6",
  "mod_dlls": {
   "3822936800": {
    "PowerfulRadiationAndLightTransport.dll": "63e9ca5341f02fd2be992046028bfee81f1164835eb87e2a4bedb3eb5371a625"
@@ -17,49 +17,43 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-073756-2a3320d7",
+    "run": "a2021-o4",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T07:48:26",
-    "lane": 43,
+    "date": "2026-11-01T15:30:02",
+    "lane": 35,
     "signatures": 0
    }
   ],
   "ours": [
    {
-    "run": "20261101-112330-7d36a56b",
+    "run": "a2021-u4",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T11:23:30",
-    "lane": 40,
-    "reasons": [
-     "ui_dump details: 1 difference(s)"
-    ],
-    "reference_run": "20261101-073756-2a3320d7",
+    "verdict": "pass",
+    "date": "2026-11-01T15:30:59",
+    "lane": 35,
+    "reference_run": "a2021-o4",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
      "details": {
-      "differences": 1
+      "differences": 0
      }
     },
     "shots": {}
    },
    {
-    "run": "20261101-112330-7d36a56b",
+    "run": "a2021-u4",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T11:23:31",
-    "lane": 41,
-    "reasons": [
-     "ui_dump details: 1 difference(s)"
-    ],
-    "reference_run": "20261101-073756-2a3320d7",
+    "verdict": "pass",
+    "date": "2026-11-01T15:31:00",
+    "lane": 36,
+    "reference_run": "a2021-o4",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
      "details": {
-      "differences": 1
+      "differences": 0
      }
     },
     "shots": {}
