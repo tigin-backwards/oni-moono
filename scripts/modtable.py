@@ -419,8 +419,10 @@ not_run_in_ours = {'3823893994', '3771895170'}
 broken.update({
     '1353979712': 'broken upstream: its translation is sv_SE.po (with two .po files for the Korean and Chinese fonts) and no strings.po, which the game reads for a translation mod; picked as the language, the original logs "strings.po missing for mod 1353979712", throws a NullReferenceException in LanguageOptionsScreen.GetLanguageFilename and exits (1) while loading a colony; not run in ours',
     '2590563970': 'broken upstream: its `VariablePowerTransformer` implements `GetSliderTooltip()`, not the `ISliderControl.GetSliderTooltip(int)` the game\'s interface now has, so the original fails its prefab setup in `Assets.OnPrefabInit` ("VTable setup of type VariablePowerTransformer failed"), the colony\'s load then throws NullReferenceExceptions, and the player aborts (-6); not run in ours',
+    '3088988489': 'broken upstream: its transpiler on `SelectToolHoverTextCard.UpdateHoverElements` emits a branch the IL generator rejects (ArgumentException: opcode), so the original fails to load it, and the player then exits before its colony starts; not run in ours',
+    '3213620129': 'broken upstream: its Sulfur Bath sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player aborts (-6) while loading a colony; not run in ours',
 })
-not_run_in_ours |= {'1353979712', '2590563970'}
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129'}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
