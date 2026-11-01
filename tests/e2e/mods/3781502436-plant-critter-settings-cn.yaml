@@ -1,0 +1,24 @@
+# Plant & Critter Settings 汉化+食物名修复 (3781502436), classes T, P (Chinese text for two mods).
+#
+# What it does: Chinese text for the settings screens of the Plant Settings and Critter
+# Settings managers (two other mods, which it should load after), and Chinese food names in
+# the diet and the top-left resource list; patches on Localization.Initialize and
+# SaveLoader.Load, active only in Chinese.
+# How a player reaches it: the game in Chinese, with those mods.
+# What changes: those screens' language.
+#
+# The game in Chinese (zh_klei), without the two mods (none of its screens to translate): it
+# loads, arms its screens' translation, and the colony runs on; the pause menu is dumped.
+from: early-base
+mods: [3781502436]
+language: zh_klei
+require_log: ['\[PlantCritterSettingsCN\] OnLoad']
+steps:
+  - expect_state:
+      "Localization.GetLocale().Code": "== original"
+  - run: {seconds: 30}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - ui_dump: {name: pause, root: "**/PauseScreen/LayoutContent"}
+  - key: {code: Escape}
+  - expect: {duplicants: 3}

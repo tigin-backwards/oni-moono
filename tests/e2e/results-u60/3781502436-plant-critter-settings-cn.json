@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3781502436-plant-critter-settings-cn.yaml",
+ "mods": [
+  "3781502436"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the game in Chinese (zh_klei), without the two mods (none of its screens to translate): it loads, arms its screens' translation, and the colony runs on; the pause menu is dumped",
+ "updated": "2026-11-01",
+ "commit": "9a95cdc8",
+ "mod_dlls": {
+  "3781502436": {
+   "PlantCritterSettingsCN.dll": "bd2d895969dd6bc9a7c005a7a20be7b9ae35abe1b24bf3b3d4e8dfe4d638fffb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-033851-137d5e8f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:44:25",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-051440-cfead39b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:14:40",
+    "lane": 45,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "pause": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-051440-cfead39b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:17:40",
+    "lane": 45,
+    "reference_run": "20261101-033851-137d5e8f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "pause": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
