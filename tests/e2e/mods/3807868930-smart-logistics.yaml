@@ -1,0 +1,33 @@
+# Smart Logistics (3807868930), classes B, S, O (PLib options).
+#
+# What it does: restocking by conveyor rail: a Smart Logistics Sender and Receiver (1x2,
+# Conveyance, Solid Transport); a Receiver asks its channel's Senders for materials when its
+# supply runs low, and they send them down the rails (patches on the solid conduit consumer and
+# dispenser; a side screen of its own on the details screen).
+# How a player reaches it: the build menu (Conveyance), after the research.
+# What changes: rails that restock on their own.
+#
+# setup grants Solid Transport and builds a Receiver in the dug-out corridor west of the
+# printing pod. Both buildings show in the Conveyance menu; selected, the Receiver's details
+# screen is dumped.
+from: early-base
+mods: [3807868930]
+require_log: ['\[SmartLogistics\] Loaded v0.10.4']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"SolidTransport\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SmartLogisticsReceiver\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"SolidTransport\").unlockedItemIDs": {contains: SmartLogisticsSender}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Shipping"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/SmartLogisticsSender Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/SmartLogisticsSender Group*": {active: true}
+      "**/BuildingGroups/**/Grid/SmartLogisticsReceiver Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: SmartLogisticsReceiver}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}

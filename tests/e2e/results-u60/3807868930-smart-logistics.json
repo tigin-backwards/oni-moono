@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3807868930-smart-logistics.yaml",
+ "mods": [
+  "3807868930"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Solid Transport and builds a Receiver in the dug-out corridor west of the printing pod. Both buildings show in the Conveyance menu; selected, the Receiver's details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "a0d84d9a",
+ "mod_dlls": {
+  "3807868930": {
+   "SmartLogistics.dll": "3fa6076be00218403958e5addbdae1ee36e7943a94272056394e47aa2beaf40d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041850-de3664d6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:29:05",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-095834-15c3717e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:58:34",
+    "lane": 40,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-095834-15c3717e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:58:35",
+    "lane": 41,
+    "reference_run": "20261101-041850-de3664d6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
