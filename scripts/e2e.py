@@ -156,7 +156,7 @@ def ws_mods():
 
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
-            'keyboard', 'tweaks_menu', 'scaled_screen', 'blocked_plugins', 'data_collection'}
+            'keyboard', 'tweaks_menu', 'scaled_screen', 'blocked_plugins', 'data_collection', 'extra_saves'}
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 BLOCKED_HOW = ('unreadable', 'missing')
 # The game's own translations (`language`), as Localization.PreinstalledLanguages names them.
@@ -338,6 +338,9 @@ def check_spec(spec):
     if not isinstance(blocked, dict) or not all(isinstance(n, str) and n and '/' not in n and how in BLOCKED_HOW
                                                 for n, how in blocked.items()):
         problems.append('`blocked_plugins` maps plugin file names to ' + ' or '.join(BLOCKED_HOW))
+    extra = spec.get('extra_saves', [])
+    if not isinstance(extra, list) or not all(isinstance(n, str) and re.fullmatch(r'[\w.-]+', n) for n in extra):
+        problems.append('`extra_saves` is a list of fixture names')
     if not isinstance(spec.get('data_collection', True), bool):
         problems.append('`data_collection` is true or false')
     if not isinstance(spec.get('steps'), list):
@@ -2395,7 +2398,7 @@ class Player:
 
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
                  translation=None, language=None, keyboard=None, tweaks_menu=False, blocked_plugins=None,
-                 data_collection=True):
+                 data_collection=True, extra_saves=()):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
         self.blocked_plugins = dict(blocked_plugins or {})
         self.keyboard = keyboard
@@ -2413,6 +2416,17 @@ class Player:
         os.makedirs(self.save_dir)
         if fixture:
             shutil.copy(fixture, self.fixture)
+        # `extra_saves`: more colonies in the profile, each in a folder of its own as the game
+        # keeps them (save_files/NAME/NAME.sav), with its preview (NAME.png) when the fixture has one.
+        for name in extra_saves:
+            folder = os.path.join(self.profile, 'save_files', name)
+            os.makedirs(folder, exist_ok=True)
+            for ext in ('.sav', '.png'):
+                source = os.path.join(FIXTURES, name + ext)
+                if os.path.exists(source):
+                    shutil.copy(source, os.path.join(folder, name + ext))
+                elif ext == '.sav':
+                    raise SpecFailure(f'no fixture {source} (extra_saves)')
         self.mods = self.install_mods(list(mods), driver)
         self.option_files = write_options(self.profile, self.mods, options or {})
         # OniMcp's options: the lane's port, JSON tool text, and none of its own gameplay policies
@@ -3865,7 +3879,8 @@ class Run:
                                  language=spec.get('language'), keyboard=spec.get('keyboard'),
                                  tweaks_menu=spec.get('tweaks_menu', False),
                                  blocked_plugins=spec.get('blocked_plugins'),
-                                 data_collection=spec.get('data_collection', True))
+                                 data_collection=spec.get('data_collection', True),
+                                 extra_saves=spec.get('extra_saves', ()))
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
             started = time.time()
