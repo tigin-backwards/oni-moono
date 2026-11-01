@@ -1,0 +1,21 @@
+# 火箭速度和轨道实验仪 10 倍 Rocket Speed and Orbital Lab 10x (3771260909), class P.
+#
+# What it does: rockets travel ten times as fast (postfixes on Clustercraft.Speed and both
+# rocketSpeed getters multiply a positive speed by 10), and a transpiler on
+# OrbitalResearchCenterConfig.ConfigureRecipes turns the Orbital Data Collection Lab's
+# 5 kg of plastic -> 1 data bank into 50 kg -> 10.
+# How a player reaches it: flying rockets; the orbital lab's recipe.
+# What changes: rocket trips take a tenth of the time; data banks in bulk.
+#
+# rockets-so's two rockets report ten times the speed their engines give in the original's
+# terms (compared with it), and the orbital lab's recipe is the mod's.
+from: rockets-so
+mods: [3771260909]
+require_log: ['\[RocketSpeedAndOrbitalLab10x\] Loaded']
+steps:
+  - expect_state:
+      "count:ComplexRecipeManager.Get().recipes[*] if .id.StartsWith(\"OrbitalResearchCenter_\") == true": ">= 1"
+      "sum:ComplexRecipeManager.Get().recipes[*].ingredients[0].amount if .id.StartsWith(\"OrbitalResearchCenter_\") == true": 50
+      "sum:ComplexRecipeManager.Get().recipes[*].results[0].amount if .id.StartsWith(\"OrbitalResearchCenter_\") == true": 10
+      "sum:all:Clustercraft::[*].Speed": "== original"
+  - run: {seconds: 30}

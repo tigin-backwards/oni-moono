@@ -1,0 +1,21 @@
+# Light Camera Zoom Out / 轻量远距缩放 (3789925586), class V.
+#
+# What it does: the camera zooms out to an orthographic size of 200 (the game stops at 20):
+# prefixes on CameraController's OnSpawn and Restore set the maximum, and one on
+# SetMaxOrthographicSize keeps it from going under 200.
+# How a player reaches it: the mouse wheel over the world.
+# What changes: the whole asteroid fits on screen.
+#
+# The camera's limit is 200; forty notches of the wheel take it far past the game's 20, as in
+# the original, and the world is shot from there.
+from: early-base
+mods: [3789925586]
+steps:
+  - expect_state:
+      "CameraController.Instance.maxOrthographicSize": 200
+  - driver: {camera.set: {cell: [121, 208], ortho: 12}}
+  - scroll: {at: center, notches: -40}
+  - run: {seconds: 2}
+  - expect_state:
+      "CameraController.Instance.targetOrthographicSize": ["> 20", "== original"]
+  - world_shot: {name: far, ortho: 120, at: [121, 208]}

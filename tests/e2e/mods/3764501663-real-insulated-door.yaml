@@ -1,0 +1,19 @@
+# 绝对隔热门 Real Insulated Door (3764501663), class P.
+#
+# What it does: the Insulated Door conducts no heat at all: a postfix on
+# InsulatedDoorConfig.CreateBuildingDef sets its thermal conductivity to 0 (the game: 0.01).
+# How a player reaches it: building an Insulated Door.
+# What changes: perfect insulation through doors.
+#
+# The Insulated Door's definition carries 0; setup places one in the corridor west of the
+# printing pod (118,207), and it is complete with that conductivity.
+from: early-base
+mods: [3764501663]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"InsulatedDoor\")", method: Build, args: [131770, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {InsulatedDoor: 1}}
+  - expect_state:
+      "Assets.GetBuildingDef(\"InsulatedDoor\").ThermalConductivity": 0
+      "Assets.GetBuildingDef(\"Door\").ThermalConductivity": "> 0"

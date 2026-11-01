@@ -1,0 +1,16 @@
+# Realistic Power (3776639133), class P.
+#
+# What it does: electrical load and overload damage per wire segment rather than per circuit
+# (patches on Generator, Battery, ElectricalUtilityNetwork and CircuitManager), with PLib
+# diagnostics.
+# How a player reaches it: nothing to click; any power circuit.
+# What changes: which wire breaks when a circuit is overloaded.
+#
+# The mod loads and logs its version; the colony (its manual generator and research station)
+# runs two minutes with it.
+from: early-base
+mods: [3776639133]
+require_log: ['\[RealisticPower\] Version 0\.5\.0 loaded']
+steps:
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}
