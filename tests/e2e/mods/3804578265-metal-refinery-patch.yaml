@@ -1,0 +1,23 @@
+# 金属精炼器修复 / Metal Refinery Patch (3804578265), class P.
+#
+# What it does: the Metal Refinery no longer stops because there is liquid in its output pipe: it
+# stops only when the output is really blocked and starts again when it clears; its coolant gets
+# an output of its own (a 2000 kg storage; patches on LiquidCooledRefinery's OnConduitUpdate,
+# OnSpawn and SpawnOrderProduct, and MetalRefineryConfig.ConfigureBuildingTemplate).
+# How a player reaches it: a Metal Refinery on a cooling loop.
+# What changes: refineries that do not stall.
+#
+# setup builds a Metal Refinery in the dug-out corridor west of the printing pod. It has the mod's
+# coolant output (its storages as in the original), and selected its recipe list is dumped.
+from: early-base
+mods: [3804578265]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"MetalRefinery\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:LiquidCooledRefinery::[0].GetComponents<Storage>.Length": "== original"
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: MetalRefinery}
+  - ui_wait: {path: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView", cond: stable}
+  - ui_dump: {name: recipes, root: "**/ComplexFabricatorSideScreen/Contents/ButtonScrollView"}
