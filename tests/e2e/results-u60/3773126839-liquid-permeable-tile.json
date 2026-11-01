@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3773126839-liquid-permeable-tile.yaml",
+ "mods": [
+  "3773126839"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "8d511836",
+ "mod_dlls": {
+  "3773126839": {
+   "LiquidPermeableMembrane.dll": "74074becb115192edbab17b77c42b01839adb474d9d2fccf238a78aaca5f1fe7",
+   "PLib.dll": "48c63fd4654b6fbb390afdac71a3d29194eeb9405eca4290cba6e4fbf60805ce"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-053436-9013cf89",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:34:36",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-115542-43880437",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:55:42",
+    "lane": 36,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-115542-43880437",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:58:42",
+    "lane": 36,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
