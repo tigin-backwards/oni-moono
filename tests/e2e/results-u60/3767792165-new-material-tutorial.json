@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3767792165-new-material-tutorial.yaml",
+ "mods": [
+  "3767792165"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "both elements are loaded, the gas a gas and the metal a solid; the colony runs",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "3767792165": {
+   "Mymaterial.dll": "d5d5b50e6cc31b462e48e072c29c1cb54a5208e351e23238c1f8e68a2cb4646d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:11:51",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:56:52",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:57:42",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

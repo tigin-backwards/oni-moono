@@ -1,0 +1,16 @@
+# 【博客】新材料教程 / New material tutorial (3767792165), class P, elements.
+#
+# What it does: a tutorial mod adding two elements from its elements folder, a gas
+# (MyCustomGas) and a metal (MyCustomMetal), with their anims and substances.
+# How a player reaches it: the elements in the database or the sandbox.
+# What changes: two more elements.
+#
+# Both elements are loaded, the gas a gas and the metal a solid; the colony runs.
+from: early-base
+mods: [3767792165]
+steps:
+  - expect_state:
+      "ElementLoader.FindElementByName(\"MyCustomGas\").IsGas": true
+      "ElementLoader.FindElementByName(\"MyCustomMetal\").IsSolid": true
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
