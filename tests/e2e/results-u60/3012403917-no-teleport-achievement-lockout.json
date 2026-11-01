@@ -3,12 +3,12 @@
  "mods": [
   "3012403917"
  ],
- "verdict": "pending",
- "why": "0 run(s) of ours against original run 20261031-214713-0ac1044b; 2 needed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
+ "note": "teleporters enabled: the mod logs its override off; a minute of play",
  "updated": "2026-10-31",
- "commit": "58a73e93",
+ "commit": "698a4499",
  "mod_dlls": {
   "3012403917": {
    "No Teleport Achievement Lockout.dll": "b2a86e57e51c7b514ccb1fe054c70cb9361c299eae94bb75ba052f9385b36121"
@@ -25,6 +25,31 @@
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261031-222030-76e1dc23",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:20:30",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261031-222030-76e1dc23",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T22:24:31",
+    "lane": 35,
+    "reference_run": "20261031-214713-0ac1044b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
  }
 }
