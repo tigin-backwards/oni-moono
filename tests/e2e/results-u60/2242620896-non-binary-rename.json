@@ -1,0 +1,101 @@
+{
+ "spec": "mods/2242620896-non-binary-rename.yaml",
+ "mods": [
+  "2242620896"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the translation loads in a colony: its research (R) and priorities (L) screens and pause menu, then the main menu, the options menu and its Game options screen, dumped and (but the research tree) shot as in the original",
+ "updated": "2026-11-01",
+ "commit": "5c0b48e6",
+ "mod_dlls": {
+  "2242620896": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-030929-e42fd206",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:14:20",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112446-b319eec7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:24:46",
+    "lane": 35,
+    "reference_run": "20261101-030929-e42fd206",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 0.001034,
+     "game-options": 0.0
+    }
+   },
+   {
+    "run": "20261101-112446-b319eec7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:27:08",
+    "lane": 35,
+    "reference_run": "20261101-030929-e42fd206",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 0.0,
+     "game-options": 0.0
+    }
+   }
+  ]
+ }
+}
