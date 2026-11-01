@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3821580533-force-eruption-in-sandbox-revived.yaml",
+ "mods": [
+  "3821580533"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup turns sandbox mode on and places a steam geyser in the corridor west of the printing pod; selected, its side screen has Force Eruption, and pressing it sets the geyser erupting (its button reads Force Dormancy)",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3821580533": {
+   "ForceEruptionInSandboxRevived.dll": "f4a4f44377d47d43b6b079f604649fa2d7d5ee329c2c2008712cd462bc9b10be"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-092050-8b8babe3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:40:14",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:18:22",
+    "lane": 54,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:19:16",
+    "lane": 55,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

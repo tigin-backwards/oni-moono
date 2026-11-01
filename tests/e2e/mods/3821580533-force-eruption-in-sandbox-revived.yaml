@@ -1,0 +1,29 @@
+# Force Eruption in Sandbox Revived (3821580533), classes S (PLib), sandbox.
+#
+# What it does: in sandbox or debug mode, every geyser gets a side screen button
+# (ForceEruptButton, an ISidescreenButtonControl kept up to date by a ForceEruptButtonManager):
+# Force Eruption shifts a dormant geyser's cycle to its eruption, Force Dormancy an erupting
+# one's to its dormancy.
+# How a player reaches it: a geyser's side screen, in sandbox mode.
+# What changes: geysers on demand.
+#
+# setup turns sandbox mode on and places a steam geyser in the corridor west of the printing
+# pod; selected, its side screen has Force Eruption, and pressing it sets the geyser erupting
+# (its button reads Force Dormancy).
+from: early-base
+mods: [3821580533]
+setup:
+  - driver: {setup.call: {target: "Game.Instance", method: set_SandboxModeActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131128, 0, 0, "GeyserGeneric_steam", "BuildingBack"]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: GeyserGeneric_steam}
+  - expect_ui:
+      "**/ButtonMenuSideScreen/**": {any_text: "Force Eruption"}
+  - click: {text: "Force Eruption", under: "**/ButtonMenuSideScreen"}
+  - run: {seconds: 5}
+  - click_world: {cell: [113, 207], select: GeyserGeneric_steam}
+  - expect_ui:
+      "**/ButtonMenuSideScreen/**": {any_text: "Force Dormancy"}
