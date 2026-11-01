@@ -1,0 +1,17 @@
+# UI Clicks Monitor (3750885704), class S (debug).
+#
+# What it does: a debug tool that records every UI click event to its log.
+# How a player reaches it: clicking the UI.
+# What changes: nothing in the game.
+#
+# The mod loads, as its log says, the pause menu is opened and closed, and the colony plays for
+# 30 s.
+from: early-base
+mods: [3750885704]
+require_log: ['\[UIClicksMonitor\] ']
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
