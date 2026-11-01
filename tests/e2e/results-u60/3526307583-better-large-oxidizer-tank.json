@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3526307583-better-large-oxidizer-tank.yaml",
+ "mods": [
+  "3526307583"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "early-base has no rocket: the module's prefab is read (its capacity, fill masses and burden), and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "912ac2f7",
+ "mod_dlls": {
+  "3526307583": {
+   "BetterOxidizerTank.dll": "19910900173dd1dca7da10a92dea739d2c9ff567fb211a571ffac5009f7e2137"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-010456-4ec6cb36",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:19:47",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-015136-f108b749",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:51:36",
+    "lane": 44,
+    "reference_run": "20261101-010456-4ec6cb36",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-015136-f108b749",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:57:33",
+    "lane": 44,
+    "reference_run": "20261101-010456-4ec6cb36",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
