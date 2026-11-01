@@ -1,0 +1,16 @@
+# Copy booster assigned setting (3409093374), class P (Bionic Booster Pack).
+#
+# What it does: a Bionic Duplicant's booster assignment can be copied to others with the copy
+# settings tool: a postfix on BionicMinionConfig.CreatePrefab adds a Copycard and
+# CopyBuildingSettings to the Bionic prefab.
+# How a player reaches it: a Bionic Duplicant's copy settings button.
+# What changes: boosters assigned to many Bionics at once.
+#
+# The Bionic Duplicant's prefab has both components; the colony (with no Bionic) runs on.
+from: early-base
+mods: [3409093374]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"BionicMinion\").GetComponent<CopyBuildingSettings>": exists
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
