@@ -440,8 +440,21 @@ def row(rank, mid, title, loads, colony, play, note):
     link = f'[{title.replace("|", "/")}](https://steamcommunity.com/sharedfiles/filedetails/?id={mid})' if mid else title
     return f'| {rank} | {link} | {loads} | {colony} | {play} | {note} |'
 
+# Mods not played because onimaxxing has not reviewed the upload we have (or flags it): id, reason,
+# from the interim hash check (scripts/mod-skipped-u60.tsv). Revisit them when it does.
+SKIPPED = {}
+_skipped = os.path.join(ROOT, 'scripts', 'mod-skipped-u60.tsv')
+if os.path.exists(_skipped):
+    for _line in open(_skipped, encoding='utf-8'):
+        if _line.strip() and not _line.startswith('#'):
+            _mid, _, _why = _line.rstrip('\n').partition('\t')
+            SKIPPED[_mid] = _why
+
+
 def status(mid, flags):
     """(Loads, Colony, Played, note) of a mod from the sweeps and the hand-written sets."""
+    if mid in SKIPPED and mid not in results:
+        return N, N, N, f'skipped: {SKIPPED[mid]}'
     if mid in played:
         return Y, Y, Y, played[mid]
     if mid in differences:
