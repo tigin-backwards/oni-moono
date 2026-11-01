@@ -1,0 +1,18 @@
+# Jet Suit Flight Controls (3810661445), classes P, O (PLib options).
+#
+# What it does: a flight speed mode for Jet Suits (Vanilla, Balanced or Boosted: a postfix on
+# BipedTransitionLayer.BeginTransition scales the flying speed) and an option to stop the CO2
+# exhaust while flying (a prefix on JetSuitMonitor.Emit).
+# How a player reaches it: the mod's options; Duplicants flying in Jet Suits.
+# What changes: how fast Jet Suits fly and whether they leave CO2.
+#
+# early-base has no Jet Suit: the mod loads and the colony runs on, its Duplicants as many as in
+# the original.
+from: early-base
+mods: [3810661445]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .label.id == 3810661445 and .IsEnabledForActiveDlc() == true": 1
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

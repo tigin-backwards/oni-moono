@@ -1,0 +1,58 @@
+{
+ "spec": "mods/3810661445-jet-suit-flight-controls.yaml",
+ "mods": [
+  "3810661445"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "early-base has no Jet Suit: the mod loads and the colony runs on, its Duplicants as many as in the original",
+ "updated": "2026-11-01",
+ "commit": "d08a36a3",
+ "mod_dlls": {
+  "3810661445": {
+   "JetSuitNoCO2.dll": "bf1e76e4b01da4198d8d3ebf583a2d99d6ae9775525f1d6a5f37cf7542f40f2f",
+   "PLibCore.dll": "f2332bfe863d4e56960ecf9fc6c980484187caadb1d970d222833fd5c7c65006",
+   "PLibOptions.dll": "750be4ba3678b94ee7320b8a417458d7158d917baaec332be8ed3e9c1a77c765",
+   "PLibUI.dll": "07473afe0a3891aa47163eeb3e4ec572ec3f3311db41dd4d95c2c7202ec4f2b5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034335-ff601a44",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:43:35",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-100544-b26e7b37",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:05:44",
+    "lane": 40,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-100544-b26e7b37",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:05:45",
+    "lane": 41,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
