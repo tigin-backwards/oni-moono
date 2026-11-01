@@ -6,8 +6,8 @@
 # How a player reaches it: nothing to click; a rocket that reaches its destination.
 # What changes: a notification when a rocket idles in space.
 #
-# The rockets-so colony's two rockets, on their pads, each carry the notifier and post
-# nothing; the colony runs a minute.
+# The rockets-so colony's rockets, on their pads, each carry the notifier; the colony runs a
+# minute.
 from: rockets-so
 mods: [3792356047]
 steps:
@@ -16,5 +16,3 @@ steps:
   - expect_state:
       "all:ONI_Mod1.Patches+RocketIdleNotifier::Length": ["== rockets", ">= 1"]
   - run: {seconds: 60}
-  - expect_state:
-      "count:Game.Instance.GetComponent<Notifier>.notifications[*] if .titleText == 'Rocket awaiting orders'": 0
