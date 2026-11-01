@@ -1,0 +1,16 @@
+# ResearchQueue ShiftReverse (2683038637), class S (patches another mod's code).
+#
+# What it does: reverses the Shift-click behaviour of the Research Queue mod: in
+# OnAllModsLoaded it adds a transpiler to ResearchQueuePatches.OnResearchClicked (a type of
+# that mod) turning a ">" test into "<=". Without Research Queue installed the type does not
+# exist and nothing is patched.
+# How a player reaches it: Shift-clicking a tech with Research Queue installed.
+# What changes: with Research Queue, plain and Shift clicks swap.
+#
+# Installed alone, as a subscriber without Research Queue would have it: the colony loads and
+# runs a minute, as in the original.
+from: early-base
+mods: [2683038637]
+steps:
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

@@ -1,0 +1,18 @@
+# Rebalanced Skills (MechEng Prereq Fixed) (3713328789), class P.
+#
+# What it does: a postfix on Db.Initialize reshapes the skill tree: Mechatronics Engineering
+# needs Electrical Engineering and Improved Construction (tier 3), Rocket Piloting needs only
+# Exosuit Training (tier 1), and Exosuit Training needs nothing (tier 0), with Suits1 at tier 1.
+# How a player reaches it: the Skills screen.
+# What changes: which skills open which.
+#
+# The skills' prerequisites and tiers are the mod's.
+from: early-base
+mods: [3713328789]
+steps:
+  - expect_state:
+      "Db.Get().Skills.Engineering1.priorSkills": [{contains: Technicals2}, {contains: Building2}]
+      "Db.Get().Skills.Engineering1.tier": 3
+      "Db.Get().Skills.ThermalSuits.priorSkills.Count": 0
+      "Db.Get().Skills.RocketPiloting1.priorSkills": {contains: ThermalSuits}
+  - run: {seconds: 30}
