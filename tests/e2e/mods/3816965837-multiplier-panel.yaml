@@ -1,0 +1,14 @@
+# Multiplier Panel (3816965837), class S, P.
+#
+# What it does: one panel with 16 live-tunable multipliers in six rows: skill and attribute
+# experience, carry amount, storage capacity and resource yield, pipe throughput and pump speed,
+# crafting recipes and building heat, and more, applied while the colony runs.
+# How a player reaches it: its panel in a colony.
+# What changes: the colony's rates, by hand.
+#
+# The mod loads and the colony plays for 30 s with the default multipliers.
+from: early-base
+mods: [3816965837]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
