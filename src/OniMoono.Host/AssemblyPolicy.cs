@@ -202,6 +202,9 @@ namespace OniMoono.Host
 
         internal static bool IsFrameworkAssembly(string simple) => framework.Contains(simple);
 
+        /// Mono's class libraries in Managed/ that the framework does not carry (never loaded).
+        internal static bool IsMonoClassLibrary(string simple) => monoClassLibraries.Contains(simple);
+
         /// The assembly files the host runs with (--check-natives): its own (the host directory's,
         /// framework ones aside: the engine, the Steamworks.NET port, BRUTAL…), the UI packages it
         /// serves, and those of Managed/ that Resolve would load (the game and its libraries; not

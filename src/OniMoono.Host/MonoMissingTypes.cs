@@ -9,6 +9,7 @@ using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using Mono.Cecil.Rocks;
 using OniMoono.Engine;
 using Cecil = Mono.Cecil;
 
@@ -36,7 +37,8 @@ namespace OniMoono.Host
     /// in Managed/ lack) gets the body Mono's compilation gives it: it throws Mono's
     /// exception, and is hidden from stack traces. So does a method naming a member its type lacks
     /// (MonoMissingMembers, D42), first in the same IL order. Nested types (D32) and assemblies not
-    /// loaded yet are left as they were.
+    /// loaded yet are left as they were. What the original's copy of an engine or class library
+    /// has and ours lacks (MonoApiGaps, D58) throws where it is named instead.
     public static class MonoMissingTypes
     {
         const string LostError = "Failure has occurred while loading a type.";
@@ -53,13 +55,14 @@ namespace OniMoono.Host
         internal static byte[]? Adjust(byte[] image, ref byte[]? symbols, string path)
         {
             Dictionary<(string Assembly, string Namespace, string Name), int> tokens;
+            Dictionary<(string Assembly, string Namespace, string Name), Gap> gaps;
             Dictionary<int, MonoMissingMembers.Missing> members;
             try
             {
                 using (var pe = new PEReader(File.OpenRead(path)))
                 {
                     if (!pe.HasMetadata) return null;
-                    tokens = MissingTypeRefs(pe.GetMetadataReader());
+                    tokens = MissingTypeRefs(pe.GetMetadataReader(), out gaps);
                 }
                 // Members by the tokens of the image as earlier passes left it, which Cecil reads.
                 using var current = new PEReader(new MemoryStream(image, writable: false));
@@ -69,10 +72,10 @@ namespace OniMoono.Host
             {
                 return null;
             }
-            if (tokens.Count == 0 && members.Count == 0) return null;
+            if (tokens.Count == 0 && gaps.Count == 0 && members.Count == 0) return null;
             try
             {
-                return Rewrite(image, ref symbols, path, tokens, members);
+                return Rewrite(image, ref symbols, path, tokens, gaps, members);
             }
             catch (Exception e) when (e is Cecil.AssemblyResolutionException or BadImageFormatException or InvalidOperationException or ArgumentException or NullReferenceException)
             {
@@ -83,20 +86,61 @@ namespace OniMoono.Host
             }
         }
 
+        /// A type ours cannot resolve where the original can (D58): its TypeRef's token,
+        /// why ours cannot (MonoApiGaps.Ours), the assembly ours could not load, and the original's
+        /// underlying type where it is an enum.
+        internal readonly record struct Gap(int Token, MonoApiGaps.OursFailure Failure, string? Assembly, PrimitiveTypeCode? Enum);
+
         /// The mod's top-level TypeRefs whose type its assembly lacks, by (assembly, namespace, name),
         /// with their tokens.
-        internal static Dictionary<(string Assembly, string Namespace, string Name), int> MissingTypeRefs(MetadataReader md)
+        internal static Dictionary<(string Assembly, string Namespace, string Name), int> MissingTypeRefs(MetadataReader md) => MissingTypeRefs(md, out _);
+
+        /// Those, and the TypeRefs ours cannot resolve where the original can (`gaps`).
+        internal static Dictionary<(string Assembly, string Namespace, string Name), int> MissingTypeRefs(MetadataReader md,
+            out Dictionary<(string Assembly, string Namespace, string Name), Gap> gaps)
         {
             var missing = new Dictionary<(string, string, string), int>();
+            gaps = new Dictionary<(string, string, string), Gap>();
             foreach (var handle in md.TypeReferences)
             {
                 var reference = md.GetTypeReference(handle);
+                if (reference.ResolutionScope.Kind == HandleKind.TypeReference)
+                {
+                    // A nested type of an assembly ours answers for: a gap when ours lacks it
+                    // (D58); missing from both, it is D32's.
+                    if (MonoApiGaps.Name(md, handle) is ({ } scope, var nestedName) && GapOf(scope, nestedName) is (false, var why, var lost, var underlying))
+                    {
+                        var outer = nestedName.IndexOf('/');
+                        var dot = nestedName.LastIndexOf('.', outer);
+                        gaps.TryAdd((scope, dot < 0 ? "" : nestedName[..dot], nestedName[(dot + 1)..]), new Gap(MetadataTokens.GetToken(handle), why, lost, underlying));
+                    }
+                    continue;
+                }
                 if (reference.ResolutionScope.Kind != HandleKind.AssemblyReference) continue;
                 var assemblyName = md.GetString(md.GetAssemblyReference((AssemblyReferenceHandle)reference.ResolutionScope).Name);
                 var key = (assemblyName, md.GetString(reference.Namespace), md.GetString(reference.Name));
-                if (IsMissing(key.assemblyName, key.Item2, key.Item3)) missing.TryAdd(key, MetadataTokens.GetToken(handle));
+                var token = MetadataTokens.GetToken(handle);
+                if (IsMissing(key.assemblyName, key.Item2, key.Item3)) missing.TryAdd(key, token);
+                else if (GapOf(key.assemblyName, key.Item2.Length == 0 ? key.Item3 : key.Item2 + "." + key.Item3) is var (both, failure, file, enumType))
+                {
+                    if (both) missing.TryAdd(key, token);
+                    else gaps.TryAdd(key, new Gap(token, failure, file, enumType));
+                }
             }
             return missing;
+        }
+
+        /// For a type of an assembly ours answers for in place of the original's copy (MonoApiGaps)
+        /// that ours cannot resolve: whether the original's copy lacks it too (then it is missing,
+        /// as D40's), else why ours cannot and the assembly it could not load. Null where ours
+        /// resolves it, or the assembly is another.
+        static (bool Both, MonoApiGaps.OursFailure Failure, string? File, PrimitiveTypeCode? Enum)? GapOf(string assemblyName, string fullName)
+        {
+            if (!MonoApiGaps.OursAnswer(assemblyName) || (Loaded(assemblyName) is { } assembly && SameInBothPlayers(assembly))) return null;
+            var (type, failure, file) = MonoApiGaps.Ours(assemblyName, fullName.Replace('/', '+'));
+            if (type != null) return null;
+            if (MonoApiGaps.Original.Find(assemblyName, fullName) is not var (copy, handle)) return (true, failure, file, null);
+            return (false, failure, file, copy.EnumUnderlying(handle));
         }
 
         static readonly ConcurrentDictionary<(string, string, string), bool> known = new();
@@ -104,7 +148,7 @@ namespace OniMoono.Host
         /// Whether the assembly loaded under that simple name (compared ignoring case, as Mono binds
         /// it: D15) lacks the type, when its types are the same in both players; for Unity's engine
         /// and packages, ours, whether both ours and the original's copy in Managed/ lack it (a type
-        /// Unity's copy has and ours lacks is our API's gap, which fails as CoreCLR fails it).
+        /// Unity's copy has and ours lacks is our API's gap: D58, GapOf).
         static bool IsMissing(string assemblyName, string ns, string name)
         {
             if (Loaded(assemblyName) is not { } assembly) return false;
@@ -179,7 +223,7 @@ namespace OniMoono.Host
         }
 
         static byte[]? Rewrite(byte[] image, ref byte[]? symbols, string path, Dictionary<(string Assembly, string Namespace, string Name), int> tokens,
-            Dictionary<int, MonoMissingMembers.Missing> members)
+            Dictionary<(string Assembly, string Namespace, string Name), Gap> gaps, Dictionary<int, MonoMissingMembers.Missing> members)
         {
             using var resolver = LoadedFirstResolver.ForMod(path);
             bool withSymbols = symbols != null;
@@ -200,28 +244,85 @@ namespace OniMoono.Host
                 module = Cecil.ModuleDefinition.ReadModule(new MemoryStream(image), new Cecil.ReaderParameters { AssemblyResolver = resolver });
             }
             using var owned = module;
-            var scan = new Scan(tokens, members);
+            var scan = new Scan(tokens, members, gaps);
             var failing = new List<(Cecil.MethodDefinition Method, string Message, string Type, Type Exception)>();
+            var atCall = new List<(Cecil.MethodDefinition Method, List<(Cecil.Cil.Instruction At, Scan.GapUse Use)> Uses, List<(Cecil.Cil.VariableDefinition, Cecil.TypeReference)> Locals)>();
             foreach (var type in module.GetTypes())
                 foreach (var method in type.Methods)
-                    if (method.HasBody && scan.Failure(method) is var (message, missing, exception))
-                        failing.Add((method, message, missing, exception));
-            if (failing.Count == 0) return null;
-            var constructors = new Dictionary<Type, Cecil.MethodReference>();
+                {
+                    if (!method.HasBody) continue;
+                    if (scan.Failure(method) is var (message, missing, exception)) failing.Add((method, message, missing, exception));
+                    else if (gaps.Count + members.Count > 0 && scan.Gaps(method) is var (uses, locals)) atCall.Add((method, uses, locals));
+                }
+            if (failing.Count == 0 && atCall.Count == 0) return null;
+            var constructors = new Dictionary<(Type, bool), Cecil.MethodReference>();
+            // (message), or (message, fileName) for FileNotFoundException.
+            Cecil.MethodReference Constructor(Type exception, bool withFile = false)
+            {
+                if (!constructors.TryGetValue((exception, withFile), out var constructor))
+                    constructors[(exception, withFile)] = constructor =
+                        module.ImportReference(exception.GetConstructor(withFile ? [typeof(string), typeof(string)] : [typeof(string)])!);
+                return constructor;
+            }
             var hidden = module.ImportReference(typeof(System.Diagnostics.StackTraceHiddenAttribute).GetConstructor(Type.EmptyTypes)!);
             foreach (var (method, message, _, exception) in failing)
-            {
-                if (!constructors.TryGetValue(exception, out var constructor))
-                    constructors[exception] = constructor = module.ImportReference(exception.GetConstructor([typeof(string)])!);
-                Throw(method, message, constructor, hidden);
-            }
+                Throw(method, message, Constructor(exception), hidden);
+            foreach (var (method, uses, locals) in atCall)
+                ThrowAtUses(method, uses, locals, Constructor);
             using var output = new MemoryStream();
             using var symbolOutput = new MemoryStream();
             module.Write(output, new Cecil.WriterParameters { WriteSymbols = withSymbols, SymbolStream = withSymbols ? symbolOutput : null, SymbolWriterProvider = withSymbols ? new Cecil.Cil.PortablePdbWriterProvider() : null });
             symbols = withSymbols ? symbolOutput.ToArray() : null;
-            var names = string.Join(", ", failing.Select(f => f.Type).Distinct().Take(8));
-            EngineLog.Engine($"mod missing types: {Path.GetFileName(path)}: {failing.Count} method(s) name types or members their assemblies lack ({names}); they throw as Mono's compilation of them does");
+            if (failing.Count > 0)
+            {
+                var names = string.Join(", ", failing.Select(f => f.Type).Distinct().Take(8));
+                EngineLog.Engine($"mod missing types: {Path.GetFileName(path)}: {failing.Count} method(s) name types or members their assemblies lack ({names}); they throw as Mono's compilation of them does");
+            }
+            if (atCall.Count > 0)
+            {
+                var names = string.Join(", ", atCall.SelectMany(a => a.Uses).Select(u => u.Use.Name).Distinct().Take(8));
+                EngineLog.Engine($"mod api gaps: {Path.GetFileName(path)}: {atCall.Sum(a => a.Uses.Count)} reference(s) in {atCall.Count} method(s) name what the original's assemblies have and ours lack ({names}); they throw where they run");
+            }
             return output.ToArray();
+        }
+
+        /// D58. Each instruction naming a gap throws where it runs: its operands are popped and
+        /// it becomes `throw new E(message)` (prefixes before it become nop), and the method's
+        /// locals of a gap type hold objects (an enum's, its underlying type). The rest of the
+        /// method runs as it did, and a catch around the instruction sees the exception, as it sees
+        /// Mono's from a call that fails.
+        static void ThrowAtUses(Cecil.MethodDefinition method, List<(Cecil.Cil.Instruction At, Scan.GapUse Use)> uses, List<(Cecil.Cil.VariableDefinition Local, Cecil.TypeReference Type)> locals,
+            Func<Type, bool, Cecil.MethodReference> constructor)
+        {
+            var body = method.Body;
+            body.SimplifyMacros();
+            foreach (var (local, type) in locals) local.VariableType = type;
+            var il = body.GetILProcessor();
+            foreach (var (at, use) in uses)
+            {
+                for (var prefix = at.Previous; prefix != null && prefix.OpCode.OpCodeType == Cecil.Cil.OpCodeType.Prefix; prefix = prefix.Previous)
+                {
+                    prefix.OpCode = Cecil.Cil.OpCodes.Nop;
+                    prefix.Operand = null;
+                }
+                var sequence = new List<Cecil.Cil.Instruction>();
+                for (int i = 0; i < use.Pops; i++) sequence.Add(il.Create(Cecil.Cil.OpCodes.Pop));
+                sequence.Add(il.Create(Cecil.Cil.OpCodes.Ldstr, use.Message));
+                if (use.FileName != null) sequence.Add(il.Create(Cecil.Cil.OpCodes.Ldstr, use.FileName));
+                sequence.Add(il.Create(Cecil.Cil.OpCodes.Newobj, constructor(use.Exception, use.FileName != null)));
+                sequence.Add(il.Create(Cecil.Cil.OpCodes.Throw));
+                // The instruction itself becomes the first, so branches to it and the exception
+                // clauses that start or end at it keep their place.
+                at.OpCode = sequence[0].OpCode;
+                at.Operand = sequence[0].Operand;
+                var after = at;
+                foreach (var next in sequence.Skip(1))
+                {
+                    il.InsertAfter(after, next);
+                    after = next;
+                }
+            }
+            body.OptimizeMacros();
         }
 
         /// The method's body becomes `throw new TypeLoadException(message)` (or MissingMethodException,
@@ -248,8 +349,11 @@ namespace OniMoono.Host
 
         /// Where Mono's compilation of a method first fails on a missing type or member, and its
         /// message.
-        internal sealed class Scan(Dictionary<(string Assembly, string Namespace, string Name), int> tokens, Dictionary<int, MonoMissingMembers.Missing> members)
+        internal sealed class Scan(Dictionary<(string Assembly, string Namespace, string Name), int> tokens, Dictionary<int, MonoMissingMembers.Missing> members,
+            Dictionary<(string Assembly, string Namespace, string Name), Gap>? gaps = null)
         {
+            readonly Dictionary<(string Assembly, string Namespace, string Name), Gap> gaps = gaps ?? new();
+
             /// The message, the missing type's or member's name and the exception's type, or null
             /// when the method compiles on Mono.
             public (string Message, string Type, Type Exception)? Failure(Cecil.MethodDefinition method)
@@ -297,7 +401,7 @@ namespace OniMoono.Host
             /// error (MissingMethodException or MissingFieldException).
             (string, string, Type)? Absent(Cecil.MemberReference member)
             {
-                if (member is Cecil.IMemberDefinition || !members.TryGetValue(member.MetadataToken.ToInt32(), out var missing)) return null;
+                if (member is Cecil.IMemberDefinition || !members.TryGetValue(member.MetadataToken.ToInt32(), out var missing) || missing.Gap) return null;
                 return (missing.Message, member.DeclaringType.Name + "." + member.Name, missing.Field ? typeof(MissingFieldException) : typeof(MissingMethodException));
             }
 
@@ -329,30 +433,164 @@ namespace OniMoono.Host
             }
 
             /// The first missing top-level type a type is built from, in the order Mono reads it.
-            public Cecil.TypeReference? Missing(Cecil.TypeReference? type)
+            public Cecil.TypeReference? Missing(Cecil.TypeReference? type) => First(type, tokens.ContainsKey);
+
+            /// The first type a type is built from that ours cannot resolve where the original can.
+            public Cecil.TypeReference? GapIn(Cecil.TypeReference? type) => gaps.Count == 0 ? null : First(type, gaps.ContainsKey);
+
+            static Cecil.TypeReference? First(Cecil.TypeReference? type, Func<(string, string, string), bool> named)
             {
                 switch (type)
                 {
                     case null or Cecil.GenericParameter or Cecil.TypeDefinition:
                         return null;
                     case Cecil.GenericInstanceType generic:
-                        if (Missing(generic.ElementType) is { } element) return element;
+                        if (First(generic.ElementType, named) is { } element) return element;
                         foreach (var argument in generic.GenericArguments)
-                            if (Missing(argument) is { } t) return t;
+                            if (First(argument, named) is { } t) return t;
                         return null;
                     case Cecil.IModifierType modified:
-                        return Missing(((Cecil.TypeSpecification)type).ElementType) ?? Missing(modified.ModifierType);
+                        return First(((Cecil.TypeSpecification)type).ElementType, named) ?? First(modified.ModifierType, named);
                     case Cecil.FunctionPointerType pointer:
-                        if (Missing(pointer.ReturnType) is { } returned) return returned;
+                        if (First(pointer.ReturnType, named) is { } returned) return returned;
                         foreach (var parameter in pointer.Parameters)
-                            if (Missing(parameter.ParameterType) is { } p) return p;
+                            if (First(parameter.ParameterType, named) is { } p) return p;
                         return null;
                     case Cecil.TypeSpecification specification:
-                        return Missing(specification.ElementType);
+                        return First(specification.ElementType, named);
                 }
-                // A nested type fails with its enclosing one; its own name is D32's.
-                if (type.DeclaringType != null) return Missing(type.DeclaringType);
-                return type.Scope is Cecil.AssemblyNameReference assembly && tokens.ContainsKey((assembly.Name, type.Namespace, type.Name)) ? type : null;
+                // A nested type fails with its enclosing one; its own name is D32's, but for a gap.
+                if (type.DeclaringType != null) return First(type.DeclaringType, named) ?? (Key(type) is { } nested && named(nested) ? type : null);
+                return Key(type) is { } key && named(key) ? type : null;
+            }
+
+            /// (assembly, namespace, name) of a type reference, nested names after their outermost
+            /// type's namespace as "Outer/Inner".
+            static (string, string, string)? Key(Cecil.TypeReference type)
+            {
+                var name = type.Name;
+                var outer = type;
+                for (; outer.DeclaringType != null; outer = outer.DeclaringType) name = outer.DeclaringType.Name + "/" + name;
+                return outer.Scope is Cecil.AssemblyNameReference assembly ? (assembly.Name, outer.Namespace, name) : null;
+            }
+
+            /// An instruction naming a gap (D58), what it throws, and how many values it takes
+            /// from the stack.
+            internal readonly record struct GapUse(string Name, string Message, Type Exception, string? FileName, int Pops);
+
+            /// The instructions of a method Mono compiles that name a gap, and its locals of a gap
+            /// type; null where it names none, or where ours cannot make it compile (a catch clause
+            /// of a gap type, or its own signature naming one: CoreCLR fails it as a whole).
+            public (List<(Cecil.Cil.Instruction At, GapUse Use)> Uses, List<(Cecil.Cil.VariableDefinition Local, Cecil.TypeReference Type)> Locals)? Gaps(Cecil.MethodDefinition method)
+            {
+                var body = method.Body;
+                if (GapIn(method.ReturnType) != null || method.Parameters.Any(p => GapIn(p.ParameterType) != null)) return null;
+                foreach (var handler in body.ExceptionHandlers)
+                    if (GapIn(handler.CatchType) != null) return null;
+                var ts = method.Module.TypeSystem;
+                var locals = body.Variables.Where(v => GapIn(v.VariableType) != null)
+                    .Select(v => (v, Key(v.VariableType) is { } key && gaps.TryGetValue(key, out var gap) && gap.Enum is { } code ? Primitive(ts, code) : ts.Object)).ToList();
+                var uses = new List<(Cecil.Cil.Instruction, GapUse)>();
+                foreach (var instruction in body.Instructions)
+                {
+                    if (GapAt(instruction) is not { } use) continue;
+                    var at = instruction;
+                    // constrained. names the type of the call after it: the call throws.
+                    while (at.OpCode.OpCodeType == Cecil.Cil.OpCodeType.Prefix)
+                    {
+                        if (at.Next == null) return null;
+                        at = at.Next;
+                    }
+                    if (uses.Count > 0 && uses[^1].Item1 == at) continue;
+                    uses.Add((at, use with { Pops = Pops(at) }));
+                }
+                return uses.Count == 0 && locals.Count == 0 ? null : (uses, locals);
+            }
+
+            GapUse? GapAt(Cecil.Cil.Instruction instruction)
+            {
+                var code = instruction.OpCode.Code;
+                switch (instruction.Operand)
+                {
+                    case Cecil.MethodReference called:
+                        var arguments = (called as Cecil.GenericInstanceMethod)?.GenericArguments.Select(GapIn).FirstOrDefault(p => p != null);
+                        var element = (called as Cecil.GenericInstanceMethod)?.ElementMethod ?? called;
+                        if (element is Cecil.MethodDefinition) return arguments is { } own ? TypeGap(own, kept: true) : null;
+                        var t = GapIn(element.DeclaringType) ?? GapIn(element.ReturnType)
+                            ?? element.Parameters.Select(p => GapIn(p.ParameterType)).FirstOrDefault(p => p != null) ?? arguments;
+                        if (t != null) return TypeGap(t, kept: true);
+                        if (members.TryGetValue(element.MetadataToken.ToInt32(), out var missing) && missing.Gap)
+                            return new GapUse(element.DeclaringType.Name + "." + element.Name, missing.Message,
+                                missing.Field ? typeof(MissingFieldException) : typeof(MissingMethodException), null, 0);
+                        return null;
+                    case Cecil.FieldReference field:
+                        if ((field is Cecil.FieldDefinition ? GapIn(field.FieldType) : GapIn(field.DeclaringType) ?? GapIn(field.FieldType)) is { } f)
+                            return TypeGap(f, kept: code == Cecil.Cil.Code.Ldtoken);
+                        if (field is not Cecil.FieldDefinition && members.TryGetValue(field.MetadataToken.ToInt32(), out var absent) && absent.Gap)
+                            return new GapUse(field.DeclaringType.Name + "." + field.Name, absent.Message, typeof(MissingFieldException), null, 0);
+                        return null;
+                    case Cecil.TypeReference type:
+                        return GapIn(type) is { } g ? TypeGap(g, kept: code == Cecil.Cil.Code.Ldtoken || (code == Cecil.Cil.Code.Sizeof && type is Cecil.TypeSpecification)) : null;
+                    case Cecil.CallSite site:
+                        return (GapIn(site.ReturnType) ?? site.Parameters.Select(p => GapIn(p.ParameterType)).FirstOrDefault(p => p != null)) is { } s ? TypeGap(s, kept: true) : null;
+                }
+                return null;
+            }
+
+            /// Mono's exception for a reference to a type that does not resolve, by where its JIT
+            /// meets it (as in Failure): where it keeps the error, FileNotFoundException for an
+            /// assembly that cannot be loaded (UnityProbe's atcall) or TypeLoadException naming the
+            /// TypeRef; where it drops it, "Failure has occurred while loading a type.".
+            GapUse TypeGap(Cecil.TypeReference type, bool kept)
+            {
+                var assembly = (Cecil.AssemblyNameReference)type.Scope;
+                var key = Key(type)!.Value;
+                var name = key.Item2.Length == 0 ? key.Item3 : key.Item2 + "." + key.Item3;
+                var gap = gaps[key];
+                if (!kept) return new GapUse(name, LostError, typeof(TypeLoadException), null, 0);
+                if (gap.Failure == MonoApiGaps.OursFailure.Assembly && gap.Assembly is { } file)
+                    return new GapUse(name, $"Could not load file or assembly '{file}' or one of its dependencies.", typeof(FileNotFoundException), file, 0);
+                return new GapUse(name, $"Could not resolve type with token {gap.Token:x8} from typeref (expected class '{name}' in assembly '{MonoAssemblyName(assembly)}')",
+                    typeof(TypeLoadException), null, 0);
+            }
+
+            static Cecil.TypeReference Primitive(Cecil.TypeSystem ts, PrimitiveTypeCode code) => code switch
+            {
+                PrimitiveTypeCode.Boolean => ts.Boolean,
+                PrimitiveTypeCode.Char => ts.Char,
+                PrimitiveTypeCode.SByte => ts.SByte,
+                PrimitiveTypeCode.Byte => ts.Byte,
+                PrimitiveTypeCode.Int16 => ts.Int16,
+                PrimitiveTypeCode.UInt16 => ts.UInt16,
+                PrimitiveTypeCode.UInt32 => ts.UInt32,
+                PrimitiveTypeCode.Int64 => ts.Int64,
+                PrimitiveTypeCode.UInt64 => ts.UInt64,
+                PrimitiveTypeCode.IntPtr => ts.IntPtr,
+                PrimitiveTypeCode.UIntPtr => ts.UIntPtr,
+                _ => ts.Int32,
+            };
+
+            /// The values an instruction takes from the stack.
+            static int Pops(Cecil.Cil.Instruction instruction)
+            {
+                var opcode = instruction.OpCode;
+                switch (opcode.StackBehaviourPop)
+                {
+                    case Cecil.Cil.StackBehaviour.Pop0 or Cecil.Cil.StackBehaviour.PopAll:
+                        return 0;
+                    case Cecil.Cil.StackBehaviour.Varpop:
+                        if (instruction.Operand is Cecil.CallSite site) return site.Parameters.Count + (site.HasThis && !site.ExplicitThis ? 1 : 0) + 1;
+                        if (instruction.Operand is not Cecil.IMethodSignature method || opcode.Code == Cecil.Cil.Code.Jmp) return 0;
+                        return method.Parameters.Count + (method.HasThis && !method.ExplicitThis && opcode.Code != Cecil.Cil.Code.Newobj ? 1 : 0);
+                    case Cecil.Cil.StackBehaviour.Pop1 or Cecil.Cil.StackBehaviour.Popi or Cecil.Cil.StackBehaviour.Popref:
+                        return 1;
+                    case Cecil.Cil.StackBehaviour.Pop1_pop1 or Cecil.Cil.StackBehaviour.Popi_pop1 or Cecil.Cil.StackBehaviour.Popi_popi
+                        or Cecil.Cil.StackBehaviour.Popi_popi8 or Cecil.Cil.StackBehaviour.Popi_popr4 or Cecil.Cil.StackBehaviour.Popi_popr8
+                        or Cecil.Cil.StackBehaviour.Popref_pop1 or Cecil.Cil.StackBehaviour.Popref_popi:
+                        return 2;
+                    default:
+                        return 3;
+                }
             }
 
             (string, string, Type) Kept(Cecil.TypeReference type)

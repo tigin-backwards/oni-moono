@@ -30,7 +30,10 @@ namespace OniMoono.Host
     /// resolved here (the mod's own, a missing one: MonoMissingTypes) is taken as found.
     internal static class MonoMissingMembers
     {
-        internal readonly record struct Missing(bool Field, string Message);
+        /// A member reference the runtime finds no member for, with Mono's message; `Gap` where
+        /// the original's copy of an assembly ours answers for has the member (D58: it fails where
+        /// it runs, not as a whole).
+        internal readonly record struct Missing(bool Field, string Message, bool Gap = false);
 
         /// The member references (by token) the runtime finds no member for, with Mono's messages.
         internal static Dictionary<int, Missing> Find(MetadataReader md)
@@ -41,30 +44,34 @@ namespace OniMoono.Host
             {
                 var reference = md.GetMemberReference(handle);
                 string? message;
+                bool gap = false;
                 try
                 {
-                    if (Parent(md, provider, reference.Parent) is not var (type, klass, typeArguments)) continue;
+                    if (Parent(md, provider, reference.Parent) is not var (type, klass, typeArguments, typeRef)) continue;
                     var name = md.GetString(reference.Name);
                     var context = new Context(typeArguments);
                     message = reference.GetKind() == MemberReferenceKind.Field
                         ? FieldMissing(type, name, reference.DecodeFieldSignature(provider, context), klass)
                         : MethodMissing(type, name, reference, provider, context, klass);
+                    // A member of Unity's or the class libraries' that the original's copy has
+                    // (or where its metadata cannot tell): our API's gap.
+                    if (message != null && !provider.SameInBothPlayers(type)) gap = MonoApiGaps.OriginalHas(md, typeRef, reference) != false;
                 }
                 catch (Exception e) when (e is BadImageFormatException or TypeLoadException or System.IO.IOException or NotSupportedException or ArgumentException)
                 {
                     // Taken as found: the method fails, if it does, as CoreCLR fails it.
                     continue;
                 }
-                if (message != null) found[MetadataTokens.GetToken(handle)] = new Missing(reference.GetKind() == MemberReferenceKind.Field, message);
+                if (message != null) found[MetadataTokens.GetToken(handle)] = new Missing(reference.GetKind() == MemberReferenceKind.Field, message, gap);
             }
             return found;
         }
 
         /// The type a member reference's parent names (a generic one's definition), as Mono names it
         /// in the message (namespace, '.', name, the namespace empty for a nested type), with the
-        /// definition's type parameters; null where it is not a type of an assembly the same in both
-        /// players.
-        static (Type Type, string Klass, Type[] TypeArguments)? Parent(MetadataReader md, Provider provider, EntityHandle parent)
+        /// definition's type parameters and its TypeRef; null where it is not a type of an
+        /// assembly the same in both players or one ours answers for (MonoApiGaps).
+        static (Type Type, string Klass, Type[] TypeArguments, TypeReferenceHandle Reference)? Parent(MetadataReader md, Provider provider, EntityHandle parent)
         {
             if (parent.Kind == HandleKind.TypeSpecification)
             {
@@ -77,10 +84,11 @@ namespace OniMoono.Host
             }
             if (parent.Kind != HandleKind.TypeReference) return null;
             var handle = (TypeReferenceHandle)parent;
-            if (provider.Resolve(handle) is not { } type || !provider.SameInBothPlayers(type)) return null;
+            if (provider.Resolve(handle) is not { } type) return null;
+            if (!provider.SameInBothPlayers(type) && !(MonoApiGaps.Name(md, handle).Assembly is { } scope && MonoApiGaps.OursAnswer(scope))) return null;
             var reference = md.GetTypeReference(handle);
             var klass = md.GetString(reference.Namespace) + "." + md.GetString(reference.Name);
-            return (type, klass, type.IsGenericTypeDefinition ? type.GetGenericArguments() : Type.EmptyTypes);
+            return (type, klass, type.IsGenericTypeDefinition ? type.GetGenericArguments() : Type.EmptyTypes, handle);
         }
 
         const BindingFlags DeclaredFlags = BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
@@ -205,7 +213,9 @@ namespace OniMoono.Host
                         // are CoreLib's.
                         type = MonoMissingTypes.Loaded(assemblyName)?.GetType(fullName, throwOnError: false)
                             ?? (assemblyName is "mscorlib" or "netstandard" || assemblyName.StartsWith("System", StringComparison.Ordinal)
-                                ? typeof(object).Assembly.GetType(fullName, throwOnError: false) : null);
+                                ? typeof(object).Assembly.GetType(fullName, throwOnError: false) : null)
+                            // Of an assembly ours answers for, not loaded yet: ours loads it.
+                            ?? (MonoApiGaps.OursAnswer(assemblyName) ? MonoApiGaps.Ours(assemblyName, fullName).Type : null);
                         break;
                     case HandleKind.TypeReference:
                         type = Resolve((TypeReferenceHandle)reference.ResolutionScope)?.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic);

@@ -1858,6 +1858,7 @@ namespace OniMoono.Host
                     try { Directory.Delete(dir, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
                 }
             });
+            Check("A mod's references to what the original has and ours lacks (MonoApiGaps)", ApiGapsCheck.Run);
             Check("A mod's signatures tagging a type as another kind than its own (MonoTypeKinds)", TypeKindsCheck.Run);
             Check("A mod's stack walk through a patched method (MonoStackFrames)", () =>
             {
