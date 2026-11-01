@@ -1,0 +1,23 @@
+# 移动电池充电器效率提升 Power bank charger at 98.3 % (3745786025), class P (Bionic Booster Pack).
+#
+# What it does: the Power Bank Charger (ElectrobankCharger) charges at 471.84 J/s for its 480 W
+# (98.3 %; the game's charges 400 J/s): postfixes on ElectrobankChargerConfig.CreateBuildingDef
+# and the charger's ChargeInternal.
+# How a player reaches it: a Power Bank Charger.
+# What changes: less power lost charging banks.
+#
+# setup builds a Power Bank Charger in the dug-out corridor west of the printing pod; its draw is
+# still 480 W, and selected its details screen is dumped (its effects as in the original).
+from: early-base
+mods: [3745786025]
+require_log: ['\[Electrobank Charger 98% Efficiency\] v1.0.0 loaded']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ElectrobankCharger\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"ElectrobankCharger\").EnergyConsumptionWhenActive": 480
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: ElectrobankCharger}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}

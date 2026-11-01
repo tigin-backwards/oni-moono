@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3745786025-power-bank-charger-efficiency.yaml",
+ "mods": [
+  "3745786025"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Power Bank Charger in the dug-out corridor west of the printing pod; its draw is still 480 W, and selected its details screen is dumped (its effects as in the original)",
+ "updated": "2026-11-01",
+ "commit": "39521c0a",
+ "mod_dlls": {
+  "3745786025": {
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db",
+   "╥╞╢»╡τ│╪│Σ╡τ╞≈╨º┬╩╠ß╔².dll": "3f96a860255a5e71b49152f43135ed939bfec50fa1c58b5b89d75de074093a16"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-023133-63191ed3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:31:34",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-030058-d80fe093",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:00:58",
+    "lane": 43,
+    "reference_run": "20261101-023133-63191ed3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-030058-d80fe093",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T03:02:49",
+    "lane": 41,
+    "reference_run": "20261101-023133-63191ed3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
