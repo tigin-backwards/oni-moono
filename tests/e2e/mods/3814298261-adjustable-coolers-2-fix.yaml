@@ -1,0 +1,27 @@
+# Adjustable Coolers 2 (fix) (3814298261), classes B, S.
+#
+# What it does: the Thermo Regulator (AirConditioner) and Thermo Aquatuner (LiquidConditioner)
+# get an AirConditionerAdjustable: a capacity side screen (IUserControlledCapacity) sets how
+# much they cool, -20 to +20 degrees, and their power use follows it (base 340 W and 1700 W,
+# up from the game's 240 and 1200, scaled by the chosen change); copy settings copies it.
+# How a player reaches it: a built regulator's or aquatuner's side screen.
+# What changes: coolers with a chosen temperature change, and heaters.
+#
+# setup builds a Thermo Regulator in the corridor west of the printing pod; selected, its
+# side screen shows the setting, and -10 typed in sets a 10-degree cooling change.
+from: early-base
+mods: [3814298261]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"AirConditioner\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"AirConditioner\").EnergyConsumptionWhenActive": 340
+      "Assets.GetBuildingDef(\"LiquidConditioner\").EnergyConsumptionWhenActive": 1700
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: AirConditioner}
+  - ui_wait: {path: "**/DetailsScreen/SideScreen/**/CapacityControlSideScreen", cond: stable}
+  - ui_dump: {name: capacity, root: "**/CapacityControlSideScreen"}
+  - type: {ui: "**/CapacityControlSideScreen/**/InputField", text: "-10", enter: true, clear: true}
+  - expect_state:
+      "selected:GetComponent<AdjustableCoolers2.AirConditionerAdjustable>.coolingDelta": -10
