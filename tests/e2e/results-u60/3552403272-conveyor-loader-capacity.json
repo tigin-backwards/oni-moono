@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3552403272-conveyor-loader-capacity.yaml",
+ "mods": [
+  "3552403272"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Conveyor Loader in the dug-out corridor west of the printing pod. Selected, its capacity side screen shows, its slider going to 1000 kg (dumped)",
+ "updated": "2026-11-01",
+ "commit": "bd3f7b59",
+ "mod_dlls": {
+  "3552403272": {
+   "BetterPorterage.dll": "765d7ffdf16fd8f26d0b4b2fda5b251c97aed5bf83ed5948380cc9bfd05c303b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-012842-2786154e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:32:28",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010421-d2692876",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:04:22",
+    "lane": 44,
+    "reference_run": "20261101-012842-2786154e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "capacity": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-010421-d2692876",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:11:36",
+    "lane": 44,
+    "reference_run": "20261101-012842-2786154e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "capacity": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

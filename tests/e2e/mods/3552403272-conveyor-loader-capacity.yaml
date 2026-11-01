@@ -1,0 +1,25 @@
+# 自定义运输箱内存 Conveyor Loader capacity (3552403272), classes P, S.
+#
+# What it does: the Conveyor Loader (SolidConduitInbox) becomes a NewSolidConduitInbox with a
+# capacity the player sets, 0 to 1000 kg (IUserControlledCapacity, the game's capacity side
+# screen), copied with the building's settings.
+# How a player reaches it: a Conveyor Loader's capacity side screen.
+# What changes: how much a loader holds before it feeds the rail.
+#
+# setup builds a Conveyor Loader in the dug-out corridor west of the printing pod. Selected,
+# its capacity side screen shows, its slider going to 1000 kg (dumped).
+from: early-base
+mods: [3552403272]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SolidConduitInbox\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"SolidConduitInbox\").BuildingComplete.GetComponent<BetterPorterage.NewSolidConduitInbox>": exists
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: SolidConduitInbox}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<BetterPorterage.NewSolidConduitInbox>.MaxCapacity": 1000
+  - ui_wait: {path: "**/CapacityControlSideScreen", cond: stable}
+  - ui_dump: {name: capacity, root: "**/CapacityControlSideScreen"}
