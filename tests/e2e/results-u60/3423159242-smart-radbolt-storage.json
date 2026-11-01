@@ -3,12 +3,12 @@
  "mods": [
   "3423159242"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
  "note": "setup builds a Radbolt Chamber in the dug-out corridor west of the printing pod. It has the smart storage; selected, its activation range side screen shows (dumped)",
  "updated": "2026-11-01",
- "commit": "f6c10d7b",
+ "commit": "041ec4b7",
  "mod_dlls": {
   "3423159242": {
    "smart_HEP.dll": "10ec9e44d281407f8e9bf5bcd187087c325ee77803ca1d56601b60870d20015d"
@@ -17,41 +17,35 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-064852-62246d7e",
+    "run": "20261101-124815-5952a836",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T06:55:01",
-    "lane": 41,
+    "date": "2026-11-01T12:48:15",
+    "lane": 1,
     "signatures": 1
    }
   ],
   "ours": [
    {
-    "run": "20261101-075204-1ee1da8b",
+    "run": "20261101-125005-a9700c4e",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T07:52:04",
-    "lane": 42,
-    "reasons": [
-     "1 log signature(s) the original lacks"
-    ],
-    "reference_run": "20261101-064852-62246d7e",
-    "new_signatures": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:50:05",
+    "lane": 1,
+    "reference_run": "20261101-124815-5952a836",
+    "new_signatures": 0,
     "findings": [],
     "ui_dump": {},
     "shots": {}
    },
    {
-    "run": "20261101-075204-1ee1da8b",
+    "run": "20261101-125005-a9700c4e",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T07:52:20",
-    "lane": 44,
-    "reasons": [
-     "1 log signature(s) the original lacks"
-    ],
-    "reference_run": "20261101-064852-62246d7e",
-    "new_signatures": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:51:23",
+    "lane": 1,
+    "reference_run": "20261101-124815-5952a836",
+    "new_signatures": 0,
     "findings": [],
     "ui_dump": {},
     "shots": {}
