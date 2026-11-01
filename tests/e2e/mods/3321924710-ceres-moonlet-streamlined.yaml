@@ -1,0 +1,42 @@
+# Ceres Moonlet Cluster Streamlined / 谷神星小卫星群流线型 (3321924710), class P (a worldgen mod, no code).
+#
+# What it does: a Spaced Out cluster (M-CER-S-C) starting on a small Ceres asteroid among moonlets.
+# How a player reaches it: the main menu, New Game, Survival, Spaced Out; the destination
+# screen's asteroid carousel lists the mod's cluster.
+# What changes: the cluster a new game generates.
+#
+# From a colony: the pause menu's Main Menu, Quit Without Saving, New Game, Survival, Spaced
+# Out; the mod's cluster (M-CER-S-C, fixed seed) is launched and embarked. Worldgen expectations
+# are functional (mod-play-testing.md, "Worldgen mods"): the cluster and start world are the
+# mod's, with as many worlds as the original generates.
+from: early-base
+mods: [3321924710]
+memory_gb: 8
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Main MenuButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Main MenuButton"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/ConfigurableButton"}   # Quit Without Saving
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/SpacedOutGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/SpacedOutGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "M-CER-S-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/Section - Destination/DestinationDetailsHeader/ClusterName", cond: stable}
+  - expect_state:
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"ClusterLayout\").id.EndsWith(\"CeresSpacedOutClusterMoonletStreamlinedMod\")": true
+  - ui_dump: {name: asteroids, root: "**/Section - Destination/World Scoll (Rect Size Set By Screen Code!)/Content/Details"}
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
+  - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
+  - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  - expect_state:
+      "ClusterManager.Instance.GetStartWorld().worldName.EndsWith(\"MiniCeresSpacedOutAsteroidStreamlinedMod\")": true
+      "ClusterManager.Instance.WorldContainers.Count": ["== original", ">= 2"]
+      "Components.LiveMinionIdentities.Count": 3
