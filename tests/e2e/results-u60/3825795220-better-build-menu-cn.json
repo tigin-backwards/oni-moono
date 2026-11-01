@@ -3,12 +3,12 @@
  "mods": [
   "3825795220"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "defaults. The Base menu opens; its building panel is dumped and shot, as in the original",
+ "note": "defaults. The Base menu opens; its building list is dumped and the panel shot, as in the original (the panel's scrollbar left out of the dump: the mod hides it in Update every 0.2 s, which the dump catches only at the original's frame rate)",
  "updated": "2026-11-01",
- "commit": "83bf5433",
+ "commit": "73af34fc",
  "mod_dlls": {
   "3825795220": {
    "╕ⁿ║├╡─╜¿╓■▓╦╡Ñ.dll": "f1810b316b46144a29ecc052b50b9c093ecf3be159bb64ca39a062c617e1fd29"
@@ -17,52 +17,50 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-113332-087413b5",
+    "run": "a2021-o3",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T11:33:32",
-    "lane": 42,
+    "date": "2026-11-01T15:32:22",
+    "lane": 34,
     "signatures": 0
    }
   ],
   "ours": [
    {
-    "run": "20261101-113704-3922e6da",
+    "run": "a2021-u3",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T11:37:04",
-    "lane": 44,
-    "reasons": [
-     "ui_dump base-menu: 2 difference(s)"
-    ],
-    "reference_run": "20261101-113332-087413b5",
+    "verdict": "pass",
+    "date": "2026-11-01T15:33:24",
+    "lane": 34,
+    "reference_run": "a2021-o3",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
      "base-menu": {
-      "differences": 2
+      "differences": 0
      }
     },
-    "shots": {}
+    "shots": {
+     "base-menu": 3.2e-05
+    }
    },
    {
-    "run": "20261101-113704-3922e6da",
+    "run": "a2021-u3",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T11:37:05",
-    "lane": 45,
-    "reasons": [
-     "ui_dump base-menu: 2 difference(s)"
-    ],
-    "reference_run": "20261101-113332-087413b5",
+    "verdict": "pass",
+    "date": "2026-11-01T15:33:25",
+    "lane": 35,
+    "reference_run": "a2021-o3",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {
      "base-menu": {
-      "differences": 2
+      "differences": 0
      }
     },
-    "shots": {}
+    "shots": {
+     "base-menu": 3.2e-05
+    }
    }
   ]
  }
