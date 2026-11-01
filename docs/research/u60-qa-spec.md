@@ -1164,6 +1164,10 @@ label; Neutronium tooltip.
 
 ### L3 Development-build calls and new engine members
 
+**Status:** passes (e58e7da0): `scripts/check.sh` on the 761211 Linux data: ApiCheck finds 787 type and
+3,225 member refs, 0 types and 13 members missing, all 13 in `UnityEngine.UIElementsModule`; the
+unit suites pass.
+
 **Risk: low.** Covered (67946a05, 1976a914; inventory "Engine API").
 
 **Patch note:** "Minor unity version update 6000.3.5f2 -> 6000.3.17f1."
