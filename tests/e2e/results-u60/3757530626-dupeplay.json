@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3757530626-dupeplay.yaml",
+ "mods": [
+  "3757530626"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads and the colony plays for 30 s (no requests are sent; one player at a time owns the port)",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "3757530626": {
+   "DupePlay.dll": "c6778d6d58ae2353febac260beb1b0a68fad8dcc5946adafa3f00e47afc52aac"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:51:00",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:06:28",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:06:32",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
