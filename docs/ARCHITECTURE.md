@@ -1597,17 +1597,20 @@ buffers keep theirs. Microsoft documents that a flip-model swap chain never retu
 `DXGI_STATUS_OCCLUDED`; should one anyway, the picture is taken as not shown and not waited for.
 Exclusive fullscreen stays the window's (GLFW sets the display mode, a monitor-sized window), not
 DXGI's `SetFullscreenState`, and DXGI is told to leave the window alone
-(`DXGI_MWA_NO_WINDOW_CHANGES | NO_ALT_ENTER`): with no DXGI mode change, neither `Present` nor
-`ResizeBuffers` has a reason to send the window a message the main thread (which may be waiting
-on the GL thread, which may be waiting on the presenter) would have to answer, the deadlock
-Microsoft's multithreading notes for DXGI warn of with fullscreen swap chains. After start-up
-every DXGI, D3D11 and interop object is used and released on the presenter thread alone, and the
-waits on the waitable object are not alertable. Start-up makes everything that can fail (the interop extension, the adapter, the D3D11
-device, the registration and a first lock) before it gives the window a swap chain, and a failure
-there leaves SwapBuffers in use, with one `present:` log line saying why. Once the window has a
-swap chain, a failure (the chain's own set-up at start-up; while running a lost device:
-`DXGI_ERROR_DEVICE_REMOVED`/`RESET`/`HUNG`, a failed lock, resize or present) releases everything
-DXGI held and starts it anew. Restarts come in bursts of ten tries, 1, 2, 4 then 8 s apart
+(`DXGI_MWA_NO_WINDOW_CHANGES | NO_ALT_ENTER`). Microsoft's multithreading notes for DXGI list a
+DXGI call on a thread other than the window's as a deadlock risk: `Present` may send the window a
+message, which the main thread (which may be waiting on the GL thread, which may be waiting on
+the presenter) would have to answer; their example is a fullscreen swap chain's mode change,
+which never happens here. That `Present` and `ResizeBuffers` send no such message is not
+documented; the evidence is measured: the resizes and window switches below (150 each, with 150
+minimize/restore cycles) never hung. After start-up every DXGI, D3D11 and interop object is used
+and released on the presenter thread alone, and the waits on the waitable object are not
+alertable. Start-up makes everything that can fail (the interop extension, the adapter, the
+D3D11 device, the registration and a first lock) before it gives the window a swap chain, and a
+failure there leaves SwapBuffers in use, with one `present:` log line saying why. Once the
+window has a swap chain, a failure (the chain's own set-up at start-up; while running a lost
+device: `DXGI_ERROR_DEVICE_REMOVED`/`RESET`/`HUNG`, a failed lock, resize or present) releases
+everything DXGI held and starts it anew. Restarts come in bursts of ten tries, 1, 2, 4 then 8 s apart
 (about a minute, outlasting a slow driver reset); a restart that presents for 60 s ends its
 burst, so a later failure gets ten tries again. Until a restart succeeds SwapBuffers stands in,
 but it does not reach the screen on a window whose flip-model swap chain has presented
