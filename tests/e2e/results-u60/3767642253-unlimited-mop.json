@@ -1,0 +1,30 @@
+{
+ "spec": "mods/3767642253-unlimited-mop.yaml",
+ "mods": [
+  "3767642253"
+ ],
+ "verdict": "pending",
+ "why": "0 run(s) of ours against original run 20261031-210418-28504fa7; 2 needed",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "ba34464e",
+ "mod_dlls": {
+  "3767642253": {
+   "UnlimitedMop.dll": "5b6bf13d2f0e779347f0cc0ed6b59049ffd7177698ed7f842a7c2b040ee35be6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-210418-28504fa7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:04:19",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

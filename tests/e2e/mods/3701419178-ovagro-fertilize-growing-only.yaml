@@ -1,0 +1,16 @@
+# Fertilize Only Growing Ovagro Vines (3701419178), class P (Prehistoric Planet Pack only).
+#
+# What it does: an Ovagro vine segment that has grown its next segment is no longer offered
+# to farmers for tinkering (fertilizing) by default: postfixes on VineBranch's
+# PostParamsInitialized and AttemptToSpawnBranch clear its Tinkerable's userMenuAllowed, so
+# only a vine's last segment keeps the errand.
+# How a player reaches it: nothing to click; Ovagro vines on a farm.
+# What changes: farmers fertilize only the growing tip of each vine.
+#
+# The Prehistoric colony loads with the mod's two patches, and runs two minutes with it.
+from: prehistoric1
+mods: [3701419178]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == OvagroTinkerOnLastSegmentsOnly and .loaded_mod_data.patched_methods.Count == 2": 1
+  - run: {seconds: 120}

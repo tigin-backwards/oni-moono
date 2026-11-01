@@ -1,0 +1,19 @@
+# No Teleport Achievement Lockout (3012403917), class P.
+#
+# What it does: on a colony whose Teleporters setting is not "Enabled", the "No Teleport of
+# Call" achievement no longer becomes impossible: a postfix on TeleportDuplicant.Success
+# answers true. A postfix on Game.OnSpawn reads the setting and logs whether the override is on.
+# How a player reaches it: a game started with teleporters disabled.
+# What changes: that achievement stays reachable.
+#
+# early-base has teleporters enabled: the mod logs the override off, and the achievement's
+# requirement answers as the game's would.
+from: early-base
+mods: [3012403917]
+require_log: ['No Teleport Achievement Lockout enabled: False']
+steps:
+  - expect_state:
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"Teleporters\").id": Enabled
+      "type:No_Teleport_Achievement_Lockout.Patches::_overrideTeleportCriteria": false
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

@@ -1,0 +1,17 @@
+# Overjoyed欣喜若狂 (3601241428), class P (obfuscated code).
+#
+# What it does: a postfix on JoyBehaviourMonitor.Instance.ShouldBeOverjoyed also makes a
+# Duplicant overjoyed whenever its morale exceeds its expectations by twice the game's minimum
+# excess (JOY_REACTIONS.MIN_MORALE_EXCESS), without the game's random roll.
+# How a player reaches it: nothing to click; happy Duplicants.
+# What changes: overjoyed responses come more often.
+#
+# The mod loads with its one patch, and the colony runs two minutes with it (its Duplicants'
+# morale is below their expectations here, so no joy to check).
+from: early-base
+mods: [3601241428]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == Overjoyed and .loaded_mod_data.patched_methods.Count == 1": 1
+  - run: {seconds: 120}
+  - expect: {duplicants: 3}

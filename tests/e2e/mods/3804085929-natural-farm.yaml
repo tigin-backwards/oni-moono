@@ -1,0 +1,43 @@
+# 自然种植砖 (Natural farm tiles) (3804085929), class B, S.
+#
+# What it does: three planters that grow crops as if wild (no fertilizer or irrigation: a
+# postfix makes their PlantablePlot accept neither; rooms count them as wild plants) at the
+# domestic growth rate: the Natural Farm Tile, Natural Wide Farm Tile and Natural Backwall
+# Farm (Bionic Booster Pack only), each in the Food menu after the game's counterpart and
+# researched with it. Their side screen has three seed mutation buttons (vanilla, always,
+# never).
+# How a player reaches it: the build menu (Food); a planter's side screens.
+# What changes: planters that need no fertilizer or water.
+#
+# setup researches Basic Farming and places a Natural Farm Tile in the corridor west of the
+# printing pod (118,207). It shows in the Food menu after the Farm Tile; selected, its plot
+# takes neither fertilizer nor irrigation, and its "100%变异" button sets its mutation mode.
+from: early-base
+mods: [3804085929]
+require_log: ['\[NaturalFarm\] 已加入建造菜单: NaturalFarmTile']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FarmingTech\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"NaturalFarmTile\")", method: Build, args: [131770, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {NaturalFarmTile: 1}}
+  - expect_state:
+      "Db.Get().Techs.TryGetTechForTechItem(\"NaturalFarmTile\").Id": FarmingTech
+  - click: {ui: "**/PlanScreen/Toggle:Food"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/NaturalFarmTile Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/NaturalFarmTile Group*": {active: true}
+  - shot: {name: food-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: NaturalFarmTile}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<PlantablePlot>.AcceptsFertilizer": false
+      "selected:GetComponent<PlantablePlot>.AcceptsIrrigation": false
+      "selected:GetComponent<NaturalFarmMod.NaturalFarmMutationControl>.Mode": 0
+  - ui_wait: {path: "**/ButtonMenuSideScreen/**", cond: stable}
+  - expect_ui: {"**/ButtonMenuSideScreen/**": {any_text: "100%变异"}}
+  - click: {text: "100%变异", under: "**/ButtonMenuSideScreen"}
+  - expect_state: {"selected:GetComponent<NaturalFarmMod.NaturalFarmMutationControl>.Mode": 1}

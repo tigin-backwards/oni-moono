@@ -1,0 +1,25 @@
+# 天地棋局 (2971581472), class B.
+#
+# What it does: adds a 1x1 decorative building, MM20230505001 (a chessboard: raw minerals,
+# +3 decor in a radius of 2), to the Furniture menu.
+# How a player reaches it: the build menu (Furniture).
+# What changes: one more decor building.
+#
+# setup places one in the corridor west of the printing pod (118,207): it shows in the
+# Furniture menu, gives its decor, and is shot in the world.
+from: early-base
+mods: [2971581472]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"MM20230505001\")", method: Build, args: [131770, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {MM20230505001: 1}}
+  - expect_state:
+      "Assets.GetBuildingDef(\"MM20230505001\").BaseDecor": 3
+      "Assets.GetBuildingDef(\"MM20230505001\").BaseDecorRadius": 2
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/MM20230505001 Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/MM20230505001 Group*": {active: true}
+  - key: {code: Escape}
+  - world_shot: {name: board, ortho: 4, at: [118, 208]}

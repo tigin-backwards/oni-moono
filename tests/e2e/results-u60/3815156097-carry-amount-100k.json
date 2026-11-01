@@ -1,0 +1,30 @@
+{
+ "spec": "mods/3815156097-carry-amount-100k.yaml",
+ "mods": [
+  "3815156097"
+ ],
+ "verdict": "pending",
+ "why": "0 run(s) of ours against original run 20261031-211206-4612e68b; 2 needed",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "ba34464e",
+ "mod_dlls": {
+  "3815156097": {
+   "CarryAmount100k.dll": "9a409e137950439834826dca15bb60d8fa7ab000bfeda40b5c14fa9c41e8b55d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-211206-4612e68b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:15:04",
+    "lane": 36,
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

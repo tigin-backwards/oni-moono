@@ -1,0 +1,29 @@
+# POB-Ethanol Distillers 乙醇蒸馏器 (3386141624), class B.
+#
+# What it does: adds 乙醇生成机 (EthanolDistillery1), a 4x3 powered machine (240 W, any metal)
+# that makes 0.5 kg/s of ethanol from nothing (an ElementConverter with no inputs) into a
+# liquid pipe, and drops 20 kg of polluted dirt now and then (the game's AlgaeDistillery
+# emitter). Its menu entry names the category "power" in lower case.
+# How a player reaches it: the build menu.
+# What changes: power turned into ethanol.
+#
+# setup places one on the floor of the dug-out room west of the printing pod (107-110,
+# 206-208): it is complete, with its converter's output, its pipe port and its storage.
+from: early-base
+mods: [3386141624]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"EthanolDistillery1\")", method: Build, args: [131124, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {EthanolDistillery1: 1}}
+  - expect_state:
+      "Assets.GetPrefab(\"EthanolDistillery1\").GetComponent<ElementConverter>.outputElements[0].elementHash": Ethanol
+      "Assets.GetPrefab(\"EthanolDistillery1\").GetComponent<ElementConverter>.outputElements[0].massGenerationRate": 0.5
+      "Assets.GetPrefab(\"EthanolDistillery1\").GetComponent<ElementConverter>.consumedElements.Length": 0
+      "Assets.GetBuildingDef(\"EthanolDistillery1\").EnergyConsumptionWhenActive": 240
+  - driver: {camera.set: {cell: [109, 208], ortho: 6}}
+  - click_world: {cell: [109, 207], select: EthanolDistillery1}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_ui:
+      "**/DetailsScreen/TitleBar/Border/LabelGroup/Label": {text: "~乙醇生成机"}
+  - world_shot: {name: distillery, ortho: 5, at: [109, 208]}

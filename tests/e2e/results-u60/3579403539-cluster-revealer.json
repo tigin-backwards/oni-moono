@@ -1,0 +1,30 @@
+{
+ "spec": "mods/3579403539-cluster-revealer.yaml",
+ "mods": [
+  "3579403539"
+ ],
+ "verdict": "pending",
+ "why": "0 run(s) of ours against original run 20261031-211739-b9f0b40c; 2 needed",
+ "findings": [],
+ "note": "",
+ "updated": "2026-10-31",
+ "commit": "ba34464e",
+ "mod_dlls": {
+  "3579403539": {
+   "RemoveClusterFogOfWar1.dll": "e8278a04c5fe5802d86604e3ed3d3af538016b404154fdbfcf8c565a40c221c1"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-211739-b9f0b40c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:17:39",
+    "lane": 21,
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}

@@ -1,0 +1,34 @@
+# SubmersibleEverything (3788121619), class P.
+#
+# What it does: every building works under liquid: a prefix on
+# BuildingLoader.CreateBuildingComplete clears each BuildingDef's Floodable (so no Floodable
+# component is added), a postfix on RegisterBuilding removes any left, the Critter Condo's
+# operational check stops asking for one, and gas-emitting converters and generators release
+# their gas as bubbles under liquid. Its config (mods/config/SubmersibleEverything/config.json)
+# turns it off or blacklists buildings.
+# How a player reaches it: nothing to click; any building standing in liquid.
+# What changes: no "Flooded" status: buildings keep working underwater.
+#
+# The mod logs how many building definitions it patched; the outhouse and the research station
+# have no Floodable. setup pours 300 kg of water into each cell the outhouse west of the
+# printing pod stands in (116,207 and 116,208), which would flood it: after the colony runs,
+# the water is still there and the outhouse is operational.
+from: early-base
+mods: [3788121619]
+require_log: ['\[SubmersibleEverything\] Enabled\. \d+ building definitions patched']
+setup:
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [131768, Water, null, 300, 300, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [132404, Water, null, 300, 300, 255, 0]}}
+steps:
+  - run: {seconds: 10}
+  - expect_state:
+      "Assets.GetBuildingDef(\"Outhouse\").Floodable": false
+      "Assets.GetBuildingDef(\"ResearchCenter\").Floodable": false
+      "Assets.GetPrefab(\"Outhouse\").GetComponent<Floodable>": missing
+      "Grid.Mass.get_Item(131768)": "> 100"
+      "Grid.Element[131768].id": Water
+  - driver: {camera.set: {cell: [116, 208], ortho: 8}}
+  - click_world: {cell: [116, 207], select: Outhouse}
+  - expect_state:
+      "selected:GetComponent<Operational>.IsOperational": true
+      "selected:GetComponent<Floodable>": missing

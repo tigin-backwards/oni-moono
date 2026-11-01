@@ -1,0 +1,38 @@
+# Antique Freezer Bank (3794308883), class B.
+#
+# What it does: a 3x2 food storage (Food menu, storage group, researched with Food
+# Repurposing; refined metal and plastic) holding 10 t of food at -20 °C, powered (120 W),
+# never letting food spoil, with a "full" logic port, a food filter, and its own Database
+# entry (a postfix on CodexCache.CodexCacheInit).
+# How a player reaches it: the research screen, then the build menu (Food).
+# What changes: bulk food storage that stops spoilage.
+#
+# setup researches Food Repurposing and places a freezer bank in the corridor west of the
+# printing pod (118-120, 207-208). It shows in the Food menu and in the Database; selected, it
+# holds 10 t of food and has the food filter side screen.
+from: early-base
+mods: [3794308883]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"FoodRepurposing\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"AntiqueFreezer\")", method: Build, args: [131771, Neutral, null, [Steel, Polypropylene], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {AntiqueFreezer: 1}}
+  - expect_state:
+      "Db.Get().Techs.Get(\"FoodRepurposing\").unlockedItemIDs": {contains: AntiqueFreezer}
+      "CodexCache.entries": {contains: ANTIQUEFREEZER}
+  - click: {ui: "**/PlanScreen/Toggle:Food"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/AntiqueFreezer Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/AntiqueFreezer Group*": {active: true}
+  - shot: {name: food-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [119, 208], ortho: 8}}
+  - click_world: {cell: [119, 208], select: AntiqueFreezer}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Storage>.capacityKg": 10000
+      "selected:GetComponent<Refrigerator>": exists
+  - ui_wait: {path: "**/TreeFilterableSideScreen", cond: stable}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}

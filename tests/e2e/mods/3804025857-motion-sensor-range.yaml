@@ -1,0 +1,32 @@
+# Motion Sensor Range (3804025857), class S (a side screen on a vanilla building).
+#
+# What it does: the Duplicant Motion Sensor (LogicDuplicantSensor) gets a range slider
+# (RangeSlider, IIntSliderControl: the game's IntSliderSideScreen), 2 to 16 tiles in steps of
+# 2 (4 in the game); the range sets the sensor's pickupRange, its detection extents and its
+# range visualizer, and copies with the building's settings.
+# How a player reaches it: selecting a Duplicant Motion Sensor; its side screen.
+# What changes: sensors that watch a smaller or bigger area.
+#
+# setup places a Duplicant Motion Sensor in the corridor west of the printing pod (118,207);
+# selected, its slider shows 4, and 10 typed into the slider's field gives it a 10-tile range.
+from: early-base
+mods: [3804025857]
+require_log: ['\[MotionSensorRange\] Loaded version']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicDuplicantSensor\")", method: Build, args: [131770, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {LogicDuplicantSensor: 1}}
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: LogicDuplicantSensor}
+  - ui_wait: {path: "**/DetailsScreen/SideScreen/**/IntSliderSideScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<LogicDuplicantSensor>.pickupRange": 4
+      "selected:GetComponent<MotionSensorRange.RangeSlider>.range": 4
+  - ui_dump: {name: slider, root: "**/IntSliderSideScreen"}
+  - type: {ui: "**/IntSliderSideScreen/**/*Input*", text: "10", enter: true, clear: true}
+  - expect_state:
+      "selected:GetComponent<MotionSensorRange.RangeSlider>.range": 10
+      "selected:GetComponent<LogicDuplicantSensor>.pickupRange": 10
+      "selected:GetComponent<RangeVisualizer>.RangeMax.y": 10
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}

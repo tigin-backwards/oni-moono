@@ -1,0 +1,23 @@
+# Show Dupe World (3530534502), class S (a patch on a game side screen).
+#
+# What it does: each Duplicant row of the assignment side screen (AssignableSideScreenRow, a
+# bed's or a desk's owner list) gets a tooltip naming the asteroid that Duplicant is on.
+# How a player reaches it: selecting an assignable building (a cot), then hovering a
+# Duplicant in its list.
+# What changes: the rows say which world each Duplicant lives on.
+#
+# The cot east of the printing pod is selected: its assignment list has a row per Duplicant,
+# and each row's label carries the tooltip with the start asteroid's name.
+from: early-base
+mods: [3530534502]
+steps:
+  - driver: {camera.set: {cell: [132, 208], ortho: 8}}
+  - click_world: {cell: [132, 207], select: Bed}
+  - ui_wait: {path: "**/AssignableSideScreen/ValidContent/Contents/ContentScrollRect/RowContainer/Rows", cond: stable}
+  - expect_state:
+      "count:all:AssignableSideScreenRow::[*] if .gameObject.activeInHierarchy == true": ">= 3"
+      "ClusterManager.Instance.GetStartWorld().GetComponent<AsteroidGridEntity>.Name": {save_as: world}
+  # Every Duplicant's row names the world; none says "Unknown World".
+  - expect_state:
+      "count:all:AssignableSideScreenRow::[*] if .GetComponentInChildren<LocText>.GetComponent<ToolTip>.toolTip == 'Unknown World'": 0
+      "ui:**/Rows/AssignableSideScreenRow::GetComponentInChildren<LocText>.GetComponent<ToolTip>.toolTip": "!= ''"

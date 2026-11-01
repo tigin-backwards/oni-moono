@@ -1,0 +1,28 @@
+# Critter kill point (3504841018), class S (a user menu button on a vanilla building).
+#
+# What it does: the Critter Pick-Up (CritterPickUpConfig) gets a Killbutton: its user menu
+# button "Open Autokill" / "Close Autokill" toggles autokill, saved and copied with the
+# building's settings; with it on, a critter the pick-up's capture chore begins on is marked
+# for attack instead (FactionAlignment.SetPlayerTargeted). The pick-up also recounts its
+# critters before it looks for one to capture.
+# How a player reaches it: selecting a Critter Pick-Up; its user menu.
+# What changes: surplus critters are culled where they would be wrangled.
+#
+# setup places a Critter Pick-Up in the corridor west of the printing pod (118,207); selected,
+# its user menu has Open Autokill, whose click turns autokill on and the button to Close
+# Autokill.
+from: early-base
+mods: [3504841018]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CritterPickUp\")", method: Build, args: [131770, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {CritterPickUp: 1}}
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: CritterPickUp}
+  - ui_wait: {path: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons", cond: stable}
+  - expect_state: {"selected:GetComponent<killpoint.Killbutton>.autokill": false}
+  - ui_dump: {name: user-menu, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}
+  - click: {ui: "**/UserMenuScreen/Buttons/Open AutokillButton"}
+  - expect_state: {"selected:GetComponent<killpoint.Killbutton>.autokill": true}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Close AutokillButton", cond: stable}

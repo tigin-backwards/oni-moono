@@ -1,0 +1,23 @@
+# Building-Super Shearing Station 超级修剪站 (3465340506), classes P, O.
+#
+# What it does: multiplies what a shearing gives (each critter's ScaleGrowthMonitor dropMass,
+# set in postfixes on their configs): Drecko, Glossy Drecko, Delecta Vole, Wood Deer, Bammoth,
+# Gold Belly, Rhex and Glass Deer, 1x to 50x each, by PLib options (Controler.json in the
+# shared config folder; a restart applies them).
+# How a player reaches it: the Mods screen's options; then any shearing.
+# What changes: more reed fiber, plastic, kelp, wood and so on per shearing.
+#
+# The spec sets Drecko to 10x and Glossy Drecko to 3x: the critters' prefabs drop 20 kg of
+# fiber and 450 kg of plastic, and the others the game's amounts.
+from: early-base
+mods: [3465340506]
+options:
+  SuperShearingStation: {$file: Controler.json, Drekos: 10, DreckoPlastic: 3}
+steps:
+  - expect_state:
+      "count:Assets.GetPrefab(\"Drecko\").GetComponent<StateMachineController>.cmpdef.defs[*] if .GetType().FullName == 'ScaleGrowthMonitor+Def'": 1
+  - expect_state:
+      "sum:Assets.GetPrefab(\"Drecko\").GetComponent<StateMachineController>.cmpdef.defs[*].dropMass if .GetType().FullName == 'ScaleGrowthMonitor+Def'": 20
+      "sum:Assets.GetPrefab(\"DreckoPlastic\").GetComponent<StateMachineController>.cmpdef.defs[*].dropMass if .GetType().FullName == 'ScaleGrowthMonitor+Def'": 450
+      "sum:Assets.GetPrefab(\"WoodDeer\").GetComponent<StateMachineController>.cmpdef.defs[*].dropMass if .GetType().FullName == 'ScaleGrowthMonitor+Def'": "== original"
+  - run: {seconds: 60}

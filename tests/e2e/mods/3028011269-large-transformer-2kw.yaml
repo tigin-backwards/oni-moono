@@ -1,0 +1,25 @@
+# 大功率变压器功率降低mod (3028011269), class P.
+#
+# What it does: the Large Power Transformer (PowerTransformer) passes 2 kW instead of 4 kW: a
+# postfix on PowerTransformerConfig.CreateBuildingDef sets its generator wattage rating and
+# base capacity to 2000 W. (Its mod.yaml names it DGSM, another mod's static ID.)
+# How a player reaches it: building a Large Power Transformer.
+# What changes: its rating, in the build menu card and on a built one.
+#
+# The transformer's definition carries the mod's 2000 W, and the Power menu's card for it
+# shows it.
+from: early-base
+mods: [3028011269]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedPowerRegulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"PowerTransformer\").GeneratorWattageRating": 2000
+      "Assets.GetBuildingDef(\"PowerTransformer\").GeneratorBaseCapacity": 2000
+      "Assets.GetBuildingDef(\"PowerTransformerSmall\").GeneratorWattageRating": 1000
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/PowerTransformer Group*", cond: stable}
+  - click: {ui: "**/BuildingGroups/**/Grid/PowerTransformer Group*"}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/ProductInfoScreen", cond: stable}
+  - shot: {name: product, crop: "**/ProductInfoScreen", threshold: 0.04, pointer: stay}

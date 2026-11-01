@@ -1,0 +1,21 @@
+# 初始携带1000K (Carry Amount 100k) (3815156097), class P, B, T.
+#
+# What it does: Duplicants (standard and bionic), the Biobot, the Flydo and the Rover carry
+# 1,000,000 kg: a prefix on AttributeModifier's constructor rewrites their base CarryAmount
+# modifiers. It also adds the Super Solid Input Box (SolidConduitInboxA, Utilities menu), a
+# bigger Conveyor Loader, and replaces the Mop tool's drag (no "not on floor" refusal; instant
+# with instant build).
+# How a player reaches it: nothing to click for the carry amount; the build menu; the Mop tool.
+# What changes: a Duplicant carries a whole delivery in one trip.
+#
+# Every Duplicant's carry capacity is the mod's; the colony runs a few minutes of errands with
+# it; the Super Solid Input Box is in the Utilities menu.
+from: early-base
+mods: [3815156097]
+steps:
+  - expect_state:
+      "Components.LiveMinionIdentities.Items[0].GetComponent<MinionModifiers>.attributes.Get(\"CarryAmount\").GetTotalValue()": ">= 1000000"
+      "Components.LiveMinionIdentities.Items[2].GetComponent<MinionModifiers>.attributes.Get(\"CarryAmount\").GetTotalValue()": ">= 1000000"
+      "Assets.GetBuildingDef(\"SolidConduitInboxA\").PrefabID": SolidConduitInboxA
+  - run: {seconds: 180}
+  - expect: {duplicants: 3}

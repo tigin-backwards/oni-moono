@@ -1,0 +1,61 @@
+# Sweeper Harvest (3820896200), class S, P.
+#
+# What it does: the Auto-Sweeper (SolidTransferArm) gets a SweeperHarvester and an "Auto
+# Harvest" checkbox (ICheckboxControl, the game's SingleCheckboxSideScreen); when it is ticked
+# and the sweeper is operational and idle, it finds the nearest ripe plant within its range
+# (plus 2 across, 3 up and down) every second, turns its arm to it, and after 2 s harvests it
+# (Harvestable.Trigger), its produce dropped for the sweeper to store as usual. PLib options
+# (Mods screen): which plants (FollowPlant, only those marked for harvest or set to harvest when
+# ready; AllRipe, any ripe plant), the harvest time, husks, idle only, the arm animation, a
+# popup and a user menu button.
+# How a player reaches it: selecting an Auto-Sweeper; its side screens.
+# What changes: ripe plants near a sweeper are harvested without a Duplicant.
+#
+# setup grants Smart Storage, gives two Duplicants the Mechatronics Engineering skill an
+# Auto-Sweeper takes to build, spawns steel, and plants a ripe wild Mealwood on the floor west
+# of the outhouse; the options pick AllRipe (a wild plant is not set to be harvested, so no
+# Duplicant harvests it either). A sweeper is built east of the plant, and a wire dragged from
+# it to the manual generator east of the printing pod. With the checkbox clear the plant stays ripe;
+# ticked, the sweeper harvests it.
+from: early-base
+mods: [3820896200]
+options:
+  Jincy.SweeperHarvest: {harvestMode: 1}
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"SmartStorage\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[1].GetComponent<MinionResume>", method: GrantSkill, args: [Engineering1]}}
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[2].GetComponent<MinionResume>", method: GrantSkill, args: [Engineering1]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Steel\").substance", method: SpawnResource, args: [[114.5, 206.5, -12], 400, 300, 255, 0]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"BasicSingleHarvestPlant\")"}, [110.5, 206.01, -24.5], BuildingFront]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "last:GetComponent<Growing>", method: OverrideMaturityLevel, args: [1.0]}}
+steps:
+  - build: {prefab: SolidTransferArm, at: [113, 206], material: Steel}
+  # A wire dragged with the build tool from the sweeper's cell (it stands at 114,206) up and
+  # east along the corridor to the generator's power port (129,207): a drag connects its
+  # pieces, single blueprints do not.
+  - driver: {camera.set: {cell: [121, 208], ortho: 10}}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/Wire Group*", cond: stable}
+  - click: {ui: "**/BuildingGroups/**/Grid/Wire Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - drag: {from: [114, 206], via: [[114, 207]], to: [129, 207]}
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - expect: {blueprints: {SolidTransferArm: 1, Wire: 17}}
+  - run: {seconds: 1200, until: {buildings: {SolidTransferArm: 1}, pending_construction: 0}}
+  - expect_state:
+      "last:GetComponent<Growing>.IsGrown()": true
+      "last:GetComponent<Harvestable>.CanBeHarvested": true
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: SolidTransferArm}
+  - ui_wait: {path: "**/DetailsScreen/SideScreen/**/SingleCheckboxSideScreen", cond: stable}
+  - expect_state: {"selected:GetComponent<Jincy.SweeperHarvest.SweeperHarvester>.autoHarvest": false}
+  - ui_dump: {name: checkbox, root: "**/SingleCheckboxSideScreen"}
+  - click: {ui: "**/SingleCheckboxSideScreen/**/CheckboxGroup/CheckBox"}
+  - expect_state: {"selected:GetComponent<Jincy.SweeperHarvest.SweeperHarvester>.autoHarvest": true}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
+  - run: {seconds: 60}
+  - expect_state:
+      "last:GetComponent<Harvestable>.CanBeHarvested": false

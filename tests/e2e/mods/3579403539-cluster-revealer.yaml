@@ -1,0 +1,26 @@
+# Cluster Revealer (3579403539), class V.
+#
+# What it does: reveals the starmap and every asteroid: ClusterGrid.IsVisible always answers
+# true, the fog of war's GetRevealCompleteFraction always 1, and a postfix on
+# ClusterManager.OnSpawn marks every world discovered.
+# How a player reaches it: loading a colony; the starmap (Z) then shows every hex, POI and
+# asteroid, and the planetoid list every world.
+# What changes: no fog of war on the starmap; every asteroid is known.
+#
+# The colony loads with every world discovered (the game alone knows the start world and the
+# ones in telescope reach); the starmap opens on every POI and asteroid of the cluster, and is
+# shot.
+from: early-base
+mods: [3579403539]
+steps:
+  - expect_state:
+      "ClusterManager.Instance.WorldContainers.Count": {save_as: worlds}
+  - expect_state:
+      "count:ClusterManager.Instance.WorldContainers[*] if .IsDiscovered == true": "== worlds"
+      "count:ClusterManager.Instance.WorldContainers[*] if .IsDiscovered == false": 0
+  - open: {key: Z}
+  - ui_wait: {path: "**/ClusterMap/MapView/VisContainer", cond: stable, frames: 600}
+  # Every POI's and asteroid's visualizer is shown: as many as the original shows.
+  - expect_state:
+      "count:all:ClusterMapVisualizer::[*] if .gameObject.activeInHierarchy == true": [">= 10", "== original"]
+  - shot: {name: starmap, threshold: 0.05}
