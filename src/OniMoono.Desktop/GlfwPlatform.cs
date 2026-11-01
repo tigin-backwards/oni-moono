@@ -34,6 +34,9 @@ namespace OniMoono.Desktop
         readonly InputStateFeed feed = new();
         FullScreenMode mode;
         int2 windowedPosition, windowedSize;
+        /// In exclusive fullscreen, the monitor's mode from before the window took it: GLFW's
+        /// video mode is the current one (glfwGetVideoMode), the exclusive mode until it is left.
+        GlfwVidMode? desktopBeforeExclusive;
         bool cursorVisible = true;
         CursorLockMode cursorLock;
         GlfwCursor customCursor;
@@ -131,6 +134,7 @@ namespace OniMoono.Desktop
             if (mode == FullScreenMode.FullScreenWindow) window.Position = monitor.Position;
             else if (mode != FullScreenMode.ExclusiveFullScreen) window.CenterToMonitor(monitor);
             windowedPosition = window.Position;
+            if (mode == FullScreenMode.ExclusiveFullScreen) desktopBeforeExclusive = desktop;
             if (settings.Monitor > 0)
                 OniMoono.Engine.EngineLog.Engine($"window: monitor {settings.Monitor} of {monitors.Length} at {monitor.Position.X},{monitor.Position.Y}; window at {window.Position.X},{window.Position.Y}");
             SetIcon(window);
@@ -448,7 +452,8 @@ namespace OniMoono.Desktop
             newMode = Supported(newMode);
             if (Gl.PresentTrace.Enabled) Trace($"SetResolution {width}x{height} {newMode} (was {mode}, framebuffer {framebufferSize.X}x{framebufferSize.Y})");
             var monitor = CurrentMonitor;
-            var desktop = monitor.VideoMode;
+            // The monitor's desktop mode: in exclusive fullscreen, the one from before it.
+            var desktop = mode == FullScreenMode.ExclusiveFullScreen && desktopBeforeExclusive is { } before ? before : monitor.VideoMode;
             if (mode is FullScreenMode.Windowed or FullScreenMode.MaximizedWindow)
             {
                 windowedPosition = window.Position;
@@ -460,6 +465,7 @@ namespace OniMoono.Desktop
                 {
                     if (window.IsMaximised) window.Restore();
                     int refresh = refreshDenominator == 0 || refreshNumerator == 0 ? desktop.RefreshRate : (int)Math.Round((double)refreshNumerator / refreshDenominator);
+                    desktopBeforeExclusive = desktop;
                     window.SetFullscreen(monitor, new int2(width, height), refresh);
                     break;
                 }
@@ -475,6 +481,11 @@ namespace OniMoono.Desktop
                 {
                     window.SetAttribute(GlfwWindowAttribute.Decorated, GLFW_TRUE);
                     var size = new int2(width, height);
+                    // Out of exclusive fullscreen first: GLFW gives a window its frame only once it
+                    // is no monitor's (glfwSetWindowAttrib stores DECORATED until then, and
+                    // win32's frame size is a popup's, none), and the work area is the exclusive
+                    // mode's until the desktop mode is back.
+                    if (mode == FullScreenMode.ExclusiveFullScreen) window.SetWindowed(windowedPosition, size);
                     bool maximize = newMode == FullScreenMode.MaximizedWindow || TooLargeForWorkArea(monitor, size);
                     bool restored = window.IsMaximised && !maximize;
                     if (restored) window.Restore();
@@ -496,6 +507,7 @@ namespace OniMoono.Desktop
                     break;
                 }
             }
+            if (newMode != FullScreenMode.ExclusiveFullScreen) desktopBeforeExclusive = null;
             mode = newMode;
             window.Refresh();
             RefreshWindowState();
