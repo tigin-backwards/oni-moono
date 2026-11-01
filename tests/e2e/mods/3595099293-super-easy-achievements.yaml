@@ -1,0 +1,13 @@
+# Super Easy Achievements (Challenge Mod) (3595099293), class P.
+#
+# What it does: a postfix on Db.Initialize makes the Carnivore and Locavore achievements and
+# others far easier to earn.
+# How a player reaches it: the colony achievements.
+# What changes: easy achievements.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3595099293]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
