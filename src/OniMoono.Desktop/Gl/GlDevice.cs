@@ -189,9 +189,16 @@ namespace OniMoono.Desktop.Gl
             Array.Clear(constants);
         }
 
-        /// Video memory in MB (SystemInfo.graphicsMemorySize): the dedicated memory the NVIDIA or
-        /// AMD memory-info extension reports, else Mesa's renderer query; 0 when the driver
-        /// reports none. (The extensions come first: Mesa's figure can include shared memory.)
+        /// Video memory in MB (SystemInfo.graphicsMemorySize), 0 when the driver reports none:
+        /// - the dedicated video memory of NVX_gpu_memory_info (NVIDIA's driver, and Mesa's
+        ///   drivers that track memory);
+        /// - the RAM of the context's GPU from WGL_AMD_gpu_association or GLX_AMD_gpu_association
+        ///   (AMD's drivers);
+        /// - GLX_MESA_query_renderer's video memory "available to the renderer" (Mesa; after the
+        ///   extensions because on a unified-memory GPU it can include shared memory);
+        /// - last, ATI_meminfo's TEXTURE_FREE_MEMORY_ATI. That is the memory free in the texture
+        ///   pool, and only a hint (ATI_meminfo, section 6.1.x), not the total: an approximation
+        ///   lower by what is already allocated.
         static int QueryVideoMemoryMB()
         {
             if (GlPrograms.Extensions.Contains("GL_NVX_gpu_memory_info"))
@@ -200,12 +207,7 @@ namespace OniMoono.Desktop.Gl
                 N.glGetIntegerv(0x9047, &kb); // GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX
                 if (kb > 0) return kb / 1024;
             }
-            if (GlPrograms.Extensions.Contains("GL_ATI_meminfo"))
-            {
-                int* info = stackalloc int[4];
-                N.glGetIntegerv(0x87FC, info); // TEXTURE_FREE_MEMORY_ATI
-                if (info[0] > 0) return info[0] / 1024;
-            }
+            if (AmdGpuRamMB() is > 0 and var amd) return amd;
             const int GlxRendererVideoMemoryMesa = 0x8187;
             var query = (delegate* unmanaged[Cdecl]<int, uint*, int>)Glfw.GetProcAddress("glXQueryCurrentRendererIntegerMESA"u8);
             if (query != null)
@@ -213,8 +215,39 @@ namespace OniMoono.Desktop.Gl
                 uint mb = 0;
                 if (query(GlxRendererVideoMemoryMesa, &mb) != 0 && mb > 0) return (int)mb;
             }
+            if (GlPrograms.Extensions.Contains("GL_ATI_meminfo"))
+            {
+                int* info = stackalloc int[4];
+                N.glGetIntegerv(0x87FC, info); // TEXTURE_FREE_MEMORY_ATI, param[0]: KB free in the pool
+                if (info[0] > 0) return info[0] / 1024;
+            }
             return 0;
         }
+
+        /// WGL_GPU_RAM_AMD (GLX_GPU_RAM_AMD) of the GPU the current context is on: "the amount of
+        /// RAM available to GPU in MB" (WGL_AMD_gpu_association and GLX_AMD_gpu_association,
+        /// wglGetGPUInfoAMD), a property of the GPU rather than of its use. 0 without the
+        /// extension or when a query fails (the context's GPU id is 0 then, the info query -1).
+        static int AmdGpuRamMB()
+        {
+            const int GpuRamAmd = 0x21A3;
+            const uint UnsignedIntType = 0x1405;
+            bool windows = OperatingSystem.IsWindows();
+            if (!Glfw.ExtensionSupported(windows ? "WGL_AMD_gpu_association" : "GLX_AMD_gpu_association")) return 0;
+            var contextGpu = (delegate* unmanaged<IntPtr, uint>)Glfw.GetProcAddress(windows ? "wglGetContextGPUIDAMD"u8 : "glXGetContextGPUIDAMD"u8);
+            var info = (delegate* unmanaged<uint, int, uint, uint, void*, int>)Glfw.GetProcAddress(windows ? "wglGetGPUInfoAMD"u8 : "glXGetGPUInfoAMD"u8);
+            if (contextGpu == null || info == null) return 0;
+            uint id = contextGpu(windows ? WglGetCurrentContext() : GlxGetCurrentContext());
+            if (id == 0) return 0;
+            uint mb = 0;
+            return info(id, GpuRamAmd, UnsignedIntType, 1, &mb) >= 1 && mb is > 0 and <= int.MaxValue ? (int)mb : 0;
+        }
+
+        [DllImport("opengl32.dll", EntryPoint = "wglGetCurrentContext")]
+        static extern IntPtr WglGetCurrentContext();
+
+        [DllImport("libGL.so.1", EntryPoint = "glXGetCurrentContext")]
+        static extern IntPtr GlxGetCurrentContext();
 
         /// The NVIDIA extension's free dedicated memory and evictions (count and size since the
         /// context was made), or the AMD one's free memory in the texture pool and the auxiliary
