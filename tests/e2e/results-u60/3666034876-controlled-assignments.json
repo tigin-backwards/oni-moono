@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3666034876-controlled-assignments.yaml",
+ "mods": [
+  "3666034876"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "showers and sinks are ownable: a Wash Basin's assignment list shows the colony's Duplicants (details shot)",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3666034876": {
+   "ControlledAssignments.dll": "71665ba32c4304991552cf698b7e85455f48aec77b0df83ff023448585d1c169"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032714-f98abda9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:27:14",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-125904-03c788c4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:59:04",
+    "lane": 36,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0
+    }
+   },
+   {
+    "run": "20261101-125904-03c788c4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:00:18",
+    "lane": 36,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0
+    }
+   }
+  ]
+ }
+}
