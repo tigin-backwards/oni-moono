@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3671949318-noglow-shinebugs.yaml",
+ "mods": [
+  "3671949318"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns a Shine Bug and an Azure Shine Bug in the dug-out corridor west of the printing pod. Their lights are off and give 0 lux",
+ "updated": "2026-11-01",
+ "commit": "e2a62405",
+ "mod_dlls": {
+  "3671949318": {
+   "NoGlow_Shinebugs_mod.dll": "2a99e8294c5912df179fb11f4b11d585a5371b4df575936a4aaf381efa03b3be"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-073756-2a3320d7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:57:00",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-081607-d6c224d1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:16:07",
+    "lane": 42,
+    "reference_run": "20261101-073756-2a3320d7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-081607-d6c224d1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:16:08",
+    "lane": 43,
+    "reference_run": "20261101-073756-2a3320d7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

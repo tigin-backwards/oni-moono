@@ -1,0 +1,30 @@
+# NoGlow_Shinebugs发光虫不发光 (3671949318), class P (Spaced Out).
+#
+# What it does: Shine Bugs of every kind give no light: a postfix on
+# BaseLightBugConfig.BaseLightBug sets the prefab's Light2D to 0 lux and disables it (and its
+# LightSymbolTracker), and a postfix on Light2D.OnSpawn does the same for any light on a
+# Shine Bug that spawns (those already in a save).
+# How a player reaches it: Shine Bugs.
+# What changes: no light, no light-based decor or plant growth from them.
+#
+# setup spawns a Shine Bug and an Azure Shine Bug in the dug-out corridor west of the printing
+# pod. Their lights give 0 lux (the game turns their Light2D components back on in play, as
+# many as in the original, but at 0 lux).
+from: early-base
+mods: [3671949318]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(112, 207)"}, 0, 0, LightBug, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(115, 207)"}, 0, 0, LightBugBlue, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"LightBug\").GetComponent<Light2D>.Lux": 0
+      "Assets.GetPrefab(\"LightBugBlue\").GetComponent<Light2D>.enabled": false
+  - run: {seconds: 10}
+  - expect_state:
+      "count:all:Light2D::[*] if .gameObject.name.StartsWith(\"LightBug\") == true and .enabled == true": "== original"
+      "sum:all:Light2D::[*].Lux if .gameObject.name.StartsWith(\"LightBug\") == true": 0
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == LightBug": ">= 1"
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == LightBugBlue": ">= 1"
+  - expect: {duplicants: 3}
