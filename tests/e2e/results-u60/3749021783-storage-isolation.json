@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3749021783-storage-isolation.yaml",
+ "mods": [
+  "3749021783"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the ration box's storage has the mod's four sealing modifiers; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "5b5d113a",
+ "mod_dlls": {
+  "3749021783": {
+   "Storage_Isolation.dll": "a6bd620441048684e6fd9cb8196be1296c0707f0da43cad273473e4797ab30c9"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014523-8577f8ea",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:04:34",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-075753-a6569f39",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:57:53",
+    "lane": 35,
+    "reference_run": "20261101-014523-8577f8ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-075753-a6569f39",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:05:14",
+    "lane": 35,
+    "reference_run": "20261101-014523-8577f8ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
