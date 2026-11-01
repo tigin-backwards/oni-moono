@@ -70,9 +70,11 @@ namespace OniMoono.Desktop.Gl
             window.SwapBuffers();
             if (!again && interval > 0)
             {
-                // With vsync, a fence after the swap, meant to signal once the frame is on its way
-                // to the display. Whether it waits for the vertical blank is the driver's choice:
-                // the specification orders it after the swap's commands, not the display.
+                // With vsync, a fence after the swap, waited for so that the frame counts as
+                // queued until the driver has done its swap. That it signals only then is driver
+                // behaviour, not a GL guarantee (SwapBuffers is WGL's). Measured on Windows at
+                // 60 Hz with it and one frame queued (19827d58): a key press reached the screen in
+                // 50 ms instead of 83, as in the original.
                 long t = GlTimings.Now;
                 var swapped = N.glFenceSync(SyncGpuCommandsComplete, default);
                 N.glFlush();
