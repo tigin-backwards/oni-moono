@@ -238,39 +238,48 @@ static class Surface
                 catch (BadImageFormatException) { continue; }
                 using var _ = pe;
                 var names = new RefNames(md);
-                foreach (var h in md.TypeReferences)
+                // An obfuscated or damaged assembly can hold metadata the reader cannot follow:
+                // what it read before that counts, the rest of it is skipped.
+                try
                 {
-                    var (asm, name) = names.Resolve(h);
-                    if (asm == null || !isProvider(asm) || ours.FindType(asm, name) != null) continue;
-                    if (shipped.FindType(asm, name) is { } st)
-                        Note(TypeVisible(st) ? pub : other, "TYPE " + TypeKey(st), id);
-                    else Note(other, $"TYPE [{asm}]{name} (not in the shipped assemblies)", id);
-                }
-                foreach (var h in md.MemberReferences)
-                {
-                    var mr = md.GetMemberReference(h);
-                    string? asm; string typeName;
-                    switch (mr.Parent.Kind)
+                    foreach (var h in md.TypeReferences)
                     {
-                        case HandleKind.TypeReference: (asm, typeName) = names.Resolve((TypeReferenceHandle)mr.Parent); break;
-                        case HandleKind.TypeSpecification: (asm, typeName) = names.ResolveSpecOwner((TypeSpecificationHandle)mr.Parent); break;
-                        default: continue;
+                        var (asm, name) = names.Resolve(h);
+                        if (asm == null || !isProvider(asm) || ours.FindType(asm, name) != null) continue;
+                        if (shipped.FindType(asm, name) is { } st)
+                            Note(TypeVisible(st) ? pub : other, "TYPE " + TypeKey(st), id);
+                        else Note(other, $"TYPE [{asm}]{name} (not in the shipped assemblies)", id);
                     }
-                    if (asm == null || !isProvider(asm)) continue;
-                    var ourType = ours.FindType(asm, typeName);
-                    if (ourType == null) continue; // reported as its type
-                    var name = md.GetString(mr.Name);
-                    Sig sig;
-                    try { sig = Signatures.OfReference(md, mr); }
-                    catch (BadImageFormatException) { continue; }
-                    if (ours.FindMember(ourType.Value, name, sig) != null) continue;
-                    var st = shipped.FindType(asm, typeName);
-                    var found = st is { } t ? shipped.FindMember(t, name, sig) : null;
-                    if (found is not { } f) { Note(other, $"[{asm}]{typeName}::{sig.Display(name)} (not in the shipped assemblies)", id); continue; }
-                    var decl = new FoundType(f.Assembly, f.Declaring);
-                    var declTd = f.Assembly.MD.GetTypeDefinition(f.Declaring);
-                    var isPublic = TypeVisible(decl) && Visible(f.Access, (declTd.Attributes & TypeAttributes.Sealed) == 0);
-                    Note(isPublic ? pub : other, $"{TypeKey(decl)}::{sig.Display(name)}", id);
+                    foreach (var h in md.MemberReferences)
+                    {
+                        var mr = md.GetMemberReference(h);
+                        string? asm; string typeName;
+                        switch (mr.Parent.Kind)
+                        {
+                            case HandleKind.TypeReference: (asm, typeName) = names.Resolve((TypeReferenceHandle)mr.Parent); break;
+                            case HandleKind.TypeSpecification: (asm, typeName) = names.ResolveSpecOwner((TypeSpecificationHandle)mr.Parent); break;
+                            default: continue;
+                        }
+                        if (asm == null || !isProvider(asm)) continue;
+                        var ourType = ours.FindType(asm, typeName);
+                        if (ourType == null) continue; // reported as its type
+                        var name = md.GetString(mr.Name);
+                        Sig sig;
+                        try { sig = Signatures.OfReference(md, mr); }
+                        catch (BadImageFormatException) { continue; }
+                        if (ours.FindMember(ourType.Value, name, sig) != null) continue;
+                        var st = shipped.FindType(asm, typeName);
+                        var found = st is { } t ? shipped.FindMember(t, name, sig) : null;
+                        if (found is not { } f) { Note(other, $"[{asm}]{typeName}::{sig.Display(name)} (not in the shipped assemblies)", id); continue; }
+                        var decl = new FoundType(f.Assembly, f.Declaring);
+                        var declTd = f.Assembly.MD.GetTypeDefinition(f.Declaring);
+                        var isPublic = TypeVisible(decl) && Visible(f.Access, (declTd.Attributes & TypeAttributes.Sealed) == 0);
+                        Note(isPublic ? pub : other, $"{TypeKey(decl)}::{sig.Display(name)}", id);
+                    }
+                }
+                catch (BadImageFormatException e)
+                {
+                    Console.Error.WriteLine($"{file}: {e.Message}; the rest of it skipped");
                 }
             }
         }
