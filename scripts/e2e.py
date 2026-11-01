@@ -58,7 +58,7 @@ that tests/e2e/known-findings.yaml explains make a run of ours a warning, not a 
 the hold file in its run folder is removed, for a look through OniMcp and E2eDriver while
 writing a spec; a QA perf stage waiting to start ends it 10 minutes later.
 """
-import contextlib, ctypes, fcntl, importlib.util, itertools, json, os, re, shutil, signal, socket, subprocess, sys
+import contextlib, ctypes, fcntl, glob, importlib.util, itertools, json, os, re, shutil, signal, socket, subprocess, sys
 import threading, time, urllib.error, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -156,7 +156,9 @@ def ws_mods():
 
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
-            'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi'}
+            'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi', 'blocked_plugins', 'data_collection'}
+# `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
+BLOCKED_HOW = ('unreadable', 'missing')
 # The game's own translations (`language`), as Localization.PreinstalledLanguages names them.
 PREINSTALLED_LANGUAGES = ('zh_klei', 'ko_klei', 'ru_klei')
 # `from: main-menu` loads no fixture: the steps start at the main menu (a new game's spec).
@@ -166,7 +168,7 @@ KEYBOARD_LAYOUT = r'[a-z]{2,8}(\([\w-]+\))?'
 # Steps that talk to E2eDriver (a spec with any of them needs it installed).
 DRIVER_STEPS = {'click', 'toggle', 'dropdown', 'type', 'drag', 'tool', 'expect_ui', 'expect_state', 'ui_dump',
                 'ui_wait', 'world_shot', 'driver', 'click_world', 'scroll', 'expect_hit'}
-STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'open', 'key', 'keyboard'} | DRIVER_STEPS
+STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_shot', 'open', 'key', 'keyboard'} | DRIVER_STEPS
 DRIVER_COMMANDS = {'ping', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
                    'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'keys.log', 'imgui.scrollview',
                    'buildmenu.settled'}
@@ -191,7 +193,7 @@ def check_step(where, kind, value, in_setup):
     need = lambda ok, text: ok or problems.append(f'{where}: {text}')
     if kind not in STEP_KINDS:
         return [f'{where}: unknown step {kind!r}']
-    if kind in ('shot', 'world_shot', 'ui_dump') and isinstance(value, dict) and 'name' in value:
+    if kind in ('shot', 'world_shot', 'file_shot', 'ui_dump') and isinstance(value, dict) and 'name' in value:
         need(isinstance(value['name'], str), f"{kind} name {value['name']!r} is not text (YAML reads on, off, yes and no as booleans: quote it)")
     if kind == 'dig':
         need(_rect(value), 'dig takes [x1, y1, x2, y2]')
@@ -220,6 +222,10 @@ def check_step(where, kind, value, in_setup):
             need(value.get('pointer', 'away') in ('away', 'stay'), 'shot `pointer` is away (the default) or stay')
             for m in value.get('mask', []):
                 need(isinstance(m, str) or _rect(m), f'mask {m!r} is neither a UI path nor [x, y, w, h]')
+    elif kind == 'file_shot':
+        need(isinstance(value, dict) and value.get('name') and isinstance(value.get('path'), str) and value['path']
+             and not os.path.isabs(value['path']) and '..' not in value['path'].split('/'),
+             'file_shot takes {name, path} (an image in the run\'s profile, relative, globs allowed), and threshold')
     elif kind == 'world_shot':
         need(isinstance(value, dict) and value.get('name'), 'world_shot takes {name, ortho, at, hide_ui, mask}')
         if isinstance(value, dict):
@@ -325,6 +331,12 @@ def check_spec(spec):
         problems.append('`scaled_screen` is true or false')
     if 'display_dpi' in spec and not (type(spec['display_dpi']) is int and 1 <= spec['display_dpi'] <= 1000):
         problems.append('`display_dpi` is a whole number of dots per inch (1-1000)')
+    blocked = spec.get('blocked_plugins', {})
+    if not isinstance(blocked, dict) or not all(isinstance(n, str) and n and '/' not in n and how in BLOCKED_HOW
+                                                for n, how in blocked.items()):
+        problems.append('`blocked_plugins` maps plugin file names to ' + ' or '.join(BLOCKED_HOW))
+    if not isinstance(spec.get('data_collection', True), bool):
+        problems.append('`data_collection` is true or false')
     if not isinstance(spec.get('steps'), list):
         problems.append('`steps` is a list')
     mods = spec.get('mods', [])
@@ -2386,8 +2398,10 @@ class Player:
     the spec's mods and options, and a fixture."""
 
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
-                 translation=None, language=None, keyboard=None, tweaks_menu=False, display_dpi=None):
+                 translation=None, language=None, keyboard=None, tweaks_menu=False, display_dpi=None,
+                 blocked_plugins=None, data_collection=True):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
+        self.blocked_plugins = dict(blocked_plugins or {})
         self.keyboard = keyboard
         self.display_dpi = display_dpi
         self.tweaks_menu = tweaks_menu
@@ -2417,6 +2431,13 @@ class Player:
                     '  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 0\n'
                     # DlcManager reads Spaced Out as on unless this says 0.
                     + ('' if expansion1 else '  EXPANSION1_ID.ENABLED: 0\n') + 'floats: {}\n')
+        if not data_collection:
+            # `data_collection: false`, the Data Collection option off (KPrivacyPrefs): a spec
+            # that makes the game report an error sends no report to Klei's crash server.
+            agreements = os.path.join(self.profile, 'Agreements', 'OxygenNotIncluded')
+            os.makedirs(agreements)
+            with open(os.path.join(agreements, 'kprivacyprefs.yaml'), 'w') as f:
+                f.write('disableDataCollection: true\n')
 
     def install_mods(self, ids, driver):
         """The spec's Workshop mods as Local mods (ws-mods.py profile, which installs them only
@@ -2497,11 +2518,21 @@ class Player:
                 env[name] = self.env[name]
         if self.kind == 'original':
             env.update(original_environment(self.env.get('E2E_ORIGINAL_ENV')))
+        # `blocked_plugins`: each player runs a copy of its install with those plugins unreadable.
+        install = os.path.join(self.out, 'install')
         if self.kind == 'original':
-            command = [original_player(self.env['E2E_ORIGINAL'], self.lane.number), *size, '-logFile', self.log]
+            executable = self.env['E2E_ORIGINAL']
+            if self.blocked_plugins:
+                blocked_install(os.path.dirname(executable), self.blocked_plugins, install)
+                executable = os.path.join(install, os.path.basename(executable))
+            command = [original_player(executable, self.lane.number, *([self.out] if self.blocked_plugins else [])),
+                       *size, '-logFile', self.log]
             stdout = os.path.join(self.out, 'stdout.txt')
         else:
-            env.update(ONI_GAME_DIR=self.env['QA_U57_GAME'], ONI_RUN_HOME=self.home, ONI_CONFIG='release')
+            game = self.env['QA_U57_GAME']
+            if self.blocked_plugins:
+                game = blocked_install(game, self.blocked_plugins, install)
+            env.update(ONI_GAME_DIR=game, ONI_RUN_HOME=self.home, ONI_CONFIG='release')
             command = [os.path.join(ROOT, 'scripts', 'run.sh'), '--native-override',
                        'steam_api=' + self.env['QA_U57_STEAM'], *size,
                        *(a for t in os.environ.get('E2E_GAME_TWEAKS', 'exact').split() for a in ('--game-tweak', t)),
@@ -2700,6 +2731,46 @@ def original_player(executable, lane, root=OUT):
         elif not os.path.lexists(target):
             os.symlink(os.path.join(source, name), target)
     return os.path.join(folder, os.path.basename(executable))
+
+
+def blocked_install(source, plugins, dest):
+    """A copy of the game install at `source` whose native plugins cannot be loaded, as when the
+    operating system or an antivirus blocks them. `plugins` maps file names to how
+    (`blocked_plugins`): `unreadable` copies the plugin with mode 000, `missing` leaves it out.
+    Everything else is linked, with real folders only on the way to a blocked plugin. Built in
+    the run's own folder, never in the install."""
+    names = list(plugins)
+    source = os.path.realpath(source)
+    found = {}
+    for data in sorted(d for d in os.listdir(source) if d.endswith('_Data')):
+        for folder, dirs, files in os.walk(os.path.join(source, data, 'Plugins'), followlinks=True):
+            for name in files:
+                if name in names:
+                    found.setdefault(name, os.path.relpath(os.path.join(folder, name), source))
+    missing = [n for n in names if n not in found]
+    if missing:
+        raise SpecFailure(f'blocked_plugins: no {", ".join(missing)} under {source}/*_Data/Plugins')
+    shutil.rmtree(dest, ignore_errors=True)
+    real = {os.curdir}  # the folders on the way to a blocked plugin, relative to the install
+    for path in found.values():
+        parts = path.split(os.sep)[:-1]
+        real.update(os.path.join(*parts[:i]) for i in range(1, len(parts) + 1))
+
+    def mirror(rel):
+        os.makedirs(os.path.join(dest, rel), exist_ok=True)
+        for name in os.listdir(os.path.join(source, rel)):
+            child = os.path.normpath(os.path.join(rel, name))
+            target = os.path.realpath(os.path.join(source, child))
+            if child in real:
+                mirror(child)
+            elif child in found.values():
+                if plugins[os.path.basename(child)] == 'unreadable':
+                    shutil.copyfile(target, os.path.join(dest, child))
+                    os.chmod(os.path.join(dest, child), 0)
+            else:
+                os.symlink(target, os.path.join(dest, child))
+    mirror(os.curdir)
+    return dest
 
 
 def mod_yaml_value(folder, key):
@@ -3394,6 +3465,8 @@ class Run:
             self.shot(value if isinstance(value, dict) else {'name': value})
         elif kind == 'world_shot':
             self.world_shot(value)
+        elif kind == 'file_shot':
+            self.file_shot(value)
         elif kind == 'open':
             self.open(value)
         elif kind == 'keyboard':
@@ -3719,6 +3792,34 @@ class Run:
             json.dump(meta, f)
         self.evidence['world_shot'].append(meta)
 
+    def file_shot(self, value):
+        """An image the game wrote into the run's profile (a save's preview, a timelapse frame),
+        copied into the evidence and compared as a world_shot is (5 % by default; a size more than
+        2 px off fails). `path` is relative to the profile; of a glob's matches the newest."""
+        name = value['name']
+        pattern = os.path.join(glob.escape(self.player.profile), value['path'])
+        # The game writes it from a worker thread (U60's Timelapser): wait until it is there and
+        # its size holds for a second.
+        deadline, last = time.time() + float(value.get('wait', 60)), None
+        while True:
+            matches = glob.glob(pattern)
+            source = max(matches, key=os.path.getmtime) if matches else None
+            size = os.path.getsize(source) if source else None
+            if source and size and (source, size) == last:
+                break
+            if time.time() > deadline:
+                raise SpecFailure(f'file_shot {name}: no complete {value["path"]} in the profile')
+            last = (source, size)
+            time.sleep(1)
+        target = os.path.join(self.out, name + '.png')
+        shutil.copyfile(source, target)
+        meta = {'name': name, 'crop': None, 'masks': [], 'threshold': value.get('threshold'),
+                'file': os.path.basename(target), 'world': True,
+                'source': os.path.relpath(source, self.player.profile)}
+        with open(os.path.join(self.out, name + '.shot.json'), 'w') as f:
+            json.dump(meta, f)
+        self.evidence['world_shot'].append(meta)
+
     # -- the run
     def execute(self):
         spec = self.spec
@@ -3737,7 +3838,9 @@ class Run:
             self.player = Player(self.kind, self.out, self.env, fixture, self.lane, spec['mods'], spec.get('options'),
                                  driver=uses_driver, expansion1=spaced_out(spec), translation=spec.get('translation'),
                                  language=spec.get('language'), keyboard=spec.get('keyboard'),
-                                 tweaks_menu=spec.get('tweaks_menu', False), display_dpi=spec.get('display_dpi'))
+                                 tweaks_menu=spec.get('tweaks_menu', False), display_dpi=spec.get('display_dpi'),
+                                 blocked_plugins=spec.get('blocked_plugins'),
+                                 data_collection=spec.get('data_collection', True))
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
             started = time.time()
