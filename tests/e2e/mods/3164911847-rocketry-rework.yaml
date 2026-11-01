@@ -1,0 +1,19 @@
+# Rocketry Rework [Deprecated] (3164911847), class P (Spaced Out).
+#
+# What it does: changes Spaced Out rocketry: the habitat modules (small and medium) get a mass
+# limit on what they carry (a condition on launch), the solar panel module's output changes, the
+# sugar engine holds 900 kg of fuel and burns 0.25 kg per distance, and more (patches on the
+# modules' configs).
+# How a player reaches it: building rockets.
+# What changes: rocket balance.
+#
+# early-base has no rocket: the modules' definitions are compared with the original's (the solar
+# panel module's wattage, the sugar engine's fuel storage), and the colony runs on.
+from: early-base
+mods: [3164911847]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"SolarPanelModule\").GeneratorWattageRating": "== original"
+      "Assets.GetPrefab(\"SugarEngine\").GetComponent<Storage>.capacityKg": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
