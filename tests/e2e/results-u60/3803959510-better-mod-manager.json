@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3803959510-better-mod-manager.yaml",
+ "mods": [
+  "3803959510"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "5ec373bf",
+ "mod_dlls": {
+  "3803959510": {
+   "BetterModManager.dll": "c8aaff761de20ec48f7c051fa2d337a1743860a2d8515a6df4ae8d0ae98c6ecf",
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-045201-d21d0b3f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:52:02",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-101631-98b33f81",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:16:31",
+    "lane": 36,
+    "reference_run": "20261101-045201-d21d0b3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-101631-98b33f81",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:28:32",
+    "lane": 36,
+    "reference_run": "20261101-045201-d21d0b3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
