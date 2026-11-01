@@ -120,7 +120,9 @@ namespace OniMoono.Desktop.Gl
         static uint defaultSampler;
 
         /// The state of a texture that no sampler settings have been applied to: linear
-        /// filtering, repeat (GL's texture defaults, as the device's default textures use).
+        /// filtering and repeat, as the device's default textures have. Repeat and a linear
+        /// magnification filter are GL's defaults; its minification default is
+        /// NEAREST_MIPMAP_LINEAR (OpenGL 4.6 section 8.22, table 23.18), set here to LINEAR.
         public static uint Default
         {
             get

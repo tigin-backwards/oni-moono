@@ -129,7 +129,10 @@ Linux player sets no GPU hints, and `-force-device-index` covers Direct3D, Metal
 not ONI's OpenGL build, so on Linux `default` sets nothing. `discrete` asks for PRIME render
 offload: `__NV_PRIME_RENDER_OFFLOAD=1` and `__GLX_VENDOR_LIBRARY_NAME=nvidia` when NVIDIA's
 proprietary driver is there (`/proc/driver/nvidia/version` and a loadable `libGLX_nvidia.so.0`),
-else Mesa's `DRI_PRIME=1`; `integrated` sets `DRI_PRIME=0`. They go into the native environment
+else Mesa's `DRI_PRIME=1`; `integrated` sets `DRI_PRIME=0`. Mesa's default GPU is "the one used
+by Wayland/Xorg or the one connected to a display", and `DRI_PRIME=N` selects the Nth other one
+(Mesa's envvars documentation, which documents only N > 0): `DRI_PRIME=0` asks for no other GPU,
+so it gets that default, which is the integrated one only when the display runs on it. They go into the native environment
 with libc's `setenv` (.NET's `Environment.SetEnvironmentVariable` changes only .NET's copy on
 Unix, which libGL never reads) and into .NET's, for processes the player starts. A variable the
 user set is left alone; those Moono set are listed in `ONI_MOONO_GPU_ENV`, so the run

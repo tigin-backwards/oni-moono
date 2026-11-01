@@ -649,8 +649,13 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
-        /// A draw leaves the current value of every attribute it read from an enabled array
-        /// undefined (OpenGL 4.5 §10.3.9), so those constants must be set again before use.
+        /// The constants of the attributes a draw read from enabled arrays are set again before
+        /// their next use. OpenGL leaves them as they were: "If an array is enabled, the
+        /// corresponding current vertex attribute value is unaffected by the execution of"
+        /// the draw (OpenGL 4.5 section 10.4). Observed otherwise: with them cached across such
+        /// draws, the background planes' colour, a constant attribute, washed out to white on
+        /// long runs of Regrettable Dimension, on the Linux lane's Mesa d3d12 driver then, and
+        /// setting them again ended it (871f6e2b, PARITY.md).
         void ForgetConstantsOfArrays(DeviceProgram program, MeshLayout layout)
         {
             for (int c = 0; c < (int)Channel.Count; c++)
