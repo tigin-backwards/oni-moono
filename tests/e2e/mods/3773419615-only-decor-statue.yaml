@@ -1,0 +1,13 @@
+# 纯装饰雕像 | Only Decor Statue (3773419615), class X (data).
+#
+# What it does: no code: a building definition in content/buildings/decor_statue.json and its
+# strings (en, cn), a statue that only gives decor.
+# How a player reaches it: the build menu, where a loader of such content lists it.
+# What changes: one more decoration.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3773419615]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
