@@ -1,0 +1,25 @@
+# Debug Building Tweaks (3824075068), classes P, S (debug buildings).
+#
+# What it does: the debug gas and liquid pumps (DevPumpGas, DevPumpLiquid) get a
+# DevPumpSettings: a PLib side screen with the rate (grams a second, up to 1000 for gas), the
+# amount kept in storage and the output temperature (1-5000 K), which a prefix on
+# DevPump.Sim1000ms then pumps by; the debug buildings' element pickers' search matches more
+# loosely (SingleItemSelectionSideScreenBase patches).
+# How a player reaches it: debug mode's buildings; a built dev pump's side screen.
+# What changes: tunable debug pumps.
+#
+# Both dev pumps carry the settings; setup builds a dev gas pump in the corridor west of the
+# printing pod, and selected it shows the settings panel.
+from: early-base
+mods: [3824075068]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"DevPumpGas\")", method: Build, args: [131129, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"DevPumpGas\").BuildingComplete.GetComponent<DebugBuildingTweaks.DevPumpSettings>.MaxGramsPerSecond": 1000
+      "Assets.GetBuildingDef(\"DevPumpLiquid\").BuildingComplete.GetComponent<DebugBuildingTweaks.DevPumpSettings>": exists
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: DevPumpGas}
+  - ui_wait: {path: "**/DetailsScreen/**/DevPumpSettings", cond: stable}
+  - ui_dump: {name: settings, root: "**/DetailsScreen/**/DevPumpSettings"}
