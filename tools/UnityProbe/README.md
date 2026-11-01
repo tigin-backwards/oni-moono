@@ -189,6 +189,14 @@ cases, `clickrepeat` only the subclass cases, and `clickrepeat2` only the held-p
 value set while held, the event's position fields, a drag, a released press). `ugui.md`
 ("Scrollbar presses on the track") records what it measured.
 
+With `PROBE_SCENARIO=scrollvis` only the scrollbar visibility probe runs (`ScrollVis.cs`, lines
+`SVIS …`, 2 s into the main menu, under a second). It builds scroll rects with each scrollbar
+visibility, content that fits or overflows, the axis on or off, and the scrollbar a child of the
+scroll rect, beside it or under its viewport, then deactivates the scrollbars, moves, resizes
+and rebuilds from an Update, logging each scrollbar's activity at every frame's end. It ends
+with a `ScrollVisProbeDone` canvas. `ugui.md` ("ScrollRect: scrollbar visibility, measured")
+records what it measured.
+
 With `PROBE_SCENARIO=layoutcull` only the layout-and-cull probe runs (`LayoutCull.cs`, lines `LC
 …`, 10 s into the main menu, about a minute). `LC lay` lines follow a `VerticalLayoutGroup`
 (a subclass counting its layout calls) with three children through one change at a time:

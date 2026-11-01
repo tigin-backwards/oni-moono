@@ -345,5 +345,35 @@ namespace OniMoono.Tests.UGui
             Assert.Equal(300f, content.anchoredPosition.y, 3);
             Assert.Equal(new Vector2(0f, 0f), scroll.normalizedPosition);
         }
+
+        // Measured on the original (docs/cleanroom/ugui.md, "ScrollRect: scrollbar visibility,
+        // measured"): each frame's update sets the scrollbar's activity again, wherever the
+        // scrollbar sits, so one the game deactivates in an Update shows at the frame's end.
+        [Theory]
+        [InlineData(ScrollRect.ScrollbarVisibility.Permanent, true, 400f, true)]
+        [InlineData(ScrollRect.ScrollbarVisibility.Permanent, true, 50f, true)]
+        [InlineData(ScrollRect.ScrollbarVisibility.Permanent, false, 400f, false)]
+        [InlineData(ScrollRect.ScrollbarVisibility.AutoHide, true, 400f, true)]
+        [InlineData(ScrollRect.ScrollbarVisibility.AutoHide, true, 50f, false)]
+        [InlineData(ScrollRect.ScrollbarVisibility.AutoHide, false, 400f, true)]
+        public void EachFrameSetsTheScrollbarsActivityAgain(ScrollRect.ScrollbarVisibility visibility, bool axis, float height, bool shown)
+        {
+            var (scroll, content) = Setup(ScrollRect.MovementType.Elastic);
+            content.sizeDelta = new Vector2(content.sizeDelta.x, height);
+            // Beside the scroll rect, not its child: deactivating it marks no layout of the scroll rect.
+            var bar = NewRect("Scrollbar", scroll.transform.parent, 10, 100, typeof(Image), typeof(Scrollbar)).GetComponent<Scrollbar>();
+            bar.direction = Scrollbar.Direction.BottomToTop;
+            scroll.vertical = axis;
+            scroll.verticalScrollbar = bar;
+            scroll.verticalScrollbarVisibility = visibility;
+            Frame(1f / 60f);
+            Assert.Equal(shown, bar.gameObject.activeSelf);
+            for (int i = 0; i < 3; i++)
+            {
+                bar.gameObject.SetActive(!shown);
+                Frame(1f / 60f);
+                Assert.Equal(shown, bar.gameObject.activeSelf);
+            }
+        }
     }
 }

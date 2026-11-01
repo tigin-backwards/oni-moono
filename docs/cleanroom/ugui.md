@@ -704,8 +704,20 @@ stated). This implementation already does all of this, on these measurements; ke
 - **Content resized at run time** (400 × 300 scrolled to (0.5, 0.5), then shrunk to 100 × 50,
   then grown back): the normalized position follows the new bounds in the next update. While
   the content fits, setting `normalizedPosition`, or either axis, does not move it.
-- **Not measured:** dragging and the scroll wheel with content that fits; `AutoHide`
-  scrollbar visibility.
+- **Not measured:** dragging and the scroll wheel with content that fits.
+
+**ScrollRect: scrollbar visibility, measured** (2026-11-01, `tools/UnityProbe`,
+`PROBE_SCENARIO=scrollvis`, `ScrollVis.cs`). Every frame's update sets the scrollbar's
+activity, whatever set it earlier in the frame: a Permanent scrollbar is active while its axis
+is enabled and inactive while it is not; an AutoHide or AutoHideAndExpandViewport one is active
+while the content is larger than the view on its axis, whether the axis is enabled or not. A
+scrollbar the game's code deactivates in an Update is active again at the frame's end. This
+holds with the scrollbar a child of the scroll rect, beside it on the canvas, and under the
+viewport with the scroll rect on the content (as the game's build menu has it). Found with
+Better Build Menu (CN) (Workshop 3825795220), which deactivates the build menu's Permanent
+scrollbar from PlanScreen's update at most every 0.2 s: the original, drawing under five frames
+a second there, reads it inactive in every Update and draws it every frame, as this
+implementation does.
 
 **ScrollRect: bounds to the bit** (measured 2026-10-24, `tools/UnityProbe`: `PROBE_SCENARIO=
 zeroscale`, `vitalsopen`, `matmul`). Found with Resize Dup UI (Workshop 2549295369), whose Vitals
