@@ -1,0 +1,29 @@
+# 木炭蒸馏器_轨道系统建造低技能要求 / Wood distiller and rail skill (3021124107), class B.
+#
+# What it does: adds a Wood Gas Generator (WoodGasGenerator1, 2x2 of any metal, in the Power
+# menu, researched with Combustion): 3000 W from wood, 0.1 kg/s, giving off water, oxygen and
+# coal by its element converter and dispensing into a liquid pipe; and conveyor rails, their
+# bridges, loaders, receptacles and chutes and the Auto-Sweeper no longer need the conveyor
+# building skill (DoPostConfigureUnderConstruction patches).
+# How a player reaches it: the build menu (Power, Shipping).
+# What changes: a wood generator; conveyors any Duplicant can build.
+#
+# setup grants Combustion. The generator is in the Power menu; the Auto-Sweeper's and the
+# rail's blueprints need no skill perk.
+from: early-base
+mods: [3021124107]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Combustion\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Combustion\").unlockedItemIDs": {contains: WoodGasGenerator1}
+      "Assets.GetBuildingDef(\"WoodGasGenerator1\").GeneratorWattageRating": 3000
+      "Assets.GetBuildingDef(\"SolidTransferArm\").BuildingUnderConstruction.GetComponent<Constructable>.requiredSkillPerk": "!= 'ConveyorBuild'"
+      "Assets.GetBuildingDef(\"SolidConduit\").BuildingUnderConstruction.GetComponent<Constructable>.requiredSkillPerk": "!= 'ConveyorBuild'"
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/WoodGasGenerator1 Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/WoodGasGenerator1 Group*": {active: true}
+  - key: {code: Escape}
