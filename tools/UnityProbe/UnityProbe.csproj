@@ -31,11 +31,14 @@
     <Reference Include="$(OniManaged)/Newtonsoft.Json.dll" Private="false" />
   </ItemGroup>
   <!-- MissingTypes.cs is built against ProbeGone v1; the mod folder gets v2 (Gone/v2), which
-       lacks the types and members v1 has. -->
+       lacks the types and members v1 has. KindChange.cs runs Kind/Cases, built against ProbeKind
+       v1; the mod folder gets v2 (Kind/v2), where v1's struct is a class and its class a struct. -->
   <ItemGroup>
     <Compile Remove="Gone/**" />
+    <Compile Remove="Kind/**" />
     <Compile Remove="Binding/**" />
     <ProjectReference Include="Gone/v1/ProbeGoneV1.csproj" />
+    <ProjectReference Include="Kind/Cases/ProbeKindCases.csproj" />
   </ItemGroup>
 </Project>
 
