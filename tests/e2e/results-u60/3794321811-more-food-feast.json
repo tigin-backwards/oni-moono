@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3794321811-more-food-feast.yaml",
+ "mods": [
+  "3794321811"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "be1682c9",
+ "mod_dlls": {
+  "3794321811": {
+   "MoreFood_KFC.dll": "d860bb31ad75c7bf8ef665700e9f09bafe1e6a982e0fe59488cf20330b17294f",
+   "PLib.dll": "432e28fbecb2d422a46eafe489a446f946ec828acfb2b721f7fe6df19d84cd7c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-154228-64bb86ec",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:45:53",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-154645-cf2daf6e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:50:12",
+    "lane": 40,
+    "reference_run": "20261101-154228-64bb86ec",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-154645-cf2daf6e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T15:50:43",
+    "lane": 40,
+    "reference_run": "20261101-154228-64bb86ec",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "recipes": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

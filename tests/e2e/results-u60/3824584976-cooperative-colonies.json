@@ -3,12 +3,12 @@
  "mods": [
   "3824584976"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
  "note": "a session needs real Steam lobbies and a second game process, which an e2e run lacks (the offline Steam double makes no lobby): only its menu is checked, recorded in the original only, as for the other multiplayer mods. From a colony: the pause menu's Main Menu, Quit Without Saving; the main menu has the CO-OP button, and clicking it opens the mod's window (an IMGUI window: its Visible flag is read)",
  "updated": "2026-11-01",
- "commit": "751568f0",
+ "commit": "b1e10053",
  "mod_dlls": {
   "3824584976": {
    "CoopColoniesMod.dll": "58d35493e0d43bc920529b93a61427fc1e24811962be21940a12a331b66270b4"
@@ -17,43 +17,35 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-065235-08404b0b",
+    "run": "20261101-155715-23ffc65f",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T07:00:17",
-    "lane": 43,
+    "date": "2026-11-01T15:58:40",
+    "lane": 40,
     "signatures": 0
    }
   ],
   "ours": [
    {
-    "run": "20261101-112917-65ed7f4b",
+    "run": "20261101-155918-2e5c692a",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T11:29:17",
-    "lane": 44,
-    "reasons": [
-     "step start: the player exited (1) while loading",
-     "2 log signature(s) the original lacks"
-    ],
-    "reference_run": "20261101-065235-08404b0b",
-    "new_signatures": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T16:00:57",
+    "lane": 40,
+    "reference_run": "20261101-155715-23ffc65f",
+    "new_signatures": 0,
     "findings": [],
     "ui_dump": {},
     "shots": {}
    },
    {
-    "run": "20261101-112917-65ed7f4b",
+    "run": "20261101-155918-2e5c692a",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T11:29:18",
-    "lane": 45,
-    "reasons": [
-     "step start: the player exited (1) before OniMcp started",
-     "2 log signature(s) the original lacks"
-    ],
-    "reference_run": "20261101-065235-08404b0b",
-    "new_signatures": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T16:01:26",
+    "lane": 40,
+    "reference_run": "20261101-155715-23ffc65f",
+    "new_signatures": 0,
     "findings": [],
     "ui_dump": {},
     "shots": {}

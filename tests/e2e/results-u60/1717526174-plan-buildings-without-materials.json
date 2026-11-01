@@ -1,0 +1,67 @@
+{
+ "spec": "mods/1717526174-plan-buildings-without-materials.yaml",
+ "mods": [
+  "1717526174"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "be1682c9",
+ "mod_dlls": {
+  "1717526174": {
+   "PlanBuildingsWithoutMaterials.dll": "6fc5d45d4bcd8a0ad811c1251b84fa5d99143e09aac9edcd623093ac8c466d78"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-154228-64bb86ec",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:43:36",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-154645-cf2daf6e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T15:48:06",
+    "lane": 40,
+    "reference_run": "20261101-154228-64bb86ec",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "card": 0.0
+    }
+   },
+   {
+    "run": "20261101-154645-cf2daf6e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T15:48:46",
+    "lane": 40,
+    "reference_run": "20261101-154228-64bb86ec",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "card": 0.0
+    }
+   }
+  ]
+ }
+}

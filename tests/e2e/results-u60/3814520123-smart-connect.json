@@ -3,12 +3,12 @@
  "mods": [
   "3814520123"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "setup builds two refined copper wires in the dug-out corridor west of the printing pod and spawns copper ore. The Wire tool (Power menu) drags a new wire from three cells east onto the line's end: the new cells get blueprints, the existing wire is not marked for replacement, and the blueprints are as many as in the original",
+ "note": "setup builds two refined copper wires in the dug-out corridor west of the printing pod and spawns copper ore. Once the build menu has counted the ore, the Wire tool (Power menu) drags a new wire from two cells west onto the line's far end: two blueprints as in the original, and the existing wire is not marked for replacement",
  "updated": "2026-11-01",
- "commit": "c7db9293",
+ "commit": "880e4d98",
  "mod_dlls": {
   "3814520123": {
    "SmartConnect.dll": "16f45a0dde023a3141984a875023b0ddd8e47054dfa1c989dcbf0d8e1ae4f422"
@@ -17,40 +17,34 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-090056-9edc52bc",
+    "run": "a2021-o1",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T09:05:05",
-    "lane": 43,
+    "date": "2026-11-01T15:14:20",
+    "lane": 34,
     "signatures": 0
    }
   ],
   "ours": [
    {
-    "run": "20261101-102946-a228def8",
+    "run": "a2021-u1",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T10:29:46",
-    "lane": 44,
-    "reasons": [
-     "step 10: count:all:Constructable::[*] is 2, wanted == original (it held in the original: the interaction has no effect in ours)"
-    ],
-    "reference_run": "20261101-090056-9edc52bc",
+    "verdict": "pass",
+    "date": "2026-11-01T15:17:11",
+    "lane": 34,
+    "reference_run": "a2021-o1",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {},
     "shots": {}
    },
    {
-    "run": "20261101-102946-a228def8",
+    "run": "a2021-u1",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T10:29:47",
-    "lane": 45,
-    "reasons": [
-     "step 10: count:all:Constructable::[*] is 2, wanted == original (it held in the original: the interaction has no effect in ours)"
-    ],
-    "reference_run": "20261101-090056-9edc52bc",
+    "verdict": "pass",
+    "date": "2026-11-01T15:17:12",
+    "lane": 35,
+    "reference_run": "a2021-o1",
     "new_signatures": 0,
     "findings": [],
     "ui_dump": {},

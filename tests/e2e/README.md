@@ -370,7 +370,15 @@ setup:
   - driver: {setup.call: {type: "BlueprintsV2.Store", method: "Seed", args: ["e2e"]}}   # setup only
   - driver: {camera.set: {pos: [128.5, 210.5], ortho: 20}}
   - driver: {count: {methods: ["Brain:UpdateBrain"]}}  # its calls from now on: E2eDriver.Counting.Of("Brain:UpdateBrain")
+steps:
+  - driver: {buildmenu.settled: {}}                  # waits until the build menu has caught up
 ```
+
+`buildmenu.settled` waits, as a `shot` does, until the build menu shows the state the game
+computes now (see "The build menu catches up over frames"). Use it before picking a building
+whose research or materials setup just provided: until PlanScreen re-checks that building, its
+cached state is the old one, so picking it opens the prebuild tool, and when the check comes
+depends on the frame rate (the original on llvmpipe draws a few frames a game second).
 
 `setup.call` (reflection) is allowed only in `setup:`. It may prepare a test, never perform the
 thing under test: issue #6 was "Played" through reflection while its screens were broken. An

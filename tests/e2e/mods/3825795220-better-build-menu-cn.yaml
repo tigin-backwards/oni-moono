@@ -7,15 +7,20 @@
 # How a player reaches it: the build menu.
 # What changes: the build menu's layout.
 #
-# Defaults. The Base menu opens; its building groups are dumped, as in the original (not the
-# category toggles, which bounce for new buildings while the menu opens).
+# Defaults. The Base menu opens; its building list is dumped, as in the original (not the
+# category toggles, which bounce for new buildings while the menu opens), and the panel shot.
+# The dump leaves out the panel's scrollbar: the mod deactivates it from PlanScreen's update at
+# most every 0.2 s and the scroll rect activates it again in each frame's LateUpdate, so a dump
+# (taken in an Update) reads it inactive in the original, which draws about four frames a
+# second there and so hides it in each, and active in ours. Both draw it (the shot).
 from: early-base
 mods: [3825795220]
 steps:
   - run: {seconds: 2}
   - click: {ui: "**/PlanScreen/Toggle:Base"}
   - ui_wait: {path: "**/PlanBuildingSelectionPanel/BuildingGroups", cond: stable}
-  - ui_dump: {name: base-menu, root: "**/PlanBuildingSelectionPanel/BuildingGroups"}
+  - ui_dump: {name: base-menu, root: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport/Contents"}
+  - shot: {name: base-menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups"}
   - key: {code: Escape}
   - click: {ui: "**/PlanScreen/Toggle:Power"}
   - ui_wait: {path: "**/PlanBuildingSelectionPanel/BuildingGroups", cond: stable}

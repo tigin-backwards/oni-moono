@@ -3,12 +3,12 @@
  "mods": [
   "3800923048"
  ],
- "verdict": "failed",
- "why": "a run of ours failed",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
  "note": "the host is running in the colony, its panel hidden. Ctrl+Shift+F8 shows it, and again hides it (an IMGUI panel: no UI path finds it, and its rankings are timings, not shot). The colony runs on",
  "updated": "2026-11-01",
- "commit": "5d48a7e8",
+ "commit": "b1e10053",
  "mod_dlls": {
   "3800923048": {
    "OniPerformanceObserver.dll": "15e4d7e4ba051a293134be0cadaacd491739123f6eb7eacc632bcb01c3cae9e3"
@@ -17,43 +17,35 @@
  "runs": {
   "original": [
    {
-    "run": "20261101-084954-7a070a59",
+    "run": "20261101-155715-23ffc65f",
     "index": 1,
     "verdict": "pass",
-    "date": "2026-11-01T08:56:27",
-    "lane": 43,
+    "date": "2026-11-01T15:57:15",
+    "lane": 40,
     "signatures": 0
    }
   ],
   "ours": [
    {
-    "run": "20261101-092119-dbf5e541",
+    "run": "20261101-155918-2e5c692a",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-11-01T09:21:19",
+    "verdict": "pass",
+    "date": "2026-11-01T15:59:18",
     "lane": 40,
-    "reasons": [
-     "step start: <urlopen error [Errno 111] Connection refused>",
-     "1 log signature(s) the original lacks"
-    ],
-    "reference_run": "20261101-084954-7a070a59",
-    "new_signatures": 1,
+    "reference_run": "20261101-155715-23ffc65f",
+    "new_signatures": 0,
     "findings": [],
     "ui_dump": {},
     "shots": {}
    },
    {
-    "run": "20261101-092119-dbf5e541",
+    "run": "20261101-155918-2e5c692a",
     "index": 2,
-    "verdict": "fail",
-    "date": "2026-11-01T09:21:20",
-    "lane": 41,
-    "reasons": [
-     "step start: the player exited (1) before OniMcp started",
-     "1 log signature(s) the original lacks"
-    ],
-    "reference_run": "20261101-084954-7a070a59",
-    "new_signatures": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T16:00:08",
+    "lane": 40,
+    "reference_run": "20261101-155715-23ffc65f",
+    "new_signatures": 0,
     "findings": [],
     "ui_dump": {},
     "shots": {}

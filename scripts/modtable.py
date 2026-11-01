@@ -201,6 +201,11 @@ not_playable = {
     '3807965885': 'not playable here, the same in the original: a session is a host and a client game over TCP (or Steam P2P), and an e2e run has one game process; its hub and JOIN A GAME dialog open, and a connect to an address nobody listens on is refused and retried (spec tests/e2e/mods/3807965885-oni-multiplayer.yaml, recorded in the original only)',
     '3635632392': 'not playable here, the same in the original: a session is a Steam lobby (its LiteNetLib backend is never used), and the offline Steam double creates and joins no lobby; its lobby screen opens, HOST GAME and JOIN GAME stay at their first status, on two players at once (spec tests/e2e/mods/3635632392-antigravity-multiplayer.yaml); a session needs two real Steam accounts',
 }
+# Loads and its colony plays in ours, and the mod itself tells the runtime apart: structural, not
+# shimmed. The note is the verdict, over its spec record.
+structural = {
+    '3807166689': 'fails in ours: the mod checks for Unity\'s Mono runtime and turns off its optional core; structural (spec tests/e2e/mods/3807166689-cycletrim.yaml passes in the original, and its steps pass in ours, which logs "OniSim mapping refused: PlatformNotSupportedException: OniSim takeover requires Unity Mono")',
+}
 broken = {
     '1715248368': 'broken upstream: patches `Deconstructable.TriggerDestroy`, which now has two overloads',
     '2363561445': 'broken upstream: `STRINGS.UI.TOOLS.FILTERLAYERS.ALL` is no longer a field',
@@ -537,6 +542,8 @@ def status(mid, flags):
         return Y, Y, N, unplayed[mid]
     if mid in not_playable:
         return Y, Y, N, not_playable[mid]
+    if mid in structural:
+        return Y, Y, N, structural[mid]
     if mid in broken:
         return X, X, N, broken[mid] + ('' if mid in loads_in_ours or mid in not_run_in_ours else ' (same in the original)')
     if mid in skipped:
@@ -565,7 +572,7 @@ def with_record(mid, flags):
     """A mod's status, its Played column and note from its spec record when it has one: a played
     or ⚠️ spec ran it in a colony, so Loads and Colony are ✅."""
     loads, colony, play, note = status(mid, flags)
-    if mid not in results:
+    if mid not in results or mid in structural:
         return loads, colony, play, note
     play, note = record_status(results[mid], FINDINGS)
     return (Y, Y, play, note) if play != N else (loads, colony, play, note)

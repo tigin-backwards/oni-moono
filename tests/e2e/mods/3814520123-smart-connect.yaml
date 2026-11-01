@@ -9,9 +9,9 @@
 #
 # setup builds two refined copper wires in the dug-out corridor west of the printing pod and
 # spawns copper ore. The Wire tool (Power menu) drags a new wire from two cells west, along the
-# line onto its far end (east of it the cells are occupied): as many blueprints as in the
-# original (none in this corridor on U60, where the scripted drag places nothing), and the
-# existing wire is not marked for replacement.
+# line onto its far end (east of it the cells are occupied), once the menu has counted the
+# ore: as many blueprints as in the original, and the existing wire is not marked for
+# replacement.
 from: early-base
 mods: [3814520123]
 setup:
@@ -23,13 +23,14 @@ steps:
   - expect: {buildings: {Wire: ">= 2"}}
   - click: {ui: "**/PlanScreen/Toggle:Power"}
   - ui_wait: {path: "**/BuildingGroups/**/Grid/Wire Group*", cond: stable}
+  - driver: {buildmenu.settled: {}}
   - click: {ui: "**/BuildingGroups/**/Grid/Wire Group*"}
   - ui_wait: {path: "**/MaterialSelectionPanel", cond: stable}
   - driver: {camera.set: {cell: [110, 207], ortho: 8}}
   - drag: {from: [108, 207], to: [111, 207]}
   - run: {seconds: 1}
   - expect_state:
-      "count:all:Constructable::[*]": "== original"
+      "count:all:Constructable::[*]": [">= 1", "== original"]
   - expect_state:
       "count:all:Constructable::[*] if .IsReplacementTile == true": 0
   - key: {code: Escape}
