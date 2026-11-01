@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3455898860-bald-pip.yaml",
+ "mods": [
+  "3455898860"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3455898860": {
+   "BaldPip.dll": "3cacc25f98243d3bf715a2f7a2d6e07efeee247f681170cb8567a0180109c05e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-051213-a3c25292",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:22:31",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-124636-ba786f05",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:46:36",
+    "lane": 35,
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-124636-ba786f05",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:48:41",
+    "lane": 35,
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
