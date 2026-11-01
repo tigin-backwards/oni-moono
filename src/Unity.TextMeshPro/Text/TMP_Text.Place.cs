@@ -109,7 +109,7 @@ namespace TMPro
                     for (int i = line.First; i <= line.Last; i++)
                     {
                         ref var p = ref pl[i];
-                        p.X = line.StartX + end - (p.X + p.GlyphAdvance);
+                        p.X = (float)(line.StartX + end - (p.X + p.GlyphAdvance));
                     }
                 }
 
@@ -500,13 +500,13 @@ namespace TMPro
                     end.Visible = false;
                     end.GlyphAdvance = end.Advance = 0f;
                 }
-                float x = pl0[prev.Last].X + pl0[prev.Last].Advance;
+                float x = (float)(pl0[prev.Last].X + pl0[prev.Last].Advance);
                 for (; stop < count && stop <= next.Last; stop++)
                 {
                     ref var p = ref pl0[stop];
                     if (p.LineBreak || (p.Visible && x + p.GlyphAdvance > prev.Width + 0.0001f)) break;
                     p.X = x;
-                    x += p.Advance;
+                    x = (float)(x + p.Advance);
                 }
                 recordLine = k - 1;
                 recordX = x;
@@ -518,7 +518,7 @@ namespace TMPro
             else
             {
                 var pl0 = s_Placements;
-                recordX = c > lines[k].First ? pl0[c - 1].X + pl0[c - 1].Advance : lines[k].StartX;
+                recordX = c > lines[k].First ? (float)(pl0[c - 1].X + pl0[c - 1].Advance) : lines[k].StartX;
             }
             if (s_Placements.Length <= stop + 1) Array.Resize(ref s_Placements, stop + 2);
             var pl = s_Placements;
@@ -540,7 +540,7 @@ namespace TMPro
                 }
                 ellipsis.X = pl[at].X;
                 ReplaceWithEllipsis(ref pl[at], ellipsis);
-                pl[at + 1] = new Placement { Blank = true, Element = pl[at + 1].Element, X = pl[at].X + pl[at].Advance };
+                pl[at + 1] = new Placement { Blank = true, Element = pl[at + 1].Element, X = (float)(pl[at].X + pl[at].Advance) };
                 ref var shown = ref lines[atLine];
                 shown.Last = at + 1;
                 shown.EndsWithLineFeed = false;
@@ -595,7 +595,7 @@ namespace TMPro
             parsed.Elements[index] = parsed.Ellipsis;
             var ellipsis = default(Placement);
             Measure(ref parsed.Elements[index], ref ellipsis, m_LayoutBaseSize, width);
-            fit = ellipsis.GlyphAdvance;
+            fit = (float)ellipsis.GlyphAdvance;
             ellipsis = default;
             Measure(ref parsed.Elements[index], ref ellipsis, m_LayoutBaseSize, width, parsed.Ellipsis.State.Font ?? m_fontAsset);
             ellipsis.Element = index;

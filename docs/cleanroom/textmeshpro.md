@@ -705,10 +705,9 @@ three pivots, under a `HorizontalLayoutGroup` beside a 24-wide icon, and copied 
   hundredth, as this implementation did before, misses 21 of the 576 that are not white
   space, and the 72 that are.
 - **Implemented.** This implementation follows the rule: in the same probe it reproduces it
-  on all 648 regular-style texts, at every pivot and under the layout group. Against the
-  shipped package 9 texts (27 at the three pivots, regular and bold) still differ by 0.01,
-  all where a character's pen is one float step off at a scale that is not a power of two
-  (see "Also seen" below).
+  on all 648 regular-style texts, at every pivot and under the layout group. With the pens
+  summed as "Pens to the bit" (below) says, every text of the probe has the shipped
+  package's width and every pen its bits.
 - **Not tied to the rect.** The value does not depend on where the rect is: the same text at
   pivot 0.5, 0 and 0.37, and as a child of the layout group, has the same bits in all 1,368
   cases. This implementation used to sum the pens in the rect's coordinates, so its value
@@ -754,16 +753,28 @@ Not measured: margins (they are expected to be added to x before the rounding, a
 section above says they are included), several lines, wrapping, auto-size and rich-text
 spacing tags. Measure them the same way before relying on them.
 
-Also seen, not part of the rule: the character pens themselves (`xAdvance` at pivot 0) differ
-by one float step in 318 of 1,152 non-white-space texts. NotoSans at 12 pt (scale 0.5) matches
-in every case, as do one-character texts; the misses are at scales that are not powers of two
-(14/24, 16/24, 12/124 and so on), at characters whose neighbour forms a kerning pair ("Hy",
-"yg", "oo", "Me"). There the shipped package's pen is the float above or below origin +
-advance × (size / point size): NotoSans 14 pt "Oxygen" has its "g" end at 34.08854294,
-this implementation at 34.08853912. The rule above turns this into a 0.01 difference only
-where a pen falls within a float step of a hundredth (NotoSans 16 pt "Oxygen", 57.875 shipped
-and 57.875004 here, gives 57.88 in both). Matching it needs a measurement of how a kerning
-pair's adjustment enters the pen (the font assets' pair records and texts with kerning off).
+### Pens to the bit (measured 2026-11-01)
+
+Found in a mod play-test: Radiation and Light Transport's Light Collector title (GRAYSTROKE
+REGULAR SDF 16 pt) was 102.41 wide in the original and 102.4 here. The character pens
+(`xAdvance` at pivot 0) differed by a float step or two in 1,388 of the probe's 4,320 texts
+(19 labels and "Light Collector", every NotoSans and GRAYSTROKE asset, 12, 14 and 16 pt,
+regular and bold, three pivots), all at scales that are not powers of two (16/124, 14/24,
+...): NotoSans 14 pt "Oxygen" has its "g" end at 34.08854294 shipped, 34.08853912 here. The
+preferred width moved by 0.01 where the pen ends within a float step of a hundredth: 42 texts
+("Light Collector" ends at 102.400009 shipped, 102.399994 here).
+
+- **The rule.** Each character's pen advance is its glyph's advance × the scale (and the
+  width adjustment), plus its kerning pair adjustments × the same, plus the spacing after it
+  ((character spacing + the style's spacing) × the size / 100, word spacing for a space), all
+  in double; the pen position is the previous pen plus that, rounded to float once. A
+  character's `xAdvance` is its pen plus its advance, rounded once. This is what the shipped
+  package's float code computes when the runtime keeps float intermediates in double
+  (ARCHITECTURE D25), as Unity's Mono does. Rounding the glyph advance to float first, then
+  the spacing, then the sum, gave the differences above.
+- **Implemented.** In the same probe every pen of all 4,320 texts has the shipped package's
+  bits, and every preferred width its value. Rounding the spacing to float alone still left
+  67 bold texts a step off (the bold spacing × size / 100 is not a float: 7 × 0.16).
 
 ### Overflow at white space (measured 2026-10-23)
 
