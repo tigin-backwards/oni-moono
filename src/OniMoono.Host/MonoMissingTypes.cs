@@ -225,9 +225,10 @@ namespace OniMoono.Host
         }
 
         /// The method's body becomes `throw new TypeLoadException(message)` (or MissingMethodException,
-        /// MissingFieldException), its frame hidden: on Mono it never runs, and the exception comes
-        /// from its caller's frame.
-        static void Throw(Cecil.MethodDefinition method, string message, Cecil.MethodReference exception, Cecil.MethodReference hidden)
+        /// MissingFieldException, and MonoTypeKinds' InvalidProgramException and
+        /// BadImageFormatException), its frame hidden: on Mono it never runs, and the exception
+        /// comes from its caller's frame.
+        internal static void Throw(Cecil.MethodDefinition method, string message, Cecil.MethodReference exception, Cecil.MethodReference hidden)
         {
             var body = method.Body;
             body.Instructions.Clear();

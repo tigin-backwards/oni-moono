@@ -117,7 +117,8 @@ namespace OniMoono.Host
         /// A mod's assembly, rewritten when it reaches into the game's non-public members, with its
         /// static readonly fields writable as Mono's are, with its references to nested types of the
         /// game's strings that the game no longer has bound as Mono binds them, with each method that
-        /// names a type its assembly lacks throwing as Mono's compilation of it does, with any class that
+        /// names a type its assembly lacks throwing as Mono's compilation of it does, with a type its
+        /// signatures tag as another kind than its own read as Mono reads it, with any class that
         /// misses a method of an interface it lists still loadable, with a patched method's stack
         /// frame reporting its owner type, with its string-keyed concurrent dictionaries in Mono's
         /// order, with a stack overflow in a method that can recurse thrown as an exception, with
@@ -160,6 +161,9 @@ namespace OniMoono.Host
             // A method naming a type its assembly lacks throws as Mono's compilation of it does
             // (MonoMissingTypes).
             if (MonoMissingTypes.Adjust(image ?? File.ReadAllBytes(path), ref symbols, path) is { } failing) image = failing;
+            // A type a signature tags as another kind than its own is read as Mono reads it
+            // (MonoTypeKinds), after MonoMissingTypes, which reads the tags too.
+            if (MonoTypeKinds.Adjust(image ?? File.ReadAllBytes(path), ref symbols, path) is { } kinded) image = kinded;
             // A class missing a method of a game interface it lists loads, as on Mono
             // (MissingInterfaceMethods).
             if (MissingInterfaceMethods.Adjust(image ?? File.ReadAllBytes(path), ref symbols, path) is { } completed) image = completed;

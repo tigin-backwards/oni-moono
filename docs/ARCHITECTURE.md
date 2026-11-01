@@ -153,7 +153,7 @@ are rewritten as its assemblies load (D29), in the same pass as its directory li
 the double close in 0Harmony's MonoMod (D31) and its thread aborts (D47). The game's Harmony is
 adjusted where patches would run differently on CoreCLR (D12–D14, D17–D21, D33, D34, D43), and
 mods' assemblies are rewritten as they load where their IL relies on Mono (D11, D22, D23,
-D27–D32, D40, D42, D47, D50, D51). No other game IL
+D27–D32, D40, D42, D47, D50, D51, D56). No other game IL
 is touched.
 
 | Mono provided | Host provides | Needed by |
@@ -975,7 +975,9 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   log signatures already treat alike). Not covered: members of Unity's engine and packages and of
   the class libraries (our API's gaps: D40's assemblies), member references whose signature names
   a type not resolvable when the mod loads (the mod's own, another mod's not loaded yet: they
-  fail as CoreCLR fails them), vararg and function-pointer signatures. A member the lookup finds
+  fail as CoreCLR fails them), vararg and function-pointer signatures. A generic argument tagged
+  `valuetype` for a class is another type on Mono (D56): a reference naming one is missing. A
+  member the lookup finds
   is one the runtime binds: across the 2,119 Workshop mods in `out/ws` (2,890 assemblies, 2.2
   million member references), none of the 2,089 references the lookup reports missing resolved on
   CoreCLR (`Module.ResolveMember`), and those CoreCLR could not resolve that it passed over name
@@ -1271,6 +1273,67 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   else gives the field type's default. Not matched: another layout's non-null read (none known),
   and a field taken by `ref`, left as Harmony emits it. `--check-types` patches an emitted static
   method taking another type, and one taking the field's own type.
+- **D56 A type tagged as another kind than its own.** A signature names a type with a tag:
+  `valuetype` or `class`. A mod built for an older game tags as a value type what is now a class:
+  LogicValueChanged became a pooled class in U57 (U60 makes Crop.CropVal one too; U59's own
+  assemblies keep it a struct). Of the 4,572 assemblies in `out/ws` (106 mods, archived
+  versions included), 10 tag LogicValueChanged so (and 159 Crop.CropVal, which matters from
+  U60 on), 46 of the 169 in a method's locals; 5 copies of PLib tag
+  `Steamworks.PublishedFileId_t`, a struct, `class` (an ILRepack fault). CoreCLR
+  refuses every such signature: "Could not load type 'LogicValueChanged' from assembly 'ONI
+  Mod1, …' due to value type mismatch." Mono (Unity's fork, branch `unity-6000.3-mbe`) reads the
+  tag and the class apart: `do_mono_metadata_parse_type` (`metadata/metadata.c`) resolves the
+  token and `compare_type_literals` accepts `valuetype` for a class; the type it builds keeps the
+  tag, and `mono_metadata_parse_type_internal` replaces it with the class's own type only where
+  it is not transient and has no attributes. So method signatures and member references read the
+  class, while a method's locals (parsed transient, `mono_metadata_parse_mh_full`), a field the
+  mod declares (parsed with its flags as attributes, `mono_field_resolve_type`) and a generic
+  instantiation's arguments keep a value type of the class. Its JIT (`mini/method-to-ir.c`) then
+  refuses, when it compiles the method, to store an object into such a local
+  (`target_type_is_incompatible`) or to pass such a value where an object is expected, or an
+  object where it is expected (`check_call_signature`): the method fails as a whole, every call,
+  with an InvalidProgramException from the caller's frame, "Invalid IL code in
+  Smart_HEP.SmartHEPStorage:OnLogicValueChanged (object): IL_0006: stloc.0   \n\n"
+  (`set_exception_type_from_invalid_il`: `mono_method_full_name`, the instruction as
+  `mono_disasm_code_one` writes it, a token as 0x%08x). A member reference whose signature has
+  such a generic argument names another instantiation than the game's and is not found (D42):
+  "Field not found: System.Collections.Generic.List`1<Crop/CropVal> TUNING.CROPS.CROP_TYPES Due
+  to: Could not find field in class". A `class` tag for a value type fails the member reference:
+  BadImageFormatException "Expected reference type but got type kind 17". Measured in the
+  original player (`tools/UnityProbe`, `PROBE_SCENARIO=kindchange`: a library built with a struct
+  and run as a class, and the other way round: 28 cases). Unboxing into a local, storing a call's
+  result, a static field's or an array element's, `new` into a temporary, and an instance call
+  on a call's result through a temporary all fail at the `stloc`; a default local or an `out`
+  local passed on, the mod's own static field passed on (its store passes: `stsfld` is not
+  checked) and `List<Flip>.Add` fail at the call; a pass-through, a box, a new `List<Flip>` and
+  the mod's own method taking one run. A field reached through the address of a static or
+  instance field or an array element reads unrelated memory (0 where it holds 3, 4 and 7), and a
+  default local's field and a constructor called on a local's address crash the player (an
+  assertion, `store_opcode != OP_STOREV_MEMBASE`, and a signal 11). An assembly with
+  SkipVerification (C# emits it with unsafe code allowed: 24 of the 174) skips the store check
+  (`mini_assembly_can_skip_verification`), and Mono then fails that assertion and aborts.
+  Smart Radbolt Storage's OnLogicValueChanged unboxes the event into a local: the original logs
+  Mono's InvalidProgramException each time a radbolt chamber's logic port changes, ours logged
+  CoreCLR's TypeLoadException, a log signature the original lacks. **Resolved in**
+  `MonoTypeKinds`, after `MonoMissingTypes` as `ModAccess` loads a mod: a walk over the mod's
+  signature blobs finds TypeRefs tagged against the kind of their type in an assembly the same
+  in both players (D40); only then does Cecil read the mod. Each method whose Mono compilation
+  fails so (an abstract run over its IL in Mono's order, its unreachable blocks skipped as Mono's
+  verifying JIT skips them, the store checks left out for a SkipVerification assembly) gets the
+  body Mono's compilation gives it: it throws Mono's exception and message, hidden from stack
+  traces. `MonoMissingMembers` treats a generic argument tagged so as another type. Every tag
+  then becomes the type's own, so the rest runs as the class; where a method reaches a member
+  through the address of a location of such a type, it reaches it through the location's value,
+  and a constructor called on an address becomes `newobj` and a store: where Mono reads unrelated
+  memory or crashes, ours reads the class's members (3, 4, 7). A token in the message is the
+  mod's file's (an earlier pass's Cecil write renumbers member references). The probe then
+  reports in ours as in the original but for those three values. Not covered: a method that
+  names a missing member (D42) and also fails so reports the missing member, whichever comes
+  first in IL order; the player Mono aborts. Cost: the walk over the 4,572 assemblies took 2.5 s,
+  0.55 ms an assembly with its PE reader (release build); Cecil reads only the ones that tag
+  against the game's kinds (169 against U60's), 21 ms each on average, 435 ms at most.
+  `--check-types` loads a mod built against a library whose struct is
+  now a class, with one method per IL pattern above, and the same mod with SkipVerification.
 
 ## 3. The engine API (`OniMoono.UnityEngine`)
 
