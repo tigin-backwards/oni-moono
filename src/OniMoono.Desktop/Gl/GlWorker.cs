@@ -109,22 +109,45 @@ namespace OniMoono.Desktop.Gl
         Frame finished;
 
         /// Runs `work` on the GL thread after everything recorded so far and returns its result.
+        /// Throws GlDeviceStoppedException once the GL thread has stopped (the window closed),
+        /// when nothing runs the work.
         public T Call<T>(Func<T> work)
         {
-            T result = default;
-            Exception error = null;
-            Post(() =>
-            {
-                try { result = work(); }
-                catch (Exception e) { error = e; }
-            });
-            Submit();
-            WaitIdle();
-            if (error != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(error);
+            if (!TryCall(work, out var result)) throw new GlDeviceStoppedException();
             return result;
         }
 
         public void Call(Action work) => Call(() => { work(); return 0; });
+
+        /// Call, or false (and no result) once the GL thread has stopped.
+        public bool TryCall<T>(Func<T> work, out T result)
+        {
+            T value = default;
+            Exception error = null;
+            bool ran = false;
+            Post(() =>
+            {
+                try { value = work(); }
+                catch (Exception e) { error = e; }
+                ran = true;
+            });
+            Submit();
+            WaitIdle();
+            // After shutdown Submit drops the work, and WaitIdle also returns when shutdown
+            // starts while the work is still queued: it has not run (read under the gate, which
+            // the GL thread takes after running a frame).
+            lock (gate)
+            {
+                if (!ran)
+                {
+                    result = default;
+                    return false;
+                }
+            }
+            if (error != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(error);
+            result = value;
+            return true;
+        }
 
         /// Waits until every submitted frame has been executed.
         public void WaitIdle()
@@ -209,6 +232,12 @@ namespace OniMoono.Desktop.Gl
             }
             thread.Join();
         }
+    }
+
+    /// A call for the GL thread's result after it stopped (the window closed): nothing runs it.
+    internal sealed class GlDeviceStoppedException : InvalidOperationException
+    {
+        public GlDeviceStoppedException() : base("The OpenGL device has stopped (the window closed); nothing runs GL work any more.") { }
     }
 
     /// Per-frame storage for command data (uniform values and block contents), reused once the
