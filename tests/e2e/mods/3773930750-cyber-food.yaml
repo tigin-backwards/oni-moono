@@ -1,0 +1,16 @@
+# Cyber Food (3773930750), class M.
+#
+# What it does: Bionic Duplicants may eat ordinary food for its morale (they call it sensory
+# calibration): patches on BionicMinionConfig (amounts, traits, prefab), the calorie monitor's
+# hunger checks, EatChore and the mess table let them take meals, with its own settings
+# (a button on the Mods screen) and a Chinese translation.
+# How a player reaches it: Bionic Duplicants at meal time.
+# What changes: Bionic Duplicants enjoy food.
+#
+# The mod loads and installs its late patches, as its log says, and the colony plays for 30 s.
+from: early-base
+mods: [3773930750]
+require_log: ['\[CyberFoodONI\] Loaded', '\[CyberFoodONI\] Late Edible patches installed']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
