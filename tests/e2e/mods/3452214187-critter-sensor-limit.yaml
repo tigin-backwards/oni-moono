@@ -1,0 +1,22 @@
+# 小动物传感器上限修改 Critter sensor limit (3452214187), class P (no UserMod2: a static OnLoad).
+#
+# What it does: the Critter Sensor's threshold goes up to 999 critters (the game's 64): a
+# postfix on LogicCritterCountSensor's range maximum returns 999.
+# How a player reaches it: a Critter Sensor's threshold side screen.
+# What changes: counts of big ranches.
+#
+# setup builds a Critter Sensor in the dug-out corridor west of the printing pod. Its range
+# reaches 999; selected, its threshold side screen is dumped (its range shown).
+from: early-base
+mods: [3452214187]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicCritterCountSensor\")", method: Build, args: [{"$": "Grid.XYToCell(109, 208)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:LogicCritterCountSensor::[0].RangeMax": 999
+  - driver: {camera.set: {cell: [109, 208], ortho: 8}}
+  - click_world: {cell: [109, 208], select: LogicCritterCountSensor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/ThresholdSwitchSideScreen", cond: stable}
+  - ui_dump: {name: threshold, root: "**/ThresholdSwitchSideScreen"}

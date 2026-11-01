@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3452214187-critter-sensor-limit.yaml",
+ "mods": [
+  "3452214187"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Critter Sensor in the dug-out corridor west of the printing pod. Its range reaches 999; selected, its threshold side screen's slider goes up to 999 (dumped)",
+ "updated": "2026-11-01",
+ "commit": "09a23bec",
+ "mod_dlls": {
+  "3452214187": {
+   "╨í╢»╬∩┤½╕╨╞≈╔╧╧▐╨▐╕─.dll": "68ac823427a0e1ae177cefa364beb7f011d32e381903c83e5444a5b290abb962"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-060041-4bcefaa6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:10:18",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-065252-33961010",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:52:52",
+    "lane": 40,
+    "reference_run": "20261101-060041-4bcefaa6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "threshold": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-065252-33961010",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T06:58:33",
+    "lane": 45,
+    "reference_run": "20261101-060041-4bcefaa6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "threshold": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
