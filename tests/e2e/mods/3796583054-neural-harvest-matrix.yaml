@@ -1,0 +1,29 @@
+# Neural Harvest Matrix (Duplicant Harvesting Power Source) (3796583054), class B, M.
+#
+# What it does: adds the Neural Harvest Matrix (MattsMatrixMachine, 3x3, in the Power menu,
+# researched with Renewable Energy): a Visco-Gel generator powered by a Duplicant assigned to it
+# (Assignable and AssignableSideScreen patches); integration is fatal, and dismantling it
+# releases the corpse.
+# How a player reaches it: the build menu (Power), after the research; its assignment screen.
+# What changes: Duplicants as a power source.
+#
+# setup grants the research. The building is listed in the Power menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3796583054]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"RenewableEnergy\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+require_log: ['\[MatrixMachine\] Neural Harvest Matrix prototype loaded\.']
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"RenewableEnergy\").unlockedItemIDs": {contains: MattsMatrixMachine}
+      "Assets.GetBuildingDef(\"MattsMatrixMachine\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/MattsMatrixMachine Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/MattsMatrixMachine Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
