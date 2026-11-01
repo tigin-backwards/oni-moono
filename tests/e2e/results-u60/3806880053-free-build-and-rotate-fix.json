@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3806880053-free-build-and-rotate-fix.yaml",
+ "mods": [
+  "3806880053"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Cot (a 2x2 floor building) is ordered in mid-air in the corridor west of the printing pod with the build tool, a cell above its floor, which the game refuses: the blueprint is placed",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "3806880053": {
+   "FreeBuildRotate.dll": "3844424e2edefb03fcaf849e00b9c499f2bcb9806962ede06d9f0ed92b78159a",
+   "PLib.dll": "d17686d90670c40bd9ae84ce9cb9964985657ad6d79f84eb1243f901cb39b04d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:43:36",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:22:03",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:23:59",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

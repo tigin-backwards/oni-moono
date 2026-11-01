@@ -1,0 +1,29 @@
+# Free Build and rotate(自由建造) Fix (3806880053), classes B, O (PLib options).
+#
+# What it does: a prefix on BuildingDef.IsValidPlaceLocation lifts buildings' placement rules
+# (floor, ceiling, wall and the like; no Unobtanium by default), and a postfix on
+# BuildingLoader.CreateBuildingPreview lets every building rotate freely (90-degree steps and
+# flips); buildings that hold items (pedestals, shelves) and structural ones keep the game's
+# rules, as do the IDs its options exclude, which it logs after BuildingConfigManager.ConfigurePost.
+# How a player reaches it: the build tool, everywhere; R to rotate.
+# What changes: placement without restrictions.
+#
+# A Cot (a 2x2 floor building) is ordered in mid-air in the corridor west of the printing
+# pod with the build tool, a cell above its floor, which the game refuses: the blueprint is
+# placed.
+from: early-base
+mods: [3806880053]
+require_log: ['\[FreeBuildRotate\] Kept on vanilla rules: ']
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 208], ortho: 8}}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/Bed Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/Bed Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - click_world: {cell: [112, 207]}
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - expect: {blueprints: {Bed: 1}}
+  - run: {seconds: 2}
+  - expect: {blueprints: {Bed: 1}}
