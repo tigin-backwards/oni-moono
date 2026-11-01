@@ -1,0 +1,31 @@
+# Filtered Cargo Bay Fixed (2966286229), classes P, S (base game only).
+#
+# What it does: the base game's Cargo Bay, Liquid Cargo Tank and Gas Cargo Canister get a
+# storage filter (TreeFilterable over solids, liquids or gases), and a rocket mission brings
+# back only the resources ticked in it (a prefix on CargoBay.SpawnResources asks the
+# destination for the accepted ones). The Biological Cargo Bay keeps no filter, holding 1000 kg.
+# How a player reaches it: a cargo module's filter side screen.
+# What changes: what a mission's cargo bay brings home.
+#
+# setup builds a Cargo Bay in the dug-out room east of the base-game colony's printing pod. It has a filter over the
+# solids, and selected, its filter side screen shows.
+from: vanilla-base
+mods: [2966286229]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CargoBay\")", method: Build, args: [{"$": "Grid.XYToCell(137, 189)"}, "Neutral", null, ["Steel"], 293.15]}}
+steps:
+  - run: {seconds: 1}
+  - expect_state:
+      "DlcManager.IsExpansion1Active()": false
+      "Grid.WidthInCells": {save_as: width}
+      "all:CargoBay::[0].GetComponent<TreeFilterable>": exists
+      "all:CargoBay::[0].GetComponent<Storage>.storageFilters": {contains: Metal}
+  - driver: {camera.set: {cell: [137, 191], ortho: 10}}
+  - click_world: {cell: [137, 190], select: CargoBay}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/TreeFilterableSideScreen", cond: stable}
+  - expect_ui:
+      "**/TreeFilterableSideScreen": {active: true}
+  - ui_dump: {name: filter, root: "**/TreeFilterableSideScreen", mask_text: ['\d+(\.\d+)? ?kg']}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
