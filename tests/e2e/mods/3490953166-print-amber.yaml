@@ -1,0 +1,17 @@
+# Print Amber - Mutant Race Mod (3490953166), class P (no code; content for Dupery).
+#
+# What it does: a personalities.json and accessory kanims for Dupery: an Amber personality for the Prehistoric Planet Pack, with accessory kanims of its own joins the pool
+# of printable Duplicants. It has no code; Dupery (3172734005, installed first) imports it.
+# How a player reaches it: printing pod and new-colony Duplicants.
+# What changes: who can be printed.
+#
+# Dupery's log of what it imports from the mod and the size of the personality pool are
+# compared with the original's; the colony runs on.
+from: early-base
+mods: [3172734005, 3490953166]
+require_log: ['\[Dupery\] .*Print Amber']
+steps:
+  - expect_state:
+      "Db.Get().Personalities.Count": "== original"
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
