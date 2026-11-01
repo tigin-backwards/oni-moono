@@ -1,4 +1,4 @@
-# scripts/mod-sweep.py u60-3047: 43 mods, batches of 12, the save 2minnow, 90 s of play; commit b8326c43, 2026-10-31
+# scripts/mod-sweep.py u60-3047: 67 mods, batches of 12, the save 2minnow, 90 s of play; commit 3c38d86e, 2026-11-01
 id	rank	original	ours	note
 3821093288	2079	ok	ok	
 3826412681	2227	-	-	a translation: installed disabled, as a subscription leaves it; not swept
@@ -40,6 +40,30 @@ id	rank	original	ours	note
 2971105218	2323	ok	ok	
 2618474424	2324	ok	ok	
 1984088916	2325	-	-	a translation: installed disabled, as a subscription leaves it; not swept
+3792356047	2326	ok	ok	
+3656559662	2327	ok	ok	
+3701419178	2328	ok	ok	
+3732705092	2329	ok	ok	
+3750063080	2330	ok	ok	
+3801689112	2331	menu	-	the original disables it ("Failed to load mod ...disabling"): step start: the player exited (1) before OniMcp started; HarmonyLib.HarmonyException: Patching exception in method static System.Reflection.MethodBase HighFridgeUpgrade.Patch_HightechSmallFridge_GasInput::TargetMethod() ---> System.Exception: Method static System.Reflection.MethodBase HighFridgeUpgrade.Patch_HightechSmallFridge_GasInput::TargetMethod() returned an unexpected result: null @ HarmonyLib.PatchClassProcessor.RunMethod[S,T]; null Exception while loading mod pie.HighFridgeUpgrade at RU
+3445494874	2333	ok	ok	
+3372288234	2334	ok	ok	
+2636014832	2335	ok	ok	
+3735999362	2338	ok	ok	
+3775374548	2341	ok	ok	
+3792025973	2343	ok	ok	
+3742784298	2344	ok	ok	
+3241795238	2345	ok	ok	
+3597493271	2346	ok	ok	
+2893639021	2347	ok	ok	
+3802029308	2348	ok	ok	
+3775377258	2349	ok	ok	
+3771895170	2350	colony	-	the crash screen opens while the save loads; System.NullReferenceException: Object reference not set to an instance of an object @ Database.SkillAttributePerk+<>c__DisplayClassN_N.<.ctor>b__N; ~~~!System.NullReferenceException: Object r
+3810073556	2352	menu	-	the original disables it ("Failed to load mod ...disabling"): step start: the player exited (1) while loading; System.Reflection.AmbiguousMatchException: Ambiguous match in Harmony patch for SeedProducer:CropPickedInternal ---> System.Reflection.AmbiguousMatchException: Ambiguous match found @ HarmonyLib.AccessTools+<>c__DisplayClassN_N.<Method>b__N; null Exception while loading mod ZK.ColonyFlowMonitor at RUN/home/config/unityNd/Klei/Oxygen Not Included/mods/Local/N @ HarmonyLib.AccessTools+<>c__DisplayClassN_N.<Method>b__N
+3774781370	2357	ok	ok	
+3783751491	2358	ok	ok	
+3756399185	2359	ok	ok	
+3771756510	2360	ok	ok	
 2242620896	2372	-	-	a translation: installed disabled, as a subscription leaves it; not swept
 3047352164	2429	-	-	a translation: installed disabled, as a subscription leaves it; not swept
 3747652766	2433	-	-	a translation: installed disabled, as a subscription leaves it; not swept
