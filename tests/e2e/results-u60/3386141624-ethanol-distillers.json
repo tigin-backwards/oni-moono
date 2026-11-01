@@ -1,0 +1,60 @@
+{
+ "spec": "mods/3386141624-ethanol-distillers.yaml",
+ "mods": [
+  "3386141624"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the ethanol machine placed and selected: no inputs, 0.5 kg/s of ethanol at 240 W; world shot",
+ "updated": "2026-11-01",
+ "commit": "f1b964f6",
+ "mod_dlls": {
+  "3386141624": {
+   "PLib.dll": "432e28fbecb2d422a46eafe489a446f946ec828acfb2b721f7fe6df19d84cd7c",
+   "╥╥┤╝╔·▓·╗·.dll": "75e85466ac40a453924a786f163b6a1c43fadc295ce923225660e5f89296cfec"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-222605-bc10cce7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:28:00",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-010758-b07474c8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:07:58",
+    "lane": 35,
+    "reference_run": "20261031-222605-bc10cce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "distillery": 0.007561
+    }
+   },
+   {
+    "run": "20261101-010758-b07474c8",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:18:06",
+    "lane": 35,
+    "reference_run": "20261031-222605-bc10cce7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "distillery": 0.009727
+    }
+   }
+  ]
+ }
+}
