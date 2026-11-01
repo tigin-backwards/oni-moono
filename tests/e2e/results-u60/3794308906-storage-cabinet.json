@@ -1,0 +1,61 @@
+{
+ "spec": "mods/3794308906-storage-cabinet.yaml",
+ "mods": [
+  "3794308906"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Storage Cabinet placed and selected (details shot), with its Database entry; world shot",
+ "updated": "2026-11-01",
+ "commit": "6b4b2b0c",
+ "mod_dlls": {
+  "3794308906": {
+   "Cabinet.dll": "dca6a8a9f62da2b6a11d8340a3f410c222ba9327c1d07b014a41e2096714fd5f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024344-c6853c58",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:43:45",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-103724-35c0c2bc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:37:24",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "building": 0.009066
+    }
+   },
+   {
+    "run": "20261101-103724-35c0c2bc",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:44:23",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "building": 0.008778
+    }
+   }
+  ]
+ }
+}
