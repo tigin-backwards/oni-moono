@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3804039425-multichannel-critter-sensor.yaml",
+ "mods": [
+  "3804039425"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Multiplexing and builds the sensor in the dug-out corridor west of the printing pod. It shows in the Automation menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "ec875d89",
+ "mod_dlls": {
+  "3804039425": {
+   "MultichannelCritterSensor.dll": "a0a587147f41bcdc305c28a0f96475445aeb4efddb9b38c06ac804b8f2b3903d"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043324-145195fb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:33:25",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-092524-654b8922",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:25:24",
+    "lane": 40,
+    "reference_run": "20261101-043324-145195fb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-092524-654b8922",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:25:25",
+    "lane": 41,
+    "reference_run": "20261101-043324-145195fb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

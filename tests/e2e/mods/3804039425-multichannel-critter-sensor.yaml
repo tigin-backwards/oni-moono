@@ -1,0 +1,30 @@
+# Multichannel Critter Sensor (3804039425), classes B, S.
+#
+# What it does: adds a Multichannel Critter Sensor (MultichannelCritterSensor, 1x1, the
+# Automation menu's sensors after the Critter Sensor, researched with Multiplexing): a ribbon
+# cable sensor with per-species and per-egg filters, separate critter and egg thresholds, and
+# pulses on rising and falling counts (a side screen of its own on the details screen).
+# How a player reaches it: the build menu (Automation), after the research.
+# What changes: ranch automation on four channels.
+#
+# setup grants Multiplexing and builds the sensor in the dug-out corridor west of the printing
+# pod. It shows in the Automation menu; selected, its details screen is dumped.
+from: early-base
+mods: [3804039425]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Multiplexing\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"MultichannelCritterSensor\")", method: Build, args: [{"$": "Grid.XYToCell(109, 208)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Multiplexing\").unlockedItemIDs": {contains: MultichannelCritterSensor}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Automation"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/MultichannelCritterSensor Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/MultichannelCritterSensor Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [109, 209], ortho: 8}}
+  - click_world: {cell: [109, 208], select: MultichannelCritterSensor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}
