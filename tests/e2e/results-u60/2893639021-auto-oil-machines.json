@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2893639021-auto-oil-machines.yaml",
+ "mods": [
+  "2893639021"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "loads with its two patches; its refinery change is undone by the game's own method, in both players; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "fbda6951",
+ "mod_dlls": {
+  "2893639021": {
+   "AutoOilMachines.dll": "cfd70eca80725f40eaa878a9c4aed901b0da80116b26644559fa52d48ef72db0"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032714-f98abda9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:31:24",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-115943-fdda5dd9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:59:43",
+    "lane": 35,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-115943-fdda5dd9",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:01:32",
+    "lane": 35,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
