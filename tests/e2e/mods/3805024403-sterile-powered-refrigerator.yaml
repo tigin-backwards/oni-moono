@@ -1,0 +1,29 @@
+# Sterile Powered Refrigerator (3805024403), class P.
+#
+# What it does: food in a powered, working Refrigerator keeps as if in a sterile atmosphere and
+# deep-frozen, without any carbon dioxide or chlorine around it: prefixes on
+# Rottable.AtmosphereQuality and RefrigerationLevel answer Sterilizing and Frozen for an item in
+# an active fridge (Rottable.IsInActiveFridge); a postfix on Refrigerator.OnSpawn.
+# How a player reaches it: a powered Refrigerator with food in it.
+# What changes: food in fridges stops rotting outright.
+#
+# setup builds a Refrigerator in the dug-out corridor west of the printing pod (unpowered there,
+# so the game's rules apply to it) and puts Mush Bars in it. The mod loads and its fridge holds
+# the food; the food's freshness after 60 s (before a Duplicant may take it to eat) is as in the
+# original, within 0.5 % (it follows the corridor's temperature and gases, which vary a little).
+from: early-base
+mods: [3805024403]
+require_log: ['\[SterileRefrigerator\] Loaded']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Refrigerator\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 207)"}, 0, 0, MushBar, Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "all:Refrigerator::[0].GetComponent<Storage>", method: Store, args: [{"$": "last:"}]}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "all:Refrigerator::[0].GetComponent<Storage>.items.Count": 1
+  - run: {seconds: 60}
+  - expect_state:
+      "all:Refrigerator::[0].GetComponent<Storage>.items[0].GetComponent<Modifiers>.amounts.Get(\"Rot\").value": [">= 0.995 * original", "<= 1.005 * original"]
+  - expect: {duplicants: 3}
