@@ -1,0 +1,18 @@
+# 自动清扫器(桶装液体和气体) Auto-Sweepers move bottles (3782720488), class P.
+#
+# What it does: Auto-Sweepers carry bottled liquids and canistered gases (which the game's never
+# picks up): a postfix on Assets.IsTagSolidTransferArmConveyable answers true for them, and
+# storage filters are patched to match.
+# How a player reaches it: an Auto-Sweeper beside bottles.
+# What changes: sweepers that move bottles.
+#
+# Water and oxygen tags count as conveyable by a sweeper, and the colony runs on.
+from: early-base
+mods: [3782720488]
+require_log: ['\[BottledWaterSweeper\] Mod loaded']
+steps:
+  - expect_state:
+      "Assets.IsTagSolidTransferArmConveyable(\"Water\")": true
+      "Assets.IsTagSolidTransferArmConveyable(\"Oxygen\")": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
