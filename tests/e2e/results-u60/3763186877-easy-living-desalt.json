@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3763186877-easy-living-desalt.yaml",
+ "mods": [
+  "3763186877"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with the default options, the Desalinator takes 10 kg/s of salt water into a 40 kg intake and drops its salt",
+ "updated": "2026-11-01",
+ "commit": "55cc1fe2",
+ "mod_dlls": {
+  "3763186877": {
+   "DesaltMachine.dll": "7ed20be8c69e7c30fa0016ffd704d2968f974b16b915945807a044fc12dbfe75",
+   "PLib.dll": "9bf74a5ec6b897e2f82354c90de45c0ec89181087679c39e76b7cbc77de20fc6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-023431-568b7364",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:34:31",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-084100-10264fec",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:41:00",
+    "lane": 35,
+    "reference_run": "20261101-023431-568b7364",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-084100-10264fec",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:44:25",
+    "lane": 35,
+    "reference_run": "20261101-023431-568b7364",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
