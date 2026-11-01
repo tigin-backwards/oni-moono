@@ -1,0 +1,61 @@
+{
+ "spec": "mods/3321924710-ceres-moonlet-streamlined.yaml",
+ "mods": [
+  "3321924710"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a new game of the mod cluster (fixed seed): its cluster and start world, with as many worlds as the original generates; the asteroid list dumped",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3321924710": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-064427-2b16e9c7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:51:24",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-123245-052d3109",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:32:45",
+    "lane": 35,
+    "reference_run": "20261101-064427-2b16e9c7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "asteroids": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-123245-052d3109",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:34:38",
+    "lane": 35,
+    "reference_run": "20261101-064427-2b16e9c7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "asteroids": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
