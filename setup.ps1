@@ -26,8 +26,10 @@ function Find-Game {
     if (-not (Test-Path $folders)) { return $null }
     foreach ($line in Get-Content -Encoding UTF8 -LiteralPath $folders) {
         if ($line -match '^\s*"path"\s*"(.*)"\s*$') {
-            $dir = Join-Path ($Matches[1] -replace '\\\\', '\') 'steamapps\common\OxygenNotIncluded'
-            if (Test-Path (Join-Path $dir 'OxygenNotIncluded_Data')) { return $dir }
+            # Path.Combine, not Join-Path: Join-Path throws for a drive that no longer exists (a
+            # library on a removed or renamed drive), and the trap made that the setup's end.
+            $dir = [System.IO.Path]::Combine(($Matches[1] -replace '\\\\', '\'), 'steamapps\common\OxygenNotIncluded')
+            if (Test-Path -LiteralPath ([System.IO.Path]::Combine($dir, 'OxygenNotIncluded_Data'))) { return $dir }
         }
     }
     return $null
