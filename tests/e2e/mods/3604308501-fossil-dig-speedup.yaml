@@ -1,0 +1,16 @@
+# FossilDigSpeedUp 化石采集加速 (3604308501), class P.
+#
+# What it does: the fossil dig site's excavation goes ten times as fast (a postfix on
+# FossilDigSiteConfig.ConfigureRecipes).
+# How a player reaches it: excavating a fossil dig site.
+# What changes: fossils dug in a tenth of the time.
+#
+# The dig site's recipe time is compared with the original's (a tenth of the game's), and the
+# colony runs on.
+from: early-base
+mods: [3604308501]
+steps:
+  - expect_state:
+      "sum:ComplexRecipeManager.Get().recipes[*].time if .fabricators[0].Name == FossilDig": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
