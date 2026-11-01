@@ -1,0 +1,22 @@
+# Don't Count Eggs on Rails (3816668531), class P.
+#
+# What it does: Critter Sensors no longer count eggs riding a conveyor rail through their room
+# (stored, but in no storage); eggs on the floor, in incubators or carried count as before (a
+# patch on OvercrowdingMonitor.UpdateRegion).
+# How a player reaches it: a ranch with eggs passing on rails.
+# What changes: what critter sensors count.
+#
+# setup builds a Critter Sensor in the dug-out corridor west of the printing pod and spawns a
+# Hatch egg on the floor; after 30 s the sensor counts it as in the original (eggs on the floor
+# still count), and the colony runs on.
+from: early-base
+mods: [3816668531]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicCritterCountSensor\")", method: Build, args: [{"$": "Grid.XYToCell(109, 208)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131129, 0, 0, HatchEgg, Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 30}
+  - expect_state:
+      "all:LogicCritterCountSensor::[0].countEggs": "== original"
+  - expect: {duplicants: 3}

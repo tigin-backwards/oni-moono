@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3816668531-dont-count-eggs-on-rails.yaml",
+ "mods": [
+  "3816668531"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Critter Sensor in the dug-out corridor west of the printing pod and spawns a Hatch egg on the floor; after 30 s the sensor counts it as in the original (eggs on the floor still count), and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "14f7cbef",
+ "mod_dlls": {
+  "3816668531": {
+   "DontCountEggsOnRails.dll": "cdccc5f114abfd121689155481636eddce7cf9ffde15078f5da11f65801e6236"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032706-5e3764f7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:31:35",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-104900-30094c46",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:49:00",
+    "lane": 40,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-104900-30094c46",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:49:01",
+    "lane": 41,
+    "reference_run": "20261101-032706-5e3764f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
