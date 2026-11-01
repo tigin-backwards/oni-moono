@@ -3,12 +3,12 @@
  "mods": [
   "3802645529"
  ],
- "verdict": "pending",
- "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
  "findings": [],
- "note": "",
- "updated": "2026-10-31",
- "commit": "8a004ed3",
+ "note": "Move This Here from the Base menu (card without a material panel, shot): a click places it complete at once, with the mod's storage and deconstruct components",
+ "updated": "2026-11-01",
+ "commit": "df5f7c9b",
  "mod_dlls": {
   "3802645529": {
    "MoveThisHere.dll": "2fa462a9311f76f0c47be7f36e0f19a3b91280e10d77307174e33e1046e3e0cd"
@@ -17,17 +17,43 @@
  "runs": {
   "original": [
    {
-    "run": "20261031-214159-a5f53be5",
+    "run": "20261031-230339-bc48bbaa",
     "index": 1,
-    "verdict": "fail",
-    "date": "2026-10-31T21:43:15",
+    "verdict": "pass",
+    "date": "2026-10-31T23:32:10",
     "lane": 31,
-    "reasons": [
-     "step 12: no HaulingPoint selected at [118, 207] after 5 clicks (last: None)"
-    ],
     "signatures": 0
    }
   ],
-  "ours": []
+  "ours": [
+   {
+    "run": "20261101-023613-af31b4cf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:36:13",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "product": 0.0
+    }
+   },
+   {
+    "run": "20261101-023613-af31b4cf",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:40:00",
+    "lane": 35,
+    "reference_run": "20261031-230339-bc48bbaa",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "product": 0.0
+    }
+   }
+  ]
  }
 }
