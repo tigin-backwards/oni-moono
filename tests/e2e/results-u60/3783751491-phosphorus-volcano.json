@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3783751491-phosphorus-volcano.yaml",
+ "mods": [
+  "3783751491"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the game's geyser types count the mod's phosphorus volcano, as in the original; a minute of play",
+ "updated": "2026-11-01",
+ "commit": "7cc9e634",
+ "mod_dlls": {
+  "3783751491": {
+   "PhosphorusVolcano.dll": "2058641d51f96b0d77e1dd374998d3d531526baad2453cb917f5928a73f053aa"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-072717-39d6a410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:34:51",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-091855-6d869a7e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:18:55",
+    "lane": 35,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-091855-6d869a7e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T09:20:46",
+    "lane": 35,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
