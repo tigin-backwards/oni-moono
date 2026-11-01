@@ -1,0 +1,23 @@
+# 植物生长调试器 / Plant Growth Debugger (3822811004), classes S, K.
+#
+# What it does: a debugging tool. Below a plant's status in its details panel
+# (SimpleInfoScreen.OnSelectTarget), an editing bar sets its growth: a 0-100 input applied with
+# Enter, and 0/25/50/75/100 % buttons; clicking the growth row focuses the input, and Ctrl+G
+# with a plant selected opens a separate panel.
+# How a player reaches it: a selected plant's details panel; Ctrl+G.
+# What changes: plant growth set by hand.
+#
+# A wild Mealwood spawned in the corridor west of the printing pod is selected; its details
+# panel carries the editing bar (dumped).
+from: early-base
+mods: [3822811004]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [131128, 0, 0, "BasicSingleHarvestPlant", "BuildingFront"]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+require_log: ['\[PlantGrowthDebugger\] loaded']
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [112, 208], ortho: 8}}
+  - click_world: {cell: [112, 206], select: BasicSingleHarvestPlant}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen/**/SimpleInfoScreen", mask_text: ['\d+(\.\d+)?']}
