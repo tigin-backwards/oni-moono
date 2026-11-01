@@ -1,0 +1,13 @@
+# Sound Switch (3758626493), class P (sound).
+#
+# What it does: replaces or silences the hover and click sounds per its configuration file
+# (KSelectable.Hover and SelectTool.Select patches).
+# How a player reaches it: hovering and selecting in the colony.
+# What changes: the UI's sounds.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3758626493]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
