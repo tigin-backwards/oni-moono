@@ -1,16 +1,34 @@
 # ResearchQueue ShiftReverse (2683038637), class S (patches another mod's code).
 #
-# What it does: reverses the Shift-click behaviour of the Research Queue mod: in
+# What it does: reverses the Shift-click behaviour of the Research Queue mod (1893887916): in
 # OnAllModsLoaded it adds a transpiler to ResearchQueuePatches.OnResearchClicked (a type of
-# that mod) turning a ">" test into "<=". Without Research Queue installed the type does not
-# exist and nothing is patched.
-# How a player reaches it: Shift-clicking a tech with Research Queue installed.
+# that mod) turning its "Shift held" test around, so a plain click queues a tech and a
+# Shift-click replaces the queue. It needs Research Queue: alone, the original reports the
+# missing ResearchQueue assembly while post-loading mods and exits loading the colony.
+# How a player reaches it: clicking a tech in the research screen (R; early-base has a
+# research station).
 # What changes: with Research Queue, plain and Shift clicks swap.
 #
-# Installed alone, as a subscriber without Research Queue would have it: the colony loads and
-# runs a minute, as in the original.
+# With Research Queue: a plain click on Agriculture queues it with its two prerequisites, one
+# on Animal Control adds it behind them, and a Shift-click on Food Repurposing replaces the
+# queue with it and its prerequisites.
 from: early-base
-mods: [2683038637]
+mods: [1893887916, 2683038637]
 steps:
-  - run: {seconds: 60}
-  - expect: {duplicants: 3}
+  - key: {code: R, at: [122, 208]}
+  - ui_wait: {path: "**/FullScreenUICanvases/ResearchScreen", cond: stable}
+  - ui_wait: {path: "**/ResearchScreen/Content/ScrollRectRoot/ScrollContent", cond: stable, frames: 600}
+  - expect_state:
+      "Research.Instance.GetResearchQueue().Count": 0
+  - click: {ui: "**/ScrollContent/*\"AGRICULTURE\"* Panel"}
+  - expect_state: {"Research.Instance.GetResearchQueue().Count": 3}
+  - click: {ui: "**/ScrollContent/*\"ANIMALCONTROL\"* Panel"}
+  - expect_state:
+      "Research.Instance.GetResearchQueue().Count": 5
+      "Research.Instance.GetResearchQueue()[-1].tech.Id": AnimalControl
+  - click: {ui: "**/ScrollContent/*\"FOODREPURPOSING\"* Panel", mods: [Shift]}
+  - expect_state:
+      "Research.Instance.GetResearchQueue().Count": [">= 1", "== original"]
+      "Research.Instance.GetResearchQueue()[-1].tech.Id": FoodRepurposing
+  - key: {code: Escape}
+  - run: {seconds: 30}
