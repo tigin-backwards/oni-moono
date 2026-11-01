@@ -441,8 +441,9 @@ broken.update({
     '3789616217': 'broken on U60 (build 761015): it checks the game assembly\'s hash, finds U60\'s unknown, and turns its dig patch off ("[OtherHalf/DigComplete.disabled] assembly_hash_mismatch"), so in the original a dug cell still drops half its mass at 100 % recovery; the colony runs; not run in ours',
     '3457870408': 'broken upstream: its Neutronium Generator sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player exits (1) while loading a colony; not run in ours',
     '3775497869': 'broken on U60 (build 761015): it patches a game method by name through PLib\'s `Patch` extension, which U60 overloads, so the lookup throws (AmbiguousMatchException) and the original exits (1) at the main menu before a colony loads; not run in ours',
+    '3746629588': 'broken upstream: it references PLib (4.8.1) but does not ship PLib.dll, so the original fails to load it (FileNotFoundException for PLib) and exits (1) at the main menu before a colony loads; not run in ours',
 })
-not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869'}
+not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869', '3746629588'}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
