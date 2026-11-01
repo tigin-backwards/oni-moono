@@ -1,0 +1,24 @@
+# Bio Fuel Generator - 生物燃料发电机 (3738353497), class B.
+#
+# What it does: a 2x2 Bio Fuel Generator (FoodGenerator, any metal; Power menu) that burns food
+# for power, with its own config; it also changes how food spoils (patches on
+# Rottable.AtmosphereQuality and Pickupable.OnSpawn).
+# How a player reaches it: the build menu (Power).
+# What changes: food as fuel.
+#
+# setup places one in the pit of the dug-out room west of the printing pod (110,206): it is complete, selected it shows its details
+# (shot), and it is shot in the world.
+from: early-base
+mods: [3738353497]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"FoodGenerator\")", method: Build, args: [131126, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {FoodGenerator: 1}}
+  - expect_state:
+      "Assets.GetBuildingDef(\"FoodGenerator\").GeneratorWattageRating": "== original"
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 206], select: FoodGenerator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
+  - world_shot: {name: building, ortho: 5, at: [110, 207]}

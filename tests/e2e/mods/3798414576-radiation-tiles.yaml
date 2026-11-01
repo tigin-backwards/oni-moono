@@ -1,0 +1,26 @@
+# Radiation Tiles (3798414576), class B.
+#
+# What it does: two 1x1 tiles in the Radiation menu's transmissions group: the Radbolt Glass
+# Tile (diamond) that radbolts fly straight through, and the Radiation Shield Tile that stops
+# radiation and light (patches on the radiation and light indexers, HighEnergyParticle.Collide
+# and GameUtil.GetRadiationAbsorptionPercentage).
+# How a player reaches it: the build menu (Radiation).
+# What changes: radbolt windows and radiation walls.
+#
+# setup places one in the corridor west of the printing pod (118,207): it is complete, selected it shows its details
+# (shot), and it is shot in the world.
+from: early-base
+mods: [3798414576]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"RadboltGlassTile\")", method: Build, args: [131770, Neutral, null, [Diamond], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {RadboltGlassTile: 1}}
+  - expect_state:
+      "Assets.GetBuildingDef(\"RadiationShieldTile\").PrefabID": RadiationShieldTile
+      "Grid.Element[131770].id": Diamond
+  - driver: {camera.set: {cell: [118, 208], ortho: 8}}
+  - click_world: {cell: [118, 207], select: RadboltGlassTile}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
+  - world_shot: {name: building, ortho: 5, at: [118, 208]}
