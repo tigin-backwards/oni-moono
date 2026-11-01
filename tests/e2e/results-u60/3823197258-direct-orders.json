@@ -1,0 +1,67 @@
+{
+ "spec": "mods/3823197258-direct-orders.yaml",
+ "mods": [
+  "3823197258"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Travaldo selected and right-clicked to the floor ten cells west: the mod's float menu (dumped and shot) offers Go here; its click gives the order, which runs as a MoveTo chore and ends",
+ "updated": "2026-10-31",
+ "commit": "ba34464e",
+ "mod_dlls": {
+  "3823197258": {
+   "DirectOrders.dll": "0b6524f3777c90cdbc6450654e569c2b46dbfd94d868733e4e85e4fcaada657a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-210418-28504fa7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:04:18",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261031-211119-383abe32",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T21:11:19",
+    "lane": 35,
+    "reference_run": "20261031-210418-28504fa7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "menu": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "menu": 0.0
+    }
+   },
+   {
+    "run": "20261031-211119-383abe32",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-10-31T21:12:43",
+    "lane": 35,
+    "reference_run": "20261031-210418-28504fa7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "menu": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "menu": 0.0
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,39 @@
+# Direct Orders (3823197258), class M, S.
+#
+# What it does: with a Duplicant selected, a right-click on a cell (SelectTool's
+# OnRightClickDown, or Shift+right-click) opens a menu of the errands there
+# (DirectOrders_FloatMenu, on the screen-space overlay canvas) and "Go here" when the cell is
+# standable; an option gives the Duplicant a direct order (OrderQueue), which a ChooseChore
+# postfix makes it do ahead of other work, with a "Direct order: ..." status item. Shift queues
+# orders.
+# How a player reaches it: select a Duplicant, right-click a cell.
+# What changes: the Duplicant goes and does the order.
+#
+# Travaldo, at the printing pod, is selected and right-clicked to the floor ten cells west: the
+# menu offers "Go here", whose click gives the order; Travaldo walks there.
+from: early-base
+mods: [3823197258]
+steps:
+  - driver: {camera.set: {cell: [121, 208], ortho: 10}}
+  - click_world: {cell: [127, 207], select: Minion}
+  - expect_state: {"selected:GetComponent<MinionIdentity>.name": Travaldo}
+  - click_world: {cell: [117, 207], button: right}
+  - ui_wait: {path: "**/DirectOrders_FloatMenu", cond: stable}
+  - ui_dump: {name: menu, root: "**/DirectOrders_FloatMenu"}
+  # It closes when the pointer moves 95 pixels away: the shot leaves the pointer where it is.
+  - shot: {name: menu, crop: "**/DirectOrders_FloatMenu", threshold: 0.04, pointer: stay}
+  - expect_ui:
+      "**/DirectOrders_FloatMenu/option": {count: 1}
+      "**/DirectOrders_FloatMenu/option/text": {text: "Go here"}
+  # The label is not a raycast target: the click goes to its option.
+  - click: {ui: "**/DirectOrders_FloatMenu/option"}
+  - ui_wait: {path: "**/DirectOrders_FloatMenu", cond: gone}
+  - expect_state: {"type:DirectOrders.OrderQueue::queues.Count": 1}
+  # The order runs as a MoveTo chore ahead of other work, and ends when Travaldo stands on the
+  # cell.
+  - run: {seconds: 2, speed: 1}
+  - expect_state:
+      "type:DirectOrders.OrderQueue::queues.Count": 1
+      "Components.LiveMinionIdentities.Items[2].GetComponent<ChoreDriver>.GetCurrentChore().choreType.Id": MoveTo
+  - run: {seconds: 30}
+  - expect_state: {"type:DirectOrders.OrderQueue::queues.Count": 0}
