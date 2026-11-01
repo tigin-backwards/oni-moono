@@ -1,0 +1,21 @@
+# Print John - The Without Hairstyle Mod (2836711765), class X (content for Dupery).
+#
+# What it does: no code. With Dupery (here Dupery Fixed, 3172734005; its description requires
+# Dupery), its personalities.json adds a printable Duplicant personality, John
+# (male, Aggressive stress reaction, Happy Singer joy trait), with its (bald) hair from the mod's anim folder.
+# How a player reaches it: Duplicants printed or picked for a new colony; the Duplicant's
+# Personality tab.
+# What changes: another personality in the pool.
+#
+# Dupery imports the personality into the game's Personalities and loads its accessories.
+from: early-base
+mods: [3172734005, 2836711765]
+require_log: ['\[Dupery\]: accessory hair_john successfully loaded']
+steps:
+  - expect_state:
+      "Db.Get().Personalities.TryGet(\"JOHN\")": exists
+      "Db.Get().Personalities.TryGet(\"JOHN\").Disabled": false
+      "Db.Get().Accessories.TryGet(\"hair_john\")": exists
+      "Db.Get().Personalities.Count": "== original"
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}
