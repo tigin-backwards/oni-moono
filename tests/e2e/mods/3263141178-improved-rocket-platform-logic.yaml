@@ -1,0 +1,16 @@
+# Improved Rocket Platform Logic (3263141178), class P (Spaced Out).
+#
+# What it does: a launch pad's automation input launches its rocket without waiting for the crew
+# to board (a patch on CraftModuleInterface.CheckReadyForAutomatedLaunch ignores the boarding
+# requirement).
+# How a player reaches it: a rocket on a launch pad with an automation signal.
+# What changes: automated launches with crew still aboard or missing.
+#
+# early-base has no rocket: the mod loads and the colony runs on.
+from: early-base
+mods: [3263141178]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .label.id == 3263141178 and .IsEnabledForActiveDlc() == true": 1
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
