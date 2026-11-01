@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3814685111-sticky-materials.yaml",
+ "mods": [
+  "3814685111"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Tile is picked in the Base menu, and its material selector is dumped as the original's (the material it starts on included). Escape closes the menu",
+ "updated": "2026-11-01",
+ "commit": "5f9e31e4",
+ "mod_dlls": {
+  "3814685111": {
+   "StickyMaterials.dll": "e702c8c1e30ec48094958105a1ba120b9843be20948bc3f22e30826eb2a946d5"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-225112-998fa5ef",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:51:13",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-103342-6c7d03d3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:33:42",
+    "lane": 40,
+    "reference_run": "20261031-225112-998fa5ef",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "materials": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-103342-6c7d03d3",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:33:43",
+    "lane": 41,
+    "reference_run": "20261031-225112-998fa5ef",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "materials": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
