@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3650293147-deconstruct-hotkey.yaml",
+ "mods": [
+  "3650293147"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Storage Bin in the dug-out corridor west of the printing pod. Selected, its user menu's Deconstruct button is dumped (its hotkey shown in its tooltip), as in the original",
+ "updated": "2026-11-01",
+ "commit": "1f03bf82",
+ "mod_dlls": {
+  "3650293147": {
+   "DeconstructHotkey.dll": "4a56d90c5fa0530678526be5d8aaba49853a67f4060ca090ac498337f77b29eb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-014441-b56fec9b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:44:41",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-021627-caf99625",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:16:27",
+    "lane": 44,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-021627-caf99625",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T02:23:10",
+    "lane": 44,
+    "reference_run": "20261101-014441-b56fec9b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
