@@ -1,0 +1,31 @@
+# 更强的细菌（StrongerGerms） (3803977144), class P, B (PLib options).
+#
+# What it does: germs become deadly: every exposure that hits infects (its options set the
+# chance, 100 % by default, 80 % through a suit), innate and recovery immunities are removed,
+# each uncured sickness costs 10 % health and adds 10 % stress a cycle, and soaking in germy
+# liquid infects; it adds a Germ Generator (GermGenerator, Power menu, Advanced Power
+# Regulation) and a Germ Purifier (GermPurifier, 2x4, Medicine menu, Advanced Sanitation).
+# How a player reaches it: any germs; the build menu; the mod's options.
+# What changes: disease as a real threat.
+#
+# setup grants Advanced Sanitation. Its attribute patches check out, as it logs; the Germ
+# Purifier is listed in the Medicine menu and its card opens from there (dumped).
+from: early-base
+mods: [3803977144]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedSanitation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+require_log: ['\[更强的细菌\] 属性修正校验通过：全部属性 id 均存在。']
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"AdvancedSanitation\").unlockedItemIDs": {contains: GermPurifier}
+      "Assets.GetBuildingDef(\"GermPurifier\")": exists
+      "Assets.GetBuildingDef(\"GermGenerator\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Medicine"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/GermPurifier Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/GermPurifier Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
