@@ -1,0 +1,26 @@
+# Lazy Overseer (3756218623), classes S, M, V (PLib options).
+#
+# What it does: colony management automation. The research screen's side bar gets a queue
+# column with the whole plan, and an empty queue picks the next available tech by itself
+# (Auto-queue); each Duplicant keeps a skill queue it learns from on its own, respecting
+# morale; renaming a Duplicant "Miner Ada" applies the Miner profession from professions.json
+# (chore priorities and skills); built tiles get a texture per material from its assets;
+# options set Flydos to store only, custom speed multipliers and a farther zoom-out (60).
+# How a player reaches it: the research screen; renaming Duplicants; the mod's options.
+# What changes: research and skills that queue themselves.
+#
+# With Extended zoom-out on, the camera's zoom-out limit is 60; the research screen builds its
+# queue column, and the colony plays on.
+from: early-base
+mods: [3756218623]
+options:
+  "3756218623": {MaxZoomOutEnabled: true, MaxZoomOut: 60.0}
+require_log: ['\[LazyOverseer\] Research queue column built']
+steps:
+  - expect_state:
+      "CameraController.Instance.maxOrthographicSize": 60
+  - open: {key: R}
+  - ui_wait: {path: "**/FullScreenUICanvases/ResearchScreen", cond: stable}
+  - key: {code: Escape}
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}
