@@ -447,6 +447,21 @@ passed), called twice: what it returned, or the exception's type, message and fi
 `PROBE_KC_CRASH=1` adds, last, the two cases that crash the player. ARCHITECTURE D56 records what
 it measured; `--check-types` encodes it.
 
+With `PROBE_SCENARIO=atcall` only the at-call probe runs (`AtCall.cs`, lines `AC …`, at the main
+menu; an `AtCallProbeDone` canvas appears at the end). Its cases are `AtCall/Cases`'
+ProbeAtCallCases, built against the original's own mscorlib and System.Drawing (`Managed/`),
+against `AtCall/Absent`'s ProbeAbsent and against `Gone/v1`; put ProbeAtCallCases.dll and
+`Gone/v2`'s build beside SemanticsProbe.dll, and not ProbeAbsent.dll. Each case is a method
+naming the absent assembly one way (a call, newobj, a static field, a local, a struct local,
+isinst, behind a branch, in a method its caller catches around), a member Gone/v2 lacks, or
+System.Drawing's Bitmap and Rectangle, mostly inside a try of its own, called twice: what it
+returned (its catch's exception included) or the exception's type, message, inner exceptions
+and first frame, and whether any of it ran. Then JobsUtility's static properties, fields and
+methods, what setting `JobWorkerCount` does, and `System.Number`'s Format methods, with
+whether a Harmony postfix on `FormatSingle(float, string, NumberFormatInfo)` runs for
+`float.ToString` (ZEROs patches it). ARCHITECTURE D57 records what it measured;
+`JobsUtilityTests` and `--check-types` encode it.
+
 With `PROBE_SCENARIO=quitevents` only the quit-events probe runs (`QuitEvents.cs`, lines `QE …`,
 at the main menu): Application.wantsToQuit, quitting and unloading handlers and OnApplicationQuit,
 around three Application.Quit() calls three frames apart (a handler refuses the first and throws

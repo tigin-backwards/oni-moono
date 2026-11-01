@@ -238,6 +238,11 @@ namespace SemanticsProbe
                 go.AddComponent<MissingMembers>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "atcall")
+            {
+                go.AddComponent<AtCall>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "quitevents")
             {
                 go.AddComponent<QuitEvents>();
