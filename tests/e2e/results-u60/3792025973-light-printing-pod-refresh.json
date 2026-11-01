@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3792025973-light-printing-pod-refresh.yaml",
+ "mods": [
+  "3792025973"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "c63a6327",
+ "mod_dlls": {
+  "3792025973": {
+   "LightPrintingPodRefresh.dll": "fb9d493542ce39667f55569237207dc0ce3bfd84abbd553aa86f758e1d779a20"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034242-c7177ccf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:53:55",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112108-66cd9052",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:21:08",
+    "lane": 36,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-112108-66cd9052",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:23:29",
+    "lane": 36,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
