@@ -1,0 +1,26 @@
+# 肉类发电机Meat generator (3676949334), class B.
+#
+# What it does: adds the Meat Power Station (MeatPowerStation, in the Power menu, researched with
+# Combustion), a generator that burns meat.
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: meat as fuel.
+#
+# setup grants the research. The building is listed in the Power menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3676949334]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Combustion\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Combustion\").unlockedItemIDs": {contains: MeatPowerStation}
+      "Assets.GetBuildingDef(\"MeatPowerStation\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/MeatPowerStation Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/MeatPowerStation Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}
