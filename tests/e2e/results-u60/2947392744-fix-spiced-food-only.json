@@ -1,0 +1,63 @@
+{
+ "spec": "mods/2947392744-fix-spiced-food-only.yaml",
+ "mods": [
+  "2947392744"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Ration Box in the dug-out corridor west of the printing pod. Selected, its filter side screen's spiced food check box is ticked: unspiced food is then forbidden; it is unticked again: allowed",
+ "updated": "2026-11-01",
+ "commit": "08556622",
+ "mod_dlls": {
+  "2947392744": {
+   "RefrigeratorFix.dll": "97e0bc56ce4f626d78ccb54e4946278f7478a31ebf2678e055d9a2d8ed58ff18"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034335-ff601a44",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:48:13",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-040531-b7b404ab",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:05:31",
+    "lane": 44,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "config-rows": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-040531-b7b404ab",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:05:32",
+    "lane": 45,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "config-rows": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
