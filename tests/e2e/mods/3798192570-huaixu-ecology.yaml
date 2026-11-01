@@ -1,0 +1,30 @@
+# 槐序生态 Huaixu Ecology (3798192570), classes B, P, O (PLib options).
+#
+# What it does: a collection: morale that stays (a level from the options), control of how much
+# CO2 Duplicants breathe out, carbon dioxide and chlorine generators (PH_CO2Generator,
+# PH_ChlorineGenerator, Improved Combustion), a CO2 refinery, high-pressure liquid and gas
+# reservoirs (PH_HighPressureReservoir and PH_HighPressureGasReservoir, 4x4, 10,000,000 kg, with
+# a safe deconstruction), dimension storage boxes and granaries, and a water gate (a sealed door
+# Duplicants pass, gases and liquids not); buffs kept across loads, atmo suit management.
+# How a player reaches it: the build menus; the mod's options.
+# What changes: many conveniences.
+#
+# setup builds a high-pressure liquid reservoir in the dug-out corridor west of the printing pod.
+# It holds 10,000,000 kg; the generators are researched with Improved Combustion; selected,
+# the reservoir's details screen is dumped, and the colony runs on.
+from: early-base
+mods: [3798192570]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"PH_HighPressureReservoir\")", method: Build, args: [{"$": "Grid.XYToCell(110, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"PH_HighPressureReservoir\").BuildingComplete.GetComponent<Storage>.capacityKg": 10000000
+      "Db.Get().Techs.Get(\"ImprovedCombustion\").unlockedItemIDs": [{contains: PH_CO2Generator}, {contains: PH_ChlorineGenerator}]
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 206], select: PH_HighPressureReservoir}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
