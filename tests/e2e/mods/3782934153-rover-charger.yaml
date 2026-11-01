@@ -1,0 +1,31 @@
+# Rover Charger (3782934153), classes P, S (Spaced Out and Bionic Booster Pack).
+#
+# What it does: the Rover (ScoutRover) runs on swappable power banks, as the Flydo does: its
+# prefab gets a power bank storage, a ManualDeliveryKG that asks for a charged bank (the
+# Power Bank by default), a filter of bank types, and a RoverPowerMonitor that drains the bank
+# before the Rover's own battery. A Rover out of power goes limp instead of dying
+# (RobotBatteryMonitor.BatteryDead is false for it) and wakes when a bank arrives. Its
+# settings (drain rate, auto request, bank types) live in mods/config/roverCharger/config.json
+# and a screen of its own from the Mods screen.
+# How a player reaches it: a Rover; Duplicants deliver it power banks.
+# What changes: a Rover that can be recharged.
+#
+# setup spawns a Rover and a charged Power Bank on the floor of the dug-out corridor west of
+# the printing pod. A Duplicant delivers the bank to the Rover, which then has bank charge.
+from: early-base
+mods: [3782934153]
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, ScoutRover, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(115, 206)"}, 0, 0, Electrobank, Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"ScoutRover\").GetComponent<ONI_Rover_Charger.RoverPowerMonitor>": exists
+      "Assets.GetPrefab(\"ScoutRover\").GetComponent<ManualDeliveryKG>": exists
+      "all:ONI_Rover_Charger.RoverPowerMonitor::Length": 1
+  - run: {seconds: 600}
+  - expect_state:
+      "all:ONI_Rover_Charger.RoverPowerMonitor::[0].HasBankCharge": true
+      "all:ONI_Rover_Charger.RoverPowerMonitor::[0].BankCharge": "> 0"
+  - expect: {duplicants: 3}
