@@ -1,0 +1,58 @@
+{
+ "spec": "mods/3799755674-customizable-energy.yaml",
+ "mods": [
+  "3799755674"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with the default options, the Manual Generator keeps the game's 400 W and the colony plays for 30 s",
+ "updated": "2026-11-01",
+ "commit": "43626d80",
+ "mod_dlls": {
+  "3799755674": {
+   "CustomizableEnergy.dll": "635f242fe1148680656a654c74ed1a3dd8214cdccca4692126aa32bf94e9c452",
+   "PLibCore.dll": "feea8f7b3a37b20b78d583165d33618af47b4862757653fa32d7ba2111794798",
+   "PLibOptions.dll": "c7c7f70294ef5f75b1df7adcdb8e5a3427be25c739fb0754f0a59493e0516e91",
+   "PLibUI.dll": "a4209dd07cf6fe2bd84340ed956603f7919bd5f79ae50ac025c309b236aeca80"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-221209-b0e92b1b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:56:28",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-020342-53693410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:08:19",
+    "lane": 54,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-020342-53693410",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T04:09:09",
+    "lane": 55,
+    "reference_run": "20261031-221209-b0e92b1b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

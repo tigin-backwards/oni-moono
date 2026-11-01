@@ -1,0 +1,16 @@
+# Customizable Energy (3799755674), class P (PLib options).
+#
+# What it does: finds every generator building (GeneratorDiscovery) and gives each an option
+# for its power output, applied to its definition at load.
+# How a player reaches it: the mod's options on the Mods screen.
+# What changes: generators' wattage.
+#
+# With the default options, the Manual Generator keeps the game's 400 W and the colony plays for
+# 30 s.
+from: early-base
+mods: [3799755674]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"ManualGenerator\").GeneratorWattageRating": 400
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
