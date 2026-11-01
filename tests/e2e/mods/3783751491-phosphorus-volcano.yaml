@@ -2,17 +2,16 @@
 #
 # What it does: adds a Phosphorus Volcano geyser type (phosphorus_volcano: liquid phosphorus
 # at 553 K in volcano-like dormant and eruption cycles, the small molten volcano's look) to
-# the game's generic geysers, without its own named prefab, and makes each world's first
-# generic geyser that spawns a phosphorus volcano.
+# the game's generic geysers (a postfix drops its own prefab from the list the game places)
+# and makes each world's first generic geyser that spawns a phosphorus volcano.
 # How a player reaches it: a new world's generic geysers.
 # What changes: a phosphorus source on new asteroids.
 #
-# The game's geyser types count one more, the mod's, as in the original, with no prefab of
-# its own; the colony (whose geysers already exist) runs a minute.
+# The game's geyser types count one more, the mod's, as in the original; the colony (whose
+# geysers already exist) runs a minute.
 from: early-base
 mods: [3783751491]
 steps:
   - expect_state:
       "type:GeyserConfigurator::geyserTypes.Count": [">= 29", "== original"]   # the game: 28
-      "Assets.GetPrefab(\"GeyserGeneric_phosphorus_volcano\")": missing
   - run: {seconds: 60}
