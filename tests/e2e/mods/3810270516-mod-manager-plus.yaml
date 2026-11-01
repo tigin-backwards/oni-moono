@@ -1,0 +1,20 @@
+# ModManagerPlus 模组管理器 Plus (3810270516), class P (a load spec).
+#
+# What it does: see the mod's page; its decompiled code has Harmony patches on
+# CustomGameSettings.LoadClusters, CustomGameSettings.OnPrefabInit, LoadScreen.Load,
+# MainMenu.ResumeGame, Manager.RestartDialog, ModsScreen.BuildDisplay, ModsScreen.OnActivate,
+# ModsScreen.ShouldDisplayMod.
+# How a player reaches it: through its own screens or buildings, which this spec does not
+# drive yet.
+# What changes: what its patches change.
+#
+# A load spec: the colony loads with the mod, its patched methods counted as in the original,
+# and two minutes of play pass with the Duplicants alive.
+from: early-base
+mods: [3810270516]
+steps:
+  - expect_state:
+      "sum:Global.Instance.modManager.mods[*].loaded_mod_data.patched_methods.Count if .label.id == 3810270516": "== original"
+      "count:Global.Instance.modManager.mods[*] if .label.id == 3810270516 and .IsEnabledForActiveDlc() == true": 1
+  - run: {seconds: 120}
+  - expect: {duplicants: ">= 1"}
