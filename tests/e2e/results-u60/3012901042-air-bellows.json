@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3012901042-air-bellows.yaml",
+ "mods": [
+  "3012901042"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Bellows tool is picked from the tool menu; a click on the air of the dug-out corridor west of the printing pod sets the source cell; a click on the next cell over moves gas",
+ "updated": "2026-11-01",
+ "commit": "5b96e224",
+ "mod_dlls": {
+  "3012901042": {
+   "OxyBellows.dll": "12de822d0babfb71d49547cdcf4052fa314cca7dabed20f56bdfd5b1334bf935",
+   "PLib.dll": "432e28fbecb2d422a46eafe489a446f946ec828acfb2b721f7fe6df19d84cd7c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-223759-08eb2164",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T22:52:44",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-002153-f2862547",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T00:21:53",
+    "lane": 44,
+    "reference_run": "20261031-223759-08eb2164",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-002153-f2862547",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T00:21:54",
+    "lane": 45,
+    "reference_run": "20261031-223759-08eb2164",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
