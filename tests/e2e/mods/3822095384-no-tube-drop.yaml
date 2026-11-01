@@ -1,0 +1,14 @@
+# 管道内不掉落 / No drops in tubes (3822095384), class P.
+#
+# What it does: a Duplicant travelling a transit tube keeps what it carries: a prefix on
+# Storage.DropAll refuses to drop while it is in the tube and marks it, and a postfix on the tube
+# traveller's OnTubeTransition drops it at the tube's exit instead.
+# How a player reaches it: transit tubes.
+# What changes: nothing falls out mid-tube.
+#
+# The mod loads and the colony plays for 30 s; no transit tube is set up here.
+from: early-base
+mods: [3822095384]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
