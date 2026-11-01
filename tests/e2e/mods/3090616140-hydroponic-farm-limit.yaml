@@ -1,0 +1,19 @@
+# Hydroponic Farm Limit frame 液培砖限速 (3090616140), class P.
+#
+# What it does: a Hydroponic Farm takes no more liquid from its pipe while it holds at least
+# 1 kg (a prefix on ConduitConsumer.Consume for the farm's consumer; and a change to its
+# ConfigureBuildingTemplate), so a line of farms shares the pipe's flow instead of the first
+# one filling.
+# How a player reaches it: Hydroponic Farms on a pipe.
+# What changes: water spread along hydroponic lines.
+#
+# setup builds a Hydroponic Farm in the pit in the floor of the dug-out room west of the
+# printing pod; it stands as in the original, and the colony runs on.
+from: early-base
+mods: [3090616140]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"HydroponicFarm\")", method: Build, args: [131124, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 30}
+  - expect: {buildings: {HydroponicFarm: 1}}
+  - expect: {duplicants: 3}

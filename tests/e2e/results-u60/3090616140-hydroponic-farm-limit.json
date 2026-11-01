@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3090616140-hydroponic-farm-limit.yaml",
+ "mods": [
+  "3090616140"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Hydroponic Farm in the pit in the floor of the dug-out room west of the printing pod; it stands as in the original, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "0fd974ea",
+ "mod_dlls": {
+  "3090616140": {
+   "LimitHydroponicMod.dll": "9ba049fc482205ece216792df31370f85167c14b1879c2aa298e09e4853a662b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-005219-2e014fd0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:07:21",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-012505-736e5c61",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:27:30",
+    "lane": 43,
+    "reference_run": "20261101-005219-2e014fd0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-012505-736e5c61",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T01:28:11",
+    "lane": 44,
+    "reference_run": "20261101-005219-2e014fd0",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
