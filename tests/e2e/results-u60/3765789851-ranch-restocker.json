@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3765789851-ranch-restocker.yaml",
+ "mods": [
+  "3765789851"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Logic Circuits and builds the chip in the dug-out corridor west of the printing pod. It shows in the Automation menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "41c30d5b",
+ "mod_dlls": {
+  "3765789851": {
+   "RanchRestocker.dll": "14d53bdea29bab25ece15446e99a7edeee621a63fef28b9b067316b847883e35"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-050536-ab9a3d76",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:14:11",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-053528-e9a211f3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:35:28",
+    "lane": 45,
+    "reference_run": "20261101-050536-ab9a3d76",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-053528-e9a211f3",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T05:40:12",
+    "lane": 45,
+    "reference_run": "20261101-050536-ab9a3d76",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "details": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
