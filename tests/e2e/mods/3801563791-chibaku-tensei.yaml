@@ -1,0 +1,28 @@
+# 地爆天星｜Chibaku Tensei (3801563791), class P (options in its config.json).
+#
+# What it does: a recurring, interceptable impactor event. A postfix on SaveGame.OnPrefabInit
+# adds a BlastScheduler (and a debug launcher, an IMGUI button beside the speed controls) to
+# the save; the scheduler counts down while the game runs (Sim1000ms) and, when the wait is
+# over, launches impactors from the starmap's edge that rockets' missiles can shoot down, or
+# that blast a round crater into the start world. The difficulty in config.json (Easy, Medium,
+# Hard, Apocalypse) sets the wait (100, 50, 20, 5 cycles), the crater's radius (6, 10, 15, 25),
+# the wave size and the flight time.
+# How a player reaches it: playing; a countdown notification a cycle before launch.
+# What changes: impactors every N cycles.
+#
+# At Medium (the default), the loaded colony's scheduler waits 50 cycles (30000 s) for its
+# first launch, with a radius of 10 cells; time played counts it down.
+from: early-base
+mods: [3801563791]
+require_log: ['\[ChibakuTensei\] Schedule loaded: remainingSeconds=30000 mode=Fixed completed=False count=0']
+steps:
+  - expect_state:
+      "SaveGame.Instance.GetComponent<ChibakuTensei.BlastScheduler>": exists
+      "SaveGame.Instance.GetComponent<ChibakuTensei.BlastScheduler>.remaining": 30000
+      "SaveGame.Instance.GetComponent<ChibakuTensei.BlastScheduler>.CurrentSettings.RadiusCells": 10
+      "SaveGame.Instance.GetComponent<ChibakuTensei.BlastScheduler>.CurrentSettings.WaveSize": 1
+      "SaveGame.Instance.GetComponent<ChibakuTensei.DebugLauncher>": exists
+  - run: {seconds: 30}
+  - expect_state:
+      "SaveGame.Instance.GetComponent<ChibakuTensei.BlastScheduler>.remaining": ["< 29985", "> 29900"]
+      "SaveGame.Instance.GetComponent<ChibakuTensei.BlastScheduler>.faulted": false
