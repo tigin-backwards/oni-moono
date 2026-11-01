@@ -1,0 +1,20 @@
+# Lag Fix (Fetch/Sensor/NavGrid) (3781498375), classes P, O (PLib options).
+#
+# What it does: eases a slowdown with many loose items: each Duplicant's PickupableSensor rescans
+# the world's items only every 3rd update (an option), all sensors can be throttled (off by
+# default), and NavGrid updates are batched (patches on PickupableSensor.Update,
+# Sensors.UpdateSensors, NavGridUpdater.UpdateLinks and Pathfinding.UpdateNavGrids).
+# How a player reaches it: a colony with much debris; the mod's options.
+# What changes: frame time, not the colony's behaviour.
+#
+# A floor cell west of the printing pod is dug and its debris carried off over 300 s of errands:
+# the Duplicants still find and fetch items (the dig done, the debris stored or used), as in the
+# original.
+from: early-base
+mods: [3781498375]
+steps:
+  - dig: [108, 205, 108, 205]
+  - run: {seconds: 600, until: {pending_digs: 0}}
+  - expect: {pending_digs: 0}
+  - run: {seconds: 300}
+  - expect: {duplicants: 3}
