@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3445494874-unlimited-autosaves.yaml",
+ "mods": [
+  "3445494874"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with 20 autosaves set, its SaveLoader.Save transpiler finds no match on U60 in either player and it falls back to keeping every autosave, as it logs",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3445494874": {
+   "Unlimited_Autosaves.dll": "e9043f2bf57af5dd663630c6a5df992a743705fde23e3833787556c99065178e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-070700-31a00fb4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:21:02",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-124332-d1a61045",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:43:32",
+    "lane": 35,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-124332-d1a61045",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:44:47",
+    "lane": 35,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
