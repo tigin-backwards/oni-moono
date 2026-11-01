@@ -1,0 +1,26 @@
+# Liquefy (3280297616), class P (a load spec).
+#
+# What it does: see the mod's page; its decompiled code has Harmony patches on
+# ConduitTemperatureManager.ConduitTemperatureManager_Add,
+# ConduitTemperatureManager.ConduitTemperatureManager_Clear,
+# ConduitTemperatureManager.ConduitTemperatureManager_Initialize,
+# ConduitTemperatureManager.ConduitTemperatureManager_Remove,
+# ConduitTemperatureManager.ConduitTemperatureManager_Set,
+# ConduitTemperatureManager.ConduitTemperatureManager_Shutdown,
+# ConduitTemperatureManager.ConduitTemperatureManager_Update,
+# ElementLoader.FinaliseElementsTable and 9 more.
+# How a player reaches it: through its own screens or buildings, which this spec does not
+# drive yet.
+# What changes: what its patches change.
+#
+# A load spec: the colony loads with the mod, its patched methods counted as in the original,
+# and two minutes of play pass with the Duplicants alive. Its Sim and ConduitTemperatureManager
+# patches call Lique.Fy, a native library it ships for Windows only (a PE DLL).
+from: early-base
+mods: [3280297616]
+steps:
+  - expect_state:
+      "sum:Global.Instance.modManager.mods[*].loaded_mod_data.patched_methods.Count if .label.id == 3280297616": "== original"
+      "count:Global.Instance.modManager.mods[*] if .label.id == 3280297616 and .IsEnabledForActiveDlc() == true": 1
+  - run: {seconds: 120}
+  - expect: {duplicants: ">= 1"}
