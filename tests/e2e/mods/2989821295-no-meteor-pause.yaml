@@ -1,0 +1,17 @@
+# No Meteor Pause (June 2023 QoL Update) (2989821295), class P.
+#
+# What it does: an old save upgraded to the June 2023 update keeps its meteor showers: a prefix
+# on SaveUpgradeWarning.TemporaryDisableMeteorShowers returns an empty coroutine (the game
+# pauses showers for 20 cycles after the upgrade).
+# How a player reaches it: loading a save from before that update.
+# What changes: meteors resume at once.
+#
+# early-base is a current save, so the upgrade's pause never comes into play: the mod loads and
+# the colony runs on.
+from: early-base
+mods: [2989821295]
+steps:
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .label.id == 2989821295 and .IsEnabledForActiveDlc() == true": 1
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}
