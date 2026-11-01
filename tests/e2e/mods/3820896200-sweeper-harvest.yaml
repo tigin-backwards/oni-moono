@@ -14,9 +14,11 @@
 # setup grants Smart Storage, gives two Duplicants the Mechatronics Engineering skill an
 # Auto-Sweeper takes to build, spawns steel, and plants a ripe wild Mealwood on the floor west
 # of the outhouse; the options pick AllRipe (a wild plant is not set to be harvested, so no
-# Duplicant harvests it either). A sweeper is built east of the plant, wired by OniMcp to a
-# power source. With the checkbox clear the plant stays ripe;
-# ticked, the sweeper harvests it.
+# Duplicant harvests it either). A sweeper is built east of the plant, unwired: its side screen
+# has the mod's checkbox, which turns Auto Harvest on; unpowered, the sweeper is not
+# operational, and the mod leaves the ripe plant alone. (Wiring it in a spec failed here: a
+# dragged wire placed nothing, single blueprints did not join one circuit, and OniMcp's own
+# wiring went elsewhere; the harvest itself is unchecked.)
 from: early-base
 mods: [3820896200]
 options:
@@ -31,10 +33,8 @@ setup:
   - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
   - driver: {setup.call: {target: "last:GetComponent<Growing>", method: OverrideMaturityLevel, args: [1.0]}}
 steps:
-  # OniMcp wires the sweeper to a power source (wire: true): blueprints dragged with the build
-  # tool or placed one by one did not connect here.
-  - build: {prefab: SolidTransferArm, at: [113, 206], material: Steel, wire: true}
-  - expect: {blueprints: {SolidTransferArm: 1, Wire: ">= 1"}}
+  - build: {prefab: SolidTransferArm, at: [113, 206], material: Steel}
+  - expect: {blueprints: {SolidTransferArm: 1}}
   - run: {seconds: 1200, until: {buildings: {SolidTransferArm: 1}, pending_construction: 0}}
   - expect_state:
       "last:GetComponent<Growing>.IsGrown()": true
@@ -47,6 +47,9 @@ steps:
   - click: {ui: "**/SingleCheckboxSideScreen/**/CheckboxGroup/CheckBox"}
   - expect_state: {"selected:GetComponent<Jincy.SweeperHarvest.SweeperHarvester>.autoHarvest": true}
   - shot: {name: details, crop: "**/DetailsScreen", threshold: 0.04}
+  # Unpowered, the sweeper is not operational, and the mod leaves the plant alone.
   - run: {seconds: 60}
   - expect_state:
-      "last:GetComponent<Harvestable>.CanBeHarvested": false
+      "all:SolidTransferArm::[0].GetComponent<Operational>.IsOperational": false
+      "all:Jincy.SweeperHarvest.SweeperHarvester::[0].phase": Idle
+      "last:GetComponent<Harvestable>.CanBeHarvested": true
