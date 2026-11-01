@@ -1,0 +1,29 @@
+# Blow Dryer Fixed (3810837257), classes B, O (PLib options).
+#
+# What it does: adds a Blow Dryer (BlowDryer, the Medicine menu, researched with Sanitation
+# Sciences) that removes the soaked and other wet debuffs from Duplicants who pass by it, with a
+# morale bonus; its wait, morale and bonus are options (patches on SteppedInMonitor.GetSoaked).
+# How a player reaches it: the build menu (Medicine), after the research.
+# What changes: no more Soaked Duplicants past the dryer.
+#
+# setup grants Sanitation Sciences and builds a Blow Dryer in the dug-out corridor west of the
+# printing pod. It shows in the Medicine menu; selected, its details screen is dumped.
+from: early-base
+mods: [3810837257]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"SanitationSciences\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"BlowDryer\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"SanitationSciences\").unlockedItemIDs": {contains: BlowDryer}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Medicine"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BlowDryer Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/BlowDryer Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: BlowDryer}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

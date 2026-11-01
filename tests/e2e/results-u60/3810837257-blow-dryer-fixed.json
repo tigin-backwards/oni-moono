@@ -1,0 +1,64 @@
+{
+ "spec": "mods/3810837257-blow-dryer-fixed.yaml",
+ "mods": [
+  "3810837257"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Sanitation Sciences and builds a Blow Dryer in the dug-out corridor west of the printing pod. It shows in the Medicine menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "b75e31f7",
+ "mod_dlls": {
+  "3810837257": {
+   "BlowDryer.dll": "c5a46a886566745a26dbb9675cab2b5f98285b127000a406b2b8158efe7a9383",
+   "PLib.dll": "55ce409618e6d102a1bcd0298911f3df49dda9a94ee153d02403035a1d6101d6"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-044630-c52a1484",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:55:28",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-101016-4598e758",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:10:16",
+    "lane": 40,
+    "reference_run": "20261101-044630-c52a1484",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-101016-4598e758",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:10:17",
+    "lane": 41,
+    "reference_run": "20261101-044630-c52a1484",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
