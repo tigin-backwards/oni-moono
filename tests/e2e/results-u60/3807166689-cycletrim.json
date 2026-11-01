@@ -1,0 +1,62 @@
+{
+ "spec": "mods/3807166689-cycletrim.yaml",
+ "mods": [
+  "3807166689"
+ ],
+ "verdict": "failed",
+ "why": "a run of ours failed",
+ "findings": [],
+ "note": "defaults. A cell of the floor west of the printing pod is dug and its debris carried off: the Duplicants still do their errands, the dig is done, and after 300 s they are as many as in the original",
+ "updated": "2026-11-01",
+ "commit": "eed0d539",
+ "mod_dlls": {
+  "3807166689": {
+   "CycleTrim.dll": "a1214e8a18c380833fada5339f3e6c9e81da3eee097cf22565d96cd9382d0a3e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-020114-68ffb98c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:01:14",
+    "lane": 41,
+    "signatures": 1
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-094011-f8693a9a",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T09:40:11",
+    "lane": 40,
+    "reasons": [
+     "the player hung (no log output or OniMcp/E2eDriver reply for 119 s when the step failed); diagnostics in /home/nigit/projects/oni-brutal/.claude/worktrees/agent-a7fc46631c50787bd/out/e2e/3807166689-cycletrim/20261101-094011-f8693a9a/ours-1/hang: hang-dump of 1031239 at 2026-11-01 09:55:42: the main ",
+     "1 log signature(s) the original lacks"
+    ],
+    "reference_run": "20261101-020114-68ffb98c",
+    "new_signatures": 1,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-094011-f8693a9a",
+    "index": 2,
+    "verdict": "fail",
+    "date": "2026-11-01T09:40:12",
+    "lane": 41,
+    "reasons": [
+     "1 log signature(s) the original lacks"
+    ],
+    "reference_run": "20261101-020114-68ffb98c",
+    "new_signatures": 1,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
