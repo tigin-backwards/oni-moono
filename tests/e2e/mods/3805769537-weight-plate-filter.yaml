@@ -1,0 +1,13 @@
+# Weight Plate Filter (3805769537), class S.
+#
+# What it does: each Weight Plate (FloorSwitch) gets filters for what it counts: Duplicants,
+# critters and other mass (LogicMassSensor patches and a details screen section).
+# How a player reaches it: a built Weight Plate's side screen.
+# What changes: plates that ignore some things.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3805769537]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}
