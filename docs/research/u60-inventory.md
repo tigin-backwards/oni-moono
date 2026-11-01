@@ -148,7 +148,16 @@ merge into master waits for U60 to ship.
   `GarbageCollector` calls. Not applicable to CoreCLR, which ignores the setting. Measured in the
   original only: removing `gc-max-time-slice` from its boot.config lowered its U57 memory after the
   load from 13.5 to 12.2 GB and its peak from 15.1 to 14.7 GB (one run each, 2026-10-31).
-- **IMGUI developer tools on Linux:** to be checked with the clean-room IMGUI once the Linux build runs.
+- **IMGUI developer tools on Linux:** they work in both players now. U59's Linux `cimgui.so`
+  lacked `SetKAssertCB`, so both players crashed in `igRender` (PARITY). U60 ships a new one in
+  `Plugins/x86_64` that exports it; the dev tools' managed code is unchanged. They are Dear ImGui
+  drawn by `ImGuiRenderer` through Mesh, CommandBuffer (scissor rects, `DrawMesh`) and a
+  RenderTexture shown by a RawImage, not through our IMGUI module. Enabled by a
+  `debug_enable.txt` in the data folder or beside it, or `debugEnable` in `settings.yml`; toggled
+  with Ctrl+\`. Checked on the main menu, on Xvfb: the toggle, the warning window, the menu bar,
+  Debuggers > StringsTable, a wheel scroll, typing into its filter. Ours (OpenGL, and Vulkan on
+  llvmpipe) matched the original pixel for pixel; only our BRUTAL tile draws over the window, as
+  OnGUI draws over canvases (2026-11-01).
 - **Vulkan as the Linux default:** U60's data carries Unity's Vulkan programs as well as the
   OpenGL ones. Moono's `u60` renders with Vulkan by default on Linux and Windows, running those
   shipped programs, and falls back to OpenGL where Vulkan does not start (ARCHITECTURE §3.5,
