@@ -213,6 +213,28 @@ lines `DA …`, at mod load): a small hierarchy deactivated, activated and destr
 component. Diff the players' `DA` lines; `LifecycleTests` (`DeactivationTurnsEachObjectInactive…`)
 encodes it.
 
+With `PROBE_SCENARIO=execorder` only the execution order probe runs (`ExecOrder.cs`, lines `EO
+…`, 2 s into the main menu): the probe's own types marked `[DefaultExecutionOrder(-1000)]` and
+`(1000)`, a subclass of the first and an unmarked type, as separate objects made in one frame
+and as components of one object, with each Awake, OnEnable, Start, FixedUpdate, Update and
+LateUpdate in the order it ran. It ends with an `ExecOrderProbeDone` canvas. Measured in U60 and
+U59, the same: the player orders a runtime-loaded assembly's types by the attribute, inherited, in
+the update passes and in an object's activation, but not the Starts of separate objects.
+`DefaultExecutionOrderTests` encodes it.
+
+With `PROBE_SCENARIO=frametiming` only the frame timing probe runs (`FrameTimings.cs`, lines `FT
+…`, 5 s into the main menu): `FrameTimingManager`'s values and the latest timings over five
+frames, the Profiler's memory counters (their sign) and `SceneManager.GetSceneAt` in and out of
+range. It ends with a `FrameTimingProbeDone` canvas. In U60's Linux player, `GetLatestTimings`
+with more frames than the array holds writes past it, and with a null array it crashes the
+player, so the probe asks neither. U59's Linux player, a release build, has the feature off:
+`IsFeatureEnabled` is false and `GetLatestTimings` returns 0 and writes nothing, and
+`Profiler.supported` is false; the memory counters are positive in both. `FrameTimingTests`
+encodes U59's.
+
+Both run through `scripts/e2e.py` with OniMcp's mod folder as above and a spec `from: main-menu`
+that waits for the canvas (`ui_wait`, `cond: exists`).
+
 With `PROBE_SCENARIO=focusdelivery` only the focus probe runs (`FocusDelivery.cs`, lines `AF …`,
 from mod load): which MonoBehaviours `OnApplicationFocus` reaches. Move the X input focus away
 from the player's window and back (XSetInputFocus on the lane's display) while the main menu is
