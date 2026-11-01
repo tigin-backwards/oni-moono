@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3822327762-incubator-tweaks.yaml",
+ "mods": [
+  "3822327762"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds an Incubator in the dug-out corridor west of the printing pod. Its definition has the new port; selected, its slider side screen shows the lullaby multiplier (dumped)",
+ "updated": "2026-11-01",
+ "commit": "871d7a52",
+ "mod_dlls": {
+  "3822327762": {
+   "IncubatorTweaks.dll": "cae944283011c84c40d9fa1955116927f336867cf3bb04d3eefba9c2e2cc1eca"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040445-8c3b913a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:10:47",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112130-d6b36be2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:21:30",
+    "lane": 40,
+    "reference_run": "20261101-040445-8c3b913a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-112130-d6b36be2",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:21:31",
+    "lane": 41,
+    "reference_run": "20261101-040445-8c3b913a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "slider": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
