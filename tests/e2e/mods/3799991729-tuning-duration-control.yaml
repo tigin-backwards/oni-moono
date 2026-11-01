@@ -1,0 +1,21 @@
+# Tuning Duration Control (3799991729), class P (PLib options).
+#
+# What it does: options for the Power Control Station's tune-up (duration multiplier, up to
+# 100x, and power bonus, 1-200 %, the game's 50 %), the Geo Tuner's, Farmer's Touch's,
+# Mission Control's (duration, and a rocket speed bonus) and the Grooming Station's buffs;
+# patches apply them where each buff is granted (the tune-up's bonus when a tinker completes)
+# and guard the Geo Tuner's sound against a null event.
+# How a player reaches it: the mod's options on the Mods screen (restart required).
+# What changes: longer and stronger station buffs.
+#
+# The mod reads its settings and installs its sound guard, as it logs; the PowerTinker effect
+# keeps the game's 50 % until a tune-up is done, which is not set up here; the colony plays for
+# 30 s.
+from: early-base
+mods: [3799991729]
+require_log: ['\[TuningDurationControl\] Loaded v1\.0\.8', '\[TuningDurationControl\] Settings loaded\.', '\[TuningDurationControl\] FMOD null sound protection installed\.']
+steps:
+  - expect_state:
+      "sum:Db.Get().effects.Get(\"PowerTinker\").SelfModifiers[*].Value if .AttributeId == GeneratorOutput": 50
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

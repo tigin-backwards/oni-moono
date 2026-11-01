@@ -1,0 +1,42 @@
+# 【个人开发测试版】核子工艺 / Baiye Fusion Power (3818611694), classes B, E (elements).
+#
+# What it does: nuclear processes researched with Advanced Nuclear Research: an Isotope
+# Separator (Refining, 3x3) that makes deuterium and tritium, a Tritium Breeder (Radiation,
+# 3x3), a Fusion Reactor (Power, 5x4) burning deuterium and tritium, and a Triple Alpha Furnace
+# (Power, 4x4) fusing helium into carbon. New elements in its elem/elements.yaml: deuterium
+# and tritium, as gas, liquid and solid.
+# How a player reaches it: the build menus, after the research.
+# What changes: fusion power.
+#
+# setup grants Advanced Nuclear Research and builds an Isotope Separator in the dug-out corridor
+# west of the printing pod. The six elements are loaded; the separator shows in the Refining
+# menu, the reactor and furnace in the Power menu; selected, the separator's details screen is
+# dumped.
+from: early-base
+mods: [3818611694]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AdvancedNuclearResearch\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"BaiyeIsotopeSeparator\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "ElementLoader.FindElementByName(\"BaiyeDeuterium\").IsGas": true
+      "ElementLoader.FindElementByName(\"BaiyeLiquidTritium\").IsLiquid": true
+      "ElementLoader.FindElementByName(\"BaiyeSolidTritium\").IsSolid": true
+      "Db.Get().Techs.Get(\"AdvancedNuclearResearch\").unlockedItemIDs": [{contains: BaiyeIsotopeSeparator}, {contains: BaiyeFusionReactor}, {contains: BaiyeTripleAlphaFurnace}, {contains: BaiyeTritiumBreeder}]
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Refinement"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BaiyeIsotopeSeparator Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/BaiyeIsotopeSeparator Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: BaiyeIsotopeSeparator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BaiyeFusionReactor Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/BaiyeTripleAlphaFurnace Group*": {active: true}
+  - key: {code: Escape}

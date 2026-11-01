@@ -1,0 +1,19 @@
+# Stock Sensors (3822092872), class B.
+#
+# What it does: adds solid, liquid and gas stock sensors (StockSensorSolid, StockSensorLiquid,
+# StockSensorGas, in the Automation menu): each compares the mass of a chosen element
+# available on the whole asteroid with its threshold and sends an automation signal.
+# How a player reaches it: the build menu (Automation); their side screens.
+# What changes: automation driven by stock levels.
+#
+# The three sensors' definitions load and the colony plays for 30 s; their build menu
+# entry is not checked here.
+from: early-base
+mods: [3822092872]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"StockSensorSolid\")": exists
+      "Assets.GetBuildingDef(\"StockSensorLiquid\")": exists
+      "Assets.GetBuildingDef(\"StockSensorGas\")": exists
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

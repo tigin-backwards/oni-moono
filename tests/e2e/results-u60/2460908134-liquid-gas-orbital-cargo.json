@@ -1,0 +1,55 @@
+{
+ "spec": "mods/2460908134-liquid-gas-orbital-cargo.yaml",
+ "mods": [
+  "2460908134"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Orbital Cargo Module's storage takes liquids, gases and food as well as solids",
+ "updated": "2026-11-01",
+ "commit": "59d45fad",
+ "mod_dlls": {
+  "2460908134": {
+   "Bottled Cargo.dll": "17f9084734d9f8b656cf83c2be7df1e8c23c29f9c119d02d0a4af5fac3690c34"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-072717-39d6a410",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:39:58",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112934-5f28eb75",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:29:34",
+    "lane": 35,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-112934-5f28eb75",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:31:24",
+    "lane": 35,
+    "reference_run": "20261101-072717-39d6a410",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

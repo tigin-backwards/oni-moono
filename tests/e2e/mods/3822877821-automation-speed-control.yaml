@@ -1,0 +1,12 @@
+# AutomationSpeedControl (3822877821), class P.
+#
+# What it does: game speed controlled by automation signals (its own log tag, AutoSpeed).
+# How a player reaches it: its building or setting.
+# What changes: game speed by signal.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3822877821]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,12 @@
+# yk_function (3751903360), class P (PLib options).
+#
+# What it does: a pack of gameplay and automation tweaks for U58, each switched by an option.
+# How a player reaches it: playing; the mod's options.
+# What changes: various rules.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3751903360]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

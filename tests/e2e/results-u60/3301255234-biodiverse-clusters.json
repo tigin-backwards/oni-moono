@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3301255234-biodiverse-clusters.yaml",
+ "mods": [
+  "3301255234"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3301255234": {
+   "LackOfBiodiversity.dll": "57cc009d971a0752a91288f2e185ce606f24e41810a52e9b9b014f2f98c6b991"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-070700-31a00fb4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:07:01",
+    "lane": 32,
+    "signatures": 1
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-122757-c2260f74",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:27:57",
+    "lane": 35,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-122757-c2260f74",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:30:22",
+    "lane": 35,
+    "reference_run": "20261101-070700-31a00fb4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

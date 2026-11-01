@@ -1,0 +1,30 @@
+# Wireless Power Network (3827052211), classes B, O (PLib options).
+#
+# What it does: power sent without wires on up to 20 channels: Wireless Transmitters (1x2)
+# take power from their circuit, Receivers (1x2, with a buffer of their own) feed theirs, and
+# Wireless Batteries (2x2) store it, all in the Power menu; built on the game's own energy
+# accounting (a patch on EnergySim.EnergySim200ms). Upkeep, loss and limits are options.
+# How a player reaches it: the build menu (Power); each building's channel.
+# What changes: power across the base without wires.
+#
+# setup builds a Wireless Battery in the dug-out corridor west of the printing pod. The three
+# buildings show in the Power menu; selected, the battery's details screen is dumped.
+from: early-base
+mods: [3827052211]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Acoustics\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SaitoWirelessBattery\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/SaitoWirelessTransmitter Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/SaitoWirelessTransmitter Group*": {active: true}
+      "**/BuildingGroups/**/Grid/SaitoWirelessReceiver Group*": {active: true}
+      "**/BuildingGroups/**/Grid/SaitoWirelessBattery Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: SaitoWirelessBattery}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}

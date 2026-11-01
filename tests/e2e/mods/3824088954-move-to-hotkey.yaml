@@ -1,0 +1,13 @@
+# "Move To" Hotkey (Debris Too!) (3824088954), class K.
+#
+# What it does: gives the user menu's Move To button a hotkey, also for debris (UserMenu.AddButton
+# and the key binding screens patched to know the new binding).
+# How a player reaches it: a selected Duplicant or debris, the hotkey.
+# What changes: Move To from the keyboard.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3824088954]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

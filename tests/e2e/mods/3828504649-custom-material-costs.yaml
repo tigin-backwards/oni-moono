@@ -1,0 +1,17 @@
+# 自定义材料消耗 / Custom material costs (3828504649), class P, S.
+#
+# What it does: sets each building's construction mass per material, as whole numbers, with a
+# global percentage (100 %), searchable in Chinese and pinyin from its screen (a Mods screen
+# button), and refunds the right amounts when buildings made with older costs are
+# deconstructed (BuildingDef.Build, Deconstructable and BuildingConfigManager patches).
+# How a player reaches it: its screen from the Mods menu.
+# What changes: cheaper or dearer buildings.
+#
+# With the defaults (100 %), the Tile's cost is the game's; the colony plays for 30 s.
+from: early-base
+mods: [3828504649]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Tile\").Mass[0]": 200
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

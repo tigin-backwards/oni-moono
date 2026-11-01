@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3818632179-mod-list-presets.yaml",
+ "mods": [
+  "2018291283",
+  "3818632179"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads, as its log says, and the colony plays for 30 s; the Mods screen is not opened here",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "2018291283": {
+   "ModUpdateDate.dll": "afbebdd8abfce0a72e40998575ee32a7a614f33d366a9917e075d652da33f616"
+  },
+  "3818632179": {
+   "ModListPresets.dll": "3cc133db513addf8a53c91142aeb0e65bb1dd0918ad6005ddb24639622ef46a3"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:26:52",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:13:09",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:13:56",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

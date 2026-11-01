@@ -1,0 +1,15 @@
+# 英文 (4.1_制作模组代码) (3169935680), class P.
+#
+# What it does: a tutorial mod: a postfix on ShowerConfig.CreateBuildingDef makes the Shower give
+# off 1 kW of heat while it runs.
+# How a player reaches it: Showers.
+# What changes: a warm shower.
+#
+# The Shower's definition exhausts 1 kW; the colony runs.
+from: early-base
+mods: [3169935680]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Shower\").ExhaustKilowattsWhenActive": 1
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

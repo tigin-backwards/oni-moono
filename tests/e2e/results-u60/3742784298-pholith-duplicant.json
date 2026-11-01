@@ -1,0 +1,59 @@
+{
+ "spec": "mods/3742784298-pholith-duplicant.yaml",
+ "mods": [
+  "3172734005",
+  "3742784298"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3172734005": {
+   "DuperyFixed.dll": "9ef4a93958b6b80fbf086cab57821955dd344324d2192086db7ea7845e71f7f2"
+  },
+  "3742784298": {
+   "PholithDuplicant.dll": "325f90162ac2944bca5ccf08f9234a0fa6bf4d18f38554ac95245b234a76e765"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-082034-fb651133",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:20:34",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-123848-489e9e78",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:38:48",
+    "lane": 36,
+    "reference_run": "20261101-082034-fb651133",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-123848-489e9e78",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:40:35",
+    "lane": 36,
+    "reference_run": "20261101-082034-fb651133",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

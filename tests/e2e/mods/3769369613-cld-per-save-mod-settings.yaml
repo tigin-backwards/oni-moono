@@ -1,0 +1,13 @@
+# [CLD] Per-Save Mod Settings (3769369613), class S.
+#
+# What it does: a development build: the options menu (OptionsMenuScreen.OnActivate) gets an
+# in-game list of the mods that keep settings separately in each save, to open their settings.
+# How a player reaches it: the pause menu's Options in a colony.
+# What changes: per-save mod settings at hand.
+#
+# The mod loads and the colony plays for 30 s; its list in the options menu is not opened here.
+from: early-base
+mods: [3769369613]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,74 @@
+{
+ "spec": "mods/3767472539-icon-only-buttons.yaml",
+ "mods": [
+  "3767472539"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the build categories and the tool bar are dumped and shot, as in the original, and the colony plays for 30 s",
+ "updated": "2026-11-01",
+ "commit": "b904cafe",
+ "mod_dlls": {
+  "3767472539": {
+   "HideManagementMenuText.dll": "2df32a2a675516c2f43cf3cab28b9059935a063b2943f4ad6159417ec20618c2",
+   "PLib.dll": "79350ee2d4eea7a879c6eebc12acca89bdd1d2a93ed7b396b875a7907a91d1e2"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-130418-df4f87e5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:04:18",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-130547-0acd2f61",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:05:47",
+    "lane": 52,
+    "reference_run": "20261101-130418-df4f87e5",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "plan": {
+      "differences": 0
+     },
+     "tools": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "plan": 0.0
+    }
+   },
+   {
+    "run": "20261101-130547-0acd2f61",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:05:48",
+    "lane": 53,
+    "reference_run": "20261101-130418-df4f87e5",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "plan": {
+      "differences": 0
+     },
+     "tools": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "plan": 0.0
+    }
+   }
+  ]
+ }
+}

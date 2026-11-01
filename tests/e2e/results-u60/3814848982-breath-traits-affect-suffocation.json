@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3814848982-breath-traits-affect-suffocation.yaml",
+ "mods": [
+  "3814848982"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup gives the first Duplicant the Mouth Breather trait (Traits.Add, as trait sources do). His breath modifier is then twice the game's standard breath rate, lost; his suffocation monitor is compared with the original's, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "9e01be4e",
+ "mod_dlls": {
+  "3814848982": {
+   "BreathTraitsAffectSuffocation.dll": "168fa4b9ade6e930ee3519d9c9893190f918a93c9fc38485e81e7165b41dd24e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034335-ff601a44",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:52:29",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-104006-286121d5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:40:06",
+    "lane": 44,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-104006-286121d5",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:40:07",
+    "lane": 45,
+    "reference_run": "20261101-034335-ff601a44",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

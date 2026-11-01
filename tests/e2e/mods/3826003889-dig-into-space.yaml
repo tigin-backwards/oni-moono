@@ -1,0 +1,22 @@
+# Dig Into Space (3826003889), classes K, P (a drag tool).
+#
+# What it does: a Space Dig tool (SpaceDigTool, in the tool menu, its own key): Duplicants with
+# the Hazmat Digging skill dig out the background of open cells, so they become exposed to
+# space, to tidy the rough edges of space biomes; patches on the filtered drag tool, the
+# subworld zone texture and the save's set-up.
+# How a player reaches it: the tool menu's Space Dig.
+# What changes: cells opened to space.
+#
+# The tool menu has the mod's tool; picked, it is the active tool, and Escape puts it away; the
+# colony runs on.
+from: early-base
+mods: [3826003889]
+require_log: ['\[SpaceDig\] loaded']
+steps:
+  - run: {seconds: 2}
+  - tool: {toolbar: Space Dig}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.GetType().Name": "== original"
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

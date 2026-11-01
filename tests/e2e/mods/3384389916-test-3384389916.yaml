@@ -1,0 +1,14 @@
+# test (3384389916) (3384389916), class P.
+#
+# What it does: a test mod: a postfix on GeneratedBuildings.LoadGeneratedBuildings logs
+# "Hellooooo Nico !!!".
+# How a player reaches it: nothing to reach.
+# What changes: a log line.
+#
+# The log line is written and the colony plays for 30 s.
+from: early-base
+mods: [3384389916]
+require_log: ['Hellooooo Nico !!!']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3822936830-rocket-flight-planning.yaml",
+ "mods": [
+  "3822936830"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the early-base colony has no rocket. The rocket prefab carries the route, and opening the starmap adds the route drawer to the starmap screen",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3822936830": {
+   "RocketRoutes.dll": "a50f709d619e7ef1d8619ad3bd4b550977e4cedc59ca9552b10d572e24c31867"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-092050-8b8babe3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:58:38",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:20:47",
+    "lane": 54,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:21:51",
+    "lane": 55,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

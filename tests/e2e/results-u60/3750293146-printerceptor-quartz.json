@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3750293146-printerceptor-quartz.yaml",
+ "mods": [
+  "3750293146"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3750293146": {
+   "HijackedHeadquarters.dll": "8f4ca238cf699b19e0cd0a16cefbf08dd03aa968971f8a13248b23bbd06bc3ac"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-061650-113d2065",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:23:43",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-123124-03ad5bdc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:31:24",
+    "lane": 36,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-123124-03ad5bdc",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:33:21",
+    "lane": 36,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

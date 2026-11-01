@@ -1,0 +1,14 @@
+# Futur's Timelapser (3693077888), class P, V (PLib options).
+#
+# What it does: each save also renders a high-resolution screenshot of the whole colony (the
+# game's Timelapser.RenderAndPrint and SaveColonyPreview patched), at a resolution per tile set
+# by its option, for timelapse videos.
+# How a player reaches it: saving the game.
+# What changes: a picture of the colony at every save.
+#
+# The mod loads and the colony plays for 30 s; the colony is not saved here.
+from: early-base
+mods: [3693077888]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

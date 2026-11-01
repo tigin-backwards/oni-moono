@@ -1,0 +1,34 @@
+# 更强大的辐射与光照运输 Powerful radiation and light transport (3822936800), class B (Spaced
+# Out).
+#
+# What it does: radbolts carried easily, and real light moved through an optical fibre network of
+# its own: a Radiation Condenser and Releaser (Radiation menu), and a Light Collector, Light
+# Outlet and Fiber Conduit (Utilities), researched with Advanced Nuclear Research and a glass
+# furnace's tech; patches on the build, deconstruct and disconnect tools and the fabricators.
+# How a player reaches it: the build menus, after the research.
+# What changes: light and radbolts piped across the base.
+#
+# setup builds a Light Collector in the dug-out corridor west of the printing pod. The light
+# buildings show in the Utilities menu; selected, the collector's details screen is dumped.
+from: early-base
+mods: [3822936800]
+require_log: ['\[PRLT\] Loaded Powerful Radiation and Light Transport v0.1.11']
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"GlassFurnishings\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"PRLT_LightCollector\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"PRLT_RadiationCondenser\")": exists
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Utilities"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/PRLT_LightCollector Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/PRLT_LightCollector Group*": {active: true}
+      "**/BuildingGroups/**/Grid/PRLT_LightOutlet Group*": {active: true}
+      "**/BuildingGroups/**/Grid/PRLT_FiberConduit Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [112, 207], ortho: 8}}
+  - click_world: {cell: [112, 206], select: PRLT_LightCollector}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: details, root: "**/DetailsScreen"}

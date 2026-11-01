@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3528296441-flatulence-not-excluded.yaml",
+ "mods": [
+  "3528296441"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3528296441": {
+   "Flatulence.dll": "724d28740fe36ad8095ddc5abf65ffe8afc3cbd71535e20f01607c25adf73126"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-061650-113d2065",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:23:49",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-125036-5a04a886",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:50:36",
+    "lane": 35,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-125036-5a04a886",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:52:21",
+    "lane": 35,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,34 @@
+# Sealed Insulated Door - U59 Fix / 密封隔热门修复版 (3823997817), classes B (PLib options).
+#
+# What it does: adds the Sealed Insulated Door (SealedInsulatedDoor, 1x2, any metal, in the
+# Base menu after the Mechanized Airlock, researched with Temperature Modulation): a door that
+# insulates like an insulated tile and seals gas and liquid while open or closed (Door
+# OnPrefabInit, Sim200ms and OnCleanUp patches), opening at a speed its option sets.
+# How a player reaches it: the build menu (Base), after the research.
+# What changes: an airlock that blocks heat.
+#
+# setup grants Temperature Modulation and spawns copper ore. The door is listed in the Base menu;
+# built in the corridor west of the printing pod and selected, it is a door.
+from: early-base
+mods: [3823997817]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"TemperatureModulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Cuprite\").substance", method: SpawnResource, args: [[111.5, 207.5, -12], 300, 300, 255, 0]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"TemperatureModulation\").unlockedItemIDs": {contains: SealedInsulatedDoor}
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/SealedInsulatedDoor Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/SealedInsulatedDoor Group*": {active: true}
+  - key: {code: Escape}
+  - build: {prefab: SealedInsulatedDoor, at: [114, 206], material: Cuprite}
+  - expect: {blueprints: {SealedInsulatedDoor: 1}}
+  - run: {seconds: 1500, until: {buildings: {SealedInsulatedDoor: 1}, pending_construction: 0}}
+  - driver: {camera.set: {cell: [114, 207], ortho: 8}}
+  - click_world: {cell: [114, 206], select: SealedInsulatedDoor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Door>": exists

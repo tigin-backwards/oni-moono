@@ -1,0 +1,56 @@
+{
+ "spec": "mods/2618474424-alchemy.yaml",
+ "mods": [
+  "2618474424"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "9dbf18dc",
+ "mod_dlls": {
+  "2618474424": {
+   "(Darth Nihilus)_Alchemy.dll": "e097b2e89a71bd3e495f189115094a9d09eef3fe9e0d723e1624ba193acb956f",
+   "PLib.dll": "893dc1ea3eddd02c85d433231aae356be27be07ddfc1a98fb2c51d84748208e8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-034242-c7177ccf",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:42:43",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-113340-3e31e125",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:33:40",
+    "lane": 35,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-113340-3e31e125",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:36:32",
+    "lane": 35,
+    "reference_run": "20261101-034242-c7177ccf",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

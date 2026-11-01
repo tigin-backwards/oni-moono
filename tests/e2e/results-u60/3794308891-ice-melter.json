@@ -1,0 +1,61 @@
+{
+ "spec": "mods/3794308891-ice-melter.yaml",
+ "mods": [
+  "3794308891"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "an Ice Melter placed and selected (details shot), with its Database entry; world shot",
+ "updated": "2026-11-01",
+ "commit": "5ec373bf",
+ "mod_dlls": {
+  "3794308891": {
+   "IceMelter.dll": "c0910b280756a7c0598d0c830838d646a20aa47fc1f8686ff2a732cd49ee1109"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024344-c6853c58",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:43:44",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-101613-d33c6197",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:16:13",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "building": 0.00739
+    }
+   },
+   {
+    "run": "20261101-101613-d33c6197",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:26:45",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "building": 0.008347
+    }
+   }
+  ]
+ }
+}

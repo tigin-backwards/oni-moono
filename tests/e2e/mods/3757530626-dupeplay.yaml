@@ -1,0 +1,15 @@
+# DupePlay (3757530626), class P (network: localhost).
+#
+# What it does: an HTTP API on http://localhost:7878/ (an HttpListener) whose routes control
+# Duplicants and read the colony's state, for scripts or AI agents.
+# How a player reaches it: HTTP requests to that port.
+# What changes: the colony driven from outside.
+#
+# The mod loads and the colony plays for 30 s (no requests are sent; one player at a time owns
+# the port).
+from: early-base
+mods: [3757530626]
+require_log: ['\[DupePlay\] ']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

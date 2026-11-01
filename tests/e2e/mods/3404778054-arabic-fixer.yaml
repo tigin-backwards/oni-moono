@@ -1,0 +1,18 @@
+# Arabic Fixer (3404778054), classes P, S (text).
+#
+# What it does: a prefix on LocText's text setter reorders every text the game shows for
+# right-to-left reading, outside rich-text tags: brackets and parentheses swap, numbers with
+# their units (°C, %, rads/cycle, g, kg/cycle) are reversed, and runs of Latin letters are
+# written backwards.
+# How a player reaches it: any screen (meant for an Arabic translation).
+# What changes: text drawn reversed for right-to-left fonts.
+#
+# In English, labels read backwards: the tool menu's Dig reads giD.
+from: early-base
+mods: [3404778054]
+require_log: ['Advanced Arabic Fixer \(Numbers \+ Units \+ English\) Loaded!']
+steps:
+  - run: {seconds: 2}
+  # Texts keep being set and reordered, so layouts are not compared.
+  - expect_ui:
+      "**/ToolMenu/**": {any_text: "giD"}

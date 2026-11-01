@@ -1,0 +1,16 @@
+# yoyo缺氧自用mod-god06 (3057900938), class P (PLib options).
+#
+# What it does: a personal pack of recipe and building tweaks for the Compost, Fertilizer
+# Synthesizer, Algae Distiller, Ethanol Distiller, Sludge Press, Desalinator, Water Sieve, Rock
+# Granulator, Kiln, Metal Refinery, Glass Forge, Oil Refinery, Polymer Press and more (their
+# CreateBuildingDef, ConfigureBuildingTemplate and ConfigureRecipes patched), one option
+# section each.
+# How a player reaches it: those buildings.
+# What changes: faster, cheaper processing.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3057900938]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

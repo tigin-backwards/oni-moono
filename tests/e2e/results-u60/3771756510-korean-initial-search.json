@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3771756510-korean-initial-search.yaml",
+ "mods": [
+  "3771756510"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "1cc32d84",
+ "mod_dlls": {
+  "3771756510": {
+   "KoreanInitialSearch.dll": "62c8b51e9eeaeb7dcbec35a0751b3503e5b9df4b3f999c02eabb0420faa4c53b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040314-a46ee8e3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:08:41",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-120027-6bdd9eb0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:00:27",
+    "lane": 36,
+    "reference_run": "20261101-040314-a46ee8e3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-120027-6bdd9eb0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:02:35",
+    "lane": 36,
+    "reference_run": "20261101-040314-a46ee8e3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

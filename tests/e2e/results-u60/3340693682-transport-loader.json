@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3340693682-transport-loader.yaml",
+ "mods": [
+  "3340693682"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3340693682": {
+   "PLib.dll": "b862c5db2b3cd6df09a62d4a30782e91e2b24e8e1bfac08d991c9cc89a984ba9",
+   "╘╦╩Σ╫░╘╪╞≈.dll": "38e012e9324d34803fb7d157c8fd4ad26dc6730830128ed16ad7dc204b807c3c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041630-1ee599cc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:16:30",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-123605-7017fef1",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:36:05",
+    "lane": 35,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-123605-7017fef1",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:38:21",
+    "lane": 35,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

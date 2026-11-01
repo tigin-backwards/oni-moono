@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3789353358-mod-menu.yaml",
+ "mods": [
+  "3789353358"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "7a05a067",
+ "mod_dlls": {
+  "3789353358": {
+   "ModMenu.dll": "e98d474aacb314fcc8c1009ed88b7f7b5174e4a97bdad744404865b59106acdc"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-053436-9013cf89",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:41:28",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112608-d6bdf491",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:26:08",
+    "lane": 36,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-112608-d6bdf491",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:28:51",
+    "lane": 36,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,25 @@
+# 智能存储 SmartStorageThresholds (3823478601), classes P, S.
+#
+# What it does: storage bins, smart bins, refrigerators, ration boxes, storage tiles and
+# critter and fish feeders fill with hysteresis: they take deliveries below a low threshold and
+# stop at a high one until the low one is reached again; a StorageHysteresis
+# (IActivationRangeTarget, the activation range side screen) sets both, in percent. Patches on
+# FilteredStorage's filter and storage changes.
+# How a player reaches it: a storage building's activation range side screen.
+# What changes: fewer small deliveries to storage.
+#
+# setup builds a Storage Bin in the dug-out corridor west of the printing pod. It has the
+# hysteresis component; selected, its activation range side screen shows (dumped).
+from: early-base
+mods: [3823478601]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: StorageLocker}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<SmartStorageThresholds.StorageHysteresis>": exists
+  - ui_wait: {path: "**/ActivationRangeSideScreen", cond: stable}
+  - ui_dump: {name: range, root: "**/ActivationRangeSideScreen"}

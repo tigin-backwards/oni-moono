@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3239757042-dynamic-plants-other.yaml",
+ "mods": [
+  "3239757042"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "f7387059",
+ "mod_dlls": {
+  "3239757042": {
+   "(Darth Nihilus)_DynamicOtherPlants.dll": "13c8c824175c1fd1e4e9a615833fa93cce96799bd13dfff9f2b148b067847d9e",
+   "PLib.dll": "893dc1ea3eddd02c85d433231aae356be27be07ddfc1a98fb2c51d84748208e8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-055458-7737530a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:54:58",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-122400-d2f76ba4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:24:00",
+    "lane": 35,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-122400-d2f76ba4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:26:26",
+    "lane": 35,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

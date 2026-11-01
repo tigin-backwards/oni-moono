@@ -1,0 +1,16 @@
+# 【个人开发测试版】模组清单管理 / Mod List Presets (3818632179), class S.
+#
+# What it does: with Mod Updater (2018291283, the catalog's requirement, installed with it), the
+# Mods screen gets enabled-list presets: import and export, the state after applying, order by
+# number; missing mods are skipped, automatic backup is off by default.
+# How a player reaches it: the main menu's Mods screen.
+# What changes: mod lists switched as a whole.
+#
+# The mod loads, as its log says, and the colony plays for 30 s; the Mods screen is not opened
+# here.
+from: early-base
+mods: [2018291283, 3818632179]
+require_log: ['\[ModListPresets\] 1\.5\.1 loaded']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

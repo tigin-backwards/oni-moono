@@ -1,0 +1,14 @@
+# Interface Extended (3820540318), class S.
+#
+# What it does: brings the HUD's panels closer together on wide monitors, at a width set in
+# Options > Interface Extended.
+# How a player reaches it: the colony's HUD; its options screen.
+# What changes: HUD layout on wide screens.
+#
+# The mod loads, as its log says, and the colony plays for 30 s.
+from: early-base
+mods: [3820540318]
+require_log: ['\[(CenteredHud|Interface Extended)\] ']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

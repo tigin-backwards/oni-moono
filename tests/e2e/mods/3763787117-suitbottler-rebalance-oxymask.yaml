@@ -1,0 +1,23 @@
+# SuitBottler & Rebalance OxyMask (3763787117), class P (options in its config.json).
+#
+# What it does: suit gases a Duplicant's Atmo, Jet or Lead Suit releases when taken off are
+# bottled (Storage.DropUnlessHasTag and Equippable.OnUnequip patches) instead of venting; the
+# Oxygen Mask is rebalanced: its Athletics penalty is -1, it protects from popped ear drums
+# and eye irritation, wears by 15 % a cycle (config.json), stores up to 0.9 kg of the CO2 its
+# wearer breathes out (OxygenBreather and SuitTank patches) and bottles it when taken off.
+# How a player reaches it: suits and masks, as before.
+# What changes: no suit gas lost; a sturdier, better Oxygen Mask.
+#
+# The Oxygen Mask's definition carries the -1 Athletics modifier and the three immunities,
+# and its prefab wears by 0.15 a cycle; the colony runs.
+from: early-base
+mods: [3763787117]
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"Oxygen_Mask\").GetComponent<Equippable>.def.AttributeModifiers[0].Value": -1
+      "count:Assets.GetPrefab(\"Oxygen_Mask\").GetComponent<Equippable>.def.EffectImmunites[*] if .Id == PoppedEarDrums": 1
+      "count:Assets.GetPrefab(\"Oxygen_Mask\").GetComponent<Equippable>.def.EffectImmunites[*] if .Id == MinorIrritation": 1
+      "count:Assets.GetPrefab(\"Oxygen_Mask\").GetComponent<Equippable>.def.EffectImmunites[*] if .Id == MajorIrritation": 1
+      "Assets.GetPrefab(\"Oxygen_Mask\").GetComponent<Durability>.durabilityLossPerCycle": "< -0.149"
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

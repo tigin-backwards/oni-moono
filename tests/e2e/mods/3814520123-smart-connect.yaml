@@ -1,0 +1,36 @@
+# Smart Connect (3814520123), classes P, O (PLib options).
+#
+# What it does: connecting a new pipe, rail or wire to an existing line no longer rebuilds the
+# existing line's end in the new material or type (a patch on BaseUtilityBuildTool.BuildPath);
+# dragging along a line still replaces it. Options: a coloured preview of kept and rebuilt tiles
+# while dragging, and protection of other pipe and wire types.
+# How a player reaches it: the wire, pipe or rail tools, dragging onto an existing line.
+# What changes: lines extended without replacing their ends.
+#
+# setup builds two refined copper wires in the dug-out corridor west of the printing pod and
+# spawns copper ore. The Wire tool (Power menu) drags a new wire from two cells west, along the
+# line onto its far end (east of it the cells are occupied): as many blueprints as in the
+# original (none in this corridor on U60, where the scripted drag places nothing), and the
+# existing wire is not marked for replacement.
+from: early-base
+mods: [3814520123]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [{"$": "Grid.XYToCell(110, 207)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [{"$": "Grid.XYToCell(111, 207)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Cuprite\").substance", method: SpawnResource, args: [[113.5, 206.5, -12], 200, 300, 255, 0]}}
+steps:
+  - run: {seconds: 2}
+  - expect: {buildings: {Wire: ">= 2"}}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/Wire Group*", cond: stable}
+  - click: {ui: "**/BuildingGroups/**/Grid/Wire Group*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel", cond: stable}
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - drag: {from: [108, 207], to: [111, 207]}
+  - run: {seconds: 1}
+  - expect_state:
+      "count:all:Constructable::[*]": "== original"
+  - expect_state:
+      "count:all:Constructable::[*] if .IsReplacementTile == true": 0
+  - key: {code: Escape}
+  - key: {code: Escape}

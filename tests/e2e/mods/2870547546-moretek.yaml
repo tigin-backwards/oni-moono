@@ -1,0 +1,13 @@
+# MoreTek (2870547546), class B.
+#
+# What it does: a large pack that ships its own versions of the game's building configurations
+# and adds buildings of its own.
+# How a player reaches it: the build menu.
+# What changes: many buildings.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [2870547546]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

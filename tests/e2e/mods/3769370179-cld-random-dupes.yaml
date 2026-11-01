@@ -1,0 +1,15 @@
+# [CLD] Random Dupes (3769370179), class M (PLib options).
+#
+# What it does: a development build (with Per-Save Mod Settings, 3769369613, its requirement):
+# mixes Duplicants' names and looks while keeping their clothes, personality and model, for
+# printed and starting Duplicants (CharacterContainer and MinionStartingStats patches), with
+# per-save options.
+# How a player reaches it: the printing pod; a new colony.
+# What changes: Duplicants that look and are named at random.
+#
+# The mod loads and the colony plays for 30 s; no new Duplicant is printed here.
+from: early-base
+mods: [3769369613, 3769370179]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

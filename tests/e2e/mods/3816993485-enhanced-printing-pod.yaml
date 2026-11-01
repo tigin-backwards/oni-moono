@@ -1,0 +1,34 @@
+# 增强打印仓 Enhanced Printing Pod (3816993485), classes P, U (screens of the game's, changed).
+#
+# What it does: the printing pod's choice screen works like the new-colony Duplicant selection:
+# each Duplicant card can be rerolled and given an interest, care packages are picked from a
+# drop-down list with icons, the number of choices is set (3 Duplicants and 3 packages by
+# default), and package quantities multiply (1x to 100x); its config.json and a settings panel
+# from its Mods screen row. Patches on ImmigrantScreen, CharacterSelectionController,
+# CharacterContainer.Reshuffle and CarePackageContainer.
+# How a player reaches it: the printing pod, when printables are available.
+# What changes: what the printing pod offers.
+#
+# setup makes printables available (the immigration timer run out, as time does) and seeds
+# the random numbers. The printing pod is selected and its choices opened: the mod's screen
+# lists its cards: 3 Duplicants and 3 care packages, its defaults (the game offers 4 in all;
+# the cards' contents follow random numbers the seed does not fix, so they are not dumped).
+from: early-base
+mods: [3816993485]
+require_log: ['\[EnhancedPrintingPod\] 已加载']
+setup:
+  - driver: {seed: 12345}
+  - driver: {setup.call: {target: "Immigration.Instance", method: "Sim200ms", args: [100000]}}
+steps:
+  - expect_state: {"Immigration.Instance.ImmigrantsAvailable": true}
+  - driver: {camera.set: {cell: [124, 209], ortho: 8}}
+  - click_world: {cell: [124, 208], select: Headquarters}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/TelepadSideScreen/Contents/Immigration/ViewButton", cond: stable}
+  - click: {ui: "**/TelepadSideScreen/Contents/Immigration/ViewButton"}
+  - ui_wait: {path: "**/ImmigrantScreen/Layout", cond: stable}
+  - expect_ui:
+      "**/ImmigrantScreen": {active: true}
+  - expect_ui:
+      "**/ImmigrantScreen/Layout/Content/CharacterContainer*": {count: 3}
+      "**/ImmigrantScreen/Layout/Content/CarePackageContainer*": {count: 3}

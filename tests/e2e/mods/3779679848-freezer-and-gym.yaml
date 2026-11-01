@@ -1,0 +1,34 @@
+# 冷冻与健身 / Freezer and Gym (3779679848), class B.
+#
+# What it does: adds a Freezer (Freezer, 1x2 fridge of raw minerals, -30 °C, in the Food menu)
+# and an Indoor Toilet (IndoorToilet, 2x3 of raw metal, in the Plumbing menu), and a gym
+# (registered in Db.Initialize).
+# How a player reaches it: the build menu (Food, Plumbing).
+# What changes: colder food storage and an indoor toilet.
+#
+# The Food menu lists the Freezer and the Plumbing menu the Indoor Toilet; a Freezer built of
+# sandstone in the corridor west of the printing pod and selected is a refrigerator.
+from: early-base
+mods: [3779679848]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"Freezer\").HeightInCells": 2
+      "Assets.GetBuildingDef(\"IndoorToilet\").WidthInCells": 2
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Food"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/Freezer Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/Freezer Group*": {active: true}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/IndoorToilet Group*", cond: stable, stable: 120, frames: 600}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/IndoorToilet Group*": {active: true}
+  - key: {code: Escape}
+  - build: {prefab: Freezer, at: [113, 206], material: SandStone}
+  - expect: {blueprints: {Freezer: 1}}
+  - run: {seconds: 1500, until: {buildings: {Freezer: 1}, pending_construction: 0}}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 206], select: Freezer}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Refrigerator>": exists

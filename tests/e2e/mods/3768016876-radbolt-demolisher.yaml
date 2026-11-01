@@ -1,0 +1,13 @@
+# Radbolt Demolisher (3768016876), class P.
+#
+# What it does: radbolts destroy any natural tile they touch, neutronium included, and any
+# building (a component added to them in KPrefabID.OnSpawn).
+# How a player reaches it: Radbolt Generators.
+# What changes: radbolts as diggers.
+#
+# The mod loads and the colony plays for 30 s; no radbolt is fired here.
+from: early-base
+mods: [3768016876]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

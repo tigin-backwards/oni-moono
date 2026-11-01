@@ -1,0 +1,27 @@
+# Japanese Font Patch [Unofficial Patch] (3826547280), classes V, S (fonts).
+#
+# What it does: for a player in Japanese (here with Japanese Language Pack, 928606476, which the
+# catalog names as its requirement), it loads two TMP fonts from its asset bundle
+# (assets/linux/fonts.bundle off Windows and macOS, named in font_info.json: a title font,
+# GN-Kin-iro SansSerif, and a header font, Senobi Gothic Bold; descriptions keep the game's
+# NotoSansCJKjp-Regular), upgrades their legacy TMP data, and a postfix on
+# Localization.SwapToLocalizedFont gives titles and headers those fonts, as the English game's
+# distinctive fonts do.
+# How a player reaches it: the game in Japanese; every screen.
+# What changes: the look of Japanese titles and headers.
+#
+# The spec plays in Japanese (`translation: 928606476`). The mod's fonts load, and the build
+# menu's category labels are compared with the original (dumped and shot).
+from: early-base
+mods: [928606476, 3826547280]
+translation: 928606476
+require_log: ['Loaded language from mod: 928606476']
+steps:
+  - expect_state:
+      "type:enslo.OniFontPatchJp.Patcher::Fonts": exists
+      "type:enslo.OniFontPatchJp.Patcher::Fonts.Title.name": "== original"
+      "type:enslo.OniFontPatchJp.Patcher::Fonts.Head.name": "== original"
+  - ui_dump: {name: plan, root: "**/PlanScreen"}
+  - shot: {name: plan, crop: "**/PlanScreen", threshold: 0.04}
+  - run: {seconds: 10}
+  - expect: {duplicants: 3}

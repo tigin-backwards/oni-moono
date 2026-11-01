@@ -1,0 +1,15 @@
+# Reactor Fuel Batcher (3809269712), class B, S.
+#
+# What it does: the Research Reactor gets a 1-180 kg enriched uranium batch slider
+# (NuclearReactorConfig): it waits until its current batch is almost used up before asking for
+# the next (Reactor patches).
+# How a player reaches it: a built Research Reactor's side screen.
+# What changes: reactors fuelled in batches.
+#
+# The mod loads, as its log says, and the colony plays for 30 s.
+from: early-base
+mods: [3809269712]
+require_log: ['\[ReactorFuelBatcher\] Loaded v1\.0\.0']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

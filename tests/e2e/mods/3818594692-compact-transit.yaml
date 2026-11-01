@@ -1,0 +1,28 @@
+# 【开发测试版】紧凑运载站 / Compact Transit (3818594692), class B.
+#
+# What it does: adds a Compact Transit Station (BaiyeCompactTransitStation, 1x2 of refined metal,
+# hanging, in the Base menu, researched with Transit Tubes): a two-way transit tube station that
+# uses the game's tube pathing, lets Duplicants pass through and enter or leave left and right
+# (TravelTubeEntrance, UtilityNetworkTubesManager and Transition patches), with its own look.
+# How a player reaches it: the build menu (Base), after the research.
+# What changes: a small tube access.
+#
+# setup grants the research. The building is listed in the Base menu (shot).
+from: early-base
+mods: [3818594692]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"TravelTubes\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"TravelTubes\").unlockedItemIDs": {contains: BaiyeCompactTransitStation}
+      "Assets.GetBuildingDef(\"BaiyeCompactTransitStation\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BaiyeCompactTransitStation Group*", cond: stable, stable: 120, frames: 600}
+  # Its button may lie outside the panel's view, so the menu is checked and shot rather than
+  # the card opened.
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/BaiyeCompactTransitStation Group*": {active: true}
+  - shot: {name: menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}

@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3765105326-piston-pack.yaml",
+ "mods": [
+  "3765105326"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "3bd2061e",
+ "mod_dlls": {
+  "3765105326": {
+   "PistonMod.dll": "09550246ea73d98809f9336526d6a4c1c34d39dff178114b4d837d745d5f9485"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043432-f3c99dcd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:45:27",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-121518-4d9af64f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:15:18",
+    "lane": 36,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-121518-4d9af64f",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:18:40",
+    "lane": 36,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

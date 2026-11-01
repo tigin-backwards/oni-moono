@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3675711837-cooking-rebalanced.yaml",
+ "mods": [
+  "3675711837"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3675711837": {
+   "Refrigerator.dll": "3f1d564b7fb8308f27ac9990fe21c9ea5d5ef93ebd8fd8b3e11646fd01e76d36"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-064427-2b16e9c7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:44:27",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-125540-6dc783de",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:55:40",
+    "lane": 36,
+    "reference_run": "20261101-064427-2b16e9c7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-125540-6dc783de",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:57:23",
+    "lane": 36,
+    "reference_run": "20261101-064427-2b16e9c7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

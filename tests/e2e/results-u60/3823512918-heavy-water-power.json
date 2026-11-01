@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3823512918-heavy-water-power.yaml",
+ "mods": [
+  "3823512918"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a heavy water generator in the dug-out corridor west of the printing pod. It shows in the Power menu (the reactor in Refining); selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "42aba036",
+ "mod_dlls": {
+  "3823512918": {
+   "WHHW_7A5C.dll": "fa05e68eac21024ec0a405d291edbd492d6221765dcd0259bca3be824c0eac35"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-080617-aed2badb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:10:02",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112553-f8e40e6e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:25:53",
+    "lane": 40,
+    "reference_run": "20261101-080617-aed2badb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-112553-f8e40e6e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:25:54",
+    "lane": 41,
+    "reference_run": "20261101-080617-aed2badb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

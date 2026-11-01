@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3728180259-vietnamese-search.yaml",
+ "mods": [
+  "3728180259"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3728180259": {
+   "VietnameseSearch.dll": "e99fdcbd22edd1c3a4f7335e8d2af2964fda8656249371bf909ae338ab1c40ee"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-061650-113d2065",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:16:50",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-124542-4cd4cd64",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:45:42",
+    "lane": 36,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-124542-4cd4cd64",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:47:48",
+    "lane": 36,
+    "reference_run": "20261101-061650-113d2065",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

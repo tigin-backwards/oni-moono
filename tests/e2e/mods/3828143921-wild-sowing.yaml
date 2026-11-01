@@ -1,0 +1,22 @@
+# Wild Sowing (3828143921), classes T, B.
+#
+# What it does: seeds sown straight into undug natural ground grow as wild plants. Sow Seeds in
+# the tool bar marks natural soil cells, floor or ceiling, with a seed marker (NaturalSeedMarker,
+# a 1x1 receptacle building); clicking a mark picks the seed, a Duplicant plants it, and the
+# plant grows wild (PlantablePlot, SingleEntityReceptacle and EntityPreview patches).
+# How a player reaches it: the tool bar's Sow Seeds.
+# What changes: plants without farm tiles.
+#
+# With Sow Seeds, a drag over the natural floor of the corridor west of the printing pod places
+# seed markers there.
+from: early-base
+mods: [3828143921]
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - tool: {toolbar: "Sow Seeds"}
+  - drag: {from: [111, 206], to: [114, 206]}
+  - key: {code: Escape}
+  - run: {seconds: 1}
+  - expect_state:
+      "count:all:KPrefabID::[*] if .PrefabTag.Name.StartsWith(\"NaturalSeedMarker\") == true": ">= 1"

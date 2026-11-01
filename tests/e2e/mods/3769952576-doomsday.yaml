@@ -1,0 +1,15 @@
+# Doomsday (3769952576), class P (Prehistoric Planet Pack).
+#
+# What it does: in a Prehistoric Planet Pack game with the Demolior impactor, the impactor
+# arrives in 1 cycle instead of about 200 (LargeImpactorEvent.GetImpactTime), and its crash's
+# placement and damage are patched (LargeImpactorCrashStamp, LargeComet.DestroyCell).
+# How a player reaches it: a Prehistoric start with the impactor.
+# What changes: Demolior lands at once.
+#
+# The mod loads, as its log says, and the Terra colony (no impactor) plays for 30 s.
+from: early-base
+mods: [3769952576]
+require_log: ['\[Doomsday\] loaded']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

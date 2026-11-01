@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3781546582-biobot-charger.yaml",
+ "mods": [
+  "3781546582"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "e6973f67",
+ "mod_dlls": {
+  "3781546582": {
+   "ONI Biobot Charger.dll": "504bed592848eecbc60341d9507d05ac7026c85ddf22f2495d155792d9527360"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-043432-f3c99dcd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:34:33",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-113652-cc084cf2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:36:52",
+    "lane": 36,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-113652-cc084cf2",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:39:13",
+    "lane": 36,
+    "reference_run": "20261101-043432-f3c99dcd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

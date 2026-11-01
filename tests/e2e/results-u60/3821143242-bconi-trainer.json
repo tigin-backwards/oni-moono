@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3821143242-bconi-trainer.yaml",
+ "mods": [
+  "3821143242"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "f9 opens the panel (dumped); F9 again closes it; the colony runs on, its cheats off",
+ "updated": "2026-11-01",
+ "commit": "f0731798",
+ "mod_dlls": {
+  "3821143242": {
+   "BCONI.dll": "2eb99f829cc79403be19dc66d7d2cc7f5a830cdbb23e5543f12ac0b998560a6f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-011544-d112509a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T01:15:44",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-111553-daea4f0d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:15:53",
+    "lane": 40,
+    "reference_run": "20261101-011544-d112509a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "panel": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-111553-daea4f0d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:15:54",
+    "lane": 41,
+    "reference_run": "20261101-011544-d112509a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "panel": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

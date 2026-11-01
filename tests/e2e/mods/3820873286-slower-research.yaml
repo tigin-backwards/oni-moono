@@ -1,0 +1,14 @@
+# Slower Research (3820873286), class P (PLib options).
+#
+# What it does: research is slower: the research stations' work tick (ResearchCenter.OnWorkTick)
+# drops the game's built-in +200 % bonus and applies its speed multiplier, and the nuclear
+# research center's rate and tech costs follow its options.
+# How a player reaches it: researching; the mod's options.
+# What changes: a longer tech tree.
+#
+# The mod loads and the colony plays for 30 s; no research is run here.
+from: early-base
+mods: [3820873286]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

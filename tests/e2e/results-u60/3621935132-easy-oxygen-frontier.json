@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3621935132-easy-oxygen-frontier.yaml",
+ "mods": [
+  "3621935132"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3621935132": {
+   "EasyOxygenFrontier.dll": "00cd15327b7a1e95d58f42221587b71eed91dc24b1c3a8dc653c25435a2fbcf8"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032714-f98abda9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:36:33",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-131107-2e3db294",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:11:07",
+    "lane": 35,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-131107-2e3db294",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:13:04",
+    "lane": 35,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,13 @@
+# Capybara Cables 水豚电缆 (3829632114), class B (PLib options).
+#
+# What it does: a public test of a 380 V generation and 220 kV transmission series of wires and
+# transformers, with placement options.
+# How a player reaches it: the build menu (Power).
+# What changes: high-voltage power networks.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3829632114]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

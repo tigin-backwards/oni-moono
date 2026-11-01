@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3818611694-baiye-fusion-power.yaml",
+ "mods": [
+  "3818611694"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Advanced Nuclear Research and builds an Isotope Separator in the dug-out corridor west of the printing pod. The six elements are loaded; the separator shows in the Refining menu, the reactor and furnace in the Power menu; selected, the separator's details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "4f8273bd",
+ "mod_dlls": {
+  "3818611694": {
+   "BaiyeFusionPower.dll": "ba0519e834b9a4525ee5fb92a48718228f807cbca41a1f8487d7b544fcd6e199"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-054807-3828ce3f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:51:39",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-105602-ff56149a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:56:02",
+    "lane": 40,
+    "reference_run": "20261101-054807-3828ce3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-105602-ff56149a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:56:03",
+    "lane": 41,
+    "reference_run": "20261101-054807-3828ce3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

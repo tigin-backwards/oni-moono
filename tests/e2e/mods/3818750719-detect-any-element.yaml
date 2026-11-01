@@ -1,0 +1,27 @@
+# Detect Any Element (3818750719), classes P, S.
+#
+# What it does: the element sensors' filter screen gets an "Any" choice right under "None"
+# (a FilterSideScreen.SetTarget postfix): the pipe and rail element sensors then go green for
+# any packet passing through (ConduitElementSensor.ConduitUpdate), and the gas and liquid
+# element sensors for any gas or liquid in their cell (LogicElementSensor patches).
+# How a player reaches it: a built element sensor's filter side screen.
+# What changes: sensors for "anything there".
+#
+# setup builds a Gas Element Sensor in the corridor west of the printing pod; selected, its
+# filter screen lists Any (dumped), and picking it turns the sensor on for the corridor's air
+# within a few seconds.
+from: early-base
+mods: [3818750719]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicElementSensorGas\")", method: Build, args: [131765, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - click_world: {cell: [113, 207], select: LogicElementSensorGas}
+  - expect_ui:
+      "**/DetailsScreen/SideScreen/**": {any_text: "Any"}
+  - ui_dump: {name: filter, root: "**/DetailsScreen/SideScreen", mask_text: ['\d+(\.\d+)?']}
+  - click: {text: "Any", under: "**/DetailsScreen/SideScreen"}
+  - run: {seconds: 5}
+  - expect_state:
+      "selected:GetComponent<LogicElementSensor>.IsSwitchedOn": true

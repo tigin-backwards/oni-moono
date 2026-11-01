@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3769709089-no-farms-needed.yaml",
+ "mods": [
+  "3769709089"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "cef0f8e2",
+ "mod_dlls": {
+  "3769709089": {
+   "RawMaterialSynthesizer.dll": "596c50877d5e1eb961f5397f927489ee64e20fbfe4193a3944166686afe6e221"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-051213-a3c25292",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:17:58",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-120849-4e31cc53",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:08:49",
+    "lane": 36,
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-120849-4e31cc53",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:12:15",
+    "lane": 36,
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

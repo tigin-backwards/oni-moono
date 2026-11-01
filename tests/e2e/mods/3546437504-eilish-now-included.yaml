@@ -1,0 +1,14 @@
+# Eilish now included (Music Billie Eilish) (3546437504), class P (music).
+#
+# What it does: replaces almost all of the game's music with songs from its folder, played
+# through its own static music player.
+# How a player reaches it: playing, with music on.
+# What changes: the soundtrack.
+#
+# The mod loads, as its log says, and the colony plays for 30 s.
+from: early-base
+mods: [3546437504]
+require_log: ['\[StaticMusic\] Initializing mod']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

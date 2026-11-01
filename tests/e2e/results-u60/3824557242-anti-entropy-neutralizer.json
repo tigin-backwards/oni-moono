@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3824557242-anti-entropy-neutralizer.yaml",
+ "mods": [
+  "3824557242"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds one in the dug-out corridor west of the printing pod. It shows in the Utilities menu; selected, its details screen is dumped",
+ "updated": "2026-11-01",
+ "commit": "a8aeb89f",
+ "mod_dlls": {
+  "3824557242": {
+   "AntiEntropyNeutralizer.dll": "28b18ce0fa3dc9681c3267637a9d021373d705f14905fa2fa2cc80200597b336"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-065235-08404b0b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:59:26",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112805-3fd7953b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:28:05",
+    "lane": 40,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-112805-3fd7953b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:28:06",
+    "lane": 41,
+    "reference_run": "20261101-065235-08404b0b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "title": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

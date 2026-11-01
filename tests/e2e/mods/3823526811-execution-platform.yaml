@@ -1,0 +1,28 @@
+# 处刑台 | Execution Platform (3823526811), class B, M.
+#
+# What it does: adds an Execution Platform (ExecutionPlatform, 6x5, in the Furniture menu,
+# researched with Luxury): a Duplicant summoned to it waits for a verdict, acquittal or
+# execution, with custom charges, cartoon animations (faces and mouths patched) and colony
+# morale effects, and its own death message.
+# How a player reaches it: the build menu (Furniture), after the research; its side screen.
+# What changes: a grim decoration.
+#
+# setup grants the research. The building is listed in the Furniture menu (shot).
+from: early-base
+mods: [3823526811]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Luxury\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Luxury\").unlockedItemIDs": {contains: ExecutionPlatform}
+      "Assets.GetBuildingDef(\"ExecutionPlatform\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/ExecutionPlatform Group*", cond: stable, stable: 120, frames: 600}
+  # Its button may lie outside the panel's view, so the menu is checked and shot rather than
+  # the card opened.
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/ExecutionPlatform Group*": {active: true}
+  - shot: {name: menu, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}

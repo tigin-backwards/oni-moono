@@ -1,0 +1,28 @@
+# Canister Drop (3814958093), class B.
+#
+# What it does: adds a Canister Drop floor tile and a mesh version (CanisterDropTile,
+# CanisterDropMeshTile, in the Base menu, researched with Portable Gases): Duplicants carry
+# the liquid bottles and gas canisters selected in its filter to it by themselves.
+# How a player reaches it: the build menu (Base), after the research; its filter.
+# What changes: canisters stored without Move To orders, for rockets.
+#
+# setup grants the research. The building is listed in the Base menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3814958093]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"PortableGasses\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"PortableGasses\").unlockedItemIDs": {contains: CanisterDropTile}
+      "Assets.GetBuildingDef(\"CanisterDropTile\")": exists
+      "Assets.GetBuildingDef(\"CanisterDropMeshTile\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/CanisterDropTile Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/CanisterDropTile Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}

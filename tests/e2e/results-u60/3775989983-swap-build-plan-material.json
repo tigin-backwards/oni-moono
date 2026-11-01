@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3775989983-swap-build-plan-material.yaml",
+ "mods": [
+  "3775989983"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup spawns granite. Two sandstone tile blueprints are placed in the corridor west of the printing pod and one is selected: Change material lists granite, and pressing it switches both blueprints to granite",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3775989983": {
+   "BuildPlanMaterialSwap.dll": "cdf19d65153967429ec0a0ef89ef8cd8b8e1ddacaac1de777e16ab4fa7385a4e"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-092050-8b8babe3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:24:45",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:11:11",
+    "lane": 54,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:11:58",
+    "lane": 55,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

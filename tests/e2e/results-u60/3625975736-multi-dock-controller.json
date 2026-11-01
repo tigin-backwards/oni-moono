@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3625975736-multi-dock-controller.yaml",
+ "mods": [
+  "3625975736"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3625975736": {
+   "MultiDockController.dll": "e2ddaa69234d1dd416285b61c0f5acb4d162d9717e7c5d9122815b316247a08a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-053436-9013cf89",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:34:37",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-130638-85b4aac5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:06:38",
+    "lane": 36,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-130638-85b4aac5",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:07:54",
+    "lane": 36,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

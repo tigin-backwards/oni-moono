@@ -1,0 +1,61 @@
+{
+ "spec": "mods/3821296792-jumper-bridges.yaml",
+ "mods": [
+  "3821296792"
+ ],
+ "verdict": "failed",
+ "why": "a run of ours failed",
+ "findings": [],
+ "note": "the Power menu's Wire Bridge is picked and its placement shown over the manual generator beside the printing pod (the build tool active), then put away; the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "918b7a60",
+ "mod_dlls": {
+  "3821296792": {
+   "JumperBridges.dll": "5754de7149c816e644484d409b8a2c3f40948d711addb315df105d935aaaeea4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-073756-2a3320d7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:37:56",
+    "lane": 43,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-111731-11c61dfb",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T11:17:31",
+    "lane": 44,
+    "reasons": [
+     "step 6: PlayerController.Instance.ActiveTool.GetType().Name is \"BuildTool\", wanted == original (it held in the original: the interaction has no effect in ours)"
+    ],
+    "reference_run": "20261101-073756-2a3320d7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-111731-11c61dfb",
+    "index": 2,
+    "verdict": "fail",
+    "date": "2026-11-01T11:17:32",
+    "lane": 45,
+    "reasons": [
+     "step 6: PlayerController.Instance.ActiveTool.GetType().Name is \"BuildTool\", wanted == original (it held in the original: the interaction has no effect in ours)"
+    ],
+    "reference_run": "20261101-073756-2a3320d7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

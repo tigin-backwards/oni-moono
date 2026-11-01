@@ -1,0 +1,28 @@
+# Critter Diet Mod (3625578096), classes P, O (PLib options; "Creature Diet Modifier").
+#
+# What it does: options for every critter's diet: per critter (off by default) a consumption
+# multiplier, or a custom diet of up to a few foods each with the element it produces and the
+# rate; postfixes on each critter config's CreatePrefab rewrite its CreatureCalorieMonitor and
+# diet.
+# How a player reaches it: the mod's options (Mods screen), then critters eating.
+# What changes: what critters eat and make.
+#
+# Options turn the Hatch's settings on with consumption doubled. The Hatch's diet (its
+# calorie monitor's figures) is compared with the original, and setup's spawned Hatch eats on
+# as the colony runs.
+from: early-base
+mods: [3625578096]
+options:
+  "3625578096": {Hatch: {Enabled: true, ConsumptionMultiplier: 2.0, UseCustomDiet: false}}
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(113, 206)"}, 0, 0, Hatch, Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"Hatch\").GetComponent<StateMachineController>": exists
+      "last:GetComponent<KPrefabID>.PrefabTag.Name": Hatch
+      "last:GetComponent<Modifiers>.amounts.Get(\"Calories\").GetMax()": "== original"
+  - run: {seconds: 120}
+  - expect_state:
+      "last:GetComponent<Modifiers>.amounts.Get(\"Calories\").GetDelta()": [">= 1.0001 * original", "<= 0.9999 * original"]
+  - expect: {duplicants: 3}

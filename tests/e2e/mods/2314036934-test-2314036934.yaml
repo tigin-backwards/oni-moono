@@ -1,0 +1,14 @@
+# Test (2314036934) (2314036934), class X (no content).
+#
+# What it does: no code and no mod_info.yaml: a Thai strings file named
+# strings_preinstalled_Th_klei.po and a gif; with no strings.po at its root it is no translation,
+# so KMod finds nothing to load.
+# How a player reaches it: nothing to reach.
+# What changes: nothing.
+#
+# The colony loads with it installed and plays for 30 s.
+from: early-base
+mods: [2314036934]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

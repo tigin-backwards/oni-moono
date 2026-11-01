@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3777914397-void-hole.yaml",
+ "mods": [
+  "3777914397"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup closes the corridor west of the printing pod with a column of tiles at its east end (x 119), making it a room, and builds a Black Hole in it. It takes nothing until its filter lets something through: with All ticked in its filter side screen, after 30 s of play the void store holds the gas it took",
+ "updated": "2026-11-01",
+ "commit": "34855904",
+ "mod_dlls": {
+  "3777914397": {
+   "VoidHole.dll": "f039560df3b8b9d1d818ac528737d1a73d1e421993f291527baec2b034817620"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-111627-c9e7dbfe",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:16:27",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-112237-028abde5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:22:37",
+    "lane": 52,
+    "reference_run": "20261101-111627-c9e7dbfe",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-112237-028abde5",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:25:00",
+    "lane": 52,
+    "reference_run": "20261101-111627-c9e7dbfe",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3762529967-storage-tile-hysteresis.yaml",
+ "mods": [
+  "3762529967"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Storage Tile's user menu (dumped) has the mod's refill toggle off; a click turns it on",
+ "updated": "2026-11-01",
+ "commit": "a38fe770",
+ "mod_dlls": {
+  "3762529967": {
+   "StorageTileHysteresis.dll": "f71fecd93f225822ef1dcb2f4eb81fc9f59b97e4578f9b10258f06af463c6c64"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-032714-f98abda9",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:31:21",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-122222-30b1d110",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:22:22",
+    "lane": 36,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-122222-30b1d110",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:25:40",
+    "lane": 36,
+    "reference_run": "20261101-032714-f98abda9",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "user-menu": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

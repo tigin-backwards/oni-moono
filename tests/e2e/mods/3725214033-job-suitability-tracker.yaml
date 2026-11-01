@@ -1,0 +1,15 @@
+# JobSuitabilityTracker (3725214033), class S.
+#
+# What it does: the colony summary's Job Suitability achievement shows each Duplicant's own
+# progress, a tick or a cross and the consecutive cycles, below the game's counters
+# (AchievementWidget.ShowProgress and ExpandAchievement patches).
+# How a player reaches it: the colony achievements screen.
+# What changes: per-Duplicant progress for that achievement.
+#
+# The mod loads and patches the achievement widget, as its log says; the colony plays for 30 s.
+from: early-base
+mods: [3725214033]
+require_log: ['\[JST\] Job Suitability Tracker v1\.62 cargado\.']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

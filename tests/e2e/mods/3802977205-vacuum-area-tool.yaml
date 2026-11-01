@@ -1,0 +1,27 @@
+# Vacuum Area Tool (3802977205), class T (PLib action).
+#
+# What it does: adds the Vacuum Area tool to the tool menu (a PLib action with no default key):
+# hovering shows the connected gas region under the cursor, and a click turns every gas cell
+# of that region into vacuum (SimMessages.ReplaceElement), in Survival.
+# How a player reaches it: the tool menu's Vacuum Area.
+# What changes: a pocket of gas removed at once.
+#
+# With the tool, a click on the air of the corridor west of the printing pod empties it: the
+# corridor's gas mass falls to less than half.
+from: early-base
+mods: [3802977205]
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - expect_state:
+      "Grid.Element[132401].IsGas": true      # (113, 208)
+      "cells:110,207..118,209::Grid.Mass.get_Item({cell})": {save_as: before}
+  - tool: {toolbar: "Vacuum Area"}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.GetType().Name": VacuumTool
+  - click_world: {cell: [113, 208]}
+  - run: {seconds: 1}
+  - key: {code: Escape}
+  # Gas flows back in from the rest of the base within the second played.
+  - expect_state:
+      "cells:110,207..118,209::Grid.Mass.get_Item({cell})": "< 0.5 * before"

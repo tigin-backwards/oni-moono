@@ -1,0 +1,22 @@
+# Sticky Materials (3814685111), class P.
+#
+# What it does: the build menu's material selector keeps the material the player picked when
+# it runs out instead of switching to another (a prefix on
+# MaterialSelector.AutoSelectAvailableMaterial); the player changes it.
+# How a player reaches it: building, with a material that runs out.
+# What changes: buildings keep the chosen material.
+#
+# The Tile is picked in the Base menu, and its material selector is dumped as the original's
+# (the material it starts on included). Escape closes the menu.
+from: early-base
+mods: [3814685111]
+require_log: ['\[StickyMaterials\] Loaded']
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/Tile Group*", cond: stable}
+  - click: {ui: "**/BuildingGroups/**/Grid/Tile Group*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel", cond: stable}
+  - ui_dump: {name: materials, root: "**/MaterialSelectionPanel"}
+  - key: {code: Escape}
+  - key: {code: Escape}

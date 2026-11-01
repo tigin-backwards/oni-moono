@@ -1,0 +1,12 @@
+# Lucian测试 (3622225056), class P.
+#
+# What it does: a test mod: a UserMod2 that does nothing more.
+# How a player reaches it: nothing to reach.
+# What changes: nothing.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3622225056]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,13 @@
+# Move To Together (3826901295), class M.
+#
+# What it does: several Duplicants work on one Move To order for debris in parallel
+# (CancellableMove and MovePickupableChore patches), instead of one at a time.
+# How a player reaches it: the Move To order on debris.
+# What changes: big piles moved at once.
+#
+# The mod loads and the colony plays for 30 s; no Move To order is set up here.
+from: early-base
+mods: [3826901295]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

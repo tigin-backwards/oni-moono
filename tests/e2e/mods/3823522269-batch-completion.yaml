@@ -1,0 +1,14 @@
+# 批量生产完成提醒 | Batch Completion (3823522269), class P.
+#
+# What it does: when a fabricator's finite production queue is all done, a notification says so
+# once (ComplexFabricator patches), and clicking it focuses the machine; endless orders,
+# cancelled ones and pauses do not notify.
+# How a player reaches it: fabricators with queued orders.
+# What changes: a note when a batch is done.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3823522269]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

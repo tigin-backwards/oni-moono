@@ -1,0 +1,16 @@
+# 模组管理器个人版 / Personal Mod Manager (3825861286), class S.
+#
+# What it does: a mod manager for the Mods screen (ModsScreen.OnActivate/OnDeactivate patches)
+# with a built-in translator for mods whose fields are not in the game's language, editable
+# translations, notes per mod, search by name and notes, and sorting; it works with Mod Updater,
+# Mod List Previews and the U&F Translate Fix.
+# How a player reaches it: the main menu's Mods screen.
+# What changes: the Mods screen.
+#
+# The mod loads and the colony plays for 30 s; the Mods screen is not opened here.
+from: early-base
+mods: [3825861286]
+require_log: ['\[ModManagerPlus\] ']
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

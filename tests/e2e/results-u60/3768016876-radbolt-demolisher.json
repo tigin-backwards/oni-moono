@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3768016876-radbolt-demolisher.yaml",
+ "mods": [
+  "3768016876"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod loads and the colony plays for 30 s (in ours since the DefaultExecutionOrder fix); no radbolt is fired here",
+ "updated": "2026-11-01",
+ "commit": "c6a3d873",
+ "mod_dlls": {
+  "3768016876": {
+   "RadboltDemolisher.dll": "0e38ce3434b5205c58c1915f4e5d3303e2b68b53033bdbcd5a1c3657e3ab1268"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:17:32",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-130856-fb7fa6d4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:08:56",
+    "lane": 52,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-130856-fb7fa6d4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:08:57",
+    "lane": 53,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

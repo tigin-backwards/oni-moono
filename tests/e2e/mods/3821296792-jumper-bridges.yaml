@@ -1,0 +1,30 @@
+# Jumper Bridges (3821296792), classes P, O (PLib options).
+#
+# What it does: a power or automation bridge may be placed with an end right on a building's
+# port, and that port counts as connected: the bridge end acts as a piece of wire, drawn as one,
+# with nothing to build or pay for; bridges can be chained end to end. Patches on the bridge
+# location checks, port validation, BuildingDef.MarkArea and MarkOverlappingPorts, the utility
+# build tool and the cancel and deconstruct tools.
+# How a player reaches it: placing a Wire Bridge or Automation Wire Bridge on a port.
+# What changes: short connections without wire.
+#
+# The Power menu's Wire Bridge is picked and its placement shown over the manual generator
+# beside the printing pod (the same build tool active as in the original: U60 opens the
+# prebuild tool there), then put away; the colony runs on.
+from: early-base
+mods: [3821296792]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"PowerRegulation\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/WireBridge Group*", cond: stable}
+  - click: {ui: "**/BuildingGroups/**/Grid/WireBridge Group*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel", cond: stable}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.GetType().Name": "== original"
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

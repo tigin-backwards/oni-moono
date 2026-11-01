@@ -1,0 +1,24 @@
+# Custom Room Size / 自定义房间面积 (3819098406), classes P, O (PLib options).
+#
+# What it does: per room type, PLib options set the minimum and maximum area (each type
+# enabled or not): the room type's size constraints are replaced by ones of those sizes, and
+# the room prober's size limit is raised to the largest. By default only the Nature Reserve
+# changes: 32 to 500 cells (the game's 32 to 120).
+# How a player reaches it: the mod's options (Mods screen), then building rooms.
+# What changes: which areas count as a room of each type.
+#
+# Options keep the Nature Reserve's 32 to 500 and enable the Latrine at 4 to 200. Their room
+# types carry the new constraints (names with those sizes), the prober's limit is at least
+# 500, and the colony runs on.
+from: early-base
+mods: [3819098406]
+options:
+  "3819098406": {NatureReserve: {Minimum: 32, Maximum: 500, Enabled: true}, Latrine: {Minimum: 4, Maximum: 200, Enabled: true}}
+require_log: ['\[CustomRoomSize\] Loaded 1.1.1', '\[CustomRoomSize\] RoomProber.maxRoomSize = 500']
+steps:
+  - expect_state:
+      "count:Db.Get().RoomTypes.NatureReserve.additional_constraints[*] if .name.Contains(\"500\") == true": 1
+      "count:Db.Get().RoomTypes.Latrine.additional_constraints[*] if .name.Contains(\"200\") == true": 1
+      "count:Db.Get().RoomTypes.Latrine.additional_constraints[*] if .name.Contains(\"64\") == true": 0
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

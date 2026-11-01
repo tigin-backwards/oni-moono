@@ -1,0 +1,14 @@
+# Rename & Hide Asteroids (3826868436), class S (PLib options).
+#
+# What it does: asteroids get a rename pencil in their details panel (AsteroidConfig, unless the
+# game already has one), and the asteroid list on the right can hide asteroids (WorldSelector
+# patches), showing them again on red or yellow alert by its options.
+# How a player reaches it: an asteroid's details panel; the asteroid list.
+# What changes: tidier asteroid lists.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3826868436]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

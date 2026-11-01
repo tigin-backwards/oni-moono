@@ -1,0 +1,26 @@
+# 烟花喷发器 / Firework launcher (2893704954), class B.
+#
+# What it does: adds a firework launcher (HuoYan, in the Furniture menu, researched with Artistry),
+# a decoration that shoots fireworks.
+# How a player reaches it: the build menu (Furniture), after the research.
+# What changes: fireworks in the base.
+#
+# setup grants the research. The building is listed in the Furniture menu (shot).
+from: early-base
+mods: [2893704954]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Artistry\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Artistry\").unlockedItemIDs": {contains: HuoYan}
+      "Assets.GetBuildingDef(\"HuoYan\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/HuoYan Group*", cond: stable, stable: 120, frames: 600}
+  # Its button lies under the category toggles' attention icon (the panel scrolls), so the
+  # menu is shot rather than the card opened.
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/HuoYan Group*": {active: true}
+  - shot: {name: furniture, crop: "**/PlanBuildingSelectionPanel/BuildingGroups", threshold: 0.04}
+  - key: {code: Escape}

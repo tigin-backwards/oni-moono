@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3815631348-vent-freeze-fix.yaml",
+ "mods": [
+  "3815631348"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "defaults. The Liquid Vent's storage is insulated and has the watcher; setup builds one in the dug-out corridor west of the printing pod, and after a while it is as it was, not entombed",
+ "updated": "2026-11-01",
+ "commit": "39cfe3fb",
+ "mod_dlls": {
+  "3815631348": {
+   "VentFreezeFix.dll": "b54c28160777b1d7d399ba3edb2c2640199e11f7e3a196bb9dd433f0e136818f"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-225112-998fa5ef",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:05:47",
+    "lane": 41,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-104745-037daac6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:47:45",
+    "lane": 44,
+    "reference_run": "20261031-225112-998fa5ef",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-104745-037daac6",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:47:46",
+    "lane": 45,
+    "reference_run": "20261031-225112-998fa5ef",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

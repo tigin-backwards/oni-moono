@@ -1,0 +1,25 @@
+# Incubator Tweaks (3822327762), classes P, S.
+#
+# What it does: the Incubator (EggIncubator) moves a hatched baby out on its own, gets an
+# automation output (IncubatorTweaks_BabyReady, Green when a baby is ready), and its lullaby
+# (the Critter Ranching errand's incubation boost) is multiplied, 1x to 20x, on a slider
+# (an IncubatorTweaks component: ISingleSliderControl and a side screen button).
+# How a player reaches it: an Incubator's side screens.
+# What changes: incubators that empty themselves and signal.
+#
+# setup builds an Incubator in the dug-out corridor west of the printing pod. Its definition
+# has the new port; selected, its slider side screen shows the lullaby multiplier (dumped).
+from: early-base
+mods: [3822327762]
+require_log: ['\[IncubatorTweaks\] Loaded']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"EggIncubator\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"EggIncubator\").LogicOutputPorts.Count": [">= 1", "== original"]
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: EggIncubator}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/SingleSliderSideScreen", cond: stable}
+  - ui_dump: {name: slider, root: "**/SingleSliderSideScreen"}

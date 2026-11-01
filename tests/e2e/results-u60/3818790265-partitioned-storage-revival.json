@@ -1,0 +1,69 @@
+{
+ "spec": "mods/3818790265-partitioned-storage-revival.yaml",
+ "mods": [
+  "3818790265"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup builds a Storage Bin in the dug-out corridor west of the printing pod. Selected, its user menu offers Enable Partitions; clicking it turns the partitions on, the capacity side screen gives way to the mod's, and the menu offers Disable Partitions",
+ "updated": "2026-11-01",
+ "commit": "0d2adfb0",
+ "mod_dlls": {
+  "3818790265": {
+   "ImprovedFilteredStorage.dll": "68e351c2bbd1038debf01846655dd7120adfaf2d7cea3aaef66919fe2c426130"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261031-234738-a2a9c3d8",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-10-31T23:47:38",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110049-40777eb7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:00:49",
+    "lane": 44,
+    "reference_run": "20261031-234738-a2a9c3d8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     },
+     "partitions": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-110049-40777eb7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:00:50",
+    "lane": 45,
+    "reference_run": "20261031-234738-a2a9c3d8",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     },
+     "partitions": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

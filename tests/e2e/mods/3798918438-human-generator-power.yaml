@@ -1,0 +1,17 @@
+# HumanGeneratorPower (3798918438), class P (PLib options).
+#
+# What it does: a postfix on ManualGeneratorConfig.CreateBuildingDef sets the Manual Generator's
+# output from its option (Power Output, W).
+# How a player reaches it: the mod's options; the Manual Generator, as before.
+# What changes: a stronger or weaker hamster wheel.
+#
+# With its option at 800 W, the Manual Generator's definition is rated 800 W; the colony runs.
+from: early-base
+mods: [3798918438]
+options:
+  "3798918438": {PowerOutput: 800.0}
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"ManualGenerator\").GeneratorWattageRating": 800
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

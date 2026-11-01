@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3416289379-forced-build.yaml",
+ "mods": [
+  "3416289379"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3416289379": {
+   "ForcedBuild.dll": "d5089e50b7d6c7676ca7cc6a72c74bd2f34ed61f7ecb847bb4eacc27fd61aebb"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-041630-1ee599cc",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:22:45",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-123944-4c0406a0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:39:44",
+    "lane": 35,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-123944-4c0406a0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:41:50",
+    "lane": 35,
+    "reference_run": "20261101-041630-1ee599cc",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

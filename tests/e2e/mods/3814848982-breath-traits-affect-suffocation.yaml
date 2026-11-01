@@ -1,0 +1,25 @@
+# Breath Traits Affect Suffocation Fixed (3814848982), class P.
+#
+# What it does: a Duplicant's breath runs out at a rate its breathing traits scale: Mouth
+# Breather 2x, Diver's Lungs 0.75x, Deeper Diver's Lungs 0.5x (the game's traits change only
+# oxygen use). A postfix on SuffocationMonitor.Instance's constructor scales its
+# decreaseBreathModifier, and a postfix on Traits.Add recomputes it when such a trait is gained.
+# How a player reaches it: Duplicants with those traits out of oxygen.
+# What changes: how long a Duplicant holds its breath.
+#
+# setup gives the first Duplicant the Mouth Breather trait (Traits.Add, as trait sources do). His
+# breath modifier is then twice the game's standard breath rate, lost; his suffocation monitor
+# is compared with the original's, and the colony runs on.
+from: early-base
+mods: [3814848982]
+setup:
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[0].GetComponent<Traits>", method: Add, args: [{"$": "Db.Get().traits.Get(\"MouthBreather\")"}]}}
+steps:
+  - expect_state:
+      "TUNING.DUPLICANTSTATS.STANDARD.Breath.BREATH_RATE": {save_as: rate}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Traits>.HasTrait(\"MouthBreather\")": true
+  - expect_state:
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StateMachineController>.GetSMI(\"SuffocationMonitor+Instance\").decreaseBreathModifier.Value": ["<= 0 - 1.99 * rate", ">= 0 - 2.01 * rate", "== original"]
+      "Components.LiveMinionIdentities.Items[1].GetComponent<StateMachineController>.GetSMI(\"SuffocationMonitor+Instance\").decreaseBreathModifier.Value": "== original"
+  - run: {seconds: 60}
+  - expect: {duplicants: 3}

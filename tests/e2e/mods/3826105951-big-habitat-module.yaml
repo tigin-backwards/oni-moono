@@ -1,0 +1,14 @@
+# BigHabitatModule(超大火箭仓) (3826105951), class P (Spaced Out).
+#
+# What it does: the medium habitat rocket module's interior template is enlarged (TemplateCache
+# patches rewrite its template) and its exterior door is adjusted
+# (HabitatModuleMediumConfig, ClustercraftExteriorDoor).
+# How a player reaches it: building a medium habitat module.
+# What changes: a larger rocket interior.
+#
+# The mod loads and the colony plays for 30 s; no rocket is built here.
+from: early-base
+mods: [3826105951]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

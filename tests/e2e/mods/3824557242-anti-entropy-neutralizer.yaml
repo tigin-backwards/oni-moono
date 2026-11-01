@@ -1,0 +1,30 @@
+# 可建造的反熵中和器/Anti-Entropy Neutralizer (3824557242), classes B, S.
+#
+# What it does: the Anti Entropy Thermo-Nullifier (AntiEntropyHeatSink, 4x4), in the game only a
+# relic of the frozen biome, becomes buildable in the Utilities menu after a new technology of
+# its own (Anti-Entropy Neutralization, after Catalytics): it needs a hydrogen pipe and 200 W,
+# takes an automation signal, and has a turbo button on its side screen (patches on
+# TurboModeSideScreen); codex entry included.
+# How a player reaches it: the research screen, then the build menu (Utilities).
+# What changes: a buildable heat sink.
+#
+# setup researches the mod's technology (AntiEntropyTech) and builds one in the dug-out corridor
+# west of the printing pod. It shows in the Utilities
+# menu; selected, its details screen is dumped.
+from: early-base
+mods: [3824557242]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"AntiEntropyTech\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"AntiEntropyHeatSink\")", method: Build, args: [{"$": "Grid.XYToCell(110, 206)"}, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Utilities"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/AntiEntropyHeatSink Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/AntiEntropyHeatSink Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - click_world: {cell: [110, 206], select: AntiEntropyHeatSink}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

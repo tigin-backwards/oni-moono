@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3799991729-tuning-duration-control.yaml",
+ "mods": [
+  "3799991729"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the mod reads its settings and installs its sound guard, as it logs; the PowerTinker effect keeps the game's 50 % until a tune-up is done, which is not set up here; the colony plays for 30 s",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "3799991729": {
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70",
+   "TuningDurationControl.dll": "a8e78751ef09c9acabc45935dbde2ba663513156c657441bd4fc640720725d5a"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:35:22",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:06:58",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:08:13",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

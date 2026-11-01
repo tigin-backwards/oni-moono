@@ -1,0 +1,13 @@
+# 运输轨道食物新鲜度传感器 / Conveyor food freshness sensor (3759879239), class B.
+#
+# What it does: adds a conveyor rail sensor that sends a signal by the freshness of the food
+# passing through it.
+# How a player reaches it: the build menu.
+# What changes: food sorted by freshness.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3759879239]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

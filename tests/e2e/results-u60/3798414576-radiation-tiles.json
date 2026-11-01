@@ -1,0 +1,61 @@
+{
+ "spec": "mods/3798414576-radiation-tiles.yaml",
+ "mods": [
+  "3798414576"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Radbolt Glass Tile placed as diamond floor and selected (details shot), with the Radiation Shield Tile defined; world shot",
+ "updated": "2026-11-01",
+ "commit": "23b2bc11",
+ "mod_dlls": {
+  "3798414576": {
+   "RadiationTiles.dll": "d3b6d74ed07f2c94ca432dac12fe9d672e4a1f7dc357f14372c9640fd9806d0c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-024344-c6853c58",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T02:47:02",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-105114-2e117822",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:51:14",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "building": 0.011396
+    }
+   },
+   {
+    "run": "20261101-105114-2e117822",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:58:21",
+    "lane": 35,
+    "reference_run": "20261101-024344-c6853c58",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "details": 0.0,
+     "building": 0.011496
+    }
+   }
+  ]
+ }
+}

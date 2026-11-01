@@ -1,0 +1,21 @@
+# R_旋转的陀螺 / Spinning top (3759548894), class B.
+#
+# What it does: adds a spinning-top decoration (R_TES_TL, in the Furniture menu).
+# How a player reaches it: the build menu (Furniture).
+# What changes: one more decoration.
+#
+# The building is listed in the Furniture menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3759548894]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"R_TES_TL\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/R_TES_TL Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/R_TES_TL Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}

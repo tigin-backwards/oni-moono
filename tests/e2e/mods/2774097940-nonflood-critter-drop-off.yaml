@@ -1,0 +1,15 @@
+# nonflood critter drop off (2774097940), class P.
+#
+# What it does: a postfix on CreatureDeliveryPointConfig.CreateBuildingDef makes the Critter
+# Drop-Off not floodable.
+# How a player reaches it: Critter Drop-Offs under water.
+# What changes: drop-offs that work when flooded.
+#
+# The Critter Drop-Off's definition is not floodable; the colony runs.
+from: early-base
+mods: [2774097940]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"CreatureDeliveryPoint\").Floodable": false
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

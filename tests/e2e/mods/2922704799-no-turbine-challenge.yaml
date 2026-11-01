@@ -1,0 +1,16 @@
+# No Turbine Challenge (2922704799), class P.
+#
+# What it does: a postfix on SteamTurbineConfig2.CreateBuildingDef makes the Steam Turbine a
+# debug-only building, so it cannot be built (turbines already built stay); a challenge to find
+# other ways to delete heat.
+# How a player reaches it: the Power menu no longer offers the turbine.
+# What changes: no steam turbines.
+#
+# The Steam Turbine's definition is debug-only; the colony runs.
+from: early-base
+mods: [2922704799]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"SteamTurbine2\").DebugOnly": true
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

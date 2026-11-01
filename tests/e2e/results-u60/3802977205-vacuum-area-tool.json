@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3802977205-vacuum-area-tool.yaml",
+ "mods": [
+  "3802977205"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "with the tool, a click on the air of the corridor west of the printing pod empties it: the corridor's gas mass falls to less than half",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3802977205": {
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70",
+   "VacuumAreaTool.dll": "518871266b6602e806007b3f93d8159152d1dc84e743c6d6b2f468cb2b236380"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-092050-8b8babe3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T09:27:04",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:13:40",
+    "lane": 54,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:14:21",
+    "lane": 55,
+    "reference_run": "20261101-092050-8b8babe3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

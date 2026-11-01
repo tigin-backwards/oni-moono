@@ -1,0 +1,69 @@
+{
+ "spec": "mods/3786962460-chlorine-sublimation-station.yaml",
+ "mods": [
+  "3786962460"
+ ],
+ "verdict": "failed",
+ "why": "a run of ours failed",
+ "findings": [],
+ "note": "the Oxygen menu lists the station and its card opens; in ours the card's requirement line (a bullet with nested indents and a link) lays out 4.5 px narrower (preferred width 160.45 vs 164.95)",
+ "updated": "2026-11-01",
+ "commit": "91861a01",
+ "mod_dlls": {
+  "3786962460": {
+   "ChlorineSublimationStation.dll": "25471cb0e7da7bf549a58ccbaa9d5833ea79e4dc68a145aeafc7bade9bc47f6c"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T07:43:18",
+    "lane": 52,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T11:45:51",
+    "lane": 54,
+    "reasons": [
+     "ui_dump card: 2 difference(s)"
+    ],
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 2
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-110624-7373c4be",
+    "index": 2,
+    "verdict": "fail",
+    "date": "2026-11-01T11:46:50",
+    "lane": 55,
+    "reasons": [
+     "ui_dump card: 2 difference(s)"
+    ],
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "card": {
+      "differences": 2
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,34 @@
+# Swap Build Plan Material (3775989983), classes U (user menu), T.
+#
+# What it does: a postfix on Constructable.OnRefreshUserMenu gives every unbuilt blueprint a
+# "Change material" button. Pressed, the user menu lists the blueprint's ingredient, a scope
+# toggle (this building type or all) and a "→ MATERIAL" button for each material on the
+# asteroid that could replace it; picking one cancels the blueprints' fetches, drops what
+# was delivered and switches every matching open blueprint to that material, keeping its
+# priority.
+# How a player reaches it: selecting a blueprint, its user menu.
+# What changes: blueprints' materials changed after they were placed.
+#
+# setup spawns granite. Two sandstone tile blueprints are placed in the corridor west of the
+# printing pod and one is selected: Change material lists granite, and pressing it switches
+# both blueprints to granite.
+from: early-base
+mods: [3775989983]
+setup:
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Granite\").substance", method: SpawnResource, args: [[111.5, 207.5, -12], 500, 300, 255, 0]}}
+require_log: ['\[BuildPlanMaterialSwap\] SandStone -> Granite: 2/2 plan\(s\) changed']
+steps:
+  - build: {prefab: Tile, cells: [[114, 208], [115, 208]], material: SandStone}
+  - expect: {blueprints: {Tile: 2}}
+  - run: {seconds: 1}
+  - driver: {camera.set: {cell: [114, 208], ortho: 8}}
+  - click_world: {cell: [114, 208], select: TileUnderConstruction}
+  - ui_wait: {path: "**/UserMenuScreen/Buttons/Change materialButton", cond: stable}
+  - click: {ui: "**/UserMenuScreen/Buttons/Change materialButton"}
+  # The menu keeps refreshing while it is open (its counts), so it never reads as stable.
+  - expect_ui:
+      "**/UserMenuScreen/Buttons/→*Granite*Button": {active: true}
+  - ui_dump: {name: user-menu, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/Buttons"}
+  - click: {ui: "**/UserMenuScreen/Buttons/→*Granite*Button"}
+  - expect_state:
+      "count:all:Constructable::[*] if .gameObject.name == TileUnderConstruction and .SelectedElementsTags[0].Name == Granite": 2

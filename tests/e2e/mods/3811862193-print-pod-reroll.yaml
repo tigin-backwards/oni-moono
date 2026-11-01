@@ -1,0 +1,35 @@
+# 传送门刷新\PrintPodReroll (3811862193), classes P, U (screens of the game's, changed).
+#
+# What it does: the printing pod's choice screen gets a "刷新 Refresh" button
+# (PrintPodReroll.RefreshButton) that rerolls every Duplicant and care package on offer in
+# place, without using up the print (a postfix on ImmigrantScreen.OnSpawn).
+# How a player reaches it: the printing pod, when printables are available.
+# What changes: a fresh set of printables at will.
+#
+# setup makes printables available (the immigration timer run out, as time does) and seeds the
+# random numbers. The printing pod is selected and its choices opened; the Refresh button
+# rerolls them and printables are still available: four cards. The offers themselves (care
+# packages or Duplicants, and which) follow random numbers the seed does not fix, so only the
+# bottom buttons are dumped.
+from: early-base
+mods: [3811862193]
+setup:
+  - driver: {seed: 12345}
+  - driver: {setup.call: {target: "Immigration.Instance", method: "Sim200ms", args: [100000]}}
+steps:
+  - expect_state: {"Immigration.Instance.ImmigrantsAvailable": true}
+  - driver: {camera.set: {cell: [124, 209], ortho: 8}}
+  - click_world: {cell: [124, 208], select: Headquarters}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/TelepadSideScreen/Contents/Immigration/ViewButton", cond: stable}
+  - click: {ui: "**/TelepadSideScreen/Contents/Immigration/ViewButton"}
+  - ui_wait: {path: "**/ImmigrantScreen/Layout", cond: stable}
+  - expect_ui:
+      "**/ImmigrantScreen": {active: true}
+  - ui_wait: {path: "**/PrintPodReroll.RefreshButton", cond: stable}
+  - click: {ui: "**/PrintPodReroll.RefreshButton"}
+  - ui_wait: {path: "**/ImmigrantScreen/Layout", cond: stable}
+  - expect_state: {"Immigration.Instance.ImmigrantsAvailable": true}
+  - expect_ui:
+      "**/ImmigrantScreen/Layout/Content/*Container": {count: 4}
+  - ui_dump: {name: buttons, root: "**/ImmigrantScreen/Layout/BottomButtons"}

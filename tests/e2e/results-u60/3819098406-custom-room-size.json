@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3819098406-custom-room-size.yaml",
+ "mods": [
+  "3819098406"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "options keep the Nature Reserve's 32 to 500 and enable the Latrine at 4 to 200. Their room types carry the new constraints (names with those sizes), the prober's limit is at least 500, and the colony runs on",
+ "updated": "2026-11-01",
+ "commit": "3eb61020",
+ "mod_dlls": {
+  "3819098406": {
+   "CustomRoomSize.dll": "9bec39034483c77088fedd16f43b5eb38dbd22ee247ffc8101cfa411809668c4"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040445-8c3b913a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T04:09:30",
+    "lane": 40,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-110652-e236a619",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:06:52",
+    "lane": 44,
+    "reference_run": "20261101-040445-8c3b913a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-110652-e236a619",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:06:53",
+    "lane": 45,
+    "reference_run": "20261101-040445-8c3b913a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

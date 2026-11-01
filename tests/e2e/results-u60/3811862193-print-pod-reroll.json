@@ -1,0 +1,63 @@
+{
+ "spec": "mods/3811862193-print-pod-reroll.yaml",
+ "mods": [
+  "3811862193"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup makes printables available (the immigration timer run out, as time does) and seeds the random numbers. The printing pod is selected and its choices opened; the Refresh button rerolls them and printables are still available (the screen dumped, its text masked: the offer follows random numbers)",
+ "updated": "2026-11-01",
+ "commit": "f658d84c",
+ "mod_dlls": {
+  "3811862193": {
+   "PrintPodReroll.dll": "9a13f9bf0d74aff6b36c6795772d33d9fc1884273b58d9048bc98d1fb94d80ce"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-102958-c49423e5",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:29:58",
+    "lane": 42,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-104218-9452dca4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T10:42:18",
+    "lane": 40,
+    "reference_run": "20261101-102958-c49423e5",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-104218-9452dca4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T10:42:19",
+    "lane": 41,
+    "reference_run": "20261101-102958-c49423e5",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "buttons": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

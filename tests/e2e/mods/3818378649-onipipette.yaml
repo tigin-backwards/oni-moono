@@ -1,0 +1,32 @@
+# OniPipette 吸管 (3818378649), classes T, S (PLib).
+#
+# What it does: adds the Pipette tool to the tool menu (CombinedPipetteTool, a PLib action
+# with no default key): a click on a gas or liquid cell takes up to its amount (gases up to
+# 20 kg, liquids up to 1000 kg, set in a panel at the bottom right while the tool is active)
+# from that cell, and the next click, or releasing the button over another cell, puts it
+# back there, at its temperature and germs.
+# How a player reaches it: the tool menu's Pipette.
+# What changes: gas and liquid moved by hand.
+#
+# setup pours 100 kg of water into the corridor west of the printing pod. With the Pipette, a
+# click on the water takes some up (the tool holds it) and a click on a cell further east puts
+# it down there.
+from: early-base
+mods: [3818378649]
+setup:
+  - driver: {setup.call: {type: SimMessages, method: ReplaceElement, args: [131126, Water, {"$": "CellEventLogger.Instance.DebugTool"}, 100, 300]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 208], ortho: 8}}
+  - tool: {toolbar: Pipette}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.GetType().Name": CombinedPipetteTool
+  - click_world: {cell: [111, 206]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.heldMass": "> 1"
+      "PlayerController.Instance.ActiveTool.heldElement.id": Water
+  - click_world: {cell: [116, 208]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.heldMass": 0
+  - run: {seconds: 1}
+  - key: {code: Escape}

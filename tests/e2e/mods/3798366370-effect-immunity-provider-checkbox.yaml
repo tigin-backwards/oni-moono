@@ -1,0 +1,14 @@
+# Effect Immunity Provider Allowance Checkbox (3798366370), class S (PLib options).
+#
+# What it does: the heat and cold immunity providers (warming and cooling stations) get a
+# checkbox to allow or disallow their use as such (shelter and warm-up cell updates patched),
+# checked by default (its option).
+# How a player reaches it: those buildings' side screens.
+# What changes: immunity providers that can be switched off.
+#
+# The mod loads and the colony plays for 30 s.
+from: early-base
+mods: [3798366370]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

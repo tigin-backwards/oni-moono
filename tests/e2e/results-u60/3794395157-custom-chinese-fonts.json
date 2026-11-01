@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3794395157-custom-chinese-fonts.yaml",
+ "mods": [
+  "3794395157"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "2d401c25",
+ "mod_dlls": {
+  "3794395157": {
+   "CustomChineseFonts.dll": "cf9098557f82e04673e687e23afb8e8391ffdcc16ff7b1319d7e56814766bddf"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-045201-d21d0b3f",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:02:15",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-111446-8e20ed1e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:14:46",
+    "lane": 36,
+    "reference_run": "20261101-045201-d21d0b3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-111446-8e20ed1e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:17:38",
+    "lane": 36,
+    "reference_run": "20261101-045201-d21d0b3f",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

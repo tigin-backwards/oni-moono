@@ -1,0 +1,25 @@
+# Vent Freeze Fix (3815631348), classes P, O (PLib options).
+#
+# What it does: super-cooled liquid in flight from a Liquid Vent when a save is written no
+# longer comes back from the load as a natural tile (entombing the vent, or under it, taking
+# the debris with it). Each vent gets a VentFreezeWatcher, its storage is insulated (option
+# InsulateVents), frozen packets are repaired on load (option RepairOnLoad), and patches on
+# Exhaust.EmitCommon and WorldDamage.OnDigComplete keep the packet from solidifying.
+# How a player reaches it: Liquid Vents of very cold liquids; the mod's options.
+# What changes: no phantom tiles at vents after a load.
+#
+# Defaults. The Liquid Vent's storage is insulated and has the watcher; setup builds one in the
+# dug-out corridor west of the printing pod, and after a while it is as it was, not entombed.
+from: early-base
+mods: [3815631348]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LiquidVent\")", method: Build, args: [{"$": "Grid.XYToCell(112, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"LiquidVent\").GetComponent<VentFreezeFix.VentFreezeWatcher>": exists
+      "count:Assets.GetPrefab(\"LiquidVent\").GetComponent<Storage>.defaultStoredItemModifers[*] if .ToString() == Insulate": 1
+  - run: {seconds: 30}
+  - expect_state:
+      "all:VentFreezeFix.VentFreezeWatcher::Length": 1
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == LiquidVent and .HasTag(\"Entombed\") == true": 0
+  - expect: {duplicants: 3}

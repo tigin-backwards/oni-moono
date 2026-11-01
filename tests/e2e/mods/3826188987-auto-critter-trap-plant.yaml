@@ -1,0 +1,13 @@
+# Auto_CritterTrapPlant捕草自动掉落 (3826188987), class P.
+#
+# What it does: a Saturn Critter Trap ready to harvest is harvested by itself 10 s later, as the
+# game would, wild or planted, and goes on with its life cycle.
+# How a player reaches it: Saturn Critter Traps.
+# What changes: no harvest errand for them.
+#
+# The mod loads and the colony plays for 30 s; no critter trap plant is set up here.
+from: early-base
+mods: [3826188987]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

@@ -1,0 +1,20 @@
+# BionicDuplicantBoosters (3803592034), class P (PLib options).
+#
+# What it does: a prefix on BionicUpgradeComponentConfig.CreateBoosterModifiers replaces each
+# Bionic Booster's attribute bonuses with its options' values (one options section a booster:
+# Athletics 1-10, Strength 1-50, the work attribute 1-20); the game builds the boosters'
+# skilled-worker definitions and descriptions from them.
+# How a player reaches it: the mod's options on the Mods screen (restart required); boosters
+# installed in a Bionic Duplicant.
+# What changes: stronger or weaker boosters.
+#
+# With the Strength Booster's Strength set to 40 and its Athletics to 7, the booster's
+# description (built from its modifiers) gives +40 Strength and +7 Athletics.
+from: early-base
+mods: [3803592034]
+options:
+  "3803592034": {Strength: {Strength: 40, Athletics: 7}}
+steps:
+  - expect_state:
+      "BionicUpgradeComponentConfig.UpgradesData[\"Booster_Carry1\"].stateMachineDescription": [{contains: "40"}, {contains: "7"}, "== original"]
+  - run: {seconds: 5}

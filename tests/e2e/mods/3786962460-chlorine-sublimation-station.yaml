@@ -1,0 +1,24 @@
+# 氯气升华站 / Chlorine Sublimation Station (3786962460), class B.
+#
+# What it does: adds the Chlorine Sublimation Station (ChlorineSublimationStation, 2x1, in the
+# Oxygen menu beside the Sublimation Station): it consumes bleach stone and gives off chlorine
+# gas.
+# How a player reaches it: the build menu (Oxygen).
+# What changes: a chlorine source.
+#
+# The building is listed in the Oxygen menu and its card opens
+# from there (dumped).
+from: early-base
+mods: [3786962460]
+require_log: ['\[ChlorineSublimationStation\] Loaded: ChlorineSublimationStation registered\.']
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"ChlorineSublimationStation\")": exists
+  - run: {seconds: 5}
+  - click: {ui: "**/PlanScreen/Toggle:Oxygen"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/ChlorineSublimationStation Group*", cond: stable, stable: 120, frames: 600}
+  - click: {ui: "**/BuildingGroups/**/Grid/ChlorineSublimationStation Group*"}
+  - ui_wait: {path: "**/ProductInfoScreen", cond: stable}
+  - ui_dump: {name: card, root: "**/ProductInfoScreen"}
+  - key: {code: Escape}
+  - key: {code: Escape}

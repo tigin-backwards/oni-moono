@@ -1,0 +1,21 @@
+# 等离子火箭与综合补给 / Plasma Rocketry (3829724959), class B (Spaced Out).
+#
+# What it does: a test version of eight rocketry buildings in the Rocketry menu: a plasma engine
+# (WPR_PlasmaEngine), Duplicant and Bionic life support modules, a combined solid, liquid and
+# gas cargo bay (WPR_CombinedCargo), a small launch pad (WPR_LaunchPad), an interior
+# telescope, a micro computer console and a Bionic supply port, with patches to rockets'
+# fuel burning, cargo bays and conduit endpoints.
+# How a player reaches it: the build menu (Rocketry).
+# What changes: compact rockets and supplies.
+#
+# The buildings' definitions load and the colony plays for 30 s; the build menu is
+# not checked here.
+from: early-base
+mods: [3829724959]
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"WPR_PlasmaEngine\")": exists
+      "Assets.GetBuildingDef(\"WPR_CombinedCargo\")": exists
+      "Assets.GetBuildingDef(\"WPR_LaunchPad\")": exists
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

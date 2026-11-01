@@ -1,0 +1,101 @@
+{
+ "spec": "mods/3747652766-korean-dlc-100.yaml",
+ "mods": [
+  "3747652766"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the translation loads in a colony: its research (R) and priorities (L) screens and pause menu, then the main menu, the options menu and its Game options screen, dumped and (but the research tree) shot as in the original",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3747652766": {}
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-030929-e42fd206",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T03:21:19",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-123557-e98feb24",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:35:57",
+    "lane": 36,
+    "reference_run": "20261101-030929-e42fd206",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 0.0,
+     "pause": 0.0,
+     "menu": 0.001141,
+     "game-options": 0.0
+    }
+   },
+   {
+    "run": "20261101-123557-e98feb24",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:37:14",
+    "lane": 36,
+    "reference_run": "20261101-030929-e42fd206",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "research": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "pause": {
+      "differences": 0
+     },
+     "menu": {
+      "differences": 0
+     },
+     "options": {
+      "differences": 0
+     },
+     "game-options": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "priorities": 2e-06,
+     "pause": 0.0,
+     "menu": 0.0,
+     "game-options": 0.0
+    }
+   }
+  ]
+ }
+}

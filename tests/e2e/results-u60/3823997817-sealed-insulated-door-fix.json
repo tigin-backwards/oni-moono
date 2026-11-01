@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3823997817-sealed-insulated-door-fix.yaml",
+ "mods": [
+  "3823997817"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "setup grants Temperature Modulation and spawns copper ore. The door is listed in the Base menu; built in the corridor west of the printing pod and selected, it is a door",
+ "updated": "2026-11-01",
+ "commit": "a42eafd4",
+ "mod_dlls": {
+  "3823997817": {
+   "PLib.dll": "28d17ee798b06211d08688402a2d710ae6f73b55f9734e599b305732dcab9d70",
+   "SealedInsulatedDoor.dll": "ead4f367dab66d0ba4a0770747d768b820ac0e18be29ce5aefd4b4ad4d729008"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-040745-53cd01cd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:00:37",
+    "lane": 53,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T08:32:50",
+    "lane": 54,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-071838-c866451a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T08:33:50",
+    "lane": 55,
+    "reference_run": "20261101-040745-53cd01cd",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

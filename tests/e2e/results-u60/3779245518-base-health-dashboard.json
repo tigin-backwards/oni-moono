@@ -1,0 +1,55 @@
+{
+ "spec": "mods/3779245518-base-health-dashboard.yaml",
+ "mods": [
+  "3779245518"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "1161c0e3",
+ "mod_dlls": {
+  "3779245518": {
+   "ColonyDoctor.dll": "4de474ecdf09438300d2163a3296b382498f929e49cf37a907a04b764039be67"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-051213-a3c25292",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:15:53",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-114121-2474c984",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T11:41:21",
+    "lane": 36,
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-114121-2474c984",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T11:43:37",
+    "lane": 36,
+    "reference_run": "20261101-051213-a3c25292",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

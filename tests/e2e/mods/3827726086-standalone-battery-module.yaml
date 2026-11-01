@@ -1,0 +1,32 @@
+# 独立蓄电池舱 / Standalone Battery Module (3827726086), class B.
+#
+# What it does: the rocket Battery Module as an ordinary 3x2 building (BatteryModuleStandalone,
+# Power, researched with Acoustics): built on a floor and wired like a smart battery, it holds
+# 100,000 J, and stacks on top of itself any number high.
+# How a player reaches it: the build menu (Power), after the research.
+# What changes: a big battery for the ground.
+#
+# setup grants Acoustics and builds the module in the dug-out corridor west of the printing pod.
+# It shows in the Power menu; selected, it holds 100 kJ.
+from: early-base
+mods: [3827726086]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Acoustics\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"BatteryModuleStandalone\")", method: Build, args: [{"$": "Grid.XYToCell(111, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"Acoustics\").unlockedItemIDs": {contains: BatteryModuleStandalone}
+      "Assets.GetBuildingDef(\"BatteryModuleStandalone\").BuildingComplete.GetComponent<Battery>.capacity": 100000
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/BatteryModuleStandalone Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/BatteryModuleStandalone Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - click_world: {cell: [111, 206], select: BatteryModuleStandalone}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<Battery>.capacity": 100000
+  - ui_dump: {name: title, root: "**/DetailsScreen/TitleBar"}

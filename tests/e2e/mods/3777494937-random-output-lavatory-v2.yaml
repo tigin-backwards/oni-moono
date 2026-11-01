@@ -1,0 +1,13 @@
+# Random Output Lavatory V2 (3777494937), class P.
+#
+# What it does: each use of a Lavatory (Flush Toilet) gives a random amount of polluted water,
+# from 11.7 kg (the game's) to 15 kg; its clean water use stays the game's.
+# How a player reaches it: Duplicants using Lavatories.
+# What changes: uneven toilet output.
+#
+# The mod loads and the colony plays for 30 s; no Lavatory is set up here.
+from: early-base
+mods: [3777494937]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

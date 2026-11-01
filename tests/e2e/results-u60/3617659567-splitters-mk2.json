@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3617659567-splitters-mk2.yaml",
+ "mods": [
+  "3617659567"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3617659567": {
+   "MJSplittersMKII.dll": "cd2c68975fb693e0558312a1fc24bb7c8c4bbd5f5d895c1a23f1c1a19c16d2a1",
+   "PLib.dll": "bdd637dbef718cdd52e61c0a7177bd297864a50bac1583d2837a36ff3edf07db"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-053436-9013cf89",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T05:48:29",
+    "lane": 31,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-130754-f4269ecd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T13:07:59",
+    "lane": 35,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-130754-f4269ecd",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T13:09:14",
+    "lane": 35,
+    "reference_run": "20261101-053436-9013cf89",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

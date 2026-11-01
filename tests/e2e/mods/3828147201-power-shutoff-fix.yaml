@@ -1,0 +1,13 @@
+# Power Shutoff Fix (3828147201), class P.
+#
+# What it does: after a save loads, a Power Shutoff whose automation signal is green could stay
+# open, leaving its block unpowered; the fix syncs it with its signal.
+# How a player reaches it: loading a save with Power Shutoffs.
+# What changes: shutoffs follow their signal at once.
+#
+# The mod loads and the colony plays for 30 s; this colony has no Power Shutoff.
+from: early-base
+mods: [3828147201]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

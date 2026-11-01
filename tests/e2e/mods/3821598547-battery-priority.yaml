@@ -1,0 +1,24 @@
+# Battery Priority (3821598547), classes P, S.
+#
+# What it does: each battery gets a priority from 1 to 10 on a slider side screen (a
+# BatteryPriorityComponent, an ISingleSliderControl): higher numbers discharge first, lower
+# numbers charge first.
+# How a player reaches it: a battery's slider side screen.
+# What changes: which batteries charge and drain first.
+#
+# setup builds a Battery in the dug-out corridor west of the printing pod. Selected, its slider
+# side screen shows the priority, up to 10 (dumped).
+from: early-base
+mods: [3821598547]
+require_log: ['\[BatteryPriority\] Loaded 1.0.0']
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Battery\")", method: Build, args: [{"$": "Grid.XYToCell(113, 206)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [113, 207], ortho: 8}}
+  - click_world: {cell: [113, 206], select: Battery}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - ui_wait: {path: "**/SingleSliderSideScreen", cond: stable}
+  - expect_state:
+      "ui:**/SingleSliderSideScreen/**/Slider::GetComponent<KSlider>.maxValue": 10
+  - ui_dump: {name: slider, root: "**/SingleSliderSideScreen"}

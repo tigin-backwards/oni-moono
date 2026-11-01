@@ -1,0 +1,34 @@
+# Resource Count Sensor (3820197532), classes B, S.
+#
+# What it does: adds the Resource Count Sensor (ResourceCountSensor), a 1x1 automation sensor
+# researched with Generic Sensors: it counts a chosen resource (a solid, liquid or gas, picked
+# on a filter side screen) on the whole map, within a range or in its room (mode buttons of
+# its own), and sends Green or Red by a threshold (IThresholdSwitch, the threshold side
+# screen); an area visualizer shows its range.
+# How a player reaches it: the build menu (Automation), then its side screens.
+# What changes: automation on stock levels.
+#
+# setup grants Generic Sensors and builds the sensor in the dug-out corridor west of the
+# printing pod. It shows in the Automation menu; selected, its threshold side screen shows.
+from: early-base
+mods: [3820197532]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"GenericSensors\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ResourceCountSensor\")", method: Build, args: [{"$": "Grid.XYToCell(109, 208)"}, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - expect_state:
+      "Db.Get().Techs.Get(\"GenericSensors\").unlockedItemIDs": {contains: ResourceCountSensor}
+  - run: {seconds: 2}
+  - click: {ui: "**/PlanScreen/Toggle:Automation"}
+  - ui_wait: {path: "**/BuildingGroups/**/Grid/ResourceCountSensor Group*", cond: stable}
+  - expect_ui:
+      "**/BuildingGroups/**/Grid/ResourceCountSensor Group*": {active: true}
+  - key: {code: Escape}
+  - driver: {camera.set: {cell: [109, 209], ortho: 8}}
+  - click_world: {cell: [109, 208], select: ResourceCountSensor}
+  - ui_wait: {path: "**/DetailsScreen", cond: stable}
+  - expect_state:
+      "selected:GetComponent<ResourceCountSensor>": exists
+  - ui_wait: {path: "**/ThresholdSwitchSideScreen", cond: stable}
+  - ui_dump: {name: threshold, root: "**/ThresholdSwitchSideScreen"}

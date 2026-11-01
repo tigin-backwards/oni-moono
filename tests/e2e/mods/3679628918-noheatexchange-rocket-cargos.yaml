@@ -1,0 +1,14 @@
+# NoHeatExchange Rocket Cargos火箭货舱不换热 (3679628918), class P (Spaced Out).
+#
+# What it does: rocket cargo bays (CargoBay, CargoBayCluster OnSpawn postfixes) keep what they
+# hold insulated from their surroundings while docked on a launch pad, switching their storage
+# to insulated item modifiers whenever it changes.
+# How a player reaches it: cargo bays on landed rockets.
+# What changes: cargo that keeps its temperature.
+#
+# The mod loads and the colony plays for 30 s; this colony has no rocket.
+from: early-base
+mods: [3679628918]
+steps:
+  - run: {seconds: 30}
+  - expect: {duplicants: 3}

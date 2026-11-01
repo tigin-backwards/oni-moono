@@ -1,0 +1,56 @@
+{
+ "spec": "mods/3529504347-fatal-breathing.yaml",
+ "mods": [
+  "3529504347"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a load spec: the colony loads with it, its patched methods as in the original, and two minutes of play pass",
+ "updated": "2026-11-01",
+ "commit": "59862590",
+ "mod_dlls": {
+  "3529504347": {
+   "PLib.dll": "b862c5db2b3cd6df09a62d4a30782e91e2b24e8e1bfac08d991c9cc89a984ba9",
+   "P_╨í╚╦╤⌡╞°╧√║─╘÷╝╙.dll": "b4ac5c09dceca4954b024b7c24e90ebe425f6666a541cca1553328a971e88c1b"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-055458-7737530a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T06:07:55",
+    "lane": 32,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-125436-812a4718",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T12:54:36",
+    "lane": 35,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-125436-812a4718",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T12:56:10",
+    "lane": 35,
+    "reference_run": "20261101-055458-7737530a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
