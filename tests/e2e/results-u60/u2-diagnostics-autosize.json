@@ -1,0 +1,57 @@
+{
+ "spec": "u60/u2-diagnostics-autosize.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "All Diagnostics opened once: the first label's auto-size settings and every row's labels dumped",
+ "updated": "2026-11-01",
+ "commit": "1e008e8e",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-193021-945f69ef",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:30:21",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-195145-1f614af7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:51:45",
+    "lane": 50,
+    "reference_run": "20261101-193021-945f69ef",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "rows": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-195145-1f614af7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T19:53:14",
+    "lane": 50,
+    "reference_run": "20261101-193021-945f69ef",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "rows": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

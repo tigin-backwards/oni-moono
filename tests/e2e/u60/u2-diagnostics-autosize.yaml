@@ -1,0 +1,17 @@
+# U2's minimal repro (docs/research/u60-qa-spec.md): All Diagnostics' value labels on first open.
+#
+# u2-hidden-table-screens.yaml found All Diagnostics' AvailableLabel texts at font size 8 in
+# ours and 14 in the original, their rows' heights following. The screen (a
+# ShowOptimizedKScreen) is built hidden, its layout group off until it shows. From early-base:
+# the diagnostics panel's See All, then the first rows' labels read and dumped.
+from: early-base
+steps:
+  - click: {ui: "**/ColonyDiagnosticScreen/Diagnostics/EntryContainer/SeeAllButton"}
+  - ui_wait: {path: "**/AllDiagnosticsScreen", cond: stable}
+  - expect_state:
+      "ui:**/AllDiagnosticsScreen/Scroll/RootList/DiagnosticRow[0]/MainRowContents/AvailableLabel::GetComponent<LocText>.enableAutoSizing": "== original"
+      "ui:**/AllDiagnosticsScreen/Scroll/RootList/DiagnosticRow[0]/MainRowContents/AvailableLabel::GetComponent<LocText>.fontSizeMin": "== original"
+      "ui:**/AllDiagnosticsScreen/Scroll/RootList/DiagnosticRow[0]/MainRowContents/AvailableLabel::GetComponent<LocText>.fontSizeMax": "== original"
+      "ui:**/AllDiagnosticsScreen/Scroll/RootList/DiagnosticRow[0]/MainRowContents/AvailableLabel::GetComponent<LocText>.fontSize": "== original"
+      "ui:**/AllDiagnosticsScreen/Scroll/RootList/DiagnosticRow[0]/MainRowContents/AvailableLabel::GetComponent<LocText>.text": "== original"
+  - ui_dump: {name: rows, root: "**/AllDiagnosticsScreen/Scroll/RootList"}

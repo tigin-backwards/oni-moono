@@ -1,0 +1,84 @@
+# U2 (docs/research/u60-qa-spec.md): hidden table screens disable their masks and scroll views.
+#
+# U60's ShowOptimizedKScreen.SetHiddenBehavioursEnabled turns RectMask2D, ScrollRect and
+# KBatchedAnimCanvasRenderer off in a table screen while it is hidden and on again when it
+# shows (TableScreen, AllResourcesScreen, AllDiagnosticsScreen). A mask turned back on
+# re-registers its clippables, so rows outside the viewport must be clipped again and the
+# portraits drawn.
+#
+# From early-base with the foods discovered as consumables-scroll.yaml does (the table scrolls
+# with 12 or more): Consumables opened, scrolled, closed; Vitals, Priorities, back to
+# Consumables (its scroll position kept); then All Resources and All Diagnostics from the
+# resource and diagnostics panels' "see all" buttons. A dump and shot after each open.
+from: early-base
+setup:
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [MushBar, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [BasicPlantFood, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [FieldRation, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [PrickleFruit, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [Meat, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [CookedMeat, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [FriedMushBar, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [GrilledPrickleFruit, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [Pancakes, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [BasicPlantBar, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [ColdWheatBread, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [CookedEgg, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [RawEgg, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [Lettuce, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [FishMeat, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [CookedFish, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [Burger, Edible]}}
+  - driver: {setup.call: {target: DiscoveredResources.Instance, method: Discover, args: [BerryPie, Edible]}}
+steps:
+  - open: {key: F}
+  - ui_wait: {path: "**/ConsumablesTableScreen*", cond: stable}
+  - ui_dump: {name: consumables, root: "**/ConsumablesTableScreen*"}
+  - shot: {name: consumables}
+  - scroll: {at: "**/ConsumablesTableScreen/**/Content/Nikola/Scroller", notches: -10}
+  - ui_wait: {path: "**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller/Content", cond: stable}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": {save_as: scrolled}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": ["> 0.1", "== original"]
+  - ui_dump: {name: consumables-scrolled, root: "**/ConsumablesTableScreen*"}
+  - shot: {name: consumables-scrolled}
+  - open: {key: F}   # closes it
+  # Hidden, not deactivated (ShowOptimizedKScreen): transparent, its scroll views and masks off.
+  - ui_wait: {path: "**/ConsumablesTableScreen", cond: stable}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen::GetComponent<CanvasGroup>.alpha": 0
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.enabled": [false, "== original"]
+      "ui:**/ConsumablesTableScreen/**/Content/Nikola/Scroller::GetComponent<KScrollRect>.enabled": [false, "== original"]
+  - open: {key: V}
+  - ui_wait: {path: "**/VitalsTableScreen*", cond: stable}
+  - ui_dump: {name: vitals, root: "**/VitalsTableScreen*"}
+  - shot: {name: vitals}
+  - open: {key: L}
+  - ui_wait: {path: "**/JobsTableScreen*", cond: stable}
+  - ui_dump: {name: priorities, root: "**/JobsTableScreen*"}
+  - shot: {name: priorities}
+  - open: {key: F}
+  - ui_wait: {path: "**/ConsumablesTableScreen*", cond: stable}
+  # Shown again: the masks and scroll views on; the original scrolls the table back to the left.
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": ["< 0.001", "> -0.001"]
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.enabled": true
+  - ui_dump: {name: consumables-again, root: "**/ConsumablesTableScreen*"}
+  - shot: {name: consumables-again}
+  - open: {key: F}   # closes it
+  - ui_wait: {path: "**/ConsumablesTableScreen", cond: stable}
+  - expect_state: {"ui:**/ConsumablesTableScreen::GetComponent<CanvasGroup>.alpha": 0}
+  - click: {ui: "**/PinnedResourcesPanel/Resources/EntryContainer/SeeAllButton"}
+  - ui_wait: {path: "**/TopRight/AllResourcesScreen", cond: stable}
+  - ui_dump: {name: all-resources, root: "**/TopRight/AllResourcesScreen"}
+  - shot: {name: all-resources}
+  - click: {ui: "**/PinnedResourcesPanel/Resources/EntryContainer/SeeAllButton"}   # closes it
+  - ui_wait: {path: "**/TopRight/AllResourcesScreen", cond: stable}
+  - expect_state:
+      "ui:**/TopRight/AllResourcesScreen::GetComponent<CanvasGroup>.alpha": 0
+      "ui:**/TopRight/AllResourcesScreen::GetComponentInChildren<ScrollRect>.enabled": "== original"
+  - click: {ui: "**/ColonyDiagnosticScreen/Diagnostics/EntryContainer/SeeAllButton"}
+  - ui_wait: {path: "**/AllDiagnosticsScreen", cond: stable}
+  - ui_dump: {name: all-diagnostics, root: "**/AllDiagnosticsScreen"}
+  - shot: {name: all-diagnostics}

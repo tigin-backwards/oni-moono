@@ -1,0 +1,109 @@
+{
+ "spec": "u60/u2-hidden-table-screens.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Consumables opened, scrolled, hidden; Vitals, Priorities, Consumables again, All Resources, All Diagnostics: dumps, shots, the hidden screen's scroll views off and back on",
+ "updated": "2026-11-01",
+ "commit": "1e008e8e",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-190023-79164ebb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:00:23",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-195502-81af89db",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:55:02",
+    "lane": 50,
+    "reference_run": "20261101-190023-79164ebb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "consumables": {
+      "differences": 0
+     },
+     "consumables-scrolled": {
+      "differences": 0
+     },
+     "vitals": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "consumables-again": {
+      "differences": 0
+     },
+     "all-resources": {
+      "differences": 0
+     },
+     "all-diagnostics": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "consumables": 0.011948,
+     "consumables-scrolled": 0.011948,
+     "vitals": 0.012014,
+     "priorities": 0.011857,
+     "consumables-again": 0.011948,
+     "all-resources": 0.012613,
+     "all-diagnostics": 0.014495
+    }
+   },
+   {
+    "run": "20261101-195502-81af89db",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T19:56:40",
+    "lane": 50,
+    "reference_run": "20261101-190023-79164ebb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "consumables": {
+      "differences": 0
+     },
+     "consumables-scrolled": {
+      "differences": 0
+     },
+     "vitals": {
+      "differences": 0
+     },
+     "priorities": {
+      "differences": 0
+     },
+     "consumables-again": {
+      "differences": 0
+     },
+     "all-resources": {
+      "differences": 0
+     },
+     "all-diagnostics": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "consumables": 0.011921,
+     "consumables-scrolled": 0.011921,
+     "vitals": 0.011987,
+     "priorities": 0.011829,
+     "consumables-again": 0.011921,
+     "all-resources": 0.013045,
+     "all-diagnostics": 0.014678
+    }
+   }
+  ]
+ }
+}

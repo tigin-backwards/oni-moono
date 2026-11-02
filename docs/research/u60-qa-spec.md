@@ -785,6 +785,14 @@ the codex article equal the original's.
 
 ### U2 Hidden table screens disable their masks and scroll views
 
+**Status:** fixed in 90f04f7c (Linux OpenGL; Windows: pending). `tests/e2e/u60/u2-hidden-table-screens.yaml`
+failed in ours on All Diagnostics: its value labels (wrapped, auto-sized 8 to 14) took 8 pt and one
+line where the original took 14. Repro `u2-diagnostics-autosize.yaml`; measured with UnityProbe
+`autosizepref`: a wrapped auto-sized text's preferred height ignores the rect's height. Both specs
+now play; the hidden screens' scroll views go off and on as in the original, dumps match, shots
+within 1.5 %. The table screens are hidden, not deactivated (alpha 0), and the original scrolls
+Consumables back to the left when it shows again.
+
 **Risk: high.**
 
 **Patch notes:**
