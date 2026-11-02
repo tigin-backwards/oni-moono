@@ -52,7 +52,7 @@ Nothing here has been run. Status of the port itself: [u60-inventory.md](u60-inv
   perf, memory).
 - **unit:** `tests/OniMoono.UnityEngine.Tests` and `tests/OniMoono.Assets.Tests`.
 - **new tooling:** named in the item where the harness lacks a step.
-- **Windows:** `scripts/e2e-windows/run.py` (1f173398) plays the same specs on Windows, one player
+- **Windows:** `scripts/e2e-windows/run.py` (6f335576) plays the same specs on Windows, one player
   at a time: ours on Vulkan (an RTX 3090), the original on Direct3D 11. Input there is E2eDriver's
   synthetic input (`input.*`), never the desktop's pointer or keyboard, so a Windows verdict covers
   what the game and the UI do with input, not how either player reads Windows input; text is set
@@ -135,7 +135,7 @@ One row per item. G and V items are rows of their sections, not headings.
 
 ### R1 Pipe Flow sub-overlay, vanilla
 
-**Status:** passes (7e8980e0, Linux OpenGL; Windows Vulkan: passes, 1f173398, 0.3 % to 6.5 %).
+**Status:** passes (7e8980e0, Linux OpenGL; Windows Vulkan: passes, 6f335576, 0.3 % to 6.5 %).
 `tests/e2e/u60/r1-pipe-flow-vanilla.yaml`: Ventilation and Plumbing with the sub-overlay off (0.1 %
 to 0.3 % of pixels apart) and on; `IsViewConduitFlowEnabled` true in both, no new log signatures.
 The flow shots differ by the arrows' phase only (the diff images show the arrows alone), 0.4 % to
@@ -182,7 +182,7 @@ strings `STRINGS/UI.cs` CONDUITFLOW.
 
 ### R2 Animation batch pooling
 
-**Status:** passes (c5ceac75, Linux OpenGL, fast-anim-batches on; Windows Vulkan: passes, 1f173398,
+**Status:** passes (c5ceac75, Linux OpenGL, fast-anim-batches on; Windows Vulkan: passes, 6f335576,
 the five world shots 1.8 % to 2.9 % apart), the e2e part: `tests/e2e/u60/r2-batch-pooling.yaml` on
 landing in debug instant-build mode. Set A (21 buildings) is placed through the build menu and
 cleared with the Deconstruct tool, both instant, then set B (27, in other places), then set A again
@@ -230,7 +230,7 @@ raw-mineral kinds are used (six of them). The qa verify half runs with the final
 
 ### R3 Timelapse and colony preview capture
 
-**Status:** passes (a59fc749, Linux OpenGL; Windows Vulkan: passes, 1f173398, the preview 0.6 %
+**Status:** passes (a59fc749, Linux OpenGL; Windows Vulkan: passes, 6f335576, the preview 0.6 %
 apart). `tests/e2e/u60/r3-timelapse-capture.yaml` (with the new `file_shot` step): a Save As
 preview, 1272x808 in both, 0.6 % of pixels differ. The autosave preview at a new cycle is S2's. The
 timelapse frame proper was not written in the original within 330 s of a new cycle on this harness,
@@ -282,7 +282,7 @@ compares it as an image (`qa-tools.py image` already compares two PNGs).
 fixed because the one difference left is a KScrollRect's horizontal normalizedPosition, 1 in ours
 and 0 in the original, its content's left edge on the viewport's (the sub-ulp case of
 known-findings' `scroll-normalized-position`, whose inputs are not traced here). The item's own
-criterion passes (816dde15, Linux OpenGL; Windows Vulkan: passes, 47509f2c, within 0.6 %, the Colony
+criterion passes (816dde15, Linux OpenGL; Windows Vulkan: passes, 041860a5, within 0.6 %, the Colony
 Summaries scroll position again the one difference): the 2176x1536 previews of two saves on the Load
 screen, before and after closing it five times, within 0.2 %. The spec also found an achievement's
 `<sup>` text 6 px taller in ours, fixed in 816dde15. Texture memory over the reopenings was not
@@ -333,7 +333,7 @@ Also changed:
 
 ### R5 Render targets of the world camera
 
-**Status:** passes (5b239dee, Linux OpenGL; Windows Vulkan: passes, 1f173398, 0.1 % to 2.6 %), the
+**Status:** passes (5b239dee, Linux OpenGL; Windows Vulkan: passes, 6f335576, 0.1 % to 2.6 %), the
 e2e part: `tests/e2e/u60/r5-overlay-targets.yaml` toggles the Temperature overlay ten times, shoots
 it on and off, loads the colony again and shoots it on (0.1 % to 2.6 % of pixels apart, no new log
 signatures). Window resize stays with the qa `resize` scenario.
@@ -372,7 +372,7 @@ signatures). Window resize stays with the qa `resize` scenario.
 
 ### R6 World visual fixes
 
-**Status:** passes (d3d4e960, Linux OpenGL; Windows Vulkan: passes, 1f173398, 0.7 % to 1.0 %), cases
+**Status:** passes (d3d4e960, Linux OpenGL; Windows Vulkan: passes, 6f335576, 0.7 % to 1.0 %), cases
 1-3: `tests/e2e/u60/r6-world-visuals.yaml` shoots tiles with drywall either side, three carpet tiles
 and a metal tile blueprint (within 1.2 %). Cases 4-7 (a dug-out buried object, a building under
 construction in two overlays, a vent closed by automation, Rock Crusher and Metal Refinery output)
@@ -423,7 +423,7 @@ are not in the spec yet.
 
 ### R7 New and changed animations and sprites
 
-**Status:** passes (0409c7b7, Linux OpenGL; Windows Vulkan: passes, 1f173398, 1.9 %), the new
+**Status:** passes (0409c7b7, Linux OpenGL; Windows Vulkan: passes, 6f335576, 1.9 %), the new
 critters: `tests/e2e/u60/r7-new-anims.yaml` spawns the Merpip and its baby, the Slogo, its baby and
 the Gildgo on landing's start-room floor. Their world shot equals the original's, and neither player
 logs an anim or symbol warning the other doesn't. Not run: the new buildings and the changed anims
@@ -465,7 +465,7 @@ the new buildings' and Merpip's anims.
 
 ### R8 Temperature overlay icons and colour modes
 
-**Status:** passes (16526a74, Linux OpenGL; Windows Vulkan: passes, 1f173398, the shot 0.1 % apart,
+**Status:** passes (16526a74, Linux OpenGL; Windows Vulkan: passes, 6f335576, the shot 0.1 % apart,
 the legend dump equal), Tritanopia only: `tests/e2e/u60/r8-colour-mode.yaml` picks the fourth colour
 set through `ColorModeID_v2`, as the Graphics options do on start. The four sets' names and the
 picked set's temperature thresholds equal the original's. So do the Temperature overlay's legend
@@ -514,7 +514,7 @@ modes and the geyser and Aquatuner heat icons.
 
 ### R9 Codex videos
 
-**Status:** passes (aaeaeb71, Linux OpenGL; Windows Vulkan: passes, 1f173398, the shots within 0.09
+**Status:** passes (aaeaeb71, Linux OpenGL; Windows Vulkan: passes, 6f335576, the shots within 0.09
 %; the search text is set whole there, not typed). `tests/e2e/u60/r9-codex-video.yaml`: the
 Duplicant Movement video entry found by search and opened, then Back and Forward three times; the
 entry and its thumbnail shot each time once the thumbnail has paused (VideoWidget plays it from 0 s
@@ -550,17 +550,20 @@ and pauses it past 2 s), equal to the original's.
 
 ### I1 Mouse buttons 3 to 6 as bindings
 
-**Status:** fixed in dbbccba2 (Linux, both players on OpenGL; Windows: pending, a five-button
-mouse by hand). Measured in the original: Unity's X11 player reports X buttons 8 and 9 as
-`Mouse3` and `Mouse4`, X button 10 as `Mouse6` (not `Mouse5`), and X button 11 as no key code,
+**Status:** fixed in dbbccba2 (Linux, both players on OpenGL; Windows: needs the user, a five-button
+mouse by hand: synthetic input cannot press side buttons, since the bindings screen polls Unity's
+Input.GetKey; in each player, Options > Controls, Dig bound to the back side button and then the
+forward one, each pressed over the world: the binding label and the Dig tool as in the original, a
+five-button mouse by hand). Measured in the original: Unity's X11 player reports X buttons 8 and 9
+as `Mouse3` and `Mouse4`, X button 10 as `Mouse6` (not `Mouse5`), and X button 11 as no key code,
 only an IMGUI `MouseDown` with button 7; ours numbered 10 and 11 as `Mouse5` and `Mouse6`, now as
 the original. `tests/e2e/u60-i1-side-buttons.yaml` (X buttons 8 to 10 through XTEST) and
-`u60-i1-button-11.yaml` (X button 11 as an event sent to the window, 2adb8caf; Xvfb's XTEST
-pointer has ten buttons) read the key log (`GetKeyDown`, `GetKey`, IMGUI `MouseDown`) as in the
-original. `u60-i1-rebind.yaml` (214bd4ef): in `early-base`, Options > Game > Controls,
-Dig rebound to X button 8; its label reads "Mouse 3" in both, and the button over the world
-picks the Dig tool as in the original. Rebinding to button 9: not run separately (the same
-path, and the key log covers its key code).
+`u60-i1-button-11.yaml` (X button 11 as an event sent to the window, 2adb8caf; Xvfb's XTEST pointer
+has ten buttons) read the key log (`GetKeyDown`, `GetKey`, IMGUI `MouseDown`) as in the original.
+`u60-i1-rebind.yaml` (214bd4ef): in `early-base`, Options > Game > Controls, Dig rebound to X button
+8; its label reads "Mouse 3" in both, and the button over the world picks the Dig tool as in the
+original. Rebinding to button 9: not run separately (the same path, and the key log covers its key
+code).
 
 **Risk: high.**
 
@@ -602,7 +605,7 @@ button number). Windows needs a separate manual check with a five-button mouse.
 
 ### I2 Mouse wheel on sliders
 
-**Status:** passes (436e1fce, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242;
+**Status:** passes (436e1fce, Linux OpenGL; Windows Vulkan: passes with synthetic input, e3553ef0;
 the wheel through Windows' own input needs the user: a slider of a building's side screen hovered
 and the wheel turned a few notches, in both players, the value moving the same per notch).
 `tests/e2e/u60/i2-slider-wheel.yaml`: all 15 values, the side screen's scroll position and the 21
@@ -649,7 +652,7 @@ move sounds equal the original's.
 held pan key moves the original's Research tree not at all. `tests/e2e/u60/i3-key-pan.yaml` holds D,
 then A, for 2 s: ResearchScreen.panRight or panLeft reads true while held, yet the tree's x stays
 148.25 at the view's opening clamp and -210.10 after a drag into the tree. The Skills screen and the
-starmap were not tried. On Windows (0cf55242, synthetic input) the capped spec saw the same: the
+starmap were not tried. On Windows (e3553ef0, synthetic input) the capped spec saw the same: the
 original's tree stays at -1043.10 with panLeft true. `tests/e2e/u60/i3-key-pan-free.yaml`, the same
 steps at each player's own frame rate on the RTX 3090, passes: A held for 2 s pans both trees to the
 view's edge (x 150.00), so it shows the pan works in ours but not that its speed matches; the drag
@@ -698,7 +701,7 @@ so `setup.call` may do it); check it holds in both players before relying on it.
 
 ### I4 Move To hotkey
 
-**Status:** passes (8ddfe580, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242;
+**Status:** passes (8ddfe580, Linux OpenGL; Windows Vulkan: passes with synthetic input, e3553ef0;
 the hotkey from the Windows keyboard needs the user: debris selected, Q, a cell clicked, in both
 players). `tests/e2e/u60/i4-move-to-hotkey.yaml`: Q on selected sand debris activates
 MoveToLocationTool and a clicked cell marks it for moving; Q on a selected Duplicant activates the
@@ -731,7 +734,7 @@ tool too; all equal to the original's.
 
 ### I5 Renaming with Enter
 
-**Status:** passes (4b7ee572, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242,
+**Status:** passes (4b7ee572, Linux OpenGL; Windows Vulkan: passes with synthetic input, e3553ef0,
 every dump equal; typing and Enter from the Windows keyboard (and an IME) need the user: a Ration
 Box renamed by typing and Enter, once with the Microsoft Pinyin IME, in both players).
 `tests/e2e/u60/i5-rename-enter.yaml`: three Enter renames of the Ration Box (one emptied) keep it
@@ -776,7 +779,7 @@ enabled, names, title bar dumps and the codex article equal the original's.
 
 ### I6 Clicks on priority toggles and research icons
 
-**Status:** passes (c272c99e, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242; a
+**Status:** passes (c272c99e, Linux OpenGL; Windows Vulkan: passes with synthetic input, e3553ef0; a
 real double click needs the user: priority 7 double-clicked, then the research unlock icon hovered
 and its info button clicked, in both players). `tests/e2e/u60/i6-priority-and-research-icons.yaml`:
 priority 7 double-clicked stays on (dump equal); the unlock icon's info button shows on hover and
@@ -817,7 +820,7 @@ either player.
 
 ### I7 The pointer in the world
 
-**Status:** passes (f0f198e0, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242;
+**Status:** passes (f0f198e0, Linux OpenGL; Windows Vulkan: passes with synthetic input, e3553ef0;
 the real pointer needs the user: debris clicked, then a Dig drag over rock, in both players).
 `tests/e2e/u60/i7-pointer-in-world.yaml`: debris selected by a click on it, then a Dig drag over a
 rectangle of rock; the selection and the dig orders equal the original's.
@@ -910,7 +913,7 @@ the layout group's preferred height differs by 0.04 (masked out of V1's dumps).
 
 ### U2 Hidden table screens disable their masks and scroll views
 
-**Status:** fixed in 90f04f7c (Linux OpenGL; Windows Vulkan, 0cf55242:
+**Status:** fixed in 90f04f7c (Linux OpenGL; Windows Vulkan, e3553ef0:
 `u2-diagnostics-autosize.yaml` passes; `u2-hidden-table-screens.yaml` fails in ours on one value:
 Consumables' scroll position after ten wheel notches is 0.20187964 in ours and 0.20187989 in the
 original, in both runs (2.5e-7 apart, the sub-ulp class of known-findings'
@@ -959,7 +962,7 @@ deactivated (alpha 0), and the original scrolls Consumables back to the left whe
 
 ### U3 Build menu and material selection
 
-**Status:** passes (b04eea0c, Linux OpenGL; Windows Vulkan: passes, 0cf55242, every dump equal),
+**Status:** passes (b04eea0c, Linux OpenGL; Windows Vulkan: passes, e3553ef0, every dump equal),
 step 1: `tests/e2e/u60/u3-build-menu.yaml` opens the eleven categories shown at 1280x720 (Base to
 Operations, Farming among them) and dumps the plan screen after each; all equal once the panel
 settles (the first run caught a scrollbar value mid-reveal). The undiscovered-material and backwall
@@ -1004,7 +1007,7 @@ cards and the queued blueprint (steps 2-3) are not in the spec yet.
 
 ### U4 Blueprints, Supply Closet and fuzzy search
 
-**Status:** passes (4fb51dbd, Linux OpenGL; Windows Vulkan: passes, 0cf55242), the scoring part:
+**Status:** passes (4fb51dbd, Linux OpenGL; Windows Vulkan: passes, e3553ef0), the scoring part:
 `tests/e2e/u60/u4-fuzzy-scores.yaml` scores 18 query-and-name pairs with
 `FuzzySearch.CanonicalizeAndScore`, from "pump", "wtr pmp" and "regal" to accents, ß, Œ and a dotted
 İ. It also reads `SearchUtil.Canonicalize` and `CanonicalizePhrase` on such text. Every score, best
@@ -1052,7 +1055,7 @@ Blueprints" deep link, Electrical → Power, the Regal pump rename, Manual Gener
 
 ### U5 Details screen and codex layouts
 
-**Status:** passes (264a8bba, Linux OpenGL; Windows Vulkan: passes, 0cf55242, every dump equal),
+**Status:** passes (264a8bba, Linux OpenGL; Windows Vulkan: passes, e3553ef0, every dump equal),
 steps 2 and 3 in part: `tests/e2e/u60/u5-codex-layouts.yaml` dumps the codex search list for "Hatch"
 and the Hatches page. It then collapses the page's first Diet header, rebuilds the page with Back
 and Forward, and collapses the new page's header; each dump equals the original's. Both collapses
@@ -1102,7 +1105,7 @@ label; Neutronium tooltip.
 
 ### U6 Tutorial hiding
 
-**Status:** passes (848ac5b7, Linux OpenGL; Windows Vulkan: passes, 0cf55242), the message part:
+**Status:** passes (848ac5b7, Linux OpenGL; Windows Vulkan: passes, e3553ef0), the message part:
 `tests/e2e/u60/u6-tutorial-hiding.yaml` opens the Duplicant Movement message, dumps its dialog and
 ticks "don't show again": the HideAllTutorials pref equals the original's. Turning it back on from
 the Options screen is not run.
@@ -1173,7 +1176,7 @@ difference.
 
 ### U8 Front-end screens
 
-**Status:** passes (48e16db6, Linux OpenGL; Windows Vulkan: passes, 0cf55242, shots within 1.6 %;
+**Status:** passes (48e16db6, Linux OpenGL; Windows Vulkan: passes, e3553ef0, shots within 1.6 %;
 the seed is set whole and submitted there, not typed). `tests/e2e/u60/u8-front-end.yaml`: the main
 menu shot (DLC logos), the Load screen with a colony selected (dumps and shot), and the destination
 screen after New Game, Survival, Classic and a typed seed (asteroid list dumped, carousel shot with
@@ -1213,7 +1216,7 @@ its bobbing asteroid and the caret masked) equal the original's.
 
 ### U9 Sandbox tool menu
 
-**Status:** passes (e568fbb3, Linux OpenGL; Windows Vulkan: passes, 0cf55242, every dump equal),
+**Status:** passes (e568fbb3, Linux OpenGL; Windows Vulkan: passes, e3553ef0, every dump equal),
 step 1: `tests/e2e/u60/u9-sandbox-tools.yaml` dumps the parameter menu of seven sandbox tools
 (Brush, Sprinkle, Fill, Heat Gun, Clear Floor, Destroy, Critter Removal), with the new shape, layer
 and size controls; all equal. The square brush stroke and the destroy over falling sand are not in
@@ -1449,7 +1452,7 @@ All templates, not only POIs. VYaml attributes on `TemplateContainer` (29),
 
 ### A2 Asset loading at the main menu
 
-**Status:** passes (89f503d6, Linux OpenGL; Windows Vulkan: passes, 0cf55242).
+**Status:** passes (89f503d6, Linux OpenGL; Windows Vulkan: passes, e3553ef0).
 `tests/e2e/u60/a2-menu-assets.yaml`: 2585 prefabs, 3325 anims, 469 building defs and the first 50
 prefab ids in order equal the original's. The time to the menu is not part of the spec (the start-up
 timing script's).
@@ -1486,7 +1489,7 @@ timing script's).
 original in both runs after the first Embark (Terra), just after the first save's screenshots. Its
 main thread waits while Mesa's six llvmpipe threads run at about 90% for over 5 minutes, a
 software-rendering stall on Xvfb. Ours was not run without the original's values. Windows Vulkan,
-0cf55242: the original does not hang there. The spec now presses BEGIN on Wattson's message after
+e3553ef0: the original does not hang there. The spec now presses BEGIN on Wattson's message after
 Embark (the HUD stays hidden until then). Its swamp start fails in the original: SWMP-C is a Spaced
 Out-style coordinate, which the Classic category's screen does not keep. The first two starts
 (Terra, Verdante; the spec cut after them) pass: one vista each beside the pod (vistas/sandstone,
@@ -1569,7 +1572,7 @@ strings.
 ### S1 Save format 7.39 and U59 saves
 
 **Status:** passes (19d20424, Linux OpenGL, every save tweak on; also passed with none, not
-recorded; Windows Vulkan: passes, 0cf55242). `tests/e2e/u60/s1-u59-save-roundtrip.yaml`: DeCrew
+recorded; Windows Vulkan: passes, e3553ef0). `tests/e2e/u60/s1-u59-save-roundtrip.yaml`: DeCrew
 (7.36) loaded, saved as 7.39 and loaded back: entombed items and their germs, traits, granted skills
 and open doors equal the original's.
 
@@ -1610,7 +1613,7 @@ Also changed: `EntombedItemManager`, `MinionResume.GrantedSkillIDs`, `Door.OnSpa
 
 ### S2 Saving while screenshots are written
 
-**Status:** passes (71236ffc, Linux OpenGL, background-save; Windows Vulkan: passes, 0cf55242, ours
+**Status:** passes (71236ffc, Linux OpenGL, background-save; Windows Vulkan: passes, e3553ef0, ours
 with the default game tweaks, the previews within 0.6 %). `tests/e2e/u60/s2-save-and-quit.yaml`
 (with the new `expect_exit` step and `quits` clicks): Save then Main Menu at once, the save loaded
 back, the autosave at a new cycle, Save and Quit to the desktop (exit 0); the three previews within
@@ -1814,7 +1817,7 @@ a structural reason (it checks for Unity's Mono).
 
 ### P1 Crash reporter messages
 
-**Status:** fixed in 1b876641 (Linux OpenGL; Windows Vulkan: `p1-sim-blocked.yaml` passes, 0cf55242,
+**Status:** fixed in 1b876641 (Linux OpenGL; Windows Vulkan: `p1-sim-blocked.yaml` passes, e3553ef0,
 with SimDLL.dll absent from a copy of each install: the OS Error popup, its text and the queued
 report equal, the popup's shot identical; the unreadable case was not run there). Specs
 `tests/e2e/u60/p1-sim-blocked.yaml` (libSimDLL.so absent: the popup) and `p1-sim-unreadable.yaml`
@@ -1872,7 +1875,7 @@ refuses the software device too. With each of `-force-glcore` and `-force-opengl
 report `SystemInfo.graphicsDeviceType` OpenGLCore. Deliberate difference (ARCHITECTURE §3.5): with
 only a software Vulkan device, ours given `-force-vulkan` runs on it where Unity's player exits. QA
 dogfood once per renderer: not run on Linux (the user's renderer rule: no Vulkan runs on Linux).
-Windows Vulkan, 0cf55242: with no option the original opens Direct3D 11 and ours Vulkan (ours has no
+Windows Vulkan, e3553ef0: with no option the original opens Direct3D 11 and ours Vulkan (ours has no
 Direct3D renderer, and ignores -force-d3d11 as an unknown Unity option, so that gives Vulkan too);
 -force-vulkan gives Vulkan and -force-glcore OpenGL Core in both. The Vulkan gate,
 `tests/e2e/u60/vk-smoke.yaml` (DeCrew played 20 s, the 14 overlays, seven management screens, the
@@ -1992,7 +1995,7 @@ Ctrl+` shows the tools' warning menu bar (shot equal) and hides it again.
 
 ### AU1 UI sounds and stingers
 
-**Status:** passes (3346493d, Linux OpenGL; Windows Vulkan: passes, 0cf55242, the sound calls
+**Status:** passes (3346493d, Linux OpenGL; Windows Vulkan: passes, e3553ef0, the sound calls
 counted with the audio going to a file). `tests/e2e/u60/au1-ui-sounds.yaml`: the UI sound calls
 counted after each step equal the original's (stingers and reverb not checked).
 
