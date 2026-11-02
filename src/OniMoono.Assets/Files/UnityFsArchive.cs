@@ -140,6 +140,10 @@ namespace OniMoono.Assets.Files
             return result;
         }
 
+        /// The bytes of a node, in place: a window on the archive's decompressed data, which stays
+        /// alive while any node's window is held.
+        public ArraySegment<byte> Slice(Node node) => new(data, checked((int)node.Offset), checked((int)node.Size));
+
         public Node Find(string path) => Nodes.Find(n => n.Path == path) ?? throw new FileNotFoundException(path);
     }
 

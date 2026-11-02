@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -52,6 +53,53 @@ namespace OniMoono.Assets.Tests
             foreach (var obj in file.Objects)
                 TypeTreeReader.ReadObject(file.TypeOf(obj).Tree!, file.OpenObject(obj));
             Assert.Equal(395, file.Objects.Count);
+        }
+
+        /// A node read in place (a window on the archive's data, as bundles are mounted) holds the
+        /// bytes of its copy, and its serialized file reads every object as the copy's does.
+        [Fact]
+        public void BundleNodesInPlaceReadAsTheirCopies()
+        {
+            var archive = UnityFsArchive.Open(Path.Combine(GameData.DataDir, "StreamingAssets", "hires_base_bundle"));
+            Assert.True(archive.Nodes.Count >= 2);
+            foreach (var node in archive.Nodes)
+                Assert.True(archive.Slice(node).AsSpan().SequenceEqual(archive.Read(node)), node.Path);
+            var cabNode = archive.Nodes.First(n => !n.Path.EndsWith(".resS"));
+            var slice = archive.Slice(cabNode);
+            var copy = SerializedFile.Parse(cabNode.Path, archive.Read(cabNode));
+            var inPlace = SerializedFile.Parse(cabNode.Path, slice);
+            Assert.Equal(copy.Objects, inPlace.Objects);
+            Assert.Equal(copy.Externals, inPlace.Externals);
+            foreach (var obj in copy.Objects)
+            {
+                var a = copy.OpenObject(obj);
+                var b = inPlace.OpenObject(obj);
+                Assert.Equal(a.ReadBytes(a.Length), b.ReadBytes(b.Length));
+            }
+        }
+
+        /// A serialized file parsed from a window reads only inside it: an object past the window's
+        /// end fails as one past the end of a file of that size does, though the array goes on.
+        [Fact]
+        public void SerializedFileInAWindowStaysInside()
+        {
+            var archive = UnityFsArchive.Open(Path.Combine(GameData.DataDir, "StreamingAssets", "hires_base_bundle"));
+            var cabNode = archive.Nodes.First(n => !n.Path.EndsWith(".resS"));
+            var bytes = archive.Read(cabNode);
+            // The node in the middle of a larger array, with bytes before and after it.
+            var padded = new byte[bytes.Length + 64];
+            bytes.CopyTo(padded, 32);
+            var file = SerializedFile.Parse(cabNode.Path, new System.ArraySegment<byte>(padded, 32, bytes.Length));
+            var last = file.Objects.OrderBy(o => o.ByteStart).Last();
+            var r = file.OpenObject(last);
+            Assert.Equal(last.ByteSize, r.Length);
+            Assert.Equal(22, file.Version);
+            // Version 22's header: the data offset is the big-endian Int64 at byte 32.
+            long dataOffset = System.Buffers.Binary.BinaryPrimitives.ReadInt64BigEndian(bytes.AsSpan(32));
+            int cut = checked((int)(dataOffset + last.ByteStart + last.ByteSize - 1));
+            var truncated = SerializedFile.Parse(cabNode.Path, new System.ArraySegment<byte>(padded, 32, cut));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => truncated.OpenObject(last));
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => SerializedFile.Parse(cabNode.Path, bytes[..cut]).OpenObject(last));
         }
     }
 }

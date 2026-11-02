@@ -23,7 +23,7 @@ namespace OniMoono.Engine.Assets
             public string Path;
             public long Length;
             public DateTime Modified;
-            public List<(string Key, byte[] Data)> Nodes;
+            public List<(string Key, ArraySegment<byte> Data)> Nodes;
             public bool Failed, Dropped;
             public readonly ManualResetEventSlim Done = new();
         }
@@ -75,7 +75,7 @@ namespace OniMoono.Engine.Assets
 
         /// The decoded nodes of the bundle at `path`, waiting for its decode if it is under way;
         /// null when it was not prefetched, failed, or the file changed since.
-        public static List<(string Key, byte[] Data)> Take(string path)
+        public static List<(string Key, ArraySegment<byte> Data)> Take(string path)
         {
             Entry entry;
             string full;

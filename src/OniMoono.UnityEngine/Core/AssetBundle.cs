@@ -20,7 +20,7 @@ namespace UnityEngine
         public static AssetBundle LoadFromFile(string path)
         {
             Threads.AssertMainThread("AssetBundle.LoadFromFile");
-            List<(string Key, byte[] Data)> nodes;
+            List<(string Key, ArraySegment<byte> Data)> nodes;
             try
             {
                 nodes = BundlePrefetch.Take(path) ?? AssetSystem.ReadNodes(UnityFsArchive.Open(path));
@@ -41,7 +41,7 @@ namespace UnityEngine
         {
             Threads.AssertMainThread("AssetBundle.LoadFromMemory");
             if (binary == null) return null;
-            List<(string Key, byte[] Data)> nodes;
+            List<(string Key, ArraySegment<byte> Data)> nodes;
             try
             {
                 nodes = AssetSystem.ReadNodes(UnityFsArchive.Parse(binary));
@@ -70,7 +70,7 @@ namespace UnityEngine
             Threads.AssertMainThread("AssetBundle.LoadFromStream");
             var bytes = new MemoryStream();
             stream.CopyTo(bytes);
-            List<(string Key, byte[] Data)> nodes;
+            List<(string Key, ArraySegment<byte> Data)> nodes;
             try
             {
                 nodes = AssetSystem.ReadNodes(UnityFsArchive.Parse(bytes.ToArray()));
@@ -192,13 +192,13 @@ namespace OniMoono.Engine.Assets
 
     internal static class AssetBundles
     {
-        static readonly List<(AssetBundleCreateRequest Request, string Path, Task<List<(string, byte[])>> Read)> pending = new();
+        static readonly List<(AssetBundleCreateRequest Request, string Path, Task<List<(string, ArraySegment<byte>)>> Read)> pending = new();
         static bool hooked;
 
         /// The bundles mounted and not unloaded (AssetBundle.GetAllLoadedAssetBundles).
         public static readonly List<AssetBundle> Loaded = new();
 
-        public static AssetBundle Mount(string path, List<(string Key, byte[] Data)> nodes)
+        public static AssetBundle Mount(string path, List<(string Key, ArraySegment<byte> Data)> nodes)
         {
             foreach (var (key, _) in nodes)
                 if (AssetSystem.IsMounted(key))
