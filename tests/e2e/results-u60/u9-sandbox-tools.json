@@ -1,0 +1,93 @@
+{
+ "spec": "u60/u9-sandbox-tools.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Sandbox mode on: seven sandbox tools picked from the toolbar, each tool's parameter menu (shape, layer and size controls) dumped",
+ "updated": "2026-11-01",
+ "commit": "e568fbb3",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-214103-e3f3dbd3",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T21:41:03",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-220705-0ad9f39b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:07:05",
+    "lane": 50,
+    "reference_run": "20261101-214103-e3f3dbd3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "brush": {
+      "differences": 0
+     },
+     "sprinkle": {
+      "differences": 0
+     },
+     "fill": {
+      "differences": 0
+     },
+     "heat-gun": {
+      "differences": 0
+     },
+     "clear-floor": {
+      "differences": 0
+     },
+     "destroy": {
+      "differences": 0
+     },
+     "critter-removal": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-220705-0ad9f39b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T22:08:36",
+    "lane": 50,
+    "reference_run": "20261101-214103-e3f3dbd3",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "brush": {
+      "differences": 0
+     },
+     "sprinkle": {
+      "differences": 0
+     },
+     "fill": {
+      "differences": 0
+     },
+     "heat-gun": {
+      "differences": 0
+     },
+     "clear-floor": {
+      "differences": 0
+     },
+     "destroy": {
+      "differences": 0
+     },
+     "critter-removal": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

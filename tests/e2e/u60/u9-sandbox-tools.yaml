@@ -1,0 +1,35 @@
+# U9 (docs/research/u60-qa-spec.md): the sandbox tool menu.
+#
+# U60 adds a shape (circle or square) and layer (foreground or background) control to the
+# sandbox tools' parameter menu (SandboxToolParameterMenu_ShapeLayerControl) and a size control
+# to Critter Removal: toggles and sliders laid out in the tool menu.
+#
+# From early-base with sandbox mode on (setup): each tool picked from the sandbox toolbar and its
+# parameter menu dumped.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Game.Instance", method: set_SandboxModeActive, args: [true]}}
+  - driver: {camera.set: {pos: [118.5, 209.5], ortho: 10}}
+steps:
+  - tool: {toolbar: "Brush"}
+  - ui_wait: {path: "**/ToolMenu/SandboxToolParameters", cond: active}
+  - ui_dump: {name: brush, root: "**/ToolMenu/SandboxToolParameters"}
+  - tool: {toolbar: "Sprinkle"}
+  - ui_wait: {path: "**/ToolMenu/SandboxToolParameters", cond: active}
+  - ui_dump: {name: sprinkle, root: "**/ToolMenu/SandboxToolParameters"}
+  - tool: {toolbar: "Fill"}
+  - ui_wait: {path: "**/ToolMenu/SandboxToolParameters", cond: active}
+  - ui_dump: {name: fill, root: "**/ToolMenu/SandboxToolParameters"}
+  - tool: {toolbar: "Heat Gun"}
+  - ui_wait: {path: "**/ToolMenu/SandboxToolParameters", cond: active}
+  - ui_dump: {name: heat-gun, root: "**/ToolMenu/SandboxToolParameters"}
+  - tool: {toolbar: "Clear Floor"}
+  - ui_wait: {path: "**/ToolMenu/SandboxToolParameters", cond: active}
+  - ui_dump: {name: clear-floor, root: "**/ToolMenu/SandboxToolParameters"}
+  - tool: {toolbar: "Destroy"}
+  - ui_wait: {path: "**/ToolMenu/SandboxToolParameters", cond: active}
+  - ui_dump: {name: destroy, root: "**/ToolMenu/SandboxToolParameters"}
+  - tool: {toolbar: "Critter Removal"}
+  - ui_wait: {path: "**/ToolMenu/SandboxToolParameters", cond: active}
+  - ui_dump: {name: critter-removal, root: "**/ToolMenu/SandboxToolParameters"}
+  - key: {code: Escape}

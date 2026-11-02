@@ -1093,6 +1093,12 @@ difference.
 
 ### U9 Sandbox tool menu
 
+**Status:** passes (e568fbb3, Linux OpenGL; Windows: pending), step 1:
+`tests/e2e/u60/u9-sandbox-tools.yaml` dumps the parameter menu of seven sandbox tools (Brush,
+Sprinkle, Fill, Heat Gun, Clear Floor, Destroy, Critter Removal), with the new shape, layer and
+size controls; all equal. The square brush stroke and the destroy over falling sand are not in
+the spec yet.
+
 **Risk: low.**
 
 **Patch notes:**
