@@ -999,7 +999,7 @@ label; Neutronium tooltip.
 
 ### U7 Translation validation
 
-**Status:** passes (d6043974): `tests/e2e/u60-u7-zh.yaml`, `-ru`, `-ko` (results in
+**Status:** passes (d6043974; Linux, ours on Vulkan, the original on OpenGL): `tests/e2e/u60-u7-zh.yaml`, `-ru`, `-ko` (results in
 `tests/e2e/results-u60`) require each "TRANSLATION ERROR!" block the original logs, whole, and no
 other: zh and ko reject `STRINGS.UI.BUILDINGEFFECTS.DIET_HEADER` (parameters), ru that and
 `STRINGS.UI.ROLES_SCREEN.PERKS.EXOSUIT_EXPERTISE.DESCRIPTION` (link count). Ours logs the same
@@ -1193,7 +1193,7 @@ Simplified Chinese; only mod code doing culture-sensitive comparisons could see 
 
 ### L3 Development-build calls and new engine members
 
-**Status:** passes (e58e7da0): `scripts/check.sh` on the 761211 Linux data: ApiCheck finds 787 type and
+**Status:** passes (e58e7da0; Linux, no player): `scripts/check.sh` on the 761211 Linux data: ApiCheck finds 787 type and
 3,225 member refs, 0 types and 13 members missing, all 13 in `UnityEngine.UIElementsModule`; the
 unit suites pass.
 
@@ -1532,7 +1532,7 @@ manual run on Windows with real Steam.
 
 ### M4 Obsolete game APIs
 
-**Status:** passes (e58e7da0): the U60 burndown (`tests/e2e/results-u60`, 595 records, 761015 and
+**Status:** passes (e58e7da0; Linux, the burndown's runs): the U60 burndown (`tests/e2e/results-u60`, 595 records, 761015 and
 761211) played 572 mods; 210 of them carry `IntraObjectHandler` subscriptions, 16 name
 `GetDescriptors`, 14 `GlobalStringBuilderPool` and 172 `CreateEquipmentDef` in their assemblies.
 None of the 23 not played fails on these APIs: 18 fail in the original too (pending), 4 played
@@ -1668,7 +1668,7 @@ options."
 
 ### P4 Unity 6000.3.17f1 data
 
-**Status:** passes (e58e7da0): `scripts/check.sh` on the 761211 Linux data (check-assets: 0 failures, 0
+**Status:** passes (e58e7da0; Linux, no player): `scripts/check.sh` on the 761211 Linux data (check-assets: 0 failures, 0
 unresolved scripts; check-bind: 0 failures, 584 shader variants); `--check-assets`,
 `--check-bind` and `--check-shaders` are also clean on the frozen Windows 761211 data, read from
 Linux (587 variants; 120 shaders, 0 compile or link errors, as on the Linux data).
