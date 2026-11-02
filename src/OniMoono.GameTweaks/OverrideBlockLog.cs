@@ -114,7 +114,16 @@ namespace OniMoono.GameTweaks
             int n = 0;
             for (int i = 0; i < count; i++)
                 if (lengths[i] > 0) order[n++] = i;
-            Array.Sort(order, 0, n, Comparer.Of(starts));
+            // By start (the answer does not depend on the order of equal starts). A few writes,
+            // the usual case, by insertion: Array.Sort with a comparer allocates a delegate.
+            if (n <= 32)
+                for (int k = 1; k < n; k++)
+                {
+                    int v = order[k], j = k - 1;
+                    for (; j >= 0 && starts[order[j]] > starts[v]; j--) order[j + 1] = order[j];
+                    order[j + 1] = v;
+                }
+            else Array.Sort(order, 0, n, Comparer.Of(starts));
             for (int k = 1; k < n; k++)
                 if (starts[order[k]] < starts[order[k - 1]] + lengths[order[k - 1]]) return true;
             return false;
