@@ -11,8 +11,9 @@ using UnityEngine;
 namespace E2eDriver
 {
     /// `templates.load` (README.md): loads every template file of the install through the game's
-    /// own loader, TemplateCache.LoadTemplateYaml (VYaml since U60), and reduces each to one line,
-    /// so the two players' readings of the same data compare as text (U60 QA spec, A1).
+    /// own loader (TemplateCache.LoadTemplateYaml in U60, YamlIO.LoadFile as GetTemplate calls
+    /// it in U59), and reduces each to one line, so the two players' readings of the same data
+    /// compare as text (U60 QA spec, A1).
     ///
     /// A line is "PATH cells=N prefabs=N mass=BITS temp=BITS ids=ID,ID,... hash=HEX". PATH is
     /// relative to StreamingAssets with '/', and the lines are in ordinal order of PATH. mass and
@@ -56,12 +57,24 @@ namespace E2eDriver
             foreach (var path in rel)
             {
                 string line;
-                try { line = path + " " + Describe(TemplateCache.LoadTemplateYaml(root + "/" + path)); }
+                try { line = path + " " + Describe(Read(root + "/" + path)); }
                 catch (Exception e) { line = path + " threw " + e.GetType().Name; }
                 lines.Add(line);
                 Debug.Log("[E2eDriver] template " + line);
             }
             return new JObject { ["count"] = Count, ["failed"] = Failed, ["digest"] = Digest };
+        }
+
+        // U60's loader, TemplateCache.LoadTemplateYaml; U59 has none, and its GetTemplate reads
+        // a file through YamlIO.LoadFile.
+        static readonly MethodInfo loadTemplateYaml = typeof(TemplateCache).GetMethod("LoadTemplateYaml",
+            BindingFlags.Public | BindingFlags.Static, null, new[] { typeof(string) }, null);
+
+        static TemplateContainer Read(string path)
+        {
+            if (loadTemplateYaml == null) return Klei.YamlIO.LoadFile<TemplateContainer>(path);
+            try { return (TemplateContainer)loadTemplateYaml.Invoke(null, new object[] { path }); }
+            catch (TargetInvocationException e) when (e.InnerException != null) { throw e.InnerException; }
         }
 
         static string Describe(TemplateContainer t)
