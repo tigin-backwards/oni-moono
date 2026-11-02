@@ -496,6 +496,11 @@ not explored). Windows Vulkan: pending.
 
 ### R9 Codex videos
 
+**Status:** passes (aaeaeb71, Linux OpenGL; Windows Vulkan: pending). `tests/e2e/u60/r9-codex-video.yaml`:
+the Duplicant Movement video entry found by search and opened, then Back and Forward three
+times; the entry and its thumbnail shot each time once the thumbnail has paused (VideoWidget
+plays it from 0 s and pauses it past 2 s), equal to the original's.
+
 **Risk: medium.**
 
 **Patch note:** not in the notes.

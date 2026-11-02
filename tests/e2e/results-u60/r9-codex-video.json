@@ -1,0 +1,59 @@
+{
+ "spec": "u60/r9-codex-video.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "The Duplicant Movement tutorial video opened in the codex by search, played 2 s, then Back and Forward three times, shot on its entry each time once its thumbnail paused",
+ "updated": "2026-11-02",
+ "commit": "aaeaeb71",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-000430-2df83791",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:04:30",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-000548-5c990f01",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:05:48",
+    "lane": 50,
+    "reference_run": "20261102-000430-2df83791",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "video-1": 0.001832,
+     "video-2": 0.001734,
+     "video-3": 0.00152,
+     "video-4": 0.00152
+    }
+   },
+   {
+    "run": "20261102-000548-5c990f01",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:06:38",
+    "lane": 50,
+    "reference_run": "20261102-000430-2df83791",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "video-1": 0.00076,
+     "video-2": 0.0,
+     "video-3": 0.00152,
+     "video-4": 0.00152
+    }
+   }
+  ]
+ }
+}

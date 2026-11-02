@@ -1,0 +1,43 @@
+# R9 (docs/research/u60-qa-spec.md): codex videos.
+#
+# U60's VideoWidget releases its render texture when the widget goes (ReleaseRenderTexture), so
+# a codex entry with a video, left and opened again, gets a new one. Our VideoPlayer draws into
+# it, and a RawImage must not show a destroyed one.
+#
+# From early-base: the Database opened, the Duplicant Movement tutorial video found by the codex
+# search and opened, two seconds played; then Back and Forward three times, shot each time on
+# the video's entry once its thumbnail has paused (VideoWidget plays it from 0 s and pauses it
+# past 2 s, so each shot waits 3 s).
+from: early-base
+steps:
+  - open: {management: database}
+  - ui_wait: {path: "**/Codex/Screen/Content/SideBar/Search/LocTextInputField", cond: stable}
+  - click: {ui: "**/Codex/Screen/Content/SideBar/Search/LocTextInputField"}
+  - type: {ui: "**/Codex/Screen/Content/SideBar/Search/LocTextInputField", text: "Duplicant Movement"}
+  # The search filters 0.2 s of real time after the last key (KInputTextField.OnValueChangesPaused).
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/Codex/Screen/Content/SideBar", cond: stable}
+  - click: {text: "Video: Duplicant Movement", under: "**/Codex/Screen/Content/SideBar/Navigator"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel/NavLinks/Buttons/BackButton", cond: stable}
+  - run: {seconds: 2, speed: 1}
+  - expect_state: {"ManagementMenu.Instance.codexScreen.activeEntryID": ["== 'VIDEOS5'", "== original"]}
+  - shot: {name: video-1, crop: "**/Codex/Screen/Content/LeftPanel", threshold: 0.05}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/NavLinks/Buttons/BackButton"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/NavLinks/Buttons/FwdButton"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - run: {seconds: 3, speed: 1}
+  - shot: {name: video-2, crop: "**/Codex/Screen/Content/LeftPanel", threshold: 0.05}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/NavLinks/Buttons/BackButton"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/NavLinks/Buttons/FwdButton"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - run: {seconds: 3, speed: 1}
+  - shot: {name: video-3, crop: "**/Codex/Screen/Content/LeftPanel", threshold: 0.05}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/NavLinks/Buttons/BackButton"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/NavLinks/Buttons/FwdButton"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - expect_state: {"ManagementMenu.Instance.codexScreen.activeEntryID": ["== 'VIDEOS5'", "== original"]}
+  - run: {seconds: 3, speed: 1}
+  - shot: {name: video-4, crop: "**/Codex/Screen/Content/LeftPanel", threshold: 0.05}
