@@ -13,6 +13,7 @@
     <Reference Include="$(OniManaged)/UnityEngine.CoreModule.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="$(OniManaged)/UnityEngine.ScreenCaptureModule.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.IMGUIModule.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.InputLegacyModule.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.TextRenderingModule.dll" Private="false" />

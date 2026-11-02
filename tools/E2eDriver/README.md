@@ -8,7 +8,9 @@ moves the camera, hides canvases, makes setup calls and seeds the random generat
 only public Unity and uGUI API, the same in both players.
 
 `scripts/e2e.py` talks to it. Input (clicks, keys, drags) is not the driver's job: the runner
-sends real X11 events through XTEST, using the rectangles the driver reports.
+sends real X11 events through XTEST, using the rectangles the driver reports. Runs that must
+not use the desktop's pointer or keyboard (Windows test runs) use its synthetic input instead
+(`input.*`, below).
 
 ## Building and installing
 
@@ -433,6 +435,36 @@ Delivers one of the management screens' game Actions (`ManageVitals`, `ManageCon
 `ManagePriorities`, `ManageSchedule`, `ManageSkills`, `ManageResearch`, `ManageStarmap`,
 `ManageReport`, `ManageDatabase`) to `KScreenManager` as a key-down and key-up, as the screen's
 hotkey does: e2e.py's `open: {management: …}`. The same in U59 and U60.
+
+### Synthetic input: input.move, input.button, input.key, input.scroll, input.text
+
+Input made inside the game, for a window that never has the desktop's focus or pointer
+(`SyntheticInput.cs`). The first request tells the game and the event system they have the
+focus (both drop input while unfocused: `KInputManager.isFocused`, `EventSystem.isFocused`) and
+puts a `BaseInput` override on every input module; from then on the event system reads the
+pointer from it, and the world tools from `KInputManager`'s locked mouse position, set each
+frame. Keys and mouse buttons reach the game as `KInputController` queues a real key's KeyDef
+(`QueueButtonEvent`). The platform's own input (window messages, X11 events) is not involved,
+so this checks what the game and the UI do with input, not how the player reads it.
+
+- `input.move {x, y}`: the pointer, in screen pixels from the top left.
+- `input.button {button: left|right|middle, down}`: a press or release; the event system sees
+  it in the next frame it reads the button, the release a frame after the press at the earliest.
+  Result: `queued`, whether a binding uses the button.
+- `input.key {code, mods?, down}`: a KKeyCode name (`F7`, `Return`, `Alpha1`) and modifiers
+  (`Shift`, `Ctrl`, `Alt`). `queued` is false when no binding uses the key with those modifiers.
+  Text fields do not hear it: they read IMGUI events.
+- `input.scroll {notches}`: wheel notches (positive up) for the event system and as the
+  game's scroll keys.
+- `input.text {text}`: the selected TMP input field's text, set whole (its `onValueChanged`
+  runs as for typing).
+- `input.focus`: the focus only. Result `{focused}`.
+
+### screen.capture `{name}`
+
+The frame as a PNG through `ScreenCapture.CaptureScreenshot`, at
+`Path.GetTempPath()/e2e-shots/PORT-NAME.png`, in any scene (OniMcp shoots in a colony only).
+Answers once the file is complete. Result: `{path, w, h}`.
 
 ### count `{methods}`
 

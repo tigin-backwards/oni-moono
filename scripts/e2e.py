@@ -179,7 +179,8 @@ STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_sho
               'expect_exit'} | DRIVER_STEPS
 DRIVER_COMMANDS = {'ping', 'ui.action', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
                    'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'keys.log', 'imgui.scrollview', 'templates.load',
-                   'buildmenu.settled'}
+                   'buildmenu.settled', 'input.move', 'input.button', 'input.key', 'input.scroll', 'input.text',
+                   'input.focus', 'screen.capture'}
 
 
 def _cell(value):
