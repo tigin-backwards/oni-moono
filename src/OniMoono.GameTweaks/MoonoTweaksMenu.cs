@@ -184,6 +184,7 @@ namespace OniMoono.GameTweaks
                     else if (index < 0 && text == (string)UI.FRONTEND.MAINMENU.OPTIONS) index = child.GetSiblingIndex();
                 }
                 if (index >= 0) button.transform.SetSiblingIndex(index);
+                UpdateBadge.Attach(__instance, button, prefab, style);
             }
             catch (Exception e)
             {
@@ -350,12 +351,14 @@ namespace OniMoono.GameTweaks
         }
 
         /// A row's tooltip, styled as the game's effect tooltips: how it works, then its measured
-        /// gain in the game's positive colour, then where that was measured and the launch option.
+        /// gain in the game's positive colour, then where that was measured and the launch option
+        /// (if it has one).
         static string Tooltip(int i)
         {
             var text = MoonoTweaksMenu.Details[i];
             if (MoonoTweaksMenu.Gains[i].Length > 0)
                 text += (text.Length > 0 ? "\n\n" : "") + $"<color={Constants.POSITIVE_COLOR_STR}>{MoonoTweaksMenu.Gains[i]}</color>";
+            if (MoonoTweaksMenu.Notes[i].Length == 0) return text;
             return text + (text.Length > 0 ? "\n" : "") + string.Format(MoonoTweaksMenu.Ui("LAUNCH_OPTION_LINE"), MoonoTweaksMenu.Notes[i]);
         }
 

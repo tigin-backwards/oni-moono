@@ -74,6 +74,14 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.LATER"
 msgid "LATER"
 msgstr "稍后"
 
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_HEADLINE"
+msgid "Moo! An update is available"
+msgstr "哞！有新版本了"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_MORE"
+msgid "…more on the release page"
+msgstr "……更多内容见发布页面"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GENERAL"
 msgid "General"
 msgstr "通用"
@@ -85,6 +93,18 @@ msgstr "释气海牛加载画面"
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SPLASH.EFFECT"
 msgid "Gassy Moos rain over the window while the game starts, with a progress bar."
 msgstr "游戏启动时，窗口上会下雨般落下释气海牛，并显示进度条。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.TITLE"
+msgid "Update check"
+msgstr "检查更新"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.EFFECT"
+msgid "The main menu shows when a newer Moono is out."
+msgstr "有新版 Moono 时，主菜单会提示。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.DETAIL"
+msgid "Asks GitHub for Moono's list of releases (api.github.com) at most once every 6 hours, in the background, sending nothing about you or your game. The answer is kept in the oni-moono data folder. Off: Moono makes no network requests of its own."
+msgstr "在后台向 GitHub（api.github.com）获取 Moono 的版本列表，最多每 6 小时一次，不会发送任何关于你或你的游戏的信息。结果保存在 oni-moono 数据文件夹中。关闭后，Moono 自身不会发出任何网络请求。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_STATS.TITLE"
 msgid "Frame stats in the log"

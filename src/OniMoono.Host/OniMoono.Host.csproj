@@ -75,6 +75,11 @@
     <Copy SourceFiles="@(UiPackage);@(UiPackage->'%(RootDir)%(Directory)%(Filename).pdb')" DestinationFolder="$(OutDir)packages" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(GameTweaksAssembly);@(GameTweaksAssembly->'%(RootDir)%(Directory)%(Filename).pdb')" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
+  <!-- The release this build is (-p:MoonoRelease=vYYYY.MM.DD.NN, from scripts/release.sh), for
+       the main menu's update check (UpdateCheck); a build without it checks nothing. -->
+  <ItemGroup Condition="'$(MoonoRelease)' != ''">
+    <AssemblyMetadata Include="MoonoRelease" Value="$(MoonoRelease)" />
+  </ItemGroup>
   <!-- A published host carries what the build targets add to the output: the UI packages, the
        game tweaks and the engine facades (the host does not start without them). -->
   <Target Name="PublishBuildOnlyFiles" AfterTargets="Publish">

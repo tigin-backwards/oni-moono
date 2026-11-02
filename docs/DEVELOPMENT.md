@@ -87,14 +87,16 @@ player into `%LOCALAPPDATA%\oni-moono\player`. Both print the launch options lin
 ## Releases
 
 ```sh
-scripts/release.sh                     # out/release: the Windows zip and the Linux tar.gz
+MOONO_RELEASE=vYYYY.MM.DD.NN scripts/release.sh   # out/release: the Windows zip and the Linux tar.gz
 gh release create vYYYY.MM.DD.NN out/release/oni-moono-*.zip out/release/oni-moono-*.tar.gz \
   --title "YYYY.MM.DD.NN" --notes "..."
 ```
 
 `release.sh [VERSION]` names the archives by VERSION, by default the date of HEAD's commit. The
 tag and title add a two-digit counter for the day (`.01` for its first release), so releases sort
-as text. The build compiles against the game's assemblies, so it runs where the game is installed
+as text. `MOONO_RELEASE` is the tag the release will get: the player compares it with the
+releases on GitHub for the main menu's update badge ([TWEAKS.md](TWEAKS.md#update-check)), and
+`release.sh` fails without it. Development builds need none (they check for no updates). The build compiles against the game's assemblies, so it runs where the game is installed
 (not in CI). Each archive holds an `oni-moono` folder with the setup script, the README,
 `NOTICE.txt` and the self-contained player in `player/`; the setups install a release's player
 without building. Nothing of the game goes into them.

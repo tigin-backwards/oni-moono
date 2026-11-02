@@ -3,17 +3,28 @@
 # built with MSVC, scripts/build-native-host.sh): the self-contained player for Windows and for
 # Linux, each with its setup script, the README and BRUTAL's NOTICE.txt, under one top folder
 # named oni-moono (extracting a newer release over an older one keeps the paths the same).
-#   scripts/release.sh [VERSION]      (VERSION defaults to the date of HEAD's commit)
+#   MOONO_RELEASE=vYYYY.MM.DD.NN scripts/release.sh [VERSION]
+#                                     (VERSION defaults to the date of HEAD's commit)
+# MOONO_RELEASE is the tag the release will have: the player compares it with the releases on
+# GitHub for the main menu's update badge (src/OniMoono.Host/UpdateCheck.cs), so a release
+# build without it (or with another form) fails here. Development builds (dotnet build,
+# scripts/run.sh) need none: they check for no updates.
 # The build compiles against the game's assemblies, so it runs where the game is installed
 # (ONI_GAME_DIR); nothing of the game goes into the archives.
 set -euo pipefail
+tag="${MOONO_RELEASE:-}"
+if ! [[ "$tag" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]]; then
+    echo "MOONO_RELEASE must be the tag this release will get, like v2026.11.03.01 (got '${tag}'):" >&2
+    echo "the player compares it with GitHub's releases for the main menu's update badge" >&2
+    exit 1
+fi
 source "$(dirname "$0")/env.sh"
 version="${1:-$(git -C "$root" log -1 --format=%cd --date=format:%Y.%m.%d)}"
 out="$root/out/release"
 rm -rf "$out"; mkdir -p "$out"
 # Each build starts from an empty output folder, so nothing stale (the host from before it was
 # named OniMoono, OniBrutal.exe and its OniBrutal.dll) goes into an archive.
-build() { rm -rf "$root/out/bin/$(basename "$1")/release_$2"; dotnet build "$1" -c Release -r "$2" --self-contained true -p:OniGameDir="$game" -v q -nologo "-clp:ErrorsOnly;NoSummary"; }
+build() { rm -rf "$root/out/bin/$(basename "$1")/release_$2"; dotnet build "$1" -c Release -r "$2" --self-contained true -p:OniGameDir="$game" -p:MoonoRelease="$tag" -v q -nologo "-clp:ErrorsOnly;NoSummary"; }
 
 stage() { # stage DIR SETUP: the archive's oni-moono folder
     mkdir -p "$1/player"

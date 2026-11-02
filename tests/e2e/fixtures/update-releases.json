@@ -1,0 +1,62 @@
+[
+  {
+    "url": "https://api.github.com/repos/tigin-backwards/oni-moono/releases/852615542",
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.03.01",
+    "tag_name": "v2026.11.03.01",
+    "name": "2026.11.03.01",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-11-02T18:43:00Z",
+    "body": "For the normal game (U59). Playing the U60 public test (Steam beta `public_testing`)? Use [the latest U60 build](https://github.com/tigin-backwards/oni-moono/releases?q=%22Only+for+Oxygen+Not+Included%27s+U60+public+test%22&expanded=true) instead.\n\n**Faster**\n- Big bases with Fast Track draw faster: each camera now looks only at renderers that are switched on and on the layers it draws, instead of every renderer the game ever made. On one large Fast Track colony, the main thread's render time fell from about 6 ms to about 4 ms a frame (about 15% more frames per second at normal speed).\n\n**Fixes**\n- A renderer created while another one becomes visible no longer stops the frame's drawing with an error.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "url": "https://api.github.com/repos/tigin-backwards/oni-moono/releases/220546514",
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.03.02",
+    "tag_name": "v2026.11.03.02",
+    "name": "2026.11.03.02 (U60 Beta)",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-11-02T18:43:00Z",
+    "body": "**Only for Oxygen Not Included's U60 public test** (game build 761211, Steam beta `public_testing`). On the normal game, use [the latest normal release](https://github.com/tigin-backwards/oni-moono/releases/latest). If this build is started on the wrong game version, it says which build to get instead of crashing.\n\nAn update to the U60 beta, built from the [`u60`](https://github.com/tigin-backwards/oni-moono/tree/u60) branch.\n\n**Faster**\n- Drawing costs less when the game holds many renderers that are switched off (as Fast Track's mesh mode creates): each camera now looks only at renderers that are switched on and on the layers it draws.\n- Vulkan spends 10–19% less CPU time per frame recording draws.\n- The game's worker threads wake with less contention (\"Faster worker threads\" tweak).\n\n**Fixes**\n- A renderer created while another one becomes visible no longer stops the frame's drawing with an error.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "url": "https://api.github.com/repos/tigin-backwards/oni-moono/releases/534435227",
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.02.02",
+    "tag_name": "v2026.11.02.02",
+    "name": "2026.11.02.02",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-11-02T18:43:00Z",
+    "body": "For the normal game (U59). Playing the U60 public test (Steam beta `public_testing`)? Use [the latest U60 build](https://github.com/tigin-backwards/oni-moono/releases?q=%22Only+for+Oxygen+Not+Included%27s+U60+public+test%22&expanded=true) instead.\n\n**Fixes**\n- Clicking the same spot on a stack of items keeps cycling through all of them in long sessions with Fast Track. More generally, a mod's patch of shared generic game code no longer stops working once the game has run a while. Reported in #48 by @charmich0802.\n- Display scaling above 100% no longer switches on the large build menu where the original doesn't (the game now gets the same screen DPI as the original).\n- Text:\n  - Wrapped, auto-sized labels have the right height (for example All Diagnostics' values and the germ overlay's \"Disinfect At\").\n  - Superscript and subscript sit as in the original.\n  - Setting a label to the same text again behaves as in the original.\n- A script that fails while starting up is switched off, as in the original, instead of carrying on half set up.\n- Mouse side buttons 10 and 11 are numbered as in the original, so bindings to them match.\n- `-force-glcore` and `-force-opengl` choose OpenGL as in the original.\n- When the game's native SimDLL can't load, the error message is the original's.\n- Player.log and the console no longer show your Steam ID, Steam name or Klei account ID (with the default \"Hide personal paths in the log\" setting).\n- Windows: if Direct3D presentation can't start, the log now says what is holding the game window.\n\n**Faster**\n- The game's worker threads wake with less contention (\"Faster worker threads\" tweak).\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "url": "https://api.github.com/repos/tigin-backwards/oni-moono/releases/957432949",
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.02.03",
+    "tag_name": "v2026.11.02.03",
+    "name": "2026.11.02.03 (Superseded)",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-11-02T18:43:00Z",
+    "body": "Superseded by 2026.11.03.01.\n\nFor the normal game (U59). Playing the U60 public test (Steam beta `public_testing`)? Use [the latest U60 build](https://github.com/tigin-backwards/oni-moono/releases?q=%22Only+for+Oxygen+Not+Included%27s+U60+public+test%22&expanded=true) instead.\n\n**Fixes**\n- Clicking the same spot on a stack of items keeps cycling through all of them in long sessions with Fast Track. More generally, a mod's patch of shared generic game code no longer stops working once the game has run a while. Reported in #48 by @charmich0802.\n- Display scaling above 100% no longer switches on the large build menu where the original doesn't (the game now gets the same screen DPI as the original).\n- Text:\n  - Wrapped, auto-sized labels have the right height (for example All Diagnostics' values and the germ overlay's \"Disinfect At\").\n  - Superscript and subscript sit as in the original.\n  - Setting a label to the same text again behaves as in the original.\n- A script that fails while starting up is switched off, as in the original, instead of carrying on half set up.\n- Mouse side buttons 10 and 11 are numbered as in the original, so bindings to them match.\n- `-force-glcore` and `-force-opengl` choose OpenGL as in the original.\n- When the game's native SimDLL can't load, the error message is the original's.\n- Player.log and the console no longer show your Steam ID, Steam name or Klei account ID (with the default \"Hide personal paths in the log\" setting).\n- Windows: if Direct3D presentation can't start, the log now says what is holding the game window.\n\n**Faster**\n- The game's worker threads wake with less contention (\"Faster worker threads\" tweak).\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "url": "https://api.github.com/repos/tigin-backwards/oni-moono/releases/160384043",
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.01.04",
+    "tag_name": "v2026.11.01.04",
+    "name": "2026.11.01.04",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-11-02T18:43:00Z",
+    "body": "For the normal game (U59). Playing the U60 public test (Steam beta `public_testing`)? Use [the latest U60 build](https://github.com/tigin-backwards/oni-moono/releases?q=%22Only+for+Oxygen+Not+Included%27s+U60+public+test%22&expanded=true) instead.\n\n**Fixes**\n- The Meteor Blaster's missile trail now draws dark smoke puffs, as in the original. Reported in #47 by @qmpzaltb.\n- In fullscreen, a resolution picked in the Graphics options now applies: the game renders at that size and stretches it over the screen, as the original does.\n- Windows: the game keeps keyboard shortcuts working after switching windows or the input language with a Chinese IME (a follow-up to #30).\n- Windows setup no longer stops when a Steam library is on a drive that is gone.\n- Mods:\n  - Radbolt Demolisher and Cooperative Colonies now load.\n  - Artificial Natural Tiles shows its build category.\n  - Text in mods' info cards (Chlorine Sublimation Station, Cockpit Commode) is laid out as in the original.\n  - Mods that read Unity's frame timings, memory counters or job worker counts get the original's values.\n  - A mod method that uses something our player lacks now fails only at that point, as in the original, instead of failing as a whole.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "url": "https://api.github.com/repos/tigin-backwards/oni-moono/releases/250203451",
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.01.03",
+    "tag_name": "v2026.11.01.03",
+    "name": "2026.11.01.03",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-11-02T18:43:00Z",
+    "body": "For the normal game (U59). Playing the U60 public test (Steam beta `public_testing`)? Use [the latest U60 build](https://github.com/tigin-backwards/oni-moono/releases?q=%22Only+for+Oxygen+Not+Included%27s+U60+public+test%22&expanded=true) instead.\n\n**Fixes**\n- On Linux, the game no longer sometimes freezes for good while starting up. A log line from the splash screen could wait on the game's own log output and the other way round. Reported in #44 by @kopandante.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  }
+]

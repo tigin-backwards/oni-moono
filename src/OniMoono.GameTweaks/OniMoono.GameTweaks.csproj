@@ -21,5 +21,7 @@
     <Reference Include="$(OniManaged)/UnityEngine.UI.dll" Private="false" />
     <Reference Include="$(OniManaged)/Unity.TextMeshPro.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.UIModule.dll" Private="false" />
+    <!-- TextAnchor, for the update badge's layout groups. -->
+    <Reference Include="$(OniManaged)/UnityEngine.TextRenderingModule.dll" Private="false" />
   </ItemGroup>
 </Project>

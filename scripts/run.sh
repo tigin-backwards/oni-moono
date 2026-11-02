@@ -17,6 +17,9 @@ source "$(dirname "$0")/env.sh"
 home="${ONI_RUN_HOME:-$root/out/run-home}"
 mkdir -p "$home/config" "$home/cache"
 export XDG_CONFIG_HOME="$home/config" XDG_CACHE_HOME="$home/cache"
+# Test runs never ask GitHub for releases (the main menu's update check): ONI_UPDATE_RELEASES_URL
+# names a releases file to use instead (tests/e2e/update-badge.yaml).
+export ONI_UPDATE_RELEASES_URL="${ONI_UPDATE_RELEASES_URL:-none}"
 tweaks=(--game-tweak none --splash none --log-paths full)
 [ "${ONI_TWEAK_SETTINGS:-}" = 1 ] && tweaks=()
 exec "$root/scripts/contain.sh" "$root/out/bin/OniMoono.Host/${ONI_CONFIG:-debug}/OniMoono" --game "$game" "${tweaks[@]}" "$@"

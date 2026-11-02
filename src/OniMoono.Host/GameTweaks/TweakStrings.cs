@@ -46,6 +46,8 @@ namespace OniMoono.Host.GameTweaks
             ("SAVE_FAILED", "The settings could not be saved to {0}:\n{1}", "Dialog; {0}: the settings file, {1}: the error"),
             ("SAVED_RESTART", "Your changes are saved and apply when the game restarts.", "Dialog on closing with changes"),
             ("LATER", "LATER", "The dialog's button beside Restart"),
+            ("UPDATE_HEADLINE", "Moo! An update is available", "The main menu's update badge, first line"),
+            ("UPDATE_MORE", "…more on the release page", "The update badge's tooltip, last line, when the notes are cut"),
         ];
 
         public static string GroupKey(TweakGroup group) => Prefix + "GROUPS." + group.Key;

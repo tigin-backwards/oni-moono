@@ -231,10 +231,12 @@ namespace OniMoono.Tests
             file.GameTweaks["fast-b"] = false;
             Assert.Equal(["game tweaks on (default): fast-a", "game tweaks off (default): slow-c, off-d", "game tweaks off (the settings file): fast-b",
                           "splash moo (default)", "frame stats off (default)", "log paths hidden (default)", "gpu default (default)", "renderer auto (default)",
-                          "dxgi on (default)"],
+                          "dxgi on (default)", "update check on (default)"],
                 Resolve(file).Describe().ToArray());
+            file.UpdateCheck = false;
             Assert.Equal(["game tweaks from the command line (--game-tweak none): none", "splash none (the command line)", "frame stats on (the command line)",
-                           "log paths full (the command line)", "gpu default (default)", "renderer auto (default)", "dxgi on (default)"],
+                           "log paths full (the command line)", "gpu default (default)", "renderer auto (default)", "dxgi on (default)",
+                           "update check off (the settings file)"],
                 Resolve(file, ["none"], "none", true, "full").Describe().ToArray());
         }
 
@@ -270,6 +272,19 @@ namespace OniMoono.Tests
             // A screen save that does not touch it keeps what the file had.
             Assert.False(EffectiveOptions.Apply(saved, Changing, none, true, null).Dxgi);
             Assert.Throws<InvalidOperationException>(() => PlayerSettings.Parse("""{ "dxgi": "yes" }"""));
+        }
+
+        [Fact]
+        public void TheFileRecordsTheUpdateCheckOnlyWhenOff()
+        {
+            var none = new Dictionary<string, bool>();
+            var saved = EffectiveOptions.Apply(new PlayerSettings(), Changing, none, null, null, updateCheck: false);
+            Assert.Equal("{\"updateCheck\":false}", saved.ToJson(indented: false));
+            Assert.False(PlayerSettings.Parse(saved.ToJson()).UpdateCheck);
+            Assert.Equal((false, OptionSource.SettingsFile), (Resolve(saved).UpdateCheck, Resolve(saved).UpdateCheckSource));
+            Assert.Equal((true, OptionSource.Default), (Resolve(new PlayerSettings()).UpdateCheck, Resolve(new PlayerSettings()).UpdateCheckSource));
+            Assert.Null(EffectiveOptions.Apply(saved, Changing, none, null, null, updateCheck: true).UpdateCheck);
+            Assert.False(EffectiveOptions.Apply(saved, Changing, none, true, null).UpdateCheck);
         }
     }
 }
