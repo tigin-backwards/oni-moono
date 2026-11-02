@@ -1,0 +1,57 @@
+{
+ "spec": "u60-a4-cosmetic2-owned.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "COSMETIC2_ID owned (all-DLC Steam double): main menu, Supply Closet and inventory, logged as in the original",
+ "updated": "2026-11-01",
+ "commit": "79a6f5fc",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-183448-701452c7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T18:34:48",
+    "lane": 2,
+    "signatures": 0
+   },
+   {
+    "run": "20261101-183448-701452c7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T18:38:02",
+    "lane": 2,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-183448-701452c7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T18:39:35",
+    "lane": 2,
+    "reference_run": "20261101-183448-701452c7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-183448-701452c7",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T18:40:08",
+    "lane": 2,
+    "reference_run": "20261101-183448-701452c7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

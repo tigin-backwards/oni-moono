@@ -1,0 +1,23 @@
+# U60 QA spec A4 (docs/research/u60-qa-spec.md): COSMETIC2_ID (Steam app 5315880), whose
+# hi-res bundle (hires_cosmetic2_bundle) U60's data does not ship. StreamedTextures loads the
+# hi-res bundle of every subscribed DLC when the Supply Closet shows (LockerNavigator), through
+# AssetBundle.LoadFromFileAsync, so with the app owned the missing file is opened there. The
+# main menu, then the Supply Closet and its inventory; both players must log the same (log
+# signatures, require_log) and stay up.
+#
+# Owned: the e2e runs' all-DLC Steam double (QA_U57_STEAM, tools/SteamStub/build.sh --dlc)
+# answers yes for every app, 5315880 included.
+from: main-menu
+require_log:
+  - 'Failed to load bundle: hires_cosmetic2_bundle'
+  - 'hires_cosmetic2_bundle'
+steps:
+  # A new profile shows the DLC intro video over the menu first.
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "SUPPLY CLOSET", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LockerMenuScreen/Panel/Content/Buttons/InventoryButton", cond: stable, frames: 3000}
+  - click: {ui: "**/LockerMenuScreen/Panel/Content/Buttons/InventoryButton"}
+  - ui_wait: {path: "**/KleiInventoryScreen", cond: stable, frames: 3000}

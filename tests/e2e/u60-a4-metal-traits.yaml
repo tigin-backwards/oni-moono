@@ -1,0 +1,13 @@
+# U60 QA spec A4 (docs/research/u60-qa-spec.md), step 3: Zinc Ore in the MetalRich and MetalPoor
+# traits (worldgen/traits/*.yaml:35-37). The traits as worldgen reads them at the main menu: their
+# element band modifiers, the Zinc Ore one among them, as in the original.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_state:
+      "ProcGen.SettingsCache.GetCachedWorldTrait(\"traits/MetalRich\", true).elementBandModifiers.Count": "== original"
+      "ProcGen.SettingsCache.GetCachedWorldTrait(\"traits/MetalPoor\", true).elementBandModifiers.Count": "== original"
+      "count:ProcGen.SettingsCache.GetCachedWorldTrait(\"traits/MetalRich\", true).elementBandModifiers[*] if .element == ZincOre": [1, "== original"]
+      "count:ProcGen.SettingsCache.GetCachedWorldTrait(\"traits/MetalPoor\", true).elementBandModifiers[*] if .element == ZincOre": [1, "== original"]
+      "sum:ProcGen.SettingsCache.GetCachedWorldTrait(\"traits/MetalRich\", true).elementBandModifiers[*].massMultiplier if .element == ZincOre": "== original"
+      "sum:ProcGen.SettingsCache.GetCachedWorldTrait(\"traits/MetalPoor\", true).elementBandModifiers[*].massMultiplier if .element == ZincOre": "== original"
