@@ -1,0 +1,40 @@
+# S1 (docs/research/u60-qa-spec.md): save format 7.39 and older saves.
+#
+# U60 writes save minor version 39 (disease ids hashed in EntombedItemManager and
+# BubbleManager), grants skill-scrubbed Duplicants their traits on load
+# (MinionResume.GrantedSkillIDs) and closes doors left open (Door.OnSpawn). Ours writes saves
+# through its save tweaks (fast serialization, fast compression, background-save): run with
+# E2E_GAME_TWEAKS=all and again with none.
+#
+# DeCrew (onimaxxing's saves/DeCrew.sav, an older version's late colony): loaded, its entombed
+# items (count, disease counts), Duplicants' traits and granted skills and open doors read; saved
+# as a new file through OniMcp, then loaded back through the pause menu's Load screen, and read
+# again. Each value is compared with the original's, and after the round trip with its own value
+# before it.
+from: decrew
+memory_gb: 15
+steps:
+  - expect_state:
+      "SaveGame.Instance.entombedItemManager.cells.Count": [{save_as: entombed}, "== original"]
+      "sum:SaveGame.Instance.entombedItemManager.diseaseCounts[*]": [{save_as: germs}, "== original"]
+      "sum:Components.LiveMinionIdentities.Items[*].GetComponent<Traits>.TraitList.Count": [{save_as: traits}, "== original"]
+      "sum:Components.LiveMinionIdentities.Items[*].GetComponent<MinionResume>.GrantedSkillIDs.Count": [{save_as: granted}, "== original"]
+      "count:all:Door::[*] if .IsOpen() == true": [{save_as: open}, "== original"]
+      "SaveLoader.Instance.GameInfo.saveMinorVersion": "== original"
+  - save: s1-roundtrip
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/TitleContainer/SaveText", cond: text, value: s1-roundtrip}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 20000}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 20000}
+  - expect_state:
+      "SaveLoader.Instance.GameInfo.saveMinorVersion": [39, "== original"]
+      "SaveGame.Instance.entombedItemManager.cells.Count": ["== entombed", "== original"]
+      "sum:SaveGame.Instance.entombedItemManager.diseaseCounts[*]": ["== germs", "== original"]
+      "sum:Components.LiveMinionIdentities.Items[*].GetComponent<Traits>.TraitList.Count": ["== traits", "== original"]
+      "sum:Components.LiveMinionIdentities.Items[*].GetComponent<MinionResume>.GrantedSkillIDs.Count": ["== granted", "== original"]
+      "count:all:Door::[*] if .IsOpen() == true": ["== open", "== original"]

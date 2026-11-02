@@ -1,0 +1,49 @@
+{
+ "spec": "u60/s1-u59-save-roundtrip.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "DeCrew (save version 7.36) loaded, saved as 7.39 with every save tweak on and loaded back: entombed items and their germs, traits, granted skills and open doors equal",
+ "updated": "2026-11-01",
+ "commit": "19d20424",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-221743-7600884b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:17:43",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-235058-9565bcdd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:50:58",
+    "lane": 50,
+    "reference_run": "20261101-221743-7600884b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-235058-9565bcdd",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T23:52:52",
+    "lane": 50,
+    "reference_run": "20261101-221743-7600884b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

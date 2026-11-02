@@ -1433,6 +1433,11 @@ strings.
 
 ### S1 Save format 7.39 and U59 saves
 
+**Status:** passes (19d20424, Linux OpenGL, every save tweak on; also passed with none, not
+recorded; Windows: pending). `tests/e2e/u60/s1-u59-save-roundtrip.yaml`: DeCrew (7.36) loaded,
+saved as 7.39 and loaded back: entombed items and their germs, traits, granted skills and open
+doors equal the original's.
+
 **Risk: medium.** The tweaks were reviewed, not run on a 7.39 round trip with these members.
 
 **Patch notes:**
