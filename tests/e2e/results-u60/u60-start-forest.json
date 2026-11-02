@@ -1,0 +1,57 @@
+{
+ "spec": "u60-start-forest.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a new game from a fixed coordinate (Spaced Out category): the start world, Duplicants and the start base's spawns counted as in the original",
+ "updated": "2026-11-02",
+ "commit": "59bfef68",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-020312-8239db68",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T02:03:12",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261102-020312-8239db68",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T02:03:55",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-020312-8239db68",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T02:04:39",
+    "lane": 1,
+    "reference_run": "20261102-020312-8239db68",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261102-020312-8239db68",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T02:05:09",
+    "lane": 1,
+    "reference_run": "20261102-020312-8239db68",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

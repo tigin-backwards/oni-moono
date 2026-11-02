@@ -1,0 +1,43 @@
+# U60 QA spec A1 step 2 and G10 (docs/research/u60-qa-spec.md): a new game on Verdante (forestBase: lost its Hatch, 18 to 17 wide), from
+# the coordinate FRST-C-12345-0-0-0 (the Spaced Out category). U60 reads every template through VYaml (A1); the start bases changed
+# (G10). Functional, never cell by cell: the start world, the Duplicants, and the counts of the
+# start base's spawns (its buildings, Hatches, the vista entity, its food, seeds and
+# Duplicants) as in the original. Not every pickupable: the generated worlds differ a little
+# (Verdante: 29,700 solid cells in the original, 29,712 in ours), so element chunks and the
+# world's critters do too.
+from: main-menu
+memory_gb: 8
+steps:
+  # A new profile shows the DLC intro video over the menu first.
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/SpacedOutGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/SpacedOutGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "FRST-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 600}
+  - expect_state:
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"ClusterLayout\").id": ["== original", "!= 'expansion1::clusters/KleiFest2023Cluster'"]
+      "CustomGameSettings.Instance.GetSettingsCoordinate()": [{contains: "FRST-C-12345"}, "== original"]
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
+  - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
+  - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  - expect_state:
+      "ClusterManager.Instance.GetStartWorld().worldName": "== original"
+      "ClusterManager.Instance.GetStartWorld().worldSize.x": "== original"
+      "ClusterManager.Instance.GetStartWorld().worldSize.y": "== original"
+      "Components.LiveMinionIdentities.Count": 3
+      "count:all:BuildingComplete::[*]": "== original"
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == Hatch": "== original"
+      "count:all:KPrefabID::[*] if .PrefabTag.Name.EndsWith(\"Vista\") == true": "== original"
+      "count:all:Pickupable::[*] if .GetComponent<KPrefabID>.HasTag(\"Edible\") == true": "== original"
+      "count:all:Pickupable::[*] if .GetComponent<KPrefabID>.HasTag(\"Seed\") == true": "== original"
+      "count:all:Pickupable::[*] if .GetComponent<KPrefabID>.HasTag(\"Minion\") == true": "== original"
