@@ -1953,13 +1953,14 @@ BUTTONS = {'left': 1, 'middle': 2, 'right': 3, 'back': 8, 'forward': 9}
 
 def button_problem(value):
     """Why a step's `button` is not one, or None: a name in BUTTONS, or an X button number 1 to
-    3 or 8 to 11 (XTEST sends any)."""
+    3 or 8 to 10. Xvfb's XTEST pointer has ten buttons: an 11th is a BadValue, which ends the
+    runner (Xlib's default error handler)."""
     if 'button' not in value:
         return None
     b = value['button']
-    if b in BUTTONS or (isinstance(b, int) and not isinstance(b, bool) and (1 <= b <= 3 or 8 <= b <= 11)):
+    if b in BUTTONS or (isinstance(b, int) and not isinstance(b, bool) and (1 <= b <= 3 or 8 <= b <= 10)):
         return None
-    return '`button` is left, middle, right, back, forward or an X button 1-3 or 8-11'
+    return '`button` is left, middle, right, back, forward or an X button 1-3 or 8-10 (XTEST\'s pointer has ten)'
 
 
 def keysym_name(name):
