@@ -1211,6 +1211,18 @@ the spec yet.
 
 ### L1 Cell change tracking and KObject
 
+**Status:** passes (c5c74620; Linux, both players on OpenGL), with the heap bound relaxed:
+`tests/e2e/u60-l1-cell-change.yaml` runs rocket-launch's set-up on `rockets-so` (the Rocket
+Control Station rebuilt inside the rocket, the rocket launched and flown on), saves, and loads
+that save three times from the pause menu. The rocket's status and hex are the original's after
+the flight and after the third load; no new log signatures. The managed heap after the third load
+(`GC.GetTotalMemory(true)`) against the first: the original grows 3.9 to 6.1 % over three runs
+(2.66 to 2.82 GB at most), so the 5 % bound fails in the original itself; the spec uses 10 %,
+which both pass (ours: 4.06 to 4.14 GB, +1.8 %). Step 1 (QA verify on U57): not run separately
+here; the master QA verify covers it. Rocket landing and a tracked critter's position: not run
+(landing needs a long flight to a pad; critter positions are random between runs of either
+player).
+
 **Risk: medium.**
 
 **Patch notes:**
