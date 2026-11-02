@@ -301,16 +301,42 @@ namespace OniMoono.Tests
             Assert.Equal(h, t.preferredHeight, 0.001f);
         }
 
-        // "Measured on the shipped package": a wrapped auto-sized text's preferred height is
-        // that of the size auto-size chose (the unwrapped probe did not try wrapped text).
-        [Fact]
-        public void AWrappedAutoSizedTextsPreferredHeightIsAtTheChosenSize()
+        // A wrapped auto-sized text's preferred height is at the size auto-size chooses for the
+        // width alone, whatever the rect's height (UnityProbe autosizepref, Unity's player
+        // 761211: NotoSans 8 to 14 pt, extra padding and kerning, wrapping, top right, 72 wide).
+        [Theory]
+        [InlineData("0/0", 0f, 8f, 19.04f)]
+        [InlineData("0/0", 10.88f, 8f, 19.04f)]
+        [InlineData("0/0", 100f, 14f, 19.04f)]
+        [InlineData("0.0 J", 5f, 8f, 19.04f)]
+        [InlineData("Avg. 0 rads", 19.04f, 13.85f, 38.1f)]
+        [InlineData("Avg. 0 rads", 100f, 14f, 38.1f)]
+        [InlineData("PowerUseDiagnosticKey", 100f, 8f, 21.78f)]
+        [InlineData("one two three four five six", 10.88f, 8f, 57.17f)]
+        [InlineData("one two three four five six", 100f, 14f, 57.17f)]
+        public void AWrappedAutoSizedTextsPreferredHeightIgnoresTheRectsHeight(string text, float h, float size, float height)
         {
-            var t = Laid("kg kg kg kg kg kg kg kg kg kg", 30f, wrap: true, auto: true, max: 24f);
-            float chosen = t.fontSize;
-            Assert.True(chosen < 24f);
-            var fixedSize = Laid("kg kg kg kg kg kg kg kg kg kg", 30f, wrap: true, size: chosen);
-            Assert.Equal(fixedSize.preferredHeight, t.preferredHeight);
+            var canvas = new GameObject("Canvas", typeof(RectTransform));
+            canvas.AddComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var go = new GameObject("Ap", typeof(RectTransform));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(canvas.transform, false);
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(72f, h);
+            var t = go.AddComponent<TextMeshProUGUI>();
+            t.enableKerning = true;
+            t.extraPadding = true;
+            t.font = TmpTestSupport.FindAsset<TMP_FontAsset>(Noto);
+            t.fontSize = 14f;
+            t.alignment = TextAlignmentOptions.TopRight;
+            t.textWrappingMode = TextWrappingModes.Normal;
+            t.fontSizeMin = 8f;
+            t.fontSizeMax = 14f;
+            t.enableAutoSizing = true;
+            Set(t, text);
+            Assert.Equal(size, t.fontSize, 0.001f);
+            Assert.Equal(height, t.preferredHeight, 0.001f);
+            Assert.Equal(height, t.GetPreferredValues(72f, 0f).y, 0.001f);
         }
     }
 }
