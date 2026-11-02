@@ -915,6 +915,17 @@ namespace PerfProbe
 
         static bool awake;
 
+        /// `memory.txt`: Profiler's memory figures every 600 frames, in MiB.
+        System.Collections.IEnumerator MemoryLog()
+        {
+            while (Game.Instance != null)
+            {
+                Debug.Log($"PERF memory f{Time.frameCount} managed used {UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong() >> 20} heap {UnityEngine.Profiling.Profiler.GetMonoHeapSizeLong() >> 20}"
+                    + $" allocated {UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong() >> 20} reserved {UnityEngine.Profiling.Profiler.GetTotalReservedMemoryLong() >> 20}");
+                for (int i = 0; i < 600; i++) yield return null;
+            }
+        }
+
         System.Collections.IEnumerator PointerLog()
         {
             for (int i = 0; i < 160; i++)
@@ -1760,6 +1771,10 @@ namespace PerfProbe
                     if (type == null || !typeof(Object).IsAssignableFrom(type)) Debug.Log($"PERF count {name}: not a component type");
                     else Debug.Log($"PERF count {name} {FindObjectsByType(type, FindObjectsInactive.Include, FindObjectsSortMode.None).Length}");
                 }
+            // `memory.txt`: the memory Unity's profiler API reports, every 600 frames once the
+            // colony is up, the same calls in either player (on Mono the managed heap's size and
+            // use; Unity's native allocations; in ours the .NET heap's and the working set).
+            if (System.IO.File.Exists(System.IO.Path.Combine(Path, "memory.txt"))) StartCoroutine(MemoryLog());
             // `select.txt`: an assembly-qualified component type; 200 frames into the colony the first
             // selectable object with it on the active world is selected, the view centred on it,
             // and 90 frames later the screen captured (select.png) and the details screen's active
