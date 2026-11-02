@@ -525,6 +525,15 @@ A file the loader rejects reads `PATH null`. Each line is also logged (`[E2eDriv
 Read them as state: `type:E2eDriver.Templates::Lines`, `::Count`, `::Failed` and `::Digest` (the
 hash of all lines). Answers `{"count", "failed", "digest"}`.
 
+### Census reads
+
+State reads that sum up a colony's world in one value, for comparing two players:
+- `type:E2eDriver.Census::Pickupables`: every live Pickupable's prefab id with its count,
+  `ID=N` in ordinal order, joined by spaces;
+- `type:E2eDriver.Census::Chunks`: every element chunk as `ID@CELL`, sorted;
+- `type:E2eDriver.Census::StartGrid`: the start world's cells as `elements=HEX solid=N
+  mass=HEX` (FNV-1a 64 over each cell's element index and mass bits).
+
 ## Errors
 
 | error | when |

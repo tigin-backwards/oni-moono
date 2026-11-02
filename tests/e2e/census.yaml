@@ -1,0 +1,9 @@
+# E2eDriver's census reads (tools/E2eDriver/README.md, "Census reads") of a colony just loaded:
+# the pickupables by prefab, the element chunks by cell and the start world's cells must read as
+# in the original, which holds the same save.
+from: early-base
+steps:
+  - expect_state:
+      "type:E2eDriver.Census::Pickupables": "== original"
+      "type:E2eDriver.Census::Chunks": "== original"
+      "type:E2eDriver.Census::StartGrid": "== original"
