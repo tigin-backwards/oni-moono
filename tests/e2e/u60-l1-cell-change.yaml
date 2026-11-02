@@ -1,0 +1,122 @@
+# U60 QA spec L1 (docs/research/u60-qa-spec.md): cell change tracking and KObject. U60 moved
+# CellChange events into the event system (CellChangeMonitor keyed by Transform instance ids,
+# walking children by index; KObject gains gameObject, Trigger, DetachFromCellChangeMonitor) and
+# fixed memory kept after loading another save.
+#
+# rocket-launch.yaml's rocket (its comment has the set-up): the Rocket Control Station
+# deconstructed and built again inside the rocket, the rocket launched, then flown on. Then the
+# colony is saved and that save loaded three times from the pause menu: the managed heap after
+# the third load (a full collection first) must be within 10 % of the heap after the first, in
+# each player, and the rocket where the original's is after the same game time. (The QA spec's
+# 5 % fails in the original: 2.66 GB after the first load, 2.82 GB after the third, +6.1 %.)
+from: rockets-so
+setup:
+  # The save's rockets were placed in sandbox mode; building a control station needs Space Program.
+  - driver: {setup.call: {target: "Research.Instance.GetTechInstance(\"SpaceProgram\")", method: Purchased}}
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[0].GetComponent<MinionResume>", method: MasterSkill, args: [RocketPiloting1]}}
+  - driver: {setup.call: {target: "Components.Clustercrafts.Items[1].ModuleInterface.ClusterModules[3].Get().GetComponent<AssignmentGroupController>", method: SetMember, args: [{"$": "Components.LiveMinionIdentities.Items[0].assignableProxy.Get()"}, true]}}
+  - driver: {setup.call: {target: "Components.Clustercrafts.Items[1].ModuleInterface.ClusterModules[3].Get().GetComponent<ClustercraftExteriorDoor>", method: FerryMinion, args: [{"$": "Components.LiveMinionIdentities.Items[0].gameObject"}]}}
+  # Without this he finishes the errand the save gave him, back on the asteroid.
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[0].GetComponent<ChoreDriver>", method: StopChore}}
+  # The cabin (world 10, x 650 to 655, y 14 to 19) is a vacuum: 150 kg of oxygen for him to
+  # breathe, 25 kg in each of (651, 16), (654, 16), (652, 17), (653, 17), (651, 18) and
+  # (654, 18) (cell = x + 736 y).
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [12427, Oxygen, null, 25.0, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [12430, Oxygen, null, 25.0, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [13164, Oxygen, null, 25.0, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [13165, Oxygen, null, 25.0, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [13899, Oxygen, null, 25.0, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [13902, Oxygen, null, 25.0, 300.0, 255, 0]}}
+  - driver: {setup.call: {target: "Components.Clustercrafts.Items[1].ModuleInterface.ClusterModules[1].Get().GetComponent<OxidizerTank>.storage", method: AddLiquid, args: [LiquidOxygen, 450, 60, 255, 0]}}
+  - driver: {setup.call: {target: "Components.Clustercrafts.Items[1].GetComponent<RocketClusterDestinationSelector>", method: SetDestination, args: [{"$": "AxialI.EAST"}]}}
+steps:
+  # The save predates two rounds of changes, and the game shows a dialog for each, the later
+  # one on top.
+  - expect_ui: {"**/SpriteListDialog": {count: 2}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton", index: 1}
+  - expect_ui: {"**/SpriteListDialog": {count: 1}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton"}
+  - ui_wait: {path: "**/SpriteListDialog", cond: gone, frames: 120}
+  - expect_state:
+      "Components.Clustercrafts.Items[1].Name": "== 'Calipso XL'"
+      "Components.LiveMinionIdentities.Items[0].name": "== 'Nikola'"
+      "Components.Clustercrafts.Items[1].ModuleInterface.CheckPreppedForLaunch()": true
+      "Components.RocketControlStations.Count": 2
+      "Components.LiveMinionIdentities.Items[0].transform.position.x": "> 640"
+  # Inside the rocket (world 10): Nikola deconstructs its control station and builds it again
+  # from the copper ore it drops.
+  - call: {tool: navigation_control, args: {action: set_active_world, worldId: 10}}
+  - driver: {camera.set: {cell: [652, 15], ortho: 8}}
+  - tool: {toolbar: Deconstruct}
+  - drag: {from: [651, 14], to: [653, 15]}
+  - key: {code: Escape}
+  - run: {seconds: 120}
+  - expect_state:
+      "Components.RocketControlStations.Count": 1
+      "Components.Clustercrafts.Items[1].ModuleInterface.CheckPreppedForLaunch()": false
+  - build: {prefab: RocketControlStation, at: [652, 14]}
+  - run: {seconds: 300}
+  - expect_state:
+      "Components.RocketControlStations.Count": 2
+      "Components.Clustercrafts.Items[1].ModuleInterface.CheckPreppedForLaunch()": true
+  # Outside: the habitat's launch button, with no warnings (its crew is aboard). Nikola pilots
+  # the rocket off the pad.
+  - call: {tool: navigation_control, args: {action: set_active_world, worldId: 0}}
+  - driver: {camera.set: {cell: [76, 253], ortho: 10}}
+  - click_world: {cell: [76, 253], select: HabitatModuleSmall}
+  - ui_wait: {path: "**/LaunchButtonSideScreen/ButtonContainer/LaunchButton", cond: interactable, frames: 300}
+  - expect_ui: {"**/LaunchButtonSideScreen/ButtonContainer/LaunchButton/Label": {text: "BEGIN LAUNCH SEQUENCE"}}
+  # Nikola may be at the station already, and the rocket then leaves (and the side screen
+  # closes) in the frames after the click.
+  - click: {ui: "**/LaunchButtonSideScreen/ButtonContainer/LaunchButton"}
+  - run: {seconds: 300}
+  - expect_state:
+      "Components.Clustercrafts.Items[1].Status": "== 'InFlight'"
+      "Components.Clustercrafts.Items[1].GetComponent<KPrefabID>.HasTag(\"RocketOnGround\")": false
+      "Components.Clustercrafts.Items[1].GetComponent<KPrefabID>.HasTag(\"RocketInSpace\")": true
+  - run: {seconds: 120}
+  - expect_state:
+      "Components.Clustercrafts.Items[1].Status": "== original"
+      "Components.Clustercrafts.Items[1].Location.Q": "== original"
+      "Components.Clustercrafts.Items[1].Location.R": "== original"
+  - save: l1-loads
+  # Load 1. Escape closes what the launch left open (the habitat's selection, the starmap)
+  # before it opens the pause menu.
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/TitleContainer/SaveText", cond: text, value: l1-loads}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 6000}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
+  - run: {seconds: 10}
+  - expect_state: {"type:System.GC::GetTotalMemory(true)": {save_as: heap1}}
+  # Load 2.
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/TitleContainer/SaveText", cond: text, value: l1-loads}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 6000}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
+  - run: {seconds: 10}
+  # Load 3.
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/TitleContainer/SaveText", cond: text, value: l1-loads}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 6000}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
+  - run: {seconds: 10}
+  - expect_state:
+      "type:System.GC::GetTotalMemory(true)": "<= 1.10 * heap1"
+      "Components.Clustercrafts.Items[1].Status": "== original"
+      "Components.Clustercrafts.Items[1].Location.Q": "== original"
+      "Components.Clustercrafts.Items[1].Location.R": "== original"

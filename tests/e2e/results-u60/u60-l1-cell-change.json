@@ -1,0 +1,57 @@
+{
+ "spec": "u60-l1-cell-change.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "rocket-launch's rocket launched and flown on, then its save loaded three times from the pause menu: the heap after the third load within 10 % of the first, the rocket where the original's is",
+ "updated": "2026-11-02",
+ "commit": "6db3c009",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-010916-eeec3942",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T01:09:16",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261102-010916-eeec3942",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T01:23:44",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-010916-eeec3942",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T01:36:27",
+    "lane": 1,
+    "reference_run": "20261102-010916-eeec3942",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261102-010916-eeec3942",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T01:41:59",
+    "lane": 1,
+    "reference_run": "20261102-010916-eeec3942",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
