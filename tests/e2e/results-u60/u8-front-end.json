@@ -1,0 +1,77 @@
+{
+ "spec": "u60/u8-front-end.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Main menu shot, the Load screen with a colony selected, and the destination screen's asteroid list after New Game, Survival, Classic (carousel asteroid and caret masked, one-digit hours)",
+ "updated": "2026-11-02",
+ "commit": "48e16db6",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-224741-1ed62429",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:47:41",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-000727-cda55899",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:07:27",
+    "lane": 50,
+    "reference_run": "20261101-224741-1ed62429",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "load-list": {
+      "differences": 0
+     },
+     "load-colony": {
+      "differences": 0
+     },
+     "carousel": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "main-menu": 0.014782,
+     "load-colony": 0.003428,
+     "carousel": 0.0
+    }
+   },
+   {
+    "run": "20261102-000727-cda55899",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:07:49",
+    "lane": 50,
+    "reference_run": "20261101-224741-1ed62429",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "load-list": {
+      "differences": 0
+     },
+     "load-colony": {
+      "differences": 0
+     },
+     "carousel": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "main-menu": 0.014862,
+     "load-colony": 0.00292,
+     "carousel": 0.000858
+    }
+   }
+  ]
+ }
+}

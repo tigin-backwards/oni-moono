@@ -1109,6 +1109,11 @@ difference.
 
 ### U8 Front-end screens
 
+**Status:** passes (48e16db6, Linux OpenGL; Windows: pending). `tests/e2e/u60/u8-front-end.yaml`:
+the main menu shot (DLC logos), the Load screen with a colony selected (dumps and shot), and the
+destination screen after New Game, Survival, Classic and a typed seed (asteroid list dumped,
+carousel shot with its bobbing asteroid and the caret masked) equal the original's.
+
 **Risk: medium.**
 
 **Patch notes:**

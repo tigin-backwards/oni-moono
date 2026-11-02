@@ -1,0 +1,42 @@
+# U8 (docs/research/u60-qa-spec.md): front-end screens.
+#
+# U60 moved the asteroid selection's arrows, gave the Load screen more room for the save name and
+# cycle count, fixed white lines around the DLC logos (sprite sampling at their edges) and
+# changed MainMenu.RefreshResumeButton. Sprite edges and TMP truncation are ours.
+#
+# From the main menu (all DLCs), with early-base among the saves (extra_saves): the main menu shot
+# (its DLC logos; ours' credit tile masked), the Load screen with the colony selected, then New
+# Game, Survival, Classic and the destination screen's asteroid carousel, dumped and shot.
+from: main-menu
+extra_saves: [early-base]
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - shot: {name: main-menu, mask: [[210, 525, 60, 195]], threshold: 0.02}
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  # The list (its header's cloud-save hint bobs); the save's date is the copy's, masked.
+  - ui_dump: {name: load-list, root: "**/LoadScreen/Panel/ColonyList/ListView", mask_text: ['\d+:\d\d:\d\d - .*']}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", cond: stable}
+  - ui_dump: {name: load-colony, root: "**/LoadScreen/Panel/ColonyView/ListView", mask_text: ['\d+:\d\d:\d\d - .*']}
+  - shot: {name: load-colony, crop: "**/LoadScreen/Panel"}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList", cond: stable}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "V-SNDST-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/Section - Destination/DestinationDetailsHeader/ClusterName", cond: text, value: "~Terra"}
+  - ui_dump: {name: carousel, root: "**/Section - Destination/World Scoll (Rect Size Set By Screen Code!)/Content/Details"}
+  # The selected asteroid bobs and the coordinates field's caret blinks: both masked.
+  - shot: {name: carousel, crop: "**/ColonyDestinationScreen2/Layout", mask: [[560, 65, 150, 160], "**/CoordinateContainer/SeedInput"]}
