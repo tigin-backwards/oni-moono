@@ -1158,6 +1158,7 @@ namespace OniMoono.Engine.UI
         }
 
         static readonly List<(CanvasNative Space, DrawItem Item)> nestedDraws = new();
+        static readonly List<DrawItem> nestedGroup = new();
 
         sealed class NestedMesh
         {
@@ -1176,16 +1177,23 @@ namespace OniMoono.Engine.UI
         /// one of its parts changed; a nested canvas that moves or scales does not change them.
         static void ShareNestedMeshes()
         {
-            var group = new List<DrawItem>();
+            var group = nestedGroup;
             while (nestedDraws.Count > 0)
             {
                 // Each nested canvas's draws, in drawing order (they need not be consecutive:
-                // a canvas nested in another one draws between its parent's elements).
+                // a canvas nested in another one draws between its parent's elements). The
+                // others keep their order (a plain loop: RemoveAll's capturing predicate cost a
+                // closure and a delegate for every nested canvas in every frame).
                 var space = nestedDraws[0].Space;
                 group.Clear();
-                foreach (var (s, item) in nestedDraws)
-                    if (s == space) group.Add(item);
-                nestedDraws.RemoveAll(e => e.Space == space);
+                int kept = 0;
+                for (int i = 0; i < nestedDraws.Count; i++)
+                {
+                    var e = nestedDraws[i];
+                    if (e.Space == space) group.Add(e.Item);
+                    else nestedDraws[kept++] = e;
+                }
+                nestedDraws.RemoveRange(kept, nestedDraws.Count - kept);
                 var shared = nestedMeshes.GetValue(space, _ => new NestedMesh());
                 bool same = shared.Parts.Length == group.Count;
                 for (int i = 0; same && i < group.Count; i++)
