@@ -1,0 +1,24 @@
+# U60 QA spec M2 (docs/research/u60-qa-spec.md): corrupt Workshop items are downloaded again.
+# A subscribed legacy zip that does not open (here truncated to half) makes U60's
+# KMod.Steam.MakeMod log "Corrupt mod file(s)" and call SteamUGCService.ForceDownloadContent:
+# UGCDownloadToLocation into PATH.download, its RemoteStorageDownloadUGCResult_t call result,
+# then SwapDownloadedFile's File.Replace over the corrupt zip; KMod is told the mod is
+# reacquired and asks for a restart. The double serves the good zip as the download. Both players must log the same
+# steps, and the zip in place must be the good one.
+# Both players load the Steam double's Workshop part (tools/SteamStub/build.sh --dlc --ugc): ours
+# through QA_U57_STEAM, the original from E2E_ORIGINAL's Plugins/AnyCPU/libsteam_api.so (a
+# copy of the install whose library is that one).
+from: main-menu
+workshop: {id: 1960996649, layout: zip, corrupt: true}
+require_log:
+  - 'Corrupt mod file\(s\) for ''[^'']*'' \(id 1960996649\)'
+  - 'ForceDownloadContent: 7 to .*1960996649\.zip\.download'
+  - 'ForceDownloadContent completed for handle 7: ioFailure=False, result=k_EResultOK, bytes=\d+, succeeded=True'
+  - 'SwapDownloadedFile: swapped fresh download into ''.*1960996649\.zip'''
+steps:
+  # The game asks for a restart once the mod is reacquired, in a dialog over the intro video.
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel", cond: stable, frames: 6000}
+  - ui_dump: {name: dialog, root: "**/ConfirmDialog"}
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == PeterHan.ShowRange": "== original"
+      "count:Global.Instance.modManager.mods[*] if .label.id == 1960996649 and .status == Installed": "== original"
