@@ -37,6 +37,9 @@ namespace TMPro
         Mesh m_MeshCache;
         // The text as last parsed (SetCharArray builds it from a buffer).
         string m_SourceCache;
+        // The text was last set from characters (SetText(StringBuilder), SetCharArray): U59's
+        // text property then counts the same text as a change, once (measured).
+        bool m_TextFromCharacters;
         private protected bool m_IgnoreActiveState;
 
         protected static readonly Color32 s_colorWhite = new(255, 255, 255, 255);
@@ -86,7 +89,8 @@ namespace TMPro
             get => m_text;
             set
             {
-                if (m_text == value) return;
+                if (m_text == value && !m_TextFromCharacters) return;
+                m_TextFromCharacters = false;
                 m_text = value ?? "";
                 m_SourceCache = null;
                 SourceChanged();
@@ -113,9 +117,11 @@ namespace TMPro
 
         public virtual void SetText(string sourceText) => SetText(sourceText, true);
 
+        // Unlike the text property, the same text again counts as a change (measured: the text
+        // is regenerated and laid out again, its events sent).
         public void SetText(string sourceText, bool syncTextInputBox)
         {
-            if (m_text == sourceText) return;
+            m_TextFromCharacters = false;
             m_text = sourceText ?? "";
             m_SourceCache = null;
             SourceChanged();
@@ -130,7 +136,11 @@ namespace TMPro
         public void SetText(string sourceText, float arg0, float arg1, float arg2, float arg3, float arg4, float arg5, float arg6) => SetFormatted(sourceText, 7, arg0, arg1, arg2, arg3, arg4, arg5, arg6, 0);
         public void SetText(string sourceText, float arg0, float arg1, float arg2, float arg3, float arg4, float arg5, float arg6, float arg7) => SetFormatted(sourceText, 8, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 
-        public void SetText(StringBuilder sourceText) => SetText(sourceText?.ToString(), true);
+        public void SetText(StringBuilder sourceText)
+        {
+            SetText(sourceText?.ToString(), true);
+            m_TextFromCharacters = true;
+        }
 
         public void SetText(char[] sourceText) => SetCharArray(sourceText);
 
@@ -138,11 +148,12 @@ namespace TMPro
 
         public void SetCharArray(char[] sourceText) => SetCharArray(sourceText, 0, sourceText?.Length ?? 0);
 
+        // The same characters again count as a change, as for SetText.
         public void SetCharArray(char[] sourceText, int start, int length)
         {
             string s = sourceText == null ? "" : new string(sourceText, start, length);
-            if (m_text == s) return;
             m_text = s;
+            m_TextFromCharacters = true;
             m_SourceCache = null;
             SourceChanged();
         }

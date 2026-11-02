@@ -2985,6 +2985,30 @@ and the quads' triangles, bounds zero, and uv and colours not set by the constru
 with the probe's `tmp.*` lines (`diff` of the two players' `MS` lines shows no difference in
 them) and with the spec above, which must reach its last step without the crash dialog.
 
+### The same text set again (measured 2026-11-01 and 2026-11-02)
+
+Measured with `PROBE_SCENARIO=u60` (tools/UnityProbe, `U60Bcl.cs`, lines `U60 TS …`, spec
+`bcl-probe`) in U59's player (build 744825, Linux) and U60's (761211) at the main menu: a
+`TextMeshProUGUI` in NotoSans-Regular 14 pt under a parent with a layout group that counts its
+passes, each call on a frame of its own, then two frames. Per call: `havePropertiesChanged`
+right after it, then the `OnPreRenderText` events, `TMPro_EventManager.TEXT_CHANGED_EVENT`
+events and the parent's `SetLayoutHorizontal` and `SetLayoutVertical` calls in those frames.
+
+- **Every setter but the text property counts the same text as a change.** `SetText(string)`,
+  `SetText(StringBuilder)`, `SetText(format, arg)`, `SetCharArray(char[])` and
+  `SetCharArray(char[], start, length)` with the characters the text already holds (and again
+  on the next frame) each set `havePropertiesChanged`, and are followed by one
+  `OnPreRenderText`, one `TEXT_CHANGED_EVENT` and one layout pass (horizontal and vertical), as
+  a different text is.
+- **The `text` property skips the same text**, leaving `havePropertiesChanged` false, with no
+  event and no layout pass, after itself, `SetText(string)` or `SetText(format, arg)`.
+- **In U59, not after the character setters.** After `SetText(StringBuilder)`,
+  `SetCharArray(char[])` or `SetCharArray(char[], start, length)`, the text property given the
+  text they set counts it as a change (one `OnPreRenderText`, one `TEXT_CHANGED_EVENT`, one
+  layout pass); set once more, it skips it again. U60's package skips it there too.
+- `LocText.SetText` (U59's override; U60's `SetContent`) with the same characters sets
+  `havePropertiesChanged` on its text.
+
 ### Indents opened part-way along a line (measured 2026-11-01)
 
 **Why:** the details screen and the product card write a nested descriptor as a bullet between
