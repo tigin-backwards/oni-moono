@@ -166,3 +166,26 @@ class Queue(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class OriginalPlayerFolder(unittest.TestCase):
+    def test_links_follow_the_install_named(self):
+        # A lane's folder made for one install, then used with another (a copy whose Steam
+        # double differs): every link names the second install's files.
+        with tempfile.TemporaryDirectory() as d:
+            installs = []
+            for name in ('a', 'b'):
+                install = os.path.join(d, name)
+                os.makedirs(os.path.join(install, 'OxygenNotIncluded_Data'))
+                with open(os.path.join(install, 'OxygenNotIncluded'), 'w') as f:
+                    f.write('player ' + name)
+                installs.append(install)
+            root = os.path.join(d, 'out')
+            first = e2e.original_player(os.path.join(installs[0], 'OxygenNotIncluded'), 3, root=root)
+            data = os.path.join(root, '.original-3', 'OxygenNotIncluded_Data')
+            self.assertEqual(os.readlink(data), os.path.join(installs[0], 'OxygenNotIncluded_Data'))
+            second = e2e.original_player(os.path.join(installs[1], 'OxygenNotIncluded'), 3, root=root)
+            self.assertEqual(first, second)
+            self.assertEqual(os.readlink(data), os.path.join(installs[1], 'OxygenNotIncluded_Data'))
+            with open(second) as f:
+                self.assertEqual(f.read(), 'player b')

@@ -2810,7 +2810,9 @@ def original_environment(text):
 def original_player(executable, lane, root=OUT):
     """The original player's executable in a folder of the lane's own: Unity's Linux player runs
     single-instance, locking unity.lock beside its executable ("Player is already running"), so
-    each lane gets a copy of the executable beside links to everything else but that lock."""
+    each lane gets a copy of the executable beside links to everything else but that lock. The
+    links follow E2E_ORIGINAL: one left from another install (a copy whose Steam double differs)
+    is pointed at this one's."""
     source = os.path.dirname(os.path.abspath(executable))
     folder = os.path.join(root, f'.original-{lane}')
     os.makedirs(folder, exist_ok=True)
@@ -2819,7 +2821,8 @@ def original_player(executable, lane, root=OUT):
             continue
         target = os.path.join(folder, name)
         if name == os.path.basename(executable):
-            if not os.path.exists(target) or os.path.getmtime(target) < os.path.getmtime(executable):
+            if (not os.path.exists(target) or os.path.getmtime(target) < os.path.getmtime(executable)
+                    or os.path.getsize(target) != os.path.getsize(executable)):
                 shutil.copy2(executable, target)
         elif not os.path.lexists(target):
             os.symlink(os.path.join(source, name), target)
