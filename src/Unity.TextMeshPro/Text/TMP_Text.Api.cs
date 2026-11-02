@@ -186,8 +186,12 @@ namespace TMPro
         // From the first line's ascender to the last line's descender. With auto-size, an
         // unwrapped text is measured at the maximum size, as its width is (measured on the
         // shipped package: "kg" shrunk to 11 in 95.7 x 15 is 21.76 high with fontSizeMax 16);
-        // a wrapped one at the size auto-size chooses for the rect (the M9 measurement, which
-        // the unwrapped probe did not contradict for wrapped text).
+        // a wrapped one at the size auto-size chooses for the width alone, whatever the rect's
+        // height (measured, UnityProbe autosizepref: NotoSans 8 to 14 pt, 72 wide, "0/0" is
+        // 19.04 high in rects 0 to 100 high, though shrunk to 8 in those under one line;
+        // "PowerUseDiagnosticKey", broken at every size, 21.78, two lines at 8). U60's All
+        // Diagnostics rows take their labels' heights from this: at the rect's chosen size they
+        // stayed one line at 8 pt.
         float PreferredHeightAt(float width)
         {
             if (m_fontAsset == null) return 0f;
@@ -196,7 +200,8 @@ namespace TMPro
             if (m_enableAutoSizing && wraps)
             {
                 float lineAdjust = m_LineSpacingAdjustment, widthAdjust = m_CharWidthAdjustment;
-                float size = ChooseFontSize(LayoutRect);
+                var rect = LayoutRect;
+                float size = ChooseFontSize(new Rect(rect.x, rect.y, width, float.PositiveInfinity));
                 m_LineSpacingAdjustment = 0f;
                 m_CharWidthAdjustment = 0f;
                 Layout(size, width, float.PositiveInfinity);

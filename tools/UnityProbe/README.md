@@ -76,6 +76,13 @@ formatting itself. Compare the players with `tools/UnityProbe/tw-check.py diff O
 check the rounding rule with `tw-check.py rule LOG`; `docs/cleanroom/textmeshpro.md`
 ("Preferred sizes to the hundredth") records what it measured.
 
+With `PROBE_SCENARIO=autosizepref` only the auto-size probe runs (`AutoSizePreferred.cs`, lines
+`AP …`, 10 s into the main menu): wrapped, auto-sized NotoSans texts (8 to 14 pt) 72 wide in rects
+0 to 100 high, then in a HorizontalLayoutGroup row that controls their height: the size chosen,
+the preferred width and height and GetPreferredValues, then an `AutoSizePreferredProbeDone`
+canvas. `TmpEmptyTextTests` (`AWrappedAutoSizedTextsPreferredHeightIgnoresTheRectsHeight`)
+encodes it.
+
 With `PROBE_SCENARIO=textheight` only the text-height probe runs (`TextHeight.cs`, lines `TH …`,
 10 s into the main menu): TMP's preferred height and width of 21 labels in the scripts the
 Workshop's translations use (Japanese, Chinese, Korean, Thai, Cyrillic, Vietnamese, Latin) in
