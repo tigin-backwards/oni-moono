@@ -1,0 +1,57 @@
+{
+ "spec": "u60-i1-side-buttons.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the X side buttons 8-10 at the main menu: the mouse key codes GetKeyDown and GetKey report and the IMGUI MouseDown buttons, as in the original",
+ "updated": "2026-11-01",
+ "commit": "387497cb",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-234858-58423d07",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:48:58",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261101-234858-58423d07",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T23:49:18",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-234858-58423d07",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:49:36",
+    "lane": 1,
+    "reference_run": "20261101-234858-58423d07",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-234858-58423d07",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T23:50:32",
+    "lane": 1,
+    "reference_run": "20261101-234858-58423d07",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

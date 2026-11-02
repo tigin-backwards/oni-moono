@@ -881,8 +881,8 @@ namespace OniMoono.Desktop
 
         void OnMouseButton(GlfwMouseButton button, GlfwButtonAction action, EventModifiers held)
         {
-            int index = (int)button;
-            if (index > 6) return;
+            int index = InputStateFeed.UnityButton((int)button);
+            if (index < 0) return;
             if (action == GlfwButtonAction.Press) feed.MouseDown(index, held, MouseGuiPosition());
             else feed.MouseUp(index, held, MouseGuiPosition());
         }
@@ -898,7 +898,7 @@ namespace OniMoono.Desktop
         float lastClickTime = -1f;
         int lastClickButton = -1;
         Vector2 dragStart;
-        readonly bool[] buttonsDown = new bool[7];
+        readonly bool[] buttonsDown = new bool[8];
 
         static void Queue(EventType type, EventModifiers modifiers, Vector2 guiPosition, Action<Event> fill = null)
         {
@@ -966,10 +966,22 @@ namespace OniMoono.Desktop
         internal static Vector2 WheelEventDelta(Vector2 notches, bool windows)
             => new Vector2(-notches.x, -notches.y) * (windows ? 3f : 1f);
 
+        /// The button Unity's player reports for GLFW's: GLFW numbers X11's side buttons 8 to 11
+        /// as its 3 to 6, and Unity's X11 player reports X buttons 8 and 9 as 3 and 4
+        /// (KeyCode.Mouse3, Mouse4), 10 as 6 (Mouse6) and 11 as 7, an IMGUI button without a key
+        /// code; none is Mouse5 (measured on the U60 player, U60 QA spec I1). Only X11 has buttons
+        /// past 9. -1 for one past them.
+        internal static int UnityButton(int glfw) => glfw switch
+        {
+            < 0 or > 6 => -1,
+            >= 5 => glfw + 1,
+            _ => glfw,
+        };
+
         public void MouseDown(int button, EventModifiers modifiers, Vector2 guiPosition)
         {
             buttonsDown[button] = true;
-            State.KeyPressed(KeyCode.Mouse0 + button);
+            if (button <= 6) State.KeyPressed(KeyCode.Mouse0 + button);
             float now = Time.realtimeSinceStartup;
             if (button == lastClickButton && IsDoubleClick(now - lastClickTime, guiPosition - dragStart)) clickCount++;
             else clickCount = 1;
@@ -1012,7 +1024,7 @@ namespace OniMoono.Desktop
         public void MouseUp(int button, EventModifiers modifiers, Vector2 guiPosition)
         {
             buttonsDown[button] = false;
-            State.KeyReleased(KeyCode.Mouse0 + button);
+            if (button <= 6) State.KeyReleased(KeyCode.Mouse0 + button);
             int clicks = clickCount;
             Queue(EventType.MouseUp, modifiers, guiPosition, e =>
             {
