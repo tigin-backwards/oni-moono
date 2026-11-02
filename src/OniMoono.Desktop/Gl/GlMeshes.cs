@@ -128,13 +128,9 @@ namespace OniMoono.Desktop.Gl
         /// The mesh's device data is recorded as it is now: Prepare would record nothing.
         public static bool IsCurrent(MeshNative m) => m.Gpu is DeviceMesh d && d.RecordedVersion == m.Version;
 
-        // Its own method, so the closure is allocated only for a changed mesh (Prepare runs for
-        // every draw).
+        // A ResourceCommand from the frame's arena: no closure or delegate per changed mesh.
         static void PostUpload(GlWorker worker, DeviceMesh d, MeshUpload upload)
-        {
-            var work = worker.Resources;
-            worker.Post(() => work.UploadMesh(d, upload));
-        }
+            => worker.Post(worker.Arena.Command().UploadMesh(worker.Resources, d, upload));
 
         static void AddChannel<T>(MeshUpload upload, MeshLayout layout, Channel c, T[] data, int components) where T : unmanaged
         {

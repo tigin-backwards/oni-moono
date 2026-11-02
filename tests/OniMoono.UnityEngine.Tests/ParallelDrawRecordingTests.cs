@@ -131,6 +131,11 @@ namespace OniMoono.Tests
             var stream = new List<string>();
             foreach (var command in worker.Recording.Commands)
             {
+                if (command.Target is ResourceCommand resource)
+                {
+                    stream.Add("post " + resource.Recorded);
+                    continue;
+                }
                 if (command.Method.DeclaringType?.DeclaringType != typeof(GlDrawRecorder))
                 {
                     stream.Add("post " + command.Method.DeclaringType?.DeclaringType?.Name);
@@ -231,8 +236,9 @@ namespace OniMoono.Tests
                 ahead = GlDrawRecorder.AheadDrawCount - ahead;
 
                 Assert.True(serial.Count >= 400, $"{serial.Count} commands");
-                Assert.Contains(serial, c => c.StartsWith("post GlTextures", StringComparison.Ordinal));
-                Assert.Contains(serial, c => c.StartsWith("post GlMeshes", StringComparison.Ordinal));
+                Assert.Contains(serial, c => c == "post UploadTexture");
+                Assert.Contains(serial, c => c == "post ApplySampler");
+                Assert.Contains(serial, c => c == "post UploadMesh");
                 for (int i = 0; i < Math.Min(serial.Count, parallel.Count); i++)
                     Assert.True(serial[i] == parallel[i], $"command {i}:\n  serial   {serial[i]}\n  parallel {parallel[i]}");
                 Assert.Equal(serial.Count, parallel.Count);

@@ -283,6 +283,7 @@ namespace OniMoono.Desktop.Gl
             floatCount = 0;
             byteCount = 0;
             objectCount = 0;
+            commandCount = 0;
             foreach (var c in children) c.Reset();
         }
 
@@ -309,6 +310,20 @@ namespace OniMoono.Desktop.Gl
             if (objectCount < objects.Count) objects[objectCount] = made;
             else objects.Add(made);
             objectCount++;
+            return made;
+        }
+
+        readonly List<ResourceCommand> commands = new();
+        int commandCount;
+
+        /// A resource command for this frame, reused from the frame's last use (in a list of its
+        /// own, so that it does not take the place of the draws' objects in Next).
+        public ResourceCommand Command()
+        {
+            if (commandCount < commands.Count) return commands[commandCount++];
+            var made = new ResourceCommand();
+            commands.Add(made);
+            commandCount++;
             return made;
         }
 

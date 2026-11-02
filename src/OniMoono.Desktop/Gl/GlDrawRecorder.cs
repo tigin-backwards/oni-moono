@@ -214,6 +214,13 @@ namespace OniMoono.Desktop.Gl
         public DeviceProgram Program(ShaderNative shader, int blob)
         {
             if (shader.Gpu is DeviceProgramSet set && set.Programs.TryGetValue(blob, out var p)) return p;
+            return Build(shader, blob);
+        }
+
+        // Its own method: the closure captures the parameters, and C# allocates such a closure
+        // on entry to the method, so in Program it was made for every pass of every draw.
+        DeviceProgram Build(ShaderNative shader, int blob)
+        {
             long waitStart = System.Diagnostics.Stopwatch.GetTimestamp();
             var work = worker.Resources;
             var built = worker.Call(() => work.Program(shader, blob));
