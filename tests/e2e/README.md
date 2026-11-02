@@ -154,9 +154,17 @@ spaced_out: false                # Spaced Out off in both players (default: the 
 translation: 929139073           # the language of this translation mod (one of `mods`), picked in the prefs
 language: zh_klei                # or one of the game's own languages (zh_klei, ko_klei, ru_klei)
 tweaks_menu: true                # ours keeps the main menu's Moono Tweaks button (run with --player ours)
+scaled_screen: true              # the game may render smaller than the display (below)
 setup: [...]                     # steps run first; the only place for driver setup.call
 steps: [...]
 ```
+
+`scaled_screen: true` is for a spec that sets a smaller resolution in fullscreen
+([`fullscreen-window-resolution.yaml`](fullscreen-window-resolution.yaml)): the game then renders
+at that size, stretched over the whole display. Before each step the runner reads
+`Screen.fullScreen` and `Display.main.renderingWidth`/`Height`, and while they differ from the
+display's size it scales the pointer's positions (the game's pixels, as `ui.find` gives them) to
+the display's, and a main-menu shot's crop and masks to its grab.
 
 Every spec gets OniMcp and, in both players, E2eDriver: `E2eDriver.dll` from its build
 (`E2E_DRIVER`, default `out/bin/E2eDriver/release`) with `tools/E2eDriver/mod.yaml` and

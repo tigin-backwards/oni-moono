@@ -49,6 +49,15 @@ class Xtest(unittest.TestCase):
         self.input.click(200, 100, mods=['Shift'])
         self.assertEqual(self.pointer(), (200, 100, 0))
 
+    def test_scaled_screen(self):
+        """`scaled_screen`: the game's 960x720 stretched over a 1280x720 display; positions are
+        the game's pixels."""
+        self.input.scale = (1280 / 960, 1.0)
+        self.input.move(480, 373)
+        self.assertEqual(self.pointer()[:2], (640, 373))
+        self.input.click(703.6, 139)
+        self.assertEqual(self.pointer()[:2], (938, 139))
+
     def test_keys(self):
         for name in ('b', 'Shift_L', 'Control_L', 'Escape', 'Return', 'F5', 'Up', 'KP_Add', '7', 'bracketleft'):
             self.assertTrue(self.input.keycode(name)[0], name)

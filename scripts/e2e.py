@@ -156,7 +156,7 @@ def ws_mods():
 
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
-            'keyboard', 'tweaks_menu'}
+            'keyboard', 'tweaks_menu', 'scaled_screen'}
 # The game's own translations (`language`), as Localization.PreinstalledLanguages names them.
 PREINSTALLED_LANGUAGES = ('zh_klei', 'ko_klei', 'ru_klei')
 # `from: main-menu` loads no fixture: the steps start at the main menu (a new game's spec).
@@ -321,6 +321,8 @@ def check_spec(spec):
         problems.append('`spaced_out` is true or false')
     if not isinstance(spec.get('tweaks_menu', False), bool):
         problems.append('`tweaks_menu` is true or false')
+    if not isinstance(spec.get('scaled_screen', False), bool):
+        problems.append('`scaled_screen` is true or false')
     if not isinstance(spec.get('steps'), list):
         problems.append('`steps` is a list')
     mods = spec.get('mods', [])
@@ -2078,8 +2080,14 @@ class Input:
             raise SpecFailure(f'no key for {name!r} on {self.display}')
         return keycode, keysym
 
+    # The display's pixels per pixel of the game's screen: Run.update_scale sets them for a
+    # spec whose game renders smaller than the display (`scaled_screen`).
+    scale = (1.0, 1.0)
+
     def move(self, x, y):
-        self.xtst.XTestFakeMotionEvent(self.dpy, -1, int(x), int(y), 0)
+        """The pointer to X, Y: the game's screen pixels from the top left, which are the
+        display's unless the game renders at a smaller size stretched over it (`scale`)."""
+        self.xtst.XTestFakeMotionEvent(self.dpy, -1, int(x * self.scale[0]), int(y * self.scale[1]), 0)
         self._flush()
 
     def button(self, button, down):
@@ -3225,6 +3233,22 @@ class Run:
                                frames=self.driver.frames if self.driver else None)
         return self.input
 
+    def update_scale(self):
+        """`scaled_screen`: in a fullscreen window the game renders at Display.main's rendering
+        size, stretched over the whole display (the original, measured on Xvfb: 960x720 on a
+        1280x720 screen, the pointer at 160,0 read as 120,719); pointer positions are scaled
+        to match. Windowed, the window sits at the display's origin at its own size."""
+        driver, inp = self.need_driver(), self.need_input()
+        if driver.state('UnityEngine.Screen.fullScreen'):
+            width, height = driver.state('UnityEngine.Display.main.renderingWidth'), driver.state('UnityEngine.Display.main.renderingHeight')
+            scale = (WIDTH / width, HEIGHT / height) if width and height else (1.0, 1.0)
+        else:
+            scale = (1.0, 1.0)
+        if scale != inp.scale:
+            self.log(f'  the game renders at {WIDTH / scale[0]:.0f}x{HEIGHT / scale[1]:.0f}, stretched over the '
+                     f'{WIDTH}x{HEIGHT} display: pointer positions scaled by {scale[0]:.4g}, {scale[1]:.4g}')
+            inp.scale = scale
+
     def frames(self, n):
         if self.driver:
             self.driver.frames(n)
@@ -3528,7 +3552,8 @@ class Run:
     def screen_point(self, at):
         """A step's `at`: `center` (the screen's), a cell [x, y] or a UI path, as screen pixels."""
         if at == 'center':
-            return WIDTH // 2, HEIGHT // 2
+            scale = getattr(self.input, 'scale', (1.0, 1.0))
+            return int(WIDTH / scale[0]) // 2, int(HEIGHT / scale[1]) // 2
         if _cell(at):
             return self.need_driver().to_screen(at)
         return self.element({'ui': at}).center
@@ -3639,6 +3664,13 @@ class Run:
         path = self.menu_grab(name) if menu else screenshot(self.mcp, self.out, name)
         if not path:
             raise SpecFailure(f'shot {name}: OniMcp made no screenshot')
+        scale = getattr(self.input, 'scale', (1.0, 1.0))
+        if menu and scale != (1.0, 1.0):
+            # The display's grab shows the game's screen stretched (`scaled_screen`): the rects,
+            # in the game's pixels, are scaled to the grab's.
+            stretch = lambda r: [r[0] * scale[0], r[1] * scale[1], r[2] * scale[0], r[3] * scale[1]]
+            meta['crop'] = meta['crop'] and stretch(meta['crop'])
+            meta['masks'] = [stretch(r) for r in meta['masks']]
         meta['file'] = os.path.basename(path)
         with open(os.path.join(self.out, name + '.shot.json'), 'w') as f:
             json.dump(meta, f)
@@ -3714,6 +3746,8 @@ class Run:
                 failed_kind = kind_of_step
                 label = number if block == 'steps' else f'setup {number}'
                 began = time.time()
+                if spec.get('scaled_screen') and self.driver:
+                    self.update_scale()
                 self.step(kind_of_step, value, label)
                 records.write(json.dumps({'step': label, kind_of_step: value, 'wall': round(time.time() - began, 1)}) + '\n')
                 records.flush()
