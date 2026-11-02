@@ -2191,7 +2191,7 @@ was (120.75, 718) with the pointer on the screen's pixel 161,1 at 960x720). Capt
 `ReadPixels` of the screen return the rendered size. Ours keeps the window the monitor's size
 (`GlfwPlatform.WindowFramebufferWidth`/`Height`, what the presenter fills) and renders at the size
 asked for (`FramebufferWidth`/`Height`, which `Screen` and `Display` report); the presenter's
-copy to the window (OpenGL's blit, into DXGI's shared texture too)
+copy to the window (OpenGL's blit, into DXGI's shared texture too; Vulkan's `vkCmdBlitImage`)
 stretches it with linear filtering, as it already did for a frame drawn before a resize, and
 `ToPixels` maps the pointer with `WindowToRendering`. A fullscreen window opened at start-up
 renders at the monitor's size (the game applies its saved resolution on its first frames). Not

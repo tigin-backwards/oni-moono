@@ -166,15 +166,13 @@ namespace OniMoono.Desktop.Vulkan
 
         // ----- Device thread -----
 
-        /// The back buffer this frame draws into, of the window's framebuffer size (kept at the
-        /// size a frame began drawing at; see GlPresenter.BackBuffer).
+        /// The back buffer this frame draws into, at the rendering size (kept at the size a frame
+        /// began drawing at; see GlPresenter.BackBuffer).
         public VkBackBuffer BackBuffer(int width, int height, VkFrames frames)
         {
             var b = buffers[current];
             width = Math.Max(1, width);
             height = Math.Max(1, height);
-            windowWidth = width;
-            windowHeight = height;
             if (b.Color == null || (b.Width != width || b.Height != height) && !b.DrawnThisFrame) Allocate(b, width, height, frames);
             else if (PresentTrace.Enabled && (b.Width != width || b.Height != height))
                 PresentTrace.Log($"frame {Frame}: back buffer {b.Index} kept at {b.Width}x{b.Height} for the rest of the frame (the window is {width}x{height})");
@@ -217,6 +215,9 @@ namespace OniMoono.Desktop.Vulkan
         /// nothing shows the last frame again.
         public void Present(int interval, int width, int height)
         {
+            // The window's size, which a frame of another size is stretched over (RecordCopy).
+            windowWidth = Math.Max(1, width);
+            windowHeight = Math.Max(1, height);
             var b = buffers[current];
             var choice = GlPresenter.Choose(b.Color != null, b.DrawnSinceAllocation, b.DrawnThisFrame, handedOver != null);
             bool complete = choice == GlPresenter.PresentChoice.Frame;

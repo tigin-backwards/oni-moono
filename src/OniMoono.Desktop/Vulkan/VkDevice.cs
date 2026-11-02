@@ -119,7 +119,7 @@ namespace OniMoono.Desktop.Vulkan
                 pipelines = new VkPipelines(vk);
                 splash = GlDevice.Splash != null ? new VkSplash(vk, programs, GlDevice.Splash) : null;
                 VkContext.FailAt("device");
-                presenter = new VkPresenter(vk, platform.Window, surface, splash, platform.FramebufferWidth, platform.FramebufferHeight, depthFormat);
+                presenter = new VkPresenter(vk, platform.Window, surface, splash, platform.WindowFramebufferWidth, platform.WindowFramebufferHeight, depthFormat);
                 CreateShared();
                 VkContext.FailAt("presenter");
             }
@@ -461,7 +461,9 @@ namespace OniMoono.Desktop.Vulkan
                 PlayerLoop.RequestQuit(1);
             }
             int interval = SwapIntervalOverride >= 0 ? SwapIntervalOverride : QualitySettings.vSyncCount;
-            int width = platform.FramebufferWidth, height = platform.FramebufferHeight;
+            // The window's size: the frame, drawn at the rendering size (smaller in a fullscreen
+            // window the game asked a smaller resolution of), is stretched over it.
+            int width = platform.WindowFramebufferWidth, height = platform.WindowFramebufferHeight;
             int frame = Time.frameCount;
             long started = PlayerLoop.FrameStartedAt;
             worker.Post(() => PresentNow(frame, interval, width, height, started));
