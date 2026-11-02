@@ -354,7 +354,8 @@ namespace OniMoono.Desktop.Gl
 
         /// The pass's program variant for the material's, the draw's and the global keywords,
         /// selected once per material, pass and draw keyword list while the keywords are unchanged.
-        int Variant(MaterialNative material, ShaderNative passShader, ShaderPass pass, string[] keywords)
+        /// The devices' immediate draws (no draw keywords) use it too.
+        public int Variant(MaterialNative material, ShaderNative passShader, ShaderPass pass, string[] keywords)
         {
             var cache = material.Variants ??= new();
             var key = (pass, keywords);

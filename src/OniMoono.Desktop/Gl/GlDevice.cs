@@ -755,7 +755,7 @@ namespace OniMoono.Desktop.Gl
             var sub = shader.ActiveSubShader;
             if (sub == null || passIndex >= sub.Passes.Length) return null;
             var pass = sub.Passes[passIndex];
-            int blob = ShaderPrograms.SelectVariant(pass, k => GlDrawRecorder.KeywordEnabled(k, material, null));
+            int blob = recorder.Variant(material, shader, pass, null);
             if (blob < 0) return null;
             var program = recorder.Program(shader, blob);
             if (program.Id == 0) return null;
