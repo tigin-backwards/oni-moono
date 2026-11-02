@@ -208,8 +208,10 @@ namespace OniMoono.Tests
             Assert.Equal("B", s.Drawn());
             a.gameObject.layer = 5;
             Assert.Equal("A,B", s.Drawn());
+            // Earlier tests' destroyed renderers may still hold slots (holes) in other layers' lists.
+            int slots = FrameRenderer.CandidateSlots;
             for (int i = 0; i < 100000; i++) a.gameObject.layer = i % 2 == 0 ? 6 : 5;
-            Assert.InRange(FrameRenderer.CandidateSlots, 2, 2100);
+            Assert.InRange(FrameRenderer.CandidateSlots, 2, slots + 2100);
             Assert.Equal("A,B", s.Drawn());
         }
 
