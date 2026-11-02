@@ -727,6 +727,11 @@ the codex article equal the original's.
 
 ### I6 Clicks on priority toggles and research icons
 
+**Status:** passes (c272c99e, Linux OpenGL; Windows: pending).
+`tests/e2e/u60/i6-priority-and-research-icons.yaml`: priority 7 double-clicked stays on (dump
+equal); the unlock icon's info button shows on hover and opens the same codex entry. The hovered
+icon is not shot: the tooltip covered it in some runs of either player.
+
 **Risk: medium.**
 
 **Patch notes:**

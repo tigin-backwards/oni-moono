@@ -1,0 +1,57 @@
+{
+ "spec": "u60/i6-priority-and-research-icons.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Priority 7 double-clicked on the Ration Box's details screen (the toggle stays on); a Research screen unlock icon hovered, its info button shown and clicked to the codex",
+ "updated": "2026-11-01",
+ "commit": "c272c99e",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-230723-628d8ac4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:07:23",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-233818-52dcf419",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:38:18",
+    "lane": 50,
+    "reference_run": "20261101-230723-628d8ac4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "priority": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-233818-52dcf419",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T23:38:51",
+    "lane": 50,
+    "reference_run": "20261101-230723-628d8ac4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "priority": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

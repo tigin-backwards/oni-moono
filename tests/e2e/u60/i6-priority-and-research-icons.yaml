@@ -1,0 +1,32 @@
+# I6 (docs/research/u60-qa-spec.md): clicks on priority toggles and research icons.
+#
+# U60's PriorityButton sets its toggle on again when clicked (a double click left it shown off),
+# and the Research screen's unlock icons (ResearchEntryIcon) show an info button on pointer enter
+# that opens the item's codex entry. Double-click counting, toggle groups and pointer enter and
+# exit on small nested targets are our event system's.
+#
+# From early-base: the Ration Box's priority 7 double-clicked in its details screen, the priority
+# group dumped. Then the Research screen: the pointer onto Basic Farming's first unlock icon, its
+# info button shown, clicked: the codex opens on the item. (A shot of the hovered icon caught
+# the tooltip in some runs and not others, in either player, so the button's state is checked.)
+from: early-base
+setup:
+  - driver: {camera.set: {pos: [118.5, 209.5], ortho: 10}}
+steps:
+  - click_world: {cell: [121, 207], select: RationBox}
+  - ui_wait: {path: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/PriorityScreen", cond: stable}
+  - click: {ui: "**/PriorityScreen/BasicButtonWrapper/BasicButtonContainer/Button_Basic", index: 6, double: true}
+  - expect_state:
+      "all:RationBox::[0].GetComponent<Prioritizable>.GetMasterPriority().priority_value": ["== 7", "== original"]
+  # The clicked button's colour fades for a moment (the Selectable tint): let it finish.
+  - run: {seconds: 1, speed: 1}
+  - ui_dump: {name: priority, root: "**/DetailsScreen/UserMenuButtons/UserMenuScreen/PriorityScreen"}
+  - key: {code: Escape}
+  - open: {key: R}
+  - ui_wait: {path: "**/ResearchScreen/**/Content/Icons/Icon", cond: stable}
+  - click: {ui: "**/ResearchScreen/**/Content/Icons/Icon"}
+  - ui_wait: {path: "**/ResearchScreen/**/Content/Icons/Icon/OpenCodexButton", cond: active}
+  - click: {ui: "**/ResearchScreen/**/Content/Icons/Icon/OpenCodexButton"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - expect_state:
+      "ManagementMenu.Instance.codexScreen.activeEntryID": "== original"
