@@ -1,0 +1,43 @@
+# The Graphics options at a smaller resolution in fullscreen: the game renders at 960x720 and the
+# picture is stretched over the 1280x720 display, with the pointer mapped into the rendered frame
+# (players reported the resolution as locked in fullscreen). The clicks after Apply land only
+# where the rendered frame's element is drawn on the display: the confirmation's OK, then the
+# Graphics screen's close button, which sits 160 pixels further left in the game's pixels than on
+# the display.
+from: main-menu
+scaled_screen: true
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: OPTIONS, under: "**/MainMenuButtons"}
+  - click: {ui: "**/OptionsMenu/**/GraphicsButton"}
+  - ui_wait: {path: "**/GraphicsOptionsScreen", cond: stable}
+  - dropdown: {ui: "**/GraphicsOptionsScreen/**/Resolution/Resolution/Dropdown", option: "960 x 720 @ 60Hz"}
+  - click: {ui: "**/GraphicsOptionsScreen/**/FullscreenToggle"}
+  - click: {ui: "**/GraphicsOptionsScreen/**/Buttons/Apply"}
+  - ui_wait: {path: "**/ConfirmDialog/**/OKButton", cond: stable}
+  - expect_state:
+      "UnityEngine.Screen.width": 960
+      "UnityEngine.Screen.height": 720
+      "UnityEngine.Screen.fullScreen": true
+      "UnityEngine.Display.main.renderingWidth": 960
+      "UnityEngine.Display.main.renderingHeight": 720
+      "UnityEngine.Display.main.systemWidth": 1280
+      "UnityEngine.Display.main.systemHeight": 720
+      "UnityEngine.Screen.currentResolution.width": 1280
+      "UnityEngine.Screen.currentResolution.height": 720
+  - shot: {name: confirm, crop: "**/ConfirmDialog/GameObject/Panel"}
+  - click: {ui: "**/ConfirmDialog/**/OKButton"}
+  - ui_wait: {path: "**/ConfirmDialog", cond: gone}
+  - expect_ui:
+      "**/GraphicsOptionsScreen/**/Resolution/Resolution/Dropdown/Label": {text: "960 x 720 @ 60Hz"}
+  - expect_state:
+      "KPlayerPrefs.GetInt(\"ResolutionWidth\")": 960
+      "KPlayerPrefs.GetInt(\"FullScreen\")": 1
+  - shot: {name: graphics, crop: "**/GraphicsOptionsScreen/Content/DisplaySettings"}
+  - click: {ui: "**/GraphicsOptionsScreen/Content/TitleBar/CloseButton"}
+  - ui_wait: {path: "**/GraphicsOptionsScreen", cond: gone}
+  - expect_ui:
+      "**/OptionsMenu/**/GraphicsButton": {active: true}
