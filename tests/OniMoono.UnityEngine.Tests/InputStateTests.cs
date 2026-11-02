@@ -1,3 +1,4 @@
+using System.Linq;
 using OniMoono.Desktop;
 using OniMoono.Engine.Assets;
 using OniMoono.Engine.Platform;
@@ -133,6 +134,14 @@ namespace OniMoono.Tests
             Assert.Equal(new Vector2(-1f, 0f), InputStateFeed.WheelEventDelta(new Vector2(1f, 0f), windows: false));
             Assert.Equal(new Vector2(0f, 3f), InputStateFeed.WheelEventDelta(new Vector2(0f, -1f), windows: true));
             Assert.Equal(new Vector2(0f, -6f), InputStateFeed.WheelEventDelta(new Vector2(0f, 2f), windows: true));
+        }
+
+        // X11's side buttons as Unity's X11 player numbers them (U60 QA spec I1, measured with
+        // XTEST buttons 8 to 10 and a sent button 11): GLFW's 3 to 6 are Unity's 3, 4, 6 and 7.
+        [Fact]
+        public void SideButtonsAreNumberedAsUnitysX11Player()
+        {
+            Assert.Equal(new[] { 0, 1, 2, 3, 4, 6, 7, -1 }, new[] { 0, 1, 2, 3, 4, 5, 6, 7 }.Select(InputStateFeed.UnityButton).ToArray());
         }
     }
 }
