@@ -156,7 +156,7 @@ def ws_mods():
 
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
-            'keyboard', 'tweaks_menu', 'scaled_screen'}
+            'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi'}
 # The game's own translations (`language`), as Localization.PreinstalledLanguages names them.
 PREINSTALLED_LANGUAGES = ('zh_klei', 'ko_klei', 'ru_klei')
 # `from: main-menu` loads no fixture: the steps start at the main menu (a new game's spec).
@@ -323,6 +323,8 @@ def check_spec(spec):
         problems.append('`tweaks_menu` is true or false')
     if not isinstance(spec.get('scaled_screen', False), bool):
         problems.append('`scaled_screen` is true or false')
+    if 'display_dpi' in spec and not (type(spec['display_dpi']) is int and 1 <= spec['display_dpi'] <= 1000):
+        problems.append('`display_dpi` is a whole number of dots per inch (1-1000)')
     if not isinstance(spec.get('steps'), list):
         problems.append('`steps` is a list')
     mods = spec.get('mods', [])
@@ -2358,6 +2360,13 @@ def keyboard_server_options(keyboard):
     return ['-noreset', '-ardelay', '30000'] if keyboard else []
 
 
+def dpi_server_options(dpi):
+    """The X server's options for a spec with a `display_dpi`: -dpi gives the X screen the
+    millimetre size of that many dots per inch (DisplayWidthMM). Xvfb's RandR output still
+    reports no size (0x0 mm), whatever the -dpi."""
+    return ['-dpi', str(dpi)] if dpi else []
+
+
 def set_keyboard(display, xauthority, keyboard):
     """KEYBOARD, an XKB layout, on DISPLAY (a lane's, never the desktop's)."""
     if not keyboard:
@@ -2377,9 +2386,10 @@ class Player:
     the spec's mods and options, and a fixture."""
 
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
-                 translation=None, language=None, keyboard=None, tweaks_menu=False):
+                 translation=None, language=None, keyboard=None, tweaks_menu=False, display_dpi=None):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
         self.keyboard = keyboard
+        self.display_dpi = display_dpi
         self.tweaks_menu = tweaks_menu
         self.home = os.path.join(out, 'home')
         self.profile = os.path.join(self.home, *PROFILE)
@@ -2519,7 +2529,8 @@ class Player:
                                             start_new_session=True)
             self.lane.track('player', self.process.pid, self.scope)
         else:
-            command = ['xvfb-run', '-a', '-s', ' '.join([f'-screen 0 {WIDTH}x{HEIGHT}x24', *keyboard_server_options(self.keyboard)]),
+            command = ['xvfb-run', '-a', '-s', ' '.join([f'-screen 0 {WIDTH}x{HEIGHT}x24', *keyboard_server_options(self.keyboard),
+                                                         *dpi_server_options(self.display_dpi)]),
                        *command]
             os.makedirs(shared_dir(), exist_ok=True)
             with _xvfb_start, open(os.path.join(shared_dir(), 'xvfb.lock'), 'a+') as lock:
@@ -2548,7 +2559,7 @@ class Player:
         if display_in_use(number):
             raise SpecFailure(f'display {display} is in use')
         self.xvfb = subprocess.Popen(['Xvfb', display, '-screen', '0', f'{WIDTH}x{HEIGHT}x24', '-nolisten', 'tcp',
-                                      *keyboard_server_options(self.keyboard)],
+                                      *keyboard_server_options(self.keyboard), *dpi_server_options(self.display_dpi)],
                                      stdout=subprocess.DEVNULL, stderr=open(os.path.join(self.out, 'xvfb.txt'), 'w'),
                                      start_new_session=True, env=dict(os.environ, **child_marks(getattr(self, 'lane', None))))
         if getattr(self, 'lane', None):
@@ -3726,7 +3737,7 @@ class Run:
             self.player = Player(self.kind, self.out, self.env, fixture, self.lane, spec['mods'], spec.get('options'),
                                  driver=uses_driver, expansion1=spaced_out(spec), translation=spec.get('translation'),
                                  language=spec.get('language'), keyboard=spec.get('keyboard'),
-                                 tweaks_menu=spec.get('tweaks_menu', False))
+                                 tweaks_menu=spec.get('tweaks_menu', False), display_dpi=spec.get('display_dpi'))
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
             started = time.time()
