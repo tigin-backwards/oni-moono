@@ -1588,6 +1588,16 @@ files in a folder, as well as continuing to support the legacy zip format."
 
 ### M2 Corrupt Workshop items are downloaded again
 
+**Status:** passes (aeacf5c4; Linux, both players on OpenGL): `tests/e2e/u60-m2-corrupt-zip.yaml`
+(`results-u60/u60-m2-corrupt-zip.json`) subscribes Show Building Ranges as a legacy zip
+truncated to half, through the Steam double's Workshop part (tools/SteamStub `--dlc --ugc`, new:
+one subscription, its details query and `UGCDownloadToLocation` completed through ManualDispatch
+call results, the download served from the good zip). Both players log "Corrupt mod file(s)",
+"ForceDownloadContent: 7 to …zip.download", "ForceDownloadContent completed for handle 7:
+ioFailure=False, result=k_EResultOK, bytes=…, succeeded=True" and "SwapDownloadedFile: swapped
+fresh download into …zip" (`File.Replace` over the corrupt zip), and show the same restart
+dialog. The mod after the restart: not run (e2e has no restart). Windows: pending (real Steam).
+
 **Risk: high.**
 
 **Patch note:** not in the notes.
