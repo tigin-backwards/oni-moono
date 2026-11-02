@@ -120,6 +120,43 @@ namespace OniMoono.Tests
             Assert.Equal("T", Order(r));
         }
 
+        /// The regression check for Fast Track's renderers: thousands disabled or on inactive
+        /// objects (themselves or an ancestor) cost the cameras nothing. Each camera's cull
+        /// visits the enabled renderers on active objects alone (counted, not timed).
+        [Fact]
+        public void CamerasVisitOnlyEnabledRenderersOnActiveObjects()
+        {
+            using var s = new RenderScope();
+            s.SetUpCamera();
+            var cameras = new List<Camera> { s.Camera };
+            for (int i = 0; i < 4; i++)
+            {
+                var c = Object.Instantiate(s.Camera.gameObject).GetComponent<Camera>();
+                Object.DestroyImmediate(c.GetComponent<CameraHook>());
+                cameras.Add(c);
+            }
+            var inactiveParent = new GameObject("inactive parent");
+            inactiveParent.SetActive(false);
+            var all = new List<MeshRenderer>();
+            for (int i = 0; i < 3000; i++)
+            {
+                var r = s.Quadr("A", s.MaterialA, i % 3 == 2 ? inactiveParent.transform : null);
+                if (i % 3 == 0) r.enabled = false;
+                if (i % 3 == 1) r.gameObject.SetActive(false);
+                all.Add(r);
+            }
+            var shown = new List<MeshRenderer>();
+            for (int i = 0; i < 20; i++) shown.Add(s.Quadr("B", s.MaterialB));
+            // Fast Track toggles its renderers often: churn leaves no extra visits.
+            foreach (var r in all.Where((_, i) => i % 3 == 0)) { r.enabled = true; r.enabled = false; }
+            Frame();
+            int candidates = FrameRenderer.Candidates.Count();
+            Assert.Equal(shown.Count, candidates);
+            long before = FrameRenderer.CullVisits;
+            Assert.Equal(string.Join(",", Enumerable.Repeat("B", shown.Count * cameras.Count)), s.Drawn());
+            Assert.Equal(candidates * cameras.Count, FrameRenderer.CullVisits - before);
+        }
+
         /// A device and a camera over two overlapping quads, A and B, at the same depth.
         sealed class RenderScope : System.IDisposable
         {

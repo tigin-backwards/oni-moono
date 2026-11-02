@@ -153,6 +153,11 @@ namespace OniMoono.Engine.Rendering
             holes = 0;
         }
 
+        /// Renderers Cull has looked at, all cameras together, since the start (tests, and
+        /// ONI_RENDER_TIMING): it grows with the enabled renderers on active objects, never with
+        /// the disabled or inactive ones.
+        internal static long CullVisits;
+
         /// The candidate list's length, holes included (tests).
         internal static int CandidateSlots => candidates.Count;
 
@@ -185,7 +190,7 @@ namespace OniMoono.Engine.Rendering
         /// queues, logged every TimingFrames frames.
         static readonly bool timing = Environment.GetEnvironmentVariable("ONI_RENDER_TIMING") == "1";
         const int TimingFrames = 600;
-        static long renderTicks, queueTicks, queueDraws, windowStart, candidateChanges;
+        static long renderTicks, queueTicks, queueDraws, windowStart, candidateChanges, windowVisits;
         static TimeSpan lastCpu;
         static int timedFrames;
 
@@ -214,9 +219,10 @@ namespace OniMoono.Engine.Rendering
             var cpu = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime;
             double cores = (cpu - lastCpu).TotalSeconds / ((now - windowStart) / (double)System.Diagnostics.Stopwatch.Frequency);
             lastCpu = cpu;
-            EngineLog.Engine($"render timing: frame {Time.frameCount}, {fps:F2} fps, rendering {ms(renderTicks):F3} ms a frame, draw queues {ms(queueTicks):F3} ms ({queueDraws / timedFrames} draws a frame), cull candidates {candidates.Count - holes} ({candidateChanges / timedFrames} changes a frame){(device != null ? ", " + device : "")}"
+            EngineLog.Engine($"render timing: frame {Time.frameCount}, {fps:F2} fps, rendering {ms(renderTicks):F3} ms a frame, draw queues {ms(queueTicks):F3} ms ({queueDraws / timedFrames} draws a frame), cull candidates {candidates.Count - holes} ({candidateChanges / timedFrames} changes and {(CullVisits - windowVisits) / timedFrames} visits a frame){(device != null ? ", " + device : "")}"
                 + $"; pool threads {System.Threading.ThreadPool.ThreadCount}, pending {System.Threading.ThreadPool.PendingWorkItemCount}, process threads {System.Diagnostics.Process.GetCurrentProcess().Threads.Count}, cpu {cores:F1} cores, gc {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)}, heap {GC.GetTotalMemory(false) >> 20} MB");
             renderTicks = queueTicks = queueDraws = candidateChanges = 0;
+            windowVisits = CullVisits;
             timedFrames = 0;
             windowStart = now;
         }
@@ -665,7 +671,9 @@ namespace OniMoono.Engine.Rendering
                 for (int c = 0; c < count; c++)
                 {
                     var r = candidates[c];
-                    if (r == null || r.Destroyed || !r.Enabled || !r.GameObject.ActiveInHierarchy) continue;
+                    if (r == null) continue;
+                    CullVisits++;
+                    if (r.Destroyed || !r.Enabled || !r.GameObject.ActiveInHierarchy) continue;
                     if ((cam.CullingMask & (1 << r.GameObject.Layer)) == 0) continue;
                     var bounds = r.WorldBounds;
                     if (!frustum.Intersects(bounds)) continue;
