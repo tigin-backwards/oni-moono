@@ -1,0 +1,28 @@
+# I4 (docs/research/u60-qa-spec.md): the Move To hotkey.
+#
+# U60's UserMenuScreen.OnKeyDown takes Action.BuildMenuKeyQ for a selected Movable (debris, "Move
+# To") or a Duplicant's MoveToLocationMonitor ("Relocate To"), activating MoveToLocationTool. The
+# key reaches it through KInputController.
+#
+# From early-base: the sand debris east of the pod selected and Q pressed; the active tool is
+# compared, then a cell clicked, which marks the debris for moving. Then a Duplicant selected and
+# Q pressed.
+from: early-base
+setup:
+  - driver: {camera.set: {pos: [128.5, 209.5], ortho: 10}}
+steps:
+  - click_world: {pos: [135.44, 207.3], select: Sand}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar", cond: stable}
+  - key: {code: Q, at: [135, 207]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": ["== 'MoveToLocationTool'", "== original"]
+  - click_world: {cell: [132, 208]}
+  - expect_state:
+      "count:all:Movable::[*] if .IsMarkedForMove == true": [">= 1", "== original"]
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - click_world: {cell: [127, 207], select: Minion}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar", cond: stable}
+  - key: {code: Q, at: [127, 207]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": ["== 'MoveToLocationTool'", "== original"]

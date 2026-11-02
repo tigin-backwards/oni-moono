@@ -1,0 +1,49 @@
+{
+ "spec": "u60/i4-move-to-hotkey.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Sand debris selected and Q pressed: Move To tool, a target cell marks it for moving; a Duplicant selected and Q pressed",
+ "updated": "2026-11-01",
+ "commit": "8ddfe580",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-215031-e783546c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T21:50:31",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-221057-e04c7edd",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:10:57",
+    "lane": 50,
+    "reference_run": "20261101-215031-e783546c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-221057-e04c7edd",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T22:13:05",
+    "lane": 50,
+    "reference_run": "20261101-215031-e783546c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

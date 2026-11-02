@@ -637,6 +637,10 @@ so `setup.call` may do it); check it holds in both players before relying on it.
 
 ### I4 Move To hotkey
 
+**Status:** passes (8ddfe580, Linux OpenGL; Windows: pending). `tests/e2e/u60/i4-move-to-hotkey.yaml`:
+Q on selected sand debris activates MoveToLocationTool and a clicked cell marks it for moving; Q
+on a selected Duplicant activates the tool too; all equal to the original's.
+
 **Risk: low.**
 
 **Patch note:** "Added keyboard shortcut for “Move To” and “Relocate To”."
