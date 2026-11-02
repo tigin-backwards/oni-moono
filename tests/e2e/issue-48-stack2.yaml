@@ -1,0 +1,22 @@
+# Issue #48 fixture, closer to the reporter's: their foods lie in one cell (109, 206) that also
+# holds a wire, a gas pipe and a liquid pipe (issue-48-pipes).
+# Saved as the issue-48-stack2 checkpoint.
+from: issue-48-pipes
+setup:
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"ColdWheatBread\")"}, [109.5, 206.01, 0], Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"ColdWheatSeed\")"}, [109.5, 206.01, 0], Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"GrilledPrickleFruit\")"}, [109.5, 206.01, 0], Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"CookedMeat\")"}, [109.5, 206.01, 0], Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"CookedFish\")"}, [109.5, 206.01, 0], Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"Pancakes\")"}, [109.5, 206.01, 0], Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"CookedEgg\")"}, [109.5, 206.01, 0], Ore]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 1, speed: 1}
+  - save: issue-48-stack2
