@@ -16,9 +16,16 @@
 # window on the user's Windows desktop, even a hidden one for a moment (2026-11-01: --check-shaders
 # showed a 1x1 one). Test displays (an Xvfb's :N) pass. ONI_DESKTOP_DISPLAY=1 keeps the desktop's,
 # for a deliberate WSLg run (on the second monitor only).
+# Sound stays out the same way: WSLg's PulseAudio server plays on the user's Windows speakers
+# (2026-11-01: a test player's game sound did), so a command here gets a server that doesn't
+# exist and plays nothing. ONI_DESKTOP_AUDIO=1 keeps it.
 if [ "${ONI_DESKTOP_DISPLAY:-}" != 1 ]; then
     unset WAYLAND_DISPLAY XDG_SESSION_TYPE
     case "${DISPLAY:-}" in :0|:0.0) [ -d /mnt/wslg ] && unset DISPLAY XAUTHORITY ;; esac
+fi
+if [ "${ONI_DESKTOP_AUDIO:-}" != 1 ]; then
+    export PULSE_SERVER=unix:/nonexistent/oni-tests-no-audio
+    export SDL_AUDIODRIVER=dummy
 fi
 set -euo pipefail
 echo 1000 > /proc/self/oom_score_adj 2> /dev/null || true
