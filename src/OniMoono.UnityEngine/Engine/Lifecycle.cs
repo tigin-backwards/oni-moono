@@ -338,13 +338,22 @@ namespace OniMoono.Engine
                     }
                     c.EngineAwake();
                     bn.InAwake = true;
+                    bool threw;
                     try
                     {
-                        if (bn.Script?.Awake != null) Invoke(bn.Script.Awake, (MonoBehaviour)c);
+                        threw = bn.Script?.Awake != null && !TryInvoke(bn.Script.Awake, (MonoBehaviour)c);
                     }
                     finally
                     {
                         bn.InAwake = false;
+                    }
+                    // An Awake that throws leaves its behaviour disabled, with an OnDisable although
+                    // it had no OnEnable; enabling it later runs OnEnable and Start as for any
+                    // (measured in Unity's player, UnityProbe's PROBE_SCENARIO=u60, AW lines).
+                    if (threw && bn.Enabled && !bn.DestroyPending && c.Native != null)
+                    {
+                        bn.Enabled = false;
+                        if (bn.Script?.OnDisable != null) Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
                     }
                     if (c.Native == null || !native.GameObject.ActiveInHierarchy)
                     {
@@ -418,6 +427,21 @@ namespace OniMoono.Engine
             catch (Exception e)
             {
                 Debug.LogException(e, target);
+            }
+        }
+
+        /// Invoke, telling whether the message returned without an exception.
+        static bool TryInvoke(Action<MonoBehaviour> message, MonoBehaviour target)
+        {
+            try
+            {
+                message(target);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e, target);
+                return false;
             }
         }
 
