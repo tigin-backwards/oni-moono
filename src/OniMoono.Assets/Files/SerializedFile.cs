@@ -27,7 +27,8 @@ namespace OniMoono.Assets.Files
         public List<ScriptTypeRef> ScriptTypes { get; } = new();
         public List<External> Externals { get; } = new();
 
-        readonly byte[]? bytes;
+        // A bundle node's bytes: a window on its archive's decompressed data (UnityFsArchive.Slice).
+        readonly ArraySegment<byte> bytes;
         readonly MappedFile? mapped;
         long dataOffset;
         bool bigEndianData;
@@ -38,7 +39,7 @@ namespace OniMoono.Assets.Files
             this.mapped = mapped;
         }
 
-        SerializedFile(string name, byte[] bytes)
+        SerializedFile(string name, ArraySegment<byte> bytes)
         {
             Name = name;
             this.bytes = bytes;
@@ -54,9 +55,16 @@ namespace OniMoono.Assets.Files
             return f;
         }
 
-        DataReader Reader(int offset, int length) => mapped != null ? new DataReader(mapped, offset, length) : new DataReader(bytes!, offset, length);
+        DataReader Reader(int offset, int length)
+        {
+            if (mapped != null) return new DataReader(mapped, offset, length);
+            if (offset < 0 || length < 0 || offset + length > bytes.Count) throw new ArgumentOutOfRangeException(nameof(length));
+            return new DataReader(bytes.Array!, bytes.Offset + offset, length);
+        }
 
-        public static SerializedFile Parse(string name, byte[] bytes)
+        public static SerializedFile Parse(string name, byte[] bytes) => Parse(name, new ArraySegment<byte>(bytes));
+
+        public static SerializedFile Parse(string name, ArraySegment<byte> bytes)
         {
             var f = new SerializedFile(name, bytes);
             f.ReadMetadata();
@@ -65,7 +73,8 @@ namespace OniMoono.Assets.Files
 
         void ReadMetadata()
         {
-            var r = mapped != null ? new DataReader(mapped, 0, checked((int)mapped.Length)) { BigEndian = true } : new DataReader(bytes!) { BigEndian = true };
+            var r = Reader(0, mapped != null ? checked((int)mapped.Length) : bytes.Count);
+            r.BigEndian = true;
             r.ReadUInt32(); // metadata size (legacy)
             r.ReadUInt32(); // file size (legacy)
             Version = (int)r.ReadUInt32();

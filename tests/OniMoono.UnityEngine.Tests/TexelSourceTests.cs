@@ -17,7 +17,7 @@ namespace OniMoono.Tests
         {
             const string key = "archive:/CAB-texelsourcetest/CAB-texelsourcetest.resS";
             var bytes = Enumerable.Range(0, 64).Select(i => (byte)i).ToArray();
-            AssetSystem.Mount(new List<(string, byte[])> { (key, bytes) });
+            AssetSystem.Mount(new List<(string, System.ArraySegment<byte>)> { (key, bytes) });
             var source = new TexelSource(null, key, 16, 8, AssetSystem.MountedNode(key));
             AssetSystem.UnmountBundle([key]);
             Assert.Throws<DirectoryNotFoundException>(() => AssetSystem.ReadStream(key, 16, 8));
@@ -25,6 +25,32 @@ namespace OniMoono.Tests
             var memory = source.ReadMemory();
             Assert.Equal(bytes[16..24], memory.Span.ToArray());
             memory.Free();
+        }
+
+        /// A node in place (a window on its bundle's decompressed data, as AssetSystem.ReadNodes
+        /// mounts it) reads from the window's start: texels and streamed reads see the node's
+        /// bytes, not the bytes before it in the array.
+        [Fact]
+        public void NodesInPlaceReadFromTheirWindow()
+        {
+            const string key = "archive:/CAB-texelwindowtest/CAB-texelwindowtest.resS";
+            var data = Enumerable.Range(0, 96).Select(i => (byte)i).ToArray();
+            var node = new System.ArraySegment<byte>(data, 32, 48);
+            AssetSystem.Mount(new List<(string, System.ArraySegment<byte>)> { (key, node) });
+            try
+            {
+                Assert.Equal(data[48..56], AssetSystem.ReadStream(key, 16, 8));
+                var source = new TexelSource(null, key, 16, 8, AssetSystem.MountedNode(key));
+                Assert.Equal(data[48..56], source.Read());
+                var memory = source.ReadMemory();
+                Assert.Equal(data[48..56], memory.Span.ToArray());
+                memory.Free();
+                Assert.Throws<System.ArgumentOutOfRangeException>(() => AssetSystem.ReadStream(key, 44, 8));
+            }
+            finally
+            {
+                AssetSystem.UnmountBundle([key]);
+            }
         }
     }
 }
