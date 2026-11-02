@@ -451,8 +451,12 @@ the new buildings' and Merpip's anims.
 
 ### R8 Temperature overlay icons and colour modes
 
-**Status:** not run in this pass: no spec yet (the Options > Graphics colour-mode dropdown is
-not explored). Windows Vulkan: pending.
+**Status:** passes (16526a74, Linux OpenGL; Windows Vulkan: pending), Tritanopia only:
+`tests/e2e/u60/r8-colour-mode.yaml` picks the fourth colour set through `ColorModeID_v2`, as the
+Graphics options do on start. The four sets' names and the picked set's temperature thresholds
+equal the original's. So do the Temperature overlay's legend ("Absolute Zero" among its entries)
+and its world shot. Not run: the Options dropdown, the other modes and the geyser and Aquatuner
+heat icons.
 
 **Risk: medium.**
 

@@ -1,0 +1,31 @@
+# R8 (docs/research/u60-qa-spec.md): the temperature overlay in a colourblind mode.
+#
+# U60 reads the colour mode from KPlayerPrefs ColorModeID_v2 (GraphicsOptionsScreen
+# .GetColorModeIdFromPrefs, falling back to the legacy ColorModeID) and picks it from
+# GlobalAssets.colorSetOptions, an asset our serializer reads; SimDebugView builds the
+# temperature colours from it. It also fixed the Temperature overlay's "Absolute Zero" string in
+# a colourblind mode.
+#
+# From early-base, with the fourth colour set picked through the prefs as the Graphics options
+# do on start (setup): the colour sets' names and the picked set's temperature thresholds read,
+# the Temperature overlay opened, its legend dumped and the world shot.
+from: early-base
+setup:
+  - driver: {setup.call: {type: KPlayerPrefs, method: SetInt, args: ["ColorModeID_v2", 3]}}
+  - driver: {setup.call: {type: GraphicsOptionsScreen, method: SetColorModeFromPrefs, args: []}}
+  - driver: {camera.set: {pos: [124.5, 209.5], ortho: 12}}
+steps:
+  - expect_state:
+      "GlobalAssets.Instance.colorSetOptions.Length": "== original"
+      "GlobalAssets.Instance.colorSetOptions[0].settingName": "== original"
+      "GlobalAssets.Instance.colorSetOptions[1].settingName": "== original"
+      "GlobalAssets.Instance.colorSetOptions[2].settingName": "== original"
+      "GlobalAssets.Instance.colorSetOptions[3].settingName": "== original"
+      "GlobalAssets.Instance.colorSet.settingName": "== original"
+      "GlobalAssets.Instance.colorSet.temperatureThreshold0": "== original"
+      "GlobalAssets.Instance.colorSet.temperatureThreshold3": "== original"
+      "GlobalAssets.Instance.colorSet.temperatureThreshold7": "== original"
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - ui_dump: {name: legend, root: "**/OverlayLegend"}
+  - world_shot: {name: temperature, ortho: 12}

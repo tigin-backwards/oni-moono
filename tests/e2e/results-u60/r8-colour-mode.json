@@ -1,0 +1,61 @@
+{
+ "spec": "u60/r8-colour-mode.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Tritanopia picked through ColorModeID_v2: the colour sets and the picked set's temperature thresholds read, the Temperature overlay's legend dumped and the world shot",
+ "updated": "2026-11-02",
+ "commit": "16526a74",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-003854-32f001ea",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:38:54",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-003930-0081d235",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:39:30",
+    "lane": 50,
+    "reference_run": "20261102-003854-32f001ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "legend": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "temperature": 0.001072
+    }
+   },
+   {
+    "run": "20261102-003930-0081d235",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:40:00",
+    "lane": 50,
+    "reference_run": "20261102-003854-32f001ea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "legend": {
+      "differences": 0
+     }
+    },
+    "shots": {
+     "temperature": 0.00107
+    }
+   }
+  ]
+ }
+}
