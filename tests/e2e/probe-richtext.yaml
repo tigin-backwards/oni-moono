@@ -1,0 +1,8 @@
+# UnityProbe's rich-text probe (tools/UnityProbe/RichText.cs): bold and mid-line indents, laid
+# out and captured in both players. Run with E2E_ONIMCP pointing at a copy of OniMcp's mod folder
+# with SemanticsProbe.dll added, PROBE_SCENARIO=richtext and PROBE_CAPTURE_DIR set
+# (tools/UnityProbe/README.md, "richtext").
+from: main-menu
+steps:
+  - ui_wait: {path: "**/RichTextProbeDone", cond: exists, frames: 20000}
+  - shot: probe
