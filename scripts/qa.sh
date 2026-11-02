@@ -72,6 +72,9 @@ failures=0
 fail() { echo "FAIL $*"; echo "FAIL $*" >> "$run/summary.txt"; failures=$((failures + 1)); }
 ok() { echo "ok   $*"; echo "ok   $*" >> "$run/summary.txt"; }
 note() { echo "     $*"; echo "     $*" >> "$run/summary.txt"; }
+# The Data Collection option off in a run's profile (KPrivacyPrefs): no test run submits a crash
+# report to Klei's server, as e2e.py's profiles do.
+no_data_collection() { mkdir -p "$1/Agreements/OxygenNotIncluded"; printf 'disableDataCollection: true\n' > "$1/Agreements/OxygenNotIncluded/kprivacyprefs.yaml"; }
 
 # ---- the players' teardown ----
 # Every player runs in a systemd scope of its own (scripts/contain.sh, ONI_SCOPE) and carries
@@ -157,6 +160,7 @@ run_scenario() # NAME
     rm -rf "${out:?}"; mkdir -p "$out"
     d="$home/config/unity3d/Klei/Oxygen Not Included"; mkdir -p "$d"
     printf 'strings: {}\nints:\n  ResolutionWidth: 1024\n  ResolutionHeight: 768\n  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 0\nfloats: {}\n' > "$d/kplayerprefs.yaml"
+    no_data_collection "$d"
     if [ -n "$SAVE" ]; then
         local colony; colony=$(basename "$SAVE" .sav)
         mkdir -p "$d/cloud_save_files/76561197960265729/$colony"
@@ -285,6 +289,7 @@ u57_run()
     mkdir -p "$d/cloud_save_files/76561197960265729/U57" "$d/mods/Local"
     cp "$QA_U57_SAVE" "$d/cloud_save_files/76561197960265729/U57/U57.sav"
     printf 'strings: {}\nints:\n  ResolutionWidth: 1024\n  ResolutionHeight: 768\n  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 0\nfloats: {}\n' > "$d/kplayerprefs.yaml"
+    no_data_collection "$d"
     cp -r "$root/out/bin/PerfProbe/release" "$d/mods/Local/PerfProbe"
     # U57_OVERLAYS: PerfProbe opens these overlays in turn, 300 frames each (its overlays.txt).
     [ -n "${U57_OVERLAYS:-}" ] && { echo 'hold 300'; printf '%s\n' $U57_OVERLAYS; } > "$d/mods/Local/PerfProbe/overlays.txt"

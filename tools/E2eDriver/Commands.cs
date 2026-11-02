@@ -40,10 +40,32 @@ namespace E2eDriver
                 case "count": return Counting.Start(a);
                 case "buildmenu.settled": return BuildMenu.Settled(request);
                 case "keys.log": return KeyLog.Start(a);
+                case "ui.action": return UiAction(a);
                 case "imgui.scrollview": return ImguiProbe.Start(a);
                 case null: throw new DriverError("the request has no cmd");
                 default: throw new DriverError("unknown command " + request.Command);
             }
+        }
+
+        /// ui.action {action}: the key-down and key-up of one of the game's management-screen
+        /// Actions through KScreenManager, as their hotkeys deliver them (`open: {management}`).
+        /// The same in U59 and U60: OniMcp's open_management called ManagementMenu.OpenResearch,
+        /// which returns bool in U60 (void in U59), so its handler no longer compiled there.
+        static readonly string[] UiActions =
+        {
+            "ManageVitals", "ManageConsumables", "ManagePriorities", "ManageSchedule", "ManageSkills",
+            "ManageResearch", "ManageStarmap", "ManageReport", "ManageDatabase",
+        };
+
+        static JToken UiAction(JObject a)
+        {
+            var name = (string)a["action"] ?? throw new DriverError("ui.action needs action");
+            if (Array.IndexOf(UiActions, name) < 0) throw new DriverError("ui.action: not a management action: " + name);
+            var action = (global::Action)Enum.Parse(typeof(global::Action), name);
+            var manager = KScreenManager.Instance ?? throw new DriverError("ui.action: no KScreenManager");
+            manager.OnKeyDown(new KButtonEvent(null, InputEventType.KeyDown, action));
+            manager.OnKeyUp(new KButtonEvent(null, InputEventType.KeyUp, action));
+            return new JObject { ["action"] = name };
         }
 
         /// Answers `frames` frames from now with what `result` gives then.

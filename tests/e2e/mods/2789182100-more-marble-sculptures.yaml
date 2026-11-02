@@ -13,6 +13,8 @@
 # A sculpture's look is random and needs Fine Art and marble, so this is a smaller spec: the
 # stages, their kanims and the moved qualities are checked in the game's database, and the
 # supply closet is opened.
+# The Supply Closet reads the Data Collection option (KleiInventoryScreen): on, as for a player.
+data_collection: true
 from: early-base
 mods: [2789182100]
 steps:

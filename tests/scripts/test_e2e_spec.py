@@ -510,6 +510,28 @@ class Translation(unittest.TestCase):
             _, prefs = self.player(root, None, 'zh_klei')
             self.assertEqual(prefs['strings'], {'SelectedLanguageType': 'Preinstalled', 'SelectedLanguageCode': 'zh_klei'})
 
+    def test_data_collection_is_off_unless_a_spec_turns_it_on(self):
+        prefs = os.path.join('Agreements', 'OxygenNotIncluded', 'kprivacyprefs.yaml')
+        for kwargs, off in (({}, True), ({'data_collection': True}, False), ({'data_collection': False}, True)):
+            with tempfile.TemporaryDirectory() as root:
+                onimcp = os.path.join(root, 'onimcp')
+                os.makedirs(onimcp)
+                player = e2e.Player('original', os.path.join(root, 'run'), {'E2E_ONIMCP': onimcp}, None,
+                                    e2e.Lane(3, None), **kwargs)
+                path = os.path.join(player.profile, prefs)
+                self.assertEqual(os.path.exists(path), off, kwargs)
+                if off:
+                    with open(path) as f:
+                        self.assertEqual(yaml.safe_load(f), {'disableDataCollection': True})
+        with open(os.path.join(os.path.dirname(e2e.__file__), 'qa.sh')) as f:
+            self.assertIn('no_data_collection "$d"', f.read())
+
+    def test_open_management_goes_through_the_driver(self):
+        self.assertTrue(e2e.needs_driver({'steps': [{'open': {'management': 'consumables'}}]}))
+        self.assertEqual(e2e.check_step('s', 'open', {'management': 'research'}, False), [])
+        self.assertTrue(e2e.check_step('s', 'open', {'management': 'nope'}, False))
+        self.assertEqual(e2e.MANAGEMENT_ACTIONS['consumables'], 'ManageConsumables')
+
     def test_tweaks_menu_is_a_flag(self):
         self.assertEqual(e2e.check_spec({'from': 'main-menu', 'mods': [], 'tweaks_menu': True, 'steps': []}), [])
         self.assertIn('`tweaks_menu` is true or false',

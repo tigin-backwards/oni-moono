@@ -159,8 +159,11 @@ blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its inst
                                  # with these native plugins `missing` or `unreadable` (mode 000)
 extra_saves: [terra-wide]        # more colonies in the profile: fixtures/NAME.sav (and NAME.png)
                                  # as save_files/NAME/NAME.sav, for the Load screen
-data_collection: false           # the Data Collection option off: an error the spec provokes sends
-                                 # no crash report to Klei (on, the default, a worldgen failure does)
+data_collection: true            # the Data Collection option on, for a spec that opens the Supply
+                                 # Closet (KleiInventoryScreen reads it); off by default in every
+                                 # e2e and qa.sh profile, so no test run sends Klei a crash report
+                                 # (an error report did once); a spec that turns it on must not
+                                 # provoke errors
 setup: [...]                     # steps run first; the only place for driver setup.call
 steps: [...]
 ```
@@ -227,8 +230,10 @@ cells in an earlier step.
 ### Opening screens
 
 ```yaml
-- open: {management: research}        # OniMcp's whitelist: vitals, consumables, priorities,
-                                      # schedule, skills, research, starmap, report, database
+- open: {management: research}        # vitals, consumables, priorities, schedule, skills, research,
+                                      # starmap, report, database: the screen's Action through
+                                      # E2eDriver's ui.action, as its hotkey (OniMcp's open_management
+                                      # fails on U60: ManagementMenu.OpenResearch returns bool there)
 - open: {key: R}                      # the screen's hotkey, through XTEST
 - open: {user_menu: toggle_compost, at: [130, 207]}   # a user-menu button by OniMcp action key
                                       # (on the object at a cell, or `id: ID`)
