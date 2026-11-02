@@ -1,0 +1,10 @@
+# U60 QA spec L2 and U1, played on U59: UnityProbe's `u60` scenario in both players
+# (tools/UnityProbe/U60Bcl.cs): cultures, CompareInfo as FuzzySharp sorts tokens, IndexOf as the
+# translation check scans links, TryFormat as KleiStringBuilder formats, File.Replace and
+# File.Move as SteamUGCService swaps a download, TMP_Text given unchanged text, and a behaviour
+# whose Awake throws. The probe needs its run: SemanticsProbe.dll (built against the game's
+# Managed) copied into a copy of OniMcp's mod folder, E2E_ONIMCP pointing at the copy,
+# PROBE_SCENARIO=u60. Compare the two players' "U60 " lines.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/U60ProbeCanvas/U60ProbeDone", cond: exists, frames: 20000}
