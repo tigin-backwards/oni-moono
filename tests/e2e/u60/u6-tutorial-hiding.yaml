@@ -1,0 +1,17 @@
+# U6 (docs/research/u60-qa-spec.md): tutorial hiding.
+#
+# U60 simplified hiding tutorials: a message's "don't show again" toggle sets KPlayerPrefs
+# HideAllTutorials (Tutorial.ShouldShowTutorials), which the Options screen's Game page turns back
+# on (GameOptionsScreen.OnShowTutorialToggle).
+#
+# From early-base: the Duplicant Movement tutorial message opened from the notifications, its
+# dialog dumped, its "don't show again" ticked; the pref compared with the original's.
+from: early-base
+steps:
+  - expect_ui: {"**/NotificationScreen/Messages/MessageLabel[1]/Label/Text": {text: "Video: Duplicant Movement"}}
+  - click: {ui: "**/NotificationScreen/Messages/MessageLabel/Label/Collider", index: 1}
+  - ui_wait: {path: "**/*MessageDialog*", cond: stable, frames: 600}
+  - ui_dump: {name: dialog, root: "**/*MessageDialog*"}
+  - click: {ui: "**/MessageDialogFrame/**/DontShowAgainBox/DontShowAgainButton"}
+  - expect_state:
+      'KPlayerPrefs.GetInt("HideAllTutorials", 0)': ["== 1", "== original"]

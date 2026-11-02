@@ -1,0 +1,57 @@
+{
+ "spec": "u60/u6-tutorial-hiding.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "The Duplicant Movement tutorial message opened from the notifications, its Hide In-Game Tutorials toggle ticked: the HideAllTutorials pref",
+ "updated": "2026-11-01",
+ "commit": "848ac5b7",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-225258-97652d4a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:52:58",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-234004-7a964a87",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:40:04",
+    "lane": 50,
+    "reference_run": "20261101-225258-97652d4a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "dialog": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-234004-7a964a87",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T23:40:32",
+    "lane": 50,
+    "reference_run": "20261101-225258-97652d4a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "dialog": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

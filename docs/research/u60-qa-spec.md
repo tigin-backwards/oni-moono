@@ -1030,6 +1030,11 @@ label; Neutronium tooltip.
 
 ### U6 Tutorial hiding
 
+**Status:** passes (848ac5b7, Linux OpenGL; Windows: pending), the message part:
+`tests/e2e/u60/u6-tutorial-hiding.yaml` opens the Duplicant Movement message, dumps its dialog
+and ticks "don't show again": the HideAllTutorials pref equals the original's. Turning it back on
+from the Options screen is not run.
+
 **Risk: low.**
 
 **Patch note:** "Simplified tutorial hiding ... This can be reset in the Options screen."
