@@ -1,0 +1,26 @@
+# Issue #48: clicking the same point of a stack of different debris again and again selects the
+# next item under the cursor each time (SelectTool.OnLeftClickDown passes the selection to
+# GetObjectUnderCursor, which sorts what lies there by z, then instance id, and returns the item
+# after it), wrapping round through the cell's WorldSelectionCollider. A player reported that only
+# the item under the cursor was selected.
+#
+# Three debris of different elements lie in one cell; the same point is clicked five times and
+# what is selected after each click is the original's.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Cuprite\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Dirt\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+steps:
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
