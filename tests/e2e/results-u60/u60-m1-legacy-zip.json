@@ -1,0 +1,65 @@
+{
+ "spec": "u60-m1-legacy-zip.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Workshop item installed as a legacy zip: subscribed at the main menu, made from the zip (a ZipFile file source), the restart dialog, as in the original",
+ "updated": "2026-11-01",
+ "commit": "f40587df",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-222419-97c6091b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:24:19",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261101-222419-97c6091b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T22:30:20",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-222419-97c6091b",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:33:25",
+    "lane": 1,
+    "reference_run": "20261101-222419-97c6091b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "dialog": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-222419-97c6091b",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T22:34:53",
+    "lane": 1,
+    "reference_run": "20261101-222419-97c6091b",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "dialog": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

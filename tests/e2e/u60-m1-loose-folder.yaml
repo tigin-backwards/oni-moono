@@ -1,0 +1,23 @@
+# U60 QA spec M1 (docs/research/u60-qa-spec.md): loose-file Workshop mods. U60's KMod.Steam.MakeMod
+# opens a subscribed item's install folder as a Directory before trying a ZipFile. Here
+# U60's new layout: the item installed as loose files in its folder
+# (steamapps/workshop/content/457140/1960996649, Show Building Ranges), subscribed and enabled.
+# At the main menu the subscription's details arrive ("Steam: updating info for mod"), KMod makes
+# the mod from that file source (its header read from it: the static ID PeterHan.ShowRange) and
+# asks for a restart. The dialog and the mod's state must be the original's.
+# Both players load the Steam double's Workshop part (tools/SteamStub/build.sh --dlc --ugc): ours
+# through QA_U57_STEAM, the original from E2E_ORIGINAL's Plugins/AnyCPU/libsteam_api.so (a
+# copy of the install whose library is that one).
+from: main-menu
+workshop: {id: 1960996649, layout: folder}
+require_log: ['Steam: updating info for mod Show Building Ranges', 'Subscribe to mod Show Building Ranges']
+steps:
+  # The game asks for a restart once the new subscription is in, in a dialog over the intro
+  # video: the mod loads at the next start (not run here: e2e has no restart).
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel", cond: stable, frames: 6000}
+  - ui_dump: {name: dialog, root: "**/ConfirmDialog"}
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .staticID == PeterHan.ShowRange and .label.distribution_platform == Steam": [1, "== original"]
+      "count:Global.Instance.modManager.mods[*] if .staticID == PeterHan.ShowRange and .status == Installed": "== original"
+      "count:Global.Instance.modManager.mods[*] if .staticID == PeterHan.ShowRange and .enabled == true": "== original"
+      "count:Global.Instance.modManager.mods[*] if .staticID == PeterHan.ShowRange and .file_source.GetType().Name == Directory": [1, "== original"]

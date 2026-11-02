@@ -1,0 +1,65 @@
+{
+ "spec": "u60-m1-loose-folder.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a Workshop item installed as loose files in its folder (U60's layout): subscribed at the main menu, made from the folder (a Directory file source), the restart dialog, as in the original",
+ "updated": "2026-11-01",
+ "commit": "f40587df",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-221547-4eac1bce",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:15:47",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261101-221547-4eac1bce",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T22:17:04",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-221547-4eac1bce",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:18:01",
+    "lane": 1,
+    "reference_run": "20261101-221547-4eac1bce",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "dialog": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-221547-4eac1bce",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T22:21:56",
+    "lane": 1,
+    "reference_run": "20261101-221547-4eac1bce",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "dialog": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
