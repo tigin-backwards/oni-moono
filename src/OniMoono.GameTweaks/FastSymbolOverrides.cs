@@ -276,15 +276,16 @@ namespace OniMoono.GameTweaks
         static readonly ConditionalWeakTable<SymbolOverrideController, Plan> plansOf = new ConditionalWeakTable<SymbolOverrideController, Plan>();
         static readonly ConditionalWeakTable<SymbolOverrideController, Plan>.CreateValueCallback newPlan = _ => new Plan();
 
-        // Counts and times (ONI_TWEAK_TIMING), logged every 600 frames.
-        static long others, calls, kept, restored, unchangedBlocks, uploads, mismatches, checks;
+        // Counts and times (ONI_TWEAK_TIMING) and checks (ONI_TWEAK_VERIFY), logged every 600 frames.
+        static long verified, others, calls, kept, restored, unchangedBlocks, uploads, mismatches, checks;
         static readonly long[] misses = new long[Enum.GetValues(typeof(Miss)).Length];
         static long ticks, started;
         static int windowStart = -1;
 
         enum Miss { None, First, Overlap, Version, Sort, Count, Block, Batch, Atlases, Group, AnimData, Written }
 
-        /// ONI_TWEAK_TIMING: the counts a frame over the last 600 frames or more.
+        /// ONI_TWEAK_TIMING: the counts a frame over the last 600 frames or more; ONI_TWEAK_VERIFY:
+        /// the checks so far.
         static void Frame()
         {
             int frame = Time.frameCount;
@@ -296,8 +297,9 @@ namespace OniMoono.GameTweaks
             var why = new System.Text.StringBuilder();
             for (int i = 1; i < misses.Length; i++)
                 if (misses[i] > 0) why.Append($" {(Miss)i}={misses[i] / (double)n:F2}");
-            global::Debug.Log($"{Name}: over {n} frames, a frame: {ticks * ms:F3} ms, {calls / (double)n:F1} every-frame applications ({kept / (double)n:F1} kept,{why}), {others / (double)n:F2} others, {restored / (double)n:F1} writes redone, {unchangedBlocks / (double)n:F1} blocks unchanged, {uploads / (double)n:F1} uploads"
-                + (verify ? $"; {checks} checks, {mismatches} mismatches" : ""));
+            if (timing)
+                global::Debug.Log($"{Name}: over {n} frames, a frame: {ticks * ms:F3} ms, {calls / (double)n:F1} every-frame applications ({kept / (double)n:F1} kept,{why}), {others / (double)n:F2} others, {restored / (double)n:F1} writes redone, {unchangedBlocks / (double)n:F1} blocks unchanged, {uploads / (double)n:F1} uploads");
+            if (verify) global::Debug.Log($"{Name}: {verified} kept applications checked, {checks} checks, {mismatches} mismatches");
             others = calls = kept = restored = unchangedBlocks = uploads = ticks = 0;
             Array.Clear(misses, 0, misses.Length);
         }
@@ -317,9 +319,9 @@ namespace OniMoono.GameTweaks
         /// from its kept calls or in full here.
         static bool Apply(SymbolOverrideController __instance, bool __runOriginal)
         {
+            if (timing || verify) Frame();
             if (timing)
             {
-                Frame();
                 if (!__instance.applySymbolOverridesEveryFrame) others++;
                 started = Stopwatch.GetTimestamp();
             }
@@ -588,6 +590,7 @@ namespace OniMoono.GameTweaks
         /// holds what they write (but the logged ones, whose steps are redone).
         static void Verify(SymbolOverrideController soc, KBatchedAnimController anim, Plan plan)
         {
+            verified++;
             checks++;
             var redo = new Plan();
             if (!Lookups(soc, anim, anim.GetBatch(), redo))
