@@ -71,6 +71,54 @@ namespace PerfProbe
     {
         public static Runner Instance;
 
+        /// What a save holds (for a slow save): renderers by owner name, and the game's big collections.
+        static void SaveCensus()
+        {
+            var renderers = FindObjectsByType<MeshRenderer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            int active = 0;
+            var byName = new System.Collections.Generic.Dictionary<string, int>();
+            foreach (var r in renderers)
+            {
+                if (!r.enabled || !r.gameObject.activeInHierarchy) continue;
+                active++;
+                string name = System.Text.RegularExpressions.Regex.Replace(r.gameObject.name, @"[\d\s_()-]+$", "");
+                byName[name] = byName.TryGetValue(name, out var c) ? c + 1 : 1;
+            }
+            var top = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, int>>(byName);
+            top.Sort((a, b) => b.Value.CompareTo(a.Value));
+            Debug.Log($"PERF census MeshRenderer {renderers.Length} ({active} active and enabled): " + string.Join(", ", top.GetRange(0, System.Math.Min(15, top.Count)).ConvertAll(kv => $"{kv.Key} {kv.Value}")));
+            Debug.Log($"PERF census GameObjects {FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None).Length}, KBatchedAnimController {FindObjectsByType<KBatchedAnimController>(FindObjectsSortMode.None).Length}, Pickupables {Components.Pickupables.Count}, Storage {FindObjectsByType<Storage>(FindObjectsSortMode.None).Length}, Brains {Components.Brains.Count}, LiveMinions {Components.LiveMinionIdentities.Count}, worlds {ClusterManager.Instance.WorldContainers.Count}, BuildingComplete {Components.BuildingCompletes.Count}");
+            var perWorld = new System.Collections.Generic.Dictionary<int, int[]>();
+            foreach (var p in Components.Pickupables.Items)
+            {
+                if (p == null) continue;
+                int w = p.gameObject.GetMyWorldId();
+                if (!perWorld.TryGetValue(w, out var a)) perWorld[w] = a = new int[3];
+                a[0]++;
+                if (p.storage == null) a[1]++;
+                if (p.GetComponent<Brain>() != null) a[2]++;
+            }
+            foreach (var kv in perWorld) Debug.Log($"PERF census world {kv.Key}: pickupables {kv.Value[0]} ({kv.Value[1]} loose, {kv.Value[2]} with brains)");
+            var brainTypes = new System.Collections.Generic.Dictionary<string, int>();
+            foreach (var b in Components.Brains.Items)
+            {
+                if (b == null) continue;
+                string k = b.GetType().Name + "@" + b.gameObject.GetMyWorldId();
+                brainTypes[k] = brainTypes.TryGetValue(k, out var c) ? c + 1 : 1;
+            }
+            Debug.Log("PERF census brains: " + string.Join(", ", brainTypes));
+            var loose = new System.Collections.Generic.Dictionary<string, int>();
+            foreach (var p in Components.Pickupables.Items)
+                if (p != null && p.storage == null && p.GetComponent<Brain>() == null)
+                {
+                    string k = p.PrefabID().Name;
+                    loose[k] = loose.TryGetValue(k, out var c) ? c + 1 : 1;
+                }
+            var lt = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, int>>(loose);
+            lt.Sort((a, b) => b.Value.CompareTo(a.Value));
+            Debug.Log("PERF census loose pickupables: " + string.Join(", ", lt.GetRange(0, System.Math.Min(15, lt.Count)).ConvertAll(kv => $"{kv.Key} {kv.Value}")));
+        }
+
         /// The centre of the 48×28-cell window (about the view at orthographic size 12) of a world
         /// holding the fewest building cells, searched in steps of 8 cells.
         static int BuildingCells(int x, int y, int w, int h)
@@ -1714,9 +1762,10 @@ namespace PerfProbe
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "savetest.txt"))) { yield return SaveTest(); yield break; }
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "autosave.txt"))) { yield return AutosaveFreeze(); yield break; }
             // `camera.txt`: where the view stays, as world cells `x y` with an optional orthographic
-            // size, `top` (the active world's top centre) or `quiet` (the discovered planetoid with
+            // size, `top` (the active world's top centre), `quiet` (the discovered planetoid with
             // the fewest building cells made active, and its 48×28-cell window with the fewest, for
-            // comparing a quiet view). The view is put back if the game moves it.
+            // comparing a quiet view) or `busiest` (below). The view is put back if the game moves
+            // it, except for `busiest`.
             var cameraFile = System.IO.Path.Combine(Path, "camera.txt");
             if (System.IO.File.Exists(cameraFile))
             {
@@ -1724,7 +1773,29 @@ namespace PerfProbe
                 for (int i = 0; i < 200; i++) yield return null;
                 var words = System.IO.File.ReadAllText(cameraFile).Split(new[] { ' ', '\n', '\r' }, System.StringSplitOptions.RemoveEmptyEntries);
                 var world = ClusterManager.Instance.activeWorld;
-                if (words[0] == "quiet")
+                // `busiest`: the world with the most live Duplicants made active, the camera left
+                // where the game puts it, and a census of what the save holds.
+                if (words[0] == "busiest")
+                {
+                    var perWorld = new System.Collections.Generic.Dictionary<int, int>();
+                    foreach (var minion in Components.LiveMinionIdentities.Items)
+                    {
+                        int id = minion.gameObject.GetMyWorldId();
+                        perWorld[id] = perWorld.TryGetValue(id, out var n) ? n + 1 : 1;
+                    }
+                    int best = world.id, most = -1;
+                    foreach (var kv in perWorld)
+                    {
+                        var w = ClusterManager.Instance.GetWorld(kv.Key);
+                        Debug.Log($"PERF world {kv.Key} {w?.GetComponent<ClusterGridEntity>()?.Name}: {kv.Value} duplicants{(kv.Key == world.id ? " (active)" : "")}");
+                        if (w != null && !w.IsModuleInterior && kv.Value > most) { most = kv.Value; best = kv.Key; }
+                    }
+                    if (best != world.id) ClusterManager.Instance.SetActiveWorld(best);
+                    for (int i = 0; i < 120; i++) yield return null;
+                    Debug.Log($"PERF busiest world {best} active, camera {CameraController.Instance.transform.position}");
+                    SaveCensus();
+                }
+                else if (words[0] == "quiet")
                 {
                     WorldContainer emptiest = null;
                     int fewest = int.MaxValue;
@@ -1742,15 +1813,18 @@ namespace PerfProbe
                         world = emptiest;
                     }
                 }
-                bool named = words[0] == "top" || words[0] == "quiet";
-                Vector3 at = words[0] == "top" ? new Vector3(world.WorldOffset.x + world.WorldSize.x * 0.5f, world.WorldOffset.y + world.WorldSize.y - 12f, 0f)
-                    : words[0] == "quiet" ? QuietestView(world)
-                    : new Vector3(float.Parse(words[0], System.Globalization.CultureInfo.InvariantCulture), float.Parse(words[1], System.Globalization.CultureInfo.InvariantCulture), 0f);
-                float size = words.Length > (named ? 1 : 2) ? float.Parse(words[^1], System.Globalization.CultureInfo.InvariantCulture) : 12f;
-                at.z = CameraController.Instance.transform.position.z;
-                CameraController.Instance.SnapTo(at, size);
-                Debug.Log($"PERF camera at {at} size {size}");
-                view = (at, size);
+                if (words[0] != "busiest")
+                {
+                    bool named = words[0] == "top" || words[0] == "quiet";
+                    Vector3 at = words[0] == "top" ? new Vector3(world.WorldOffset.x + world.WorldSize.x * 0.5f, world.WorldOffset.y + world.WorldSize.y - 12f, 0f)
+                        : words[0] == "quiet" ? QuietestView(world)
+                        : new Vector3(float.Parse(words[0], System.Globalization.CultureInfo.InvariantCulture), float.Parse(words[1], System.Globalization.CultureInfo.InvariantCulture), 0f);
+                    float size = words.Length > (named ? 1 : 2) ? float.Parse(words[^1], System.Globalization.CultureInfo.InvariantCulture) : 12f;
+                    at.z = CameraController.Instance.transform.position.z;
+                    CameraController.Instance.SnapTo(at, size);
+                    Debug.Log($"PERF camera at {at} size {size}");
+                    view = (at, size);
+                }
             }
             if (overlays) StartCoroutine(Overlays.Run(overlaysFile, System.IO.File.Exists(WallTime.Extra)));
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "noautosave.txt"))) Video.NoAutosave(true);
