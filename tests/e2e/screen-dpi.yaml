@@ -1,0 +1,12 @@
+# Screen.dpi on Linux. The game reads it in ScreenResolutionMonitor (Screen.dpi > 130 with a
+# screen under 900 tall switches the large build and tool menus on). The original reads 0 on
+# Xvfb, whose RandR output reports no physical size, whatever the X screen's -dpi (measured at
+# the default and at 72, 120, 144 and 200, with Xft.dpi 144 and with a RandR 1.5 monitor of
+# 226x127 mm); ours read 96.19 there, the size GLFW stands in for a missing one (96 DPI).
+from: main-menu
+display_dpi: 144
+steps:
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_state:
+      "UnityEngine.Screen.dpi": [0, "== original"]
+      "ScreenResolutionMonitor.UsingGamepadUIMode()": [false, "== original"]
