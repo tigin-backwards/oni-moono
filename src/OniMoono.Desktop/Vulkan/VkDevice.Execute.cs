@@ -576,6 +576,8 @@ namespace OniMoono.Desktop.Vulkan
 
         void PresentNow(int frame, int interval, int width, int height, long started)
         {
+            // The frame's texel buffers, copied into the stream by now.
+            UploadBuffers.ReturnAll(returnedUploads);
             if (deviceLost) return;
             long t = System.Diagnostics.Stopwatch.GetTimestamp();
             EndRendering();

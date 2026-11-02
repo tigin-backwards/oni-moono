@@ -181,29 +181,48 @@ namespace OniMoono.Desktop.Gl
         {
             if (memory == null) return;
             List<PixelMemory> released = null;
-            lock (classes)
-            {
-                var own = classes[memory.Size];
-                while (pooled + memory.Size > PoolLimit)
-                {
-                    // The class rented least recently that still holds buffers.
-                    SizeClass oldest = null;
-                    foreach (var c in classes.Values)
-                        if (c.Free.Count > 0 && (oldest == null || c.LastRent < oldest.LastRent)) oldest = c;
-                    if (oldest == null || oldest.LastRent >= own.LastRent) break;
-                    var victim = oldest.Free.Pop();
-                    pooled -= victim.Size;
-                    (released ??= new()).Add(victim);
-                }
-                if (pooled + memory.Size <= PoolLimit)
-                {
-                    own.Free.Push(memory);
-                    pooled += memory.Size;
-                    memory = null;
-                }
-            }
+            lock (classes) memory = ReturnLocked(memory, ref released);
             memory?.Free();
             if (released != null) foreach (var m in released) m.Free();
+        }
+
+        /// Returns each buffer, taking the pool's lock once (a frame's texture uploads: the
+        /// renderer threads rent while the device thread returns), and empties the list.
+        public static void ReturnAll(List<PixelMemory> memories)
+        {
+            if (memories.Count == 0) return;
+            List<PixelMemory> released = null;
+            lock (classes)
+                for (int i = 0; i < memories.Count; i++)
+                    memories[i] = ReturnLocked(memories[i], ref released);
+            foreach (var m in memories) m?.Free();
+            memories.Clear();
+            if (released != null) foreach (var m in released) m.Free();
+        }
+
+        /// Pools the buffer, releasing the least recently rented classes' buffers past the
+        /// limit into `released`; the buffer back when it is not kept (the caller frees it).
+        static PixelMemory ReturnLocked(PixelMemory memory, ref List<PixelMemory> released)
+        {
+            var own = classes[memory.Size];
+            while (pooled + memory.Size > PoolLimit)
+            {
+                // The class rented least recently that still holds buffers.
+                SizeClass oldest = null;
+                foreach (var c in classes.Values)
+                    if (c.Free.Count > 0 && (oldest == null || c.LastRent < oldest.LastRent)) oldest = c;
+                if (oldest == null || oldest.LastRent >= own.LastRent) break;
+                var victim = oldest.Free.Pop();
+                pooled -= victim.Size;
+                (released ??= new()).Add(victim);
+            }
+            if (pooled + memory.Size <= PoolLimit)
+            {
+                own.Free.Push(memory);
+                pooled += memory.Size;
+                memory = null;
+            }
+            return memory;
         }
     }
 

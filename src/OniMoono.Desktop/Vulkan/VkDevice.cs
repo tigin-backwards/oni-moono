@@ -552,6 +552,7 @@ namespace OniMoono.Desktop.Vulkan
             catch (VkResultError)
             {
             }
+            UploadBuffers.ReturnAll(returnedUploads);
             foreach (var t in defaults.Values) DestroyTexture(t.Vk);
             defaults.Clear();
             DestroyShared();

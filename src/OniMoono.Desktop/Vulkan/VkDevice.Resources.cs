@@ -244,7 +244,8 @@ namespace OniMoono.Desktop.Vulkan
             }
             finally
             {
-                if (u.Pooled) UploadBuffers.Return(u.Memory);
+                // Returned together at present: one take of the pool's lock a frame.
+                if (u.Pooled) { if (u.Memory != null) returnedUploads.Add(u.Memory); }
                 else u.Memory?.Free();
                 u.Memory = null;
                 VkTimings.TextureUploads += System.Diagnostics.Stopwatch.GetTimestamp() - t;
@@ -340,6 +341,7 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         readonly List<VkBuffer> stagedBuffers = new();
+        readonly List<PixelMemory> returnedUploads = new();
 
         /// One level (or slice) copied into the stream, converted when the format needs it; the
         /// region that copies it.
