@@ -602,8 +602,11 @@ button number). Windows needs a separate manual check with a five-button mouse.
 
 ### I2 Mouse wheel on sliders
 
-**Status:** passes (436e1fce, Linux OpenGL; Windows: pending). `tests/e2e/u60/i2-slider-wheel.yaml`:
-all 15 values, the side screen's scroll position and the 21 move sounds equal the original's.
+**Status:** passes (436e1fce, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242;
+the wheel through Windows' own input needs the user: a slider of a building's side screen hovered
+and the wheel turned a few notches, in both players, the value moving the same per notch).
+`tests/e2e/u60/i2-slider-wheel.yaml`: all 15 values, the side screen's scroll position and the 21
+move sounds equal the original's.
 
 **Risk: high.**
 
@@ -689,9 +692,11 @@ so `setup.call` may do it); check it holds in both players before relying on it.
 
 ### I4 Move To hotkey
 
-**Status:** passes (8ddfe580, Linux OpenGL; Windows: pending). `tests/e2e/u60/i4-move-to-hotkey.yaml`:
-Q on selected sand debris activates MoveToLocationTool and a clicked cell marks it for moving; Q
-on a selected Duplicant activates the tool too; all equal to the original's.
+**Status:** passes (8ddfe580, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242;
+the hotkey from the Windows keyboard needs the user: debris selected, Q, a cell clicked, in both
+players). `tests/e2e/u60/i4-move-to-hotkey.yaml`: Q on selected sand debris activates
+MoveToLocationTool and a clicked cell marks it for moving; Q on a selected Duplicant activates the
+tool too; all equal to the original's.
 
 **Risk: low.**
 
@@ -720,9 +725,11 @@ on a selected Duplicant activates the tool too; all equal to the original's.
 
 ### I5 Renaming with Enter
 
-**Status:** passes (4b7ee572, Linux OpenGL; Windows: pending). `tests/e2e/u60/i5-rename-enter.yaml`:
-three Enter renames of the Ration Box (one emptied) keep it enabled, names, title bar dumps and
-the codex article equal the original's.
+**Status:** passes (4b7ee572, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242,
+every dump equal; typing and Enter from the Windows keyboard (and an IME) need the user: a Ration
+Box renamed by typing and Enter, once with the Microsoft Pinyin IME, in both players).
+`tests/e2e/u60/i5-rename-enter.yaml`: three Enter renames of the Ration Box (one emptied) keep it
+enabled, names, title bar dumps and the codex article equal the original's.
 
 **Risk: high.** Key-event order is ours.
 
@@ -763,10 +770,12 @@ the codex article equal the original's.
 
 ### I6 Clicks on priority toggles and research icons
 
-**Status:** passes (c272c99e, Linux OpenGL; Windows: pending).
-`tests/e2e/u60/i6-priority-and-research-icons.yaml`: priority 7 double-clicked stays on (dump
-equal); the unlock icon's info button shows on hover and opens the same codex entry. The hovered
-icon is not shot: the tooltip covered it in some runs of either player.
+**Status:** passes (c272c99e, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242; a
+real double click needs the user: priority 7 double-clicked, then the research unlock icon hovered
+and its info button clicked, in both players). `tests/e2e/u60/i6-priority-and-research-icons.yaml`:
+priority 7 double-clicked stays on (dump equal); the unlock icon's info button shows on hover and
+opens the same codex entry. The hovered icon is not shot: the tooltip covered it in some runs of
+either player.
 
 **Risk: medium.**
 
@@ -802,9 +811,10 @@ icon is not shot: the tooltip covered it in some runs of either player.
 
 ### I7 The pointer in the world
 
-**Status:** passes (f0f198e0, Linux OpenGL; Windows: pending). `tests/e2e/u60/i7-pointer-in-world.yaml`:
-debris selected by a click on it, then a Dig drag over a rectangle of rock; the selection and the
-dig orders equal the original's.
+**Status:** passes (f0f198e0, Linux OpenGL; Windows Vulkan: passes with synthetic input, 0cf55242;
+the real pointer needs the user: debris clicked, then a Dig drag over rock, in both players).
+`tests/e2e/u60/i7-pointer-in-world.yaml`: debris selected by a click on it, then a Dig drag over a
+rectangle of rock; the selection and the dig orders equal the original's.
 
 **Risk: medium.**
 
@@ -937,11 +947,11 @@ Consumables back to the left when it shows again.
 
 ### U3 Build menu and material selection
 
-**Status:** passes (b04eea0c, Linux OpenGL; Windows: pending), step 1: `tests/e2e/u60/u3-build-menu.yaml`
-opens the eleven categories shown at 1280x720 (Base to Operations, Farming among them) and dumps
-the plan screen after each; all equal once the panel settles (the first run caught a scrollbar
-value mid-reveal). The undiscovered-material and backwall cards and the queued blueprint (steps
-2-3) are not in the spec yet.
+**Status:** passes (b04eea0c, Linux OpenGL; Windows Vulkan: passes, 0cf55242, every dump equal),
+step 1: `tests/e2e/u60/u3-build-menu.yaml` opens the eleven categories shown at 1280x720 (Base to
+Operations, Farming among them) and dumps the plan screen after each; all equal once the panel
+settles (the first run caught a scrollbar value mid-reveal). The undiscovered-material and backwall
+cards and the queued blueprint (steps 2-3) are not in the spec yet.
 
 **Risk: medium.**
 
@@ -982,13 +992,13 @@ value mid-reveal). The undiscovered-material and backwall cards and the queued b
 
 ### U4 Blueprints, Supply Closet and fuzzy search
 
-**Status:** passes (4fb51dbd, Linux OpenGL; Windows: pending), the scoring part:
+**Status:** passes (4fb51dbd, Linux OpenGL; Windows Vulkan: passes, 0cf55242), the scoring part:
 `tests/e2e/u60/u4-fuzzy-scores.yaml` scores 18 query-and-name pairs with
-`FuzzySearch.CanonicalizeAndScore`, from "pump", "wtr pmp" and "regal" to accents, ß, Œ and a
-dotted İ. It also reads `SearchUtil.Canonicalize` and `CanonicalizePhrase` on such text. Every
-score, best token and canonical string equals the original's (ICU in ours, Mono's collation in
-the original). The search bars, Copy Blueprint, the drywall Rotate and the Supply Closet
-(steps 1-4 as UI) are not run.
+`FuzzySearch.CanonicalizeAndScore`, from "pump", "wtr pmp" and "regal" to accents, ß, Œ and a dotted
+İ. It also reads `SearchUtil.Canonicalize` and `CanonicalizePhrase` on such text. Every score, best
+token and canonical string equals the original's (ICU in ours, Mono's collation in the original).
+The search bars, Copy Blueprint, the drywall Rotate and the Supply Closet (steps 1-4 as UI) are not
+run.
 
 **Risk: medium.**
 
@@ -1030,11 +1040,11 @@ Blueprints" deep link, Electrical → Power, the Regal pump rename, Manual Gener
 
 ### U5 Details screen and codex layouts
 
-**Status:** passes (264a8bba, Linux OpenGL; Windows: pending), steps 2 and 3 in part:
-`tests/e2e/u60/u5-codex-layouts.yaml` dumps the codex search list for "Hatch" and the Hatches
-page. It then collapses the page's first Diet header, rebuilds the page with Back and Forward,
-and collapses the new page's header; each dump equals the original's. Both collapses hide the
-contents (3,508 dump lines to 2,139). The details panels (step 1), the other articles, the
+**Status:** passes (264a8bba, Linux OpenGL; Windows Vulkan: passes, 0cf55242, every dump equal),
+steps 2 and 3 in part: `tests/e2e/u60/u5-codex-layouts.yaml` dumps the codex search list for "Hatch"
+and the Hatches page. It then collapses the page's first Diet header, rebuilds the page with Back
+and Forward, and collapses the new page's header; each dump equals the original's. Both collapses
+hide the contents (3,508 dump lines to 2,139). The details panels (step 1), the other articles, the
 Skills screen and the recipe screen are not run.
 
 **Risk: medium.**
@@ -1080,10 +1090,10 @@ label; Neutronium tooltip.
 
 ### U6 Tutorial hiding
 
-**Status:** passes (848ac5b7, Linux OpenGL; Windows: pending), the message part:
-`tests/e2e/u60/u6-tutorial-hiding.yaml` opens the Duplicant Movement message, dumps its dialog
-and ticks "don't show again": the HideAllTutorials pref equals the original's. Turning it back on
-from the Options screen is not run.
+**Status:** passes (848ac5b7, Linux OpenGL; Windows Vulkan: passes, 0cf55242), the message part:
+`tests/e2e/u60/u6-tutorial-hiding.yaml` opens the Duplicant Movement message, dumps its dialog and
+ticks "don't show again": the HideAllTutorials pref equals the original's. Turning it back on from
+the Options screen is not run.
 
 **Risk: low.**
 
@@ -1190,10 +1200,10 @@ carousel shot with its bobbing asteroid and the caret masked) equal the original
 
 ### U9 Sandbox tool menu
 
-**Status:** passes (e568fbb3, Linux OpenGL; Windows: pending), step 1:
-`tests/e2e/u60/u9-sandbox-tools.yaml` dumps the parameter menu of seven sandbox tools (Brush,
-Sprinkle, Fill, Heat Gun, Clear Floor, Destroy, Critter Removal), with the new shape, layer and
-size controls; all equal. The square brush stroke and the destroy over falling sand are not in
+**Status:** passes (e568fbb3, Linux OpenGL; Windows Vulkan: passes, 0cf55242, every dump equal),
+step 1: `tests/e2e/u60/u9-sandbox-tools.yaml` dumps the parameter menu of seven sandbox tools
+(Brush, Sprinkle, Fill, Heat Gun, Clear Floor, Destroy, Critter Removal), with the new shape, layer
+and size controls; all equal. The square brush stroke and the destroy over falling sand are not in
 the spec yet.
 
 **Risk: low.**
@@ -1426,9 +1436,10 @@ All templates, not only POIs. VYaml attributes on `TemplateContainer` (29),
 
 ### A2 Asset loading at the main menu
 
-**Status:** passes (89f503d6, Linux OpenGL; Windows: pending). `tests/e2e/u60/a2-menu-assets.yaml`:
-2585 prefabs, 3325 anims, 469 building defs and the first 50 prefab ids in order equal the
-original's. The time to the menu is not part of the spec (the start-up timing script's).
+**Status:** passes (89f503d6, Linux OpenGL; Windows Vulkan: passes, 0cf55242).
+`tests/e2e/u60/a2-menu-assets.yaml`: 2585 prefabs, 3325 anims, 469 building defs and the first 50
+prefab ids in order equal the original's. The time to the menu is not part of the spec (the start-up
+timing script's).
 
 **Risk: medium.**
 
@@ -1923,8 +1934,12 @@ data, read from Linux (587 variants; 120 shaders, 0 compile or link errors, as o
 
 ### P5 IMGUI developer tools
 
-**Status:** passes (addf73de, Linux OpenGL; Windows: pending). `tests/e2e/u60/p5-imgui-devtools.yaml`:
-in debug mode Ctrl+` shows the tools' warning menu bar (shot equal) and hides it again.
+**Status:** passes (addf73de, Linux OpenGL; Windows: not testable with synthetic input, which
+reaches KInput only: the tools read Ctrl+` from Unity's Input directly
+(DevToolManager.UpdateShouldShowTools) and draw through IMGUI events; needs the user: with
+debug_enable.txt beside each player's data, a colony loaded, Ctrl+` pressed twice, the warning menu
+bar shown and hidden as in the original). `tests/e2e/u60/p5-imgui-devtools.yaml`: in debug mode
+Ctrl+` shows the tools' warning menu bar (shot equal) and hides it again.
 
 **Risk: low.** Checked pixel for pixel (63c86671, c21392e8).
 
@@ -1950,8 +1965,9 @@ in debug mode Ctrl+` shows the tools' warning menu bar (shot equal) and hides it
 
 ### AU1 UI sounds and stingers
 
-**Status:** passes (3346493d, Linux OpenGL; Windows: pending). `tests/e2e/u60/au1-ui-sounds.yaml`:
-the UI sound calls counted after each step equal the original's (stingers and reverb not checked).
+**Status:** passes (3346493d, Linux OpenGL; Windows Vulkan: passes, 0cf55242, the sound calls
+counted with the audio going to a file). `tests/e2e/u60/au1-ui-sounds.yaml`: the UI sound calls
+counted after each step equal the original's (stingers and reverb not checked).
 
 **Risk: low.**
 
