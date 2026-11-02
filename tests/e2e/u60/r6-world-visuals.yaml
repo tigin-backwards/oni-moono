@@ -1,0 +1,27 @@
+# R6 (docs/research/u60-qa-spec.md): world visual fixes, the cases drawn by block tiles.
+#
+# U60's TileVisualizer refreshes the four diagonal cells too (tops of tiles with drywall either
+# side), Carpet Tiles lost their gap (data), and Metal Tiles under construction show their
+# preview art (AnimTilableSingleController's preview update). Block tile meshes and kanim
+# symbols are ours.
+#
+# From early-base, paused. Setup builds the furniture (BuildingDef.Build, default
+# elements): two Tiles with Drywall either side west of the pod, three Carpet Tiles east of it;
+# Smelting is researched so a Metal Tile blueprint can be placed through the build orders. One
+# world shot per case.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Research.Instance.GetTechInstance(\"Smelting\")", method: Purchased}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ExteriorWall\")", method: Build, args: [{"$": "Grid.XYToCell(112, 208)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"ExteriorWall\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Tile\")", method: Build, args: [{"$": "Grid.XYToCell(113, 208)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"Tile\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Tile\")", method: Build, args: [{"$": "Grid.XYToCell(114, 208)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"Tile\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ExteriorWall\")", method: Build, args: [{"$": "Grid.XYToCell(115, 208)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"ExteriorWall\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CarpetTile\")", method: Build, args: [{"$": "Grid.XYToCell(133, 209)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"CarpetTile\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CarpetTile\")", method: Build, args: [{"$": "Grid.XYToCell(134, 209)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"CarpetTile\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CarpetTile\")", method: Build, args: [{"$": "Grid.XYToCell(135, 209)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"CarpetTile\").DefaultElements()"}, 293.15, false, -1]}}
+steps:
+  - build: {prefab: MetalTile, cells: [[110, 209], [111, 209]]}
+  - run: {seconds: 1, speed: 1}
+  - world_shot: {name: tiles-drywall, ortho: 4, at: [113, 208]}
+  - world_shot: {name: carpet, ortho: 4, at: [134, 209]}
+  - world_shot: {name: metal-tile-blueprint, ortho: 4, at: [111, 209]}

@@ -1,0 +1,57 @@
+{
+ "spec": "u60/r6-world-visuals.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Tiles with drywall either side, three carpet tiles and a metal tile blueprint, shot close up, paused",
+ "updated": "2026-11-01",
+ "commit": "d3d4e960",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-204842-fce0c9f7",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T20:48:42",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-210857-8084d51c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T21:08:57",
+    "lane": 50,
+    "reference_run": "20261101-204842-fce0c9f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "tiles-drywall": 0.011275,
+     "carpet": 0.008768,
+     "metal-tile-blueprint": 0.008743
+    }
+   },
+   {
+    "run": "20261101-210857-8084d51c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T21:13:06",
+    "lane": 50,
+    "reference_run": "20261101-204842-fce0c9f7",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "tiles-drywall": 0.00607,
+     "carpet": 0.009632,
+     "metal-tile-blueprint": 0.010278
+    }
+   }
+  ]
+ }
+}

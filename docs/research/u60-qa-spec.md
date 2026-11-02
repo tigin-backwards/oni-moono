@@ -357,6 +357,12 @@ signatures). Window resize stays with the qa `resize` scenario.
 
 ### R6 World visual fixes
 
+**Status:** passes (d3d4e960, Linux OpenGL; Windows Vulkan: pending), cases 1-3:
+`tests/e2e/u60/r6-world-visuals.yaml` shoots tiles with drywall either side, three carpet tiles
+and a metal tile blueprint (within 1.2 %). Cases 4-7 (a dug-out buried object, a building under
+construction in two overlays, a vent closed by automation, Rock Crusher and Metal Refinery
+output) are not in the spec yet.
+
 **Risk: medium.** Visible, but driven by game code we run unchanged.
 
 **Patch notes:**
