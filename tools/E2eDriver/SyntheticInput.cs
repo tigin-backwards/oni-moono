@@ -153,6 +153,17 @@ namespace E2eDriver
                     field.text = (string)a["text"] ?? "";
                     return new JObject { ["field"] = selected.name, ["text"] = field.text };
                 }
+                case "input.submit":
+                {
+                    // Enter in the selected input field: its onSubmit, then the field deactivated
+                    // (which sends onEndEdit), as TMP_InputField does for Enter in a single line.
+                    var selected = UnityEngine.EventSystems.EventSystem.current?.currentSelectedGameObject;
+                    var field = selected != null ? selected.GetComponent<TMPro.TMP_InputField>() : null;
+                    if (field == null) throw new DriverError("input.submit: no input field is selected");
+                    field.onSubmit?.Invoke(field.text);
+                    field.DeactivateInputField();
+                    return new JObject { ["field"] = selected.name, ["text"] = field.text };
+                }
                 case "input.focus":
                     return new JObject { ["focused"] = KInputManager.isFocused };
                 default:

@@ -296,6 +296,10 @@ class WinInput:
 
     def key(self, code):
         mods, key = win_key(code)
+        if key == 'Return' and getattr(self, 'typed', False):
+            # Enter after text: the field's submit, as the field hears Enter; KInput hears it too.
+            self.typed = False
+            self.driver.request('input.submit')
         r = self.driver.request('input.key', code=key, mods=mods, down=True)
         if not (r or {}).get('queued'):
             log(f'  (synthetic input: no binding for {code}; nothing queued)')
@@ -310,6 +314,7 @@ class WinInput:
         # Typing needs real keys (TMP reads IMGUI events): the field's text is set whole.
         log(f'  (synthetic input: the field text set to {text!r}, not typed)')
         self.driver.request('input.text', text=text)
+        self.typed = True
         self.frames(2)
 
     def drag(self, start, end, button='left', mods=(), steps=8, hold=0, via=()):
@@ -365,12 +370,46 @@ def menu_grab(self, name):
 
 
 e2e.Run.menu_grab = menu_grab
+
+# The Windows 761211 original is a development build: Unity draws "Development Build" in the
+# bottom right corner of every frame, which ours does not. Every shot masks it.
+WATERMARK = [e2e.WIDTH - 130, e2e.HEIGHT - 28, 130, 28]
+_shot, _world_shot = e2e.Run.shot, e2e.Run.world_shot
+
+
+def with_watermark(value):
+    value = dict(value) if isinstance(value, dict) else {'name': value}
+    value['mask'] = list(value.get('mask', [])) + [WATERMARK]
+    return value
+
+
+e2e.Run.shot = lambda self, value: _shot(self, with_watermark(value))
+e2e.Run.world_shot = lambda self, value: _world_shot(self, with_watermark(value))
 _step = e2e.Run.step
 
 
 def step(self, kind, value, number):
     if kind == 'keyboard':
         raise NeedsRealInput('a keyboard layout switch needs the desktop')
+    if kind == 'save':
+        # e2e.py's save step, with the Windows path OniMcp answers read from here.
+        saved = self.mcp.call('game_control', domain='save', action='save', name=value, overwrite=True,
+                              updateActiveSave=False, confirm=True)
+        path = windows_path(saved.get('saved')) if isinstance(saved, dict) else None
+        if not path or not os.path.exists(path):
+            raise e2e.SpecFailure(f'save {value} failed: {json.dumps(saved)[:600]}')
+        shutil.copy(path, os.path.join(self.out, value + '.sav'))
+        self.saves.append(value)
+        return None
+    if kind == 'click' and isinstance(value, dict) and value.get('quits'):
+        # A quitting game keeps its socket open while it shuts down: the click's last frames
+        # time out here, where on Linux the connection closes.
+        try:
+            return _step(self, kind, value, number)
+        except (e2e.SpecFailure, OSError) as e:
+            if 'timed out' not in str(e):
+                raise
+            return None
     return _step(self, kind, value, number)
 
 

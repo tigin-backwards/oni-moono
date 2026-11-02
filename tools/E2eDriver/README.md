@@ -436,7 +436,7 @@ Delivers one of the management screens' game Actions (`ManageVitals`, `ManageCon
 `ManageReport`, `ManageDatabase`) to `KScreenManager` as a key-down and key-up, as the screen's
 hotkey does: e2e.py's `open: {management: …}`. The same in U59 and U60.
 
-### Synthetic input: input.move, input.button, input.key, input.scroll, input.text
+### Synthetic input: input.move, input.button, input.key, input.scroll, input.text, input.submit
 
 Input made inside the game, for a window that never has the desktop's focus or pointer
 (`SyntheticInput.cs`). The first request tells the game and the event system they have the
@@ -458,6 +458,8 @@ so this checks what the game and the UI do with input, not how the player reads 
   game's scroll keys.
 - `input.text {text}`: the selected TMP input field's text, set whole (its `onValueChanged`
   runs as for typing).
+- `input.submit`: Enter in the selected TMP input field: its `onSubmit`, then the field
+  deactivated, which sends `onEndEdit`.
 - `input.focus`: the focus only. Result `{focused}`.
 
 ### screen.capture `{name}`

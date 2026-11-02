@@ -43,7 +43,7 @@ namespace E2eDriver
                 case "ui.action": return UiAction(a);
                 case "imgui.scrollview": return ImguiProbe.Start(a);
                 case "templates.load": return Templates.Load(a);
-                case "input.move": case "input.button": case "input.key": case "input.scroll": case "input.text": case "input.focus":
+                case "input.move": case "input.button": case "input.key": case "input.scroll": case "input.text": case "input.submit": case "input.focus":
                     return SyntheticInput.Run(request.Command, a);
                 case "screen.capture": ScreenShot.Capture(request); return null;
                 case null: throw new DriverError("the request has no cmd");
