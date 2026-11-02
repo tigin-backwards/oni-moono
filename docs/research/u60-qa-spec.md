@@ -1353,6 +1353,21 @@ ApiCheck finds 787 type and 3,225 member refs, 0 types and 13 members missing, a
 
 ### A1 Templates through VYaml 1.4
 
+**Status:** passes (3101cb6e, 6462dc3b). Step 1 (Linux; ours on Vulkan, the original on
+OpenGL, recorded before the OpenGL rule): `tests/e2e/u60-a1-templates.yaml` runs the new E2eDriver
+command `templates.load` (`tools/E2eDriver/Templates.cs`), which loads every template through
+`TemplateCache.LoadTemplateYaml`; every line, the count, the failures and the digest are the
+original's. Step 2 (Linux, both players on OpenGL): `tests/e2e/u60-start-{terra,forest,swamp,
+ceres,aquatic,prehistoric}.yaml`, a new game from a fixed `-C-` coordinate for each start: the
+cluster and start world, its size, three Duplicants, the start base's buildings, Hatches, vista,
+food, seeds and Duplicants as in the original. `SNDST-A` (the base-game category) and the
+event clusters are not covered: their screens ignore the coordinate's cluster. Every pickupable
+is not compared: the generated worlds differ by a few cells (Verdante: 29,700 solid cells in
+the original, 29,712 in ours; ten CarbonDioxide and five Dirt chunks only in the original;
+repro `tests/e2e/u60-start-forest-grid.yaml`), so element chunks and the world's critters
+differ; that difference is open (not looked into; QA calls worldgen functional, never cell by
+cell).
+
 **Risk: medium.** A new game generates without errors and matches QA's references (inventory,
 2026-10-31), but a value read differently would not log.
 
@@ -1976,6 +1991,38 @@ Each item is game code with no new engine surface. One spec per item, functional
 | G11 | Sandbox: Pacu Treat in the Spawner, destroy clears falling sand | U9 | covered by U9 |
 | G12 | Codex content: critter drops, Food Quality, Applications, Medical Pack link, Power Banks, booster recipes, Refashionator | `CodexEntryGenerator*` | covered by U5's dumps |
 | G13 | Spaced Out: logic ports on take-off and landing; Material Study Terminal 100/100; rocket modules rebuilt while paused; equippables same world only; Robo-Pilot signal | `LogicPorts` (9), `HEPFuelTank.OnRocketLaunched/Landed`, `PassengerRocketModule` (11), `Equippable` (8), `RoboPilotModule` | `rockets-so` launches and lands |
+
+**Status (G rows):** Linux, both players on OpenGL; one spec per row, `tests/e2e/u60-gN.yaml`
+(records in `tests/e2e/results-u60`): the definitions the row's changed game code sets up, read
+in both players and compared with the original's, then a game minute. Behaviour checks that need
+a long colony set-up (a Duplicant swimming a pool, recipe times beside a tool, critter states
+over cycles, chores after each setup) are not run; the definitions are.
+- G1: passes (b867d6e7): Swimming and Swimming2 (group, tier, deprecation, perks), the swimming
+  skill group, the skill count and the Swim Hack booster prefab, in the base-game colony.
+- G2: passes (b867d6e7): the four support-building boosts and their compatible receptors, and
+  the receptor on the Cooking Station, Kiln, Research Station and Deep Fryer.
+- G3: passes (387497cb): the Space Racer (deprecated), Trampoline and Sandpit defs, the
+  Trampoline, Sandpit and Space Racer effects' durations, the Soda Fountain's work time.
+- G4: passes (d96b0870): the Merpip and its baby (`SquirrelAquaticBaby`) prefabs and their
+  tags, the Pip's tags.
+- G5: passes (b867d6e7): the Smart Storage Bin's power, Oxylite Refinery's size, Window Tile and
+  Wicker Door decor, drywall and Tempshift Plate scene layers, the Breathing Station's tank.
+- G6: passes (b867d6e7): the Shine Bug's temperature and tags, the Critter Condo.
+- G7: passes (b867d6e7): the skill perk count, the Heavi-Watt wire's and Steam Turbine's build
+  rules.
+- G8: passes (b867d6e7): the renamed strings (Diet header, Lumber, Steam Turbine, Heavi-Watt
+  wire) in English.
+- G9: passes (b867d6e7): the Egg Cracker's size, the tile's decor, the building and misc status
+  item counts.
+- G10: passes (6462dc3b, with A1 step 2): six new games from fixed Spaced Out coordinates, their
+  start bases' buildings, Hatches (none on Verdante), vista, food and seeds as in the original;
+  Zinc Ore in MetalRich and MetalPoor under A4 (6059c038). Not run: the frozen breakroom's
+  reveal, mixing's trait list, the Demolior setting and the unplaced templates. Verdante's
+  generated cells differ a little (A1's status; repro `tests/e2e/u60-start-forest-grid.yaml`).
+- G11: covered by U9.
+- G12: covered by U5.
+- G13: passes (b867d6e7): `rockets-so`'s two rockets and their modules, the Radbolt Engine and
+  Robo-Pilot module defs.
 
 ## The 761015 → 761211 delta
 
