@@ -766,6 +766,10 @@ icon is not shot: the tooltip covered it in some runs of either player.
 
 ### I7 The pointer in the world
 
+**Status:** passes (f0f198e0, Linux OpenGL; Windows: pending). `tests/e2e/u60/i7-pointer-in-world.yaml`:
+debris selected by a click on it, then a Dig drag over a rectangle of rock; the selection and the
+dig orders equal the original's.
+
 **Risk: medium.**
 
 **Patch notes:**

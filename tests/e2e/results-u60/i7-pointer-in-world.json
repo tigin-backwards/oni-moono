@@ -1,0 +1,49 @@
+{
+ "spec": "u60/i7-pointer-in-world.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Debris selected by a click on it, then a Dig drag over a rectangle of rock: selection and dig orders",
+ "updated": "2026-11-01",
+ "commit": "f0f198e0",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-220342-f5698e7e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:03:42",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-234833-dc25023e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:48:33",
+    "lane": 50,
+    "reference_run": "20261101-220342-f5698e7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-234833-dc25023e",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T23:49:10",
+    "lane": 50,
+    "reference_run": "20261101-220342-f5698e7e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

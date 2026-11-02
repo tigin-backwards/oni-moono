@@ -1,0 +1,23 @@
+# I7 (docs/research/u60-qa-spec.md): the pointer in the world.
+#
+# U60 changed InterfaceTool.GetObjectUnderCursor and UpdateHoverElements (sorting removed),
+# KCollider2D's hit tests and DigTool.PlaceDig. Hover and selection under the cursor and drag
+# input across cells run through our input and physics queries.
+#
+# From early-base: debris lying on the floor selected by a click on it (the first object under
+# the cursor), then the Dig tool dragged over a rectangle of rock above the west room; the dig
+# orders placed and the selection compared with the original's.
+from: early-base
+setup:
+  - driver: {camera.set: {pos: [128.5, 210.5], ortho: 10}}
+steps:
+  - click_world: {pos: [134.56, 207.3], select: Sand}
+  - expect_state:
+      "SelectTool.Instance.selected.GetComponent<KPrefabID>.PrefabTag.Name": ["== 'Sand'", "== original"]
+  - key: {code: Escape}
+  - tool: {toolbar: Dig}
+  - drag: {from: [128, 213], to: [136, 216]}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "all:Diggable::Length": [">= 1", "== original"]
+  - key: {code: Escape}
