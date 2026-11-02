@@ -183,7 +183,7 @@ after times were measured on Linux under WSL2, where the game's code ran about h
 | `fast-offset-tables`: fetch updates recheck only items whose work spots can have changed | 1.74 → 1.33 ms | exact |
 | `fast-anim-cleanup`: the sweep for destroyed animations skips chunks that can't hold any | 0.48 → 0.12 ms | exact |
 | `fast-partitioner-cleanup`: the spatial index's cleanup looks only at entries that were removed | Gluttony: 0.38 → 0.16 ms | exact |
-| `fast-symbol-overrides`: unchanged symbol-override blocks aren't uploaded again | 1.47 → 1.20 ms | exact |
+| `fast-symbol-overrides`: unchanged symbol-override blocks aren't uploaded again; Duplicants' overrides are re-applied only where they changed | 1.47 → 1.20 ms; c100 (200 Duplicants, Windows, Vulkan): 34.9 and 40.7 → 62.4 and 84.7 fps | exact |
 | `fast-anim-batches`: animation batches write their controllers' instance and symbol data on worker threads, the rest in the game's order | Gluttony: 1.9–2.0 → 1.5–1.65 ms | exact |
 | `fast-overlays`: the temperature overlay passes over the buildings out of view without reading them, the power overlay asks each circuit's load once a frame, and the other overlays keep what their targets' visits read (see [research/overlays.md](research/overlays.md)) | temperature 10.4 → 6.0 ms (2minnow 6.5 → 3.8–4.0), power 1.28 → 0.77–0.95, materials 4.05 → 3.8, decor 4.32 → 3.6–4.0 | exact |
 | `fast-conveyor-paths`: the conveyor rails' network rebuild (on every rail built, removed or reconnected, and at the load) answers its path searches from an index of the paths it keeps instead of searching every kept path for every path found | U57: a rebuild 50–510 → 2–14 ms, the load's 840–850 → 14 ms | exact |

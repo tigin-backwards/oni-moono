@@ -442,7 +442,9 @@ unchanged.
   leaves the block's bytes as they were puts its version back, so the face drawn over the
   overrides no longer uploads the block every frame. c100 (Linux, ONI_TWEAK_VERIFY): 0
   mismatches in 120 million checks, about 85% of applications kept, uploads 40–67 → 14–18 a
-  frame.
+  frame. Windows (Vulkan, speed 3, interleaved runs, 120 s each): c100 34.9 and 40.7 → 62.4
+  and 84.7 fps, the main thread's phases 28.4 and 24.3 → 15.9 and 11.7 ms a frame; DeCrew 107.2
+  and 82.3 → 129.8 and 107.8 fps.
 
 - `fast-anim-batches`: KAnimBatchManager.UpdateDirty writes, per dirty controller in order,
   its instance data and symbol instance block, applies its symbol overrides (game code with
