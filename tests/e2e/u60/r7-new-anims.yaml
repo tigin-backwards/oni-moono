@@ -1,0 +1,25 @@
+# R7 (docs/research/u60-qa-spec.md): new and changed animations, the critters.
+#
+# U60 adds the Merpip (SquirrelAquatic) and its baby, the Slogo (Snail), its baby and the Gildgo
+# (SnailIron), all from dlc5's bundles: their kanim builds and anims are new to our bundle reader,
+# texture upload and symbol overrides.
+#
+# From landing (every DLC), the five spawned on the start room's floor in setup (preparation
+# only), then the world shot at once, before any game time passes and they wander.
+from: landing
+setup:
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"SquirrelAquatic\")"}, [119.5, 207, -20]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"SquirrelAquaticBaby\")"}, [121, 207, -20]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"Snail\")"}, [127.5, 207, -20]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"SnailIron\")"}, [129, 207, -20]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"SnailBaby\")"}, [130.3, 207, -20]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {camera.set: {pos: [125, 208.5], ortho: 5}}
+steps:
+  - expect_state:
+      "Components.Brains.Count": "== original"
+  - world_shot: {name: critters, ortho: 5}

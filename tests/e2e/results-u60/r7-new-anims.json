@@ -1,0 +1,53 @@
+{
+ "spec": "u60/r7-new-anims.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Merpip and baby, Slogo, Gildgo and Slogo baby spawned on landing's start-room floor and shot at once",
+ "updated": "2026-11-02",
+ "commit": "0409c7b7",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-004506-cd891a96",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:45:06",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-004542-cbede650",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:45:42",
+    "lane": 50,
+    "reference_run": "20261102-004506-cd891a96",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "critters": 0.020094
+    }
+   },
+   {
+    "run": "20261102-004542-cbede650",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:46:10",
+    "lane": 50,
+    "reference_run": "20261102-004506-cd891a96",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "critters": 0.019931
+    }
+   }
+  ]
+ }
+}

@@ -412,8 +412,11 @@ output) are not in the spec yet.
 
 ### R7 New and changed animations and sprites
 
-**Status:** not run in this pass: no spec yet (a spawner setup and a shot per new prefab).
-Windows Vulkan: pending.
+**Status:** passes (0409c7b7, Linux OpenGL; Windows Vulkan: pending), the new critters:
+`tests/e2e/u60/r7-new-anims.yaml` spawns the Merpip and its baby, the Slogo, its baby and the
+Gildgo on landing's start-room floor. Their world shot equals the original's, and neither
+player logs an anim or symbol warning the other doesn't. Not run: the new buildings and the
+changed anims of existing critters (states that need forcing).
 
 **Risk: medium.**
 
