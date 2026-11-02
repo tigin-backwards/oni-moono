@@ -772,7 +772,7 @@ the codex article equal the original's.
 
 ### U1 The text pipeline
 
-**Status:** fixed in 5ed0c813 and 69db5901 (Linux, both players on OpenGL for the confirming run).
+**Status:** fixed in 29363207 and 084f9dd6 (Linux, both players on OpenGL for the confirming run).
 Measured with UnityProbe `u60` in both players (`tests/e2e/u60-bcl-probe.yaml`, lines
 `U60 TS`): Unity's package does not skip an unchanged `SetCharArray`. `SetText` and every
 `SetCharArray` overload count the same characters as a change (`havePropertiesChanged`, one
@@ -780,7 +780,7 @@ Measured with UnityProbe `u60` in both players (`tests/e2e/u60-bcl-probe.yaml`, 
 them. Ours skipped all of them; now every `TS` line is the original's
 (docs/cleanroom/textmeshpro.md, "The same text set again"). `LocText.SetContent` exposed a
 second difference: an Awake that throws leaves its behaviour disabled in Unity (lines `U60 AW`,
-fixed in 69db5901). `Int32`/`Int64.TryFormat` match (L2). Step 3: in place of the dogfood
+fixed in 084f9dd6). `Int32`/`Int64.TryFormat` match (L2). Step 3: in place of the dogfood
 under other locales, the probe ran under `LANG=de_DE.UTF-8` and `ru_RU.UTF-8`: in both players
 the game's threads (main, new, pool) format in the invariant culture and only the UI culture
 follows `LANG`, so no capture can differ by locale. Windows Vulkan: pending.
@@ -1016,7 +1016,7 @@ label; Neutronium tooltip.
 
 ### U7 Translation validation
 
-**Status:** passes (d6043974; Linux, ours on Vulkan, the original on OpenGL):
+**Status:** passes (10000907; Linux, ours on Vulkan, the original on OpenGL):
 `tests/e2e/u60-u7-zh.yaml`, `-ru`, `-ko` (results in `tests/e2e/results-u60`) require each
 "TRANSLATION ERROR!" block the original logs, whole, and no other: zh and ko reject
 `STRINGS.UI.BUILDINGEFFECTS.DIET_HEADER` (parameters), ru that and
@@ -1160,7 +1160,7 @@ difference.
 **Status:** fails in ours (Linux; ours on Vulkan, the original on OpenGL; no rendering involved):
 culture-sensitive `CompareInfo` and `IndexOf` use ICU in ours and Mono's collation in the
 original, and the orders differ; repro `tests/e2e/u60-bcl-probe.yaml` (UnityProbe `u60`, lines
-`U60 CI`, `U60 IX`; 77186275). Not fixed because the game's own threads run invariant in both
+`U60 CI`, `U60 IX`; 0211f6a2). Not fixed because the game's own threads run invariant in both
 players (also under `LANG=de_DE.UTF-8` and `ru_RU.UTF-8`) and FuzzySharp's
 `TokenizedString.SortedTokens` of all 469 building names are identical in English, Russian and
 Simplified Chinese; only mod code doing culture-sensitive comparisons could see it. In detail:
@@ -1640,7 +1640,7 @@ for it.
 
 ### P2 Vulkan as the Linux default
 
-**Status:** fixed in 292463da (Linux, WSL: the only Vulkan device is llvmpipe; OpenGL is Mesa d3d12
+**Status:** fixed in be78d293 (Linux, WSL: the only Vulkan device is llvmpipe; OpenGL is Mesa d3d12
 on the GPU). Measured in the original (`tests/e2e/u60-p2-renderer.yaml`, `E2E_ORIGINAL_ARGS`): with
 no option it rejects llvmpipe ("Vulkan detection: 0") and opens OpenGL Core; `-force-glcore` and
 `-force-opengl` open OpenGL Core; `-force-vulkan` exits ("Forced renderer 21 is not supported,
