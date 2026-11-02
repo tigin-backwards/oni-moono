@@ -196,6 +196,7 @@ prototyped yet.
   - That needs reading `SetSymbolOverrides`, `FaceGraph` and the batch's atlas list (not done).
 - **Estimate**: at most the 6.1% own share on c100 (about 1.7 ms). How often the face is the
   only change is unmeasured; a stopwatch count of calls by cause comes first.
+- **Verdict: landed** (`fast-symbol-overrides`, exact; see [Verdicts](#verdicts)).
 
 ### 2. Draw collection: the `Graphics.DrawMesh` queue in `Cull`. Up to about 0.5-0.9 ms.
 
@@ -336,6 +337,33 @@ These are not per-frame, so they are outside the ranking above:
   `MissingInterfaceMethods.Collect`'s `GC.Collect` loop (about 2.9 s).
 - `ComponentLayout` match tables take 33.5 MB, `UploadedTexels` 37 MB, and mesh UVs as
   `Vector4` about 42 MB.
+
+## Verdicts
+
+| Candidate | Verdict | c100 | DeCrew | soggy lab 2 | U57 |
+|---|---|---|---|---|---|
+| 1. Symbol overrides | **Landed**, exact | 34.9, 40.7 → 62.4, 84.7 fps; main thread 28.4, 24.3 → 15.9, 11.7 ms | 107.2, 82.3 → 129.8, 107.8 fps | 31.3, 33.7 → 28.9, 33.4 fps | 62.3, 70.9 → 66.4, 70.6 fps |
+
+Candidate 1 (`fast-symbol-overrides`, kept applications):
+- **Cause**: Duplicants re-apply their overrides on every dirty mark
+  (`applySymbolOverridesEveryFrame`, for the face). On c100 that is about 85-110 applications
+  a frame (Linux, counted): about 11-17 after a real override change (speech, blinks), about
+  0.4 after a batch change, the rest with unchanged inputs. The face drawn over the overrides
+  changed each block twice, so the batch re-uploaded 40-67 whole override blocks a frame.
+- **Change**: unchanged inputs replay the kept calls and redo only the writes covering
+  entries written since; a block left byte-identical keeps its version. Uploads 40-67 → 14-18
+  blocks a frame on c100; `ApplyOverrides` 2.4-3.3 → 1.0-1.7 ms a frame (Linux debug build,
+  stopwatch).
+- **Exactness**: ONI_TWEAK_VERIFY on c100: 0 mismatches in 120 million checks. A model test
+  compares block and uploaded texture bytes with the game's full application over random
+  histories. Paused-capture pixel comparisons are dominated by run-to-run noise (22k-96k
+  pixels between two runs of one build) and show nothing either way.
+- **Runs**: Windows, U60 761211, Vulkan, speed 3, busiest world, base and new interleaved
+  (base, new, new, base), 120 s each from 60 s after the busiest world. Base is the same host
+  with origin's `OniMoono.GameTweaks.dll`. The noise is large: the same build differs by up to
+  25 fps between pairs on c100 and DeCrew. c100 gains in both pairs, every phase included
+  (fewer texture uploads). soggy and U57 show no change beyond noise: their late phase, where
+  the change runs, is 5.77, 5.20 → 5.69, 5.28 ms (soggy) and 5.62, 5.02 → 5.18, 4.89 ms (U57).
 
 ## Next
 
