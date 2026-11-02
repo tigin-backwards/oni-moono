@@ -772,6 +772,23 @@ the codex article equal the original's.
 
 ### U1 The text pipeline
 
+**Status:** fixed in 5ed0c813 and 69db5901 (Linux, both players on OpenGL for the confirming run).
+Measured with UnityProbe `u60` in both players (`tests/e2e/u60-bcl-probe.yaml`, lines
+`U60 TS`): Unity's package does not skip an unchanged `SetCharArray`. `SetText` and every
+`SetCharArray` overload count the same characters as a change (`havePropertiesChanged`, one
+`OnPreRenderText`, one `TEXT_CHANGED_EVENT`, one layout pass); only the `text` property skips
+them. Ours skipped all of them; now every `TS` line is the original's
+(docs/cleanroom/textmeshpro.md, "The same text set again"). `LocText.SetContent` exposed a
+second difference: an Awake that throws leaves its behaviour disabled in Unity (lines `U60 AW`,
+fixed in 69db5901). `Int32`/`Int64.TryFormat` match (L2). Step 3: in place of the dogfood
+under other locales, the probe ran under `LANG=de_DE.UTF-8` and `ru_RU.UTF-8`: in both players
+the game's threads (main, new, pool) format in the invariant culture and only the UI culture
+follows `LANG`, so no capture can differ by locale. Windows Vulkan: pending.
+
+Finding outside the items, not fixed (left to the TMP work): on the Load screen, each line of
+a save's file info (`SavePreview/FileInfo`) is 19.23 high in ours and 19.25 in the original, so
+the layout group's preferred height differs by 0.04 (masked out of V1's dumps).
+
 **Risk: medium.** Implemented and run by every QA scenario; one open check (below).
 
 **Patch note:** "Added KleiStringBuilder to reduce string allocations" (Modding).
