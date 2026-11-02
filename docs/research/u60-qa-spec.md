@@ -1016,13 +1016,14 @@ label; Neutronium tooltip.
 
 ### U7 Translation validation
 
-**Status:** passes (d6043974; Linux, ours on Vulkan, the original on OpenGL): `tests/e2e/u60-u7-zh.yaml`, `-ru`, `-ko` (results in
-`tests/e2e/results-u60`) require each "TRANSLATION ERROR!" block the original logs, whole, and no
-other: zh and ko reject `STRINGS.UI.BUILDINGEFFECTS.DIET_HEADER` (parameters), ru that and
-`STRINGS.UI.ROLES_SCREEN.PERKS.EXOSUIT_EXPERTISE.DESCRIPTION` (link count). Ours logs the same
-keys in the same order. The culture-sensitive `IndexOf` differs from Mono's around soft hyphens,
-zero-width and combining characters (L2's probe, `IX` lines), but no translated string reaches
-that difference.
+**Status:** passes (d6043974; Linux, ours on Vulkan, the original on OpenGL):
+`tests/e2e/u60-u7-zh.yaml`, `-ru`, `-ko` (results in `tests/e2e/results-u60`) require each
+"TRANSLATION ERROR!" block the original logs, whole, and no other: zh and ko reject
+`STRINGS.UI.BUILDINGEFFECTS.DIET_HEADER` (parameters), ru that and
+`STRINGS.UI.ROLES_SCREEN.PERKS.EXOSUIT_EXPERTISE.DESCRIPTION` (link count). Ours logs the same keys
+in the same order. The culture-sensitive `IndexOf` differs from Mono's around soft hyphens,
+zero-width and combining characters (L2's probe, `IX` lines), but no translated string reaches that
+difference.
 
 **Risk: low.**
 
@@ -1210,9 +1211,9 @@ Simplified Chinese; only mod code doing culture-sensitive comparisons could see 
 
 ### L3 Development-build calls and new engine members
 
-**Status:** passes (e58e7da0; Linux, no player): `scripts/check.sh` on the 761211 Linux data: ApiCheck finds 787 type and
-3,225 member refs, 0 types and 13 members missing, all 13 in `UnityEngine.UIElementsModule`; the
-unit suites pass.
+**Status:** passes (e58e7da0; Linux, no player): `scripts/check.sh` on the 761211 Linux data:
+ApiCheck finds 787 type and 3,225 member refs, 0 types and 13 members missing, all 13 in
+`UnityEngine.UIElementsModule`; the unit suites pass.
 
 **Risk: low.** Covered (67946a05, 1976a914; inventory "Engine API").
 
@@ -1520,15 +1521,15 @@ manual run on Windows with real Steam.
 
 ### M3 Mod API changes
 
-**Status:** passes (Linux; both players on OpenGL for the remix runs, the burndown's renderers for the
-rest): the U60 burndown played 22 mods whose assemblies call `ModUtil.CreateSubstance`
+**Status:** passes (Linux; both players on OpenGL for the remix runs, the burndown's renderers for
+the rest): the U60 burndown played 22 mods whose assemblies call `ModUtil.CreateSubstance`
 (`tests/e2e/results-u60`: MoreTek, Baiye Fusion Power, Heavy Water Power, Radiation Ranching,
-Industry and Power and others). Remix mods: AllInSmall-Asteroid (3044677825, worldMixing
-settings) played on U60 (`results-u60/3044677825-allinsmall-asteroid.json`: its New Game
-cluster, twelve worlds and start moonlet as in the original). Biome Mixing Pack (3815497375,
-subworldMixing) is broken in the original too: its mixing settings name a subworld file it does
-not ship, and the original's start-up worldgen settings load stops with a FileNotFoundException
-and the crash screen (`results-u60/3815497375-biome-mixing-pack.json`, pending), as on U59.
+Industry and Power and others). Remix mods: AllInSmall-Asteroid (3044677825, worldMixing settings)
+played on U60 (`results-u60/3044677825-allinsmall-asteroid.json`: its New Game cluster, twelve
+worlds and start moonlet as in the original). Biome Mixing Pack (3815497375, subworldMixing) is
+broken in the original too: its mixing settings name a subworld file it does not ship, and the
+original's start-up worldgen settings load stops with a FileNotFoundException and the crash screen
+(`results-u60/3815497375-biome-mixing-pack.json`, pending), as on U59.
 
 **Risk: low.**
 
@@ -1559,12 +1560,12 @@ and the crash screen (`results-u60/3815497375-biome-mixing-pack.json`, pending),
 
 ### M4 Obsolete game APIs
 
-**Status:** passes (e58e7da0; Linux, the burndown's runs): the U60 burndown (`tests/e2e/results-u60`, 595 records, 761015 and
-761211) played 572 mods; 210 of them carry `IntraObjectHandler` subscriptions, 16 name
-`GetDescriptors`, 14 `GlobalStringBuilderPool` and 172 `CreateEquipmentDef` in their assemblies.
-None of the 23 not played fails on these APIs: 18 fail in the original too (pending), 4 played
-with known findings (warning), and CycleTrim fails in ours for a structural reason (it checks for
-Unity's Mono).
+**Status:** passes (e58e7da0; Linux, the burndown's runs): the U60 burndown
+(`tests/e2e/results-u60`, 595 records, 761015 and 761211) played 572 mods; 210 of them carry
+`IntraObjectHandler` subscriptions, 16 name `GetDescriptors`, 14 `GlobalStringBuilderPool` and 172
+`CreateEquipmentDef` in their assemblies. None of the 23 not played fails on these APIs: 18 fail in
+the original too (pending), 4 played with known findings (warning), and CycleTrim fails in ours for
+a structural reason (it checks for Unity's Mono).
 
 **Risk: low.** The burndown covers it per mod.
 
@@ -1639,18 +1640,17 @@ for it.
 
 ### P2 Vulkan as the Linux default
 
-**Status:** fixed in 292463da (Linux, WSL: the only Vulkan device is llvmpipe; OpenGL is Mesa d3d12 on the
-GPU). Measured in the original (`tests/e2e/u60-p2-renderer.yaml`, `E2E_ORIGINAL_ARGS`): with no
-option it rejects llvmpipe ("Vulkan detection: 0") and opens OpenGL Core; `-force-glcore` and
+**Status:** fixed in 292463da (Linux, WSL: the only Vulkan device is llvmpipe; OpenGL is Mesa d3d12
+on the GPU). Measured in the original (`tests/e2e/u60-p2-renderer.yaml`, `E2E_ORIGINAL_ARGS`): with
+no option it rejects llvmpipe ("Vulkan detection: 0") and opens OpenGL Core; `-force-glcore` and
 `-force-opengl` open OpenGL Core; `-force-vulkan` exits ("Forced renderer 21 is not supported,
-exiting"). Ours ignored the three options; now `-force-glcore` and `-force-opengl` are
-`--renderer opengl` and `-force-vulkan` `--renderer vulkan` (`UnityArgumentsTests`), and with
-no option auto refuses the software device too. With each of `-force-glcore` and
-`-force-opengl` both players report `SystemInfo.graphicsDeviceType` OpenGLCore. Deliberate
-difference (ARCHITECTURE §3.5): with only a software Vulkan device, ours given `-force-vulkan`
-runs on it where Unity's player exits. QA dogfood once per renderer: not run on Linux (the
-user's renderer rule: no Vulkan runs on Linux). Windows Vulkan: pending (a real GPU: no option
-gives Vulkan, the -force options, dogfood captures).
+exiting"). Ours ignored the three options; now `-force-glcore` and `-force-opengl` are `--renderer
+opengl` and `-force-vulkan` `--renderer vulkan` (`UnityArgumentsTests`), and with no option auto
+refuses the software device too. With each of `-force-glcore` and `-force-opengl` both players
+report `SystemInfo.graphicsDeviceType` OpenGLCore. Deliberate difference (ARCHITECTURE §3.5): with
+only a software Vulkan device, ours given `-force-vulkan` runs on it where Unity's player exits. QA
+dogfood once per renderer: not run on Linux (the user's renderer rule: no Vulkan runs on Linux).
+Windows Vulkan: pending (a real GPU: no option gives Vulkan, the -force options, dogfood captures).
 
 **Risk: medium.** Covered on llvmpipe and Mesa d3d12; real Linux hardware is not available here.
 
@@ -1708,10 +1708,10 @@ options."
 
 ### P4 Unity 6000.3.17f1 data
 
-**Status:** passes (e58e7da0; Linux, no player): `scripts/check.sh` on the 761211 Linux data (check-assets: 0 failures, 0
-unresolved scripts; check-bind: 0 failures, 584 shader variants); `--check-assets`,
-`--check-bind` and `--check-shaders` are also clean on the frozen Windows 761211 data, read from
-Linux (587 variants; 120 shaders, 0 compile or link errors, as on the Linux data).
+**Status:** passes (e58e7da0; Linux, no player): `scripts/check.sh` on the 761211 Linux data
+(check-assets: 0 failures, 0 unresolved scripts; check-bind: 0 failures, 584 shader variants);
+`--check-assets`, `--check-bind` and `--check-shaders` are also clean on the frozen Windows 761211
+data, read from Linux (587 variants; 120 shaders, 0 compile or link errors, as on the Linux data).
 
 **Risk: low.** Covered (09a00671, `--check-*` modes on Linux and Windows U60 data).
 
