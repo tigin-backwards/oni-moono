@@ -1,0 +1,9 @@
+# UnityProbe's `renderercull` scenario in both players (tools/UnityProbe/RendererCull.cs): the
+# cost of disabled and inactive MeshRenderers to Camera.Render(), when enabling, disabling and
+# activation during a render take effect, and the draw order of renderers tied on depth after
+# each change. The probe needs its run: SemanticsProbe.dll (built against the game's Managed)
+# copied into a copy of OniMcp's mod folder, E2E_ONIMCP pointing at the copy,
+# PROBE_SCENARIO=renderercull. Compare the two players' "RC when" and "RC tie" lines.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/RendererCullProbeDone", cond: exists, frames: 20000}
