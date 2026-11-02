@@ -1,0 +1,61 @@
+# S2 (docs/research/u60-qa-spec.md): saving while screenshots are written.
+#
+# Every save in U60 also writes the colony's preview: a GPU readback, then a PNG encoded and
+# written in Task.Run (Timelapser, R3); SaveScreen waits for Game.CanSave, and the game's
+# clean-up flushes pending screenshot writes (FlushPendingScreenshots). Ours runs with
+# E2E_GAME_TWEAKS=background-save, which moves the save itself off the frame, and again with
+# none: the save and its preview must both finish, in order, before the main menu or a load.
+#
+# From early-base: the pause menu's Save, then at once Main Menu and Save and Quit; the main
+# menu's Load Game loads that save back (it loads, its colony is there) and its preview is
+# compared. Then play into the next cycle, so the autosave writes (with the timelapse on); and
+# Quit to Desktop with Save and Quit (SaveAndQuitRoutine): the player ends by itself, and the
+# save it wrote and that save's preview are checked.
+from: early-base
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/SaveButton"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/OKButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton"}
+  # The save starts (SaveScreen waits for Game.CanSave; background-save writes it off the frame);
+  # Main Menu as soon as the button reads Already Saved.
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/SaveButton", cond: gone, frames: 6000}
+  - click: {text: "Main Menu", under: "**/PauseScreen/LayoutContent"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/OKButton", cond: stable}
+  # SAVE AND QUIT
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton"}
+  - ui_wait: {path: "**/MainMenuButtons", cond: stable, frames: 60000}
+  - expect_state:
+      "file:save_files/e2e/early-base.sav": exists
+  - file_shot: {name: menu-save-preview, path: "save_files/e2e/early-base.png"}
+  # Load it again from the main menu.
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 6000}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
+  - expect: {duplicants: 3, buildings: {Outhouse: 1, ResearchCenter: 1, ManualGenerator: 1, Bed: 1}}
+  # The autosave at the next cycle, the timelapse on.
+  - expect_state:
+      "SaveGame.Instance.TimelapseResolution.x": "> 0"
+      "GameClock.Instance.GetCycle()": {save_as: cycle}
+  - run: {seconds: 700, until: {cycle: ">= 2"}}
+  - expect_state: {"GameClock.Instance.GetCycle()": ">= cycle + 1"}
+  - run: {seconds: 20}
+  - expect_state:
+      "file:save_files/e2e/auto_save": ">= 1"
+  # The autosave's preview, captured at the new cycle (R3's path, the colony moved meanwhile).
+  - file_shot: {name: autosave-preview, path: "save_files/e2e/auto_save/*.png"}
+  # Quit to Desktop, Save and Quit.
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - click: {text: "Quit to Desktop", under: "**/PauseScreen/LayoutContent"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/OKButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton", quits: true}
+  - expect_exit: {seconds: 300}
+  - expect_state:
+      "file:save_files/e2e/early-base.sav": exists
+  - file_shot: {name: quit-save-preview, path: "save_files/e2e/early-base.png"}

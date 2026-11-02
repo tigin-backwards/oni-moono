@@ -1329,6 +1329,12 @@ Also changed: `EntombedItemManager`, `MinionResume.GrantedSkillIDs`, `Door.OnSpa
 
 ### S2 Saving while screenshots are written
 
+**Status:** passes (71236ffc, Linux OpenGL, background-save; Windows: pending).
+`tests/e2e/u60/s2-save-and-quit.yaml` (with the new `expect_exit` step and `quits` clicks): Save
+then Main Menu at once, the save loaded back, the autosave at a new cycle, Save and Quit to the
+desktop (exit 0); the three previews within 0.6 %, 3.2 % for the autosave's (the colony moved).
+The run with no save tweaks is still to be recorded.
+
 **Risk: high.**
 
 **Patch note:** "Improved stutter from initial save after closing the message."

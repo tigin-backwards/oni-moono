@@ -1,0 +1,57 @@
+{
+ "spec": "u60/s2-save-and-quit.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Save then Main Menu at once, Load Game back, autosave at the next cycle, Save and Quit to the desktop (background-save): saves load, previews compared, the player exits 0",
+ "updated": "2026-11-01",
+ "commit": "71236ffc",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-190551-fdabbebb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:05:51",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-193733-192aa932",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:37:33",
+    "lane": 50,
+    "reference_run": "20261101-190551-fdabbebb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "menu-save-preview": 0.006038,
+     "autosave-preview": 0.004904,
+     "quit-save-preview": 0.006038
+    }
+   },
+   {
+    "run": "20261101-193733-192aa932",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T19:40:56",
+    "lane": 50,
+    "reference_run": "20261101-190551-fdabbebb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "menu-save-preview": 0.006036,
+     "autosave-preview": 0.031851,
+     "quit-save-preview": 0.006036
+    }
+   }
+  ]
+ }
+}
