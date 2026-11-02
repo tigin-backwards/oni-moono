@@ -118,6 +118,21 @@ steps:
         self.assertIn('steps 1: click `at` is a screen point', joined)
         self.assertIn('steps 2: click `at` is a screen point', joined)
 
+    def test_key_until_takes_a_condition(self):
+        s = spec('''
+from: early-base
+steps:
+  - key: {code: Escape, until: "**/PauseScreen"}
+  - key: {code: Escape, until: "**/PauseScreen", cond: gone}
+''')
+        self.assertEqual(e2e.check_spec(s), [])
+        s = spec('''
+from: early-base
+steps:
+  - key: {code: Escape, until: "**/PauseScreen", cond: stable}
+''')
+        self.assertIn('key `cond` (with `until`) is active, gone or inactive', '\n'.join(e2e.check_spec(s)))
+
     def test_key_held_down_across_steps(self):
         s = spec('''
 from: early-base

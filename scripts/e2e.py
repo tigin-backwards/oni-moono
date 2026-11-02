@@ -275,6 +275,8 @@ def check_step(where, kind, value, in_setup):
         need(not isinstance(value, dict) or 'until' not in value
              or (isinstance(value['until'], str) and not (value.get('down') or value.get('up'))),
              'key `until` is a UI path to press the key until it is active (not with down/up)')
+        need(not isinstance(value, dict) or value.get('cond', 'active') in ('active', 'gone', 'inactive'),
+             'key `cond` (with `until`) is active, gone or inactive')
         if isinstance(value, dict) and value.get('code'):
             problems += [f'{where}: {p}' for p in key_problems(value['code'])]
     elif kind == 'click':
@@ -3654,12 +3656,12 @@ class Run:
                 for _ in range(4):
                     self.need_input().key(value['code'])
                     try:
-                        self.need_driver().wait(value['until'], 'active', 60)
+                        self.need_driver().wait(value['until'], value.get('cond', 'active'), 60)
                         break
                     except DriverError:
                         continue
                 else:
-                    raise SpecFailure(f'{value["until"]} not active after pressing {value["code"]} four times')
+                    raise SpecFailure(f'{value["until"]} not {value.get("cond", "active")} after pressing {value["code"]} four times')
             else:
                 self.need_input().key(value['code'])
         elif kind == 'click' and 'at' in value:

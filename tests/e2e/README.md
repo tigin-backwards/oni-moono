@@ -262,6 +262,7 @@ and nothing is clicked. A click is: move, 2 frames of hover, press, 2 frames, re
 - key: {code: "Shift+B"}                                       # KKeyCode names; Shift, Ctrl, Alt
 - key: {code: Escape}
 - key: {code: Escape, until: "**/PauseScreen"}                 # pressed (at most four times) until that is active
+- key: {code: Escape, until: "**/PauseScreen", cond: gone}     # (or gone, inactive)
 - key: {code: O, at: [110, 209]}                               # the pointer over a cell first
 - key: {code: Q, down: true, at: [110, 209]}                   # held across the next steps (a run too),
 - key: {code: Q, up: true}                                     # until released (or the run ends)
