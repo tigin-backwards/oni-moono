@@ -664,18 +664,20 @@ namespace TMPro
             float shift = 0f;
             var font = el.Asset as TMP_FontAsset ?? state.Font ?? m_fontAsset;
             var face = (metricsFont ?? font).faceInfo;
-            float fontScale0 = size / face.pointSize * face.scale;
+            // A superscript's or subscript's offset is at its reduced size (measured, UnityProbe
+            // suptext: NotoSans 14 pt, superscriptOffset 25.625 and size 0.5 of a 24 pt face,
+            // raise the baseline 7.47 = 25.625 x 7 / 24; subscriptOffset -2.40 lowers it 0.70).
             if ((state.Style & FontStyles.Superscript) != 0)
             {
-                shift += face.superscriptOffset * fontScale0;
                 size *= face.superscriptSize > 0f ? face.superscriptSize : 1f;
                 fullSize *= face.superscriptSize > 0f ? face.superscriptSize : 1f;
+                shift += face.superscriptOffset * (size / face.pointSize * face.scale);
             }
             else if ((state.Style & FontStyles.Subscript) != 0)
             {
-                shift += face.subscriptOffset * fontScale0;
                 size *= face.subscriptSize > 0f ? face.subscriptSize : 1f;
                 fullSize *= face.subscriptSize > 0f ? face.subscriptSize : 1f;
+                shift += face.subscriptOffset * (size / face.pointSize * face.scale);
             }
             if (!state.VerticalOffset.IsZero) shift += state.VerticalOffset.Resolve(size, 0f);
             float fontScale = size / face.pointSize * face.scale;
