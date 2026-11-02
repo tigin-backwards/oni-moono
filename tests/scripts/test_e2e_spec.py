@@ -165,6 +165,13 @@ steps:
                     e2e.load_spec(os.path.join(folder, name))
         e2e.load_findings()
 
+    def test_driver_commands_are_e2edrivers(self):
+        # The commands a spec may name are the ones E2eDriver's dispatcher answers.
+        import re
+        source = open(os.path.join(e2e.ROOT, 'tools', 'E2eDriver', 'Commands.cs'), encoding='utf-8').read()
+        driver = set(re.findall(r'case "([a-z._]+)":', source.split('static void Later')[0]))
+        self.assertEqual(set(e2e.DRIVER_COMMANDS), driver)
+
     def test_check_reports_a_bad_aggregate(self):
         s = spec('from: x\nsteps:\n  - expect_state: {"count:all:X::[*] if .name == two words": 1}\n')
         self.assertEqual(len(e2e.check_spec(s)), 1)
