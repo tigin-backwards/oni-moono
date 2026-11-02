@@ -1558,6 +1558,17 @@ The run with no save tweaks is still to be recorded.
 
 ### M1 Loose-file Workshop mods
 
+**Status:** passes (c84d25ba; Linux, both players on OpenGL): `tests/e2e/u60-m1-loose-folder.yaml`
+and `u60-m1-legacy-zip.yaml` (records in `results-u60`) subscribe Show Building Ranges
+(1960996649) through the Steam double's Workshop part (tools/SteamStub `--dlc --ugc`, new;
+`GetItemInstallInfo` answers the item's folder or zip under the run home's
+`steamapps/workshop/content/457140/`) and the e2e spec key `workshop:` (new). At the main menu
+both players log "Steam: updating info for mod" and "Subscribe to mod", make the mod from a
+`Directory` for the folder and a `ZipFile` for the zip, read its header (static ID
+PeterHan.ShowRange) and show the same restart dialog. The mod's feature after the restart: not
+run (e2e has no restart; the load from mods/Steam is unchanged code). Windows: pending (real
+Steam).
+
 **Risk: high.** Not run (inventory, "Steam's loose-file mod format").
 
 **Patch note:** "Update our mod-loading code to accommodate the new SteamUGC format, namely loose
