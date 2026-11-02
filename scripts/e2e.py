@@ -272,6 +272,9 @@ def check_step(where, kind, value, in_setup):
         need(not isinstance(value, dict) or not (value.get('down') or value.get('up'))
              or '+' not in str(value.get('code', '')).strip('+'),
              'a key held down (`down`/`up`) is one key, without modifiers')
+        need(not isinstance(value, dict) or 'until' not in value
+             or (isinstance(value['until'], str) and not (value.get('down') or value.get('up'))),
+             'key `until` is a UI path to press the key until it is active (not with down/up)')
         if isinstance(value, dict) and value.get('code'):
             problems += [f'{where}: {p}' for p in key_problems(value['code'])]
     elif kind == 'click':
@@ -3645,6 +3648,18 @@ class Run:
                 # Held across the steps between (a `run` included), released by `up` or at the end.
                 self.need_input().key_event(parse_key(value['code'])[1], bool(value.get('down')))
                 self.frames(2)
+            elif value.get('until'):
+                # Pressed until the element is active, at most four times: Escape closes what
+                # is open (a selection, a screen) before it opens the pause menu.
+                for _ in range(4):
+                    self.need_input().key(value['code'])
+                    try:
+                        self.need_driver().wait(value['until'], 'active', 60)
+                        break
+                    except DriverError:
+                        continue
+                else:
+                    raise SpecFailure(f'{value["until"]} not active after pressing {value["code"]} four times')
             else:
                 self.need_input().key(value['code'])
         elif kind == 'click' and 'at' in value:
