@@ -1,0 +1,117 @@
+{
+ "spec": "u60/u3-build-menu.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "The build menu's eleven categories opened in turn from early-base, each dumped with the plan screen once the menu and its panel settle",
+ "updated": "2026-11-01",
+ "commit": "b04eea0c",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-224128-58afd5fe",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:41:28",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-224433-0c6b8bb0",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:44:33",
+    "lane": 50,
+    "reference_run": "20261101-224128-58afd5fe",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "base": {
+      "differences": 0
+     },
+     "oxygen": {
+      "differences": 0
+     },
+     "power": {
+      "differences": 0
+     },
+     "food": {
+      "differences": 0
+     },
+     "farming": {
+      "differences": 0
+     },
+     "plumbing": {
+      "differences": 0
+     },
+     "ventilation": {
+      "differences": 0
+     },
+     "refinement": {
+      "differences": 0
+     },
+     "medicine": {
+      "differences": 0
+     },
+     "furniture": {
+      "differences": 0
+     },
+     "operations": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-224433-0c6b8bb0",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T22:46:27",
+    "lane": 50,
+    "reference_run": "20261101-224128-58afd5fe",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "base": {
+      "differences": 0
+     },
+     "oxygen": {
+      "differences": 0
+     },
+     "power": {
+      "differences": 0
+     },
+     "food": {
+      "differences": 0
+     },
+     "farming": {
+      "differences": 0
+     },
+     "plumbing": {
+      "differences": 0
+     },
+     "ventilation": {
+      "differences": 0
+     },
+     "refinement": {
+      "differences": 0
+     },
+     "medicine": {
+      "differences": 0
+     },
+     "furniture": {
+      "differences": 0
+     },
+     "operations": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

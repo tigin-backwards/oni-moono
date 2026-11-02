@@ -1,0 +1,55 @@
+# U3 (docs/research/u60-qa-spec.md): the build menu and material selection.
+#
+# U60 adds the Farming category, renames Stations to Operations, adds subcategory titles
+# (PlanScreen.TryGetSubCategoryTitle, String.CompareOrdinal) and missing-resource and research
+# hints to the material selection; GridLayoutGroup and toggle layout and TMP wrapping are ours.
+#
+# From early-base: each category of the build menu opened by its toggle and its building panel
+# dumped with the plan screen (the menu settles before each dump; a category with nothing
+# available stays closed, in both players).
+from: early-base
+steps:
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: base, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Oxygen"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: oxygen, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: power, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Food"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: food, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Farming"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: farming, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: plumbing, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Ventilation"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: ventilation, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Refinement"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: refinement, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Medicine"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: medicine, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: furniture, root: "**/BottomPanelLeft/BottomLeftPanel"}
+  - click: {ui: "**/PlanScreen/Toggle:Operations"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BottomPanelLeft/BottomLeftPanel", cond: stable, stable: 30}
+  - ui_dump: {name: operations, root: "**/BottomPanelLeft/BottomLeftPanel"}

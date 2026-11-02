@@ -892,6 +892,12 @@ Consumables back to the left when it shows again.
 
 ### U3 Build menu and material selection
 
+**Status:** passes (b04eea0c, Linux OpenGL; Windows: pending), step 1: `tests/e2e/u60/u3-build-menu.yaml`
+opens the eleven categories shown at 1280x720 (Base to Operations, Farming among them) and dumps
+the plan screen after each; all equal once the panel settles (the first run caught a scrollbar
+value mid-reveal). The undiscovered-material and backwall cards and the queued blueprint (steps
+2-3) are not in the spec yet.
+
 **Risk: medium.**
 
 **Patch notes:**
