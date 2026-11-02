@@ -50,7 +50,7 @@ namespace OniMoono.Tests
             var order = GameTweakNames.Rows.Select(r => Array.IndexOf(GameTweakNames.Groups, r.Group)).ToArray();
             Assert.Equal(order.OrderBy(i => i), order);
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Groups[^1]);
-            Assert.Equal(new[] { "brain-rate", "fix-disease-overlay-crash", "off-screen-conveyors", "off-world-fallers", "slow-reachability" }, GameTweakNames.ChangingBehaviour.Order());
+            Assert.Equal(new[] { "brain-rate", "fix-disease-overlay-crash", "off-screen-conveyors", "off-world-fallers", "path-probe-repair", "slow-reachability" }, GameTweakNames.ChangingBehaviour.Order());
             // Every typed tweak is a row; the options that aren't tweaks aren't `--game-tweak` names.
             Assert.All(GameTweakNames.Typed, n => Assert.Contains(n, GameTweakNames.All));
             Assert.DoesNotContain(GameTweakNames.SplashRow, GameTweakNames.All);

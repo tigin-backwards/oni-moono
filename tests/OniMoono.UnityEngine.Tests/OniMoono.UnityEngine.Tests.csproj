@@ -46,6 +46,8 @@
     <Compile Include="../../src/OniMoono.Host/MonoJitOptimizer.cs" Link="Host/MonoJitOptimizer.cs" />
     <!-- The brain-rate game tweak's allowance (BrainRateAllowanceTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/BrainRateAllowance.cs" Link="GameTweaks/BrainRateAllowance.cs" />
+    <!-- The path-probe-repair game tweak's search (ProbeRepairTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/ProbeRepairCore.cs" Link="GameTweaks/ProbeRepairCore.cs" />
     <!-- The fast-jobs game tweak's worker wakes (WorkerWakesTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/WorkerWakes.cs" Link="GameTweaks/WorkerWakes.cs" />
     <!-- Frame stats' timing of the game's update (FrameStatsTests). -->

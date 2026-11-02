@@ -1,0 +1,25 @@
+# The path-probe-repair game tweak (src/OniMoono.GameTweaks/ProbeRepair.cs) in play. Ours only
+# (`--player ours`): the original has no such tweak.
+#
+# DeCrew for three game minutes at speed 3 with the tweak on and every repair checked against a
+# flood of the world as it is then, and every flood against the game's own PathProber.Run on the
+# same order (ONI_TWEAK_VERIFY=1; a check is skipped when the world changed between the two). The
+# tweak must start and stay on (an exception in it stands it down), repair most probes, and no
+# repair or flood may answer otherwise (another cost or reachable cell anywhere). The Duplicants
+# keep working: the active experience they gain (MinionResume.DEBUG_ActiveExperienceGained,
+# counted from the load) grows.
+from: decrew
+memory_gb: 15
+game_tweaks: [path-probe-repair]
+env: {ONI_TWEAK_VERIFY: "1"}
+steps:
+  - expect_state:
+      "sum:all:MinionResume::[*].DEBUG_ActiveExperienceGained": {save_as: before}
+  - run: {seconds: 180}
+  - expect_state:
+      "type:OniMoono.GameTweaks.ProbeRepair::Running": true
+      "type:OniMoono.GameTweaks.ProbeRepair::Repairs": "> 200"
+      "type:OniMoono.GameTweaks.ProbeRepair::Verified": "> 100"
+      "type:OniMoono.GameTweaks.ProbeRepair::VerifyWrong": 0
+      "type:OniMoono.GameTweaks.ProbeRepair::FloodsWrong": 0
+      "sum:all:MinionResume::[*].DEBUG_ActiveExperienceGained": "> before + 50"

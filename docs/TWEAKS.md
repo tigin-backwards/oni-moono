@@ -1,7 +1,9 @@
 # Tweaks
 
 Moono also speeds up some of the game's own code. Most tweaks don't change gameplay and are on by
-default. Four do, are marked **changes gameplay** below, and are off by default. Toggle any of
+default. Those that do are off by default: the ones under **changes gameplay** below, and
+incremental path probes, which changes only which of two routes of the same cost a Duplicant
+takes. Toggle any of
 them in **Moono Tweaks** on the main menu. Measured gains are in
 [PERFORMANCE.md](PERFORMANCE.md#the-tweaks).
 
@@ -48,7 +50,7 @@ never ask GitHub; `tests/e2e/update-badge.yaml` gives the badge a fixture instea
 
 Launch options still work and win over the screen, which then shows those rows as set by the
 launch options:
-- `--game-tweak exact`: every tweak but the four that change gameplay.
+- `--game-tweak exact`: every tweak but those off by default.
 - `--game-tweak all`: every tweak.
 - `--game-tweak none`: no tweaks.
 - Tweaks by name: `--game-tweak exact --game-tweak slow-reachability`. `--game-tweak -NAME` leaves
@@ -110,6 +112,7 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux und
 - **Faster pickup checks** (`fast-offset-tables`): Where an item can be picked up from is rechecked only when its surroundings change. Fetch updates recheck only the items whose work spots can have changed.
 - **Faster spatial index cleanup** (`fast-partitioner-cleanup`): The once-a-second tidy-up of what is where looks only at what was removed. The spatial index's cleanup visits only the entries that were removed.
 - **Faster conveyor rebuilds** (`fast-conveyor-paths`): Building or removing conveyor rails no longer stalls the game. The rails' network rebuild finds its routes from an index instead of searching every kept route again. *Measured: no hitch on rail edits (was 0.05–0.5 s); U57, Linux under WSL2, 2026-10-25.*
+- **Incremental path probes** (`path-probe-repair`): Duplicants' path checks redo only what changed in the world, using less CPU. Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may take the other one. Off while another mod changes path probing (Fast Track's Cache Paths). *Off by default.*
 
 ### Graphics & overlays (on by default)
 
@@ -126,6 +129,33 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux und
 - **Critter and dupe brain updates capped at 30 updates a second** (`brain-rate`): Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps. The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps.
 - **Fix the disease overlay crash** (`fix-disease-overlay-crash`): Stops a crash when a critter or plant showing germs dies while the Disease overlay is open. A bug in U60's own code (the original crashes too, mostly at low frame rates): the destroyed germ marker is dropped before the game reads it. Off by default, as the original crashes.
 <!-- tweaks:end -->
+
+### Incremental path probes
+
+Each Duplicant's path probe (the cost to every cell it can reach, which errands and pathing read
+until its next probe) is redone every few seconds, four Duplicants a frame, on a thread of its
+own. With `path-probe-repair`, a probe from the same cell, nav type, suit flags and abilities as
+the Duplicant's last one repairs that one instead: what changed since (the nav grid's links,
+doors and their permissions, liquid and solid cells, tube entrances, suit checkpoints) is found
+through the game's own writers, the cells whose route changed or got worse are dropped with the
+cells reached through them and found again, and cheaper routes spread as in the game's search.
+Any other probe is the game's search. The probes are not delayed; temperature and building
+checks are untouched.
+
+What differs from the original: where two routes to a cell cost the same, the game keeps the one
+its search finds first, the repair the one it had or finds first. A Duplicant can then take the
+other route of the same cost, and when two such routes carry different suit flags (one passes a
+suit checkpoint), what lies beyond can differ as it would after another search order. With
+`ONI_TWEAK_VERIFY=1` every repair is checked against a new search and every search against the
+game's own on the same Duplicant; in c100 and DeCrew (U60) none of about 10,700 repairs and 180
+searches checked gave another cost or reachable cell.
+
+It stands down for the session, logged once in Player.log (`path-probe-repair: off (...)`), when
+another mod patches the probe or the methods it relies on. Fast Track's **Cache Paths** does:
+turn off Cache Paths to use this. Fast Track's **Background Pathing** only wraps two PathGrid
+methods in locks; the tweak checks that they answer as the game's and runs alongside it. With
+Fast Track's Fast Reachability on and its next chore priority set to Delay, Fast Track also
+patches the probe's work order, and the tweak stands down.
 
 ## Translating Moono Tweaks
 
