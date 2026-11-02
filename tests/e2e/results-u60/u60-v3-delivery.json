@@ -1,0 +1,57 @@
+{
+ "spec": "u60-v3-delivery.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the Critter Drop-Off delivers to its own cell (one (0, 0) offset), as in the original",
+ "updated": "2026-11-02",
+ "commit": "d96b0870",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-235841-bb1b2e08",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:58:41",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261101-235841-bb1b2e08",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:00:27",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-235841-bb1b2e08",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:02:30",
+    "lane": 1,
+    "reference_run": "20261101-235841-bb1b2e08",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-235841-bb1b2e08",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:03:19",
+    "lane": 1,
+    "reference_run": "20261101-235841-bb1b2e08",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

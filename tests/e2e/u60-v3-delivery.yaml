@@ -1,0 +1,13 @@
+# U60 QA spec V3 (docs/research/u60-qa-spec.md, "The 761015 → 761211 delta"): 761211's
+# CreatureDeliveryPoint delivers to its own cell (deliveryOffsets a single (0, 0), where 761015
+# used OffsetGroups.Use). The Critter Drop-Off's prefab reads the same offsets as in the
+# original; then the colony runs a game minute.
+from: early-base
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"CreatureDeliveryPoint\").GetComponent<CreatureDeliveryPoint>().deliveryOffsets.Length": [1, "== original"]
+      "Assets.GetPrefab(\"CreatureDeliveryPoint\").GetComponent<CreatureDeliveryPoint>().deliveryOffsets[0].x": [0, "== original"]
+      "Assets.GetPrefab(\"CreatureDeliveryPoint\").GetComponent<CreatureDeliveryPoint>().deliveryOffsets[0].y": [0, "== original"]
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"
