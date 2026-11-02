@@ -45,7 +45,8 @@ Plugins); E2E_ORIGINAL_ENV holds NAME=VALUE settings for the original player onl
 `GALLIUM_DRIVER=llvmpipe` with a shared MESA_SHADER_CACHE_DIR runs it 3-4 times faster; see
 tests/e2e/README.md, "Run time"). Our player runs with the users' default game tweaks (`--game-tweak exact`), or with
 E2E_GAME_TWEAKS, space-separated `--game-tweak` values (`none`, `background-save`, `exact
--no-save-gc`); E2E_PLAYER_ARGS adds host arguments (`--renderer vulkan`). Each invocation
+-no-save-gc`); E2E_PLAYER_ARGS adds host arguments (`--renderer vulkan`), E2E_ORIGINAL_ARGS the
+original's (`-force-glcore`). Each invocation
 has a run id; each run's log, results and evidence are in
 out/e2e/SPEC/RUN_ID/PLAYER-N, and out/e2e/runs/RUN_ID.json holds one record per spec run.
 --record writes tests/e2e/results/SPEC.json, the committed record of the spec's verdict (played,
@@ -59,7 +60,7 @@ the hold file in its run folder is removed, for a look through OniMcp and E2eDri
 writing a spec; a QA perf stage waiting to start ends it 10 minutes later.
 """
 import contextlib, ctypes, fcntl, glob, importlib.util, itertools, json, os, re, shutil, signal, socket, subprocess, sys
-import threading, time, urllib.error, urllib.request
+import threading, time, urllib.error, urllib.request, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SPECS = os.path.join(ROOT, 'tests', 'e2e')
@@ -157,7 +158,7 @@ def ws_mods():
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
             'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi', 'blocked_plugins', 'data_collection',
-            'extra_saves'}
+            'extra_saves', 'workshop'}
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 BLOCKED_HOW = ('unreadable', 'missing')
 # The game's own translations (`language`), as Localization.PreinstalledLanguages names them.
@@ -373,6 +374,12 @@ def check_spec(spec):
         problems.append('`options` maps a static ID to {Field: value}')
     elif not all(re.fullmatch(r'[^/\\]+\.json', str(v.get('$file', 'x.json'))) for v in options.values()):
         problems.append('an `options` `$file` is a file name ending in .json')
+    workshop = spec.get('workshop')
+    if workshop is not None and (not isinstance(workshop, dict) or not str(workshop.get('id', '')).isdigit()
+                                 or workshop.get('layout', 'folder') not in ('folder', 'zip')
+                                 or set(workshop) - {'id', 'layout', 'corrupt'}
+                                 or (workshop.get('corrupt') and workshop.get('layout') != 'zip')):
+        problems.append('`workshop` is {id: WORKSHOP_ID, layout: folder|zip, corrupt: true (a zip only)}')
     for key in ('require_log', 'mask_text'):
         if not isinstance(spec.get(key, []), list):
             problems.append(f'`{key}` is a list of regular expressions')
@@ -2417,7 +2424,7 @@ class Player:
 
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
                  translation=None, language=None, keyboard=None, tweaks_menu=False, display_dpi=None,
-                 blocked_plugins=None, data_collection=False, extra_saves=()):
+                 blocked_plugins=None, data_collection=False, extra_saves=(), workshop=None):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
         self.blocked_plugins = dict(blocked_plugins or {})
         self.keyboard = keyboard
@@ -2447,6 +2454,7 @@ class Player:
                     shutil.copy(source, os.path.join(folder, name + ext))
                 elif ext == '.sav':
                     raise SpecFailure(f'no fixture {source} (extra_saves)')
+        self.workshop, self.workshop_env = workshop, {}
         self.mods = self.install_mods(list(mods), driver)
         self.option_files = write_options(self.profile, self.mods, options or {})
         # OniMcp's options: the lane's port, JSON tool text, and none of its own gameplay policies
@@ -2528,9 +2536,53 @@ class Player:
                                       'version': hash_of(folder)},
                             'status': 1, 'enabled': True, 'enabledForDlc': ['', 'EXPANSION1_ID'], 'crash_count': 0,
                             'reinstall_path': None, 'staticID': static})
+        if self.workshop:
+            entries.append(self.install_workshop_item(self.workshop))
         with open(os.path.join(mods_dir, 'mods.json'), 'w') as f:
             json.dump({'version': 1, 'mod_load_in_progress': False, 'mods': entries}, f)
         return {e['label']['id']: e['staticID'] for e in entries}
+
+    def install_workshop_item(self, workshop):
+        """The spec's `workshop` item as a Steam subscription, for the Steam double's Workshop part
+        (tools/SteamStub/ugc.s, `build.sh --dlc --ugc`; both players must load that library): the
+        mod (gated and unpacked as `mods` are) laid out under the run home's
+        steamapps/workshop/content/457140/ID, as a folder (U60's loose files) or as a legacy zip
+        there, truncated to half its size when `corrupt`. The double's environment names the item
+        (ONI_STEAMSTUB_UGC_*), and the good zip is what its UGCDownloadToLocation serves. Returns
+        the item's mods.json entry: a Steam label, enabled."""
+        wid = str(workshop['id'])
+        staging = os.path.join(self.home, 'workshop-staging')
+        ws = ws_mods()
+        try:
+            ws.profile(staging, [wid])  # the mod gate first, as for `mods`
+        except ws.GateSkipped as e:
+            raise SpecFailure(str(e)) from None
+        source = os.path.join(staging, 'Local', wid)
+        item = os.path.join(self.home, 'steamapps', 'workshop', 'content', '457140', wid)
+        good = os.path.join(self.home, 'workshop-download.zip')
+        with zipfile.ZipFile(good, 'w', zipfile.ZIP_DEFLATED) as z:
+            for folder, _, files in os.walk(source):
+                for name in sorted(files):
+                    full = os.path.join(folder, name)
+                    z.write(full, os.path.relpath(full, source))
+        if workshop.get('layout', 'folder') == 'folder':
+            shutil.copytree(source, item)
+            path = item
+        else:
+            os.makedirs(item)
+            path = os.path.join(item, wid + '.zip')
+            shutil.copy(good, path)
+            if workshop.get('corrupt'):
+                with open(path, 'r+b') as f:
+                    f.truncate(os.path.getsize(path) // 2)
+        title = mod_yaml_value(source, 'title') or wid
+        self.workshop_env = {'ONI_STEAMSTUB_UGC_ID': wid, 'ONI_STEAMSTUB_UGC_PATH': path,
+                             'ONI_STEAMSTUB_UGC_TITLE': title, 'ONI_STEAMSTUB_UGC_DOWNLOAD': good}
+        shutil.rmtree(staging)
+        # A Steam label's version is the item's lastUpdateTime, which the double's details leave 0.
+        return {'label': {'distribution_platform': 1, 'id': wid, 'title': title, 'version': 0},
+                'status': 1, 'enabled': True, 'enabledForDlc': ['', 'EXPANSION1_ID'], 'crash_count': 0,
+                'reinstall_path': None, 'staticID': mod_yaml_value(source, 'staticID') or wid}
 
     def start(self):
         for port in (self.lane.mcp_port, self.lane.driver_port):
@@ -2540,6 +2592,7 @@ class Player:
         env = dict(os.environ, XDG_CONFIG_HOME=os.path.join(self.home, 'config'),
                    XDG_CACHE_HOME=os.path.join(self.home, 'cache'),
                    E2E_DRIVER_PORT=str(self.lane.driver_port), **child_marks(self.lane))
+        env.update(self.workshop_env)  # the Steam double's Workshop item (install_workshop_item)
         # The player's own systemd scope (scripts/contain.sh), which a teardown stops whole.
         self.scope = scope_name(f'lane{self.lane.number}-{self.kind}-{next(_scopes)}') if has_systemd() else None
         if self.scope:
@@ -3924,7 +3977,7 @@ class Run:
                                  tweaks_menu=spec.get('tweaks_menu', False), display_dpi=spec.get('display_dpi'),
                                  blocked_plugins=spec.get('blocked_plugins'),
                                  data_collection=spec.get("data_collection", False),
-                                 extra_saves=spec.get('extra_saves', ()))
+                                 extra_saves=spec.get('extra_saves', ()), workshop=spec.get('workshop'))
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
             started = time.time()

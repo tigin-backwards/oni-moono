@@ -84,6 +84,14 @@ steps:
                      "unknown E2eDriver command 'teleport'", 'steps 9: a step is one'):
             self.assertIn(text, joined)
 
+    def test_workshop(self):
+        good = spec('from: main-menu\nworkshop: {id: 1960996649, layout: zip, corrupt: true}\nsteps: []\n')
+        self.assertEqual(e2e.check_spec(good), [])
+        for text in ('workshop: {id: abc}', 'workshop: {id: 1, layout: tar}',
+                     'workshop: {id: 1, corrupt: true}', 'workshop: {id: 1, colour: blue}'):
+            problems = e2e.check_spec(spec(f'from: main-menu\n{text}\nsteps: []\n'))
+            self.assertEqual(len(problems), 1, text)
+
     def test_click_at_a_screen_point(self):
         s = spec('''
 from: early-base
