@@ -52,6 +52,11 @@ Nothing here has been run. Status of the port itself: [u60-inventory.md](u60-inv
   perf, memory).
 - **unit:** `tests/OniMoono.UnityEngine.Tests` and `tests/OniMoono.Assets.Tests`.
 - **new tooling:** named in the item where the harness lacks a step.
+- **Windows:** `scripts/e2e-windows/run.py` (1f173398) plays the same specs on Windows, one player
+  at a time: ours on Vulkan (an RTX 3090), the original on Direct3D 11. Input there is E2eDriver's
+  synthetic input (`input.*`), never the desktop's pointer or keyboard, so a Windows verdict covers
+  what the game and the UI do with input, not how either player reads Windows input; text is set
+  whole, not typed. A status's "Windows" part names that run's commit and its shot differences.
 
 Risk: **high** when the change puts new or changed weight on an engine path whose result a player
 sees and which nothing has run yet; **medium** when the path is exercised but the new use differs,
@@ -130,12 +135,12 @@ One row per item. G and V items are rows of their sections, not headings.
 
 ### R1 Pipe Flow sub-overlay, vanilla
 
-**Status:** passes (7e8980e0, Linux OpenGL; Windows Vulkan: pending).
-`tests/e2e/u60/r1-pipe-flow-vanilla.yaml`: Ventilation and Plumbing with the sub-overlay off
-(0.1 % to 0.3 % of pixels apart) and on; `IsViewConduitFlowEnabled` true in both, no new log
-signatures. The flow shots differ by the arrows' phase only (the diff images show the arrows
-alone), 0.4 % to 6.5 %, so they allow 8 %, not the 4 % this item named. The blocked-pipe close-up
-(step 4) is not in the spec: DeCrew has no disabled pipe output found yet.
+**Status:** passes (7e8980e0, Linux OpenGL; Windows Vulkan: passes, 1f173398, 0.3 % to 6.5 %).
+`tests/e2e/u60/r1-pipe-flow-vanilla.yaml`: Ventilation and Plumbing with the sub-overlay off (0.1 %
+to 0.3 % of pixels apart) and on; `IsViewConduitFlowEnabled` true in both, no new log signatures.
+The flow shots differ by the arrows' phase only (the diff images show the arrows alone), 0.4 % to
+6.5 %, so they allow 8 %, not the 4 % this item named. The blocked-pipe close-up (step 4) is not in
+the spec: DeCrew has no disabled pipe output found yet.
 
 **Risk: high.** The existing spec runs it under a mod's icons only.
 
@@ -177,14 +182,14 @@ strings `STRINGS/UI.cs` CONDUITFLOW.
 
 ### R2 Animation batch pooling
 
-**Status:** passes (c5ceac75, Linux OpenGL, fast-anim-batches on; Windows Vulkan: pending), the
-e2e part: `tests/e2e/u60/r2-batch-pooling.yaml` on landing in debug instant-build mode. Set A (21
-buildings) is placed through the build menu and cleared with the Deconstruct tool, both instant,
-then set B (27, in other places), then set A again in the batches set B left. All 69 placements
-and their removals are counted. The five world shots equal the original's. No new runner step
-was needed: OniMcp's `build` only places blueprints, but the game's own build and Deconstruct
-tools complete at once in that mode. Only research-unlocked raw-mineral kinds are used (six of
-them). The qa verify half runs with the final u60 qa pass.
+**Status:** passes (c5ceac75, Linux OpenGL, fast-anim-batches on; Windows Vulkan: passes, 1f173398,
+the five world shots 1.8 % to 2.9 % apart), the e2e part: `tests/e2e/u60/r2-batch-pooling.yaml` on
+landing in debug instant-build mode. Set A (21 buildings) is placed through the build menu and
+cleared with the Deconstruct tool, both instant, then set B (27, in other places), then set A again
+in the batches set B left. All 69 placements and their removals are counted. The five world shots
+equal the original's. No new runner step was needed: OniMcp's `build` only places blueprints, but
+the game's own build and Deconstruct tools complete at once in that mode. Only research-unlocked
+raw-mineral kinds are used (six of them). The qa verify half runs with the final u60 qa pass.
 
 **Risk: medium.**
 
@@ -225,11 +230,11 @@ them). The qa verify half runs with the final u60 qa pass.
 
 ### R3 Timelapse and colony preview capture
 
-**Status:** passes (a59fc749, Linux OpenGL; Windows Vulkan: pending).
-`tests/e2e/u60/r3-timelapse-capture.yaml` (with the new `file_shot` step): a Save As preview,
-1272x808 in both, 0.6 % of pixels differ. The autosave preview at a new cycle is S2's. The
-timelapse frame proper was not written in the original within 330 s of a new cycle on this
-harness, so it is not compared.
+**Status:** passes (a59fc749, Linux OpenGL; Windows Vulkan: passes, 1f173398, the preview 0.6 %
+apart). `tests/e2e/u60/r3-timelapse-capture.yaml` (with the new `file_shot` step): a Save As
+preview, 1272x808 in both, 0.6 % of pixels differ. The autosave preview at a new cycle is S2's. The
+timelapse frame proper was not written in the original within 330 s of a new cycle on this harness,
+so it is not compared.
 
 **Risk: high.** Every save writes a preview through this path.
 
@@ -277,10 +282,11 @@ compares it as an image (`qa-tools.py image` already compares two PNGs).
 fixed because the one difference left is a KScrollRect's horizontal normalizedPosition, 1 in ours
 and 0 in the original, its content's left edge on the viewport's (the sub-ulp case of
 known-findings' `scroll-normalized-position`, whose inputs are not traced here). The item's own
-criterion passes (816dde15, Linux OpenGL; Windows Vulkan: pending): the 2176x1536 previews of two
-saves on the Load screen, before and after closing it five times, within 0.2 %. The spec also
-found an achievement's `<sup>` text 6 px taller in ours, fixed in 816dde15. Texture memory over
-the reopenings was not logged (ONI_TEXTURE_MEMORY_LOG is ours only).
+criterion passes (816dde15, Linux OpenGL; Windows Vulkan: passes, 47509f2c, within 0.6 %, the Colony
+Summaries scroll position again the one difference): the 2176x1536 previews of two saves on the Load
+screen, before and after closing it five times, within 0.2 %. The spec also found an achievement's
+`<sup>` text 6 px taller in ours, fixed in 816dde15. Texture memory over the reopenings was not
+logged (ONI_TEXTURE_MEMORY_LOG is ours only).
 
 **Risk: high.** Every Load screen shows one.
 
@@ -327,9 +333,9 @@ Also changed:
 
 ### R5 Render targets of the world camera
 
-**Status:** passes (5b239dee, Linux OpenGL; Windows Vulkan: pending), the e2e part:
-`tests/e2e/u60/r5-overlay-targets.yaml` toggles the Temperature overlay ten times, shoots it on and
-off, loads the colony again and shoots it on (0.1 % to 2.6 % of pixels apart, no new log
+**Status:** passes (5b239dee, Linux OpenGL; Windows Vulkan: passes, 1f173398, 0.1 % to 2.6 %), the
+e2e part: `tests/e2e/u60/r5-overlay-targets.yaml` toggles the Temperature overlay ten times, shoots
+it on and off, loads the colony again and shoots it on (0.1 % to 2.6 % of pixels apart, no new log
 signatures). Window resize stays with the qa `resize` scenario.
 
 **Risk: medium.**
@@ -366,11 +372,11 @@ signatures). Window resize stays with the qa `resize` scenario.
 
 ### R6 World visual fixes
 
-**Status:** passes (d3d4e960, Linux OpenGL; Windows Vulkan: pending), cases 1-3:
-`tests/e2e/u60/r6-world-visuals.yaml` shoots tiles with drywall either side, three carpet tiles
+**Status:** passes (d3d4e960, Linux OpenGL; Windows Vulkan: passes, 1f173398, 0.7 % to 1.0 %), cases
+1-3: `tests/e2e/u60/r6-world-visuals.yaml` shoots tiles with drywall either side, three carpet tiles
 and a metal tile blueprint (within 1.2 %). Cases 4-7 (a dug-out buried object, a building under
-construction in two overlays, a vent closed by automation, Rock Crusher and Metal Refinery
-output) are not in the spec yet.
+construction in two overlays, a vent closed by automation, Rock Crusher and Metal Refinery output)
+are not in the spec yet.
 
 **Risk: medium.** Visible, but driven by game code we run unchanged.
 
@@ -417,11 +423,11 @@ output) are not in the spec yet.
 
 ### R7 New and changed animations and sprites
 
-**Status:** passes (0409c7b7, Linux OpenGL; Windows Vulkan: pending), the new critters:
-`tests/e2e/u60/r7-new-anims.yaml` spawns the Merpip and its baby, the Slogo, its baby and the
-Gildgo on landing's start-room floor. Their world shot equals the original's, and neither
-player logs an anim or symbol warning the other doesn't. Not run: the new buildings and the
-changed anims of existing critters (states that need forcing).
+**Status:** passes (0409c7b7, Linux OpenGL; Windows Vulkan: passes, 1f173398, 1.9 %), the new
+critters: `tests/e2e/u60/r7-new-anims.yaml` spawns the Merpip and its baby, the Slogo, its baby and
+the Gildgo on landing's start-room floor. Their world shot equals the original's, and neither player
+logs an anim or symbol warning the other doesn't. Not run: the new buildings and the changed anims
+of existing critters (states that need forcing).
 
 **Risk: medium.**
 
@@ -459,12 +465,12 @@ the new buildings' and Merpip's anims.
 
 ### R8 Temperature overlay icons and colour modes
 
-**Status:** passes (16526a74, Linux OpenGL; Windows Vulkan: pending), Tritanopia only:
-`tests/e2e/u60/r8-colour-mode.yaml` picks the fourth colour set through `ColorModeID_v2`, as the
-Graphics options do on start. The four sets' names and the picked set's temperature thresholds
-equal the original's. So do the Temperature overlay's legend ("Absolute Zero" among its entries)
-and its world shot. Not run: the Options dropdown, the other modes and the geyser and Aquatuner
-heat icons.
+**Status:** passes (16526a74, Linux OpenGL; Windows Vulkan: passes, 1f173398, the shot 0.1 % apart,
+the legend dump equal), Tritanopia only: `tests/e2e/u60/r8-colour-mode.yaml` picks the fourth colour
+set through `ColorModeID_v2`, as the Graphics options do on start. The four sets' names and the
+picked set's temperature thresholds equal the original's. So do the Temperature overlay's legend
+("Absolute Zero" among its entries) and its world shot. Not run: the Options dropdown, the other
+modes and the geyser and Aquatuner heat icons.
 
 **Risk: medium.**
 
@@ -508,10 +514,11 @@ heat icons.
 
 ### R9 Codex videos
 
-**Status:** passes (aaeaeb71, Linux OpenGL; Windows Vulkan: pending). `tests/e2e/u60/r9-codex-video.yaml`:
-the Duplicant Movement video entry found by search and opened, then Back and Forward three
-times; the entry and its thumbnail shot each time once the thumbnail has paused (VideoWidget
-plays it from 0 s and pauses it past 2 s), equal to the original's.
+**Status:** passes (aaeaeb71, Linux OpenGL; Windows Vulkan: passes, 1f173398, the shots within 0.09
+%; the search text is set whole there, not typed). `tests/e2e/u60/r9-codex-video.yaml`: the
+Duplicant Movement video entry found by search and opened, then Back and Forward three times; the
+entry and its thumbnail shot each time once the thumbnail has paused (VideoWidget plays it from 0 s
+and pauses it past 2 s), equal to the original's.
 
 **Risk: medium.**
 
