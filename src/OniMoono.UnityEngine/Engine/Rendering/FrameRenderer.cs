@@ -90,6 +90,8 @@ namespace OniMoono.Engine.Rendering
 
         static readonly CandidateList[] candidates = Enumerable.Range(0, 32).Select(_ => new CandidateList()).ToArray();
         static long nextStamp;
+        /// Departures from a candidate list (moves between two included), since the start.
+        static long candidateDepartures;
         static int liveCandidates;
         /// Cull passes running: a camera rendered from OnBecameVisible culls inside another.
         static int culling;
@@ -144,6 +146,7 @@ namespace OniMoono.Engine.Rendering
 
         static void RemoveCandidate(RendererNative r)
         {
+            candidateDepartures++;
             var list = candidates[r.CandidateLayer];
             list.Items[r.CandidateSlot] = null;
             r.CandidateSlot = -1;
@@ -565,6 +568,7 @@ namespace OniMoono.Engine.Rendering
             if (cam.Destroyed) return;
             Camera.onPreCull?.Invoke(camera);
 
+            long departuresAtCull = candidateDepartures;
             var draws = Cull(camera, cam);
 
             SendToEnabled(cam.GameObject, s => s.OnPreRender);
@@ -620,14 +624,14 @@ namespace OniMoono.Engine.Rendering
 
             VideoPlanes.Draw(camera, cam, nearPlane: false);
             Event(CameraEvent.BeforeForwardOpaque);
-            DrawQueue(device, draws, opaque: true);
+            DrawQueue(device, draws, opaque: true, departed: candidateDepartures != departuresAtCull);
             Event(CameraEvent.AfterForwardOpaque);
             Event(CameraEvent.BeforeSkybox);
             Event(CameraEvent.AfterSkybox);
             Event(CameraEvent.BeforeImageEffectsOpaque);
             Event(CameraEvent.AfterImageEffectsOpaque);
             Event(CameraEvent.BeforeForwardAlpha);
-            DrawQueue(device, draws, opaque: false);
+            DrawQueue(device, draws, opaque: false, departed: candidateDepartures != departuresAtCull);
             Event(CameraEvent.AfterForwardAlpha);
             VideoPlanes.Draw(camera, cam, nearPlane: true);
 
@@ -789,14 +793,16 @@ namespace OniMoono.Engine.Rendering
         /// ascending (the material made last first, under the others), whatever order they were
         /// submitted in (measured: UnityProbe draworder, as KAnimBatchManager draws batches whose
         /// z offsets fall within a float step of each other at the camera's distance).
-        static void DrawQueue(RenderDevice device, List<DrawItem> all, bool opaque)
+        static void DrawQueue(RenderDevice device, List<DrawItem> all, bool opaque, bool departed)
         {
             var list = NewDrawList();
             foreach (var d in all)
             {
                 // A renderer disabled, deactivated or destroyed after culling (from OnPreRender,
-                // say) is not drawn (measured: UnityProbe renderercull).
-                if (d.Renderer is { CandidateSlot: < 0 }) continue;
+                // say) is not drawn (measured: UnityProbe renderercull). Looked at only when a
+                // renderer has left the candidates since: reading each draw's renderer costs a
+                // cache miss a draw.
+                if (departed && d.Renderer is { CandidateSlot: < 0 }) continue;
                 if (opaque ? d.Queue <= 2500 : d.Queue > 2500) list.Add(d);
             }
             list.Sort(opaque ? OpaqueOrder : TransparentOrder);
