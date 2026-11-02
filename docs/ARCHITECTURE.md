@@ -1770,8 +1770,17 @@ minimize/restore cycles) never hung. After start-up every DXGI, D3D11 and intero
 and released on the presenter thread alone, and the waits on the waitable object are not
 alertable. Start-up makes everything that can fail (the interop extension, the adapter, the
 D3D11 device, the registration and a first lock) before it gives the window a swap chain, and a
-failure there leaves SwapBuffers in use, with one `present:` log line saying why. Once the
-window has a swap chain, a failure (the chain's own set-up at start-up; while running a lost
+failure there leaves SwapBuffers in use, with one `present:` log line saying why. A window can
+have only one flip-model swap chain at a time (Microsoft's `CreateSwapChainForHwnd` remarks,
+which list no error for it); Windows 11 returned `E_ACCESSDENIED` (0x80070005) when it already
+had one (`occupied`, measured), and a player's log showed that error at start-up, before any swap
+chain of ours, on a laptop with a Ryzen 5600H's iGPU and a GTX 1650, whose built-in screen is
+most likely the iGPU's. Who held that swap chain is not known: OpenGL's driver presenting through
+DXGI itself is the suspect; on this machine's RTX 3090 nothing had loaded `dxgi.dll` by then. A
+refused swap chain's log line names the window's owner thread and process, its styles and size,
+the adapter showing its monitor against the device's, and the graphics runtimes and hooks
+(overlays, capture, a proxy `dxgi.dll`) loaded before DXGI started. Once the window has a swap
+chain, a failure (the chain's own set-up at start-up; while running a lost
 device: `DXGI_ERROR_DEVICE_REMOVED`/`RESET`/`HUNG`, a failed lock, resize or present) releases
 everything DXGI held and starts it anew. Restarts come in bursts of ten tries, 1, 2, 4 then 8 s apart
 (about a minute, outlasting a slow driver reset); a restart that presents for 60 s ends its
@@ -1781,7 +1790,8 @@ but it does not reach the screen on a window whose flip-model swap chain has pre
 restart leaves the window still. The `present:` line at start-up names the adapter and the swap
 chain's settings; `--dxgi-fault STEP[,STEP]` makes up a failure at one step, once, for testing
 the ways back: at start-up `extension` (no `WGL_NV_DX_interop2`), `adapter`, `device`,
-`register`, `swapchain` and `association` (the last after the swap chain is made, so DXGI is
+`register`, `swapchain`, `occupied` (not made up: a second D3D11 device gives the window a
+flip-model swap chain first) and `association` (the last after the swap chain is made, so DXGI is
 restarted); while running `lock:N`, `resize:N` and `removed:N` (the Nth interop lock, resize or
 `Present`); `norestart` makes every restart fail too. The host refuses any other step (the
 shared `DxgiSwapChain` also lists the Vulkan branch's); with `--frame-stats` the frame counts include the

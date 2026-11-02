@@ -79,6 +79,7 @@ namespace OniMoono.Desktop.Gl
         string Start(int w, int h)
         {
             if (DxgiSwapChain.RestartRefused) return "a restart that fails";
+            DxgiWindowReport.NoteModulesBeforeDxgi();
             if (DxgiSwapChain.Faulty("extension") || !Glfw.ExtensionSupported("WGL_NV_DX_interop2")) return "the OpenGL driver has no WGL_NV_DX_interop2";
             dxOpenDevice = (delegate* unmanaged<void*, IntPtr>)Glfw.GetProcAddress("wglDXOpenDeviceNV"u8);
             dxCloseDevice = (delegate* unmanaged<IntPtr, int>)Glfw.GetProcAddress("wglDXCloseDeviceNV"u8);

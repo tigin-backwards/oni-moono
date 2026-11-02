@@ -10,7 +10,7 @@ namespace OniMoono.Host
     internal static class DxgiFaultOption
     {
         /// At start-up, and once DXGI runs (with N, the Nth time), and "norestart".
-        public static readonly string[] Steps = ["extension", "adapter", "device", "register", "swapchain", "association", "norestart"];
+        public static readonly string[] Steps = ["extension", "adapter", "device", "register", "swapchain", "occupied", "association", "norestart"];
         public static readonly string[] Counted = ["lock", "resize", "removed"];
 
         public static string Known => string.Join(", ", Steps.Concat(Counted.Select(c => c + ":N")));
