@@ -465,8 +465,14 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   ran the copy, whose `Location` is empty: Threshold Walls). The methods CoreCLR reports missing
   get an explicit implementation that throws the `TypeLoadException` CoreCLR would have. The class
   loads, and calling the missing method fails. Where Mono fails earlier (an interface check of the class),
-  ours goes on. `--check-types` loads a mod built against an older shape of an interface, whose
-  new method takes one of the game's own types (Trashcans), and calls the method it lacks.
+  ours goes on. Collecting a probe's context takes two blocking full collections (80 with 40
+  mods), so each probe's verdict is kept in the cache folder (`oni-moono/mod-type-probes`) under
+  a key naming its inputs: the image's hash, the runtime's and the host's builds, and each loaded
+  assembly the image's references reach (outside the runtime's folder) by name, module version
+  id and file size and time; a later start with the same mods probes nothing. `--check-types`
+  loads a mod built against an older shape of an interface, whose new method takes one of the
+  game's own types (Trashcans), and calls the method it lacks; it then completes the image again
+  from the cache and checks the bytes and each kept verdict against a fresh probe.
 - **D23 Stack frames of patched methods.** Harmony runs a patched method as a dynamic method that
   MonoMod creates with an owner type. On Mono, a frame of it reports a method declared by that
   owner, `MonoMod.Utils.DynamicMethodDefinition` (measured in the original player); CoreCLR's
