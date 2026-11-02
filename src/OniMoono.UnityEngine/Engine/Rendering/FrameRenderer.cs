@@ -22,7 +22,7 @@ namespace OniMoono.Engine.Rendering
         public int SortingOrder;
         public float Distance;
         public Bounds WorldBounds;
-        public int Sequence;
+        public long Sequence;
         /// A Graphics.DrawMesh draw: in the transparent queue, ties on distance between two of
         /// them go by material (FrameRenderer.TransparentOrder).
         public bool Queued;
@@ -73,15 +73,24 @@ namespace OniMoono.Engine.Rendering
     {
         public static Camera Current { get; private set; }
 
-        /// The cull candidates: renderers that are enabled on an active GameObject, in the order
-        /// they last became so. Unity's player draws renderers tied on everything they sort by
-        /// in that order (a renderer disabled and enabled again, even between two renders, draws
-        /// after the others), and its culling costs nothing per disabled renderer or renderer on
-        /// an inactive object (measured: UnityProbe renderercull). Fast Track's mesh renderers
-        /// leave a tenth of 30,000 enabled. A renderer leaving the list leaves a hole (null),
-        /// which Cull compacts away before it iterates, so toggling one costs O(1).
-        static readonly List<RendererNative> candidates = new();
-        static int holes;
+        /// The cull candidates: renderers that are enabled on an active GameObject, one list per
+        /// layer, so a camera walks only the layers its culling mask holds. Unity's culling
+        /// costs nothing per disabled renderer or renderer on an inactive object, and it draws
+        /// renderers tied on everything they sort by in the order they last became candidates
+        /// (a renderer disabled and enabled again, even between two renders, draws after the
+        /// others; measured: UnityProbe renderercull): each candidate keeps the stamp of when
+        /// it joined, which orders its draws. Fast Track's mesh renderers leave a tenth of
+        /// 30,000 enabled, spread over the layers 15 cameras cull. A renderer leaving a list
+        /// leaves a hole (null), compacted away before a pass, so toggling one costs O(1).
+        sealed class CandidateList
+        {
+            public readonly List<RendererNative> Items = new();
+            public int Holes;
+        }
+
+        static readonly CandidateList[] candidates = Enumerable.Range(0, 32).Select(_ => new CandidateList()).ToArray();
+        static long nextStamp;
+        static int liveCandidates;
         /// Cull passes running: a camera rendered from OnBecameVisible culls inside another.
         static int culling;
         static readonly List<QueuedMesh> queued = new();
@@ -106,7 +115,7 @@ namespace OniMoono.Engine.Rendering
         }
 
         /// A renderer's enabled flag, its GameObject's activation or its destruction changed:
-        /// it joins the cull candidates (at the end) or leaves them.
+        /// it joins the cull candidates (last in their order) or leaves them.
         public static void UpdateCandidate(RendererNative r)
         {
             bool wanted = r.Enabled && r.EngineEnabled && !r.Destroyed;
@@ -114,15 +123,44 @@ namespace OniMoono.Engine.Rendering
             candidateChanges++;
             if (wanted)
             {
-                r.CandidateSlot = candidates.Count;
-                candidates.Add(r);
+                r.CandidateStamp = ++nextStamp;
+                AddCandidate(r, r.GameObject.Layer);
+                liveCandidates++;
             }
             else
             {
-                candidates[r.CandidateSlot] = null;
-                r.CandidateSlot = -1;
-                // Bounded while no camera culls (loading screens).
-                if (++holes > 1024 && holes * 2 > candidates.Count) CompactCandidates();
+                RemoveCandidate(r);
+                liveCandidates--;
+            }
+        }
+
+        static void AddCandidate(RendererNative r, int layer)
+        {
+            var list = candidates[layer];
+            r.CandidateLayer = layer;
+            r.CandidateSlot = list.Items.Count;
+            list.Items.Add(r);
+        }
+
+        static void RemoveCandidate(RendererNative r)
+        {
+            var list = candidates[r.CandidateLayer];
+            list.Items[r.CandidateSlot] = null;
+            r.CandidateSlot = -1;
+            // Bounded while no camera culls (loading screens).
+            if (++list.Holes > 1024 && list.Holes * 2 > list.Items.Count) Compact(list);
+        }
+
+        /// A GameObject's layer changed: its candidate renderers move to that layer's list,
+        /// keeping their place in the order.
+        public static void LayerChanged(GameObjectNative go)
+        {
+            foreach (var c in go.Components)
+            {
+                if (c?.Native is not RendererNative { CandidateSlot: >= 0 } r || r.CandidateLayer == go.Layer) continue;
+                RemoveCandidate(r);
+                AddCandidate(r, go.Layer);
+                layerMoves++;
             }
         }
 
@@ -130,46 +168,40 @@ namespace OniMoono.Engine.Rendering
         {
             if (r.CandidateSlot >= 0)
             {
-                candidates[r.CandidateSlot] = null;
-                r.CandidateSlot = -1;
-                holes++;
+                RemoveCandidate(r);
+                liveCandidates--;
             }
             visibleThisFrame.Remove(r);
             visibleLastFrame.Remove(r);
         }
 
-        static void CompactCandidates()
+        static void Compact(CandidateList list)
         {
-            if (holes == 0 || culling > 0) return;
+            if (list.Holes == 0 || culling > 0) return;
+            var items = list.Items;
             int kept = 0;
-            for (int i = 0; i < candidates.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                var r = candidates[i];
+                var r = items[i];
                 if (r == null) continue;
                 r.CandidateSlot = kept;
-                candidates[kept++] = r;
+                items[kept++] = r;
             }
-            candidates.RemoveRange(kept, candidates.Count - kept);
-            holes = 0;
+            items.RemoveRange(kept, items.Count - kept);
+            list.Holes = 0;
         }
 
         /// Renderers Cull has looked at, all cameras together, since the start (tests, and
-        /// ONI_RENDER_TIMING): it grows with the enabled renderers on active objects, never with
-        /// the disabled or inactive ones.
+        /// ONI_RENDER_TIMING): it grows with the enabled renderers on active objects in the
+        /// layers the cameras cull, never with the disabled, inactive or other layers' ones.
         internal static long CullVisits;
 
-        /// The candidate list's length, holes included (tests).
-        internal static int CandidateSlots => candidates.Count;
+        /// The candidate lists' lengths, holes included (tests).
+        internal static int CandidateSlots => candidates.Sum(l => l.Items.Count);
 
         /// The cull candidates in their order (tests).
         internal static IEnumerable<RendererNative> Candidates
-        {
-            get
-            {
-                foreach (var r in candidates)
-                    if (r != null) yield return r;
-            }
-        }
+            => candidates.SelectMany(l => l.Items).Where(r => r != null).OrderBy(r => r.CandidateStamp);
 
         public static void Queue(QueuedMesh m)
         {
@@ -190,7 +222,7 @@ namespace OniMoono.Engine.Rendering
         /// queues, logged every TimingFrames frames.
         static readonly bool timing = Environment.GetEnvironmentVariable("ONI_RENDER_TIMING") == "1";
         const int TimingFrames = 600;
-        static long renderTicks, queueTicks, queueDraws, windowStart, candidateChanges, windowVisits;
+        static long renderTicks, queueTicks, queueDraws, windowStart, candidateChanges, windowVisits, layerMoves;
         static TimeSpan lastCpu;
         static int timedFrames;
 
@@ -219,9 +251,9 @@ namespace OniMoono.Engine.Rendering
             var cpu = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime;
             double cores = (cpu - lastCpu).TotalSeconds / ((now - windowStart) / (double)System.Diagnostics.Stopwatch.Frequency);
             lastCpu = cpu;
-            EngineLog.Engine($"render timing: frame {Time.frameCount}, {fps:F2} fps, rendering {ms(renderTicks):F3} ms a frame, draw queues {ms(queueTicks):F3} ms ({queueDraws / timedFrames} draws a frame), cull candidates {candidates.Count - holes} ({candidateChanges / timedFrames} changes and {(CullVisits - windowVisits) / timedFrames} visits a frame){(device != null ? ", " + device : "")}"
+            EngineLog.Engine($"render timing: frame {Time.frameCount}, {fps:F2} fps, rendering {ms(renderTicks):F3} ms a frame, draw queues {ms(queueTicks):F3} ms ({queueDraws / timedFrames} draws a frame), cull candidates {liveCandidates} ({candidateChanges / timedFrames} changes, {layerMoves / timedFrames} layer moves and {(CullVisits - windowVisits) / timedFrames} visits a frame){(device != null ? ", " + device : "")}"
                 + $"; pool threads {System.Threading.ThreadPool.ThreadCount}, pending {System.Threading.ThreadPool.PendingWorkItemCount}, process threads {System.Diagnostics.Process.GetCurrentProcess().Threads.Count}, cpu {cores:F1} cores, gc {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)}, heap {GC.GetTotalMemory(false) >> 20} MB");
-            renderTicks = queueTicks = queueDraws = candidateChanges = 0;
+            renderTicks = queueTicks = queueDraws = candidateChanges = layerMoves = 0;
             windowVisits = CullVisits;
             timedFrames = 0;
             windowStart = now;
@@ -660,29 +692,40 @@ namespace OniMoono.Engine.Rendering
         {
             var draws = NewDrawList();
             var frustum = new Frustum(cam.Projection * cam.WorldToCamera);
-            int sequence = 0;
-            CompactCandidates();
+            // A renderer's draws go by when it became a candidate; then the queued meshes and
+            // the other draws, in submission order.
+            long sequence = 1L << 62;
             // Renderers that OnBecameVisible enables or creates are drawn from the next render
             // on, and those it disables are not drawn in this one (measured: UnityProbe
             // renderercull): the pass covers the candidates it started with.
-            int count = candidates.Count;
+            int mask = cam.CullingMask;
+            Span<int> counts = stackalloc int[32];
+            for (int layer = 0; layer < 32; layer++)
+            {
+                if ((mask & (1 << layer)) == 0) continue;
+                Compact(candidates[layer]);
+                counts[layer] = candidates[layer].Items.Count;
+            }
             culling++;
             try
             {
-                for (int c = 0; c < count; c++)
+                for (int layer = 0; layer < 32; layer++)
                 {
-                    var r = candidates[c];
-                    if (r == null) continue;
-                    CullVisits++;
-                    if (r.Destroyed || !r.Enabled || !r.GameObject.ActiveInHierarchy) continue;
-                    if ((cam.CullingMask & (1 << r.GameObject.Layer)) == 0) continue;
-                    var bounds = r.WorldBounds;
-                    if (!frustum.Intersects(bounds)) continue;
-                    int before = draws.Count;
-                    RendererDraws.Collect(r, camera, draws);
-                    if (draws.Count == before) continue;
-                    MarkVisible(r);
-                    for (int i = before; i < draws.Count; i++) draws[i].Sequence = sequence++;
+                    var items = candidates[layer].Items;
+                    for (int c = 0; c < counts[layer]; c++)
+                    {
+                        var r = items[c];
+                        if (r == null) continue;
+                        CullVisits++;
+                        if (r.Destroyed || !r.Enabled || !r.GameObject.ActiveInHierarchy) continue;
+                        var bounds = r.WorldBounds;
+                        if (!frustum.Intersects(bounds)) continue;
+                        int before = draws.Count;
+                        RendererDraws.Collect(r, camera, draws);
+                        if (draws.Count == before) continue;
+                        MarkVisible(r);
+                        for (int i = before; i < draws.Count; i++) draws[i].Sequence = (r.CandidateStamp << 16) + (i - before);
+                    }
                 }
             }
             finally

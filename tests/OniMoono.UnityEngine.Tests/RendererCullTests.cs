@@ -157,6 +157,62 @@ namespace OniMoono.Tests
             Assert.Equal(candidates * cameras.Count, FrameRenderer.CullVisits - before);
         }
 
+        /// Each camera walks only the layers its culling mask holds: 15 cameras over Fast Track's
+        /// renderers each walked all of them, though about 7% are in the layers each culls.
+        [Fact]
+        public void CamerasVisitOnlyTheLayersTheyCull()
+        {
+            using var s = new RenderScope();
+            s.SetUpCamera();
+            s.Camera.cullingMask = 1 << 5;
+            var other = Object.Instantiate(s.Camera.gameObject).GetComponent<Camera>();
+            other.cullingMask = (1 << 5) | (1 << 6);
+            for (int i = 0; i < 2000; i++) s.Quadr("A", s.MaterialA).gameObject.layer = i % 2 == 0 ? 0 : 7;
+            var b5 = new List<MeshRenderer>();
+            for (int i = 0; i < 10; i++)
+            {
+                var r = s.Quadr("B", s.MaterialB);
+                r.gameObject.layer = 5;
+                b5.Add(r);
+            }
+            var b6 = s.Quadr("B", s.MaterialB);
+            b6.gameObject.layer = 6;
+            Frame();
+            long before = FrameRenderer.CullVisits;
+            Assert.Equal(21, s.Drawn().Split(',').Length);
+            Assert.Equal(10 + 11, FrameRenderer.CullVisits - before);
+
+            // Moved out of a camera's layers and back.
+            b5[0].gameObject.layer = 0;
+            before = FrameRenderer.CullVisits;
+            Assert.Equal(19, s.Drawn().Split(',').Length);
+            Assert.Equal(9 + 10, FrameRenderer.CullVisits - before);
+            b5[0].gameObject.layer = 5;
+            Assert.Equal(21, s.Drawn().Split(',').Length);
+        }
+
+        /// A renderer moved to another layer and back keeps its place among ties (measured:
+        /// UnityProbe renderercull, A-layer-out-and-back).
+        [Fact]
+        public void ALayerChangeKeepsTheDrawOrder()
+        {
+            using var s = new RenderScope();
+            s.SetUpCamera();
+            s.Camera.cullingMask = 1 << 5;
+            var a = s.Quadr("A", s.MaterialA);
+            a.gameObject.layer = 5;
+            var b = s.Quadr("B", s.MaterialB);
+            b.gameObject.layer = 5;
+            Assert.Equal("A,B", s.Drawn());
+            a.gameObject.layer = 6;
+            Assert.Equal("B", s.Drawn());
+            a.gameObject.layer = 5;
+            Assert.Equal("A,B", s.Drawn());
+            for (int i = 0; i < 100000; i++) a.gameObject.layer = i % 2 == 0 ? 6 : 5;
+            Assert.InRange(FrameRenderer.CandidateSlots, 2, 2100);
+            Assert.Equal("A,B", s.Drawn());
+        }
+
         /// A device and a camera over two overlapping quads, A and B, at the same depth.
         sealed class RenderScope : System.IDisposable
         {

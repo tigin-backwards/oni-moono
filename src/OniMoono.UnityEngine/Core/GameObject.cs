@@ -39,7 +39,10 @@ namespace UnityEngine
                     Debug.LogError("A game object can only be in one layer. The layer needs to be in the range [0...31]");
                     return;
                 }
-                GameObjectNative.Layer = value;
+                var go = GameObjectNative;
+                if (go.Layer == value) return;
+                go.Layer = value;
+                OniMoono.Engine.Rendering.FrameRenderer.LayerChanged(go);
             }
         }
 
