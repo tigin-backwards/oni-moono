@@ -47,10 +47,13 @@ namespace OniMoono.Engine.Rendering
             }
         }
 
+        // Main thread: reused by every Draw (nothing it calls draws videos).
+        static readonly System.Collections.Generic.List<OniMoono.Engine.Video.CameraVideo> cameraVideos = new();
+
         /// Far-plane videos before the scene, near-plane ones after it, on the camera's plane.
         public static void Draw(Camera camera, CameraNative cam, bool nearPlane)
         {
-            foreach (var v in VideoOutputs.CameraVideos(camera))
+            foreach (var v in VideoOutputs.CameraVideos(camera, cameraVideos))
             {
                 if (v.NearPlane != nearPlane || v.Texture == null) continue;
                 var r = Fit(new Vector2(v.Texture.width, v.Texture.height), new Rect(0f, 0f, cam.PixelRect.width, cam.PixelRect.height), v.Aspect);

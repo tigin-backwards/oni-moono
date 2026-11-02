@@ -430,6 +430,19 @@ namespace OniMoono.Engine
             }
         }
 
+        /// Invoke for a message with two arguments (OnRenderImage), without a closure around them.
+        public static void Invoke<TA, TB>(Action<MonoBehaviour, TA, TB> message, MonoBehaviour target, TA a, TB b)
+        {
+            try
+            {
+                message(target, a, b);
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e, target);
+            }
+        }
+
         /// Invoke, telling whether the message returned without an exception.
         static bool TryInvoke(Action<MonoBehaviour> message, MonoBehaviour target)
         {

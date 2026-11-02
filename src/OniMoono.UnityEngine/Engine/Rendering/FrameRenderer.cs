@@ -643,8 +643,8 @@ namespace OniMoono.Engine.Rendering
             Execute(camera, cam, CameraEvent.AfterEverything);
         }
 
-        // Its own method: the effect's closure captures `source`, and in RenderCameraCore it
-        // was allocated for every camera, with image effects or not.
+        // The OnRenderImage chain; Lifecycle.Invoke passes each effect its textures, so no
+        // closure is allocated per effect.
         static void ImageEffects(Camera camera, CameraNative cam, List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)> effects, RenderTexture source)
         {
             Execute(camera, cam, CameraEvent.BeforeImageEffects);
@@ -654,7 +654,7 @@ namespace OniMoono.Engine.Rendering
                 bool last = i == effects.Count - 1;
                 var destination = last ? finalTarget : RenderTexture.GetTemporary(source.width, source.height, 0, source.format);
                 RenderTexture.active = destination;
-                Lifecycle.Invoke(mb => effects[i].Effect(mb, source, destination), effects[i].Behaviour);
+                Lifecycle.Invoke(effects[i].Effect, effects[i].Behaviour, source, destination);
                 RenderTexture.ReleaseTemporary(source);
                 source = destination;
             }
