@@ -543,14 +543,14 @@ plays it from 0 s and pauses it past 2 s), equal to the original's.
 
 ### I1 Mouse buttons 3 to 6 as bindings
 
-**Status:** fixed in 4269b649 (Linux, both players on OpenGL; Windows: pending, a five-button
+**Status:** fixed in dbbccba2 (Linux, both players on OpenGL; Windows: pending, a five-button
 mouse by hand). Measured in the original: Unity's X11 player reports X buttons 8 and 9 as
 `Mouse3` and `Mouse4`, X button 10 as `Mouse6` (not `Mouse5`), and X button 11 as no key code,
 only an IMGUI `MouseDown` with button 7; ours numbered 10 and 11 as `Mouse5` and `Mouse6`, now as
 the original. `tests/e2e/u60-i1-side-buttons.yaml` (X buttons 8 to 10 through XTEST) and
-`u60-i1-button-11.yaml` (X button 11 as an event sent to the window, bf890991; Xvfb's XTEST
+`u60-i1-button-11.yaml` (X button 11 as an event sent to the window, 2adb8caf; Xvfb's XTEST
 pointer has ten buttons) read the key log (`GetKeyDown`, `GetKey`, IMGUI `MouseDown`) as in the
-original. `u60-i1-rebind.yaml` (f218ef5e): in `early-base`, Options > Game > Controls,
+original. `u60-i1-rebind.yaml` (214bd4ef): in `early-base`, Options > Game > Controls,
 Dig rebound to X button 8; its label reads "Mouse 3" in both, and the button over the world
 picks the Dig tool as in the original. Rebinding to button 9: not run separately (the same
 path, and the key log covers its key code).
@@ -1223,7 +1223,7 @@ the spec yet.
 
 ### L1 Cell change tracking and KObject
 
-**Status:** passes (c5c74620; Linux, both players on OpenGL), with the heap bound relaxed:
+**Status:** passes (860ee57a; Linux, both players on OpenGL), with the heap bound relaxed:
 `tests/e2e/u60-l1-cell-change.yaml` runs rocket-launch's set-up on `rockets-so` (the Rocket
 Control Station rebuilt inside the rocket, the rocket launched and flown on), saves, and loads
 that save three times from the pause menu. The rocket's status and hex are the original's after
@@ -1353,7 +1353,7 @@ ApiCheck finds 787 type and 3,225 member refs, 0 types and 13 members missing, a
 
 ### A1 Templates through VYaml 1.4
 
-**Status:** passes (3101cb6e, 6462dc3b). Step 1 (Linux; ours on Vulkan, the original on
+**Status:** passes (3101cb6e, 01e34861). Step 1 (Linux; ours on Vulkan, the original on
 OpenGL, recorded before the OpenGL rule): `tests/e2e/u60-a1-templates.yaml` runs the new E2eDriver
 command `templates.load` (`tools/E2eDriver/Templates.cs`), which loads every template through
 `TemplateCache.LoadTemplateYaml`; every line, the count, the failures and the digest are the
@@ -1477,7 +1477,7 @@ are loaded in memory".
 
 ### A4 Data files
 
-**Status:** passes (b86d948d, 6059c038; Linux; owned: ours on Vulkan, the rest both on OpenGL). Step 1:
+**Status:** passes (b86d948d, 33a5fcc6; Linux; owned: ours on Vulkan, the rest both on OpenGL). Step 1:
 the e2e and QA runs' all-DLC Steam double answers yes for app 5315880 (BIsSubscribedApp,
 BIsDlcInstalled, UserHasLicenseForApp); tools/SteamStub's new `--dlc` reproduces it and
 `--dlc-except 5315880` leaves that app out. Step 2: `tests/e2e/u60-a4-cosmetic2-owned.yaml` and
@@ -1608,7 +1608,7 @@ The run with no save tweaks is still to be recorded.
 
 ### M1 Loose-file Workshop mods
 
-**Status:** passes (c84d25ba; Linux, both players on OpenGL): `tests/e2e/u60-m1-loose-folder.yaml`
+**Status:** passes (80f8a291; Linux, both players on OpenGL): `tests/e2e/u60-m1-loose-folder.yaml`
 and `u60-m1-legacy-zip.yaml` (records in `results-u60`) subscribe Show Building Ranges
 (1960996649) through the Steam double's Workshop part (tools/SteamStub `--dlc --ugc`, new;
 `GetItemInstallInfo` answers the item's folder or zip under the run home's
@@ -1649,7 +1649,7 @@ files in a folder, as well as continuing to support the legacy zip format."
 
 ### M2 Corrupt Workshop items are downloaded again
 
-**Status:** passes (aeacf5c4; Linux, both players on OpenGL): `tests/e2e/u60-m2-corrupt-zip.yaml`
+**Status:** passes (a5cd3d7e; Linux, both players on OpenGL): `tests/e2e/u60-m2-corrupt-zip.yaml`
 (`results-u60/u60-m2-corrupt-zip.json`) subscribes Show Building Ranges as a legacy zip
 truncated to half, through the Steam double's Workshop part (tools/SteamStub `--dlc --ugc`, new:
 one subscription, its details query and `UGCDownloadToLocation` completed through ManualDispatch
@@ -2001,9 +2001,9 @@ over cycles, chores after each setup) are not run; the definitions are.
   skill group, the skill count and the Swim Hack booster prefab, in the base-game colony.
 - G2: passes (b867d6e7): the four support-building boosts and their compatible receptors, and
   the receptor on the Cooking Station, Kiln, Research Station and Deep Fryer.
-- G3: passes (387497cb): the Space Racer (deprecated), Trampoline and Sandpit defs, the
+- G3: passes (51ef85b5): the Space Racer (deprecated), Trampoline and Sandpit defs, the
   Trampoline, Sandpit and Space Racer effects' durations, the Soda Fountain's work time.
-- G4: passes (d96b0870): the Merpip and its baby (`SquirrelAquaticBaby`) prefabs and their
+- G4: passes (7ae33f09): the Merpip and its baby (`SquirrelAquaticBaby`) prefabs and their
   tags, the Pip's tags.
 - G5: passes (b867d6e7): the Smart Storage Bin's power, Oxylite Refinery's size, Window Tile and
   Wicker Door decor, drywall and Tempshift Plate scene layers, the Breathing Station's tank.
@@ -2014,9 +2014,9 @@ over cycles, chores after each setup) are not run; the definitions are.
   wire) in English.
 - G9: passes (b867d6e7): the Egg Cracker's size, the tile's decor, the building and misc status
   item counts.
-- G10: passes (6462dc3b, with A1 step 2): six new games from fixed Spaced Out coordinates, their
+- G10: passes (01e34861, with A1 step 2): six new games from fixed Spaced Out coordinates, their
   start bases' buildings, Hatches (none on Verdante), vista, food and seeds as in the original;
-  Zinc Ore in MetalRich and MetalPoor under A4 (6059c038). Not run: the frozen breakroom's
+  Zinc Ore in MetalRich and MetalPoor under A4 (33a5fcc6). Not run: the frozen breakroom's
   reveal, mixing's trait list, the Demolior setting and the unplaced templates. Verdante's
   generated cells differ a little (A1's status; repro `tests/e2e/u60-start-forest-grid.yaml`).
 - G11: covered by U9.
@@ -2054,7 +2054,7 @@ Tests if we retarget:
   neighbour only; `expect_state` on the delivered critter count `== original`.
 
 **Status (V rows):** Linux, both players on OpenGL.
-- V1: passes (a1b85206): `tests/e2e/u60-v1-build-check.yaml`: two copies of early-base whose
+- V1: passes (a7e2f38d): `tests/e2e/u60-v1-build-check.yaml`: two copies of early-base whose
   header says build 761211 and 761212 (one colony): the main menu, the Load screen's saves and
   each save's details read as in the original, the 761212 save refused ("File is using build
   761212, v38. This build is 761211, v39.") and the 761211 one offered. The mod part (a
@@ -2066,7 +2066,7 @@ Tests if we retarget:
   bug left behind and that neither the UI nor the harness's setup (`setup.call`) makes; a rail
   gun also needs a radbolt supply and a reachable destination. The fix is game code alone (the
   loop stops when a transfer moves nothing), with no engine surface.
-- V3: passes (274d5616): `tests/e2e/u60-v3-delivery.yaml`: the Critter Drop-Off's
+- V3: passes (2b8bdbd8): `tests/e2e/u60-v3-delivery.yaml`: the Critter Drop-Off's
   `deliveryOffsets` are one (0, 0) in both players, then a game minute. Delivering a critter to a
   drop-off with a reachable neighbour only: not run (a wrangling set-up); the offsets are the
   change.
