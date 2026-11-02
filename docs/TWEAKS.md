@@ -34,8 +34,9 @@ launch options:
   one out of `exact` or `all`.
 - `--splash moo|none`: the loading splash.
 - `--frame-stats`: where each frame's time went, in the log every 60 frames.
-- `--log-paths hidden|full`: Player.log with your user folder, Documents folder and Steam ID
-  replaced (`%USERPROFILE%` or `~`, `%DOCUMENTS%`, `<steam id>`), or as logged.
+- `--log-paths hidden|full`: Player.log with your user folder, Documents folder, Steam ID,
+  Steam name and Klei ID replaced (`%USERPROFILE%` or `~`, `%DOCUMENTS%`, `<steam id>`,
+  `<name>`, `<klei id>`), or as logged.
 - `--gpu default|discrete|integrated`: the graphics card on a laptop with two
   ([ARCHITECTURE.md](ARCHITECTURE.md#2-process-and-assembly-structure), "The GPU option").
 - `--dxgi on|off`: Windows, frames shown through a Direct3D 11 swap chain or through OpenGL's

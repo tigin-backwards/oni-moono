@@ -2154,17 +2154,25 @@ are native (`Engine/LogTraces.cs`). Unlike Unity's, the file is capped at about 
 
 Personal paths (`--log-paths hidden`, the default; `LogScrubber`): what goes to Player.log and to
 stdout has the profile folder replaced by `%USERPROFILE%` (Windows, any case and slash) or `~`,
-the Documents folder outside it by `%DOCUMENTS%`, a SteamID64 path segment (cloud_save_files) by
-`<steam id>`, and the user name as a path segment by `<user>`. The rules are built at start-up
-from those known values (~2 ms; a Regex of them cost ~10 ms), and a line is scanned only when it
-has a slash and one of their words (vectorized searches: ~5 ns a line without a slash, ~35 ns
-one with a path that names no one, ~450 ns one with a save path replaced). The
-log callbacks (`Application.logMessageReceived*`) get the text as logged: mods and the game's
-crash reporter read it there. The console writer holds a partial line until its line break (or a
-flush, or other output, which writes it first, so the order stays), so a path written in pieces
-is replaced too. The settings are read before the log opens, so its first lines are covered.
-The platform layer has no logged-in Steam ID at that point, so Steam IDs are replaced as path
-segments only.
+the Documents folder outside it by `%DOCUMENTS%`, and the user name as a path segment by
+`<user>`. The accounts go too: any individual account's SteamID64 standing as a whole number
+(17 digits, 76561197960265729 to 76561202255233023, so no mod or Workshop ID; a save path's
+folder, a multiplayer mod's other players) by `<steam id>`; in the game's login line
+(`Logged into Steam with ID:…, NAME:…`, Global) the ID and the persona name by `<steam id>`
+and `<name>`, the name nowhere else, since it can be any word; in KleiAccount's lines the Klei
+user ID (`[Account] Got login for user <klei id>`) and the auth ticket of a failed login
+(`for ticket=<ticket>`). The original writes them all as they are. The path rules are built at
+start-up from those known values (~2 ms; a Regex of them cost ~10 ms); the account rules hold
+no state, so every thread shares them, and need no Steamworks call (the format covers the lines
+before `SteamAPI.Init` and other players). A line is scanned only for the rules whose words it
+has: a slash and a folder's or the user's name, or `76561`, `Logged into ` or `[Account] `
+(vectorized searches; on WSL, release build: ~25 ns a line without a slash, ~55 ns one with a
+path that names no one, ~750 ns one with a save path replaced, against ~5, ~40 and ~420 ns
+before the account rules). The log callbacks (`Application.logMessageReceived*`) get the text
+as logged: mods and the game's crash reporter read it there. The console writer holds a
+partial line until its line break (or a flush, or other output, which writes it first, so the
+order stays), so a path written in pieces is replaced too. The settings are read before the
+log opens, so its first lines are covered.
 
 Development diagnostics (host options, never needed by players): `--trace-exceptions` logs every
 first-chance exception with per-frame IL offsets (the game ships without symbols; the offset

@@ -41,14 +41,13 @@ namespace OniMoono.Tests
         public void WindowsPaths(string line, string scrubbed) => Assert.Equal(scrubbed, Windows.Scrub(line));
 
         [Theory]
-        // A longer name that starts like the profile, the bare user name, a SteamID64 that is
-        // no path segment, other drives' folders: left alone.
+        // A longer name that starts like the profile, the bare user name, other drives'
+        // folders: left alone.
         [InlineData(@"C:\Users\Administrator\x")]
         [InlineData(@"C:\Users\Admin2\x")]
         [InlineData(@"E:\Documents2\x")]
         [InlineData("Admin logged in as Admin")]
         [InlineData(@"C:\Users\Admins\x and Admin")]
-        [InlineData("lobby 76561197960265729 joined")]
         [InlineData(@"F:\Games\Steam\steamapps\common")]
         [InlineData("a line without a slash at all")]
         public void WindowsTextLeftAlone(string line) => Assert.Same(line, Windows.Scrub(line));
@@ -70,6 +69,83 @@ namespace OniMoono.Tests
         [InlineData("/srv/home/nigit.old/x")]
         [InlineData("nigit started the game")]
         public void PosixTextLeftAlone(string line) => Assert.Same(line, Linux.Scrub(line));
+
+        [Theory]
+        // The game's login line (Global): the ID and the persona name, to the line's end.
+        [InlineData("[01:40:38.478] [2] [INFO] Logged into Steam with ID:76561199076905660, NAME:charmich0802",
+            "[01:40:38.478] [2] [INFO] Logged into Steam with ID:<steam id>, NAME:<name>")]
+        [InlineData("Logged into Steam with ID:76561197960265729, NAME:Big Name, with commas\nnext line Player",
+            "Logged into Steam with ID:<steam id>, NAME:<name>\nnext line Player")]
+        // The platform's user with no ID (LocalUser.Id?.ToString()), or no name.
+        [InlineData("Logged into Steam with ID:, NAME:Player", "Logged into Steam with ID:, NAME:<name>")]
+        [InlineData("Logged into Steam with ID:76561197960265729, NAME:", "Logged into Steam with ID:<steam id>, NAME:")]
+        // A SteamID64 anywhere, as a whole number: a mod's lobby, a crash reporter's user, a save path.
+        [InlineData("lobby 76561197960265729 joined", "lobby <steam id> joined")]
+        [InlineData("[Antigravity] Steam user: Player (76561199076905660)", "[Antigravity] Steam user: Player (<steam id>)")]
+        [InlineData("SteamID_Player_76561199076905660", "SteamID_Player_<steam id>")]
+        [InlineData("76561197960265729", "<steam id>")]
+        [InlineData("a 76561197960265729,76561202255233023.", "a <steam id>,<steam id>.")]
+        [InlineData(@"cloud_save_files\76561197960265729\Colony.sav", @"cloud_save_files\<steam id>\Colony.sav")]
+        // KleiAccount's user ID, and its auth ticket when the login fails.
+        [InlineData("[01:40:40.149] [24] [INFO] [Account] Got login for user KU_Odm4vVjy",
+            "[01:40:40.149] [24] [INFO] [Account] Got login for user <klei id>")]
+        [InlineData("[Account] Error logging in: {\"Error\":true, \"x\":\" for ticket=1\"} for ticket=14000000ABCDEF01",
+            "[Account] Error logging in: {\"Error\":true, \"x\":\" for ticket=1\"} for ticket=<ticket>")]
+        public void Accounts(string line, string scrubbed)
+        {
+            Assert.Equal(scrubbed, Windows.Scrub(line));
+            Assert.Equal(scrubbed, Linux.Scrub(line));
+        }
+
+        [Theory]
+        // A SteamID64's digits inside a longer number, or a 17-digit number that is no
+        // individual account's (account 0, past the 32-bit account numbers, another universe,
+        // a Steam group).
+        [InlineData("seed 1765611970752657290")]
+        [InlineData("x 765611970752657291")]
+        [InlineData("x 76561197960265728")]
+        [InlineData("x 76561202255233024")]
+        [InlineData("x 76561100000000000")]
+        [InlineData("group 103582791429521412")]
+        [InlineData("hash 7656119 and 76561197")]
+        [InlineData("mod 2837919908 [Rocketry Expanded:2837919908]")]
+        // The name only in its line: elsewhere, the login line's words alone, a ticket outside
+        // the error line, someone else's "[Account]".
+        [InlineData("charmich0802 built a tile")]
+        [InlineData("Logged into the server as charmich0802")]
+        [InlineData("Logged into Steam with ID:42")]
+        [InlineData("Logged into  with ID:1, NAME:x")]
+        [InlineData("[Account] Requesting auth ticket from Steam")]
+        [InlineData("[Account] Error logging in: no ticket for ticket=<unknown>")]
+        [InlineData("[Mod] for ticket=ABCDEF [Account] something")]
+        public void AccountsLeftAlone(string line) => Assert.Same(line, Windows.Scrub(line));
+
+        /// One scrubber for every thread the log has (game, Klei's HTTP and worker threads):
+        /// the rules hold no state, so lines scrubbed at once all come out right.
+        [Fact]
+        public void ThreadsShareTheScrubber()
+        {
+            string[] lines =
+            [
+                "Logged into Steam with ID:76561199076905660, NAME:charmich0802",
+                "[Account] Got login for user KU_Odm4vVjy",
+                @"Loading save file: E:\Documents\Klei\OxygenNotIncluded\cloud_save_files\76561199076905660\Colony\Colony.sav",
+                "[INFO] Sim tick 12345",
+            ];
+            string[] expected =
+            [
+                "Logged into Steam with ID:<steam id>, NAME:<name>",
+                "[Account] Got login for user <klei id>",
+                @"Loading save file: %DOCUMENTS%\Klei\OxygenNotIncluded\cloud_save_files\<steam id>\Colony\Colony.sav",
+                "[INFO] Sim tick 12345",
+            ];
+            int wrong = 0;
+            System.Threading.Tasks.Parallel.For(0, 200_000, new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
+            {
+                if (Windows.Scrub(lines[i % lines.Length]) != expected[i % lines.Length]) System.Threading.Interlocked.Increment(ref wrong);
+            });
+            Assert.Equal(0, wrong);
+        }
 
         [Fact]
         public void ShortUserNamesAndRootHomesAreNoAnchors()
@@ -95,6 +171,7 @@ namespace OniMoono.Tests
                 "[INFO] [Game] Sim tick 12345",
                 "  at Game.Update () [0x0001f] in <a1b2c3d4e5f6>:0",
                 "[INFO] ConduitFlow: 120 kg/s",
+                "[INFO] Logged into Steam with ID:76561199076905660, NAME:charmich0802",
                 "Fetch errand assigned",
             ];
             // Warmed up first, as the log's code is once the game has run a while: the tiered JIT

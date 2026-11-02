@@ -126,6 +126,51 @@ namespace OniMoono.Tests
             Assert.Equal(expected, text.Console);
         }
 
+        // The game's login line and KleiAccount's come from different threads (the main thread,
+        // the HTTP reply's); every line reaches the file and the console whole and scrubbed, and
+        // the callbacks get the name and IDs as logged.
+        [Fact]
+        public void AccountLinesFromManyThreadsAreScrubbed()
+        {
+            const string login = "[INFO] Logged into Steam with ID:76561199076905660, NAME:charmich0802";
+            const string klei = "[INFO] [Account] Got login for user KU_Odm4vVjy";
+            int raw = 0;
+            Application.LogCallback onThreaded = (c, s, t) => { if (c == login) Interlocked.Increment(ref raw); };
+            Application.logMessageReceivedThreaded += onThreaded;
+            (string File, string Console) text;
+            const int Threads = 8, Lines = 200;
+            try
+            {
+                text = Scrubbed(() =>
+                {
+                    var threads = new Thread[Threads];
+                    for (int t = 0; t < Threads; t++)
+                    {
+                        int n = t;
+                        threads[t] = new Thread(() =>
+                        {
+                            for (int i = 0; i < Lines; i++)
+                            {
+                                if (n == 0) UnityEngine.Debug.Log(login);
+                                else Console.WriteLine(n % 2 == 0 ? login : klei);
+                            }
+                        });
+                        threads[t].Start();
+                    }
+                    foreach (var thread in threads) thread.Join();
+                });
+            }
+            finally { Application.logMessageReceivedThreaded -= onThreaded; }
+            Assert.Equal(Lines, raw);
+            foreach (var output in new[] { text.File, text.Console })
+            {
+                var lines = output.TrimEnd('\n').Split('\n');
+                Assert.Equal(Threads * Lines, lines.Length);
+                Assert.All(lines, line => Assert.True(
+                    line is "[INFO] Logged into Steam with ID:<steam id>, NAME:<name>" or "[INFO] [Account] Got login for user <klei id>", line));
+            }
+        }
+
         // A path written in pieces is replaced once its line is whole; a partial line still goes
         // out, in order, before the next line of other output, and on Close.
         [Fact]
