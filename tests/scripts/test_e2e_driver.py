@@ -144,6 +144,8 @@ class FakeGame:
             return {'unity': args['n'], 'util': True, 'krandom': True, 'consumedBefore': 0}
         if cmd == 'setup.call':
             return {'value': None, 'type': 'System.Void'}
+        if cmd == 'ui.action':
+            return {'action': args['action']}
         raise Failure(f'unknown command {cmd}')
 
 
@@ -590,7 +592,9 @@ class DriverTests(unittest.TestCase):
         run = self.run_for()
         run.step('open', {'management': 'research'}, 1)
         run.step('open', {'key': 'R'}, 2)
-        self.assertEqual(run.mcp.calls[0][0], 'game_control')
+        # Through E2eDriver's ui.action, not OniMcp's open_management (which fails on U60).
+        self.assertIn(('ui.action', {'action': 'ManageResearch'}), self.game.requests)
+        self.assertFalse(run.mcp.calls)
         self.assertEqual(run.input.events, [('key', 'R')])
 
 

@@ -427,6 +427,13 @@ mixing in the clock. Specs then mask such values, or assert relations between th
 << {"ok":true,"result":{"unity":42,"util":true,"krandom":true,"consumedBefore":0}}
 ```
 
+### ui.action `{action}`
+
+Delivers one of the management screens' game Actions (`ManageVitals`, `ManageConsumables`,
+`ManagePriorities`, `ManageSchedule`, `ManageSkills`, `ManageResearch`, `ManageStarmap`,
+`ManageReport`, `ManageDatabase`) to `KScreenManager` as a key-down and key-up, as the screen's
+hotkey does: e2e.py's `open: {management: …}`. The same in U59 and U60.
+
 ### count `{methods}`
 
 Counts the calls of game methods from now on, through a Harmony prefix on each, added the

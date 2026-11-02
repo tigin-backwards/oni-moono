@@ -165,12 +165,17 @@ PREINSTALLED_LANGUAGES = ('zh_klei', 'ko_klei', 'ru_klei')
 MAIN_MENU = 'main-menu'
 # An XKB layout as setxkbmap takes it, a variant in parentheses: fr, de, us(dvorak).
 KEYBOARD_LAYOUT = r'[a-z]{2,8}(\([\w-]+\))?'
+# `open: {management: NAME}`: the game Action E2eDriver's ui.action delivers for each screen.
+MANAGEMENT_ACTIONS = {'vitals': 'ManageVitals', 'consumables': 'ManageConsumables', 'priorities': 'ManagePriorities',
+                      'schedule': 'ManageSchedule', 'skills': 'ManageSkills', 'research': 'ManageResearch',
+                      'starmap': 'ManageStarmap', 'report': 'ManageReport', 'database': 'ManageDatabase',
+                      'codex': 'ManageDatabase'}
 # Steps that talk to E2eDriver (a spec with any of them needs it installed).
 DRIVER_STEPS = {'click', 'toggle', 'dropdown', 'type', 'drag', 'tool', 'expect_ui', 'expect_state', 'ui_dump',
                 'ui_wait', 'world_shot', 'driver', 'click_world', 'scroll', 'expect_hit'}
 STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_shot', 'open', 'key', 'keyboard',
               'expect_exit'} | DRIVER_STEPS
-DRIVER_COMMANDS = {'ping', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
+DRIVER_COMMANDS = {'ping', 'ui.action', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
                    'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'keys.log', 'imgui.scrollview',
                    'buildmenu.settled'}
 
@@ -245,6 +250,8 @@ def check_step(where, kind, value, in_setup):
              'open takes {management: NAME}, {key: CODE} or {user_menu: ACTION_KEY, at: [x, y] | id: ID}')
         if isinstance(value, dict) and 'key' in value:
             problems += [f'{where}: {p}' for p in key_problems(value['key'])]
+        if isinstance(value, dict) and 'management' in value:
+            need(value['management'] in MANAGEMENT_ACTIONS, 'open management is one of ' + ', '.join(MANAGEMENT_ACTIONS))
     elif kind == 'keyboard':
         need(isinstance(value, str) and re.fullmatch(KEYBOARD_LAYOUT, value),
              'keyboard takes an XKB layout, as setxkbmap does: fr, de, us(dvorak)')
@@ -432,6 +439,8 @@ def needs_driver(spec):
         if kind in DRIVER_STEPS and not (kind == 'expect_state' and all(k.startswith('file:') for k in value)):
             return True
         if kind == 'shot' and isinstance(value, dict) and (value.get('crop') or value.get('mask')):
+            return True
+        if kind == 'open' and isinstance(value, dict) and 'management' in value:
             return True
     return False
 
@@ -2398,7 +2407,7 @@ class Player:
 
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
                  translation=None, language=None, keyboard=None, tweaks_menu=False, blocked_plugins=None,
-                 data_collection=True, extra_saves=()):
+                 data_collection=False, extra_saves=()):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
         self.blocked_plugins = dict(blocked_plugins or {})
         self.keyboard = keyboard
@@ -2441,8 +2450,10 @@ class Player:
                     # DlcManager reads Spaced Out as on unless this says 0.
                     + ('' if expansion1 else '  EXPANSION1_ID.ENABLED: 0\n') + 'floats: {}\n')
         if not data_collection:
-            # `data_collection: false`, the Data Collection option off (KPrivacyPrefs): a spec
-            # that makes the game report an error sends no report to Klei's crash server.
+            # The Data Collection option off (KPrivacyPrefs) unless the spec says
+            # `data_collection: true`: no test run submits a crash report to Klei's server (a
+            # worldgen failure did). The Supply Closet and locker screens read the option, so their
+            # specs turn it on, and must not provoke errors.
             agreements = os.path.join(self.profile, 'Agreements', 'OxygenNotIncluded')
             os.makedirs(agreements)
             with open(os.path.join(agreements, 'kprivacyprefs.yaml'), 'w') as f:
@@ -3611,8 +3622,10 @@ class Run:
         if 'key' in value:
             self.need_input().key(value['key'])
         elif 'management' in value:
-            self.mcp.call('game_control', domain='ui', uiDomain='action', action='open_management',
-                          screen=value['management'], confirm=True)
+            # The screen's Action through E2eDriver (ui.action), as its hotkey delivers it. OniMcp's
+            # open_management no longer runs on U60 (ManagementMenu.OpenResearch returns bool there).
+            self.need_driver().request('ui.action', action=MANAGEMENT_ACTIONS[value['management']])
+            self.frames(2)
         else:
             # A user-menu button by its OniMcp action key (… surface=user_menu action=list), on the
             # object at a cell or with an ID.
@@ -3898,7 +3911,7 @@ class Run:
                                  language=spec.get('language'), keyboard=spec.get('keyboard'),
                                  tweaks_menu=spec.get('tweaks_menu', False),
                                  blocked_plugins=spec.get('blocked_plugins'),
-                                 data_collection=spec.get('data_collection', True),
+                                 data_collection=spec.get("data_collection", False),
                                  extra_saves=spec.get('extra_saves', ()))
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
