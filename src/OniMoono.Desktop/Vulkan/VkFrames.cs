@@ -15,18 +15,30 @@ namespace OniMoono.Desktop.Vulkan
 
         /// `hostWrite`: written by the CPU (mapped; sequential writes); `deviceLocalPreferred`:
         /// VMA may pick device memory that the CPU cannot map (the caller then copies into it).
-        public static VkBufferAlloc Create(VkContext vk, long size, VkBufferUsageFlags usage, bool hostWrite, bool allowTransferInstead = false, bool readback = false)
+        public static VkBufferAlloc Create(VkContext vk, long size, VkBufferUsageFlags usage, bool hostWrite, bool allowTransferInstead = false, bool readback = false,
+            bool preferHost = false)
         {
             var info = new VkBufferCreateInfo { Size = (Brutal.ByteSize64)size, Usage = usage, SharingMode = VkSharingMode.Exclusive };
             var flags = VmaAllocationCreateFlags.None;
             if (readback) flags = VmaAllocationCreateFlags.HostAccessRandomBit | VmaAllocationCreateFlags.MappedBit;
             else if (hostWrite) flags = VmaAllocationCreateFlags.HostAccessSequentialWriteBit | VmaAllocationCreateFlags.MappedBit
                                         | (allowTransferInstead ? VmaAllocationCreateFlags.HostAccessAllowTransferInsteadBit : 0);
-            var alloc = new VmaAllocationCreateInfo { Usage = VmaMemoryUsage.Auto, Flags = flags };
+            var alloc = new VmaAllocationCreateInfo { Usage = preferHost ? VmaMemoryUsage.AutoPreferHost : VmaMemoryUsage.Auto, Flags = flags };
             var result = vk.Allocator.CreateBuffer(info, alloc, out var buffer, out var allocation, out var allocationInfo);
             VkCheck.Ok(result, "vmaCreateBuffer");
-            return new VkBufferAlloc { Buffer = buffer, Allocation = allocation, Mapped = (byte*)allocationInfo.PMappedData.Pointer, Size = size };
+            var made = new VkBufferAlloc { Buffer = buffer, Allocation = allocation, Mapped = (byte*)allocationInfo.PMappedData.Pointer, Size = size };
+            bool first;
+            lock (loggedUsages) first = loggedUsages.Add(usage);
+            if (first)
+            {
+                var memory = vk.Physical.GetMemoryProperties();
+                OniMoono.Engine.EngineLog.Engine($"vulkan: buffers for {usage} in memory type {allocationInfo.MemoryType} ({memory.MemoryTypes[(int)allocationInfo.MemoryType].PropertyFlags})");
+            }
+            return made;
         }
+
+        /// Buffer usages whose memory type was logged (diagnostics).
+        static readonly HashSet<VkBufferUsageFlags> loggedUsages = new();
 
         /// Host writes made visible to the device (a no-op on coherent memory).
         public void Flush(VkContext vk, long size = -1) => VkCheck.Ok(vk.Allocator.FlushAllocation(Allocation, default, new Brutal.ByteSize((nuint)(size < 0 ? Size : size))), "vmaFlushAllocation");
@@ -77,6 +89,9 @@ namespace OniMoono.Desktop.Vulkan
             public bool Pending;
             public readonly List<Chunk> Chunks = new();
             public int ChunkIndex;
+            /// Copy sources only (texels, staged meshes), in host memory (HostStaging).
+            public readonly List<Chunk> Staging = new();
+            public int StagingIndex;
             public readonly List<Chunk> Uniforms = new();
             public int UniformIndex;
             public readonly List<Action> Retired = new();
@@ -244,29 +259,12 @@ namespace OniMoono.Desktop.Vulkan
             s.Retired.Clear();
             vk.Device.PInvoke.vkResetCommandPool.Invoke(vk.Device.Handle, s.Pool, 0);
             s.NextBuffer = 0;
-            foreach (var c in s.Chunks)
-            {
-                c.Idle = c.Used > 0 ? 0 : c.Idle + 1;
-                c.Used = 0;
-            }
+            RecycleChunks(s.Chunks);
             s.ChunkIndex = 0;
-            // A burst of uploads (a save loading) leaves chunks behind: past the first few, those
-            // unused for a while are released, so the stream's memory follows what frames use.
-            for (int i = s.Chunks.Count - 1; i >= KeptChunks; i--)
-                if (s.Chunks[i].Idle > IdleRecycles)
-                {
-                    s.Chunks[i].Buffer.Destroy(vk);
-                    s.Chunks.RemoveAt(i);
-                }
+            RecycleChunks(s.Staging);
+            s.StagingIndex = 0;
             foreach (var c in s.Uniforms) c.Used = 0;
             s.UniformIndex = 0;
-            // Chunks made for one large copy go once the frame is over.
-            for (int i = s.Chunks.Count - 1; i >= 0; i--)
-                if (s.Chunks[i].Buffer.Size > ChunkSize)
-                {
-                    s.Chunks[i].Buffer.Destroy(vk);
-                    s.Chunks.RemoveAt(i);
-                }
             foreach (var pool in s.DescriptorPools) vk.Device.PInvoke.vkResetDescriptorPool.Invoke(vk.Device.Handle, pool, 0);
             s.DescriptorPoolIndex = 0;
         }
@@ -284,26 +282,69 @@ namespace OniMoono.Desktop.Vulkan
         /// recorded commands may still use).
         public void Retire(Action release) => Current.Retired.Add(release);
 
+        void RecycleChunks(List<Chunk> chunks)
+        {
+            foreach (var c in chunks)
+            {
+                c.Idle = c.Used > 0 ? 0 : c.Idle + 1;
+                c.Used = 0;
+            }
+            // A burst of uploads (a save loading) leaves chunks behind: past the first few, those
+            // unused for a while are released, so the stream's memory follows what frames use.
+            // Chunks made for one large copy go once the frame is over.
+            for (int i = chunks.Count - 1; i >= 0; i--)
+                if (i >= KeptChunks && chunks[i].Idle > IdleRecycles || chunks[i].Buffer.Size > ChunkSize)
+                {
+                    chunks[i].Buffer.Destroy(vk);
+                    chunks.RemoveAt(i);
+                }
+        }
+
         /// Copies data into the frame's stream: the buffer, offset and address it went to.
         public (VkBuffer Buffer, long Offset, nint Pointer) Stream(long size, long alignment)
         {
             var s = Current;
+            return Take(s.Chunks, ref s.ChunkIndex, size, alignment, streamUsage, preferHost: false);
+        }
+
+        /// Copy sources in host memory (texels, meshes staged for a copy): on a GPU whose
+        /// memory the CPU maps (resizable BAR) the stream is device memory written across the
+        /// bus, which a copy source needs not be. ONI_VULKAN_STAGING=device: the stream.
+        public static readonly bool HostStaging = Environment.GetEnvironmentVariable("ONI_VULKAN_STAGING") != "device";
+
+        /// Room for a copy source (texels, a staged mesh) for this frame's commands.
+        public (VkBuffer Buffer, long Offset, nint Pointer) Staging(long size, long alignment)
+        {
+            if (!HostStaging) return Stream(size, alignment);
+            var s = Current;
+            return Take(s.Staging, ref s.StagingIndex, size, alignment, VkBufferUsageFlags.TransferSrcBit, preferHost: true);
+        }
+
+        public (VkBuffer Buffer, long Offset) Staging(ReadOnlySpan<byte> data, long alignment)
+        {
+            var (buffer, offset, p) = Staging(data.Length, alignment);
+            data.CopyTo(new Span<byte>((void*)p, data.Length));
+            return (buffer, offset);
+        }
+
+        (VkBuffer Buffer, long Offset, nint Pointer) Take(List<Chunk> chunks, ref int index, long size, long alignment, VkBufferUsageFlags usage, bool preferHost)
+        {
             while (true)
             {
-                if (s.ChunkIndex >= s.Chunks.Count)
+                if (index >= chunks.Count)
                 {
-                    var buffer = VkBufferAlloc.Create(vk, Math.Max(ChunkSize, size), streamUsage, hostWrite: true);
+                    var buffer = VkBufferAlloc.Create(vk, Math.Max(ChunkSize, size), usage, hostWrite: true, preferHost: preferHost);
                     if (buffer.Mapped == null) throw new InvalidOperationException("the stream buffer is not host visible");
-                    s.Chunks.Add(new Chunk { Buffer = buffer });
+                    chunks.Add(new Chunk { Buffer = buffer });
                 }
-                var c = s.Chunks[s.ChunkIndex];
+                var c = chunks[index];
                 long at = (c.Used + alignment - 1) / alignment * alignment;
                 if (at + size <= c.Buffer.Size)
                 {
                     c.Used = at + size;
                     return (c.Buffer.Buffer, at, (nint)(c.Buffer.Mapped + at));
                 }
-                s.ChunkIndex++;
+                index++;
             }
         }
 
@@ -354,6 +395,8 @@ namespace OniMoono.Desktop.Vulkan
             var s = Current;
             for (int i = 0; i <= s.ChunkIndex && i < s.Chunks.Count; i++)
                 if (s.Chunks[i].Used > 0) s.Chunks[i].Buffer.Flush(vk, s.Chunks[i].Used);
+            for (int i = 0; i <= s.StagingIndex && i < s.Staging.Count; i++)
+                if (s.Staging[i].Used > 0) s.Staging[i].Buffer.Flush(vk, s.Staging[i].Used);
             for (int i = 0; i <= s.UniformIndex && i < s.Uniforms.Count; i++)
                 if (s.Uniforms[i].Used > 0) s.Uniforms[i].Buffer.Flush(vk, s.Uniforms[i].Used);
         }
@@ -401,6 +444,7 @@ namespace OniMoono.Desktop.Vulkan
                 foreach (var release in s.Retired) release();
                 s.Retired.Clear();
                 foreach (var c in s.Chunks) c.Buffer.Destroy(vk);
+                foreach (var c in s.Staging) c.Buffer.Destroy(vk);
                 foreach (var c in s.Uniforms) c.Buffer.Destroy(vk);
                 foreach (var pool in s.DescriptorPools) vk.Device.DestroyDescriptorPool(pool, null);
                 if (!s.Timestamps.IsNull()) vk.Device.DestroyQueryPool(s.Timestamps, null);

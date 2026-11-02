@@ -558,9 +558,14 @@ namespace OniMoono.Desktop.Vulkan
             frames?.Dispose();
             foreach (var t in liveTextures) DestroyTexture(t);
             liveTextures.Clear();
-            foreach (var m in liveMeshes) m.Buffer?.Destroy(vk);
+            foreach (var m in liveMeshes)
+            {
+                m.Buffer?.Destroy(vk);
+                m.DestroySpares(vk);
+            }
             liveMeshes.Clear();
             pipelines?.Dispose();
+            descriptorCache?.Dispose();
             foreach (var p in livePrograms) p.Destroy(vk);
             livePrograms.Clear();
             programs?.Dispose();

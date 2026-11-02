@@ -346,7 +346,7 @@ namespace OniMoono.Desktop.Vulkan
         VkBufferImageCopy Stage(byte* texels, long length, TextureFormat format, VkTextureFormat f, int w, int h, int d, int level, int layer, int z)
         {
             var data = VkFormats.Convert(f.Conversion, format, texels, length, w, h, ref conversionScratch);
-            var (buffer, offset) = frames.Stream(data, Math.Max(16, f.BlockBytes));
+            var (buffer, offset) = frames.Staging(data, Math.Max(16, f.BlockBytes));
             textureUploadBytes += data.Length;
             stagedBuffers.Add(buffer);
             return new VkBufferImageCopy
@@ -383,7 +383,7 @@ namespace OniMoono.Desktop.Vulkan
             while (now.Slice(last * rowBytes, rowBytes).SequenceEqual(before.AsSpan(last * rowBytes, rowBytes))) last--;
             int rows = last - first + 1;
             var changed = now.Slice(first * rowBytes, rows * rowBytes);
-            var (buffer, offset) = frames.Stream(changed, 16);
+            var (buffer, offset) = frames.Staging(changed, 16);
             changed.CopyTo(before.AsSpan(first * rowBytes));
             textureUploads++;
             textureUploadBytes += changed.Length;
@@ -456,23 +456,27 @@ namespace OniMoono.Desktop.Vulkan
             long indexOffset = total;
             total += (long)(upload.Indices?.Length ?? 0) * 4;
             var old = vm.Buffer;
-            VkBufferAlloc buffer;
-            try
-            {
-                VkFault.OutOfMemoryEvery("alloc-every");
-                buffer = VkBufferAlloc.Create(vk, Math.Max(16, total),
-                    VkBufferUsageFlags.VertexBufferBit | VkBufferUsageFlags.IndexBufferBit | VkBufferUsageFlags.TransferDstBit, hostWrite: true, allowTransferInstead: true);
-            }
-            catch
-            {
-                // The old data no longer matches the mesh's submeshes (their index ranges are the
-                // new upload's): the mesh draws nothing until its next upload. The old buffer is
-                // retired, never destroyed while recorded draws may still read it.
-                if (old != null) frames.Retire(() => old.Destroy(vk));
-                vm.Buffer = null;
-                throw;
-            }
-            if (old != null) frames.Retire(() => old.Destroy(vk));
+            long size = Math.Max(16, total);
+            // A buffer of the mesh's that the GPU is done with (a spare) takes the upload when it
+            // is large enough; else a new one, with room for some growth once the mesh changes.
+            VkBufferAlloc buffer = vm.TakeSpare(size);
+            if (buffer == null)
+                try
+                {
+                    VkFault.OutOfMemoryEvery("alloc-every");
+                    buffer = VkBufferAlloc.Create(vk, old != null ? VkMesh.Capacity(size) : size,
+                        VkBufferUsageFlags.VertexBufferBit | VkBufferUsageFlags.IndexBufferBit | VkBufferUsageFlags.TransferDstBit, hostWrite: !StagedMeshes, allowTransferInstead: true);
+                }
+                catch
+                {
+                    // The old data no longer matches the mesh's submeshes (their index ranges are the
+                    // new upload's): the mesh draws nothing until its next upload. The old buffer is
+                    // retired, never destroyed while recorded draws may still read it.
+                    if (old != null) RetireMeshBuffer(vm, old);
+                    vm.Buffer = null;
+                    throw;
+                }
+            if (old != null) RetireMeshBuffer(vm, old);
             vm.Buffer = buffer;
             offsets.CopyTo(vm.ChannelOffsets);
             vm.IndexOffset = indexOffset;
@@ -482,7 +486,7 @@ namespace OniMoono.Desktop.Vulkan
             if (buffer.Mapped != null) target = buffer.Mapped;
             else
             {
-                (staging, stagingOffset, var p) = frames.Stream(Math.Max(16, total), 16);
+                (staging, stagingOffset, var p) = frames.Staging(size, 16);
                 target = (byte*)p;
             }
             for (int c = 0; c < upload.Channels.Length; c++)
@@ -493,14 +497,28 @@ namespace OniMoono.Desktop.Vulkan
                 bytes.CopyTo(new Span<byte>(target + vm.ChannelOffsets[c], bytes.Length));
             }
             if (upload.Indices != null) MemoryMarshal.AsBytes(upload.Indices.AsSpan()).CopyTo(new Span<byte>(target + vm.IndexOffset, upload.Indices.Length * 4));
-            if (buffer.Mapped != null) buffer.Flush(vk);
+            if (buffer.Mapped != null) buffer.Flush(vk, size);
             else
             {
-                var copy = new VkBufferCopy { SrcOffset = (Brutal.ByteSize64)stagingOffset, DstOffset = default, Size = (Brutal.ByteSize64)Math.Max(16, total) };
+                var copy = new VkBufferCopy { SrcOffset = (Brutal.ByteSize64)stagingOffset, DstOffset = default, Size = (Brutal.ByteSize64)size };
                 vk.Device.PInvoke.vkCmdCopyBuffer.Invoke(frames.Uploads.Handle, staging, buffer.Buffer, 1, &copy);
             }
             VkTimings.MeshUploads += System.Diagnostics.Stopwatch.GetTimestamp() - t;
         }
+
+        /// Mesh buffers in device memory the CPU does not map, written by a copy from the
+        /// staging stream, on a discrete GPU: memory it lets the CPU map (resizable BAR) is
+        /// written across the bus, which made each upload about five times as long (NVIDIA RTX
+        /// 3090, U57: 0.8 ms of mesh uploads a frame against 0.15 staged). An integrated GPU's
+        /// memory is the CPU's own: written directly. ONI_VULKAN_MESHES=staged|mapped decides.
+        bool StagedMeshes => stagedMeshes ??= Environment.GetEnvironmentVariable("ONI_VULKAN_MESHES") switch
+        {
+            "staged" => true,
+            "mapped" => false,
+            _ => vk.Properties.DeviceType == VkPhysicalDeviceType.DiscreteGpu,
+        };
+
+        bool? stagedMeshes;
 
         static long Align(long v, long a) => (v + a - 1) / a * a;
 
@@ -541,8 +559,21 @@ namespace OniMoono.Desktop.Vulkan
             if (vm == null) return;
             d.Vk = null;
             liveMeshes.Remove(vm);
+            vm.Released = true;
+            // Spares no frame reads: destroyed now; the buffer once its frames are done.
+            vm.DestroySpares(vk);
             var buffer = vm.Buffer;
             if (buffer != null) frames.Retire(() => buffer.Destroy(vk));
+        }
+
+        /// A mesh's replaced buffer becomes a spare once the frames reading it are done (or is
+        /// destroyed then, when the mesh has spares enough or is gone).
+        void RetireMeshBuffer(VkMesh vm, VkBufferAlloc old)
+        {
+            frames.Retire(() =>
+            {
+                if (vm.Released || !vm.AddSpare(old)) old.Destroy(vk);
+            });
         }
 
         void ReleasePrograms(DeviceProgramSet set)
