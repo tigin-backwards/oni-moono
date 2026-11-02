@@ -523,7 +523,7 @@ button number). Windows needs a separate manual check with a five-button mouse.
 
 ### I2 Mouse wheel on sliders
 
-**Status:** passes (436e1fce, OpenGL; Windows: pending). `tests/e2e/u60/i2-slider-wheel.yaml`:
+**Status:** passes (436e1fce, Linux OpenGL; Windows: pending). `tests/e2e/u60/i2-slider-wheel.yaml`:
 all 15 values, the side screen's scroll position and the 21 move sounds equal the original's.
 
 **Risk: high.**
@@ -1478,7 +1478,7 @@ manual run on Windows with real Steam.
 
 ### P1 Crash reporter messages
 
-**Status:** fixed in 1b876641 (Linux; Windows: pending). Specs `tests/e2e/u60/p1-sim-blocked.yaml`
+**Status:** fixed in 1b876641 (Linux, ours on Vulkan, the original on OpenGL; Windows: pending). Specs `tests/e2e/u60/p1-sim-blocked.yaml`
 (libSimDLL.so absent: the popup) and `p1-sim-unreadable.yaml` (unreadable, as worded: Unity's
 Mono names the file and dlerror's text, so the original shows no popup either); both played.
 
