@@ -1,0 +1,30 @@
+# Biome Mixing Pack (3815497375), class W. U60 QA spec M3's remix mod.
+#
+# What it does: adds biome remix (subworld mixing) options: nine subworldMixing settings
+# (Forest, Jungle, Marsh, Ocean, Oil, Frozen; Radioactive, Swamp, Wasteland in Spaced Out) with
+# their subworlds, and CGM_MixingPack.dll.
+# How a player reaches it: New Game, the destination screen's remix settings.
+# What changes: more biome remix options. U60 notes: "Fixed asteroid and biome remixing mods
+# crashing", "Added requiredDlcIds to WorldMixingSettings and SubworldMixing Settings".
+#
+# On U59 it failed in the original too (a subworld path its settings name that the mod does not
+# ship). Here: to the main menu and the New Game destination screen of Spaced Out; the mixing
+# settings loaded must be the original's.
+from: main-menu
+mods: [3815497375]
+steps:
+  # A new profile shows the DLC intro video over the menu first.
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/EventGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/EventGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - expect_state:
+      "ProcGen.SettingsCache.subworldMixingSettings.Count": "== original"
+      "ProcGen.SettingsCache.worldMixingSettings.Count": "== original"
+      "CustomGameSettings.Instance.MixingSettings.Count": "== original"

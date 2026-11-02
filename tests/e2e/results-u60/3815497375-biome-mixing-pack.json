@@ -1,0 +1,44 @@
+{
+ "spec": "mods/3815497375-biome-mixing-pack.yaml",
+ "mods": [
+  "3815497375"
+ ],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "to the New Game destination screen; the mixing settings it adds load as in the original",
+ "updated": "2026-11-01",
+ "commit": "79a6f5fc",
+ "mod_dlls": {
+  "3815497375": {
+   "CGM_MixingPack.dll": "8893babd4ba4cbdbf94b51cc41dd1817b8a02133654502d6ea688967269af6a0"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-190618-68212bb6",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T19:06:18",
+    "lane": 2,
+    "reasons": [
+     "step 2: SceneInitializerFE/FrontEndManager/VideoScreen/CloseButton is occluded by ErrorCanvas/CrashReportScreen(Clone)/CrashLabel (hits there: ErrorCanvas/CrashReportScreen(Clone)/CrashLabel, ErrorCanvas/CrashReportScreen(Clone)/BG, SceneInitializerFE/FrontEndManager/VideoScreen/CloseButton/Icon, Sc"
+    ],
+    "signatures": 2
+   },
+   {
+    "run": "20261101-190618-68212bb6",
+    "index": 2,
+    "verdict": "fail",
+    "date": "2026-11-01T19:07:43",
+    "lane": 2,
+    "reasons": [
+     "step 2: SceneInitializerFE/FrontEndManager/VideoScreen/CloseButton is occluded by ErrorCanvas/CrashReportScreen(Clone)/CrashLabel (hits there: ErrorCanvas/CrashReportScreen(Clone)/CrashLabel, ErrorCanvas/CrashReportScreen(Clone)/BG, SceneInitializerFE/FrontEndManager/VideoScreen/CloseButton/Icon, Sc"
+    ],
+    "signatures": 2
+   }
+  ],
+  "ours": []
+ }
+}
