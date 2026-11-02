@@ -389,7 +389,7 @@ namespace OniMoono.Host
                                 return code == Cecil.Cil.Code.Ldtoken || (code == Cecil.Cil.Code.Sizeof && type is Cecil.TypeSpecification) ? Kept(m) : Lost(m);
                             break;
                         case Cecil.CallSite site:
-                            if ((Missing(site.ReturnType) ?? site.Parameters.Select(p => Missing(p.ParameterType)).FirstOrDefault(p => p != null)) is { } s)
+                            if ((Missing(site.ReturnType) ?? MissingInParameters(site.Parameters)) is { } s)
                                 return Kept(s);
                             break;
                     }
@@ -433,10 +433,37 @@ namespace OniMoono.Host
             }
 
             /// The first missing top-level type a type is built from, in the order Mono reads it.
-            public Cecil.TypeReference? Missing(Cecil.TypeReference? type) => First(type, tokens.ContainsKey);
+            public Cecil.TypeReference? Missing(Cecil.TypeReference? type) => First(type, isToken ??= tokens.ContainsKey);
 
             /// The first type a type is built from that ours cannot resolve where the original can.
-            public Cecil.TypeReference? GapIn(Cecil.TypeReference? type) => gaps.Count == 0 ? null : First(type, gaps.ContainsKey);
+            public Cecil.TypeReference? GapIn(Cecil.TypeReference? type) => gaps.Count == 0 ? null : First(type, isGap ??= gaps.ContainsKey);
+
+            // Made once: Missing and GapIn run for every type every instruction names, and a
+            // method group made a delegate for each call.
+            Func<(string, string, string), bool>? isToken, isGap;
+
+            // The first parameter's Missing or GapIn that is not null, in order, as Select and
+            // FirstOrDefault gave it, without their iterator and delegates.
+            Cecil.TypeReference? MissingInParameters(Mono.Collections.Generic.Collection<Cecil.ParameterDefinition> parameters)
+            {
+                foreach (var p in parameters)
+                    if (Missing(p.ParameterType) is { } t) return t;
+                return null;
+            }
+
+            Cecil.TypeReference? GapInParameters(Mono.Collections.Generic.Collection<Cecil.ParameterDefinition> parameters)
+            {
+                foreach (var p in parameters)
+                    if (GapIn(p.ParameterType) is { } t) return t;
+                return null;
+            }
+
+            Cecil.TypeReference? GapInArguments(Mono.Collections.Generic.Collection<Cecil.TypeReference> arguments)
+            {
+                foreach (var a in arguments)
+                    if (GapIn(a) is { } t) return t;
+                return null;
+            }
 
             static Cecil.TypeReference? First(Cecil.TypeReference? type, Func<(string, string, string), bool> named)
             {
@@ -513,11 +540,11 @@ namespace OniMoono.Host
                 switch (instruction.Operand)
                 {
                     case Cecil.MethodReference called:
-                        var arguments = (called as Cecil.GenericInstanceMethod)?.GenericArguments.Select(GapIn).FirstOrDefault(p => p != null);
+                        var arguments = called is Cecil.GenericInstanceMethod instance ? GapInArguments(instance.GenericArguments) : null;
                         var element = (called as Cecil.GenericInstanceMethod)?.ElementMethod ?? called;
                         if (element is Cecil.MethodDefinition) return arguments is { } own ? TypeGap(own, kept: true) : null;
                         var t = GapIn(element.DeclaringType) ?? GapIn(element.ReturnType)
-                            ?? element.Parameters.Select(p => GapIn(p.ParameterType)).FirstOrDefault(p => p != null) ?? arguments;
+                            ?? GapInParameters(element.Parameters) ?? arguments;
                         if (t != null) return TypeGap(t, kept: true);
                         if (members.TryGetValue(element.MetadataToken.ToInt32(), out var missing) && missing.Gap)
                             return new GapUse(element.DeclaringType.Name + "." + element.Name, missing.Message,
@@ -532,7 +559,7 @@ namespace OniMoono.Host
                     case Cecil.TypeReference type:
                         return GapIn(type) is { } g ? TypeGap(g, kept: code == Cecil.Cil.Code.Ldtoken || (code == Cecil.Cil.Code.Sizeof && type is Cecil.TypeSpecification)) : null;
                     case Cecil.CallSite site:
-                        return (GapIn(site.ReturnType) ?? site.Parameters.Select(p => GapIn(p.ParameterType)).FirstOrDefault(p => p != null)) is { } s ? TypeGap(s, kept: true) : null;
+                        return (GapIn(site.ReturnType) ?? GapInParameters(site.Parameters)) is { } s ? TypeGap(s, kept: true) : null;
                 }
                 return null;
             }
