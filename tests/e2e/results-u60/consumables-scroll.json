@@ -1,0 +1,101 @@
+{
+ "spec": "consumables-scroll.yaml",
+ "mods": [],
+ "verdict": "warning",
+ "why": "known findings: scroll-normalized-position",
+ "findings": [
+  "scroll-normalized-position"
+ ],
+ "note": "Consumables opened through E2eDriver's ui.action: the table scrolled by its header scrollbar and by the wheel, every row following",
+ "updated": "2026-11-01",
+ "commit": "b12c697b",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-204030-79c41756",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T20:40:30",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-204221-0019d289",
+    "index": 1,
+    "verdict": "warn",
+    "date": "2026-11-01T20:42:21",
+    "lane": 50,
+    "reference_run": "20261101-204030-79c41756",
+    "new_signatures": 0,
+    "findings": [
+     "scroll-normalized-position"
+    ],
+    "ui_dump": {
+     "before": {
+      "differences": 0,
+      "known": {
+       "scroll-normalized-position": 6
+      }
+     },
+     "after-track": {
+      "differences": 0,
+      "known": {
+       "scroll-normalized-position": 6
+      }
+     },
+     "after-wheel": {
+      "differences": 0,
+      "known": {
+       "scroll-normalized-position": 6
+      }
+     }
+    },
+    "shots": {
+     "before": 0.011993,
+     "after-track": 0.011993,
+     "after-wheel": 0.011993
+    }
+   },
+   {
+    "run": "20261101-204221-0019d289",
+    "index": 2,
+    "verdict": "warn",
+    "date": "2026-11-01T20:44:13",
+    "lane": 50,
+    "reference_run": "20261101-204030-79c41756",
+    "new_signatures": 0,
+    "findings": [
+     "scroll-normalized-position"
+    ],
+    "ui_dump": {
+     "before": {
+      "differences": 0,
+      "known": {
+       "scroll-normalized-position": 1
+      }
+     },
+     "after-track": {
+      "differences": 0,
+      "known": {
+       "scroll-normalized-position": 1
+      }
+     },
+     "after-wheel": {
+      "differences": 0,
+      "known": {
+       "scroll-normalized-position": 1
+      }
+     }
+    },
+    "shots": {
+     "before": 0.011972,
+     "after-track": 0.011972,
+     "after-wheel": 0.011972
+    }
+   }
+  ]
+ }
+}
