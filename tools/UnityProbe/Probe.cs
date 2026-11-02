@@ -37,6 +37,11 @@ namespace SemanticsProbe
                 go.AddComponent<CanvasOrder>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "renderercull")
+            {
+                go.AddComponent<RendererCull>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "draworder")
             {
                 go.AddComponent<DrawOrder>();

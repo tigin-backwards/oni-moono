@@ -53,6 +53,14 @@ distance, a float step apart and 1e-4 apart, submitted in both orders, with thei
 created in both orders and with unit or float.MaxValue bounds. `do-check.py LOG DIR` prints which
 quad is on top; `DrawMeshTests` (`TransparentDrawsAtTheSameDistanceGoByMaterial`) encodes it.
 
+With `PROBE_SCENARIO=renderercull` only the renderer culling probe runs (`RendererCull.cs`, lines
+`RC …`, 10 s into the main menu): the time of `Camera.Render()` with 30,000 more MeshRenderers,
+disabled, on inactive objects, under inactive parents or enabled out of view; when enabling,
+disabling, activation and creation from `OnPreCull`, `OnPreRender` and `OnBecameVisible` take
+effect; and which of two renderers tied on depth draws last after each change. It runs through
+`scripts/e2e.py` with OniMcp's mod folder as above and `tests/e2e/renderer-cull-probe.yaml`;
+compare the players' `RC when` and `RC tie` lines. `RendererCullTests` encodes it.
+
 With `PROBE_SCENARIO=drawmeshnow` only the DrawMeshNow probe runs (`DrawMeshNow.cs`, lines `DMN
 …`, 10 s into the main menu, a few seconds): meshes drawn with Graphics.DrawMeshNow into a 16 × 16
 render texture and read back as a character map, outside rendering and from a camera's
