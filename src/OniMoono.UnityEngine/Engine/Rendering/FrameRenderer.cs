@@ -638,22 +638,26 @@ namespace OniMoono.Engine.Rendering
             SendToEnabled(cam.GameObject, s => s.OnPostRender);
             Camera.onPostRender?.Invoke(camera);
 
-            if (effects.Count > 0 && source != null)
-            {
-                Execute(camera, cam, CameraEvent.BeforeImageEffects);
-                var finalTarget = cam.TargetTexture;
-                for (int i = 0; i < effects.Count; i++)
-                {
-                    bool last = i == effects.Count - 1;
-                    var destination = last ? finalTarget : RenderTexture.GetTemporary(source.width, source.height, 0, source.format);
-                    RenderTexture.active = destination;
-                    Lifecycle.Invoke(mb => effects[i].Effect(mb, source, destination), effects[i].Behaviour);
-                    RenderTexture.ReleaseTemporary(source);
-                    source = destination;
-                }
-                Execute(camera, cam, CameraEvent.AfterImageEffects);
-            }
+            if (effects.Count > 0 && source != null) ImageEffects(camera, cam, effects, source);
             Execute(camera, cam, CameraEvent.AfterEverything);
+        }
+
+        // Its own method: the effect's closure captures `source`, and in RenderCameraCore it
+        // was allocated for every camera, with image effects or not.
+        static void ImageEffects(Camera camera, CameraNative cam, List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)> effects, RenderTexture source)
+        {
+            Execute(camera, cam, CameraEvent.BeforeImageEffects);
+            var finalTarget = cam.TargetTexture;
+            for (int i = 0; i < effects.Count; i++)
+            {
+                bool last = i == effects.Count - 1;
+                var destination = last ? finalTarget : RenderTexture.GetTemporary(source.width, source.height, 0, source.format);
+                RenderTexture.active = destination;
+                Lifecycle.Invoke(mb => effects[i].Effect(mb, source, destination), effects[i].Behaviour);
+                RenderTexture.ReleaseTemporary(source);
+                source = destination;
+            }
+            Execute(camera, cam, CameraEvent.AfterImageEffects);
         }
 
         static RenderTargetBinding CameraTarget(CameraNative cam)
@@ -738,25 +742,28 @@ namespace OniMoono.Engine.Rendering
             // Cameras rendered by scripts after the frame's pass also draw the frame's meshes
             // (captures have already put them back in the queue).
             bool afterFrame = !inFrameRender && screenOverride == null;
-            foreach (var q in afterFrame ? frameQueued.Concat(queued) : queued)
-            {
-                if (q.Camera != null && q.Camera != camera) continue;
-                if ((cam.CullingMask & (1 << q.Layer)) == 0 || q.Mesh == null || q.Material == null) continue;
-                var mesh = (MeshNative)q.Mesh.NativeOrThrow;
-                var bounds = RendererNative.Transform(mesh.Bounds, q.Matrix);
-                if (!frustum.Intersects(bounds)) continue;
-                var item = NewDrawItem();
-                item.Mesh = mesh;
-                item.SubMesh = Math.Clamp(q.SubMesh, 0, Math.Max(0, mesh.SubMeshes.Count - 1));
-                item.ObjectToWorld = q.Matrix;
-                item.Material = q.Material;
-                item.Properties = q.Properties;
-                item.Queue = q.Material.renderQueue;
-                item.WorldBounds = bounds;
-                item.Sequence = sequence++;
-                item.Queued = true;
-                draws.Add(item);
-            }
+            // Each list in turn: through IEnumerable (Concat, or the conditional's type) the
+            // enumerators were boxed for every camera.
+            for (int list = afterFrame ? 0 : 1; list < 2; list++)
+                foreach (var q in list == 0 ? frameQueued : queued)
+                {
+                    if (q.Camera != null && q.Camera != camera) continue;
+                    if ((cam.CullingMask & (1 << q.Layer)) == 0 || q.Mesh == null || q.Material == null) continue;
+                    var mesh = (MeshNative)q.Mesh.NativeOrThrow;
+                    var bounds = RendererNative.Transform(mesh.Bounds, q.Matrix);
+                    if (!frustum.Intersects(bounds)) continue;
+                    var item = NewDrawItem();
+                    item.Mesh = mesh;
+                    item.SubMesh = Math.Clamp(q.SubMesh, 0, Math.Max(0, mesh.SubMeshes.Count - 1));
+                    item.ObjectToWorld = q.Matrix;
+                    item.Material = q.Material;
+                    item.Properties = q.Properties;
+                    item.Queue = q.Material.renderQueue;
+                    item.WorldBounds = bounds;
+                    item.Sequence = sequence++;
+                    item.Queued = true;
+                    draws.Add(item);
+                }
             int collected = draws.Count;
             CollectDraws?.Invoke(camera, cam, draws);
             for (int i = collected; i < draws.Count; i++) draws[i].Sequence = sequence++;
