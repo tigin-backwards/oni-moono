@@ -736,3 +736,9 @@ console window off (`ONI_WIN_MONITOR=N` picks another monitor for both). A windo
 only through `out/local-tools/win-run.ps1 -Match RUN_HOME -Action focus`. Act on a Windows game
 process only through `win-run.ps1` (it finds the process by the run home in its command line),
 never by its name: the user plays the same executables on this machine.
+
+`scripts/e2e-windows/run.py` runs specs with both players on Windows (ours on Vulkan by default,
+the original on Direct3D 11), one player at a time, from WSL: its docstring has the setup. Input
+there is E2eDriver's synthetic input (`input.*` in tools/E2eDriver/README.md), never the desktop's
+pointer or keyboard, so a run checks what the game and the UI do with input, not how either
+player reads Windows input; front-end shots come from E2eDriver's `screen.capture`.
