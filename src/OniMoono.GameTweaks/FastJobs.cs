@@ -15,10 +15,11 @@ namespace OniMoono.GameTweaks
     ///
     /// The tweak replaces Run with a scheduler of its own threads (as many as the JobManager has
     /// workers, each with the same fixed thread index the work items use for per-thread data):
-    /// it wakes only as many workers as there are items beyond the caller's first, through a
-    /// semaphore that spins briefly before blocking, and returns as soon as every item has
-    /// completed. Each item still runs exactly once, on one thread, and all are done before Run
-    /// returns; which thread runs which item was never fixed. A single item runs on the caller.
+    /// it wakes only as many workers as there are items beyond the caller's first, each through
+    /// a semaphore of its own that spins briefly before blocking (WorkerWakes), and returns as
+    /// soon as every item has completed. Each item still runs exactly once, on one thread, and
+    /// all are done before Run returns; which thread runs which item was never fixed. A single
+    /// item runs on the caller.
     ///
     /// With ONI_TWEAK_VERIFY=1 every run checks that each item index ran exactly once.
     public static class FastJobs
@@ -47,13 +48,14 @@ namespace OniMoono.GameTweaks
 
         sealed class Scheduler
         {
-            readonly SemaphoreSlim wake = new SemaphoreSlim(0);
+            readonly WorkerWakes wakes;
             public readonly int Workers;
             volatile Batch current;
 
             public Scheduler(int workers)
             {
                 Workers = workers;
+                wakes = new WorkerWakes(workers);
                 for (int i = 0; i < workers; i++)
                 {
                     int index = i + 1; // the caller is index 0, as in JobManager
@@ -66,7 +68,7 @@ namespace OniMoono.GameTweaks
             {
                 while (true)
                 {
-                    wake.Wait();
+                    wakes.Wait(index - 1);
                     var batch = current;
                     if (batch != null) Work(batch, index);
                 }
@@ -103,7 +105,7 @@ namespace OniMoono.GameTweaks
                 var batch = new Batch { Items = items, Count = count, Remaining = count, Ran = verify ? new int[count] : null };
                 current = batch;
                 int helpers = Math.Min(Workers, count - 1);
-                if (helpers > 0) wake.Release(helpers);
+                if (helpers > 0) wakes.Wake(helpers);
                 Work(batch, 0);
                 if (Volatile.Read(ref batch.Remaining) != 0) batch.Done.Wait();
                 if (batch.Ran == null) return;
