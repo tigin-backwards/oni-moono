@@ -1,0 +1,12 @@
+# The main menu's news tiles and, in ours, BRUTAL's credit tile beside them: a shot of the menu
+# once the tiles have loaded, for measuring the tiles' panel and border (E2E_SCREEN for other
+# screen sizes).
+from: main-menu
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - ui_wait: {path: "**/MOTD", cond: stable, frames: 3000}
+  - ui_dump: {name: motd, root: "**/MOTD"}
+  - shot: menu
