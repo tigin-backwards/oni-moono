@@ -434,6 +434,15 @@ unchanged.
   the batch re-uploads an unchanged block. Setter calls that would store only the current values
   are skipped (exact by construction; the setters are the block's only writers). U57: override
   texture writes 0.42 → 0.01 ms a frame; batch uploads 1.47 → 1.20 ms including the checks.
+  Duplicants re-apply on every dirty mark (`applySymbolOverridesEveryFrame`, for FaceGraph's
+  face), about 105 applications a frame on c100 (200 Duplicants). The tweak keeps each such
+  controller's last calls with their inputs (override list version, batch and its atlases,
+  batch group, block, anim data); when they are unchanged it redoes only the writes covering
+  entries someone else wrote since (the setters log them), then the face. An application that
+  leaves the block's bytes as they were puts its version back, so the face drawn over the
+  overrides no longer uploads the block every frame. c100 (Linux, ONI_TWEAK_VERIFY): 0
+  mismatches in 120 million checks, about 85% of applications kept, uploads 40–67 → 14–18 a
+  frame.
 
 - `fast-anim-batches`: KAnimBatchManager.UpdateDirty writes, per dirty controller in order,
   its instance data and symbol instance block, applies its symbol overrides (game code with

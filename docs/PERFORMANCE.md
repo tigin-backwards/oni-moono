@@ -194,8 +194,8 @@ after times were measured on Linux under WSL2, where the game's code ran about h
 
 The exact tweaks that skip work each have a verify mode, which recomputes whatever was skipped
 and counts disagreements. `scripts/qa.sh` runs them all on U57 for at least 10 game minutes,
-opening every overlay in turn, and requires zero. `fast-symbol-overrides` doesn't need one: it only skips writing values that are
-already there.
+opening every overlay in turn, and requires zero. `fast-symbol-overrides`' skipped setter calls need none (they would only
+write values already there); its kept override applications have one.
 
 ## Tried and dropped
 
