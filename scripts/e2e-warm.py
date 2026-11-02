@@ -27,7 +27,7 @@ for _name in ('WAYLAND_DISPLAY', 'XDG_SESSION_TYPE', 'DISPLAY', 'XAUTHORITY'):
     os.environ.pop(_name, None)
 
 # What a player fixes at launch: specs share a warm player only when these agree.
-LAUNCH_KEYS = ('mods', 'options', 'translation', 'language', 'keyboard')
+LAUNCH_KEYS = ('mods', 'options', 'translation', 'language', 'keyboard', 'display_dpi')
 
 
 def launch_key(spec):
@@ -173,7 +173,8 @@ def run_kind(kind, specs, env, opts, run_id, originals, findings, log):
             folder = os.path.join(e2e.OUT, 'warm', run_id, kind)
             player = e2e.Player(kind, folder, env, fixture, lane, spec0['mods'], spec0.get('options'), driver=True,
                                 expansion1=e2e.spaced_out(spec0), translation=spec0.get('translation'),
-                                language=spec0.get('language'), keyboard=spec0.get('keyboard'))
+                                language=spec0.get('language'), keyboard=spec0.get('keyboard'),
+                                display_dpi=spec0.get('display_dpi'))
             t0 = time.time()
             player.start()
             started = round(time.time() - t0, 1)

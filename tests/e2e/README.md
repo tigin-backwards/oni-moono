@@ -155,6 +155,7 @@ translation: 929139073           # the language of this translation mod (one of 
 language: zh_klei                # or one of the game's own languages (zh_klei, ko_klei, ru_klei)
 tweaks_menu: true                # ours keeps the main menu's Moono Tweaks button (run with --player ours)
 scaled_screen: true              # the game may render smaller than the display (below)
+display_dpi: 144                 # the lane's Xvfb runs with -dpi 144 (the X screen's mm size)
 blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its install (out/e2e/.blocked-LANE)
                                  # with these native plugins `missing` or `unreadable` (mode 000)
 extra_saves: [terra-wide]        # more colonies in the profile: fixtures/NAME.sav (and NAME.png)

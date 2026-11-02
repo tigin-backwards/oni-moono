@@ -70,12 +70,12 @@ class XvfbDisplay(unittest.TestCase):
     @unittest.skipIf(os.path.exists('/tmp/.X89-lock'), 'display :89 is in use')
     def test_an_explicit_display(self):
         with tempfile.TemporaryDirectory() as out:
-            stub = types.SimpleNamespace(out=out, xvfb=None, keyboard=None)
+            stub = types.SimpleNamespace(out=out, xvfb=None, keyboard=None, display_dpi=None)
             e2e.Player.start_xvfb(stub, ':89')
             try:
                 self.assertTrue(e2e.display_ready('89'))
                 with self.assertRaises(e2e.SpecFailure):
-                    e2e.Player.start_xvfb(types.SimpleNamespace(out=out, xvfb=None, keyboard=None), ':89')
+                    e2e.Player.start_xvfb(types.SimpleNamespace(out=out, xvfb=None, keyboard=None, display_dpi=None), ':89')
             finally:
                 os.killpg(stub.xvfb.pid, signal.SIGTERM)
                 stub.xvfb.wait(10)
