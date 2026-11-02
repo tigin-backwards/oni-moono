@@ -1622,6 +1622,19 @@ for it.
 
 ### P2 Vulkan as the Linux default
 
+**Status:** fixed in 292463da (Linux, WSL: the only Vulkan device is llvmpipe; OpenGL is Mesa d3d12 on the
+GPU). Measured in the original (`tests/e2e/u60-p2-renderer.yaml`, `E2E_ORIGINAL_ARGS`): with no
+option it rejects llvmpipe ("Vulkan detection: 0") and opens OpenGL Core; `-force-glcore` and
+`-force-opengl` open OpenGL Core; `-force-vulkan` exits ("Forced renderer 21 is not supported,
+exiting"). Ours ignored the three options; now `-force-glcore` and `-force-opengl` are
+`--renderer opengl` and `-force-vulkan` `--renderer vulkan` (`UnityArgumentsTests`), and with
+no option auto refuses the software device too. With each of `-force-glcore` and
+`-force-opengl` both players report `SystemInfo.graphicsDeviceType` OpenGLCore. Deliberate
+difference (ARCHITECTURE §3.5): with only a software Vulkan device, ours given `-force-vulkan`
+runs on it where Unity's player exits. QA dogfood once per renderer: not run on Linux (the
+user's renderer rule: no Vulkan runs on Linux). Windows Vulkan: pending (a real GPU: no option
+gives Vulkan, the -force options, dogfood captures).
+
 **Risk: medium.** Covered on llvmpipe and Mesa d3d12; real Linux hardware is not available here.
 
 **Patch note:** "Vulkan is now the default renderer on Linux. OpenGL can be used using launch
