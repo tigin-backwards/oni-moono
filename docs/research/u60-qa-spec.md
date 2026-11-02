@@ -1379,6 +1379,12 @@ original's. The time to the menu is not part of the spec (the start-up timing sc
 
 ### A3 Starting-biome vistas
 
+**Status:** not testable as written on Linux: `tests/e2e/u60/a3-vista-starts.yaml` hangs the
+original in both runs after the first Embark (Terra), just after the first save's screenshots.
+Its main thread waits while Mesa's six llvmpipe threads run at about 90% for over 5 minutes, a
+software-rendering stall on Xvfb. Ours was not run without the original's values.
+Windows Vulkan: pending (a real GPU).
+
 **Risk: medium.** The toggle is covered; the spawn at worldgen is not.
 
 **Patch notes:** the Sandstone, Forest, Swamp, Ice Cave vistas; "Improved the way vista textures
