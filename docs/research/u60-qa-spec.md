@@ -1200,6 +1200,10 @@ All templates, not only POIs. VYaml attributes on `TemplateContainer` (29),
 
 ### A2 Asset loading at the main menu
 
+**Status:** passes (89f503d6, Linux OpenGL; Windows: pending). `tests/e2e/u60/a2-menu-assets.yaml`:
+2585 prefabs, 3325 anims, 469 building defs and the first 50 prefab ids in order equal the
+original's. The time to the menu is not part of the spec (the start-up timing script's).
+
 **Risk: medium.**
 
 **Patch note:** "Improve loading time of assets and POIs when entering the main menu."

@@ -1,0 +1,49 @@
+{
+ "spec": "u60/a2-menu-assets.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "At the main menu: prefab, anim and building counts and the first 50 prefab ids in order",
+ "updated": "2026-11-01",
+ "commit": "89f503d6",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-191227-7fc18918",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:12:27",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-194722-756d2010",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:47:22",
+    "lane": 50,
+    "reference_run": "20261101-191227-7fc18918",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-194722-756d2010",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T19:49:01",
+    "lane": 50,
+    "reference_run": "20261101-191227-7fc18918",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

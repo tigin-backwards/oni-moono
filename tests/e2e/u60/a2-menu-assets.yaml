@@ -1,0 +1,67 @@
+# A2 (docs/research/u60-qa-spec.md): asset loading at the main menu.
+#
+# U60 changed Assets.LoadAnims, CreatePrefabs, SortPrefabsBySignificantDLC and
+# AddCountableBuildMaterialCategories: prefabs are made, and sorted, in an order our bundle
+# reader and load order feed. At the main menu (all DLCs): the prefab and anim counts, and the
+# first 50 prefabs' ids in order, compared with the original's. (The time to the menu is the
+# start-up timing script's, not this spec's.)
+from: main-menu
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_state:
+      "Assets.Prefabs.Count": "== original"
+      "Assets.Anims.Count": "== original"
+      "Assets.BuildingDefs.Count": "== original"
+  - expect_state:
+      "Assets.Prefabs[0].PrefabID().Name": "== original"
+      "Assets.Prefabs[1].PrefabID().Name": "== original"
+      "Assets.Prefabs[2].PrefabID().Name": "== original"
+      "Assets.Prefabs[3].PrefabID().Name": "== original"
+      "Assets.Prefabs[4].PrefabID().Name": "== original"
+      "Assets.Prefabs[5].PrefabID().Name": "== original"
+      "Assets.Prefabs[6].PrefabID().Name": "== original"
+      "Assets.Prefabs[7].PrefabID().Name": "== original"
+      "Assets.Prefabs[8].PrefabID().Name": "== original"
+      "Assets.Prefabs[9].PrefabID().Name": "== original"
+      "Assets.Prefabs[10].PrefabID().Name": "== original"
+      "Assets.Prefabs[11].PrefabID().Name": "== original"
+      "Assets.Prefabs[12].PrefabID().Name": "== original"
+      "Assets.Prefabs[13].PrefabID().Name": "== original"
+      "Assets.Prefabs[14].PrefabID().Name": "== original"
+      "Assets.Prefabs[15].PrefabID().Name": "== original"
+      "Assets.Prefabs[16].PrefabID().Name": "== original"
+      "Assets.Prefabs[17].PrefabID().Name": "== original"
+      "Assets.Prefabs[18].PrefabID().Name": "== original"
+      "Assets.Prefabs[19].PrefabID().Name": "== original"
+      "Assets.Prefabs[20].PrefabID().Name": "== original"
+      "Assets.Prefabs[21].PrefabID().Name": "== original"
+      "Assets.Prefabs[22].PrefabID().Name": "== original"
+      "Assets.Prefabs[23].PrefabID().Name": "== original"
+      "Assets.Prefabs[24].PrefabID().Name": "== original"
+      "Assets.Prefabs[25].PrefabID().Name": "== original"
+      "Assets.Prefabs[26].PrefabID().Name": "== original"
+      "Assets.Prefabs[27].PrefabID().Name": "== original"
+      "Assets.Prefabs[28].PrefabID().Name": "== original"
+      "Assets.Prefabs[29].PrefabID().Name": "== original"
+      "Assets.Prefabs[30].PrefabID().Name": "== original"
+      "Assets.Prefabs[31].PrefabID().Name": "== original"
+      "Assets.Prefabs[32].PrefabID().Name": "== original"
+      "Assets.Prefabs[33].PrefabID().Name": "== original"
+      "Assets.Prefabs[34].PrefabID().Name": "== original"
+      "Assets.Prefabs[35].PrefabID().Name": "== original"
+      "Assets.Prefabs[36].PrefabID().Name": "== original"
+      "Assets.Prefabs[37].PrefabID().Name": "== original"
+      "Assets.Prefabs[38].PrefabID().Name": "== original"
+      "Assets.Prefabs[39].PrefabID().Name": "== original"
+      "Assets.Prefabs[40].PrefabID().Name": "== original"
+      "Assets.Prefabs[41].PrefabID().Name": "== original"
+      "Assets.Prefabs[42].PrefabID().Name": "== original"
+      "Assets.Prefabs[43].PrefabID().Name": "== original"
+      "Assets.Prefabs[44].PrefabID().Name": "== original"
+      "Assets.Prefabs[45].PrefabID().Name": "== original"
+      "Assets.Prefabs[46].PrefabID().Name": "== original"
+      "Assets.Prefabs[47].PrefabID().Name": "== original"
+      "Assets.Prefabs[48].PrefabID().Name": "== original"
+      "Assets.Prefabs[49].PrefabID().Name": "== original"
