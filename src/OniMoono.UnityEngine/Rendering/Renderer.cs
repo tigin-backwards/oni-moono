@@ -410,7 +410,15 @@ namespace OniMoono.Engine.Rendering
 
         public static IEnumerable<int> Ids => layers.Select(l => l.Id);
 
-        static int IndexOf(int id) => Array.FindIndex(layers, l => l.Id == id);
+        // A loop rather than Array.FindIndex with a lambda: draw items look layers up twice
+        // each, and the capturing lambda allocated a closure and a delegate per lookup.
+        static int IndexOf(int id)
+        {
+            var l = layers;
+            for (int i = 0; i < l.Length; i++)
+                if (l[i].Id == id) return i;
+            return -1;
+        }
 
         public static bool Contains(int id) => IndexOf(id) >= 0;
 
