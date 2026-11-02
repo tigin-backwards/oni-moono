@@ -81,6 +81,66 @@ namespace OniMoono.Host
             return tiles;
         }
 
+        /// The news tiles' frame: their FrameBG image's sprite (a sliced panel with a one-unit
+        /// dark edge) and colour, and how many screen pixels its border takes, read from the
+        /// first tile; null until there is one.
+        (Sprite Sprite, Color Color, float Scale)? frame;
+
+        /// Draws `tile` as the news tiles draw their frame: the same sprite, sliced with its
+        /// border at the same screen size, in the same translucent colour. False when the
+        /// tiles' frame can't be read.
+        bool DrawFrame(Rect tile)
+        {
+            if (frame == null && motd != null)
+            {
+                foreach (Transform box in motd)
+                {
+                    if (!box.gameObject.activeInHierarchy || box.Find("FrameBG") is not RectTransform bg) continue;
+                    foreach (var c in bg.GetComponents<Component>())
+                    {
+                        var type = c.GetType();
+                        if (type.Name != "Image" || type.GetProperty("sprite")?.GetValue(c) is not Sprite sprite) continue;
+                        var color = (Color)type.GetProperty("color")!.GetValue(c)!;
+                        // Sprite pixels per canvas unit, times the image's multiplier.
+                        float perUnit = (float)type.GetProperty("pixelsPerUnit")!.GetValue(c)!;
+                        if (type.GetProperty("pixelsPerUnitMultiplier")?.GetValue(c) is float multiplier) perUnit *= multiplier;
+                        var corners = new Vector3[4];
+                        bg.GetWorldCorners(corners);
+                        float screenPerUnit = (corners[2].x - corners[0].x) / Mathf.Max(1f, bg.rect.width);
+                        frame = (sprite, color, screenPerUnit / Mathf.Max(0.0001f, perUnit));
+                        break;
+                    }
+                    break;
+                }
+            }
+            if (frame is not var (s, tint, scale) || s == null || s.texture == null) return false;
+            var tex = s.texture;
+            var r = s.textureRect;
+            var b = s.border; // left, bottom, right, top, in sprite pixels
+            // Whole pixels, as the tiles come out: the pixels whose centres the rect covers, and
+            // borders of at least a pixel (the tiles' one-unit edge is one dark pixel at 720p to
+            // 1440p, measured in the original).
+            static float Snap(float v) => Mathf.Ceil(v - 0.5f);
+            static float Edge(float v) => v <= 0f ? 0f : Mathf.Max(1f, Mathf.Round(v));
+            tile = Rect.MinMaxRect(Snap(tile.xMin), Snap(tile.yMin), Snap(tile.xMax), Snap(tile.yMax));
+            float l = Edge(b.x * scale), bo = Edge(b.y * scale), ri = Edge(b.z * scale), t = Edge(b.w * scale);
+            GUI.color = tint;
+            // Nine parts: rows top to bottom in GUI space, sprite rows bottom to top.
+            float[] xs = { tile.x, tile.x + l, tile.xMax - ri, tile.xMax };
+            float[] ys = { tile.y, tile.y + t, tile.yMax - bo, tile.yMax };
+            float[] us = { r.x, r.x + b.x, r.xMax - b.z, r.xMax };
+            float[] vs = { r.yMax, r.yMax - b.w, r.y + b.y, r.y };
+            for (int row = 0; row < 3; row++)
+                for (int col = 0; col < 3; col++)
+                {
+                    var dest = Rect.MinMaxRect(xs[col], ys[row], xs[col + 1], ys[row + 1]);
+                    if (dest.width <= 0f || dest.height <= 0f) continue;
+                    var uv = Rect.MinMaxRect(us[col] / tex.width, vs[row + 1] / tex.height, us[col + 1] / tex.width, vs[row] / tex.height);
+                    GUI.DrawTextureWithTexCoords(dest, tex, uv);
+                }
+            return true;
+        }
+
         static Transform? Find(Transform t, string name)
         {
             if (t.name == name) return t;
@@ -138,8 +198,11 @@ namespace OniMoono.Host
             float headerHeight = 24f * unit;
             float logoHeight = inner * logo.height / logo.width;
             var tint = GUI.color;
-            GUI.color = new Color(0.17f, 0.19f, 0.26f, 0.92f);
-            GUI.DrawTexture(tile, Texture2D.whiteTexture);
+            if (!DrawFrame(tile))
+            {
+                GUI.color = new Color(0.17f, 0.19f, 0.26f, 0.92f);
+                GUI.DrawTexture(tile, Texture2D.whiteTexture);
+            }
             GUI.color = tint;
             GUI.Label(new Rect(tile.x, tile.y + pad * 0.5f, tile.width, headerHeight), "Legally Required!", headerStyle);
             float y = tile.y + headerHeight + pad;
