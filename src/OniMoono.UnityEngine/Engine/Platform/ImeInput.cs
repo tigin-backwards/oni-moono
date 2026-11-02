@@ -11,7 +11,8 @@ namespace OniMoono.Engine.Platform
     /// TextMeshPro field focused the mode is On (the field sets it) and the window has its
     /// default context again (ImmAssociateContextEx(hwnd, NULL, IACE_DEFAULT)), whose
     /// composition reaches Input.compositionString. Unity applies the mode at the window's next
-    /// focus, layout or key message; ours at the next frame's event poll.
+    /// focus, layout or key message; ours at the next frame's event poll, and again at the
+    /// window's focus and input language messages (OniMoono.Desktop.Win32Ime).
     ///
     /// Auto with an IMGUI text field holding the keyboard focus takes IME input, as Unity's
     /// documentation describes Auto (not measured: the game has no IMGUI text fields).

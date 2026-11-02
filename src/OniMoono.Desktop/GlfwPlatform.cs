@@ -45,6 +45,8 @@ namespace OniMoono.Desktop
         GlfwCursor customCursor;
         /// Windows: custom cursors that follow the pointer size (made on first use).
         Win32Cursor win32Cursor;
+        /// Windows: whether the window takes IME input (issue #30).
+        Win32Ime ime;
         bool closeRequested;
         /// Our character callback, kept alive for as long as GLFW may call it.
         GlfwCharUnmanagedCallback charCallback;
@@ -161,6 +163,8 @@ namespace OniMoono.Desktop
                 Share = window,
             });
             renderWindow.MakeContextCurrent();
+            // Before the window is shown, so that the focus it takes as it shows applies the mode.
+            if (OperatingSystem.IsWindows()) ime = new Win32Ime((IntPtr)window.GetWin32Window(), e => callbackFailure ??= e);
             // Showing it focuses it unless FocusOnShow is off (glfwShowWindow). An exclusive
             // fullscreen window is already shown and focused (_glfwCreateWindowWin32).
             window.Visible = true;
@@ -313,30 +317,6 @@ namespace OniMoono.Desktop
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern IntPtr SetClassLongPtrW(IntPtr hwnd, int index, IntPtr value);
-
-        /// Whether the window's IME is on (null: not set yet; Windows' default is on).
-        bool? imeEnabled;
-
-        /// Windows: the window takes IME input only when Input.imeCompositionMode asks for it
-        /// (ImeInput), as Unity's player: without its input context an IME such as Microsoft
-        /// Pinyin leaves the keys to the game (issue #30). The same calls as Unity's: the context
-        /// taken away, and the window's default one given back.
-        void ApplyIme()
-        {
-            bool wanted = OniMoono.Engine.Platform.ImeInput.WantedNow;
-            if (imeEnabled == wanted) return;
-            imeEnabled = wanted;
-            var hwnd = (IntPtr)window.GetWin32Window();
-            const uint IACE_DEFAULT = 0x10;
-            if (wanted) ImmAssociateContextEx(hwnd, IntPtr.Zero, IACE_DEFAULT);
-            else ImmAssociateContext(hwnd, IntPtr.Zero);
-        }
-
-        [System.Runtime.InteropServices.DllImport("imm32.dll")]
-        static extern IntPtr ImmAssociateContext(IntPtr hwnd, IntPtr himc);
-
-        [System.Runtime.InteropServices.DllImport("imm32.dll")]
-        static extern bool ImmAssociateContextEx(IntPtr hwnd, IntPtr himc, uint flags);
 
         static float MonitorDpi(GlfwMonitor m)
         {
@@ -589,7 +569,7 @@ namespace OniMoono.Desktop
         {
             // The IME mode the last frame left goes on before the messages since are read, so
             // their keys go through the input context it asks for.
-            if (OperatingSystem.IsWindows()) ApplyIme();
+            ime?.Apply();
             // What came in while the last frame pumped messages, in the order it came, then the
             // messages since.
             inGlfw++;
@@ -725,7 +705,8 @@ namespace OniMoono.Desktop
         public void Dispose()
         {
             Closing?.Invoke();
-            win32Cursor?.Dispose();
+            win32Cursor?.Dispose(); // subclassed after ime: restored first
+            ime?.Dispose();
             if (!customCursor.IsNull()) customCursor.Dispose();
             renderWindow.Dispose();
             window.Dispose();
