@@ -1,0 +1,81 @@
+{
+ "spec": "u60/u5-codex-layouts.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "The codex Hatches page found by search and dumped, its first Diet header collapsed, Back and Forward, and the rebuilt page's header collapsed again",
+ "updated": "2026-11-02",
+ "commit": "264a8bba",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-003010-af7cb1df",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:30:10",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-003118-2c053806",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:31:18",
+    "lane": 50,
+    "reference_run": "20261102-003010-af7cb1df",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "hatch-search": {
+      "differences": 0
+     },
+     "hatch": {
+      "differences": 0
+     },
+     "hatch-collapsed": {
+      "differences": 0
+     },
+     "hatch-rebuilt": {
+      "differences": 0
+     },
+     "hatch-again": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261102-003118-2c053806",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:31:53",
+    "lane": 50,
+    "reference_run": "20261102-003010-af7cb1df",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "hatch-search": {
+      "differences": 0
+     },
+     "hatch": {
+      "differences": 0
+     },
+     "hatch-collapsed": {
+      "differences": 0
+     },
+     "hatch-rebuilt": {
+      "differences": 0
+     },
+     "hatch-again": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

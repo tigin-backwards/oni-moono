@@ -994,7 +994,12 @@ Blueprints" deep link, Electrical → Power, the Regal pump rename, Manual Gener
 
 ### U5 Details screen and codex layouts
 
-**Status:** not run in this pass: no spec yet.
+**Status:** passes (264a8bba, Linux OpenGL; Windows: pending), steps 2 and 3 in part:
+`tests/e2e/u60/u5-codex-layouts.yaml` dumps the codex search list for "Hatch" and the Hatches
+page. It then collapses the page's first Diet header, rebuilds the page with Back and Forward,
+and collapses the new page's header; each dump equals the original's. Both collapses hide the
+contents (3,508 dump lines to 2,139). The details panels (step 1), the other articles, the
+Skills screen and the recipe screen are not run.
 
 **Risk: medium.**
 

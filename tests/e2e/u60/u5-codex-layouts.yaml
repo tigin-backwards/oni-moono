@@ -1,0 +1,40 @@
+# U5 (docs/research/u60-qa-spec.md): codex layouts.
+#
+# U60 changed the generated codex pages (CodexEntryGenerator*) and resolves a collapsible
+# header's contents each time (CodexCollapsibleHeader.ResolveContentsGameObject) instead of
+# caching a GameObject that navigation destroys. Layout groups, ContentSizeFitter and TMP lay the
+# pages out; a destroyed GameObject must compare equal to null.
+#
+# From early-base: the codex searched for "Hatch" (the list dumped) and the Hatches page opened
+# and dumped; its first Diet header, scrolled into view, collapsed and the page dumped; Back and
+# Forward rebuild the page (dumped), and the new page's Diet header collapsed again (dumped).
+from: early-base
+steps:
+  - open: {management: database}
+  - ui_wait: {path: "**/Codex/Screen/Content/SideBar/Search/LocTextInputField", cond: stable}
+  - click: {ui: "**/Codex/Screen/Content/SideBar/Search/LocTextInputField"}
+  - type: {ui: "**/Codex/Screen/Content/SideBar/Search/LocTextInputField", text: "Hatch"}
+  # The search filters 0.2 s of real time after the last key (KInputTextField.OnValueChangesPaused).
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/Codex/Screen/Content/SideBar", cond: stable}
+  - ui_dump: {name: hatch-search, root: "**/Codex/Screen/Content/SideBar/Navigator"}
+  - click: {text: "Hatch", under: "**/Codex/Screen/Content/SideBar/Navigator"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - ui_dump: {name: hatch, root: "**/Codex/Screen/Content/LeftPanel"}
+  # The first Diet header, scrolled into view, collapsed; Back and Forward rebuild the page, and
+  # the new page's Diet header collapsed again.
+  - scroll: {at: "**/Codex/Screen/Content/LeftPanel/Display", notches: -10}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel/Display", cond: stable}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/**/PrefabCollapsibleHeader/Header/Hitbox"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel/Display", cond: stable}
+  - ui_dump: {name: hatch-collapsed, root: "**/Codex/Screen/Content/LeftPanel"}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/NavLinks/Buttons/BackButton"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/NavLinks/Buttons/FwdButton"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel", cond: stable}
+  - expect_state: {"ManagementMenu.Instance.codexScreen.activeEntryID": "== original"}
+  # Forward restores the page's scroll position: the header is where it was.
+  - ui_dump: {name: hatch-rebuilt, root: "**/Codex/Screen/Content/LeftPanel"}
+  - click: {ui: "**/Codex/Screen/Content/LeftPanel/**/PrefabCollapsibleHeader/Header/Hitbox"}
+  - ui_wait: {path: "**/Codex/Screen/Content/LeftPanel/Display", cond: stable}
+  - ui_dump: {name: hatch-again, root: "**/Codex/Screen/Content/LeftPanel"}
