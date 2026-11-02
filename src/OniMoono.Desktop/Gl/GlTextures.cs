@@ -47,6 +47,13 @@ namespace OniMoono.Desktop.Gl
         /// resident handles made for it by sampler object.
         public uint Sampler;
         public System.Collections.Generic.Dictionary<uint, ulong> Handles;
+        /// Bindless: the GL thread's frame the texture was last sampled in, and whether its
+        /// handles were made non-resident for being idle (BindlessResidency).
+        public long SampledFrame;
+        public bool Idle;
+
+        /// The texture name's video memory, estimated from its formats and sizes (diagnostics).
+        public long Bytes;
 
         /// The texels last uploaded, for a texture re-uploaded into unchanged storage
         /// (GlTextures.UploadChanged): the next upload sends only the rows that differ.
@@ -60,13 +67,38 @@ namespace OniMoono.Desktop.Gl
             GlDevice.ForgetFramebuffers(this);
             // A target deleted while bound: the next draw binds the current target again.
             if (Framebuffer != 0) GlDevice.InvalidateFramebufferBinding();
-            GlBindless.Release(this);
-            if (Id != 0) GlBindings.DeleteTexture(Id);
+            DeleteName();
             if (Framebuffer != 0) GlApi.DeleteFramebuffer(Framebuffer);
             if (MultisampleFramebuffer != 0) GlApi.DeleteFramebuffer(MultisampleFramebuffer);
             if (DepthRenderbuffer != 0) GlApi.DeleteRenderbuffer(DepthRenderbuffer);
             if (MultisampleColor != 0) GlApi.DeleteRenderbuffer(MultisampleColor);
             Id = Framebuffer = MultisampleFramebuffer = DepthRenderbuffer = MultisampleColor = 0;
+        }
+
+        /// A new texture name of `target` (the old one deleted first by the caller).
+        public void NewName(uint target)
+        {
+            Id = GlApi.GenTexture();
+            Target = target;
+            GlTextures.LiveTextures++;
+        }
+
+        /// Makes the handles non-resident and deletes the texture name (GL frees its storage once
+        /// the commands already issued that use it are done).
+        public void DeleteName()
+        {
+            GlBindless.Release(this);
+            if (Id == 0) return;
+            GlBindings.DeleteTexture(Id);
+            Id = 0;
+            GlTextures.LiveTextures--;
+            SetBytes(0);
+        }
+
+        public void SetBytes(long bytes)
+        {
+            GlTextures.LiveBytes += bytes - Bytes;
+            Bytes = bytes;
         }
     }
 
@@ -406,15 +438,19 @@ namespace OniMoono.Desktop.Gl
         /// and re-uploads whose texels had not changed (none sent).
         public static long Uploads, UploadBytes, UnchangedUploads;
 
+        /// Texture names this device made that are not deleted, and their estimated bytes
+        /// (DeviceTexture.Bytes; the default textures and the presenter's own are not counted).
+        public static int LiveTextures;
+        public static long LiveBytes;
+
         /// Binds the texture for an upload; one that will specify its image again (respecify)
         /// and has bindless handles, which fix its layout, gets a new name first.
         static void Begin(DeviceTexture g, uint target, bool respecify = true)
         {
             if (g.Id == 0 || g.Target != target || (respecify && GlBindless.HasHandles(g)))
             {
-                if (g.Id != 0) { GlBindless.Release(g); GlBindings.DeleteTexture(g.Id); }
-                g.Id = GlApi.GenTexture();
-                g.Target = target;
+                g.DeleteName();
+                g.NewName(target);
                 // The texels kept for UploadChanged belong to the old texture: compared with the
                 // next upload into the new one (the same byte count in another shape or format,
                 // 256x128 after 128x256), they would hide rows that changed.
@@ -448,12 +484,7 @@ namespace OniMoono.Desktop.Gl
             int levels = Math.Max(1, t.MipCount);
             bool sameStorage = g.Id != 0 && g.Target == TexTarget2D && g.StorageFormat == t.Format
                                && g.Width == t.Width && g.Height == t.Height && g.Levels == levels;
-            if (!sameStorage && g.Id != 0)
-            {
-                GlBindless.Release(g);
-                GlBindings.DeleteTexture(g.Id);
-                g.Id = 0;
-            }
+            if (!sameStorage && g.Id != 0) g.DeleteName();
             Begin(g, TexTarget2D, respecify: !sameStorage);
             if (!sameStorage)
             {
@@ -465,6 +496,7 @@ namespace OniMoono.Desktop.Gl
                 g.Width = t.Width;
                 g.Height = t.Height;
                 g.Levels = levels;
+                g.SetBytes(TextureFormats.ImageSize(f.Decompress ? TextureFormat.RGBA32 : t.Format, t.Width, t.Height, levels));
             }
             var memory = t.Memory;
             if (memory != null && sameStorage && UploadChanged(t, g, f, levels)) return;
@@ -566,6 +598,7 @@ namespace OniMoono.Desktop.Gl
             g.Height = t.Height;
             g.Depth = t.Depth;
             g.Levels = levels;
+            g.SetBytes(TextureFormats.ImageSize(f.Decompress ? TextureFormat.RGBA32 : t.Format, t.Width, t.Height, levels) * t.Depth);
         }
 
         internal static void Upload3D(TexelUpload t, DeviceTexture g)
@@ -598,6 +631,10 @@ namespace OniMoono.Desktop.Gl
             g.Height = t.Height;
             g.Depth = t.Depth;
             g.Levels = levels;
+            long bytes = 0;
+            for (int m = 0; m < levels; m++)
+                bytes += TextureFormats.MipSize(f.Decompress ? TextureFormat.RGBA32 : t.Format, Math.Max(1, t.Width >> m), Math.Max(1, t.Height >> m)) * Math.Max(1, t.Depth >> m);
+            g.SetBytes(bytes);
         }
 
         /// Point: nearest; Bilinear: linear within a level, nearest level; Trilinear: linear
@@ -653,8 +690,7 @@ namespace OniMoono.Desktop.Gl
             uint depthFormat = DepthFormat(rt.DepthBits);
             if (samples > 1 && !depthOnly) samples = SupportedSamples(samples, internalFormat, rt.DepthBits > 0 ? depthFormat : 0);
             g.Delete();
-            g.Id = GlApi.GenTexture();
-            g.Target = TexTarget2D;
+            g.NewName(TexTarget2D);
             g.Width = rt.Width;
             g.Height = rt.Height;
             g.Levels = levels;
@@ -701,7 +737,22 @@ namespace OniMoono.Desktop.Gl
             }
             GlApi.BindFramebuffer(Framebuffer, 0);
             GlDevice.InvalidateFramebufferBinding();
+            long pixels = (long)rt.Width * rt.Height;
+            long color = 0;
+            for (int m = 0; m < levels; m++) color += (long)Math.Max(1, rt.Width >> m) * Math.Max(1, rt.Height >> m) * (depthOnly ? 4 : PixelBytes(internalFormat));
+            long depth = rt.DepthBits > 0 && !depthOnly ? pixels * (depthFormat == DepthComponent16 ? 2 : depthFormat == Depth32FStencil8 ? 8 : 4) * Math.Max(1, samples) : 0;
+            g.SetBytes(color + depth + (samples > 1 && !depthOnly ? pixels * PixelBytes(internalFormat) * samples : 0));
         }
+
+        /// Bytes a pixel of a render texture colour format takes (estimates: diagnostics).
+        static int PixelBytes(uint internalFormat) => internalFormat switch
+        {
+            Rgba32F => 16,
+            Rgba16F or Rg32F or Rgba16 => 8,
+            R8 => 1,
+            Rg8 or R16F or R16 or Rgb565 or Rgba4 or Rgb5A1 => 2,
+            _ => 4,
+        };
 
         /// The depth buffer format for a render texture's depth bits: 32-bit float, 24-bit or
         /// 16-bit depth, the first two with 8 bits of stencil.

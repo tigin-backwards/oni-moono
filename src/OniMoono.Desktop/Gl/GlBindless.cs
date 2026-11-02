@@ -93,6 +93,7 @@ namespace OniMoono.Desktop.Gl
         public static ulong Handle(DeviceTexture t)
         {
             uint sampler = t.Sampler != 0 ? t.Sampler : GlSamplers.Default;
+            BindlessResidency.Sampled(t, default(GlResidencyCalls));
             if (t.Handles != null && t.Handles.TryGetValue(sampler, out var handle)) return handle;
             handle = t.Id == 0 ? 0 : getTextureSamplerHandle(t.Id, sampler);
             if (handle == 0)
@@ -106,6 +107,7 @@ namespace OniMoono.Desktop.Gl
             }
             makeResident(handle);
             (t.Handles ??= new Dictionary<uint, ulong>())[sampler] = handle;
+            BindlessResidency.Added(t);
             return handle;
         }
 
@@ -114,14 +116,114 @@ namespace OniMoono.Desktop.Gl
         public static bool HasHandles(DeviceTexture t) => t.Handles is { Count: > 0 };
 
         /// Makes the texture's handles non-resident (before the texture is deleted or replaced).
-        public static void Release(DeviceTexture t)
+        public static void Release(DeviceTexture t) => BindlessResidency.Release(t, default(GlResidencyCalls));
+
+        public static void EndFrame() => BindlessResidency.EndFrame(default(GlResidencyCalls));
+
+        internal readonly struct GlResidencyCalls : BindlessResidency.ICalls
         {
-            if (t.Handles == null) return;
-            foreach (var handle in t.Handles.Values) makeNonResident(handle);
-            t.Handles.Clear();
+            public void Resident(ulong handle) => makeResident(handle);
+            public void NonResident(ulong handle) => makeNonResident(handle);
         }
 
         public static void SetSampler(uint program, int location, ulong handle) => programUniformHandle(program, location, handle);
+    }
+
+    /// Which textures have resident bindless handles (GL thread), and the prototype that makes
+    /// idle ones non-resident (ONI_BINDLESS_IDLE_FRAMES=N): a texture not sampled for N frames has
+    /// its handles made non-resident, and resident again when it is next sampled, as the
+    /// extension's own example does with a handle it "doesn't need to use [...] for a while", "to
+    /// reduce the overall memory footprint" (ARB_bindless_texture, Overview). With 0 (the
+    /// default) handles stay resident until their texture is deleted or replaced.
+    internal static class BindlessResidency
+    {
+        /// The residency calls (GL's, or a test's).
+        public interface ICalls
+        {
+            void Resident(ulong handle);
+            void NonResident(ulong handle);
+        }
+
+        public static int IdleFrames = int.TryParse(Environment.GetEnvironmentVariable("ONI_BINDLESS_IDLE_FRAMES"), out var n) && n > 0 ? n : 0;
+
+        /// Idle textures are looked for every SweepFrames frames.
+        public const int SweepFrames = 16;
+
+        static readonly HashSet<DeviceTexture> resident = new(ReferenceEqualityComparer.Instance);
+        static readonly List<DeviceTexture> idle = new();
+        static long frame;
+
+        /// Textures made non-resident for being idle and made resident again, since the last
+        /// counters (TakeCounters).
+        static long slept, woken;
+
+        public static int ResidentCount => resident.Count;
+
+        /// A draw samples `t`: an idle texture's handles are made resident again first.
+        public static void Sampled<T>(DeviceTexture t, T calls) where T : ICalls
+        {
+            t.SampledFrame = frame;
+            if (!t.Idle) return;
+            foreach (var handle in t.Handles.Values) calls.Resident(handle);
+            t.Idle = false;
+            resident.Add(t);
+            woken++;
+        }
+
+        /// `t` got a new handle, made resident.
+        public static void Added(DeviceTexture t) => resident.Add(t);
+
+        /// The texture's handles are made non-resident (those still resident) and forgotten.
+        public static void Release<T>(DeviceTexture t, T calls) where T : ICalls
+        {
+            if (t.Handles == null) return;
+            if (!t.Idle)
+                foreach (var handle in t.Handles.Values) calls.NonResident(handle);
+            t.Handles.Clear();
+            t.Idle = false;
+            resident.Remove(t);
+        }
+
+        /// The GL thread's frame ended (its present is posted).
+        public static void EndFrame<T>(T calls) where T : ICalls
+        {
+            frame++;
+            if (IdleFrames == 0 || frame % SweepFrames != 0) return;
+            foreach (var t in resident)
+                if (frame - t.SampledFrame > IdleFrames) idle.Add(t);
+            foreach (var t in idle)
+            {
+                foreach (var handle in t.Handles.Values) calls.NonResident(handle);
+                t.Idle = true;
+                resident.Remove(t);
+                slept++;
+            }
+            idle.Clear();
+        }
+
+        /// Diagnostics: the textures with resident handles, their handles and estimated bytes,
+        /// and the idle textures made non-resident and resident again since the last call.
+        public static string TakeCounters()
+        {
+            int handles = 0;
+            long bytes = 0;
+            foreach (var t in resident)
+            {
+                handles += t.Handles.Count;
+                bytes += t.Bytes;
+            }
+            string text = $"{resident.Count} resident ({handles} handles, {bytes >> 20} MiB)";
+            if (IdleFrames > 0) text += $", idle after {IdleFrames} frames: {slept} made non-resident, {woken} resident again";
+            slept = woken = 0;
+            return text;
+        }
+
+        /// Tests: forgets every texture.
+        internal static void Reset()
+        {
+            resident.Clear();
+            frame = slept = woken = 0;
+        }
     }
 
     /// Sampler objects by sampling state (bindless handles pair a texture with one).

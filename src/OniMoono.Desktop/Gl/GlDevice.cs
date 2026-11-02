@@ -274,6 +274,14 @@ namespace OniMoono.Desktop.Gl
 
         string GlThreadMemoryCounters()
         {
+            string textures = $"textures {GlTextures.LiveTextures} ({GlTextures.LiveBytes >> 20} MiB)";
+            if (GlBindless.Enabled) textures += ", " + BindlessResidency.TakeCounters();
+            var memory = GlThreadVideoMemory();
+            return memory != null ? memory + "; " + textures : textures;
+        }
+
+        string GlThreadVideoMemory()
+        {
             if (GlPrograms.Extensions.Contains("GL_NVX_gpu_memory_info"))
             {
                 int free = 0, evictions = 0, evicted = 0;
@@ -945,6 +953,7 @@ namespace OniMoono.Desktop.Gl
                 if (gpuTiming) EndGpuTiming();
                 uniformStream?.FenceFrame();
                 if (GlGpuProfile.Enabled) GlGpuProfile.FrameEnd();
+                if (GlBindless.Enabled) GlBindless.EndFrame();
                 // The back buffer is not allocated anew here for a window whose size changed
                 // since the frame drew: that would present undefined content (black) in place of
                 // the frame. The presenter scales the frame to the window instead.
