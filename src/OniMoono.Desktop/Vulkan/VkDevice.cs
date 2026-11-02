@@ -90,6 +90,7 @@ namespace OniMoono.Desktop.Vulkan
         readonly VkFrames frames;
         readonly VkPrograms programs;
         readonly VkPipelines pipelines;
+        readonly VkDescriptorCache descriptorCache;
         readonly VkSurfaceKHR surface;
         readonly Dictionary<string, DeviceTexture> defaults = new();
         readonly VkStartGuard guard;
@@ -117,6 +118,7 @@ namespace OniMoono.Desktop.Vulkan
                 frames = new VkFrames(vk);
                 programs = new VkPrograms(vk);
                 pipelines = new VkPipelines(vk);
+                descriptorCache = new VkDescriptorCache(vk);
                 splash = GlDevice.Splash != null ? new VkSplash(vk, programs, GlDevice.Splash) : null;
                 VkContext.FailAt("device");
                 presenter = new VkPresenter(vk, platform.Window, surface, splash, platform.WindowFramebufferWidth, platform.WindowFramebufferHeight, depthFormat);
@@ -480,11 +482,13 @@ namespace OniMoono.Desktop.Vulkan
         {
             string text = VkTimings.Take(n) + $"; draws {draws / n}, pipeline binds {pipelineBinds / n}, render passes {renderPasses / n}, passes broken by uploads {uploadBreaks / n}, "
                 + $"submits {frames.Submits / (double)n:F1}, programs built {programs.Built}, pipelines made {pipelines.Created} ({pipelines.CreateTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F0} ms), "
-                + $"texture uploads {textureUploads / (double)n:F1} ({textureUploadBytes / n / 1024} KiB), unchanged {unchangedUploads / (double)n:F1}; "
+                + $"texture uploads {textureUploads / (double)n:F1} ({textureUploadBytes / n / 1024} KiB), unchanged {unchangedUploads / (double)n:F1}, "
+                + $"descriptor sets made {descriptorCache.Made / (double)n:F1}, found {descriptorCache.Found / n}, kept {descriptorCache.Count}; "
                 + OniMoono.Desktop.Gl.PresenterTimings.Take();
             draws = pipelineBinds = renderPasses = uploadBreaks = 0;
             frames.Submits = 0;
             textureUploads = textureUploadBytes = unchangedUploads = 0;
+            descriptorCache.Made = descriptorCache.Found = 0;
             return text;
         });
 

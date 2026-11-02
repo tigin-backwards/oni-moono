@@ -9,6 +9,11 @@ namespace OniMoono.Desktop.Vulkan
     /// can make the barrier it needs.
     internal sealed unsafe class VkImageResource
     {
+        static long nextSerial;
+
+        /// Names this image for the life of the process (never reused, unlike its handles):
+        /// VkDescriptorCache's sets are found by it.
+        public readonly long Serial = System.Threading.Interlocked.Increment(ref nextSerial);
         public VkImage Image;
         public VmaAllocation Allocation;
         /// All levels and layers, for sampling.

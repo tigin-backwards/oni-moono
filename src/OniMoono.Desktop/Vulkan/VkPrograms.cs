@@ -32,6 +32,8 @@ namespace OniMoono.Desktop.Vulkan
         /// binding.
         public (int Binding, int Block, int Size)[] Uniforms;
         public bool Push, DynamicUniforms;
+        /// The descriptor cache's entry this program's last draw bound (VkDescriptorCache).
+        public object LastTextureSet;
         /// Vertex inputs: location, the mesh channel feeding it (-1: none, a constant) and
         /// whether the shader reads integers.
         public (int Location, int Channel, char Kind)[] Inputs;

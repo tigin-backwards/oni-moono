@@ -288,16 +288,14 @@ namespace OniMoono.Desktop.Vulkan
             _ => 0,
         };
 
-        /// Binds each input's buffer at its location, contiguous locations in one call.
-        static void BindVertexBuffers(CommandBuffer cb, (int Location, int Channel, char Kind)[] inputs, Span<VkBuffer> buffers, Span<Brutal.ByteSize64> offsets)
+        /// Binds each input's buffer at its binding (the input's index: VkPipelines.Create), all
+        /// in one call.
+        void BindVertexBuffers(CommandBuffer cb, (int Location, int Channel, char Kind)[] inputs, Span<VkBuffer> buffers, Span<Brutal.ByteSize64> offsets)
         {
-            int start = 0;
-            for (int i = 1; i <= inputs.Length; i++)
-            {
-                if (i < inputs.Length && inputs[i].Location == inputs[i - 1].Location + 1) continue;
-                cb.BindVertexBuffers(inputs[start].Location, buffers[start..i], offsets[start..i]);
-                start = i;
-            }
+            if (inputs.Length == 0) return;
+            fixed (VkBuffer* b = buffers)
+            fixed (Brutal.ByteSize64* o = offsets)
+                vk.Device.PInvoke.vkCmdBindVertexBuffers.Invoke(cb.Handle, 0, inputs.Length, b, o);
         }
 
         static VkPrimitiveTopology Topology(uint mode) => mode switch
@@ -366,21 +364,23 @@ namespace OniMoono.Desktop.Vulkan
                 boundPipeline = pipeline;
                 pipelineBinds++;
             }
-            BindTextures(r, program, cb);
-            BindUniforms(r, program, cb);
+            var textureSet = BindTextures(r, program, cb);
+            BindUniforms(r, program, cb, textureSet);
             return true;
         }
 
         /// Set 0: each binding's texture, its sampler, or an empty storage buffer; pushed, or
-        /// written to a set of the frame's.
-        void BindTextures(ProgramInputs r, VkProgram program, CommandBuffer cb)
+        /// a set kept by the descriptor cache, returned for BindUniforms to bind with set 1.
+        VkDescriptorSet BindTextures(ProgramInputs r, VkProgram program, CommandBuffer cb)
         {
             var slots = program.Slots;
             int n = slots.Length;
-            if (n == 0) return;
+            if (n == 0) return default;
             var writes = stackalloc VkWriteDescriptorSet[n];
             var bufferInfos = stackalloc VkDescriptorBufferInfo[n];
             var imageInfos = stackalloc VkDescriptorImageInfo[n];
+            // What each binding names (image serial, sampler), for the descriptor cache.
+            Span<long> ids = program.Push ? default : stackalloc long[2 * n];
             for (int i = 0; i < n; i++)
             {
                 var slot = slots[i];
@@ -389,6 +389,7 @@ namespace OniMoono.Desktop.Vulkan
                 {
                     bufferInfos[i] = new VkDescriptorBufferInfo { Buffer = emptyStorage.Buffer, Offset = default, Range = (Brutal.ByteSize64)emptyStorage.Size };
                     writes[i].BufferInfo = &bufferInfos[i];
+                    if (!program.Push) ids[2 * i] = ids[2 * i + 1] = 0;
                     continue;
                 }
                 VkTexture vt = null;
@@ -405,21 +406,32 @@ namespace OniMoono.Desktop.Vulkan
                     _ => new VkDescriptorImageInfo { Sampler = sampler, ImageView = vt.Image.View, ImageLayout = VkImageLayout.ShaderReadOnlyOptimal },
                 };
                 writes[i].ImageInfo = &imageInfos[i];
+                if (!program.Push)
+                {
+                    ids[2 * i] = slot.Type == VkDescriptorType.Sampler ? 0 : vt.Image.Serial;
+                    ids[2 * i + 1] = slot.Type == VkDescriptorType.SampledImage ? 0 : (long)sampler.VkHandle;
+                }
             }
             if (program.Push)
-                vk.Device.PInvoke.vkCmdPushDescriptorSetKHR.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 0, n, writes);
-            else
             {
-                var set = frames.AllocateSet(program.TextureSet);
+                vk.Device.PInvoke.vkCmdPushDescriptorSetKHR.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 0, n, writes);
+                return default;
+            }
+            // A set naming the same descriptors is bound again; else one is made and kept.
+            if (!descriptorCache.TryGet(program, ids, presented, out var set))
+            {
+                set = descriptorCache.Add(program, ids, presented);
                 for (int i = 0; i < n; i++) writes[i].DstSet = set;
                 vk.Device.PInvoke.vkUpdateDescriptorSets.Invoke(vk.Device.Handle, n, writes, 0, null);
-                vk.Device.PInvoke.vkCmdBindDescriptorSets.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 0, 1, &set, 0, null);
             }
+            if (program.Uniforms.Length == 0) vk.Device.PInvoke.vkCmdBindDescriptorSets.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 0, 1, &set, 0, null);
+            return set;
         }
 
         /// Set 1: the draw's constant buffers, written together to the uniform stream and
-        /// bound by dynamic offsets into the program's set for that buffer.
-        void BindUniforms(ProgramInputs r, VkProgram program, CommandBuffer cb)
+        /// bound by dynamic offsets into the program's set for that buffer; with set 0 in the
+        /// same call when the descriptor cache gave one (`textureSet`).
+        void BindUniforms(ProgramInputs r, VkProgram program, CommandBuffer cb, VkDescriptorSet textureSet)
         {
             var uniforms = program.Uniforms;
             int n = uniforms.Length;
@@ -442,19 +454,20 @@ namespace OniMoono.Desktop.Vulkan
             }
             for (int i = 0; i < n; i++)
                 r.Blocks.AsSpan(blockStarts[uniforms[i].Block], uniforms[i].Size).CopyTo(new Span<byte>((byte*)pointer + starts[i], uniforms[i].Size));
-            VkDescriptorSet set;
+            var sets = stackalloc VkDescriptorSet[2] { textureSet, default };
+            bool both = !textureSet.IsNull();
             if (program.DynamicUniforms)
             {
-                set = programs.UniformSet(program, buffer);
+                sets[1] = programs.UniformSet(program, buffer);
                 var dynamicOffsets = stackalloc int[n];
                 for (int i = 0; i < n; i++) dynamicOffsets[i] = (int)(offset + starts[i]);
-                vk.Device.PInvoke.vkCmdBindDescriptorSets.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 1, 1, &set, n, dynamicOffsets);
+                vk.Device.PInvoke.vkCmdBindDescriptorSets.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, both ? 0 : 1, both ? 2 : 1, both ? sets : sets + 1, n, dynamicOffsets);
             }
             else
             {
-                set = frames.AllocateSet(program.UniformSet);
-                programs.Write(program, set, buffer, offset, VkDescriptorType.UniformBuffer, starts);
-                vk.Device.PInvoke.vkCmdBindDescriptorSets.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 1, 1, &set, 0, null);
+                sets[1] = frames.AllocateSet(program.UniformSet);
+                programs.Write(program, sets[1], buffer, offset, VkDescriptorType.UniformBuffer, starts);
+                vk.Device.PInvoke.vkCmdBindDescriptorSets.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, both ? 0 : 1, both ? 2 : 1, both ? sets : sets + 1, 0, null);
             }
         }
 
@@ -580,6 +593,7 @@ namespace OniMoono.Desktop.Vulkan
             presenter.Present(interval, width, height);
             presenter.Frame = frame + 1;
             Presented();
+            descriptorCache.Sweep(presented);
             VkTimings.Present += System.Diagnostics.Stopwatch.GetTimestamp() - t;
         }
 

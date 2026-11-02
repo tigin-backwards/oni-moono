@@ -11,6 +11,16 @@ namespace OniMoono.Desktop.Vulkan
     internal readonly record struct VkTargetFormats(int Count, VkFormat C0, VkFormat C1, VkFormat C2, VkFormat C3, VkFormat C4, VkFormat C5, VkFormat C6, VkFormat C7,
         VkFormat Depth, VkFormat Stencil, int Samples, bool Flipped)
     {
+        // Hashed once, when a pass begins: every draw's pipeline lookup reads it (no `with`
+        // copies, which would keep the original's hash).
+        readonly int hash = HashCode.Combine(HashCode.Combine(Count, C0, C1, C2, C3, C4, C5, C6), C7, Depth, Stencil, Samples, Flipped);
+
+        public bool Equals(VkTargetFormats o) => hash == o.hash && Count == o.Count && C0 == o.C0 && C1 == o.C1 && C2 == o.C2 && C3 == o.C3 && C4 == o.C4
+                                                 && C5 == o.C5 && C6 == o.C6 && C7 == o.C7 && Depth == o.Depth && Stencil == o.Stencil && Samples == o.Samples
+                                                 && Flipped == o.Flipped;
+
+        public override int GetHashCode() => hash;
+
         public VkFormat Color(int i) => i switch { 0 => C0, 1 => C1, 2 => C2, 3 => C3, 4 => C4, 5 => C5, 6 => C6, _ => C7 };
 
         public static VkTargetFormats Of(ReadOnlySpan<VkFormat> colors, VkFormat depth, VkFormat stencil, int samples, bool flipped)
@@ -22,7 +32,17 @@ namespace OniMoono.Desktop.Vulkan
     }
 
     /// A pipeline's identity: program, resolved pass state, vertex layout, topology and targets.
-    internal readonly record struct VkPipelineKey(VkProgram Program, ResolvedState State, long VertexLayout, VkPrimitiveTopology Topology, VkTargetFormats Targets);
+    /// Each draw looks one up: hashed once, compared field by field (a record's own equality
+    /// went through a comparer per field and cost about 250 ns a lookup).
+    internal readonly record struct VkPipelineKey(VkProgram Program, ResolvedState State, long VertexLayout, VkPrimitiveTopology Topology, VkTargetFormats Targets)
+    {
+        readonly int hash = HashCode.Combine(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Program), State.GetHashCode(), VertexLayout, Topology, Targets.GetHashCode());
+
+        public bool Equals(VkPipelineKey o) => hash == o.hash && ReferenceEquals(Program, o.Program) && VertexLayout == o.VertexLayout && Topology == o.Topology
+                                               && Targets.Equals(o.Targets) && State.Equals(o.State);
+
+        public override int GetHashCode() => hash;
+    }
 
     /// Pipelines made on first use and kept (with the driver's pipeline cache across launches),
     /// keyed by everything OpenGL sets as context state for a draw: the pass state ShaderLab
@@ -60,7 +80,13 @@ namespace OniMoono.Desktop.Vulkan
         /// program, and remembered, so later draws with the key are left out without trying).
         public VkPipeline Get(in VkPipelineKey key, MeshLayout layout)
         {
-            if (pipelines.TryGetValue(key, out var p)) return p;
+            // Most draws repeat the pipeline of the draw before.
+            if (hasLast && key.Equals(lastKey)) return lastPipeline;
+            if (pipelines.TryGetValue(key, out var p))
+            {
+                (lastKey, lastPipeline, hasLast) = (key, p, true);
+                return p;
+            }
             long start = System.Diagnostics.Stopwatch.GetTimestamp();
             try
             {
@@ -88,6 +114,9 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         readonly HashSet<VkProgram> refused = new(), outOfMemory = new();
+        VkPipelineKey lastKey;
+        VkPipeline lastPipeline;
+        bool hasLast;
 
         /// Pipelines the driver refused (--check-shaders).
         public static int Refused;
@@ -123,8 +152,10 @@ namespace OniMoono.Desktop.Vulkan
                 }
                 else if (channel >= 0 && layout.Components[channel] != 0) (format, stride) = ChannelFormat(layout, channel);
                 else (format, stride) = (ConstantFormat(kind), 0);
-                bindings[i] = new VkVertexInputBindingDescription { Binding = location, Stride = (Brutal.ByteSize32)stride, InputRate = VkVertexInputRate.Vertex };
-                attributes[i] = new VkVertexInputAttributeDescription { Location = location, Binding = location, Format = format, Offset = (Brutal.ByteSize32)0 };
+                // Binding i feeds the i-th input (whatever its location), so a draw binds all
+                // its buffers in one call.
+                bindings[i] = new VkVertexInputBindingDescription { Binding = i, Stride = (Brutal.ByteSize32)stride, InputRate = VkVertexInputRate.Vertex };
+                attributes[i] = new VkVertexInputAttributeDescription { Location = location, Binding = i, Format = format, Offset = (Brutal.ByteSize32)0 };
             }
             var vertexInput = new VkPipelineVertexInputStateCreateInfo
             {
@@ -282,6 +313,7 @@ namespace OniMoono.Desktop.Vulkan
         /// Destroys the pipelines of a program being released (device thread, its frames done).
         public void Forget(VkProgram program, List<VkPipeline> into)
         {
+            hasLast = false;
             List<VkPipelineKey> keys = null;
             foreach (var (k, p) in pipelines)
                 if (k.Program == program)
@@ -294,6 +326,7 @@ namespace OniMoono.Desktop.Vulkan
 
         public void Dispose()
         {
+            hasLast = false;
             foreach (var p in pipelines.Values) vk.Device.DestroyPipeline(p, null);
             pipelines.Clear();
         }
