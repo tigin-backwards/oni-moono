@@ -73,8 +73,17 @@ namespace OniMoono.Engine.Rendering
     {
         public static Camera Current { get; private set; }
 
-        /// Renderers whose GameObject has been active (registered on first activation).
-        static readonly HashSet<RendererNative> renderers = new();
+        /// The cull candidates: renderers that are enabled on an active GameObject, in the order
+        /// they last became so. Unity's player draws renderers tied on everything they sort by
+        /// in that order (a renderer disabled and enabled again, even between two renders, draws
+        /// after the others), and its culling costs nothing per disabled renderer or renderer on
+        /// an inactive object (measured: UnityProbe renderercull). Fast Track's mesh renderers
+        /// leave a tenth of 30,000 enabled. A renderer leaving the list leaves a hole (null),
+        /// which Cull compacts away before it iterates, so toggling one costs O(1).
+        static readonly List<RendererNative> candidates = new();
+        static int holes;
+        /// Cull passes running: a camera rendered from OnBecameVisible culls inside another.
+        static int culling;
         static readonly List<QueuedMesh> queued = new();
         static readonly HashSet<RendererNative> visibleThisFrame = new();
         static readonly HashSet<RendererNative> visibleLastFrame = new();
@@ -96,13 +105,65 @@ namespace OniMoono.Engine.Rendering
             PlayerLoop.Present += EndFrame;
         }
 
-        public static void Register(RendererNative r) => renderers.Add(r);
+        /// A renderer's enabled flag, its GameObject's activation or its destruction changed:
+        /// it joins the cull candidates (at the end) or leaves them.
+        public static void UpdateCandidate(RendererNative r)
+        {
+            bool wanted = r.Enabled && r.EngineEnabled && !r.Destroyed;
+            if (wanted == r.CandidateSlot >= 0) return;
+            candidateChanges++;
+            if (wanted)
+            {
+                r.CandidateSlot = candidates.Count;
+                candidates.Add(r);
+            }
+            else
+            {
+                candidates[r.CandidateSlot] = null;
+                r.CandidateSlot = -1;
+                // Bounded while no camera culls (loading screens).
+                if (++holes > 1024 && holes * 2 > candidates.Count) CompactCandidates();
+            }
+        }
 
         public static void Unregister(RendererNative r)
         {
-            renderers.Remove(r);
+            if (r.CandidateSlot >= 0)
+            {
+                candidates[r.CandidateSlot] = null;
+                r.CandidateSlot = -1;
+                holes++;
+            }
             visibleThisFrame.Remove(r);
             visibleLastFrame.Remove(r);
+        }
+
+        static void CompactCandidates()
+        {
+            if (holes == 0 || culling > 0) return;
+            int kept = 0;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                var r = candidates[i];
+                if (r == null) continue;
+                r.CandidateSlot = kept;
+                candidates[kept++] = r;
+            }
+            candidates.RemoveRange(kept, candidates.Count - kept);
+            holes = 0;
+        }
+
+        /// The candidate list's length, holes included (tests).
+        internal static int CandidateSlots => candidates.Count;
+
+        /// The cull candidates in their order (tests).
+        internal static IEnumerable<RendererNative> Candidates
+        {
+            get
+            {
+                foreach (var r in candidates)
+                    if (r != null) yield return r;
+            }
         }
 
         public static void Queue(QueuedMesh m)
@@ -124,7 +185,7 @@ namespace OniMoono.Engine.Rendering
         /// queues, logged every TimingFrames frames.
         static readonly bool timing = Environment.GetEnvironmentVariable("ONI_RENDER_TIMING") == "1";
         const int TimingFrames = 600;
-        static long renderTicks, queueTicks, queueDraws, windowStart;
+        static long renderTicks, queueTicks, queueDraws, windowStart, candidateChanges;
         static TimeSpan lastCpu;
         static int timedFrames;
 
@@ -153,9 +214,9 @@ namespace OniMoono.Engine.Rendering
             var cpu = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime;
             double cores = (cpu - lastCpu).TotalSeconds / ((now - windowStart) / (double)System.Diagnostics.Stopwatch.Frequency);
             lastCpu = cpu;
-            EngineLog.Engine($"render timing: frame {Time.frameCount}, {fps:F2} fps, rendering {ms(renderTicks):F3} ms a frame, draw queues {ms(queueTicks):F3} ms ({queueDraws / timedFrames} draws a frame){(device != null ? ", " + device : "")}"
+            EngineLog.Engine($"render timing: frame {Time.frameCount}, {fps:F2} fps, rendering {ms(renderTicks):F3} ms a frame, draw queues {ms(queueTicks):F3} ms ({queueDraws / timedFrames} draws a frame), cull candidates {candidates.Count - holes} ({candidateChanges / timedFrames} changes a frame){(device != null ? ", " + device : "")}"
                 + $"; pool threads {System.Threading.ThreadPool.ThreadCount}, pending {System.Threading.ThreadPool.PendingWorkItemCount}, process threads {System.Diagnostics.Process.GetCurrentProcess().Threads.Count}, cpu {cores:F1} cores, gc {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)}, heap {GC.GetTotalMemory(false) >> 20} MB");
-            renderTicks = queueTicks = queueDraws = 0;
+            renderTicks = queueTicks = queueDraws = candidateChanges = 0;
             timedFrames = 0;
             windowStart = now;
         }
@@ -594,17 +655,31 @@ namespace OniMoono.Engine.Rendering
             var draws = NewDrawList();
             var frustum = new Frustum(cam.Projection * cam.WorldToCamera);
             int sequence = 0;
-            foreach (var r in renderers)
+            CompactCandidates();
+            // Renderers that OnBecameVisible enables or creates are drawn from the next render
+            // on, and those it disables are not drawn in this one (measured: UnityProbe
+            // renderercull): the pass covers the candidates it started with.
+            int count = candidates.Count;
+            culling++;
+            try
             {
-                if (r.Destroyed || !r.Enabled || !r.GameObject.ActiveInHierarchy) continue;
-                if ((cam.CullingMask & (1 << r.GameObject.Layer)) == 0) continue;
-                var bounds = r.WorldBounds;
-                if (!frustum.Intersects(bounds)) continue;
-                int before = draws.Count;
-                RendererDraws.Collect(r, camera, draws);
-                if (draws.Count == before) continue;
-                MarkVisible(r);
-                for (int i = before; i < draws.Count; i++) draws[i].Sequence = sequence++;
+                for (int c = 0; c < count; c++)
+                {
+                    var r = candidates[c];
+                    if (r == null || r.Destroyed || !r.Enabled || !r.GameObject.ActiveInHierarchy) continue;
+                    if ((cam.CullingMask & (1 << r.GameObject.Layer)) == 0) continue;
+                    var bounds = r.WorldBounds;
+                    if (!frustum.Intersects(bounds)) continue;
+                    int before = draws.Count;
+                    RendererDraws.Collect(r, camera, draws);
+                    if (draws.Count == before) continue;
+                    MarkVisible(r);
+                    for (int i = before; i < draws.Count; i++) draws[i].Sequence = sequence++;
+                }
+            }
+            finally
+            {
+                culling--;
             }
             // Cameras rendered by scripts after the frame's pass also draw the frame's meshes
             // (captures have already put them back in the queue).
@@ -668,7 +743,12 @@ namespace OniMoono.Engine.Rendering
         {
             var list = NewDrawList();
             foreach (var d in all)
+            {
+                // A renderer disabled, deactivated or destroyed after culling (from OnPreRender,
+                // say) is not drawn (measured: UnityProbe renderercull).
+                if (d.Renderer is { CandidateSlot: < 0 }) continue;
                 if (opaque ? d.Queue <= 2500 : d.Queue > 2500) list.Add(d);
+            }
             list.Sort(opaque ? OpaqueOrder : TransparentOrder);
             DrawQueue(device, list);
         }
