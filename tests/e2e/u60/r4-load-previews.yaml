@@ -32,8 +32,9 @@ steps:
   - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
   - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
   - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", cond: stable}
-  # The saves' times and sizes follow the run (ours writes them with its save tweaks): masked.
-  - ui_dump: {name: colony, root: "**/LoadScreen/Panel/ColonyView/ListView", mask_text: ['\d\d:\d\d:\d\d - .*']}
+  # The saves' times and sizes follow the run (ours writes them with its save tweaks): masked
+  # (the hour has one digit in Windows' short time format).
+  - ui_dump: {name: colony, root: "**/LoadScreen/Panel/ColonyView/ListView", mask_text: ['\d?\d:\d\d:\d\d - .*']}
   - shot: {name: colony, crop: "**/LoadScreen/Panel/ColonyView"}
   - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", index: 1}
   - ui_wait: {path: "**/LoadScreen/Panel/ColonyView", cond: stable}
