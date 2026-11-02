@@ -1,0 +1,22 @@
+# P5 (docs/research/u60-qa-spec.md): the IMGUI developer tools.
+#
+# U60 ships a cimgui.so that exports SetKAssertCB and enables the Dear ImGui developer tools on
+# Linux (DevToolManager). Their meshes, CommandBuffer scissors and the RenderTexture in a RawImage
+# are drawn by ours.
+#
+# From early-base: Ctrl+` toggles the tools; without the ShowDevtools pref they show their
+# warning menu bar first. The frame is shot with the tools shown, then hidden again.
+from: early-base
+setup:
+  # The tools open only in debug mode (DebugHandler.enabled: debug_enable.txt in a player's data).
+  - driver: {setup.call: {type: DebugHandler, method: set_enabled, args: [true]}}
+steps:
+  - key: {code: "Ctrl+BackQuote"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "DevToolManager.Instance.Show": [true, "== original"]
+  - shot: {name: devtools-warning, threshold: 0.05}   # the colony moved for a second
+  - key: {code: "Ctrl+BackQuote"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "DevToolManager.Instance.Show": [false, "== original"]

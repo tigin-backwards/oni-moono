@@ -1,0 +1,53 @@
+{
+ "spec": "u60/p5-imgui-devtools.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Debug mode on: Ctrl+` shows the Dear ImGui developer tools' warning menu bar (shot), and hides it again",
+ "updated": "2026-11-01",
+ "commit": "addf73de",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-224909-45ca3fb6",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:49:09",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-234253-9b240403",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:42:53",
+    "lane": 50,
+    "reference_run": "20261101-224909-45ca3fb6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "devtools-warning": 0.004268
+    }
+   },
+   {
+    "run": "20261101-234253-9b240403",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T23:43:26",
+    "lane": 50,
+    "reference_run": "20261101-224909-45ca3fb6",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "devtools-warning": 0.016508
+    }
+   }
+  ]
+ }
+}

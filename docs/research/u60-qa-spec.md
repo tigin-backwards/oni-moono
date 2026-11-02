@@ -1787,6 +1787,9 @@ data, read from Linux (587 variants; 120 shaders, 0 compile or link errors, as o
 
 ### P5 IMGUI developer tools
 
+**Status:** passes (addf73de, Linux OpenGL; Windows: pending). `tests/e2e/u60/p5-imgui-devtools.yaml`:
+in debug mode Ctrl+` shows the tools' warning menu bar (shot equal) and hides it again.
+
 **Risk: low.** Checked pixel for pixel (63c86671, c21392e8).
 
 **Patch note:** "Fixed IMGUI developer tools crashing on Linux and enabled them for Mac."
