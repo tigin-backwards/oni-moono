@@ -543,6 +543,18 @@ plays it from 0 s and pauses it past 2 s), equal to the original's.
 
 ### I1 Mouse buttons 3 to 6 as bindings
 
+**Status:** fixed in 4269b649 (Linux, both players on OpenGL; Windows: pending, a five-button
+mouse by hand). Measured in the original: Unity's X11 player reports X buttons 8 and 9 as
+`Mouse3` and `Mouse4`, X button 10 as `Mouse6` (not `Mouse5`), and X button 11 as no key code,
+only an IMGUI `MouseDown` with button 7; ours numbered 10 and 11 as `Mouse5` and `Mouse6`, now as
+the original. `tests/e2e/u60-i1-side-buttons.yaml` (X buttons 8 to 10 through XTEST) and
+`u60-i1-button-11.yaml` (X button 11 as an event sent to the window, bf890991; Xvfb's XTEST
+pointer has ten buttons) read the key log (`GetKeyDown`, `GetKey`, IMGUI `MouseDown`) as in the
+original. `u60-i1-rebind.yaml` (f218ef5e): in `early-base`, Options > Game > Controls,
+Dig rebound to X button 8; its label reads "Mouse 3" in both, and the button over the world
+picks the Dig tool as in the original. Rebinding to button 9: not run separately (the same
+path, and the key log covers its key code).
+
 **Risk: high.**
 
 **Patch note:** "Allowed key binding of mouse buttons 3-6."
@@ -562,9 +574,9 @@ While rebinding, the screen polls `Input.GetKey`/`GetKeyDown` for the new button
 
 **Engine surface:**
 - Our input layer: GLFW reports X11 buttons 8–11 as its buttons 3–6, which `InputStateFeed` maps
-  to `KeyCode.Mouse3`–`Mouse6` (`GlfwPlatform.cs`).
-- Unmeasured: whether Unity's X11 and Windows players number the side buttons the same way.
-- Also whether Unity sends IMGUI mouse events for them.
+  as Unity's X11 player does (measured, see the status): 8 and 9 to `KeyCode.Mouse3` and
+  `Mouse4`, 10 to `Mouse6`, 11 to IMGUI button 7 only (`GlfwPlatform.cs`).
+- Unmeasured: Unity's Windows player's numbering.
 
 **Test:**
 - Setup: `early-base`.
