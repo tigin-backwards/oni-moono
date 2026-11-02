@@ -2077,13 +2077,23 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   with nothing drawn yet is the pass's load op) and ended when the target changes, a copy must
   run outside it, or the frame ends. Pipelines are made on first use per program, resolved pass
   state, vertex layout, topology and target formats, with the driver's pipeline cache kept in the
-  player's cache folder. Set 0 is pushed (`VK_KHR_push_descriptor`, when the program's bindings
-  fit the device's push limit) or allocated from per-frame pools. A draw's constant buffers are
+  player's cache folder; each draw's key is hashed once and the last draw's pipeline is tried
+  first. Set 0 is pushed (`VK_KHR_push_descriptor`, when the program's bindings fit the device's
+  push limit, 32 on NVIDIA and Mesa) or, for programs with more (Klei's batched animation shaders
+  bind 39, on about half a colony's draws), taken from a cache of sets kept across frames by the
+  images (by a serial number never reused) and samplers they name: a draw naming what a set
+  already names binds it, without allocating or writing descriptors, and sets unused for 60
+  frames are freed (`VkDescriptorCache`). A draw's vertex buffers are bound in one call (binding
+  i feeds the program's i-th input). A draw's constant buffers are
   written together to the frame's uniform stream (4 MB chunks kept for the device's life) and
-  bound by dynamic offsets into a set 1 made once per program and chunk. Staging copies and
-  immediate geometry go through a host-visible stream per frame, in 8 MB chunks: the first two
-  of each frame slot are kept, the others released once unused for eight frames, so a save's
-  burst of uploads does not stay resident. Memory comes from VMA. Each image tracks its layout
+  bound by dynamic offsets into a set 1 made once per program and chunk. Immediate geometry
+  goes through a host-visible stream per frame and copy sources (texels, staged meshes) through
+  a staging stream in host memory, both in 8 MB chunks: the first two of each frame slot are
+  kept, the others released once unused for eight frames, so a save's burst of uploads does not
+  stay resident. The stream's memory may be device memory the CPU maps (resizable BAR, where
+  VMA puts it on NVIDIA), written across the bus; texels written there took 1.8 ms a frame in
+  U57 against 0.7 in host memory (RTX 3090; `ONI_VULKAN_STAGING=device` stages in the stream
+  again). Memory comes from VMA, and the first buffer of each use logs the memory type it got. Each image tracks its layout
   and last access, and each use makes the barrier it needs (a render target's colour writes
   before it is sampled; transfers before and after copies). A pipeline the driver refuses is
   logged once per program and remembered, so draws with that state are left out without
@@ -2099,8 +2109,14 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   submitted ahead of its rendering: a texture the batch has not used yet is updated there, as are
   new render surfaces (cleared, as OpenGL's device clears them) and staged mesh copies; a texture
   the batch already sampled is updated at its place in the rendering, ending the pass. A mesh
-  gets a new buffer on every upload, so draws recorded before a change read their own data
-  without waiting. Re-uploads into unchanged storage send only the changed rows, as on OpenGL.
+  upload never writes a buffer that recorded draws read, so they read their own data without
+  waiting: it goes to one of the mesh's spare buffers (at most two, the buffers it replaced,
+  once their frames are done) when one is large enough, else to a new one, made an eighth
+  larger once the mesh has changed, so a mesh changed every frame takes turns between a few
+  buffers. On a discrete GPU mesh buffers are device memory the CPU does not map, written by a
+  copy from the staging stream ahead of the batch's rendering (0.16 ms of mesh uploads a frame
+  in U57 against 0.74 written across the bus); an integrated GPU's are written directly
+  (`ONI_VULKAN_MESHES=staged|mapped` decides). Re-uploads into unchanged storage send only the changed rows, as on OpenGL.
 - *Presentation.* `VkPresenter` keeps `GlPresenter`'s design: three offscreen back buffers, at
   most two frames queued (one with vsync), the last frame shown again when one drew nothing or
   the window's contents were damaged, the splash drawn over the window on the presenter thread
