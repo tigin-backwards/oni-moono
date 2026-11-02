@@ -162,6 +162,8 @@ spaced_out: false                # Spaced Out off in both players (default: the 
 translation: 929139073           # the language of this translation mod (one of `mods`), picked in the prefs
 language: zh_klei                # or one of the game's own languages (zh_klei, ko_klei, ru_klei)
 tweaks_menu: true                # ours keeps the main menu's Moono Tweaks button (run with --player ours)
+game_tweaks: [path-probe-repair] # ours runs with these `--game-tweak` values after E2E_GAME_TWEAKS's
+env: {ONI_TWEAK_VERIFY: "1"}     # ours runs with these in its environment
 scaled_screen: true              # the game may render smaller than the display (below)
 display_dpi: 144                 # the lane's Xvfb runs with -dpi 144 (the X screen's mm size)
 blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its install (out/e2e/.blocked-LANE)

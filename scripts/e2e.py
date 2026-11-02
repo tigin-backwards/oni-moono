@@ -163,7 +163,7 @@ def ws_mods():
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
             'keyboard', 'tweaks_menu', 'scaled_screen', 'blocked_plugins', 'stray_plugins', 'data_collection',
-            'extra_saves', 'display_dpi', 'workshop', 'update_check'}
+            'extra_saves', 'display_dpi', 'workshop', 'update_check', 'game_tweaks', 'env'}
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 # `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty
 # file (what Steam can leave of another branch's build: #49).
@@ -357,6 +357,12 @@ def check_spec(spec):
         problems.append('`spaced_out` is true or false')
     if not isinstance(spec.get('tweaks_menu', False), bool):
         problems.append('`tweaks_menu` is true or false')
+    tweaks = spec.get('game_tweaks', [])
+    if not isinstance(tweaks, list) or not all(isinstance(t, str) and t for t in tweaks):
+        problems.append('`game_tweaks` is a list of `--game-tweak` values')
+    extra_env = spec.get('env', {})
+    if not isinstance(extra_env, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in extra_env.items()):
+        problems.append('`env` maps names to strings')
     if not isinstance(spec.get('scaled_screen', False), bool):
         problems.append('`scaled_screen` is true or false')
     if 'display_dpi' in spec and not (type(spec['display_dpi']) is int and 1 <= spec['display_dpi'] <= 1000):
@@ -2556,8 +2562,10 @@ class Player:
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
                  translation=None, language=None, keyboard=None, tweaks_menu=False, blocked_plugins=None,
                  data_collection=False, extra_saves=(), display_dpi=None, workshop=None, update_check=None,
-                 stray_plugins=()):
+                 stray_plugins=(), game_tweaks=(), extra_env=None):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
+        self.game_tweaks = list(game_tweaks)
+        self.extra_env = dict(extra_env or {})
         self.blocked_plugins = dict(blocked_plugins or {})
         self.stray_plugins = list(stray_plugins or ())
         self.keyboard = keyboard
@@ -2770,9 +2778,12 @@ class Player:
             if self.update_check:
                 env.update(ONI_UPDATE_RELEASES_URL='file://' + os.path.join(FIXTURES, self.update_check['releases']),
                            ONI_UPDATE_TAG=str(self.update_check['tag']))
+            env.update(self.extra_env)
             command = [os.path.join(ROOT, 'scripts', 'run.sh'), '--native-override',
                        'steam_api=' + self.env['QA_U57_STEAM'], *size,
                        *(a for t in os.environ.get('E2E_GAME_TWEAKS', 'exact').split() for a in ('--game-tweak', t)),
+                       # A spec's own tweaks on top (`game_tweaks`), with its environment (`env`).
+                       *(a for t in self.game_tweaks for a in ('--game-tweak', t)),
                        # The original's main menu has no Moono Tweaks button: the menus compare
                        # (a spec of the Moono Tweaks screen keeps it: `tweaks_menu: true`).
                        *([] if self.tweaks_menu else ['--no-tweaks-menu']),
@@ -4181,7 +4192,8 @@ class Run:
                                  blocked_plugins=spec.get('blocked_plugins'), stray_plugins=spec.get('stray_plugins'),
                                  data_collection=spec.get("data_collection", False),
                                  extra_saves=spec.get('extra_saves', ()), display_dpi=spec.get('display_dpi'),
-                                 workshop=spec.get('workshop'), update_check=spec.get('update_check'))
+                                 workshop=spec.get('workshop'), update_check=spec.get('update_check'),
+                                 game_tweaks=spec.get('game_tweaks', ()), extra_env=spec.get('env'))
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
             started = time.time()
