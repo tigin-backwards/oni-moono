@@ -90,8 +90,8 @@ namespace OniMoono.Desktop.Gl
             thread.Start();
         }
 
-        /// The framebuffer standing in for the back buffer this frame, sized to the window's
-        /// framebuffer.
+        /// The framebuffer standing in for the back buffer this frame, at the rendering size (the
+        /// window's framebuffer, or the smaller size a fullscreen window renders at).
         public uint BackBuffer(int width, int height)
         {
             var b = buffers[current];
@@ -103,8 +103,6 @@ namespace OniMoono.Desktop.Gl
             }
             width = Math.Max(1, width);
             height = Math.Max(1, height);
-            windowWidth = width;
-            windowHeight = height;
             // A frame keeps the size it began drawing at: allocating anew would discard what it
             // drew (the window's size changed part way through the frame).
             if (b.Framebuffer == 0 || (b.Width != width || b.Height != height) && !b.DrawnThisFrame) Allocate(b, width, height);
@@ -179,7 +177,11 @@ namespace OniMoono.Desktop.Gl
 
         /// Hands the frame drawn into the current back buffer to the presenter, once fewer than
         /// two frames are queued (one with vsync), and moves on to the next buffer. The window's
-        /// framebuffer is `width` x `height` now; a frame drawn at another size is scaled to it.
+        /// framebuffer is `width` x `height` now; a frame drawn at another size is stretched over
+        /// it, bilinearly: a fullscreen window rendering at a smaller size, as the original's is
+        /// (measured on Xvfb: 1024x576 on a 1280x720 screen matched a bilinear stretch of its
+        /// capture to a mean of 0.04 per channel, nearest 1.26), or a frame drawn before the
+        /// window's size changed.
         ///
         /// A frame that drew nothing into its back buffer, or whose buffer was allocated anew
         /// after it drew (the window's size changed), is not shown: its buffer holds an older
@@ -188,6 +190,8 @@ namespace OniMoono.Desktop.Gl
         /// the last complete frame, as a game's back buffer does across stalls and resizes.
         public void Present(int interval, int width, int height)
         {
+            windowWidth = Math.Max(1, width);
+            windowHeight = Math.Max(1, height);
             var b = buffers[current];
             var choice = Choose(b.Framebuffer != 0, b.DrawnSinceAllocation, b.DrawnThisFrame, handedOver != null);
             bool complete = choice == PresentChoice.Frame;
