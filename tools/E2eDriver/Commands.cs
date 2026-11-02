@@ -383,7 +383,7 @@ namespace E2eDriver
                 var name = (string)token;
                 if (!names.TryGetValue(name, out int slot))
                 {
-                    var method = HarmonyLib.AccessTools.Method(name) ?? throw new DriverError("no method " + name);
+                    var method = Resolve(name) ?? throw new DriverError("no method " + name);
                     slot = calls.Length;
                     Array.Resize(ref calls, slot + 1);
                     slots[method] = slot;
@@ -393,6 +393,18 @@ namespace E2eDriver
                 before[name] = System.Threading.Interlocked.Exchange(ref calls[slot], 0);
             }
             return before;
+        }
+
+        /// "Type:Method", or "Type:Method(ParamType,...)" for one overload of several (parameter
+        /// types by full or short name, as AccessTools.TypeByName takes them).
+        static System.Reflection.MethodInfo Resolve(string name)
+        {
+            int open = name.IndexOf('(');
+            if (open < 0 || !name.EndsWith(")")) return HarmonyLib.AccessTools.Method(name);
+            var inside = name.Substring(open + 1, name.Length - open - 2);
+            var types = inside.Length == 0 ? Type.EmptyTypes : inside.Split(',').Select(t =>
+                HarmonyLib.AccessTools.TypeByName(t.Trim()) ?? throw new DriverError("no type " + t.Trim() + " in " + name)).ToArray();
+            return HarmonyLib.AccessTools.Method(name.Substring(0, open), types);
         }
 
         /// The calls of a method named in a count, since that count.

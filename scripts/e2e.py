@@ -3636,16 +3636,27 @@ class Run:
         ("filtered_clear"), as a ui query. Every button is called ActionIconToggle, so it is told
         apart by its sibling index (the #N of ui.find's key)."""
         driver = self.need_driver()
-        collections = driver.state('ToolMenu.Instance.basicTools') or []
         wanted = name.lower()
-        for i, collection in enumerate(collections):
-            if wanted in (str(collection.get('text', '')).lower(), str(collection.get('icon', '')).lower()):
-                break
+        names = []
+        # The basic tools, then the sandbox's (shown in their place in sandbox mode).
+        for row in ('basicTools', 'sandboxTools'):
+            try:
+                collections = driver.state(f'ToolMenu.Instance.{row}') or []
+            except SpecFailure:
+                if row == 'basicTools':
+                    raise
+                collections = []
+            names += [f'{c.get("text")} ({c.get("icon")})' for c in collections]
+            for i, collection in enumerate(collections):
+                if wanted in (str(collection.get('text', '')).lower(), str(collection.get('icon', '')).lower()):
+                    break
+            else:
+                continue
+            break
         else:
-            names = ', '.join(f'{c.get("text")} ({c.get("icon")})' for c in collections)
-            raise SpecFailure(f'no toolbar entry {name!r}; there are {names}')
+            raise SpecFailure(f'no toolbar entry {name!r}; there are {", ".join(names)}')
         path = collection['toggle']['path']
-        sibling = driver.state(f'ToolMenu.Instance.basicTools[{i}].toggle.transform.GetSiblingIndex()')
+        sibling = driver.state(f'ToolMenu.Instance.{row}[{i}].toggle.transform.GetSiblingIndex()')
         for index, element in enumerate(driver.find(path=path)):
             if element.raw.get('key', '').endswith(f'#{sibling}'):
                 return {'ui': path, 'index': index}

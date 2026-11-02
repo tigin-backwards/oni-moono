@@ -431,7 +431,8 @@ mixing in the clock. Specs then mask such values, or assert relations between th
 
 Counts the calls of game methods from now on, through a Harmony prefix on each, added the
 first time the method is named. `methods` names each as `Type:Method` (Harmony's
-`AccessTools.Method` form, `+` for a nested type), the first overload by that name. Each
+`AccessTools.Method` form, `+` for a nested type), the first overload by that name, or
+`Type:Method(ParamType,...)` for one overload of several (`KFMOD:PlayUISound(System.String)`). Each
 `count` restarts every count it names. The counts are static state:
 `type:E2eDriver.Counting::Of("Brain:UpdateBrain")` reads one, so `expect_state` can relate them,
 as `late-patch.yaml` relates a method's calls to its caller's.
