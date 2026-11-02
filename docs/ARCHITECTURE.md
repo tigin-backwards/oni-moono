@@ -1785,6 +1785,12 @@ sizes stay what they were, and frames go on rendering at that size until the win
 Windows window sits at -32000,-32000, on no monitor; it keeps the monitor it was on.
 
 Known limitations, not handled:
+- A fullscreen window (`FullScreenWindow`) always renders at the desktop's resolution: ours
+  ignores the size `Screen.SetResolution` asks for, so the Options screen's resolution list
+  changes nothing in fullscreen. Unity renders at the asked size and scales it to the monitor,
+  letterboxed (its `FullScreenMode.FullScreenWindow` reference): measured on Xvfb at 1280x720,
+  960x720 in a fullscreen window gave the original `Screen.width` 960,
+  `Display.main.renderingWidth` 960 and `systemWidth` 1280, ours 1280 for all three.
 - X11 layouts with several groups (us,ru and a group switch) are unmeasured in the original;
   ours maps keys through the group in effect at each press.
 - Wayland has no window positions (`-monitor`, centring and restore placement do nothing there),
