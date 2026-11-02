@@ -42,6 +42,14 @@ namespace OniMoono.Engine.Rendering
                 source.Span.CopyTo(target.Span);
                 return null;
             }
+            return StartAsync(texture, source, target);
+        }
+
+        // Its own method: the verify path's closure captures the parameters, and C# allocates
+        // such a closure on entry to the method, so in Start it was made for small copies too.
+        // The plain copy passes its memories as the task's state to a static delegate.
+        static Task StartAsync(TexelTextureNative texture, PixelMemory source, PixelMemory target)
+        {
             Task copy;
             if (Verify)
             {
@@ -50,11 +58,19 @@ namespace OniMoono.Engine.Rendering
                 checks.Add((texture, sum, copied));
                 copy = copied;
             }
-            else copy = Task.Run(() => source.Span.CopyTo(target.Span));
+            // Task.Run's own options, with the memories as state.
+            else copy = Task.Factory.StartNew(CopyState, (source, target), System.Threading.CancellationToken.None,
+                TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
             texture.PendingCopy = copy;
             pending.Add(copy);
             return copy;
         }
+
+        static readonly Action<object> CopyState = static state =>
+        {
+            var (source, target) = ((PixelMemory, PixelMemory))state;
+            source.Span.CopyTo(target.Span);
+        };
 
         /// Every copy finished: called at the start of a frame, before scripts run.
         public static void Fence()
