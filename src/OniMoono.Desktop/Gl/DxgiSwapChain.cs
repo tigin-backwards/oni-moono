@@ -26,7 +26,8 @@ namespace OniMoono.Desktop.Gl
 
         /// Diagnostics (`--dxgi-fault WHAT[,WHAT]`): failures made up, for testing the ways back.
         /// At start-up (the device's own presentation instead): "adapter", "device", "swapchain",
-        /// "association" (after the swap chain is made: DXGI is then restarted);
+        /// "association" (after the swap chain is made: DXGI is then restarted), "occupied" (not
+        /// made up: a second device gives the window a flip-model swap chain before ours);
         /// OpenGL's "extension" (no WGL_NV_DX_interop2) and "register"; Vulkan's "import" and
         /// "importview:N" (the Nth image view of the shared texture: 2, a grown one, in play). While
         /// running (DXGI is then restarted): "lock:N" (the Nth interop lock, or keyed-mutex
@@ -171,8 +172,9 @@ namespace OniMoono.Desktop.Gl
                 SwapEffect = Dxgi.SwapEffectFlipDiscard, AlphaMode = Dxgi.AlphaModeIgnore, Flags = swapFlags,
             };
             void* s = null;
-            int hr = Faulty("swapchain") ? unchecked((int)0x80070005) : Dxgi.CreateSwapChainForHwnd(factory, device, hwnd, &desc, &s);
-            if (Dxgi.Failed(hr)) return $"CreateSwapChainForHwnd failed ({Dxgi.Hr(hr)})";
+            if (Faulty("occupied")) Occupy(hwnd, &desc);
+            int hr = Faulty("swapchain") ? Dxgi.AccessDenied : Dxgi.CreateSwapChainForHwnd(factory, device, hwnd, &desc, &s);
+            if (Dxgi.Failed(hr)) return $"CreateSwapChainForHwnd failed ({Dxgi.Hr(hr)}); {DxgiWindowReport.Describe(factory, hwnd, AdapterLuid, AdapterName)}";
             swapChain = s;
             WindowTouched = true;
             Width = w;
@@ -189,6 +191,31 @@ namespace OniMoono.Desktop.Gl
             if (waitable == IntPtr.Zero) return "no frame latency waitable object";
             if (!GetBackBuffer()) return Failure;
             return null;
+        }
+
+        // `--dxgi-fault occupied`: a second D3D11 device and its flip-model swap chain, made on the
+        // window before ours, as another presenter in the process would hold one (released with
+        // ours, in Dispose).
+        void* occupierDevice, occupierContext, occupierChain;
+
+        /// Gives the window a real flip-model swap chain of another device first (the "occupied"
+        /// fault): DXGI then refuses ours as it would when someone else presents to the window.
+        void Occupy(IntPtr hwnd, Dxgi.SwapChainDesc1* desc)
+        {
+            void* f4 = null, adapter = null, d = null, c = null, s = null;
+            int level = 0;
+            int hr = Dxgi.QueryInterface(factory, Dxgi.IIDFactory4, &f4);
+            if (!Dxgi.Failed(hr)) hr = Dxgi.EnumAdapterByLuid(f4, AdapterLuid, Dxgi.IIDAdapter1, &adapter);
+            Dxgi.Release(ref f4);
+            if (!Dxgi.Failed(hr)) hr = Dxgi.D3D11CreateDevice(adapter, Dxgi.DriverTypeUnknown, IntPtr.Zero, 0, null, 0, Dxgi.D3D11SdkVersion, &d, &level, &c);
+            Dxgi.Release(ref adapter);
+            occupierDevice = d;
+            occupierContext = c;
+            if (!Dxgi.Failed(hr)) hr = Dxgi.CreateSwapChainForHwnd(factory, occupierDevice, hwnd, desc, &s);
+            occupierChain = s;
+            EngineLog.Engine(Dxgi.Failed(hr)
+                ? $"present: the occupying swap chain was not made ({Dxgi.Hr(hr)})"
+                : "present: the window has another device's flip-model swap chain (a made-up fault: --dxgi-fault occupied)");
         }
 
         /// The start-up log line: the adapter (`how` it was found), the swap chain's settings as
@@ -318,6 +345,14 @@ namespace OniMoono.Desktop.Gl
                 Dxgi.Release(ref context);
             }
             Dxgi.Release(ref device);
+            Dxgi.Release(ref occupierChain);
+            if (occupierContext != null)
+            {
+                Dxgi.ClearState(occupierContext);
+                Dxgi.Flush(occupierContext);
+                Dxgi.Release(ref occupierContext);
+            }
+            Dxgi.Release(ref occupierDevice);
             Dxgi.Release(ref factory);
             if (waitable != IntPtr.Zero)
             {

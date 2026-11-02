@@ -1883,8 +1883,18 @@ used and released on the presenter thread alone. Start-up makes everything that 
 interop extension, the adapter, the D3D11 device, the registration or import, and on OpenGL a
 first lock; Vulkan's keyed mutex is first acquired by the first picture's submission, in play)
 before it gives the window a swap chain, and a failure there leaves the device's own
-presentation in use, with one `present:` log line saying why. Once the window has a swap chain,
-a failure (the chain's own set-up at start-up; while running a lost device:
+presentation in use, with one `present:` log line saying why. A window can have only one
+flip-model swap chain at a time (Microsoft's `CreateSwapChainForHwnd` remarks, which list no
+error for it); Windows 11 returned `E_ACCESSDENIED` (0x80070005) when it already had one
+(`--dxgi-fault occupied`, which gives it a real one of a second D3D11 device first; measured),
+and a player's log showed that error at start-up, before any swap chain of ours, on a laptop with
+a Ryzen 5600H's iGPU and a GTX 1650, whose built-in screen is most likely the iGPU's. Who held
+that swap chain is not known: OpenGL's driver presenting through DXGI itself is the suspect; on
+OpenGL on this machine's RTX 3090 nothing had loaded `dxgi.dll` by then (on Vulkan the loader
+has). A refused swap chain's log line
+names the window's owner thread and process, its styles and size, the adapter showing its monitor
+against the device's, and the graphics runtimes and hooks (overlays, capture, a proxy `dxgi.dll`)
+loaded before DXGI started. Once the window has a swap chain, a failure (the chain's own set-up at start-up; while running a lost device:
 `DXGI_ERROR_DEVICE_REMOVED`/`RESET`/`HUNG`, a failed lock, a keyed-mutex timeout on D3D11's side
 (`IDXGIKeyedMutex::AcquireSync`), a failed image view, resize or present) releases everything DXGI
 held and starts it anew. Vulkan's side of the mutex is in the submission (Brutal's

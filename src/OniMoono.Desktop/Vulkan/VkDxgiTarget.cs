@@ -78,6 +78,7 @@ namespace OniMoono.Desktop.Vulkan
         string Start(int w, int h)
         {
             if (DxgiSwapChain.RestartRefused) return "a restart that fails";
+            DxgiWindowReport.NoteModulesBeforeDxgi();
             if (!vk.DxgiInterop) return "the Vulkan driver has no VK_KHR_external_memory_win32 and VK_KHR_win32_keyed_mutex";
             if (DxgiSwapChain.Faulty("adapter") || vk.Luid == 0) return "the Vulkan device gives no LUID to find its DXGI adapter by";
             if (!Importable(out string why)) return why;

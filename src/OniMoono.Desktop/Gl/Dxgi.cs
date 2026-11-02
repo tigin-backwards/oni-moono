@@ -12,6 +12,9 @@ namespace OniMoono.Desktop.Gl
     {
         // ----- HRESULTs -----
         public const int S_OK = 0;
+        /// What CreateSwapChainForHwnd returns for a window that already has a flip-model swap
+        /// chain (not in its documented list; measured, DxgiWindowReport).
+        public const int AccessDenied = unchecked((int)0x80070005);
         public const int StatusOccluded = 0x087A0001;
         public const int ErrorDeviceRemoved = unchecked((int)0x887A0005), ErrorDeviceHung = unchecked((int)0x887A0006),
             ErrorDeviceReset = unchecked((int)0x887A0007), ErrorDriverInternal = unchecked((int)0x887A0020);
@@ -88,6 +91,22 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
+        /// DXGI_OUTPUT_DESC (96 bytes): the output's device name and the monitor it shows.
+        [StructLayout(LayoutKind.Explicit, Size = 96)]
+        public struct OutputDesc
+        {
+            [FieldOffset(0)] public fixed char DeviceName[32];
+            [FieldOffset(88)] public IntPtr Monitor;
+
+            public string Name
+            {
+                get
+                {
+                    fixed (char* p = DeviceName) return new string(p, 0, 32).TrimEnd('\0');
+                }
+            }
+        }
+
         /// DXGI_QUERY_VIDEO_MEMORY_INFO.
         [StructLayout(LayoutKind.Sequential)]
         public struct VideoMemoryInfo
@@ -141,7 +160,9 @@ namespace OniMoono.Desktop.Gl
         }
         public static int CheckFeatureSupport(void* factory5, uint feature, void* data, uint size) => ((delegate* unmanaged<void*, uint, void*, uint, int>)Vtbl(factory5)[28])(factory5, feature, data, size);
 
-        // IDXGIAdapter1/3
+        // IDXGIAdapter/1/3, IDXGIOutput
+        public static int EnumOutputs(void* adapter, uint index, void** output) => ((delegate* unmanaged<void*, uint, void**, int>)Vtbl(adapter)[7])(adapter, index, output);
+        public static int GetDesc(void* output, OutputDesc* desc) => ((delegate* unmanaged<void*, OutputDesc*, int>)Vtbl(output)[7])(output, desc);
         public static int GetDesc1(void* adapter, AdapterDesc1* desc) => ((delegate* unmanaged<void*, AdapterDesc1*, int>)Vtbl(adapter)[10])(adapter, desc);
         public static int QueryVideoMemoryInfo(void* adapter3, uint node, uint segmentGroup, VideoMemoryInfo* info)
             => ((delegate* unmanaged<void*, uint, uint, VideoMemoryInfo*, int>)Vtbl(adapter3)[14])(adapter3, node, segmentGroup, info);

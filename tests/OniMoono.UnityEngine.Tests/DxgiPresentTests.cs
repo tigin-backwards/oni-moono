@@ -91,7 +91,36 @@ namespace OniMoono.Tests
             Assert.Equal(40, Marshal.OffsetOf<Dxgi.Texture2DDesc>(nameof(Dxgi.Texture2DDesc.MiscFlags)).ToInt32());
             Assert.Equal(24, Marshal.SizeOf<Dxgi.Box>());
             Assert.Equal(312, Marshal.SizeOf<Dxgi.AdapterDesc1>());
+            Assert.Equal(96, Marshal.SizeOf<Dxgi.OutputDesc>());
+            Assert.Equal(88, Marshal.OffsetOf<Dxgi.OutputDesc>(nameof(Dxgi.OutputDesc.Monitor)).ToInt32());
             Assert.Equal(32, Marshal.SizeOf<Dxgi.VideoMemoryInfo>());
+        }
+
+        static readonly DxgiWindowReport.WindowFacts Laptop = new(
+            IsWindow: true, OwnerProcess: 40, OwnerThread: 7, Process: 40, Thread: 9,
+            Style: 0x16000000, ExStyle: 0, ClientWidth: 1920, ClientHeight: 1080,
+            Monitor: @"\\.\DISPLAY1", MonitorAdapter: "AMD Radeon(TM) Graphics", MonitorAdapterLuid: 0x2,
+            DeviceAdapter: "NVIDIA GeForce GTX 1650", DeviceLuid: 0x1);
+
+        /// A swap chain refused for the window: the log names its owner, styles, size, which
+        /// adapter shows its monitor and what was loaded before DXGI.
+        [Fact]
+        public void ARefusedWindowIsDescribed()
+        {
+            Assert.Equal(
+                @"window 0x1A2B made on thread 7, DXGI called on thread 9; style 0x16000000, extended 0x00000000; client 1920x1080; "
+                + @"on \\.\DISPLAY1, an output of AMD Radeon(TM) Graphics, not of the device's NVIDIA GeForce GTX 1650: the picture crosses adapters; "
+                + "loaded before DXGI started: dxgi.dll, d3d12.dll",
+                DxgiWindowReport.Format(0x1A2B, Laptop, "dxgi.dll, d3d12.dll"));
+            var desktop = Laptop with { MonitorAdapterLuid = 0x1, ExStyle = DxgiWindowReport.WsExNoRedirectionBitmap | DxgiWindowReport.WsExLayered };
+            Assert.Equal(
+                @"window 0x1A2B made on thread 7, DXGI called on thread 9; style 0x16000000, extended 0x00280000 (no redirection bitmap) (layered); client 1920x1080; "
+                + @"on \\.\DISPLAY1, an output of the device's adapter; loaded before DXGI started: none",
+                DxgiWindowReport.Format(0x1A2B, desktop, "none"));
+            Assert.Contains("of another process (41);", DxgiWindowReport.Format(0x1A2B, Laptop with { OwnerProcess = 41 }, "none"));
+            Assert.Contains("its monitor is on no adapter DXGI lists;", DxgiWindowReport.Format(0x1A2B, Laptop with { Monitor = "" }, null));
+            Assert.EndsWith("loaded before DXGI started: not noted", DxgiWindowReport.Format(0x1A2B, Laptop, null));
+            Assert.Equal("window 0x1A2B: not a window", DxgiWindowReport.Format(0x1A2B, Laptop with { IsWindow = false }, "none"));
         }
 
         [Fact]
@@ -215,14 +244,14 @@ namespace OniMoono.Tests
         [Fact]
         public void EveryFaultThisBuildHasIsAccepted()
         {
-            foreach (var ok in new[] { "extension", "adapter", "device", "register", "swapchain", "association", "norestart",
+            foreach (var ok in new[] { "extension", "adapter", "device", "register", "swapchain", "occupied", "association", "norestart",
                                        "import", "lock:1", "resize:3", "removed:300", "importview:2",
                                        "removed:300,norestart", "association,norestart" })
                 Assert.Null(OniMoono.Host.DxgiFaultOption.Unknown(ok));
             Assert.Equal("bogus", OniMoono.Host.DxgiFaultOption.Unknown("removed:3,bogus"));
             foreach (var bad in new[] { "", "lock", "lock:", "lock:0", "lock:-1", "lock:x", "removed", "norestart:1", "Removed:3", "import:1" })
                 Assert.Equal(bad, OniMoono.Host.DxgiFaultOption.Unknown(bad));
-            Assert.Equal("extension, adapter, device, register, swapchain, association, import, norestart, "
+            Assert.Equal("extension, adapter, device, register, swapchain, occupied, association, import, norestart, "
                 + "lock:N, resize:N, removed:N, importview:N", OniMoono.Host.DxgiFaultOption.Known);
         }
 
