@@ -510,9 +510,10 @@ package (M9). They refine the sections above.
   set at run time is split into its horizontal and vertical bytes.
 - **Truncation:** Truncate and Ellipsis stop where the first line that doesn't fit begins,
   leaving a blank record. Truncation keeps the part of a wrapped word that fits.
-- **Auto-size** doesn't choose a size that would break a word, and a wrapped text's
-  `preferredHeight` uses the auto-sized size (an unwrapped text's is at `fontSizeMax`, measured
-  in "Texts with nothing to lay out"). A margin change keeps the preferred sizes until the text
+- **Auto-size** doesn't choose a size that would break a word. A wrapped text's
+  `preferredHeight` uses the size auto-size chooses for the width alone, the height unbounded,
+  whatever the rect's height (UnityProbe `autosizepref`, U60's All Diagnostics labels); an
+  unwrapped text's is at `fontSizeMax` (measured in "Texts with nothing to lay out"). A margin change keeps the preferred sizes until the text
   changes.
 - **`textBounds`** spans the characters' advances.
 - **Input field:** `inputValidator` doesn't change `characterValidation`.
