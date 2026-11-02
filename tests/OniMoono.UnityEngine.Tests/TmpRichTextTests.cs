@@ -32,6 +32,60 @@ namespace OniMoono.Tests
             Assert.True(t.textInfo.meshInfo[0].uvs0[c[0].vertexIndex].w > 0f);
         }
 
+        static TextMeshProUGUI Noto(string text, float width)
+        {
+            var t = TmpTestSupport.NewText(text, TmpTestSupport.FindAsset<TMP_FontAsset>("NotoSans-Regular"), 14f, new Vector2(width, 60f));
+            // As the probe set it up: the rect's top left at its pivot, so origins count from 0.
+            ((RectTransform)t.transform).pivot = new Vector2(0f, 1f);
+            t.alignment = TextAlignmentOptions.TopLeft;
+            t.enableKerning = true;
+            t.extraPadding = true;
+            t.textWrappingMode = width < 400f ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+            t.ForceMeshUpdate(true);
+            return t;
+        }
+
+        static float[] Origins(TMP_Text t) => t.textInfo.characterInfo.Take(t.textInfo.characterCount).Select(c => c.origin).ToArray();
+
+        /// An <indent> that opens part-way along a line moves the pen to the indent, forward or
+        /// back, and later lines start there; its closing tag leaves the pen where it is. Measured
+        /// in the original player (UnityProbe richtext, NotoSans-Regular 14 pt, 1 em = 14).
+        [Fact]
+        public void AnIndentPartWayAlongALineMovesThePen()
+        {
+            var t = Noto("ab<indent=3em>cd", 400f);
+            Assert.Equal(new[] { 0f, 7.838542f, 42f, 48.70833f }, Origins(t), new FloatTolerance(0.001f));
+            Assert.Equal(57.32f, t.preferredWidth, 2);
+            t = Noto("abcdefghijkl<indent=2em>mn", 400f);
+            Assert.Equal(28f, Origins(t)[12], 3);
+            Assert.Equal(41.08854f, Origins(t)[13], 3);
+            Assert.Equal(80.03f, t.preferredWidth, 2);
+            t = Noto("ab<indent=40>cd</indent>ef", 400f);
+            Assert.Equal(new[] { 40f, 46.70833f, 55.3125f, 63.22396f }, Origins(t).Skip(2).ToArray(), new FloatTolerance(0.001f));
+            t = Noto("ab<indent=3em>cd\nef", 400f);
+            Assert.Equal(42f, Origins(t)[5], 3);
+            Assert.Equal(1, t.textInfo.characterInfo[5].lineNumber);
+            // The bullets of a list: the text and its wrapped lines start at the indent.
+            t = Noto("•<indent=1em>Big bases with Fast Track draw faster: each camera now looks only at renderers.</indent>", 300f);
+            var c = t.textInfo.characterInfo;
+            Assert.Equal(14f, c[1].origin, 3);
+            int second = Enumerable.Range(0, t.textInfo.characterCount).First(i => c[i].lineNumber == 1);
+            Assert.Equal(14f, c[second].origin, 3);
+            Assert.Equal(539.15f, t.preferredWidth, 2);
+            t = Noto("<indent=1em>–<indent=2em>A nested bullet that wraps onto a second line here.</indent></indent>", 300f);
+            c = t.textInfo.characterInfo;
+            Assert.Equal(14f, c[0].origin, 3);
+            Assert.Equal(28f, c[1].origin, 3);
+            second = Enumerable.Range(0, t.textInfo.characterCount).First(i => c[i].lineNumber == 1);
+            Assert.Equal(28f, c[second].origin, 3);
+        }
+
+        sealed class FloatTolerance(float tolerance) : System.Collections.Generic.IEqualityComparer<float>
+        {
+            public bool Equals(float a, float b) => System.Math.Abs(a - b) <= tolerance;
+            public int GetHashCode(float v) => 0;
+        }
+
         [Fact]
         public void SourceIndicesSkipTheTags()
         {

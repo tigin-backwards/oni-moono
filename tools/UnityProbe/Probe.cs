@@ -218,6 +218,11 @@ namespace SemanticsProbe
                 go.AddComponent<ModText>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "richtext")
+            {
+                go.AddComponent<RichText>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "tallline")
             {
                 go.AddComponent<TallLine>();

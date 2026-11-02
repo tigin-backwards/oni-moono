@@ -295,6 +295,17 @@ past the preferred width. Check the rule with `tools/UnityProbe/wc-check.py rule
 compare the players with `wc-check.py diff ORIG OURS`. `textmeshpro.md` ("Words and their
 separators") records what it measured.
 
+With `PROBE_SCENARIO=richtext` only the rich-text probe runs (`RichText.cs`, lines `RT …`, 10 s
+into the main menu, a few frames): `<b>` in NotoSans-Regular (14 and 18 pt) and GRAYSTROKE, and
+`<indent>` opening part-way along a line (bullets with hanging indents, nested, wrapped; an indent
+left of the pen; `</indent>` mid-line), each case at a fixed place on a black panel, its
+characters logged and the screen captured to `PROBE_CAPTURE_DIR/richtext.png` (the directory must
+exist). Run it with `tests/e2e/probe-richtext.yaml` as the canvas probes run (OniMcp's folder
+with `SemanticsProbe.dll`). Measured 2026-11-02: bold draws with the same ink in both players
+(within 0.4% per word); an opening `<indent>` moves the pen to the indent, back as well as
+forward, and the line's preferred width is as far as it reached; `TmpRichTextTests`
+(`AnIndentPartWayAlongALineMovesThePen`) encodes it.
+
 With `PROBE_SCENARIO=tallline` only the tall-line probe runs (`TallLine.cs`, lines `TL …`, 10 s
 into the main menu, about ten seconds). It lays out texts whose line grows taller part-way: the
 geyser names' U+2011 from a fallback font, `<size>`, `<voffset>` and spaces in `<size>`, on the
