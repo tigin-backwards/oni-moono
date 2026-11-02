@@ -1,0 +1,71 @@
+{
+ "spec": "u60-i1-rebind.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Dig rebound to the back side button (X button 8) in Options > Controls: its label, then the button over the world picks the Dig tool, as in the original",
+ "updated": "2026-11-02",
+ "commit": "59bfef68",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-020018-d93b61bb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T02:00:18",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261102-020018-d93b61bb",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T02:01:15",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-020018-d93b61bb",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T02:02:11",
+    "lane": 1,
+    "reference_run": "20261102-020018-d93b61bb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "before": {
+      "differences": 0
+     },
+     "back": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261102-020018-d93b61bb",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T02:02:41",
+    "lane": 1,
+    "reference_run": "20261102-020018-d93b61bb",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "before": {
+      "differences": 0
+     },
+     "back": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
