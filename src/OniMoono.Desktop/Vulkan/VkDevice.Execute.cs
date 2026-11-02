@@ -369,6 +369,19 @@ namespace OniMoono.Desktop.Vulkan
             return true;
         }
 
+        /// A draw's set-0 textures: the program's texture at each slot, or the unbound stand-in
+        /// for one without an image or rendered into by this pass.
+        readonly struct DrawTextures(VkDevice device, ProgramInputs r) : ITextureSlots
+        {
+            public VkTexture Texture(VkBindingSlot slot)
+            {
+                if (slot.Index < 0) return null;
+                var vt = r.Textures[slot.Index].Texture.Vk;
+                if (vt?.Image == null || device.IsAttached(vt)) vt = device.DefaultTexture(Unbound, r.Program.Samplers[slot.Index].Target).Vk;
+                return vt;
+            }
+        }
+
         /// Set 0: each binding's texture, its sampler, or an empty storage buffer; pushed, or
         /// a set kept by the descriptor cache, returned for BindUniforms to bind with set 1.
         VkDescriptorSet BindTextures(ProgramInputs r, VkProgram program, CommandBuffer cb)
@@ -376,54 +389,21 @@ namespace OniMoono.Desktop.Vulkan
             var slots = program.Slots;
             int n = slots.Length;
             if (n == 0) return default;
-            var writes = stackalloc VkWriteDescriptorSet[n];
-            var bufferInfos = stackalloc VkDescriptorBufferInfo[n];
-            var imageInfos = stackalloc VkDescriptorImageInfo[n];
-            // What each binding names (image serial, sampler), for the descriptor cache.
-            Span<long> ids = program.Push ? default : stackalloc long[2 * n];
-            for (int i = 0; i < n; i++)
-            {
-                var slot = slots[i];
-                writes[i] = new VkWriteDescriptorSet { DstBinding = slot.Binding, DescriptorCount = 1, DescriptorType = slot.Type };
-                if (slot.Type == VkDescriptorType.StorageBuffer)
-                {
-                    bufferInfos[i] = new VkDescriptorBufferInfo { Buffer = emptyStorage.Buffer, Offset = default, Range = (Brutal.ByteSize64)emptyStorage.Size };
-                    writes[i].BufferInfo = &bufferInfos[i];
-                    if (!program.Push) ids[2 * i] = ids[2 * i + 1] = 0;
-                    continue;
-                }
-                VkTexture vt = null;
-                if (slot.Index >= 0)
-                {
-                    vt = r.Textures[slot.Index].Texture.Vk;
-                    if (vt?.Image == null || IsAttached(vt)) vt = DefaultTexture(Unbound, r.Program.Samplers[slot.Index].Target).Vk;
-                }
-                var sampler = vt == null || vt.Sampler.IsNull() ? defaultSampler : vt.Sampler;
-                imageInfos[i] = slot.Type switch
-                {
-                    VkDescriptorType.Sampler => new VkDescriptorImageInfo { Sampler = sampler },
-                    VkDescriptorType.SampledImage => new VkDescriptorImageInfo { ImageView = vt.Image.View, ImageLayout = VkImageLayout.ShaderReadOnlyOptimal },
-                    _ => new VkDescriptorImageInfo { Sampler = sampler, ImageView = vt.Image.View, ImageLayout = VkImageLayout.ShaderReadOnlyOptimal },
-                };
-                writes[i].ImageInfo = &imageInfos[i];
-                if (!program.Push)
-                {
-                    ids[2 * i] = slot.Type == VkDescriptorType.Sampler ? 0 : vt.Image.Serial;
-                    ids[2 * i + 1] = slot.Type == VkDescriptorType.SampledImage ? 0 : (long)sampler.VkHandle;
-                }
-            }
+            var source = new DrawTextures(this, r);
+            var storage = new VkDescriptorBufferInfo { Buffer = emptyStorage.Buffer, Offset = default, Range = (Brutal.ByteSize64)emptyStorage.Size };
             if (program.Push)
             {
+                var writes = stackalloc VkWriteDescriptorSet[n];
+                var bufferInfos = stackalloc VkDescriptorBufferInfo[n];
+                var imageInfos = stackalloc VkDescriptorImageInfo[n];
+                VkTextureSet.Writes(ref source, slots, defaultSampler, storage, default, writes, bufferInfos, imageInfos);
                 vk.Device.PInvoke.vkCmdPushDescriptorSetKHR.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 0, n, writes);
                 return default;
             }
             // A set naming the same descriptors is bound again; else one is made and kept.
-            if (!descriptorCache.TryGet(program, ids, presented, out var set))
-            {
-                set = descriptorCache.Add(program, ids, presented);
-                for (int i = 0; i < n; i++) writes[i].DstSet = set;
-                vk.Device.PInvoke.vkUpdateDescriptorSets.Invoke(vk.Device.Handle, n, writes, 0, null);
-            }
+            var set = VkDrawAlternation.Before(VkDrawAlternation.WritesFirst)
+                ? descriptorCache.SetForWritesFirst(program, ref source, defaultSampler, storage, presented)
+                : descriptorCache.SetFor(program, ref source, defaultSampler, storage, presented);
             if (program.Uniforms.Length == 0) vk.Device.PInvoke.vkCmdBindDescriptorSets.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 0, 1, &set, 0, null);
             return set;
         }

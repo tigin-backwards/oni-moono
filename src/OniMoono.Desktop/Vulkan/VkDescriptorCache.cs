@@ -134,27 +134,75 @@ namespace OniMoono.Desktop.Vulkan
         }
     }
 
+    /// Where the descriptor cache's sets come from and are written (VkDescriptorPools; tests'
+    /// fakes).
+    internal unsafe interface IDescriptorSets : IDisposable
+    {
+        (VkDescriptorPool Pool, VkDescriptorSet Set) Allocate(VkDescriptorSetLayout layout);
+        void Write(VkWriteDescriptorSet* writes, int count);
+        void Free(VkDescriptorPool pool, VkDescriptorSet set);
+    }
+
     /// Set 0 of programs whose bindings are more than the device pushes (Klei's batched
     /// animation shaders bind 39), kept across frames by what they hold: a draw whose textures,
     /// samplers and buffers a set already names binds that set instead of allocating and writing
-    /// one. Sets come from pools kept for the device's life and are freed once unused for
-    /// `MaxAge` frames, far longer than a frame stays in flight, so no recorded command still
-    /// names a freed set. Images are named by their serial, never reused, so a set naming an image
-    /// since destroyed is never bound again; it only waits to age out.
+    /// one. Sets are freed once unused for `MaxAge` frames, far longer than a frame stays in
+    /// flight, so no recorded command still names a freed set. Images are named by their serial,
+    /// never reused, so a set naming an image since destroyed is never bound again; it only waits
+    /// to age out.
     internal sealed unsafe class VkDescriptorCache : IDisposable
     {
-        const int MaxAge = 60;
-        readonly VkContext vk;
+        public const int MaxAge = 60;
+        readonly IDescriptorSets sets;
         readonly IdentityTable<(VkDescriptorPool Pool, VkDescriptorSet Set)> table = new();
-        readonly List<VkDescriptorPool> pools = new();
         long lastSweep;
 
         /// Diagnostics: sets made and found since the counters were last taken.
         public long Made, Found;
 
-        public VkDescriptorCache(VkContext vk) => this.vk = vk;
+        public VkDescriptorCache(VkContext vk) : this(new VkDescriptorPools(vk)) { }
+
+        public VkDescriptorCache(IDescriptorSets sets) => this.sets = sets;
 
         public int Count => table.Count;
+
+        /// The program's set 0 for a draw: the set already naming the draw's descriptors, found
+        /// by their identities alone (no write is built), or a new set, written and kept.
+        public VkDescriptorSet SetFor<T>(VkProgram program, ref T source, VkSampler defaultSampler, in VkDescriptorBufferInfo storage, long frame)
+            where T : struct, ITextureSlots
+        {
+            var slots = program.Slots;
+            int n = slots.Length;
+            Span<long> ids = stackalloc long[2 * n];
+            VkTextureSet.Identities(ref source, slots, defaultSampler, ids);
+            if (TryGet(program, ids, frame, out var set)) return set;
+            set = Add(program, ids, frame);
+            var writes = stackalloc VkWriteDescriptorSet[n];
+            var bufferInfos = stackalloc VkDescriptorBufferInfo[n];
+            var imageInfos = stackalloc VkDescriptorImageInfo[n];
+            VkTextureSet.Writes(ref source, slots, defaultSampler, storage, set, writes, bufferInfos, imageInfos);
+            sets.Write(writes, n);
+            return set;
+        }
+
+        /// SetFor in the order of work before it: every draw's writes built with the
+        /// identities, used only for a new set (measured against: VkDrawAlternation).
+        public VkDescriptorSet SetForWritesFirst<T>(VkProgram program, ref T source, VkSampler defaultSampler, in VkDescriptorBufferInfo storage, long frame)
+            where T : struct, ITextureSlots
+        {
+            var slots = program.Slots;
+            int n = slots.Length;
+            var writes = stackalloc VkWriteDescriptorSet[n];
+            var bufferInfos = stackalloc VkDescriptorBufferInfo[n];
+            var imageInfos = stackalloc VkDescriptorImageInfo[n];
+            Span<long> ids = stackalloc long[2 * n];
+            VkTextureSet.Writes(ref source, slots, defaultSampler, storage, default, writes, bufferInfos, imageInfos, ids);
+            if (TryGet(program, ids, frame, out var set)) return set;
+            set = Add(program, ids, frame);
+            for (int i = 0; i < n; i++) writes[i].DstSet = set;
+            sets.Write(writes, n);
+            return set;
+        }
 
         public bool TryGet(VkProgram program, ReadOnlySpan<long> ids, long frame, out VkDescriptorSet set)
         {
@@ -171,7 +219,40 @@ namespace OniMoono.Desktop.Vulkan
         /// A new set for the program, remembered for these identities; the caller writes it.
         public VkDescriptorSet Add(VkProgram program, ReadOnlySpan<long> ids, long frame)
         {
-            var layout = program.TextureSet;
+            var made = sets.Allocate(program.TextureSet);
+            Made++;
+            table.Add(program, ids, made, frame, out program.LastTextureSet);
+            return made.Set;
+        }
+
+        /// Frees the sets unused for MaxAge frames (checked every MaxAge frames).
+        public void Sweep(long frame)
+        {
+            if (frame - lastSweep < MaxAge) return;
+            lastSweep = frame;
+            table.Sweep(frame - MaxAge, Free);
+        }
+
+        void Free((VkDescriptorPool Pool, VkDescriptorSet Set) e) => sets.Free(e.Pool, e.Set);
+
+        public void Dispose()
+        {
+            table.Clear(_ => { });
+            sets.Dispose();
+        }
+    }
+
+    /// The descriptor cache's sets on the device: from pools kept for the device's life, a new
+    /// pool made only when no pool has room.
+    internal sealed unsafe class VkDescriptorPools : IDescriptorSets
+    {
+        readonly VkContext vk;
+        readonly List<VkDescriptorPool> pools = new();
+
+        public VkDescriptorPools(VkContext vk) => this.vk = vk;
+
+        public (VkDescriptorPool Pool, VkDescriptorSet Set) Allocate(VkDescriptorSetLayout layout)
+        {
             VkDescriptorSet set = default;
             for (bool full = pools.Count == 0; ; full = true)
             {
@@ -208,28 +289,17 @@ namespace OniMoono.Desktop.Vulkan
                 }
                 if (placed) break;
             }
-            Made++;
-            table.Add(program, ids, (pools[^1], set), frame, out program.LastTextureSet);
-            return set;
+            return (pools[^1], set);
         }
 
-        /// Frees the sets unused for MaxAge frames (checked every MaxAge frames).
-        public void Sweep(long frame)
-        {
-            if (frame - lastSweep < MaxAge) return;
-            lastSweep = frame;
-            table.Sweep(frame - MaxAge, Free);
-        }
+        public void Write(VkWriteDescriptorSet* writes, int count) =>
+            vk.Device.PInvoke.vkUpdateDescriptorSets.Invoke(vk.Device.Handle, count, writes, 0, null);
 
-        void Free((VkDescriptorPool Pool, VkDescriptorSet Set) e)
-        {
-            var s = e.Set;
-            vk.Device.PInvoke.vkFreeDescriptorSets.Invoke(vk.Device.Handle, e.Pool, 1, &s);
-        }
+        public void Free(VkDescriptorPool pool, VkDescriptorSet set) =>
+            vk.Device.PInvoke.vkFreeDescriptorSets.Invoke(vk.Device.Handle, pool, 1, &set);
 
         public void Dispose()
         {
-            table.Clear(_ => { });
             foreach (var p in pools) vk.Device.DestroyDescriptorPool(p, null);
             pools.Clear();
         }
