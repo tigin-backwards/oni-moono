@@ -1215,6 +1215,7 @@ namespace OniMoono.Engine.UI
                     group[i].SubMesh = i;
                 }
             }
+            group.Clear();
         }
 
         static UiDrawState StateOf(CanvasRendererNative r, DrawItem item)
