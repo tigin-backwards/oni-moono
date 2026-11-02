@@ -1,0 +1,29 @@
+# R3 (docs/research/u60-qa-spec.md): the colony preview U60 captures with every save.
+#
+# U60's Timelapser reads the frame back with AsyncGPUReadback (RGBA32) where
+# SystemInfo.supportsAsyncGPUReadback, else ReadPixels, and encodes it with
+# ImageConversion.EncodeArrayToPNG in Task.Run; every save writes the colony's preview
+# (SAVE.png beside the save) through it, and each timelapse cycle a frame
+# (RetiredColonies/BASE/00000/WORLD_cycle_NNNN.png).
+#
+# From early-base, paused: the pause menu's Save As, a new save; its preview is compared with
+# the original's (size, row order and channels: a flipped or swizzled image fails the pixel
+# comparison), the colony unmoved since the load. Short (the renderer is under
+# test). The autosave's preview at a new cycle is s2-save-and-quit.yaml's. The timelapse frame
+# proper, half a cycle into a timelapse day, was not written in the original within 330 s of
+# the new cycle on this harness, so it is not compared.
+from: early-base
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Save AsButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Save AsButton"}
+  - ui_wait: {path: "**/SaveScreen", cond: stable}
+  - click: {ui: "**/SaveScreen/**/NewSaveButton"}
+  - ui_wait: {path: "**/FileNameDialog", cond: stable}
+  - type: {ui: "**/FileNameDialog/**/*Input*", text: "e2e-r3", clear: true}
+  - click: {text: "Confirm", under: "**/FileNameDialog"}
+  - ui_wait: {path: "**/SaveScreen", cond: gone, frames: 3000}
+  - expect_state:
+      "file:save_files/e2e/e2e-r3.sav": exists
+      "SaveGame.Instance.TimelapseResolution.x": "> 0"
+  - file_shot: {name: preview, path: "save_files/e2e/e2e-r3.png", threshold: 0.02}

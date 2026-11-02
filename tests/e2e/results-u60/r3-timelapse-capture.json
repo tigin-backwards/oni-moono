@@ -1,0 +1,53 @@
+{
+ "spec": "u60/r3-timelapse-capture.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Save As from the pause menu, paused: the new save's colony preview (Timelapser capture and PNG write) compared with the original's",
+ "updated": "2026-11-01",
+ "commit": "a59fc749",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-190315-f4f4c0c2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:03:15",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-192621-1a7662b4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:26:21",
+    "lane": 50,
+    "reference_run": "20261101-190315-f4f4c0c2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "preview": 0.006037
+    }
+   },
+   {
+    "run": "20261101-192621-1a7662b4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T19:28:26",
+    "lane": 50,
+    "reference_run": "20261101-190315-f4f4c0c2",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "preview": 0.006036
+    }
+   }
+  ]
+ }
+}

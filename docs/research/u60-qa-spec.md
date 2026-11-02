@@ -209,6 +209,12 @@ strings `STRINGS/UI.cs` CONDUITFLOW.
 
 ### R3 Timelapse and colony preview capture
 
+**Status:** passes (a59fc749, Linux OpenGL; Windows Vulkan: pending).
+`tests/e2e/u60/r3-timelapse-capture.yaml` (with the new `file_shot` step): a Save As preview,
+1272x808 in both, 0.6 % of pixels differ. The autosave preview at a new cycle is S2's. The
+timelapse frame proper was not written in the original within 330 s of a new cycle on this
+harness, so it is not compared.
+
 **Risk: high.** Every save writes a preview through this path.
 
 **Patch note:** "Improved timelapse capture performance." The notes don't say how.
