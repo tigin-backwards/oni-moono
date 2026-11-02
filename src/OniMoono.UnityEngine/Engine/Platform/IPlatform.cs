@@ -21,6 +21,9 @@ namespace OniMoono.Engine.Platform
         DisplayMode DesktopMode { get; }
         DisplayMode[] DisplayModes { get; }
 
+        /// Screen.currentResolution: the desktop's mode, except where the player reports another.
+        DisplayMode CurrentResolution => DesktopMode;
+
         void SetResolution(int width, int height, FullScreenMode mode, uint refreshNumerator, uint refreshDenominator);
 
         /// Processes OS events, reporting input to `input`. Returns false when the user closed

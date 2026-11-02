@@ -42,6 +42,16 @@ namespace OniMoono.Tests
             Assert.Equal(new int2(0, 0), GlfwPlatform.FullScreenWindowRendering(new int2(960, 720), new int2(0, 0)));
         }
 
+        [Fact]
+        public void CurrentResolutionIsTheRenderingSizeOnWindowsOnly()
+        {
+            var desktop = new DisplayMode(2560, 1440, 60, 1);
+            Assert.Equal(new DisplayMode(1280, 720, 60, 1),
+                GlfwPlatform.CurrentResolutionOf(desktop, new int2(1280, 720), FullScreenMode.FullScreenWindow, windows: true));
+            Assert.Equal(desktop, GlfwPlatform.CurrentResolutionOf(desktop, new int2(1280, 720), FullScreenMode.FullScreenWindow, windows: false));
+            Assert.Equal(desktop, GlfwPlatform.CurrentResolutionOf(desktop, new int2(1280, 720), FullScreenMode.Windowed, windows: true));
+        }
+
         /// The window's pixel (top left) as Input.mousePosition (bottom left), as GlfwPlatform maps it.
         static Vector2 Mouse(float x, float y, int2 rendering)
             => PointerPixels.Screen(GlfwPlatform.WindowToRendering(new Vector2(x, y), Window, rendering), rendering.Y);
