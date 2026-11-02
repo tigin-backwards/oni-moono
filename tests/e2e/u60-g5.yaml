@@ -1,0 +1,20 @@
+# U60 QA spec G5 (docs/research/u60-qa-spec.md, "Game logic"): building defs: Smart Storage Bin, suit docks, Oxylite, Window Tile, Wicker Door, Bottle Drainer, Breathing Station.
+# Game code only, no new engine surface: the values the changed code sets up, read in both
+# players and compared with the original's; then the colony runs a game minute.
+from: early-base
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"StorageLockerSmart\").RequiresPowerInput": "== original"
+      "Assets.GetBuildingDef(\"StorageLockerSmart\").EnergyConsumptionWhenActive": "== original"
+      "Assets.GetBuildingDef(\"OxyliteRefinery\").WidthInCells": "== original"
+      "Assets.GetBuildingDef(\"OxyliteRefinery\").HeightInCells": "== original"
+      "Assets.GetBuildingDef(\"GlassTile\").BaseDecor": "== original"
+      "Assets.GetBuildingDef(\"GlassTile\").BaseDecorRadius": "== original"
+      "Assets.GetBuildingDef(\"WoodenDoor\").BaseDecor": "== original"
+      "Assets.GetBuildingDef(\"WoodenDoor\").BaseDecorRadius": "== original"
+      "Assets.GetBuildingDef(\"ExteriorWall\").SceneLayer": "== original"
+      "Assets.GetBuildingDef(\"ThermalBlock\").SceneLayer": "== original"
+      "Assets.GetPrefab(\"UnderwaterBreathingStation\").GetComponent<Storage>().capacityKg": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

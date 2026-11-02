@@ -1,0 +1,18 @@
+# U60 QA spec G2 (docs/research/u60-qa-spec.md, "Game logic"): Study, Workshop, Cooking and Forge Tools (support buildings), the Support subcategory.
+# Game code only, no new engine surface: the values the changed code sets up, read in both
+# players and compared with the original's; then the colony runs a game minute.
+from: early-base
+steps:
+  - expect_state:
+      "Db.Get().SupportBuildingBoosts.KitchenSpeedBoost.GetCompatibleReceptorTags().Count": "== original"
+      "Db.Get().SupportBuildingBoosts.ForgeSpeedBoost.GetCompatibleReceptorTags().Count": "== original"
+      "Db.Get().SupportBuildingBoosts.ResearchSpeedBoost.GetCompatibleReceptorTags().Count": "== original"
+      "Db.Get().SupportBuildingBoosts.WorkshopSpeedBoost.GetCompatibleReceptorTags().Count": "== original"
+      "Db.Get().SupportBuildingBoosts.Count": "== original"
+      "Assets.GetPrefab(\"CookingStation\").GetComponent<SupportBuildingReceptor>().enabled": "== original"
+      "Assets.GetPrefab(\"Kiln\").GetComponent<SupportBuildingReceptor>().enabled": "== original"
+      "Assets.GetPrefab(\"ResearchCenter\").GetComponent<SupportBuildingReceptor>().enabled": "== original"
+      "Assets.GetPrefab(\"Deepfryer\").GetComponent<SupportBuildingReceptor>().enabled": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

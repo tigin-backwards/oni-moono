@@ -1,0 +1,57 @@
+{
+ "spec": "u60-g6.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "the definitions the changed game code sets up read as in the original, then a game minute",
+ "updated": "2026-11-01",
+ "commit": "5c209f47",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-202953-605bae3c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T20:29:53",
+    "lane": 2,
+    "signatures": 0
+   },
+   {
+    "run": "20261101-202953-605bae3c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T20:31:41",
+    "lane": 2,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-202953-605bae3c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T20:33:36",
+    "lane": 2,
+    "reference_run": "20261101-202953-605bae3c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-202953-605bae3c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T20:34:50",
+    "lane": 2,
+    "reference_run": "20261101-202953-605bae3c",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

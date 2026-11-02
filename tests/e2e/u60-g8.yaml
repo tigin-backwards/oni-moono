@@ -1,0 +1,13 @@
+# U60 QA spec G8 (docs/research/u60-qa-spec.md, "Game logic"): status and string renames.
+# Game code only, no new engine surface: the values the changed code sets up, read in both
+# players and compared with the original's; then the colony runs a game minute.
+from: early-base
+steps:
+  - expect_state:
+      "STRINGS.UI.BUILDINGEFFECTS.DIET_HEADER.text": "== original"
+      "STRINGS.ITEMS.INDUSTRIAL_PRODUCTS.WOOD.NAME.text": "== original"
+      "STRINGS.BUILDINGS.PREFABS.STEAMTURBINE2.NAME.text": "== original"
+      "STRINGS.BUILDINGS.PREFABS.WIREREFINEDHIGHWATTAGE.NAME.text": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

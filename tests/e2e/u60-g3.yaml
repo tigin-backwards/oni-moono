@@ -1,0 +1,22 @@
+# U60 QA spec G3 (docs/research/u60-qa-spec.md, "Game logic"): Space Racer, Trampoline, Sandpit; recreation durations.
+# Game code only, no new engine surface: the values the changed code sets up, read in both
+# players and compared with the original's; then the colony runs a game minute.
+from: early-base
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"AstronautTrainingCenter\").Deprecated": "== original"
+      "Assets.GetBuildingDef(\"AstronautTrainingCenter\").WidthInCells": "== original"
+      "Assets.GetBuildingDef(\"AstronautTrainingCenter\").HeightInCells": "== original"
+      "Assets.GetBuildingDef(\"AstronautTrainingCenter\").EnergyConsumptionWhenActive": "== original"
+      "Assets.GetBuildingDef(\"Trampoline\").WidthInCells": "== original"
+      "Assets.GetBuildingDef(\"Trampoline\").HeightInCells": "== original"
+      "Assets.GetBuildingDef(\"SandboxBuilding\").WidthInCells": "== original"
+      "Assets.GetBuildingDef(\"SandboxBuilding\").HeightInCells": "== original"
+      "Db.Get().effects.Get(\"Trampoline\").duration": "== original"
+      "Db.Get().effects.Get(\"RecentlyTrampoline\").duration": "== original"
+      "Db.Get().effects.Get(\"PlayedSandbox\").duration": "== original"
+      "Db.Get().effects.Get(\"AstronautTrainingCenter\").duration": "== original"
+      "Assets.GetPrefab(\"SodaFountain\").GetComponent<SodaFountainWorkable>().GetWorkTime()": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

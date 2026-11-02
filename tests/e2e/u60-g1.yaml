@@ -1,0 +1,22 @@
+# U60 QA spec G1 (docs/research/u60-qa-spec.md, "Game logic"): Swimming and Swimming2 in all versions; Aquatic Grooming Station everywhere; Swim Hack booster un-gated.
+# Game code only, no new engine surface: the values the changed code sets up, read in both
+# players and compared with the original's; then the colony runs a game minute.
+from: vanilla-base
+steps:
+  - expect_state:
+      "Db.Get().Skills.Get(\"Swimming\").Id": "== original"
+      "Db.Get().Skills.Get(\"Swimming\").skillGroup": "== original"
+      "Db.Get().Skills.Get(\"Swimming\").tier": "== original"
+      "Db.Get().Skills.Get(\"Swimming\").deprecated": "== original"
+      "Db.Get().Skills.Get(\"Swimming\").perks.Count": "== original"
+      "Db.Get().Skills.Get(\"Swimming2\").Id": "== original"
+      "Db.Get().Skills.Get(\"Swimming2\").skillGroup": "== original"
+      "Db.Get().Skills.Get(\"Swimming2\").tier": "== original"
+      "Db.Get().Skills.Get(\"Swimming2\").deprecated": "== original"
+      "Db.Get().Skills.Get(\"Swimming2\").perks.Count": "== original"
+      "Db.Get().SkillGroups.SwimmingSkills.Id": "== original"
+      "Db.Get().Skills.Count": "== original"
+      "Assets.GetPrefab(\"Booster_Mod_Swim\").name": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

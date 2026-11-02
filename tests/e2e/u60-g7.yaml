@@ -1,0 +1,12 @@
+# U60 QA spec G7 (docs/research/u60-qa-spec.md, "Game logic"): Duplicant chores and perks: Advanced Construction booster, Heavi-Watt and Steam Turbine perks.
+# Game code only, no new engine surface: the values the changed code sets up, read in both
+# players and compared with the original's; then the colony runs a game minute.
+from: early-base
+steps:
+  - expect_state:
+      "Db.Get().SkillPerks.Count": "== original"
+      "Assets.GetBuildingDef(\"WireRefinedHighWattage\").BuildLocationRule": "== original"
+      "Assets.GetBuildingDef(\"SteamTurbine2\").BuildLocationRule": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

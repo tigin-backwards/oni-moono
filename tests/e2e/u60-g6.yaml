@@ -1,0 +1,12 @@
+# U60 QA spec G6 (docs/research/u60-qa-spec.md, "Game logic"): critters: Shine Bug temperature, condos, feeders.
+# Game code only, no new engine surface: the values the changed code sets up, read in both
+# players and compared with the original's; then the colony runs a game minute.
+from: early-base
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"LightBug\").GetComponent<PrimaryElement>().Temperature": "== original"
+      "Assets.GetPrefab(\"LightBug\").GetComponent<KPrefabID>().Tags.Count": "== original"
+      "Assets.GetBuildingDef(\"CritterCondo\").WidthInCells": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

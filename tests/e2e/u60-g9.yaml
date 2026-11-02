@@ -1,0 +1,14 @@
+# U60 QA spec G9 (docs/research/u60-qa-spec.md, "Game logic"): masses, counts and status items: Egg Cracker, filters, decor, wire wattage.
+# Game code only, no new engine surface: the values the changed code sets up, read in both
+# players and compared with the original's; then the colony runs a game minute.
+from: early-base
+steps:
+  - expect_state:
+      "Assets.GetBuildingDef(\"EggCracker\").WidthInCells": "== original"
+      "Assets.GetBuildingDef(\"EggCracker\").HeightInCells": "== original"
+      "Assets.GetBuildingDef(\"Tile\").BaseDecor": "== original"
+      "Db.Get().BuildingStatusItems.Count": "== original"
+      "Db.Get().MiscStatusItems.Count": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

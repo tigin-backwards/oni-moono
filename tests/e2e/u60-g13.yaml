@@ -1,0 +1,19 @@
+# U60 QA spec G13 (docs/research/u60-qa-spec.md, "Game logic"): Spaced Out rockets: logic ports, Material Study Terminal, Robo-Pilot.
+# Game code only, no new engine surface: the values the changed code sets up, read in both
+# players and compared with the original's; then the colony runs a game minute.
+from: rockets-so
+steps:
+  # The save predates two rounds of changes, and the game shows a dialog for each.
+  - expect_ui: {"**/SpriteListDialog": {count: 2}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton", index: 1}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton"}
+  - ui_wait: {path: "**/SpriteListDialog", cond: gone, frames: 120}
+  - expect_state:
+      "Assets.GetBuildingDef(\"HEPEngine\").WidthInCells": "== original"
+      "Assets.GetBuildingDef(\"RoboPilotModule\").WidthInCells": "== original"
+      "Assets.GetBuildingDef(\"RoboPilotModule\").HeightInCells": "== original"
+      "Components.Clustercrafts.Count": "== original"
+      "Components.Clustercrafts.Items[1].ModuleInterface.ClusterModules.Count": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"
