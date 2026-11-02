@@ -7,10 +7,11 @@ namespace OniMoono.Desktop.Vulkan
     /// windows of one run compare before and after on the same machine load
     /// (docs/research/vulkan-draw-binding.md, Method). Each window's frame counts end with
     /// "variant=0" (before) or "variant=1" (after). Names: writes-first (set 0's writes built
-    /// for every draw, VkDescriptorCache.SetForWritesFirst). Unset, every change is on.
+    /// for every draw, VkDescriptorCache.SetForWritesFirst) and prepare-every-texture (no
+    /// VkReadyStamps: every texture of every draw checked in full). Unset, every change is on.
     internal static class VkDrawAlternation
     {
-        public const int WritesFirst = 1;
+        public const int WritesFirst = 1, PrepareEveryTexture = 2;
 
         static readonly int named = Parse(Environment.GetEnvironmentVariable("ONI_VK_ALT"));
         /// The current window runs the named changes as before them (device thread).
@@ -23,6 +24,7 @@ namespace OniMoono.Desktop.Vulkan
                 changes |= name switch
                 {
                     "writes-first" => WritesFirst,
+                    "prepare-every-texture" => PrepareEveryTexture,
                     _ => 0,
                 };
             return changes;

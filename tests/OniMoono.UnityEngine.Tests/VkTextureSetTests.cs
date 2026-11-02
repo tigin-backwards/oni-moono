@@ -304,6 +304,7 @@ namespace OniMoono.Tests
             Assert.Equal(0, VkDrawAlternation.Parse(null));
             Assert.Equal(0, VkDrawAlternation.Parse("nothing"));
             Assert.Equal(VkDrawAlternation.WritesFirst, VkDrawAlternation.Parse(" writes-first ,x"));
+            Assert.Equal(VkDrawAlternation.WritesFirst | VkDrawAlternation.PrepareEveryTexture, VkDrawAlternation.Parse("prepare-every-texture,writes-first"));
         }
     }
 }

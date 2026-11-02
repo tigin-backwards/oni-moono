@@ -2108,7 +2108,10 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   bind 39, on about half a colony's draws), taken from a cache of sets kept across frames by the
   images (by a serial number never reused) and samplers they name: a draw naming what a set
   already names binds it, found by those identities alone (its descriptor writes are built only
-  for a new set), and sets unused for 60 frames are freed (`VkDescriptorCache`). A draw's vertex buffers are bound in one call (binding
+  for a new set), and sets unused for 60 frames are freed (`VkDescriptorCache`). A texture a
+  draw found ready to sample (no attachment of the pass, in its sampling layout, nothing to
+  resolve) is stamped with the pass's number, so the pass's later draws check it with one
+  compare (`VkReadyStamps`). A draw's vertex buffers are bound in one call (binding
   i feeds the program's i-th input). A draw's constant buffers are
   written together to the frame's uniform stream (4 MB chunks kept for the device's life) and
   bound by dynamic offsets into a set 1 made once per program and chunk. Immediate geometry
@@ -2185,10 +2188,11 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   `vulkan-validation/` beside its executable, where `scripts/run-windows.sh` copies it) and points
   the loader at it through `VK_ADD_LAYER_PATH`; `--frame-stats` counts draws, pipeline binds,
   render passes, passes ended by uploads and submits; GPU frame time comes from timestamp queries.
-  `ONI_VK_ALT=writes-first` (measurement only, with `--frame-stats`) runs the named draw-path
-  changes as before them in every other 60-frame window, each window's counts ending in
-  `variant=0` (before) or `variant=1`, so one run compares both under the same load
-  (`VkDrawAlternation`, docs/research/vulkan-draw-binding.md).
+  `ONI_VK_ALT=NAME,...` (measurement only, with `--frame-stats`; `writes-first`,
+  `prepare-every-texture`) runs the named draw-path changes as before them in every other
+  60-frame window, each window's counts ending in `variant=0` (before) or `variant=1`, so one
+  run compares both under the same load (`VkDrawAlternation`,
+  docs/research/vulkan-draw-binding.md).
   `--check-shaders` on Vulkan builds every variant and a pipeline for its pass's state, and counts
   what fails.
 

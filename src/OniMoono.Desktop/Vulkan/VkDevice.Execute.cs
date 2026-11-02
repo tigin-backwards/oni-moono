@@ -29,6 +29,7 @@ namespace OniMoono.Desktop.Vulkan
         Rect? scissor;
         long draws, pipelineBinds, renderPasses, uploadBreaks;
         bool feedbackReported;
+        readonly VkReadyStamps ready = new();
 
         // ----- Targets -----
 
@@ -45,6 +46,7 @@ namespace OniMoono.Desktop.Vulkan
             if (!rendering) return;
             frames.Main.EndRendering();
             rendering = false;
+            ready.PassEnded();
         }
 
         /// The rendering command buffer outside any pass, for a copy that must come at this
@@ -151,6 +153,7 @@ namespace OniMoono.Desktop.Vulkan
                 cb.BeginRendering(info);
             }
             rendering = true;
+            ready.PassBegun();
             boundPipeline = default;
             renderPasses++;
             ApplyViewport();
@@ -309,14 +312,15 @@ namespace OniMoono.Desktop.Vulkan
 
         /// Render textures a draw samples are made ready first (resolve, mips) and every
         /// sampled image is moved to its sampling layout; work that must not run inside a pass
-        /// ends the current one.
+        /// ends the current one. A texture an earlier draw of the pass found ready needs nothing
+        /// (VkReadyStamps).
         void PrepareTextures(ProgramInputs r)
         {
             bool outside = false;
             for (int i = 0; i < r.TextureCount; i++)
             {
                 var vt = r.Textures[i].Texture.Vk;
-                if (vt?.Image == null || IsAttached(vt)) continue;
+                if (vt?.Image == null || Ready(vt) || IsAttached(vt)) continue;
                 if (vt.RenderTarget && vt.Dirty && (vt.Multisampled != null || vt.Image.Levels > 1 && r.Textures[i].AutoGenerateMips)) outside = true;
                 else if (vt.Image.Layout != VkImageLayout.ShaderReadOnlyOptimal) outside = true;
             }
@@ -324,13 +328,21 @@ namespace OniMoono.Desktop.Vulkan
             for (int i = 0; i < r.TextureCount; i++)
             {
                 var vt = r.Textures[i].Texture.Vk;
-                if (vt?.Image == null || IsAttached(vt)) continue;
+                if (vt?.Image == null || Ready(vt) || IsAttached(vt)) continue;
                 vt.LastUsedBatch = frames.Batch;
-                if (!outside) continue;
+                if (!outside)
+                {
+                    if (!VkDrawAlternation.Before(VkDrawAlternation.PrepareEveryTexture)) ready.Found(vt);
+                    continue;
+                }
                 if (vt.RenderTarget) PrepareForSampling(cb, vt, r.Textures[i].AutoGenerateMips);
                 vt.Image.ForSampling(cb);
             }
         }
+
+        /// An earlier draw of this pass found the texture ready to sample: it is no attachment
+        /// of the pass, needs no work and is marked used by this batch.
+        bool Ready(VkTexture vt) => ready.IsReady(vt.Image);
 
         /// The texture is (or is about to be, once the pass begins) an attachment of the
         /// current target.
@@ -370,14 +382,14 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         /// A draw's set-0 textures: the program's texture at each slot, or the unbound stand-in
-        /// for one without an image or rendered into by this pass.
+        /// for one without an image or rendered into by this pass (never one found ready).
         readonly struct DrawTextures(VkDevice device, ProgramInputs r) : ITextureSlots
         {
             public VkTexture Texture(VkBindingSlot slot)
             {
                 if (slot.Index < 0) return null;
                 var vt = r.Textures[slot.Index].Texture.Vk;
-                if (vt?.Image == null || device.IsAttached(vt)) vt = device.DefaultTexture(Unbound, r.Program.Samplers[slot.Index].Target).Vk;
+                if (vt?.Image == null || !device.Ready(vt) && device.IsAttached(vt)) vt = device.DefaultTexture(Unbound, r.Program.Samplers[slot.Index].Target).Vk;
                 return vt;
             }
         }

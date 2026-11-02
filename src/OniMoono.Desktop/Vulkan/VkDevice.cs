@@ -207,6 +207,7 @@ namespace OniMoono.Desktop.Vulkan
                 }
             }
             rendering = false;
+            ready.PassEnded();
             boundPipeline = default;
         }
 

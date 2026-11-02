@@ -27,6 +27,8 @@ namespace OniMoono.Desktop.Vulkan
         public VkImageLayout Layout = VkImageLayout.Undefined;
         public VkPipelineStageFlags2 Stages;
         public VkAccessFlags2 Access;
+        /// The pass in which a draw found it ready to sample (VkReadyStamps).
+        public long ReadyPass;
 
         const VkAccessFlags2 Writes = VkAccessFlags2.ShaderWriteBit | VkAccessFlags2.ColorAttachmentWriteBit | VkAccessFlags2.DepthStencilAttachmentWriteBit
                                       | VkAccessFlags2.TransferWriteBit | VkAccessFlags2.HostWriteBit | VkAccessFlags2.MemoryWriteBit;
@@ -146,6 +148,42 @@ namespace OniMoono.Desktop.Vulkan
             if (!Image.IsNull()) vk.Allocator.DestroyImage(Image, Allocation);
             View = AttachmentView = default;
             Image = default;
+        }
+    }
+
+    /// Which images the current pass has found ready to sample (VkDevice.PrepareTextures), so a
+    /// later draw of the pass checks one number instead of the texture's state. Found means: not
+    /// an attachment of the pass, in its sampling layout, no resolve or mips pending, used by
+    /// this batch. Within one pass none of that can change: the target is fixed, layout changes
+    /// and copies of an image this batch uses end the pass first, an upload into new storage is
+    /// a new image, and only a pass's start marks a texture rendered into. Every pass, begun or
+    /// ended, has a number of its own, and nothing is found outside a pass, so a stamp is good
+    /// for the pass that made it only.
+    internal sealed class VkReadyStamps
+    {
+        long pass = 1;
+        bool open;
+
+        public void PassBegun()
+        {
+            pass++;
+            open = true;
+        }
+
+        public void PassEnded()
+        {
+            pass++;
+            open = false;
+        }
+
+        public bool IsReady(VkImageResource image) => image.ReadyPass == pass;
+
+        /// The texture needed nothing for a draw of this pass. A render texture rendered into
+        /// since it was last prepared is not stamped: whether it needs a resolve or mips depends
+        /// on the draw (Unity's autoGenerateMips).
+        public void Found(VkTexture vt)
+        {
+            if (open && !(vt.RenderTarget && vt.Dirty)) vt.Image.ReadyPass = pass;
         }
     }
 
