@@ -1,0 +1,34 @@
+# R1 (docs/research/u60-qa-spec.md): U60's Pipe Flow sub-overlay without mods.
+#
+# pipe-flow.yaml without Pipe Flow Overlay's icons. U60 draws pipes with
+# Klei/BatchedAnimationConduit, a ninth batch material; each pipe's flow directions, connections
+# and sink bits (ConduitFlowKAnimVisualizer) go into the animation instance data texture as a
+# uint the shader reads back with floatBitsToUint, and with the sub-overlay on it animates
+# arrows along the pipes by unscaled time.
+#
+# DeCrew around cell (157, 168): Ventilation (F7) shot with the sub-overlay off, then on (the
+# legend's second toggle, Pipe Flow), and close up; Plumbing (F6) both ways. The arrows' phase
+# differs between the players (the diff images show the arrows alone), so the flow shots
+# allow 8 %: pipe-flow.yaml saw up to 4 %, these 4.2 % to 6.5 % at another phase.
+from: decrew
+memory_gb: 15
+steps:
+  - open: {key: F7}
+  - ui_wait: {path: "**/OverlayParamaterMenu/Content/List/toggleEntry/Toggle", cond: stable}
+  - expect_ui:
+      "**/OverlayParamaterMenu/**/toggleEntry/Label": {text: "Pipe Contents"}
+  - expect_state:
+      "type:OverlayModes+ConduitMode::IsViewConduitFlowEnabled": false
+  - world_shot: {name: gas, ortho: 12, at: [157, 168]}
+  - click: {ui: "**/OverlayParamaterMenu/Content/List/toggleEntry/Toggle", index: 1}
+  - expect_state:
+      "type:OverlayModes+ConduitMode::IsViewConduitFlowEnabled": true
+  - world_shot: {name: gas-flow, ortho: 12, at: [157, 168], threshold: 0.08}
+  - world_shot: {name: gas-flow-near, ortho: 5, at: [150, 172], threshold: 0.08}
+  - open: {key: F6}
+  - ui_wait: {path: "**/OverlayParamaterMenu/Content/List/toggleEntry/Toggle", cond: stable}
+  - world_shot: {name: liquid, ortho: 12, at: [149, 163]}
+  - click: {ui: "**/OverlayParamaterMenu/Content/List/toggleEntry/Toggle", index: 1}
+  - expect_state:
+      "type:OverlayModes+ConduitMode::IsViewConduitFlowEnabled": true
+  - world_shot: {name: liquid-flow, ortho: 12, at: [149, 163], threshold: 0.08}

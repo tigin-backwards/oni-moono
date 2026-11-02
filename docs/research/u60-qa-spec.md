@@ -130,6 +130,13 @@ One row per item. G and V items are rows of their sections, not headings.
 
 ### R1 Pipe Flow sub-overlay, vanilla
 
+**Status:** passes (7e8980e0, Linux OpenGL; Windows Vulkan: pending).
+`tests/e2e/u60/r1-pipe-flow-vanilla.yaml`: Ventilation and Plumbing with the sub-overlay off
+(0.1 % to 0.3 % of pixels apart) and on; `IsViewConduitFlowEnabled` true in both, no new log
+signatures. The flow shots differ by the arrows' phase only (the diff images show the arrows
+alone), 0.4 % to 6.5 %, so they allow 8 %, not the 4 % this item named. The blocked-pipe close-up
+(step 4) is not in the spec: DeCrew has no disabled pipe output found yet.
+
 **Risk: high.** The existing spec runs it under a mod's icons only.
 
 **Patch note:** "Added a Pipe Flow sub-overlay to Plumbing and Ventilation Overlays."

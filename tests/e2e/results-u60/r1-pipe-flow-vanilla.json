@@ -1,0 +1,61 @@
+{
+ "spec": "u60/r1-pipe-flow-vanilla.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "DeCrew, no mods: Ventilation and Plumbing overlays shot with the Pipe Flow sub-overlay off and on, and close up",
+ "updated": "2026-11-01",
+ "commit": "7e8980e0",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-200440-ab903738",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T20:04:40",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-202032-687e685a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T20:20:32",
+    "lane": 50,
+    "reference_run": "20261101-200440-ab903738",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "gas": 0.001437,
+     "gas-flow": 0.013832,
+     "gas-flow-near": 0.064929,
+     "liquid": 0.002869,
+     "liquid-flow": 0.01535
+    }
+   },
+   {
+    "run": "20261101-202032-687e685a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T20:23:03",
+    "lane": 50,
+    "reference_run": "20261101-200440-ab903738",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "gas": 0.001488,
+     "gas-flow": 0.013962,
+     "gas-flow-near": 0.065271,
+     "liquid": 0.002051,
+     "liquid-flow": 0.003689
+    }
+   }
+  ]
+ }
+}
