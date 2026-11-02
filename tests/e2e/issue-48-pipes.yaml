@@ -1,0 +1,15 @@
+# Issue #48 fixture step: a wire, a gas pipe and a liquid pipe through cells
+# (109, 206) and (110, 206), built by the colony. Saved as the issue-48-pipes checkpoint.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"GasPiping\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LiquidPiping\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+steps:
+  - build: {prefab: Wire, cells: [[109, 206], [110, 206]]}
+  - build: {prefab: GasConduit, cells: [[109, 206], [110, 206]]}
+  - build: {prefab: LiquidConduit, cells: [[109, 206], [110, 206]]}
+  - run: {seconds: 2400, until: {buildings: {Wire: ">=2", GasConduit: ">=2", LiquidConduit: ">=2"}, pending_construction: 0}}
+  - expect: {buildings: {Wire: ">=2", GasConduit: ">=2", LiquidConduit: ">=2"}}
+  - save: issue-48-pipes
