@@ -3026,6 +3026,11 @@ namespace OniMoono.Host
                         o.Captures.Add((int.Parse(spec[..colon]), path, scale));
                         break;
                     }
+                    // Unity's renderer choice (-force-glcore, -force-opengl, -force-vulkan): as
+                    // --renderer; the later of the two wins.
+                    case var force when UnityArguments.Renderer(force) is { } renderer:
+                        o.Renderer = renderer;
+                        break;
                     // Another of Unity's (-popupwindow, -force-d3d11, -screen-quality…) or a stray
                     // word: ignored, as Unity's player ignores what it does not know. Ours are strict.
                     case var unitys when UnityArguments.IsUnitys(unitys):

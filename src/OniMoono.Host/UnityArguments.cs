@@ -20,6 +20,16 @@ namespace OniMoono.Host
             "-force-device-index", "-max-async-pso-job-count", "-parentHWND", "-window-mode",
         };
 
+        /// The renderer one of Unity's -force-* arguments picks, as --renderer names it, or null.
+        /// Measured in the U60 761211 Linux player (U60 QA spec P2): -force-glcore and
+        /// -force-opengl open OpenGL Core, -force-vulkan Vulkan.
+        public static string? Renderer(string arg) => arg.ToLowerInvariant() switch
+        {
+            "-force-glcore" or "-force-opengl" => "opengl",
+            "-force-vulkan" => "vulkan",
+            _ => null,
+        };
+
         /// An argument for Unity's player rather than ours: ours start with "--".
         public static bool IsUnitys(string arg) => !arg.StartsWith("--", StringComparison.Ordinal);
 

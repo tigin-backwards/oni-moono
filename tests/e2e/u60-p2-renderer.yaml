@@ -1,0 +1,11 @@
+# U60 QA spec P2 (docs/research/u60-qa-spec.md): the renderer Unity's launch options pick. U60
+# makes Vulkan the Linux default, "OpenGL can be used using launch options". The graphics device
+# the game sees at the main menu must be the original's for the same option: run with
+# E2E_ORIGINAL_ARGS and E2E_PLAYER_ARGS both set to the option (-force-glcore, -force-opengl,
+# -force-vulkan). With no option ours picks by its own rule (ARCHITECTURE §3.5: auto refuses a
+# software Vulkan device, so on llvmpipe it opens OpenGL where the original opens Vulkan).
+from: main-menu
+steps:
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_state:
+      "type:UnityEngine.SystemInfo::graphicsDeviceType": "== original"

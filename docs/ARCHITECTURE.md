@@ -1708,7 +1708,13 @@ instead. Player.log names the renderer and why (`renderer: Vulkan (auto, default
 `renderer: OpenGL (Vulkan unavailable: …)`). Auto also refuses software Vulkan devices (Mesa's
 lavapipe: the OpenGL driver is hardware there, under WSLg Mesa's d3d12), the drivers on a short
 deny list and a start the guard below recorded as crashed; `--renderer vulkan` takes all of
-them.
+them. Unity's launch options choose too, as the U60 player reads them (measured on 761211,
+Linux, U60 QA spec P2): `-force-glcore` and `-force-opengl` are `--renderer opengl`,
+`-force-vulkan` is `--renderer vulkan`; the later of these and `--renderer` wins. Unity's player
+also refuses a CPU Vulkan device ("Vulkan detection: 0", then OpenGL Core), as auto does. One
+difference is deliberate: where the only Vulkan device is a software one, Unity's player given
+`-force-vulkan` exits ("Forced renderer 21 is not supported, exiting"), while ours runs on that
+device, as the option asks.
 
 **Starting** (`VkStartGuard`, `VkDenyList`, as Firefox's DriverCrashGuard and Unreal's
 DriverDenyList). Once the GPU is chosen and before its device is made, a line `starting KEY`
