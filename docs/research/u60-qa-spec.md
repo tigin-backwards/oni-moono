@@ -1483,10 +1483,15 @@ timing script's).
 ### A3 Starting-biome vistas
 
 **Status:** not testable as written on Linux: `tests/e2e/u60/a3-vista-starts.yaml` hangs the
-original in both runs after the first Embark (Terra), just after the first save's screenshots.
-Its main thread waits while Mesa's six llvmpipe threads run at about 90% for over 5 minutes, a
-software-rendering stall on Xvfb. Ours was not run without the original's values.
-Windows Vulkan: pending (a real GPU).
+original in both runs after the first Embark (Terra), just after the first save's screenshots. Its
+main thread waits while Mesa's six llvmpipe threads run at about 90% for over 5 minutes, a
+software-rendering stall on Xvfb. Ours was not run without the original's values. Windows Vulkan,
+0cf55242: the original does not hang there. The spec now presses BEGIN on Wattson's message after
+Embark (the HUD stays hidden until then). Its swamp start fails in the original: SWMP-C is a Spaced
+Out-style coordinate, which the Classic category's screen does not keep. The first two starts
+(Terra, Verdante; the spec cut after them) pass: one vista each beside the pod (vistas/sandstone,
+vistas/forest), the same start worlds, the world shots 1.8 % and 0.8 % apart. The other three are
+not run: the swamp start needs the Spaced Out category's toggle, whose name is still to be found.
 
 **Risk: medium.** The toggle is covered; the spawn at worldgen is not.
 

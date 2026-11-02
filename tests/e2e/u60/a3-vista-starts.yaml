@@ -8,8 +8,9 @@
 #
 # From the main menu, a new game per start, each by its coordinate with a fixed seed: Terra
 # (V-SNDST-C), Verdante (V-LUSH-C), Squelchy in Spaced Out (SWMP-C), Ceres (V-CER-C) and the
-# Beach start (V-AQU-C). After Embark the camera is on the pod: one vista there, and a world shot
-# of it. Then the pause menu's Main Menu, Quit Without Saving, and the next.
+# Beach start (V-AQU-C). After Embark and BEGIN on Wattson's message the camera is on the pod: one
+# vista there, and a world shot of it. Then the pause menu's Main Menu, Quit Without Saving,
+# and the next.
 from: main-menu
 memory_gb: 8
 steps:
@@ -32,6 +33,10 @@ steps:
   - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
   - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
   - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  # A new colony opens with Wattson's message ("ALERT"), the HUD hidden until BEGIN; its
+  # background stays over the button for a while after the button stops moving.
+  - ui_wait: {path: "**/WattsonMessage/Dialog/FG/Button", cond: stable, stable: 120, frames: 6000}
+  - click: {ui: "**/WattsonMessage/Dialog/FG/Button"}
   - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
   - expect_state:
       "Components.Vistas.Count": [">= 1", "== original"]
@@ -59,6 +64,10 @@ steps:
   - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
   - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
   - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  # A new colony opens with Wattson's message ("ALERT"), the HUD hidden until BEGIN; its
+  # background stays over the button for a while after the button stops moving.
+  - ui_wait: {path: "**/WattsonMessage/Dialog/FG/Button", cond: stable, stable: 120, frames: 6000}
+  - click: {ui: "**/WattsonMessage/Dialog/FG/Button"}
   - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
   - expect_state:
       "Components.Vistas.Count": [">= 1", "== original"]
@@ -75,6 +84,9 @@ steps:
   - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
   - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
   - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  # SWMP-C is a Spaced Out-style coordinate, which the Classic category's screen does not take
+  # (the field does not keep it; seen on Windows): this start needs the Spaced Out category's
+  # toggle, whose name is still to be found.
   - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame", cond: stable}
   - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame"}
   - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
@@ -86,6 +98,10 @@ steps:
   - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
   - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
   - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  # A new colony opens with Wattson's message ("ALERT"), the HUD hidden until BEGIN; its
+  # background stays over the button for a while after the button stops moving.
+  - ui_wait: {path: "**/WattsonMessage/Dialog/FG/Button", cond: stable, stable: 120, frames: 6000}
+  - click: {ui: "**/WattsonMessage/Dialog/FG/Button"}
   - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
   - expect_state:
       "Components.Vistas.Count": [">= 1", "== original"]
@@ -113,6 +129,10 @@ steps:
   - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
   - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
   - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  # A new colony opens with Wattson's message ("ALERT"), the HUD hidden until BEGIN; its
+  # background stays over the button for a while after the button stops moving.
+  - ui_wait: {path: "**/WattsonMessage/Dialog/FG/Button", cond: stable, stable: 120, frames: 6000}
+  - click: {ui: "**/WattsonMessage/Dialog/FG/Button"}
   - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
   - expect_state:
       "Components.Vistas.Count": [">= 1", "== original"]
@@ -140,6 +160,10 @@ steps:
   - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
   - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
   - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  # A new colony opens with Wattson's message ("ALERT"), the HUD hidden until BEGIN; its
+  # background stays over the button for a while after the button stops moving.
+  - ui_wait: {path: "**/WattsonMessage/Dialog/FG/Button", cond: stable, stable: 120, frames: 6000}
+  - click: {ui: "**/WattsonMessage/Dialog/FG/Button"}
   - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
   - expect_state:
       "Components.Vistas.Count": [">= 1", "== original"]
