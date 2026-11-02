@@ -1518,7 +1518,7 @@ manual run on Windows with real Steam.
 
 ### P1 Crash reporter messages
 
-**Status:** fixed in 1b876641 (Linux, ours on Vulkan, the original on OpenGL; Windows: pending). Specs `tests/e2e/u60/p1-sim-blocked.yaml`
+**Status:** fixed in 1b876641 (Linux OpenGL; Windows: pending). Specs `tests/e2e/u60/p1-sim-blocked.yaml`
 (libSimDLL.so absent: the popup) and `p1-sim-unreadable.yaml` (unreadable, as worded: Unity's
 Mono names the file and dlerror's text, so the original shows no popup either); both played.
 
