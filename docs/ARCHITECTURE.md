@@ -2177,6 +2177,28 @@ sizes stay what they were, and frames go on rendering at that size until the win
 `LightBufferCompositor` asked for a temporary of `Screen.width / 8` pixels). Minimized, a
 Windows window sits at -32000,-32000, on no monitor; it keeps the monitor it was on.
 
+A fullscreen window (`FullScreenWindow`, the game's Fullscreen option) at a resolution smaller
+than the monitor's renders at that resolution and stretches it over the window, as Unity's player
+does. Measured in the original Linux player on a 1280x720 Xvfb screen (`Screen.SetResolution`,
+and the Graphics options' Apply): at 960x720 `Screen.width`/`height` and
+`Display.renderingWidth`/`Height` are 960x720, `systemWidth`/`Height` and
+`Screen.currentResolution` stay 1280x720, `Screen.resolutions` is unchanged, and so were 1024x576
+and 800x600; a size larger than the monitor is cut per axis (1600x600 gave 1280x600). The picture
+fills the whole screen, its aspect not kept (no bars), bilinearly filtered (the screen at
+1024x576 matched a bilinear stretch of the capture to a mean of 0.04 per channel, nearest-pixel
+1.26), and the pointer maps into the rendered frame by the same stretch (`Input.mousePosition`
+was (120.75, 718) with the pointer on the screen's pixel 161,1 at 960x720). Captures and
+`ReadPixels` of the screen return the rendered size. Ours keeps the window the monitor's size
+(`GlfwPlatform.WindowFramebufferWidth`/`Height`, what the presenter fills) and renders at the size
+asked for (`FramebufferWidth`/`Height`, which `Screen` and `Display` report); the presenter's
+copy to the window (OpenGL's blit, into DXGI's shared texture too)
+stretches it with linear filtering, as it already did for a frame drawn before a resize, and
+`ToPixels` maps the pointer with `WindowToRendering`. A fullscreen window opened at start-up
+renders at the monitor's size (the game applies its saved resolution on its first frames). Not
+measured: the original on Windows, exclusive fullscreen (on Linux the original reported
+`ExclusiveFullScreen` with a centred 960x720 window; ours keeps a fullscreen window there), and
+whether Unity scales a hardware cursor with the picture (ours does not).
+
 Known limitations, not handled:
 - X11 layouts with several groups (us,ru and a group switch) are unmeasured in the original;
   ours maps keys through the group in effect at each press.
