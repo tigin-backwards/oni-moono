@@ -743,10 +743,15 @@ namespace OniMoono.Engine.Rendering
             // (captures have already put them back in the queue).
             bool afterFrame = !inFrameRender && screenOverride == null;
             // Each list in turn: through IEnumerable (Concat, or the conditional's type) the
-            // enumerators were boxed for every camera.
+            // enumerators were boxed for every camera. Read in place, by index: the loop runs
+            // no script, so neither list changes under it, and a foreach copied each queued
+            // mesh (about 110 bytes) out of the list.
             for (int list = afterFrame ? 0 : 1; list < 2; list++)
-                foreach (var q in list == 0 ? frameQueued : queued)
+            {
+                var span = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(list == 0 ? frameQueued : queued);
+                for (int k = 0; k < span.Length; k++)
                 {
+                    ref readonly var q = ref span[k];
                     if (q.Camera != null && q.Camera != camera) continue;
                     if ((cam.CullingMask & (1 << q.Layer)) == 0 || q.Mesh == null || q.Material == null) continue;
                     var mesh = (MeshNative)q.Mesh.NativeOrThrow;
@@ -764,6 +769,7 @@ namespace OniMoono.Engine.Rendering
                     item.Queued = true;
                     draws.Add(item);
                 }
+            }
             int collected = draws.Count;
             CollectDraws?.Invoke(camera, cam, draws);
             for (int i = collected; i < draws.Count; i++) draws[i].Sequence = sequence++;
