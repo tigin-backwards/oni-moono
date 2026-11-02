@@ -2805,7 +2805,10 @@ namespace OniMoono.Host
         /// Diagnostics (--gl-debug): the driver's GL debug output in the log (debug context).
         public bool GlDebug;
         /// --background: the window takes no focus and the desktop's mouse and keyboard reach
-        /// nothing (test runs on a desktop someone is using: PerfProbe-driven runs).
+        /// nothing (test runs on a desktop someone is using). The player counts as focused, with
+        /// the pointer over the window at (0, 0), so the game hovers there every frame: in U57 at
+        /// 1280x720 that cost EventSystem.Update about 1.3 ms a frame and the frame rate about a
+        /// quarter. Frame-rate runs use --no-focus instead.
         public bool Background;
         /// --no-focus: the window opens without taking the focus, and takes input once focused
         /// (Windows test runs on the user's second monitor: scripts/run-windows.sh).
