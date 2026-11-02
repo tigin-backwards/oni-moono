@@ -1,0 +1,49 @@
+{
+ "spec": "u60/u4-fuzzy-scores.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Fuzzy search scores and best tokens for pump, wtr pmp, regal and accented, ligature and dotted-I queries, and SearchUtil.Canonicalize, against the original's",
+ "updated": "2026-11-02",
+ "commit": "4fb51dbd",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-003238-219d8100",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:32:38",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-003312-0c21afc2",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:33:12",
+    "lane": 50,
+    "reference_run": "20261102-003238-219d8100",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261102-003312-0c21afc2",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:33:40",
+    "lane": 50,
+    "reference_run": "20261102-003238-219d8100",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}

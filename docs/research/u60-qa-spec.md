@@ -951,8 +951,13 @@ value mid-reveal). The undiscovered-material and backwall cards and the queued b
 
 ### U4 Blueprints, Supply Closet and fuzzy search
 
-**Status:** not run in this pass: no spec yet (a Supply Closet spec needs `data_collection:
-true`).
+**Status:** passes (4fb51dbd, Linux OpenGL; Windows: pending), the scoring part:
+`tests/e2e/u60/u4-fuzzy-scores.yaml` scores 18 query-and-name pairs with
+`FuzzySearch.CanonicalizeAndScore`, from "pump", "wtr pmp" and "regal" to accents, ß, Œ and a
+dotted İ. It also reads `SearchUtil.Canonicalize` and `CanonicalizePhrase` on such text. Every
+score, best token and canonical string equals the original's (ICU in ours, Mono's collation in
+the original). The search bars, Copy Blueprint, the drywall Rotate and the Supply Closet
+(steps 1-4 as UI) are not run.
 
 **Risk: medium.**
 

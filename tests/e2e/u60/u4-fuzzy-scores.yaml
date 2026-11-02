@@ -1,0 +1,32 @@
+# U4 (docs/research/u60-qa-spec.md): fuzzy search scores.
+#
+# U60 rewrote FuzzySharp on spans with CultureInfo.CurrentCulture.CompareInfo, which every search
+# bar's order rests on (FuzzySearch, SearchUtil, BlueprintSearch). Ours runs it on CoreCLR, whose
+# comparisons use ICU; the original uses Mono's collation.
+#
+# From early-base: queries scored against names with FuzzySearch.CanonicalizeAndScore (a pure
+# function), the patch notes' examples and others with accents, ligatures, case and digits, each
+# compared with the original's score and best token; and SearchUtil.Canonicalize on such text.
+from: early-base
+steps:
+  - expect_state:
+      'FuzzySearch.CanonicalizeAndScore("PUMP", "Liquid Pump").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("PUMP", "Liquid Pump").token': "== original"
+      'FuzzySearch.CanonicalizeAndScore("WTR PMP", "Water Pump").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("WTR PMP", "Gas Pump").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("REGAL", "Regal Neutronium Pitcher Pump").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("REGAL", "Regal Neutronium Pitcher Pump").token': "== original"
+      'FuzzySearch.CanonicalizeAndScore("PUMP LIQUID", "Liquid Pump").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("MINI PUMP", "Mini Liquid Pump").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("POWER", "Power Transformer").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("ELECTRICAL", "Power Transformer").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("ELECTROLYZER", "Électrolyseur").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("ÉLECTROLYSEUR", "Electrolyzer").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("STRASSE", "Straße").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("ŒUF", "Oeuf de Hatch").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("BATTERY 20", "Jumbo Battery 20 kJ").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("SPACE HEATER", "Space Heater").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("MÜLL", "Mull").score': "== original"
+      'FuzzySearch.CanonicalizeAndScore("ISTANBUL", "İstanbul").score': "== original"
+      'SearchUtil.Canonicalize("Électrolyseur Straße ŒUF İstanbul Müll")': "== original"
+      'SearchUtil.CanonicalizePhrase("The Regal Neutronium Pitcher Pump of a Duplicant")': "== original"
