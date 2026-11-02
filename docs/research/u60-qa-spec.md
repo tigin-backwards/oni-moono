@@ -1503,6 +1503,16 @@ manual run on Windows with real Steam.
 
 ### M3 Mod API changes
 
+**Status:** passes (Linux; both players on OpenGL for the remix runs, the burndown's renderers for the
+rest): the U60 burndown played 22 mods whose assemblies call `ModUtil.CreateSubstance`
+(`tests/e2e/results-u60`: MoreTek, Baiye Fusion Power, Heavy Water Power, Radiation Ranching,
+Industry and Power and others). Remix mods: AllInSmall-Asteroid (3044677825, worldMixing
+settings) played on U60 (`results-u60/3044677825-allinsmall-asteroid.json`: its New Game
+cluster, twelve worlds and start moonlet as in the original). Biome Mixing Pack (3815497375,
+subworldMixing) is broken in the original too: its mixing settings name a subworld file it does
+not ship, and the original's start-up worldgen settings load stops with a FileNotFoundException
+and the crash screen (`results-u60/3815497375-biome-mixing-pack.json`, pending), as on U59.
+
 **Risk: low.**
 
 **Patch notes:**
