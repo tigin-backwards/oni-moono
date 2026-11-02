@@ -165,6 +165,8 @@ data_collection: true            # the Data Collection option on, for a spec tha
                                  # e2e and qa.sh profile, so no test run sends Klei a crash report
                                  # (an error report did once); a spec that turns it on must not
                                  # provoke errors
+workshop: {id: 1960996649, layout: folder}   # one gated mod as a Steam subscription (folder, or zip with corrupt: true);
+                                 # both players need tools/SteamStub/build.sh --dlc --ugc's library
 setup: [...]                     # steps run first; the only place for driver setup.call
 steps: [...]
 ```
