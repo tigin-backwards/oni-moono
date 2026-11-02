@@ -1982,6 +1982,24 @@ Tests if we retarget:
 - **V3** (low) critter drop-off delivers to its own cell: a Critter Drop-Off with a reachable
   neighbour only; `expect_state` on the delivered critter count `== original`.
 
+**Status (V rows):** Linux, both players on OpenGL.
+- V1: passes (a1b85206): `tests/e2e/u60-v1-build-check.yaml`: two copies of early-base whose
+  header says build 761211 and 761212 (one colony): the main menu, the Load screen's saves and
+  each save's details read as in the original, the 761212 save refused ("File is using build
+  761212, v38. This build is 761211, v39.") and the 761211 one offered. The mod part (a
+  `minimumSupportedBuild` picked): the U60 burndown played mods whose root `mod_info.yaml` asks
+  for a newer build (the gun skins, 996110) the same in both players. `GameVersionCheck`: the
+  761211 data is Unity 6000.3.17f1 and both players start (every run here).
+- V2: not testable as written: the hang needs a rail gun or an orbital cargo module whose
+  storage holds mass that `Storage.Transfer` cannot move into the payload, a state the 761015
+  bug left behind and that neither the UI nor the harness's setup (`setup.call`) makes; a rail
+  gun also needs a radbolt supply and a reachable destination. The fix is game code alone (the
+  loop stops when a transfer moves nothing), with no engine surface.
+- V3: passes (274d5616): `tests/e2e/u60-v3-delivery.yaml`: the Critter Drop-Off's
+  `deliveryOffsets` are one (0, 0) in both players, then a game minute. Delivering a critter to a
+  drop-off with a reachable neighbour only: not run (a wrangling set-up); the offsets are the
+  change.
+
 ## Coverage of the patch notes
 
 One row per line of the notes (Features, Changes, Fixes, Modding, Performance). "n/t" = not
