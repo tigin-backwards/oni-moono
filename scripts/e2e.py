@@ -1947,20 +1947,33 @@ KKEYCODES = {
 }
 MODIFIERS = {'shift': 'Shift_L', 'ctrl': 'Control_L', 'control': 'Control_L', 'alt': 'Alt_L'}
 _KEYS_LOWER = {k.lower(): v for k, v in KKEYCODES.items()}
+# XTEST's pointer in Xvfb has ten buttons; a higher one goes as a sent event (X11Input.send_button).
+XTEST_BUTTONS = 10
+
+
+class XButtonEvent(ctypes.Structure):
+    """Xlib's XButtonEvent, padded to an XEvent (24 longs)."""
+    _fields_ = [('type', ctypes.c_int), ('serial', ctypes.c_ulong), ('send_event', ctypes.c_int),
+                ('display', ctypes.c_void_p), ('window', ctypes.c_ulong), ('root', ctypes.c_ulong),
+                ('subwindow', ctypes.c_ulong), ('time', ctypes.c_ulong), ('x', ctypes.c_int), ('y', ctypes.c_int),
+                ('x_root', ctypes.c_int), ('y_root', ctypes.c_int), ('state', ctypes.c_uint),
+                ('button', ctypes.c_uint), ('same_screen', ctypes.c_int), ('pad', ctypes.c_long * 12)]
+
+
 # X11 button numbers; 4 to 7 are the wheel, 8 and up the side buttons (back 8, forward 9).
 BUTTONS = {'left': 1, 'middle': 2, 'right': 3, 'back': 8, 'forward': 9}
 
 
 def button_problem(value):
     """Why a step's `button` is not one, or None: a name in BUTTONS, or an X button number 1 to
-    3 or 8 to 10. Xvfb's XTEST pointer has ten buttons: an 11th is a BadValue, which ends the
-    runner (Xlib's default error handler)."""
+    3 or 8 to 11. Xvfb's XTEST pointer has ten buttons (an 11th is a BadValue, which ends the
+    runner): button 11 is sent to the window under the pointer instead (send_button)."""
     if 'button' not in value:
         return None
     b = value['button']
-    if b in BUTTONS or (isinstance(b, int) and not isinstance(b, bool) and (1 <= b <= 3 or 8 <= b <= 10)):
+    if b in BUTTONS or (isinstance(b, int) and not isinstance(b, bool) and (1 <= b <= 3 or 8 <= b <= 11)):
         return None
-    return '`button` is left, middle, right, back, forward or an X button 1-3 or 8-10 (XTEST\'s pointer has ten)'
+    return '`button` is left, middle, right, back, forward or an X button 1-3 or 8-11'
 
 
 def keysym_name(name):
@@ -2146,7 +2159,36 @@ class Input:
         self._flush()
 
     def button(self, button, down):
-        self.xtst.XTestFakeButtonEvent(self.dpy, BUTTONS.get(button, button), 1 if down else 0, 0)
+        number = BUTTONS.get(button, button)
+        if number > XTEST_BUTTONS:
+            self.send_button(number, down)
+            return
+        self.xtst.XTestFakeButtonEvent(self.dpy, number, 1 if down else 0, 0)
+        self._flush()
+
+    def send_button(self, number, down):
+        """A button past XTEST's ten as an event sent to the window under the pointer
+        (XSendEvent: send_event set, as no real device's event has it)."""
+        x11 = self.x11
+        x11.XQueryPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong, *[ctypes.POINTER(ctypes.c_ulong)] * 2,
+                                      *[ctypes.POINTER(ctypes.c_int)] * 4, ctypes.POINTER(ctypes.c_uint)]
+        x11.XSendEvent.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_long, ctypes.c_void_p]
+        root = x11.XDefaultRootWindow(self.dpy)
+        window, x, y, rx, ry = root, 0, 0, 0, 0
+        while True:
+            r, child = ctypes.c_ulong(), ctypes.c_ulong()
+            ints = [ctypes.c_int() for _ in range(4)]
+            mask = ctypes.c_uint()
+            x11.XQueryPointer(self.dpy, window, ctypes.byref(r), ctypes.byref(child), *[ctypes.byref(i) for i in ints],
+                              ctypes.byref(mask))
+            rx, ry, x, y = (i.value for i in ints)
+            if not child.value:
+                break
+            window = child.value
+        event = XButtonEvent(type=4 if down else 5, send_event=1, display=self.dpy, window=window, root=root,
+                             x=x, y=y, x_root=rx, y_root=ry, button=number, same_screen=1)
+        mask = (1 << 2) if down else (1 << 3)  # ButtonPressMask, ButtonReleaseMask
+        x11.XSendEvent(self.dpy, window, 1, mask, ctypes.byref(event))
         self._flush()
 
     def key_event(self, name, down):
