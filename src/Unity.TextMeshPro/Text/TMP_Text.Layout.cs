@@ -76,8 +76,9 @@ namespace TMPro
             // must fit in the rect (the hyphen is drawn after the line was found to fit).
             public float FitDescender;
             public float Length;         // pen advance to the end of the last visible character
-            // Where that character's glyph advance ends, from the line's left edge (its indent
-            // included): the pen plus the advance, rounded to float once.
+            // Where the furthest visible character's glyph advance ends (the last one's, unless an
+            // indent moved the pen back), from the line's left edge (its indent included): the
+            // pen plus the advance, rounded to float once.
             public float End;
             // The last tab's start and end, from the line's start (-1: no tab).
             public float TabStart, TabEnd;
@@ -578,7 +579,7 @@ namespace TMPro
         static void FinishLine(ref LineData line, Placement[] pl, float baseSize)
         {
             float asc = float.NegativeInfinity, desc = float.PositiveInfinity, height = float.NegativeInfinity, maxAscent = float.NegativeInfinity;
-            float fitDesc = float.PositiveInfinity;
+            float fitDesc = float.PositiveInfinity, reach = float.NegativeInfinity;
             line.FirstVisible = -1;
             line.LastVisible = -1;
             line.LastChecked = -1;
@@ -624,6 +625,7 @@ namespace TMPro
                     if (line.FirstVisible < 0) line.FirstVisible = i;
                     line.LastVisible = i;
                     line.Visible++;
+                    reach = Math.Max(reach, (float)(p.X + p.GlyphAdvance));
                 }
                 else if (p.Whitespace) line.Spaces++;
             }
@@ -633,7 +635,11 @@ namespace TMPro
             line.Height = height;
             line.MaxAscent = maxAscent;
             line.Length = line.LastVisible >= 0 ? (float)(pl[line.LastVisible].X + pl[line.LastVisible].GlyphAdvance - line.StartX) : 0f;
-            line.End = line.LastVisible >= 0 ? (float)(pl[line.LastVisible].X + pl[line.LastVisible].GlyphAdvance) : 0f;
+            // As far as any of its characters reached: an indent that moved the pen back leaves
+            // the line as wide as it was ("abcdefghijkl<indent=2em>mn" is as wide as
+            // "abcdefghijkl", 80.03 in NotoSans 14 pt; measured in the original, UnityProbe's
+            // richtext scenario).
+            line.End = line.LastVisible >= 0 ? reach : 0f;
         }
 
         float PointSizeOf(TextState state, float baseSize) => state.SizeScale * baseSize + state.SizeOffset;
