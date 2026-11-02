@@ -42,6 +42,8 @@
     <Compile Include="../../src/OniMoono.Host/MonoJitOptimizer.cs" Link="Host/MonoJitOptimizer.cs" />
     <!-- The brain-rate game tweak's allowance (BrainRateAllowanceTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/BrainRateAllowance.cs" Link="GameTweaks/BrainRateAllowance.cs" />
+    <!-- The fast-jobs game tweak's worker wakes (WorkerWakesTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/WorkerWakes.cs" Link="GameTweaks/WorkerWakes.cs" />
     <!-- The background-save game tweak's writes (BackgroundSaveTests), with the game's zlib. -->
     <Compile Include="../../src/OniMoono.Host/GameTweaks/BackgroundSave.cs" Link="Host/BackgroundSave.cs" />
     <Reference Include="Ionic.Zip">
