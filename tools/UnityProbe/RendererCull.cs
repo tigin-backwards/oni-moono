@@ -21,7 +21,8 @@
 //     change: created A then B, B then A, A disabled and enabled, A's object deactivated and
 //     activated, A's parent deactivated and activated, both created inactive and activated B
 //     first, B disabled and enabled, A's or B's material swapped for one made after it, A's set
-//     again, and A and B made with an older and a newer material each way.
+//     again, A moved to another layer and back (with a render between or not), and A and B
+//     made with an older and a newer material each way.
 // With PROBE_SCENARIO=renderercull only this probe runs; it ends with a RendererCullProbeDone
 // canvas. Compare the players' "RC when" and "RC tie" lines (the cost lines are timings).
 using System;
@@ -369,6 +370,8 @@ namespace SemanticsProbe
             Case("B-disable-enable", AB, (x, y) => { var r = y.GetComponent<MeshRenderer>(); r.enabled = false; cam.Render(); r.enabled = true; });
             Case("A-material-made-after", AB, (x, y) => x.GetComponent<MeshRenderer>().sharedMaterial = new Material(m1));
             Case("B-material-made-after", AB, (x, y) => y.GetComponent<MeshRenderer>().sharedMaterial = new Material(m1));
+            Case("A-layer-out-and-back", AB, (x, y) => { x.layer = OtherLayer; cam.Render(); x.layer = Layer; });
+            Case("A-layer-out-and-back-same-render", AB, (x, y) => { x.layer = OtherLayer; x.layer = Layer; });
             Case("A-material-set-again", AB, (x, y) => x.GetComponent<MeshRenderer>().sharedMaterial = m1);
             var m2 = new Material(m1);
             Case("created-AB-A-older-material", () => { var x = Make("RcA", a, m1, Vector3.zero); var y = Make("RcB", b, m2, Vector3.zero); return (x, y); }, null);

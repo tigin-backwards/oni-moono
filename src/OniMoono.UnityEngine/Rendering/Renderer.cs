@@ -450,8 +450,11 @@ namespace OniMoono.Engine.Rendering
             }
         }
 
-        /// Its index in FrameRenderer's cull candidates (-1: not one).
+        /// Its index in FrameRenderer's cull candidates of its layer (-1: not one), that layer,
+        /// and when it joined them (which orders its draws among ties).
         public int CandidateSlot = -1;
+        public int CandidateLayer;
+        public long CandidateStamp;
         public bool IsVisible;
         public ShadowCastingMode ShadowCasting = ShadowCastingMode.On;
         public bool ReceiveShadows = true;
