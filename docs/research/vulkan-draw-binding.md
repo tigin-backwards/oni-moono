@@ -351,6 +351,22 @@ timers' share). So matching OpenGL needs our bookkeeping cut from about 1.2-1.36
 path (step 2), which removes TexFill, Cache and the set bind for the large programs, or more of
 the same trimming.
 
+## 6. What landed (2026-11-02)
+
+- **Identities first**: `VkDescriptorCache.SetFor`, the writes built only for a new set
+  (`VkTextureSet`). Same writes, sets and eviction as before; unit tests compare them with the
+  old loop.
+- **The "ready" stamp**: `VkReadyStamps`, a texture found ready is skipped by the pass's later
+  draws, in `PrepareTextures` and in set 0's texture lookup.
+- **Not done: a key of the changing bindings only.** A CPU benchmark of the cache's table
+  (Linux, 700 sets of 78 identities, 8 of them changing) found a lookup of the full key and one
+  of the 8 changing words, after a vectorised check of the other 70, equally fast: about 60 ns
+  each, warm or with the cache evicted between frames. The hash and compare of 78 words are not
+  where Cache's 0.15-0.19 ms goes; the rest of the lookup is shared by both.
+- Windows timings of the two changes: not yet measured. `ONI_VK_ALT=writes-first` and
+  `ONI_VK_ALT=prepare-every-texture` run each as before it in every other window
+  (`VkDrawAlternation`), for the paired method above.
+
 ## Sources
 
 - Vulkan specification, Vulkan-Docs `main`: `chapters/descriptorsets.adoc` (Pipeline Layout
