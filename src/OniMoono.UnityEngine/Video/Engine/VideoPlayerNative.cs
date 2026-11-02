@@ -641,9 +641,13 @@ namespace OniMoono.Engine.Video
         /// The videos `camera` draws (render modes CameraFarPlane / CameraNearPlane), in the order
         /// their players started. Far-plane videos are drawn before the scene, near-plane ones
         /// after it, each as a screen-filling quad fitted per Aspect and blended with Alpha.
-        public static List<CameraVideo> CameraVideos(Camera camera)
+        public static List<CameraVideo> CameraVideos(Camera camera) => CameraVideos(camera, new List<CameraVideo>());
+
+        /// CameraVideos into `result` (cleared first): the renderer asks twice per camera per
+        /// frame, and almost always for none.
+        public static List<CameraVideo> CameraVideos(Camera camera, List<CameraVideo> result)
         {
-            var result = new List<CameraVideo>();
+            result.Clear();
             if (camera == null) return result;
             foreach (var p in VideoSystem.Players)
             {
