@@ -192,7 +192,10 @@ transform.
 
 **Placing characters:**
 - **Glyph scale:** the scale is `fontSize / faceInfo.pointSize × faceInfo.scale`, times the
-  character's scale, with sub and superscript adjustments.
+  character's scale, with sub and superscript adjustments. A script's baseline offset
+  (`superscriptOffset`, `subscriptOffset`) is scaled at the script's reduced size (UnityProbe
+  `suptext`; U60's Colony Summaries achievement "… RelicAAAA<sup>AAAGHH</sup>."). A line of
+  scripts alone has the full size's ascender and descender in Unity's player; ours not yet.
 - **Advance:** each character advances by its glyph's horizontal advance, plus:
   - `characterSpacing` (in em/100), and `wordSpacing` for spaces;
   - the font's normal or bold spacing offset;

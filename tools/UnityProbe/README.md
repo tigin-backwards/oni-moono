@@ -76,6 +76,11 @@ formatting itself. Compare the players with `tools/UnityProbe/tw-check.py diff O
 check the rounding rule with `tw-check.py rule LOG`; `docs/cleanroom/textmeshpro.md`
 ("Preferred sizes to the hundredth") records what it measured.
 
+With `PROBE_SCENARIO=suptext` only the script probe runs (`SupText.cs`, lines `SU …`, 10 s into
+the main menu): NotoSans 14 pt texts with `<sup>` and `<sub>`, wrapped in a 338.22-wide rect and
+unwrapped: the preferred height, each line's ascender, descender, baseline and height, and each
+character's, then a `SupTextProbeDone` canvas. `TmpScriptOffsetTests` encodes it.
+
 With `PROBE_SCENARIO=autosizepref` only the auto-size probe runs (`AutoSizePreferred.cs`, lines
 `AP …`, 10 s into the main menu): wrapped, auto-sized NotoSans texts (8 to 14 pt) 72 wide in rects
 0 to 100 high, then in a HorizontalLayoutGroup row that controls their height: the size chosen,

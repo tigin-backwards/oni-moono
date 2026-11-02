@@ -47,6 +47,11 @@ namespace SemanticsProbe
                 go.AddComponent<TextWidth>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "suptext")
+            {
+                go.AddComponent<SupText>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "autosizepref")
             {
                 go.AddComponent<AutoSizePreferred>();
