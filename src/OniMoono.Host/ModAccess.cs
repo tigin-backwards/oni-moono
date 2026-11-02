@@ -408,6 +408,7 @@ namespace OniMoono.Host
         /// The first game member or type the assembly references that is not public, or null.
         static string? Unreachable(string path)
         {
+            found = new Dictionary<string, Assembly>();
             try
             {
                 using var pe = new PEReader(File.OpenRead(path));
@@ -439,6 +440,10 @@ namespace OniMoono.Host
             }
             catch (Exception e) when (e is BadImageFormatException or IOException or UnauthorizedAccessException)
             {
+            }
+            finally
+            {
+                found = null;
             }
             return null;
         }
@@ -490,6 +495,20 @@ namespace OniMoono.Host
             return result;
         }
 
+        /// The game assemblies GameType found during one Unreachable, by simple name: it runs for
+        /// each of a mod's type references, and finding one asked every loaded assembly for its
+        /// name (an AssemblyName each). Only found ones are kept: the first loaded assembly of a
+        /// name stays the first, one not loaded yet may load later.
+        [ThreadStatic] static Dictionary<string, Assembly>? found;
+
+        /// The first loaded assembly of the simple name, as AppDomain lists them.
+        static Assembly? FirstLoaded(string name)
+        {
+            foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                if (a.GetName().Name == name) return a;
+            return null;
+        }
+
         /// A type reference into a loaded game assembly, or null.
         static Type? GameType(MetadataReader md, TypeReferenceHandle handle)
         {
@@ -501,7 +520,12 @@ namespace OniMoono.Host
             if (t.ResolutionScope.Kind != HandleKind.AssemblyReference) return null;
             var assemblyName = md.GetString(md.GetAssemblyReference((AssemblyReferenceHandle)t.ResolutionScope).Name);
             if (Array.IndexOf(gameAssemblies, assemblyName) < 0) return null;
-            var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == assemblyName);
+            Assembly? assembly = null;
+            if (found == null || !found.TryGetValue(assemblyName, out assembly))
+            {
+                assembly = FirstLoaded(assemblyName);
+                if (assembly != null && found != null) found[assemblyName] = assembly;
+            }
             var ns = md.GetString(t.Namespace);
             return assembly?.GetType(ns.Length == 0 ? name : ns + "." + name, throwOnError: false);
         }
