@@ -27,8 +27,9 @@ namespace OniMoono.Host
             var name = module.ToLowerInvariant();
             if (name.StartsWith("/system/library/") || name.StartsWith("/usr/lib/") || name == "libsystem") return "macOS system library";
             if (name is "libc" or "dl" or "libdl.so.2" or "libc.so.6" or "libasound" or "__internal") return "Unix system library";
-            // Xlib, which GLFW's X11 backend has loaded (KeyboardLayout reads the keymap through it).
-            if (name is "libx11.so.6") return "X11 client library";
+            // Xlib and XRandR, which GLFW's X11 backend has loaded (KeyboardLayout reads the keymap
+            // through Xlib, ScreenDpi the monitor's size through XRandR).
+            if (name is "libx11.so.6" or "libxrandr.so.2") return "X11 client library";
             if (name.EndsWith(".dll") || name is "kernel32" or "kernelbase" or "advapi32" or "gdi32" or "gdiplus" or "user32" or "ole32" or "shell32") return "Windows library";
             if (name is "glfw" or "freetype" or "stb" or "glad") return "BRUTAL native (its package's)";
             return null;

@@ -200,6 +200,9 @@ namespace OniMoono.Desktop
             Glfw.MonitorCallback += (_, _) => Report(RefreshWindowState);
             // The window may have moved to another monitor.
             window.OnPosition += (_, _) => Report(RefreshWindowState);
+            // Its DPI changed (WM_DPICHANGED on Windows: moved to a monitor of another scale, or
+            // the scale changed): Screen.dpi follows.
+            window.OnContentScale += (_, _) => Report(RefreshWindowState);
             // The system may have discarded what the window showed: GLFW's refresh callback says
             // so (exposure). Told at once, during a pump too: the presenter shows the last frame
             // again, which changes nothing the frame sees. Focus changes are told too, in case a
@@ -305,8 +308,24 @@ namespace OniMoono.Desktop
         /// is doing.
         public bool Focused => scripted || window.IsFocused;
 
-        /// Monitor DPI from its physical size (0 when the monitor does not report one, as Unity).
-        public float Dpi => dpi ??= MonitorDpi(CurrentMonitor);
+        /// Screen.dpi (ScreenDpi): the window's logical DPI on Windows, the RandR output's
+        /// physical one on X11, else the monitor's physical one.
+        public float Dpi => dpi ??= ReadDpi();
+
+        float ReadDpi()
+        {
+            if (OperatingSystem.IsWindows()) return ScreenDpi.ReadWindows(window, CurrentMonitor);
+            if (Glfw.GetPlatform() == Brutal.GlfwApi.GlfwPlatform.X11)
+            {
+                try
+                {
+                    return ScreenDpi.ReadX11(CurrentMonitor);
+                }
+                // A guard: GLFW's X11 backend loads libXrandr itself.
+                catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException) { }
+            }
+            return MonitorDpi(CurrentMonitor);
+        }
 
         /// The window and taskbar icon (the falling Gassy Moo, embedded). Wayland has no window icons: the
         /// compositor takes them from the desktop entry, and GLFW reports an error if asked.
@@ -353,11 +372,7 @@ namespace OniMoono.Desktop
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern IntPtr SetClassLongPtrW(IntPtr hwnd, int index, IntPtr value);
 
-        static float MonitorDpi(GlfwMonitor m)
-        {
-            var mm = m.PhysicalSize;
-            return mm.X <= 0 ? 0f : m.Size.X / (mm.X / 25.4f);
-        }
+        static float MonitorDpi(GlfwMonitor m) => ScreenDpi.Physical(m.Size.X, m.PhysicalSize.X);
 
         GlfwMonitor CurrentMonitor
         {
