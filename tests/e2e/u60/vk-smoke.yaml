@@ -1,0 +1,99 @@
+# The U60 Vulkan gate (docs/research/u60-qa-spec.md, "Vulkan gate"): a short smoke of the colony
+# with the overlays and screens the qa dogfood scenarios open (scripts/qa-scenarios: overlays,
+# research, saveload), for ours on Vulkan against the original on its default renderer.
+#
+# DeCrew around cell (157, 168) as R1's shots: played for 20 s, then each overlay by its hotkey
+# (F1 to F11, Shift+F1 to Shift+F3) shot over the world, the overlay closed; the management
+# screens shot (Research at the dogfood scenario's 35 %: its zoom and scroll animate in real
+# time); the pause menu and Options; a save, loaded back from the pause menu, and shot. No `run`
+# while a screen is open: on Windows the original stalled for minutes in one with Research open.
+from: decrew
+memory_gb: 15
+steps:
+  - run: {seconds: 20, speed: 1}
+  - key: {code: F1}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: oxygen, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F2}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: power, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: temperature, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F4}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: materials, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F5}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: light, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F6}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: plumbing, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F7}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: ventilation, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F8}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: decor, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F9}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: germs, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F10}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: farming, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: F11}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: rooms, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: Shift+F1}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: exosuits, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: Shift+F2}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: automation, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: Shift+F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: conveyors, ortho: 12, at: [157, 168], threshold: 0.08}
+  - key: {code: Shift+F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - world_shot: {name: plain, ortho: 12, at: [157, 168], threshold: 0.08}
+  - shot: {name: hud, threshold: 0.08}
+  - open: {management: research}
+  - shot: {name: research, threshold: 0.35}
+  - key: {code: Escape}
+  - open: {management: skills}
+  - shot: {name: skills, threshold: 0.05}
+  - key: {code: Escape}
+  - open: {management: vitals}
+  - shot: {name: vitals, threshold: 0.05}
+  - key: {code: Escape}
+  - open: {management: priorities}
+  - shot: {name: priorities, threshold: 0.05}
+  - key: {code: Escape}
+  - open: {management: schedule}
+  - shot: {name: schedule, threshold: 0.05}
+  - key: {code: Escape}
+  - open: {management: report}
+  - shot: {name: report, threshold: 0.05}
+  - key: {code: Escape}
+  - open: {management: database}
+  - shot: {name: database, threshold: 0.05}
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - shot: {name: pause, threshold: 0.03}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/OptionsButton"}
+  - shot: {name: options, threshold: 0.03}
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - save: vk-smoke
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 6000}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
+  - run: {seconds: 5, speed: 1}
+  - world_shot: {name: reloaded, ortho: 12, at: [157, 168], threshold: 0.08}

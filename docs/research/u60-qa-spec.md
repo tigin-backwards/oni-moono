@@ -904,13 +904,19 @@ the layout group's preferred height differs by 0.04 (masked out of V1's dumps).
 
 ### U2 Hidden table screens disable their masks and scroll views
 
-**Status:** fixed in 90f04f7c (Linux OpenGL; Windows: pending). `tests/e2e/u60/u2-hidden-table-screens.yaml`
-failed in ours on All Diagnostics: its value labels (wrapped, auto-sized 8 to 14) took 8 pt and one
-line where the original took 14. Repro `u2-diagnostics-autosize.yaml`; measured with UnityProbe
-`autosizepref`: a wrapped auto-sized text's preferred height ignores the rect's height. Both specs
-now play; the hidden screens' scroll views go off and on as in the original, dumps match, shots
-within 1.5 %. The table screens are hidden, not deactivated (alpha 0), and the original scrolls
-Consumables back to the left when it shows again.
+**Status:** fixed in 90f04f7c (Linux OpenGL; Windows Vulkan, 0cf55242:
+`u2-diagnostics-autosize.yaml` passes; `u2-hidden-table-screens.yaml` fails in ours on one value:
+Consumables' scroll position after ten wheel notches is 0.20187964 in ours and 0.20187989 in the
+original, in both runs (2.5e-7 apart, the sub-ulp class of known-findings'
+`scroll-normalized-position`; equal on Linux; not chased). With that check at 1e-6 the rest plays:
+every dump and state check equal, the shots 2.3 % to 2.6 % apart (2 % allowed) from the water's
+phase and OniMcp's toast in the world behind, not the screens).
+`tests/e2e/u60/u2-hidden-table-screens.yaml` failed in ours on All Diagnostics: its value labels
+(wrapped, auto-sized 8 to 14) took 8 pt and one line where the original took 14. Repro
+`u2-diagnostics-autosize.yaml`; measured with UnityProbe `autosizepref`: a wrapped auto-sized text's
+preferred height ignores the rect's height. Both specs now play; the hidden screens' scroll views go
+off and on as in the original, dumps match, shots within 1.5 %. The table screens are hidden, not
+deactivated (alpha 0), and the original scrolls Consumables back to the left when it shows again.
 
 **Risk: high.**
 
@@ -1161,10 +1167,11 @@ difference.
 
 ### U8 Front-end screens
 
-**Status:** passes (48e16db6, Linux OpenGL; Windows: pending). `tests/e2e/u60/u8-front-end.yaml`:
-the main menu shot (DLC logos), the Load screen with a colony selected (dumps and shot), and the
-destination screen after New Game, Survival, Classic and a typed seed (asteroid list dumped,
-carousel shot with its bobbing asteroid and the caret masked) equal the original's.
+**Status:** passes (48e16db6, Linux OpenGL; Windows Vulkan: passes, 0cf55242, shots within 1.6 %;
+the seed is set whole and submitted there, not typed). `tests/e2e/u60/u8-front-end.yaml`: the main
+menu shot (DLC logos), the Load screen with a colony selected (dumps and shot), and the destination
+screen after New Game, Survival, Classic and a typed seed (asteroid list dumped, carousel shot with
+its bobbing asteroid and the caret masked) equal the original's.
 
 **Risk: medium.**
 
@@ -1551,9 +1558,9 @@ strings.
 ### S1 Save format 7.39 and U59 saves
 
 **Status:** passes (19d20424, Linux OpenGL, every save tweak on; also passed with none, not
-recorded; Windows: pending). `tests/e2e/u60/s1-u59-save-roundtrip.yaml`: DeCrew (7.36) loaded,
-saved as 7.39 and loaded back: entombed items and their germs, traits, granted skills and open
-doors equal the original's.
+recorded; Windows Vulkan: passes, 0cf55242). `tests/e2e/u60/s1-u59-save-roundtrip.yaml`: DeCrew
+(7.36) loaded, saved as 7.39 and loaded back: entombed items and their germs, traits, granted skills
+and open doors equal the original's.
 
 **Risk: medium.** The tweaks were reviewed, not run on a 7.39 round trip with these members.
 
@@ -1592,11 +1599,12 @@ Also changed: `EntombedItemManager`, `MinionResume.GrantedSkillIDs`, `Door.OnSpa
 
 ### S2 Saving while screenshots are written
 
-**Status:** passes (71236ffc, Linux OpenGL, background-save; Windows: pending).
-`tests/e2e/u60/s2-save-and-quit.yaml` (with the new `expect_exit` step and `quits` clicks): Save
-then Main Menu at once, the save loaded back, the autosave at a new cycle, Save and Quit to the
-desktop (exit 0); the three previews within 0.6 %, 3.2 % for the autosave's (the colony moved).
-The run with no save tweaks is still to be recorded.
+**Status:** passes (71236ffc, Linux OpenGL, background-save; Windows Vulkan: passes, 0cf55242, ours
+with the default game tweaks, the previews within 0.6 %). `tests/e2e/u60/s2-save-and-quit.yaml`
+(with the new `expect_exit` step and `quits` clicks): Save then Main Menu at once, the save loaded
+back, the autosave at a new cycle, Save and Quit to the desktop (exit 0); the three previews within
+0.6 %, 3.2 % for the autosave's (the colony moved). The run with no save tweaks is still to be
+recorded.
 
 **Risk: high.**
 
@@ -1795,9 +1803,12 @@ a structural reason (it checks for Unity's Mono).
 
 ### P1 Crash reporter messages
 
-**Status:** fixed in 1b876641 (Linux OpenGL; Windows: pending). Specs `tests/e2e/u60/p1-sim-blocked.yaml`
-(libSimDLL.so absent: the popup) and `p1-sim-unreadable.yaml` (unreadable, as worded: Unity's
-Mono names the file and dlerror's text, so the original shows no popup either); both played.
+**Status:** fixed in 1b876641 (Linux OpenGL; Windows Vulkan: `p1-sim-blocked.yaml` passes, 0cf55242,
+with SimDLL.dll absent from a copy of each install: the OS Error popup, its text and the queued
+report equal, the popup's shot identical; the unreadable case was not run there). Specs
+`tests/e2e/u60/p1-sim-blocked.yaml` (libSimDLL.so absent: the popup) and `p1-sim-unreadable.yaml`
+(unreadable, as worded: Unity's Mono names the file and dlerror's text, so the original shows no
+popup either); both played.
 
 **Risk: high.** Likely to fail as is.
 
@@ -1850,7 +1861,12 @@ refuses the software device too. With each of `-force-glcore` and `-force-opengl
 report `SystemInfo.graphicsDeviceType` OpenGLCore. Deliberate difference (ARCHITECTURE §3.5): with
 only a software Vulkan device, ours given `-force-vulkan` runs on it where Unity's player exits. QA
 dogfood once per renderer: not run on Linux (the user's renderer rule: no Vulkan runs on Linux).
-Windows Vulkan: pending (a real GPU: no option gives Vulkan, the -force options, dogfood captures).
+Windows Vulkan, 0cf55242: with no option the original opens Direct3D 11 and ours Vulkan (ours has no
+Direct3D renderer, and ignores -force-d3d11 as an unknown Unity option, so that gives Vulkan too);
+-force-vulkan gives Vulkan and -force-glcore OpenGL Core in both. The Vulkan gate,
+`tests/e2e/u60/vk-smoke.yaml` (DeCrew played 20 s, the 14 overlays, seven management screens, the
+pause menu, Options, a save loaded back; 26 shots), passes: no new log signatures, every shot within
+its tolerance (0.3 % to 7.2 %; the Research tree, which animates in real time, 27.6 % of 35 %).
 
 **Risk: medium.** Covered on llvmpipe and Mesa d3d12; real Linux hardware is not available here.
 
