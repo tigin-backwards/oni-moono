@@ -1,0 +1,26 @@
+# The build menu's material list counts only what Duplicants can reach, as in the original.
+#
+# A player reported that materials no Duplicant can reach still show in the list. The game's
+# MaterialSelector lists every discovered element of the recipe's kind and shows the world
+# inventory's amount of it, and WorldInventory counts only fetchable items (FetchableMonitor
+# adds an item when it becomes reachable and removes it when it no longer is): an element whose
+# items are all out of reach stays listed, greyed with 0. Setup digs a one-cell pocket in the
+# rock under the base and drops 500 kg of cuprite in it, beside the 1595 kg the base dug. Both
+# players count 1595 kg in the inventory and in the wire's material list.
+from: early-base
+setup:
+  - driver: {setup.call: {type: SimMessages, method: Dig, args: [{"$": "Grid.XYToCell(122, 196)"}]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Cuprite\").substance", method: SpawnResource, args: [[122.5, 196.5, -5], 500, 300, 255, 0]}}
+steps:
+  - run: {seconds: 10, speed: 1}
+  - expect_state:
+      "sum:all:Pickupable::[*].TotalAmount if .KPrefabID.PrefabTag.Name == Cuprite": [">= 2095", "== original"]
+      "sum:all:Pickupable::[*].TotalAmount if .KPrefabID.PrefabTag.Name == Cuprite and .IsReachable() == true": {save_as: reachable}
+  - expect_state:
+      "ClusterManager.Instance.activeWorld.worldInventory.GetAmount(\"Cuprite\", true)": ["<= reachable + 0.01", ">= reachable - 0.01", "== original"]
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Wire Group*"}
+  - ui_wait: {path: "**/MaterialSelector*", cond: stable}
+  - ui_dump: {name: materials, root: "**/ProductInfoScreen/**/MaterialSelector*"}
+  - shot: {name: materials, crop: "**/ProductInfoScreen"}
