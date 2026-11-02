@@ -631,6 +631,10 @@ so `setup.call` may do it); check it holds in both players before relying on it.
 
 ### I5 Renaming with Enter
 
+**Status:** passes (4b7ee572, Linux OpenGL; Windows: pending). `tests/e2e/u60/i5-rename-enter.yaml`:
+three Enter renames of the Ration Box (one emptied) keep it enabled, names, title bar dumps and
+the codex article equal the original's.
+
 **Risk: high.** Key-event order is ours.
 
 **Patch notes:**

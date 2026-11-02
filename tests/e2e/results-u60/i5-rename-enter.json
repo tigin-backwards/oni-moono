@@ -1,0 +1,75 @@
+{
+ "spec": "u60/i5-rename-enter.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Ration Box renamed with Enter three times (once emptied): names, enabled state, title bar dumps, and the codex button's article",
+ "updated": "2026-11-01",
+ "commit": "4b7ee572",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-184030-6ad07b9a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T18:40:30",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-185753-ec88148c",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T18:57:53",
+    "lane": 50,
+    "reference_run": "20261101-184030-6ad07b9a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "editing": {
+      "differences": 0
+     },
+     "renamed": {
+      "differences": 0
+     },
+     "cleared": {
+      "differences": 0
+     },
+     "third": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261101-185753-ec88148c",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T18:59:20",
+    "lane": 50,
+    "reference_run": "20261101-184030-6ad07b9a",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "editing": {
+      "differences": 0
+     },
+     "renamed": {
+      "differences": 0
+     },
+     "cleared": {
+      "differences": 0
+     },
+     "third": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}

@@ -1,0 +1,51 @@
+# I5 (docs/research/u60-qa-spec.md): renaming a building with Enter.
+#
+# U60's EditableTitleBar.OnEndEdit strips link formatting from the name and re-enables the edit
+# button ten frames later; it fixed Enter also toggling Enable Building, and Enter on an emptied
+# field blocking later renames. Which handler consumes Return first is our TMP_InputField's
+# submit, end-edit and deselect order against KInputController.
+#
+# From early-base, the Ration Box (its saved name is a link, <link="RATIONBOX">Ration Box</link>):
+# the details screen's rename button, then the field's text compared (the link stripped or not);
+# "e2e" with Enter; the building still enabled. Renamed again, the text cleared, Enter: the name
+# stays. Renamed a third time, "e2e3". Then the codex button ("View full entry in Database")
+# opens the Ration Box's article.
+from: early-base
+setup:
+  - driver: {camera.set: {pos: [118.5, 209.5], ortho: 10}}
+steps:
+  - click_world: {cell: [121, 207], select: RationBox}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar/Border/LabelGroup/RenameButton", cond: stable}
+  - click: {ui: "**/DetailsScreen/TitleBar/Border/LabelGroup/RenameButton"}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar/**/*Input*", cond: stable}
+  - ui_dump: {name: editing, root: "**/DetailsScreen/TitleBar"}
+  - type: {ui: "**/DetailsScreen/TitleBar/**/*Input*", text: "e2e", clear: true, enter: true}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar/Border/LabelGroup/Label", cond: text, value: "e2e"}
+  - expect_state:
+      "all:RationBox::[0].GetComponent<UserNameable>.savedName": ["== 'e2e'", "== original"]
+      "all:RationBox::[0].GetComponent<BuildingEnabledButton>.IsEnabled": [true, "== original"]
+  - ui_dump: {name: renamed, root: "**/DetailsScreen/TitleBar"}
+  # Again, the text cleared: Enter keeps the name.
+  - ui_wait: {path: "**/DetailsScreen/TitleBar/Border/LabelGroup/RenameButton", cond: stable}
+  - click: {ui: "**/DetailsScreen/TitleBar/Border/LabelGroup/RenameButton"}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar/**/*Input*", cond: stable}
+  - type: {ui: "**/DetailsScreen/TitleBar/**/*Input*", text: "", clear: true, enter: true}
+  - expect_state:
+      "all:RationBox::[0].GetComponent<UserNameable>.savedName": "== original"
+      "all:RationBox::[0].GetComponent<BuildingEnabledButton>.IsEnabled": "== original"
+  - ui_dump: {name: cleared, root: "**/DetailsScreen/TitleBar"}
+  # A third time.
+  - ui_wait: {path: "**/DetailsScreen/TitleBar/Border/LabelGroup/RenameButton", cond: stable}
+  - click: {ui: "**/DetailsScreen/TitleBar/Border/LabelGroup/RenameButton"}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar/**/*Input*", cond: stable}
+  - type: {ui: "**/DetailsScreen/TitleBar/**/*Input*", text: "e2e3", clear: true, enter: true}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar/Border/LabelGroup/Label", cond: text, value: "e2e3"}
+  - expect_state:
+      "all:RationBox::[0].GetComponent<UserNameable>.savedName": ["== 'e2e3'", "== original"]
+      "all:RationBox::[0].GetComponent<BuildingEnabledButton>.IsEnabled": [true, "== original"]
+  - ui_dump: {name: third, root: "**/DetailsScreen/TitleBar"}
+  # View full entry in Database.
+  - click: {ui: "**/DetailsScreen/TitleBar/Border/LabelGroup/CodexButton"}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar", cond: stable}
+  - expect_state:
+      "ManagementMenu.Instance.codexScreen.activeEntryID": "== original"
