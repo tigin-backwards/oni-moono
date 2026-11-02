@@ -1801,6 +1801,9 @@ data, read from Linux (587 variants; 120 shaders, 0 compile or link errors, as o
 
 ### AU1 UI sounds and stingers
 
+**Status:** passes (3346493d, Linux OpenGL; Windows: pending). `tests/e2e/u60/au1-ui-sounds.yaml`:
+the UI sound calls counted after each step equal the original's (stingers and reverb not checked).
+
 **Risk: low.**
 
 **Patch notes:**

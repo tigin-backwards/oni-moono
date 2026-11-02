@@ -1,0 +1,39 @@
+# AU1 (docs/research/u60-qa-spec.md): UI sounds.
+#
+# U60 fixed the click sound when a storage is selected for the first time, and a doubled click
+# opening the Research or Skills screen from the Printing Pod's side screen; KFMOD caches event
+# paths by GUID and GetSoundEventDescription returns null for a missing event. FMOD is shipped;
+# ours passes the calls through.
+#
+# From early-base: the calls to KFMOD.PlayUISound and KFMOD.BeginOneShot are counted from
+# setup on, and compared with the original's after each action: the Ration Box selected twice
+# (closed between), then the Printing Pod selected and Research opened from its side screen.
+from: early-base
+setup:
+  - driver: {camera.set: {pos: [123.5, 209.5], ortho: 10}}
+  - driver: {count: {methods: ["KFMOD:PlayUISound(System.String)", "KFMOD:BeginOneShot(System.String,UnityEngine.Vector3,System.Single)"]}}
+steps:
+  - click_world: {cell: [121, 207], select: RationBox}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar", cond: stable}
+  - expect_state:
+      'E2eDriver.Counting.Of("KFMOD:PlayUISound(System.String)")': "== original"
+      'E2eDriver.Counting.Of("KFMOD:BeginOneShot(System.String,UnityEngine.Vector3,System.Single)")': "== original"
+  - key: {code: Escape}
+  - ui_wait: {path: "**/DetailsScreen", cond: gone}
+  - click_world: {cell: [121, 207], select: RationBox}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar", cond: stable}
+  - expect_state:
+      'E2eDriver.Counting.Of("KFMOD:PlayUISound(System.String)")': "== original"
+      'E2eDriver.Counting.Of("KFMOD:BeginOneShot(System.String,UnityEngine.Vector3,System.Single)")': "== original"
+  - key: {code: Escape}
+  - click_world: {cell: [125, 209], select: Headquarters}
+  - ui_wait: {path: "**/TelepadSideScreen/Contents/Research/ViewButton", cond: stable}
+  - expect_state:
+      'E2eDriver.Counting.Of("KFMOD:PlayUISound(System.String)")': "== original"
+      'E2eDriver.Counting.Of("KFMOD:BeginOneShot(System.String,UnityEngine.Vector3,System.Single)")': "== original"
+  # Research from the Printing Pod's side screen: one click sound (U60 fixed a doubled one).
+  - click: {ui: "**/TelepadSideScreen/Contents/Research/ViewButton"}
+  - ui_wait: {path: "**/ResearchScreen/**/Content/Icons/Icon", cond: stable}
+  - expect_state:
+      'E2eDriver.Counting.Of("KFMOD:PlayUISound(System.String)")': "== original"
+      'E2eDriver.Counting.Of("KFMOD:BeginOneShot(System.String,UnityEngine.Vector3,System.Single)")': "== original"

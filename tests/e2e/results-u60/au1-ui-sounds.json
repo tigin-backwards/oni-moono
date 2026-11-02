@@ -1,0 +1,49 @@
+{
+ "spec": "u60/au1-ui-sounds.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "UI sound calls counted: the Ration Box selected twice, the Printing Pod selected, Research opened from its side screen",
+ "updated": "2026-11-01",
+ "commit": "3346493d",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-222921-9265151d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T22:29:21",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-231011-db321a51",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T23:10:11",
+    "lane": 50,
+    "reference_run": "20261101-222921-9265151d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261101-231011-db321a51",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T23:11:16",
+    "lane": 50,
+    "reference_run": "20261101-222921-9265151d",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
