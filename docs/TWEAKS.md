@@ -10,8 +10,9 @@ them in **Moono Tweaks** on the main menu. Measured gains are in
 On the main menu, **Moono Tweaks** (under Mods) lists every tweak with an on/off switch, in the
 sections below, each with a line on what it does; hovering a row says how it works, its
 measured gain where it is large enough to notice, and its launch option. A **General** section
-holds five options of the player's own: the Gassy Moo loading splash (on by default), frame
-stats in the log (off by default), hiding personal paths in the log (on by default), for
+holds six options of the player's own: the Gassy Moo loading splash (on by default), the
+[update check](#update-check) (on by default), frame stats in the log (off by default), hiding
+personal paths in the log (on by default), for
 laptops with two GPUs, the graphics card the game draws with (default, discrete or integrated;
 default does what the original does) and, on Windows, presenting through Direct3D as the
 original does (on by default).
@@ -22,6 +23,26 @@ Your choices are kept in `oni-moono/settings.json` in the game's own data folder
 `%USERPROFILE%\AppData\LocalLow\Klei\Oxygen Not Included` on Windows), which updates never touch.
 The file records only what differs from the defaults, so a default changed by an update still
 reaches you unless you chose otherwise.
+
+## Update check
+
+With **Update check** on (the default), Moono makes one network request of its own: in the
+background after start-up, a GET of `https://api.github.com/repos/tigin-backwards/oni-moono/releases`
+with a `User-Agent: OniMoono-update-check` header and nothing else (no cookies, IDs or details
+of your game). It waits at most 8 seconds. The answer is kept for 6 hours in
+`oni-moono/update-check.json` beside the settings file, so most launches ask nothing. When a
+newer release for your build is out, a Gassy Moo badge next to **Moono Tweaks** on the main menu
+says so: hovering it lists what changed in each newer release, clicking it opens the release
+page in your browser. A normal build looks at normal releases only, a U60 build at the U60
+pre-releases only; releases marked "Superseded" are skipped. Offline, or when GitHub doesn't
+answer, there is no badge and the log has one line about it. With the check off, Moono makes no
+network requests of its own. A build made without a release tag (a developer build) checks
+nothing.
+
+For tests, `ONI_UPDATE_RELEASES_URL` reads the releases list from elsewhere (a `file://` URL, a
+path or an http(s) URL; `none` checks nothing), never cached, and `ONI_UPDATE_TAG` sets the
+release the build counts as. `scripts/run.sh` sets `ONI_UPDATE_RELEASES_URL=none`, so test runs
+never ask GitHub; `tests/e2e/update-badge.yaml` gives the badge a fixture instead.
 
 ## Launch options
 

@@ -29,6 +29,7 @@ namespace OniMoono.Host
                 GameTweakNames.GpuRow => (Array.IndexOf(row.Choices!, effective.Gpu), effective.GpuSource == OptionSource.CommandLine,
                     Array.IndexOf(row.Choices!, EffectiveOptions.DefaultGpu)),
                 GameTweakNames.DxgiRow => (Flag(effective.Dxgi), effective.DxgiSource == OptionSource.CommandLine, Flag(EffectiveOptions.DefaultDxgi)),
+                GameTweakNames.UpdateCheckRow => (Flag(effective.UpdateCheck), false, Flag(EffectiveOptions.DefaultUpdateCheck)),
                 var name => (Flag(effective.Tweaks[name].On), effective.Tweaks[name].Source == OptionSource.CommandLine,
                     Flag(EffectiveOptions.DefaultOn(name, GameTweakNames.ChangingBehaviour))),
             };
@@ -52,7 +53,7 @@ namespace OniMoono.Host
             Func<string[], int[], string?> save = (ids, values) =>
             {
                 var tweaks = new Dictionary<string, bool>(StringComparer.Ordinal);
-                bool? splash = null, frameStats = null, hideLogPaths = null, dxgi = null;
+                bool? splash = null, frameStats = null, hideLogPaths = null, dxgi = null, updateCheck = null;
                 string? gpu = null;
                 for (int i = 0; i < ids.Length; i++)
                 {
@@ -61,9 +62,10 @@ namespace OniMoono.Host
                     else if (ids[i] == GameTweakNames.LogPathsRow) hideLogPaths = values[i] != 0;
                     else if (ids[i] == GameTweakNames.GpuRow) gpu = rows.First(r => r.Id == GameTweakNames.GpuRow).Choices![values[i]];
                     else if (ids[i] == GameTweakNames.DxgiRow) dxgi = values[i] != 0;
+                    else if (ids[i] == GameTweakNames.UpdateCheckRow) updateCheck = values[i] != 0;
                     else tweaks[ids[i]] = values[i] != 0;
                 }
-                var next = EffectiveOptions.Apply(saved, GameTweakNames.ChangingBehaviour, tweaks, splash, frameStats, hideLogPaths, gpu, dxgi);
+                var next = EffectiveOptions.Apply(saved, GameTweakNames.ChangingBehaviour, tweaks, splash, frameStats, hideLogPaths, gpu, dxgi, updateCheck);
                 try
                 {
                     next.Write(settingsPath);
@@ -88,6 +90,16 @@ namespace OniMoono.Host
                 states.Select(s => s.Value).ToArray(), states.Select(s => s.Default).ToArray(), states.Select(s => s.Locked).ToArray(),
                 string.Join(" ", locked), settingsPath, save,
                 TweakStrings.All.Select(t => t.Key).ToArray(), TweakStrings.All.Select(t => t.English).ToArray(), resolve, translations]);
+
+            // The update badge beside the button: the check runs in the background from now on.
+            if (effective.UpdateCheck)
+            {
+                UpdateCheck.Start(EngineConfig.PersistentDataPath, GameVersionCheck.ThisUpdate == "U60", EngineLog.Engine);
+                Func<string[]?> poll = () => !UpdateCheck.Done ? null
+                    : UpdateCheck.Result is { } found ? [found.Tag, found.Url, found.Notes, found.Truncated ? "1" : "0"] : [];
+                GameTweaks.GameTweaks.TypedAssembly.GetType("OniMoono.GameTweaks.UpdateBadge", throwOnError: true)!.GetMethod("Install")!
+                    .Invoke(null, [poll]);
+            }
         }
     }
 }

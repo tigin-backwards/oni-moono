@@ -46,7 +46,9 @@ Plugins); E2E_ORIGINAL_ENV holds NAME=VALUE settings for the original player onl
 tests/e2e/README.md, "Run time"). Our player runs with the users' default game tweaks (`--game-tweak exact`), or with
 E2E_GAME_TWEAKS, space-separated `--game-tweak` values (`none`, `background-save`, `exact
 -no-save-gc`); E2E_PLAYER_ARGS adds host arguments (`--renderer vulkan`), E2E_ORIGINAL_ARGS the
-original's (`-force-glcore`). Each invocation
+original's (`-force-glcore`). E2E_SCREEN=WxH and E2E_UI_SCALE=PERCENT run both players at another
+screen size and UI scale, for a look at a layout there (comparisons with references want the
+default 1280x720 at 100). Each invocation
 has a run id; each run's log, results and evidence are in
 out/e2e/SPEC/RUN_ID/PLAYER-N, and out/e2e/runs/RUN_ID.json holds one record per spec run.
 --record writes tests/e2e/results/SPEC.json, the committed record of the spec's verdict (played,
@@ -69,7 +71,10 @@ FIXTURES = os.path.join(SPECS, 'fixtures')
 OUT = os.environ.get('E2E_OUT') or os.path.join(ROOT, 'out', 'e2e')
 REFS = OUT.rstrip('/') + '-refs'
 DRIVER_SOURCE = os.path.join(ROOT, 'tools', 'E2eDriver')  # its mod.yaml and mod_info.yaml
-WIDTH, HEIGHT = 1280, 720
+# E2E_SCREEN=WxH: another screen size, for a look at a layout there (references are 1280x720).
+WIDTH, HEIGHT = map(int, os.environ.get('E2E_SCREEN', '1280x720').split('x'))
+# E2E_UI_SCALE=PERCENT: the game's UI scale option (Options > Graphics), 100 by default.
+UI_SCALE = os.environ.get('E2E_UI_SCALE')
 PROFILE = ('config', 'unity3d', 'Klei', 'Oxygen Not Included')
 # Unity's Mono has ValueTuple in mscorlib but no System.ValueTuple facade, which the
 # System.Text.Json merged into OniMcp references: the original gets the package's forwarder.
@@ -158,7 +163,7 @@ def ws_mods():
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
             'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi', 'blocked_plugins', 'data_collection',
-            'extra_saves', 'workshop'}
+            'extra_saves', 'workshop', 'update_check'}
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 BLOCKED_HOW = ('unreadable', 'missing')
 # The game's own translations (`language`), as Localization.PreinstalledLanguages names them.
@@ -174,7 +179,7 @@ MANAGEMENT_ACTIONS = {'vitals': 'ManageVitals', 'consumables': 'ManageConsumable
                       'codex': 'ManageDatabase'}
 # Steps that talk to E2eDriver (a spec with any of them needs it installed).
 DRIVER_STEPS = {'click', 'toggle', 'dropdown', 'type', 'drag', 'tool', 'expect_ui', 'expect_state', 'ui_dump',
-                'ui_wait', 'world_shot', 'driver', 'click_world', 'scroll', 'expect_hit'}
+                'ui_wait', 'world_shot', 'driver', 'click_world', 'scroll', 'expect_hit', 'press'}
 STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_shot', 'open', 'key', 'keyboard',
               'expect_exit'} | DRIVER_STEPS
 DRIVER_COMMANDS = {'ping', 'ui.action', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
@@ -362,6 +367,10 @@ def check_spec(spec):
         problems.append('`extra_saves` is a list of fixture names')
     if not isinstance(spec.get('data_collection', True), bool):
         problems.append('`data_collection` is true or false')
+    update = spec.get('update_check')
+    if update is not None and not (isinstance(update, dict) and set(update) == {'releases', 'tag'}
+                                   and os.path.exists(os.path.join(FIXTURES, str(update['releases'])))):
+        problems.append('`update_check` is {releases: FILE in tests/e2e/fixtures, tag: vYYYY.MM.DD.NN}')
     if not isinstance(spec.get('steps'), list):
         problems.append('`steps` is a list')
     mods = spec.get('mods', [])
@@ -2487,12 +2496,13 @@ class Player:
 
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
                  translation=None, language=None, keyboard=None, tweaks_menu=False, display_dpi=None,
-                 blocked_plugins=None, data_collection=False, extra_saves=(), workshop=None):
+                 blocked_plugins=None, data_collection=False, extra_saves=(), workshop=None, update_check=None):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
         self.blocked_plugins = dict(blocked_plugins or {})
         self.keyboard = keyboard
         self.display_dpi = display_dpi
         self.tweaks_menu = tweaks_menu
+        self.update_check = update_check
         self.home = os.path.join(out, 'home')
         self.profile = os.path.join(self.home, *PROFILE)
         self.log = os.path.join(out, 'player.log' if kind == 'original' else 'stdout.txt')
@@ -2530,7 +2540,8 @@ class Player:
             f.write(translation_prefs(translation, language) + f'ints:\n  ResolutionWidth: {WIDTH}\n  ResolutionHeight: {HEIGHT}\n'
                     '  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 0\n'
                     # DlcManager reads Spaced Out as on unless this says 0.
-                    + ('' if expansion1 else '  EXPANSION1_ID.ENABLED: 0\n') + 'floats: {}\n')
+                    + ('' if expansion1 else '  EXPANSION1_ID.ENABLED: 0\n')
+                    + (f'floats:\n  UIScalePref: {float(UI_SCALE)}\n' if UI_SCALE else 'floats: {}\n'))
         if not data_collection:
             # The Data Collection option off (KPrivacyPrefs) unless the spec says
             # `data_collection: true`: no test run submits a crash report to Klei's server (a
@@ -2689,6 +2700,13 @@ class Player:
             if self.blocked_plugins:
                 game = blocked_install(game, self.blocked_plugins, install)
             env.update(ONI_GAME_DIR=game, ONI_RUN_HOME=self.home, ONI_CONFIG='release')
+            # The main menu's update check reads the spec's releases file, as this tag (else
+            # scripts/run.sh turns it off).
+            env.pop('ONI_UPDATE_RELEASES_URL', None)
+            env.pop('ONI_UPDATE_TAG', None)
+            if self.update_check:
+                env.update(ONI_UPDATE_RELEASES_URL='file://' + os.path.join(FIXTURES, self.update_check['releases']),
+                           ONI_UPDATE_TAG=str(self.update_check['tag']))
             command = [os.path.join(ROOT, 'scripts', 'run.sh'), '--native-override',
                        'steam_api=' + self.env['QA_U57_STEAM'], *size,
                        *(a for t in os.environ.get('E2E_GAME_TWEAKS', 'exact').split() for a in ('--game-tweak', t)),
@@ -3677,6 +3695,22 @@ class Run:
                     raise
         elif kind == 'click':
             self.click_element(value, value.get('mods', ()), value.get('button', 'left'), bool(value.get('double')))
+        elif kind == 'press':
+            # The left button held over an element (`down`, for a shot of its pressed state; a
+            # `shot` after it wants `pointer: stay`), or released (`up`) away from it, in the
+            # bottom-right corner, so that the press clicks nothing.
+            if value.get('up'):
+                self.need_input().move(WIDTH - 1, HEIGHT - 1)
+                self.frames(2)
+                self.need_input().button('left', False)
+            else:
+                # (`hover: true`: the pointer over it only.)
+                element = self.element({k: value[k] for k in ('ui', 'under', 'index', 'text') if k in value})
+                self.need_input().move(*element.center)
+                self.frames(2)
+                if not value.get('hover'):
+                    self.need_input().button('left', True)
+            self.frames(3)
         elif kind == 'click_world':
             where = value.get('cell', value.get('pos'))
             x, y = self.need_driver().to_screen(where, pos='pos' in value)
@@ -4055,7 +4089,8 @@ class Run:
                                  tweaks_menu=spec.get('tweaks_menu', False), display_dpi=spec.get('display_dpi'),
                                  blocked_plugins=spec.get('blocked_plugins'),
                                  data_collection=spec.get("data_collection", False),
-                                 extra_saves=spec.get('extra_saves', ()), workshop=spec.get('workshop'))
+                                 extra_saves=spec.get('extra_saves', ()), workshop=spec.get('workshop'),
+                                 update_check=spec.get('update_check'))
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
             started = time.time()

@@ -1,0 +1,28 @@
+# Ours' Moono Tweaks button and update badge in their states beside a game button (MODS):
+# normal, hovered and pressed (released away from them, so nothing opens), as
+# menu-button-states.yaml takes MODS in both players. Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+update_check: {releases: update-releases.json, tag: v2026.11.01.04}
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - ui_wait: {path: "**/MoonoUpdateBadge", cond: stable, frames: 600}
+  - shot: normal
+  - press: {text: "MODS", under: "**/MainMenuButtons", hover: true}
+  - shot: {name: mods-hover, pointer: stay}
+  - press: {text: "MODS", under: "**/MainMenuButtons", down: true}
+  - shot: {name: mods-pressed, pointer: stay}
+  - press: {up: true}
+  - press: {ui: "**/MainMenuButtons/MoonoTweaksButton", hover: true}
+  - shot: {name: tweaks-hover, pointer: stay}
+  - press: {ui: "**/MainMenuButtons/MoonoTweaksButton", down: true}
+  - shot: {name: tweaks-pressed, pointer: stay}
+  - press: {up: true}
+  - press: {ui: "**/MoonoUpdateBadge", hover: true}
+  - shot: {name: badge-hover, pointer: stay}
+  - press: {ui: "**/MoonoUpdateBadge", down: true}
+  - shot: {name: badge-pressed, pointer: stay}
+  - press: {up: true}

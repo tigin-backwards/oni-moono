@@ -90,6 +90,16 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.LATER"
 msgid "LATER"
 msgstr ""
 
+#. The main menu's update badge, first line
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_HEADLINE"
+msgid "Moo! An update is available"
+msgstr ""
+
+#. The update badge's tooltip, last line, when the notes are cut
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_MORE"
+msgid "…more on the release page"
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GENERAL"
 msgid "General"
@@ -103,6 +113,21 @@ msgstr ""
 #. The line under the title (splash)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SPLASH.EFFECT"
 msgid "Gassy Moos rain over the window while the game starts, with a progress bar."
+msgstr ""
+
+#. Row title (update-check)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.TITLE"
+msgid "Update check"
+msgstr ""
+
+#. The line under the title (update-check)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.EFFECT"
+msgid "The main menu shows when a newer Moono is out."
+msgstr ""
+
+#. Tooltip: how it works (update-check)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.DETAIL"
+msgid "Asks GitHub for Moono's list of releases (api.github.com) at most once every 6 hours, in the background, sending nothing about you or your game. The answer is kept in the oni-moono data folder. Off: Moono makes no network requests of its own."
 msgstr ""
 
 #. Row title (frame-stats)

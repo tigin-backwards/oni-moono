@@ -24,6 +24,9 @@ namespace OniMoono.Host
 
         public const string ReleasesUrl = "https://github.com/tigin-backwards/oni-moono/releases";
 
+        /// The game update this build is for ("U59", "U60").
+        public static string? ThisUpdate => updates.TryGetValue(TypeTreeDatabase.UnityVersion, out var update) ? update : null;
+
         static string Describe(string unity) => updates.TryGetValue(unity, out var update) ? $"{update} (Unity {unity})" : $"Unity {unity}";
 
         /// Null when the game's data matches this build, else the message to show.

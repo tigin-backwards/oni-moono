@@ -166,6 +166,8 @@ data_collection: true            # the Data Collection option on, for a spec tha
                                  # provoke errors
 workshop: {id: 1960996649, layout: folder}   # one gated mod as a Steam subscription (folder, or zip with corrupt: true);
                                  # both players need tools/SteamStub/build.sh --dlc --ugc's library
+update_check: {releases: update-releases.json, tag: v2026.11.01.04}   # ours' update check reads this
+                                 # fixtures file as GitHub's releases list, as that release (else: none)
 setup: [...]                     # steps run first; the only place for driver setup.call
 steps: [...]
 ```

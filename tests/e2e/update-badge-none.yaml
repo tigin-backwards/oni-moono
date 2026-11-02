@@ -1,0 +1,14 @@
+# The main menu without the update badge: this build counts as v2026.11.03.01, the newest normal
+# release in fixtures/update-releases.json (a newer U60 pre-release is not for this build).
+# Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+update_check: {releases: update-releases.json, tag: v2026.11.03.01}
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - ui_wait: {path: "**/MoonoTweaksButton", cond: stable, frames: 600}
+  - expect_ui: {"**/MoonoUpdateBadge": {active: false}}
+  - shot: menu

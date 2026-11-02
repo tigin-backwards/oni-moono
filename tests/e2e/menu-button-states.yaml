@@ -1,0 +1,16 @@
+# The main menu's buttons in their states: MODS normal, hovered and pressed (the left button
+# held, then released away from it so nothing opens), for comparing the players' hover and
+# pressed colours (BRUTAL's credit tile, ours only, masked where it reaches the column at
+# 1280x720). update-badge-states.yaml takes ours' Moono Tweaks button and badge the same way.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - shot: {name: normal, crop: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", mask: [[210, 500, 60, 220]]}
+  - press: {text: "MODS", under: "**/MainMenuButtons", hover: true}
+  - shot: {name: mods-hover, pointer: stay, crop: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", mask: [[210, 500, 60, 220]]}
+  - press: {text: "MODS", under: "**/MainMenuButtons", down: true}
+  - shot: {name: mods-pressed, pointer: stay, crop: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", mask: [[210, 500, 60, 220]]}
+  - press: {up: true}

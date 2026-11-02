@@ -48,12 +48,13 @@ namespace OniMoono.Tests
             foreach (var group in GameTweakNames.Groups) Assert.Contains(TweakStrings.GroupKey(group), keys);
         }
 
-        /// The labels the screen asks for (MoonoTweaksMenu.Ui("NAME") in the game-side source,
+        /// The labels the screen and the update badge ask for (MoonoTweaksMenu.Ui("NAME") in the game-side source,
         /// which the tests cannot compile) are the catalog's, and the catalog has no others.
         [Fact]
         public void ScreenLabelsAreTheCatalogs()
         {
-            var source = File.ReadAllText(Path.Combine(Translations(), "..", "src", "OniMoono.GameTweaks", "MoonoTweaksMenu.cs"));
+            var source = string.Join("\n", new[] { "MoonoTweaksMenu.cs", "UpdateBadge.cs" }
+                .Select(f => File.ReadAllText(Path.Combine(Translations(), "..", "src", "OniMoono.GameTweaks", f))));
             var asked = new HashSet<string>(StringComparer.Ordinal);
             foreach (var line in source.Split('\n').Where(l => Regex.IsMatch(l, @"\bUi\(")))
                 foreach (Match m in Regex.Matches(line, @"Ui\((?:[^()""]*\?\s*)?""([A-Z_]+)""(?:\s*:\s*""([A-Z_]+)"")?"))

@@ -1,0 +1,16 @@
+# The main menu's update badge (Check for updates): this build counts as v2026.11.01.04, and the
+# releases list (fixtures/update-releases.json) has two newer normal releases, a newer U60
+# pre-release and a superseded release, which the badge leaves out. The badge shows the newest
+# tag; its tooltip lists both releases' notes. Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+update_check: {releases: update-releases.json, tag: v2026.11.01.04}
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - ui_wait: {path: "**/MoonoUpdateBadge", cond: stable, frames: 600}
+  - shot: menu
+  - scroll: {at: "**/MoonoUpdateBadge", notches: 0}
+  - shot: {name: tooltip, pointer: stay}

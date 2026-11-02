@@ -25,9 +25,10 @@ namespace OniMoono.Host.GameTweaks
     internal sealed record TweakInfo(string Id, TweakGroup Group, string Title, string Effect, string Detail = "", TweakGain? Gain = null, bool IsTweak = true,
         string[]? Choices = null)
     {
-        /// The launch option that sets this row (shown in its tooltip).
+        /// The launch option that sets this row (shown in its tooltip); "" for none (update checks).
         public string LaunchOption => Id switch
         {
+            GameTweakNames.UpdateCheckRow => "",
             GameTweakNames.SplashRow => "--splash moo",
             GameTweakNames.FrameStatsRow => "--frame-stats",
             GameTweakNames.LogPathsRow => "--log-paths hidden",
@@ -44,7 +45,7 @@ namespace OniMoono.Host.GameTweaks
     /// before the game's assemblies (Harmony among them) can be resolved, and the tests compile it in.
     internal static class GameTweakNames
     {
-        public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi";
+        public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", UpdateCheckRow = "update-check";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision";
 
@@ -74,6 +75,10 @@ namespace OniMoono.Host.GameTweaks
         public static readonly TweakInfo[] Rows =
         [
             new(SplashRow, General, "Gassy Moo loading splash", "Gassy Moos rain over the window while the game starts, with a progress bar.", IsTweak: false),
+            // (Not "Check for updates": the title font draws a lowercase f as a capital.)
+            new(UpdateCheckRow, General, "Update check", "The main menu shows when a newer Moono is out.",
+                "Asks GitHub for Moono's list of releases (api.github.com) at most once every 6 hours, in the background, sending nothing about you or your game. "
+                + "The answer is kept in the oni-moono data folder. Off: Moono makes no network requests of its own.", IsTweak: false),
             new(FrameStatsRow, General, "Frame stats in the log", "Notes where the frame time goes in Player.log, for reporting slowness.",
                 "Every 60 frames.", IsTweak: false),
             new(LogPathsRow, General, "Hide personal paths in the log", "Your user folder reads %USERPROFILE% or ~ in Player.log, and your account IDs and name are hidden.",
