@@ -237,6 +237,30 @@ namespace OniMoono.Tests
             Assert.True(log.End(bytes));
         }
 
+        /// Overlap sorts few writes by insertion and many with Array.Sort: either way it answers
+        /// whether two writes share an entry, ties in start and empty writes included.
+        [Fact]
+        public void OverlapMatchesEveryPairCompared()
+        {
+            var random = new Random(7);
+            foreach (int count in new[] { 0, 1, 2, 5, 31, 32, 33, 80 })
+                for (int round = 0; round < 300; round++)
+                {
+                    var starts = new int[count];
+                    var lengths = new int[count];
+                    for (int i = 0; i < count; i++)
+                    {
+                        starts[i] = random.Next(count * 4 + 1);
+                        lengths[i] = random.Next(4) == 0 ? 0 : random.Next(1, 3);
+                    }
+                    bool expected = false;
+                    for (int a = 0; a < count; a++)
+                        for (int b = a + 1; b < count; b++)
+                            if (lengths[a] > 0 && lengths[b] > 0 && starts[a] < starts[b] + lengths[b] && starts[b] < starts[a] + lengths[a]) expected = true;
+                    Assert.Equal(expected, OverrideBlockLog.Overlap(starts, lengths, count, new int[count]));
+                }
+        }
+
         [Fact]
         public void LastWritingFindsTheLastRange()
         {
