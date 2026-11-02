@@ -20,6 +20,26 @@ namespace OniMoono.Host
             "-force-device-index", "-max-async-pso-job-count", "-parentHWND", "-window-mode",
         };
 
+        /// One of Unity's renderer options (-force-glcore, -force-opengl, -force-vulkan): true when
+        /// args[i] is one. Ours renders with OpenGL Core only, which U59's Linux player opens for
+        /// the first two (measured on 744825, spec p2-renderer): they need nothing more. Given
+        /// -force-vulkan that player tries Vulkan, and exits where the only Vulkan device is a
+        /// software one ("Forced renderer 21 is not supported, exiting"); ours stays on OpenGL,
+        /// with a note.
+        public static bool Renderer(string arg, List<string> notes)
+        {
+            switch (arg.ToLowerInvariant())
+            {
+                case "-force-glcore" or "-force-opengl":
+                    return true;
+                case "-force-vulkan":
+                    notes.Add($"{arg}: this player renders with OpenGL only; OpenGL Core is used");
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         /// An argument for Unity's player rather than ours: ours start with "--".
         public static bool IsUnitys(string arg) => !arg.StartsWith("--", StringComparison.Ordinal);
 

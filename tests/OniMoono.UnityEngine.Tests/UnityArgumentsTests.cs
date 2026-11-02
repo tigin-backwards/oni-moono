@@ -49,6 +49,21 @@ namespace OniMoono.Tests
             Assert.Equal(2, notes.Count);
         }
 
+        [Theory]
+        [InlineData("-force-glcore", true, 0)]
+        [InlineData("-force-opengl", true, 0)]
+        [InlineData("-force-vulkan", true, 1)]
+        [InlineData("-FORCE-VULKAN", true, 1)]
+        [InlineData("-force-d3d11", false, 0)]
+        [InlineData("-force-glcore45", false, 0)]
+        [InlineData("--renderer", false, 0)]
+        public void TheRendererOptionsAreRead(string arg, bool read, int noted)
+        {
+            var notes = new List<string>();
+            Assert.Equal(read, UnityArguments.Renderer(arg, notes));
+            Assert.Equal(noted, notes.Count);
+        }
+
         [Fact]
         public void OursAreTheDoubleDashOnes()
         {

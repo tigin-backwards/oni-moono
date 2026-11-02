@@ -3087,6 +3087,10 @@ namespace OniMoono.Host
                         o.Captures.Add((int.Parse(spec[..colon]), path, scale));
                         break;
                     }
+                    // Unity's renderer choice (-force-glcore, -force-opengl, -force-vulkan): ours has
+                    // OpenGL only, so it reads them for the log alone.
+                    case var force when UnityArguments.Renderer(force, o.ArgumentNotes):
+                        break;
                     // Another of Unity's (-popupwindow, -force-d3d11, -screen-quality…) or a stray
                     // word: ignored, as Unity's player ignores what it does not know. Ours are strict.
                     case var unitys when UnityArguments.IsUnitys(unitys):

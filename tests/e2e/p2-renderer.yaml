@@ -1,0 +1,11 @@
+# U60 QA spec P2, played on U59: the renderer Unity's launch options pick. The graphics device
+# the game sees at the main menu must be the original's for the same option: run with
+# E2E_ORIGINAL_ARGS and E2E_PLAYER_ARGS both set to -force-glcore or -force-opengl (U59's Linux
+# player opens OpenGL Core for both, as ours always does). With -force-vulkan and only a
+# software Vulkan device, U59's player exits ("Forced renderer 21 is not supported"); ours has no
+# Vulkan renderer and stays on OpenGL (docs/DEVELOPMENT.md).
+from: main-menu
+steps:
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_state:
+      "type:UnityEngine.SystemInfo::graphicsDeviceType": "== original"
