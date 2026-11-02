@@ -1,0 +1,14 @@
+# U60 QA spec I1, played on U59: X button 11, past the ten Xvfb's XTEST pointer has, sent to the
+# window under the pointer as a synthetic ButtonPress/ButtonRelease (the runner's send_button).
+# What each player's key log records for it, at the main menu, as in side-buttons.yaml; a player
+# that ignores sent events records nothing.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - driver: {keys.log: {}}
+  - click: {at: [1100, 650], button: 11}
+  - click: {at: [1100, 650], button: 10}
+  - expect_state:
+      "type:E2eDriver.KeyLog::MouseDown": "== original"
+      "type:E2eDriver.KeyLog::MouseHeld": "== original"
+      "type:E2eDriver.KeyLog::MouseEvents": "== original"
