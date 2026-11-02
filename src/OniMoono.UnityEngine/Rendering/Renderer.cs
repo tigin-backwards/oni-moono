@@ -208,7 +208,9 @@ namespace UnityEngine
 
         public void SetMaterials(List<Material> materials) => SetSharedMaterials(materials);
 
-        internal override void EngineAwake() => FrameRenderer.Register(RendererData);
+        internal override void EngineOnEnable() => FrameRenderer.UpdateCandidate(RendererData);
+
+        internal override void EngineOnDisable() => FrameRenderer.UpdateCandidate(RendererData);
 
         internal override void EngineOnDestroy() => FrameRenderer.Unregister(RendererData);
 
@@ -435,7 +437,21 @@ namespace OniMoono.Engine.Rendering
 
     internal class RendererNative : ComponentNative
     {
-        public bool Enabled = true;
+        bool enabled = true;
+
+        public bool Enabled
+        {
+            get => enabled;
+            set
+            {
+                if (enabled == value) return;
+                enabled = value;
+                FrameRenderer.UpdateCandidate(this);
+            }
+        }
+
+        /// Its index in FrameRenderer's cull candidates (-1: not one).
+        public int CandidateSlot = -1;
         public bool IsVisible;
         public ShadowCastingMode ShadowCasting = ShadowCastingMode.On;
         public bool ReceiveShadows = true;
