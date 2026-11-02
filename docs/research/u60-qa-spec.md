@@ -177,9 +177,14 @@ strings `STRINGS/UI.cs` CONDUITFLOW.
 
 ### R2 Animation batch pooling
 
-**Status:** not run in this pass: building and deconstructing 40 buildings needs a deconstruct
-step the e2e harness lacks (OniMcp's orders only build); the qa verify half runs with the final
-u60 qa pass.
+**Status:** passes (c5ceac75, Linux OpenGL, fast-anim-batches on; Windows Vulkan: pending), the
+e2e part: `tests/e2e/u60/r2-batch-pooling.yaml` on landing in debug instant-build mode. Set A (21
+buildings) is placed through the build menu and cleared with the Deconstruct tool, both instant,
+then set B (27, in other places), then set A again in the batches set B left. All 69 placements
+and their removals are counted. The five world shots equal the original's. No new runner step
+was needed: OniMcp's `build` only places blueprints, but the game's own build and Deconstruct
+tools complete at once in that mode. Only research-unlocked raw-mineral kinds are used (six of
+them). The qa verify half runs with the final u60 qa pass.
 
 **Risk: medium.**
 

@@ -1,0 +1,61 @@
+{
+ "spec": "u60/r2-batch-pooling.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Instant-build rounds on landing: set A built through the build menu, deconstructed, set B, deconstructed, set A again, a world shot after each",
+ "updated": "2026-11-02",
+ "commit": "c5ceac75",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-010828-d6a7a184",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T01:08:28",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-011441-5f7a7b7a",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T01:14:41",
+    "lane": 50,
+    "reference_run": "20261102-010828-d6a7a184",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "set-a": 0.029076,
+     "cleared-a": 0.02575,
+     "set-b": 0.021308,
+     "cleared-b": 0.02073,
+     "set-a-again": 0.026809
+    }
+   },
+   {
+    "run": "20261102-011441-5f7a7b7a",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T01:15:53",
+    "lane": 50,
+    "reference_run": "20261102-010828-d6a7a184",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "set-a": 0.02978,
+     "cleared-a": 0.028045,
+     "set-b": 0.027014,
+     "cleared-b": 0.025649,
+     "set-a-again": 0.026811
+    }
+   }
+  ]
+ }
+}

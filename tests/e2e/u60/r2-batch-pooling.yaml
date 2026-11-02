@@ -1,0 +1,248 @@
+# R2 (docs/research/u60-qa-spec.md): animation batch pooling.
+#
+# U60 pools anim batches (KAnimBatchGroup.GetOrCreateBatch/ReleaseBatch, KAnimBatch.Reuse,
+# AtlasList.Reset): a batch that empties is kept and reused for the next building of its group,
+# keeping its Material, Mesh and instance texture. Our material property state, mesh reuse and
+# texture rebinding must not leak the previous contents.
+#
+# From landing in debug instant-build mode (DebugHandler, set in setup), where the build tool
+# and the Deconstruct tool complete at once: a 10x6 area east of the start room dug, then rounds
+# of mixed buildings placed through the build menu and cleared with the Deconstruct tool, a world
+# shot after each: set A (21 buildings), cleared, set B (27, in other places), cleared, set A
+# again in the batches set B left. The kinds are those research has unlocked on landing. Each
+# is picked by the build menu's search, which filters 0.2 s of real time after the last key; the
+# camera keeps the area clear of the build menu's panels. The start room's floor is 8 tiles.
+from: landing
+setup:
+  - driver: {setup.call: {type: DebugHandler, method: set_enabled, args: [true]}}
+  - driver: {setup.call: {type: DebugHandler, method: ToggleInstantBuildMode, args: []}}
+  - driver: {camera.set: {pos: [133, 209.5], ortho: 8}}
+steps:
+  - tool: {toolbar: Dig}
+  - drag: {from: [131, 207], to: [140, 212]}
+  - key: {code: Escape}
+  - run: {seconds: 1, speed: 1}
+  # Set A.
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Cot", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Bed Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Bed Group*"}
+  - click_world: {cell: [131, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Outhouse", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Outhouse Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Outhouse Group*"}
+  - click_world: {cell: [133, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Wash Basin", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/WashBasin Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/WashBasin Group*"}
+  - click_world: {cell: [136, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Storage Bin", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/StorageLocker Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/StorageLocker Group*"}
+  - click_world: {cell: [135, 207]}
+  - click_world: {cell: [138, 207]}
+  - click_world: {cell: [139, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Ladder", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Ladder Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Ladder Group*"}
+  - drag: {from: [140, 207], to: [140, 212]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Tile", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Tile Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Tile Group*"}
+  - drag: {from: [131, 211], to: [139, 211]}
+  - key: {code: Escape}
+  - expect: {buildings: {Bed: 1, Outhouse: 1, WashBasin: 1, StorageLocker: 3, Ladder: 6, Tile: 17}}
+  - world_shot: {name: set-a, ortho: 8}
+  - tool: {toolbar: Deconstruct}
+  - drag: {from: [131, 207], to: [140, 212]}
+  - key: {code: Escape}
+  - expect: {buildings: {Bed: 0, Outhouse: 0, WashBasin: 0, StorageLocker: 0, Ladder: 0, Tile: 8}}
+  - world_shot: {name: cleared-a, ortho: 8}
+  # Set B.
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Wash Basin", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/WashBasin Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/WashBasin Group*"}
+  - click_world: {cell: [131, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Cot", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Bed Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Bed Group*"}
+  - click_world: {cell: [135, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Outhouse", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Outhouse Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Outhouse Group*"}
+  - click_world: {cell: [137, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Storage Bin", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/StorageLocker Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/StorageLocker Group*"}
+  - click_world: {cell: [133, 207]}
+  - click_world: {cell: [134, 207]}
+  - click_world: {cell: [139, 207]}
+  - click_world: {cell: [140, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Ladder", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Ladder Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Ladder Group*"}
+  - drag: {from: [131, 211], to: [140, 211]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Tile", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Tile Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Tile Group*"}
+  - drag: {from: [131, 212], to: [140, 212]}
+  - key: {code: Escape}
+  - expect: {buildings: {WashBasin: 1, Bed: 1, Outhouse: 1, StorageLocker: 4, Ladder: 10, Tile: 18}}
+  - world_shot: {name: set-b, ortho: 8}
+  - tool: {toolbar: Deconstruct}
+  - drag: {from: [131, 207], to: [140, 212]}
+  - key: {code: Escape}
+  - expect: {buildings: {Bed: 0, Outhouse: 0, WashBasin: 0, StorageLocker: 0, Ladder: 0, Tile: 8}}
+  - world_shot: {name: cleared-b, ortho: 8}
+  # Set A again.
+  - click: {ui: "**/PlanScreen/Toggle:Furniture"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Cot", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Bed Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Bed Group*"}
+  - click_world: {cell: [131, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Outhouse", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Outhouse Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Outhouse Group*"}
+  - click_world: {cell: [133, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Wash Basin", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/WashBasin Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/WashBasin Group*"}
+  - click_world: {cell: [136, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Storage Bin", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/StorageLocker Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/StorageLocker Group*"}
+  - click_world: {cell: [135, 207]}
+  - click_world: {cell: [138, 207]}
+  - click_world: {cell: [139, 207]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Ladder", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Ladder Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Ladder Group*"}
+  - drag: {from: [140, 207], to: [140, 212]}
+  - key: {code: Escape}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Tile", clear: true}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/Tile Group*", cond: active}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
+  - click: {ui: "**/BuildingGroups/Viewport/Contents/*/Grid/Tile Group*"}
+  - drag: {from: [131, 211], to: [139, 211]}
+  - key: {code: Escape}
+  - expect: {buildings: {Bed: 1, Outhouse: 1, WashBasin: 1, StorageLocker: 3, Ladder: 6, Tile: 17}}
+  - world_shot: {name: set-a-again, ortho: 8}
