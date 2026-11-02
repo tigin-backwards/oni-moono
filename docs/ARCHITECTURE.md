@@ -2493,7 +2493,13 @@ default `perf_event_paranoid` 2) with `DOTNET_PerfMapEnabled=1`; the runtime map
 (W^X), so samples fall in a `memfd:doublemapper` mapping and are resolved against
 `/tmp/perf-PID.map` by address. `dotnet-trace`'s thread-time sampling stops threads at GC safe
 points and charges the time before a safe point to the method that reaches it (it showed lock
-and GC-poll time that perf does not), so it is not used for self time.
+and GC-poll time that perf does not), so it is not used for self time. Locks show worst: while
+a suspension is pending, CoreCLR's Monitor.Enter fast path declines (CatchAtSafePoint) and the
+thread stops in Monitor.Enter_Slowpath, so a frequently taken uncontended lock looks like
+spinning (U57 on U60, Windows: 4.5 s in 30 s under the game's Singleton.Instance, which perf puts at 0.1 ms
+a frame and the runtime's contention events at none). Real contention is in the
+ContentionStart/Stop events (`Microsoft-Windows-DotNETRuntime:0x4000:5`), with the owner's
+thread.
 
 ## 8. Repository layout
 
