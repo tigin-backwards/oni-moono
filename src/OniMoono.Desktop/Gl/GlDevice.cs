@@ -157,7 +157,7 @@ namespace OniMoono.Desktop.Gl
             GlBindings.Invalidate();
             CreateDefaults();
             GlStateCache.Invalidate();
-            presenter = new GlPresenter(platform.Window, Splash != null ? new GlSplash(Splash) : null, platform.FramebufferWidth, platform.FramebufferHeight);
+            presenter = new GlPresenter(platform.Window, Splash != null ? new GlSplash(Splash) : null, platform.WindowFramebufferWidth, platform.WindowFramebufferHeight);
             platform.ContentsDamaged += presenter.Refresh;
             // From here on the context belongs to the GL thread.
             worker = new GlWorker(platform.RenderWindow, CommandFailed);
@@ -933,7 +933,9 @@ namespace OniMoono.Desktop.Gl
         public override void Present()
         {
             int interval = SwapIntervalOverride >= 0 ? SwapIntervalOverride : QualitySettings.vSyncCount;
-            int width = platform.FramebufferWidth, height = platform.FramebufferHeight;
+            // The window's size: the frame, drawn at the rendering size (smaller in a fullscreen
+            // window the game asked a smaller resolution of), is stretched over it.
+            int width = platform.WindowFramebufferWidth, height = platform.WindowFramebufferHeight;
             int frame = Time.frameCount;
             long started = PlayerLoop.FrameStartedAt;
             worker.Post(() =>

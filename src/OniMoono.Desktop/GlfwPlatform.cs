@@ -263,8 +263,43 @@ namespace OniMoono.Desktop
         internal static int2 KeptFramebufferSize(int2 reported, int2 last)
             => reported.X > 0 && reported.Y > 0 || last.X <= 0 || last.Y <= 0 ? reported : last;
 
-        public int FramebufferWidth => framebufferSize.X;
-        public int FramebufferHeight => framebufferSize.Y;
+        /// What the game renders at (Screen.width/height, Display.renderingWidth/Height): the
+        /// window's framebuffer, or in a fullscreen window the size the game asked for.
+        public int FramebufferWidth => RenderingSize.X;
+        public int FramebufferHeight => RenderingSize.Y;
+
+        /// The window's own framebuffer, which the presenter fills with the rendered frame.
+        public int WindowFramebufferWidth => framebufferSize.X;
+        public int WindowFramebufferHeight => framebufferSize.Y;
+
+        /// In a fullscreen window, the size SetResolution asked for: Unity renders at that size
+        /// and stretches it over the window (measured, below). Null in the other modes, which
+        /// render at the window's size, and in a fullscreen window opened at start-up, which
+        /// renders at the monitor's (the game applies its saved resolution on its first frames;
+        /// how Unity's start-up arguments size a fullscreen window's rendering is unmeasured).
+        int2? fullScreenWindowRequest;
+
+        int2 RenderingSize => FullScreenWindowRendering(fullScreenWindowRequest, framebufferSize);
+
+        /// The rendering size of a fullscreen window: the size asked for, per axis no larger than
+        /// the window. Measured in the original Linux player on a 1280x720 Xvfb screen
+        /// (Screen.SetResolution with FullScreenMode.FullScreenWindow): 960x720, 1024x576 and
+        /// 800x600 gave those as Screen.width/height and Display.renderingWidth/Height, with
+        /// systemWidth/Height and Screen.currentResolution staying 1280x720; larger sizes were
+        /// cut per axis (1600x600 gave 1280x600, 640x900 640x720).
+        internal static int2 FullScreenWindowRendering(int2? requested, int2 window)
+            => requested is not { } r || r.X <= 0 || r.Y <= 0 || window.X <= 0 || window.Y <= 0
+                ? window
+                : new int2(Math.Min(r.X, window.X), Math.Min(r.Y, window.Y));
+
+        /// A pointer position in the window's framebuffer pixels (from the top left) as one in the
+        /// rendered frame, which is stretched over the whole window. Measured in the original (as
+        /// above): at 960x720 the window's pixel 161,1 read as Input.mousePosition (120.75, 718),
+        /// 1279,719 as (959.25, 0); at 800x600 100,100 as (62.5, 515.6667).
+        internal static Vector2 WindowToRendering(Vector2 windowPixels, int2 window, int2 rendering)
+            => window == rendering || window.X <= 0 || window.Y <= 0
+                ? windowPixels
+                : new Vector2(windowPixels.x * rendering.X / window.X, windowPixels.y * rendering.Y / window.Y);
         public FullScreenMode FullScreenMode => mode;
         /// Scripted runs behave as a focused window with the mouse over it, whatever the desktop
         /// is doing.
@@ -443,7 +478,7 @@ namespace OniMoono.Desktop
         public void SetResolution(int width, int height, FullScreenMode newMode, uint refreshNumerator, uint refreshDenominator)
         {
             newMode = Supported(newMode);
-            if (Gl.PresentTrace.Enabled) Trace($"SetResolution {width}x{height} {newMode} (was {mode}, framebuffer {framebufferSize.X}x{framebufferSize.Y})");
+            if (Gl.PresentTrace.Enabled) Trace($"SetResolution {width}x{height} {newMode} (was {mode}, framebuffer {framebufferSize.X}x{framebufferSize.Y}, rendering {FramebufferWidth}x{FramebufferHeight})");
             var monitor = CurrentMonitor;
             // The monitor's desktop mode: in exclusive fullscreen, the one from before it.
             var desktop = mode == FullScreenMode.ExclusiveFullScreen && desktopBeforeExclusive is { } before ? before : monitor.VideoMode;
@@ -453,6 +488,7 @@ namespace OniMoono.Desktop
                 windowedSize = window.Size;
                 windowedPositionKnown = true;
             }
+            int2? request = null;
             switch (newMode)
             {
                 case FullScreenMode.ExclusiveFullScreen:
@@ -465,6 +501,8 @@ namespace OniMoono.Desktop
                 }
                 case FullScreenMode.FullScreenWindow:
                 {
+                    // The window takes the monitor; the game renders at the size asked for.
+                    request = new int2(width, height);
                     // A maximized window keeps its maximized placement under the new size.
                     if (window.IsMaximised) window.Restore();
                     window.SetAttribute(GlfwWindowAttribute.Decorated, GLFW_FALSE);
@@ -505,6 +543,7 @@ namespace OniMoono.Desktop
                 }
             }
             if (newMode != FullScreenMode.ExclusiveFullScreen) desktopBeforeExclusive = null;
+            fullScreenWindowRequest = request;
             mode = newMode;
             window.Refresh();
             RefreshWindowState();
@@ -722,7 +761,9 @@ namespace OniMoono.Desktop
             var size = window.Size;
             var fb = KeptFramebufferSize(window.FramebufferSize, framebufferSize);
             float sx = size.X == 0 ? 1f : (float)fb.X / size.X, sy = size.Y == 0 ? 1f : (float)fb.Y / size.Y;
-            return PointerPixels.Screen(new Vector2((float)pos.X * sx, (float)pos.Y * sy), fb.Y);
+            // In a fullscreen window rendering at a smaller size, in the rendered frame's pixels.
+            var rendering = FullScreenWindowRendering(fullScreenWindowRequest, fb);
+            return PointerPixels.Screen(WindowToRendering(new Vector2((float)pos.X * sx, (float)pos.Y * sy), fb, rendering), rendering.Y);
         }
 
         Vector2 MouseGuiPosition()
