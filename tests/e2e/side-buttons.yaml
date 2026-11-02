@@ -1,7 +1,8 @@
 # U60 QA spec I1, played on U59: the mouse's side buttons. U60's InputBindingsScreen binds
 # KeyCode.Mouse3 to Mouse6 (U59's binds no mouse button), and Input.GetKey/GetKeyDown and IMGUI
 # report them to the game and mods in both.
-# What each player reports for the X side buttons 8 to 11 (XTEST): E2eDriver's key log records
+# What each player reports for the X side buttons 8 to 10 (XTEST; Xvfb's XTEST pointer has ten
+# buttons, so X button 11, Unity's Mouse6, cannot be sent): E2eDriver's key log records
 # the mouse key codes Input.GetKeyDown and GetKey report a frame, and the IMGUI MouseDown
 # events' buttons, at the main menu. They must be the original's.
 from: main-menu
@@ -11,7 +12,6 @@ steps:
   - click: {at: [1100, 650], button: 8}
   - click: {at: [1100, 650], button: 9}
   - click: {at: [1100, 650], button: 10}
-  - click: {at: [1100, 650], button: 11}
   - expect_state:
       "type:E2eDriver.KeyLog::MouseDown": "== original"
       "type:E2eDriver.KeyLog::MouseHeld": "== original"
