@@ -1,0 +1,34 @@
+# U60 QA spec V1 (docs/research/u60-qa-spec.md, "The 761015 → 761211 delta"): build-number
+# dependent paths. 761211's MainMenu and LoadScreen refuse a save from a newer build
+# (header.buildVersion > 761211). Two copies of early-base, its header's build set to 761211
+# (v1-current) and to 761212 (v1-newer, the newest): the main menu (its Resume Game follows the
+# newest save) and the Load screen's saves and their details must read as in the original: the
+# 761212 save refused, the 761211 one offered.
+#
+# The fixtures are made from early-base.sav: bytes 0-3 (SaveGame.Header.buildVersion, little
+# endian) set to 761211 and 761212.
+from: main-menu
+extra_saves: [v1-current, v1-newer]
+steps:
+  # A new profile shows the DLC intro video over the menu first.
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - ui_dump: {name: menu, root: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons"}
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - ui_dump: {name: colonies, root: "**/LoadScreen/Panel/ColonyList/ListView", mask_text: ['\d{1,2}/\d{1,2}/\d{4}.*', '\d+:\d\d.*']}
+  # The two saves share early-base's colony, so the Load screen lists one colony with both.
+  # Each save's details, the run's own paths masked. The details' layout group's preferred
+  # height is left out: it differs by 0.04 (19.23 against 19.25 a line, a TMP finding of its
+  # own, U1).
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/TitleContainer/SaveText", cond: stable}
+  - ui_dump: {name: saves, root: "**/LoadScreen/Panel/ColonyView/ListView", mask_text: ['\d{1,2}/\d{1,2}/\d{4}.*', '\d+:\d\d.*']}
+  - click: {text: "v1-newer", under: "**/LoadScreen/Panel/ColonyView"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/SavePreview/FileInfo", cond: stable}
+  - ui_dump: {name: newer, root: "**/LoadScreen/Panel/ColonyView/SavePreview/FileInfo", mask_text: ['(original|ours)-\d'], ignore_fields: [textInfo, firstOverflowCharacterIndex, preferredHeight, preferredWidth]}
+  - click: {text: "v1-current", under: "**/LoadScreen/Panel/ColonyView"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/SavePreview/FileInfo", cond: stable}
+  - ui_dump: {name: current, root: "**/LoadScreen/Panel/ColonyView/SavePreview/FileInfo", mask_text: ['(original|ours)-\d'], ignore_fields: [textInfo, firstOverflowCharacterIndex, preferredHeight, preferredWidth]}

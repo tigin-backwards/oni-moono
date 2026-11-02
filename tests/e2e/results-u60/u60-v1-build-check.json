@@ -1,0 +1,89 @@
+{
+ "spec": "u60-v1-build-check.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "a 761212-stamped save refused and a 761211 one offered at the main menu and on the Load screen, as in the original",
+ "updated": "2026-11-02",
+ "commit": "ad1b7de3",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-004547-ce236db4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:45:47",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261102-004547-ce236db4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:46:06",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-004547-ce236db4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:46:25",
+    "lane": 1,
+    "reference_run": "20261102-004547-ce236db4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "menu": {
+      "differences": 0
+     },
+     "colonies": {
+      "differences": 0
+     },
+     "saves": {
+      "differences": 0
+     },
+     "newer": {
+      "differences": 0
+     },
+     "current": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   },
+   {
+    "run": "20261102-004547-ce236db4",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:46:42",
+    "lane": 1,
+    "reference_run": "20261102-004547-ce236db4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "menu": {
+      "differences": 0
+     },
+     "colonies": {
+      "differences": 0
+     },
+     "saves": {
+      "differences": 0
+     },
+     "newer": {
+      "differences": 0
+     },
+     "current": {
+      "differences": 0
+     }
+    },
+    "shots": {}
+   }
+  ]
+ }
+}
