@@ -1,0 +1,57 @@
+{
+ "spec": "u60/r5-overlay-targets.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "Temperature overlay toggled ten times by key, world shots with it on and off, then the colony loaded again and shot with it on",
+ "updated": "2026-11-01",
+ "commit": "5b239dee",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-191850-f2965eea",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:18:50",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-195810-8aa56145",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T19:58:10",
+    "lane": 50,
+    "reference_run": "20261101-191850-f2965eea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "temperature": 0.001075,
+     "plain": 0.025532,
+     "temperature-reloaded": 0.00107
+    }
+   },
+   {
+    "run": "20261101-195810-8aa56145",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-01T19:59:50",
+    "lane": 50,
+    "reference_run": "20261101-191850-f2965eea",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {
+     "temperature": 0.001071,
+     "plain": 0.025709,
+     "temperature-reloaded": 0.001075
+    }
+   }
+  ]
+ }
+}

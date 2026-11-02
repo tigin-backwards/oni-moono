@@ -1,0 +1,73 @@
+# R5 (docs/research/u60-qa-spec.md): the world camera's render targets.
+#
+# U60's MultipleRenderTargetProxy reuses its copies when the size, format and depth match, and
+# destroys the third target and its copy when the coloured overlay buffer goes off (all of them
+# with the camera). Camera.SetTargetBuffers then switches between two and three colour buffers,
+# and a render texture is destroyed while bound.
+#
+# From early-base: the Temperature overlay (it draws into the coloured buffer)
+# toggled on and off ten times by its key, a world shot with it on and one with it off; then the
+# colony is loaded again through the pause menu's Load screen (the camera and its targets made
+# anew) and shot again. The window's resize is the qa resize scenario's.
+from: early-base
+setup:
+  - driver: {camera.set: {pos: [124.5, 209.5], ortho: 12}}
+steps:
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: temperature, ortho: 12, at: [124, 209]}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - world_shot: {name: plain, ortho: 12, at: [124, 209]}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 6000}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: temperature-reloaded, ortho: 12, at: [124, 209]}

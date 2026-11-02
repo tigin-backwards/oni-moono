@@ -302,6 +302,11 @@ Also changed:
 
 ### R5 Render targets of the world camera
 
+**Status:** passes (5b239dee, Linux OpenGL; Windows Vulkan: pending), the e2e part:
+`tests/e2e/u60/r5-overlay-targets.yaml` toggles the Temperature overlay ten times, shoots it on and
+off, loads the colony again and shoots it on (0.1 % to 2.6 % of pixels apart, no new log
+signatures). Window resize stays with the qa `resize` scenario.
+
 **Risk: medium.**
 
 **Patch note:** not in the notes.
