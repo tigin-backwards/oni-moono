@@ -290,16 +290,31 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   `KMod.Manager.Subscribe`). **Resolved by a patch** of the game's Harmony (`TranspiledCalls`):
   the instructions its transpilers produce (`CodeTranspiler.GetResult`) have such calls made
   calls, as Mono would run them, and each is logged.
-- **D13 Inlined patches of value types' virtual methods.** Before detouring a method,
-  Harmony's MonoMod marks its MethodDesc not to be inlined, so code compiled later calls the
-  patched method. For a value type's override (`GetHashCode`, `Equals`, `ToString`), the handle
-  reflection gives is the method's unboxing stub; the JIT inlines the unboxed MethodDesc after
-  it, which stays unmarked, so code tiered up after the patch ran the original (Fast Track's
-  `AxialI.GetHashCode`: dictionary lookups missed, `ClusterGrid.RegisterEntity` threw on every
-  starmap entity). Mono has no unboxing stubs. **Resolved by a patch** of MonoMod's
-  `PlatformTriple.TryDisableInlining` (`UnboxedMethods`): the unboxed MethodDesc is marked too
-  (CoreCLR 10's layout; the host's `--check-types` patches an emitted value type's
-  `GetHashCode` and fails if dictionary lookups miss after tier-up).
+- **D13 Inlined patches of value types' virtual methods and of shared generic code.** Before
+  detouring a method, Harmony's MonoMod marks its MethodDesc not to be inlined, so code compiled
+  later calls the patched method. For a value type's override (`GetHashCode`, `Equals`,
+  `ToString`), the handle reflection gives is the method's unboxing stub; the JIT inlines the
+  unboxed MethodDesc after it, which stays unmarked, so code tiered up after the patch ran the
+  original (Fast Track's `AxialI.GetHashCode`: dictionary lookups missed,
+  `ClusterGrid.RegisterEntity` threw on every starmap entity). Likewise for a generic method
+  instantiated over a reference type: the handle is the instantiating stub, and both the code
+  callers run and what the JIT inlines are the shared MethodDesc's (`<__Canon>`) the stub wraps.
+  That shared code is also tiered up on its own: when the JIT recompiles a detoured method,
+  MonoMod moves the detour onto the new code, finding it by the method compiled
+  (`PlatformTripleDetourFactory.Detour.OnMethodCompiled`), and the shared MethodDesc is not the
+  instantiation it detoured, so the recompiled code ran unpatched. Fast Track replaces the body
+  of `InterfaceTool.GetObjectUnderCursor<KSelectable>` with `return null` and calls it from its
+  `SelectTool.OnLeftClickDown` prefix, falling back to its own cycling; about 40 clicks into a
+  session the shared code tiered up and the original body ran, which, given no previous
+  selection, returns the first object under the cursor, so clicks on a stack stopped cycling
+  (issue #48). Mono has no unboxing stubs or instantiating stubs, and inlines no method that
+  large. **Resolved by patches** of MonoMod's `PlatformTriple.TryDisableInlining` and
+  `OnMethodCompiled` (`UnboxedMethods`): the unboxed or the shared MethodDesc is marked too
+  (CoreCLR 10's layouts), and a compile of shared code is reported again for each patched
+  instantiation it is the code of, so their detours follow it. The host's `--check-types` patches
+  an emitted value type's `GetHashCode` and fails if dictionary lookups miss after tier-up, and
+  prefixes an emitted generic method over a class and fails if code compiled after the patch, or
+  calls after its shared code tiered up, skip the prefix.
 - **D14 Mono's enum formatting.** Mods that add elements name their `SimHashes` values by
   patching enum formatting: Mono's private `Enum.InternalFormat(RuntimeType eT, Object value)`, or
   `Enum.ToString()`. In Mono's `system/enum.cs`, `ToString()` is

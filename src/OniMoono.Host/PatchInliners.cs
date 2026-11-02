@@ -154,8 +154,9 @@ namespace OniMoono.Host
             }
         }
 
-        /// The handles code inlining `method` names: its own, and for a value type's override, the
-        /// unboxed method under its unboxing stub (D13), which is what the JIT inlines.
+        /// The handles code inlining `method` names: its own, for a value type's override the unboxed
+        /// method under its unboxing stub, and for an instantiation over a reference type the shared
+        /// code under its instantiating stub (D13): what the JIT inlines.
         static List<IntPtr> HandlesOf(MethodBase method)
         {
             var handles = new List<IntPtr>();
@@ -166,6 +167,7 @@ namespace OniMoono.Host
                 if (method.DeclaringType is { IsValueType: true } && method.IsVirtual && !method.IsStatic
                     && UnboxedMethods.Unboxed(handle) is var unboxed && unboxed != IntPtr.Zero)
                     handles.Add(unboxed);
+                if (UnboxedMethods.Shared(handle) is var shared && shared != IntPtr.Zero) handles.Add(shared);
             }
             catch (Exception) // no handle (a dynamic method): nothing inlines it
             {
