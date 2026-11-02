@@ -1,0 +1,91 @@
+# R4 (docs/research/u60-qa-spec.md): colony previews on the Load and Colony Summary screens.
+#
+# U60's RetireColonyUtility.LoadPreviewTexture loads a save's preview PNG and, when it is wider
+# or taller than 1024 px, draws it with Graphics.Blit (bilinear) into a temporary ARGB32 render
+# texture, reads it back into an RGBA32 texture (Apply(false, true)) and destroys the source;
+# the sprite is Sprite.Create(..., FullRect). LoadScreen releases the sprite when the selection
+# changes or the screen closes.
+#
+# The colony is terra-wide (onimaxxing's saves/Terra1088x768.sav, copied to
+# fixtures/terra-wide.sav): its previews are the world's cells times two, 2176x1536. From it: the
+# pause menu's Save As writes a second save (both with previews), then Main Menu and Save and
+# Quit. On the main menu's Load Game: the colony, each of its saves selected and shot; the
+# screen closed and opened again five times; then the Colony Summary of the colony.
+from: terra-wide
+memory_gb: 11
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/Save AsButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/Save AsButton"}
+  - ui_wait: {path: "**/SaveScreen", cond: stable}
+  - click: {ui: "**/SaveScreen/**/NewSaveButton"}
+  - ui_wait: {path: "**/FileNameDialog", cond: stable}
+  - type: {ui: "**/FileNameDialog/**/*Input*", text: "wide-b", clear: true}
+  - click: {text: "Confirm", under: "**/FileNameDialog"}
+  - ui_wait: {path: "**/SaveScreen", cond: gone, frames: 3000}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - click: {text: "Main Menu", under: "**/PauseScreen/LayoutContent"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/OKButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton"}
+  - ui_wait: {path: "**/MainMenuButtons", cond: stable, frames: 60000}
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", cond: stable}
+  # The saves' times and sizes follow the run (ours writes them with its save tweaks): masked.
+  - ui_dump: {name: colony, root: "**/LoadScreen/Panel/ColonyView/ListView", mask_text: ['\d\d:\d\d:\d\d - .*']}
+  - shot: {name: colony, crop: "**/LoadScreen/Panel/ColonyView"}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", index: 1}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView", cond: stable}
+  - shot: {name: second-save, crop: "**/LoadScreen/Panel/ColonyView"}
+  # Closed and opened again five times, the colony selected each time.
+  - key: {code: Escape}   # the colony list
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList", cond: stable}
+  - key: {code: Escape}   # the main menu
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 3000}
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", cond: stable}
+  - key: {code: Escape}   # the colony list
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList", cond: stable}
+  - key: {code: Escape}   # the main menu
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 3000}
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", cond: stable}
+  - key: {code: Escape}   # the colony list
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList", cond: stable}
+  - key: {code: Escape}   # the main menu
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 3000}
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", cond: stable}
+  - key: {code: Escape}   # the colony list
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList", cond: stable}
+  - key: {code: Escape}   # the main menu
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 3000}
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", cond: stable}
+  - key: {code: Escape}   # the colony list
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList", cond: stable}
+  - key: {code: Escape}   # the main menu
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 3000}
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)", cond: stable}
+  - shot: {name: reopened, crop: "**/LoadScreen/Panel/ColonyView"}
+  - key: {code: Escape}   # the colony list
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList", cond: stable}
+  - key: {code: Escape}   # the main menu
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 3000}
+  # The Colony Summaries screen, the colony's slideshow.
+  - click: {text: "COLONY SUMMARIES", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/RetiredColonyInfoScreen*", cond: stable, frames: 3000}
+  - ui_dump: {name: summaries, root: "**/RetiredColonyInfoScreen*"}
+  - shot: {name: summaries}

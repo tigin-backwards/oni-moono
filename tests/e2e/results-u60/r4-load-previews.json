@@ -1,0 +1,79 @@
+{
+ "spec": "u60/r4-load-previews.yaml",
+ "mods": [],
+ "verdict": "failed",
+ "why": "a run of ours failed",
+ "findings": [],
+ "note": "A colony with 2176x1536 previews: its two saves' previews on the Load screen, the screen closed and opened five times, then Colony Summaries",
+ "updated": "2026-11-01",
+ "commit": "84010c8b",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-203517-a6e6c93e",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-01T20:35:17",
+    "lane": 50,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261101-203710-ce90f262",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T20:37:10",
+    "lane": 50,
+    "reasons": [
+     "ui_dump summaries: 1 difference(s)"
+    ],
+    "reference_run": "20261101-203517-a6e6c93e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "colony": {
+      "differences": 0
+     },
+     "summaries": {
+      "differences": 1
+     }
+    },
+    "shots": {
+     "colony": 0.0037,
+     "second-save": 0.001561,
+     "reopened": 0.0037,
+     "summaries": 0.00061
+    }
+   },
+   {
+    "run": "20261101-203710-ce90f262",
+    "index": 2,
+    "verdict": "fail",
+    "date": "2026-11-01T20:39:00",
+    "lane": 50,
+    "reasons": [
+     "ui_dump summaries: 1 difference(s)"
+    ],
+    "reference_run": "20261101-203517-a6e6c93e",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {
+     "colony": {
+      "differences": 0
+     },
+     "summaries": {
+      "differences": 1
+     }
+    },
+    "shots": {
+     "colony": 0.004544,
+     "second-save": 0.002187,
+     "reopened": 0.003864,
+     "summaries": 0.00061
+    }
+   }
+  ]
+ }
+}

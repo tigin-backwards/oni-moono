@@ -264,6 +264,15 @@ compares it as an image (`qa-tools.py image` already compares two PNGs).
 
 ### R4 Colony previews on the Load and Colony Summary screens
 
+**Status:** fails in ours: repro `tests/e2e/u60/r4-load-previews.yaml` (Colony Summaries dump), not
+fixed because the one difference left is a KScrollRect's horizontal normalizedPosition, 1 in ours
+and 0 in the original, its content's left edge on the viewport's (the sub-ulp case of
+known-findings' `scroll-normalized-position`, whose inputs are not traced here). The item's own
+criterion passes (816dde15, Linux OpenGL; Windows Vulkan: pending): the 2176x1536 previews of two
+saves on the Load screen, before and after closing it five times, within 0.2 %. The spec also
+found an achievement's `<sup>` text 6 px taller in ours, fixed in 816dde15. Texture memory over
+the reopenings was not logged (ONI_TEXTURE_MEMORY_LOG is ours only).
+
 **Risk: high.** Every Load screen shows one.
 
 **Patch notes:**
