@@ -72,8 +72,19 @@ namespace OniMoono.Engine
     /// enabled. Changes made while a phase is running take effect from the next phase.
     internal static class BehaviourManager
     {
-        sealed class PhaseList(string name, Func<ScriptInfo, Action<MonoBehaviour>> selector)
+        enum Phase { Update, LateUpdate, FixedUpdate }
+
+        sealed class PhaseList(string name, Phase phase)
         {
+            // The phase's message, read from the script directly (a delegate call per behaviour
+            // per phase before).
+            Action<MonoBehaviour> MessageOf(ScriptInfo s) => phase switch
+            {
+                Phase.Update => s.Update,
+                Phase.LateUpdate => s.LateUpdate,
+                _ => s.FixedUpdate,
+            };
+
             public readonly string Name = name;
             /// With frame stats on: each script's wall time in this phase since the last report.
             public readonly Dictionary<ScriptInfo, long> Times = new();
@@ -86,7 +97,7 @@ namespace OniMoono.Engine
 
             public void Add(BehaviourNative b)
             {
-                if (selector(b.Script) == null) return;
+                if (MessageOf(b.Script) == null) return;
                 pendingRemove.Remove(b);
                 if (members.Contains(b) || !pendingAddSet.Add(b)) return;
                 pendingAdd.Add(b);
@@ -157,11 +168,11 @@ namespace OniMoono.Engine
                             }
                             if (!PlayerLoop.FrameStats)
                             {
-                                Lifecycle.Invoke(selector(b.Script), (MonoBehaviour)b.Managed);
+                                Lifecycle.Invoke(MessageOf(b.Script), (MonoBehaviour)b.Managed);
                                 continue;
                             }
                             long start = System.Diagnostics.Stopwatch.GetTimestamp();
-                            Lifecycle.Invoke(selector(b.Script), (MonoBehaviour)b.Managed);
+                            Lifecycle.Invoke(MessageOf(b.Script), (MonoBehaviour)b.Managed);
                             Times[b.Script] = Times.GetValueOrDefault(b.Script) + System.Diagnostics.Stopwatch.GetTimestamp() - start;
                         }
                 }
@@ -172,9 +183,9 @@ namespace OniMoono.Engine
             }
         }
 
-        static readonly PhaseList update = new("Update", s => s.Update);
-        static readonly PhaseList lateUpdate = new("LateUpdate", s => s.LateUpdate);
-        static readonly PhaseList fixedUpdate = new("FixedUpdate", s => s.FixedUpdate);
+        static readonly PhaseList update = new("Update", Phase.Update);
+        static readonly PhaseList lateUpdate = new("LateUpdate", Phase.LateUpdate);
+        static readonly PhaseList fixedUpdate = new("FixedUpdate", Phase.FixedUpdate);
         static readonly List<BehaviourNative> startQueue = new();
 
         public static void Register(BehaviourNative b)
