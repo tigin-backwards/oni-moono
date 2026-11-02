@@ -53,5 +53,32 @@ namespace OniMoono.Tests
             again();
             Assert.Equal(new[] { "sampler 4 Bilinear 2" }, work.Calls);
         }
+
+        /// A device's state commands (targets, viewports, clears) run their work with the state
+        /// each was recorded with, a list per state type, reused once the frame is reset.
+        [Fact]
+        public void StateCommandsRunWithTheirOwnState()
+        {
+            var arena = new FrameArena();
+            var calls = new List<string>();
+            System.Action<Rect> viewport = r => calls.Add($"viewport {r.width}");
+            System.Action<(bool Color, float Depth)> clear = c => calls.Add($"clear {c.Color} {c.Depth}");
+            var posted = new List<System.Action>
+            {
+                arena.Command(viewport, new Rect(0f, 0f, 10f, 10f)),
+                arena.Command(clear, (true, 1f)),
+                arena.Command(viewport, new Rect(0f, 0f, 20f, 10f)),
+                arena.Command(clear, (false, 0.5f)),
+            };
+            foreach (var p in posted) p();
+            Assert.Equal(new[] { "viewport 10", "clear True 1", "viewport 20", "clear False 0.5" }, calls);
+
+            arena.Reset();
+            calls.Clear();
+            var again = arena.Command(clear, (true, 0.25f));
+            Assert.Same(posted[1], again);
+            again();
+            Assert.Equal(new[] { "clear True 0.25" }, calls);
+        }
     }
 }

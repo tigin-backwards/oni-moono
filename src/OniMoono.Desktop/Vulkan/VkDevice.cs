@@ -274,14 +274,22 @@ namespace OniMoono.Desktop.Vulkan
             var bound = new BoundTarget(colors, depth, platform.FramebufferWidth, platform.FramebufferHeight);
             // Unity's Vulkan programs render into render textures upside down (RenderConventions).
             recorder.Conventions = new RenderConventions(Vulkan: true, Flipped: colors != null);
-            worker.Post(() => SetTarget(bound));
+            worker.Post(worker.Arena.Command(setTarget ??= SetTarget, bound));
         }
 
-        public override void SetViewport(UnityEngine.Rect pixels) => worker.Post(() => SetViewportNow(pixels));
+        // The target, viewport, scissor and clear work (device thread), recorded as
+        // StateCommands with these delegates, made once.
+        Action<BoundTarget> setTarget;
+        Action<UnityEngine.Rect> setViewportNow;
+        Action<Rect?> setScissorNow;
+        Action<(bool Color, bool Depth, Color Background, float DepthValue)> clearNow;
 
-        public override void SetScissor(Rect? pixels) => worker.Post(() => SetScissorNow(pixels));
+        public override void SetViewport(UnityEngine.Rect pixels) => worker.Post(worker.Arena.Command(setViewportNow ??= SetViewportNow, pixels));
 
-        public override void Clear(bool color, bool depth, Color backgroundColor, float depthValue) => worker.Post(() => ClearNow(color, depth, backgroundColor, depthValue));
+        public override void SetScissor(Rect? pixels) => worker.Post(worker.Arena.Command(setScissorNow ??= SetScissorNow, pixels));
+
+        public override void Clear(bool color, bool depth, Color backgroundColor, float depthValue)
+            => worker.Post(worker.Arena.Command(clearNow ??= c => ClearNow(c.Color, c.Depth, c.Background, c.DepthValue), (color, depth, backgroundColor, depthValue)));
 
         protected override void ApplyCamera(in CameraConstants c)
         {

@@ -76,6 +76,30 @@ namespace OniMoono.Desktop.Gl
         }
     }
 
+    /// A device's own work with its state, recorded for the device thread (FrameArena.Command):
+    /// as a ResourceCommand, reused with its delegate, and it lets go of both when it runs.
+    internal sealed class StateCommand<T>
+    {
+        public readonly System.Action Run;
+        System.Action<T> work;
+        T state;
+
+        public StateCommand() => Run = Execute;
+
+        public System.Action Set(System.Action<T> work, T state)
+        {
+            (this.work, this.state) = (work, state);
+            return Run;
+        }
+
+        void Execute()
+        {
+            var (w, s) = (work, state);
+            (work, state) = (null, default);
+            w(s);
+        }
+    }
+
     /// The OpenGL device's resource work.
     internal sealed class GlResourceWork : IResourceWork
     {

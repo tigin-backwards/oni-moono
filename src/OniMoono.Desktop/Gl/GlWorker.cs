@@ -284,6 +284,7 @@ namespace OniMoono.Desktop.Gl
             byteCount = 0;
             objectCount = 0;
             commandCount = 0;
+            foreach (var list in stateCommands.Values) list.Count = 0;
             foreach (var c in children) c.Reset();
         }
 
@@ -325,6 +326,32 @@ namespace OniMoono.Desktop.Gl
             commands.Add(made);
             commandCount++;
             return made;
+        }
+
+        abstract class StateCommands
+        {
+            public int Count;
+        }
+
+        sealed class StateCommands<T> : StateCommands
+        {
+            public readonly List<StateCommand<T>> Items = new();
+        }
+
+        readonly Dictionary<Type, StateCommands> stateCommands = new();
+
+        /// A command that runs `work` (a device's own, its delegate made once) with `state`, from
+        /// a list per state type reused as Command's are: a target, viewport, scissor or clear
+        /// recorded this way allocates nothing.
+        public Action Command<T>(Action<T> work, T state)
+        {
+            if (!stateCommands.TryGetValue(typeof(T), out var list)) stateCommands[typeof(T)] = list = new StateCommands<T>();
+            var typed = (StateCommands<T>)list;
+            StateCommand<T> command;
+            if (typed.Count < typed.Items.Count) command = typed.Items[typed.Count];
+            else typed.Items.Add(command = new StateCommand<T>());
+            typed.Count++;
+            return command.Set(work, state);
         }
 
         /// `length` floats: the array and the offset of the range in it.
