@@ -1438,6 +1438,17 @@ are loaded in memory".
 
 ### A4 Data files
 
+**Status:** passes (b86d948d, 6059c038; Linux; owned: ours on Vulkan, the rest both on OpenGL). Step 1:
+the e2e and QA runs' all-DLC Steam double answers yes for app 5315880 (BIsSubscribedApp,
+BIsDlcInstalled, UserHasLicenseForApp); tools/SteamStub's new `--dlc` reproduces it and
+`--dlc-except 5315880` leaves that app out. Step 2: `tests/e2e/u60-a4-cosmetic2-owned.yaml` and
+`-not-owned.yaml` (both players on the double named, the original from a copy of its install):
+the main menu, the Supply Closet and its inventory log the same and run in both players;
+COSMETIC2_ID's content is not loaded either way ("COSMETIC2_ID loaded: False"), so the missing
+`hires_cosmetic2_bundle` is never opened. Step 3: `u60-a4-metal-traits.yaml` reads MetalRich's
+and MetalPoor's element band modifiers as worldgen loads them, Zinc Ore's among them, as in the
+original (a world generated with MetalRich: not run; the trait files are the change).
+
 **Risk: low.**
 
 **Patch notes:** MetalRich/MetalPoor and Zinc Ore, the frozen breakroom POI, codex entries,
