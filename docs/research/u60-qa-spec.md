@@ -1139,20 +1139,21 @@ that difference.
 
 ### L2 New BCL calls
 
-**Status:** fails in ours: repro `tests/e2e/u60-bcl-probe.yaml` (UnityProbe `u60`, lines `U60 CI`,
-`U60 IX`), not fixed because the game's own uses give the same results and matching Mono means
-porting its collation; your call. Measured in both players (77186275):
+**Status:** fails in ours (Linux; ours on Vulkan, the original on OpenGL; no rendering involved):
+culture-sensitive `CompareInfo` and `IndexOf` use ICU in ours and Mono's collation in the
+original, and the orders differ; repro `tests/e2e/u60-bcl-probe.yaml` (UnityProbe `u60`, lines
+`U60 CI`, `U60 IX`; 77186275). Not fixed because the game's own threads run invariant in both
+players (also under `LANG=de_DE.UTF-8` and `ru_RU.UTF-8`) and FuzzySharp's
+`TokenizedString.SortedTokens` of all 469 building names are identical in English, Russian and
+Simplified Chinese; only mod code doing culture-sensitive comparisons could see it. In detail:
 - `File.Replace` over an existing and a missing destination, with a new, existing, missing and
   read-only backup, a read-only destination or source, and `File.Move`: the same outcomes and
   files (pinned by `MonoFileReplaceTests`). Two cases the game never reaches differ: a source that
   is its destination (Mono backs it up and succeeds, ours throws IOException), and a missing
   source (both throw FileNotFoundException, Mono after making the backup).
-- `CompareInfo.Compare` (ICU in ours, Mono's tables in the original) orders differently under
-  every culture: apostrophes and hyphens (Mono ignores them, "'s" sorts with "s"), "ae"/"æ" and
-  "ß"/"ss" (equal in Mono), and under ru-RU, zh-CN and ko-KR the scripts (Cyrillic and CJK before
-  Latin in ICU). The game sorts under its main thread's culture, invariant in both players (also
-  under `LANG=de_DE.UTF-8` and `ru_RU.UTF-8`), and FuzzySharp's `TokenizedString.SortedTokens` is
-  the same for all 469 building names in English, Russian and Simplified Chinese.
+- `CompareInfo.Compare` orders differently under every culture: apostrophes and hyphens (Mono
+  ignores them, "'s" sorts with "s"), "ae"/"æ" and "ß"/"ss" (equal in Mono), and under ru-RU, zh-CN
+  and ko-KR the scripts (Cyrillic and CJK before Latin in ICU).
 - Culture-sensitive `IndexOf` differs around a soft hyphen, a zero-width space and a combining
   accent (U7's strings have none of them).
 - `Int32`/`Int64.TryFormat` give the same text for every format and culture tried; `Single`'s
