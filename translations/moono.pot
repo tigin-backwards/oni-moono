@@ -395,6 +395,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.CONVEYOR"
 msgid "No hitch on rail edits (was 0.05–0.5 s)"
 msgstr ""
 
+#. Row title (path-probe-repair)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.TITLE"
+msgid "Incremental path probes"
+msgstr ""
+
+#. The line under the title (path-probe-repair)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.EFFECT"
+msgid "Duplicants' path checks redo only what changed in the world, using less CPU."
+msgstr ""
+
+#. Tooltip: how it works (path-probe-repair)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.DETAIL"
+msgid "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may take the other one. Off while another mod changes path probing (Fast Track's Cache Paths)."
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
 msgid "Graphics & overlays"

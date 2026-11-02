@@ -25,6 +25,7 @@ namespace OniMoono.GameTweaks
                 case FastConveyorPaths.Name: FastConveyorPaths.Install(harmony); return true;
                 case FastOverlayTextures.Name: FastOverlayTextures.Install(harmony); return true;
                 case BrainRate.Name: BrainRate.Install(harmony); return true;
+                case ProbeRepair.Name: ProbeRepair.Install(harmony); return true;
                 default: return false;
             }
         }

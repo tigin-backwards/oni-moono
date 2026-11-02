@@ -21,9 +21,11 @@ namespace OniMoono.Host.GameTweaks
     /// for the row's tooltip and the docs. `IsTweak` is false for the player's own options (the
     /// splash, frame stats, log paths and the GPU), which are rows but not `--game-tweak` names.
     /// `Choices`: a row with more values than on and off (the GPU's), in the order its button
-    /// steps through them; null for a toggle.
+    /// steps through them; null for a toggle. `ChangesBehaviour`: a tweak outside the Changes
+    /// gameplay group that still changes what the game does a little (off by default, left out
+    /// of `exact`).
     internal sealed record TweakInfo(string Id, TweakGroup Group, string Title, string Effect, string Detail = "", TweakGain? Gain = null, bool IsTweak = true,
-        string[]? Choices = null)
+        string[]? Choices = null, bool ChangesBehaviour = false)
     {
         /// The launch option that sets this row (shown in its tooltip); "" for none (update checks).
         public string LaunchOption => Id switch
@@ -116,6 +118,10 @@ namespace OniMoono.Host.GameTweaks
                 "The spatial index's cleanup visits only the entries that were removed."),
             new("fast-conveyor-paths", Simulation, "Faster conveyor rebuilds", "Building or removing conveyor rails no longer stalls the game.",
                 "The rails' network rebuild finds its routes from an index instead of searching every kept route again.", ConveyorGain),
+            new("path-probe-repair", Simulation, "Incremental path probes", "Duplicants' path checks redo only what changed in the world, using less CPU.",
+                "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. "
+                + "Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may take the other one. "
+                + "Off while another mod changes path probing (Fast Track's Cache Paths).", ChangesBehaviour: true),
 
             new("fast-anim-events", Graphics, "Faster animation events", "Animations check their sound and effect cues with less work.",
                 "Keeps a compact copy of what each playing animation's per-frame event check reads."),
@@ -141,14 +147,14 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate"];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair"];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
 
         /// The tweaks that change what the game does (each documented in its class); `exact` turns
         /// on every tweak but these.
-        public static readonly string[] ChangingBehaviour = Rows.Where(r => r.IsTweak && r.Group == ChangesGameplay).Select(r => r.Id).ToArray();
+        public static readonly string[] ChangingBehaviour = Rows.Where(r => r.IsTweak && (r.Group == ChangesGameplay || r.ChangesBehaviour)).Select(r => r.Id).ToArray();
 
         /// A `--game-tweak` value: a tweak's name, `-NAME` (left out of `all` or `exact`, for
         /// measuring one against the rest), `all`, `exact` (all but ChangingBehaviour) or `none`
@@ -180,6 +186,7 @@ namespace OniMoono.Host.GameTweaks
                     md.Append($"- **{r.Title}** (`{r.Id}`): {r.Effect}");
                     if (r.Detail.Length > 0) md.Append(' ').Append(r.Detail);
                     if (r.Gain != null) md.Append($" *Measured: {Gain(r.Gain)}.*");
+                    if (r.ChangesBehaviour && group != ChangesGameplay) md.Append(" *Off by default.*");
                     md.Append('\n');
                 }
             }

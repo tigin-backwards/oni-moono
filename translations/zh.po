@@ -318,6 +318,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.CONVEYOR"
 msgid "No hitch on rail edits (was 0.05–0.5 s)"
 msgstr "修改轨道不再卡顿（原本 0.05–0.5 秒）"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.TITLE"
+msgid "Incremental path probes"
+msgstr "增量路径探测"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.EFFECT"
+msgid "Duplicants' path checks redo only what changed in the world, using less CPU."
+msgstr "复制人的寻路检查只重算世界中变化的部分，占用更少的 CPU。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.DETAIL"
+msgid "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may take the other one. Off while another mod changes path probing (Fast Track's Cache Paths)."
+msgstr "每个复制人上一次的路径探测只在变化之处（挖掘、建造、门、液体）修补，而不是从头重新搜索。路径代价和可到达的格子不变；两条路线代价相同时，复制人可能走另一条。其他模组修改路径探测时（如 Fast Track 的 Cache Paths）不生效。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
 msgid "Graphics & overlays"
 msgstr "图形"
