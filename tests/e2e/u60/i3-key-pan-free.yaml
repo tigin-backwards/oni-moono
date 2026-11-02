@@ -1,0 +1,37 @@
+# I3 at the player's own frame rate (no vsync or frame cap set): a Windows run on a real GPU,
+# where the capped spec saw no pan in the original. The steps are i3-key-pan.yaml's, but where the
+# drag ends is not compared: its inertia eases over real time, so at this frame rate it ended
+# 140 units apart in two runs of the original.
+# I3 (docs/research/u60-qa-spec.md): keyboard panning at any frame rate.
+#
+# U60 scales the Research screen's key pan (ResearchScreen's keyPanDelta) and KScrollRect's
+# keyboard scroll by 60 * Time.unscaledDeltaTime, so the distance per second no longer follows
+# the frame rate. As master's research-pan.yaml does, both players are held to the same 6 frames
+# edge, where a pan key moves nothing, so a drag first carries it into the tree (as in
+# research-pan.yaml); then the pan-left key (A) is held (the drag leaves the tree at its left-hand clamp, where panning right moves nothing) for 2 game seconds at speed 1, and the
+# tree's position is compared with the original's, from the
+# same start. The Skills screen and the starmap are left to the spec's uncapped variant (15 %),
+# which this harness cannot hold to a real-time second.
+from: early-base
+setup:
+  - driver: {camera.set: {pos: [128.5, 210.5], ortho: 10}}
+steps:
+  - open: {key: R}
+  - run: {seconds: 3, speed: 1}
+  - drag: {from: [134, 213], to: [124, 207], hold: 2}
+  - run: {seconds: 3, speed: 1}
+  - expect_state:
+      "all:ResearchScreen::[0].isDragging": false
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": [{save_as: start}]
+  - key: {code: A, down: true}
+  - run: {seconds: 2, speed: 1}
+  - expect_state:
+      "all:ResearchScreen::[0].panLeft": true
+  - key: {code: A, up: true}
+  - run: {seconds: 2, speed: 1}
+  # The tree moved, and ends within 20 units of the original's position (the spec's 5 % of a
+  # distance of several hundred; the expressions have no absolute value to take 5 % of either
+  # direction).
+  - expect_state:
+      "all:ResearchScreen::[0].panLeft": false
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": ["!= start", ">= original - 20", "<= original + 20"]

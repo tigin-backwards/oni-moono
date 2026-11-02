@@ -648,8 +648,14 @@ move sounds equal the original's.
 **Status:** not testable as written: on this harness (Linux OpenGL, both players held to 6 fps) a
 held pan key moves the original's Research tree not at all. `tests/e2e/u60/i3-key-pan.yaml` holds D,
 then A, for 2 s: ResearchScreen.panRight or panLeft reads true while held, yet the tree's x stays
-148.25 at the view's opening clamp and -210.10 after a drag into the tree. The Skills screen and
-the starmap were not tried.
+148.25 at the view's opening clamp and -210.10 after a drag into the tree. The Skills screen and the
+starmap were not tried. On Windows (0cf55242, synthetic input) the capped spec saw the same: the
+original's tree stays at -1043.10 with panLeft true. `tests/e2e/u60/i3-key-pan-free.yaml`, the same
+steps at each player's own frame rate on the RTX 3090, passes: A held for 2 s pans both trees to the
+view's edge (x 150.00), so it shows the pan works in ours but not that its speed matches; the drag
+before it ends where real time leaves its inertia, 140 units apart in two runs of the original, so
+it is not compared. The pan key from the Windows keyboard needs the user: the Research screen
+opened, A held for 2 s at 60 fps and again with the frame rate capped low, in both players.
 
 **Risk: medium.**
 
