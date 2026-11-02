@@ -177,6 +177,10 @@ strings `STRINGS/UI.cs` CONDUITFLOW.
 
 ### R2 Animation batch pooling
 
+**Status:** not run in this pass: building and deconstructing 40 buildings needs a deconstruct
+step the e2e harness lacks (OniMcp's orders only build); the qa verify half runs with the final
+u60 qa pass.
+
 **Risk: medium.**
 
 **Patch note:** not in the notes.
@@ -408,6 +412,9 @@ output) are not in the spec yet.
 
 ### R7 New and changed animations and sprites
 
+**Status:** not run in this pass: no spec yet (a spawner setup and a shot per new prefab).
+Windows Vulkan: pending.
+
 **Risk: medium.**
 
 **Patch notes:** the "Animations" list (grow-up anims, grooming calls, Pipsqueak sleep, Drecko egg,
@@ -443,6 +450,9 @@ the new buildings' and Merpip's anims.
 **Harness:** e2e (new spec, several shots per run).
 
 ### R8 Temperature overlay icons and colour modes
+
+**Status:** not run in this pass: no spec yet (the Options > Graphics colour-mode dropdown is
+not explored). Windows Vulkan: pending.
 
 **Risk: medium.**
 
@@ -595,6 +605,12 @@ all 15 values, the side screen's scroll position and the 21 move sounds equal th
 **Harness:** e2e (new spec).
 
 ### I3 Keyboard panning at any frame rate
+
+**Status:** not testable as written: on this harness (Linux OpenGL, both players held to 6 fps) a
+held pan key moves the original's Research tree not at all. `tests/e2e/u60/i3-key-pan.yaml` holds D,
+then A, for 2 s: ResearchScreen.panRight or panLeft reads true while held, yet the tree's x stays
+148.25 at the view's opening clamp and -210.10 after a drag into the tree. The Skills screen and
+the starmap were not tried.
 
 **Risk: medium.**
 
@@ -915,6 +931,9 @@ Consumables back to the left when it shows again.
 
 ### U4 Blueprints, Supply Closet and fuzzy search
 
+**Status:** not run in this pass: no spec yet (a Supply Closet spec needs `data_collection:
+true`).
+
 **Risk: medium.**
 
 **Patch notes:** blueprint search bars (building info screen, Duplicant tab), outfit blueprints
@@ -954,6 +973,8 @@ Blueprints" deep link, Electrical → Power, the Regal pump rename, Manual Gener
 **Harness:** e2e (new spec).
 
 ### U5 Details screen and codex layouts
+
+**Status:** not run in this pass: no spec yet.
 
 **Risk: medium.**
 
@@ -1694,6 +1715,9 @@ options."
 **Harness:** qa dogfood; manual on a real GPU.
 
 ### P3 Linux restarter
+
+**Status:** not testable as written: needs tooling the e2e runner lacks, following the player
+through App.Restart (the restarted process, its ports and scope); not built in this pass.
 
 **Risk: medium.**
 

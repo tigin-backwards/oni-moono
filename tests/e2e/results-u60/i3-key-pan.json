@@ -1,0 +1,27 @@
+{
+ "spec": "u60/i3-key-pan.yaml",
+ "mods": [],
+ "verdict": "pending",
+ "why": "the spec fails in the original: a broken spec, or a mod broken upstream",
+ "findings": [],
+ "note": "",
+ "updated": "2026-11-01",
+ "commit": "2300800a",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261101-223320-bbc1b9c0",
+    "index": 1,
+    "verdict": "fail",
+    "date": "2026-11-01T22:33:20",
+    "lane": 50,
+    "reasons": [
+     "step 11: all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x is -210.09642, wanted ['!= start', '>= original - 20', '<= original + 20']"
+    ],
+    "signatures": 0
+   }
+  ],
+  "ours": []
+ }
+}
