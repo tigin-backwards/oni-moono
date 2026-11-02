@@ -502,6 +502,9 @@ codes of one frame joined by `+`, entries by spaces), `::Events` (space-separate
 `::Chars`. It also records each frame's `Input.mouseScrollDelta` and
 `Input.GetAxis("Mouse ScrollWheel")` where either is not zero (`::Wheel`, `x,y/axis` entries
 separated by spaces) and the delta of each IMGUI `ScrollWheel` event (`::WheelEvents`, `x,y`).
+Mouse buttons go apart: the codes `Mouse0` to `Mouse6` `Input.GetKeyDown` is true for
+(`::MouseDown`, as `::Down`), those `Input.GetKey` holds each frame any is held
+(`::MouseHeld`), and the button of each IMGUI `MouseDown` event (`::MouseEvents`).
 Answers `{"recording": true}`.
 
 ### imgui.scrollview `{on?}`

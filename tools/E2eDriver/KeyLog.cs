@@ -19,6 +19,11 @@ namespace E2eDriver
         static readonly StringBuilder chars = new StringBuilder();
         static readonly List<string> wheel = new List<string>();
         static readonly List<string> wheelEvents = new List<string>();
+        static readonly List<string> mouse = new List<string>();
+        static readonly List<string> mouseHeld = new List<string>();
+        static readonly List<string> mouseEvents = new List<string>();
+        static readonly KeyCode[] mouseCodes =
+            { KeyCode.Mouse0, KeyCode.Mouse1, KeyCode.Mouse2, KeyCode.Mouse3, KeyCode.Mouse4, KeyCode.Mouse5, KeyCode.Mouse6 };
         static GameObject listener;
 
         /// The key codes Input.GetKeyDown held for, one entry a frame (codes in one frame joined
@@ -34,6 +39,15 @@ namespace E2eDriver
         /// The delta of each IMGUI ScrollWheel event, "x,y", space-separated.
         public static string WheelEvents => string.Join(" ", wheelEvents.ToArray());
 
+        /// The mouse key codes (Mouse0 to Mouse6) Input.GetKeyDown held for, one entry a frame
+        /// (codes in one frame joined by '+'), space-separated.
+        public static string MouseDown => string.Join(" ", mouse.ToArray());
+        /// The mouse key codes Input.GetKey held for, one entry a frame where any did ('+'
+        /// between codes), space-separated.
+        public static string MouseHeld => string.Join(" ", mouseHeld.ToArray());
+        /// The button of each IMGUI MouseDown event, space-separated.
+        public static string MouseEvents => string.Join(" ", mouseEvents.ToArray());
+
         public static bool Recording => listener != null;
 
         public static JToken Start(JObject a)
@@ -44,6 +58,9 @@ namespace E2eDriver
             chars.Length = 0;
             wheel.Clear();
             wheelEvents.Clear();
+            mouse.Clear();
+            mouseHeld.Clear();
+            mouseEvents.Clear();
             if (on && listener == null)
             {
                 if (codes == null)
@@ -77,6 +94,14 @@ namespace E2eDriver
             foreach (var c in codes)
                 if (Input.GetKeyDown(c)) frame = frame == null ? c.ToString() : frame + "+" + c;
             if (frame != null) down.Add(frame);
+            string pressed = null, held = null;
+            foreach (var c in mouseCodes)
+            {
+                if (Input.GetKeyDown(c)) pressed = pressed == null ? c.ToString() : pressed + "+" + c;
+                if (Input.GetKey(c)) held = held == null ? c.ToString() : held + "+" + c;
+            }
+            if (pressed != null) mouse.Add(pressed);
+            if (held != null) mouseHeld.Add(held);
             var scroll = Input.mouseScrollDelta;
             float axis = Input.GetAxis("Mouse ScrollWheel");
             if (scroll != Vector2.zero || axis != 0f) wheel.Add(Number(scroll.x) + "," + Number(scroll.y) + "/" + Number(axis));
@@ -87,6 +112,7 @@ namespace E2eDriver
         internal static void Gui(Event e)
         {
             if (e.type == EventType.ScrollWheel) wheelEvents.Add(Number(e.delta.x) + "," + Number(e.delta.y));
+            if (e.type == EventType.MouseDown) mouseEvents.Add(e.button.ToString(System.Globalization.CultureInfo.InvariantCulture));
             if (e.type != EventType.KeyDown) return;
             if (e.keyCode != KeyCode.None) events.Add(e.keyCode.ToString());
             if (e.character != '\0') chars.Append(e.character);

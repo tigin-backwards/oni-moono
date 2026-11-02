@@ -285,6 +285,7 @@ def check_step(where, kind, value, in_setup):
             for m in value.get('mods', []):
                 problems += [f'{where}: {p}' for p in key_problems(m)]
             need(isinstance(value.get('double', False), bool), 'click `double` is true or false')
+            need(button_problem(value) is None, button_problem(value) or '')
     elif kind == 'toggle':
         _ui_query(where, value, problems)
         need(isinstance(value, dict) and isinstance(value.get('to'), bool), 'toggle needs `to: true|false`')
@@ -305,6 +306,8 @@ def check_step(where, kind, value, in_setup):
              'click_world takes {cell: [x, y]} or {pos: [x, y]} (a world position)')
         need(not isinstance(value, dict) or isinstance(value.get('select', ''), str),
              'click_world `select` is the prefab ID to click until it is selected')
+        need(not isinstance(value, dict) or button_problem(value) is None,
+             (isinstance(value, dict) and button_problem(value)) or '')
     elif kind == 'scroll':
         need(isinstance(value, dict) and isinstance(value.get('notches'), int), 'scroll takes {at, notches: N}')
     elif kind == 'tool':
@@ -1944,7 +1947,19 @@ KKEYCODES = {
 }
 MODIFIERS = {'shift': 'Shift_L', 'ctrl': 'Control_L', 'control': 'Control_L', 'alt': 'Alt_L'}
 _KEYS_LOWER = {k.lower(): v for k, v in KKEYCODES.items()}
-BUTTONS = {'left': 1, 'middle': 2, 'right': 3}
+# X11 button numbers; 4 to 7 are the wheel, 8 and up the side buttons (back 8, forward 9).
+BUTTONS = {'left': 1, 'middle': 2, 'right': 3, 'back': 8, 'forward': 9}
+
+
+def button_problem(value):
+    """Why a step's `button` is not one, or None: a name in BUTTONS, or an X button number 1 to
+    3 or 8 to 11 (XTEST sends any)."""
+    if 'button' not in value:
+        return None
+    b = value['button']
+    if b in BUTTONS or (isinstance(b, int) and not isinstance(b, bool) and (1 <= b <= 3 or 8 <= b <= 11)):
+        return None
+    return '`button` is left, middle, right, back, forward or an X button 1-3 or 8-11'
 
 
 def keysym_name(name):
