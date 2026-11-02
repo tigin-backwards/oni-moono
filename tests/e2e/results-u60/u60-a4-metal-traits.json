@@ -1,0 +1,57 @@
+{
+ "spec": "u60-a4-metal-traits.yaml",
+ "mods": [],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "MetalRich and MetalPoor read with their Zinc Ore band modifier, as in the original",
+ "updated": "2026-11-02",
+ "commit": "274d5616",
+ "mod_dlls": {},
+ "runs": {
+  "original": [
+   {
+    "run": "20261102-000407-f3c5adda",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:04:07",
+    "lane": 1,
+    "signatures": 0
+   },
+   {
+    "run": "20261102-000407-f3c5adda",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:04:23",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261102-000407-f3c5adda",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-02T00:04:40",
+    "lane": 1,
+    "reference_run": "20261102-000407-f3c5adda",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261102-000407-f3c5adda",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-02T00:04:58",
+    "lane": 1,
+    "reference_run": "20261102-000407-f3c5adda",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
