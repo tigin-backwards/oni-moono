@@ -34,8 +34,7 @@ namespace OniMoono.Host
             byte[]? completed = null;
             for (int round = 0; round < 64; round++)
             {
-                var missing = Probe(completed ?? image, out var probe);
-                Collect(probe);
+                var missing = Verdict(completed ?? image);
                 if (missing.Count == 0) break;
                 var (next, newSymbols, added) = Complete(completed ?? image, symbols, path, missing);
                 if (added.Count == 0) break;
@@ -45,6 +44,208 @@ namespace OniMoono.Host
                     EngineLog.Engine($"mod types: {Path.GetFileName(path)}: {line} (missing; calling it throws, as using the class does on Mono)");
             }
             return completed;
+        }
+
+        /// Probes run and verdicts read from the cache in this process (the self-check).
+        internal static int ProbesRun, CacheHits;
+
+        /// The cache's folder instead of the player's cache folder (the self-check), or null.
+        internal static string? CacheFolder;
+
+        /// What Probe finds for the image, from the cache when the same image was probed against
+        /// the same loaded assemblies before. A probe costs a few blocking full collections
+        /// (Collect: two per probe, 80 with 40 mods at each start, measured); its verdict is a
+        /// function of the image, the assemblies its probe can bind to and what those bind to, the
+        /// host's rewriting of them and the runtime, so the cache key names all of them: the
+        /// image's hash, the runtime's and this host's builds, and each loaded assembly its
+        /// references reach, outside the runtime's own folder, by name, module version id and its
+        /// file's size and time.
+        static Dictionary<string, (string Message, HashSet<string> Methods)> Verdict(byte[] image)
+        {
+            var file = CacheFile(image);
+            if (file != null && Read(file) is { } cached)
+            {
+                CacheHits++;
+                return cached;
+            }
+            ProbesRun++;
+            var missing = Probe(image, out var probe);
+            Collect(probe);
+            if (file != null) Write(file, missing);
+            return missing;
+        }
+
+        /// The verdict's cache file, or null when the probe's inputs cannot all be named: the image
+        /// references an assembly whose loaded copy is dynamic (no file or module version id
+        /// stands for its contents), or its references cannot be read.
+        static string? CacheFile(byte[] image)
+        {
+            var folder = CacheFolder ?? (EngineConfig.TemporaryCachePath.Length == 0 ? null : Path.Combine(EngineConfig.TemporaryCachePath, "oni-moono", "mod-type-probes"));
+            if (folder == null) return null;
+            var references = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using var pe = new System.Reflection.PortableExecutable.PEReader(new MemoryStream(image, writable: false));
+                if (!pe.HasMetadata) return null;
+                var metadata = System.Reflection.Metadata.PEReaderExtensions.GetMetadataReader(pe);
+                foreach (var handle in metadata.AssemblyReferences)
+                    references.Add(metadata.GetString(metadata.GetAssemblyReference(handle).Name));
+            }
+            catch (Exception e) when (e is BadImageFormatException or InvalidOperationException)
+            {
+                return null;
+            }
+            // The loaded assemblies by simple name: ProbeContext binds the image's references by
+            // name to the default context's, and those bind theirs by name too (ModAccess.Resolve
+            // binds to an assembly loaded in any context, as Mono does), so what the probe can
+            // reach is the closure of the names referenced from the image. Assemblies outside it
+            // (such as Harmony's, generated at each start) play no part.
+            var byName = new Dictionary<string, List<(AssemblyLoadContext Context, Assembly Assembly)>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var context in AssemblyLoadContext.All)
+            {
+                if (context.IsCollectible) continue;
+                foreach (var assembly in context.Assemblies)
+                {
+                    var name = assembly.GetName().Name ?? "";
+                    if (!byName.TryGetValue(name, out var list)) byName[name] = list = new();
+                    list.Add((context, assembly));
+                }
+            }
+            var lines = new List<string>();
+            var pending = new Queue<string>(references);
+            while (pending.Count > 0)
+            {
+                if (!byName.Remove(pending.Dequeue(), out var loaded)) continue;
+                foreach (var (context, assembly) in loaded)
+                {
+                    // A dynamic assembly has neither a file nor a module version id that stands for its contents.
+                    if (assembly.IsDynamic) return null;
+                    if (Identity(assembly) is not { } line) continue;
+                    lines.Add(context.Name + "|" + line);
+                    foreach (var reference in ReferencedNames(assembly))
+                        if (byName.ContainsKey(reference)) pending.Enqueue(reference);
+                }
+            }
+            // This host's build: it rewrites the game's and the mods' images as they load.
+            lines.Add("host|" + Identity(typeof(MissingInterfaceMethods).Assembly));
+            lines.Sort(StringComparer.Ordinal);
+            var key = new System.Text.StringBuilder();
+            key.Append(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(image))).Append('\n');
+            key.Append(System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription).Append('|')
+               .Append(typeof(object).Module.ModuleVersionId.ToString("N")).Append('|')
+               .Append(System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture).Append('\n');
+            foreach (var line in lines) key.Append(line).Append('\n');
+            var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(key.ToString())));
+            return Path.Combine(folder, hash + ".json");
+        }
+
+        static readonly Dictionary<Assembly, string?> identities = new();
+        static readonly Dictionary<Assembly, string[]> referencedNames = new();
+        static string? runtimeFolder;
+
+        static string[] ReferencedNames(Assembly assembly)
+        {
+            lock (referencedNames)
+            {
+                if (!referencedNames.TryGetValue(assembly, out var names))
+                    referencedNames[assembly] = names = assembly.GetReferencedAssemblies().Select(n => n.Name ?? "").ToArray();
+                return names;
+            }
+        }
+
+        /// An assembly as the cache key names it, or null for one of the runtime's own (from its
+        /// folder: the runtime's build stands for them, whether loaded yet or not).
+        static string? Identity(Assembly assembly)
+        {
+            lock (identities)
+            {
+                if (identities.TryGetValue(assembly, out var known)) return known;
+                runtimeFolder ??= Path.GetDirectoryName(typeof(object).Assembly.Location) ?? "";
+                // Location is the file's for a rewritten mod or game assembly too (ModAccess).
+                var location = assembly.Location;
+                string? line;
+                var name = assembly.GetName();
+                if (location.Length > 0 && runtimeFolder.Length > 0 && string.Equals(Path.GetDirectoryName(location), runtimeFolder, StringComparison.Ordinal)
+                    && name.GetPublicKeyToken() is { Length: > 0 } token && MicrosoftTokens.Contains(Convert.ToHexString(token)))
+                    line = null;
+                else
+                {
+                    line = name.FullName + "|" + assembly.ManifestModule.ModuleVersionId.ToString("N");
+                    if (location.Length > 0)
+                    {
+                        try
+                        {
+                            var info = new FileInfo(location);
+                            line += "|" + location + "|" + (info.Exists ? info.Length + "|" + info.LastWriteTimeUtc.Ticks : "missing");
+                        }
+                        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+                        {
+                            line += "|" + location;
+                        }
+                    }
+                }
+                identities[assembly] = line;
+                return line;
+            }
+        }
+
+        /// The public key tokens of the runtime's own assemblies.
+        static readonly HashSet<string> MicrosoftTokens = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "B77A5C561934E089", "B03F5F7F11D50A3A", "CC7B13FFCD2DDD51", "7CEC85D7BEA7798E", "ADB9793829DDAE60",
+        };
+
+        /// The self-check: the image's cached verdict and a fresh probe's, as text (equal when the
+        /// cache holds what the probe finds now); null for the cached one when it is not cached.
+        internal static (string? Cached, string Probed) CompareWithProbe(byte[] image)
+        {
+            static string Text(Dictionary<string, (string Message, HashSet<string> Methods)> v)
+                => string.Join("\n", v.Select(e => e.Key + ": " + e.Value.Message + " [" + string.Join(", ", e.Value.Methods.Order(StringComparer.Ordinal)) + "]"));
+            var file = CacheFile(image);
+            var cached = file == null ? null : Read(file);
+            var probed = Probe(image, out var probe);
+            Collect(probe);
+            return (cached == null ? null : Text(cached), Text(probed));
+        }
+
+        sealed record CachedType(string Type, string Message, string[] Methods);
+
+        static Dictionary<string, (string Message, HashSet<string> Methods)>? Read(string file)
+        {
+            try
+            {
+                if (!File.Exists(file)) return null;
+                var types = System.Text.Json.JsonSerializer.Deserialize<CachedType[]>(File.ReadAllBytes(file));
+                if (types == null) return null;
+                var result = new Dictionary<string, (string Message, HashSet<string> Methods)>(StringComparer.Ordinal);
+                foreach (var t in types)
+                {
+                    if (t?.Type == null || t.Message == null || t.Methods == null || result.ContainsKey(t.Type)) return null;
+                    result[t.Type] = (t.Message, new HashSet<string>(t.Methods, StringComparer.Ordinal));
+                }
+                return result;
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or NotSupportedException)
+            {
+                return null;
+            }
+        }
+
+        /// Kept in the probe's order (Complete adds the methods type by type in it).
+        static void Write(string file, Dictionary<string, (string Message, HashSet<string> Methods)> missing)
+        {
+            try
+            {
+                var types = missing.Select(e => new CachedType(e.Key, e.Value.Message, e.Value.Methods.Order(StringComparer.Ordinal).ToArray())).ToArray();
+                Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+                var temporary = file + "." + Environment.ProcessId + ".tmp";
+                File.WriteAllBytes(temporary, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(types));
+                File.Move(temporary, file, overwrite: true);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // Not kept: the next start probes it again.
+            }
         }
 
         /// Type full name (CLR form, nested with '+') → the method names CoreCLR finds missing.

@@ -1582,6 +1582,7 @@ namespace OniMoono.Host
                     il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_7); il.Emit(System.Reflection.Emit.OpCodes.Ret);
                     impl.DefineDefaultConstructor(MethodAttributes.Public);
                     impl.CreateType();
+                    MissingInterfaceMethods.CacheFolder = Path.Combine(dir, "probes");
                     var modPath = Path.Combine(dir, "mod", "OniMoonoCheckOldMod.dll");
                     Directory.CreateDirectory(Path.GetDirectoryName(modPath)!);
                     mod.Save(modPath);
@@ -1604,10 +1605,31 @@ namespace OniMoono.Host
                         {
                         }
                     }
-                    return "the class loads; calling either missing method throws TypeLoadException";
+                    // The probes' verdicts kept in the cache: a second completion of the image
+                    // probes nothing and gives the same bytes, and each verdict kept is the one a
+                    // fresh probe finds.
+                    var image = File.ReadAllBytes(modPath);
+                    byte[]? noSymbols = null;
+                    // An empty cache: the load above kept its verdicts under the same keys.
+                    MissingInterfaceMethods.CacheFolder = Path.Combine(dir, "probes-again");
+                    int probes = MissingInterfaceMethods.ProbesRun, hits = MissingInterfaceMethods.CacheHits;
+                    var first = MissingInterfaceMethods.Adjust(image, ref noSymbols, modPath) ?? throw new InvalidOperationException("nothing was completed");
+                    int probed = MissingInterfaceMethods.ProbesRun - probes;
+                    if (probed < 2 || MissingInterfaceMethods.CacheHits != hits) throw new InvalidOperationException($"the first completion probed {probed} times and read {MissingInterfaceMethods.CacheHits - hits} verdicts from the cache");
+                    var second = MissingInterfaceMethods.Adjust(image, ref noSymbols, modPath) ?? throw new InvalidOperationException("nothing was completed the second time");
+                    if (MissingInterfaceMethods.ProbesRun - probes != probed || MissingInterfaceMethods.CacheHits - hits != probed)
+                        throw new InvalidOperationException($"the second completion probed {MissingInterfaceMethods.ProbesRun - probes - probed} times and read {MissingInterfaceMethods.CacheHits - hits} of {probed} verdicts from the cache");
+                    if (!first.AsSpan().SequenceEqual(second)) throw new InvalidOperationException("the image completed from the cache differs");
+                    foreach (var checkedImage in new[] { image, first })
+                    {
+                        var (cached, fresh) = MissingInterfaceMethods.CompareWithProbe(checkedImage);
+                        if (cached != fresh) throw new InvalidOperationException($"the cached verdict ({cached ?? "none"}) is not the probe's ({fresh})");
+                    }
+                    return $"the class loads; calling either missing method throws TypeLoadException; {probed} probes' verdicts read back from the cache, the same image";
                 }
                 finally
                 {
+                    MissingInterfaceMethods.CacheFolder = null;
                     try { Directory.Delete(dir, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
                 }
             });
