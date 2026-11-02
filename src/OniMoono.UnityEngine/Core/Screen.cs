@@ -27,7 +27,7 @@ namespace UnityEngine
             set => SetResolution(width, height, value);
         }
 
-        public static Resolution currentResolution => ToResolution(P.DesktopMode);
+        public static Resolution currentResolution => ToResolution(P.CurrentResolution);
 
         /// Supported fullscreen modes of the monitor, smallest first.
         /// The platform's modes in its order (sorted by width for modes a display reports, as

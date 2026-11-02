@@ -399,6 +399,18 @@ namespace OniMoono.Desktop
 
         public OniMoono.Engine.Platform.DisplayMode DesktopMode => desktopMode ??= ModeOf(CurrentMonitor.VideoMode);
 
+        public OniMoono.Engine.Platform.DisplayMode CurrentResolution
+            => CurrentResolutionOf(DesktopMode, RenderingSize, mode, OperatingSystem.IsWindows());
+
+        /// Screen.currentResolution: the desktop's mode, but a fullscreen window's rendering size on
+        /// Windows. Measured in the original: on Windows (a 2560x1440 monitor, SetResolution(1280,
+        /// 720, FullScreenWindow)) it read 1280x720 while systemWidth/Height stayed 2560x1440; on
+        /// Linux (a 1280x720 Xvfb screen at 960x720) it stayed 1280x720.
+        internal static OniMoono.Engine.Platform.DisplayMode CurrentResolutionOf(OniMoono.Engine.Platform.DisplayMode desktop, int2 rendering, FullScreenMode mode, bool windows)
+            => windows && mode == FullScreenMode.FullScreenWindow && rendering.X > 0 && rendering.Y > 0
+                ? desktop with { Width = rendering.X, Height = rendering.Y }
+                : desktop;
+
         public OniMoono.Engine.Platform.DisplayMode[] DisplayModes
         {
             get

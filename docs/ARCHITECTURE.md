@@ -1804,9 +1804,13 @@ was (120.75, 718) with the pointer on the screen's pixel 161,1 at 960x720). Capt
 asked for (`FramebufferWidth`/`Height`, which `Screen` and `Display` report); the presenter's
 copy to the window (OpenGL's blit, into DXGI's shared texture too)
 stretches it with linear filtering, as it already did for a frame drawn before a resize, and
-`ToPixels` maps the pointer with `WindowToRendering`. A fullscreen window opened at start-up
-renders at the monitor's size (the game applies its saved resolution on its first frames). Not
-measured: the original on Windows, exclusive fullscreen (on Linux the original reported
+`ToPixels` maps the pointer with `WindowToRendering`. On Windows (a 2560x1440 second monitor,
+`SetResolution(1280, 720, FullScreenWindow)`) the original kept its window 2560x1440 and reported
+1280x720 for `Screen.width`/`height` and `renderingWidth`/`Height`, 2560x1440 for
+`systemWidth`/`Height`, and, unlike on Linux, 1280x720 for `Screen.currentResolution`
+(`GlfwPlatform.CurrentResolutionOf`); ours matches, through DXGI and SwapBuffers. A fullscreen
+window opened at start-up renders at the monitor's size (the game applies its saved resolution
+on its first frames). Not measured: the pointer's mapping on Windows, exclusive fullscreen (on Linux the original reported
 `ExclusiveFullScreen` with a centred 960x720 window; ours keeps a fullscreen window there), and
 whether Unity scales a hardware cursor with the picture (ours does not).
 
