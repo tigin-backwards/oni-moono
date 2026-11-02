@@ -1,7 +1,9 @@
 # Repro (U60 QA spec A1 step 2 and G10, docs/research/u60-qa-spec.md): u60-start-forest, then
 # the start world's cells hashed (E2eDriver Census::StartGrid). Fails in ours: measured
 # 2026-11-02 on Linux, OpenGL, the original has 29,700 solid cells and ten CarbonDioxide and five
-# Dirt chunks, ours 29,712 and no chunks; the element and mass hashes differ too.
+# Dirt chunks, ours 29,712 and no chunks; the element and mass hashes differ too. Cause: D25
+# (float intermediate precision): the noise maps and cell masses differ by ulps before the settle
+# (A1's status), so this stays a repro, not a pass criterion.
 from: main-menu
 memory_gb: 8
 steps:

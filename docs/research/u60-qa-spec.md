@@ -1106,7 +1106,8 @@ from the Options screen is not run.
 
 ### U7 Translation validation
 
-**Status:** passes (10000907; Linux, ours on Vulkan, the original on OpenGL):
+**Status:** passes (55a9147e; Linux, both players on OpenGL; first recorded in 10000907 with
+ours on Vulkan, the original on OpenGL, with the same result):
 `tests/e2e/u60-u7-zh.yaml`, `-ru`, `-ko` (results in `tests/e2e/results-u60`) require each
 "TRANSLATION ERROR!" block the original logs, whole, and no other: zh and ko reject
 `STRINGS.UI.BUILDINGEFFECTS.DIET_HEADER` (parameters), ru that and
@@ -1365,8 +1366,18 @@ event clusters are not covered: their screens ignore the coordinate's cluster. E
 is not compared: the generated worlds differ by a few cells (Verdante: 29,700 solid cells in
 the original, 29,712 in ours; ten CarbonDioxide and five Dirt chunks only in the original;
 repro `tests/e2e/u60-start-forest-grid.yaml`), so element chunks and the world's critters
-differ; that difference is open (not looked into; QA calls worldgen functional, never cell by
-cell).
+differ. Cause (measured 2026-11-02, cells dumped from both players at each worldgen stage): D25,
+float intermediate precision, so the spec stays functional. The noise maps going into
+`WorldGen.RenderToMap` already differ, mostly by 1-16 ulps (start world: `data` 38,838 of 43,840
+values, `density` 39,016, `heatOffset` 35,901). LibNoise evaluates its float expressions
+(`Libnoise.Lerp`, `SCurve5`) without storing intermediates. Before the settle, 19 cells' element
+and 6,909 masses differ; the settle (same SimDLL, fed these cells) spreads that to 270 elements.
+All nine worlds of the cluster differ the same way, so the other start worlds most likely differ
+too: their specs do not hash the cells. The cell mass formula (`TerrainCell.cs:943`,
+`GetDensityMassForCell`) gives different results under the two float rules in about 870 cells.
+There the original's mass is Mono's double evaluation in 805 of 890 and ours is the per-operation
+float rounding in 811 of 863. Matching would mean Mono's float rules in LibNoise and the worldgen
+code, which D25 keeps out. U59 has the same mass formula; not measured there.
 
 **Risk: medium.** A new game generates without errors and matches QA's references (inventory,
 2026-10-31), but a value read differently would not log.
