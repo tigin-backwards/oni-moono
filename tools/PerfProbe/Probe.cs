@@ -924,6 +924,24 @@ namespace PerfProbe
             }
         }
 
+        /// `focuslog.txt`: from the colony on, every 2 s of real time the frames rendered in it and
+        /// Application.isFocused, to compare focused and unfocused stretches within one run.
+        System.Collections.IEnumerator FocusLog()
+        {
+            while (Game.Instance == null) yield return null;
+            int start = Time.frameCount;
+            float t0 = Time.realtimeSinceStartup;
+            while (true)
+            {
+                yield return null;
+                float now = Time.realtimeSinceStartup;
+                if (now - t0 < 2f) continue;
+                Debug.Log($"PERF focuslog {System.DateTime.Now:HH:mm:ss.f} frames {Time.frameCount - start} in {now - t0:F3} s focused {Application.isFocused}");
+                start = Time.frameCount;
+                t0 = now;
+            }
+        }
+
         struct CursorPoint { public int X, Y; }
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
@@ -1644,6 +1662,7 @@ namespace PerfProbe
             // `pointerlog.txt`: Input.mousePosition every quarter second for 40 s from the menu, with
             // the time, to follow a pointer a script moves outside and inside the window.
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "pointerlog.txt"))) StartCoroutine(PointerLog());
+            if (System.IO.File.Exists(System.IO.Path.Combine(Path, "focuslog.txt"))) StartCoroutine(FocusLog());
             awake = System.IO.File.Exists(System.IO.Path.Combine(Path, "awake.txt"));
             if (awake)
             {
