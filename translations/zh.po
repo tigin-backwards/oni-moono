@@ -103,8 +103,8 @@ msgid "Hide personal paths in the log"
 msgstr "隐藏日志中的个人路径"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOG_PATHS.EFFECT"
-msgid "Your user folder reads %USERPROFILE% or ~ in Player.log, and your Steam ID is hidden."
-msgstr "Player.log 中你的用户文件夹会显示为 %USERPROFILE% 或 ~，Steam ID 也会被隐藏。"
+msgid "Your user folder reads %USERPROFILE% or ~ in Player.log, and your account IDs and name are hidden."
+msgstr "Player.log 中你的用户文件夹会显示为 %USERPROFILE% 或 ~，你的账号 ID 和名称也会被隐藏。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOG_PATHS.DETAIL"
 msgid "Mods still get the full text."
