@@ -30,18 +30,71 @@ namespace E2eDriver
             long start = System.Diagnostics.Stopwatch.GetTimestamp(), previous = start;
             int frames = 0;
             double longest = 0;
+            var draws = new RenderCounters();
             request.Pending = r =>
             {
                 long now = System.Diagnostics.Stopwatch.GetTimestamp();
                 longest = System.Math.Max(longest, Ms(now - previous));
                 previous = now;
+                draws.Sample();
                 if (++frames < hold) return false;
                 double mean = Ms(now - start) / frames;
-                Debug.Log($"E2E stopwatch hold {frames} frames: mean {mean:F1} ms, longest {longest:F1} ms");
-                r.State = new JObject { ["frames"] = frames, ["mean_ms"] = System.Math.Round(mean, 1), ["longest_ms"] = System.Math.Round(longest, 1), ["before"] = result };
+                var counters = draws.Take(frames);
+                Debug.Log($"E2E stopwatch hold {frames} frames: mean {mean:F1} ms, longest {longest:F1} ms{RenderCounters.Text(counters)}");
+                r.State = new JObject { ["frames"] = frames, ["mean_ms"] = System.Math.Round(mean, 1), ["longest_ms"] = System.Math.Round(longest, 1), ["draws"] = counters, ["before"] = result };
                 return true;
             };
             return null;
+        }
+
+        /// A hold's draws a frame: the original's from Unity's render counters (ProfilerRecorder
+        /// "Draw Calls Count", "Batches Count", "SetPass Calls Count", where a player reports
+        /// them), ours from the engine's draw queues (counted only with ONI_RENDER_TIMING=1).
+        sealed class RenderCounters
+        {
+            static readonly string[] Names = { "Draw Calls Count", "Batches Count", "SetPass Calls Count" };
+            readonly Unity.Profiling.ProfilerRecorder[] recorders = new Unity.Profiling.ProfilerRecorder[Names.Length];
+            readonly long[] sums = new long[Names.Length];
+            readonly System.Reflection.FieldInfo ours;
+            readonly long oursStart;
+
+            public RenderCounters()
+            {
+                for (int i = 0; i < Names.Length; i++) recorders[i] = Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Render, Names[i]);
+                var renderer = HarmonyLib.AccessTools.TypeByName("OniMoono.Engine.Rendering.FrameRenderer");
+                ours = renderer == null ? null : HarmonyLib.AccessTools.Field(renderer, "queueDraws");
+                if (ours != null) oursStart = (long)ours.GetValue(null);
+            }
+
+            public void Sample()
+            {
+                for (int i = 0; i < Names.Length; i++)
+                    if (recorders[i].Valid) sums[i] += recorders[i].LastValue;
+            }
+
+            public JObject Take(int frames)
+            {
+                var o = new JObject();
+                for (int i = 0; i < Names.Length; i++)
+                {
+                    if (recorders[i].Valid) o[Names[i]] = System.Math.Round((double)sums[i] / frames, 1);
+                    recorders[i].Dispose();
+                }
+                // The engine's count restarts every 600 frames: a hold across a restart reads none.
+                if (ours != null)
+                {
+                    long now = (long)ours.GetValue(null);
+                    if (now > oursStart) o["engine draws"] = System.Math.Round((double)(now - oursStart) / frames, 1);
+                }
+                return o;
+            }
+
+            public static string Text(JObject o)
+            {
+                var parts = new List<string>();
+                foreach (var p in o.Properties()) parts.Add($"{p.Name} {p.Value}");
+                return parts.Count == 0 ? "" : "; a frame: " + string.Join(", ", parts);
+            }
         }
 
         static JObject Report(JObject a)

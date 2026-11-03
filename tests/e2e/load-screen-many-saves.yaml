@@ -55,11 +55,28 @@ steps:
   - click: {ui: "**/LoadScreen/**/LoadMoreButton"}
   - ui_wait: {path: "**/LoadScreen/**/Prefab_ColonyButton[24]/Header", cond: exists, frames: 6000}
   - driver: {stopwatch: {hold: 120}}
+  # Three more, to five pages: each refresh decodes the previews of every page shown.
+  - scroll: {at: "**/LoadScreen/Panel/ColonyList/ListView/Files", notches: -800}
+  - ui_wait: {path: "**/LoadScreen/**/LoadMoreButton", cond: stable, frames: 600}
+  - click: {ui: "**/LoadScreen/**/LoadMoreButton"}
+  - ui_wait: {path: "**/LoadScreen/**/Prefab_ColonyButton[44]/Header", cond: exists, frames: 6000}
+  - driver: {stopwatch: {hold: 120}}
+  - scroll: {at: "**/LoadScreen/Panel/ColonyList/ListView/Files", notches: -1200}
+  - ui_wait: {path: "**/LoadScreen/**/LoadMoreButton", cond: stable, frames: 600}
+  - click: {ui: "**/LoadScreen/**/LoadMoreButton"}
+  - ui_wait: {path: "**/LoadScreen/**/Prefab_ColonyButton[64]/Header", cond: exists, frames: 6000}
+  - driver: {stopwatch: {hold: 120}}
+  - scroll: {at: "**/LoadScreen/Panel/ColonyList/ListView/Files", notches: -1600}
+  - ui_wait: {path: "**/LoadScreen/**/LoadMoreButton", cond: stable, frames: 600}
+  - click: {ui: "**/LoadScreen/**/LoadMoreButton"}
+  - ui_wait: {path: "**/LoadScreen/**/Prefab_ColonyButton[84]/Header", cond: exists, frames: 6000}
+  - driver: {stopwatch: {hold: 120}}
   # Back up to the first page and the same colony again: Load more refreshed the same pooled
   # rows, and each refresh added a ShowColony handler to the row's button (AddColonyToList never
-  # clears it), so the colony is built once a refresh of this opening (closing the screen
-  # destroys it, so a new opening starts with one).
-  - scroll: {at: "**/LoadScreen/Panel/ColonyList/ListView/Files", notches: 400}
+  # clears it), so the colony is built once a refresh of this opening: five times after four
+  # Load more clicks (closing the screen destroys it, so a new opening starts with one;
+  # fix-load-screen-clicks builds it once).
+  - scroll: {at: "**/LoadScreen/Panel/ColonyList/ListView/Files", notches: 2000}
   - ui_wait: {path: "**/LoadScreen/**/Prefab_ColonyButton[4]/Header", cond: stable, frames: 600}
   - driver: {stopwatch: {hold: 120}}
   - click: {ui: "**/LoadScreen/**/Prefab_ColonyButton[4]/Header"}
