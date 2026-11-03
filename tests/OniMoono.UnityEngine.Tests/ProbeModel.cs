@@ -356,6 +356,8 @@ namespace OniMoono.Tests
 
             public bool IsSubmerged(int cell) => m.ComputeSubmerged(cell);
 
+            public uint Refused(byte flags) => ProbeGraph.Refused(ab.Swim, ab.FuelOut, flags);
+
             public int Penalty(byte flags, in PLink link)
             {
                 bool flag = (flags & (FAtmo | FJet | FLead)) != 0;
