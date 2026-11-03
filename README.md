@@ -194,7 +194,7 @@ options in Steam.
 The biggest change is swapping the very garbage Mono runtime that Unity ships for CoreCLR. On
 top of that there are optimizations tuned to the way Oxygen Not Included uses the engine.
 
-On a late-game save (U57: Spaced Out with every DLC, cycle 17,000+), on Windows, on the same machine, back to back:
+On a late-game Spaced Out colony with every DLC (cycle 17,000+), on Windows, on the same machine, back to back:
 
 | | Original | Moono | |
 |---|---|---|---|
@@ -215,7 +215,7 @@ across every core, and their pauses are about a quarter as long.
 around 11GB resident compared to 7GB in the original. This is expected behavior for faster,
 parallel collection.
 
-U57 at speed 3: about 11 fps in the original, about 88 in Moono.
+The late-game colony at speed 3: about 11 fps in the original, about 88 in Moono.
 
 https://github.com/user-attachments/assets/9d54b5ac-8583-442c-b6ad-8ddaa31e6d6d
 
@@ -224,15 +224,15 @@ Moono.
 
 https://github.com/user-attachments/assets/cb1bf869-b031-4090-86b8-1714535f36e4
 
-An autosave on U57: the original freezes for about 26 s, Moono for about 4 s.
+An autosave on the late-game colony: the original freezes for about 26 s, Moono for about 4 s.
 
 https://github.com/user-attachments/assets/a0534ae4-115f-4b17-b9bb-2f8c28868b89
 
-The temperature overlay on U57, panning: about 8 fps in the original, about 50 in Moono.
+The temperature overlay on the late-game colony, panning: about 8 fps in the original, about 50 in Moono.
 
 https://github.com/user-attachments/assets/e0054f3c-0462-4333-955b-9ab5c8888810
 
-2minnow, a mid-game colony, at speed 3: about 35 fps in the original, about 110 in Moono.
+A mid-game colony at speed 3: about 35 fps in the original, about 110 in Moono.
 
 https://github.com/user-attachments/assets/3106d24d-67d3-4bf3-ba23-8f8dc78910f8
 

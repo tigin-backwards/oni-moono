@@ -160,15 +160,15 @@ def ids(pattern):
 
 swept = ids('sweep-b*.txt') | ids('sweep-d*.txt') | ids('sweep-e*.txt') | ids('sweep-f*.txt')
 third = ids('sweep-g*.txt')
-# Ranks 501-750: their colony runs used 2minnow (sweep-o*.txt, rerun without the mods below).
+# Ranks 501-750: their colony runs used 2minnow, a mid-game colony (sweep-o*.txt, rerun without the mods below).
 fifth = ids('sweep-o[0-9].txt')
 fifth_failing = set(ids('sweep-o-excluded.txt'))
 
 played = {
-    '2837919908': 'clicks select what is under the cursor (its flat-scaled world selector); played on U57 and the Twinkleverse save it was reported with',
+    '2837919908': 'clicks select what is under the cursor (its flat-scaled world selector); played on a late-game colony and the save it was reported with',
     '1960947963': 'hover cards draw as in the original (needed ARCHITECTURE D17, D18)',
     '2815406414': 'tiles connect as in the original (needed D21)',
-    '3630759126': 'menu and U57 colony with 0 errors (needed its IMGUI and asset bundle API, D20, the TMP caret fix); a multiplayer session needs two Steam accounts, not tested',
+    '3630759126': 'menu and a late-game colony with 0 errors (needed its IMGUI and asset bundle API, D20, the TMP caret fix); a multiplayer session needs two Steam accounts, not tested',
     '3775625682': "a player's images packed and shown on a canvas as in the original (needed `Texture2D.PackTextures`)",
     '3781314647': 'a colony with its new elements, 0 errors in both players (needed `Shader.GetPropertyCount/Name/Type`)',
     '2958243747': "issue #2's set",
@@ -515,7 +515,14 @@ ONIMAXXING_BROKEN = {
     'brokenByUpdate': 'broken by the U60 update (onimaxxing analysis, not run here)',
 }
 
+# Test saves named in notes (from spec records), as a player would put them.
+SAVE_NAMES = [('the early-base colony', 'the early-game colony'), ('no early-base room', 'no room of the early-game colony'),
+              ('on early-base niobium', 'in the early-game colony, niobium'), ('early-base', 'the early-game colony')]
+
+
 def row(rank, mid, title, loads, colony, play, note):
+    for name, plain in SAVE_NAMES:
+        note = note.replace(name, plain)
     link = f'[{title.replace("|", "/")}](https://steamcommunity.com/sharedfiles/filedetails/?id={mid})' if mid else title
     return f'| {rank} | {link} | {loads} | {colony} | {play} | {note} |'
 
@@ -578,7 +585,7 @@ def with_record(mid, flags):
     return (Y, Y, play, note) if play != N else (loads, colony, play, note)
 
 
-rows = [row('–', None, 'Fast Track (GitHub)', Y, Y, Y, 'about 30 fps on U57, where the original runs 5–6')]
+rows = [row('–', None, 'Fast Track (GitHub)', Y, Y, Y, 'about 30 fps on a late-game Spaced Out colony, where the original runs 5–6')]
 listed = set()
 for r in cat:
     rank, mid, _, flags, title = int(r[0]), r[1], r[2], r[3], r[4]
@@ -607,7 +614,8 @@ not identical layouts.
 **Columns:**
 - **Loads:** reaches the main menu with no error of ours.
 - **Colony:** loaded with its batch of about 25 mods and played 90 seconds of a Spaced Out colony,
-  with no error of ours: U57 (late game) for ranks 1–500, 2minnow (mid game) from 501.
+  with no error of ours: a late-game colony with every DLC (cycle 17,000+) for ranks 1–500, a
+  mid-game colony from 501.
 - **Played:** a save played with the mod, its screens and logs compared with the original player.
   ⚠️ means played with a small known difference, its issue linked.
 
