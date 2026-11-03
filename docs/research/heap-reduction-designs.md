@@ -382,6 +382,80 @@ frame-time checks above. If paging costs the probe noticeably, 2D tiles (16×16 
 2.9 % on soggy lab 2, 17 % on c100) hold about as much and keep a cell's vertical neighbours
 in its page more often, at the price of a division to find the tile; the benchmark decides.
 
+### 3.3 Built (2026-11-03): `paged-path-grids`
+
+Design 3.2 as the game tweak `paged-path-grids` (Simulation, exact, on by default; TWEAKS.md):
+
+- **The tables** (`src/OniMoono.Host/PathGridPages.cs`). A table is a `T[][]` of 256-element
+  pages; every unwritten slot names one shared, never-written `Zero<T>.Page`, so a read is
+  `pages[i >> 8][i & 255]` with no test, and the last page is allocated at the array's exact
+  end, so the two bounds checks throw where the array's would. A store of anything but zeros
+  into the zero page makes a page (on the pinned object heap: a page lives as long as its grid,
+  and would otherwise be copied by each GC promotion) and publishes it with one
+  compare-and-exchange; a store of zeros there stores nothing. Flat mode is the same code with
+  one page, the game's array itself (`index >> 31` is 0 for every valid index), and the page
+  size is a `static readonly` set once the first PathGrid decided the mode, so tier-1 code folds
+  it.
+- **The rewrite** (`PathGridPagesRewrite.cs`, in MonoConversions' pass after
+  compact-nav-links'). PathGrid gets `<Cells>pages`, `<Cells>length` and the same for
+  ProberCells; the constructor's `newarr` becomes `PathGridPages.New` and `Cells` gets
+  `Handle` (one element, each grid its own, so `lock (grid.Cells)` keeps working); each
+  `ldfld Cells` followed in straight-line code to its element access becomes the table's load
+  with `Load`, `Store`, `Clear` (`ldelema` + `initobj` in ResetProberCells) or the length
+  field (`ldlen`). The game has 12 accesses in 7 PathGrid methods, the same in U59 744825 and
+  U60 761211; nothing else of the assembly changes (PathGridPagesTests compares every method).
+  Mods are only checked: of the 4,580 DLLs of `out/ws` (library copies included) none uses the
+  arrays; Fast Track's three locks are kept. Anything else, a mod assembly naming the arrays
+  loaded without the check, or a transpiler of a rewritten PathGrid method makes the session
+  flat (`PagedPathGrids.Decide`, logged).
+- **path-probe-repair** reads and writes a grid through `ProbePages<T>` views of the same tables
+  (pages made through the host's `Materialise`, verify mode's flat array kept written). Its own
+  whole-map arrays are paged the same way: each Duplicant's path flags (c100: 183.5 → 14.7 MB
+  for 204 Duplicants in the capture's replay) and the probe thread's repair scratch.
+- **Verification.** `ONI_TWEAK_VERIFY=1` keeps a flat array beside each table, written by the
+  same helpers, and compares every element every 30 s of play: 0 differed on c100 (1,446
+  tables, 439.6 M elements, 4 comparisons), soggy lab 2 without its mods (1,146 tables, 105.8 M,
+  4) and DeCrew (874, 23.4 M, 5), with path-probe-repair's own checks (repairs against floods,
+  floods against the game's PathProber.Run on a rewritten grid) at 0 wrong as well.
+  `--check-types` runs the loaded, rewritten PathGrid's own methods on a 40×20 grid against a
+  model of its arrays (96,000 reads). Unit tests: reads and writes against a flat array in both
+  modes, out-of-range indices, zero stores, writers racing on page creation with readers.
+
+**Speed.** The micro-benchmark (`out/pathbench`: the game's PathProber.Run/AddPotentials over
+GetCell/SetCell on dumped Duplicant grids, six pooled grids) put paging within this machine's
+noise: paired medians 1.01-1.09 of flat for the layouts tried, the one built 1.01-1.02.
+path-probe-repair's ProbeBench replays (c100, DeCrew captures; flat and paged alternating in one
+process, pages made up front) gave floods 1.05 and 1.16 of flat; with every page made during
+the replay (204 grids filled at once) 1.3-1.9, the first writes' cost, which a game pays once
+per grid. In the game the probe thread showed no cost: on Linux (c100, speed 3, 3-5 minutes,
+PageProbe timing WorkOrder.Execute's CPU) the game's own probe took 3.87 ms a probe flat and
+3.96 paged, path-probe-repair's 0.87 and 0.87; on Windows (below) path-probe-repair's 0.66,
+0.47 flat and 0.59, 0.60 paged.
+
+**Memory and frame time.** Windows, U60 761211, c100, Vulkan defaults, speed 3, 1280×720 on
+monitor 2, `--no-focus`, High priority, sound off, path-probe-repair on; base `--game-tweak
+-paged-path-grids` (the game's IL as it is), base, new, base, new, 4,200 frames each, the last
+line of frame stats' memory; other agents' Linux players loaded the machine:
+
+| | base | paged |
+|---|---:|---:|
+| Managed heap | 8,729, 8,676 MiB | 4,308, 4,339 MiB |
+| GC commit | 9,545, 9,416 MiB | 5,261, 5,270 MiB |
+| Private bytes (the commit Windows charges) | 15,441, 15,291 MiB | 11,199, 11,104 MiB |
+| Working set | 10,212, 10,083 MiB | 9,579, 9,618 MiB |
+| Frame rate (the last four 600-frame windows) | 46.2, 54.2 | 46.3, 56.1 |
+| Main thread (frame stats' parts) | 25.7, 16.1 ms | 17.8, 19.6 ms |
+| `path probes` (main thread) | 0.18, 0.13 ms | 0.15, 0.17 ms |
+| GC pauses | 0.34, 0.25 ms a frame | 0.52, 0.36 ms a frame |
+
+The heap and the commit fall by 4.2-4.4 GiB, as estimated; the working set by 0.5 GiB only
+(fresh LOH memory the game never wrote is not resident). Frame rate, main-thread time and the
+probe thread moved within the runs' spread. On Linux (PageProbe after a full GC, 2 and 5
+minutes in, without its mods for soggy lab 2): c100's heap 8,924-9,366 → 4,575-5,059 MB and GC
+commit 9,901-10,044 → 5,366-5,870 MB; soggy lab 2's heap 5,308-5,948 → 4,664-4,727 MB and
+commit 6,437-6,583 → 5,492-5,505 MB, its grids' 1,044-1,129 MB of arrays held in 46-52 MB
+(more grids than §3.1 counted: the critters' grids are paged too).
+
 ## Files
 
 Not committed (the worktree's `out/heapdesign`): BundleCensus (bundle nodes and class sizes;
@@ -389,3 +463,7 @@ Not committed (the worktree's `out/heapdesign`): BundleCensus (bundle nodes and 
 `anims-u60-all.txt`), HeapProbe and its specs (`specs/heapprobe-soggy.yaml`,
 `specs/heapprobe-c100.yaml`; dumps in `probe-soggy/`, `probe-c100/` and, at load only,
 `probe-soggy-load/`), ModScan and `modscan.txt`, Fast Track's decompiled path patches (`ft/`).
+§3.3's (the building worktree's `out/`): `pathbench` (the micro-benchmark and its dumps,
+`engine-*.sh`, the ProbeBench comparisons), `pathgrid/PageProbe` and its specs
+(`pathgrid/specs`, results in `pathgrid/measure`), the Windows scripts and logs
+(`pathgrid/win-*.sh`, `winsum.py`, `pathgrid/winperf`).
