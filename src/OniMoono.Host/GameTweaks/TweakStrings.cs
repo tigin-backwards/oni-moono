@@ -35,7 +35,7 @@ namespace OniMoono.Host.GameTweaks
             ("LOCKED_NOTE", "Set by the launch options: {0}", "A note above the rows; {0}: the launch options"),
             ("LOCKED_NOTE_BODY", "Those rows can't be changed here. Remove the options from the game's launch options to choose them here.",
                 "The note's second line"),
-            ("CHANGES_GAMEPLAY_NOTE", "Off by default: these trade a little exactness for speed.", "Under the Changes gameplay heading"),
+            ("CHANGES_GAMEPLAY_NOTE", "These trade a little exactness for speed. Off by default, but for Incremental path probes.", "Under the Changes gameplay heading"),
             ("LAUNCH_OPTION", "LAUNCH OPTION", "Beside a row the launch options set (one line)"),
             ("LAUNCH_OPTION_LINE", "Launch option: {0}", "A row's tooltip, last line; {0}: the launch option"),
             ("LOCKED_ON", "Set by the launch options (on)", "Tooltip of a toggle the launch options set"),

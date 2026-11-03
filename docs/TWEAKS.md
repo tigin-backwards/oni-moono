@@ -50,7 +50,8 @@ never ask GitHub; `tests/e2e/update-badge.yaml` gives the badge a fixture instea
 
 Launch options still work and win over the screen, which then shows those rows as set by the
 launch options:
-- `--game-tweak exact`: every tweak but those off by default.
+- `--game-tweak exact`: every tweak that leaves the game as the original plays it: all but the
+  Changes gameplay group (so without `path-probe-repair`, which is on by default).
 - `--game-tweak all`: every tweak.
 - `--game-tweak none`: no tweaks.
 - Tweaks by name: `--game-tweak exact --game-tweak slow-reachability`. `--game-tweak -NAME` leaves
@@ -112,7 +113,6 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux und
 - **Faster pickup checks** (`fast-offset-tables`): Where an item can be picked up from is rechecked only when its surroundings change. Fetch updates recheck only the items whose work spots can have changed.
 - **Faster spatial index cleanup** (`fast-partitioner-cleanup`): The once-a-second tidy-up of what is where looks only at what was removed. The spatial index's cleanup visits only the entries that were removed.
 - **Faster conveyor rebuilds** (`fast-conveyor-paths`): Building or removing conveyor rails no longer stalls the game. The rails' network rebuild finds its routes from an index instead of searching every kept route again. *Measured: no hitch on rail edits (was 0.05–0.5 s); U57, Linux under WSL2, 2026-10-25.*
-- **Incremental path probes** (`path-probe-repair`): Duplicants' path checks redo only what changed in the world, using less CPU. Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may take the other one. Off while another mod changes path probing (Fast Track's Cache Paths). *Off by default.*
 
 ### Graphics & overlays (on by default)
 
@@ -121,8 +121,9 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux und
 - **Parallel animation uploads** (`fast-anim-batches`): Animation data for the graphics card is prepared on several threads. Animation batches write their instance and symbol data on worker threads, the rest in the game's order.
 - **Fewer animation uploads** (`fast-symbol-overrides`): Swapped animation parts are re-sent to the graphics card only when they change. Unchanged symbol-override blocks of Duplicants and buildings aren't uploaded again.
 
-### Changes gameplay (off by default)
+### Changes gameplay (off by default but where marked)
 
+- **Incremental path probes** (`path-probe-repair`): Duplicants' path checks redo only what changed in the world, using less CPU. Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may walk the other one, not the original's. Keeps about 0.9 MB a Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths). *On by default.*
 - **Slower reachability checks** (`slow-reachability`): Duplicants notice a newly opened or blocked path up to 3 s later. Which errands and items can be reached is rechecked every 4 s instead of every second; temperature and building checks are never delayed.
 - **Lazy unseen conveyor items** (`off-screen-conveyors`): Items riding rails off screen are placed only when they stop or come into view. The rails carry exactly the same things, but items' positions lag while off screen.
 - **Land items lost below a world** (`off-world-fallers`): Items that fall out the bottom of a world (a rocket's chute) stop falling forever. They hang just below the world, stepped as falling every tick; landing them where they hang stops that cost.
@@ -131,6 +132,12 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux und
 <!-- tweaks:end -->
 
 ### Incremental path probes
+
+On by default, though it changes gameplay in one way (it is in the Changes gameplay group and
+not in `exact`): costs and reachable cells are the original's, but where two routes cost the
+same a Duplicant may walk another one than in the original (Navigator builds the walking path
+from the probe, PathGrid.BuildPath). It keeps about 0.9 MB a Duplicant (four bits of suit flags
+a state, on a 640×404 world). It steps aside while Fast Track's Cache Paths is on (below).
 
 Each Duplicant's path probe (the cost to every cell it can reach, which errands and pathing read
 until its next probe) is redone every few seconds, four Duplicants a frame, on a thread of its

@@ -13,8 +13,9 @@ namespace OniMoono.GameTweaks
     using WorkOrder = AsyncPathProber.WorkOrder;
     using WorkResult = AsyncPathProber.WorkResult;
 
-    /// Game tweak `path-probe-repair` (opt-in, **changes behaviour** in one way: between routes
-    /// of the same cost a Duplicant may take another one). Every frame the game probes up to four
+    /// Game tweak `path-probe-repair` (on by default but not in `exact`: it **changes behaviour**
+    /// in one way, between routes of the same cost a Duplicant may take another one). Every
+    /// frame the game probes up to four
     /// navigators on its path probe thread (AsyncPathProber): a flood from where the Duplicant
     /// stands over the whole world's nav grid, its cost to every cell it can reach, which errands
     /// and Duplicants' pathing read until its next probe a few seconds later. A Duplicant's probe
