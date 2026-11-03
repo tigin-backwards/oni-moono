@@ -142,6 +142,7 @@ namespace OniMoono.Desktop.Gl
             if (major > 4 || (major == 4 && minor >= 2)) caps.Bptc = true;
             GlTextures.Caps = caps;
             caps.MemoryMB = QueryVideoMemoryMB();
+            if (GlPrograms.Extensions.Contains("GL_NVX_gpu_memory_info")) (startEvictions, startEvicted) = NvxEvictions();
             GlBindless.Initialize(caps.Vendor);
             EngineLog.Engine(GlBindless.Enabled ? "textures: bindless (ARB_bindless_texture)" : $"textures: bound to units ({GlBindless.Reason})");
             if (DebugOutput) EnableDebugOutput();
@@ -283,15 +284,28 @@ namespace OniMoono.Desktop.Gl
             return textures + $"; upload staging: copies {UploadBuffers.Take()}, background {GlBackgroundUploads.TakeCounters()}, texel memory {PixelMemory.LiveBytes >> 20} MiB (peak {PixelMemory.TakePeak() >> 20})";
         }
 
+        /// The NVIDIA extension's eviction count and evicted KiB when the device started: they
+        /// count every eviction "seen by system" (NVX_gpu_memory_info), other processes' and
+        /// earlier ones too (14,584 evictions, 49.7 GB, before this player's first frame on an
+        /// RTX 3090 with 14 GB free), so the log gives them since the device started as well.
+        long startEvictions, startEvicted;
+
+        static (long Count, long KiB) NvxEvictions()
+        {
+            int evictions = 0, evicted = 0;
+            N.glGetIntegerv(0x904A, &evictions); // GPU_MEMORY_INFO_EVICTION_COUNT_NVX
+            N.glGetIntegerv(0x904B, &evicted); // GPU_MEMORY_INFO_EVICTED_MEMORY_NVX
+            return ((uint)evictions, (uint)evicted);
+        }
+
         string GlThreadVideoMemory()
         {
             if (GlPrograms.Extensions.Contains("GL_NVX_gpu_memory_info"))
             {
-                int free = 0, evictions = 0, evicted = 0;
+                int free = 0;
                 N.glGetIntegerv(0x9049, &free); // GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX
-                N.glGetIntegerv(0x904A, &evictions); // GPU_MEMORY_INFO_EVICTION_COUNT_NVX
-                N.glGetIntegerv(0x904B, &evicted); // GPU_MEMORY_INFO_EVICTED_MEMORY_NVX
-                return $"{free >> 10} MiB free of {caps.MemoryMB} MiB, {evictions} evictions ({evicted >> 10} MiB)";
+                var (evictions, evicted) = NvxEvictions();
+                return $"{free >> 10} MiB free of {caps.MemoryMB} MiB, {evictions - startEvictions} evictions ({(evicted - startEvicted) >> 10} MiB) since the device started, {evictions} ({evicted >> 10} MiB) seen by the system";
             }
             if (GlPrograms.Extensions.Contains("GL_ATI_meminfo"))
             {
