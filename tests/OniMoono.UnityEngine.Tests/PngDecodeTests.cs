@@ -304,6 +304,15 @@ namespace OniMoono.Tests
             // Closed, it keeps nothing.
             Load(png, stbOnly: false);
             Assert.False(ImageDecodeMemo.TryGet(png, out _, out _, out _, out _));
+            // Its owner gone (a screen destroyed without closing it), it closes at the next use.
+            bool up = true, dropped = false;
+            ImageDecodeMemo.Open(() => up, () => dropped = true);
+            Load(png, stbOnly: false);
+            Assert.True(ImageDecodeMemo.TryGet(png, out _, out _, out _, out _));
+            up = false;
+            Assert.False(ImageDecodeMemo.TryGet(png, out _, out _, out _, out _));
+            Assert.False(ImageDecodeMemo.IsOpen);
+            Assert.True(dropped);
         }
 
         /// ONI_PNG_BENCH=FILE: decode times of stb and LoadImage, for docs/research.

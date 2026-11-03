@@ -55,17 +55,20 @@ namespace OniMoono.Host.GameTweaks
                     postfix: new HarmonyMethod(typeof(LoadScreenPreviews), nameof(LoadedPreview)) { priority = Priority.First });
         }
 
-        static void Open()
+        /// While this screen is up: loading a save destroys it without OnDeactivate, and nothing
+        /// is kept past it (the memo checks the screen at each use).
+        static void Open(MonoBehaviour __instance)
         {
-            Close();
-            ImageDecodeMemo.Open();
+            var screen = __instance;
+            ImageDecodeMemo.Open(() => screen != null && screen.isActiveAndEnabled, Dropped);
         }
 
-        static void Close()
+        static void Close() => ImageDecodeMemo.Close();
+
+        static void Dropped()
         {
-            if (ImageDecodeMemo.IsOpen && Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1")
+            if (Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1")
                 EngineLog.Engine($"{Name}: {ImageDecodeMemo.Hits} images from the decode memo, {ImageDecodeMemo.Decodes} decoded; {hits} downscaled previews kept from earlier, {verified} checked against the game's, {differed} differed");
-            ImageDecodeMemo.Close();
             downscaled.Clear();
             kept = 0;
             hits = verified = differed = 0;
