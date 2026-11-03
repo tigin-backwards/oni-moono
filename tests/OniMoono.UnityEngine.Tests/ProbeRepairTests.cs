@@ -72,63 +72,7 @@ namespace OniMoono.Tests
         /// reached, and each cell's prober entry its cheapest state but a tube's. Floods differ
         /// from one another only in which of two routes of the same cost they keep.
         internal static string Fixpoint(Result r, ProbeGraph g, IProbeRules rules)
-        {
-            int nc = g.NavCount;
-            bool V(int s) => r.Cells[s].QueryId == r.Serial;
-            for (int s = 0; s < r.Cells.Length; s++)
-            {
-                if (!V(s)) continue;
-                var c = r.Cells[s];
-                int cell = s / nc;
-                byte nav = g.SlotNav[s % nc];
-                if (c.Parent == -1)
-                {
-                    if (cell != r.Root || c.Cost != 0) return $"state {s} has no parent";
-                }
-                else
-                {
-                    byte pnav = (byte)(c.NavTypes >> 4);
-                    int ps = c.Parent * nc + g.NavSlot[pnav];
-                    if (!V(ps)) return $"state {s}'s parent {ps} is not reached";
-                    var p = r.Cells[ps];
-                    bool found = false;
-                    foreach (var l in g.Rows[c.Parent])
-                    {
-                        if (l.Start != pnav || l.End != nav || l.Trans != c.TransitionId || l.Link != cell) continue;
-                        found = true;
-                        if (l.Link == p.Parent && (p.NavTypes >> 4) == l.Start) return $"state {s}'s parent {ps} skips the link";
-                        bool sub = rules.IsSubmerged(l.Link);
-                        int cand = p.Cost + l.Cost + (sub || l.End == ProbeGraph.Swim ? rules.Penalty(r.Flags[ps], l) : 0);
-                        byte pf = r.Flags[ps];
-                        if (cand != c.Cost) return $"state {s} costs {c.Cost}, {cand} from its parent {ps}";
-                        if (!rules.Traverse(ref pf, l.Link, l.End, c.Parent, pnav, cand, l.Trans, sub)) return $"state {s}'s parent {ps} can't take the link";
-                        if (pf != r.Flags[s]) return $"state {s} has flags {r.Flags[s]}, {pf} from its parent {ps}";
-                    }
-                    if (!found) return $"state {s}'s link from its parent {ps} is not in the row";
-                }
-                foreach (var l in g.Rows[cell])
-                {
-                    if (l.Start != nav || (l.Link == c.Parent && (c.NavTypes >> 4) == l.Start)) continue;
-                    int t = l.Link * nc + g.NavSlot[l.End];
-                    bool sub = rules.IsSubmerged(l.Link);
-                    int cand = c.Cost + l.Cost + (sub || l.End == ProbeGraph.Swim ? rules.Penalty(r.Flags[s], l) : 0);
-                    if (V(t) && r.Cells[t].Cost <= cand) continue;
-                    byte pf = r.Flags[s];
-                    if (rules.Traverse(ref pf, l.Link, l.End, cell, nav, cand, l.Trans, sub))
-                        return V(t) ? $"state {t} costs {r.Cells[t].Cost}, {cand} from {s}" : $"state {t} is not reached, but {s} reaches it";
-                }
-            }
-            for (int cell = 0; cell < r.Probers.Length; cell++)
-            {
-                int best = -1;
-                for (int k = 0; k < nc; k++)
-                    if (g.SlotNav[k] != ProbeGraph.Tube && V(cell * nc + k) && (best == -1 || r.Cells[cell * nc + k].Cost < best)) best = r.Cells[cell * nc + k].Cost;
-                var p = r.Probers[cell];
-                if ((p.QueryId == r.Serial) != (best != -1) || (best != -1 && p.Cost != best)) return $"cell {cell}'s prober entry is not its cheapest state";
-                if ((best != -1) != (r.Reach.BinarySearch(cell) >= 0)) return $"cell {cell} is {(best != -1 ? "" : "not ")}reachable but {(best != -1 ? "not " : "")}listed";
-            }
-            return null;
-        }
+            => ProbeEngine.Fixpoint(r.Cells, r.Probers, r.Flags, r.Serial, r.Root, g, rules, r.Reach);
 
         static void Repair(ProbeEngine engine, ProbeModel model, Result r, ProbeDelta delta)
         {
@@ -245,6 +189,68 @@ namespace OniMoono.Tests
                 var fresh = Flood(new ProbeEngine(model.Graph()), model, model.CorridorCell(0), ProbeModel.Floor, 8, ab, 1);
                 AssertSame(r, fresh, graph, closed ? "closed" : "open");
             }
+        }
+
+        /// A door taken down while the probes run (U60, a 400-cycle colony: an access door
+        /// deconstructed, AccessControl.OnCleanUp unregistering its restriction): the game's
+        /// writer records it as it happens, but the batch it goes into is sealed only at the next
+        /// frame. The probe thread seals what was recorded before it takes the changes, so a
+        /// repair that starts after the door went sees it; before, a repair could read the door
+        /// gone through TraversePath for some links without the cell in its changes, and never
+        /// look at the links into it again (the cells behind it stayed unreachable until the
+        /// Duplicant moved).
+        [Fact]
+        public void AChangeRecordedBeforeAProbeIsRepaired()
+        {
+            var model = ProbeModel.Corridor(20);
+            var graph = model.Graph();
+            var engine = new ProbeEngine(graph);
+            var changes = new ProbeChanges();
+            var ab = new ProbeModel.Abilities { Prefab = 1, Proxy = 2, Key = 3 };
+            foreach (var e in model.SetDoor(10, ProbeModel.Block, ab.Proxy).Events) changes.Add(e.Kind, e.Cell, e.Row);
+            changes.Drain(graph);
+            var r = Flood(engine, model, model.CorridorCell(0), ProbeModel.Floor, 8, ab, 3);
+            Assert.Equal(10, r.Reach.Count);
+            long since = changes.Seq;
+            // Recorded on the main thread; not sealed (no frame began since).
+            foreach (var e in model.SetDoor(10, 0, ab.Proxy).Events) changes.Add(e.Kind, e.Cell, e.Row);
+            long added = changes.Drain(graph);
+            Assert.Equal(changes.Added, added);
+            Assert.True(changes.Synced);
+            Assert.True(changes.Collect(since, r.Pending));
+            Assert.False(r.Pending.IsEmpty);
+            var delta = new ProbeDelta();
+            Repair(engine, model, r, delta);
+            Assert.Equal(20, r.Reach.Count);
+            var fresh = Flood(new ProbeEngine(model.Graph()), model, model.CorridorCell(0), ProbeModel.Floor, 8, ab, 1);
+            AssertSame(r, fresh, graph, "the door gone");
+            Assert.Null(Fixpoint(r, graph, model.Rules(ab)));
+        }
+
+        /// The probe thread's batches: each seal numbers what was added since, and Collect merges
+        /// those after a batch; a change while a probe runs goes to the next.
+        [Fact]
+        public void ChangesAreTakenInBatches()
+        {
+            var model = ProbeModel.Corridor(6);
+            var graph = model.Graph();
+            var changes = new ProbeChanges();
+            changes.Add(ProbeChange.Dst, 3);
+            changes.Seal();
+            changes.Add(ProbeChange.Src, 4);
+            Assert.False(changes.Synced);
+            Assert.Equal(2, changes.Drain(graph));
+            Assert.Equal(2, changes.Seq);
+            var cs = new ChangeSet();
+            Assert.True(changes.Collect(1, cs));
+            Assert.Empty(cs.Dst);
+            Assert.Equal(new[] { 4 }, cs.Src);
+            Assert.True(changes.Collect(0, cs));
+            Assert.Equal(new[] { 3 }, cs.Dst);
+            changes.Add(ProbeChange.Void, 5);
+            Assert.False(changes.Synced);
+            Assert.True(changes.Collect(2, cs));
+            Assert.True(cs.IsEmpty);
         }
 
         /// A repair past its budget gives up and leaves everything as it was; the next repair
