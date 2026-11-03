@@ -1946,13 +1946,16 @@ namespace PerfProbe
         public static long LockContentions() => contention == null ? -1 : (long)contention.GetValue(null);
         static readonly System.Type jitInfo = System.Type.GetType("System.Runtime.JitInfo");
 
-        /// Time spent compiling and methods compiled so far (.NET; empty on Mono).
+        /// Time spent compiling so far, summed over all threads, the compiles (a method compiled
+        /// again at a higher tier counts again), and the calling thread's compile time (.NET;
+        /// empty on Mono).
         public static string Jit()
         {
             if (jitInfo == null) return "";
             var time = (System.TimeSpan)jitInfo.GetMethod("GetCompilationTime").Invoke(null, new object[] { false });
             var count = (long)jitInfo.GetMethod("GetCompiledMethodCount").Invoke(null, new object[] { false });
-            return $" jit {time.TotalMilliseconds:F0} ms over {count} methods";
+            var own = (System.TimeSpan)jitInfo.GetMethod("GetCompilationTime").Invoke(null, new object[] { true });
+            return $" jit {time.TotalMilliseconds:F0} ms over {count} methods ({own.TotalMilliseconds:F0} ms on this thread)";
         }
 
         /// The GC's pauses and collections (gen 0/1/2) so far (.NET; empty on Mono).

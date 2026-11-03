@@ -5,7 +5,8 @@ using System.Threading;
 namespace OniMoono.Engine
 {
     /// Diagnostics (ONI_STARTUP_STATS=1): start-up phases logged with the time since the process
-    /// started, and the texel reads, uploads and program builds of each slow frame.
+    /// started and the JIT's work so far (all threads' compile time summed, and the logging
+    /// thread's), and the texel reads, uploads and program builds of each slow frame.
     internal static class StartupStats
     {
         public static readonly bool Enabled = Environment.GetEnvironmentVariable("ONI_STARTUP_STATS") == "1";
@@ -16,8 +17,14 @@ namespace OniMoono.Engine
 
         public static void Mark(string what)
         {
-            if (Enabled) EngineLog.Engine($"[startup {Now,8:F0} ms] {what}");
+            if (Enabled) EngineLog.Engine($"[startup {Now,8:F0} ms] {what} ({Jit()})");
         }
+
+        /// The JIT's compile time summed over all threads, its compiles (a method compiled again
+        /// at a higher tier counts again), and this thread's compile time.
+        public static string Jit() =>
+            $"jit {System.Runtime.JitInfo.GetCompilationTime().TotalMilliseconds:F0} ms over {System.Runtime.JitInfo.GetCompiledMethodCount()} methods, "
+            + $"{System.Runtime.JitInfo.GetCompilationTime(currentThread: true).TotalMilliseconds:F0} ms on this thread";
 
         // Counters since the last frame report (Interlocked: some are GL-thread counters).
         public static long Uploads, UploadBytes, UploadTicks, ReadTicks, Programs, ProgramTicks, ProgramWaitTicks, GlBusyTicks, GlUploadTicks;
