@@ -464,10 +464,14 @@ frames too. Each `stopwatch` logs (`E2E stopwatch NAME: N calls, X ms`, one line
 the long frames) and returns what was measured since the previous one, then restarts it. With
 `hold: N` it then answers N frames later, doing nothing else meanwhile, and logs those frames'
 mean and longest time (`E2E stopwatch hold N frames: ...`): a screen's steady cost with no
-driver queries in the way. Measurement only: the methods run as they would.
+driver queries in the way. The hold also gives the draws a frame: in the original from Unity's
+render counters (`Draw Calls Count`, `Batches Count`, `SetPass Calls Count` through
+ProfilerRecorder, which its release player reports), in ours from the engine's draw queues
+(`engine draws`, counted only with `ONI_RENDER_TIMING=1`). Measurement only: the methods run
+as they would.
 
 - **Result:** `{"Type:Method": {"calls", "ms"}, …, "long_frames": [...], "driver_ms"}`; with
-  `hold`, `{frames, mean_ms, longest_ms, before}`, `before` being that result.
+  `hold`, `{frames, mean_ms, longest_ms, draws, before}`, `before` being that result.
 
 ```
 >> {"cmd":"stopwatch","args":{"methods":["SaveLoader:LoadHeader"],"over_ms":50}}
