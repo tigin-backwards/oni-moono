@@ -230,6 +230,17 @@ namespace OniMoono.Engine.Rendering
             memory = new PixelMemory(size, fill);
         }
 
+        /// Replaces the texels with `texels`, which the texture now owns (filled by the caller,
+        /// SliceSize bytes: LoadImage's decode).
+        public void Adopt(PixelMemory texels)
+        {
+            AwaitCopy();
+            memory?.Free();
+            source = null;
+            unloaded = false;
+            memory = texels;
+        }
+
         /// Called by the device after uploading a texture whose CPU copy is not kept
         /// (non-readable textures, as in Unity).
         public void DropTexels()
