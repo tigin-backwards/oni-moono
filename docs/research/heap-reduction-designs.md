@@ -452,9 +452,10 @@ The heap and the commit fall by 4.2-4.4 GiB, as estimated; the working set by 0.
 (fresh LOH memory the game never wrote is not resident). Frame rate, main-thread time and the
 probe thread moved within the runs' spread. On Linux (PageProbe after a full GC, 2 and 5
 minutes in, without its mods for soggy lab 2): c100's heap 8,924-9,366 → 4,575-5,059 MB and GC
-commit 9,901-10,044 → 5,366-5,870 MB; soggy lab 2's heap 5,308-5,948 → 4,664-4,727 MB and
-commit 6,437-6,583 → 5,492-5,505 MB, its grids' 1,044-1,129 MB of arrays held in 46-52 MB
-(more grids than §3.1 counted: the critters' grids are paged too).
+commit 9,901-10,044 → 5,366-5,870 MB; soggy lab 2's heap 4,267 → 3,276 MB and commit 5,554 →
+4,189 MB (one pair on u60 at 19071e27, after the mapped bundle cache; path-probe-repair's probe
+0.18 → 0.21 ms), its grids' 1,044-1,129 MB of arrays held in 46-52 MB (more grids than §3.1
+counted: the critters' grids are paged too).
 
 ## Files
 
