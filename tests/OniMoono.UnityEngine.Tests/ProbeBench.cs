@@ -77,7 +77,7 @@ namespace OniMoono.Tests
         public struct BenchStats
         {
             public int Navs, Probes, Floods, Repairs, Large, Unchanged, GaveUp;
-            public long SortTicks, MergeTicks, RepairTicks, FloodTicks, ApplyTicks, DeltaStates, MaxApplyTicks;
+            public long WarmApplyTicks, SortTicks, MergeTicks, RepairTicks, FloodTicks, ApplyTicks, DeltaStates, MaxApplyTicks;
             public ulong Digest;
             public List<(double Us, int Changes, long Behind, int Dropped, int Pops, int Relaxed, int Reach)> RepairLog;
             public int[] FlagValues;
@@ -90,7 +90,7 @@ namespace OniMoono.Tests
                 $"{Navs} navs, {Probes} probes: {Floods} floods {Ms(FloodTicks):F1} ms ({Us(FloodTicks, Floods):F0} us), "
                 + $"{Repairs} repairs {Ms(RepairTicks):F1} ms ({Us(RepairTicks, Repairs):F0} us; {Unchanged} unchanged, {Large} too large, {GaveUp} gave up), "
                 + $"sort {Ms(SortTicks):F1} ms, merge {Ms(MergeTicks):F2} ms, total {Ms(Total):F1} ms; main-thread apply {Ms(ApplyTicks):F2} ms "
-                + $"({Us(ApplyTicks, Repairs):F1} us, max {Us(MaxApplyTicks, 1):F0} us, {DeltaStates / Math.Max(1, Repairs)} states a repair); digest {Digest:x16}";
+                + $"({Us(ApplyTicks, Repairs):F1} us, max {Us(MaxApplyTicks, 1):F0} us, {DeltaStates / Math.Max(1, Repairs)} states a repair, again {Us(WarmApplyTicks, Repairs):F1} us); digest {Digest:x16}";
         }
 
         sealed class BenchNav
@@ -135,6 +135,9 @@ namespace OniMoono.Tests
                     {
                         navs[p.Nav] = n = new BenchNav { R = new ProbeRepairTests.Result { Cells = new PCell[states], Probers = new PProber[cc], Flags = new byte[states] } };
                         n.Key = p;
+                        // Commit the pages now (as a long-lived grid in the game has them): a first
+                        // write to a fresh array's page faults, which the game doesn't pay.
+                        Array.Fill(n.R.Cells, default); Array.Fill(n.R.Probers, default); Array.Fill(n.R.Flags, (byte)0);
                     }
                     var rules = new Rules(this, p);
                     bool repair = false;
@@ -178,6 +181,9 @@ namespace OniMoono.Tests
                         long a0 = Stopwatch.GetTimestamp();
                         delta.ApplyTo(n.R.Cells, n.R.Probers);
                         long a = Stopwatch.GetTimestamp() - a0;
+                        long w0 = Stopwatch.GetTimestamp();
+                        delta.ApplyTo(n.R.Cells, n.R.Probers);
+                        stats.WarmApplyTicks += Stopwatch.GetTimestamp() - w0;
                         stats.ApplyTicks += a;
                         stats.MaxApplyTicks = Math.Max(stats.MaxApplyTicks, a);
                         stats.DeltaStates += delta.States.Count;
