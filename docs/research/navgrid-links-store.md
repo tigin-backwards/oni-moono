@@ -343,6 +343,37 @@ dilute it, so a frame-time effect, if any, needs a Windows run at speed 3.
 It belongs with the game tweaks (TWEAKS.md): it changes how Klei's code stores something
 without changing what it computes.
 
+## 6. Built (2026-11-03)
+
+Design A as above, as the game tweak `compact-nav-links` (TWEAKS.md):
+
+- **The store** (`src/OniMoono.Host/NavGridLinks.cs`). One change from §4: a 32-bit head is
+  the count (8 bits), the block's size class (4 bits) and its number among the blocks of that
+  size (20 bits), not a 24-bit offset into one space. A cell's block only grows, so a cell takes
+  at most one block of each size, and 2^20 numbers per size hold every map of fewer than 2^20
+  cells (soggy lab 2 has 915,456): a 32-bit store can never run out, so the 64-bit fallback is
+  chosen when the store is made (more cells, or more than 255 slots a cell) rather than needing
+  a switch in play. Blocks of a size live in 4,096-link chunks, allocated as needed. The
+  marker's other fields read as 0 (the game's array has stale bytes there, which nothing reads).
+- **The rewrite** (`NavGridLinksRewrite.cs`, first in MonoConversions' pass): §4's table, with a
+  stack-type flow over every method that names the link type for `ldelema` uses, `ldlen` and
+  escapes. The game has 30 accesses in 9 methods and no problem in either build; of the 1,340
+  Workshop DLLs in `out/ws` that name NavGrid, MoreTek, Direct Duplicant Control and Travel
+  Tubes Flydo are rewritten, none has a problem.
+- **The hot walks** read through `NavGridLinks.Walk` and a cursor local when the method's IL
+  fingerprint is U59's or U60's; each walk `ldelem.any` becomes `ldloca` + `call` (2 bytes
+  more), every other instruction stays, and the short branches still reach in both builds.
+  `--check-types` compares the loaded methods with the game's file and applies the four
+  reviewed transpilers to them.
+- **The decision** (`GameTweaks/CompactNavLinks.cs`) at the first NavGrid, as in §4.
+  path-probe-repair (OniMoono.GameTweaks, outside the rewrite) reads the Duplicant grid's rows
+  itself; given a handle it reads them through `NavGridLinks.Load`.
+- **Hazard Pathing** throws on U60 with the tweak on and off alike ("expected exactly two
+  edge-cost prune sites, found 0": its pattern is U59's optimised IL); on U59 all four reviewed
+  transpilers apply to the rewritten methods.
+
+Verification and Windows numbers are in perf-wins.md's verdicts (on the u60 branch).
+
 ## Files
 
 Not committed (the worktree's `out/`): `out/navscan` (NavScan, the IL scan of the game and
