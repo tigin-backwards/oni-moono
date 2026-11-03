@@ -39,8 +39,9 @@ namespace OniMoono.GameTweaks
     /// The repaired result is written into the navigator's own PathGrid on the main thread when
     /// the game takes the result (Navigator.TakeResult), so what the main thread reads between
     /// probes is never half repaired; a flood fills the pooled grid as the game's does. Each
-    /// navigator also keeps a byte of path flags a state (a 640×404 world with 7 nav types: 1.8
-    /// MB a Duplicant), and the probe thread a copy of the rows and a 25-byte-a-state scratch.
+    /// navigator also keeps four bits of path flags a state (ProbeFlags; a 640×404 world with 7
+    /// nav types: 0.9 MB a Duplicant), and the probe thread a copy of the rows and a
+    /// 25-byte-a-state scratch.
     ///
     /// Stands down for the session (logged once) when another Harmony owner patches the probe
     /// (PathProber.Run, WorkOrder.Execute, PathFinder.AddPotentials/AddPotential, PathGrid.SetCell),
