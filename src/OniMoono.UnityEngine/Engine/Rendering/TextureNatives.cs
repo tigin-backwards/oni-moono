@@ -237,7 +237,6 @@ namespace OniMoono.Engine.Rendering
             AwaitCopy();
             memory?.Free();
             source = null;
-            unloaded = false;
             memory = texels;
         }
 
