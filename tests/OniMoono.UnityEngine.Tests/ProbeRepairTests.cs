@@ -242,6 +242,34 @@ namespace OniMoono.Tests
             }
         }
 
+        /// A repair past its budget gives up and leaves everything as it was; the next repair
+        /// (with the same changes) is as one that never gave up.
+        [Fact]
+        public void ARepairPastItsBudgetGivesUpAndChangesNothing()
+        {
+            var model = ProbeModel.Corridor(20);
+            var graph = model.Graph();
+            var engine = new ProbeEngine(graph);
+            var ab = new ProbeModel.Abilities { Prefab = 1, Proxy = 2, Key = 3 };
+            var r = Flood(engine, model, model.CorridorCell(0), ProbeModel.Floor, 8, ab, 3);
+            var cells = (PCell[])r.Cells.Clone();
+            var flags = (byte[])r.Flags.Clone();
+            foreach (var e in model.SetDoor(10, ProbeModel.Block, ab.Proxy).Events) r.Pending.Add(e);
+            var delta = new ProbeDelta();
+            delta.States.Add(1);
+            var stats = engine.Repair(r.Cells, r.Probers, r.Flags, r.Serial, r.Pending, model.Rules(r.Ab), delta, budget: 4);
+            Assert.True(stats.GaveUp);
+            Assert.Empty(delta.States);
+            Assert.Empty(delta.Newly);
+            Assert.Empty(delta.Gone);
+            Assert.Equal(cells, r.Cells);
+            Assert.Equal(flags, r.Flags);
+            Repair(engine, model, r, delta);
+            Assert.Equal(10, r.Reach.Count);
+            var fresh = Flood(new ProbeEngine(model.Graph()), model, model.CorridorCell(0), ProbeModel.Floor, 8, ab, 1);
+            AssertSame(r, fresh, graph, "after giving up");
+        }
+
         [Fact]
         public void DeltaReachMergeKeepsOrder()
         {
