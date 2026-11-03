@@ -22,17 +22,9 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.RESTART_TO_APPLY"
 msgid "RESTART TO APPLY"
 msgstr "重启以应用"
 
-msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_NOTE"
-msgid "Set by the launch options: {0}"
-msgstr "由启动选项设置：{0}"
-
-msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_NOTE_BODY"
-msgid "Those rows can't be changed here. Remove the options from the game's launch options to choose them here."
-msgstr "这些行无法在此更改。请从游戏的启动选项中移除相应参数，以便在此选择。"
-
 msgctxt "STRINGS.MOONO.TWEAKS.UI.CHANGES_GAMEPLAY_NOTE"
-msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes."
-msgstr "这些选项会牺牲一点精确性来换取速度。除增量路径探测外默认关闭。"
+msgid "These trade a little exactness for speed. Most are off by default."
+msgstr "这些选项会牺牲一点精确性来换取速度。大多默认关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.UI.BUG_FIXES_NOTE"
 msgid "These fix bugs in the game, so they change what the original does."

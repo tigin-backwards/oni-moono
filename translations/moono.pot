@@ -25,19 +25,9 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.RESTART_TO_APPLY"
 msgid "RESTART TO APPLY"
 msgstr ""
 
-#. A note above the rows; {0}: the launch options
-msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_NOTE"
-msgid "Set by the launch options: {0}"
-msgstr ""
-
-#. The note's second line
-msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_NOTE_BODY"
-msgid "Those rows can't be changed here. Remove the options from the game's launch options to choose them here."
-msgstr ""
-
 #. Under the Changes gameplay heading
 msgctxt "STRINGS.MOONO.TWEAKS.UI.CHANGES_GAMEPLAY_NOTE"
-msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes."
+msgid "These trade a little exactness for speed. Most are off by default."
 msgstr ""
 
 #. Under the Bug fixes heading
