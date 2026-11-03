@@ -251,6 +251,7 @@ prototyped yet.
   0.9-1.5%. On c100, `BuildMesh` allocates 5.7 MiB/s.
 - **Exact**: no specific change has been identified; not examined yet.
 - **Estimate**: unknown below the measured share. Listed so the next phase looks at it.
+- **Verdict: allocations landed, time rejected** (see [Verdicts](#verdicts)).
 
 ### 5. Upload staging on the main thread (`UploadBuffers.Rent`, `TexelCopies.Start`). Up to about 0.4 ms.
 
@@ -260,6 +261,7 @@ prototyped yet.
 - **Exact**: likely (buffer reuse); not examined.
 - **Estimate**: at most their shares. Partly covered by render pipelining if recording moves
   off the main thread.
+- **Verdict: rejected** (the shares are the sampler's lock artifact; see [Verdicts](#verdicts)).
 
 ### 6. Mesh channel copies (`Mesh.Slice`). Up to about 0.05-0.1 ms a frame, more in the slowest frames.
 
@@ -281,6 +283,7 @@ prototyped yet.
   - Bounded by the GC pauses: DeCrew 3.4 ms/s at 64.6 fps is about 0.05 ms a frame on
     average. Allocating and zeroing the arrays adds to that (unmeasured).
   - The gain is mostly in pause frequency and the slowest frames, not the mean.
+- **Verdict: landed (allocations)**, exact (see [Verdicts](#verdicts)).
 
 ### 7. `CollectMesh` and `CollectSprite` allocations. Under 0.05 ms.
 
@@ -292,6 +295,7 @@ prototyped yet.
 - **Exact**: yes (pooling per frame, as draw items are).
 - **Estimate**: small. The allocation rates are 1-4% of the total, and so is their share of
   the GC pauses.
+- **Verdict: rejected** (no sprites are drawn in these saves; see [Verdicts](#verdicts)).
 
 ### 8. Vulkan per-draw trimming (vulkan-draw-binding.md step 1). 0 ms main thread today.
 
@@ -345,6 +349,10 @@ These are not per-frame, so they are outside the ranking above:
 | 1. Symbol overrides | **Landed**, exact | 34.9, 40.7 → 62.4, 84.7 fps; main thread 28.4, 24.3 → 15.9, 11.7 ms | 107.2, 82.3 → 129.8, 107.8 fps | 31.3, 33.7 → 28.9, 33.4 fps | 62.3, 70.9 → 66.4, 70.6 fps |
 | 2. `Cull`'s queued loop | **Landed**, exact | 24.0, 23.4 → 19.4, 20.1 µs per Cull call (about 960 meshes) | 30.1, 25.3 → 22.3, 22.9 µs per call (about 2,000 meshes) | – | – |
 | Closures and delegates (sweep) | **Landed (allocations)**, exact | closures and delegates 83-102 → 0.7-2.2 KiB/frame; ours 354-417 → 311-348; total 664-785 → 642-702 | 64-80 → 0; ours 312-374 → 260-261; total 876-997 → 858-886 | – | – |
+| 6. Mesh channel copies (with 4's baked meshes) | **Landed (allocations)**, exact | reuse 26.9, 25.0 → 15.0, 15.4 MiB/s; all of it 468-575 → 258-373 MiB per 600 frames | reuse 34.2, 36.9, 59.0 → 16.5, 17.4, 20.9 MiB/s; all 546-609 → 181-241 MiB | reuse 20.4 → 10.2 MiB/s (without its mods) | reuse 24.7, 30.0 → 15.6, 12.2 MiB/s; all 744-770 → 350-407 MiB |
+| 4. UI canvas batching | **Allocations landed** (in 6's numbers); **time rejected** | `BuildMesh` 5.7 MiB/s, its colours (2.8) kept when only moved | – | – | – |
+| 5. Upload staging | **Rejected** | `TexelUpload.Take` 0.30-0.41 ms a frame: rent 0.02-0.04, small copies 0.17-0.23, task starts 0.07-0.09 | – | – | – |
+| 7. `CollectMesh`/`CollectSprite` | **Rejected** | no sprites drawn; sheets come from blits and blocks | – | – | – |
 
 Candidate 1 (`fast-symbol-overrides`, kept applications):
 - **Cause**: Duplicants re-apply their overrides on every dirty mark
@@ -392,6 +400,58 @@ Candidate 2 and the closure sweep (Linux, U60 761211, OpenGL on Xvfb, speed 3, b
   for two minutes with no errors in the log. The GC ran one gen0 and one gen1 collection in a
   60 s trace: with Server GC's budgets, collections are already too few for these allocations
   to change their count measurably.
+
+Candidates 4-7 (`perf-ui-mesh`):
+- **6, the change**: each mesh setter copies a list once, straight into the channel array
+  (SetUVs had copied the whole list and then sliced it; SetTriangles and SetIndices with a list
+  copied it twice). An array a setter made is kept when the mesh lets go of it, and reused for a later
+  channel of the same length once the device has run every upload that could still read it:
+  each upload carries its place in the mesh's uploads and reports when it ran, on OpenGL and
+  Vulkan, failed or not. Only setter-made arrays are reused, since getters hand out copies;
+  spares not taken within four frames are dropped. `ONI_MESH_SPARES=off` turns the reuse off.
+- **4, the change**: a canvas element whose geometry and colour are unchanged (world-space
+  canvases follow their objects every frame) keeps its colour array, takes its positions from
+  the mesh's reused arrays and keeps its one submesh. The same switch turns this off.
+- **Linux** (U60 761211, OpenGL on Xvfb, speed 3, busiest world, release builds, base `a90b12ae`
+  against the change, one run each): allocation per 600-frame window as in the table, −35 to
+  −70%. Reuse took 83% of the arrays wanted on DeCrew (about 67 a frame).
+- **Windows** (U60 761211, Vulkan, speed 3, busiest world, `--no-focus`, High priority, sound
+  off, monitor 2): one launch per save, PerfProbe's `ab.txt` flipping `MeshNative.ReuseOff` in
+  18 s segments, six alternating after 30 s or eight in A B B A order after 60 or 150 s. The
+  switch covers the reuse and the kept colours; the single copies stay on in both halves, so
+  the table's "reuse" figures understate the change. Allocation falls 37-65% in every run. The
+  frame rate drifted by up to 2× within a run (warm-up, and other agents' players on the
+  machine), far more than any difference between the halves: main-thread time with reuse on
+  was 13.4-57.1 ms against 16.1-55.8 off: lower by 1.8-2.6 ms in all three DeCrew runs (the
+  conduit-heavy save) and by 1.0 ms on soggy, either way on c100 and U57; within the drift,
+  not a measured saving. GC pauses were too few to compare (0-7 ms/s, either way round in 18 s
+  segments): with Server GC's budgets the collections came 10-60 s apart. soggy lab 2 ran
+  without the reporter's mods (their copies were lost with the scratch space).
+- **Exactness**: the arrays hold the same values (every element is written before use), and
+  an array is reused only after the upload that read it ran (tests: an upload not yet run keeps
+  its arrays; arrays a setter did not make are never reused). Paused captures (DeCrew, frames
+  2400 and 3000, reuse off and on, two runs each) differ by 47-257k pixels between runs either
+  way, the same as two runs with the same setting (207-230k): run-to-run noise, nothing either
+  way. e2e in both players: issue-48-pipes, early-base, build-menu-search and u60-p2-renderer
+  pass; consumables-scroll gives its known finding; pipe-flow fails in the original player
+  (its start timed out once; then its overlay checkbox did not settle within 300 frames), so
+  ours was not compared.
+- **4, the time**: with the batching helpers kept from inlining (Linux c100 trace), `Batched`
+  is 1.4% of the main thread: `Item` 0.6% own, `SheetFor` 0.3%, `BuildMesh` 0.2%,
+  `CollectCameraDraws` 0.5%. No one piece holds the cost; nothing exact was found to remove.
+- **5**: `UploadBuffers.Rent`'s 1.4% own share on c100 is the sampler stopping at its lock's
+  safe point (the Method's lock artifact): a stopwatch puts `Rent` at 0.02-0.04 ms a frame,
+  with no pool misses after warm-up and no contention events. All of `TexelUpload.Take` is
+  0.30-0.41 ms a frame on Linux c100 (260-290 uploads, 22-28 MiB): the copies under 64 KiB made
+  on the main thread (256-266 a frame) take 0.17-0.23 ms, starting the 20-26 larger ones on the
+  pool 0.07-0.09. Moving the small copies off the main thread would be the only lever; it is
+  `TexelCopies`' design (the parked texelcopies-hang work and the closure sweep touch it) and
+  would make the device wait on a batch, so it is not taken here.
+- **7**: no traced save draws a sprite (`CollectSprite`: no samples, no allocations).
+  `PropertySheet` allocations come from `Blits.Blit` (0.1-0.9 MiB/s) and
+  `MaterialPropertyBlock`'s copy on write (0.3-0.7 MiB/s), which keeps queued draws' values as
+  Unity's copy at `DrawMesh` does. `CollectMesh`'s allocations were the sorting-layer lambda,
+  a loop on u60 since.
 
 ## Next
 
