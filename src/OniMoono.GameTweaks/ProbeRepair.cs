@@ -201,7 +201,8 @@ namespace OniMoono.GameTweaks
                 return "PathGrid.GetCell or GetCost answer otherwise than its arrays";
             var links = linksOf(navGrid);
             var live = navGrid.Links;
-            for (int i = 0; i < Math.Min(live.Length, 4096); i++)
+            // compact-nav-links' store is read field by field (LinkReader): no layout to check.
+            for (int i = 0; i < Math.Min(IsStore(live) ? 0 : live.Length, 4096); i++)
             {
                 var a = live[i]; var b = links[i];
                 if (a.link != b.Link || (byte)a.startNavType != b.Start || (byte)a.endNavType != b.End || a.transitionId != b.Trans || a.cost != b.Cost)
@@ -279,7 +280,50 @@ namespace OniMoono.GameTweaks
             fields.Clear();
         }
 
-        static PLink[] Row(PLink[] links, int cell, int maxLinks)
+        /// The host's NavGridLinks.Load for the game's link type, when compact-nav-links runs (its
+        /// handle stands for NavGrid.Links: one element, its link below -1).
+        static Func<NavGrid.Link[], int, NavGrid.Link> storeLoad;
+
+        static bool IsStore(NavGrid.Link[] links) => links.Length == 1 && links[0].link < -1;
+
+        /// A grid's links: the game's array (as this tweak's struct) or compact-nav-links' store.
+        readonly struct LinkReader
+        {
+            readonly PLink[] flat;
+            readonly NavGrid.Link[] store;
+
+            public LinkReader(NavGrid grid)
+            {
+                var links = grid.Links;
+                if (IsStore(links))
+                {
+                    if (storeLoad == null)
+                    {
+                        var load = Type.GetType("OniMoono.Host.NavGridLinks, OniMoono", true).GetMethod("Load").MakeGenericMethod(typeof(NavGrid.Link));
+                        storeLoad = (Func<NavGrid.Link[], int, NavGrid.Link>)load.CreateDelegate(typeof(Func<NavGrid.Link[], int, NavGrid.Link>));
+                    }
+                    store = links;
+                    flat = null;
+                }
+                else
+                {
+                    flat = linksOf(grid);
+                    store = null;
+                }
+            }
+
+            public PLink this[int i]
+            {
+                get
+                {
+                    if (flat != null) return flat[i];
+                    var l = storeLoad(store, i);
+                    return new PLink { Link = l.link, Start = (byte)l.startNavType, End = (byte)l.endNavType, Trans = l.transitionId, Cost = l.cost };
+                }
+            }
+        }
+
+        static PLink[] Row(in LinkReader links, int cell, int maxLinks)
         {
             int b = cell * maxLinks, n = 0;
             while (n < maxLinks && links[b + n].Link != -1) n++;
@@ -290,7 +334,7 @@ namespace OniMoono.GameTweaks
             return row;
         }
 
-        static bool SameRow(PLink[] links, int cell, int maxLinks, PLink[] row)
+        static bool SameRow(in LinkReader links, int cell, int maxLinks, PLink[] row)
         {
             int b = cell * maxLinks;
             for (int j = 0; j < row.Length; j++) if (!links[b + j].Same(row[j])) return false;
@@ -306,7 +350,7 @@ namespace OniMoono.GameTweaks
             catch (Exception e) { why = e.Message; }
             if (why != null) { StandDown(why); return; }
             int cellCount = Grid.CellCount, maxLinks = navGrid.maxLinksPerCell;
-            var links = linksOf(navGrid);
+            var links = new LinkReader(navGrid);
             var f = new Feed { Grid = navGrid, Width = Grid.WidthInCells, CellCount = cellCount, MaxLinks = maxLinks, Rows = new PLink[cellCount][], Submerged = new bool[cellCount] };
             for (int c = 0; c < cellCount; c++)
             {
@@ -357,7 +401,7 @@ namespace OniMoono.GameTweaks
             if (f == null || __instance != f.Grid || dirty_nav_cells == null) return;
             try
             {
-                var links = linksOf(__instance);
+                var links = new LinkReader(__instance);
                 int ml = f.MaxLinks;
                 foreach (int cell in dirty_nav_cells)
                 {
