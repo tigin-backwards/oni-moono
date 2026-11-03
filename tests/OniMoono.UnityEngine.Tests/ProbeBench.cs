@@ -79,7 +79,7 @@ namespace OniMoono.Tests
             public int Navs, Probes, Floods, Repairs, Large, Unchanged, GaveUp;
             public long WarmApplyTicks, SortTicks, MergeTicks, RepairTicks, FloodTicks, ApplyTicks, DeltaStates, MaxApplyTicks;
             public ulong Digest;
-            public long FlagBytes;
+            public long FlagBytes, RepairAlloc, FloodAlloc;
             public List<(double Us, int Changes, long Behind, int Dropped, int Pops, int Relaxed, int Reach)> RepairLog;
             public int[] FlagValues;
             public long Total => MergeTicks + RepairTicks + FloodTicks;
@@ -91,7 +91,7 @@ namespace OniMoono.Tests
                 $"{Navs} navs, {Probes} probes: {Floods} floods {Ms(FloodTicks):F1} ms ({Us(FloodTicks, Floods):F0} us), "
                 + $"{Repairs} repairs {Ms(RepairTicks):F1} ms ({Us(RepairTicks, Repairs):F0} us; {Unchanged} unchanged, {Large} too large, {GaveUp} gave up), "
                 + $"sort {Ms(SortTicks):F1} ms, merge {Ms(MergeTicks):F2} ms, total {Ms(Total):F1} ms; main-thread apply {Ms(ApplyTicks):F2} ms "
-                + $"({Us(ApplyTicks, Repairs):F1} us, max {Us(MaxApplyTicks, 1):F0} us, {DeltaStates / Math.Max(1, Repairs)} states a repair, again {Us(WarmApplyTicks, Repairs):F1} us); digest {Digest:x16}; path flags {FlagBytes / 1e6:F1} MB";
+                + $"({Us(ApplyTicks, Repairs):F1} us, max {Us(MaxApplyTicks, 1):F0} us, {DeltaStates / Math.Max(1, Repairs)} states a repair, again {Us(WarmApplyTicks, Repairs):F1} us); digest {Digest:x16}; path flags {FlagBytes / 1e6:F1} MB; allocated: repairs {RepairAlloc / 1e3:F0} kB, floods {FloodAlloc / 1e3:F0} kB";
         }
 
         sealed class BenchNav
@@ -160,7 +160,9 @@ namespace OniMoono.Tests
                         else
                         {
                             int budget = budgetDiv > 0 ? Math.Max(n.R.Reach.Count, 1024) / budgetDiv : budgetDiv == 0 ? int.MaxValue : ProbeEngine.Budget(n.R.Reach.Count);
+                            long g0 = GC.GetAllocatedBytesForCurrentThread();
                             rs = engine.Repair(n.R.Cells, n.R.Probers, n.R.Flags, n.R.Serial, cs, rules, delta, budget);
+                            stats.RepairAlloc += GC.GetAllocatedBytesForCurrentThread() - g0;
                             if (rs.GaveUp)
                             {
                                 stats.GaveUp++;
@@ -202,7 +204,12 @@ namespace OniMoono.Tests
                         long t1 = Stopwatch.GetTimestamp();
                         found.Clear();
                         if (reference) refEngine.Flood(n.R.Cells, n.R.Probers, n.R.RefFlags, serial, p.Origin, p.NavType, p.Flags, rules, found);
-                        else engine.Flood(n.R.Cells, n.R.Probers, n.R.Flags, serial, p.Origin, p.NavType, p.Flags, rules, found);
+                        else
+                        {
+                            long g0 = GC.GetAllocatedBytesForCurrentThread();
+                            engine.Flood(n.R.Cells, n.R.Probers, n.R.Flags, serial, p.Origin, p.NavType, p.Flags, rules, found);
+                            stats.FloodAlloc += GC.GetAllocatedBytesForCurrentThread() - g0;
+                        }
                         // The worker's reachable cells, sorted (the reference: the found list sorted).
                         long s0 = Stopwatch.GetTimestamp();
                         if (reference) { n.R.Reach.AddRange(found); n.R.Reach.Sort(); }
