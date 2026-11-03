@@ -44,7 +44,8 @@ namespace OniMoono.Host
         /// `symbols` (portable PDB bytes or null) are rewritten to match.
         internal static byte[]? Adjust(byte[] image, ref byte[]? symbols, string path)
         {
-            if (!MayConvertFloats(image) && !MonoDirectoryListing.MayList(image) && !MonoModHelperDrop.MayDrop(image) && !MonoThreadAbort.MayAbort(image)) return null;
+            if (!MayConvertFloats(image) && !MonoDirectoryListing.MayList(image) && !MonoModHelperDrop.MayDrop(image) && !MonoThreadAbort.MayAbort(image)
+                && !(NavGridLinksRewrite.Enabled && NavGridLinksRewrite.MayTouch(image))) return null;
             try
             {
                 return Rewrite(image, ref symbols, path);
@@ -77,12 +78,15 @@ namespace OniMoono.Host
         /// the player's cache folder, under the image's hash and this host build's.
         internal static byte[]? AdjustGame(byte[] image, string path)
         {
-            if (!MayConvertFloats(image) && !MonoDirectoryListing.MayList(image) && !MonoModHelperDrop.MayDrop(image) && !MonoThreadAbort.MayAbort(image)) return null;
+            if (!MayConvertFloats(image) && !MonoDirectoryListing.MayList(image) && !MonoModHelperDrop.MayDrop(image) && !MonoThreadAbort.MayAbort(image)
+                && !(NavGridLinksRewrite.Enabled && NavGridLinksRewrite.MayTouch(image))) return null;
             string? cached = null;
             try
             {
                 var key = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(image))[..32]
-                          + typeof(MonoConversions).Module.ModuleVersionId.ToString("N")[..16];
+                          + typeof(MonoConversions).Module.ModuleVersionId.ToString("N")[..16]
+                          // compact-nav-links rewrites the image too.
+                          + (NavGridLinksRewrite.Enabled ? "-links" : "");
                 cached = Path.Combine(EngineConfig.TemporaryCachePath, "oni-moono", "conversions", Path.GetFileNameWithoutExtension(path) + "-" + key + ".dll");
                 if (File.Exists(cached))
                 {
@@ -154,6 +158,12 @@ namespace OniMoono.Host
                 module = Cecil.ModuleDefinition.ReadModule(new MemoryStream(image), new Cecil.ReaderParameters { AssemblyResolver = resolver });
             }
             using var owned = module;
+            // compact-nav-links: the accesses of NavGrid's links go through its helpers (first,
+            // while the hot walks' IL is still the game's).
+            var linkLog = new List<string>();
+            int links = NavGridLinksRewrite.Enabled
+                ? NavGridLinksRewrite.RewriteModule(module, what == "game conversions", Path.GetFileName(path), linkLog) : 0;
+            foreach (var line in linkLog) EngineLog.Engine(line);
             int converted = RewriteModule(module, out int methods, out int unsure);
             // The same pass sends its directory listings to MonoDirectoryListing (D30).
             int listings = MonoDirectoryListing.RewriteModule(module);
@@ -161,7 +171,7 @@ namespace OniMoono.Host
             int drops = MonoModHelperDrop.RewriteModule(module);
             // And its calls of Thread.Abort abort as Mono's do (D47).
             int aborts = MonoThreadAbort.RewriteModule(module, out int catchEnds);
-            if (converted == 0 && listings == 0 && drops == 0 && aborts == 0) return null;
+            if (converted == 0 && listings == 0 && drops == 0 && aborts == 0 && links == 0) return null;
             using var output = new MemoryStream();
             using var symbolOutput = new MemoryStream();
             module.Write(output, new Cecil.WriterParameters { WriteSymbols = withSymbols, SymbolStream = withSymbols ? symbolOutput : null, SymbolWriterProvider = withSymbols ? new Cil.PortablePdbWriterProvider() : null });
