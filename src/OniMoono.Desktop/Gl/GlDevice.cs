@@ -277,7 +277,10 @@ namespace OniMoono.Desktop.Gl
             string textures = $"textures {GlTextures.LiveTextures} ({GlTextures.LiveBytes >> 20} MiB)";
             if (GlBindless.Enabled) textures += ", " + BindlessResidency.TakeCounters();
             var memory = GlThreadVideoMemory();
-            return memory != null ? memory + "; " + textures : textures;
+            textures = (memory != null ? memory + "; " + textures : textures) + "; by kind: " + VideoMemoryLedger.Take();
+            // The CPU memory uploads go through (not video memory): readable textures' copies,
+            // texels read ahead of their background upload, and all texel memory.
+            return textures + $"; upload staging: copies {UploadBuffers.Take()}, background {GlBackgroundUploads.TakeCounters()}, texel memory {PixelMemory.LiveBytes >> 20} MiB (peak {PixelMemory.TakePeak() >> 20})";
         }
 
         string GlThreadVideoMemory()

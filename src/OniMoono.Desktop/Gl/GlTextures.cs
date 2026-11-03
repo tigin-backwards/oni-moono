@@ -92,13 +92,31 @@ namespace OniMoono.Desktop.Gl
             GlBindings.DeleteTexture(Id);
             Id = 0;
             GlTextures.LiveTextures--;
-            SetBytes(0);
+            SetBytes(0, null);
         }
 
-        public void SetBytes(long bytes)
+        /// The ledger kind of Bytes (VideoMemoryLedger), and the bytes of a render texture's
+        /// depth and multisampled surfaces among them.
+        string kind;
+        long depthBytes, multisampledBytes;
+
+        public const string DepthKind = "render target depth", MultisampledKind = "render target multisampled";
+
+        /// The name's bytes: `bytes` in all, `depth` and `multisampled` of them a render
+        /// texture's other surfaces, the rest of `kind` (VideoMemoryLedger).
+        public void SetBytes(long bytes, string kind, long depth = 0, long multisampled = 0)
         {
             GlTextures.LiveBytes += bytes - Bytes;
+            VideoMemoryLedger.Add(this.kind, -(Bytes - depthBytes - multisampledBytes), this.kind != null ? -1 : 0);
+            if (depthBytes != 0) VideoMemoryLedger.Add(DepthKind, -depthBytes, -1);
+            if (multisampledBytes != 0) VideoMemoryLedger.Add(MultisampledKind, -multisampledBytes, -1);
             Bytes = bytes;
+            this.kind = bytes != 0 ? kind : null;
+            depthBytes = depth;
+            multisampledBytes = multisampled;
+            VideoMemoryLedger.Add(this.kind, bytes - depth - multisampled, this.kind != null ? 1 : 0);
+            if (depth != 0) VideoMemoryLedger.Add(DepthKind, depth, 1);
+            if (multisampled != 0) VideoMemoryLedger.Add(MultisampledKind, multisampled, 1);
         }
     }
 
@@ -191,19 +209,41 @@ namespace OniMoono.Desktop.Gl
         static readonly Dictionary<long, SizeClass> classes = new();
         static long pooled, rents;
 
+        // Diagnostics (--frame-stats, Take): bytes rented out and not returned, their peak and
+        // the pool's since the last report, and the buffers allocated for rents the pool could
+        // not serve.
+        static long rented, rentedPeak, pooledPeak, allocations, allocatedBytes;
+
         public static PixelMemory Rent(long size)
         {
             lock (classes)
             {
                 if (!classes.TryGetValue(size, out var c)) classes[size] = c = new SizeClass();
                 c.LastRent = ++rents;
+                rented += size;
+                if (rented > rentedPeak) rentedPeak = rented;
                 if (c.Free.Count > 0)
                 {
                     pooled -= size;
                     return c.Free.Pop();
                 }
+                allocations++;
+                allocatedBytes += size;
             }
             return new PixelMemory(size);
+        }
+
+        /// "rented R MiB (peak), pooled P MiB (peak), N allocated (M MiB)" since the last call.
+        public static string Take()
+        {
+            lock (classes)
+            {
+                var text = $"rented {rented >> 20} MiB (peak {rentedPeak >> 20}), pooled {pooled >> 20} MiB (peak {pooledPeak >> 20}), {allocations} allocated ({allocatedBytes >> 20} MiB)";
+                rentedPeak = rented;
+                pooledPeak = pooled;
+                allocations = allocatedBytes = 0;
+                return text;
+            }
         }
 
         public static void Return(PixelMemory memory)
@@ -212,6 +252,7 @@ namespace OniMoono.Desktop.Gl
             List<PixelMemory> released = null;
             lock (classes)
             {
+                rented -= memory.Size;
                 var own = classes[memory.Size];
                 while (pooled + memory.Size > PoolLimit)
                 {
@@ -228,6 +269,7 @@ namespace OniMoono.Desktop.Gl
                 {
                     own.Free.Push(memory);
                     pooled += memory.Size;
+                    if (pooled > pooledPeak) pooledPeak = pooled;
                     memory = null;
                 }
             }
@@ -505,7 +547,7 @@ namespace OniMoono.Desktop.Gl
                 g.Width = t.Width;
                 g.Height = t.Height;
                 g.Levels = levels;
-                g.SetBytes(TextureFormats.ImageSize(f.Decompress ? TextureFormat.RGBA32 : t.Format, t.Width, t.Height, levels));
+                g.SetBytes(TextureFormats.ImageSize(StoredAs(t.Format, f), t.Width, t.Height, levels), KindOf(t.Format, f, TexTarget2D));
             }
             var memory = t.Memory;
             if (memory != null && sameStorage && UploadChanged(t, g, f, levels)) return;
@@ -619,7 +661,7 @@ namespace OniMoono.Desktop.Gl
             g.Height = t.Height;
             g.Depth = t.Depth;
             g.Levels = levels;
-            g.SetBytes(TextureFormats.ImageSize(f.Decompress ? TextureFormat.RGBA32 : t.Format, t.Width, t.Height, levels) * t.Depth);
+            g.SetBytes(TextureFormats.ImageSize(StoredAs(t.Format, f), t.Width, t.Height, levels) * t.Depth, KindOf(t.Format, f, TexTarget2DArray));
         }
 
         internal static void Upload3D(TexelUpload t, DeviceTexture g)
@@ -654,8 +696,34 @@ namespace OniMoono.Desktop.Gl
             g.Levels = levels;
             long bytes = 0;
             for (int m = 0; m < levels; m++)
-                bytes += TextureFormats.MipSize(f.Decompress ? TextureFormat.RGBA32 : t.Format, Math.Max(1, t.Width >> m), Math.Max(1, t.Height >> m)) * Math.Max(1, t.Depth >> m);
-            g.SetBytes(bytes);
+                bytes += TextureFormats.MipSize(StoredAs(t.Format, f), Math.Max(1, t.Width >> m), Math.Max(1, t.Height >> m)) * Math.Max(1, t.Depth >> m);
+            g.SetBytes(bytes, KindOf(t.Format, f, TexTarget3D));
+        }
+
+        /// The format a texture's storage has: a decoded one's is RGBA8, or half-float RGBA
+        /// for BC6H.
+        static TextureFormat StoredAs(TextureFormat format, GlFormat f)
+            => !f.Decompress ? format : f.Type == HalfFloat ? TextureFormat.RGBAHalf : TextureFormat.RGBA32;
+
+        static readonly Dictionary<(TextureFormat, bool, uint), string> textureKinds = new();
+        static readonly Dictionary<GraphicsFormat, string> targetKinds = new();
+
+        /// A texture's kind in VideoMemoryLedger: its target and format, and the format it is
+        /// stored decoded to.
+        static string KindOf(TextureFormat format, GlFormat f, uint target)
+        {
+            var key = (format, f.Decompress, target);
+            if (!textureKinds.TryGetValue(key, out var kind))
+                textureKinds[key] = kind = (target == TexTarget2DArray ? "texture array " : target == TexTarget3D ? "texture 3D " : "texture ") + format
+                                           + (f.Decompress ? " (decoded to " + StoredAs(format, f) + ")" : "");
+            return kind;
+        }
+
+        static string RenderTargetKind(GraphicsFormat colour)
+        {
+            if (!targetKinds.TryGetValue(colour, out var kind))
+                targetKinds[colour] = kind = colour == GraphicsFormat.None ? "render target depth-only" : "render target " + colour;
+            return kind;
         }
 
         /// Point: nearest; Bilinear: linear within a level, nearest level; Trilinear: linear
@@ -762,7 +830,8 @@ namespace OniMoono.Desktop.Gl
             long color = 0;
             for (int m = 0; m < levels; m++) color += (long)Math.Max(1, rt.Width >> m) * Math.Max(1, rt.Height >> m) * (depthOnly ? 4 : PixelBytes(internalFormat));
             long depth = rt.DepthBits > 0 && !depthOnly ? pixels * (depthFormat == DepthComponent16 ? 2 : depthFormat == Depth32FStencil8 ? 8 : 4) * Math.Max(1, samples) : 0;
-            g.SetBytes(color + depth + (samples > 1 && !depthOnly ? pixels * PixelBytes(internalFormat) * samples : 0));
+            long multisampled = samples > 1 && !depthOnly ? pixels * PixelBytes(internalFormat) * samples : 0;
+            g.SetBytes(color + depth + multisampled, RenderTargetKind(rt.ColorFormat), depth, multisampled);
         }
 
         /// Bytes a pixel of a render texture colour format takes (estimates: diagnostics).

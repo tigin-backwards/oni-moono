@@ -74,6 +74,29 @@ namespace OniMoono.Engine
             statClock.Restart();
         }
 
+        /// Frame stats: the device's video memory counters now, at a point of the start-up or a
+        /// load (`when`), besides every 600 frames.
+        public static void LogVideoMemory(string when)
+        {
+            if (!FrameStats) return;
+            var video = OniMoono.Engine.Rendering.GraphicsDevice.Current.MemoryCounters();
+            if (video == null) return;
+            // The engine's side, to hold the device's counts against: live textures, and those
+            // with a device resource.
+            int textures = 0, onDevice = 0, renderTextures = 0, renderOnDevice = 0;
+            foreach (var native in ObjectTable.Snapshot())
+            {
+                if (native is not OniMoono.Engine.Rendering.TextureNative t || t.Destroyed) continue;
+                bool rt = t is OniMoono.Engine.Rendering.RenderTextureNative;
+                textures++;
+                if (rt) renderTextures++;
+                if (t.Gpu == null) continue;
+                onDevice++;
+                if (rt) renderOnDevice++;
+            }
+            EngineLog.Engine($"video memory ({when}, frame {Time.frameCount}): {video}; engine textures {textures} ({onDevice} with a device resource), render textures among them {renderTextures} ({renderOnDevice})");
+        }
+
         static void EndStats()
         {
             if (!FrameStats) return;
