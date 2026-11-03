@@ -31,7 +31,10 @@ namespace OniMoono.Host
     /// thread reads the navigators' grids, as in the game; nothing locks. A page is published with
     /// one compare-and-exchange of its table slot (Zero to the new page): two writers racing on an
     /// unwritten page both write into whichever page won, and a reader racing a page's creation
-    /// reads Zero's zeros, what it read a moment before. A store of zeros into an unwritten page
+    /// reads Zero's zeros, what it read a moment before, or the new page's (zeroed before the
+    /// exchange, a full fence, publishes it). A reader racing an element's write can
+    /// see some of its fields written and not others, as in the array (a struct of several
+    /// fields is not stored in one go there either). A store of zeros into an unwritten page
     /// stores nothing (ResetProberCells clears every element of a grid).
     ///
     /// With ONI_TWEAK_VERIFY=1 each table also keeps the game's flat array, written by the same
