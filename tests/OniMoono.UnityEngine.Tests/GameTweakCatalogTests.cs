@@ -58,7 +58,7 @@ namespace OniMoono.Tests
             // the others are off.
             Assert.Equal(GameTweakNames.ChangingBehaviour.Where(n => n is not ("path-probe-repair" or "fix-load-screen-clicks")).Order(), GameTweakNames.OffByDefault.Order());
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Rows.Single(r => r.Id == "path-probe-repair").Group);
-            Assert.Equal(new[] { "fix-load-screen-clicks" }, GameTweakNames.Rows.Where(r => r.Group == GameTweakNames.BugFixes).Select(r => r.Id));
+            Assert.Equal(new[] { "off-world-fallers", "fix-load-screen-clicks" }, GameTweakNames.Rows.Where(r => r.Group == GameTweakNames.BugFixes).Select(r => r.Id));
             // Every typed tweak is a row; the options that aren't tweaks aren't `--game-tweak` names.
             Assert.All(GameTweakNames.Typed, n => Assert.Contains(n, GameTweakNames.All));
             Assert.DoesNotContain(GameTweakNames.SplashRow, GameTweakNames.All);

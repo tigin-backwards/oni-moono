@@ -7,7 +7,8 @@ using UnityEngine;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `off-world-fallers` (opt-in, changes gameplay). GravityComponents.FixedUpdate
+    /// Game tweak `off-world-fallers` (opt-in, a fix of the game's bug: in the Bug fixes group,
+    /// out of `exact`). GravityComponents.FixedUpdate
     /// steps every falling object thirty times a game second. An object falling through a hole in
     /// the bottom of a world (a chute out of a rocket interior) is never moved again: each step's
     /// next position would leave its world, so the step leaves it where it is, half a cell below

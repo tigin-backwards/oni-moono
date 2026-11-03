@@ -463,8 +463,8 @@ msgid "Items that fall out the bottom of a world (a rocket's chute) stop falling
 msgstr "掉出世界底部（火箭发射井）的物品不再无限下落。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_WORLD_FALLERS.DETAIL"
-msgid "They hang just below the world, stepped as falling every tick; landing them where they hang stops that cost."
-msgstr "它们会悬在世界正下方，每个 tick 都按下落步进；让它们停在悬挂处即可消除这项开销。"
+msgid "A bug in the game: they hang just below the world, stepped as falling every tick. This lands them where they hang."
+msgstr "这是游戏的错误：它们会悬在世界正下方，每个 tick 都按下落步进。开启后让它们停在悬挂处。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.TITLE"
 msgid "Critter and dupe brain updates capped at 30 updates a second"
