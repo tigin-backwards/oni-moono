@@ -54,7 +54,7 @@ namespace OniMoono.Tests
     }
 
     /// A probe capture's replay (ProbeTraceTests).
-    sealed class TraceReplay
+    sealed partial class TraceReplay
     {
         public struct Stats
         {
