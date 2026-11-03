@@ -1,0 +1,46 @@
+# The Moono Tweaks screen's search box in the game's Simplified Chinese (zh_klei), as
+# moono-tweaks-search-en.yaml takes it in English. The runner types ASCII only: a query matches
+# the tweaks' names (in each row's launch option) as well as its Chinese text. Ours only.
+from: main-menu
+language: zh_klei
+tweaks_menu: true
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {ui: "**/MainMenuButtons/MoonoTweaksButton"}
+  - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Placeholder": {active: true}
+      "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
+  - shot: search-empty
+  - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel"}
+  # "screen": three rows by their names, in General, Changes gameplay and Bug fixes.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen"}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/fast-load-screen": {active: true}
+      "**/MoonoTweaksScreen/**/Content/off-screen-conveyors": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading 通用": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading 改变玩法": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading 错误修复": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading 存档": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/dxgi": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
+  # Three rows and three headings.
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 6}
+  - shot: search-screen
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "zzqx", clear: true}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/NoMatches/**/Title": {active: true, text: "没有与搜索匹配的调整项。"}
+      "**/MoonoTweaksScreen/**/Content/Heading 通用": {exists: false}
+  - shot: search-none
+  - click: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/ClearButton"}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: gone}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/splash": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading 存档": {active: true}

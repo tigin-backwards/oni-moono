@@ -34,6 +34,7 @@ namespace OniMoono.Host.GameTweaks
             ("RESTART_TO_APPLY", "RESTART TO APPLY", "Footer button"),
             ("CHANGES_GAMEPLAY_NOTE", "These trade a little exactness for speed. Most are off by default.", "Under the Changes gameplay heading"),
             ("BUG_FIXES_NOTE", "These fix bugs in the game, so they change what the original does.", "Under the Bug fixes heading"),
+            ("NO_MATCHES", "No tweaks match the search.", "In the list when the search box matches no row"),
             ("LAUNCH_OPTION", "LAUNCH OPTION", "Beside a row the launch options set (one line)"),
             ("LAUNCH_OPTION_LINE", "Launch option: {0}", "A row's tooltip, last line; {0}: the launch option"),
             ("LOCKED_ON", "Set by the launch options (on)", "Tooltip of a toggle the launch options set"),

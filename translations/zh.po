@@ -30,6 +30,10 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.BUG_FIXES_NOTE"
 msgid "These fix bugs in the game, so they change what the original does."
 msgstr "这些选项修复游戏自身的错误，因此会改变原版的行为。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NO_MATCHES"
+msgid "No tweaks match the search."
+msgstr "没有与搜索匹配的调整项。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.UI.LAUNCH_OPTION"
 msgid "LAUNCH OPTION"
 msgstr "启动选项"

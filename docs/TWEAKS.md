@@ -18,6 +18,9 @@ personal paths in the log (on by default), for
 laptops with two GPUs, the graphics card the game draws with (default, discrete or integrated;
 default does what the original does), the renderer (auto: Vulkan, or OpenGL when Vulkan can't
 start) and, on Windows, presenting through Direct3D as the original does (on by default).
+The search box above the list keeps the rows whose title, line, tooltip or tweak name contain
+what you type (in the game's language, any case; each word on its own, as the game's own
+searches match), and the headings of the sections that keep a row.
 **Reset to defaults** sets every row back to its default. Changes apply when the game restarts, which the screen does for you.
 
 Your choices are kept in `oni-moono/settings.json` in the game's own data folder (usually

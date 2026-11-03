@@ -1,0 +1,59 @@
+# The Moono Tweaks screen's search box in English (moono-tweaks-search-zh.yaml: in Chinese): a
+# query keeps the rows it matches and the headings of their sections, one that matches nothing
+# says so, Escape closes the screen as it closes the Supply Closet's inventory while its search
+# has the keyboard, and the clear button brings every row back. Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {ui: "**/MainMenuButtons/MoonoTweaksButton"}
+  - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Placeholder": {active: true, text: "Search"}
+      "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
+  - shot: search-empty
+  - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel"}
+  # "screen": four rows, in General, Changes gameplay and Bug fixes.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen"}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Text": {text: "~screen"}
+      "**/MoonoTweaksScreen/**/Content/dxgi": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-load-screen": {active: true}
+      "**/MoonoTweaksScreen/**/Content/off-screen-conveyors": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading General": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading Changes gameplay": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading Bug fixes": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading Saving": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/Heading Simulation": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/splash": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/fast-jobs": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
+  # The rows and headings shown: four rows and three headings.
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 7}
+  - shot: search-screen
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "zzqx", clear: true}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/NoMatches/**/Title": {active: true, text: "No tweaks match the search."}
+      "**/MoonoTweaksScreen/**/Content/Heading General": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {exists: false}
+  - shot: search-none
+  - click: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/ClearButton"}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: gone}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/splash": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-jobs": {active: true}
+      "**/MoonoTweaksScreen/**/Content/Heading Saving": {active: true}
+  # Typing again, then Escape: the screen closes, as the Supply Closet's inventory does with
+  # its search field focused (measured in the original, U60 761211).
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "wasd"}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/NoMatches": {active: true}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/MoonoTweaksScreen", cond: gone, frames: 600}
