@@ -65,6 +65,9 @@ namespace OniMoono.Host.GameTweaks
         static readonly TweakGain ConveyorGain = new("CONVEYOR", "no hitch on rail edits (was 0.05–0.5 s)",
             "U57", "Linux under WSL2", "2026-10-25", "docs/PERFORMANCE.md#the-tweaks (a rebuild 50–510 → 2–14 ms)");
 
+        static readonly TweakGain LoadScreenGain = new("LOAD_SCREEN", "Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s)",
+            "U60, 4,637 saves", "Linux under WSL2", "2026-11-03", "docs/research/load-screen-many-saves.md#results-2026-11-03 (opening 1,285-1,457 → 542-720 ms)");
+
         public static readonly TweakGroup General = new("GENERAL", "General");
         public static readonly TweakGroup Saving = new("SAVING", "Saving", SaveGain);
         public static readonly TweakGroup Simulation = new("SIMULATION", "Simulation");
@@ -96,8 +99,8 @@ namespace OniMoono.Host.GameTweaks
                 + "which Auto HDR or RTX HDR can take for HDR. If it can't start, OpenGL's own is used and Player.log says why. No effect on Linux.",
                 IsTweak: false),
             new("fast-load-screen", General, "Faster Load screen", "With many saves, the Load screen opens and loads more colonies sooner.",
-                "Each save's details are read from its file once a refresh instead of four times, several files at a time, and previews already shown are not decoded again. "
-                + "The colonies, their order, the previews and the log are the same."),
+                "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. "
+                + "The colonies, their order, the previews and the log are the same.", LoadScreenGain),
 
             new(FastSerialization, Saving, "Faster save writing", "Autosaves take less time; the save file is the same.",
                 "Writes the colony's numbers without boxing each one in an object."),

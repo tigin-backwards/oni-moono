@@ -94,7 +94,7 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 
 ### General (on by default)
 
-- **Faster Load screen** (`fast-load-screen`): With many saves, the Load screen opens and loads more colonies sooner. Each save's details are read from its file once a refresh instead of four times, several files at a time, and previews already shown are not decoded again. The colonies, their order, the previews and the log are the same.
+- **Faster Load screen** (`fast-load-screen`): With many saves, the Load screen opens and loads more colonies sooner. Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same. *Measured: Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s); U60, 4,637 saves, Linux under WSL2, 2026-11-03.*
 
 ### Saving (on by default)
 
@@ -168,6 +168,30 @@ turn off Cache Paths to use this. Fast Track's **Background Pathing** only wraps
 methods in locks; the tweak checks that they answer as the game's and runs alongside it. With
 Fast Track's Fast Reachability on and its next chore priority set to Delay, Fast Track also
 patches the probe's work order, and the tweak stands down.
+
+### The Load screen
+
+Each refresh of the Load screen (opening it, Load more, a conversion between cloud and local)
+lists every save twice and reads each one's header four times. With `fast-load-screen` a refresh
+reads each header once (a later read of the same file in the refresh, while its listed time is
+the same, gets a copy of the first), reads them ahead on 8 threads, and still parses and logs
+them in the game's order: the colonies, their order and the log are the game's, and a read that
+fails is read and logged again as the game would. While the screen is shown, a preview whose
+file has the same bytes as one already made gets the same pixels without being decoded or, on
+U60, drawn and read back from the GPU again; each preview is still read from its file and is a
+new texture of the game's own. With `ONI_TWEAK_VERIFY=1` each header and preview kept is checked
+against the game's own read ([measurements](research/load-screen-many-saves.md#results-2026-11-03)).
+
+`fix-load-screen-clicks` fixes a bug in the game's own code (U59 and U60). Each refresh adds the
+colony list's click handler to the rows already shown again, without removing the old one, so
+after k Load more clicks one click on a colony of an earlier page builds that colony's list of
+saves k + 1 times in one frame (seconds for a colony of hundreds of saves); the last build stays
+on screen. With the tweak a row keeps only the handler of the refresh that filled it. The screen
+ends up the same; what differs from the original is that the colony is built once a click, so
+the earlier builds' log lines (`Failed to find cluster ...` for a save of an unknown cluster)
+are not written, a mod patching `LoadScreen.ShowColony` sees one call instead of k + 1, and the
+rows those builds made and destroyed within the frame are not made. It is off by default and
+left out of `exact`, as the original does the repeated work.
 
 ## Translating Moono Tweaks
 
