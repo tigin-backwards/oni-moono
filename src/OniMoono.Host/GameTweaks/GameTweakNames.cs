@@ -107,7 +107,8 @@ namespace OniMoono.Host.GameTweaks
                 IsTweak: false),
             new(GcRow, General, "Garbage collection", "How the game frees memory it no longer uses. Needs a restart.",
                 "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. "
-                + "Low memory: uses less RAM, with pauses that can be a bit longer or more often. Only worth changing if your PC is short on RAM.",
+                + "Low memory: uses less RAM (about 0.8 GB less on a large colony), but pauses more often and loads more slowly. "
+                + "Only worth changing if your PC is short on RAM.",
                 IsTweak: false, Choices: [OniMoono.Host.GcMode.Fast, OniMoono.Host.GcMode.LowMemory]),
             new("fast-load-screen", General, "Faster Load screen", "With many saves, the Load screen opens and loads more colonies sooner.",
                 "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. "
