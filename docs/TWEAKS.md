@@ -127,6 +127,7 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux und
 - **Faster animation cleanup** (`fast-anim-cleanup`): Removed animations are swept out only where one was removed. The sweep for destroyed animations skips grid chunks that can't hold any.
 - **Parallel animation uploads** (`fast-anim-batches`): Animation data for the graphics card is prepared on several threads. Animation batches write their instance and symbol data on worker threads, the rest in the game's order.
 - **Fewer animation uploads** (`fast-symbol-overrides`): Swapped animation parts are re-sent to the graphics card only when they change. Unchanged symbol-override blocks of Duplicants and buildings aren't uploaded again.
+- **Trimmed animation lists** (`trim-anim-lists`): The game's animation data takes about 65 MB less memory. Once the animations are loaded, the lists of their frames and frame parts give back the room they grew into but don't use; the game reads the same data.
 
 ### Changes gameplay (off by default but where marked)
 

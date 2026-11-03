@@ -521,3 +521,15 @@ msgstr "点击“加载更多”后，点击殖民地不再为每次刷新各重
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.DETAIL"
 msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same."
 msgstr "这是游戏自身代码的错误：每次“加载更多”都会给已显示的殖民地再添加一份点击处理，于是一次点击会按刷新次数重复构建殖民地，屏幕上留下最后一次的结果。开启后一次点击只构建一次、只记录一次日志；界面最终相同。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.TITLE"
+msgid "Trimmed animation lists"
+msgstr "精简的动画列表"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.EFFECT"
+msgid "The game's animation data takes about 65 MB less memory."
+msgstr "游戏的动画数据少占约 65 MB 内存。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.DETAIL"
+msgid "Once the animations are loaded, the lists of their frames and frame parts give back the room they grew into but don't use; the game reads the same data."
+msgstr "动画加载完成后，其帧和帧部件的列表会交还增长时多占却不用的空间；游戏读取的数据不变。"

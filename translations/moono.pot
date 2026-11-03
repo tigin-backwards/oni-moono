@@ -535,6 +535,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SYMBOL_OVERRIDES.DETAIL"
 msgid "Unchanged symbol-override blocks of Duplicants and buildings aren't uploaded again."
 msgstr ""
 
+#. Row title (trim-anim-lists)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.TITLE"
+msgid "Trimmed animation lists"
+msgstr ""
+
+#. The line under the title (trim-anim-lists)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.EFFECT"
+msgid "The game's animation data takes about 65 MB less memory."
+msgstr ""
+
+#. Tooltip: how it works (trim-anim-lists)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.DETAIL"
+msgid "Once the animations are loaded, the lists of their frames and frame parts give back the room they grew into but don't use; the game reads the same data."
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.CHANGES_GAMEPLAY"
 msgid "Changes gameplay"

@@ -150,6 +150,9 @@ namespace OniMoono.Host.GameTweaks
                 "Animation batches write their instance and symbol data on worker threads, the rest in the game's order."),
             new("fast-symbol-overrides", Graphics, "Fewer animation uploads", "Swapped animation parts are re-sent to the graphics card only when they change.",
                 "Unchanged symbol-override blocks of Duplicants and buildings aren't uploaded again."),
+            new("trim-anim-lists", Graphics, "Trimmed animation lists", "The game's animation data takes about 65 MB less memory.",
+                "Once the animations are loaded, the lists of their frames and frame parts give back the room they grew into but don't use; "
+                + "the game reads the same data."),
 
             new("path-probe-repair", ChangesGameplay, "Incremental path probes", "Duplicants' path checks redo only what changed in the world, using less CPU.",
                 "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. "
@@ -171,7 +174,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "fix-disease-overlay-crash", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups"];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "fix-disease-overlay-crash", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists"];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
