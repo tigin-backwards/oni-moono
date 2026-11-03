@@ -25,6 +25,7 @@ namespace OniMoono.GameTweaks
                 case DestroyedCellChangeObjects.Name: DestroyedCellChangeObjects.Install(harmony); return true;
                 case BrainRate.Name: BrainRate.Install(harmony); return true;
                 case ProbeRepair.Name: ProbeRepair.Install(harmony); return true;
+                case FastLoadScreen.Name: FastLoadScreen.Install(harmony); return true;
                 default: return false;
             }
         }

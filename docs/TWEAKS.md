@@ -95,6 +95,10 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 
 <!-- tweaks:begin: generated from src/OniMoono.Host/GameTweaks/GameTweakNames.cs; ONI_UPDATE_DOCS=1 with the unit tests rewrites it -->
 
+### General (on by default)
+
+- **Faster Load screen** (`fast-load-screen`): With many saves, the Load screen opens and loads more colonies sooner. Each save's details are read from its file once a refresh instead of four times, several files at a time, and previews already shown are not decoded again. The colonies, their order, the previews and the log are the same.
+
 ### Saving (on by default)
 
 All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux under WSL2, by 2026-10-20.

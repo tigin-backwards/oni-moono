@@ -252,6 +252,60 @@ namespace OniMoono.Tests
             if (files.Count > 0) output.WriteLine($"PNG corpus: {files.Count} files, {ours} of them for LoadImage's own decoder, all as stb decodes them");
         }
 
+        /// While ImageDecodeMemo is open, the same bytes loaded again come from it: the same
+        /// answer, size, format, mips and texels as a decode, into the caller's own texture.
+        [Fact]
+        public void TheDecodeMemoGivesWhatADecodeGives()
+        {
+            var png = Image(120, 80, 6, seed: 5).Bytes();
+            var other = Image(120, 80, 2, seed: 6).Bytes();
+            var jpg = new Texture2D(16, 16, TextureFormat.RGB24, false).EncodeToJPG();
+            var expected = new[] { png, other, jpg }.Select(b => Load(b, stbOnly: false)).ToArray();
+            var expectedMips = Load(png, stbOnly: false, mips: true);
+            ImageDecodeMemo.Open();
+            try
+            {
+                for (int round = 0; round < 3; round++)
+                {
+                    var got = new[] { png, other, jpg }.Select(b => Load((byte[])b.Clone(), stbOnly: false)).ToArray();
+                    for (int i = 0; i < got.Length; i++)
+                    {
+                        Assert.Equal((expected[i].Ok, expected[i].W, expected[i].H, expected[i].Format, expected[i].Mips), (got[i].Ok, got[i].W, got[i].H, got[i].Format, got[i].Mips));
+                        Assert.Equal(expected[i].Texels, got[i].Texels);
+                    }
+                    var mips = Load(png, stbOnly: false, mips: true);
+                    Assert.Equal(expectedMips.Mips, mips.Mips);
+                    Assert.Equal(expectedMips.Texels, mips.Texels);
+                }
+                Assert.Equal(3, ImageDecodeMemo.Decodes);
+                Assert.Equal(9, ImageDecodeMemo.Hits);
+                // Each load is the caller's own texture: changing one changes no other.
+                var a = new Texture2D(2, 2);
+                var b = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                Assert.True(a.LoadImage(png));
+                Assert.True(b.LoadImage(png, markNonReadable: true));
+                Assert.False(b.isReadable);
+                a.SetPixel(0, 0, Color.red);
+                a.Apply();
+                var c = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+                Assert.True(c.LoadImage(png));
+                Assert.Equal(expected[0].Texels, ((Texture2DNative)c.NativeOrThrow).Memory.Span.ToArray());
+                // Bytes that differ in one place are another image.
+                var changed = (byte[])png.Clone();
+                changed[^20] ^= 1;
+                var d = new Texture2D(2, 2);
+                Assert.Equal(Load(changed, stbOnly: true).Ok, d.LoadImage(changed));
+                foreach (var t in new[] { a, b, c, d }) UnityEngine.Object.DestroyImmediate(t);
+            }
+            finally
+            {
+                ImageDecodeMemo.Close();
+            }
+            // Closed, it keeps nothing.
+            Load(png, stbOnly: false);
+            Assert.False(ImageDecodeMemo.TryGet(png, out _, out _, out _, out _));
+        }
+
         /// ONI_PNG_BENCH=FILE: decode times of stb and LoadImage, for docs/research.
         [Fact]
         public void Bench()

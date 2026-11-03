@@ -33,8 +33,37 @@ namespace UnityEngine
             bool png = data.Length >= 8 && data[0] == 0x89 && data[1] == (byte)'P' && data[2] == (byte)'N' && data[3] == (byte)'G';
             bool jpeg = data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF;
             if (!png && !jpeg) return false;
-            if (png && PngDecode.TryParse(data, out var parsed) && LoadPng(tex, data, parsed, markNonReadable)) return true;
-            return LoadWithStb(tex, data, png, markNonReadable);
+            if (ImageDecodeMemo.TryGet(data, out var keptFormat, out int keptWidth, out int keptHeight, out var keptTexels))
+            {
+                Fill(tex, keptFormat, keptWidth, keptHeight, keptTexels, markNonReadable);
+                return true;
+            }
+            bool loaded = png && PngDecode.TryParse(data, out var parsed) && LoadPng(tex, data, parsed, markNonReadable)
+                || LoadWithStb(tex, data, png, markNonReadable);
+            if (loaded && ImageDecodeMemo.IsOpen)
+            {
+                var native = (Texture2DNative)tex.NativeOrThrow;
+                ImageDecodeMemo.Keep(data, native.Format, native.Width, native.Height, native.Memory.Span.Slice(0, (int)native.MipSize(0)));
+            }
+            return loaded;
+        }
+
+        /// A decode kept by ImageDecodeMemo, into the texture as the decode left it.
+        static void Fill(Texture2D tex, TextureFormat format, int w, int h, byte[] level0, bool markNonReadable)
+        {
+            var native = (Texture2DNative)tex.NativeOrThrow;
+            int mips = native.MipCount > 1 ? TextureFormats.FullMipCount(w, h) : 1;
+            var texels = new PixelMemory(TextureFormats.ImageSize(format, w, h, mips));
+            level0.CopyTo(texels.Span);
+            native.Width = w;
+            native.Height = h;
+            native.Format = format;
+            native.MipCount = mips;
+            native.Readable = true;
+            native.Adopt(texels);
+            TexelAddressing.BuildMips(native);
+            if (markNonReadable) native.Readable = false;
+            native.ContentChanged();
         }
 
         /// The PNGs PngDecode takes: decoded into new texels, which replace the texture's only once

@@ -470,6 +470,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DXGI.DETAIL"
 msgid "With Vulkan or OpenGL, frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through the renderer's own presentation, which Auto HDR or RTX HDR can take for HDR. If it can't start, the renderer's own is used and Player.log says why. No effect on Linux."
 msgstr "无论使用 Vulkan 还是 OpenGL，画面都像原版一样通过 Direct3D 11 交换链送到屏幕。关闭时使用渲染器自身的呈现方式，可能被自动 HDR 或 RTX HDR 当作 HDR 内容。无法启动时改用渲染器自身的方式，Player.log 会说明原因。在 Linux 上无效。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.TITLE"
+msgid "Faster Load screen"
+msgstr "更快的加载游戏界面"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.EFFECT"
+msgid "With many saves, the Load screen opens and loads more colonies sooner."
+msgstr "存档很多时，加载游戏界面打开和“加载更多”都更快。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.DETAIL"
+msgid "Each save's details are read from its file once a refresh instead of four times, several files at a time, and previews already shown are not decoded again. The colonies, their order, the previews and the log are the same."
+msgstr "每次刷新时每个存档的信息只从文件读取一次而不是四次，并且同时读取多个文件；已显示过的预览图不再重新解码。殖民地、顺序、预览图和日志都不变。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_DISEASE_OVERLAY_CRASH.TITLE"
 msgid "Fix the disease overlay crash"
 msgstr "修复病菌叠加层崩溃"
