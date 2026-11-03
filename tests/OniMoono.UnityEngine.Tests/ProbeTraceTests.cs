@@ -403,7 +403,7 @@ namespace OniMoono.Tests
             var delta = new ProbeDelta();
             var navs = new Dictionary<int, Nav>();
             int states = cc * graph.NavCount;
-            var fresh = new ProbeRepairTests.Result { Cells = new PCell[states], Probers = new PProber[cc], Flags = new byte[states] };
+            var fresh = new ProbeRepairTests.Result { Cells = new PCell[states], Probers = new PProber[cc], Flags = new ProbeFlags(states) };
             ushort serial = 0;
             foreach (var (frame, evs) in frames)
             {
@@ -419,7 +419,7 @@ namespace OniMoono.Tests
                     if (!navs.TryGetValue(p.Nav, out var n))
                     {
                         if (navs.Count == maxNavigators) continue;
-                        navs[p.Nav] = n = new Nav { R = new ProbeRepairTests.Result { Cells = new PCell[states], Probers = new PProber[cc], Flags = new byte[states] } };
+                        navs[p.Nav] = n = new Nav { R = new ProbeRepairTests.Result { Cells = new PCell[states], Probers = new PProber[cc], Flags = new ProbeFlags(states) } };
                         n.Key = p;
                         n.R.Serial = 0;
                     }

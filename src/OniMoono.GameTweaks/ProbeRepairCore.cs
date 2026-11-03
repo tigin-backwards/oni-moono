@@ -201,6 +201,73 @@ namespace OniMoono.GameTweaks
         }
     }
 
+    /// Each state's path flags in a navigator's last result, for its next repair (the game keeps
+    /// them only in its queue): four bits a state, the flags but PerformSuitChecks, which is the
+    /// root's everywhere (TraversePath only sets or clears the suits' bits); a byte a state from
+    /// the first flag outside those. Reset starts a probe from its root's flags.
+    public sealed class ProbeFlags
+    {
+        // PotentialPath.Flags: HasAtmoSuit | HasJetPack | HasOxygenMask | HasLeadSuit, PerformSuitChecks
+        const byte Suits = 0x17, SuitChecks = 8;
+        readonly int count;
+        byte checks;
+        byte[] packed, bytes;
+
+        public ProbeFlags(int states)
+        {
+            count = states;
+            packed = new byte[(states + 1) >> 1];
+        }
+
+        /// What it keeps, in bytes.
+        public long Size => (packed?.Length ?? 0) + (bytes?.Length ?? 0);
+
+        public byte this[int s]
+        {
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                var p = packed;
+                if (p == null) return bytes[s];
+                int n = (p[s >> 1] >> ((s & 1) << 2)) & 15;
+                return (byte)((n & 7) | ((n & 8) << 1) | checks);
+            }
+        }
+
+        /// A new probe whose root has flags `root` (a state's flags are read only while it is
+        /// valid: what an older probe left stays).
+        public void Reset(byte root)
+        {
+            if (bytes != null || (root & ~(Suits | SuitChecks)) != 0) { ToBytes(); return; }
+            // the old states' four bits mean the old root's PerformSuitChecks: no matter
+            checks = (byte)(root & SuitChecks);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void Set(int s, byte v)
+        {
+            var p = packed;
+            if (p != null && (v & ~Suits) == checks)
+            {
+                int sh = (s & 1) << 2;
+                ref byte b = ref p[s >> 1];
+                b = (byte)((b & ~(15 << sh)) | (((v & 7) | ((v >> 1) & 8)) << sh));
+                return;
+            }
+            if (p != null) ToBytes();
+            bytes[s] = v;
+        }
+
+        void ToBytes()
+        {
+            if (bytes != null) return;
+            var b = new byte[count];
+            for (int s = 0; s < count; s++) b[s] = this[s];
+            bytes = b;
+            packed = null;
+        }
+    }
+
     /// Counts of one repair, for the tweak's report and the tests.
     public struct RepairStats
     {
@@ -368,9 +435,10 @@ namespace OniMoono.GameTweaks
         /// PathGrid.BeginUpdate: `cells`/`probers` are the path grid's arrays, `flags` gets every
         /// state's path flags, `found` the cells found (as PathGrid.SetCell adds them). Returns how
         /// many times a state was set.
-        public int Flood(PCell[] cells, PProber[] probers, byte[] flags, ushort serial, int root, byte rootNav, byte rootFlags, IProbeRules rules, List<int> found)
+        public int Flood(PCell[] cells, PProber[] probers, ProbeFlags flags, ushort serial, int root, byte rootNav, byte rootFlags, IProbeRules rules, List<int> found)
         {
             int set = 0;
+            flags.Reset(rootFlags);
             this.rules = rules;
             refusedFor = -1;
             if (foundDirty) Array.Clear(foundBits, 0, foundBits.Length);
@@ -502,12 +570,12 @@ namespace OniMoono.GameTweaks
         }
 
         /// PathGrid.SetCell.
-        void Set(PCell[] cells, PProber[] probers, byte[] flags, ushort serial, int cell, byte nav, ref PCell data, byte pf, List<int> found)
+        void Set(PCell[] cells, PProber[] probers, ProbeFlags flags, ushort serial, int cell, byte nav, ref PCell data, byte pf, List<int> found)
         {
             data.QueryId = serial;
             int s = cell * nc + navSlot[nav];
             cells[s] = data;
-            flags[s] = pf;
+            flags.Set(s, pf);
             if (nav != ProbeGraph.Tube)
             {
                 ref var p = ref probers[cell];
@@ -539,7 +607,7 @@ namespace OniMoono.GameTweaks
         int[] hk = new int[1024], hs = new int[1024];
         int hn;
         PCell[] baseCells;
-        byte[] baseFlags;
+        ProbeFlags baseFlags;
         ushort serial;
         IProbeRules rules;
         RepairStats stats;
@@ -630,7 +698,7 @@ namespace OniMoono.GameTweaks
         /// Gives up (GaveUp, `flags` and `delta` untouched) once the states it dropped and set again
         /// pass `budget`: a repair that redoes much of the result costs more than a flood (each of
         /// its states some three times a flood's), and its delta lands on the main thread.
-        public RepairStats Repair(PCell[] cells, PProber[] probers, byte[] flags, ushort serial, ChangeSet cs, IProbeRules rules, ProbeDelta delta, int budget = int.MaxValue)
+        public RepairStats Repair(PCell[] cells, PProber[] probers, ProbeFlags flags, ushort serial, ChangeSet cs, IProbeRules rules, ProbeDelta delta, int budget = int.MaxValue)
         {
             stats = default;
             delta.Clear();
@@ -756,7 +824,7 @@ namespace OniMoono.GameTweaks
                 var now = ov[s];
                 var was = cells[s];
                 bool nowValid = now.QueryId == serial, wasValid = was.QueryId == serial;
-                if (nowValid) flags[s] = ovFlags[s];
+                if (nowValid) flags.Set(s, ovFlags[s]);
                 bool same = nowValid ? wasValid && now.Cost == was.Cost && now.Parent == was.Parent && now.NavTypes == was.NavTypes && now.TransitionId == was.TransitionId
                     : !wasValid;
                 if (!same)
