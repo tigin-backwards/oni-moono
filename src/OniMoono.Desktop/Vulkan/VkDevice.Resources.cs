@@ -442,6 +442,18 @@ namespace OniMoono.Desktop.Vulkan
         /// the memory is host visible, else staged and copied ahead of the batch's rendering.
         public void UploadMesh(DeviceMesh d, MeshUpload upload)
         {
+            try
+            {
+                CopyMesh(d, upload);
+            }
+            finally
+            {
+                upload.Ran();
+            }
+        }
+
+        void CopyMesh(DeviceMesh d, MeshUpload upload)
+        {
             long t = System.Diagnostics.Stopwatch.GetTimestamp();
             var vm = d.Vk ??= new VkMesh();
             liveMeshes.Add(vm);

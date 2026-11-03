@@ -128,7 +128,14 @@ namespace OniMoono.Desktop.Gl
         {
             long t = GlTimings.Now;
             uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
-            GlMeshes.Upload(mesh, upload);
+            try
+            {
+                GlMeshes.Upload(mesh, upload);
+            }
+            finally
+            {
+                upload.Ran();
+            }
             if (GlGpuProfile.Enabled) GlGpuProfile.End("mesh upload", q);
             GlTimings.MeshUploads += GlTimings.Now - t;
         }

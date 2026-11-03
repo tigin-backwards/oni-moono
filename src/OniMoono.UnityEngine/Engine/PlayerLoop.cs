@@ -143,6 +143,7 @@ namespace OniMoono.Engine
                 FrameStatsWindow.TexelCopyWait += FrameStatsWindow.Now - fence;
             }
             else Rendering.TexelCopies.Fence();
+            Rendering.MeshNative.SweepSpares();
             Time.BeginFrame(realDelta);
             RunPhase(FrameStart);
 
