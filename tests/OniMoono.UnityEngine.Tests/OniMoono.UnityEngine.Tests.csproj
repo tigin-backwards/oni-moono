@@ -14,6 +14,8 @@
     <PackageReference Include="System.Runtime.Serialization.Formatters" />
     <!-- The game's Newtonsoft.Json 7 needs its CAS types (as in the host). -->
     <PackageReference Include="System.Security.Permissions" />
+    <!-- PathGridPagesTests rewrites the game's Assembly-CSharp as the host does. -->
+    <PackageReference Include="Mono.Cecil" />
   </ItemGroup>
   <ItemGroup>
     <!-- The engine is process-global, like Unity's: tests run one at a time. -->
@@ -48,6 +50,10 @@
     <Compile Include="../../src/OniMoono.Host/MonoJitOptimizer.cs" Link="Host/MonoJitOptimizer.cs" />
     <!-- compact-nav-links' store (NavGridLinksTests). -->
     <Compile Include="../../src/OniMoono.Host/NavGridLinks.cs" Link="Host/NavGridLinks.cs" />
+    <!-- paged-path-grids' tables and the rewrite of PathGrid (PathGridPagesTests). -->
+    <Compile Include="../../src/OniMoono.Host/PathGridPages.cs" Link="Host/PathGridPages.cs" />
+    <Compile Include="../../src/OniMoono.Host/PathGridPagesRewrite.cs" Link="Host/PathGridPagesRewrite.cs" />
+    <Compile Include="../../src/OniMoono.Host/CilBranches.cs" Link="Host/CilBranches.cs" />
     <!-- The brain-rate game tweak's allowance (BrainRateAllowanceTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/BrainRateAllowance.cs" Link="GameTweaks/BrainRateAllowance.cs" />
     <!-- The path-probe-repair game tweak's search (ProbeRepairTests). -->
