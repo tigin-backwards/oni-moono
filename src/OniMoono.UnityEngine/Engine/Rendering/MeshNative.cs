@@ -14,6 +14,8 @@ namespace OniMoono.Engine.Rendering
         public MeshTopology Topology = MeshTopology.Triangles;
         public int BaseVertex;
         public Bounds Bounds;
+        /// The index array a mesh setter made for this submesh (MeshNative.Retire).
+        internal int[] Given;
     }
 
     /// A mesh's data, kept as per-attribute arrays (Unity's channel model). The device builds its
@@ -157,10 +159,169 @@ namespace OniMoono.Engine.Rendering
 
         public void Changed() => Version++;
 
+        // ----- Channel arrays for reuse -----
+
+        /// Uploads of this mesh's arrays the device has been given (main thread) and the last of
+        /// them it has run (written by the device thread; they run in order).
+        public int UploadsPosted;
+        public int UploadsRan;
+
+        /// The device has copied out the arrays of upload `sequence` (device thread).
+        public void UploadRan(int sequence) => System.Threading.Volatile.Write(ref UploadsRan, sequence);
+
+        public const int SlotPositions = 0, SlotNormals = 1, SlotTangents = 2, SlotColors = 3, SlotColors32 = 4, SlotUv0 = 5;
+
+        /// The channel arrays the mesh setters (UnityEngine.Mesh) made, by slot: the mesh's own,
+        /// as nothing else is handed them (getters return copies). Only these are reused.
+        Array[] given;
+
+        /// Arrays the mesh let go of, with the uploads posted by then: a channel array is reused
+        /// only once the device has run every upload that could hold it.
+        List<(Array Array, int Posted, int Frame)> spares;
+
+        /// Meshes holding spares, swept once a frame (SweepSpares), and whether this one is.
+        static readonly List<MeshNative> withSpares = new();
+        bool listed;
+
+        const int MaxSpares = 16, SpareFrames = 4;
+
+        /// Reuse statistics (ONI_MESH_SPARES=stats): arrays wanted, taken from spares, and
+        /// arrays retired.
+        internal static readonly bool Stats = Environment.GetEnvironmentVariable("ONI_MESH_SPARES") == "stats";
+        internal static long Wanted, Taken, Retired;
+
+        /// Reuse off (ONI_MESH_SPARES=off, or set while running by a measurement): every new
+        /// channel array is allocated, and canvas elements rebake their colours (CanvasSystem).
+        internal static bool ReuseOff = Environment.GetEnvironmentVariable("ONI_MESH_SPARES") == "off";
+
+        /// A new channel array of `length` (its contents are the caller's to fill): a spare of
+        /// that length no upload holds any more, else a new one.
+        internal T[] NewChannel<T>(int length)
+        {
+            if (Stats) Wanted++;
+            if (spares != null && !ReuseOff)
+            {
+                int ran = System.Threading.Volatile.Read(ref UploadsRan);
+                for (int i = spares.Count - 1; i >= 0; i--)
+                {
+                    var (array, posted, _) = spares[i];
+                    if (posted > ran || array is not T[] typed || typed.Length != length) continue;
+                    spares.RemoveAt(i);
+                    if (Stats) Taken++;
+                    return typed;
+                }
+            }
+            return new T[length];
+        }
+
+        /// Records `array` (made by NewChannel and filled) as the setter's for `slot`.
+        internal void Give(int slot, Array array)
+        {
+            if (ReuseOff) return;
+            given ??= new Array[SlotUv0 + UvChannels];
+            given[slot] = array;
+        }
+
+        /// The slot's array is being replaced or dropped: kept as a spare when it is the one a
+        /// setter made. Read as it is: a channel kept without data is not made for this.
+        internal void Retire(int slot)
+        {
+            if (given == null) return;
+            Retire(slot, slot switch
+            {
+                SlotPositions => Positions,
+                SlotNormals => normals,
+                SlotTangents => tangents,
+                SlotColors => colors,
+                SlotColors32 => colors32,
+                _ => Uvs.Raw[slot - SlotUv0],
+            });
+        }
+
+        void Retire(int slot, Array current)
+        {
+            if (given == null || current == null || !ReferenceEquals(given[slot], current)) return;
+            given[slot] = null;
+            AddSpare(current);
+        }
+
+        /// Either colour setter replaces both colour arrays.
+        internal void RetireColors()
+        {
+            Retire(SlotColors, colors);
+            Retire(SlotColors32, colors32);
+        }
+
+        /// Records the submesh's index array (made by NewChannel and filled) as a setter's.
+        internal void GiveIndices(SubMeshData s)
+        {
+            if (!ReuseOff) s.Given = s.Indices;
+        }
+
+        /// A submesh's index array is being replaced or dropped (as Retire).
+        internal void RetireIndices(SubMeshData s)
+        {
+            if (s.Given == null) return;
+            if (ReferenceEquals(s.Given, s.Indices)) AddSpare(s.Given);
+            s.Given = null;
+        }
+
+        /// Every array a setter made, before Clear drops them.
+        internal void RetireAll()
+        {
+            if (given != null)
+            {
+                Retire(SlotPositions, Positions);
+                Retire(SlotNormals, normals);
+                Retire(SlotTangents, tangents);
+                Retire(SlotColors, colors);
+                Retire(SlotColors32, colors32);
+                for (int i = 0; i < UvChannels; i++) Retire(SlotUv0 + i, Uvs.Raw[i]);
+            }
+            foreach (var s in SubMeshes) RetireIndices(s);
+        }
+
+        void AddSpare(Array array)
+        {
+            if (array.Length == 0) return;
+            spares ??= new();
+            if (!listed)
+            {
+                listed = true;
+                withSpares.Add(this);
+            }
+            if (spares.Count >= MaxSpares) spares.RemoveAt(0);
+            spares.Add((array, UploadsPosted, Time.frameCount));
+            if (Stats) Retired++;
+        }
+
+        /// Drops spares not taken within a few frames (start of a frame): a mesh that stopped
+        /// changing keeps none.
+        internal static void SweepSpares()
+        {
+            if (withSpares.Count == 0) return;
+            int frame = Time.frameCount;
+            for (int m = withSpares.Count - 1; m >= 0; m--)
+            {
+                var mesh = withSpares[m];
+                var s = mesh.spares;
+                // Oldest first: they were added in frame order.
+                int stale = 0;
+                while (stale < s.Count && frame - s[stale].Frame > SpareFrames) stale++;
+                s.RemoveRange(0, stale);
+                if (s.Count > 0) continue;
+                mesh.listed = false;
+                withSpares.RemoveAt(m);
+            }
+            if (Stats && frame % 600 == 0)
+                EngineLog.Engine($"mesh spares: {Wanted} arrays wanted, {Taken} reused, {Retired} retired, {withSpares.Count} meshes holding spares");
+        }
+
         /// Removes the vertices and indices. With `keepVertexLayout` the channels the mesh had
         /// are kept without data (see `kept`); without, they are dropped.
         public void Clear(bool keepVertexLayout = false)
         {
+            RetireAll();
             VertexCount = 0;
             Positions = null;
             if (keepVertexLayout)
@@ -192,6 +353,12 @@ namespace OniMoono.Engine.Rendering
         /// (new ones zero). Kept channels without data stay so: they are made at the count when read.
         public void ResizeChannels(int count)
         {
+            // The old arrays are dropped (Array.Resize copies into new ones).
+            Retire(SlotNormals, normals);
+            Retire(SlotTangents, tangents);
+            Retire(SlotColors, colors);
+            Retire(SlotColors32, colors32);
+            for (int i = 0; i < UvChannels; i++) Retire(SlotUv0 + i, Uvs.Raw[i]);
             normals = Resize(normals, count);
             tangents = Resize(tangents, count);
             colors = Resize(colors, count);

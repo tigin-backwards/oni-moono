@@ -215,10 +215,10 @@ namespace OniMoono.Tests
             Rebuild(fresh);
             Rebuild(reused);
             Rebuild(new Mesh());
-            // A mesh that held all those channels allocates what a new one does: only the new
-            // channel arrays themselves.
+            // A mesh that held all those channels allocates no more than a new one does: at most
+            // the new channel arrays themselves (with no upload pending it reuses its own).
             long expected = Rebuild(new Mesh());
-            Assert.Equal(expected, Rebuild(reused));
+            Assert.True(Rebuild(reused) <= expected);
             Assert.Equal(12, reused.uv2.Length);
         }
 

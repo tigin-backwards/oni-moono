@@ -75,6 +75,13 @@ namespace OniMoono.Desktop.Gl
         public readonly Array[] Channels = new Array[(int)Channel.Count];
         public int[] Indices;
         public uint Usage;
+        /// The mesh and this upload's place in its uploads: once it has run, the arrays it held
+        /// may be reused (MeshNative.NewChannel).
+        public MeshNative Mesh;
+        public int Sequence;
+
+        /// The device has copied the arrays out (device thread; also when the upload failed).
+        public void Ran() => Mesh?.UploadRan(Sequence);
     }
 
     internal static unsafe class GlMeshes
@@ -89,7 +96,7 @@ namespace OniMoono.Desktop.Gl
                 GraphicsDevice.Adopt(m, d);
             }
             if (d.RecordedVersion == m.Version) return d;
-            var upload = new MeshUpload { Usage = m.Dynamic ? DynamicDraw : StaticDraw };
+            var upload = new MeshUpload { Usage = m.Dynamic ? DynamicDraw : StaticDraw, Mesh = m, Sequence = ++m.UploadsPosted };
             var layout = new MeshLayout();
             AddChannel(upload, layout, Channel.Position, m.Positions, 3);
             AddChannel(upload, layout, Channel.Normal, m.Normals, 3);
@@ -135,7 +142,14 @@ namespace OniMoono.Desktop.Gl
             var (d, upload) = recorded;
             long t = GlTimings.Now;
             uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
-            Upload(d, upload);
+            try
+            {
+                Upload(d, upload);
+            }
+            finally
+            {
+                upload.Ran();
+            }
             if (GlGpuProfile.Enabled) GlGpuProfile.End("mesh upload", q);
             GlTimings.MeshUploads += GlTimings.Now - t;
         }
