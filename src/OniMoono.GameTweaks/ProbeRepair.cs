@@ -456,6 +456,11 @@ namespace OniMoono.GameTweaks
 
             public bool IsSubmerged(int cell) => PathFinder.IsSubmerged(cell);
 
+            /// TraversePath's refusals by nav type, from the abilities' skill and fuel (set with A).
+            public bool SwimSkill, OutOfFuel;
+
+            public uint Refused(byte flags) => ProbeGraph.Refused(SwimSkill, OutOfFuel, flags);
+
             public int Penalty(byte flags, in PLink l)
                 => A.GetSubmergedPathCostPenalty(new PathFinder.PotentialPath(l.Link, (NavType)l.End, (PathFinder.PotentialPath.Flags)flags),
                     new NavGrid.Link(l.Link, (NavType)l.Start, (NavType)l.End, l.Trans, l.Cost));
@@ -546,6 +551,8 @@ namespace OniMoono.GameTweaks
                     Drain();
                     var f = fields.GetOrAdd(nav, _ => new Field());
                     rules.A = a;
+                    rules.SwimSkill = swimSkill(a);
+                    rules.OutOfFuel = outOfFuel(a);
                     byte bits = (byte)((outOfFuel(a) ? 1 : 0) | (idleMask(a) ? 2 : 0) | (swimSkill(a) ? 4 : 0));
                     bool sameKey = f.Valid && f.Root == order.originCell && f.Nav == (byte)order.startingNavType && f.Flags == (byte)order.startingFlags
                         && f.Prefab == prefabId(a) && f.Proxy == proxyId(a) && f.Key == defaultKey(a) && f.Bits == bits;

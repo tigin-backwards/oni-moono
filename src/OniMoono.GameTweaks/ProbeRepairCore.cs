@@ -49,6 +49,10 @@ namespace OniMoono.GameTweaks
         /// Whether the link from (fromCell, fromNav) to (pathCell, pathNav) may be taken with these
         /// flags, and the flags after it.
         bool Traverse(ref byte flags, int pathCell, byte pathNav, int fromCell, byte fromNav, int cost, byte trans, bool submerged);
+        /// The nav types Traverse refuses with these flags whatever the cells (ProbeGraph.Refused):
+        /// bit n a link into nav type n, bit 16 + n one out of it. A shortcut only: never one it
+        /// would take.
+        uint Refused(byte flags);
     }
 
     /// What changed in the world for the probes: a link row replaced, or the cells whose links'
@@ -106,6 +110,18 @@ namespace OniMoono.GameTweaks
     public sealed class ProbeGraph
     {
         public const byte Swim = 6, Hover = 5, Tube = 8, NumNavTypes = 11;
+        /// PotentialPath.Flags.HasJetPack.
+        public const byte JetPack = 2;
+
+        /// What MinionPathFinderAbilities.TraversePath refuses whatever the cells (IProbeRules.Refused):
+        /// a swim, into or out of one, without the skill; a hover with no jet pack or no fuel.
+        public static uint Refused(bool hasSwimSkill, bool outOfFuel, byte flags)
+        {
+            uint m = 0;
+            if (!hasSwimSkill) m |= (1u << Swim) | (1u << (16 + Swim));
+            if (outOfFuel || (flags & JetPack) == 0) m |= 1u << Hover;
+            return m;
+        }
         public static readonly PLink[] Empty = new PLink[0];
 
         public readonly int Width, CellCount, MaxLinks, NavCount;
@@ -353,6 +369,8 @@ namespace OniMoono.GameTweaks
         public int Flood(PCell[] cells, PProber[] probers, byte[] flags, ushort serial, int root, byte rootNav, byte rootFlags, IProbeRules rules, List<int> found)
         {
             int set = 0;
+            this.rules = rules;
+            refusedFor = -1;
             if (foundDirty) Array.Clear(foundBits, 0, foundBits.Length);
             foundDirty = true;
             var rows = g.Rows;
@@ -374,13 +392,16 @@ namespace OniMoono.GameTweaks
                 if ((uint)pcell >= (uint)cellCount) continue;
                 int cost = cd.Cost, parentCell = cd.Parent;
                 byte parentNav = (byte)(cd.NavTypes >> 4), pnav = e.Nav;
+                // Links Traverse would refuse are never candidates.
+                uint refused = Refused(e.Flags);
+                if (((refused >> (16 + pnav)) & 1) != 0) continue;
                 var row = rows[pcell];
                 if (scratchLinks.Length < row.Length) Grow(row.Length);
                 int n = 0;
                 for (int i = 0; i < row.Length; i++)
                 {
                     var l = row[i];
-                    if (l.Start == pnav && (parentCell != l.Link || parentNav != l.Start)) scratchLinks[n++] = l;
+                    if (l.Start == pnav && (parentCell != l.Link || parentNav != l.Start) && ((refused >> l.End) & 1) == 0) scratchLinks[n++] = l;
                 }
                 int m = 0;
                 for (int j = 0; j < n; j++)
@@ -421,7 +442,24 @@ namespace OniMoono.GameTweaks
                     }
                 }
             }
+            this.rules = null;
             return set;
+        }
+
+        int refusedFor;
+        uint refusedMask;
+
+        /// rules.Refused, kept for the flags last asked.
+        uint Refused(byte flags)
+        {
+            if (refusedFor != flags) { refusedMask = rules.Refused(flags); refusedFor = flags; }
+            return refusedMask;
+        }
+
+        bool IsRefused(byte flags, byte fromNav, byte toNav)
+        {
+            uint m = Refused(flags);
+            return ((m >> toNav) & 1) != 0 || ((m >> (16 + fromNav)) & 1) != 0;
         }
 
         readonly ulong[] foundBits;
@@ -592,6 +630,7 @@ namespace OniMoono.GameTweaks
             stats = default;
             delta.Clear();
             baseCells = cells; baseFlags = flags; this.serial = serial; this.rules = rules;
+            refusedFor = -1;
             if (++stamp == int.MaxValue) { Array.Clear(ovStamp, 0, ovStamp.Length); stamp = 1; }
             if (++markStamp == int.MaxValue) { Array.Clear(mark, 0, mark.Length); markStamp = 1; }
             touched.Clear(); inval.Clear(); srcs.Clear(); srcSeen.Clear(); ce.Clear();
@@ -831,6 +870,7 @@ namespace OniMoono.GameTweaks
             if (!Contains(g.Rows[u], l)) return false;
             var c = Peek(s);
             if (l.Link == c.Parent && (c.NavTypes >> 4) == l.Start) return false;
+            if (IsRefused(Flags(s), l.Start, l.End)) return false;
             int cand = LinkCost(s, l, out bool sub);
             if (cand > Peek(t).Cost) return false;
             byte pf = Flags(s);
@@ -847,7 +887,7 @@ namespace OniMoono.GameTweaks
             byte nu = slotNav[s % nc];
             if (l.Link == c.Parent && (c.NavTypes >> 4) == l.Start) return;
             int t = State(l);
-            if (t < 0) return;
+            if (t < 0 || IsRefused(Flags(s), nu, l.End)) return;
             int cand = LinkCost(s, l, out bool sub);
             bool was = Valid(t);
             byte pf = Flags(s);
