@@ -141,6 +141,71 @@ class RealProcesses(unittest.TestCase):
             time.sleep(0.05)
         return p
 
+    def spawn_player(self, owner, report, quits=True, lane='914'):
+        """A Python named OniMoono. On SIGTERM it writes to REPORT whether its X server (the
+        pid it is told about later, in REPORT.xvfb) still runs, then exits 0 after 0.3 s, as our
+        player quits; with QUITS false it ignores SIGTERM."""
+        code = f'''
+import os, signal, sys, time
+def quit(*_):
+    with open({report + '.xvfb'!r}) as f:
+        pid = int(f.read())
+    try:
+        os.kill(pid, 0)
+        alive = 'xvfb alive'
+    except OSError:
+        alive = 'xvfb gone'
+    with open({report!r}, 'w') as f:
+        f.write(alive)
+    time.sleep(0.3)
+    os._exit(0)
+signal.signal(signal.SIGTERM, quit if {quits!r} else signal.SIG_IGN)
+open({report + '.ready'!r}, 'w').close()
+time.sleep(120)
+'''
+        player = os.path.join(self.temp.name, 'OniMoono')
+        if not os.path.exists(player):
+            os.symlink(os.path.realpath(sys.executable), player)
+        env = dict(os.environ, E2E_OWNER=owner, E2E_LANE=lane, E2E_LOCK_DIR=self.locks)
+        p = subprocess.Popen([player, '-c', code], env=env, start_new_session=True)
+        self.children.append(p)
+        deadline = time.time() + 10
+        while not os.path.exists(report + '.ready') and time.time() < deadline:
+            time.sleep(0.05)
+        self.assertEqual(e2e.read_proc(p.pid)['comm'], 'OniMoono')
+        return p
+
+    def test_a_teardown_quits_players_before_killing_their_x_servers(self):
+        tag = '1:2'
+        report = os.path.join(self.temp.name, 'quit.txt')
+        xvfb = self.spawn(tag, xvfb=':1915')
+        player = self.spawn_player(tag, report)
+        with open(report + '.xvfb', 'w') as f:
+            f.write(str(xvfb.pid))
+        e2e.teardown_owner(tag)
+        self.assertEqual(player.wait(10), 0)  # it quit by itself
+        with open(report) as f:
+            self.assertEqual(f.read(), 'xvfb alive')
+        self.assertTrue(self.gone(xvfb))
+
+    def test_a_player_that_does_not_quit_is_killed_after_its_grace(self):
+        from unittest import mock
+        report = os.path.join(self.temp.name, 'quit.txt')
+        player = self.spawn_player(e2e.owner_tag(), report, quits=False)
+        with mock.patch.dict(os.environ, E2E_QUIT_GRACE='0.5'):
+            began = time.time()
+            e2e.kill_verified([e2e.read_proc(player.pid)], grace=0.2)
+        self.assertEqual(player.wait(10), -9)
+        self.assertGreaterEqual(time.time() - began, 0.5)
+
+    def test_quit_grace(self):
+        from unittest import mock
+        for value, grace in ((None, e2e.QUIT_GRACE), ('soon', e2e.QUIT_GRACE), ('2.5', 2.5), ('0', 0)):
+            with mock.patch.dict(os.environ, {} if value is None else {'E2E_QUIT_GRACE': value}):
+                if value is None:
+                    os.environ.pop('E2E_QUIT_GRACE', None)
+                self.assertEqual(e2e.quit_grace(), grace)
+
     def gone(self, p, timeout=10):
         try:
             p.wait(timeout)
