@@ -46,6 +46,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/CallSiteReroute.cs" Link="GameTweaks/CallSiteReroute.cs" />
     <!-- The fast-jobs game tweak's worker wakes (WorkerWakesTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/WorkerWakes.cs" Link="GameTweaks/WorkerWakes.cs" />
+    <!-- Frame stats' timing of the game's update (FrameStatsTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/GameFrameStats.cs" Link="GameTweaks/GameFrameStats.cs" />
     <!-- The fast-symbol-overrides game tweak's block bookkeeping (OverrideBlockLogTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/OverrideBlockLog.cs" Link="GameTweaks/OverrideBlockLog.cs" />
     <!-- The background-save game tweak's writes (BackgroundSaveTests), with the game's zlib. -->

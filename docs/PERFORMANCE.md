@@ -30,6 +30,43 @@ backend. That layer makes some driver calls far more expensive than on a native 
 texture upload cost about 75 µs there against about 2.5 µs on Windows), and the game's own code
 also ran about half as fast. The case studies' deep dives that still come from Linux say so.
 
+## Frame stats in a player's log
+
+A player who reports slowness can turn on **Frame stats in the log** (Moono Tweaks, General) or
+start with `--frame-stats`. Player.log then gets, every 60 frames, the frame's phases (`frame
+stats`), the device's counts (`frame counts`: the GL thread's time, draws, uploads, the
+presenter's time per picture) and any frame over 250 ms (`slow frame`). Every 600 frames come
+the scripts' update times (`script time`), memory (`memory:`, `video memory:`), and these lines,
+all in ms a frame over the window unless they say otherwise:
+
+- `game speed`: the speed setting, game seconds a real second (what the game asked for, and what
+  it got), the sim's 200 ms steps and its calls a frame, how many frames hit the game's limit of
+  200 ms of game time a frame (above it the game slows down rather than step more), and how
+  many were paused.
+- `sim`: `Game.SimEveryTick`, `UnsafeSim200ms` and `StepTheSim`, each split into time inside
+  SimDLL (the native simulation) and the managed rest, then all of the main thread's SimDLL
+  calls and their count.
+- `game update`: the state machine buckets by update rate (render every tick, render 200 ms and
+  1000 ms, sim every tick, 33 ms, 200 ms, 1000 ms and 4000 ms; `BrainScheduler` runs inside
+  render every tick), brains, cell info, nav grids, path probes, anim events and the game's
+  jobs, with calls a frame, and how long the main thread waited for the job workers.
+- `main thread waits`: for the device to take the next frame (the previous one still drawing),
+  for results from it (read-backs, diagnostics), for last frame's texel copies; the device
+  thread waiting for the presenter; GC pauses and collections in the window, allocation, JIT
+  time on all threads, lock contentions and the thread pool (threads, queued items).
+- `machine`: the process's CPU in cores and the main thread's share of the time, page faults
+  (hard faults: the process's on Linux, the system's disk reads for them on Windows), available
+  RAM and commit, and where the system offers them: AC or battery, battery saver, the power
+  plan and mode (Windows) or platform profile and governor (Linux), and the CPU clock against
+  its rated one. Windows often reports the rated clock as the current one; a `limit` below it
+  means the CPU is held back.
+
+The game's parts are timed by patches made at start-up only with frame stats on (a prefix first
+and a postfix last, so mods' patches of a method count in its time). SimDLL's time is that of
+the game's calls of its P/Invokes (the sim's messages, among them the step itself, and the
+conduit temperature update), timed at each call site in Sim, SimMessages and
+ConduitTemperatureManager. With frame stats off none of it is installed or counted.
+
 ## The numbers
 
 **U57**, a Spaced Out colony with every DLC at cycle 17,077: 24 Duplicants, 1,186 critters, about

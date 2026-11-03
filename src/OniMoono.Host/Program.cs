@@ -150,6 +150,7 @@ namespace OniMoono.Host
                 // Type.GetType in a patched method looks where Mono's does (D49).
                 MonoTypeByName.Install();
                 GameTweaks.GameTweaks.Install(effective.EnabledTweaks.ToHashSet(StringComparer.Ordinal));
+                if (effective.FrameStats) GameTweaks.GameTweaks.InstallFrameStats();
                 if (!options.NoTweaksMenu) MoonoTweaksMenu.Install(effective, settings, settingsPath);
                 StateMachineSaveNames.Install(dataDir, AppContext.BaseDirectory);
                 StartupStats.Mark("host patches installed");

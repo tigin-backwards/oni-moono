@@ -47,6 +47,23 @@ namespace OniMoono.Host.GameTweaks
             }
         }
 
+        /// Frame stats (`--frame-stats`): OniMoono.GameTweaks' patches that time the game's
+        /// update, whose lines join the engine's every 600 frames (FrameStatsWindow).
+        public static void InstallFrameStats()
+        {
+            try
+            {
+                var probes = TypedAssembly.GetType("OniMoono.GameTweaks.FrameStatsProbes")!;
+                probes.GetMethod("Install")!.Invoke(null, [new Harmony("OniMoono.Host.FrameStats")]);
+                FrameStatsWindow.Reports.Add(probes.GetMethod("Take")!.CreateDelegate<Func<double, int, string[]>>());
+            }
+            catch (Exception e)
+            {
+                var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
+                EngineLog.Engine($"frame stats: the game's update is not timed: {cause.GetType().Name}: {cause.Message}");
+            }
+        }
+
         static void Report(string name, Action install)
         {
             install();
