@@ -19,6 +19,7 @@ namespace OniMoono.Host
         public static int Run(Options options, string dataDir, Action patches)
         {
             StartupStats.Mark("player starts");
+            QuitSignals.Install();
             AssetSystem.Initialize(dataDir);
             ProjectSettings.Load();
             BundlePrefetch.Start(EngineConfig.StreamingAssetsPath);
@@ -94,9 +95,12 @@ namespace OniMoono.Host
             if (options.BuiltinReport != null)
                 File.WriteAllLines(options.BuiltinReport, OniMoono.Engine.Assets.ObjectLoader.BuiltinLoads()
                     .Select(b => $"{b.File}\t{b.PathId}\t{b.ClassId}\t{b.Type}\t{b.Name}"));
+            var quitClock = Stopwatch.StartNew();
             PlayerLoop.SendApplicationQuit();
+            double quitEvents = quitClock.Elapsed.TotalMilliseconds;
             SceneLoader.UnloadAll();
             Lifecycle.ProcessDestroyQueue(drain: true);
+            double unload = quitClock.Elapsed.TotalMilliseconds;
             // The graphics device and window go before the process exits, as in Unity's player
             // (a GL context left current into process exit can hang driver exit handlers).
             if (platform != null)
@@ -105,6 +109,8 @@ namespace OniMoono.Host
                 platform.Dispose();
             }
             GameTweaks.GameTweaks.Shutdown();
+            double total = quitClock.Elapsed.TotalMilliseconds;
+            EngineLog.Engine($"Quit took {total:0} ms: OnApplicationQuit {quitEvents:0}, unloading {unload - quitEvents:0}, device and window {total - unload:0}");
             OniMoono.Engine.UI.CanvasSystem.LogSkipTotals();
             EngineLog.Engine($"Exiting after {frame} frames with code {PlayerLoop.ExitCode}");
             EngineLog.Close();
