@@ -17,8 +17,22 @@ steps:
   - scroll: {at: "**/MoonoTweaksScreen/**/gpu/**/ManageButton", notches: 0}
   - shot: {name: choice-tip, pointer: stay}
   - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -60}
+  # KScrollRect keeps scrolling for a few frames after the wheel (its inertia): wait for the
+  # list to settle before a shot or a hover.
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - shot: {name: end}
   - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: 0}
   - shot: {name: gameplay-tip, pointer: stay}
-  - scroll: {at: "**/MoonoTweaksScreen/**/fast-overlays", notches: 0}
+  # The measured gain is on a Simulation row, above the end: 17 notches up bring it to the
+  # middle of the list in both languages.
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 17}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/fast-conveyor-paths", cond: stable}
+  # Its effect line, which carries the row's tooltip: the row's centre can fall in the gap
+  # between its title and effect, over the row's background, which has none.
+  - scroll: {at: "**/MoonoTweaksScreen/**/fast-conveyor-paths/**/Effect", notches: 0}
+  - expect_hit: {at: "**/MoonoTweaksScreen/**/fast-conveyor-paths/**/Effect", top: "~/fast-conveyor-paths/TitleAndEffect/Effect"}
+  # The tooltip shows after the hover delay: its gain, then its launch option.
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: active}
+  - expect_ui:
+      "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab": {active: true, text: "/No hitch on rail edits[\\s\\S]*--game-tweak fast-conveyor-paths$/"}
   - shot: {name: gain-tip, pointer: stay}
