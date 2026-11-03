@@ -74,9 +74,10 @@ namespace OniMoono.GameTweaks
         static readonly AccessTools.FieldRef<MinionPathFinderAbilities, bool> idleMask = AccessTools.FieldRefAccess<MinionPathFinderAbilities, bool>("idleNavMaskEnabled");
         static readonly AccessTools.FieldRef<MinionPathFinderAbilities, bool> swimSkill = AccessTools.FieldRefAccess<MinionPathFinderAbilities, bool>("hasSwimSkill");
 
-        // The game's arrays as this tweak's structs (the same layouts, checked by SelfTest).
-        static Func<PathGrid, PCell[]> cellsOf;
-        static Func<PathGrid, PProber[]> probersOf;
+        // The game's arrays as this tweak's structs (the same layouts, checked by SelfTest): the
+        // arrays, or with paged-path-grids the page tables behind them (ViewOf).
+        static Func<PathGrid, ProbePages<PCell>> cellsOf;
+        static Func<PathGrid, ProbePages<PProber>> probersOf;
         static Func<NavGrid, PLink[]> linksOf;
 
         /// For tests (E2eDriver's state reads, `type:OniMoono.GameTweaks.ProbeRepair::Repairs`): whether
@@ -114,8 +115,11 @@ namespace OniMoono.GameTweaks
                 harmony.Patch(AccessTools.Method(typeof(AsyncPathProber.Manager), nameof(AsyncPathProber.Manager.TickFrame)), postfix: M(nameof(StatsPost)));
             }
             if (observeOnly) return;
-            cellsOf = FieldAs<PathGrid, PCell[]>("Cells");
-            probersOf = FieldAs<PathGrid, PProber[]>("ProberCells");
+            PinnedPages<PCell>();
+            PinnedPages<byte>();
+            PinnedPages<int>();
+            cellsOf = ViewOf<PCell>("Cells");
+            probersOf = ViewOf<PProber>("ProberCells");
             linksOf = FieldAs<NavGrid, PLink[]>(nameof(NavGrid.Links));
             harmony.Patch(AccessTools.Method(typeof(AsyncPathProber), nameof(AsyncPathProber.CreateInstance)), prefix: M(nameof(Reset)));
             harmony.Patch(AccessTools.Method(typeof(AsyncPathProber.Manager), nameof(AsyncPathProber.Manager.TickFrame)), prefix: M(nameof(TickFramePre)));
@@ -146,6 +150,84 @@ namespace OniMoono.GameTweaks
             il.Emit(OpCodes.Ldfld, f);
             il.Emit(OpCodes.Ret);
             return (Func<TOwner, TArray>)dm.CreateDelegate(typeof(Func<TOwner, TArray>));
+        }
+
+        /// A PathGrid's array as this tweak's struct: the array itself, or when paged-path-grids
+        /// rewrote PathGrid (its `<…>pages` field) a view of its page table, which makes pages
+        /// through the host's PathGridPages.Materialise and keeps verify mode's flat array
+        /// (PathGridPages.ShadowOf) written. A grid's table never changes, so its view is kept.
+        static Func<PathGrid, ProbePages<TView>> ViewOf<TView>(string array) where TView : struct
+        {
+            var pagesField = AccessTools.Field(typeof(PathGrid), $"<{array}>pages");
+            if (pagesField == null)
+            {
+                // A one-page table of the game's own array type: the game's array is no TView[]
+                // to store into a TView[][] (stelem.ref checks the type), only to read as one.
+                var arrayField = AccessTools.Field(typeof(PathGrid), array);
+                var flat = FieldAs<PathGrid, TView[]>(array);
+                var flatViews = new System.Runtime.CompilerServices.ConditionalWeakTable<PathGrid, ProbePages<TView>>();
+                return grid => flatViews.GetValue(grid, g =>
+                {
+                    var a = flat(g);
+                    var one = Array.CreateInstance(arrayField.FieldType, 1);
+                    one.SetValue(a, 0);
+                    return ProbePages<TView>.Over(Pun<TView[][]>(one), a.Length, 31, null, null, null);
+                });
+            }
+            var table = FieldAs<PathGrid, TView[][]>(pagesField.Name);
+            var length = FieldAs<PathGrid, int>($"<{array}>length");
+            var element = pagesField.FieldType.GetElementType().GetElementType();
+            var host = Type.GetType("OniMoono.Host.PathGridPages, OniMoono", true);
+            int shift = (int)host.GetField("PageShift").GetRawConstantValue();
+            var zero = Pun<TView[]>(Type.GetType("OniMoono.Host.Zero`1, OniMoono", true).MakeGenericType(element).GetField("Page").GetValue(null));
+            var make = Call<Func<TView[][], int, TView[]>>(host.GetMethod("Materialise").MakeGenericMethod(element), typeof(TView[]), typeof(TView[][]), typeof(int));
+            var shadowOf = Call<Func<TView[][], TView[]>>(host.GetMethod("ShadowOf").MakeGenericMethod(element), typeof(TView[]), typeof(TView[][]));
+            var views = new System.Runtime.CompilerServices.ConditionalWeakTable<PathGrid, ProbePages<TView>>();
+            return grid => views.GetValue(grid, g =>
+            {
+                var t = table(g);
+                return ProbePages<TView>.Over(t, length(g), shift, zero, k => make(t, k), shadowOf(t));
+            });
+        }
+
+        /// The tweak's own tables (ProbePages.Paged) make their pages on the pinned object heap
+        /// where the runtime has one (GC.AllocateArray, beyond netstandard2.1).
+        static void PinnedPages<T>() where T : struct
+        {
+            MethodInfo allocate = null;
+            foreach (var m in typeof(GC).GetMethods(BindingFlags.Public | BindingFlags.Static))
+                if (m.Name == "AllocateArray" && m.IsGenericMethodDefinition && m.GetParameters().Length == 2) allocate = m;
+            if (allocate == null) return;
+            var typed = (Func<int, bool, T[]>)allocate.MakeGenericMethod(typeof(T)).CreateDelegate(typeof(Func<int, bool, T[]>));
+            ProbePages<T>.Allocate = n => typed(n, true);
+        }
+
+        /// The object as T, unchecked: the game's arrays of its own structs as this tweak's.
+        static T Pun<T>(object value) => PunTo<T>.Value(value);
+
+        static class PunTo<T>
+        {
+            internal static readonly Func<object, T> Value = Make();
+
+            static Func<object, T> Make()
+            {
+                var dm = new DynamicMethod("ProbeRepair_Pun", typeof(T), new[] { typeof(object) }, typeof(ProbeRepair).Module, skipVisibility: true);
+                var il = dm.GetILGenerator();
+                il.Emit(OpCodes.Ldarg_0);
+                il.Emit(OpCodes.Ret);
+                return (Func<object, T>)dm.CreateDelegate(typeof(Func<object, T>));
+            }
+        }
+
+        /// A delegate calling `target` with this tweak's struct arrays for the game's.
+        static TDelegate Call<TDelegate>(MethodInfo target, Type returns, params Type[] parameters) where TDelegate : Delegate
+        {
+            var dm = new DynamicMethod("ProbeRepair_" + target.Name, returns, parameters, typeof(ProbeRepair).Module, skipVisibility: true);
+            var il = dm.GetILGenerator();
+            for (int i = 0; i < parameters.Length; i++) il.Emit(OpCodes.Ldarg, (short)i);
+            il.Emit(OpCodes.Call, target);
+            il.Emit(OpCodes.Ret);
+            return (TDelegate)dm.CreateDelegate(typeof(TDelegate));
         }
 
         // ---- Standing down ----
@@ -641,7 +723,7 @@ namespace OniMoono.GameTweaks
                 // cells' entries; its states too when at this very serial (a grid a repair kept long).
                 if (grid.SerialNo >= serial) grid.ResetProberCells();
                 var cells = cellsOf(grid);
-                if (grid.SerialNo == serial) Array.Clear(cells, 0, cells.Length);
+                if (grid.SerialNo == serial) cells.Clear();
                 grid.BeginUpdate(serial, order.originCell, null);
                 f.StateFlags ??= new ProbeFlags(cells.Length);
                 f.Valid = false;
@@ -690,7 +772,7 @@ namespace OniMoono.GameTweaks
                 return true;
             }
 
-            void Verify(Field f, PProber[] probers, ProbeDelta d, long added)
+            void Verify(Field f, ProbePages<PProber> probers, ProbeDelta d, long added)
             {
                 int states = graph.CellCount * graph.NavCount;
                 checkCells ??= new PCell[states];
@@ -788,8 +870,7 @@ namespace OniMoono.GameTweaks
                 global::Debug.LogException(e);
                 if (result.pathGrid != null)
                 {
-                    var cells = cellsOf(result.pathGrid);
-                    Array.Clear(cells, 0, cells.Length);
+                    cellsOf(result.pathGrid).Clear();
                     result.pathGrid.ResetProberCells();
                 }
                 result.reachableCells?.Clear();
@@ -901,7 +982,7 @@ namespace OniMoono.GameTweaks
 
         static StreamWriter digest;
         static readonly Dictionary<Navigator, int> digestIds = new Dictionary<Navigator, int>();
-        static Func<PathGrid, PProber[]> digestProbers;
+        static Func<PathGrid, ProbePages<PProber>> digestProbers;
 
         static readonly ConcurrentDictionary<Navigator, (int Root, int Nav, int Flags)> digestOrders = new ConcurrentDictionary<Navigator, (int, int, int)>();
 
@@ -915,7 +996,7 @@ namespace OniMoono.GameTweaks
         {
             var grid = __instance.PathGrid;
             if (grid == null || grid.applyOffset) return;
-            digestProbers ??= FieldAs<PathGrid, PProber[]>("ProberCells");
+            digestProbers ??= ViewOf<PProber>("ProberCells");
             if (digest == null)
             {
                 digest = new StreamWriter(digestPath, append: false) { AutoFlush = false };

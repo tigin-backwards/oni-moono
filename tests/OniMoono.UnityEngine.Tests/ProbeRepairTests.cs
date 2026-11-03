@@ -18,6 +18,9 @@ namespace OniMoono.Tests
         {
             public PCell[] Cells;
             public PProber[] Probers;
+            /// The arrays as the engine takes them (ProbeBench: paged with ONI_PROBE_BENCH_PAGED=1).
+            public ProbePages<PCell> CellsV;
+            public ProbePages<PProber> ProbersV;
             public ProbeFlags Flags;
             /// The reference engine's flags (ProbeBench).
             public byte[] RefFlags;

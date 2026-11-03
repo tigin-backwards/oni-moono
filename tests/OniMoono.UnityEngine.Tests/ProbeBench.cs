@@ -27,14 +27,20 @@ namespace OniMoono.Tests
             // ONI_PROBE_BENCH_AB=1: replays alternate between the reference engine (as the tweak
             // first landed) and ProbeEngine, each with its digest.
             bool ab = Environment.GetEnvironmentVariable("ONI_PROBE_BENCH_AB") == "1";
+            // ONI_PROBE_BENCH_PAGED_AB=MODE: replays alternate between flat arrays and paged ones
+            // (ONI_PROBE_BENCH_PAGED's modes), the machine's load falling on both alike.
+            var pagedAb = Environment.GetEnvironmentVariable("ONI_PROBE_BENCH_PAGED_AB");
+            if (!string.IsNullOrEmpty(pagedAb)) ab = true;
+            string[] names = string.IsNullOrEmpty(pagedAb) ? ["ref", "new"] : ["flat", "paged"];
             var best = new TraceReplay.BenchStats[2];
             var digests = new ulong[2];
             for (int i = 0; i < reps * (ab ? 2 : 1); i++)
             {
                 int k = ab ? 1 - (i & 1) : 1;
                 var t = TraceReplay.Load(path);
-                var s = t.Bench(digest && i < (ab ? 2 : 1), reference: k == 0);
-                output.WriteLine($"{file} {(k == 0 ? "ref" : "new")} #{i}: {s}");
+                var s = string.IsNullOrEmpty(pagedAb) ? t.Bench(digest && i < (ab ? 2 : 1), reference: k == 0)
+                    : t.Bench(digest && i < 2, pagedAs: k == 0 ? "0" : pagedAb);
+                output.WriteLine($"{file} {names[k]} #{i}: {s}");
                 if (s.Digest != 0) digests[k] = s.Digest;
                 if (s.Digest != 0 && k == 1)
                     output.WriteLine($"{file}: floods by how many flag values their states have: {string.Join(", ", s.FlagValues.Select((c, v) => (c, v)).Where(x => x.c > 0).Select(x => $"{x.v}: {x.c}"))}");
@@ -43,7 +49,7 @@ namespace OniMoono.Tests
             for (int k = ab ? 0 : 1; k < 2; k++)
             {
                 best[k].Digest = digests[k];
-                output.WriteLine($"{file} {(k == 0 ? "ref" : "new")} best: {best[k]}");
+                output.WriteLine($"{file} {names[k]} best: {best[k]}");
             }
             if (ab && digest) Assert.Equal(digests[0], digests[1]);
             var log = best[1].RepairLog;
@@ -101,7 +107,7 @@ namespace OniMoono.Tests
             public long Seq;
         }
 
-        public BenchStats Bench(bool digest, bool reference = false)
+        public BenchStats Bench(bool digest, bool reference = false, string pagedAs = null)
         {
             var stats = new BenchStats { RepairLog = new(), FlagValues = new int[33] };
             var graph = new ProbeGraph(w, cc, ml, navTypes, voids, rows);
@@ -139,6 +145,26 @@ namespace OniMoono.Tests
                         // Commit the pages now (as a long-lived grid in the game has them): a first
                         // write to a fresh array's page faults, which the game doesn't pay.
                         Array.Fill(n.R.Cells, default); Array.Fill(n.R.Probers, default); if (reference) Array.Fill(n.R.RefFlags, (byte)0);
+                        // paged-path-grids: the grid's arrays in pages, as the host's tables hold them.
+                        // =2: every page made up front, as a long-lived grid has those it was written
+                        // in (the pages' access alone, without their first write).
+                        var pagedMode = reference ? null : pagedAs ?? Environment.GetEnvironmentVariable("ONI_PROBE_BENCH_PAGED");
+                        bool paged = pagedMode is "1" or "2" or "3";
+                        // =3: pages on the pinned object heap, as the game's are (no promotions).
+                        if (pagedMode == "3")
+                        {
+                            ProbePages<PCell>.Allocate = n => GC.AllocateArray<PCell>(n, pinned: true);
+                            ProbePages<PProber>.Allocate = n => GC.AllocateArray<PProber>(n, pinned: true);
+                            ProbePages<byte>.Allocate = n => GC.AllocateArray<byte>(n, pinned: true);
+                            ProbePages<int>.Allocate = n => GC.AllocateArray<int>(n, pinned: true);
+                        }
+                        n.R.CellsV = paged ? ProbePages<PCell>.Paged(states) : n.R.Cells;
+                        n.R.ProbersV = paged ? ProbePages<PProber>.Paged(cc) : n.R.Probers;
+                        if (pagedMode == "2")
+                        {
+                            for (int st = 0; st < states; st += 1 << ProbePages<PCell>.PageShift) n.R.CellsV.Ref(st);
+                            for (int c = 0; c < cc; c += 1 << ProbePages<PProber>.PageShift) n.R.ProbersV.Ref(c);
+                        }
                     }
                     var rules = new Rules(this, p);
                     bool repair = false;
@@ -161,7 +187,7 @@ namespace OniMoono.Tests
                         {
                             int budget = budgetDiv > 0 ? Math.Max(n.R.Reach.Count, 1024) / budgetDiv : budgetDiv == 0 ? int.MaxValue : ProbeEngine.Budget(n.R.Reach.Count);
                             long g0 = GC.GetAllocatedBytesForCurrentThread();
-                            rs = engine.Repair(n.R.Cells, n.R.Probers, n.R.Flags, n.R.Serial, cs, rules, delta, budget);
+                            rs = engine.Repair(n.R.CellsV, n.R.ProbersV, n.R.Flags, n.R.Serial, cs, rules, delta, budget);
                             stats.RepairAlloc += GC.GetAllocatedBytesForCurrentThread() - g0;
                             if (rs.GaveUp)
                             {
@@ -182,10 +208,10 @@ namespace OniMoono.Tests
                         stats.RepairTicks += took;
                         stats.RepairLog.Add((took * 1e6 / Stopwatch.Frequency, cs.Count, seq - n.Seq, rs.Invalidated, rs.Pops, rs.Relaxed, reachBefore));
                         long a0 = Stopwatch.GetTimestamp();
-                        delta.ApplyTo(n.R.Cells, n.R.Probers);
+                        delta.ApplyTo(n.R.CellsV, n.R.ProbersV);
                         long a = Stopwatch.GetTimestamp() - a0;
                         long w0 = Stopwatch.GetTimestamp();
-                        delta.ApplyTo(n.R.Cells, n.R.Probers);
+                        delta.ApplyTo(n.R.CellsV, n.R.ProbersV);
                         stats.WarmApplyTicks += Stopwatch.GetTimestamp() - w0;
                         stats.ApplyTicks += a;
                         stats.MaxApplyTicks = Math.Max(stats.MaxApplyTicks, a);
@@ -197,7 +223,7 @@ namespace OniMoono.Tests
                         if (++serial == 0)
                         {
                             serial = 1;
-                            foreach (var o in navs.Values) { Array.Clear(o.R.Cells); Array.Clear(o.R.Probers); o.R.Serial = 0; }
+                            foreach (var o in navs.Values) { o.R.CellsV.Clear(); o.R.ProbersV.Clear(); o.R.Serial = 0; }
                         }
                         n.R.Serial = serial;
                         n.R.Reach.Clear();
@@ -207,7 +233,7 @@ namespace OniMoono.Tests
                         else
                         {
                             long g0 = GC.GetAllocatedBytesForCurrentThread();
-                            engine.Flood(n.R.Cells, n.R.Probers, n.R.Flags, serial, p.Origin, p.NavType, p.Flags, rules, found);
+                            engine.Flood(n.R.CellsV, n.R.ProbersV, n.R.Flags, serial, p.Origin, p.NavType, p.Flags, rules, found);
                             stats.FloodAlloc += GC.GetAllocatedBytesForCurrentThread() - g0;
                         }
                         // The worker's reachable cells, sorted (the reference: the found list sorted).
@@ -221,7 +247,7 @@ namespace OniMoono.Tests
                         if (digest)
                         {
                             var seen = new HashSet<byte>();
-                            for (int st = 0; st < states; st++) if (n.R.Cells[st].QueryId == serial) seen.Add(reference ? n.R.RefFlags[st] : n.R.Flags[st]);
+                            for (int st = 0; st < states; st++) if (n.R.CellsV[st].QueryId == serial) seen.Add(reference ? n.R.RefFlags[st] : n.R.Flags[st]);
                             stats.FlagValues[Math.Min(32, seen.Count)]++;
                         }
                     }
@@ -252,7 +278,7 @@ namespace OniMoono.Tests
 
         static ulong Digest(ulong h, ProbeRepairTests.Result r, ProbeGraph g)
         {
-            var cells = r.Cells;
+            var cells = r.CellsV;
             for (int s = 0; s < cells.Length; s++)
             {
                 var c = cells[s];
@@ -260,7 +286,7 @@ namespace OniMoono.Tests
                 h = Mix(h, ((ulong)(uint)s << 32) | (uint)c.Cost);
                 h = Mix(h, ((ulong)(uint)c.Parent << 32) | ((ulong)c.NavTypes << 16) | ((ulong)c.TransitionId << 8) | (r.RefFlags != null ? r.RefFlags[s] : r.Flags[s]));
             }
-            foreach (int cell in r.Reach) h = Mix(h, ((ulong)(uint)cell << 32) | (uint)r.Probers[cell].Cost);
+            foreach (int cell in r.Reach) h = Mix(h, ((ulong)(uint)cell << 32) | (uint)r.ProbersV[cell].Cost);
             return h;
         }
     }

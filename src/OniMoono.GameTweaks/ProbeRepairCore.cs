@@ -211,16 +211,18 @@ namespace OniMoono.GameTweaks
         const byte Suits = 0x17, SuitChecks = 8;
         readonly int count;
         byte checks;
-        byte[] packed, bytes;
+        ProbePages<byte> packed, bytes;
 
+        /// Paged (each page made on its first write): a navigator's flags cover the whole map,
+        /// its probes only what it reaches.
         public ProbeFlags(int states)
         {
             count = states;
-            packed = new byte[(states + 1) >> 1];
+            packed = ProbePages<byte>.Paged((states + 1) >> 1);
         }
 
         /// What it keeps, in bytes.
-        public long Size => (packed?.Length ?? 0) + (bytes?.Length ?? 0);
+        public long Size => (packed?.Bytes(1) ?? 0) + (bytes?.Bytes(1) ?? 0);
 
         public byte this[int s]
         {
@@ -250,8 +252,8 @@ namespace OniMoono.GameTweaks
             if (p != null && (v & ~Suits) == checks)
             {
                 int sh = (s & 1) << 2;
-                ref byte b = ref p[s >> 1];
-                b = (byte)((b & ~(15 << sh)) | (((v & 7) | ((v >> 1) & 8)) << sh));
+                byte b = p[s >> 1];
+                p[s >> 1] = (byte)((b & ~(15 << sh)) | (((v & 7) | ((v >> 1) & 8)) << sh));
                 return;
             }
             if (p != null) ToBytes();
@@ -261,10 +263,144 @@ namespace OniMoono.GameTweaks
         void ToBytes()
         {
             if (bytes != null) return;
-            var b = new byte[count];
-            for (int s = 0; s < count; s++) b[s] = this[s];
+            // Unwritten, a state reads as the root's PerformSuitChecks: the bytes' pages are
+            // made of that, so only the states that differ make a page.
+            var b = ProbePages<byte>.Paged(count, checks);
+            for (int s = 0; s < count; s++)
+            {
+                byte v = this[s];
+                if (v != checks) b[s] = v;
+            }
             bytes = b;
             packed = null;
+        }
+    }
+
+    /// An array of T as this tweak reads and writes it: one flat array (the game's, a test's), or a
+    /// table of pages of 2^Shift elements whose unwritten pages are all one shared page of `fill`
+    /// (zeros but for ProbeFlags' bytes), made on their first write of anything else:
+    /// paged-path-grids' tables behind a PathGrid's arrays (the host's PathGridPages, its pages
+    /// made through `make`) and this tweak's own whole-map arrays (Paged). Reads and writes give
+    /// what the flat array would hold. `shadow` (paged-path-grids' verify mode): the flat array
+    /// kept beside the table, written too.
+    public sealed class ProbePages<T> where T : struct
+    {
+        public const int PageShift = 8;
+
+        /// How a page of the tweak's own tables is allocated: ProbeRepair makes it the pinned
+        /// object heap's (GC.AllocateArray, which netstandard2.1 does not name), so a page made
+        /// in play is never copied by the GC's promotions.
+        public static Func<int, T[]> Allocate = n => new T[n];
+        readonly T[][] pages;
+        readonly T[] zero;
+        readonly T fill;
+        readonly int shift, mask;
+        readonly Func<int, T[]> make;
+        readonly T[] shadow;
+        public readonly int Length;
+
+        ProbePages(T[][] pages, int length, int shift, T[] zero, T fill, Func<int, T[]> make, T[] shadow)
+        {
+            this.pages = pages;
+            Length = length;
+            this.shift = shift;
+            mask = shift >= 31 ? int.MaxValue : (1 << shift) - 1;
+            this.zero = zero;
+            this.fill = fill;
+            this.make = make;
+            this.shadow = shadow;
+        }
+
+        /// One page: the array itself.
+        public static ProbePages<T> Flat(T[] array) => new ProbePages<T>(new[] { array }, array.Length, 31, null, default, null, null);
+
+        public static implicit operator ProbePages<T>(T[] array) => Flat(array);
+
+        /// Pages of its own, every element `fill`.
+        public static ProbePages<T> Paged(int length, T fill = default)
+        {
+            int size = 1 << PageShift, n = (int)(((long)length + size - 1) >> PageShift);
+            T[] Filled(int count)
+            {
+                var page = count == size ? Allocate(count) : new T[count];
+                if (!IsDefault(fill)) for (int e = 0; e < count; e++) page[e] = fill;
+                return page;
+            }
+            if (n <= 1) return Flat(Filled(length));
+            var zero = Filled(size);
+            var table = new T[n][];
+            for (int k = 0; k < n - 1; k++) table[k] = zero;
+            // The last page exactly as long as the array's end: its bounds check is the array's.
+            table[n - 1] = Filled(length - ((n - 1) << PageShift));
+            return new ProbePages<T>(table, length, PageShift, zero, fill, k =>
+            {
+                var fresh = Filled(size);
+                var won = System.Threading.Interlocked.CompareExchange(ref table[k], fresh, zero);
+                return won == zero ? fresh : won;
+            }, null);
+        }
+
+        /// A view of another's table (paged-path-grids', unwritten pages zeros): `zero` its
+        /// unwritten page, `make` makes page k (or returns the one another thread made).
+        public static ProbePages<T> Over(T[][] table, int length, int shift, T[] zero, Func<int, T[]> make, T[] shadow) =>
+            table.Length == 1 && table[0].Length == length ? new ProbePages<T>(table, length, 31, null, default, null, shadow)
+                : new ProbePages<T>(table, length, shift, zero, default, make, shadow);
+
+        public T this[int i]
+        {
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            get => pages[i >> shift][i & mask];
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+            set
+            {
+                int k = i >> shift;
+                var page = pages[k];
+                if (page == zero)
+                {
+                    if (IsFill(value))
+                    {
+                        if (shadow != null) shadow[i] = value;
+                        return;
+                    }
+                    page = make(k);
+                }
+                page[i & mask] = value;
+                if (shadow != null) shadow[i] = value;
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        bool IsFill(T value) => System.Collections.Generic.EqualityComparer<T>.Default.Equals(value, fill);
+
+        static bool IsDefault(T value) => System.Collections.Generic.EqualityComparer<T>.Default.Equals(value, default);
+
+        /// A writable reference to element i, its page made first (this tweak's own arrays: no
+        /// shadow to keep).
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public ref T Ref(int i)
+        {
+            int k = i >> shift;
+            var page = pages[k];
+            if (page == zero) page = make(k);
+            return ref page[i & mask];
+        }
+
+        /// Every element zero again (Array.Clear of the whole array); pages made stay.
+        public void Clear()
+        {
+            if (!IsDefault(fill)) throw new InvalidOperationException("a table of another fill than zeros is not cleared");
+            foreach (var page in pages)
+                if (page != zero) Array.Clear(page, 0, page.Length);
+            if (shadow != null) Array.Clear(shadow, 0, shadow.Length);
+        }
+
+        /// The bytes of the pages made (and the table), for the tweak's report.
+        public long Bytes(int elementSize)
+        {
+            long b = pages.Length > 1 ? pages.Length * 8L : 0;
+            foreach (var page in pages)
+                if (page != zero) b += (long)page.Length * elementSize;
+            return b;
         }
     }
 
@@ -290,7 +426,7 @@ namespace OniMoono.GameTweaks
             States.Clear(); Cells.Clear(); ProberCells.Clear(); Probers.Clear(); Newly.Clear(); Gone.Clear();
         }
 
-        public void ApplyTo(PCell[] cells, PProber[] probers)
+        public void ApplyTo(ProbePages<PCell> cells, ProbePages<PProber> probers)
         {
             for (int i = 0; i < States.Count; i++) cells[States[i]] = Cells[i];
             for (int i = 0; i < ProberCells.Count; i++) probers[ProberCells[i]] = Probers[i];
@@ -336,11 +472,12 @@ namespace OniMoono.GameTweaks
             slotNav = graph.SlotNav;
             navSlot = graph.NavSlot;
             int states = graph.CellCount * nc;
-            ov = new PCell[states];
-            ovFlags = new byte[states];
-            ovStamp = new int[states];
-            mark = new int[states];
-            setAt = new int[states];
+            // A state's scratch is used only where a repair goes: in pages, made as it gets there.
+            ov = ProbePages<PCell>.Paged(states);
+            ovFlags = ProbePages<byte>.Paged(states);
+            ovStamp = ProbePages<int>.Paged(states);
+            mark = ProbePages<int>.Paged(states);
+            setAt = ProbePages<int>.Paged(states);
             cellMark = new int[graph.CellCount];
             foundBits = new ulong[(graph.CellCount + 63) >> 6];
         }
@@ -435,7 +572,7 @@ namespace OniMoono.GameTweaks
         /// PathGrid.BeginUpdate: `cells`/`probers` are the path grid's arrays, `flags` gets every
         /// state's path flags, `found` the cells found (as PathGrid.SetCell adds them). Returns how
         /// many times a state was set.
-        public int Flood(PCell[] cells, PProber[] probers, ProbeFlags flags, ushort serial, int root, byte rootNav, byte rootFlags, IProbeRules rules, List<int> found)
+        public int Flood(ProbePages<PCell> cells, ProbePages<PProber> probers, ProbeFlags flags, ushort serial, int root, byte rootNav, byte rootFlags, IProbeRules rules, List<int> found)
         {
             int set = 0;
             flags.Reset(rootFlags);
@@ -455,7 +592,7 @@ namespace OniMoono.GameTweaks
             while (queued > 0)
             {
                 var e = Dequeue();
-                ref var cd = ref cells[e.Cell * nc + navSlot[e.Nav]];
+                var cd = cells[e.Cell * nc + navSlot[e.Nav]];
                 if (cd.QueryId != serial || cd.Cost != e.Key) continue;
                 // AddPotentials
                 int pcell = e.Cell;
@@ -477,7 +614,7 @@ namespace OniMoono.GameTweaks
                 for (int j = 0; j < n; j++)
                 {
                     var l = scratchLinks[j];
-                    ref var c = ref cells[l.Link * nc + navSlot[l.End]];
+                    var c = cells[l.Link * nc + navSlot[l.End]];
                     int ccost = c.QueryId == serial ? c.Cost : -1;
                     int num5 = cost + l.Cost;
                     // No penalty is negative: a link that costs no less before it can't after.
@@ -570,7 +707,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// PathGrid.SetCell.
-        void Set(PCell[] cells, PProber[] probers, ProbeFlags flags, ushort serial, int cell, byte nav, ref PCell data, byte pf, List<int> found)
+        void Set(ProbePages<PCell> cells, ProbePages<PProber> probers, ProbeFlags flags, ushort serial, int cell, byte nav, ref PCell data, byte pf, List<int> found)
         {
             data.QueryId = serial;
             int s = cell * nc + navSlot[nav];
@@ -578,7 +715,7 @@ namespace OniMoono.GameTweaks
             flags.Set(s, pf);
             if (nav != ProbeGraph.Tube)
             {
-                ref var p = ref probers[cell];
+                var p = probers[cell];
                 if (p.QueryId != serial)
                 {
                     found?.Add(cell);
@@ -589,6 +726,7 @@ namespace OniMoono.GameTweaks
                     p.QueryId = serial;
                     p.Cost = data.Cost;
                     p.NavType = nav;
+                    probers[cell] = p;
                 }
             }
         }
@@ -596,17 +734,17 @@ namespace OniMoono.GameTweaks
         // ---- The repair ----
 
         // The repaired states over the result's: ov[s] where ovStamp[s] is this repair's.
-        readonly PCell[] ov;
-        readonly byte[] ovFlags;
-        readonly int[] ovStamp;
-        readonly int[] mark, setAt, cellMark;
+        readonly ProbePages<PCell> ov;
+        readonly ProbePages<byte> ovFlags;
+        readonly ProbePages<int> ovStamp, mark, setAt;
+        readonly int[] cellMark;
         int stamp, markStamp, cellStamp, popId;
         readonly List<int> touched = new List<int>(), inval = new List<int>(), srcs = new List<int>(), touchedCells = new List<int>();
         readonly HashSet<int> srcSeen = new HashSet<int>();
         readonly HashSet<EdgeKey> ce = new HashSet<EdgeKey>();
         int[] hk = new int[1024], hs = new int[1024];
         int hn;
-        PCell[] baseCells;
+        ProbePages<PCell> baseCells;
         ProbeFlags baseFlags;
         ushort serial;
         IProbeRules rules;
@@ -630,12 +768,13 @@ namespace OniMoono.GameTweaks
             if (ovStamp[s] != stamp)
             {
                 ovStamp[s] = stamp;
-                ov[s] = baseCells[s];
-                if (ov[s].QueryId != serial) ov[s].QueryId = 0;
+                var b = baseCells[s];
+                if (b.QueryId != serial) b.QueryId = 0;
+                ov[s] = b;
                 ovFlags[s] = baseFlags[s];
                 touched.Add(s);
             }
-            return ref ov[s];
+            return ref ov.Ref(s);
         }
 
         bool AnyValid(int cell)
@@ -698,14 +837,14 @@ namespace OniMoono.GameTweaks
         /// Gives up (GaveUp, `flags` and `delta` untouched) once the states it dropped and set again
         /// pass `budget`: a repair that redoes much of the result costs more than a flood (each of
         /// its states some three times a flood's), and its delta lands on the main thread.
-        public RepairStats Repair(PCell[] cells, PProber[] probers, ProbeFlags flags, ushort serial, ChangeSet cs, IProbeRules rules, ProbeDelta delta, int budget = int.MaxValue)
+        public RepairStats Repair(ProbePages<PCell> cells, ProbePages<PProber> probers, ProbeFlags flags, ushort serial, ChangeSet cs, IProbeRules rules, ProbeDelta delta, int budget = int.MaxValue)
         {
             stats = default;
             delta.Clear();
             baseCells = cells; baseFlags = flags; this.serial = serial; this.rules = rules;
             refusedFor = -1;
-            if (++stamp == int.MaxValue) { Array.Clear(ovStamp, 0, ovStamp.Length); stamp = 1; }
-            if (++markStamp == int.MaxValue) { Array.Clear(mark, 0, mark.Length); markStamp = 1; }
+            if (++stamp == int.MaxValue) { ovStamp.Clear(); stamp = 1; }
+            if (++markStamp == int.MaxValue) { mark.Clear(); markStamp = 1; }
             touched.Clear(); inval.Clear(); srcs.Clear(); srcSeen.Clear(); ce.Clear();
             hn = 0;
             NextPop();
@@ -888,7 +1027,7 @@ namespace OniMoono.GameTweaks
         /// setAt's stamps run on from one repair to the next.
         void NextPop()
         {
-            if (++popId == int.MaxValue) { Array.Clear(setAt, 0, setAt.Length); popId = 1; }
+            if (++popId == int.MaxValue) { setAt.Clear(); popId = 1; }
         }
 
         int State(in PLink l)
@@ -1037,7 +1176,7 @@ namespace OniMoono.GameTweaks
 
         /// Cells whose prober entries differ in validity or cost between two grids (each with its
         /// own serial): 0 when both answer GetCost alike everywhere.
-        public static int ProberDifferences(PProber[] a, ushort serialA, PProber[] b, ushort serialB, int cellCount, List<int> first = null)
+        public static int ProberDifferences(ProbePages<PProber> a, ushort serialA, ProbePages<PProber> b, ushort serialB, int cellCount, List<int> first = null)
         {
             int n = 0;
             for (int c = 0; c < cellCount; c++)
