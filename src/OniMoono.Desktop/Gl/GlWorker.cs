@@ -109,6 +109,12 @@ namespace OniMoono.Desktop.Gl
                     recording.Reset();
                     return;
                 }
+                if (submitted != null && OniMoono.Engine.PlayerLoop.FrameStats)
+                {
+                    long waiting = GlTimings.Now;
+                    while (submitted != null && failure == null) Monitor.Wait(gate);
+                    if (OniMoono.Engine.Threads.IsMainThread) OniMoono.Engine.FrameStatsWindow.DeviceFrameWait += GlTimings.Now - waiting;
+                }
                 while (submitted != null && failure == null) Monitor.Wait(gate);
                 ThrowIfFailed();
                 // The previous frame has been executed: its storage records the next one.
@@ -148,7 +154,14 @@ namespace OniMoono.Desktop.Gl
                 ran = true;
             });
             Submit();
-            WaitIdle();
+            if (OniMoono.Engine.PlayerLoop.FrameStats && OniMoono.Engine.Threads.IsMainThread)
+            {
+                long waiting = GlTimings.Now;
+                WaitIdle();
+                OniMoono.Engine.FrameStatsWindow.DeviceCallWait += GlTimings.Now - waiting;
+                OniMoono.Engine.FrameStatsWindow.DeviceCalls++;
+            }
+            else WaitIdle();
             // After shutdown Submit drops the work, and WaitIdle also returns when shutdown
             // starts while the work is still queued: it has not run (read under the gate, which
             // the GL thread takes after running a frame).

@@ -107,7 +107,13 @@ namespace OniMoono.GameTweaks
                 int helpers = Math.Min(Workers, count - 1);
                 if (helpers > 0) wakes.Wake(helpers);
                 Work(batch, 0);
-                if (Volatile.Read(ref batch.Remaining) != 0) batch.Done.Wait();
+                if (Volatile.Read(ref batch.Remaining) != 0)
+                {
+                    // Frame stats: the caller's wait for the workers (GameFrameStats).
+                    long waiting = GameFrameStats.OnMain ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+                    batch.Done.Wait();
+                    if (waiting != 0) GameFrameStats.AddJobWait(waiting);
+                }
                 if (batch.Ran == null) return;
                 runs++;
                 for (int k = 0; k < count; k++)

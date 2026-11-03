@@ -30,7 +30,7 @@ namespace OniMoono.Host
             // Xlib and XRandR, which GLFW's X11 backend has loaded (KeyboardLayout reads the keymap
             // through Xlib, ScreenDpi the monitor's size through XRandR).
             if (name is "libx11.so.6" or "libxrandr.so.2") return "X11 client library";
-            if (name.EndsWith(".dll") || name is "kernel32" or "kernelbase" or "advapi32" or "gdi32" or "gdiplus" or "user32" or "ole32" or "shell32") return "Windows library";
+            if (name.EndsWith(".dll") || name is "kernel32" or "kernelbase" or "advapi32" or "gdi32" or "gdiplus" or "user32" or "ole32" or "shell32" or "ntdll" or "powrprof") return "Windows library";
             if (name is "glfw" or "freetype" or "stb" or "glad" or "vma" or "shaderc" or "shaderc_shared") return "BRUTAL native (its package's)";
             // The Vulkan loader is the system's (VkContext.LoaderPresent; without it, OpenGL).
             if (name is "vulkan" or "vulkan-1") return "Vulkan loader (the system's)";

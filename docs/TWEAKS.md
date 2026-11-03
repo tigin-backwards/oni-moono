@@ -54,7 +54,9 @@ launch options:
 - Tweaks by name: `--game-tweak exact --game-tweak slow-reachability`. `--game-tweak -NAME` leaves
   one out of `exact` or `all`.
 - `--splash moo|none`: the loading splash.
-- `--frame-stats`: where each frame's time went, in the log every 60 frames.
+- `--frame-stats`: where each frame's time went, in the log every 60 frames, and every 600 frames
+  the game's speed and update, the waits and the machine's state
+  ([PERFORMANCE.md](PERFORMANCE.md#frame-stats-in-a-players-log)).
 - `--log-paths hidden|full`: Player.log with your user folder, Documents folder, Steam ID,
   Steam name and Klei ID replaced (`%USERPROFILE%` or `~`, `%DOCUMENTS%`, `<steam id>`,
   `<name>`, `<klei id>`), or as logged.

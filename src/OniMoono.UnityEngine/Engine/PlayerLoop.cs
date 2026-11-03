@@ -77,6 +77,8 @@ namespace OniMoono.Engine
         static void EndStats()
         {
             if (!FrameStats) return;
+            // The first frame starts the 600-frame window of FrameStatsWindow's counts.
+            if (statWindows == 0 && statFrames == 0) FrameStatsWindow.Take(0);
             // Single slow frames (hitches) are logged with their own breakdown.
             double total = 0;
             foreach (var v in framePhases) total += v;
@@ -97,6 +99,7 @@ namespace OniMoono.Engine
                 EngineLog.Engine($"memory: working set {self.WorkingSet64 >> 20} MiB, private {self.PrivateMemorySize64 >> 20} MiB, managed heap {gc.HeapSizeBytes >> 20} MiB (committed {gc.TotalCommittedBytes >> 20} MiB), collections {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)}, paused {GC.GetTotalPauseDuration().TotalMilliseconds:F0} ms in all");
                 var video = OniMoono.Engine.Rendering.GraphicsDevice.Current.MemoryCounters();
                 if (video != null) EngineLog.Engine("video memory: " + video);
+                foreach (var line in FrameStatsWindow.Take(600)) EngineLog.Engine(line);
             }
             Array.Clear(statTotals);
             statFrames = 0;
@@ -133,7 +136,13 @@ namespace OniMoono.Engine
             FrameTimingManager.BeginFrame(FrameStartedAt);
             if (FrameStats) statClock.Restart();
             // The device's texel copies from the last frame finish before scripts can write texels.
-            Rendering.TexelCopies.Fence();
+            if (FrameStats)
+            {
+                long fence = FrameStatsWindow.Now;
+                Rendering.TexelCopies.Fence();
+                FrameStatsWindow.TexelCopyWait += FrameStatsWindow.Now - fence;
+            }
+            else Rendering.TexelCopies.Fence();
             Time.BeginFrame(realDelta);
             RunPhase(FrameStart);
 
