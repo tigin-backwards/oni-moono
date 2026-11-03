@@ -1,0 +1,67 @@
+# The Load screen with thousands of saves (docs/research/load-screen-many-saves.md): run with
+# E2E_CLOUD_SAVES naming a synthetic saves tree (never a real saves folder). Times, through
+# E2eDriver's stopwatch, opening the screen, opening the biggest colony and picking a save.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - driver:
+      stopwatch:
+        over_ms: 50
+        methods:
+          - "LoadScreen:OnActivate"
+          - "LoadScreen:RefreshColonyList"
+          - "LoadScreen:CheckCloudLocalOverlap"
+          - "LoadScreen:GetColoniesDetails"
+          - "LoadScreen:AddColonyToList"
+          - "LoadScreen:ShowColony"
+          - "LoadScreen:ShowColonySave"
+          - "LoadScreen:SetPreview"
+          - "SaveLoader:GetSaveFiles"
+          - "SaveLoader:LoadHeader"
+          - "SaveGame:GetGameInfo"
+          - "RetireColonyUtility:LoadColonyPreview"
+          - "TMPro.TMP_Text:set_text"
+          - "SaveGame+GameInfo:IsCompatableWithCurrentDlcConfiguration"
+          - "ImageToggleState:SetState"
+          - "UnityEngine.UI.LayoutRebuilder:Rebuild"
+          - "TMPro.TextMeshProUGUI:Rebuild"
+          - "UnityEngine.UI.CanvasUpdateRegistry:PerformUpdate"
+          - "UnityEngine.Canvas:SendWillRenderCanvases"
+  # Load Game: the second of New Game, Load Game, Colony Summaries, ...
+  - click: {ui: "**/MainMenuButtons/ButtonTemplate", index: 1}
+  - ui_wait: {path: "**/LoadScreen/**/Prefab_ColonyButton[4]/Header", cond: stable, frames: 6000}
+  # Each stopwatch reports the time since the previous one, then holds 120 frames without
+  # driver queries (the frames' mean and longest time: the screen's steady cost).
+  - driver: {stopwatch: {hold: 120}}
+  # The fifth colony: 715 saves (klei pls), 684 of them autosaves.
+  - click: {ui: "**/LoadScreen/**/Prefab_ColonyButton[4]/Header"}
+  - ui_wait: {path: "**/ColonyView/**/Content/SaveTemplate(Clone)[1]", cond: exists, frames: 6000}
+  - driver: {stopwatch: {hold: 120}}
+  # The first rows (the original numbers Graphic depths by its batching; ours in order).
+  - ui_dump: {name: colony, root: "**/ColonyView/**/Content/SaveTemplate(Clone)[0]"}
+  - ui_dump: {name: colony-row2, root: "**/ColonyView/**/Content/SaveTemplate(Clone)[1]"}
+  - click: {ui: "**/ColonyView/**/Content/SaveTemplate(Clone)[1]"}
+  - ui_wait: {path: "**/ColonyView/SavePreview", cond: stable, frames: 6000}
+  - driver: {stopwatch: {hold: 120}}
+  - click: {ui: "**/ColonyView/BackToColonies"}
+  - ui_wait: {path: "**/LoadScreen/**/Prefab_ColonyButton[4]/Header", cond: stable, frames: 6000}
+  - driver: {stopwatch: {hold: 120}}
+  # Load more...: below the 20 colonies.
+  - scroll: {at: "**/LoadScreen/Panel/ColonyList/ListView/Files", notches: -400}
+  - ui_wait: {path: "**/LoadScreen/**/LoadMoreButton", cond: stable, frames: 600}
+  - click: {ui: "**/LoadScreen/**/LoadMoreButton"}
+  - ui_wait: {path: "**/LoadScreen/**/Prefab_ColonyButton[24]/Header", cond: exists, frames: 6000}
+  - driver: {stopwatch: {hold: 120}}
+  # Back up to the first page and the same colony again: Load more refreshed the same pooled
+  # rows, and each refresh added a ShowColony handler to the row's button (AddColonyToList never
+  # clears it), so the colony is built once a refresh of this opening (closing the screen
+  # destroys it, so a new opening starts with one).
+  - scroll: {at: "**/LoadScreen/Panel/ColonyList/ListView/Files", notches: 400}
+  - ui_wait: {path: "**/LoadScreen/**/Prefab_ColonyButton[4]/Header", cond: stable, frames: 600}
+  - driver: {stopwatch: {hold: 120}}
+  - click: {ui: "**/LoadScreen/**/Prefab_ColonyButton[4]/Header"}
+  - ui_wait: {path: "**/ColonyView/**/Content/SaveTemplate(Clone)[1]", cond: exists, frames: 6000}
+  - driver: {stopwatch: {hold: 120}}
