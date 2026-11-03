@@ -320,6 +320,12 @@ prototyped yet.
 - Main-thread lock waits: at most 0.03 ms a frame (contention events).
 - Mods' own code on soggy lab 2: under 0.1% of the main thread.
 
+### Landed
+
+| Change | Status | Measured (U60 761211, speed 3) |
+|---|---|---|
+| Incremental repair of Duplicants' async path probes (`path-probe-repair`, src/OniMoono.GameTweaks/ProbeRepair.cs; docs/TWEAKS.md) | Landed as a tweak, opt-in (off by default and in `exact`). Differs from the original only in ties: where two routes cost the same, the repair may keep the other one, so a Duplicant may take another route of the same cost | Windows, one run a save, repairs switched on and off every 20 s (3 windows each, `ONI_PROBE_REPAIR_SWITCH`): probe thread **c100 92.0 → 33.4 ms/game s** (2,603 → 822 us a probe), **DeCrew 308.9 → 71.4** (7,580 → 1,399 us; off, the thread was 93% busy and the game's 4-a-frame queue kept it to 40.7 probes/game s, on 51.0). Process CPU: DeCrew 3.11 → 2.48 cores (1,036 → 825 ms/game s); c100 3.77 vs 3.96 cores, within the windows' frame-rate spread (26.5 vs 30.4 fps). Linux (direction only, separate runs): probe thread c100 89.6/84.0 → 34.5/28.2, DeCrew 196.8/230.2 → 70.4/73.9 ms/game s. A repair costs 0.1-0.3 ms; about 60% of probes are repairs, the rest Duplicants that moved. Verify mode (`ONI_TWEAK_VERIFY=1`): 0 of 10,704 repairs differed from a flood, 0 of 181 of our floods from `PathProber.Run`. Memory: a byte a state a Duplicant (1.8 MB on c100's 636×404 world) and about 45 MB of probe-thread scratch; not separable from run-to-run working-set spread here. |
+
 ### In progress elsewhere (not re-measured here)
 
 - **Culling registry** (`rc-cull-u60`): cull only renderers that are enabled on active
