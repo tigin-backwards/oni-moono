@@ -1357,14 +1357,15 @@ namespace OniMoono.GameTweaks
     /// (PerfProbe's stopwatches, test infrastructure, only time them).
     public static class ProbeRepairPolicy
     {
-        public const string Owner = "OniMoono.Host.GameTweaks";
+        /// This tweak's own Harmony ID (each tweak patches under its own, ModOverlapsCore.OwnerOf).
+        public const string Owner = ModOverlapsCore.TweakOwnerPrefix + ".path-probe-repair";
 
         /// The first foreign patch, as "OWNER patches METHOD", or null.
         public static string Foreign(IEnumerable<KeyValuePair<string, IEnumerable<string>>> patchOwnersByMethod)
         {
             foreach (var kv in patchOwnersByMethod)
                 foreach (var o in kv.Value)
-                    if (o != Owner && o != "PerfProbe" && !o.StartsWith("PerfProbe.", StringComparison.Ordinal))
+                    if (!ModOverlapsCore.IsTweakOwner(o) && o != "PerfProbe" && !o.StartsWith("PerfProbe.", StringComparison.Ordinal))
                         return $"{o} patches {kv.Key}";
             return null;
         }

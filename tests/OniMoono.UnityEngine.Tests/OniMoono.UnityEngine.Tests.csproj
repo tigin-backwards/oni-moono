@@ -60,6 +60,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/BrainRateAllowance.cs" Link="GameTweaks/BrainRateAllowance.cs" />
     <!-- The path-probe-repair game tweak's search (ProbeRepairTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/ProbeRepairCore.cs" Link="GameTweaks/ProbeRepairCore.cs" />
+    <!-- The mod overlaps with the tweaks: grading, the log and the tooltips (ModOverlapsTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/ModOverlapsCore.cs" Link="GameTweaks/ModOverlapsCore.cs" />
     <!-- The fast-load-screen game tweak's header memo and read-ahead (HeaderReadsTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/HeaderReads.cs" Link="GameTweaks/HeaderReads.cs" />
     <!-- The fix-load-screen-clicks game tweak's check for the bug (LoadScreenClickBugTests). -->

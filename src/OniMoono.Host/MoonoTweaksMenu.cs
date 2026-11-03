@@ -90,6 +90,22 @@ namespace OniMoono.Host
                 settingsPath, save,
                 TweakStrings.All.Select(t => t.Key).ToArray(), TweakStrings.All.Select(t => t.English).ToArray(), resolve, translations]);
 
+            // The mods' patches on the tweaks' methods, read at each main menu: the tweaks on this
+            // run, the methods their load-time rewrites changed, and the transpilers reviewed
+            // against compact-nav-links' rewrite.
+            try
+            {
+                TweakRewrites.Prepare();
+                Func<System.Reflection.MethodBase, string?> rewritten = TweakRewrites.RewrittenBy;
+                GameTweaks.GameTweaks.TypedAssembly.GetType("OniMoono.GameTweaks.ModOverlaps", throwOnError: true)!.GetMethod("Install")!
+                    .Invoke(null, [effective.EnabledTweaks.ToArray(), rewritten,
+                        CompactNavLinks.reviewed.Select(r => r.Target).ToArray(), CompactNavLinks.reviewed.Select(r => r.Transpiler).ToArray()]);
+            }
+            catch (Exception e)
+            {
+                EngineLog.Engine($"mod overlaps: not installed: {e.GetType().Name}: {e.Message}");
+            }
+
             // The update badge beside the button: the check runs in the background from now on.
             if (effective.UpdateCheck)
             {

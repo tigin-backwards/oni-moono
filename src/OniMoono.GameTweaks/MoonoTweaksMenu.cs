@@ -162,6 +162,8 @@ namespace OniMoono.GameTweaks
         static void AddButton(MainMenu __instance)
         {
             Localize();
+            // Every mod has made its patches by now (KMod loads them before the first menu).
+            ModOverlaps.Refresh();
             try
             {
                 var menu = Traverse.Create(__instance);
@@ -185,7 +187,16 @@ namespace OniMoono.GameTweaks
                     else if (index < 0 && text == (string)UI.FRONTEND.MAINMENU.OPTIONS) index = child.GetSiblingIndex();
                 }
                 if (index >= 0) button.transform.SetSiblingIndex(index);
-                UpdateBadge.Attach(__instance, button, prefab, style);
+                RectTransform overlaps = null;
+                try
+                {
+                    overlaps = OverlapBadge.Attach(__instance, button, prefab, style, () => Open(__instance));
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("[Moono] the overlap badge could not be added: " + e);
+                }
+                UpdateBadge.Attach(__instance, button, prefab, style, overlaps);
             }
             catch (Exception e)
             {
@@ -224,8 +235,13 @@ namespace OniMoono.GameTweaks
     public class MoonoTweaksScreen : KModalScreen
     {
         static string Title => MoonoTweaksMenu.Ui("TITLE");
-        /// The warning colour of the gameplay-changing section's heading (amber).
-        const string Warning = "FFB040";
+        /// The warning colour of the gameplay-changing section's heading (amber), and of a
+        /// high-grade mod overlap's icon and lines.
+        internal const string Warning = "FFB040";
+        /// The colour of a low-grade overlap's icon, and of a tweak's that steps aside: the body
+        /// text's light grey.
+        const string Neutral = "C8CBD3";
+        const float RowIconSize = 20f;
         /// Row padding (above and below, and the left inset) and the spacing between rows: a
         /// little tighter than the Mods screen's 10 px, so that about ten rows fit.
         const int RowPadding = 7, RowInset = 16, RowSpacing = 6;
@@ -540,8 +556,30 @@ namespace OniMoono.GameTweaks
             var text = MoonoTweaksMenu.Details[i];
             if (MoonoTweaksMenu.Gains[i].Length > 0)
                 text += (text.Length > 0 ? "\n\n" : "") + $"<color={Constants.POSITIVE_COLOR_STR}>{MoonoTweaksMenu.Gains[i]}</color>";
-            if (MoonoTweaksMenu.Notes[i].Length == 0) return text;
-            return text + (text.Length > 0 ? "\n" : "") + string.Format(MoonoTweaksMenu.Ui("LAUNCH_OPTION_LINE"), MoonoTweaksMenu.Notes[i]);
+            if (MoonoTweaksMenu.Notes[i].Length > 0)
+                text += (text.Length > 0 ? "\n" : "") + string.Format(MoonoTweaksMenu.Ui("LAUNCH_OPTION_LINE"), MoonoTweaksMenu.Notes[i]);
+            // The mods that patch what the tweak changes (ModOverlaps), last.
+            var overlaps = ModOverlapsCore.Tooltip(ModOverlaps.For(MoonoTweaksMenu.Ids[i]), MoonoTweaksMenu.Ui, Warning);
+            if (overlaps.Length > 0) text += (text.Length > 0 ? "\n\n" : "") + overlaps;
+            return text;
+        }
+
+        /// The icon of a row with mod overlaps (and of the main menu's overlap badge): the game's
+        /// warning sign, amber for a high-grade overlap and light grey for a low one; for a tweak
+        /// that only steps aside, the game's disabled sign in light grey.
+        internal static Image OverlapIcon(Transform parent, OverlapGrade grade, float size)
+        {
+            var icon = new GameObject("OverlapIcon", typeof(RectTransform)).AddComponent<Image>();
+            icon.transform.SetParent(parent, worldPositionStays: false);
+            icon.preserveAspect = true;
+            var sprite = Assets.GetSprite(grade == OverlapGrade.StepsAside ? "icon_priority_disabled" : "iconWarning");
+            if (sprite != null) icon.sprite = sprite;
+            icon.color = Util.ColorFromHex(grade == OverlapGrade.High ? Warning : Neutral);
+            var layout = icon.gameObject.AddComponent<LayoutElement>();
+            layout.minWidth = layout.preferredWidth = size;
+            layout.minHeight = layout.preferredHeight = size;
+            layout.flexibleWidth = layout.flexibleHeight = 0f;
+            return icon;
         }
 
         GameObject Row(int i)
@@ -579,6 +617,13 @@ namespace OniMoono.GameTweaks
             }
             else label.gameObject.SetActive(false);
             var toggle = entry.GetReference<MultiToggle>("EnabledToggle");
+            // A tweak with mod overlaps: an icon left of its toggle, showing the row's tooltip.
+            if (ModOverlapsCore.Worst(ModOverlaps.For(MoonoTweaksMenu.Ids[i])) is { } grade)
+            {
+                var icon = OverlapIcon(toggle.transform.parent, grade, RowIconSize);
+                icon.transform.SetSiblingIndex(toggle.transform.GetSiblingIndex());
+                if (effect.GetComponent<ToolTip>() is { } like) RowTip(icon.gameObject, like, tooltip);
+            }
             if (MoonoTweaksMenu.Choices[i] != null)
             {
                 ChoiceRow(entry, i, toggle, title, effect, locked);

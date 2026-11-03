@@ -37,7 +37,6 @@ namespace OniMoono.GameTweaks
         public const string Name = "fast-conveyor-paths";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        const string Owner = "OniMoono.Host.GameTweaks";
 
         static readonly AccessTools.FieldRef<SolidConduitFlow, List<List<Conduit>>> pathList =
             AccessTools.FieldRefAccess<SolidConduitFlow, List<List<Conduit>>>("pathList");
@@ -271,13 +270,16 @@ namespace OniMoono.GameTweaks
 
         static void Report() => global::Debug.Log($"{Name}: {pathsChecked} paths checked, {pathsWrong} wrong");
 
+        /// The method another owner's patch makes this tweak stand down (ModOverlaps).
+        internal static System.Reflection.MethodBase Guarded() => AccessTools.Method(typeof(SolidConduitFlow), "TryAdd");
+
         static bool Foreign()
         {
             var info = Harmony.GetPatchInfo(tryAdd);
             if (info == null) return false;
             // PerfProbe's stopwatches (test infrastructure) only time the method.
             foreach (var o in info.Owners)
-                if (o != Owner && o != "PerfProbe" && !o.StartsWith("PerfProbe.", StringComparison.Ordinal)) return true;
+                if (!ModOverlapsCore.IsTweakOwner(o) && o != "PerfProbe" && !o.StartsWith("PerfProbe.", StringComparison.Ordinal)) return true;
             return false;
         }
     }

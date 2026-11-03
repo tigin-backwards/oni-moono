@@ -154,7 +154,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// The methods whose code runs on the workers: patched by anyone else, the tweak is off.
-        static IEnumerable<MethodBase> WritePath()
+        internal static IEnumerable<MethodBase> WritePath()
         {
             yield return AccessTools.Method(typeof(KAnimBatch), nameof(KAnimBatch.UpdateDirty));
             yield return writeInstanceMethod;
@@ -191,7 +191,7 @@ namespace OniMoono.GameTweaks
                 var info = Harmony.GetPatchInfo(method);
                 if (info == null) continue;
                 foreach (var owner in info.Owners)
-                    if (owner != "OniMoono.Host.GameTweaks") { Disable($"{owner} patches {method.DeclaringType?.Name}.{method.Name}"); return; }
+                    if (!ModOverlapsCore.IsTweakOwner(owner)) { Disable($"{owner} patches {method.DeclaringType?.Name}.{method.Name}"); return; }
             }
         }
 

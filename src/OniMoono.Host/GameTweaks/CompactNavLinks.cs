@@ -20,7 +20,7 @@ namespace OniMoono.Host.GameTweaks
         /// The transpilers of methods that touch links that were read against the rewrite
         /// (docs/research/navgrid-links-store.md §3): the patched method and the transpiler's
         /// class. Any other transpiler of such a method makes the session flat.
-        static readonly (string Target, string Transpiler, string Mod)[] reviewed =
+        internal static readonly (string Target, string Transpiler, string Mod)[] reviewed =
         [
             ("PathProber.Run", "PeterHan.FastTrack.PathPatches.PathProber_RunAsync_Patch", "Fast Track"),
             ("PathFinder.AddPotentials", "HazardPathing.HazardCostTranspiler", "Hazard Pathing"),

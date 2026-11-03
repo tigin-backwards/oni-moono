@@ -236,7 +236,7 @@ namespace OniMoono.GameTweaks
         // ---- Standing down ----
 
         /// The methods another owner's patch makes this tweak stand down.
-        static IEnumerable<MethodBase> Guarded()
+        internal static IEnumerable<MethodBase> Guarded()
         {
             foreach (var m in AccessTools.GetDeclaredMethods(typeof(PathProber))) if (m.Name == nameof(PathProber.Run)) yield return m;
             yield return AccessTools.Method(typeof(WorkOrder), nameof(WorkOrder.Execute));
