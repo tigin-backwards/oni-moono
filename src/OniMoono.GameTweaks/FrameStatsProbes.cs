@@ -30,6 +30,7 @@ namespace OniMoono.GameTweaks
             Time(harmony, AccessTools.Method(typeof(Game), "StepTheSim"), nameof(StepBegin), nameof(StepEnd));
             Time(harmony, AccessTools.Method(typeof(Game), "UnsafeSim200ms"), nameof(Sim200msBegin), nameof(Sim200msEnd));
             Time(harmony, AccessTools.Method(typeof(Game), "SimEveryTick"), nameof(SimEveryTickBegin), nameof(SimEveryTickEnd));
+            if (Environment.GetEnvironmentVariable("ONI_BUCKET_PROFILE") == "1") BucketProfile.Install(harmony);
         }
 
         /// The window's lines (GameFrameStats.Take), with the game's speed setting.
@@ -45,7 +46,37 @@ namespace OniMoono.GameTweaks
             {
                 // The screen is half torn down (leaving a colony): no speed.
             }
-            return G.Take(seconds, frames, speed);
+            var lines = new System.Collections.Generic.List<string>(G.Take(seconds, frames, speed));
+            if (lines.Count == 0) return lines.ToArray();
+            lines.AddRange(BucketProfile.Take(frames));
+            var ab = Flip();
+            if (ab != null) lines.Add(ab);
+            return lines.ToArray();
+        }
+
+        /// ONI_FRAME_STATS_AB=`TYPE, ASSEMBLY FIELD` (a static bool, such as a tweak's Bypass):
+        /// test runs compare a change with itself switched off in one run. Each window's lines end
+        /// with `frame stats ab: FIELD=VALUE` for the value it ran with; the field is then flipped
+        /// for the next window.
+        static readonly string abSpec = Environment.GetEnvironmentVariable("ONI_FRAME_STATS_AB");
+        static FieldInfo abField;
+        static bool abResolved;
+
+        static string Flip()
+        {
+            if (string.IsNullOrEmpty(abSpec)) return null;
+            if (!abResolved)
+            {
+                abResolved = true;
+                int split = abSpec.LastIndexOf(' ');
+                var type = split > 0 ? Type.GetType(abSpec.Substring(0, split).Trim()) : null;
+                abField = type?.GetField(abSpec.Substring(split + 1), BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                if (abField == null || abField.FieldType != typeof(bool)) abField = null;
+            }
+            if (abField == null) return $"frame stats ab: no static bool field {abSpec}";
+            bool value = (bool)abField.GetValue(null);
+            abField.SetValue(null, !value);
+            return $"frame stats ab: {abField.Name}={value}";
         }
 
         static HarmonyMethod Prefix(string name) => new HarmonyMethod(typeof(FrameStatsProbes), name) { priority = Priority.First };
