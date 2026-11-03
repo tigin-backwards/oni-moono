@@ -2134,7 +2134,8 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   state, vertex layout, topology and target formats, with the driver's pipeline cache kept in the
   player's cache folder; each draw's key is hashed once and the last draw's pipeline is tried
   first. Set 0 is pushed (`VK_KHR_push_descriptor`, when the program's bindings fit the device's
-  push limit, 32 on NVIDIA and Mesa) or, for programs with more (Klei's batched animation shaders
+  push limit, 32 on NVIDIA and Mesa), through an update template made with the program (one
+  image or buffer info per slot, no writes built per draw), or, for programs with more (Klei's batched animation shaders
   bind 39, on about half a colony's draws), taken from a cache of sets kept across frames by the
   images (by a serial number never reused) and samplers they name: a draw naming what a set
   already names binds it, found by those identities alone (its descriptor writes are built only
@@ -2219,7 +2220,7 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   the loader at it through `VK_ADD_LAYER_PATH`; `--frame-stats` counts draws, pipeline binds,
   render passes, passes ended by uploads and submits; GPU frame time comes from timestamp queries.
   `ONI_VK_ALT=NAME,...` (measurement only, with `--frame-stats`; `writes-first`,
-  `prepare-every-texture`) runs the named draw-path changes as before them in every other
+  `prepare-every-texture`, `push-writes`) runs the named draw-path changes as before them in every other
   60-frame window, each window's counts ending in `variant=0` (before) or `variant=1`, so one
   run compares both under the same load (`VkDrawAlternation`,
   docs/research/vulkan-draw-binding.md).

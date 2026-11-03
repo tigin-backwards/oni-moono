@@ -305,6 +305,49 @@ namespace OniMoono.Tests
             Assert.Equal(0, VkDrawAlternation.Parse("nothing"));
             Assert.Equal(VkDrawAlternation.WritesFirst, VkDrawAlternation.Parse(" writes-first ,x"));
             Assert.Equal(VkDrawAlternation.WritesFirst | VkDrawAlternation.PrepareEveryTexture, VkDrawAlternation.Parse("prepare-every-texture,writes-first"));
+            Assert.Equal(VkDrawAlternation.WritesFirst | VkDrawAlternation.PushWrites, VkDrawAlternation.Parse("push-writes,writes-first"));
+        }
+
+        /// A push with the program's update template: each entry names the slot's binding and
+        /// type, and its info in the data is the info the slot's write pointed at.
+        [Fact]
+        public void TemplateDataHoldsTheWritesInfos()
+        {
+            var program = Program();
+            var t = Draw();
+            var source = new Source(t);
+            var slots = program.Slots;
+            int n = slots.Length;
+            var writes = stackalloc VkWriteDescriptorSet[n];
+            var bufferInfos = stackalloc VkDescriptorBufferInfo[n];
+            var imageInfos = stackalloc VkDescriptorImageInfo[n];
+            VkTextureSet.Writes(ref source, slots, DefaultSampler, Storage, default, writes, bufferInfos, imageInfos);
+            var entries = stackalloc VkDescriptorUpdateTemplateEntry[n];
+            VkTextureSet.TemplateEntries(slots, entries);
+            var data = stackalloc byte[n * VkTextureSet.InfoStride];
+            new Span<byte>(data, n * VkTextureSet.InfoStride).Fill(0xCD);
+            VkTextureSet.Infos(ref source, slots, DefaultSampler, Storage, data);
+            Assert.Equal(24, VkTextureSet.InfoStride);
+            for (int i = 0; i < n; i++)
+            {
+                var w = Read(writes[i]);
+                Assert.Equal(w.Binding, entries[i].DstBinding);
+                Assert.Equal(w.Kind, entries[i].DescriptorType);
+                Assert.Equal(1, entries[i].DescriptorCount);
+                Assert.Equal((nuint)(i * 24), (nuint)entries[i].Offset);
+                Assert.Equal((nuint)24, (nuint)entries[i].Stride);
+                byte* at = data + i * 24;
+                if (slots[i].Type == VkDescriptorType.StorageBuffer)
+                {
+                    var b = *(VkDescriptorBufferInfo*)at;
+                    Assert.Equal((w.Buffer, w.Offset, w.Range), ((nint)b.Buffer.VkHandle, b.Offset, b.Range));
+                }
+                else
+                {
+                    var image = *(VkDescriptorImageInfo*)at;
+                    Assert.Equal((w.Sampler, w.View, w.Layout), ((nint)image.Sampler.VkHandle, (nint)image.ImageView.VkHandle, image.ImageLayout));
+                }
+            }
         }
     }
 }

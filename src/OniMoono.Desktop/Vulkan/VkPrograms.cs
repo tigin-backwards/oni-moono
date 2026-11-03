@@ -32,6 +32,8 @@ namespace OniMoono.Desktop.Vulkan
         /// binding.
         public (int Binding, int Block, int Size)[] Uniforms;
         public bool Push, DynamicUniforms;
+        /// A pushed set 0's update template (VkTextureSet.TemplateEntries): one info per slot.
+        public VkDescriptorUpdateTemplate PushTemplate;
         /// The descriptor cache's entry this program's last draw bound (VkDescriptorCache).
         public object LastTextureSet;
         /// Vertex inputs: location, the mesh channel feeding it (-1: none, a constant) and
@@ -51,6 +53,8 @@ namespace OniMoono.Desktop.Vulkan
                 vk.Device.PInvoke.vkFreeDescriptorSets.Invoke(vk.Device.Handle, pool, 1, &s);
             }
             UniformSets.Clear();
+            if (!PushTemplate.IsNull()) vk.Device.DestroyDescriptorUpdateTemplate(PushTemplate, null);
+            PushTemplate = default;
             if (!Layout.IsNull()) vk.Device.DestroyPipelineLayout(Layout, null);
             if (!TextureSet.IsNull()) vk.Device.DestroyDescriptorSetLayout(TextureSet, null);
             if (!UniformSet.IsNull()) vk.Device.DestroyDescriptorSetLayout(UniformSet, null);
@@ -568,6 +572,16 @@ namespace OniMoono.Desktop.Vulkan
             p.UniformSet = vk.Device.CreateDescriptorSetLayout(new VkDescriptorSetLayoutCreateInfo { BindingCount = p.Uniforms.Length, Bindings = uniforms }, null);
             var sets = stackalloc VkDescriptorSetLayout[2] { p.TextureSet, p.UniformSet };
             p.Layout = vk.Device.CreatePipelineLayout(new VkPipelineLayoutCreateInfo { SetLayoutCount = 2, SetLayouts = sets }, null);
+            if (p.Push && p.Slots.Length > 0)
+            {
+                var entries = stackalloc VkDescriptorUpdateTemplateEntry[p.Slots.Length];
+                VkTextureSet.TemplateEntries(p.Slots, entries);
+                p.PushTemplate = vk.Device.CreateDescriptorUpdateTemplate(new VkDescriptorUpdateTemplateCreateInfo
+                {
+                    DescriptorUpdateEntryCount = p.Slots.Length, DescriptorUpdateEntries = entries, TemplateType = VkDescriptorUpdateTemplateType.PushDescriptors,
+                    DescriptorSetLayout = p.TextureSet, PipelineBindPoint = VkPipelineBindPoint.Graphics, PipelineLayout = p.Layout, Set = 0,
+                }, null);
+            }
         }
 
         public VkShaderModule Module(byte[] spirv)

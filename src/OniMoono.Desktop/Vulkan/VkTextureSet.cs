@@ -71,5 +71,44 @@ namespace OniMoono.Desktop.Vulkan
                 }
             }
         }
+
+        /// The bytes of one slot in a push template's data (TemplateEntries): an image or a
+        /// buffer info, whichever is larger.
+        public static readonly int InfoStride = Math.Max(sizeof(VkDescriptorImageInfo), sizeof(VkDescriptorBufferInfo));
+
+        /// The program's set 0 as descriptor update template entries: slot i's info at
+        /// i * InfoStride of the data, as Infos writes it.
+        public static void TemplateEntries(VkBindingSlot[] slots, VkDescriptorUpdateTemplateEntry* entries)
+        {
+            for (int i = 0; i < slots.Length; i++)
+                entries[i] = new VkDescriptorUpdateTemplateEntry
+                {
+                    DstBinding = slots[i].Binding, DstArrayElement = 0, DescriptorCount = 1, DescriptorType = slots[i].Type,
+                    Offset = (nuint)(i * InfoStride), Stride = (nuint)InfoStride,
+                };
+        }
+
+        /// One info per slot, at i * InfoStride of `data` (slots.Length * InfoStride bytes), for
+        /// a push with the program's template: what Writes' infos hold, without the writes.
+        public static void Infos<T>(ref T source, VkBindingSlot[] slots, VkSampler defaultSampler, in VkDescriptorBufferInfo storage, byte* data) where T : struct, ITextureSlots
+        {
+            for (int i = 0; i < slots.Length; i++)
+            {
+                var slot = slots[i];
+                byte* at = data + i * InfoStride;
+                if (slot.Type == VkDescriptorType.StorageBuffer)
+                {
+                    *(VkDescriptorBufferInfo*)at = storage;
+                    continue;
+                }
+                var vt = source.Texture(slot);
+                *(VkDescriptorImageInfo*)at = slot.Type switch
+                {
+                    VkDescriptorType.Sampler => new VkDescriptorImageInfo { Sampler = SamplerOf(vt, defaultSampler) },
+                    VkDescriptorType.SampledImage => new VkDescriptorImageInfo { ImageView = vt.Image.View, ImageLayout = VkImageLayout.ShaderReadOnlyOptimal },
+                    _ => new VkDescriptorImageInfo { Sampler = SamplerOf(vt, defaultSampler), ImageView = vt.Image.View, ImageLayout = VkImageLayout.ShaderReadOnlyOptimal },
+                };
+            }
+        }
     }
 }

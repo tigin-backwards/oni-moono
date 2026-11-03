@@ -435,7 +435,7 @@ namespace OniMoono.Desktop.Vulkan
         /// Verify mode: set 0 as the draw path before the shortcuts made it (every texture
         /// checked in full, writes and identities built together), against what the draw used:
         /// the same identities, the same pushed writes, the same cached set.
-        void VerifyTextureSet(ProgramInputs r, VkProgram program, VkDescriptorSet used, in VkDescriptorBufferInfo storage)
+        void VerifyTextureSet(ProgramInputs r, VkProgram program, VkDescriptorSet used, in VkDescriptorBufferInfo storage, byte* templateData = null)
         {
             var slots = program.Slots;
             int n = slots.Length;
@@ -452,6 +452,30 @@ namespace OniMoono.Desktop.Vulkan
                 int at = 0;
                 while (ids[at] == fullIds[at]) at++;
                 VkDrawVerify.Wrong(VkDrawVerify.Kind.Key, program.Name, $"identity {at} (binding {slots[at / 2].Binding}) is {ids[at]}, the full path's {fullIds[at]}");
+                return;
+            }
+            if (templateData != null)
+            {
+                // The template's entries name the writes' binding and type; its data their infos.
+                var entries = stackalloc VkDescriptorUpdateTemplateEntry[n];
+                VkTextureSet.TemplateEntries(slots, entries);
+                for (int i = 0; i < n; i++)
+                {
+                    byte* at = templateData + (int)entries[i].Offset;
+                    var w = writes[i];
+                    bool same = entries[i].DstBinding == w.DstBinding && entries[i].DescriptorType == w.DescriptorType && entries[i].DescriptorCount == w.DescriptorCount;
+                    if (same && w.BufferInfo != null)
+                        same = ((VkDescriptorBufferInfo*)at)->Buffer.VkHandle == w.BufferInfo->Buffer.VkHandle && ((VkDescriptorBufferInfo*)at)->Offset == w.BufferInfo->Offset
+                               && ((VkDescriptorBufferInfo*)at)->Range == w.BufferInfo->Range;
+                    else if (same)
+                        same = ((VkDescriptorImageInfo*)at)->Sampler.VkHandle == w.ImageInfo->Sampler.VkHandle && ((VkDescriptorImageInfo*)at)->ImageView.VkHandle == w.ImageInfo->ImageView.VkHandle
+                               && ((VkDescriptorImageInfo*)at)->ImageLayout == w.ImageInfo->ImageLayout;
+                    if (!same)
+                    {
+                        VkDrawVerify.Wrong(VkDrawVerify.Kind.Set, program.Name, $"pushed template slot {i} (binding {slots[i].Binding}) differs from the full path's write");
+                        return;
+                    }
+                }
                 return;
             }
             if (program.Push)
@@ -491,6 +515,15 @@ namespace OniMoono.Desktop.Vulkan
             if (n == 0) return default;
             var source = new DrawTextures(this, r);
             var storage = new VkDescriptorBufferInfo { Buffer = emptyStorage.Buffer, Offset = default, Range = (Brutal.ByteSize64)emptyStorage.Size };
+            if (program.Push && !VkDrawAlternation.Before(VkDrawAlternation.PushWrites))
+            {
+                // One info per slot, laid out as the program's update template reads them.
+                var data = stackalloc byte[n * VkTextureSet.InfoStride];
+                VkTextureSet.Infos(ref source, slots, defaultSampler, storage, data);
+                vk.Device.PInvoke.vkCmdPushDescriptorSetWithTemplateKHR.Invoke(cb.Handle, program.PushTemplate, program.Layout, 0, data);
+                if (VkDrawVerify.On) VerifyTextureSet(r, program, default, storage, data);
+                return default;
+            }
             if (program.Push)
             {
                 var writes = stackalloc VkWriteDescriptorSet[n];
