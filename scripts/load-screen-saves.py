@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """A synthetic saves tree shaped like a real one, for the Load screen with many saves
 (docs/research/load-screen-many-saves.md, tests/e2e/load-screen-many-saves.yaml).
-  scripts/load-screen-saves.py REAL TEMPLATE.sav OUT
+  scripts/load-screen-saves.py [--distinct] REAL TEMPLATE.sav OUT
 REAL is only listed and stat'ed (never opened): OUT gets the same folders and file names, each
 .sav at the real one's size (sparse) and modification time with a header made from TEMPLATE's
 (baseName the colony folder's name, colonyGuid from it, isAutoSave from the auto_save folder; an
 empty file stays empty), and each .png a hard link to one of two generated previews of the
 real shapes (528x1842 for files over 500 KB, else 528x306; the game reads only their pixels).
+--distinct makes each preview a file of its own instead: the same pixels, with a tEXt chunk
+naming it, so that no two previews have the same bytes (as in a real folder; a cache keyed by
+the files' bytes then works as it would there).
 Run the e2e spec with E2E_CLOUD_SAVES=OUT; never point a player at REAL."""
 import json, os, random, struct, sys, uuid, zlib
 
@@ -29,7 +32,17 @@ def png(path, w, h, noise=0.12):
                 + chunk(b'IDAT', zlib.compress(bytes(rows), 6)) + chunk(b'IEND', b''))
 
 
-def main(real, template, out):
+def distinct_copy(source, path, name):
+    """source's PNG with a tEXt chunk naming `name` before IEND: other bytes, the same pixels."""
+    with open(source, 'rb') as f:
+        data = f.read()
+    text = b'Comment\0' + name.encode('utf-8', 'replace')
+    chunk = struct.pack('>I', len(text)) + b'tEXt' + text + struct.pack('>I', zlib.crc32(b'tEXt' + text) & 0xffffffff)
+    with open(path, 'wb') as f:
+        f.write(data[:-12] + chunk + data[-12:])
+
+
+def main(real, template, out, distinct=False):
     real, out = os.path.abspath(real), os.path.abspath(out)
     if out.startswith(real + os.sep) or out == real:
         sys.exit('OUT must not be inside REAL')
@@ -63,12 +76,19 @@ def main(real, template, out):
             elif name.endswith('.png'):
                 if os.path.lexists(path):
                     os.remove(path)
-                os.link(big if st.st_size > 500000 else small, path)
+                source = big if st.st_size > 500000 else small
+                if distinct:
+                    distinct_copy(source, path, os.path.join(rel, name))
+                else:
+                    os.link(source, path)
                 previews += 1
     print(f'{saves} saves, {previews} previews under {out}')
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
+    args = sys.argv[1:]
+    distinct = '--distinct' in args
+    args = [a for a in args if a != '--distinct']
+    if len(args) != 3:
         sys.exit(__doc__)
-    main(*sys.argv[1:])
+    main(*args, distinct=distinct)
