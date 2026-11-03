@@ -366,6 +366,11 @@ namespace SemanticsProbe
                 go.AddComponent<UpdateOrder>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "vram")
+            {
+                go.AddComponent<VramProbe>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "meshshrink")
             {
                 go.AddComponent<MeshShrink>();
