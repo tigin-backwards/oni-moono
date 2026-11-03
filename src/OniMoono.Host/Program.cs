@@ -85,6 +85,8 @@ namespace OniMoono.Host
                 GameVersionCheck.Report(versionProblem);
                 return 2;
             }
+            // compact-nav-links rewrites the game's assemblies and mods as they load.
+            if (effective.EnabledTweaks.Contains(GameTweaks.CompactNavLinks.Name)) GameTweaks.CompactNavLinks.Enable();
             AssemblyPolicy.Install(layout, AppContext.BaseDirectory);
             if (options.CheckNatives) return NativeCheck.Run(layout, AssemblyPolicy.RuntimeAssemblyPaths(), options.NativeArch ?? AssemblyPolicy.ProcessCpu, options.NativeDir);
             var assemblies = AssemblyPolicy.PreloadScriptingAssemblies(dataDir);
@@ -2598,6 +2600,7 @@ namespace OniMoono.Host
                 catch (FormatException) { }
                 return AttributeTargets.Class.ToString() == "Class" ? "every \"G\" formatting path names the value" : throw new InvalidOperationException("other values renamed");
             });
+            Check("compact-nav-links: the hot walks' IL and the reviewed transpilers (CompactNavLinks)", GameTweaks.CompactNavLinks.SelfCheck);
             return failures;
         }
 
