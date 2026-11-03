@@ -491,8 +491,8 @@ msgid "How the game frees memory it no longer uses. Needs a restart."
 msgstr "游戏如何释放不再使用的内存。需要重启。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.DETAIL"
-msgid "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. Low memory: uses less RAM, with pauses that can be a bit longer or more often. Only worth changing if your PC is short on RAM."
-msgstr "快速（默认）：在所有 CPU 核心上回收垃圾，暂停少且短，但占用更多内存。低内存：占用更少内存，暂停可能稍长或更频繁。只有在电脑内存不足时才值得更改。"
+msgid "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. Low memory: uses less RAM (about 0.8 GB less on a large colony), but pauses more often and loads more slowly. Only worth changing if your PC is short on RAM."
+msgstr "快速（默认）：在所有 CPU 核心上回收垃圾，暂停少且短，但占用更多内存。低内存：占用更少内存（大型殖民地约少 0.8 GB），但暂停更频繁、读档更慢。只有在电脑内存不足时才值得更改。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.GC.FAST"
 msgid "fast"

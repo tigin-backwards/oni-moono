@@ -247,7 +247,7 @@ msgstr ""
 
 #. Tooltip: how it works (gc)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.DETAIL"
-msgid "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. Low memory: uses less RAM, with pauses that can be a bit longer or more often. Only worth changing if your PC is short on RAM."
+msgid "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. Low memory: uses less RAM (about 0.8 GB less on a large colony), but pauses more often and loads more slowly. Only worth changing if your PC is short on RAM."
 msgstr ""
 
 #. A choice on the row's button (shown in capitals) and in its tooltip (gc)

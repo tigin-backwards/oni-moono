@@ -10,7 +10,9 @@
     <!-- BinaryFormatter: the game clones worldgen settings with it (ARCHITECTURE §2.1). -->
     <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     <!-- Server GC: collections run on every core, so pauses are about a quarter as long and the
-         autosave hitch about a third (U57, PLAN §Status); about 2 GB more memory there. -->
+         autosave hitch about a third (U57, PLAN §Status). With DATAS (.NET 9 on) it keeps about
+         0.8 GB more than Workstation GC in play (docs/research/gc-modes.md); the garbage
+         collection option (GcMode) picks Workstation GC at start-up instead. -->
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <TieredPGO>true</TieredPGO>

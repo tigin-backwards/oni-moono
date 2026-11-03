@@ -58,8 +58,12 @@ next start.
 - **Fast** (the default) is .NET's Server GC with DATAS (dynamic adaptation of the heap count,
   on by default for Server GC since .NET 9), concurrent. It collects on all cores, so pauses are
   rare and short, but it keeps more memory.
-- **Low memory** is .NET's Workstation GC, concurrent: one heap, less RAM, and pauses that can
-  be a bit longer or more often. It is only worth choosing if your PC is short on RAM.
+- **Low memory** is .NET's Workstation GC, concurrent: one heap and less RAM (about 0.8 GB less
+  in play on a large colony, 0.3-0.4 GB at the load's peak), but it collects about ten times as
+  often and a colony takes about 10 s longer to load. It is only worth choosing if your PC is
+  short on RAM.
+
+Measurements are in [research/gc-modes.md](research/gc-modes.md).
 
 The runtime fixes its GC as it starts, before Moono's code runs. On Windows, OniMoono.exe reads
 the choice itself (`--gc`, else `settings.json`'s `"gc"`) and sets the runtime property
