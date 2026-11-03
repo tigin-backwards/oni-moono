@@ -53,7 +53,9 @@ namespace OniMoono.GameTweaks
     /// Track's Cache Paths patches the first ones.
     ///
     /// ONI_TWEAK_VERIFY=1 floods after every repair too, and counts the repairs whose costs or
-    /// reachable cells differ from the flood's. ONI_PROBE_DIGEST=FILE writes a line per result
+    /// reachable cells differ from the flood's: wrong when the repair is not what a flood can
+    /// leave (ProbeEngine.Fixpoint), else parting at a tie (above). It also audits the change
+    /// feed every frame (FeedAudit). ONI_PROBE_DIGEST=FILE writes a line per result
     /// taken (frame, navigator, root, nav type, flags, reachable cells, a digest of them and one
     /// with their costs); with ONI_PROBE_REPAIR_OFF=1 only that, of the game's own probes.
     /// ONI_PROBE_REPAIR_SWITCH=FILE turns the repairs off while the file reads `off` (checked every
@@ -88,6 +90,7 @@ namespace OniMoono.GameTweaks
         public static long Floods => worker?.floods ?? 0;
         public static long Verified => worker?.verified ?? 0;
         public static long VerifyWrong => worker?.verifyWrong ?? 0;
+        public static long VerifyTies => worker?.verifyTies ?? 0;
         public static long FloodsVerified => worker?.floodsVerified ?? 0;
         public static long FloodsWrong => worker?.floodsWrong ?? 0;
 
@@ -310,34 +313,11 @@ namespace OniMoono.GameTweaks
             public int Width, CellCount, MaxLinks;
             public PLink[][] Rows;
             public bool[] Submerged;
-            public ProbeBatch Batch = new ProbeBatch();
-            public long Seq;
-            public readonly ConcurrentQueue<ProbeBatch> Out = new ConcurrentQueue<ProbeBatch>();
+            public readonly ProbeChanges Changes = new ProbeChanges();
+            /// Verify mode: the rules' inputs as the feed last saw them.
+            public FeedAudit Audit;
 
-            /// Events added so far, and when the last batch was sealed (verify: the worker's rows
-            /// are the nav grid's, and the world did not change during a check).
-            public long Added, Sealed;
-
-            public void Add(ProbeChange kind, int cell, PLink[] row = null)
-            {
-                lock (this)
-                {
-                    Batch.Events.Add(new ProbeEvent { Kind = kind, Cell = cell, Row = row });
-                    Added++;
-                }
-            }
-
-            public void Seal()
-            {
-                lock (this)
-                {
-                    if (Batch.Events.Count == 0) return;
-                    Batch.Seq = ++Seq;
-                    Out.Enqueue(Batch);
-                    Batch = new ProbeBatch();
-                    Sealed = Added;
-                }
-            }
+            public void Add(ProbeChange kind, int cell, PLink[] row = null) => Changes.Add(kind, cell, row);
 
             /// A cell whose submerged state may have changed (its element, or the cell above).
             public void Resubmerge(int x)
@@ -347,6 +327,130 @@ namespace OniMoono.GameTweaks
                 if (now == Submerged[x]) return;
                 Submerged[x] = now;
                 Add(ProbeChange.Dst, x);
+            }
+        }
+
+        /// Verify mode: every frame, before the feed's batch is sealed, the inputs of a link's
+        /// evaluation everywhere (submerged, the nav masks, doors' permissions, tube entrances,
+        /// suit markers; every 60 frames the links too) against what they were the frame before:
+        /// a cell that changed with no event of the feed's is a change the feed missed.
+        sealed class FeedAudit
+        {
+            const byte Masks = (byte)(Grid.NavFlags.AccessDoor | Grid.NavFlags.TubeEntrance | Grid.NavFlags.PreventIdleTraversal | Grid.NavFlags.SuitMarker);
+            public readonly HashSet<int> Touched = new HashSet<int>();
+            readonly bool[] sub;
+            readonly byte[] nav;
+            Dictionary<int, long> doors, tubes, suits;
+            int frames;
+            public long Missed;
+            readonly HashSet<int> rowsMissed = new HashSet<int>();
+
+            static readonly System.Collections.IEnumerable restrictions = (System.Collections.IEnumerable)AccessTools.Field(typeof(Grid), "restrictions").GetValue(null);
+            static readonly System.Collections.IEnumerable tubeEntrances = (System.Collections.IEnumerable)AccessTools.Field(typeof(Grid), "tubeEntrances").GetValue(null);
+            static readonly System.Collections.IEnumerable suitMarkers = (System.Collections.IEnumerable)AccessTools.Field(typeof(Grid), "suitMarkers").GetValue(null);
+
+            public FeedAudit(Feed f)
+            {
+                sub = new bool[f.CellCount];
+                nav = new byte[f.CellCount];
+                for (int c = 0; c < f.CellCount; c++)
+                {
+                    sub[c] = PathFinder.IsSubmerged(c);
+                    nav[c] = (byte)((byte)Grid.NavMasks[c] & Masks);
+                }
+                doors = Hashes(restrictions);
+                tubes = Hashes(tubeEntrances);
+                suits = Hashes(suitMarkers);
+            }
+
+            static long Mix(long h, long v) => (h ^ v) * 1099511628211L;
+
+            static long HashOf(object value)
+            {
+                if (value == null) return 0;
+                if (value is System.Collections.IDictionary d)
+                {
+                    long s = 0;
+                    foreach (System.Collections.DictionaryEntry e in d) s += Mix(Mix(17, Convert.ToInt64(e.Key)), Convert.ToInt64(e.Value));
+                    return Mix(31, s);
+                }
+                if (value is System.Collections.IEnumerable set && !(value is string))
+                {
+                    long s = 0;
+                    foreach (var e in set) s += Mix(19, Convert.ToInt64(e));
+                    return Mix(37, s);
+                }
+                var t = value.GetType();
+                if (t.IsPrimitive || t.IsEnum) return Convert.ToInt64(value);
+                long h = 1469598103934665603L;
+                foreach (var fi in t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                    h = Mix(h, HashOf(fi.GetValue(value)));
+                return h;
+            }
+
+            static Dictionary<int, long> Hashes(System.Collections.IEnumerable dict)
+            {
+                var r = new Dictionary<int, long>();
+                foreach (var kv in dict)
+                {
+                    var t = kv.GetType();
+                    int key = (int)t.GetProperty("Key").GetValue(kv);
+                    r[key] = HashOf(t.GetProperty("Value").GetValue(kv));
+                }
+                return r;
+            }
+
+            void Diff(Dictionary<int, long> was, Dictionary<int, long> now, string what, Feed f)
+            {
+                foreach (var kv in now)
+                    if (!was.TryGetValue(kv.Key, out long h) || h != kv.Value) Miss(f, kv.Key, was.ContainsKey(kv.Key) ? what + " changed" : what + " added");
+                foreach (var kv in was)
+                    if (!now.ContainsKey(kv.Key)) Miss(f, kv.Key, what + " removed");
+            }
+
+            void Miss(Feed f, int c, string what)
+            {
+                if (Touched.Contains(c)) return;
+                if (++Missed > 50) return;
+                Grid.CellToXY(c, out int x, out int y);
+                int world = Grid.WorldIdx != null && (uint)c < (uint)Grid.WorldIdx.Length ? Grid.WorldIdx[c] : -1;
+                global::Debug.Log($"{Name}: the feed missed a change at cell {c} (x {x}, y {y}, world {world}): {what} (frame {GameClock.Instance?.GetFrame() ?? 0})");
+            }
+
+            public void Check(Feed f)
+            {
+                lock (f.Changes)
+                {
+                    for (int c = 0; c < f.CellCount; c++)
+                    {
+                        bool s = PathFinder.IsSubmerged(c);
+                        if (s != sub[c])
+                        {
+                            sub[c] = s;
+                            Miss(f, c, $"submerged now {s} ({Grid.Element[c]?.id}, above {(c + f.Width < f.CellCount ? Grid.Element[c + f.Width]?.id.ToString() + (Grid.Solid[c + f.Width] ? " solid" : "") : "-")})");
+                        }
+                        byte m = (byte)((byte)Grid.NavMasks[c] & Masks);
+                        if (m != nav[c])
+                        {
+                            Miss(f, c, $"nav mask {nav[c]} to {m}");
+                            nav[c] = m;
+                        }
+                    }
+                    var d = Hashes(restrictions); Diff(doors, d, "door permissions", f); doors = d;
+                    var t = Hashes(tubeEntrances); Diff(tubes, t, "tube entrance", f); tubes = t;
+                    var s2 = Hashes(suitMarkers); Diff(suits, s2, "suit marker", f); suits = s2;
+                    if (++frames % 60 == 0)
+                    {
+                        var links = new LinkReader(f.Grid);
+                        for (int c = 0; c < f.CellCount; c++)
+                        {
+                            bool same = SameRow(links, c, f.MaxLinks, f.Rows[c]);
+                            if (same) rowsMissed.Remove(c);
+                            else if (rowsMissed.Add(c)) Miss(f, c, "links (no UpdateGraph row)");
+                        }
+                    }
+                    Touched.Clear();
+                }
             }
         }
 
@@ -449,6 +553,12 @@ namespace OniMoono.GameTweaks
             var navTypes = new byte[navGrid.ValidNavTypes.Length];
             for (int i = 0; i < navTypes.Length; i++) navTypes[i] = (byte)navGrid.ValidNavTypes[i];
             worker = new Worker(Grid.WidthInCells, cellCount, maxLinks, navTypes, voids, (PLink[][])f.Rows.Clone(), f);
+            if (verify)
+            {
+                f.Audit = new FeedAudit(f);
+                var touched = f.Audit.Touched;
+                f.Changes.Recorded = c => touched.Add(c);
+            }
             feed = f;
             state = State.On;
             global::Debug.Log($"{Name}: on ({cellCount} cells, {navTypes.Length} nav types)");
@@ -463,7 +573,8 @@ namespace OniMoono.GameTweaks
                 try { switchedOff = File.Exists(switchPath) && File.ReadAllText(switchPath).Trim() == "off"; }
                 catch (IOException) { }
             }
-            feed.Seal();
+            feed.Audit?.Check(feed);
+            feed.Changes.Seal();
             worker.Report();
             // Navigators destroyed while a probe of theirs was under way.
             if (++ticks % 600 == 0)
@@ -607,19 +718,20 @@ namespace OniMoono.GameTweaks
             readonly ProbeGraph graph;
             readonly ProbeEngine engine, check;
             readonly Feed feed;
-            readonly List<ProbeBatch> history = new List<ProbeBatch>();
-            long seq;
+            /// The last batch taken, and how many events were added when it was sealed.
+            long seq, drained;
             readonly ChangeSet cs = new ChangeSet();
             readonly MinionRules rules = new MinionRules();
-            const int MaxHistory = 4096;
             // Counts for the report (main thread reads them racily: they are only reported).
-            public long orders, repairs, unchanged, floodGaveUp, floods, floodNew, floodKey, floodGrid, floodHistory, floodLarge, repairTicks, floodTicks, verified, verifyWrong, verifySkipped;
+            public long orders, repairs, unchanged, floodGaveUp, floods, floodNew, floodKey, floodGrid, floodHistory, floodLarge, repairTicks, floodTicks, verified, verifyWrong, verifyTies, verifySkipped;
             long reportedOrders;
             readonly Stopwatch since = Stopwatch.StartNew();
             PCell[] checkCells;
             PProber[] checkProbers, repairedProbers;
             ProbeFlags checkFlags;
             ushort checkSerial;
+            PCell[] repairedCells;
+            long repairSince;
 
             public Worker(int width, int cellCount, int maxLinks, byte[] navTypes, int[][] voids, PLink[][] rows, Feed feed)
             {
@@ -629,39 +741,11 @@ namespace OniMoono.GameTweaks
                 this.feed = feed;
             }
 
+            /// Every change the game made so far (ProbeChanges.Drain seals what was not sealed yet).
             void Drain()
             {
-                while (feed.Out.TryDequeue(out var b))
-                {
-                    var events = b.Events;
-                    for (int i = 0; i < events.Count; i++)
-                    {
-                        var e = events[i];
-                        if (e.Kind != ProbeChange.Row) continue;
-                        e.Old = graph.SetRow(e.Cell, e.Row);
-                        events[i] = e;
-                    }
-                    history.Add(b);
-                    seq = b.Seq;
-                }
-                if (history.Count > MaxHistory) history.RemoveRange(0, history.Count - MaxHistory / 2);
-            }
-
-            /// The changes since `since` merged into cs; false when some are no longer kept.
-            bool Collect(long since)
-            {
-                cs.Clear();
-                if (since == seq) return true;
-                if (history.Count == 0 || history[0].Seq > since + 1) return false;
-                int lo = 0, hi = history.Count;
-                while (lo < hi)
-                {
-                    int mid = (lo + hi) / 2;
-                    if (history[mid].Seq <= since) lo = mid + 1; else hi = mid;
-                }
-                for (int i = lo; i < history.Count; i++)
-                    foreach (var e in history[i].Events) cs.Add(e);
-                return true;
+                drained = feed.Changes.Drain(graph);
+                seq = feed.Changes.Seq;
             }
 
             public bool Execute(ref WorkOrder order, ref WorkResult result)
@@ -688,7 +772,7 @@ namespace OniMoono.GameTweaks
                     if (!f.Valid) floodNew++;
                     else if (!sameKey) floodKey++;
                     else if (f.Broken || f.Pending != null || nav.PathGrid != f.Grid || f.Grid.SerialNo != f.Serial) floodGrid++;
-                    else if (!Collect(f.Seq)) floodHistory++;
+                    else if (!feed.Changes.Collect(f.Seq, cs)) floodHistory++;
                     else if (cs.Count > graph.CellCount / 16) floodLarge++;
                     else repair = true;
                     long t0 = Stopwatch.GetTimestamp();
@@ -699,8 +783,9 @@ namespace OniMoono.GameTweaks
                     }
                     if (!repair)
                     {
-                        long added = Interlocked.Read(ref feed.Added);
-                        bool synced = verify && added == Interlocked.Read(ref feed.Sealed) && feed.Out.IsEmpty;
+                        // (verify: the worker's rows are the nav grid's when nothing was added since)
+                        long added = drained;
+                        bool synced = verify && Interlocked.Read(ref feed.Changes.Added) == added;
                         Flood(f, ref order, ref result, a, bits);
                         floods++;
                         long took = Stopwatch.GetTimestamp() - t0;
@@ -746,7 +831,7 @@ namespace OniMoono.GameTweaks
             bool Repair(Field f, ref WorkResult result)
             {
                 long t0 = Stopwatch.GetTimestamp();
-                long added = Interlocked.Read(ref feed.Added);
+                long added = drained;
                 var cells = cellsOf(f.Grid);
                 var probers = probersOf(f.Grid);
                 var d = f.Delta;
@@ -760,6 +845,7 @@ namespace OniMoono.GameTweaks
                     repairTicks += Stopwatch.GetTimestamp() - t0;
                     return false;
                 }
+                repairSince = f.Seq;
                 f.Seq = seq;
                 d.ApplyTo(f.Reach, f.Spare);
                 (f.Reach, f.Spare) = (f.Spare, f.Reach);
@@ -786,11 +872,106 @@ namespace OniMoono.GameTweaks
                 var first = new List<int>();
                 int wrong = ProbeEngine.ProberDifferences(repairedProbers, f.Serial, checkProbers, checkSerial, graph.CellCount, first);
                 // The world changed while the repair and the flood ran: they may have seen two.
-                if (Interlocked.Read(ref feed.Added) != added) { verifySkipped++; return; }
+                if (Interlocked.Read(ref feed.Changes.Added) != added) { verifySkipped++; return; }
                 verified++;
                 if (wrong == 0) return;
+                // Two routes of the same cost: the repair may keep the other one, and with its flags
+                // (one passed a suit checkpoint) or its parent (AddPotentials skips the link back to
+                // it) what lies beyond can differ. The result is still what a flood can leave
+                // (ProbeEngine.Fixpoint); anything else is a repair gone wrong.
+                var baseCells = cellsOf(f.Grid);
+                repairedCells ??= new PCell[states];
+                for (int st = 0; st < states; st++) repairedCells[st] = baseCells[st];
+                for (int i = 0; i < d.States.Count; i++) repairedCells[d.States[i]] = d.Cells[i];
+                string why = ProbeEngine.Fixpoint(repairedCells, repairedProbers, f.StateFlags, f.Serial, f.Root, graph, rules, f.Reach);
+                if (why == null) { verifyTies++; return; }
                 if (++verifyWrong <= 20)
-                    global::Debug.Log($"{Name}: a repair answers otherwise than a flood in {wrong} cells (root {f.Root}, first {string.Join(", ", first)})");
+                {
+                    global::Debug.Log($"{Name}: a repair answers otherwise than a flood in {wrong} cells (root {f.Root}, first {string.Join(", ", first)}), not through a tie: {why}");
+                    try { Explain(f, d, first); }
+                    catch (Exception e) { global::Debug.Log($"{Name}: (no details: {e.Message})"); }
+                }
+            }
+
+            /// Verify: where the repair and the flood part, for the first cells that differ: the
+            /// flood's route up to the first state the repair agrees on, and the link there.
+            void Explain(Field f, ProbeDelta d, List<int> first)
+            {
+                int nc = graph.NavCount;
+                var baseCells = cellsOf(f.Grid);
+                var over = new Dictionary<int, PCell>();
+                for (int i = 0; i < d.States.Count; i++) over[d.States[i]] = d.Cells[i];
+                PCell Rep(int s) => over.TryGetValue(s, out var c) ? c : baseCells[s];
+                bool RepValid(int s) => Rep(s).QueryId == f.Serial;
+                bool ChkValid(int s) => checkCells[s].QueryId == checkSerial;
+                string Xy(int c) { Grid.CellToXY(c, out int x, out int y); return $"{c} ({x},{y} w{(Grid.WorldIdx != null ? Grid.WorldIdx[c] : -1)})"; }
+                string St(int s, PCell c, bool valid) => valid ? $"{(NavType)graph.SlotNav[s % nc]} cost {c.Cost} from {c.Parent}/{(NavType)(c.NavTypes >> 4)} t{c.TransitionId}" : $"{(NavType)graph.SlotNav[s % nc]} none";
+                string InCs(int c) => (cs.OldRows.ContainsKey(c) ? "R" : "") + (cs.Src.Contains(c) ? "S" : "") + (cs.Dst.Contains(c) ? "D" : "") + (cs.Void.Contains(c) ? "V" : "");
+                var sb = new System.Text.StringBuilder();
+                sb.Append($"{Name}:   since its last result: {cs.OldRows.Count} rows, {cs.Src.Count} sources, {cs.Dst.Count} destinations, {cs.Void.Count} voids (seq {repairSince} to {seq}); differing:");
+                for (int k = 0; k < Math.Min(first.Count, 3); k++)
+                {
+                    int c = first[k];
+                    sb.Append($"\n{Name}:   cell {Xy(c)} [{InCs(c)}] element {Grid.Element[c]?.id} sub {PathFinder.IsSubmerged(c)} mask {(int)Grid.NavMasks[c]}");
+                    for (int j = 0; j < nc; j++)
+                    {
+                        int s = c * nc + j;
+                        bool rv = RepValid(s), cv = ChkValid(s);
+                        if (!rv && !cv) continue;
+                        sb.Append($"\n{Name}:     repair {St(s, Rep(s), rv)} | flood {St(s, checkCells[s], cv)} | flags {Flags(f, s, rv)} vs {checkFlags[s]}");
+                    }
+                }
+                // The flood's route from the first differing cell's cheapest state, up to where the repair agrees.
+                int c0 = first[0], best = -1;
+                for (int j = 0; j < nc; j++)
+                {
+                    int s = c0 * nc + j;
+                    if (ChkValid(s) && (best < 0 || checkCells[s].Cost < checkCells[best].Cost)) best = s;
+                }
+                Func<int, bool> agree = s => RepValid(s) && ChkValid(s) && Rep(s).Cost == checkCells[s].Cost && f.StateFlags[s] == checkFlags[s];
+                Func<int, string> both = s => $"repair {St(s, Rep(s), RepValid(s))} flags {Flags(f, s, RepValid(s))} | flood {St(s, checkCells[s], ChkValid(s))} flags {(ChkValid(s) ? checkFlags[s].ToString() : "-")}";
+                Walk(sb, "flood", best, s => ChkValid(s), s => checkCells[s], agree, nc, Xy, InCs, both);
+                best = -1;
+                for (int j = 0; j < nc; j++)
+                {
+                    int s = c0 * nc + j;
+                    if (RepValid(s) && (best < 0 || Rep(s).Cost < Rep(best).Cost)) best = s;
+                }
+                Walk(sb, "repair", best, RepValid, Rep, agree, nc, Xy, InCs, both);
+                var changed = new List<string>();
+                foreach (var c in cs.OldRows.Keys) changed.Add("R" + Xy(c));
+                foreach (var c in cs.Src) changed.Add("S" + Xy(c));
+                foreach (var c in cs.Dst) changed.Add("D" + Xy(c));
+                foreach (var c in cs.Void) changed.Add("V" + Xy(c));
+                sb.Append($"\n{Name}:   changes: {string.Join(", ", changed.GetRange(0, Math.Min(changed.Count, 40)))}");
+                global::Debug.Log(sb.ToString());
+            }
+
+            string Flags(Field f, int s, bool valid) => valid ? f.StateFlags[s].ToString() : "-";
+
+            void Walk(System.Text.StringBuilder sb, string which, int s, Func<int, bool> valid, Func<int, PCell> cell, Func<int, bool> agrees, int nc, Func<int, string> xy, Func<int, string> inCs, Func<int, string> both)
+            {
+                if (s < 0) { sb.Append($"\n{Name}:   {which}: no state there"); return; }
+                for (int steps = 0; steps < 100000 && valid(s); steps++)
+                {
+                    var c = cell(s);
+                    int u = c.Parent;
+                    if (u < 0) { sb.Append($"\n{Name}:   {which}: the whole route differs, back to the root"); return; }
+                    int ps = u * nc + graph.NavSlot[c.NavTypes >> 4];
+                    if (agrees(ps))
+                    {
+                        int v = s / nc;
+                        PLink link = default;
+                        foreach (var l in graph.Rows[u]) if (l.Link == v && l.Start == (c.NavTypes >> 4) && l.End == graph.SlotNav[s % nc] && l.Trans == c.TransitionId) link = l;
+                        sb.Append($"\n{Name}:   {which} parts at the link {xy(u)} [{inCs(u)}] {(NavType)(c.NavTypes >> 4)} to {xy(v)} [{inCs(v)}] {(NavType)graph.SlotNav[s % nc]}"
+                            + $" (transition {c.TransitionId}, cost {link.Cost}, parent cost {cell(ps).Cost}, child {c.Cost}; dst sub {PathFinder.IsSubmerged(v)} element {Grid.Element[v]?.id} mask {(int)Grid.NavMasks[v]}, src mask {(int)Grid.NavMasks[u]}"
+                            + $", voids {string.Join(" ", Array.ConvertAll(graph.VoidDeltas[c.TransitionId] ?? new int[0], x => xy(u + x) + "[" + inCs(u + x) + "] mask " + (int)Grid.NavMasks[u + x]))})"
+                            + $"\n{Name}:     parent: {both(ps)}\n{Name}:     child: {both(s)}");
+                        return;
+                    }
+                    s = ps;
+                }
+                sb.Append($"\n{Name}:   {which}: no agreeing state found");
             }
 
             PathGrid gameGrid;
@@ -814,7 +995,7 @@ namespace OniMoono.GameTweaks
                 PathProber.Run(order.originCell, order.abilities, feed.Grid, order.startingNavType, gameGrid, gameSerial, gameScratch, gamePotentials, order.startingFlags, null);
                 gameFloodTicks += Stopwatch.GetTimestamp() - t0;
                 gameFloods++;
-                if (Interlocked.Read(ref feed.Added) != added) { verifySkipped++; return; }
+                if (Interlocked.Read(ref feed.Changes.Added) != added) { verifySkipped++; return; }
                 var first = new List<int>();
                 int wrong = ProbeEngine.ProberDifferences(probersOf(f.Grid), f.Serial, probersOf(gameGrid), gameSerial, graph.CellCount, first);
                 floodsVerified++;
@@ -847,7 +1028,7 @@ namespace OniMoono.GameTweaks
                 since.Restart();
                 reportedOrders = orders;
                 double us = 1e6 / Stopwatch.Frequency;
-                string v = verify ? $", {verified} repairs verified, {verifyWrong} otherwise than a flood, {floodsVerified} floods verified, {floodsWrong} otherwise than the game's (the game's {(gameFloods > 0 ? gameFloodTicks * us / gameFloods : 0):F0} us each, ours {(gameFloods > 0 ? ourFloodTicks * us / gameFloods : 0):F0}), {verifySkipped} not checked (the world changed meanwhile)" : "";
+                string v = verify ? $", {verified} repairs verified, {verifyWrong} otherwise than a flood, {verifyTies} parting from a flood at a tie, {floodsVerified} floods verified, {floodsWrong} otherwise than the game's (the game's {(gameFloods > 0 ? gameFloodTicks * us / gameFloods : 0):F0} us each, ours {(gameFloods > 0 ? ourFloodTicks * us / gameFloods : 0):F0}), {verifySkipped} not checked (the world changed meanwhile), {feed.Audit?.Missed ?? 0} changes the feed missed" : "";
                 global::Debug.Log($"{Name}: {orders} probes: {repairs} repaired ({unchanged} with nothing changed, {(repairs > 0 ? repairTicks * us / repairs : 0):F0} us each), "
                     + $"{floods} flooded ({(floods > 0 ? floodTicks * us / floods : 0):F0} us each; first {floodNew}, moved or other abilities {floodKey}, "
                     + $"grid replaced {floodGrid}, changes too old {floodHistory}, too many changes {floodLarge}, repair gave up {floodGaveUp}){v}");
