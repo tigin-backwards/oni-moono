@@ -454,6 +454,28 @@ was compiled before it (ARCHITECTURE D34).
 << {"ok":true,"result":{"Brain:UpdateBrain":0}}
 ```
 
+### stopwatch `{methods?, over_ms?, hold?}`
+
+Times game methods from now on, through a Harmony prefix and postfix on each, added the first
+time the method is named (names as in `count`). A method's time is inclusive and counts only
+calls that return (one that throws is not counted). It also lists the frames longer than
+`over_ms` (default 100) with the driver's own work in them, since the driver's queries cost
+frames too. Each `stopwatch` logs (`E2E stopwatch NAME: N calls, X ms`, one line a method, then
+the long frames) and returns what was measured since the previous one, then restarts it. With
+`hold: N` it then answers N frames later, doing nothing else meanwhile, and logs those frames'
+mean and longest time (`E2E stopwatch hold N frames: ...`): a screen's steady cost with no
+driver queries in the way. Measurement only: the methods run as they would.
+
+- **Result:** `{"Type:Method": {"calls", "ms"}, …, "long_frames": [...], "driver_ms"}`; with
+  `hold`, `{frames, mean_ms, longest_ms, before}`, `before` being that result.
+
+```
+>> {"cmd":"stopwatch","args":{"methods":["SaveLoader:LoadHeader"],"over_ms":50}}
+<< {"ok":true,"result":{"long_frames":[],"driver_ms":0.0}}
+>> {"cmd":"stopwatch","args":{"hold":120}}
+<< {"ok":true,"result":{"frames":120,"mean_ms":3.4,"longest_ms":10.4,"before":{"SaveLoader:LoadHeader":{"calls":18544,"ms":436.1},...}}}
+```
+
 ### buildmenu.settled `{frames?}`
 
 Whether the build menu (PlanScreen) shows what the game would compute for it now. The game

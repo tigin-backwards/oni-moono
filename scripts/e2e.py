@@ -48,7 +48,8 @@ E2E_GAME_TWEAKS, space-separated `--game-tweak` values (`none`, `background-save
 -no-save-gc`); E2E_PLAYER_ARGS adds host arguments (`--renderer vulkan`), E2E_ORIGINAL_ARGS the
 original's (`-force-glcore`). E2E_SCREEN=WxH and E2E_UI_SCALE=PERCENT run both players at another
 screen size and UI scale, for a look at a layout there (comparisons with references want the
-default 1280x720 at 100). Each invocation
+default 1280x720 at 100). E2E_CLOUD_SAVES=DIR gives each player's profile DIR's tree as its
+cloud saves, hard-linked (load-screen-many-saves.yaml; never a real saves folder). Each invocation
 has a run id; each run's log, results and evidence are in
 out/e2e/SPEC/RUN_ID/PLAYER-N, and out/e2e/runs/RUN_ID.json holds one record per spec run.
 --record writes tests/e2e/results/SPEC.json, the committed record of the spec's verdict (played,
@@ -185,7 +186,7 @@ DRIVER_STEPS = {'click', 'toggle', 'dropdown', 'type', 'drag', 'tool', 'expect_u
 STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_shot', 'open', 'key', 'keyboard',
               'expect_exit'} | DRIVER_STEPS
 DRIVER_COMMANDS = {'ping', 'ui.action', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
-                   'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'keys.log', 'imgui.scrollview', 'templates.load',
+                   'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'stopwatch', 'keys.log', 'imgui.scrollview', 'templates.load',
                    'buildmenu.settled'}
 
 
@@ -2595,6 +2596,14 @@ class Player:
                     shutil.copy(source, os.path.join(folder, name + ext))
                 elif ext == '.sav':
                     raise SpecFailure(f'no fixture {source} (extra_saves)')
+        # E2E_CLOUD_SAVES=DIR: the profile's cloud saves (the Steam double's user) are DIR's tree,
+        # copied as hard links (DIR on the same disk), for a look at the Load screen with many
+        # saves. Never a real saves folder: the game may write and delete there.
+        cloud = os.environ.get('E2E_CLOUD_SAVES')
+        if cloud:
+            target = os.path.join(self.profile, 'cloud_save_files', '76561197960265729')
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            subprocess.run(['cp', '-al', '--', cloud, target], check=True)
         self.workshop, self.workshop_env = workshop, {}
         self.mods = self.install_mods(list(mods), driver)
         self.option_files = write_options(self.profile, self.mods, options or {})

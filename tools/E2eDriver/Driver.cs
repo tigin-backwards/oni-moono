@@ -155,6 +155,14 @@ namespace E2eDriver
         void Update()
         {
             KeyLog.Scan();
+            MethodTimes.Frame();
+            long started = System.Diagnostics.Stopwatch.GetTimestamp();
+            try { Serve(); }
+            finally { MethodTimes.Driver(started); }
+        }
+
+        void Serve()
+        {
             // A request spanning frames holds the queue: requests are answered in order.
             if (current != null)
             {

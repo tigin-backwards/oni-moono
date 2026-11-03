@@ -38,6 +38,7 @@ namespace E2eDriver
                 case "setup.call": return State.Result(State.Call(a), a);
                 case "seed": return Seeding.Seed(a);
                 case "count": return Counting.Start(a);
+                case "stopwatch": return MethodTimes.Start(request);
                 case "buildmenu.settled": return BuildMenu.Settled(request);
                 case "keys.log": return KeyLog.Start(a);
                 case "ui.action": return UiAction(a);
@@ -420,7 +421,7 @@ namespace E2eDriver
 
         /// "Type:Method", or "Type:Method(ParamType,...)" for one overload of several (parameter
         /// types by full or short name, as AccessTools.TypeByName takes them).
-        static System.Reflection.MethodInfo Resolve(string name)
+        internal static System.Reflection.MethodInfo Resolve(string name)
         {
             int open = name.IndexOf('(');
             if (open < 0 || !name.EndsWith(")")) return HarmonyLib.AccessTools.Method(name);
