@@ -47,10 +47,13 @@ namespace OniMoono.Desktop.Gl
         /// resident handles made for it by sampler object.
         public uint Sampler;
         public System.Collections.Generic.Dictionary<uint, ulong> Handles;
-        /// Bindless: the GL thread's frame the texture was last sampled in, and whether its
-        /// handles were made non-resident for being idle (BindlessResidency).
+        /// Bindless (BindlessResidency): the GL thread's frame the texture was last sampled in;
+        /// whether its handles were made non-resident for being idle, or wait for a fence to be;
+        /// that wait's number; the frame a handle of it last failed to become resident (-1).
         public long SampledFrame;
-        public bool Idle;
+        public bool Idle, Evicting;
+        public int Eviction;
+        public long FailedFrame = -1;
 
         /// The texture name's video memory, estimated from its formats and sizes (diagnostics).
         public long Bytes;
@@ -83,13 +86,14 @@ namespace OniMoono.Desktop.Gl
             GlTextures.LiveTextures++;
         }
 
-        /// Makes the handles non-resident and deletes the texture name (GL frees its storage once
-        /// the commands already issued that use it are done).
+        /// Deletes the texture name (GL frees its storage once the commands already issued that
+        /// use it are done). One with resident bindless handles is deleted, and its handles made
+        /// non-resident, once the frames that may sample it are done (BindlessResidency).
         public void DeleteName()
         {
-            GlBindless.Release(this);
+            bool later = GlBindless.Enabled && GlBindless.Release(this);
             if (Id == 0) return;
-            GlBindings.DeleteTexture(Id);
+            if (!later) GlBindings.DeleteTexture(Id);
             Id = 0;
             GlTextures.LiveTextures--;
             SetBytes(0, null);
@@ -539,6 +543,7 @@ namespace OniMoono.Desktop.Gl
             Begin(g, TexTarget2D, respecify: !sameStorage);
             if (!sameStorage)
             {
+                BindlessVerify.Specify(g, "glTexStorage2D");
                 N.glTexStorage2D(TexTarget2D, levels, f.Internal, t.Width, t.Height);
                 N.glTexParameteri(TexTarget2D, TextureBaseLevel, 0);
                 N.glTexParameteri(TexTarget2D, TextureMaxLevel, levels - 1);
@@ -635,6 +640,7 @@ namespace OniMoono.Desktop.Gl
             // which would have no image (incomplete, and no bindless handle).
             var f = Of(t.Format);
             Begin(g, TexTarget2DArray);
+            BindlessVerify.Specify(g, "glTexImage3D (2D array)");
             var memory = t.Memory;
             int levels = Math.Max(1, t.MipCount);
             long sliceSize = TextureFormats.ImageSize(t.Format, t.Width, t.Height, t.MipCount);
@@ -670,6 +676,7 @@ namespace OniMoono.Desktop.Gl
             // which would have no image (incomplete, and no bindless handle).
             var f = Of(t.Format, volume: true);
             Begin(g, TexTarget3D);
+            BindlessVerify.Specify(g, "glTexImage3D");
             var memory = t.Memory;
             int levels = Math.Max(1, t.MipCount);
             for (int m = 0; m < levels; m++)
@@ -786,6 +793,7 @@ namespace OniMoono.Desktop.Gl
             g.Samples = samples;
             g.DepthOnly = depthOnly;
             GlBindings.BindTexture(TexTarget2D, g.Id);
+            BindlessVerify.Specify(g, "glTexImage2D (render texture)");
             if (depthOnly)
                 N.glTexImage2D(TexTarget2D, 0, (int)DepthComponent32F, rt.Width, rt.Height, 0, DepthComponent, Float, null);
             else
@@ -942,7 +950,9 @@ namespace OniMoono.Desktop.Gl
             if (g.Levels > 1 && autoGenerateMips)
             {
                 GlBindings.BindTexture(TexTarget2D, g.Id);
+                BindlessVerify.BeforeMips();
                 N.glGenerateMipmap(TexTarget2D);
+                BindlessVerify.MipsGenerated(g);
             }
         }
 

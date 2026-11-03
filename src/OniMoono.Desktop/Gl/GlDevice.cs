@@ -649,13 +649,27 @@ namespace OniMoono.Desktop.Gl
                     // whose results are undefined (ARB_bindless_texture, section 2.14.6).
                     if (!GlPrograms.HasTextures(program.Samplers[i].Target)) continue;
                     var texture = recorded.Textures[i].Texture;
-                    ulong h = GlBindless.Handle(texture);
+                    ulong h = GlBindless.Handle(texture, out bool bind);
                     // No handle (an incomplete texture): the default the sampler reads unbound.
-                    if (h == 0) h = GlBindless.Handle(DefaultTexture(Unbound, texture.Target));
+                    if (h == 0 && !bind)
+                    {
+                        texture = DefaultTexture(Unbound, texture.Target);
+                        h = GlBindless.Handle(texture, out bind);
+                    }
+                    if (BindlessVerify.Enabled) BindlessVerify.Sampler(program, i, texture, h, bind);
+                    if (bind)
+                    {
+                        // Not resident: sampled from the sampler's unit. The uniform now holds the
+                        // unit, recorded as 0 (never a handle), so the next handle sets it again.
+                        handles[i] = 0;
+                        GlBindless.BindToUnit(program.Id, program.Samplers[i].Location, program.Samplers[i].Unit, texture);
+                        continue;
+                    }
                     if (h == 0 || handles[i] == h) continue;
                     handles[i] = h;
                     GlBindless.SetSampler(program.Id, program.Samplers[i].Location, h);
                 }
+                if (BindlessVerify.Enabled) BindlessVerify.Drawn();
             }
             else
                 for (int i = 0; i < recorded.TextureCount; i++)
