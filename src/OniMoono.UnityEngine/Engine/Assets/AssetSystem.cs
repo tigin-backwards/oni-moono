@@ -18,9 +18,9 @@ namespace OniMoono.Engine.Assets
         static bool dataDirUsed;
         static readonly object gate = new();
         static readonly Dictionary<string, SerializedFile> files = new(StringComparer.Ordinal);
-        /// Each node a window on its bundle's decompressed data (UnityFsArchive.Slice), an array or
-        /// a mapped cache file (BundleCache), which stays alive while any of its nodes is mounted or held.
-        static readonly Dictionary<string, ReadOnlyMemory<byte>> bundleNodes = new(StringComparer.Ordinal);
+        /// Each node a window on its bundle's decompressed data (UnityFsArchive.Slice): the data is
+        /// allocated once, and stays alive while any of its nodes is mounted or held.
+        static readonly Dictionary<string, ArraySegment<byte>> bundleNodes = new(StringComparer.Ordinal);
         /// Resource files mapped once each: concurrent first reads (texture and video threads) share
         /// one mapping (GetOrAdd's factory alone could run twice and leak a whole-file view).
         static int mappingsMade;
@@ -103,10 +103,10 @@ namespace OniMoono.Engine.Assets
         /// a bundle's nodes live under a directory named after its serialized file: `CAB-x` and
         /// `CAB-x.resS` are `archive:/CAB-x/CAB-x` and `archive:/CAB-x/CAB-x.resS` (the paths its
         /// objects and other bundles' externals use).
-        public static List<(string Key, ReadOnlyMemory<byte> Data)> ReadNodes(UnityFsArchive archive)
+        public static List<(string Key, ArraySegment<byte> Data)> ReadNodes(UnityFsArchive archive)
         {
             var main = archive.Nodes.FirstOrDefault(n => !IsResourceNode(n.Path))?.Path ?? archive.Nodes.FirstOrDefault()?.Path ?? "";
-            var nodes = new List<(string, ReadOnlyMemory<byte>)>();
+            var nodes = new List<(string, ArraySegment<byte>)>();
             foreach (var node in archive.Nodes) nodes.Add(("archive:/" + main + "/" + node.Path, archive.Slice(node)));
             return nodes;
         }
@@ -114,7 +114,7 @@ namespace OniMoono.Engine.Assets
         static bool IsResourceNode(string path) => path.EndsWith(".resS", StringComparison.Ordinal) || path.EndsWith(".resource", StringComparison.Ordinal);
 
         /// Mounts decompressed nodes; returns the keys of the serialized files among them.
-        public static List<string> Mount(List<(string Key, ReadOnlyMemory<byte> Data)> nodes)
+        public static List<string> Mount(List<(string Key, ArraySegment<byte> Data)> nodes)
         {
             var serialized = new List<string>();
             lock (gate)
@@ -139,9 +139,9 @@ namespace OniMoono.Engine.Assets
                 }
         }
 
-        /// A mounted bundle node's bytes (a resource file a texture reads from), or empty for a file
-        /// of the game's data folder or a node not mounted.
-        public static ReadOnlyMemory<byte> MountedNode(string path)
+        /// A mounted bundle node's bytes (a resource file a texture reads from), or null for a file
+        /// of the game's data folder or a node not mounted (an empty segment, its Array null).
+        public static ArraySegment<byte> MountedNode(string path)
         {
             var key = Canonical(path);
             if (!key.StartsWith("archive:/", StringComparison.Ordinal)) return default;
@@ -170,7 +170,7 @@ namespace OniMoono.Engine.Assets
             {
                 if (bundleNodes.TryGetValue(key, out var node))
                 {
-                    node.Span.Slice(checked((int)offset), destination.Length).CopyTo(destination);
+                    node.AsSpan(checked((int)offset), destination.Length).CopyTo(destination);
                     return;
                 }
             }

@@ -44,9 +44,6 @@ source "$(dirname "$0")/env.sh"
 # Its builds, players and tests run in the memory-capped test slice (scripts/contain.sh).
 [ -n "${ONI_CONTAINED:-}" ] || exec "$root/scripts/contain.sh" "$root/scripts/qa.sh" "$@"
 export PATH="$HOME/.dotnet:$PATH"
-# The players' bundle cache (BundleCache) is the machine's one, shared with scripts/e2e.py,
-# not 1.1 GB in each run's home.
-export ONI_BUNDLE_CACHE_DIR="${ONI_BUNDLE_CACHE_DIR:-${E2E_LOCK_DIR:-$HOME/.cache/oni-brutal-e2e}/bundle-cache}"
 bless=0; stages=(); bless_from=""
 for a in "$@"; do
     case $a in

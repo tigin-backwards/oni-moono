@@ -38,16 +38,6 @@ namespace OniMoono.Assets.IO
             position = offset;
         }
 
-        /// A window of `size` mapped bytes at `memory` (MappedMemory, which lives for the process).
-        public DataReader(byte* memory, int size, int offset, int length)
-        {
-            if (offset < 0 || length < 0 || (long)offset + length > size) throw new ArgumentOutOfRangeException(nameof(length));
-            pointer = memory;
-            start = offset;
-            end = offset + length;
-            position = offset;
-        }
-
         /// Position relative to the start of this reader's window.
         public int Position
         {

@@ -408,14 +408,6 @@ DLC):
 - The DLC bundles (one LZMA stream each, about 1 GiB decompressed) are decompressed on worker
   threads from the player's start (`ONI_BUNDLE_PREFETCH=0` turns it off); loading them takes
   the game 0.3–0.6 s instead of 9–11 s.
-- Each bundle's decompressed data goes into a cache file once and is mapped from then on
-  (`BundleCache`, ARCHITECTURE §3.4), instead of living in the managed heap: on U60 with every
-  DLC (Linux, 2026-11-03) the menu's live heap after a full collection is 1,715 → 600 MB and
-  c100's at its load 8,332 → 7,221 MB, committed 9,431 → 8,160 MB; the 1.1 GB are file pages
-  the system can drop. A first launch writes 1.1 GB (U60's expansion1 bundle 0.61 → 1.30 s on
-  its prefetch thread), a later one hashes and maps (0.14 s); the time to the menu did not
-  change beyond the runs' spread (19.0–21.1 s, the JIT's time varying by 4 s), as the
-  prefetch threads finish long before the game asks for the bundles.
 - The host's patches of the game and of Harmony are made while the window opens: the window and
   device are ready 0.28 s sooner.
 - Serialized files are mapped instead of read whole: the first scene loads about 50 ms sooner,

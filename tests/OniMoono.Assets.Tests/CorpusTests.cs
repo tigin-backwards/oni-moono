@@ -64,7 +64,7 @@ namespace OniMoono.Assets.Tests
             var archive = UnityFsArchive.Open(Path.Combine(GameData.DataDir, "StreamingAssets", "hires_base_bundle"));
             Assert.True(archive.Nodes.Count >= 2);
             foreach (var node in archive.Nodes)
-                Assert.True(archive.Slice(node).Span.SequenceEqual(archive.Read(node)), node.Path);
+                Assert.True(archive.Slice(node).AsSpan().SequenceEqual(archive.Read(node)), node.Path);
             var cabNode = archive.Nodes.First(n => !n.Path.EndsWith(".resS"));
             var slice = archive.Slice(cabNode);
             var copy = SerializedFile.Parse(cabNode.Path, archive.Read(cabNode));
