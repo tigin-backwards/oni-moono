@@ -131,6 +131,14 @@ namespace OniMoono.Tests
             var stream = new List<string>();
             foreach (var command in worker.Recording.Commands)
             {
+                if (command.Target is IStateCommand recorded)
+                {
+                    // Named by the class whose work it runs (a lambda's closure class: its owner).
+                    var owner = recorded.Work.DeclaringType;
+                    if (owner.Name.StartsWith('<')) owner = owner.DeclaringType;
+                    stream.Add("post " + owner.Name);
+                    continue;
+                }
                 if (command.Method.DeclaringType?.DeclaringType != typeof(GlDrawRecorder))
                 {
                     stream.Add("post " + command.Method.DeclaringType?.DeclaringType?.Name);

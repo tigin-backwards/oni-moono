@@ -373,14 +373,23 @@ namespace OniMoono.Desktop.Gl
                 if (binding.Depth != null) depth = binding.Depth == binding.Colors[0] ? colors[0] : GlTextures.Prepare(worker, binding.Depth);
             }
             var bound = new BoundTarget(colors, depth, platform.FramebufferWidth, platform.FramebufferHeight);
-            worker.Post(() =>
-            {
-                long t = GlTimings.Now;
-                target = bound;
-                framebufferValid = false;
-                BindTarget();
-                GlTimings.Targets += GlTimings.Now - t;
-            });
+            worker.Post(worker.Arena.Command(setTargetNow ??= SetTargetNow, bound));
+        }
+
+        // The target, viewport, scissor and clear work (GL thread), recorded as StateCommands
+        // with these delegates, made once.
+        Action<BoundTarget> setTargetNow;
+        Action<UnityEngine.Rect> setViewportNow;
+        Action<Rect?> setScissorNow;
+        Action<(bool Color, bool Depth, Color Background, float DepthValue)> clearNow;
+
+        void SetTargetNow(BoundTarget bound)
+        {
+            long t = GlTimings.Now;
+            target = bound;
+            framebufferValid = false;
+            BindTarget();
+            GlTimings.Targets += GlTimings.Now - t;
         }
 
         // GL thread.
@@ -474,13 +483,12 @@ namespace OniMoono.Desktop.Gl
             GlApi.BindFramebuffer(Framebuffer, mrt.Name);
         }
 
-        public override void SetViewport(UnityEngine.Rect pixels)
+        public override void SetViewport(UnityEngine.Rect pixels) => worker.Post(worker.Arena.Command(setViewportNow ??= SetViewportNow, pixels));
+
+        void SetViewportNow(UnityEngine.Rect pixels)
         {
-            worker.Post(() =>
-            {
-                BindTarget();
-                N.glViewport((int)pixels.x, (int)pixels.y, (int)pixels.width, (int)pixels.height);
-            });
+            BindTarget();
+            N.glViewport((int)pixels.x, (int)pixels.y, (int)pixels.width, (int)pixels.height);
         }
 
         /// The scissor rectangle in effect (CommandBuffer.EnableScissorRect), or null (GL thread).
@@ -488,49 +496,49 @@ namespace OniMoono.Desktop.Gl
 
         public static bool ScissorActive => scissor != null;
 
-        public override void SetScissor(Rect? pixels)
+        public override void SetScissor(Rect? pixels) => worker.Post(worker.Arena.Command(setScissorNow ??= SetScissorNow, pixels));
+
+        static void SetScissorNow(Rect? pixels)
         {
-            worker.Post(() =>
+            scissor = pixels;
+            if (pixels is { } r)
             {
-                scissor = pixels;
-                if (pixels is { } r)
-                {
-                    GlApi.Enable(ScissorTest, true);
-                    N.glScissor((int)r.x, (int)r.y, Math.Max(0, (int)r.width), Math.Max(0, (int)r.height));
-                }
-                else GlApi.Enable(ScissorTest, false);
-            });
+                GlApi.Enable(ScissorTest, true);
+                N.glScissor((int)r.x, (int)r.y, Math.Max(0, (int)r.width), Math.Max(0, (int)r.height));
+            }
+            else GlApi.Enable(ScissorTest, false);
         }
 
         public override void Clear(bool color, bool depth, Color backgroundColor, float depthValue)
+            => worker.Post(worker.Arena.Command(clearNow ??= ClearNow, (color, depth, backgroundColor, depthValue)));
+
+        void ClearNow((bool Color, bool Depth, Color Background, float DepthValue) clear)
         {
-            worker.Post(() =>
+            var (color, depth, backgroundColor, depthValue) = clear;
+            uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
+            BindTarget();
+            // Clears fill the whole target.
+            if (scissor != null) GlApi.Enable(ScissorTest, false);
+            uint mask = 0;
+            if (color)
             {
-                uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
-                BindTarget();
-                // Clears fill the whole target.
-                if (scissor != null) GlApi.Enable(ScissorTest, false);
-                uint mask = 0;
-                if (color)
-                {
-                    N.glColorMask(true, true, true, true);
-                    N.glClearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
-                    mask |= ColorBufferBit;
-                }
-                if (depth)
-                {
-                    N.glDepthMask(true);
-                    N.glStencilMask(0xFF);
-                    N.glClearDepth(depthValue);
-                    N.glClearStencil(0);
-                    mask |= DepthBufferBit | StencilBufferBit;
-                }
-                if (mask != 0) N.glClear(mask);
-                if (color && target.Colors == null) presenter.Drew(clear: scissor == null);
-                if (scissor != null) GlApi.Enable(ScissorTest, true);
-                GlStateCache.Invalidate();
-                if (GlGpuProfile.Enabled) GlGpuProfile.End("clear", q);
-            });
+                N.glColorMask(true, true, true, true);
+                N.glClearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
+                mask |= ColorBufferBit;
+            }
+            if (depth)
+            {
+                N.glDepthMask(true);
+                N.glStencilMask(0xFF);
+                N.glClearDepth(depthValue);
+                N.glClearStencil(0);
+                mask |= DepthBufferBit | StencilBufferBit;
+            }
+            if (mask != 0) N.glClear(mask);
+            if (color && target.Colors == null) presenter.Drew(clear: scissor == null);
+            if (scissor != null) GlApi.Enable(ScissorTest, true);
+            GlStateCache.Invalidate();
+            if (GlGpuProfile.Enabled) GlGpuProfile.End("clear", q);
         }
 
         protected override void ApplyCamera(in CameraConstants c)
@@ -755,7 +763,7 @@ namespace OniMoono.Desktop.Gl
             var sub = shader.ActiveSubShader;
             if (sub == null || passIndex >= sub.Passes.Length) return null;
             var pass = sub.Passes[passIndex];
-            int blob = ShaderPrograms.SelectVariant(pass, k => GlDrawRecorder.KeywordEnabled(k, material, null));
+            int blob = GlDrawRecorder.Variant(material, shader, pass, null);
             if (blob < 0) return null;
             var program = recorder.Program(shader, blob);
             if (program.Id == 0) return null;

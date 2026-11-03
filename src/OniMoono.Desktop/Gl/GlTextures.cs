@@ -411,8 +411,10 @@ namespace OniMoono.Desktop.Gl
             return g.RecordedEmpty || g.RecordedSampler == t.SamplerVersion;
         }
 
-        // The GL-thread work Prepare posts, each in its own method so that its closure is
-        // allocated only when there is work (Prepare runs for every texture of every draw).
+        // The GL-thread work Prepare posts, each in its own method so that nothing is allocated
+        // when there is no work (Prepare runs for every texture of every draw). Uploads and
+        // sampler changes, which a large colony records hundreds of a frame, are StateCommands
+        // and allocate nothing; a render texture's (rare) creation has a closure.
         static void PostRenderTexture(GlWorker worker, DeviceTexture g, RenderShape shape, string name) => worker.Post(() =>
         {
             long t = GlTimings.Now;
@@ -420,17 +422,24 @@ namespace OniMoono.Desktop.Gl
             GlTimings.Targets += GlTimings.Now - t;
         });
 
-        internal static void PostUpload(GlWorker worker, DeviceTexture g, TexelUpload upload) => worker.Post(() =>
+        internal static void PostUpload(GlWorker worker, DeviceTexture g, TexelUpload upload) => worker.Post(worker.Arena.Command(runUpload, (g, upload)));
+
+        static readonly Action<(DeviceTexture Texture, TexelUpload Upload)> runUpload = RunUpload;
+
+        static void RunUpload((DeviceTexture Texture, TexelUpload Upload) recorded)
         {
+            var (g, upload) = recorded;
             long t = GlTimings.Now;
             uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
             upload.Execute(g);
             if (GlGpuProfile.Enabled) GlGpuProfile.End($"texture upload {upload.Width}x{upload.Height} {upload.Format}", q);
             GlTimings.TextureUploads += GlTimings.Now - t;
             System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.GlUploadTicks, GlTimings.Now - t);
-        });
+        }
 
-        internal static void PostSampler(GlWorker worker, DeviceTexture g, SamplerSettings sampler) => worker.Post(() => ApplySampler(sampler, g));
+        internal static void PostSampler(GlWorker worker, DeviceTexture g, SamplerSettings sampler) => worker.Post(worker.Arena.Command(applySampler, (g, sampler)));
+
+        static readonly Action<(DeviceTexture Texture, SamplerSettings Sampler)> applySampler = s => ApplySampler(s.Sampler, s.Texture);
 
         internal static void ApplySamplerNow(SamplerSettings sampler, DeviceTexture g) => ApplySampler(sampler, g);
 
@@ -510,9 +519,21 @@ namespace OniMoono.Desktop.Gl
                     long length = t.MipSize(m);
                     byte* p = memory.Pointer + t.MipOffset(m);
                     if (f.Compressed) N.glCompressedTexSubImage2D(TexTarget2D, m, 0, 0, w, h, f.Internal, (int)length, p);
-                    else Texels(t.Format, f, p, length, w, h, d => N.glTexSubImage2D(TexTarget2D, m, 0, 0, w, h, f.Format, f.Type, (void*)d));
+                    else SubImage2D(t.Format, f, p, length, m, w, h);
                 }
         }
+
+        // A level as stored, or decoded (Texels) for a format GL does not take. The decoding has
+        // its own method: its closure captures `f`, and in Upload2D it was allocated for every
+        // upload, unchanged ones included.
+        static void SubImage2D(TextureFormat format, GlFormat f, byte* p, long length, int m, int w, int h)
+        {
+            if (!f.Decompress) N.glTexSubImage2D(TexTarget2D, m, 0, 0, w, h, f.Format, f.Type, p);
+            else DecodedSubImage2D(format, f, p, length, m, w, h);
+        }
+
+        static void DecodedSubImage2D(TextureFormat format, GlFormat f, byte* p, long length, int m, int w, int h)
+            => Texels(format, f, p, length, w, h, d => N.glTexSubImage2D(TexTarget2D, m, 0, 0, w, h, f.Format, f.Type, (void*)d));
 
         /// Largest texture whose last upload is kept to compare with the next.
         const long UploadedTexelsLimit = 4 << 20;

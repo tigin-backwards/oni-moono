@@ -200,6 +200,13 @@ namespace OniMoono.Desktop.Gl
         public DeviceProgram Program(ShaderNative shader, int blob)
         {
             if (shader.Gpu is DeviceProgramSet set && set.Programs.TryGetValue(blob, out var p)) return p;
+            return Build(shader, blob);
+        }
+
+        // Its own method: the closure captures the parameters, and C# allocates such a closure
+        // on entry to the method, so in Program it was made for every pass of every draw.
+        DeviceProgram Build(ShaderNative shader, int blob)
+        {
             long waitStart = System.Diagnostics.Stopwatch.GetTimestamp();
             var built = worker.Call(() => GlPrograms.Get(shader, blob));
             System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.ProgramWaitTicks, System.Diagnostics.Stopwatch.GetTimestamp() - waitStart);
@@ -331,7 +338,8 @@ namespace OniMoono.Desktop.Gl
 
         /// The pass's program variant for the material's, the draw's and the global keywords,
         /// selected once per material, pass and draw keyword list while the keywords are unchanged.
-        static int Variant(MaterialNative material, ShaderNative passShader, ShaderPass pass, string[] keywords)
+        /// The device's immediate draws (no draw keywords) use it too.
+        internal static int Variant(MaterialNative material, ShaderNative passShader, ShaderPass pass, string[] keywords)
         {
             var cache = material.Variants ??= new();
             var key = (pass, keywords);

@@ -267,7 +267,35 @@ namespace OniMoono.Desktop.Gl
             floatCount = 0;
             byteCount = 0;
             objectCount = 0;
+            foreach (var list in stateCommands.Values) list.Count = 0;
             foreach (var c in children) c.Reset();
+        }
+
+        abstract class StateCommands
+        {
+            public int Count;
+        }
+
+        sealed class StateCommands<T> : StateCommands
+        {
+            public readonly List<StateCommand<T>> Items = new();
+        }
+
+        readonly Dictionary<Type, StateCommands> stateCommands = new();
+
+        /// A command that runs `work` (its delegate made once) with `state`, from a list per state
+        /// type reused once the frame has run (beside the draws' objects in Next, whose places it
+        /// does not take): a texture or mesh upload, sampler change, target, viewport, scissor or
+        /// clear recorded this way allocates nothing.
+        public Action Command<T>(Action<T> work, T state)
+        {
+            if (!stateCommands.TryGetValue(typeof(T), out var list)) stateCommands[typeof(T)] = list = new StateCommands<T>();
+            var typed = (StateCommands<T>)list;
+            StateCommand<T> command;
+            if (typed.Count < typed.Items.Count) command = typed.Items[typed.Count];
+            else typed.Items.Add(command = new StateCommand<T>());
+            typed.Count++;
+            return command.Set(work, state);
         }
 
         /// The frame's `index`th child arena, for one thread's recording while others record into
@@ -321,6 +349,38 @@ namespace OniMoono.Desktop.Gl
             byteCount += length;
             Array.Clear(bytes, offset, length);
             return (bytes, offset);
+        }
+    }
+
+    /// What a recorded StateCommand will run (tests).
+    internal interface IStateCommand
+    {
+        System.Reflection.MethodInfo Work { get; }
+    }
+
+    /// Work with its state recorded for the GL thread (FrameArena.Command): reused with its
+    /// delegate, and it lets go of both when it runs.
+    internal sealed class StateCommand<T> : IStateCommand
+    {
+        public readonly Action Run;
+        Action<T> work;
+        T state;
+
+        public System.Reflection.MethodInfo Work => work?.Method;
+
+        public StateCommand() => Run = Execute;
+
+        public Action Set(Action<T> work, T state)
+        {
+            (this.work, this.state) = (work, state);
+            return Run;
+        }
+
+        void Execute()
+        {
+            var (w, s) = (work, state);
+            (work, state) = (null, default);
+            w(s);
         }
     }
 }
