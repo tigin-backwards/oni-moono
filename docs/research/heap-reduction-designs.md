@@ -229,8 +229,40 @@ the cache; two to three runs each, interleaved):
 The load reads no block, so its 0.4-1.5 s difference is the runs' spread, not the reads; frame
 intervals are within it too. The main thread now decodes what it reads (0.14-0.20 s, before the
 menu), which the prefetch threads used to decode; the time to the menu did not move beyond the
-JIT's spread. No Windows runs: PowerShell (which the Windows runners need) is blocked in the
-agent's worktree.
+JIT's spread.
+
+**Windows** (9800X3D, RTX 3090, U60 761211 with every DLC, Vulkan, one build of u60 1fb784f9 with
+`ONI_BUNDLE_BLOCKS=0` as the baseline; slots interleaved base, blocks, base, blocks, each in its
+own run home: two launches to the menu, then a 200-Duplicant colony and a late-game colony
+(cycle 17,628, a 145 MB save) loaded, 110 s at speed 3 on the busiest world; three more menu
+pairs; memory from `--frame-stats`' memory lines, not after a full GC):
+
+| | Before | Blocks |
+|---|---:|---:|
+| Menu (second launch, ×5): private bytes | 6,675-6,911 MiB | 5,462-5,697 MiB |
+| Menu: managed heap (committed) | 1,966-2,239 (2,166-2,411) MiB | 862-1,032 (1,024-1,242) MiB |
+| Time to the menu, second launch | 14.4-17.8 s (mean 16.4) | 15.6-17.9 s (mean 17.0) |
+| Time to the menu, third and fourth launches | 13.8-16.1 s (mean 14.4) | 13.1-15.6 s (mean 14.3) |
+| Main thread's bundle reads before the menu | none | 5,697 reads, 302-325 MB, 265-314 ms |
+| 200 Duplicants, 110 s in: private bytes | 10,781, 11,117 MiB | 9,926, 9,898 MiB |
+| 200 Duplicants, 110 s in: managed heap | 4,357, 4,482 MiB | 3,420, 3,414 MiB |
+| 200 Duplicants: load (Loading save file to PerfProbe's colony line) | 18.4, 15.1 s | 13.8, 15.8 s |
+| 200 Duplicants: fps (600-frame windows from 30 s in) | 37.6, 42.9 | 47.4, 42.9 |
+| 200 Duplicants: slowest 1% of frames | 50.5, 47.9 ms | 44.6, 49.2 ms |
+| Late game, 110 s in: private bytes | 17,452, 16,979 MiB | 15,657, 15,799 MiB |
+| Late game, 110 s in: managed heap | 9,669, 9,384 MiB | 7,812, 7,998 MiB |
+| Late game: load | 26.2, 26.4 s | 24.8, 24.4 s |
+| Late game: fps | 46.4, 51.9 | 51.6, 54.7 |
+| Late game: slowest 1% of frames | 59.2, 51.4 ms | 49.9, 48.8 ms |
+
+Run to run, the same build moves 3.4 s in the time to the menu and 5 fps in a colony, so only
+the memory is outside the noise. The second launch's menu mean is 0.5 s later with blocks
+(paired by slot −1.1 to +3.0 s), about the main thread's 0.27-0.31 s of decoding, which is
+longer than on Linux; the later launches show no difference. Slow frames are the same in both:
+the load's two frames (15-20 s and about 1 s for the 200 Duplicants, 26-28 s and 2.6 s for the
+late game), then in play the game's own update spikes (0.3-3.7 s, the same pattern in both
+builds) and none in rendering; the Vulkan thread's texture uploads in play are 1.1-4.0 ms a
+frame in both. No exceptions.
 
 ## 2. KAnim frame elements
 
