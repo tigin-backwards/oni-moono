@@ -1349,18 +1349,31 @@ namespace OniMoono.Engine.UI
                 return r.Baked;
             int n = g.Positions.Length;
             var mesh = r.Baked ??= new MeshNative { Dynamic = true };
+            // An element that only moved (world-space canvases follow their objects every frame)
+            // keeps its colours: the array is never written once made, so the new version can
+            // hold it too. Arrays made here are reused once the device has uploaded them
+            // (MeshNative.NewChannel).
+            bool sameColors = !MeshNative.ReuseOff && ReferenceEquals(r.BakedGeometry, g) && r.BakedColor.Equals(color) && mesh.Colors is { } kept && kept.Length == n;
             mesh.VertexCount = n;
-            mesh.Positions = new Vector3[n];
-            mesh.Colors = new Color[n];
+            mesh.Retire(MeshNative.SlotPositions);
+            mesh.Positions = mesh.NewChannel<Vector3>(n);
+            mesh.Give(MeshNative.SlotPositions, mesh.Positions);
+            if (!sameColors)
+            {
+                mesh.RetireColors();
+                var colors = mesh.NewChannel<Color>(n);
+                for (int i = 0; i < n; i++)
+                {
+                    var c = g.Colors != null && i < g.Colors.Length ? g.Colors[i] : Color.white;
+                    colors[i] = c * color;
+                }
+                mesh.Colors = colors;
+                mesh.Give(MeshNative.SlotColors, colors);
+            }
             r.BakedGeometry = g;
             r.BakedToSpace = toSpace;
             r.BakedColor = color;
             toSpace.MultiplyPoints3x4(g.Positions, mesh.Positions);
-            for (int i = 0; i < n; i++)
-            {
-                var c = g.Colors != null && i < g.Colors.Length ? g.Colors[i] : Color.white;
-                mesh.Colors[i] = c * color;
-            }
             for (int u = 0; u < 4; u++)
             {
                 mesh.Uvs[u] = g.Uvs[u];
@@ -1368,7 +1381,10 @@ namespace OniMoono.Engine.UI
             }
             mesh.Normals = g.Normals;
             mesh.Tangents = g.Tangents;
-            mesh.SubMeshes = new List<SubMeshData> { new SubMeshData { Indices = g.Indices } };
+            // One submesh with the geometry's indices; its object is kept (nothing holds it
+            // past the device's recording).
+            if (mesh.SubMeshes.Count == 1) mesh.SubMeshes[0].Indices = g.Indices;
+            else mesh.SubMeshes = new List<SubMeshData> { new SubMeshData { Indices = g.Indices } };
             mesh.RecalculateBounds();
             mesh.Changed();
             return mesh;
