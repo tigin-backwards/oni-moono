@@ -33,6 +33,38 @@ namespace UnityEngine
             bool png = data.Length >= 8 && data[0] == 0x89 && data[1] == (byte)'P' && data[2] == (byte)'N' && data[3] == (byte)'G';
             bool jpeg = data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF;
             if (!png && !jpeg) return false;
+            if (png && PngDecode.TryParse(data, out var parsed) && LoadPng(tex, data, parsed, markNonReadable)) return true;
+            return LoadWithStb(tex, data, png, markNonReadable);
+        }
+
+        /// The PNGs PngDecode takes: decoded into new texels, which replace the texture's only once
+        /// the whole image decoded (else stb decodes it).
+        static bool LoadPng(Texture2D tex, byte[] data, in PngDecode.Image image, bool markNonReadable)
+        {
+            var native = (Texture2DNative)tex.NativeOrThrow;
+            int w = image.Width, h = image.Height;
+            int mips = native.MipCount > 1 ? TextureFormats.FullMipCount(w, h) : 1;
+            var texels = new PixelMemory(TextureFormats.ImageSize(TextureFormat.ARGB32, w, h, mips));
+            if (!PngDecode.TryDecode(data, image, texels.Slice(0, (long)w * h * 4)))
+            {
+                texels.Free();
+                return false;
+            }
+            native.Width = w;
+            native.Height = h;
+            native.Format = TextureFormat.ARGB32;
+            native.MipCount = mips;
+            native.Readable = true;
+            native.Adopt(texels);
+            TexelAddressing.BuildMips(native);
+            if (markNonReadable) native.Readable = false;
+            native.ContentChanged();
+            return true;
+        }
+
+        /// stb_image's decode (JPEGs, and the PNGs PngDecode leaves to it).
+        internal static bool LoadWithStb(Texture2D tex, byte[] data, bool png, bool markNonReadable)
+        {
             using var image = Stb.LoadFromMemory(data, png ? 4 : 3);
             if (image.IsNull()) return false;
             var native = (Texture2DNative)tex.NativeOrThrow;
