@@ -1,7 +1,7 @@
 # The Moono Tweaks screen's search box in English (moono-tweaks-search-zh.yaml: in Chinese): a
 # query keeps the rows it matches and the headings of their sections, one that matches nothing
 # says so, Escape closes the screen as it closes the Supply Closet's inventory while its search
-# has the keyboard, and the clear button brings every row back. Ours only (`--player ours`).
+# has the keyboard, and emptying the field brings every row back. Ours only (`--player ours`).
 from: main-menu
 tweaks_menu: true
 steps:
@@ -46,7 +46,11 @@ steps:
       "**/MoonoTweaksScreen/**/Content/Heading General": {exists: false}
       "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {exists: false}
   - shot: search-none
-  - click: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/ClearButton"}
+  # No clear button (the screen's close button is right above): emptying the field brings
+  # every row back.
+  - expect_ui:
+      "**/MoonoTweaksScreen/Panel/SearchBar/Search/ClearButton": {exists: false}
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: gone}
   - expect_ui:
       "**/MoonoTweaksScreen/**/Content/splash": {active: true}
