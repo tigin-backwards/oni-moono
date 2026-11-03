@@ -26,11 +26,35 @@ namespace OniMoono.Engine
         /// Reports of the window's wall seconds and frames: lines to log.
         public static readonly List<Func<double, int, string[]>> Reports = new();
 
+        /// The window's longest GC pause (of the collections seen: the last one at each frame's
+        /// end, so a frame with two keeps only the later), and the most a frame was paused in
+        /// all, in milliseconds (GcFrame).
+        static double longestGcPause, mostGcPauseInFrame;
+        static int lastGcIndex = -1;
+        static double lastPauseTotal = -1;
+
         static RuntimeSample lastRuntime;
         static MachineSample lastMachine;
         static long windowStarted;
 
         public static long Now => Stopwatch.GetTimestamp();
+
+        /// At each frame's end (frame stats on): the GC's pauses since the last frame.
+        public static void GcFrame()
+        {
+            double total = GC.GetTotalPauseDuration().TotalMilliseconds;
+            if (lastPauseTotal >= 0 && total > lastPauseTotal)
+            {
+                mostGcPauseInFrame = Math.Max(mostGcPauseInFrame, total - lastPauseTotal);
+                var info = GC.GetGCMemoryInfo(GCKind.Any);
+                if (info.Index != lastGcIndex)
+                {
+                    lastGcIndex = (int)info.Index;
+                    foreach (var pause in info.PauseDurations) longestGcPause = Math.Max(longestGcPause, pause.TotalMilliseconds);
+                }
+            }
+            lastPauseTotal = total;
+        }
 
         /// The window's lines, and the start of the next window. The first call only starts one.
         public static List<string> Take(int frames)
@@ -60,6 +84,7 @@ namespace OniMoono.Engine
                 lines.Add(MachineStats.Describe(lastMachine, machine, seconds));
             }
             DeviceFrameWait = DeviceCallWait = DeviceCalls = TexelCopyWait = 0;
+            longestGcPause = mostGcPauseInFrame = 0;
             Interlocked.Exchange(ref PresenterQueueWait, 0);
             windowStarted = now;
             lastRuntime = runtime;
@@ -75,7 +100,8 @@ namespace OniMoono.Engine
             string PerFrame(double n) => (n / frames).ToString("F2", c);
             return $"main thread waits (ms/frame over {frames}): device frame {Ms(DeviceFrameWait)}, device calls {Ms(DeviceCallWait)} ({PerFrame(DeviceCalls)} a frame), texel copies {Ms(TexelCopyWait)}; "
                 + $"device thread waiting for the presenter {Ms(Interlocked.Read(ref PresenterQueueWait))}; "
-                + $"GC paused {(d.PauseMs / frames).ToString("F2", c)} (gen0 {d.Gen0}, gen1 {d.Gen1}, gen2 {d.Gen2} in the window), allocated {(d.Allocated / 1048576.0 / Math.Max(seconds, 1e-9)).ToString("F1", c)} MiB/s; "
+                + $"GC paused {(d.PauseMs / frames).ToString("F2", c)} (gen0 {d.Gen0}, gen1 {d.Gen1}, gen2 {d.Gen2} in the window; longest pause {longestGcPause.ToString("F1", c)} ms, "
+                + $"most in a frame {mostGcPauseInFrame.ToString("F1", c)} ms), allocated {(d.Allocated / 1048576.0 / Math.Max(seconds, 1e-9)).ToString("F1", c)} MiB/s; "
                 + $"JIT {(d.JitMs / frames).ToString("F2", c)} on all threads ({d.JitMethods} methods); lock contentions {PerFrame(d.Contentions)} a frame; "
                 + $"thread pool {d.PoolThreads} threads ({(d.PoolThreadsChange >= 0 ? "+" : "")}{d.PoolThreadsChange}), {d.PoolQueued} queued, {PerFrame(d.PoolCompleted)} items a frame";
         }

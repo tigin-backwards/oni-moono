@@ -102,6 +102,7 @@ namespace OniMoono.Engine
             if (!FrameStats) return;
             // The first frame starts the 600-frame window of FrameStatsWindow's counts.
             if (statWindows == 0 && statFrames == 0) FrameStatsWindow.Take(0);
+            FrameStatsWindow.GcFrame();
             // Single slow frames (hitches) are logged with their own breakdown.
             double total = 0;
             foreach (var v in framePhases) total += v;
@@ -119,7 +120,7 @@ namespace OniMoono.Engine
                 var gc = GC.GetGCMemoryInfo();
                 using var self = System.Diagnostics.Process.GetCurrentProcess();
                 EngineLog.Engine("script time (ms/frame over 600): " + BehaviourManager.TakeScriptTimes(600, 25));
-                EngineLog.Engine($"memory: working set {self.WorkingSet64 >> 20} MiB, private {self.PrivateMemorySize64 >> 20} MiB, managed heap {gc.HeapSizeBytes >> 20} MiB (committed {gc.TotalCommittedBytes >> 20} MiB), collections {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)}, paused {GC.GetTotalPauseDuration().TotalMilliseconds:F0} ms in all");
+                EngineLog.Engine($"memory: working set {self.WorkingSet64 >> 20} MiB (peak {self.PeakWorkingSet64 >> 20} MiB), private {self.PrivateMemorySize64 >> 20} MiB, managed heap {gc.HeapSizeBytes >> 20} MiB (committed {gc.TotalCommittedBytes >> 20} MiB), collections {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)}, paused {GC.GetTotalPauseDuration().TotalMilliseconds:F0} ms in all");
                 var video = OniMoono.Engine.Rendering.GraphicsDevice.Current.MemoryCounters();
                 if (video != null) EngineLog.Engine("video memory: " + video);
                 foreach (var line in FrameStatsWindow.Take(600)) EngineLog.Engine(line);

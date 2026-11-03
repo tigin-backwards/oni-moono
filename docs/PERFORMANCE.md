@@ -36,7 +36,8 @@ A player who reports slowness can turn on **Frame stats in the log** (Moono Twea
 start with `--frame-stats`. Player.log then gets, every 60 frames, the frame's phases (`frame
 stats`), the device's counts (`frame counts`: the GL thread's time, draws, uploads, the
 presenter's time per picture) and any frame over 250 ms (`slow frame`). Every 600 frames come
-the scripts' update times (`script time`), memory (`memory:`, `video memory:`), and these lines,
+the scripts' update times (`script time`), memory (`memory:`: the working set and its peak, the
+managed heap, collections; `video memory:`), and these lines,
 all in ms a frame over the window unless they say otherwise. `video memory:` is also logged at
 the main menu, after each scene load and after `Resources.UnloadUnusedAssets`: the driver's free
 memory (NVIDIA's evictions since the device started, and those the whole system saw), the
@@ -58,7 +59,9 @@ textures ([research/vram-startup.md](research/vram-startup.md)).
   jobs, with calls a frame, and how long the main thread waited for the job workers.
 - `main thread waits`: for the device to take the next frame (the previous one still drawing),
   for results from it (read-backs, diagnostics), for last frame's texel copies; the device
-  thread waiting for the presenter; GC pauses and collections in the window, allocation, JIT
+  thread waiting for the presenter; GC pauses and collections in the window (with the longest
+  pause seen, of the last collection at each frame's end, and the most a frame was paused in
+  all), allocation, JIT
   time on all threads, lock contentions and the thread pool (threads, queued items).
 - `machine`: the process's CPU in cores and the main thread's share of the time, page faults
   (hard faults: the process's on Linux, the system's disk reads for them on Windows), available
