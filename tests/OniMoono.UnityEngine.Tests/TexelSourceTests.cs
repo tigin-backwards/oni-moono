@@ -13,6 +13,10 @@ namespace OniMoono.Tests
     /// upload queued for the next frame or handed to background readers reads it later.
     public class TexelSourceTests
     {
+        // The data directory set first: a read of an unmounted node falls to the data directory
+        // and fixes it for the process (AssetSystem.Initialize), as the other suites read it.
+        public TexelSourceTests() => TmpTestSupport.LoadGameData();
+
         [Fact]
         public unsafe void UnreadTexelsOutliveTheirBundle()
         {
