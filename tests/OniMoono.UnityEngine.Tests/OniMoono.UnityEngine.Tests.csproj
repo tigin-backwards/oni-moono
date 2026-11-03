@@ -52,6 +52,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/ProbeRepairCore.cs" Link="GameTweaks/ProbeRepairCore.cs" />
     <!-- The fast-load-screen game tweak's header memo and read-ahead (HeaderReadsTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/HeaderReads.cs" Link="GameTweaks/HeaderReads.cs" />
+    <!-- The fix-load-screen-clicks game tweak's check for the bug (LoadScreenClickBugTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/LoadScreenClickBug.cs" Link="GameTweaks/LoadScreenClickBug.cs" />
     <!-- The fast-jobs game tweak's worker wakes (WorkerWakesTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/WorkerWakes.cs" Link="GameTweaks/WorkerWakes.cs" />
     <!-- Frame stats' timing of the game's update (FrameStatsTests). -->
