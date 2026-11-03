@@ -502,6 +502,137 @@ Candidates 4-7 (`perf-ui-mesh`):
   Unity's copy at `DrawMesh` does. `CollectMesh`'s allocations were the sorting-layer lambda,
   a loop on u60 since.
 
+## State machine updates by kind (2026-11-03)
+
+`StateMachineUpdater.AdvanceOneSimSubTick` was the largest game-side entry left in
+`Game.Update`. This phase splits it by update kind and looks for exact savings.
+
+### Method
+
+- **Per-kind stopwatches**: `ONI_BUCKET_PROFILE=1` (with `--frame-stats`) runs the buckets'
+  loop with each bucket's `Update` timed, the same calls in the same order, and logs the 40
+  costliest kinds a window (docs/PERFORMANCE.md, "Frame stats in a player's log"). A kind is a
+  bucket's name, rate, data type and the callback it runs. The stopwatches add about 2-4% to
+  the buckets' time; both halves of an A/B pay it.
+- **A/B in one run**: `ONI_FRAME_STATS_AB` flips a tweak's static `Bypass` switch after every
+  600-frame window. "Paired" differences take each window against the mean of its two
+  neighbours of the other value, which cancels a steady drift; they are given as mean ± sd
+  over n windows. The first two windows (the load) are left out.
+- **Linux**: e2e lanes (OpenGL on Xvfb, speed 3, the save's active world), `--game-tweak exact
+  path-probe-repair`, other agents' players on the machine. Direction only, 2-4 windows a value.
+- **Windows**: U60 761211, Vulkan defaults, speed 3, PerfProbe's busiest world, 1280x720 on
+  monitor 2, `--no-focus`, High priority, sound off, one launch a save, 12 windows a value.
+  Other agents' Linux players ran (load average 6-9).
+- **Samples**: Linux `perf record -e cpu-clock:u -g` at 499 Hz for 45-60 s on c100 and DeCrew
+  (`DOTNET_PerfMapEnabled=1`), resolved against the perf map: self time by function, with
+  callers and callees, for the hot kinds.
+- soggy lab 2 would run without mods. On Linux its load stops at the missing-mods dialog,
+  whose OK button is off the screen even at 1280x1200.
+
+### Ranking
+
+ms a frame in the tweak-off windows of the A/B runs (all other default tweaks on). c100 and
+DeCrew on Windows; U57 on Linux, where the game's code runs about 2.5× slower (c100's buckets:
+11.6 ms on Windows, 25.7 on Linux). "–" is under 0.05 ms (Windows) or 0.1 ms (Linux).
+
+| Kind (rate) | c100 (Windows) | DeCrew (Windows) | U57 (Linux) |
+|---|---|---|---|
+| All buckets | 11.62 | 5.14 | 33.65 |
+| `BrainScheduler` (render every tick; brains, timed apart as `brains`) | 2.01 | 1.14 | 4.91 |
+| `Navigator` `UpdateNavigator` (sim every tick; moving along paths) | 1.69 | 0.42 | 1.44 |
+| `ReachabilityMonitor` (1000 ms) | 0.36 | 0.25 | 3.09 |
+| `RequireInputs` (200 ms) | 0.17 | 0.41 | 1.90 |
+| `SolidTransferArm` batch (1000 ms) | – | 0.15 | 1.56 |
+| `Sublimates` (200 ms, `fast-sublimation`'s batch) | 0.23 | 0.06 | 1.44 |
+| `CritterTemperatureMonitor` (200 ms) | 0.19 | 0.08 | 1.25 |
+| `RanchStation` `FindRanachable` (200 ms) | – | – | 1.07 |
+| `AmountInstance` batch (200 ms) | 0.20 | 0.09 | 0.96 |
+| `KComponentsInitializer` (200 ms; `DiseaseContainers`, `StructureTemperatureComponents`) | 0.52 | 0.16 | 0.66 |
+| `SleepChore` `Work(Sleep)` (33 ms) | 0.51 | – | – |
+| `FallMonitor` `CheckLanded` (33 ms) | 0.40 | – | – |
+| `GasLiquidExposureMonitor` (33 ms) | 0.39 | – | 0.34 |
+| `ChoreDriver` (200 ms, every brain) | 0.20 | – | 0.69 |
+| `ConversationManager` (200 ms) | 0.20 | – | – |
+
+soggy lab 2's Windows runs waited behind another agent's soak run for the shared lock and are
+not in the table; its Linux load stops at the missing-mods dialog (see Method).
+
+Linux shows the same order at about 2.5× the time (c100: all buckets 25.7, Navigator 3.5,
+brains 3.3, sleep 1.6, KComponents 1.1, reachability 1.0 ms; U57: brains 4.9, reachability
+3.1, `RequireInputs` 1.9, transfer arms 1.6, sublimation 1.4, Navigator 1.4, critter
+temperature 1.3, ranch stations 1.1 ms).
+
+Beyond the first ten, about 350 kinds each take under 0.15 ms: on c100 the sim 200 ms group
+is 6.8-9.7 ms on Linux, of which the kinds above are under half. Gluttony's inventory found the
+same spread (docs/research/gluttony-frame-inventory.md).
+
+What the samples show inside the kinds (Linux, shares of the main thread):
+- Most of the time is in the kinds' own code: reads of scattered components, one or two
+  dictionary lookups, a status item toggled. `RequireInputs.CheckRequirements` (DeCrew 2.3%
+  self), `ReachabilityMonitor`'s update (1.2%), `StructureTemperatureComponents.Sim200ms`
+  (1.0%, a walk of every building's header), `DiseaseContainers.Sim200ms` (c100 0.8%).
+- Two costs repeat across kinds. `StateMachineController.GetSMI(Type)`, which every
+  `GetSMI<T>()` reaches, walks the object's state machines with `IsAssignableFrom`:
+  `Object.GetType` alone is 1.2% of c100's main thread, 1.0% of it under sleeping Duplicants'
+  `Sleepable.OnWorkTick` (`GetSMI<StaminaMonitor.Instance>`), and ranch stations ask each
+  critter for its `RanchableMonitor`. `Effects.Remove` walks both effect lists for ids that are
+  not there: `GasLiquidExposureMonitor` removes both eye irritations from every Duplicant every
+  33 ms (0.44% of c100's main thread in the walk).
+- The buckets' dispatch (`UpdateBucketWithUpdater.Update`, the scheduler's updaters) is
+  1-2% of the main thread, mostly the first touch of each entry's object.
+
+### Candidates and verdicts
+
+| Candidate | Verdict | Windows (paired, tweak on minus off) | Linux |
+|---|---|---|---|
+| `GetSMI(Type)` answers kept per controller (`fast-smi-lookups`) | **Landed**, exact, on by default | c100: sleep −0.202 ± 0.165 ms (n 22; 0.51 → 0.26), all state machines −1.08 ± 1.28; DeCrew: ranch stations −0.011 ± 0.004, sweep bots −0.023 ± 0.017, sleep −0.018 ± 0.023, all state machines +0.00 ± 0.38 | c100: sleep −1.09 ± 0.18 (n 4), all −4.3 ± 1.9; U57: ranch stations −0.30 ± 0.07 (n 2), all +2.1 ± 0.9 (n 2; see below) |
+| Removals of absent effects skipped (`fast-effect-removal`, prototype) | **Rejected**: one save | c100: `GasLiquidExposureMonitor` −0.073 ± 0.034 (n 22; 0.28 → 0.21), all state machines +0.09 ± 0.73; DeCrew: −0.002 ± 0.008, all −0.03 ± 0.65 (n 22); U57 (stopped after 9 windows): −0.005 ± 0.015, all −0.39 ± 1.30 (n 7) | c100: `GasLiquidExposureMonitor` −0.21 ± 0.07 (n 5); DeCrew −0.03 ± 0.10 (n 5); U57 −0.00 ± 0.02 (n 3), all +2.1 ± 0.5 |
+| `StructureTemperatureComponents.Sim200ms`: visit only dirty or active buildings | Not taken | DeCrew 0.16 ms all of `KComponentsInitializer` | DeCrew 0.7 ms (103k buildings) |
+| `RequireInputs`, `ReachabilityMonitor`, `FallMonitor`, critter monitors: skip unchanged updates | Rejected | – | – |
+| The buckets' dispatch | Rejected | – | – |
+| `Navigator`'s movement | Rejected (not ours to skip) | – | – |
+| Brains | Not ours here | – | – |
+
+- **`fast-smi-lookups`** (src/OniMoono.GameTweaks/FastSmiLookups.cs): a lookup answered since
+  the controller's `stateMachines` list last changed (its `List<T>._version`, which every
+  change moves) returns that answer; the walk is the game's, and an answer is kept only once it
+  has returned. Instances never change type, so the answer is the walk's. Verify mode
+  (`ONI_TWEAK_VERIFY=1`) walks for every kept answer: c100 786k lookups, 724k from the cache,
+  0 wrong; DeCrew 524k, 482k, 0 wrong (Linux). No Workshop mod patches `GetSMI(Type)` (raw
+  scan of `out/ws`, the one hit decompiled); with one, the game's method runs.
+- **`fast-effect-removal`** (prototype, not committed): a removal that changed neither of the
+  `Effects`' lists found nothing and did nothing, so its id was kept as absent until either
+  list's version moved, and a later removal of a kept id skipped. Exact (verify mode: c100
+  5.24 M removals, 5.19 M skipped, 0 wrong; DeCrew 786k, 782k, 0 wrong), but the saving is in
+  one monitor and grows with Duplicants: on c100 only. DeCrew's 15 and U57's 22 Duplicants
+  show nothing, and every removal pays the lookup of its kept ids. ONI Together and Colony
+  Cuisine V2 patch `Effects.Remove(HashedString)`.
+- **U57 on Linux**: with either tweak on, the windows' state machine total read about 2 ms
+  higher (n 2-3 a value), in every kind alike, also those that never call the tweaks' methods
+  (critter temperature +0.055, rot +0.025 ms with `fast-effect-removal`). The machine's load
+  moved the window totals by 10-20% between neighbours (other agents' players), so this is
+  read as noise. On Windows, U57 with `fast-effect-removal` (9 windows, stopped early) shows no
+  such rise (all state machines −0.39 ± 1.30, critter temperature −0.02 ± 0.06); the U57 Windows
+  run of `fast-smi-lookups` waited behind another agent's soak run for the shared lock and did
+  not run.
+- **Frame rate**: `fast-smi-lookups` does not move the frame rate beyond its noise (Windows
+  main thread, on vs off: c100 26.3 ± 3.0 vs 29.1 ± 5.5 ms; DeCrew 20.2 ± 4.4 vs 19.1 ± 4.1).
+  Its gains are in the kinds it touches, 0.01-0.2 ms a frame on Windows, larger with more
+  Duplicants and ranch stations.
+- **`StructureTemperatureComponents`**: the walk over every building's header is cheap per
+  building and matters only on DeCrew (103k buildings, 0.16 ms on Windows). An index of dirty
+  and active headers would have to follow every `SetHeader` and the compacted vector's moves
+  for 0.1 ms; not taken.
+- **The kinds' own work** (`RequireInputs`, reachability, falls, critter temperature, ranch
+  stations' eligibility): each reads the world through other components every update, and
+  telling that nothing changed would read the same components. No exact skip found.
+- **The buckets' dispatch**: every entry of a bucket shares one updater, but the per-entry cost
+  is the first touch of the entry's object, which a specialised loop would not remove.
+- **`Navigator` movement** (`TransitionDriver.UpdateTransition`, `AdvancePath`): moves
+  transforms and checks the path every tick for moving Duplicants and critters; real work.
+- **Brains** (`BrainScheduler`, the largest kind): fetch and chore searches, already the subject
+  of `fast-offset-tables` and the gameplay tweak `brain-rate`; left out of this phase.
+
 ## Next
 
 1. Put stopwatches on candidates 1-3: `ApplyOverrides` calls by cause, the queued loop in
