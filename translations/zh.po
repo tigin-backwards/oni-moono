@@ -82,6 +82,42 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_MORE"
 msgid "…more on the release page"
 msgstr "……更多内容见发布页面"
 
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_REWRITES"
+msgid "{0} also patches {1} (it rewrites the game's code)."
+msgstr "{0} 也修补了 {1}（它会改写游戏的代码）。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_SKIPS"
+msgid "{0} also patches {1} (it can skip the game's code)."
+msgstr "{0} 也修补了 {1}（它可以跳过游戏的代码）。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_PATCHES"
+msgid "{0} also patches {1}."
+msgstr "{0} 也修补了 {1}。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_STEPS_ASIDE"
+msgid "Off while {0} is loaded, as it patches {1}."
+msgstr "加载 {0} 时关闭，因为它修补了 {1}。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_ADVICE"
+msgid "If something looks wrong, turn this tweak off."
+msgstr "如果有异常，请关闭此调整项。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_MORE_METHODS"
+msgid "{0} and {1} more"
+msgstr "{0} 等另外 {1} 个"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAPS_ONE"
+msgid "1 overlap"
+msgstr "1 处重叠"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAPS_MANY"
+msgid "{0} overlaps"
+msgstr "{0} 处重叠"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAPS_TIP"
+msgid "Some mods patch the same code as Moono's tweaks. Open Moono Tweaks to see which."
+msgstr "有些模组修补了与 Moono 调整项相同的代码。打开 Moono 调整项查看是哪些。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GENERAL"
 msgid "General"
 msgstr "通用"

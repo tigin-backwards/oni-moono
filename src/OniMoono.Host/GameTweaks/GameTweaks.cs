@@ -24,22 +24,24 @@ namespace OniMoono.Host.GameTweaks
         {
             bool On(string name) => enabled.Contains(name);
             if (enabled.Count == 0) return;
-            var harmony = new Harmony("OniMoono.Host.GameTweaks");
+            // Each tweak patches under its own Harmony ID, so the Moono Tweaks screen can tell which
+            // tweak a mod overlaps (OniMoono.GameTweaks.ModOverlapsCore.OwnerOf).
+            static Harmony For(string name) => new Harmony("OniMoono.Host.GameTweaks." + name);
             backgroundSave = On(BackgroundSave.Name);
             // Both replace SaveLoader.CompressContents: with background-save on, it does the
             // compressing, with .NET's zlib when fast-save-compression is on too.
-            if (On(FastSaveCompression.Name)) Report(FastSaveCompression.Name, () => FastSaveCompression.Install(harmony, compress: !backgroundSave));
-            if (backgroundSave) Report(BackgroundSave.Name, () => BackgroundSave.Install(harmony, fastCompression: On(FastSaveCompression.Name)));
-            if (On(NoSaveGc.Name)) Report(NoSaveGc.Name, () => NoSaveGc.Install(harmony));
-            if (On(FastSerialization.Name)) Report(FastSerialization.Name, () => FastSerialization.Install(harmony));
-            if (On(FastParticleCollision.Name)) Report(FastParticleCollision.Name, () => FastParticleCollision.Install(harmony));
+            if (On(FastSaveCompression.Name)) Report(FastSaveCompression.Name, () => FastSaveCompression.Install(For(FastSaveCompression.Name), compress: !backgroundSave));
+            if (backgroundSave) Report(BackgroundSave.Name, () => BackgroundSave.Install(For(BackgroundSave.Name), fastCompression: On(FastSaveCompression.Name)));
+            if (On(NoSaveGc.Name)) Report(NoSaveGc.Name, () => NoSaveGc.Install(For(NoSaveGc.Name)));
+            if (On(FastSerialization.Name)) Report(FastSerialization.Name, () => FastSerialization.Install(For(FastSerialization.Name)));
+            if (On(FastParticleCollision.Name)) Report(FastParticleCollision.Name, () => FastParticleCollision.Install(For(FastParticleCollision.Name)));
             // Enabled at start-up (CompactNavLinks.Enable); this adds the load's summary.
-            if (On(CompactNavLinks.Name)) Report(CompactNavLinks.Name, () => CompactNavLinks.Install(harmony));
-            else if (Environment.GetEnvironmentVariable("ONI_NAVLINKS_DUMP") is { Length: > 0 }) CompactNavLinks.InstallDump(harmony);
+            if (On(CompactNavLinks.Name)) Report(CompactNavLinks.Name, () => CompactNavLinks.Install(For(CompactNavLinks.Name)));
+            else if (Environment.GetEnvironmentVariable("ONI_NAVLINKS_DUMP") is { Length: > 0 }) CompactNavLinks.InstallDump(For(CompactNavLinks.Name));
             // Enabled at start-up too (PagedPathGrids.Enable); this adds the summary in play.
-            if (On(PagedPathGrids.Name)) Report(PagedPathGrids.Name, () => PagedPathGrids.Install(harmony));
+            if (On(PagedPathGrids.Name)) Report(PagedPathGrids.Name, () => PagedPathGrids.Install(For(PagedPathGrids.Name)));
             // fast-load-screen's engine side; its game side is a typed tweak (below), which logs it.
-            if (On(LoadScreenPreviews.Name)) LoadScreenPreviews.Install(harmony);
+            if (On(LoadScreenPreviews.Name)) LoadScreenPreviews.Install(For(LoadScreenPreviews.Name));
             // The tweaks built against the game's own types (src/OniMoono.GameTweaks).
             var typed = GameTweakNames.Typed.Where(On).ToArray();
             if (typed.Length > 0)
@@ -49,7 +51,7 @@ namespace OniMoono.Host.GameTweaks
                 foreach (var name in typed)
                     Report(name, () =>
                     {
-                        if (!(bool)install.Invoke(null, [harmony, name])!) throw new InvalidOperationException($"OniMoono.GameTweaks has no tweak {name}");
+                        if (!(bool)install.Invoke(null, [For(name), name])!) throw new InvalidOperationException($"OniMoono.GameTweaks has no tweak {name}");
                     });
             }
         }

@@ -21,6 +21,8 @@ namespace OniMoono.GameTweaks
         public static void Install(Func<string[]> result) => poll = result;
 
         RectTransform anchor, rect;
+        /// The overlap badge (OverlapBadge), between the button and this one while it shows.
+        internal RectTransform after;
         Transform motd;
         ToolTip tip;
         string url;
@@ -28,7 +30,7 @@ namespace OniMoono.GameTweaks
 
         /// From MoonoTweaksMenu.AddButton: the badge for this menu, hidden until there is an
         /// update; `prefab` and `style` are the menu's button prefab and normal button style.
-        internal static void Attach(MainMenu menu, KButton tweaksButton, KButton prefab, ColorStyleSetting style)
+        internal static void Attach(MainMenu menu, KButton tweaksButton, KButton prefab, ColorStyleSetting style, RectTransform overlaps)
         {
             if (poll == null) return;
             var button = Util.KInstantiateUI<KButton>(prefab.gameObject, menu.gameObject, force_active: true);
@@ -40,6 +42,7 @@ namespace OniMoono.GameTweaks
             var badge = go.AddComponent<UpdateBadge>();
             button.onClick += badge.Open;
             badge.anchor = tweaksButton.GetComponent<RectTransform>();
+            badge.after = overlaps;
             badge.motd = Find(menu.transform, "MOTD");
             badge.Build(button);
             go.SetActive(false);
@@ -48,7 +51,7 @@ namespace OniMoono.GameTweaks
             menu.gameObject.AddComponent<UpdateBadgeWatcher>().badge = badge;
         }
 
-        static Transform Find(Transform t, string name)
+        internal static Transform Find(Transform t, string name)
         {
             if (t.name == name) return t;
             foreach (Transform child in t)
@@ -128,7 +131,7 @@ namespace OniMoono.GameTweaks
 
         /// A line of text: a copy of the menu button's label (its heading font) or, for body
         /// text, restyled as the game's small body text.
-        static LocText Line(LocText source, Transform parent, string name, string text, float size, Color color, bool heading)
+        internal static LocText Line(LocText source, Transform parent, string name, string text, float size, Color color, bool heading)
         {
             var go = Instantiate(source.gameObject, parent, worldPositionStays: false);
             go.name = name;
@@ -176,12 +179,15 @@ namespace OniMoono.GameTweaks
 
         void LateUpdate() => Place();
 
-        /// Right of the Moono Tweaks button; moved up to clear the news tiles (and the BRUTAL
-        /// credit drawn left of them) when it would reach into their row.
-        void Place()
+        /// Right of the Moono Tweaks button, or of the overlap badge while that shows.
+        void Place() => PlaceRight(rect, after != null && after.gameObject.activeInHierarchy ? after : anchor, motd);
+
+        /// A badge right of `anchor`; moved up to clear the news tiles (and the BRUTAL credit
+        /// drawn left of them) when it would reach into their row.
+        internal static void PlaceRight(RectTransform rect, RectTransform anchor, Transform motd)
         {
-            if (anchor == null) return;
-            var parent = (RectTransform)transform.parent;
+            if (anchor == null || rect == null) return;
+            var parent = (RectTransform)rect.parent;
             var corners = new Vector3[4];
             anchor.GetWorldCorners(corners);
             Vector3 right = parent.InverseTransformPoint(new Vector3(corners[2].x, (corners[0].y + corners[1].y) / 2f, 0f));

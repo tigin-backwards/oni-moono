@@ -51,8 +51,6 @@ namespace OniMoono.GameTweaks
         public const string Name = "fast-overlays";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        const string Owner = "OniMoono.Host.GameTweaks";
-
         public static void Install(Harmony harmony)
         {
             var update = AccessTools.Method(typeof(OverlayModes.Power), nameof(OverlayModes.Power.Update));
@@ -480,6 +478,10 @@ namespace OniMoono.GameTweaks
             }
         }
 
+        /// The methods another owner's patch makes a part of this tweak stand down (ModOverlaps).
+        internal static IEnumerable<System.Reflection.MethodBase> Guarded() =>
+            powerPatched.Concat(infraredPatched).Concat(new System.Reflection.MethodBase[] { addTarget, removeOffscreen, highlight, clearOutside });
+
         /// Whether a Harmony owner other than the tweaks patches one of the methods.
         static bool Foreign(System.Reflection.MethodBase[] methods, out string owner)
         {
@@ -490,7 +492,7 @@ namespace OniMoono.GameTweaks
                 if (info == null) continue;
                 // PerfProbe's stopwatch (test infrastructure) only times the methods it wraps.
                 foreach (var o in info.Owners)
-                    if (o != Owner && o != "PerfProbe.WallTime") { owner = o; return true; }
+                    if (!ModOverlapsCore.IsTweakOwner(o) && o != "PerfProbe.WallTime") { owner = o; return true; }
             }
             return false;
         }

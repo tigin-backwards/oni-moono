@@ -41,7 +41,6 @@ namespace OniMoono.GameTweaks
         public const string Name = "fast-overlay-textures";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        const string Owner = "OniMoono.Host.GameTweaks";
         static readonly string[] CopyGlobals = { "MRT0_Copy", "MRT1_Copy", "MRT2_Copy", "_MRT0", "_MRT1", "_MRT2" };
 
         static MethodBase createRenderTarget;
@@ -65,12 +64,15 @@ namespace OniMoono.GameTweaks
             harmony.Patch(AccessTools.Method(typeof(MultipleRenderTargetProxy), "Update"), postfix: new HarmonyMethod(typeof(FastOverlayTextures), nameof(Update)));
         }
 
+        /// The method another owner's patch makes this tweak stand down (ModOverlaps).
+        internal static MethodBase Guarded() => createRenderTarget;
+
         static bool Foreign()
         {
             var info = Harmony.GetPatchInfo(createRenderTarget);
             if (info == null) return false;
             foreach (var owner in info.Owners)
-                if (owner != Owner) return true;
+                if (!ModOverlapsCore.IsTweakOwner(owner)) return true;
             return false;
         }
 

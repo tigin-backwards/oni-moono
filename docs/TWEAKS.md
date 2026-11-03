@@ -29,6 +29,41 @@ Your choices are kept in `oni-moono/settings.json` in the game's own data folder
 The file records only what differs from the defaults, so a default changed by an update still
 reaches you unless you chose otherwise.
 
+## Mods that patch the same code
+
+At each main menu, after every mod has made its Harmony patches, Moono looks for mods that patch
+the methods the tweaks you have on change: each tweak's own Harmony patches (each tweak patches
+under its own Harmony ID, `OniMoono.Host.GameTweaks.NAME`), the methods the load-time rewrites of
+`compact-nav-links` and `paged-path-grids` changed, and the methods whose patching makes a tweak
+step aside. It only shows what it finds; it never turns a tweak on or off.
+
+- **High**: a mod's transpiler on a method a tweak patches or rewrites, or a mod's prefix that
+  can skip the original (returns `bool`) on a method a tweak replaces (with a skipping prefix, a
+  transpiler or a rewrite). The row's icon is amber.
+- **Low**: anything else (postfixes, finalizers, prefixes that return nothing). The icon is grey.
+- **Steps aside**: the tweak turns itself off for such a patch, so there is no conflict and it
+  isn't counted: `path-probe-repair` (the probe and what it relies on), `fast-anim-batches` (its
+  write path), `fast-symbol-overrides` (its kept calls), `fast-smi-lookups`
+  (`StateMachineController.GetSMI`), `fast-conveyor-paths` (`SolidConduitFlow.TryAdd`),
+  `fast-overlays` (the overlay methods each of its parts stands in for),
+  `fast-overlay-textures` (`MultipleRenderTargetProxy.CreateRenderTarget`), and the two rewrites
+  for a transpiler they did not review. The icon is the grey disabled sign.
+
+An affected row gets the icon beside its switch, and its tooltip names each mod and what it
+patches ("Fast Track also patches KAnimBatch.UpdateDirty (it can skip the game's code). If
+something looks wrong, turn this tweak off."). The search box finds a mod's name, which lists the
+tweaks it overlaps. While a mod has a high-grade overlap, the main menu shows "N overlaps" beside
+**Moono Tweaks** (N counts each tweak and mod once; the update badge moves right of it); clicking
+it opens the screen. `Player.log` gets one block, `[Moono] mod overlaps: ...`, with a line per
+overlap (tweak, method, mod and its Harmony ID, patch kind, grade) and what reading them cost.
+
+A mod that skips a patch when its own option is off leaves nothing to find. One that patches
+anyway and checks its option while the game runs is flagged whatever the option says: Fast Track
+does this for a few patches whose options share one switch (`WorkOrder.Execute` and the
+synchronous `PathProber.Run` under Cache Paths or Fast Reachability, `Game.Update`,
+`Global.Update`, the music, `KAnimBatch.UpdateDirty`'s mesh renderer choice) and always patches
+the `NavGrid` constructor.
+
 ## Update check
 
 With **Update check** on (the default), Moono makes one network request of its own: in the

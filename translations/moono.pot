@@ -100,6 +100,51 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_MORE"
 msgid "…more on the release page"
 msgstr ""
 
+#. A row's tooltip: a mod's transpiler on a method the tweak changes; {0}: the mod, {1}: the methods
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_REWRITES"
+msgid "{0} also patches {1} (it rewrites the game's code)."
+msgstr ""
+
+#. A row's tooltip: a mod's prefix that can skip a method the tweak replaces; {0}: the mod, {1}: the methods
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_SKIPS"
+msgid "{0} also patches {1} (it can skip the game's code)."
+msgstr ""
+
+#. A row's tooltip: a mod's other patches of methods the tweak changes; {0}: the mod, {1}: the methods
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_PATCHES"
+msgid "{0} also patches {1}."
+msgstr ""
+
+#. A row's tooltip: the tweak turns itself off for the mod; {0}: the mod, {1}: the methods
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_STEPS_ASIDE"
+msgid "Off while {0} is loaded, as it patches {1}."
+msgstr ""
+
+#. A row's tooltip, after the mods that patch the same methods
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_ADVICE"
+msgid "If something looks wrong, turn this tweak off."
+msgstr ""
+
+#. In a row's tooltip; {0}: the first methods, LIST_SEPARATOR between them, {1}: how many more
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_MORE_METHODS"
+msgid "{0} and {1} more"
+msgstr ""
+
+#. The main menu's badge beside the Moono Tweaks button: one tweak overlaps a mod
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAPS_ONE"
+msgid "1 overlap"
+msgstr ""
+
+#. The main menu's badge; {0}: how many tweaks and mods overlap
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAPS_MANY"
+msgid "{0} overlaps"
+msgstr ""
+
+#. The main menu's overlap badge's tooltip
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAPS_TIP"
+msgid "Some mods patch the same code as Moono's tweaks. Open Moono Tweaks to see which."
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GENERAL"
 msgid "General"

@@ -27,7 +27,6 @@ namespace OniMoono.GameTweaks
     public static class FastSmiLookups
     {
         public const string Name = "fast-smi-lookups";
-        const string Owner = "OniMoono.Host.GameTweaks";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
         static readonly AccessTools.FieldRef<StateMachineController, List<StateMachine.Instance>> machines =
@@ -68,12 +67,16 @@ namespace OniMoono.GameTweaks
             return Linq.Expression.Lambda<Func<List<StateMachine.Instance>, int>>(Linq.Expression.Field(list, field), list).Compile();
         }
 
+        /// The method another owner's patch makes this tweak stand down (ModOverlaps).
+        internal static System.Reflection.MethodBase Guarded() =>
+            AccessTools.Method(typeof(StateMachineController), nameof(StateMachineController.GetSMI), new[] { typeof(Type) });
+
         static bool Foreign()
         {
             var info = Harmony.GetPatchInfo(target);
             if (info == null) return false;
             foreach (var o in info.Owners)
-                if (o != Owner)
+                if (!ModOverlapsCore.IsTweakOwner(o))
                 {
                     global::Debug.Log($"{Name}: off ({o} patches StateMachineController.GetSMI)");
                     return true;

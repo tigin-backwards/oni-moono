@@ -47,6 +47,15 @@ namespace OniMoono.Host.GameTweaks
             ("LATER", "LATER", "The dialog's button beside Restart"),
             ("UPDATE_HEADLINE", "Moo! An update is available", "The main menu's update badge, first line"),
             ("UPDATE_MORE", "…more on the release page", "The update badge's tooltip, last line, when the notes are cut"),
+            ("OVERLAP_REWRITES", "{0} also patches {1} (it rewrites the game's code).", "A row's tooltip: a mod's transpiler on a method the tweak changes; {0}: the mod, {1}: the methods"),
+            ("OVERLAP_SKIPS", "{0} also patches {1} (it can skip the game's code).", "A row's tooltip: a mod's prefix that can skip a method the tweak replaces; {0}: the mod, {1}: the methods"),
+            ("OVERLAP_PATCHES", "{0} also patches {1}.", "A row's tooltip: a mod's other patches of methods the tweak changes; {0}: the mod, {1}: the methods"),
+            ("OVERLAP_STEPS_ASIDE", "Off while {0} is loaded, as it patches {1}.", "A row's tooltip: the tweak turns itself off for the mod; {0}: the mod, {1}: the methods"),
+            ("OVERLAP_ADVICE", "If something looks wrong, turn this tweak off.", "A row's tooltip, after the mods that patch the same methods"),
+            ("OVERLAP_MORE_METHODS", "{0} and {1} more", "In a row's tooltip; {0}: the first methods, LIST_SEPARATOR between them, {1}: how many more"),
+            ("OVERLAPS_ONE", "1 overlap", "The main menu's badge beside the Moono Tweaks button: one tweak overlaps a mod"),
+            ("OVERLAPS_MANY", "{0} overlaps", "The main menu's badge; {0}: how many tweaks and mods overlap"),
+            ("OVERLAPS_TIP", "Some mods patch the same code as Moono's tweaks. Open Moono Tweaks to see which.", "The main menu's overlap badge's tooltip"),
         ];
 
         public static string GroupKey(TweakGroup group) => Prefix + "GROUPS." + group.Key;

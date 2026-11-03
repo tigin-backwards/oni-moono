@@ -119,7 +119,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// What a kept application stands for: patched by another owner, applications run in full.
-        static IEnumerable<System.Reflection.MethodBase> KeptCalls()
+        internal static IEnumerable<System.Reflection.MethodBase> KeptCalls()
         {
             yield return AccessTools.Method(typeof(SymbolOverrideController), nameof(SymbolOverrideController.ApplyOverrides));
             yield return AccessTools.Method(typeof(KBatchedAnimController), nameof(KBatchedAnimController.SetSymbolOverrides));
@@ -151,7 +151,7 @@ namespace OniMoono.GameTweaks
                 var info = Harmony.GetPatchInfo(method);
                 if (info == null) continue;
                 foreach (var owner in info.Owners)
-                    if (owner != "OniMoono.Host.GameTweaks")
+                    if (!ModOverlapsCore.IsTweakOwner(owner))
                     {
                         off = true;
                         global::Debug.Log($"{Name}: applications run in full ({owner} patches {method.DeclaringType?.Name}.{method.Name})");
