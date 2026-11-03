@@ -24,8 +24,11 @@ load at all, in both players, comes first from [Load sweeps](#load-sweeps).
   broken spec, or a mod broken upstream, never a verdict on us. Our runs of that spec then skip.
   Otherwise our runs are compared with the original's evidence (see [Verdicts](#verdicts)).
   `--player ours` alone compares with the references `--bless` stored in `out/e2e-refs/SPEC/`.
-  Ours runs with `--game-tweak exact` (the users' default game tweaks but path-probe-repair and fix-load-screen-clicks); `E2E_GAME_TWEAKS` gives
-  others, space-separated `--game-tweak` values: `E2E_GAME_TWEAKS=none`, `=background-save`.
+  Ours runs with `--game-tweak exact --game-tweak path-probe-repair`, the users' default game
+  tweaks but fix-load-screen-clicks (path-probe-repair may walk another of two equally short
+  routes; close enough to the original's). `E2E_GAME_TWEAKS` gives others, space-separated
+  `--game-tweak` values: `E2E_GAME_TWEAKS=exact` (no gameplay changes at all), `=none`,
+  `=background-save`.
 - **The lock directory.** Runners in every worktree on the machine meet in one directory,
   `$E2E_LOCK_DIR` or by default `~/.cache/oni-brutal-e2e/`: lane locks, the players' budget, the
   perf lock and the reservations below live there, never in a worktree's `out/`.
@@ -162,7 +165,7 @@ spaced_out: false                # Spaced Out off in both players (default: the 
 translation: 929139073           # the language of this translation mod (one of `mods`), picked in the prefs
 language: zh_klei                # or one of the game's own languages (zh_klei, ko_klei, ru_klei)
 tweaks_menu: true                # ours keeps the main menu's Moono Tweaks button (run with --player ours)
-game_tweaks: [path-probe-repair] # ours runs with these `--game-tweak` values after E2E_GAME_TWEAKS's
+game_tweaks: [slow-reachability] # ours runs with these `--game-tweak` values after E2E_GAME_TWEAKS's
 env: {ONI_TWEAK_VERIFY: "1"}     # ours runs with these in its environment
 scaled_screen: true              # the game may render smaller than the display (below)
 blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its install (out/e2e/.blocked-LANE)
