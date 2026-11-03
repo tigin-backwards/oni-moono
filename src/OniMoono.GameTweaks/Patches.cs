@@ -28,6 +28,7 @@ namespace OniMoono.GameTweaks
                 case ProbeRepair.Name: ProbeRepair.Install(harmony); return true;
                 case FastLoadScreen.Name: FastLoadScreen.Install(harmony); return true;
                 case FixLoadScreenClicks.Name: FixLoadScreenClicks.Install(harmony); return true;
+                case FastSmiLookups.Name: FastSmiLookups.Install(harmony); return true;
                 default: return false;
             }
         }

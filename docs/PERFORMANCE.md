@@ -67,6 +67,16 @@ the game's calls of its P/Invokes (the sim's messages, among them the step itsel
 conduit temperature update), timed at each call site in Sim, SimMessages and
 ConduitTemperatureManager. With frame stats off none of it is installed or counted.
 
+Two settings for test runs go with frame stats:
+- `ONI_BUCKET_PROFILE=1`: the state machine buckets' loop runs with each bucket timed (the same
+  calls in the same order), and each 600-frame window adds `bucket profile` lines: the 40
+  costliest update kinds, each with its rate, ms a frame, calls a frame, entries a call, µs an
+  entry, the bucket's name, its data type and the callback or updater it runs.
+- `ONI_FRAME_STATS_AB=TYPE, ASSEMBLY FIELD`: a static bool (a tweak's `Bypass`, such as
+  `OniMoono.GameTweaks.FastSmiLookups, OniMoono.GameTweaks Bypass`) flipped after every 600-frame
+  window, whose lines end with `frame stats ab: FIELD=VALUE` for the value it ran with: a change
+  and itself switched off, alternating in one run.
+
 ## The numbers
 
 **U57**, a Spaced Out colony with every DLC at cycle 17,077: 24 Duplicants, 1,186 critters, about
@@ -226,6 +236,7 @@ after times were measured on Linux under WSL2, where the game's code ran about h
 | `fast-conveyor-paths`: the conveyor rails' network rebuild (on every rail built, removed or reconnected, and at the load) answers its path searches from an index of the paths it keeps instead of searching every kept path for every path found | U57: a rebuild 50–510 → 2–14 ms, the load's 840–850 → 14 ms | exact |
 | `fast-overlay-textures`: the copies of the main camera's targets that MultipleRenderTargetProxy makes anew and drops on every coloured overlay toggle (and resize) are released and destroyed two frames later, once nothing references them, instead of waiting for the load's UnloadUnusedAssets | U57, 100 temperature openings at 1024×768: 45 → 846 live render textures and 74 MB → 1.9 GB of them allocated, against 45 → 47 and 79 MB | exact |
 | `compact-nav-links`: the pathfinding grids keep each cell's links packed (compressed rows) instead of a fixed row of slots for every cell of the map | the grids' links: soggy lab 2 2,387.5 → 118.2 MB, c100 670.1 → 55.3 MB, DeCrew 256.4 → 26.2 MB; Windows (U60): managed heap −2.1 GiB on soggy lab 2, −0.6 GiB on c100, whose load is 7 s shorter; frame rate unchanged beyond noise | exact |
+| `fast-smi-lookups`: an object's state machine lookups (`GetSMI<T>()`) are answered from what it answered since its list of state machines last changed | Windows (U60), c100 (200 Duplicants): sleeping Duplicants' updates 0.51 → 0.26 ms; DeCrew: ranch stations and sweep bots 0.01–0.02 ms each; frame rate unchanged beyond noise | exact |
 | Save tweaks: `fast-serialization`, `fast-save-type-checks`, `fast-save-compression`, `no-save-gc`, `background-save` | autosave freeze 11.7 → 4.8 s | exact, and saves still load in the original |
 | `slow-reachability`: reachability re-checked every 4 game seconds instead of every second | 1.88 → 0.53 ms | changes timing |
 | `brain-rate`: at most 30 Duplicant and 150 critter brain updates a second of real time, spread over frames, instead of 1 and 5 every rendered frame | U57 at 35–39 fps: 6.0 → 4.7–5.1 brain updates a frame, 2.7–2.8 → 2.2–2.45 ms; 2minnow at 42–45 fps: 6.0 → 4.1–4.3, 1.82 → 1.35–1.45 ms; Gluttony at 14 fps: unchanged (under 30 fps it does nothing); the frame rates within the runs' noise (2026-10-25) | changes timing |
