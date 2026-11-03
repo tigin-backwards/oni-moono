@@ -42,6 +42,8 @@
     <!-- The Moono Tweaks catalog (GameTweakCatalogTests; BackgroundSave names itself from it). -->
     <Compile Include="../../src/OniMoono.Host/GameTweaks/GameTweakNames.cs" Link="Host/GameTweakNames.cs" />
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakStrings.cs" Link="Host/TweakStrings.cs" />
+    <!-- compact-nav-links' store (NavGridLinksTests). -->
+    <Compile Include="../../src/OniMoono.Host/NavGridLinks.cs" Link="Host/NavGridLinks.cs" />
     <!-- The brain-rate game tweak's allowance (BrainRateAllowanceTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/BrainRateAllowance.cs" Link="GameTweaks/BrainRateAllowance.cs" />
     <!-- The tweaks' call-site transpilers run after mods' (CallSiteRerouteTests). -->
