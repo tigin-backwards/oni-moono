@@ -43,7 +43,7 @@ folder; default out/bin/E2eDriver/release) for specs that use it and, for --play
 both, E2E_ORIGINAL (the original player's executable, with a DLC-owning Steam double in its
 Plugins); E2E_ORIGINAL_ENV holds NAME=VALUE settings for the original player only (on WSL,
 `GALLIUM_DRIVER=llvmpipe` with a shared MESA_SHADER_CACHE_DIR runs it 3-4 times faster; see
-tests/e2e/README.md, "Run time"). Our player runs with `--game-tweak exact` (the users' defaults but path-probe-repair), or with
+tests/e2e/README.md, "Run time"). Our player runs with `--game-tweak exact` (the users' defaults but path-probe-repair and fix-load-screen-clicks), or with
 E2E_GAME_TWEAKS, space-separated `--game-tweak` values (`none`, `background-save`, `exact
 -no-save-gc`); E2E_PLAYER_ARGS adds host arguments (`--renderer vulkan`), E2E_ORIGINAL_ARGS the
 original's (`-force-glcore`). E2E_SCREEN=WxH and E2E_UI_SCALE=PERCENT run both players at another

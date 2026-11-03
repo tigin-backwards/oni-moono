@@ -51,10 +51,11 @@ namespace OniMoono.Tests
             Assert.Equal(order.OrderBy(i => i), order);
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Groups[^1]);
             Assert.Equal(new[] { "brain-rate", "fix-load-screen-clicks", "off-screen-conveyors", "off-world-fallers", "path-probe-repair", "slow-reachability" }, GameTweakNames.ChangingBehaviour.Order());
-            // path-probe-repair changes behaviour (out of `exact`, in the Changes gameplay group)
-            // but is on by default (the player's choice); the others are off.
-            Assert.Equal(GameTweakNames.ChangingBehaviour.Where(n => n != "path-probe-repair").Order(), GameTweakNames.OffByDefault.Order());
+            // path-probe-repair and fix-load-screen-clicks change behaviour (out of `exact`, in the
+            // Changes gameplay group) but are on by default (the player's choice); the others are off.
+            Assert.Equal(GameTweakNames.ChangingBehaviour.Where(n => n is not ("path-probe-repair" or "fix-load-screen-clicks")).Order(), GameTweakNames.OffByDefault.Order());
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Rows.Single(r => r.Id == "path-probe-repair").Group);
+            Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Rows.Single(r => r.Id == "fix-load-screen-clicks").Group);
             // Every typed tweak is a row; the options that aren't tweaks aren't `--game-tweak` names.
             Assert.All(GameTweakNames.Typed, n => Assert.Contains(n, GameTweakNames.All));
             Assert.DoesNotContain(GameTweakNames.SplashRow, GameTweakNames.All);

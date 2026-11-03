@@ -155,8 +155,8 @@ namespace OniMoono.Host.GameTweaks
             new("brain-rate", ChangesGameplay, "Critter and dupe brain updates capped at 30 updates a second", "Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps.",
                 "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps."),
             new("fix-load-screen-clicks", ChangesGameplay, "Open a colony once on the Load screen", "After Load more, a click on a colony no longer builds its list of saves again for every refresh.",
-                "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click opens the colony once for every refresh, "
-                + "and the last one stays on screen. The screen ends up the same; the repeated work and its repeated log lines go. Off by default, as the original repeats them."),
+                "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, "
+                + "and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same.", OnByDefault: true),
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).

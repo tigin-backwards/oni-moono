@@ -4,8 +4,9 @@ using HarmonyLib;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fix-load-screen-clicks` (opt-in; it changes what the game does): a click on a
-    /// colony in the Load screen opens it once.
+    /// Game tweak `fix-load-screen-clicks` (on by default, the player's choice; it changes what
+    /// the game does, so it is left out of `exact`): a click on a colony in the Load screen opens
+    /// it once.
     ///
     /// LoadScreen.AddColonyToList fills a pooled row of the colony list and adds a handler
     /// opening that colony (ShowColony) to the row's button with `onClick +=`. Unlike the row's
