@@ -36,6 +36,8 @@ namespace OniMoono.Host.GameTweaks
             // Enabled at start-up (CompactNavLinks.Enable); this adds the load's summary.
             if (On(CompactNavLinks.Name)) Report(CompactNavLinks.Name, () => CompactNavLinks.Install(harmony));
             else if (Environment.GetEnvironmentVariable("ONI_NAVLINKS_DUMP") is { Length: > 0 }) CompactNavLinks.InstallDump(harmony);
+            // Enabled at start-up too (PagedPathGrids.Enable); this adds the summary in play.
+            if (On(PagedPathGrids.Name)) Report(PagedPathGrids.Name, () => PagedPathGrids.Install(harmony));
             // fast-load-screen's engine side; its game side is a typed tweak (below), which logs it.
             if (On(LoadScreenPreviews.Name)) LoadScreenPreviews.Install(harmony);
             // The tweaks built against the game's own types (src/OniMoono.GameTweaks).

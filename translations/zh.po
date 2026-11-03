@@ -326,6 +326,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.DETAIL"
 msgid "Each object remembers which of its state machines answered each lookup until its list of state machines changes."
 msgstr "每个物体会记住每次查找由哪个状态机作答，直到它的状态机列表发生变化。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.TITLE"
+msgid "Paged path grids"
+msgstr "分页的路径网格"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.EFFECT"
+msgid "Each Duplicant's map of path costs takes memory only where it can walk."
+msgstr "每个复制人的路径消耗地图只在它能走到的地方占用内存。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.DETAIL"
+msgid "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, and the parts never written read as the empty grid did. The pathfinder reads the same values."
+msgstr "复制人的路径网格覆盖整张地图；它被存放在一个个小页中，某处第一次被寻路探测写入时才创建该页，从未写入的部分读起来和空网格一样。寻路读取到的数值完全相同。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.CONVEYOR"
 msgid "No hitch on rail edits (was 0.05–0.5 s)"
 msgstr "修改轨道不再卡顿（原本 0.05–0.5 秒）"
