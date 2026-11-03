@@ -30,7 +30,7 @@ steps:
   - shot: {name: gameplay-tip, pointer: stay}
   # The Bug fixes section, last: its rows show their tooltips too. (The list's very end: in
   # Chinese, 60 notches stop above it.)
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -30}
+  - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: -30}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - scroll: {at: "**/MoonoTweaksScreen/**/fix-load-screen-clicks", notches: 0}
   - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~--game-tweak fix-load-screen-clicks"}
@@ -39,7 +39,7 @@ steps:
   - shot: {name: bugfix-tip, pointer: stay}
   # The measured gain is on a Graphics row, above the end: 9 notches up bring it near the
   # middle of the list in both languages.
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 9}
+  - scroll: {at: "**/MoonoTweaksScreen/**/fix-load-screen-clicks", notches: 9}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/fast-overlays", cond: stable}
   # The row's centre, on its title here (in English, the gap between its title and effect):
   # the row's tooltip, with its gain and launch option.
