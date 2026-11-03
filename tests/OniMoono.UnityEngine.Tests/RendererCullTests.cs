@@ -107,13 +107,15 @@ namespace OniMoono.Tests
         {
             using var scope = new RenderScope();
             var r = Renderer("T");
+            // Earlier tests' destroyed renderers may still hold slots (holes) in other layers' lists.
+            int slots = FrameRenderer.CandidateSlots;
             for (int i = 0; i < 10000; i++)
             {
                 r.enabled = false;
                 r.enabled = true;
             }
             // Bounded without a camera too.
-            Assert.InRange(FrameRenderer.CandidateSlots, 1, 2100 + FrameRenderer.Candidates.Count());
+            Assert.InRange(FrameRenderer.CandidateSlots, 1, slots + 2100);
             scope.SetUpCamera();
             Frame();
             Assert.Equal(FrameRenderer.Candidates.Count(), FrameRenderer.CandidateSlots);
