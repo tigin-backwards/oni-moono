@@ -205,6 +205,8 @@ namespace OniMoono.GameTweaks
     public struct RepairStats
     {
         public int ChangedEdges, Invalidated, Pops, Relaxed, Stale;
+        /// The repair passed its budget and stopped: nothing was written, a flood must answer.
+        public bool GaveUp;
     }
 
     /// A repair's result for the main thread to write into the navigator's PathGrid: the states and
@@ -625,7 +627,10 @@ namespace OniMoono.GameTweaks
         /// left them (read only), `serial` its grid's serial number, `cs` what changed since. The
         /// states and prober entries that differ go to `delta`; `flags` gets the repaired states'
         /// flags. Ties aside, `cells` with `delta` applied is what Flood gives on the world now.
-        public RepairStats Repair(PCell[] cells, PProber[] probers, byte[] flags, ushort serial, ChangeSet cs, IProbeRules rules, ProbeDelta delta)
+        /// Gives up (GaveUp, `flags` and `delta` untouched) once the states it dropped and set again
+        /// pass `budget`: a repair that redoes much of the result costs more than a flood (each of
+        /// its states some three times a flood's), and its delta lands on the main thread.
+        public RepairStats Repair(PCell[] cells, PProber[] probers, byte[] flags, ushort serial, ChangeSet cs, IProbeRules rules, ProbeDelta delta, int budget = int.MaxValue)
         {
             stats = default;
             delta.Clear();
@@ -695,6 +700,7 @@ namespace OniMoono.GameTweaks
                 }
             }
             Close(0, cs);
+            if (inval.Count > budget) return GiveUp(delta);
 
             // 3. Found again from the states around them, and from every changed link.
             foreach (int t in inval) Seed(t);
@@ -719,6 +725,7 @@ namespace OniMoono.GameTweaks
                 Pop();
                 if (!Valid(s) || Peek(s).Cost != key) continue;
                 stats.Pops++;
+                if (stats.Pops + inval.Count > budget) return GiveUp(delta);
                 NextPop();
                 int u = s / nc;
                 byte nu = slotNav[s % nc];
@@ -793,6 +800,20 @@ namespace OniMoono.GameTweaks
                 else if (!newValid && oldValid) delta.Gone.Add(cell);
             }
             baseCells = null; baseFlags = null; this.rules = null;
+            return stats;
+        }
+
+        /// A repair's budget for a result of `reach` cells: half of them (a repair that redoes
+        /// half the result costs about what a flood does).
+        public static int Budget(int reach) => Math.Max(reach, 1024) / 2;
+
+        RepairStats GiveUp(ProbeDelta delta)
+        {
+            hn = 0;
+            delta.Clear();
+            stats.Invalidated = inval.Count;
+            stats.GaveUp = true;
+            baseCells = null; baseFlags = null; rules = null;
             return stats;
         }
 

@@ -485,7 +485,7 @@ namespace OniMoono.GameTweaks
             readonly MinionRules rules = new MinionRules();
             const int MaxHistory = 4096;
             // Counts for the report (main thread reads them racily: they are only reported).
-            public long orders, repairs, unchanged, floods, floodNew, floodKey, floodGrid, floodHistory, floodLarge, repairTicks, floodTicks, verified, verifyWrong, verifySkipped;
+            public long orders, repairs, unchanged, floodGaveUp, floods, floodNew, floodKey, floodGrid, floodHistory, floodLarge, repairTicks, floodTicks, verified, verifyWrong, verifySkipped;
             long reportedOrders;
             readonly Stopwatch since = Stopwatch.StartNew();
             PCell[] checkCells;
@@ -564,8 +564,12 @@ namespace OniMoono.GameTweaks
                     else if (cs.Count > graph.CellCount / 16) floodLarge++;
                     else repair = true;
                     long t0 = Stopwatch.GetTimestamp();
-                    if (repair) Repair(f, ref result);
-                    else
+                    if (repair && !Repair(f, ref result))
+                    {
+                        floodGaveUp++;
+                        repair = false;
+                    }
+                    if (!repair)
                     {
                         long added = Interlocked.Read(ref feed.Added);
                         bool synced = verify && added == Interlocked.Read(ref feed.Sealed) && feed.Out.IsEmpty;
@@ -610,7 +614,8 @@ namespace OniMoono.GameTweaks
                 f.Valid = true;
             }
 
-            void Repair(Field f, ref WorkResult result)
+            /// A repair into f's delta, for TakeResult; false when it gave up (nothing changed).
+            bool Repair(Field f, ref WorkResult result)
             {
                 long t0 = Stopwatch.GetTimestamp();
                 long added = Interlocked.Read(ref feed.Added);
@@ -622,7 +627,11 @@ namespace OniMoono.GameTweaks
                     d.Clear();
                     unchanged++;
                 }
-                else engine.Repair(cells, probers, f.StateFlags, f.Serial, cs, rules, d);
+                else if (engine.Repair(cells, probers, f.StateFlags, f.Serial, cs, rules, d, ProbeEngine.Budget(f.Reach.Count)).GaveUp)
+                {
+                    repairTicks += Stopwatch.GetTimestamp() - t0;
+                    return false;
+                }
                 f.Seq = seq;
                 d.ApplyTo(f.Reach, f.Spare);
                 (f.Reach, f.Spare) = (f.Spare, f.Reach);
@@ -632,6 +641,7 @@ namespace OniMoono.GameTweaks
                 repairs++;
                 repairTicks += Stopwatch.GetTimestamp() - t0;
                 if (verify) Verify(f, probers, d, added);
+                return true;
             }
 
             void Verify(Field f, PProber[] probers, ProbeDelta d, long added)
@@ -712,7 +722,7 @@ namespace OniMoono.GameTweaks
                 string v = verify ? $", {verified} repairs verified, {verifyWrong} otherwise than a flood, {floodsVerified} floods verified, {floodsWrong} otherwise than the game's (the game's {(gameFloods > 0 ? gameFloodTicks * us / gameFloods : 0):F0} us each, ours {(gameFloods > 0 ? ourFloodTicks * us / gameFloods : 0):F0}), {verifySkipped} not checked (the world changed meanwhile)" : "";
                 global::Debug.Log($"{Name}: {orders} probes: {repairs} repaired ({unchanged} with nothing changed, {(repairs > 0 ? repairTicks * us / repairs : 0):F0} us each), "
                     + $"{floods} flooded ({(floods > 0 ? floodTicks * us / floods : 0):F0} us each; first {floodNew}, moved or other abilities {floodKey}, "
-                    + $"grid replaced {floodGrid}, changes too old {floodHistory}, too many changes {floodLarge}){v}");
+                    + $"grid replaced {floodGrid}, changes too old {floodHistory}, too many changes {floodLarge}, repair gave up {floodGaveUp}){v}");
             }
         }
 
