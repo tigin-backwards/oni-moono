@@ -289,6 +289,31 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void RenderTextureMipCountsAreTheOnesAskedFor()
+        {
+            // As Unity's player (UnityProbe vram): a descriptor's mipCount is the texture's
+            // mipmapCount and its device levels; useMipMap without one is the full chain at the
+            // size the texture has, set before or after.
+            var d = new RenderTextureDescriptor(1024, 1024, UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm, 0) { useMipMap = true, mipCount = 3 };
+            var three = d.ToNative();
+            Assert.Equal(3, three.MipCount);
+            Assert.Equal(3, three.DeviceLevels);
+            Assert.Equal(3, RenderTextureDescriptor.Of(three).mipCount);
+            // What RenderTexture's useMipMap, width and height setters do.
+            var rt = new RenderTextureNative { Width = 256, Height = 256 };
+            Assert.Equal(1, rt.MipCount);
+            rt.UseMipMap = true;
+            rt.MipRequest = -1;
+            rt.MipsChanged();
+            Assert.Equal(9, rt.MipCount);
+            rt.Width = rt.Height = 1024;
+            rt.MipsChanged();
+            Assert.Equal(11, rt.MipCount);
+            Assert.Equal(11, rt.DeviceLevels);
+            Assert.Equal(-1, RenderTextureDescriptor.Of(rt).mipCount);
+        }
+
+        [Fact]
         public void RenderTextureDescriptorDescribesTemporaryTextures()
         {
             // The dev tools' (ImGui) target: an 8-bit linear RGBA texture without depth.

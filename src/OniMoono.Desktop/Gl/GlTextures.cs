@@ -124,7 +124,7 @@ namespace OniMoono.Desktop.Gl
     internal readonly record struct RenderShape(int Width, int Height, int Levels, int Samples, GraphicsFormat ColorFormat, int DepthBits)
     {
         public static RenderShape Of(RenderTextureNative rt) => new(rt.Width, rt.Height,
-            rt.UseMipMap ? TextureFormats.FullMipCount(rt.Width, rt.Height) : 1, Math.Max(1, rt.AntiAliasing), rt.ColorFormat, rt.DepthBits);
+            rt.DeviceLevels, Math.Max(1, rt.AntiAliasing), rt.ColorFormat, rt.DepthBits);
     }
 
     /// A texture's texels as they were when recorded, for the GL thread to upload: a copy, or
