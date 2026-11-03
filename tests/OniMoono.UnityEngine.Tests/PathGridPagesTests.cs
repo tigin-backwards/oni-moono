@@ -113,7 +113,10 @@ namespace OniMoono.Tests
         }
 
         /// Writers on several threads making the same pages: no write is lost, each page is made
-        /// once, and readers racing them read zeros or what was written, never out of range.
+        /// once, and readers racing them read each field as zero or what was written, never out
+        /// of range. A reader can see some of an element's fields written and others not yet: a
+        /// 12-byte struct is not stored in one go, in the game's flat array either, so the fields
+        /// are checked one by one (each is aligned, so each is read whole).
         [Fact]
         public void PagesMadeOnceUnderRaces()
         {
@@ -136,7 +139,8 @@ namespace OniMoono.Tests
                         {
                             var v = PathGridPages.Load(pages, i);
                             // Each element is only ever written with its own index (or left zero).
-                            if (v.cost != 0 && (v.cost != i + 1 || v.parent != -(i + 1))) failures.Enqueue($"element {i} read {v.cost}/{v.parent}");
+                            if (v.cost != 0 && v.cost != i + 1 || v.parent != 0 && v.parent != -(i + 1) || v.queryId > 1 || v.navTypes != 0 || v.transitionId != 0)
+                                failures.Enqueue($"element {i} read {v.cost}/{v.parent}/{v.queryId}");
                         }
                         catch (Exception e)
                         {
