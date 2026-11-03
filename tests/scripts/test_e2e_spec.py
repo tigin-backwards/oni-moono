@@ -584,6 +584,35 @@ class Translation(unittest.TestCase):
         self.assertIn('`data_collection` is true or false',
                       e2e.check_spec({'from': 'main-menu', 'data_collection': 'no', 'steps': []}))
 
+    def test_stray_plugins_are_paths_under_plugins(self):
+        self.assertEqual(e2e.check_spec({'from': 'main-menu', 'stray_plugins': ['x86_64/', 'x86_64/SimDLL.dll'], 'steps': []}), [])
+        for bad in ('x86_64/', [''], ['/abs'], ['../up'], ['a/../b'], [1]):
+            self.assertIn('`stray_plugins` lists paths under Plugins (`DIR/` for an empty folder)',
+                          e2e.check_spec({'from': 'main-menu', 'stray_plugins': bad, 'steps': []}))
+
+    def test_stray_plugins_are_added_to_a_copy_of_the_install(self):
+        """#49: a Linux install with a Plugins/x86_64 Steam left behind."""
+        with tempfile.TemporaryDirectory() as root:
+            game = os.path.join(root, 'game')
+            os.makedirs(os.path.join(game, 'Game_Data', 'Plugins', 'AnyCPU'))
+            for path in ('Game', 'Game_Data/Plugins/libSimDLL.so', 'Game_Data/Plugins/AnyCPU/libsteam_api.so'):
+                with open(os.path.join(game, path), 'w') as f:
+                    f.write(path)
+            dest = e2e.blocked_install(game, {}, os.path.join(root, 'copy'),
+                                       ['x86_64/', 'Other/fmodstudio.dll', 'AnyCPU/libsteam_api.so'])
+            plugins = os.path.join(dest, 'Game_Data', 'Plugins')
+            self.assertEqual(os.listdir(os.path.join(plugins, 'x86_64')), [])
+            self.assertEqual(os.path.getsize(os.path.join(plugins, 'Other', 'fmodstudio.dll')), 0)
+            self.assertTrue(os.path.islink(os.path.join(plugins, 'libSimDLL.so')))
+            self.assertTrue(os.path.islink(os.path.join(dest, 'Game')))
+            # A stray path over one of the install's files replaces its link; the file is untouched.
+            stray = os.path.join(plugins, 'AnyCPU', 'libsteam_api.so')
+            self.assertFalse(os.path.islink(stray))
+            self.assertEqual(os.path.getsize(stray), 0)
+            with open(os.path.join(game, 'Game_Data', 'Plugins', 'AnyCPU', 'libsteam_api.so')) as f:
+                self.assertEqual(f.read(), 'Game_Data/Plugins/AnyCPU/libsteam_api.so')
+            self.assertFalse(os.path.exists(os.path.join(game, 'Game_Data', 'Plugins', 'x86_64')))
+
     def test_extra_saves_are_fixture_names(self):
         self.assertEqual(e2e.check_spec({'from': 'main-menu', 'extra_saves': ['terra-wide'], 'steps': []}), [])
         for bad in ('terra-wide', ['../x'], [1]):

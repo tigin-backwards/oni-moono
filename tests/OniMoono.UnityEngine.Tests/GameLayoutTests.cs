@@ -60,10 +60,81 @@ namespace OniMoono.Tests
             var windows = Path.Combine(root, "windows");
             var dll = Touch("windows", "OxygenNotIncluded_Data", "Plugins", "x86_64", "SimDLL.dll");
             layout = GameLayout.Find(windows);
-            Assert.Equal(Path.GetDirectoryName(dll), layout.PluginsDir);
+            Assert.Equal(Path.Combine(windows, "OxygenNotIncluded_Data", "Plugins"), layout.PluginsDir);
             Assert.Equal(dll, layout.Plugin("SimDLL", windows: true));
 
             Assert.Null(GameLayout.Find(Path.Combine(root, "nothing")));
+        }
+
+        /// #49: a U59 Linux install with a Plugins/x86_64 that Steam left behind (empty, as after
+        /// the U60 beta, or holding the Windows build's DLLs) still finds its plugins in Plugins.
+        [Fact]
+        public void ALinuxInstallFindsItsPluginsBesideAStrayX8664Folder()
+        {
+            var linux = Path.Combine(root, "deck");
+            string[] plugins = ["libSimDLL.so", "libfmodstudio.so", "libsteam_api.so"];
+            var so = plugins.Select(p => Touch("deck", "OxygenNotIncluded_Data", "Plugins", p)).ToArray();
+            var x64 = Path.Combine(linux, "OxygenNotIncluded_Data", "Plugins", "x86_64");
+            Directory.CreateDirectory(x64);
+            var layout = GameLayout.Find(linux);
+            Assert.Equal(so[0], layout.Plugin("SimDLL", windows: false));
+            Assert.Equal(so[1], layout.Plugin("fmodstudio", windows: false));
+            Assert.Equal(so[2], layout.Plugin("steam_api", windows: false));
+            Assert.Equal([Path.GetDirectoryName(x64), x64], layout.PluginFolders(windows: false));
+
+            // The Windows build's plugins there are not Linux libraries: Plugins' still serve.
+            foreach (var dll in new[] { "SimDLL.dll", "fmodstudio.dll", "steam_api64.dll" }) Touch("deck", "OxygenNotIncluded_Data", "Plugins", "x86_64", dll);
+            Assert.Equal(so[0], layout.Plugin("SimDLL", windows: false));
+            Assert.Equal(so[2], layout.Plugin("steam_api", windows: false));
+            Assert.Null(layout.Plugin("steam_api64", windows: false));
+
+            // A library in both: Plugins' first, as Unity's Linux player binds it (measured).
+            var stray = Touch("deck", "OxygenNotIncluded_Data", "Plugins", "x86_64", "libSimDLL.so");
+            Assert.Equal([so[0], stray], layout.PluginCandidates("SimDLL", false));
+            Assert.Equal(so[0], layout.Plugin("SimDLL", windows: false));
+        }
+
+        /// U60's Linux layout: Plugins/x86_64 and Plugins/AnyCPU, the latter ahead of the others
+        /// (ordinal path order, as Unity's Linux player loads them).
+        [Fact]
+        public void LinuxPluginsInSubfoldersAreFoundInThePlayersOrder()
+        {
+            var linux = Path.Combine(root, "u60");
+            var sim = Touch("u60", "OxygenNotIncluded_Data", "Plugins", "x86_64", "libSimDLL.so");
+            var steam = Touch("u60", "OxygenNotIncluded_Data", "Plugins", "AnyCPU", "libsteam_api.so");
+            var top = Touch("u60", "OxygenNotIncluded_Data", "Plugins", "libsteam_api.so");
+            var deep = Touch("u60", "OxygenNotIncluded_Data", "Plugins", "x86_64", "more", "libfmodstudioL.so");
+            var layout = GameLayout.Find(linux);
+            Assert.Equal(sim, layout.Plugin("SimDLL", windows: false));
+            Assert.Equal([steam, top], layout.PluginCandidates("steam_api", false));
+            Assert.Equal(deep, layout.Plugin("fmodstudioL", windows: false));
+            Assert.Null(layout.Plugin("fmodstudio", windows: false));
+            var plugins = Path.Combine(linux, "OxygenNotIncluded_Data", "Plugins");
+            Assert.Equal([plugins, Path.Combine(plugins, "AnyCPU"), Path.Combine(plugins, "x86_64"), Path.Combine(plugins, "x86_64", "more")],
+                layout.PluginFolders(windows: false));
+
+            // A plugin folder that is a link into another install (as the frozen test installs').
+            var elsewhere = Path.Combine(root, "depot");
+            var linked = Touch("depot", "libresonanceaudio.so");
+            Directory.CreateSymbolicLink(Path.Combine(plugins, "linked"), elsewhere);
+            Assert.Equal(Path.Combine(plugins, "linked", "libresonanceaudio.so"), layout.Plugin("resonanceaudio", windows: false));
+        }
+
+        /// The Windows player's plugins are in Plugins/x86_64; one in Plugins itself is found after.
+        [Fact]
+        public void WindowsPluginsAreLookedForInX8664ThenPlugins()
+        {
+            var windows = Path.Combine(root, "win");
+            var top = Touch("win", "OxygenNotIncluded_Data", "Plugins", "steam_api64.dll");
+            var layout = GameLayout.Find(windows);
+            Assert.Equal(top, layout.Plugin("steam_api64", windows: true));
+            var x64 = Touch("win", "OxygenNotIncluded_Data", "Plugins", "x86_64", "steam_api64.dll");
+            Assert.Equal(x64, layout.Plugin("steam_api64", windows: true));
+            // Linux libraries in a Windows install are not Windows plugins.
+            Touch("win", "OxygenNotIncluded_Data", "Plugins", "libSimDLL.so");
+            Assert.Null(layout.Plugin("SimDLL", windows: true));
+            var plugins = Path.Combine(windows, "OxygenNotIncluded_Data", "Plugins");
+            Assert.Equal([Path.Combine(plugins, "x86_64"), plugins], layout.PluginFolders(windows: true));
         }
 
         [Fact]
