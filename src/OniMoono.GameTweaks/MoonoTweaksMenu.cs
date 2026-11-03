@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using STRINGS;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -218,8 +219,8 @@ namespace OniMoono.GameTweaks
 
     /// The Moono Tweaks screen, on the Mods screen's prefab (MoonoTweaksMenu.Open): a section
     /// heading per group, then its rows (title, one-line effect, toggle; how it works and its
-    /// measured gain in the tooltip); the footer says when changes apply beside Reset to
-    /// defaults, Restart to apply and Close.
+    /// measured gain in the tooltip), under a search box that filters them; the footer says
+    /// when changes apply beside Reset to defaults, Restart to apply and Close.
     public class MoonoTweaksScreen : KModalScreen
     {
         static string Title => MoonoTweaksMenu.Ui("TITLE");
@@ -237,6 +238,17 @@ namespace OniMoono.GameTweaks
         MultiToggle[] toggles;
         /// The choice rows' buttons (null for a toggle row).
         KButton[] choiceButtons;
+        /// The search box (null when the game has none to copy), each row and the text a search
+        /// looks in (Searchable), each section's heading with its rows (first, end), the line
+        /// shown when nothing matches and the list's scroll view.
+        KInputTextField search;
+        KButton searchClear;
+        HorizontalLayoutGroup searchRow;
+        GameObject[] rows;
+        string[] searchable;
+        readonly List<(GameObject Heading, int First, int End)> sections = new List<(GameObject, int, int)>();
+        GameObject noMatches;
+        KScrollRect scroll;
 
         /// The Mods screen's serialized state: its KScreen settings and its parts.
         internal void TakeOver(ModsScreen mods)
@@ -281,17 +293,203 @@ namespace OniMoono.GameTweaks
             shown = (int[])MoonoTweaksMenu.Saved.Clone();
             toggles = new MultiToggle[shown.Length];
             choiceButtons = new KButton[shown.Length];
+            rows = new GameObject[shown.Length];
+            searchable = new string[shown.Length];
             string group = null;
             for (int i = 0; i < MoonoTweaksMenu.Ids.Length; i++)
             {
                 if (MoonoTweaksMenu.Groups[i] != group)
                 {
                     group = MoonoTweaksMenu.Groups[i];
-                    Heading(group, MoonoTweaksMenu.ChangesGameplay[i], MoonoTweaksMenu.BugFixes[i]);
+                    sections.Add((Heading(group, MoonoTweaksMenu.ChangesGameplay[i], MoonoTweaksMenu.BugFixes[i]), i, i));
                 }
-                Row(i);
+                rows[i] = Row(i);
+                searchable[i] = Searchable(i);
+                var last = sections[sections.Count - 1];
+                sections[sections.Count - 1] = (last.Heading, last.First, i + 1);
             }
+            noMatches = NoMatches();
+            scroll = entryParent.GetComponentInParent<KScrollRect>();
+            SearchBox();
             Refresh();
+            if (search != null) StartCoroutine(AlignSearch());
+        }
+
+        /// Once the screen is laid out: the search box's insets set so that the field starts at
+        /// the rows' left edge and the clear button ends at their right edge.
+        System.Collections.IEnumerator AlignSearch()
+        {
+            yield return null;
+            RectTransform row = null;
+            foreach (var r in rows)
+                if (r.activeSelf)
+                {
+                    row = r.GetComponent<RectTransform>();
+                    break;
+                }
+            if (row == null) yield break;
+            Canvas.ForceUpdateCanvases();
+            var rowCorners = new Vector3[4];
+            var leftCorners = new Vector3[4];
+            var rightCorners = new Vector3[4];
+            row.GetWorldCorners(rowCorners);
+            search.GetComponent<RectTransform>().GetWorldCorners(leftCorners);
+            (searchClear != null ? searchClear.GetComponent<RectTransform>() : search.GetComponent<RectTransform>()).GetWorldCorners(rightCorners);
+            float scale = searchRow.transform.lossyScale.x;
+            if (scale <= 0f) yield break;
+            var padding = searchRow.padding;
+            searchRow.padding = new RectOffset(
+                padding.left + Mathf.RoundToInt((rowCorners[0].x - leftCorners[0].x) / scale),
+                padding.right + Mathf.RoundToInt((rightCorners[2].x - rowCorners[2].x) / scale),
+                padding.top, padding.bottom);
+            LayoutRebuilder.MarkLayoutForRebuild(searchRow.GetComponent<RectTransform>());
+        }
+
+        /// What a search looks in: the row's title, its one-liner, its tooltip (without its
+        /// colour tags) and choices, in the game's language, and its name (its `--game-tweak` name
+        /// is in the tooltip's launch option line), lowercased as the game's searches lowercase
+        /// (StringSearchableListUtil).
+        static string Searchable(int i)
+        {
+            var parts = new List<string> { MoonoTweaksMenu.Ids[i], MoonoTweaksMenu.Titles[i], MoonoTweaksMenu.Effects[i],
+                System.Text.RegularExpressions.Regex.Replace(Tooltip(i), "<[^<>]*>", "") };
+            if (MoonoTweaksMenu.Choices[i] != null) parts.AddRange(MoonoTweaksMenu.Choices[i]);
+            return string.Join("\n", parts).ToLowerInvariant();
+        }
+
+        /// Whether a row's text matches a search as the game's own searches match a list
+        /// (StringSearchableListUtil.DoAnyTagsMatchFilter): it contains the whole query, or every
+        /// word of it; an empty query matches every row.
+        static bool Matches(string text, string query)
+        {
+            query = query.Trim().ToLowerInvariant();
+            if (query.Length == 0 || text.Contains(query)) return true;
+            foreach (var word in query.Split(' '))
+                if (word.Length > 0 && !text.Contains(word)) return false;
+            return true;
+        }
+
+        /// Shows the rows the search matches, and the headings of the sections that keep one;
+        /// with none, a line saying so. The list goes back to its top.
+        void Filter(string query)
+        {
+            query = query ?? "";
+            bool any = false;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                bool show = Matches(searchable[i], query);
+                if (rows[i].activeSelf != show) rows[i].SetActive(show);
+                any |= show;
+            }
+            foreach (var (heading, first, end) in sections)
+            {
+                bool show = false;
+                for (int i = first; i < end && !show; i++) show = rows[i].activeSelf;
+                if (heading.activeSelf != show) heading.SetActive(show);
+            }
+            if (noMatches.activeSelf == any) noMatches.SetActive(!any);
+            if (scroll != null) scroll.verticalNormalizedPosition = 1f;
+        }
+
+        /// The line in the list when the search matches nothing (hidden until then).
+        GameObject NoMatches()
+        {
+            var entry = Entry("NoMatches");
+            entry.GetReference<KImage>("BG").gameObject.SetActive(false);
+            var band = entry.GetComponent<Image>();
+            if (band != null) band.enabled = false;
+            var highlight = entry.GetComponent<MultiToggle>();
+            if (highlight != null) highlight.enabled = false;
+            var title = entry.GetReference<LocText>("Title");
+            var style = BodyStyle();
+            if (style != null)
+            {
+                title.textStyleSetting = style;
+                title.ApplySettings();
+                title.GetComponent<SetTextStyleSetting>()?.SetStyle(style);
+            }
+            else title.fontSize = 12;
+            title.text = MoonoTweaksMenu.Ui("NO_MATCHES");
+            entry.GetReference<MultiToggle>("EnabledToggle").gameObject.SetActive(false);
+            entry.GetReference<LocText>("Version").gameObject.SetActive(false);
+            entry.gameObject.SetActive(false);
+            return entry.gameObject;
+        }
+
+        /// The search box above the list: a copy of the Supply Closet's (KleiInventoryScreen's
+        /// search field and its clear button, in the locker prefab the main menu opens), with
+        /// the game's "Search" placeholder. While it has the keyboard the screen is editing, as
+        /// the game's own search fields make their screens (KScreen.isEditing): its keys type
+        /// and reach no hotkey. Left out, with a log line, when the game has no such field.
+        void SearchBox()
+        {
+            KInputTextField field = null;
+            KButton clear = null;
+            try
+            {
+                var inventory = ScreenPrefabs.Instance.LockerNavigator.GetComponent<LockerNavigator>().kleiInventoryScreen.GetComponent<KleiInventoryScreen>();
+                var parts = Traverse.Create(inventory);
+                field = parts.Field("searchField").GetValue<KInputTextField>();
+                clear = parts.Field("clearSearchButton").GetValue<KButton>();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[Moono] Moono Tweaks: no search box, the Supply Closet's could not be found: " + e.Message);
+                return;
+            }
+            if (field == null)
+            {
+                Debug.LogWarning("[Moono] Moono Tweaks: no search box, the Supply Closet has none");
+                return;
+            }
+            var panel = windowTitle.transform.parent.parent;
+            var list = entryParent;
+            while (list.parent != null && list.parent != panel) list = list.parent;
+            if (list.parent != panel)
+            {
+                Debug.LogWarning("[Moono] Moono Tweaks: no search box, the list is not in the screen's panel");
+                return;
+            }
+            // The field with its clear button when they share a parent (the closet's search bar).
+            var source = clear != null && clear.transform.parent == field.transform.parent ? field.transform.parent.gameObject : field.gameObject;
+            var bar = new GameObject("SearchBar", typeof(RectTransform));
+            bar.transform.SetParent(panel, worldPositionStays: false);
+            bar.transform.SetSiblingIndex(list.GetSiblingIndex());
+            var row = searchRow = bar.AddComponent<HorizontalLayoutGroup>();
+            row.padding = new RectOffset(RowInset, RowInset, 8, 4);
+            row.childControlWidth = row.childControlHeight = true;
+            row.childForceExpandWidth = true;
+            row.childForceExpandHeight = false;
+            var size = bar.AddComponent<LayoutElement>();
+            size.flexibleHeight = 0f;
+            var copy = Instantiate(source, bar.transform, worldPositionStays: false);
+            copy.name = "Search";
+            copy.SetActive(true);
+            var copyLayout = copy.GetComponent<LayoutElement>();
+            if (copyLayout == null) copyLayout = copy.AddComponent<LayoutElement>();
+            copyLayout.flexibleWidth = 1f;
+            copyLayout.minHeight = Mathf.Max(copyLayout.minHeight, 28f);
+            copyLayout.preferredHeight = Mathf.Max(copyLayout.preferredHeight, 28f);
+            search = copy.GetComponentInChildren<KInputTextField>(true);
+            // The closet's events stay with the closet.
+            search.onValueChanged = new TMP_InputField.OnChangeEvent();
+            search.onEndEdit = new TMP_InputField.SubmitEvent();
+            search.onSubmit = new TMP_InputField.SubmitEvent();
+            search.OnValueChangesPaused = null;
+            search.text = "";
+            if (search.placeholder != null && search.placeholder.GetComponent<TextMeshProUGUI>() is { } placeholder)
+                placeholder.text = UI.UISIDESCREENS.TREEFILTERABLESIDESCREEN.SEARCH_PLACEHOLDER;
+            search.onValueChanged.AddListener(Filter);
+            search.onFocus = (System.Action)Delegate.Combine(search.onFocus, (System.Action)(() => isEditing = true));
+            search.onEndEdit.AddListener(_ => isEditing = false);
+            if (clear != null && source != field.gameObject)
+                foreach (var button in copy.GetComponentsInChildren<KButton>(true))
+                    if (button.name == clear.name)
+                    {
+                        searchClear = button;
+                        button.ClearOnClick();
+                        button.onClick += () => search.text = "";
+                    }
         }
 
         HierarchyReferences Entry(string name)
@@ -316,7 +514,7 @@ namespace OniMoono.GameTweaks
         /// size), regular and white, on the list's background with no row panel or band. The
         /// gameplay-changing sections' (Changes gameplay, Bug fixes) are amber, each with a line
         /// of body text under it.
-        void Heading(string group, bool changesGameplay, bool bugFixes)
+        GameObject Heading(string group, bool changesGameplay, bool bugFixes)
         {
             var entry = Entry("Heading " + group);
             entry.GetReference<KImage>("BG").gameObject.SetActive(false);
@@ -335,6 +533,7 @@ namespace OniMoono.GameTweaks
             entry.GetReference<MultiToggle>("EnabledToggle").gameObject.SetActive(false);
             entry.GetReference<LocText>("Version").gameObject.SetActive(false);
             entry.gameObject.SetActive(true);
+            return entry.gameObject;
         }
 
         /// A row's tooltip, styled as the game's effect tooltips: how it works, then its measured
@@ -349,7 +548,7 @@ namespace OniMoono.GameTweaks
             return text + (text.Length > 0 ? "\n" : "") + string.Format(MoonoTweaksMenu.Ui("LAUNCH_OPTION_LINE"), MoonoTweaksMenu.Notes[i]);
         }
 
-        void Row(int i)
+        GameObject Row(int i)
         {
             var entry = Entry(MoonoTweaksMenu.Ids[i]);
             bool locked = MoonoTweaksMenu.Locked[i];
@@ -388,7 +587,7 @@ namespace OniMoono.GameTweaks
             {
                 ChoiceRow(entry, i, toggle, title, effect, locked);
                 entry.gameObject.SetActive(true);
-                return;
+                return entry.gameObject;
             }
             toggles[i] = toggle;
             toggle.ChangeState(shown[i]);
@@ -417,6 +616,7 @@ namespace OniMoono.GameTweaks
                 if (tip != null) tip.OnToolTip = () => shown[i] != 0 ? UI.FRONTEND.MODS.TOOLTIPS.ENABLED : UI.FRONTEND.MODS.TOOLTIPS.DISABLED;
             }
             entry.gameObject.SetActive(true);
+            return entry.gameObject;
         }
 
         /// A row with choices (the GPU's): the Mods rows' Manage button in the toggle's place,

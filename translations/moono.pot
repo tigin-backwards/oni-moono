@@ -35,6 +35,11 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.BUG_FIXES_NOTE"
 msgid "These fix bugs in the game, so they change what the original does."
 msgstr ""
 
+#. In the list when the search box matches no row
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NO_MATCHES"
+msgid "No tweaks match the search."
+msgstr ""
+
 #. Beside a row the launch options set (one line)
 msgctxt "STRINGS.MOONO.TWEAKS.UI.LAUNCH_OPTION"
 msgid "LAUNCH OPTION"
