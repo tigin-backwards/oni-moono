@@ -3,7 +3,8 @@
 A user with 4,637 saves reported that the Load screen, and picking a save in it, "can take
 forever". This note maps what the game does from opening the screen to loading a save, measures
 it in our player and in the original with the same saves, and ranks exact ways to make it faster.
-Nothing here has landed.
+Items 1 to 4 landed on 2026-11-03, and 5 was measured and designed: see
+[Results](#results-2026-11-03).
 
 ## The saves
 
@@ -347,3 +348,130 @@ the four listings take 54-71 ms in all.
 
 The spec, the `stopwatch` command and `E2E_CLOUD_SAVES` are in place to measure each step
 against the original.
+
+## Results (2026-11-03)
+
+Items 1 to 4 landed; 5 is measured and designed, not built.
+
+- **1 and 3**: game tweak `fast-load-screen` (`src/OniMoono.GameTweaks/FastLoadScreen.cs`,
+  `HeaderReads.cs`), in `exact`. The memo is keyed by path and the current listing's last write
+  time (the listing has no lengths; a stat each would cost what it saves on slow storage), and
+  the read-ahead uses 8 threads.
+- **2**: LoadImage's own PNG decoder (`src/OniMoono.UnityEngine/Core/PngDecode.cs`, always on),
+  and, as part of `fast-load-screen` while the screen is shown, a decode memo keyed by the files'
+  bytes (`ImageDecodeMemo`) and a memo of U60's downscaled previews
+  (`src/OniMoono.Host/GameTweaks/LoadScreenPreviews.cs`).
+- **4**: game tweak `fix-load-screen-clicks`, in the behaviour-changing group, off by default
+  until the user decides.
+
+### What the previews cost in ours (a correction)
+
+The decode was not the main cost on U60. U60's `LoadPreviewTexture` downscales a preview over
+1024 pixels (the 528x1842 ones) with `Graphics.Blit` and reads it back with `ReadPixels`, and in
+ours that read-back waits for the GPU: 12-19 ms a preview on the WSL lanes, against 0.3-1 ms
+for the `LoadImage`. So the memo that counts for U60 is the one of the read-back texels; on U59,
+which has no downscale, it is the decode memo. The decoder itself, release build:
+
+| file | stb | ours |
+|---|---|---|
+| a real 2096x648 preview (465 KB, 371 of 648 rows Paeth) | 13.5-15.4 ms | 6.5-6.9 ms (inflate 2.1) |
+| the synthetic 528x1842 preview (filter None) | 6.5 ms | 6.2 ms |
+
+Exactness of the decoder: generated files (each filter, colour type, chunk layout, and 29 cases
+it must leave to stb or that both refuse) and a corpus of 10,741 PNGs (the game's exported
+textures and sprites, the docs' images, the synthetic previews) decode byte for byte as stb
+decodes them; the corpus test also ran over the user's previews, read only (below).
+
+### The memos' exactness
+
+With `ONI_TWEAK_VERIFY=1` every header served from the memo or parsed from the read-ahead is
+checked against the game's own `LoadHeader`, and every kept downscaled preview against the
+game's own `LoadPreviewTexture` of the same bytes: 0 of 92,720 headers (5 refreshes of 18,544
+reads: 13,908 from the memo and 4,638 read ahead each) and 0 of 64 previews differed. The log's
+warnings (`Corrupted save file`, twice a refresh for the empty save) are the same lines in the
+same order. `HeaderReadsTests` model the refresh with the game's parse and warnings: the same
+colonies, order and log lines with and without the tweak over a tree with an empty file, a
+truncated header, a header of size 0, negative and huge sizes, a too-old save, bad JSON and
+pre-7.14 world traits; each caller's own copy; files rewritten between passes and between
+refreshes read again.
+
+### Timings
+
+`load-screen-many-saves` (now five pages: four Load more clicks), U60 761211, Linux lanes
+(ours on Mesa d3d12, the original on llvmpipe), milliseconds of the method named, 1-2 runs each;
+the machine was shared with other agents' players. "Before" is ours without `fast-load-screen`
+and with stb (hard-linked previews); "decoder" the new decoder without the tweak; "after" the
+default (`exact`). The preview rows use the tree made with `--distinct` (no two previews alike,
+as in a real folder).
+
+| | before | decoder | after | original |
+|---|---|---|---|---|
+| opening (`OnActivate`) | 1,285-1,457 | 710-1,046 | **542-720** | 2,280-2,455 |
+| · both header passes (`GetColoniesDetails` x2) | 806-964 | 462-677 | **174-229** | 1,833-1,960 |
+| · `LoadHeader` (18,544 calls) | 749-891 | 422-625 | **104-139** | 1,668-1,798 |
+| · 20 previews | 347-352 | 182-264 | 275-370 | 94-128 |
+| Load more to 2 pages (`RefreshColonyList`) | 1,220-1,264 | 731-1,141 | **532-672** | 1,766-2,631 |
+| Load more to 5 pages | 1,213-1,664 | 900-1,344 | **289-293** | 2,098-2,871 |
+| · its 100 previews | 820-1,129 | 606-888 | **80-84** | 383-754 |
+
+The first page's previews are made once either way (each needs its read-back), so the opening
+gains only from the headers; each Load more then makes only its new page's previews.
+
+**The real folder's headers over WSL's 9P** (`HeaderReadsTests.Bench`, headers only read):
+4,637 headers one after another 21.8-51.8 s, with the read-ahead 2.2-2.5 s. A refresh read each
+header four times; it now reads it once, ahead.
+
+**The colony after four Load more clicks** (715 saves, `ShowColony`): the game builds it five
+times, 2.9-4.1 s in ours (5.3-8.9 s in the original); with `fix-load-screen-clicks`, once, 0.41-0.43
+s. Without Load more nothing changes (one build, 0.26-0.57 s).
+
+### Fewer draws in the colony view (5): measured, designed, not built
+
+**The original's draws.** Unity's player reports its render counters to `ProfilerRecorder` in a
+release build too, so E2eDriver's stopwatch hold now reads `Draw Calls Count`, `Batches Count`
+and `SetPass Calls Count` each frame in the original (ours: the engine's draw queues). Mean a
+frame over 120 frames, U60, 1280x720:
+
+| screen | original draws (batches, SetPass) | ours (draws) |
+|---|---|---|
+| colony list, 1 page (20 rows) | 137 (137, 67) | 253 |
+| colony list, 5 pages (100 rows) | 539 (539, 189) | 899 |
+| colony view, 715 saves | **61** (61, 38) | **5,070** |
+| colony view, a save selected | 60 (60, 39) | 5,069 |
+
+The original draws the 715 rows in about 61 draws, whatever the colony's size; ours in about 7
+a row. The list's rows each have their own preview texture, so neither player batches them
+much (about 5 draws a row in the original, 9 in ours).
+
+**How ours differs.** `CanvasSystem.Batched` merges only consecutive draws of the same state,
+in hierarchy order. A row is a background (sliced sprite), two texts (one font material), up to
+five DLC icons, the Load button and its text, so each row breaks the run before the next row
+starts. The original's counts fit a batcher that orders a canvas's draws by overlap depth
+first: a graphic that overlaps nothing drawn before it can go with any earlier draw of the same
+material and texture, so all rows' backgrounds draw together, then all their texts, and so on.
+
+**A design that keeps the pixels exact.** Two draws can swap places without changing a pixel
+when their screen rectangles do not overlap (blending only mixes overlapping pixels), so:
+
+1. For each draw of a canvas batch, in hierarchy order, its screen-space bounds (the mesh's
+   vertex bounds through the canvas matrix; clip rects narrow them) and its state key (the
+   `SameState` test).
+2. Its layer: one more than the highest layer of an earlier overlapping draw of another state,
+   or that draw's layer when the state is the same (it can join it). Draws with no bounds
+   (empty meshes), stencil writes and pops (Mask) and nested canvas spaces are barriers: a
+   barrier gets a layer above everything before it, and everything after it goes above it, so
+   no draw crosses a stencil change or a space change.
+3. A stable sort by layer, then by first appearance of the state within the layer, then merge
+   consecutive equal states as now.
+
+Overlap tests over all earlier draws are O(n²) (5,070 draws: 13 million tests a frame), so it
+needs a grid of the screen's cells holding each cell's highest layer per state, and it must be
+cached: the layered order is recomputed only when a draw's bounds, state or order change (the
+colony view is static between scrolls). The merge cache (`merged`, keyed by a run's first
+renderer) would key on the run's members instead.
+
+**Why it stops here.** This changes the order of every canvas's draws on every screen, the
+in-game UI included, so its proof is screenshots of every UI spec against the original's and
+the frame-time cost of the layering on the busiest screens; and the gain is the colony view of
+very large colonies (ours 34-47 ms a frame there on the WSL GPU, 4-12 ms in the list). It is a
+large engine change for its own branch, not part of this one.
