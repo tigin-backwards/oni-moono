@@ -166,7 +166,8 @@ translation: 929139073           # the language of this translation mod (one of 
 language: zh_klei                # or one of the game's own languages (zh_klei, ko_klei, ru_klei)
 tweaks_menu: true                # ours keeps the main menu's Moono Tweaks button (run with --player ours)
 game_tweaks: [slow-reachability] # ours runs with these `--game-tweak` values after E2E_GAME_TWEAKS's
-env: {ONI_TWEAK_VERIFY: "1"}     # ours runs with these in its environment
+env: {ONI_TWEAK_VERIFY: "1"}     # ours runs with these in its environment (ONI_TWEAK_SETTINGS: "1":
+                                 # no --game-tweak at all, the tweaks as a player has them)
 scaled_screen: true              # the game may render smaller than the display (below)
 blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its install (out/e2e/.blocked-LANE)
                                  # with these native plugins `missing` or `unreadable` (mode 000)
@@ -181,6 +182,7 @@ data_collection: true            # the Data Collection option on, for a spec tha
                                  # provoke errors
 workshop: {id: 1960996649, layout: folder}   # one gated mod as a Steam subscription (folder, or zip with corrupt: true);
                                  # both players need tools/SteamStub/build.sh --dlc --ugc's library
+test_mods: [OverlapTestMod]      # our test mods (tools/NAME, built to out/bin/NAME/release) as Local mods
 update_check: {releases: update-releases.json, tag: v2026.11.01.04}   # ours' update check reads this
                                  # fixtures file as GitHub's releases list, as that release (else: none)
 setup: [...]                     # steps run first; the only place for driver setup.call

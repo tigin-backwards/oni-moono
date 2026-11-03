@@ -1,0 +1,25 @@
+# No mod overlaps (only the specs' own mods, which patch nothing a tweak changes): no badge on
+# the main menu and no icon on any row of the Moono Tweaks screen, which looks as it did before
+# mod overlaps. Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+env: {ONI_TWEAK_SETTINGS: "1"}
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_state:
+      "type:OniMoono.GameTweaks.ModOverlaps::High": 0
+      "type:OniMoono.GameTweaks.ModOverlaps::Low": 0
+      "type:OniMoono.GameTweaks.ModOverlaps::StepsAside": 0
+  - expect_ui:
+      "**/MoonoOverlapBadge": {exists: false}
+  - shot: menu
+  - click: {ui: "**/MainMenuButtons/MoonoTweaksButton"}
+  - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/OverlapIcon": {exists: false}
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -24}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - shot: rows

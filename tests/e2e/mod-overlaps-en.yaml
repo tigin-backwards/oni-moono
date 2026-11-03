@@ -1,0 +1,71 @@
+# The mod overlaps of the Moono Tweaks screen in English (mod-overlaps-zh.yaml: in Chinese), with
+# our test mod tools/OverlapTestMod: a transpiler on JobManager.Run (fast-jobs: high), a bool
+# prefix on KBatchedAnimUpdater.CleanUp (fast-anim-cleanup: high), a postfix on
+# Sublimates.OnSpawn (fast-sublimation: low) and one on StateMachineController.GetSMI
+# (fast-smi-lookups steps aside). The main menu's badge counts the two high ones; each affected
+# row has an icon beside its toggle and names the mod in its tooltip; searching for the mod's
+# name lists those rows. Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+test_mods: [OverlapTestMod]
+# The tweaks as a player has them (their defaults, every row changeable).
+env: {ONI_TWEAK_SETTINGS: "1"}
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_state:
+      "type:OniMoono.GameTweaks.ModOverlaps::High": 2
+      "type:OniMoono.GameTweaks.ModOverlaps::Low": 1
+      "type:OniMoono.GameTweaks.ModOverlaps::StepsAside": 1
+  - expect_ui:
+      "**/MoonoOverlapBadge/Count": {active: true, text: "2 overlaps"}
+  - shot: menu
+  - scroll: {at: "**/MoonoOverlapBadge", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~Open Moono Tweaks"}
+  - shot: {name: badge-tip, pointer: stay}
+  - click: {ui: "**/MoonoOverlapBadge"}
+  - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/fast-jobs/**/OverlapIcon": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-anim-cleanup/**/OverlapIcon": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-sublimation/**/OverlapIcon": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-smi-lookups/**/OverlapIcon": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-save-type-checks/**/OverlapIcon": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/splash/**/OverlapIcon": {exists: false}
+  - shot: screen
+  # Down to the Simulation rows: two with icons, high and low, and one where the tweak steps aside.
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -24}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - shot: rows
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 100}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  # The mod's name in the search box: the four rows it overlaps, under their headings.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "overlap test"}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/fast-jobs": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-anim-cleanup": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-sublimation": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-smi-lookups": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-offset-tables": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/splash": {exists: false}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 6}
+  - shot: search
+  # The tooltips: high (a transpiler), high (a prefix that can skip), low, steps aside.
+  - scroll: {at: "**/MoonoTweaksScreen/**/fast-jobs/**/OverlapIcon", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~Overlap Test also patches JobManager.Run (it rewrites the game's code)."}
+  - expect_ui:
+      "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab": {active: true, text: "/JobManager.Run \\(it rewrites the game's code\\).<\\/color>\\nIf something looks wrong, turn this tweak off.$/"}
+  - shot: {name: high-tip, pointer: stay}
+  - scroll: {at: "**/MoonoTweaksScreen/**/fast-anim-cleanup", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~Overlap Test also patches KBatchedAnimUpdater.CleanUp (it can skip the game's code)."}
+  - shot: {name: skip-tip, pointer: stay}
+  - scroll: {at: "**/MoonoTweaksScreen/**/fast-sublimation", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~Overlap Test also patches Sublimates.OnSpawn.\nIf something looks wrong, turn this tweak off."}
+  - shot: {name: low-tip, pointer: stay}
+  - scroll: {at: "**/MoonoTweaksScreen/**/fast-smi-lookups", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~Off while Overlap Test is loaded, as it patches StateMachineController.GetSMI."}
+  - shot: {name: aside-tip, pointer: stay}

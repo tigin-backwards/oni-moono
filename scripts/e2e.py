@@ -165,7 +165,10 @@ def ws_mods():
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
             'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi', 'blocked_plugins', 'stray_plugins',
-            'data_collection', 'extra_saves', 'workshop', 'update_check', 'game_tweaks', 'env'}
+            'data_collection', 'extra_saves', 'workshop', 'update_check', 'game_tweaks', 'env', 'test_mods'}
+# `test_mods`: our own test mods (tools/NAME, built to out/bin/NAME/release), installed as Local
+# mods beside the spec's Workshop ones, with the title their mod.yaml gives.
+TEST_MODS = ('OverlapTestMod',)
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 # `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty
 # file (what Steam can leave of another branch's build: #49).
@@ -358,6 +361,9 @@ def check_spec(spec):
         problems.append('`spaced_out` is true or false')
     if not isinstance(spec.get('tweaks_menu', False), bool):
         problems.append('`tweaks_menu` is true or false')
+    test_mods = spec.get('test_mods', [])
+    if not isinstance(test_mods, list) or not all(m in TEST_MODS for m in test_mods):
+        problems.append(f'`test_mods` is a list of our test mods ({", ".join(TEST_MODS)})')
     tweaks = spec.get('game_tweaks', [])
     if not isinstance(tweaks, list) or not all(isinstance(t, str) and t for t in tweaks):
         problems.append('`game_tweaks` is a list of `--game-tweak` values')
@@ -2563,8 +2569,9 @@ class Player:
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
                  translation=None, language=None, keyboard=None, tweaks_menu=False, display_dpi=None,
                  blocked_plugins=None, data_collection=False, extra_saves=(), workshop=None, update_check=None,
-                 stray_plugins=(), game_tweaks=(), extra_env=None):
+                 stray_plugins=(), game_tweaks=(), extra_env=None, test_mods=()):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
+        self.test_mods = list(test_mods or ())
         self.game_tweaks = list(game_tweaks)
         self.extra_env = dict(extra_env or {})
         self.blocked_plugins = dict(blocked_plugins or {})
@@ -2662,6 +2669,7 @@ class Player:
             own = [('OniMcp', workshop)]
         if driver:
             own.append(('E2eDriver', self.env['E2E_DRIVER']))
+        own.extend((name, os.path.join(ROOT, 'out', 'bin', name, 'release')) for name in self.test_mods)
         for folder, source in own:
             dest = os.path.join(mods_dir, 'Local', folder)
             if folder == 'E2eDriver':
@@ -2674,6 +2682,13 @@ class Player:
                 for name in ('mod.yaml', 'mod_info.yaml'):
                     shutil.copy(next(p for p in (os.path.join(DRIVER_SOURCE, name), os.path.join(source, name))
                                      if os.path.exists(p)), dest)
+            elif folder in self.test_mods:
+                # The build's assembly and yaml files (dotnet build tools/NAME -c Release).
+                os.makedirs(dest)
+                for name in (folder + '.dll', 'mod.yaml', 'mod_info.yaml'):
+                    if not os.path.exists(os.path.join(source, name)):
+                        raise SpecFailure(f'no {name} in {source} (dotnet build tools/{folder} -c Release)')
+                    shutil.copy(os.path.join(source, name), dest)
             elif source == os.path.join(mods_dir, 'Local', ONIMCP_WORKSHOP):
                 shutil.move(source, dest)
             else:
@@ -2684,7 +2699,8 @@ class Player:
             if hash_of is None:
                 hash_of = ws_mods().mono_hash
             # A local mod's version is its folder name's Mono hash, which KMod recomputes.
-            entries.append({'label': {'distribution_platform': 0, 'id': folder, 'title': folder,
+            title = (mod_yaml_value(dest, 'title') if folder in self.test_mods else None) or folder
+            entries.append({'label': {'distribution_platform': 0, 'id': folder, 'title': title,
                                       'version': hash_of(folder)},
                             'status': 1, 'enabled': True, 'enabledForDlc': ['', 'EXPANSION1_ID'], 'crash_count': 0,
                             'reinstall_path': None, 'staticID': static})
@@ -2787,12 +2803,22 @@ class Player:
             if self.update_check:
                 env.update(ONI_UPDATE_RELEASES_URL='file://' + os.path.join(FIXTURES, self.update_check['releases']),
                            ONI_UPDATE_TAG=str(self.update_check['tag']))
+            # OniMcp, in every spec, transpiles LoadScreen methods background-save patches: test
+            # infrastructure, left out of the Moono Tweaks screen's mod overlaps.
+            env['ONI_MOD_OVERLAPS_IGNORE'] = 'LIghtJUNction.OniMcp'
             env.update(self.extra_env)
+            # `env: {ONI_TWEAK_SETTINGS: "1"}`: the tweaks as a player has them (the defaults and
+            # the run home's settings, every tweak's row changeable), so no `--game-tweak` at all;
+            # still no loading splash over the menu, and the log's paths in full.
+            settings = self.extra_env.get('ONI_TWEAK_SETTINGS') == '1'
+            tweaks = [] if settings else \
+                os.environ.get('E2E_GAME_TWEAKS', 'exact path-probe-repair').split() + self.game_tweaks
             command = [os.path.join(ROOT, 'scripts', 'run.sh'), '--native-override',
                        'steam_api=' + self.env['QA_U57_STEAM'], *size,
-                       *(a for t in os.environ.get('E2E_GAME_TWEAKS', 'exact path-probe-repair').split() for a in ('--game-tweak', t)),
-                       # A spec's own tweaks on top (`game_tweaks`), with its environment (`env`).
-                       *(a for t in self.game_tweaks for a in ('--game-tweak', t)),
+                       *(['--splash', 'none', '--log-paths', 'full'] if settings else []),
+                       # E2E_GAME_TWEAKS, then a spec's own tweaks on top (`game_tweaks`), with its
+                       # environment (`env`).
+                       *(a for t in tweaks for a in ('--game-tweak', t)),
                        # The original's main menu has no Moono Tweaks button: the menus compare
                        # (a spec of the Moono Tweaks screen keeps it: `tweaks_menu: true`).
                        *([] if self.tweaks_menu else ['--no-tweaks-menu']),
@@ -4202,7 +4228,8 @@ class Run:
                                  data_collection=spec.get("data_collection", False),
                                  extra_saves=spec.get('extra_saves', ()), workshop=spec.get('workshop'),
                                  update_check=spec.get('update_check'),
-                                 game_tweaks=spec.get('game_tweaks', ()), extra_env=spec.get('env'))
+                                 game_tweaks=spec.get('game_tweaks', ()), extra_env=spec.get('env'),
+                                 test_mods=spec.get('test_mods', ()))
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
             started = time.time()
