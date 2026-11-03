@@ -473,3 +473,15 @@ msgstr "小动物和复制人原本每帧都会更新。此项在 30 fps 以上�
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
 msgid "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps."
 msgstr "游戏每渲染帧更新 1 个复制人和 5 个小动物的脑；此项将其限制为每秒 30 和 150 次，并分摊到各帧。刚完成任务或受到威胁的个体仍会立即获得下一次更新。仅在 30 fps 以上节省时间。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.TITLE"
+msgid "Faster Load screen"
+msgstr "更快的加载游戏界面"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.EFFECT"
+msgid "With many saves, the Load screen opens and loads more colonies sooner."
+msgstr "存档很多时，加载游戏界面打开和“加载更多”都更快。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.DETAIL"
+msgid "Each save's details are read from its file once a refresh instead of four times, several files at a time, and previews already shown are not decoded again. The colonies, their order, the previews and the log are the same."
+msgstr "每次刷新时每个存档的信息只从文件读取一次而不是四次，并且同时读取多个文件；已显示过的预览图不再重新解码。殖民地、顺序、预览图和日志都不变。"

@@ -24,7 +24,7 @@ namespace OniMoono.Tests
                 // Sentence case: a capital first letter, and no capital after it but in a name.
                 Assert.True(char.IsUpper(row.Title[0]), $"{row.Id}: '{row.Title}' should start with a capital");
                 foreach (var word in row.Title.Split(' ').Skip(1))
-                    Assert.True(!char.IsUpper(word[0]) || word is "Gassy" or "Moo" or "Direct3D" or "Windows", $"{row.Id}: '{row.Title}' is not in sentence case ('{word}')");
+                    Assert.True(!char.IsUpper(word[0]) || word is "Gassy" or "Moo" or "Direct3D" or "Windows" or "Load", $"{row.Id}: '{row.Title}' is not in sentence case ('{word}')");
                 // The screen's font (the Mods screen's) draws a lowercase f as a capital F, which in
                 // a title reads as a stray capital ("No Forced cleanup"): titles do without.
                 Assert.True(!row.Title.Contains('f'), $"{row.Id}: '{row.Title}' has a lowercase f, which the screen's font draws as a capital");

@@ -205,6 +205,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DXGI.DETAIL"
 msgid "Frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through OpenGL's own presentation, which Auto HDR or RTX HDR can take for HDR. If it can't start, OpenGL's own is used and Player.log says why. No effect on Linux."
 msgstr ""
 
+#. Row title (fast-load-screen)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.TITLE"
+msgid "Faster Load screen"
+msgstr ""
+
+#. The line under the title (fast-load-screen)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.EFFECT"
+msgid "With many saves, the Load screen opens and loads more colonies sooner."
+msgstr ""
+
+#. Tooltip: how it works (fast-load-screen)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.DETAIL"
+msgid "Each save's details are read from its file once a refresh instead of four times, several files at a time, and previews already shown are not decoded again. The colonies, their order, the previews and the log are the same."
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.SAVING"
 msgid "Saving"
