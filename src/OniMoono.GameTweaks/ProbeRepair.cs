@@ -54,6 +54,8 @@ namespace OniMoono.GameTweaks
     /// reachable cells differ from the flood's. ONI_PROBE_DIGEST=FILE writes a line per result
     /// taken (frame, navigator, root, nav type, flags, reachable cells, a digest of them and one
     /// with their costs); with ONI_PROBE_REPAIR_OFF=1 only that, of the game's own probes.
+    /// ONI_PROBE_REPAIR_SWITCH=FILE turns the repairs off while the file reads `off` (checked every
+    /// 30 frames; the change feed keeps running), for measuring both in one run.
     public static class ProbeRepair
     {
         public const string Name = "path-probe-repair";
@@ -328,6 +330,11 @@ namespace OniMoono.GameTweaks
         {
             if (state == State.Unchecked) Start();
             if (state != State.On) return;
+            if (switchPath != null && ++switchTicks % 30 == 0)
+            {
+                try { switchedOff = File.Exists(switchPath) && File.ReadAllText(switchPath).Trim() == "off"; }
+                catch (IOException) { }
+            }
             feed.Seal();
             worker.Report();
             // Navigators destroyed while a probe of theirs was under way.
@@ -336,7 +343,9 @@ namespace OniMoono.GameTweaks
                     if (nav == null) fields.TryRemove(nav, out _);
         }
 
-        static int ticks;
+        static int ticks, switchTicks;
+        static readonly string switchPath = Environment.GetEnvironmentVariable("ONI_PROBE_REPAIR_SWITCH");
+        static volatile bool switchedOff;
 
         static void UnregisterPost(Navigator nav) => fields.TryRemove(nav, out _);
 
@@ -700,7 +709,7 @@ namespace OniMoono.GameTweaks
         static bool ExecutePre(ref WorkOrder __instance, ref WorkResult result)
         {
             var w = worker;
-            if (state != State.On || w == null) return true;
+            if (state != State.On || w == null || switchedOff) return true;
             try
             {
                 return !w.Execute(ref __instance, ref result);
@@ -803,7 +812,7 @@ namespace OniMoono.GameTweaks
             if (stats == null)
             {
                 stats = new StreamWriter(statsPath, append: false);
-                stats.WriteLine("wall_s\tgame_s\tframes\tspeed\tpaused\tprobes\tprobe_cpu_ms\tprobe_wall_ms\tprocess_cpu_ms\tworking_set_mb\tmanaged_mb");
+                stats.WriteLine("wall_s\tgame_s\tframes\tspeed\tpaused\tprobes\tprobe_cpu_ms\tprobe_wall_ms\tprocess_cpu_ms\tworking_set_mb\tmanaged_mb\trepair");
                 statsClock.Start();
             }
             else if (statsClock.ElapsedMilliseconds < (statsLines + 1) * 5000L) return;
@@ -816,7 +825,7 @@ namespace OniMoono.GameTweaks
             double cpu = process.TotalProcessorTime.TotalMilliseconds;
             long ws = process.WorkingSet64 >> 20, managed = GC.GetTotalMemory(false) >> 20;
             stats.WriteLine($"{statsClock.Elapsed.TotalSeconds:F1}\t{game:F1}\t{statsFrames}\t{speed}\t{(paused ? 1 : 0)}\t{Interlocked.Read(ref probeCount)}\t"
-                + $"{Interlocked.Read(ref probeCpuNs) / 1e6:F1}\t{Interlocked.Read(ref probeWallTicks) * 1000.0 / Stopwatch.Frequency:F1}\t{cpu:F0}\t{ws}\t{managed}");
+                + $"{Interlocked.Read(ref probeCpuNs) / 1e6:F1}\t{Interlocked.Read(ref probeWallTicks) * 1000.0 / Stopwatch.Frequency:F1}\t{cpu:F0}\t{ws}\t{managed}\t{(Running && !switchedOff ? 1 : 0)}");
             stats.Flush();
         }
 
