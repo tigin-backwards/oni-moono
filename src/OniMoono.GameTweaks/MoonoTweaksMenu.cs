@@ -27,7 +27,7 @@ namespace OniMoono.GameTweaks
     {
         /// The rows' text in the game's language (Localize), and the launch options (`Notes`).
         internal static string[] Ids, Groups, Titles, Effects, Details, Gains, Notes;
-        internal static bool[] ChangesGameplay, Locked;
+        internal static bool[] ChangesGameplay, BugFixes, Locked;
         /// Each row's value: 0 or 1 for a toggle, else the index in its Choices.
         internal static int[] Running, Defaults, Saved;
         internal static string[][] Choices;
@@ -55,7 +55,7 @@ namespace OniMoono.GameTweaks
         /// `resolveTexts` gives every key's text from a .po's strings (key to text, English where
         /// it has none), read from the folder `translations`.
         public static void Install(Harmony harmony, string[] ids, string[] groups, string[] titles, string[] effects,
-            string[] details, string[] gains, string[] notes, bool[] changesGameplay, string[][] choices, int[] running, int[] defaults, bool[] locked,
+            string[] details, string[] gains, string[] notes, bool[] changesGameplay, bool[] bugFixes, string[][] choices, int[] running, int[] defaults, bool[] locked,
             string lockedNote, string settingsPath, Func<string[], int[], string> save,
             string[] keys, string[] englishTexts, Func<Dictionary<string, string>, string[]> resolveTexts, string translations)
         {
@@ -67,6 +67,7 @@ namespace OniMoono.GameTweaks
             gainKeys = gains;
             Notes = notes;
             ChangesGameplay = changesGameplay;
+            BugFixes = bugFixes;
             choiceKeys = choices;
             stringKeys = keys;
             english = englishTexts;
@@ -289,7 +290,7 @@ namespace OniMoono.GameTweaks
                 if (MoonoTweaksMenu.Groups[i] != group)
                 {
                     group = MoonoTweaksMenu.Groups[i];
-                    Heading(group, MoonoTweaksMenu.ChangesGameplay[i]);
+                    Heading(group, MoonoTweaksMenu.ChangesGameplay[i], MoonoTweaksMenu.BugFixes[i]);
                 }
                 Row(i);
             }
@@ -328,8 +329,9 @@ namespace OniMoono.GameTweaks
         /// A section's heading, as Klei heads the sections of its own screens (Game options, the
         /// destination screen): its name in capitals, GRAYSTROKE at 18 pt (style_titleTextLarge's
         /// size), regular and white, on the list's background with no row panel or band. The
-        /// gameplay-changing section's is amber, with a line of body text under it.
-        void Heading(string group, bool changesGameplay)
+        /// gameplay-changing sections' (Changes gameplay, Bug fixes) are amber, each with a line
+        /// of body text under it.
+        void Heading(string group, bool changesGameplay, bool bugFixes)
         {
             var entry = Entry("Heading " + group);
             entry.GetReference<KImage>("BG").gameObject.SetActive(false);
@@ -344,7 +346,7 @@ namespace OniMoono.GameTweaks
             title.text = group.ToUpperInvariant();
             title.fontSize = 18;
             title.color = changesGameplay ? Util.ColorFromHex(Warning) : Color.white;
-            if (changesGameplay) BodyLine(title, MoonoTweaksMenu.Ui("CHANGES_GAMEPLAY_NOTE"));
+            if (changesGameplay) BodyLine(title, MoonoTweaksMenu.Ui(bugFixes ? "BUG_FIXES_NOTE" : "CHANGES_GAMEPLAY_NOTE"));
             entry.GetReference<MultiToggle>("EnabledToggle").gameObject.SetActive(false);
             entry.GetReference<LocText>("Version").gameObject.SetActive(false);
             entry.gameObject.SetActive(true);
