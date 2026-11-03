@@ -65,6 +65,8 @@ namespace OniMoono.Engine
                 Done = true;
             }
             StartupStats.Mark("start-up progress: at the menu");
+            StartupStats.Mark("bundle blocks at the menu: " + OniMoono.Assets.Files.BundleBlockStats.Summary());
+            OniMoono.Assets.Files.BundleBlockStats.Report();
             PlayerLoop.LogVideoMemory("at the menu");
             try
             {

@@ -21,7 +21,7 @@ game (`out/heapdesign/HeapProbe`; method in §3.1). No Windows runs.
 | # | Owner and design | Now | Saving (estimate) | Exact | Mod risk | Effort | Verdict |
 |---|---|---:|---:|---|---|---|---|
 | 1 | Path grids: sparse pages behind PathGrid's `Cells`/`ProberCells` (§3) | 4.9 GB on c100 (205 whole-map grids), 0.84 GB on soggy lab 2 U60 (10 grids), 945 MB in the heap study | **c100 −4.0 GB, soggy lab 2 −0.7 to −0.8 GB** (pages ever written: 15 % and 3-5 % of them after 6 min) | by construction: unwritten pages read as the zeros the array holds | low: only Fast Track touches the arrays (`lock (grid.Cells)`), kept by a handle | medium, hot path: needs a perf check | **go** |
-| 2 | Bundles: a decompressed-bundle cache file, mapped (§1) | 1,061-1,092 MiB, every save with every DLC | **−1.06 to −1.09 GiB of heap and commit** (+0.35-0.45 GB with hi-res textures); no decode on later launches | same bytes; a verify mode compares them | none (below `AssetBundle`) | medium; 1.1 GB of disk | **go** |
+| 2 | Bundles: a decompressed-bundle cache file, mapped (§1) | 1,061-1,092 MiB, every save with every DLC | **−1.06 to −1.09 GiB of heap and commit** (+0.35-0.45 GB with hi-res textures); no decode on later launches | same bytes; a verify mode compares them | none (below `AssetBundle`) | medium; 1.1 GB of disk | built, then reverted for §1.3 (U60: blocks on demand) |
 | 3 | Frame elements: `TrimExcess` after the anims load (§2) | 362 MB (10.05 M slots for 8.31 M elements) | **−63 MB** (−67 with the frame and symbol-frame lists) | only `Capacity` changes | none | a few lines | **go** |
 | 4 | Frame elements: deduplicated store behind the list (§2) | 299 MB after 3 | −125 to −132 MB more (45 % of elements are distinct) | yes, by value | high: mods mutate the List with its whole API | high | **later** |
 
@@ -156,6 +156,81 @@ exact.
 
 **Recommendation: go.** The largest and the safest of the three: exact by construction,
 invisible to mods, and on U60 it removes memory Unity never spends.
+
+### 1.3 Built (2026-11-03): U60's bundles read block by block; the cache reverted
+
+The mapped cache of §1.2 was built (38f9f5e1) and then **reverted** (u60): it wrote about 1.1 GB
+per install and read it back on every cold launch, which costs on hard disks and SATA SSDs, for
+memory that U60 can save without any file. On U60 the bundles are now read as Unity reads a
+chunked LZ4 bundle, the alternative above:
+
+- **Which bundles.** `UnityFsArchive.OpenFile` (LoadFromFile, LoadFromFileAsync and the start-up
+  prefetch, through `AssetSystem.OpenBundle`) maps the bundle file and reads its tables; an
+  archive of at least two blocks, all LZ4/LZ4HC or stored with at least one LZ4 and none over
+  1 MiB (`ArchiveBlocks.Suits`), is read block by block. Any other (U59's one LZMA block, LZMA
+  mod bundles, every block stored, one block) is decompressed whole into one array, as before;
+  so are LoadFromMemory and LoadFromStream bundles. `ONI_BUNDLE_BLOCKS=0` decompresses every
+  bundle whole.
+- **Reads.** A node is a `NodeData`: an array window, or a range of an `ArchiveBlocks`. A read
+  (`CopyTo`) decodes the blocks it covers from the mapped file with the same decoder, a block it
+  covers whole straight into the reader's buffer, a block it covers in part into a cache buffer
+  and copies the part out. Reads that span blocks, empty blocks and the last short block work
+  the same. A serialized file read by blocks parses its metadata from the bytes before its data
+  offset (the whole node again if the metadata ran past it) and copies each object's bytes out
+  for its DataReader; texels (`TexelSource`, `AssetSystem.ReadStreamInto`) are copied out as
+  before, outside AssetSystem's lock.
+- **Cache.** One LRU cache of decoded blocks for all bundles (`BlockCache`), 32 MiB at most,
+  emptied 10 s after its last use. Unity's documentation says only that its cache of
+  uncompressed data for a chunked bundle is of a fixed size whatever the bundle's size, a memory
+  overhead "equal to read buffers"; its size is not documented, and Unity's engine source is
+  not ours to read. The size here is measured: a trace of every read of a c100 launch (6,674
+  reads, 1,115 MB, all before the menu: neither the load nor 300 s of play read a block)
+  replayed against cache sizes. The main thread's 5,565 reads (201 MB, 5,288 of them under a
+  block: the serialized files' objects, read in reference order, 2,212 of them backwards) touch
+  1,536 blocks; texels (914 MB, 1,109 reads) are read on the upload threads. Main-thread
+  decoding by cache size: 8 blocks per bundle 651 MB, 32 per bundle 415 MB; shared, 96 blocks
+  (12 MiB) 295 MB, 192 (24 MiB) 228 MB, **256 (32 MiB) 214 MB**, 384 (48 MiB) 204 MB, unbounded
+  201 MB. In the game: 6,330 hits, 1,708 misses, 1,159 MB decoded for the 1,115 MB read.
+- **Threads.** The cache's lock is held for lookups and the copies out of cached buffers (so an
+  evicted buffer can be reused at once), never for a decode; two readers missing one block both
+  decode it, to the same bytes. The prefetch threads now only open the bundles and read each
+  file through once into a small buffer, so its pages are in the system's cache as the whole
+  decode's read had them.
+- **Damage.** A block table running past the file is refused at open, as before; a damaged LZ4
+  block is found when it is read (InvalidDataException from the read), not at LoadFromFile,
+  as with Unity's chunked reads.
+
+**Exactness.** `ONI_BUNDLE_BLOCKS_VERIFY=1` also decompresses each block-read bundle whole at
+open and compares every read with it, logging `bundle blocks: N reads verified (MB), N
+mismatches; ...` every 10 s while reads are made and at the menu, and a line for each read that
+differs (qa-tools.py's verify gate fails on either; qa.sh's verify stage turns it on). Unit
+tests: every range around every block boundary of a synthetic archive, random ranges, reads past
+a node refused, 16 threads at once, the cache's bound and idle drop, the other archives decoded
+whole, and the game's hi-res bundle node by node, object by object and in texel ranges against
+its whole decode.
+
+**Measured** (Linux, U60 761211 with every DLC, after a full blocking GC, against u60 without
+the cache; two to three runs each, interleaved):
+
+| | Before | Blocks |
+|---|---:|---:|
+| Menu: live heap | 1,717 MB (×3) | 637-638 MB (×3) |
+| Menu: GC committed | 2,717-2,754 MB | 1,169-1,403 MB |
+| Menu: anonymous RSS | 3,380-3,441 MiB | 1,985-2,209 MiB (file RSS +175 MiB: the mapped bundles) |
+| c100 at its load: live heap | 3,449-3,450 MB | 2,336-2,337 MB |
+| c100 at its load: GC committed | 4,560-4,749 MB | 3,289-3,350 MB |
+| c100 300 s in: live heap | 4,685-4,697 MB | 3,577-3,579 MB |
+| c100 300 s in: private bytes | 9,249-9,431 MB | 8,040-8,135 MB |
+| Time to the menu | 16.6-16.7 s (menu runs), 14.7-15.6 s (c100 runs) | 16.0-16.7 s, 15.0-15.2 s |
+| c100 load (Loading save file to the load's end) | 16.1, 16.6 s | 17.6, 17.0 s |
+| c100 frame interval at speed 3 (presenter, 60-frame windows) | 26.4, 26.0 ms | 25.1, 27.3 ms |
+| Main thread's bundle reads | none (prefetched) | 5,565 reads, 201 MB, 141-201 ms |
+
+The load reads no block, so its 0.4-1.5 s difference is the runs' spread, not the reads; frame
+intervals are within it too. The main thread now decodes what it reads (0.14-0.20 s, before the
+menu), which the prefetch threads used to decode; the time to the menu did not move beyond the
+JIT's spread. No Windows runs: PowerShell (which the Windows runners need) is blocked in the
+agent's worktree.
 
 ## 2. KAnim frame elements
 

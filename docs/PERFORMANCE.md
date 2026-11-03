@@ -408,6 +408,13 @@ DLC):
 - The DLC bundles (one LZMA stream each, about 1 GiB decompressed) are decompressed on worker
   threads from the player's start (`ONI_BUNDLE_PREFETCH=0` turns it off); loading them takes
   the game 0.3–0.6 s instead of 9–11 s.
+- U60's bundles (LZ4 in 128 KiB blocks) are read block by block from their files, as Unity
+  reads them (ARCHITECTURE §3.4), instead of decompressed whole into the managed heap: with
+  every DLC (Linux, 2026-11-03) the menu's live heap after a full collection is 1,717 → 637 MB,
+  a 200-Duplicant colony's 3,450 → 2,336 MB at its load and 4,690 → 3,578 MB 300 s in.
+  The main thread decodes the blocks of the objects it loads (201 MB in 5,565 reads, 0.18–0.20 s,
+  which the prefetch threads used to do); the time to the menu did not change beyond the runs'
+  spread (16.6–16.7 s before, 16.0–16.7 s after).
 - The host's patches of the game and of Harmony are made while the window opens: the window and
   device are ready 0.28 s sooner.
 - Serialized files are mapped instead of read whole: the first scene loads about 50 ms sooner,

@@ -1709,7 +1709,17 @@ of the clone keep their constructor/initializer values.
 **Loading model.** Scenes (`level0..2`) are loaded in full on `SceneManager.LoadScene`.
 Other files load objects **lazily by PPtr**: an object is materialized the first time it is
 referenced, with its dependencies. `Resources.Load` uses the `ResourceManager.m_Container` map;
-`AssetBundle.LoadFromFile(Async)` mounts a UnityFS archive as additional files.
+`AssetBundle.LoadFromFile(Async)` mounts a UnityFS archive as additional files. Its nodes
+(`NodeData`) are windows on the archive's data. A bundle of LZ4 blocks (U60's: 128 KiB each) is
+read as Unity reads one: its file is mapped and each read decodes the blocks it covers
+(`ArchiveBlocks`), a block read whole straight into the reader's buffer, the ends of a read
+through one cache of decoded blocks for all bundles (`BlockCache`: 32 MiB at most, emptied after
+10 s without reads). A serialized file's reader copies its object's bytes out; texels are copied
+out as before. Any other bundle (LZMA as U59's, every block stored, one block) and
+LoadFromMemory/LoadFromStream bundles are decompressed whole into one array. The bytes are the
+same either way; `ONI_BUNDLE_BLOCKS=0` decompresses every bundle whole, and
+`ONI_BUNDLE_BLOCKS_VERIFY=1` also decompresses the block-read ones whole and compares each read
+(`bundle blocks:` lines).
 `Resources.UnloadUnusedAssets` releases GPU resources of unreferenced loaded assets.
 
 ### 3.5 Rendering

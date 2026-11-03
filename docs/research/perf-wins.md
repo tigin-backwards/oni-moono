@@ -358,9 +358,11 @@ prototyped yet.
 
 These are not per-frame, so they are outside the ranking above:
 
-- Asset bundle bytes take 1.06 GB of the managed heap, at parity with Unity's LZMA
-  decompression. A disk cache with `mmap` is possible.
-- Each bundle is allocated twice at load (about 1.1 GB peak).
+- Asset bundle bytes took 1.06 GB of the managed heap. On U60 (LZ4 blocks) they are now read
+  block by block (Verdicts, "Bundles read block by block"); U59's LZMA bundles are decompressed
+  whole, at parity with Unity. A mapped cache file was built and reverted (its disk writes and
+  cold reads).
+- Each bundle is allocated twice at load (about 1.1 GB peak); on U60 no longer.
 - About 86 blocking gen2 collections during mod load come from
   `MissingInterfaceMethods.Collect`'s `GC.Collect` loop (about 2.9 s).
 - `ComponentLayout` match tables take 33.5 MB, `UploadedTexels` 37 MB, and mesh UVs as
@@ -379,6 +381,7 @@ These are not per-frame, so they are outside the ranking above:
 | 7. `CollectMesh`/`CollectSprite` | **Rejected** | no sprites drawn; sheets come from blits and blocks | – | – | – |
 | NavGrid links in compact stores (`compact-nav-links`, navgrid-links-store.md) | **Landed**, exact, on by default | managed heap 9,200, 9,240 → 8,628, 8,592 MiB; load 43.3, 39.1 → 35.3, 32.8 s; fps 40.8, 47.4 → 46.4, 38.7 (noise) | links 256.4 → 26.2 MB (Linux) | managed heap 7,736, 7,696 → 5,602, 5,594 MiB; working set 12,094, 12,030 → 9,835, 9,772 MiB; fps 70.2, 41.8 → 54.5, 44.7 (noise) | – |
 | Path grids in pages (`paged-path-grids`, heap-reduction-designs.md §3.3) | **Landed**, exact, on by default | Windows: managed heap 8,729, 8,676 → 4,308, 4,339 MiB; private bytes 15,441, 15,291 → 11,199, 11,104 MiB; working set 10,212, 10,083 → 9,579, 9,618 MiB; fps 46.2, 54.2 → 46.3, 56.1, main thread 25.7, 16.1 → 17.8, 19.6 ms (noise); probe thread 0.66, 0.47 → 0.59, 0.60 ms a probe | tables 265.5 → 177.7 MB (Linux) | Linux, without mods: heap after a full GC 4,267 → 3,276 MB; GC commit 5,554 → 4,189 MB | – |
+| Bundles read block by block (U60; src/OniMoono.Assets/Files/ArchiveBlocks.cs, heap-reduction-designs.md §1.3) | **Landed**, engine-side, always on (`ONI_BUNDLE_BLOCKS=0` off), exact: verify mode (`ONI_BUNDLE_BLOCKS_VERIFY=1`) 0 mismatches; replaces the mapped bundle cache, reverted. At the menu (Linux, every DLC, any save): live heap 1,717 → 637 MB, committed 2,717-2,754 → 1,169-1,403 MB, time to the menu 16.6-16.7 → 16.0-16.7 s. Windows not measured (PowerShell blocked in the worktree) | Linux: live heap at the load 3,449, 3,450 → 2,336, 2,337 MB; 300 s in 4,685, 4,697 → 3,577, 3,579 MB; load 16.1, 16.6 → 17.6, 17.0 s (no block read during it: spread); frame interval 26.4, 26.0 → 25.1, 27.3 ms (spread); main thread's bundle reads 0 → 0.14-0.20 s before the menu | – | – | – |
 
 Path grids in pages (`paged-path-grids`):
 - **Change**: each PathGrid's `Cells` and `ProberCells` (whole-cluster arrays per Duplicant,

@@ -181,7 +181,8 @@ def image(reference, new, diff, *options):
 # A summary is a line of a check's name whose report counts what must be zero ("0 wrong");
 # compact-nav-links and paged-path-grids name the moment ("nav links verify (in play)").
 VERIFY_NAMES = (r'(fast-[a-z-]+|path-probe-repair|trim-anim-lists|nav links verify(?: \([a-z ]+\))?|path grids verify'
-                r'|canvas skips?|canvas products|component layouts|texel copies|partial uploads|parallel draws|bindless handles)')
+                r'|canvas skips?|canvas products|component layouts|texel copies|partial uploads|parallel draws|bindless handles'
+                r'|bundle blocks)')
 ZERO_WORDS = (r"(?:wrong skips|wrong|stale items not marked|stale|mismatches|changed while copying|differed|cell\(s\) differ"
               r"|differ|otherwise than a flood|otherwise than the game's|changes the feed missed)")
 ZERO_COUNTS = re.compile(r'(?<![\w.])(\d[\d,]*) ' + ZERO_WORDS + r'(?![\w(])')

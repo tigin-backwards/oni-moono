@@ -18,9 +18,9 @@ namespace OniMoono.Engine.Assets
         static bool dataDirUsed;
         static readonly object gate = new();
         static readonly Dictionary<string, SerializedFile> files = new(StringComparer.Ordinal);
-        /// Each node a window on its bundle's decompressed data (UnityFsArchive.Slice): the data is
-        /// allocated once, and stays alive while any of its nodes is mounted or held.
-        static readonly Dictionary<string, ArraySegment<byte>> bundleNodes = new(StringComparer.Ordinal);
+        /// Each node a window on its bundle's decompressed data or a range of its blocks
+        /// (UnityFsArchive.Slice), which stays alive while any of its nodes is mounted or held.
+        static readonly Dictionary<string, NodeData> bundleNodes = new(StringComparer.Ordinal);
         /// Resource files mapped once each: concurrent first reads (texture and video threads) share
         /// one mapping (GetOrAdd's factory alone could run twice and leak a whole-file view).
         static int mappingsMade;
@@ -41,6 +41,7 @@ namespace OniMoono.Engine.Assets
                     throw new InvalidOperationException($"The asset files were read from {dataDir}; they cannot come from {gameDataDir} as well.");
                 dataDir = gameDataDir;
             }
+            BundleBlockStats.MainThreadId = Environment.CurrentManagedThreadId;
         }
 
         /// Maps a name as it appears in externals or loads (`sharedassets0.assets`,
@@ -96,17 +97,36 @@ namespace OniMoono.Engine.Assets
             return Get(path);
         }
 
+        /// ONI_BUNDLE_BLOCKS=0: bundles opened from files are decompressed whole, as before they
+        /// were read block by block.
+        static readonly bool blockReads = Environment.GetEnvironmentVariable("ONI_BUNDLE_BLOCKS") != "0";
+        /// ONI_BUNDLE_BLOCKS_VERIFY=1: a bundle read block by block is also decompressed whole, and
+        /// each read compared with it (BundleBlockStats' "bundle blocks:" lines).
+        static readonly bool verifyBlocks = Environment.GetEnvironmentVariable("ONI_BUNDLE_BLOCKS_VERIFY") == "1";
+
+        /// The bundle at `path` as AssetBundle.LoadFromFile opens it (any thread): a chunked LZ4
+        /// bundle read block by block from its mapped file, as Unity reads one, any other
+        /// decompressed whole (UnityFsArchive.OpenFile).
+        public static UnityFsArchive OpenBundle(string path)
+        {
+            if (!blockReads) return UnityFsArchive.Open(path);
+            if (verifyBlocks) BundleBlockStats.StartVerify(EngineLog.Engine);
+            var archive = UnityFsArchive.OpenFile(path, verifyBlocks);
+            if (verifyBlocks && archive.ReadsBlocks) EngineLog.Engine($"bundle blocks: {Path.GetFileName(path)} read block by block, each read compared with its whole decode");
+            return archive;
+        }
+
         /// Mounts an AssetBundle's nodes (SerializedFiles and resource streams).
         public static List<string> MountBundle(UnityFsArchive archive) => Mount(ReadNodes(archive));
 
-        /// Decompresses an archive's nodes (any thread): (node key, bytes in place). As in Unity,
+        /// An archive's nodes (any thread): (node key, bytes in place). As in Unity,
         /// a bundle's nodes live under a directory named after its serialized file: `CAB-x` and
         /// `CAB-x.resS` are `archive:/CAB-x/CAB-x` and `archive:/CAB-x/CAB-x.resS` (the paths its
         /// objects and other bundles' externals use).
-        public static List<(string Key, ArraySegment<byte> Data)> ReadNodes(UnityFsArchive archive)
+        public static List<(string Key, NodeData Data)> ReadNodes(UnityFsArchive archive)
         {
             var main = archive.Nodes.FirstOrDefault(n => !IsResourceNode(n.Path))?.Path ?? archive.Nodes.FirstOrDefault()?.Path ?? "";
-            var nodes = new List<(string, ArraySegment<byte>)>();
+            var nodes = new List<(string, NodeData)>();
             foreach (var node in archive.Nodes) nodes.Add(("archive:/" + main + "/" + node.Path, archive.Slice(node)));
             return nodes;
         }
@@ -114,7 +134,7 @@ namespace OniMoono.Engine.Assets
         static bool IsResourceNode(string path) => path.EndsWith(".resS", StringComparison.Ordinal) || path.EndsWith(".resource", StringComparison.Ordinal);
 
         /// Mounts decompressed nodes; returns the keys of the serialized files among them.
-        public static List<string> Mount(List<(string Key, ArraySegment<byte> Data)> nodes)
+        public static List<string> Mount(List<(string Key, NodeData Data)> nodes)
         {
             var serialized = new List<string>();
             lock (gate)
@@ -139,9 +159,9 @@ namespace OniMoono.Engine.Assets
                 }
         }
 
-        /// A mounted bundle node's bytes (a resource file a texture reads from), or null for a file
-        /// of the game's data folder or a node not mounted (an empty segment, its Array null).
-        public static ArraySegment<byte> MountedNode(string path)
+        /// A mounted bundle node's bytes (a resource file a texture reads from), or none (IsEmpty)
+        /// for a file of the game's data folder or a node not mounted.
+        public static NodeData MountedNode(string path)
         {
             var key = Canonical(path);
             if (!key.StartsWith("archive:/", StringComparison.Ordinal)) return default;
@@ -166,13 +186,14 @@ namespace OniMoono.Engine.Assets
         public static unsafe void ReadStreamInto(string path, long offset, Span<byte> destination)
         {
             var key = Canonical(path);
-            lock (gate)
+            NodeData node;
+            bool mounted;
+            lock (gate) mounted = bundleNodes.TryGetValue(key, out node);
+            // Outside the lock: a node read block by block decodes them.
+            if (mounted)
             {
-                if (bundleNodes.TryGetValue(key, out var node))
-                {
-                    node.AsSpan(checked((int)offset), destination.Length).CopyTo(destination);
-                    return;
-                }
+                node.CopyTo(offset, destination);
+                return;
             }
             var view = streams.GetOrAdd(key, k => new Lazy<MemoryMappedViewAccessor>(() =>
             {

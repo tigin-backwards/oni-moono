@@ -97,6 +97,17 @@ class VerifySummary(unittest.TestCase):
         self.assertVerdicts(result, 1, 'FAIL fast-load-screen: verified', 'FAIL trim-anim-lists:',
                             'FAIL incident fast-load-screen: the header', 'FAIL incident fast-load-screen: a downscaled')
 
+    def test_bundle_blocks(self):
+        # Bundles read block by block (ONI_BUNDLE_BLOCKS_VERIFY=1): each read compared with the
+        # whole decode; the per-bundle opening lines are no report.
+        summary = ('[engine] bundle blocks: 6674 reads verified (1115.0 MB), {n} mismatches; 6674 reads (1115.0 MB, 860 ms; '
+                   'main thread 5565, 201.1 MB, 301 ms), 7000 blocks decoded (1200.3 MB, 812 ms), cache 6332 hits, 1706 misses')
+        opened = '[engine] bundle blocks: dlc2_bundle read block by block, each read compared with its whole decode'
+        self.assertVerdicts(verify(opened, summary.format(n=0)), 0, 'ok   bundle blocks:')
+        result = verify(opened, summary.format(n=2),
+                        '[engine] bundle blocks: a read of 4096 bytes at 131000 in dlc2_bundle differs from the whole decode at byte 131072 (7 for 9)')
+        self.assertVerdicts(result, 1, 'FAIL bundle blocks:', 'FAIL incident bundle blocks: a read')
+
     def test_the_last_report_of_each_shape(self):
         result = verify('[engine] canvas skips: 100 verified, 1 wrong', '[engine] canvas skips: 200 verified, 0 wrong',
                         '[engine] canvas skips: 0 graphics skipped by masks, 0 wrong')

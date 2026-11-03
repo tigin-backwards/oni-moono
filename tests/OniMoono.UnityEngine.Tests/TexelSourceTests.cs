@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace OniMoono.Tests
         {
             const string key = "archive:/CAB-texelsourcetest/CAB-texelsourcetest.resS";
             var bytes = Enumerable.Range(0, 64).Select(i => (byte)i).ToArray();
-            AssetSystem.Mount(new List<(string, System.ArraySegment<byte>)> { (key, bytes) });
+            AssetSystem.Mount(new List<(string, OniMoono.Assets.Files.NodeData)> { (key, new System.ArraySegment<byte>(bytes)) });
             var source = new TexelSource(null, key, 16, 8, AssetSystem.MountedNode(key));
             AssetSystem.UnmountBundle([key]);
             Assert.Throws<DirectoryNotFoundException>(() => AssetSystem.ReadStream(key, 16, 8));
@@ -36,7 +37,7 @@ namespace OniMoono.Tests
             const string key = "archive:/CAB-texelwindowtest/CAB-texelwindowtest.resS";
             var data = Enumerable.Range(0, 96).Select(i => (byte)i).ToArray();
             var node = new System.ArraySegment<byte>(data, 32, 48);
-            AssetSystem.Mount(new List<(string, System.ArraySegment<byte>)> { (key, node) });
+            AssetSystem.Mount(new List<(string, OniMoono.Assets.Files.NodeData)> { (key, node) });
             try
             {
                 Assert.Equal(data[48..56], AssetSystem.ReadStream(key, 16, 8));
@@ -51,6 +52,41 @@ namespace OniMoono.Tests
             {
                 AssetSystem.UnmountBundle([key]);
             }
+        }
+
+        /// A bundle read block by block (U60's chunked LZ4, as LoadFromFile opens it): texels read
+        /// through a texture's source and streamed reads are the whole decode's bytes, also once
+        /// the bundle is unmounted.
+        [Fact]
+        public void TexelsOfABundleReadByBlocksAreTheWholeDecodes()
+        {
+            var path = Path.Combine(System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
+                ?? Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211"),
+                "OxygenNotIncluded_Data", "StreamingAssets", "hires_base_bundle");
+            var archive = OniMoono.Assets.Files.UnityFsArchive.OpenFile(path);
+            Assert.True(archive.ReadsBlocks);
+            var whole = OniMoono.Assets.Files.UnityFsArchive.Open(path);
+            var nodes = AssetSystem.ReadNodes(archive);
+            var key = nodes.Select(n => n.Key).First(k => k.EndsWith(".resS"));
+            var data = whole.Read(whole.Nodes.First(n => n.Path.EndsWith(".resS")));
+            AssetSystem.Mount(nodes);
+            TexelSource source;
+            try
+            {
+                // Across blocks (128 KiB), within one, and at the node's end.
+                foreach (var (offset, size) in new[] { (100_000L, 1_000_000L), (131_072L * 3 + 5, 1000L), (data.Length - 4096L, 4096L) })
+                    Assert.Equal(data.AsSpan((int)offset, (int)size).ToArray(), AssetSystem.ReadStream(key, offset, size));
+                source = new TexelSource(null, key, 262_000, 300_000, AssetSystem.MountedNode(key));
+            }
+            finally
+            {
+                AssetSystem.UnmountBundle(nodes.Select(n => n.Key));
+            }
+            var expected = data.AsSpan(262_000, 300_000).ToArray();
+            Assert.Equal(expected, source.Read());
+            var memory = source.ReadMemory();
+            Assert.Equal(expected, memory.Span.ToArray());
+            memory.Free();
         }
     }
 }

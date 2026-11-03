@@ -27,8 +27,9 @@ namespace OniMoono.Assets.Files
         public List<ScriptTypeRef> ScriptTypes { get; } = new();
         public List<External> Externals { get; } = new();
 
-        // A bundle node's bytes: a window on its archive's decompressed data (UnityFsArchive.Slice).
-        readonly ArraySegment<byte> bytes;
+        // A bundle node's bytes: a window on its archive's decompressed data, or a range of its
+        // blocks, which a reader copies out (UnityFsArchive.Slice).
+        readonly NodeData bytes;
         readonly MappedFile? mapped;
         long dataOffset;
         bool bigEndianData;
@@ -39,7 +40,7 @@ namespace OniMoono.Assets.Files
             this.mapped = mapped;
         }
 
-        SerializedFile(string name, ArraySegment<byte> bytes)
+        SerializedFile(string name, NodeData bytes)
         {
             Name = name;
             this.bytes = bytes;
@@ -51,7 +52,7 @@ namespace OniMoono.Assets.Files
             var mapped = new MappedFile(path);
             if (mapped.Length >= int.MaxValue) return Parse(Path.GetFileName(path), File.ReadAllBytes(path));
             var f = new SerializedFile(Path.GetFileName(path), mapped);
-            f.ReadMetadata();
+            f.ReadMetadata(checked((int)mapped.Length));
             return f;
         }
 
@@ -59,21 +60,59 @@ namespace OniMoono.Assets.Files
         {
             if (mapped != null) return new DataReader(mapped, offset, length);
             if (offset < 0 || length < 0 || offset + length > bytes.Count) throw new ArgumentOutOfRangeException(nameof(length));
-            return new DataReader(bytes.Array!, bytes.Offset + offset, length);
+            if (bytes.Blocks != null) return new DataReader(bytes.ToArray(offset, length));
+            return new DataReader(bytes.Array.Array!, bytes.Array.Offset + offset, length);
         }
 
         public static SerializedFile Parse(string name, byte[] bytes) => Parse(name, new ArraySegment<byte>(bytes));
 
-        public static SerializedFile Parse(string name, ArraySegment<byte> bytes)
+        public static SerializedFile Parse(string name, NodeData bytes)
         {
             var f = new SerializedFile(name, bytes);
-            f.ReadMetadata();
+            if (bytes.Blocks == null)
+            {
+                f.ReadMetadata(bytes.Count);
+                return f;
+            }
+            // Read block by block, the metadata is read from the bytes before the objects' data
+            // (the header's data offset), not the whole file; metadata running past them (no file
+            // Unity writes) is read again from the whole file, as from an array.
+            int length = MetadataLength(bytes);
+            if (length == bytes.Count) f.ReadMetadata(length);
+            else
+                try
+                {
+                    f.ReadMetadata(length);
+                }
+                catch (EndOfStreamException)
+                {
+                    f = new SerializedFile(name, bytes);
+                    f.ReadMetadata(bytes.Count);
+                }
             return f;
         }
 
-        void ReadMetadata()
+        /// The length of a block-read file's header and metadata (its data offset), or the
+        /// file's length when the header does not say one within it.
+        static int MetadataLength(NodeData bytes)
         {
-            var r = Reader(0, mapped != null ? checked((int)mapped.Length) : bytes.Count);
+            const int Header = 48; // the version 22 header
+            if (bytes.Count < Header) return bytes.Count;
+            var r = new DataReader(bytes.ToArray(0, Header)) { BigEndian = true };
+            r.Skip(8);
+            uint version = r.ReadUInt32();
+            long dataOffset = r.ReadUInt32();
+            if (version >= 22)
+            {
+                r.Skip(4 + 4 + 8);
+                dataOffset = r.ReadInt64();
+            }
+            return dataOffset >= Header && dataOffset < bytes.Count ? (int)dataOffset : bytes.Count;
+        }
+
+        void ReadMetadata(int length)
+        {
+            var r = Reader(0, length);
             r.BigEndian = true;
             r.ReadUInt32(); // metadata size (legacy)
             r.ReadUInt32(); // file size (legacy)
