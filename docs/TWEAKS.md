@@ -137,8 +137,9 @@ the Duplicant's last one repairs that one instead: what changed since (the nav g
 doors and their permissions, liquid and solid cells, tube entrances, suit checkpoints) is found
 through the game's own writers, the cells whose route changed or got worse are dropped with the
 cells reached through them and found again, and cheaper routes spread as in the game's search.
-Any other probe is the game's search. The probes are not delayed; temperature and building
-checks are untouched.
+Any other probe is the game's search, and so is a repair that would redo half of what the last
+probe reached (a door by the Duplicant's spot): a search costs less then. The probes are not
+delayed; temperature and building checks are untouched.
 
 What differs from the original: where two routes to a cell cost the same, the game keeps the one
 its search finds first, the repair the one it had or finds first. A Duplicant can then take the
