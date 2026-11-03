@@ -633,6 +633,95 @@ What the samples show inside the kinds (Linux, shares of the main thread):
 - **Brains** (`BrainScheduler`, the largest kind): fetch and chore searches, already the subject
   of `fast-offset-tables` and the gameplay tweak `brain-rate`; left out of this phase.
 
+## `Game.StepTheSim` on soggy lab 2 with the reporter's mods (2026-11-03)
+
+Issue #48's reporter (Ryzen 5 5600H laptop, GTX 1650) logged `Game.StepTheSim` at about 44 ms a
+frame with Speed Control's fast speed, one 200 ms sim step a frame. The question: is that our
+CPU being faster, or something specific?
+
+### Method
+
+- **Player**: `origin/master` at `30248850` (U59), `scripts/build-windows.sh release`, default
+  tweaks, OpenGL, with PerfProbe from `u60` (`camera.txt busiest`, `walltime.txt`, `awake.txt`).
+- **Game**: the frozen U59 744825 Windows install (`E:\oni-builds\oni-win-744825`).
+- **Save and mods**: `soggy lab 2.sav` (cycle 806) with all 39 of the reporter's mods in their
+  order (`out/slowsave/mods-template`): the 35 gated ones, Fast Track 0.18.6, Rocketry Expanded
+  2.15.0, Automatic Geyser Calculation and Better Info Cards. One of them (3824495381) has no
+  `mod_info.yaml` and does not load, as in the reporter's log.
+- **Run**: one launch, 9800X3D, speed 3 (Speed Control asks for 10 game seconds a second; every
+  frame hit the game's limit of one 200 ms step), busiest world 2 active, 1280x720 on monitor 2,
+  `--no-focus`, High priority, sound off, `--frame-stats` with `ONI_BUCKET_PROFILE=1`. Twelve
+  600-frame windows after the load.
+- **Trace**: `dotnet-trace` (`Microsoft-DotNETCore-SampleProfiler`), 40 s from 130 s after the
+  load. Native code shows as `UNMANAGED_CODE_TIME` under the P/Invoke's managed caller.
+- **Machine**: other agents' Linux players ran (WSL load 5-9; 120-130 GiB committed of 154). In
+  half the windows the main thread was on the CPU only 63-70% of the time, against 80-82% in the
+  others, and SimDLL's time tripled in those windows.
+- **The reporter's numbers** are PerfProbe walltime lines from their log (`Player.txt`). They
+  loaded a later save, `soggy lab 2 after delete planet.sav` (cycle 906), which we do not have.
+  Their build logs no SimDLL split.
+
+### Results
+
+ms a frame:
+
+| | Reporter (5600H) | Ours, quiet windows (6) | Ours, loaded windows (6) |
+|---|---|---|---|
+| Frame (PerfProbe walltime) | 77-85 | 39-45 (fps 22-26) | 49-65 (fps 13-20) |
+| `Game.SimEveryTick` | 51.4-55.6 | 17.9-21.4 | 29.2-38.4 |
+| `Game.StepTheSim` | 43.7-47.1 | 7.0-8.6 | 16.0-21.5 |
+| · in SimDLL | (not logged) | 5.6-7.1 | 14.1-19.6 |
+| · managed | (not logged) | 1.4-1.7 | 1.8-2.0 |
+| `SimEveryTick` without `UnsafeSim200ms` (state machines and the rest) | 7.3-10.1 | 10.3-12.5 | 12.3-16.5 |
+
+Inside `Game.StepTheSim` (trace, taken in loaded windows; 20.7% of the main thread):
+
+| Callee | Share of `StepTheSim` |
+|---|---|
+| `Sim.HandleMessage` (the sim step), native | 85% |
+| `ConduitFlow.Sim200ms` | 3.5% |
+| `EnergySim.EnergySim200ms` (Rocketry Expanded's `RTB_ModuleGenerator` 0.5%) | 3.4% |
+| `CircuitManager.Sim200msLast` (Fast Track's `FastElectricalNetworkCalculator`) | 1.6% |
+| `ElementConsumer.AddMassInternal` | 1.5% |
+| `PlantElementAbsorbers.Sim200ms` | 1.0% |
+| `SolidConduitFlow.Sim200ms` | 0.9% |
+| `ConduitTemperatureManager.Sim200ms` | 0.7% |
+| `StepTheSim`'s own code | 0.7% |
+| GC polls and lock entries (sampling artifacts) | 7.8% |
+
+- The game's handling of the step's results (substance and solid changes, callbacks, falling
+  liquid, dug ore, FX, unstable ground, world damage, mass and temperature bookkeeping) is
+  inlined into `StepTheSim`: all of it is the 0.7% of its own code, about 0.1 ms a frame.
+- Mods inside `StepTheSim`: about 2% of it (0.2-0.4 ms). Fast Track's electrical network is
+  1.6% and Rocketry Expanded's generators 0.5%. The other `_Patch` frames there are our
+  frame-stats timers.
+- The state machine buckets were 10.9-17.6 ms a frame (468-532 kinds). Navigator, the room
+  prober, sublimation, critter temperature and brains led, each 0.7-1.2 ms.
+
+### Verdict
+
+CPU speed alone does not explain it:
+- **Managed work takes about as long on both machines.** Their state machines and the rest of
+  `SimEveryTick` take 7-10 ms against our 10-12. At PassMark's single-thread ratio (4,420 against
+  2,867, 1.54× ([PassMark](https://www.cpubenchmark.net/compare/4274vs6344/AMD-Ryzen-5-5600H-vs-AMD-Ryzen-7-9800X3D)),
+  an estimate), their save does less managed work than ours, or their CPU is faster than the
+  rating says. Their save is a later one with one planet removed, so the work differs.
+- **The native sim step is 5-7× slower there**: about 42 ms (44 less about 2 ms managed) against
+  our 5.6-7.1 ms in quiet windows. Against our loaded windows (14-20 ms) the gap is 2-3×, which
+  also beats 1.54×.
+- **SimDLL is sensitive to the machine.** Its time tripled in our loaded windows while managed
+  code grew about 1.4×. SimDLL imports `CreateThread` and condition-variable waits, so it likely
+  runs part of the step on its own threads, and the main thread waits for them. A 6-core laptop
+  with less cache (16 MB L3 against 96 MB) would suffer the same way, more so with the game's
+  other threads busy. This is a likely explanation, not a measured one.
+- Nothing in the managed part of `StepTheSim`, ours or the mods', is large enough to matter
+  (about 1.5-2 ms of 7-21).
+
+To settle it, the reporter could send `soggy lab 2 after delete planet.sav` and a log from a
+current build. Its `sim` line splits `StepTheSim` into SimDLL and managed time on their machine.
+Our run's data: `out/soggy/runs/soggy1.*` in worktree `agent-a6e1bc274ec67af1a` (log,
+nettrace, speedscope, `stepthesim.txt`).
+
 ## Next
 
 1. Put stopwatches on candidates 1-3: `ApplyOverrides` calls by cause, the queued loop in
