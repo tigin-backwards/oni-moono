@@ -359,6 +359,48 @@ These are not per-frame, so they are outside the ranking above:
 | 4. UI canvas batching | **Allocations landed** (in 6's numbers); **time rejected** | `BuildMesh` 5.7 MiB/s, its colours (2.8) kept when only moved | – | – | – |
 | 5. Upload staging | **Rejected** | `TexelUpload.Take` 0.30-0.41 ms a frame: rent 0.02-0.04, small copies 0.17-0.23, task starts 0.07-0.09 | – | – | – |
 | 7. `CollectMesh`/`CollectSprite` | **Rejected** | no sprites drawn; sheets come from blits and blocks | – | – | – |
+| NavGrid links in compact stores (`compact-nav-links`, navgrid-links-store.md) | **Landed**, exact, on by default | managed heap 9,200, 9,240 → 8,628, 8,592 MiB; load 43.3, 39.1 → 35.3, 32.8 s; fps 40.8, 47.4 → 46.4, 38.7 (noise) | links 256.4 → 26.2 MB (Linux) | managed heap 7,736, 7,696 → 5,602, 5,594 MiB; working set 12,094, 12,030 → 9,835, 9,772 MiB; fps 70.2, 41.8 → 54.5, 44.7 (noise) | – |
+
+NavGrid links in compact stores (`compact-nav-links`):
+- **Change**: `NavGrid.Links` (maxLinksPerCell slots for every cell of the map, under 6 % used)
+  becomes a one-element handle naming a store of compressed rows; the load-time rewrite sends
+  every `Link[]` access of the game and mods through its helpers, the three hot walks through a
+  cursor (navgrid-links-store.md §6). The grids' links: soggy lab 2 2,387.5 → 118.2 MB, c100
+  670.1 → 55.3 MB, DeCrew 256.4 → 26.2 MB (the store's own count after the load).
+- **Exactness**: ONI_TWEAK_VERIFY keeps the game's array beside each store, written by the same
+  calls, and compares every cell after the load and every 30 s of play: 0 cells differed on
+  c100 (14 comparisons, 3.84 M links), DeCrew (27, 1.80 M), soggy lab 2 without mods (13,
+  5.35 M), soggy lab 2 with its 35 U60-loading mods (U60, and U59 on master) and with
+  path-probe-repair on (c100, DeCrew; its repairs verified against floods, 0 differed). An
+  independent check, the grids dumped after the load's first flush in two runs of the same
+  save, one with the store and one with the game's arrays (`ONI_NAVLINKS_DUMP`): 0 cells
+  differ, per grid, per nav type and in order, on c100 (3.84 M links), DeCrew (1.81 M), soggy
+  lab 2 without mods (5.34 M) and with its 35 mods on U60 (5.34 M) and on U59 (5.33 M). The
+  unit tests replay NavProbe's dumps of the three saves through CreateLinks' writes from
+  several threads and race readers against writers.
+- **Mods**: of the 1,340 Workshop DLLs naming NavGrid, MoreTek, Direct Duplicant Control and
+  Travel Tubes Flydo are rewritten, none has an access the store cannot follow. The four
+  reviewed transpilers apply to the rewritten methods (`--check-types`, U59); on U60 Hazard
+  Pathing throws with the tweak on and off alike, its pattern being U59's IL. e2e in both
+  players on U60: early-base, Transit Tubes Expanded, Flydo Transit Tubes and ONI Lag Fix
+  pass; Transit Tube Overlay fails at its tint check in the original, and in ours with the
+  tweak on and off alike. On U59 all five pass. issue-48-fast-track did not run: the mod gate
+  skips the Fast Track build it needs (no Workshop upload).
+- **Runs** (Windows, U60 761211, Vulkan defaults, speed 3, busiest world, `--no-focus`, High
+  priority, sound off, monitor 2; base is the same build with `--game-tweak -compact-nav-links`,
+  which leaves the game's IL as it is; base, new, base, new, one launch each; 150-270 s after the
+  busiest world; other agents' Linux players loaded the machine, load average 8-21): the managed
+  heap falls by the store's saving, 570-650 MiB on c100 and 2,100 MiB on soggy lab 2, the
+  working set by 600-700 and 2,250 MiB. c100's load was 7 s shorter in both pairs (43.3,
+  39.1 → 35.3, 32.8 s: the 670 MB zeroed arrays are gone); soggy's within noise (33.8, 40.0 →
+  32.8, 41.6 s). Frame rate and main-thread time moved within the runs' spread (c100 24.3, 21.4
+  → 21.9, 25.9 ms; soggy 14.3, 23.9 → 19.4, 22.7 ms), as did process CPU (c100 3.08, 3.10 →
+  3.14, 2.98 cores; soggy 3.19, 3.16 → 3.18, 3.20). Frame stats' `path probes` stayed 0.10-0.11
+  ms on c100 and 0.02-0.03 on soggy; `nav grids` (the grids' updates, through the staged
+  writes) rose 0.16 → 0.18-0.19 ms on c100 and 0.06-0.08 → 0.08-0.09 on soggy. The probe
+  thread itself is not timed by frame stats; a link-walk micro-benchmark over the real links
+  (Linux, loaded machine) put the cursor walk level with the game's array on the Duplicant grids
+  and about 1.4× slower on DeCrew's flyer grid, where most cells hold links.
 
 Candidate 1 (`fast-symbol-overrides`, kept applications):
 - **Cause**: Duplicants re-apply their overrides on every dirty mark
