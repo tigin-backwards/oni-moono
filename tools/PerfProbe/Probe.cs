@@ -1746,6 +1746,8 @@ namespace PerfProbe
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "actions.txt"))) StartCoroutine(Video.Actions(this, Path));
             // `rebuild.txt` (Rebuilds), `screens.txt` (Screens), `starmap.txt` (Starmap), `cameras.txt` (Cameras).
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "cameras.txt"))) StartCoroutine(Cameras.Run(System.IO.Path.Combine(Path, "cameras.txt")));
+            // `ab.txt`: a change against itself switched off, alternating in one run (Toggle).
+            if (System.IO.File.Exists(System.IO.Path.Combine(Path, "ab.txt"))) StartCoroutine(Toggle.Run(System.IO.Path.Combine(Path, "ab.txt")));
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "rebuild.txt"))) StartCoroutine(Rebuilds.Run(System.IO.Path.Combine(Path, "rebuild.txt")));
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "screens.txt"))) StartCoroutine(Screens.Run(System.IO.Path.Combine(Path, "screens.txt")));
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "starmap.txt"))) StartCoroutine(Starmap.Run(System.IO.Path.Combine(Path, "starmap.txt")));
@@ -1780,6 +1782,7 @@ namespace PerfProbe
             float windowStart = Time.realtimeSinceStartup;
             int frames = 0;
             long contentions = RuntimeCounters.LockContentions(), paused = RuntimeCounters.GcPauseMs();
+            long allocatedBytes = RuntimeCounters.Allocated(), gen0 = System.GC.CollectionCount(0);
             while (true)
             {
                 yield return null;
@@ -1817,8 +1820,9 @@ namespace PerfProbe
                 if (++frames < 600) continue;
                 float now = Time.realtimeSinceStartup;
                 long c = RuntimeCounters.LockContentions(), g = RuntimeCounters.GcPauseMs();
-                string runtime = c < 0 ? "" : $" contentions {c - contentions} gc-pause {g - paused} ms";
-                contentions = c; paused = g;
+                long a = RuntimeCounters.Allocated(), g0 = System.GC.CollectionCount(0);
+                string runtime = c < 0 ? "" : $" contentions {c - contentions} gc-pause {g - paused} ms allocated {(a - allocatedBytes) / 1048576.0:F0} MiB gen0 {g0 - gen0}";
+                contentions = c; paused = g; allocatedBytes = a; gen0 = g0;
                 Debug.Log($"PERF f{Time.frameCount} fps {frames / (now - windowStart):F2} cycle {GameClock.Instance.GetCycle()} time {GameClock.Instance.GetTime():F0} paused {SpeedControlScreen.Instance.IsPaused}{runtime}");
                 if (awake) Debug.Log($"PERF pointer: mousePosition {Input.mousePosition} present {Input.mousePresent} focused {Application.isFocused}{OsCursor()}");
                 windowStart = now;
