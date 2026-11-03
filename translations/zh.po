@@ -314,6 +314,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONVEYOR_PATHS.DETAIL"
 msgid "The rails' network rebuild finds its routes from an index instead of searching every kept route again."
 msgstr "轨道网络重建从索引中查找路线，而不是把保留的每条路线都重新搜索一遍。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.TITLE"
+msgid "Compact navigation links"
+msgstr "紧凑的寻路连接"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.EFFECT"
+msgid "The map of where Duplicants and critters can move takes a fraction of the memory."
+msgstr "记录复制人和小动物可移动路线的地图只占用一小部分内存。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.DETAIL"
+msgid "Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; the pathfinder reads the same moves in the same order."
+msgstr "每个寻路网格把一个格子的移动紧凑地存放在一起，而不是为地图上的每个格子都留出一排固定的位置；寻路读取到的移动及其顺序完全相同。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.CONVEYOR"
 msgid "No hitch on rail edits (was 0.05–0.5 s)"
 msgstr "修改轨道不再卡顿（原本 0.05–0.5 秒）"

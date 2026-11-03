@@ -50,7 +50,7 @@ namespace OniMoono.Host.GameTweaks
     {
         public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", UpdateCheckRow = "update-check";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc",
-            FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision";
+            FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -119,6 +119,9 @@ namespace OniMoono.Host.GameTweaks
                 "The spatial index's cleanup visits only the entries that were removed."),
             new("fast-conveyor-paths", Simulation, "Faster conveyor rebuilds", "Building or removing conveyor rails no longer stalls the game.",
                 "The rails' network rebuild finds its routes from an index instead of searching every kept route again.", ConveyorGain),
+            new(CompactNavLinks, Simulation, "Compact navigation links", "The map of where Duplicants and critters can move takes a fraction of the memory.",
+                "Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; "
+                + "the pathfinder reads the same moves in the same order."),
 
             new("fast-anim-events", Graphics, "Faster animation events", "Animations check their sound and effect cues with less work.",
                 "Keeps a compact copy of what each playing animation's per-frame event check reads."),

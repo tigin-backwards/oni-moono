@@ -85,6 +85,16 @@ else
 fi
 "$root/scripts/build-engine.sh" >/dev/null
 "$root/scripts/apicheck.sh" > "$root/out/apicheck-summary.txt" || true; head -2 "$root/out/apicheck-summary.txt"
+# compact-nav-links' check applies the four reviewed transpilers of the methods that touch nav
+# links when their mods are at hand (the Workshop copies, ONI_WS, and Fast Track's local build).
+if [ -z "${ONI_NAVLINKS_MODS:-}" ]; then
+    ws="${ONI_WS:-$HOME/projects/oni-brutal/out/ws}"
+    for f in "$ws/3818353735/HazardPathing.dll" "$ws/3510927460/TransitTubeOverlay.dll" "$ws/3430960564/TravelTubesExpanded.dll" \
+             "$HOME/projects/oni-brutal/out/slowsave/mods-template/Local/FastTrack/FastTrack.dll"; do
+        if [ -f "$f" ]; then ONI_NAVLINKS_MODS="${ONI_NAVLINKS_MODS:+$ONI_NAVLINKS_MODS:}$f"; fi
+    done
+    export ONI_NAVLINKS_MODS
+fi
 "$root/out/bin/OniMoono.Host/debug/OniMoono" --game "$game" --check-types --log "$root/out/check-types.log" | grep -vE '^(ok   [A-Za-z0-9.-]+ +[0-9]+ types|from )'
 # Again on the release build, which releases ship: the host's own code is compiled optimized
 # there, as the game's is, and not in the debug build.

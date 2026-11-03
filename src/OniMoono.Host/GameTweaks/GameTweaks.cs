@@ -33,6 +33,9 @@ namespace OniMoono.Host.GameTweaks
             if (On(NoSaveGc.Name)) Report(NoSaveGc.Name, () => NoSaveGc.Install(harmony));
             if (On(FastSerialization.Name)) Report(FastSerialization.Name, () => FastSerialization.Install(harmony));
             if (On(FastParticleCollision.Name)) Report(FastParticleCollision.Name, () => FastParticleCollision.Install(harmony));
+            // Enabled at start-up (CompactNavLinks.Enable); this adds the load's summary.
+            if (On(CompactNavLinks.Name)) Report(CompactNavLinks.Name, () => CompactNavLinks.Install(harmony));
+            else if (Environment.GetEnvironmentVariable("ONI_NAVLINKS_DUMP") is { Length: > 0 }) CompactNavLinks.InstallDump(harmony);
             // The tweaks built against the game's own types (src/OniMoono.GameTweaks).
             var typed = GameTweakNames.Typed.Where(On).ToArray();
             if (typed.Length > 0)
