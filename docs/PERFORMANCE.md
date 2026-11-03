@@ -37,7 +37,13 @@ start with `--frame-stats`. Player.log then gets, every 60 frames, the frame's p
 stats`), the device's counts (`frame counts`: the GL thread's time, draws, uploads, the
 presenter's time per picture) and any frame over 250 ms (`slow frame`). Every 600 frames come
 the scripts' update times (`script time`), memory (`memory:`, `video memory:`), and these lines,
-all in ms a frame over the window unless they say otherwise:
+all in ms a frame over the window unless they say otherwise. `video memory:` is also logged at
+the main menu, after each scene load and after `Resources.UnloadUnusedAssets`: the driver's free
+memory (NVIDIA's evictions since the device started, and those the whole system saw), the
+device memory asked for by kind (textures by format, render target colour, depth and
+multisampled surfaces, mesh and stream buffers) with each kind's peak since the last line, the CPU memory uploads go through (pooled
+texel copies, texels read ahead of background uploads, all texel memory) and the engine's live
+textures ([research/vram-startup.md](research/vram-startup.md)).
 
 - `game speed`: the speed setting, game seconds a real second (what the game asked for, and what
   it got), the sim's 200 ms steps and its calls a frame, how many frames hit the game's limit of
