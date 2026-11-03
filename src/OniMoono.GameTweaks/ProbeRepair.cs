@@ -588,15 +588,18 @@ namespace OniMoono.GameTweaks
                 grid.BeginUpdate(serial, order.originCell, null);
                 f.StateFlags ??= new byte[cells.Length];
                 f.Valid = false;
-                engine.Flood(cells, probersOf(grid), f.StateFlags, serial, order.originCell, (byte)order.startingNavType, (byte)order.startingFlags, rules, result.reachableCells);
+                // The reachable cells come sorted from the engine (as Reachables wants them), else in
+                // the order found (as the game leaves them when it doesn't compute reachables).
+                var found = order.computeReachables ? null : result.reachableCells;
+                engine.Flood(cells, probersOf(grid), f.StateFlags, serial, order.originCell, (byte)order.startingNavType, (byte)order.startingFlags, rules, found);
                 grid.EndUpdate();
                 f.Root = order.originCell; f.Nav = (byte)order.startingNavType; f.Flags = (byte)order.startingFlags;
                 f.Prefab = prefabId(a); f.Proxy = proxyId(a); f.Key = defaultKey(a); f.Bits = bits;
                 f.Grid = grid; f.Serial = serial; f.Seq = seq;
                 f.Pending = null; f.PendingFor = null; f.Broken = false;
                 f.Reach.Clear();
-                f.Reach.AddRange(result.reachableCells);
-                f.Reach.Sort();
+                engine.SortedFound(f.Reach);
+                if (found == null) result.reachableCells.AddRange(f.Reach);
                 f.Valid = true;
             }
 
@@ -675,11 +678,11 @@ namespace OniMoono.GameTweaks
                     global::Debug.Log($"{Name}: a flood answers otherwise than the game's in {wrong} cells (root {f.Root}, first {string.Join(", ", first)})");
             }
 
-            /// WorkOrder.Execute's tail: the reachable cells against those the navigator holds.
+            /// WorkOrder.Execute's tail: the reachable cells (sorted: a flood's from the engine, a
+            /// repair's kept so) against those the navigator holds.
             static void Reachables(Navigator navigator, ref WorkResult result)
             {
                 var reach = result.reachableCells;
-                reach.Sort();
                 var occupied = navigator.occupiedCells;
                 int i = 0, j = 0;
                 while (i < occupied.Count && j < reach.Count)

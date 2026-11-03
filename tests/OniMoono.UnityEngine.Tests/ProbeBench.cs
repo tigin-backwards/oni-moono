@@ -23,15 +23,26 @@ namespace OniMoono.Tests
             int reps = int.TryParse(Environment.GetEnvironmentVariable("ONI_PROBE_BENCH_REPS"), out int r) ? r : 5;
             bool digest = Environment.GetEnvironmentVariable("ONI_PROBE_BENCH_DIGEST") != "0";
             var path = Path.Combine(AppContext.BaseDirectory, "TestData", file);
-            TraceReplay.BenchStats best = default;
-            for (int i = 0; i < reps; i++)
+            // ONI_PROBE_BENCH_AB=1: replays alternate between the reference engine (as the tweak
+            // first landed) and ProbeEngine, each with its digest.
+            bool ab = Environment.GetEnvironmentVariable("ONI_PROBE_BENCH_AB") == "1";
+            var best = new TraceReplay.BenchStats[2];
+            var digests = new ulong[2];
+            for (int i = 0; i < reps * (ab ? 2 : 1); i++)
             {
+                int k = ab ? 1 - (i & 1) : 1;
                 var t = TraceReplay.Load(path);
-                var s = t.Bench(digest && i == 0);
-                output.WriteLine($"{file} #{i}: {s}");
-                if (i == 0 || s.Total < best.Total) { var d = best.Digest; best = s; if (i > 0) best.Digest = d; }
+                var s = t.Bench(digest && i < (ab ? 2 : 1), reference: k == 0);
+                output.WriteLine($"{file} {(k == 0 ? "ref" : "new")} #{i}: {s}");
+                if (s.Digest != 0) digests[k] = s.Digest;
+                if (best[k].Probes == 0 || s.Total < best[k].Total) best[k] = s;
             }
-            output.WriteLine($"{file} best: {best}");
+            for (int k = ab ? 0 : 1; k < 2; k++)
+            {
+                best[k].Digest = digests[k];
+                output.WriteLine($"{file} {(k == 0 ? "ref" : "new")} best: {best[k]}");
+            }
+            if (ab && digest) Assert.Equal(digests[0], digests[1]);
         }
     }
 
@@ -40,7 +51,7 @@ namespace OniMoono.Tests
         public struct BenchStats
         {
             public int Navs, Probes, Floods, Repairs, Large, Unchanged;
-            public long MergeTicks, RepairTicks, FloodTicks, ApplyTicks, DeltaStates, MaxApplyTicks;
+            public long SortTicks, MergeTicks, RepairTicks, FloodTicks, ApplyTicks, DeltaStates, MaxApplyTicks;
             public ulong Digest;
             public long Total => MergeTicks + RepairTicks + FloodTicks;
 
@@ -50,7 +61,7 @@ namespace OniMoono.Tests
             public override string ToString() =>
                 $"{Navs} navs, {Probes} probes: {Floods} floods {Ms(FloodTicks):F1} ms ({Us(FloodTicks, Floods):F0} us), "
                 + $"{Repairs} repairs {Ms(RepairTicks):F1} ms ({Us(RepairTicks, Repairs):F0} us; {Unchanged} unchanged, {Large} too large), "
-                + $"merge {Ms(MergeTicks):F2} ms, total {Ms(Total):F1} ms; main-thread apply {Ms(ApplyTicks):F2} ms "
+                + $"sort {Ms(SortTicks):F1} ms, merge {Ms(MergeTicks):F2} ms, total {Ms(Total):F1} ms; main-thread apply {Ms(ApplyTicks):F2} ms "
                 + $"({Us(ApplyTicks, Repairs):F1} us, max {Us(MaxApplyTicks, 1):F0} us, {DeltaStates / Math.Max(1, Repairs)} states a repair); digest {Digest:x16}";
         }
 
@@ -61,11 +72,12 @@ namespace OniMoono.Tests
             public long Seq;
         }
 
-        public BenchStats Bench(bool digest)
+        public BenchStats Bench(bool digest, bool reference = false)
         {
             var stats = new BenchStats();
             var graph = new ProbeGraph(w, cc, ml, navTypes, voids, rows);
             var engine = new ProbeEngine(graph);
+            var refEngine = reference ? new ProbeReferenceEngine(graph) : null;
             var delta = new ProbeDelta();
             var navs = new Dictionary<int, BenchNav>();
             var history = new List<ProbeBatch>();
@@ -74,6 +86,7 @@ namespace OniMoono.Tests
             int states = cc * graph.NavCount;
             ushort serial = 0;
             ulong dig = 1469598103934665603UL;
+            var found = new List<int>();
             foreach (var (frame, evs) in frames)
             {
                 var batch = Apply(graph, evs);
@@ -106,6 +119,7 @@ namespace OniMoono.Tests
                     {
                         long t0 = Stopwatch.GetTimestamp();
                         if (cs.IsEmpty) { delta.Clear(); stats.Unchanged++; }
+                        else if (reference) refEngine.Repair(n.R.Cells, n.R.Probers, n.R.Flags, n.R.Serial, cs, rules, delta);
                         else engine.Repair(n.R.Cells, n.R.Probers, n.R.Flags, n.R.Serial, cs, rules, delta);
                         var reach = n.R.Reach;
                         var into = new List<int>(reach.Count + delta.Newly.Count);
@@ -130,8 +144,14 @@ namespace OniMoono.Tests
                         n.R.Serial = serial;
                         n.R.Reach.Clear();
                         long t1 = Stopwatch.GetTimestamp();
-                        engine.Flood(n.R.Cells, n.R.Probers, n.R.Flags, serial, p.Origin, p.NavType, p.Flags, rules, n.R.Reach);
-                        n.R.Reach.Sort();
+                        found.Clear();
+                        if (reference) refEngine.Flood(n.R.Cells, n.R.Probers, n.R.Flags, serial, p.Origin, p.NavType, p.Flags, rules, found);
+                        else engine.Flood(n.R.Cells, n.R.Probers, n.R.Flags, serial, p.Origin, p.NavType, p.Flags, rules, found);
+                        // The worker's reachable cells, sorted (the reference: the found list sorted).
+                        long s0 = Stopwatch.GetTimestamp();
+                        if (reference) { n.R.Reach.AddRange(found); n.R.Reach.Sort(); }
+                        else engine.SortedFound(n.R.Reach);
+                        stats.SortTicks += Stopwatch.GetTimestamp() - s0;
                         stats.FloodTicks += Stopwatch.GetTimestamp() - t1;
                         n.Key = p;
                         stats.Floods++;

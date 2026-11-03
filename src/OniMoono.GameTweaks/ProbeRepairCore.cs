@@ -44,7 +44,7 @@ namespace OniMoono.GameTweaks
     {
         bool IsSubmerged(int cell);
         /// The penalty for taking `link` with these path flags (the game asks it when the link's end
-        /// is submerged or a swim).
+        /// is submerged or a swim). Never negative (the game's is a multiple of the link's cost).
         int Penalty(byte flags, in PLink link);
         /// Whether the link from (fromCell, fromNav) to (pathCell, pathNav) may be taken with these
         /// flags, and the flags after it.
@@ -257,6 +257,7 @@ namespace OniMoono.GameTweaks
             mark = new int[states];
             setAt = new int[states];
             cellMark = new int[graph.CellCount];
+            foundBits = new ulong[(graph.CellCount + 63) >> 6];
         }
 
         public ProbeGraph Graph => g;
@@ -275,18 +276,21 @@ namespace OniMoono.GameTweaks
             public Entry[] A = new Entry[1024];
             public int N;
 
+            // The game's sifts swap the moving entry down or up; these move the others into its
+            // hole and make the same comparisons (`a - b > 0`, as the game's, overflow and all).
             public void Push(in Entry e)
             {
                 if (N == A.Length) Array.Resize(ref A, N * 2);
                 var a = A;
-                int pos = N++;
-                a[pos] = e;
+                int pos = N++, key = e.Key;
                 while (pos > 0)
                 {
                     int parent = (pos - 1) / 2;
-                    if (a[parent].Key - a[pos].Key > 0) { (a[parent], a[pos]) = (a[pos], a[parent]); pos = parent; continue; }
-                    break;
+                    if (a[parent].Key - key <= 0) break;
+                    a[pos] = a[parent];
+                    pos = parent;
                 }
+                a[pos] = e;
             }
 
             public Entry Pop()
@@ -294,17 +298,18 @@ namespace OniMoono.GameTweaks
                 var a = A;
                 var result = a[0];
                 if (N <= 1) { N = 0; return result; }
-                a[0] = a[--N];
-                int count = N, pos = 0;
+                var x = a[--N];
+                int count = N, pos = 0, key = x.Key;
                 while (true)
                 {
-                    int m = pos, l = 2 * pos + 1, r = l + 1;
-                    if (l < count && a[m].Key - a[l].Key > 0) m = l;
-                    if (r < count && a[m].Key - a[r].Key > 0) m = r;
+                    int m = pos, mk = key, l = 2 * pos + 1, r = l + 1;
+                    if (l < count && mk - a[l].Key > 0) { m = l; mk = a[l].Key; }
+                    if (r < count && mk - a[r].Key > 0) m = r;
                     if (m == pos) break;
-                    (a[m], a[pos]) = (a[pos], a[m]);
+                    a[pos] = a[m];
                     pos = m;
                 }
+                a[pos] = x;
                 return result;
             }
         }
@@ -337,7 +342,7 @@ namespace OniMoono.GameTweaks
         }
 
         PLink[] scratchLinks = new PLink[64];
-        PCell[] scratchCells = new PCell[64];
+        int[] scratchWas = new int[64];
         bool[] scratchSub = new bool[64];
         int[] scratchCost = new int[64];
 
@@ -348,15 +353,14 @@ namespace OniMoono.GameTweaks
         public int Flood(PCell[] cells, PProber[] probers, byte[] flags, ushort serial, int root, byte rootNav, byte rootFlags, IProbeRules rules, List<int> found)
         {
             int set = 0;
+            if (foundDirty) Array.Clear(foundBits, 0, foundBits.Length);
+            foundDirty = true;
             var rows = g.Rows;
             int cellCount = g.CellCount;
             // AddPotential(root, InvalidCell, NumNavTypes, 0, 0): the root's cell as GetCell gave it.
             int rootState = root * nc + navSlot[rootNav];
-            var rootData = cells[rootState].QueryId == serial ? cells[rootState] : new PCell { Cost = -1, Parent = -1 };
-            rootData.Cost = 0;
-            rootData.Parent = -1;
-            rootData.NavTypes = (byte)(rootNav | (ProbeGraph.NumNavTypes << 4));
-            rootData.TransitionId = 0;
+            // (Set writes every field of a state: what the game's copy of it held is never read.)
+            var rootData = new PCell { Cost = 0, Parent = -1, NavTypes = (byte)(rootNav | (ProbeGraph.NumNavTypes << 4)), TransitionId = 0 };
             Enqueue(0, root, rootNav, rootFlags);
             Set(cells, probers, flags, serial, root, rootNav, ref rootData, rootFlags, found);
             set++;
@@ -385,12 +389,14 @@ namespace OniMoono.GameTweaks
                     ref var c = ref cells[l.Link * nc + navSlot[l.End]];
                     int ccost = c.QueryId == serial ? c.Cost : -1;
                     int num5 = cost + l.Cost;
+                    // No penalty is negative: a link that costs no less before it can't after.
+                    if (ccost != -1 && num5 >= ccost) continue;
                     bool sub = rules.IsSubmerged(l.Link);
                     int penalty = sub || l.End == ProbeGraph.Swim ? rules.Penalty(e.Flags, l) : 0;
                     num5 += penalty;
                     if (ccost == -1 || num5 < ccost)
                     {
-                        scratchCells[m] = c.QueryId == serial ? c : new PCell { Cost = -1, Parent = -1 };
+                        scratchWas[m] = ccost;
                         scratchLinks[m] = l;
                         scratchSub[m] = sub;
                         scratchCost[m] = num5;
@@ -400,17 +406,14 @@ namespace OniMoono.GameTweaks
                 for (int k = 0; k < m; k++)
                 {
                     var l = scratchLinks[k];
-                    var data = scratchCells[k];
+                    int was = scratchWas[k];
                     int num6 = scratchCost[k];
-                    if (data.Cost == -1 || num6 < data.Cost)
+                    if (was == -1 || num6 < was)
                     {
                         byte pf = e.Flags;
                         if (rules.Traverse(ref pf, l.Link, l.End, pcell, pnav, num6, l.Trans, scratchSub[k]))
                         {
-                            data.Cost = num6;
-                            data.Parent = pcell;
-                            data.NavTypes = (byte)(l.End | (pnav << 4));
-                            data.TransitionId = l.Trans;
+                            var data = new PCell { Cost = num6, Parent = pcell, NavTypes = (byte)(l.End | (pnav << 4)), TransitionId = l.Trans };
                             Enqueue(num6, l.Link, l.End, pf);
                             Set(cells, probers, flags, serial, l.Link, l.End, ref data, pf, found);
                             set++;
@@ -421,11 +424,39 @@ namespace OniMoono.GameTweaks
             return set;
         }
 
+        readonly ulong[] foundBits;
+        bool foundDirty;
+        // The index of a 64-bit word's lowest set bit (netstandard2.1 has no BitOperations).
+        static readonly byte[] DeBruijn =
+        {
+            0, 1, 48, 2, 57, 49, 28, 3, 61, 58, 50, 42, 38, 29, 17, 4, 62, 55, 59, 36, 53, 51, 43, 22, 45, 39, 33, 30, 24, 18, 12, 5,
+            63, 47, 56, 27, 60, 41, 37, 16, 54, 35, 52, 21, 44, 32, 23, 11, 46, 26, 40, 15, 34, 20, 31, 10, 25, 14, 19, 9, 13, 8, 7, 6,
+        };
+
+        /// The cells the last Flood found, ascending (the found list sorted).
+        public void SortedFound(List<int> into)
+        {
+            var bits = foundBits;
+            for (int w = 0; w < bits.Length; w++)
+            {
+                ulong b = bits[w];
+                if (b == 0) continue;
+                bits[w] = 0;
+                int baseCell = w << 6;
+                do
+                {
+                    into.Add(baseCell + DeBruijn[((b & (ulong)-(long)b) * 0x03F79D71B4CB0A89UL) >> 58]);
+                    b &= b - 1;
+                } while (b != 0);
+            }
+            foundDirty = false;
+        }
+
         void Grow(int n)
         {
             int size = Math.Max(n, scratchLinks.Length * 2);
             Array.Resize(ref scratchLinks, size);
-            Array.Resize(ref scratchCells, size);
+            Array.Resize(ref scratchWas, size);
             Array.Resize(ref scratchSub, size);
             Array.Resize(ref scratchCost, size);
         }
@@ -440,7 +471,11 @@ namespace OniMoono.GameTweaks
             if (nav != ProbeGraph.Tube)
             {
                 ref var p = ref probers[cell];
-                if (p.QueryId != serial) found?.Add(cell);
+                if (p.QueryId != serial)
+                {
+                    found?.Add(cell);
+                    foundBits[cell >> 6] |= 1UL << cell;
+                }
                 if (p.QueryId != serial || data.Cost < p.Cost)
                 {
                     p.QueryId = serial;
