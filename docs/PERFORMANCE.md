@@ -397,5 +397,7 @@ DLC):
 The original shows a black window for 4.5–5 s, then Klei's logo, still, until its menu.
 `--splash moo` (ARCHITECTURE §3.5) changes nothing in these times.
 
-`ONI_STARTUP_STATS=1` logs the start-up phases with the time since the process started, and for
-each slow frame its texel reads, uploads, program builds, GL-thread time and window-message pumps.
+`ONI_STARTUP_STATS=1` logs the start-up phases with the time since the process started and the
+JIT's work so far (compile time summed over all threads, compiles, and the logging thread's
+compile time; on the main thread that is the time start-up waited for the JIT), and for each
+slow frame its texel reads, uploads, program builds, GL-thread time and window-message pumps.
