@@ -24,7 +24,7 @@ load at all, in both players, comes first from [Load sweeps](#load-sweeps).
   broken spec, or a mod broken upstream, never a verdict on us. Our runs of that spec then skip.
   Otherwise our runs are compared with the original's evidence (see [Verdicts](#verdicts)).
   `--player ours` alone compares with the references `--bless` stored in `out/e2e-refs/SPEC/`.
-  Ours runs with the users' default game tweaks (`--game-tweak exact`); `E2E_GAME_TWEAKS` gives
+  Ours runs with `--game-tweak exact` (the users' default game tweaks but path-probe-repair); `E2E_GAME_TWEAKS` gives
   others, space-separated `--game-tweak` values: `E2E_GAME_TWEAKS=none`, `=background-save`.
 - **The lock directory.** Runners in every worktree on the machine meet in one directory,
   `$E2E_LOCK_DIR` or by default `~/.cache/oni-brutal-e2e/`: lane locks, the players' budget, the

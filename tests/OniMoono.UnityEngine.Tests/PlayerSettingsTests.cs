@@ -29,6 +29,22 @@ namespace OniMoono.Tests
             Assert.True(o.HideLogPaths);
         }
 
+        /// A tweak that changes behaviour but is on by default (path-probe-repair): on without a
+        /// choice, still left out of `exact`, and a choice of on is not recorded.
+        [Fact]
+        public void AChangingTweakCanBeOnByDefaultAndStayOutOfExact()
+        {
+            string[] offByDefault = ["off-d"];
+            var o = EffectiveOptions.Resolve(All, Changing, [], null, false, new PlayerSettings(), offByDefault: offByDefault);
+            Assert.Equal(["fast-a", "fast-b", "slow-c"], o.EnabledTweaks);
+            o = EffectiveOptions.Resolve(All, Changing, ["exact"], null, false, new PlayerSettings(), offByDefault: offByDefault);
+            Assert.Equal(["fast-a", "fast-b"], o.EnabledTweaks);
+            var saved = EffectiveOptions.Apply(new PlayerSettings(), offByDefault, new Dictionary<string, bool> { ["slow-c"] = true, ["off-d"] = false }, null, null);
+            Assert.Empty(saved.GameTweaks);
+            saved = EffectiveOptions.Apply(new PlayerSettings(), offByDefault, new Dictionary<string, bool> { ["slow-c"] = false }, null, null);
+            Assert.Equal(new Dictionary<string, bool> { ["slow-c"] = false }, saved.GameTweaks);
+        }
+
         [Fact]
         public void LogPathsComeFromTheFileThenTheCommandLine()
         {

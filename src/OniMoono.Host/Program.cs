@@ -45,7 +45,8 @@ namespace OniMoono.Host
             var migrated = PlayerSettings.MigrateIn(EngineConfig.PersistentDataPath, out var migrateProblem);
             var settings = PlayerSettings.Read(settingsPath, out var settingsProblem);
             var effective = EffectiveOptions.Resolve(GameTweaks.GameTweakNames.All, GameTweaks.GameTweakNames.ChangingBehaviour,
-                options.GameTweaks, options.Splash, options.FrameStats, settings, options.LogPaths, options.Gpu, options.Dxgi);
+                options.GameTweaks, options.Splash, options.FrameStats, settings, options.LogPaths, options.Gpu, options.Dxgi,
+                GameTweaks.GameTweakNames.OffByDefault);
             EngineLog.Open(options.LogPath ?? EngineConfig.ConsoleLogPath, keepPrevious: options.LogPath == null,
                 effective.HideLogPaths ? LogScrubber.ForThisMachine() : null);
             // Which build this is (the commit the SDK stamps into the informational version) and

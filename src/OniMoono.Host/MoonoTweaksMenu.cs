@@ -31,7 +31,7 @@ namespace OniMoono.Host
                 GameTweakNames.DxgiRow => (Flag(effective.Dxgi), effective.DxgiSource == OptionSource.CommandLine, Flag(EffectiveOptions.DefaultDxgi)),
                 GameTweakNames.UpdateCheckRow => (Flag(effective.UpdateCheck), false, Flag(EffectiveOptions.DefaultUpdateCheck)),
                 var name => (Flag(effective.Tweaks[name].On), effective.Tweaks[name].Source == OptionSource.CommandLine,
-                    Flag(EffectiveOptions.DefaultOn(name, GameTweakNames.ChangingBehaviour))),
+                    Flag(EffectiveOptions.DefaultOn(name, GameTweakNames.OffByDefault))),
             };
             var states = rows.Select(State).ToArray();
             // The screen's text goes by its translation keys (TweakStrings; "" for none), with
@@ -65,7 +65,7 @@ namespace OniMoono.Host
                     else if (ids[i] == GameTweakNames.UpdateCheckRow) updateCheck = values[i] != 0;
                     else tweaks[ids[i]] = values[i] != 0;
                 }
-                var next = EffectiveOptions.Apply(saved, GameTweakNames.ChangingBehaviour, tweaks, splash, frameStats, hideLogPaths, gpu, dxgi, updateCheck);
+                var next = EffectiveOptions.Apply(saved, GameTweakNames.OffByDefault, tweaks, splash, frameStats, hideLogPaths, gpu, dxgi, updateCheck);
                 try
                 {
                     next.Write(settingsPath);

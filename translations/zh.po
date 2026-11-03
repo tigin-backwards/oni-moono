@@ -31,8 +31,8 @@ msgid "Those rows can't be changed here. Remove the options from the game's laun
 msgstr "这些行无法在此更改。请从游戏的启动选项中移除相应参数，以便在此选择。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.UI.CHANGES_GAMEPLAY_NOTE"
-msgid "Off by default: these trade a little exactness for speed."
-msgstr "默认关闭：这些选项会牺牲一点精确性来换取速度。"
+msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes."
+msgstr "这些选项会牺牲一点精确性来换取速度。除增量路径探测外默认关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.UI.LAUNCH_OPTION"
 msgid "LAUNCH OPTION"
@@ -327,8 +327,8 @@ msgid "Duplicants' path checks redo only what changed in the world, using less C
 msgstr "复制人的寻路检查只重算世界中变化的部分，占用更少的 CPU。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.DETAIL"
-msgid "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may take the other one. Off while another mod changes path probing (Fast Track's Cache Paths)."
-msgstr "每个复制人上一次的路径探测只在变化之处（挖掘、建造、门、液体）修补，而不是从头重新搜索。路径代价和可到达的格子不变；两条路线代价相同时，复制人可能走另一条。其他模组修改路径探测时（如 Fast Track 的 Cache Paths）不生效。"
+msgid "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may walk the other one, not the original's. Keeps about 0.9 MB a Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths)."
+msgstr "每个复制人上一次的路径探测只在变化之处（挖掘、建造、门、液体）修补，而不是从头重新搜索。路径代价和可到达的格子不变；两条路线代价相同时，复制人可能走另一条，而不是原版走的那条。每个复制人约占 0.9 MB 内存。其他模组修改路径探测时（如 Fast Track 的 Cache Paths）不生效。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
 msgid "Graphics & overlays"

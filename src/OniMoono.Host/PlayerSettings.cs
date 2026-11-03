@@ -191,8 +191,9 @@ namespace OniMoono.Host
             CommandLineTweaks = commandLineTweaks;
         }
 
-        /// A tweak's built-in default: on unless it changes what the game does (`exact`).
-        public static bool DefaultOn(string name, IReadOnlyCollection<string> changing) => !changing.Contains(name);
+        /// A tweak's built-in default: on unless it is one of `offByDefault` (GameTweakNames.OffByDefault:
+        /// those that change what the game does, but the few on by default all the same).
+        public static bool DefaultOn(string name, IReadOnlyCollection<string> offByDefault) => !offByDefault.Contains(name);
 
         /// A tweak as the command line's `--game-tweak` values have it: on when named, or by `all`,
         /// or by `exact` unless it changes behaviour; `-NAME` leaves it out of `all` or `exact`;
@@ -200,16 +201,19 @@ namespace OniMoono.Host
         public static bool OnByCommandLine(IReadOnlyCollection<string> values, string name, IReadOnlyCollection<string> changing)
             => !values.Contains("-" + name) && (values.Contains(name) || values.Contains("all") || values.Contains("exact") && !changing.Contains(name));
 
+        /// `changing`: the tweaks `exact` leaves out; `offByDefault`: those off without a choice
+        /// (null: `changing`).
         public static EffectiveOptions Resolve(IReadOnlyList<string> allTweaks, IReadOnlyCollection<string> changing,
             IReadOnlyList<string> commandLineTweaks, string? commandLineSplash, bool commandLineFrameStats, PlayerSettings file,
-            string? commandLineLogPaths = null, string? commandLineGpu = null, bool? commandLineDxgi = null)
+            string? commandLineLogPaths = null, string? commandLineGpu = null, bool? commandLineDxgi = null,
+            IReadOnlyCollection<string>? offByDefault = null)
         {
             var options = new EffectiveOptions(allTweaks, commandLineTweaks);
             foreach (var name in allTweaks)
             {
                 if (commandLineTweaks.Count > 0) options.Tweaks[name] = (OnByCommandLine(commandLineTweaks, name, changing), OptionSource.CommandLine);
                 else if (file.GameTweaks.TryGetValue(name, out bool on)) options.Tweaks[name] = (on, OptionSource.SettingsFile);
-                else options.Tweaks[name] = (DefaultOn(name, changing), OptionSource.Default);
+                else options.Tweaks[name] = (DefaultOn(name, offByDefault ?? changing), OptionSource.Default);
             }
             foreach (var name in file.GameTweaks.Keys)
                 if (!allTweaks.Contains(name)) options.UnknownTweaks.Add(name);
@@ -232,7 +236,7 @@ namespace OniMoono.Host
         /// The file with the screen's choices applied: each choice that equals its default is
         /// dropped from the file, any other recorded; options not chosen (those the command line
         /// set, shown but not changeable) keep what the file had.
-        public static PlayerSettings Apply(PlayerSettings file, IReadOnlyCollection<string> changing,
+        public static PlayerSettings Apply(PlayerSettings file, IReadOnlyCollection<string> offByDefault,
             IReadOnlyDictionary<string, bool> tweaks, bool? splashMoo, bool? frameStats, bool? hideLogPaths = null, string? gpu = null,
             bool? dxgi = null, bool? updateCheck = null)
         {
@@ -241,7 +245,7 @@ namespace OniMoono.Host
             foreach (var (name, on) in file.GameTweaks) result.GameTweaks[name] = on;
             foreach (var (name, on) in tweaks)
             {
-                if (on == DefaultOn(name, changing)) result.GameTweaks.Remove(name);
+                if (on == DefaultOn(name, offByDefault)) result.GameTweaks.Remove(name);
                 else result.GameTweaks[name] = on;
             }
             if (splashMoo != null) result.Splash = (splashMoo.Value ? "moo" : "none") is var splash && splash == DefaultSplash ? null : splash;
