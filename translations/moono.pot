@@ -465,6 +465,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.DETAIL"
 msgid "Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; the pathfinder reads the same moves in the same order."
 msgstr ""
 
+#. Row title (fast-smi-lookups)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.TITLE"
+msgid "Faster state machine lookups"
+msgstr ""
+
+#. The line under the title (fast-smi-lookups)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.EFFECT"
+msgid "Finding one of an object's state machines no longer searches all of them each time."
+msgstr ""
+
+#. Tooltip: how it works (fast-smi-lookups)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.DETAIL"
+msgid "Each object remembers which of its state machines answered each lookup until its list of state machines changes."
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
 msgid "Graphics & overlays"

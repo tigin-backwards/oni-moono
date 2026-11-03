@@ -318,6 +318,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.DETAIL"
 msgid "Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; the pathfinder reads the same moves in the same order."
 msgstr "每个寻路网格把一个格子的移动紧凑地存放在一起，而不是为地图上的每个格子都留出一排固定的位置；寻路读取到的移动及其顺序完全相同。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.TITLE"
+msgid "Faster state machine lookups"
+msgstr "更快的状态机查找"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.EFFECT"
+msgid "Finding one of an object's state machines no longer searches all of them each time."
+msgstr "查找物体的某个状态机时，不再每次都搜索它的全部状态机。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.DETAIL"
+msgid "Each object remembers which of its state machines answered each lookup until its list of state machines changes."
+msgstr "每个物体会记住每次查找由哪个状态机作答，直到它的状态机列表发生变化。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.CONVEYOR"
 msgid "No hitch on rail edits (was 0.05–0.5 s)"
 msgstr "修改轨道不再卡顿（原本 0.05–0.5 秒）"

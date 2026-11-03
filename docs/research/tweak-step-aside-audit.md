@@ -305,6 +305,16 @@ Guard: none (#1).
 | `KCollider2D.Intersects` (virtual) | W (called virtually) | – | no | – | – |
 | state: each radbolt's colliders, read once | S | – | – | a mod adding a collider to a live radbolt is not seen | none found |
 
+### fast-smi-lookups (Simulation, on; added 2026-11-03)
+
+Guard: `GetSMI(Type)` owners, global and permanent, at the first lookup then every 2^18. The
+prefix is at `Priority.Last` and checks `__runOriginal`.
+
+| Method | Kind | Guarded | Step aside? | Why | Patched by |
+|---|---|---|---|---|---|
+| `StateMachineController.GetSMI(Type)` | R (prefix `Last`, false with the kept or walked answer) | yes | yes | – | none found (raw scan of `out/ws` and decompiles of the hits, 2026-11-03) |
+| state: the answers per controller while its `stateMachines` list keeps its `_version` | S | – | – | a mod writing the list's backing array directly would not be seen | none found |
+
 ### Opt-in tweaks
 
 | Tweak | Method | Kind | Guarded | Patched by |

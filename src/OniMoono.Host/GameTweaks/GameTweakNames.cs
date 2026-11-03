@@ -139,6 +139,8 @@ namespace OniMoono.Host.GameTweaks
             new(CompactNavLinks, Simulation, "Compact navigation links", "The map of where Duplicants and critters can move takes a fraction of the memory.",
                 "Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; "
                 + "the pathfinder reads the same moves in the same order."),
+            new("fast-smi-lookups", Simulation, "Faster state machine lookups", "Finding one of an object's state machines no longer searches all of them each time.",
+                "Each object remembers which of its state machines answered each lookup until its list of state machines changes."),
 
             new("fast-anim-events", Graphics, "Faster animation events", "Animations check their sound and effect cues with less work.",
                 "Keeps a compact copy of what each playing animation's per-frame event check reads."),
@@ -169,7 +171,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "fix-disease-overlay-crash", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks"];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "fix-disease-overlay-crash", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups"];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
