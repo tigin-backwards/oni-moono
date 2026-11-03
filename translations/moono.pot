@@ -604,3 +604,19 @@ msgstr ""
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
 msgid "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps."
 msgstr ""
+
+
+#. Row title (fix-load-screen-clicks)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.TITLE"
+msgid "Open a colony once on the Load screen"
+msgstr ""
+
+#. The line under the title (fix-load-screen-clicks)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.EFFECT"
+msgid "After Load more, a click on a colony no longer builds its list of saves again for every refresh."
+msgstr ""
+
+#. Tooltip: how it works (fix-load-screen-clicks)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.DETAIL"
+msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click opens the colony once for every refresh, and the last one stays on screen. The screen ends up the same; the repeated work and its repeated log lines go. Off by default, as the original repeats them."
+msgstr ""

@@ -485,3 +485,16 @@ msgstr "存档很多时，加载游戏界面打开和“加载更多”都更快
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.DETAIL"
 msgid "Each save's details are read from its file once a refresh instead of four times, several files at a time, and previews already shown are not decoded again. The colonies, their order, the previews and the log are the same."
 msgstr "每次刷新时每个存档的信息只从文件读取一次而不是四次，并且同时读取多个文件；已显示过的预览图不再重新解码。殖民地、顺序、预览图和日志都不变。"
+
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.TITLE"
+msgid "Open a colony once on the Load screen"
+msgstr "加载游戏界面中殖民地只打开一次"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.EFFECT"
+msgid "After Load more, a click on a colony no longer builds its list of saves again for every refresh."
+msgstr "点击“加载更多”后，点击殖民地不再为每次刷新各重建一遍它的存档列表。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.DETAIL"
+msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click opens the colony once for every refresh, and the last one stays on screen. The screen ends up the same; the repeated work and its repeated log lines go. Off by default, as the original repeats them."
+msgstr "这是游戏自身代码的错误：每次“加载更多”都会给已显示的殖民地再添加一份点击处理，于是一次点击会按刷新次数重复打开殖民地，屏幕上留下最后一次的结果。界面最终相同；只是去掉了重复的工作和重复的日志行。默认关闭，因为原版会重复这些工作。"
