@@ -152,6 +152,12 @@ namespace OniMoono.Desktop.Gl
             N.glGenVertexArrays(1, &vao);
             N.glBindVertexArray(vao);
             immediateVertexArray = vao.Id;
+            if (Environment.GetEnvironmentVariable("ONI_BINDLESS_STRESS") != null)
+            {
+                GlBindlessStress.RunIfAsked();
+                if (DebugOutput) EnableDebugOutput();
+                N.glBindVertexArray(vao);
+            }
             N.glFrontFace((GlFrontFace)Cw);
             immediateBuffer = GlApi.GenBuffer();
             immediateIndices = GlApi.GenBuffer();
