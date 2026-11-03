@@ -1733,6 +1733,20 @@ frame's textures, left an RX 9070 colony at 20-25 fps from 40-50, paused or not 
 `--no-bindless` binds on any driver; `--bindless` uses handles on AMD's too. A texture without an
 image (zero width or height) is sampled as no texture, (0, 0, 0, 1).
 
+Handle residency (`BindlessResidency`, issue #50): a handle is made resident when a draw first
+samples it, and checked (`glGetError`, `glIsTextureHandleResidentARB`); one that fails is never
+sampled, and its texture is bound to the sampler's unit with its sampler object instead (a
+`bindless_sampler` uniform takes a unit as well as a handle), the same pixels. A failure's
+resident count becomes a cap. A texture deleted or given a new name while resident keeps its old
+name and resident handles until a fence placed after the frame has signalled, since the
+extension leaves open whether making a handle non-resident waits for draws already issued.
+Past 8,192 resident textures (`ONI_BINDLESS_MAX_RESIDENT`), the least recently sampled go
+non-resident the same way, after a fence, and resident again when next sampled;
+`ONI_BINDLESS_IDLE_FRAMES=N` also does that to any texture not sampled for N frames.
+`ONI_VERIFY_BINDLESS=1` checks every handle a draw samples and every texture specification
+(`bindless handles:` lines, `qa-tools.py verify`); `ONI_BINDLESS_STRESS` measures the driver's
+residency limit at start-up. Measurements: [research/bindless-residency.md](research/bindless-residency.md).
+
 **Render thread, presentation and frame pacing.** Unity's player records rendering on the main
 thread and executes it on a render thread (`kGfxThreadingModeClientWorkerJobs` on GLCore), and
 presents from there, so GL work and a swap that blocks — vsync, or a display path that reads the
