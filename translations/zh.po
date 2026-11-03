@@ -493,3 +493,15 @@ msgstr "病菌叠加层打开时，带有病菌的小动物或植物死亡不再
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_DISEASE_OVERLAY_CRASH.DETAIL"
 msgid "A bug in U60's own code (the original crashes too, mostly at low frame rates): the destroyed germ marker is dropped before the game reads it. Off by default, as the original crashes."
 msgstr "这是 U60 自身代码的错误（原版也会崩溃，多在低帧率时）：游戏读取被销毁的病菌标记前，该标记已被丢弃。默认关闭，因为原版也会崩溃。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.TITLE"
+msgid "Open a colony once on the Load screen"
+msgstr "加载游戏界面中殖民地只打开一次"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.EFFECT"
+msgid "After Load more, a click on a colony no longer builds its list of saves again for every refresh."
+msgstr "点击“加载更多”后，点击殖民地不再为每次刷新各重建一遍它的存档列表。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.DETAIL"
+msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click opens the colony once for every refresh, and the last one stays on screen. The screen ends up the same; the repeated work and its repeated log lines go. Off by default, as the original repeats them."
+msgstr "这是游戏自身代码的错误：每次“加载更多”都会给已显示的殖民地再添加一份点击处理，于是一次点击会按刷新次数重复打开殖民地，屏幕上留下最后一次的结果。界面最终相同；只是去掉了重复的工作和重复的日志行。默认关闭，因为原版会重复这些工作。"
