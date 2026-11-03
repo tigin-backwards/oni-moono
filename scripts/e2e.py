@@ -869,14 +869,15 @@ def test_scopes():
     return [line.split()[0] for line in out.splitlines() if line.strip()]
 
 
-def stop_scope(unit, grace=5):
-    """Ends every process in a scope: SIGTERM, then SIGKILL after GRACE seconds."""
+def stop_scope(unit, grace=None):
+    """Ends every process in a scope: SIGTERM, then SIGKILL after GRACE seconds (default
+    quit_grace(): a scope holds a player)."""
     def active():
         return subprocess.run(['systemctl', '--user', 'is-active', '--quiet', unit]).returncode == 0
     if not has_systemd() or not active():
         return
     subprocess.run(['systemctl', '--user', 'kill', '--signal=SIGTERM', unit], capture_output=True)
-    deadline = time.time() + grace
+    deadline = time.time() + (quit_grace() if grace is None else grace)
     while active() and time.time() < deadline:
         time.sleep(0.2)
     if active():
@@ -895,10 +896,52 @@ def running(pid, start=None):
     return fields[0] not in 'ZX' and (start is None or int(fields[19]) == start)
 
 
+# A player stops gracefully on SIGTERM. Ours (src/OniMoono.Host/QuitSignals.cs) quits at the next
+# frame boundary as Application.Quit does, its graphics device and window going first, and exits
+# within 8 s whatever happens. A player killed in the middle of a GPU wait (on WSL, a wait on
+# /dev/dxg through Mesa's d3d12 driver) was followed by a kernel soft lockup that hung WSL
+# (2026-11-02), so a teardown signals the players first, alone (their X servers still up), waits
+# up to E2E_QUIT_GRACE seconds (default 10) for them, and only then kills what is left.
+QUIT_GRACE = 10
+
+
+def quit_grace():
+    """E2E_QUIT_GRACE's seconds, else QUIT_GRACE."""
+    with contextlib.suppress(ValueError):
+        value = float(os.environ.get('E2E_QUIT_GRACE', ''))
+        if value >= 0:
+            return value
+    return QUIT_GRACE
+
+
+def is_player(proc):
+    return proc.get('comm') in PLAYER_NAMES
+
+
+def quit_players(procs, grace=None):
+    """SIGTERM to each of PROCS ({pid, start}) still the same process, then a wait of up to GRACE
+    seconds (default quit_grace()) for them to end. Returns the ones still running."""
+    procs = [p for p in procs if process_start(p['pid']) == p['start']]
+    for p in procs:
+        with contextlib.suppress(OSError):
+            os.kill(p['pid'], signal.SIGTERM)
+    deadline = time.time() + (quit_grace() if grace is None else grace)
+    while time.time() < deadline and any(running(p['pid'], p['start']) for p in procs):
+        time.sleep(0.05)
+    return [p for p in procs if running(p['pid'], p['start'])]
+
+
 def kill_verified(procs, grace=5):
     """SIGTERM, then SIGKILL after GRACE seconds, to each of PROCS while it is still the same
-    process (its start time unchanged)."""
+    process (its start time unchanged). Players among them go first (quit_players), and one
+    still running after its quit grace gets SIGKILL with the rest."""
     procs = [p for p in procs if process_start(p['pid']) == p['start']]
+    players = [p for p in procs if is_player(p)]
+    stuck = quit_players(players) if players else []
+    procs = [p for p in procs if not is_player(p)]
+    for p in stuck:
+        with contextlib.suppress(OSError):
+            os.kill(p['pid'], signal.SIGKILL)
     for p in procs:
         with contextlib.suppress(OSError):
             os.kill(p['pid'], signal.SIGTERM)
@@ -1011,15 +1054,18 @@ def describe_leftover(item):
 
 def clean_leftovers(items, log=say, grace=5):
     """Ends the scopes and processes lane_leftovers found, then removes the stale X files (each
-    checked again: the lock's process gone, no server answering on the socket)."""
-    for item in items:
-        if item[0] == 'scope':
-            log(f'cleaning {describe_leftover(item)}')
-            stop_scope(item[1], grace)
+    checked again: the lock's process gone, no server answering on the socket). Players go
+    first, with their quit grace, while their X servers still run."""
     for item in items:
         if item[0] == 'process':
             log(f'cleaning {describe_leftover(item)}')
-    kill_verified([target for kind, target, _ in items if kind == 'process'], grace)
+    procs = [target for kind, target, _ in items if kind == 'process']
+    kill_verified([p for p in procs if is_player(p)], grace)
+    for item in items:
+        if item[0] == 'scope':
+            log(f'cleaning {describe_leftover(item)}')
+            stop_scope(item[1])
+    kill_verified([p for p in procs if not is_player(p)], grace)
     for item in items:
         if item[0] != 'file':
             continue
@@ -1043,14 +1089,20 @@ def owned_processes(tag, procs=None):
 
 def teardown_owner(tag, grace=2, log=None):
     """Ends everything runner TAG started: its scopes, then every process carrying its E2E_OWNER,
-    and removes the X lock files its killed Xvfbs leave."""
+    and removes the X lock files its killed Xvfbs leave. The players go first, all at once, with
+    their quit grace (quit_players), while their X servers still run."""
     log = log or (lambda s: None)
+    procs = owned_processes(tag)
+    players = [p for p in procs if is_player(p)]
+    for p in players:
+        log(f'quitting pid {p["pid"]}: {" ".join(p["args"])[:120]}')
+    kill_verified(players, grace)
     for unit in test_scopes():
         owner = scope_owner(unit)
         if owner and owner[0] == tag:
             log(f'stopping {unit}')
-            stop_scope(unit, grace)
-    procs = owned_processes(tag)
+            stop_scope(unit)
+    procs = [p for p in procs if not is_player(p)]
     for p in procs:
         log(f'killing pid {p["pid"]}: {" ".join(p["args"])[:120]}')
     kill_verified(procs, grace)
@@ -2820,7 +2872,17 @@ class Player:
                         return p
         return None
 
+    def quit(self):
+        """The game asked to quit (quit_players), its wrappers and X server left running."""
+        pid = self.game_pid()
+        start = process_start(pid) if pid else None
+        if start is not None:
+            quit_players([{'pid': pid, 'start': start}])
+
     def kill(self):
+        # Even a hung player: its threads may be waiting on the GPU (and the quit's deadline
+        # ends it if its main thread is stuck).
+        self.quit()
         with contextlib.suppress(OSError):
             os.killpg(self.process.pid, signal.SIGKILL)
         if self.scope:
@@ -2850,8 +2912,11 @@ class Player:
     def stop(self):
         self.watchdog.stop()
         # The player outlives xvfb-run when its X server goes first: every descendant is known
-        # before anything is signalled, and whatever survives SIGTERM gets SIGKILL.
+        # before anything is signalled, and whatever survives SIGTERM gets SIGKILL. The game
+        # quits first, alone: xvfb-run's group holds its X server too.
         family = [p for process in (self.process, self.xvfb) if process for p in descendants(process.pid)]
+        if self.alive():
+            self.quit()
         for process in (self.process, self.xvfb):
             if process and process.poll() is None:
                 os.killpg(process.pid, signal.SIGTERM)

@@ -58,6 +58,14 @@ load at all, in both players, comes first from [Load sweeps](#load-sweeps).
     the machine's lock directory only. `--clean` does this now for every lane no runner holds.
 
   `qa.sh` does the same for its players (see its header).
+- **Players quit, then are killed.** Every teardown above, a hang watchdog's included, sends a
+  player SIGTERM first, alone, while its X server still runs. Ours then quits at the next frame
+  boundary as `Application.Quit` does, its graphics device and window going first, and exits
+  within `ONI_QUIT_DEADLINE` seconds (default 8) however the quit goes
+  (`src/OniMoono.Host/QuitSignals.cs`); a second signal ends it at once. A player still running
+  `E2E_QUIT_GRACE` seconds (default 10) later gets SIGKILL. On WSL a player killed in the middle
+  of a GPU wait (`dxgkio_wait_sync_object_cpu: Ioctl failed: -512` in the kernel log) was once
+  followed by a kernel soft lockup that hung WSL.
 - **Lanes** are machine-wide. Lane L uses:
   - OniMcp on port 8800 + 10 L, written to the run's `OniMcpConfig.json`;
   - E2eDriver on 8801 + 10 L, passed as `E2E_DRIVER_PORT`;

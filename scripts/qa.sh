@@ -27,7 +27,7 @@
 # A U57 run that logs no PERF line (PerfProbe's, every 600 frames) for QA_HANG_MIN minutes (default
 # 5; the slowest legitimate gaps are about 140 s of load before the first and 110 s between two in
 # the overlay sweep) is hung: scripts/hang-dump.sh takes the managed stacks of every thread,
-# per-thread CPU and wait states and the log's tail into STAGE/hang, the player is killed and the
+# per-thread CPU and wait states and the log's tail into STAGE/hang, the player is stopped and the
 # stage fails, naming that folder. ONI_TEST_HANG=FRAME[:spin|wait] (src/OniMoono.Host/TestHang.cs)
 # hangs a player on purpose, to try it.
 # --bless stores this run's captures, signatures and frame rate as the references
@@ -35,6 +35,10 @@
 # Players end with qa.sh, however it ends (a `timeout`, ^C, kill -9): each runs in a systemd scope
 # of its own that qa.sh stops on exit, and a watcher stops when qa.sh is killed outright (see
 # "the players' teardown"). scripts/e2e.py --status shows what runs and who waits for whom.
+# A player is stopped with SIGTERM, which quits it at a frame boundary with its GPU work done (a
+# player killed in a GPU wait on WSL was followed by a kernel soft lockup), and with SIGKILL only
+# when it still runs E2E_QUIT_GRACE seconds (default 10) later. A stage's `timeout` runs inside
+# its xvfb-run, so that it signals the player, not the wrapper that stops the X server.
 set -uo pipefail
 source "$(dirname "$0")/env.sh"
 # Its builds, players and tests run in the memory-capped test slice (scripts/contain.sh).
@@ -91,6 +95,16 @@ no_data_collection() { mkdir -p "$1/Agreements/OxygenNotIncluded"; printf 'disab
 qa_start=$(cut -d')' -f2 "/proc/$$/stat" | awk '{print $20}')
 qa_owner="$$:$qa_start"; players=0
 setsid -f python3 "$root/scripts/e2e.py" --reap-after $$ "$qa_start" < /dev/null > /dev/null 2>&1
+quit_player() # PID: SIGTERM, then SIGKILL when it still runs after E2E_QUIT_GRACE seconds
+{
+    local i
+    kill -TERM "$1" 2> /dev/null || return 0
+    for ((i = 0; i < ${E2E_QUIT_GRACE:-10} * 5; i++)); do
+        kill -0 "$1" 2> /dev/null || return 0
+        sleep 0.2
+    done
+    kill -KILL "$1" 2> /dev/null
+}
 player() # LABEL CMD...: runs CMD in the background as one of this run's players; its pid in player_pid
 {
     local label=$1; shift; players=$((players + 1))
@@ -180,8 +194,8 @@ run_scenario() # NAME
     local caps=() f
     for f in $DUMPS; do caps+=(--capture "$f:$out/f$f.png" --dump-ui "$f:$out/f$f.txt"); done
     # In the background and waited for, so that a signal's trap runs at once.
-    ONI_GAME_DIR="$gamedir" ONI_RUN_HOME="$home" ONI_CONFIG=release player "dogfood-$name" timeout 1800 env "${ENV[@]}" xvfb-run -a -s "-screen 0 1280x1024x24" \
-        "$root/scripts/audio-sink/record.sh" "$out/audio.raw" "${runner[@]}" \
+    ONI_GAME_DIR="$gamedir" ONI_RUN_HOME="$home" ONI_CONFIG=release player "dogfood-$name" env "${ENV[@]}" xvfb-run -a -s "-screen 0 1280x1024x24" \
+        timeout -k "${E2E_QUIT_GRACE:-10}" 1800 "$root/scripts/audio-sink/record.sh" "$out/audio.raw" "${runner[@]}" \
         -screen-width 1024 -screen-height 768 -screen-fullscreen 0 --frames "$FRAMES" --max-frame-rate 60 \
         --log "$out/log.txt" "${caps[@]}" "${ARGS[@]}" > "$out/stdout.txt" 2>&1
     wait "$player_pid"
@@ -321,8 +335,8 @@ u57_run()
     # U57_SCREENS: then PerfProbe opens and closes these management screens in turn (its screens.txt).
     [ -n "${U57_SCREENS:-}" ] && { echo 'wait overlays'; for s in $U57_SCREENS; do printf 'open %s\nclose\n' "$s"; done; echo 'hold 600 after-screens'; } > "$d/mods/Local/PerfProbe/screens.txt"
     echo '{"version":1,"mods":[{"label":{"distribution_platform":0,"id":"PerfProbe","title":"PerfProbe","version":-2037174645},"status":1,"enabled":true,"enabledForDlc":["","EXPANSION1_ID"],"crash_count":0,"reinstall_path":null,"staticID":"PerfProbe"}],"mod_load_in_progress":false}' > "$d/mods/mods.json"
-    ONI_GAME_DIR="$QA_U57_GAME" ONI_RUN_HOME="$home" ONI_CONFIG=release player "u57-$(basename "$out")" timeout 3600 xvfb-run -a -s "-screen 0 1280x1024x24" \
-        "$root/scripts/run.sh" --native-override "steam_api=$QA_U57_STEAM" -screen-width 1024 -screen-height 768 -screen-fullscreen 0 \
+    ONI_GAME_DIR="$QA_U57_GAME" ONI_RUN_HOME="$home" ONI_CONFIG=release player "u57-$(basename "$out")" xvfb-run -a -s "-screen 0 1280x1024x24" \
+        timeout -k "${E2E_QUIT_GRACE:-10}" 3600 "$root/scripts/run.sh" --native-override "steam_api=$QA_U57_STEAM" -screen-width 1024 -screen-height 768 -screen-fullscreen 0 \
         --frames "$frames" --input 400:click:948,75 --input 900:click:153,192 --game-tweak all --log "$out/log.txt" "${extra[@]}" "$@" > "$out/stdout.txt" 2>&1
     local pid=$player_pid peak=0 rss p perfs=0 n progress=$SECONDS hang=$(( ${QA_HANG_MIN:-5} * 60 ))
     # U57_MEMWATCH=1 (the memory stage): qa-tools.py memwatch watches it instead, and stops it
@@ -343,12 +357,12 @@ u57_run()
             rss=$(awk '/VmRSS/ {print $2}' /proc/$p/status 2>/dev/null); rss=${rss:-0}
             [ "$rss" -gt "$peak" ] && peak=$rss
             echo "$(date +%s) $rss" >> "$out/rss.txt"
-            # A runaway run is stopped before it takes the machine down.
+            # A runaway run is killed outright before it takes the machine down.
             [ "$rss" -gt $((24 * 1024 * 1024)) ] && kill -KILL $p
             if [ $((SECONDS - progress)) -ge $hang ] && [ ! -d "$out/hang" ]; then
-                echo "$(date '+%F %T') hang watchdog: no PERF line for ${QA_HANG_MIN:-5} min (after $perfs); diagnostics, then kill" >> "$out/stdout.txt"
+                echo "$(date '+%F %T') hang watchdog: no PERF line for ${QA_HANG_MIN:-5} min (after $perfs); diagnostics, then stop" >> "$out/stdout.txt"
                 "$root/scripts/hang-dump.sh" "$p" "$out/hang" "$out/stdout.txt" > /dev/null 2>&1
-                kill -KILL "$p"
+                quit_player "$p"
             fi
         done
         sleep 5
@@ -363,7 +377,7 @@ u57_check()
 {
     local stage=$1 out=$2 status; status=$(cat "$out/exit")
     if [ -d "$out/hang" ]; then
-        fail "$stage: the player hung (no PERF line for ${QA_HANG_MIN:-5} min) and was killed; diagnostics in $out/hang"
+        fail "$stage: the player hung (no PERF line for ${QA_HANG_MIN:-5} min) and was stopped; diagnostics in $out/hang"
         sed 's/^/       /' "$out/hang/summary.txt" | tee -a "$run/summary.txt"
     elif [ "$status" != 0 ]; then fail "$stage: the player exited $status"; fi
     python3 "$tools" signatures "$out/stdout.txt" > "$out/signatures.txt"
