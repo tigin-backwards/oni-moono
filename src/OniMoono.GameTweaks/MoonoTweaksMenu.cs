@@ -376,7 +376,13 @@ namespace OniMoono.GameTweaks
             var tooltip = Tooltip(i);
             entry.GetReference<ToolTip>("Description").toolTip = tooltip;
             var effect = BodyLine(title, MoonoTweaksMenu.Effects[i]);
-            if (effect.GetComponent<ToolTip>() is { } effectTip) effectTip.toolTip = tooltip;
+            if (effect.GetComponent<ToolTip>() is { } effectTip)
+            {
+                effectTip.toolTip = tooltip;
+                // The rest of the row shows it too: its background, under the gaps between and
+                // around the lines and the label (the toggle or choice button keeps its own).
+                RowTip(entry.GetReference<KImage>("BG").gameObject, effectTip, tooltip);
+            }
             // The label beside the toggle: who set a row the launch options set (the section
             // heading says which tweaks change gameplay).
             var label = entry.GetReference<LocText>("Version");
@@ -460,6 +466,22 @@ namespace OniMoono.GameTweaks
                     Refresh();
                 };
             }
+        }
+
+        /// A row's tooltip on another of its parts, set up and placed as `like` (at the pointer).
+        /// The part is a sibling of the title, the effect and the toggle, not their parent, so a
+        /// hover over one of those raises only that one's tooltip.
+        static void RowTip(GameObject part, ToolTip like, string text)
+        {
+            var tip = part.GetComponent<ToolTip>();
+            if (tip == null) tip = part.AddComponent<ToolTip>();
+            tip.toolTipPosition = like.toolTipPosition;
+            tip.tooltipPivot = like.tooltipPivot;
+            tip.tooltipPositionOffset = like.tooltipPositionOffset;
+            tip.parentPositionAnchor = like.parentPositionAnchor;
+            tip.SizingSetting = like.SizingSetting;
+            tip.WrapWidth = like.WrapWidth;
+            tip.toolTip = text;
         }
 
         void ShowChoice(int i)
