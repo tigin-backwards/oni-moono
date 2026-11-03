@@ -20,7 +20,7 @@ namespace OniMoono.Host
     /// who has not chosen otherwise:
     ///
     ///     { "gameTweaks": { "slow-reachability": true, "fast-jobs": false }, "splash": "moo", "frameStats": true, "logPaths": "full", "gpu": "discrete",
-    ///       "dxgi": false, "updateCheck": false }
+    ///       "dxgi": false, "updateCheck": false, "gc": "low-memory" }
     ///
     /// Tweaks no longer known (one removed in an update) are ignored and kept.
     internal sealed class PlayerSettings
@@ -38,6 +38,8 @@ namespace OniMoono.Host
         public bool? Dxgi;
         /// The main menu's update check (UpdateCheck); null when not chosen.
         public bool? UpdateCheck;
+        /// "fast" or "low-memory" (GcMode); null when not chosen. OniMoono.exe reads it too.
+        public string? Gc;
 
         public static string PathIn(string persistentDataPath) => Path.Combine(persistentDataPath, "oni-moono", "settings.json");
         /// Where players from before the Moono name (oni-brutal) kept the file.
@@ -109,6 +111,11 @@ namespace OniMoono.Host
             }
             if (root["dxgi"] is JsonNode dxgi) settings.Dxgi = dxgi.GetValue<bool>();
             if (root["updateCheck"] is JsonNode updateCheck) settings.UpdateCheck = updateCheck.GetValue<bool>();
+            if (root["gc"] is JsonNode gc)
+            {
+                var value = gc.GetValue<string>();
+                settings.Gc = GcMode.IsChoice(value) ? value : throw new FormatException($"gc \"{value}\" is not one of: {string.Join(", ", GcMode.Choices)}");
+            }
             return settings;
         }
 
@@ -128,6 +135,7 @@ namespace OniMoono.Host
             if (Gpu != null) root["gpu"] = Gpu;
             if (Dxgi != null) root["dxgi"] = Dxgi;
             if (UpdateCheck != null) root["updateCheck"] = UpdateCheck;
+            if (Gc != null) root["gc"] = Gc;
             return indented ? root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n" : root.ToJsonString();
         }
 
@@ -149,7 +157,7 @@ namespace OniMoono.Host
     /// settings file, then the command line. A command line naming any game tweak
     /// (`--game-tweak NAME|-NAME|all|exact|none`, repeatable) sets the whole set of tweaks for the
     /// run, as before the settings file existed; `--splash`, `--frame-stats`, `--log-paths`,
-    /// `--gpu` and `--dxgi` set theirs.
+    /// `--gpu`, `--dxgi` and `--gc` set theirs.
     internal sealed class EffectiveOptions
     {
         public readonly IReadOnlyList<string> AllTweaks;
@@ -180,6 +188,11 @@ namespace OniMoono.Host
         public const bool DefaultUpdateCheck = true;
         public bool UpdateCheck = DefaultUpdateCheck;
         public OptionSource UpdateCheckSource;
+        /// The garbage collection (GcMode) without a settings file or command line saying
+        /// otherwise: fast (Server GC with DATAS).
+        public const string DefaultGc = GcMode.Default;
+        public string Gc = DefaultGc;
+        public OptionSource GcSource;
         /// The command line's `--game-tweak` values, in order (empty when it names none).
         public readonly IReadOnlyList<string> CommandLineTweaks;
         /// Names in the settings file that are not tweaks of this player.
@@ -206,7 +219,7 @@ namespace OniMoono.Host
         public static EffectiveOptions Resolve(IReadOnlyList<string> allTweaks, IReadOnlyCollection<string> changing,
             IReadOnlyList<string> commandLineTweaks, string? commandLineSplash, bool commandLineFrameStats, PlayerSettings file,
             string? commandLineLogPaths = null, string? commandLineGpu = null, bool? commandLineDxgi = null,
-            IReadOnlyCollection<string>? offByDefault = null)
+            IReadOnlyCollection<string>? offByDefault = null, string? commandLineGc = null)
         {
             var options = new EffectiveOptions(allTweaks, commandLineTweaks);
             foreach (var name in allTweaks)
@@ -228,6 +241,8 @@ namespace OniMoono.Host
             if (commandLineDxgi != null) (options.Dxgi, options.DxgiSource) = (commandLineDxgi.Value, OptionSource.CommandLine);
             else if (file.Dxgi != null) (options.Dxgi, options.DxgiSource) = (file.Dxgi.Value, OptionSource.SettingsFile);
             if (file.UpdateCheck != null) (options.UpdateCheck, options.UpdateCheckSource) = (file.UpdateCheck.Value, OptionSource.SettingsFile);
+            if (commandLineGc != null) (options.Gc, options.GcSource) = (commandLineGc, OptionSource.CommandLine);
+            else if (file.Gc != null) (options.Gc, options.GcSource) = (file.Gc, OptionSource.SettingsFile);
             return options;
         }
 
@@ -238,10 +253,10 @@ namespace OniMoono.Host
         /// set, shown but not changeable) keep what the file had.
         public static PlayerSettings Apply(PlayerSettings file, IReadOnlyCollection<string> offByDefault,
             IReadOnlyDictionary<string, bool> tweaks, bool? splashMoo, bool? frameStats, bool? hideLogPaths = null, string? gpu = null,
-            bool? dxgi = null, bool? updateCheck = null)
+            bool? dxgi = null, bool? updateCheck = null, string? gc = null)
         {
             var result = new PlayerSettings { Splash = file.Splash, FrameStats = file.FrameStats, LogPaths = file.LogPaths, Gpu = file.Gpu, Dxgi = file.Dxgi,
-                UpdateCheck = file.UpdateCheck };
+                UpdateCheck = file.UpdateCheck, Gc = file.Gc };
             foreach (var (name, on) in file.GameTweaks) result.GameTweaks[name] = on;
             foreach (var (name, on) in tweaks)
             {
@@ -254,10 +269,11 @@ namespace OniMoono.Host
             if (gpu != null) result.Gpu = gpu == DefaultGpu ? null : gpu;
             if (dxgi != null) result.Dxgi = dxgi == DefaultDxgi ? null : dxgi;
             if (updateCheck != null) result.UpdateCheck = updateCheck == DefaultUpdateCheck ? null : updateCheck;
+            if (gc != null) result.Gc = gc == DefaultGc ? null : gc;
             return result;
         }
 
-        static string From(OptionSource source) => source switch
+        public static string From(OptionSource source) => source switch
         {
             OptionSource.CommandLine => "the command line",
             OptionSource.SettingsFile => "the settings file",
@@ -284,6 +300,7 @@ namespace OniMoono.Host
             yield return $"gpu {Gpu} ({From(GpuSource)})";
             yield return $"dxgi {(Dxgi ? "on" : "off")} ({From(DxgiSource)})";
             yield return $"update check {(UpdateCheck ? "on" : "off")} ({From(UpdateCheckSource)})";
+            yield return $"gc {Gc} ({From(GcSource)})";
         }
     }
 }

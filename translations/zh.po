@@ -166,6 +166,26 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DXGI.DETAIL"
 msgid "Frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through OpenGL's own presentation, which Auto HDR or RTX HDR can take for HDR. If it can't start, OpenGL's own is used and Player.log says why. No effect on Linux."
 msgstr "画面像原版一样通过 Direct3D 11 交换链送到屏幕。关闭时使用 OpenGL 自身的呈现方式，可能被自动 HDR 或 RTX HDR 当作 HDR 内容。无法启动时改用 OpenGL 自身的方式，Player.log 会说明原因。在 Linux 上无效。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.TITLE"
+msgid "Garbage collection"
+msgstr "垃圾回收"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.EFFECT"
+msgid "How the game frees memory it no longer uses. Needs a restart."
+msgstr "游戏如何释放不再使用的内存。需要重启。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.DETAIL"
+msgid "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. Low memory: uses less RAM, with pauses that can be a bit longer or more often. Only worth changing if your PC is short on RAM."
+msgstr "快速（默认）：在所有 CPU 核心上回收垃圾，暂停少且短，但占用更多内存。低内存：占用更少内存，暂停可能稍长或更频繁。只有在电脑内存不足时才值得更改。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.GC.FAST"
+msgid "fast"
+msgstr "快速"
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.GC.LOW_MEMORY"
+msgid "low memory"
+msgstr "低内存"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.SAVING"
 msgid "Saving"
 msgstr "存档"

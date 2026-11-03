@@ -40,6 +40,7 @@ namespace OniMoono.Host.GameTweaks
             GameTweakNames.LogPathsRow => "--log-paths hidden",
             GameTweakNames.GpuRow => "--gpu " + string.Join("|", Choices!),
             GameTweakNames.DxgiRow => "--dxgi on|off",
+            GameTweakNames.GcRow => "--gc " + string.Join("|", Choices!),
             _ => "--game-tweak " + Id,
         };
     }
@@ -51,7 +52,7 @@ namespace OniMoono.Host.GameTweaks
     /// before the game's assemblies (Harmony among them) can be resolved, and the tests compile it in.
     internal static class GameTweakNames
     {
-        public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", UpdateCheckRow = "update-check";
+        public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links";
 
@@ -104,6 +105,10 @@ namespace OniMoono.Host.GameTweaks
                 "Frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through OpenGL's own presentation, "
                 + "which Auto HDR or RTX HDR can take for HDR. If it can't start, OpenGL's own is used and Player.log says why. No effect on Linux.",
                 IsTweak: false),
+            new(GcRow, General, "Garbage collection", "How the game frees memory it no longer uses. Needs a restart.",
+                "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. "
+                + "Low memory: uses less RAM, with pauses that can be a bit longer or more often. Only worth changing if your PC is short on RAM.",
+                IsTweak: false, Choices: [OniMoono.Host.GcMode.Fast, OniMoono.Host.GcMode.LowMemory]),
             new("fast-load-screen", General, "Faster Load screen", "With many saves, the Load screen opens and loads more colonies sooner.",
                 "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. "
                 + "The colonies, their order, the previews and the log are the same.", LoadScreenGain),

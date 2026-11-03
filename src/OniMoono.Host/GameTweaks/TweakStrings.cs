@@ -54,6 +54,8 @@ namespace OniMoono.Host.GameTweaks
         public static string GainKey(TweakGain gain) => Prefix + "GAINS." + gain.Key;
         public static string ChoiceKey(TweakInfo row, string choice) => Prefix + "CHOICES." + Name(row.Id) + "." + Name(choice);
         static string Name(string id) => id.ToUpperInvariant().Replace('-', '_');
+        /// A choice's English: its value with spaces for hyphens ("low-memory": "low memory").
+        public static string ChoiceEnglish(string choice) => choice.Replace('-', ' ');
 
         /// Every string, in the screen's order: its labels, then each group, its rows (title,
         /// one-liner, details, choices) and the gains as their tooltips show them.
@@ -72,7 +74,7 @@ namespace OniMoono.Host.GameTweaks
                     all.Add(new(RowKey(row, "EFFECT"), row.Effect, $"The line under the title ({row.Id})"));
                     if (row.Detail.Length > 0) all.Add(new(RowKey(row, "DETAIL"), row.Detail, $"Tooltip: how it works ({row.Id})"));
                     foreach (var choice in row.Choices ?? [])
-                        all.Add(new(ChoiceKey(row, choice), choice, $"A choice on the row's button (shown in capitals) and in its tooltip ({row.Id})"));
+                        all.Add(new(ChoiceKey(row, choice), ChoiceEnglish(choice), $"A choice on the row's button (shown in capitals) and in its tooltip ({row.Id})"));
                     if (GameTweakNames.GainText(row) is { } gain && gains.Add(gain.Gain))
                         all.Add(new(GainKey(gain.Gain), gain.Text, $"Tooltip: the measured gain ({(row.Gain != null ? row.Id : "every " + group.Title + " row")})"));
                 }

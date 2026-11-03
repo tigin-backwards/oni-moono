@@ -12,12 +12,12 @@ them in **Moono Tweaks** on the main menu. Measured gains are in
 On the main menu, **Moono Tweaks** (under Mods) lists every tweak with an on/off switch, in the
 sections below, each with a line on what it does; hovering a row says how it works, its
 measured gain where it is large enough to notice, and its launch option. A **General** section
-holds six options of the player's own: the Gassy Moo loading splash (on by default), the
+holds seven options of the player's own: the Gassy Moo loading splash (on by default), the
 [update check](#update-check) (on by default), frame stats in the log (off by default), hiding
 personal paths in the log (on by default), for
 laptops with two GPUs, the graphics card the game draws with (default, discrete or integrated;
-default does what the original does) and, on Windows, presenting through Direct3D as the
-original does (on by default).
+default does what the original does), on Windows, presenting through Direct3D as the
+original does (on by default), and [garbage collection](#garbage-collection) (fast by default).
 The search box above the list keeps the rows whose title, line, tooltip or tweak name contain
 what you type (in the game's language, any case; each word on its own, as the game's own
 searches match), and the headings of the sections that keep a row.
@@ -49,6 +49,26 @@ path or an http(s) URL; `none` checks nothing), never cached, and `ONI_UPDATE_TA
 release the build counts as. `scripts/run.sh` sets `ONI_UPDATE_RELEASES_URL=none`, so test runs
 never ask GitHub; `tests/e2e/update-badge.yaml` gives the badge a fixture instead.
 
+## Garbage collection
+
+**Garbage collection** chooses how the game frees memory it no longer uses. It applies from the
+next start.
+
+- **Fast** (the default) is .NET's Server GC with DATAS (dynamic adaptation of the heap count,
+  on by default for Server GC since .NET 9), concurrent. It collects on all cores, so pauses are
+  rare and short, but it keeps more memory.
+- **Low memory** is .NET's Workstation GC, concurrent: one heap, less RAM, and pauses that can
+  be a bit longer or more often. It is only worth choosing if your PC is short on RAM.
+
+The runtime fixes its GC as it starts, before Moono's code runs. On Windows, OniMoono.exe reads
+the choice itself (`--gc`, else `settings.json`'s `"gc"`) and sets the runtime property
+`System.GC.Server` before starting .NET. On Linux and macOS the player starts through .NET's
+own launcher, which reads only `OniMoono.runtimeconfig.json`: when the runtime started with the
+other GC, the player starts itself again in place (the same process, `execve`) with
+`DOTNET_gcServer=0` or `1`, before it opens the log. A `DOTNET_gcServer` you set yourself wins
+over the option. `Player.log` has a `gc:` line naming the GC in use (Server GC with DATAS,
+Workstation concurrent GC) and why, and a `gc config:` line with the runtime's GC settings.
+
 ## Launch options
 
 Launch options still work and win over the screen, which then shows those rows as set by the
@@ -75,6 +95,8 @@ launch options:
   in `Player.log`: when it says SwapBuffers is used, it says why. Then, on NVIDIA, set
   **Vulkan/OpenGL present method** to **Prefer native** in the NVIDIA Control Panel, and turn
   Auto HDR (Windows' Graphics settings) or RTX HDR (the NVIDIA app) off for OniMoono.exe.
+
+- `--gc fast|low-memory`: the [garbage collection](#garbage-collection).
 
 Older setups put `--game-tweak exact` in the launch options; remove it (the setup prints the new
 line) to choose in the game instead.

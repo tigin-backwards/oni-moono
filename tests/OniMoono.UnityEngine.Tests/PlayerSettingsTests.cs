@@ -247,10 +247,10 @@ namespace OniMoono.Tests
             file.GameTweaks["fast-b"] = false;
             Assert.Equal(["game tweaks on (default): fast-a", "game tweaks off (default): slow-c, off-d", "game tweaks off (the settings file): fast-b",
                           "splash moo (default)", "frame stats off (default)", "log paths hidden (default)", "gpu default (default)",
-                          "dxgi on (default)", "update check on (default)"], Resolve(file).Describe().ToArray());
+                          "dxgi on (default)", "update check on (default)", "gc fast (default)"], Resolve(file).Describe().ToArray());
             file.UpdateCheck = false;
             Assert.Equal(["game tweaks from the command line (--game-tweak none): none", "splash none (the command line)", "frame stats on (the command line)",
-                           "log paths full (the command line)", "gpu default (default)", "dxgi on (default)", "update check off (the settings file)"],
+                           "log paths full (the command line)", "gpu default (default)", "dxgi on (default)", "update check off (the settings file)", "gc fast (default)"],
                 Resolve(file, ["none"], "none", true, "full").Describe().ToArray());
         }
 
@@ -299,6 +299,41 @@ namespace OniMoono.Tests
             Assert.Equal((true, OptionSource.Default), (Resolve(new PlayerSettings()).UpdateCheck, Resolve(new PlayerSettings()).UpdateCheckSource));
             Assert.Null(EffectiveOptions.Apply(saved, Changing, none, null, null, updateCheck: true).UpdateCheck);
             Assert.False(EffectiveOptions.Apply(saved, Changing, none, true, null).UpdateCheck);
+        }
+
+        // ----- Garbage collection -----
+
+        static EffectiveOptions WithGc(PlayerSettings file, string gc = null)
+            => EffectiveOptions.Resolve(All, Changing, [], null, false, file, commandLineGc: gc);
+
+        [Fact]
+        public void GcIsFastUnlessTheFileOrTheCommandLineSaysLowMemory()
+        {
+            var o = WithGc(new PlayerSettings());
+            Assert.Equal(("fast", OptionSource.Default), (o.Gc, o.GcSource));
+            var file = PlayerSettings.Parse("""{ "gc": "low-memory" }""");
+            o = WithGc(file);
+            Assert.Equal(("low-memory", OptionSource.SettingsFile), (o.Gc, o.GcSource));
+            Assert.Contains("gc low-memory (the settings file)", o.Describe());
+            o = WithGc(file, "fast");
+            Assert.Equal(("fast", OptionSource.CommandLine), (o.Gc, o.GcSource));
+            o = WithGc(new PlayerSettings(), "low-memory");
+            Assert.Equal(("low-memory", OptionSource.CommandLine), (o.Gc, o.GcSource));
+        }
+
+        [Fact]
+        public void TheFileRecordsGcOnlyWhenLowMemory()
+        {
+            var none = new Dictionary<string, bool>();
+            var saved = EffectiveOptions.Apply(new PlayerSettings(), Changing, none, null, null, gc: "low-memory");
+            Assert.Equal("{\"gc\":\"low-memory\"}", saved.ToJson(indented: false));
+            // OniMoono.exe scans the indented file for this: the key, a colon, the value.
+            Assert.Contains("\"gc\": \"low-memory\"", saved.ToJson());
+            Assert.Equal("low-memory", PlayerSettings.Parse(saved.ToJson()).Gc);
+            Assert.Null(EffectiveOptions.Apply(saved, Changing, none, null, null, gc: "fast").Gc);
+            // A screen save that does not touch it keeps what the file had.
+            Assert.Equal("low-memory", EffectiveOptions.Apply(saved, Changing, none, true, null).Gc);
+            Assert.Throws<FormatException>(() => PlayerSettings.Parse("""{ "gc": "workstation" }"""));
         }
     }
 }
