@@ -16,15 +16,14 @@ steps:
   - shot: {name: row-tip, pointer: stay}
   - scroll: {at: "**/MoonoTweaksScreen/**/gpu/**/ManageButton", notches: 0}
   - shot: {name: choice-tip, pointer: stay}
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -60}
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -100}
   # KScrollRect keeps scrolling for a few frames after the wheel (its inertia): wait for the
   # list to settle before a shot or a hover.
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - shot: {name: end}
   - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: 0}
   - shot: {name: gameplay-tip, pointer: stay}
-  # The Bug fixes section, last: its rows show their tooltips too. (The list's very end: in
-  # Chinese, 60 notches stop above it.)
+  # The Bug fixes section, last: its rows show their tooltips too.
   - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: -30}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - scroll: {at: "**/MoonoTweaksScreen/**/fix-load-screen-clicks", notches: 0}
@@ -32,9 +31,9 @@ steps:
   - expect_ui:
       "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab": {active: true, text: "/^A bug in the game.s own code[\\s\\S]*--game-tweak fix-load-screen-clicks$/"}
   - shot: {name: bugfix-tip, pointer: stay}
-  # The measured gain is on a Graphics row, above the end: 9 notches up bring it near the
-  # middle of the list in both languages.
-  - scroll: {at: "**/MoonoTweaksScreen/**/fix-load-screen-clicks", notches: 9}
+  # The measured gain is on a Graphics row: the search box brings it to the top of the list
+  # (wheel notches travel further at a lower frame rate).
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "fast-overlays"}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/fast-overlays", cond: stable}
   # The row's centre, in the gap between its title and effect: the row's background shows
   # the row's tooltip too, with its gain and launch option.
