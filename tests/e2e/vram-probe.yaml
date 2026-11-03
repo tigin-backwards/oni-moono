@@ -1,0 +1,9 @@
+# UnityProbe's `vram` scenario (tools/UnityProbe/VramProbe.cs): when render textures and
+# textures hold device memory (construction, Create, Release, first use, Destroy, the temporary
+# pool, UnloadUnusedAssets) and the mip counts they get. The probe needs its run:
+# SemanticsProbe.dll (built against the game's Managed) copied into a copy of OniMcp's mod
+# folder, E2E_ONIMCP pointing at the copy, PROBE_SCENARIO=vram. Compare the two players' "VR"
+# lines; on Windows, sample the process's video memory per phase (docs/research/vram-startup.md).
+from: main-menu
+steps:
+  - ui_wait: {path: "**/VramProbeDone", cond: exists, frames: 200000}
