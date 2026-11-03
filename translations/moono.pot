@@ -470,6 +470,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.DETAIL"
 msgid "Each object remembers which of its state machines answered each lookup until its list of state machines changes."
 msgstr ""
 
+#. Row title (paged-path-grids)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.TITLE"
+msgid "Paged path grids"
+msgstr ""
+
+#. The line under the title (paged-path-grids)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.EFFECT"
+msgid "Each Duplicant's map of path costs takes memory only where it can walk."
+msgstr ""
+
+#. Tooltip: how it works (paged-path-grids)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.DETAIL"
+msgid "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, and the parts never written read as the empty grid did. The pathfinder reads the same values."
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
 msgid "Graphics & overlays"

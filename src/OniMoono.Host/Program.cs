@@ -96,6 +96,8 @@ namespace OniMoono.Host
             }
             // compact-nav-links rewrites the game's assemblies and mods as they load.
             if (effective.EnabledTweaks.Contains(GameTweaks.CompactNavLinks.Name)) GameTweaks.CompactNavLinks.Enable();
+            // paged-path-grids too.
+            if (effective.EnabledTweaks.Contains(GameTweaks.PagedPathGrids.Name)) GameTweaks.PagedPathGrids.Enable();
             AssemblyPolicy.Install(layout, AppContext.BaseDirectory);
             if (options.CheckNatives) return NativeCheck.Run(layout, AssemblyPolicy.RuntimeAssemblyPaths(), options.NativeArch ?? AssemblyPolicy.ProcessCpu, options.NativeDir);
             var assemblies = AssemblyPolicy.PreloadScriptingAssemblies(dataDir);
@@ -2610,6 +2612,7 @@ namespace OniMoono.Host
                 return AttributeTargets.Class.ToString() == "Class" ? "every \"G\" formatting path names the value" : throw new InvalidOperationException("other values renamed");
             });
             Check("compact-nav-links: the hot walks' IL and the reviewed transpilers (CompactNavLinks)", GameTweaks.CompactNavLinks.SelfCheck);
+            Check("paged-path-grids: the rewritten PathGrid against a model of its arrays (PagedPathGrids)", GameTweaks.PagedPathGrids.SelfCheck);
             return failures;
         }
 
