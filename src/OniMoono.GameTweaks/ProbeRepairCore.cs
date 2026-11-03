@@ -1136,7 +1136,7 @@ namespace OniMoono.GameTweaks
         /// one not reached, and each cell's prober entry its cheapest state but a tube's (and in
         /// `reach`, sorted, when given). Floods differ from one another only in which of two
         /// routes of the same cost they keep, and so in what follows from their flags.
-        public static string Fixpoint(ProbePages<PCell> cells, ProbePages<PProber> probers, ProbeFlags flags, ushort serial, int root, ProbeGraph g, IProbeRules rules, List<int> reach)
+        public static string Fixpoint(PCell[] cells, PProber[] probers, ProbeFlags flags, ushort serial, int root, ProbeGraph g, IProbeRules rules, List<int> reach)
         {
             int nc = g.NavCount;
             bool V(int s) => cells[s].QueryId == serial;
