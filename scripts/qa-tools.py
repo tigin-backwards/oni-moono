@@ -178,10 +178,15 @@ def image(reference, new, diff, *options):
 
 # Verify-mode lines: periodic summaries (each kind of check has its own, all counts must be zero)
 # and per-incident lines (any is a failure).
-VERIFY_NAMES = r'(fast-[a-z-]+|canvas skips?|canvas products|component layouts|texel copies|partial uploads|parallel draws|bindless handles)'
-SUMMARY = re.compile(r'^\d+ [a-z ,\d-]*?\d+ (?:wrong skips|wrong|stale items not marked|stale|mismatches|changed while copying)'
-                     r'(?:, [a-z\d ]+)?$')
-ZERO_COUNTS = re.compile(r'(\d+) (?:wrong skips|wrong|stale items not marked|stale|mismatches|changed while copying)')
+# A summary is a line of a check's name whose report counts what must be zero ("0 wrong");
+# compact-nav-links and paged-path-grids name the moment ("nav links verify (in play)").
+VERIFY_NAMES = (r'(fast-[a-z-]+|path-probe-repair|trim-anim-lists|nav links verify(?: \([a-z ]+\))?|path grids verify'
+                r'|canvas skips?|canvas products|component layouts|texel copies|partial uploads|parallel draws|bindless handles)')
+ZERO_WORDS = (r"(?:wrong skips|wrong|stale items not marked|stale|mismatches|changed while copying|differed|cell\(s\) differ"
+              r"|differ|otherwise than a flood|otherwise than the game's|changes the feed missed)")
+ZERO_COUNTS = re.compile(r'(?<![\w.])(\d[\d,]*) ' + ZERO_WORDS + r'(?![\w(])')
+# Lines that report one mismatch each (any is a failure).
+INCIDENT = re.compile(r"\(\d+\)$|answers otherwise|the feed missed|differs from|threw|wrong|stale|mismatch|ran \d+ times")
 
 def verify(path):
     last, incidents = {}, []
@@ -191,10 +196,13 @@ def verify(path):
         m = re.search(VERIFY_NAMES + r': (.*)$', line)
         if not m: continue
         name, report = m.group(1), m.group(2).strip()
-        if SUMMARY.match(report):
-            # The summary's shape (its words) names the check: one tweak can report several.
-            last[(name, re.sub(r'\d+', 'N', report))] = report
-        elif re.search(r'\(\d+\)$|wrong|stale|mismatch|ran \d+ times|had stale', report):
+        counts = ZERO_COUNTS.findall(report)
+        if counts and not re.search(r'answers otherwise|feed missed a change', report):
+            # The summary's shape (its words) names the check: one tweak can report several. What
+            # follows a mismatch (`; first: ...`) and the time taken are not part of it.
+            shape = re.sub(r'\d[\d,.]*', 'N', re.sub(r'; first: .*$', '', report))
+            last[(name, shape)] = report
+        elif INCIDENT.search(report):
             incidents.append(f'{name}: {report}')
     bad = False
     for (name, _), report in sorted(last.items()):
