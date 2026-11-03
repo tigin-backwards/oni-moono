@@ -22,8 +22,17 @@ steps:
   - shot: {name: choice-tip, pointer: stay}
   # The list's end: the gameplay-changing section, its note, a measured gain's tooltip.
   - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -60}
+  # KScrollRect keeps scrolling for a few frames after the wheel (its inertia): wait for the
+  # list to settle before a shot or a hover.
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - shot: {name: end}
   - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: 0}
   - shot: {name: gameplay-tip, pointer: stay}
+  # The row's centre, on its title here (in English, the gap between its title and effect):
+  # the row's tooltip, with its gain and launch option.
   - scroll: {at: "**/MoonoTweaksScreen/**/fast-overlays", notches: 0}
+  - expect_hit: {at: "**/MoonoTweaksScreen/**/fast-overlays", top: "~/fast-overlays/TitleAndEffect/Title"}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~--game-tweak fast-overlays"}
+  - expect_ui:
+      "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab": {active: true, text: "/温度叠加层开销降低约 40%[\\s\\S]*--game-tweak fast-overlays$/"}
   - shot: {name: gain-tip, pointer: stay}
