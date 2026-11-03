@@ -39,7 +39,11 @@ steps:
       "**/MoonoTweaksScreen/**/Content/NoMatches/**/Title": {active: true, text: "没有与搜索匹配的调整项。"}
       "**/MoonoTweaksScreen/**/Content/Heading 通用": {exists: false}
   - shot: search-none
-  - click: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/ClearButton"}
+  # No clear button (the screen's close button is right above): emptying the field brings
+  # every row back.
+  - expect_ui:
+      "**/MoonoTweaksScreen/Panel/SearchBar/Search/ClearButton": {exists: false}
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: gone}
   - expect_ui:
       "**/MoonoTweaksScreen/**/Content/splash": {active: true}

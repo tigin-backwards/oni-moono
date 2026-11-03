@@ -242,7 +242,6 @@ namespace OniMoono.GameTweaks
         /// looks in (Searchable), each section's heading with its rows (first, end), the line
         /// shown when nothing matches and the list's scroll view.
         KInputTextField search;
-        KButton searchClear;
         HorizontalLayoutGroup searchRow;
         GameObject[] rows;
         string[] searchable;
@@ -316,7 +315,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// Once the screen is laid out: the search box's insets set so that the field starts at
-        /// the rows' left edge and the clear button ends at their right edge.
+        /// the rows' left edge and ends at their right edge.
         System.Collections.IEnumerator AlignSearch()
         {
             yield return null;
@@ -334,7 +333,7 @@ namespace OniMoono.GameTweaks
             var rightCorners = new Vector3[4];
             row.GetWorldCorners(rowCorners);
             search.GetComponent<RectTransform>().GetWorldCorners(leftCorners);
-            (searchClear != null ? searchClear.GetComponent<RectTransform>() : search.GetComponent<RectTransform>()).GetWorldCorners(rightCorners);
+            search.GetComponent<RectTransform>().GetWorldCorners(rightCorners);
             float scale = searchRow.transform.lossyScale.x;
             if (scale <= 0f) yield break;
             var padding = searchRow.padding;
@@ -417,8 +416,8 @@ namespace OniMoono.GameTweaks
         }
 
         /// The search box above the list: a copy of the Supply Closet's (KleiInventoryScreen's
-        /// search field and its clear button, in the locker prefab the main menu opens), with
-        /// the game's "Search" placeholder. While it has the keyboard the screen is editing, as
+        /// search field, in the locker prefab the main menu opens, without its clear button),
+        /// with the game's "Search" placeholder. While it has the keyboard the screen is editing, as
         /// the game's own search fields make their screens (KScreen.isEditing): its keys type
         /// and reach no hotkey. Left out, with a log line, when the game has no such field.
         void SearchBox()
@@ -482,14 +481,11 @@ namespace OniMoono.GameTweaks
             search.onValueChanged.AddListener(Filter);
             search.onFocus = (System.Action)Delegate.Combine(search.onFocus, (System.Action)(() => isEditing = true));
             search.onEndEdit.AddListener(_ => isEditing = false);
+            // No clear button: the screen's close button sits right above it, in the same style.
+            // The field spans the rows alone, as the wardrobe's search does in the Supply Closet.
             if (clear != null && source != field.gameObject)
                 foreach (var button in copy.GetComponentsInChildren<KButton>(true))
-                    if (button.name == clear.name)
-                    {
-                        searchClear = button;
-                        button.ClearOnClick();
-                        button.onClick += () => search.text = "";
-                    }
+                    if (button.name == clear.name) button.gameObject.SetActive(false);
         }
 
         HierarchyReferences Entry(string name)
