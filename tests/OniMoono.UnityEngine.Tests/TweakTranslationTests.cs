@@ -141,7 +141,7 @@ namespace OniMoono.Tests
         public void ResolveFallsBackToEnglish()
         {
             var title = TweakStrings.Prefix + "UI.TITLE";
-            var locked = TweakStrings.Prefix + "UI.LOCKED_NOTE";
+            var locked = TweakStrings.Prefix + "UI.LAUNCH_OPTION_LINE";
             var later = TweakStrings.Prefix + "UI.LATER";
             int Index(string key) => Array.FindIndex(TweakStrings.All, s => s.Key == key);
             var texts = TweakStrings.Resolve(new Dictionary<string, string>
@@ -152,7 +152,7 @@ namespace OniMoono.Tests
             });
             Assert.Equal(TweakStrings.All.Length, texts.Length);
             Assert.Equal("TITRE", texts[Index(title)]);
-            Assert.Equal("Set by the launch options: {0}", texts[Index(locked)]);
+            Assert.Equal("Launch option: {0}", texts[Index(locked)]);
             Assert.Equal("LATER", texts[Index(later)]);
             Assert.Equal(TweakStrings.All.Select(s => s.English), TweakStrings.Resolve(null));
             Assert.True(TweakStrings.SameMarkup("a {0} <b>{1}</b>", "{1} x <b>{0}</b>"));

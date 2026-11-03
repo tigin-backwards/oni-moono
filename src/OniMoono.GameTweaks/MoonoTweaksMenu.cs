@@ -31,7 +31,7 @@ namespace OniMoono.GameTweaks
         /// Each row's value: 0 or 1 for a toggle, else the index in its Choices.
         internal static int[] Running, Defaults, Saved;
         internal static string[][] Choices;
-        internal static string LockedNote, SettingsPath;
+        internal static string SettingsPath;
         internal static Func<string[], int[], string> Save;
         /// The rows' text as keys ("" for none); every key, its English and its text in the
         /// game's language (Localize).
@@ -48,15 +48,15 @@ namespace OniMoono.GameTweaks
         /// lines after it (where it was measured, the launch option). `choices`: a row's values
         /// when it has more than on and off (null for a toggle). `running`: each option as this
         /// run has it (0 or 1 for a toggle, else the index in its choices); `defaults`: as Reset
-        /// to defaults sets it; `locked`: set by the command line (shown, not changeable;
-        /// `lockedNote` names those arguments). `save(ids, values)` writes the changeable rows to
+        /// to defaults sets it; `locked`: set by the command line (shown, not changeable, labelled
+        /// LAUNCH OPTION). `save(ids, values)` writes the changeable rows to
         /// the settings file, returning why it could not or null. The text (`groups` to `gains`,
         /// `choices`) is given as keys ("" for none) into `keys`, whose English is `englishTexts`;
         /// `resolveTexts` gives every key's text from a .po's strings (key to text, English where
         /// it has none), read from the folder `translations`.
         public static void Install(Harmony harmony, string[] ids, string[] groups, string[] titles, string[] effects,
             string[] details, string[] gains, string[] notes, bool[] changesGameplay, bool[] bugFixes, string[][] choices, int[] running, int[] defaults, bool[] locked,
-            string lockedNote, string settingsPath, Func<string[], int[], string> save,
+            string settingsPath, Func<string[], int[], string> save,
             string[] keys, string[] englishTexts, Func<Dictionary<string, string>, string[]> resolveTexts, string translations)
         {
             Ids = ids;
@@ -80,7 +80,6 @@ namespace OniMoono.GameTweaks
             Defaults = defaults;
             Saved = (int[])running.Clone();
             Locked = locked;
-            LockedNote = lockedNote;
             SettingsPath = settingsPath;
             Save = save;
             harmony.Patch(AccessTools.Method(typeof(MainMenu), "OnPrefabInit"), postfix: new HarmonyMethod(typeof(MoonoTweaksMenu), nameof(AddButton)));
@@ -282,8 +281,6 @@ namespace OniMoono.GameTweaks
             shown = (int[])MoonoTweaksMenu.Saved.Clone();
             toggles = new MultiToggle[shown.Length];
             choiceButtons = new KButton[shown.Length];
-            if (MoonoTweaksMenu.LockedNote.Length > 0)
-                Note(string.Format(MoonoTweaksMenu.Ui("LOCKED_NOTE"), MoonoTweaksMenu.LockedNote), MoonoTweaksMenu.Ui("LOCKED_NOTE_BODY"));
             string group = null;
             for (int i = 0; i < MoonoTweaksMenu.Ids.Length; i++)
             {
@@ -312,18 +309,6 @@ namespace OniMoono.GameTweaks
             var layout = entry.GetComponent<HorizontalLayoutGroup>();
             if (layout != null) layout.padding = new RectOffset(RowInset, layout.padding.right, RowPadding, RowPadding);
             return entry;
-        }
-
-        void Note(string text, string body)
-        {
-            var entry = Entry("Note");
-            var title = entry.GetReference<LocText>("Title");
-            title.text = text;
-            title.color = Color.white;
-            BodyLine(title, body);
-            entry.GetReference<LocText>("Version").gameObject.SetActive(false);
-            entry.GetReference<MultiToggle>("EnabledToggle").gameObject.SetActive(false);
-            entry.gameObject.SetActive(true);
         }
 
         /// A section's heading, as Klei heads the sections of its own screens (Game options, the

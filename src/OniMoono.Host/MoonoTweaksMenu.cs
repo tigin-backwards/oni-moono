@@ -41,13 +41,6 @@ namespace OniMoono.Host
             static string DetailKey(TweakInfo row) => row.Detail.Length > 0 ? TweakStrings.RowKey(row, "DETAIL") : "";
             Func<Dictionary<string, string>, string[]> resolve = po => TweakStrings.Resolve(po);
             string translations = Path.Combine(AppContext.BaseDirectory, "translations");
-            var locked = new List<string>();
-            foreach (var value in effective.CommandLineTweaks) locked.Add("--game-tweak " + value);
-            if (effective.SplashSource == OptionSource.CommandLine) locked.Add("--splash " + effective.Splash);
-            if (effective.FrameStatsSource == OptionSource.CommandLine) locked.Add("--frame-stats");
-            if (effective.LogPathsSource == OptionSource.CommandLine) locked.Add("--log-paths " + effective.LogPaths);
-            if (effective.GpuSource == OptionSource.CommandLine) locked.Add("--gpu " + effective.Gpu);
-            if (effective.DxgiSource == OptionSource.CommandLine) locked.Add("--dxgi " + (effective.Dxgi ? "on" : "off"));
 
             var saved = file;
             Func<string[], int[], string?> save = (ids, values) =>
@@ -88,7 +81,7 @@ namespace OniMoono.Host
                 rows.Select(r => r.Group.ChangesGameplay).ToArray(), rows.Select(r => r.Group == GameTweakNames.BugFixes).ToArray(),
                 rows.Select(r => r.Choices?.Select(c => TweakStrings.ChoiceKey(r, c)).ToArray()).ToArray(),
                 states.Select(s => s.Value).ToArray(), states.Select(s => s.Default).ToArray(), states.Select(s => s.Locked).ToArray(),
-                string.Join(" ", locked), settingsPath, save,
+                settingsPath, save,
                 TweakStrings.All.Select(t => t.Key).ToArray(), TweakStrings.All.Select(t => t.English).ToArray(), resolve, translations]);
 
             // The update badge beside the button: the check runs in the background from now on.
