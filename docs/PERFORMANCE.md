@@ -8,6 +8,11 @@ colonies stress it differently, so each has its own case study:
 - **Gluttony**, very late game with 67 Duplicants, where the simulation's many small updates
   take most of the frame ([PERFORMANCE_CASE_STUDY_3.md](PERFORMANCE_CASE_STUDY_3.md)).
 
+Other test colonies named in the tables below:
+- **c100**, a 200-Duplicant colony;
+- **DeCrew**, a late-game base-game colony (cycle 17,600+, 15 Duplicants);
+- **soggy lab 2**, a large colony from a player's report, played with their mods.
+
 The raw working notes, dead ends included, are in
 [research/u57-frame-inventory.md](research/u57-frame-inventory.md).
 
