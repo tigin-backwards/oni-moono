@@ -8,7 +8,8 @@
  *
  * Otherwise it does what the apphost does, the documented way (dotnet/runtime,
  * docs/design/features/native-hosting.md): find hostfxr, start OniMoono.dll with this process's
- * arguments, and return its exit code. A self-contained player (setup and releases) has
+ * arguments, and return its exit code. One thing more: the garbage collection option (GcMode.cs),
+ * which the runtime fixes as it starts, set as the runtime property System.GC.Server. A self-contained player (setup and releases) has
  * hostfxr.dll beside this exe, which the apphost uses first, and so does this; a
  * framework-dependent one (scripts/build-windows.sh) finds the installed .NET through nethost,
  * which looks where the apphost looks (DOTNET_ROOT, the registered install, Program Files).
@@ -20,6 +21,7 @@
 #include <windows.h>
 #include <shlobj.h>
 #include <wchar.h>
+#include <string.h>
 #include "nethost.h"
 #include "hostfxr.h"
 
@@ -99,6 +101,55 @@ static int fail(int status, const wchar_t *what, const wchar_t *detail)
     return status != 0 ? status : 1;
 }
 
+/* The garbage collection option (GcMode.cs, docs/TWEAKS.md): true for low-memory (Workstation GC).
+ * As the player reads it: the last `--gc VALUE` on the command line, else the settings file's
+ * "gc", `<persistent data path>\oni-moono\settings.json` (PlayerSettings.cs), the persistent data
+ * path being Unity's, LocalLow\Klei\Oxygen Not Included (`--run-home DIR`: DIR\AppData\LocalLow).
+ * The file is the player's own, written by its JSON writer, so a plain scan for the key is enough;
+ * when the two read differently, the log's `gc:` line shows it. */
+static int wants_workstation_gc(int argc, wchar_t **argv)
+{
+    const wchar_t *gc = NULL, *run_home = NULL;
+    for (int i = 1; i + 1 < argc; i++)
+    {
+        if (wcscmp(argv[i], L"--gc") == 0) gc = argv[i + 1];
+        else if (wcscmp(argv[i], L"--run-home") == 0) run_home = argv[i + 1];
+    }
+    if (gc) return wcscmp(gc, L"low-memory") == 0;
+
+    static wchar_t path[LONG_PATH];
+    if (run_home)
+    {
+        static wchar_t full[LONG_PATH];
+        if (_wfullpath(full, run_home, LONG_PATH) == NULL) return 0;
+        swprintf_s(path, LONG_PATH, L"%ls\\AppData\\LocalLow", full);
+    }
+    else
+    {
+        PWSTR low = NULL;
+        if (FAILED(SHGetKnownFolderPath(&FOLDERID_LocalAppDataLow, 0, NULL, &low))) return 0;
+        swprintf_s(path, LONG_PATH, L"%ls", low);
+        CoTaskMemFree(low);
+    }
+    wcscat_s(path, LONG_PATH, L"\\Klei\\Oxygen Not Included\\oni-moono\\settings.json");
+
+    HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    static char text[65536];
+    DWORD read = 0;
+    BOOL ok = ReadFile(file, text, sizeof text - 1, &read, NULL);
+    CloseHandle(file);
+    if (!ok) return 0;
+    text[read] = 0;
+    const char *at = strstr(text, "\"gc\"");
+    if (at == NULL) return 0;
+    at += 4;
+    while (*at == ' ' || *at == '\t' || *at == '\r' || *at == '\n') at++;
+    if (*at++ != ':') return 0;
+    while (*at == ' ' || *at == '\t' || *at == '\r' || *at == '\n') at++;
+    return strncmp(at, "\"low-memory\"", 12) == 0;
+}
+
 int wmain(int argc, wchar_t **argv)
 {
     static wchar_t exe[LONG_PATH], dir[LONG_PATH], app[LONG_PATH], fxr[LONG_PATH];
@@ -129,7 +180,9 @@ int wmain(int argc, wchar_t **argv)
         (hostfxr_initialize_for_dotnet_command_line_fn)GetProcAddress(lib, "hostfxr_initialize_for_dotnet_command_line");
     hostfxr_run_app_fn run_app = (hostfxr_run_app_fn)GetProcAddress(lib, "hostfxr_run_app");
     hostfxr_close_fn close = (hostfxr_close_fn)GetProcAddress(lib, "hostfxr_close");
-    if (!set_error_writer || !initialize || !run_app || !close) return fail(1, L"hostfxr.dll is too old (no hostfxr_initialize_for_dotnet_command_line)", fxr);
+    hostfxr_set_runtime_property_value_fn set_property =
+        (hostfxr_set_runtime_property_value_fn)GetProcAddress(lib, "hostfxr_set_runtime_property_value");
+    if (!set_error_writer || !initialize || !run_app || !close || !set_property) return fail(1, L"hostfxr.dll is too old (no hostfxr_initialize_for_dotnet_command_line)", fxr);
 
     /* The app's command line: the dll, then this process's arguments as the C runtime split
      * them (as the apphost has them), unchanged. */
@@ -147,6 +200,17 @@ int wmain(int argc, wchar_t **argv)
     {
         if (context) close(context);
         return fail(rc, L"the .NET runtime could not be initialized", app);
+    }
+    /* Low memory: Workstation GC over the runtimeconfig's Server GC (a DOTNET_gcServer in the
+     * environment still wins, as the runtime reads it first). */
+    if (wants_workstation_gc(argc, argv))
+    {
+        rc = set_property(context, L"System.GC.Server", L"false");
+        if (rc < 0)
+        {
+            close(context);
+            return fail(rc, L"the garbage collection option could not be set", NULL);
+        }
     }
     /* The app's exit code; or a hosting status (0x8000808x) with hostfxr's reasons when the
      * runtime itself could not start (the app writes its own errors to Player.log). */

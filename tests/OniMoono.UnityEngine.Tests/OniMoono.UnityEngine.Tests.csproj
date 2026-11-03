@@ -33,6 +33,8 @@
     <!-- The GPU option's decisions and its native environment (GpuChoiceTests). -->
     <Compile Include="../../src/OniMoono.Host/GpuChoice.cs" Link="Host/GpuChoice.cs" />
     <Compile Include="../../src/OniMoono.Host/DxgiFaultOption.cs" Link="Host/DxgiFaultOption.cs" />
+    <!-- The garbage collection option's decisions (GcModeTests). -->
+    <Compile Include="../../src/OniMoono.Host/GcMode.cs" Link="Host/GcMode.cs" />
     <!-- SIGTERM and SIGINT quit at a frame boundary, with a deadline (QuitSignalsTests). -->
     <Compile Include="../../src/OniMoono.Host/QuitSignals.cs" Link="Host/QuitSignals.cs" />
     <!-- The main menu's update check: channels, tags and notes (UpdateCheckTests). -->

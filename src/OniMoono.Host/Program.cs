@@ -46,7 +46,13 @@ namespace OniMoono.Host
             var settings = PlayerSettings.Read(settingsPath, out var settingsProblem);
             var effective = EffectiveOptions.Resolve(GameTweaks.GameTweakNames.All, GameTweaks.GameTweakNames.ChangingBehaviour,
                 options.GameTweaks, options.Splash, options.FrameStats, settings, options.LogPaths, options.Gpu, options.Renderer, options.Dxgi,
-                GameTweaks.GameTweakNames.OffByDefault);
+                GameTweaks.GameTweakNames.OffByDefault, commandLineGc: options.Gc);
+            // The garbage collection asked for (GcMode): on Linux and macOS a runtime started with
+            // the other one starts again in place, before the log opens (which keeps the previous
+            // run's log as Player-prev.log).
+            var gcOutcome = GcMode.Plan(effective.Gc, System.Runtime.GCSettings.IsServerGC, Environment.GetEnvironmentVariable, canRelaunch: !OperatingSystem.IsWindows());
+            string? gcRelaunchProblem = null;
+            if (gcOutcome == GcMode.Outcome.Relaunch) gcRelaunchProblem = GcMode.Relaunch(args, effective.Gc);
             EngineLog.Open(options.LogPath ?? EngineConfig.ConsoleLogPath, keepPrevious: options.LogPath == null,
                 effective.HideLogPaths ? LogScrubber.ForThisMachine() : null);
             // Which build this is (the commit the SDK stamps into the informational version) and
@@ -61,6 +67,12 @@ namespace OniMoono.Host
             EngineLog.Engine(settingsProblem != null ? $"settings: {settingsPath} could not be read, so defaults apply: {settingsProblem}"
                 : File.Exists(settingsPath) ? $"settings: {settingsPath}" : $"settings: {settingsPath} (none; defaults apply)");
             foreach (var line in effective.Describe()) EngineLog.Engine("option " + line);
+            var gcConfig = GC.GetConfigurationVariables();
+            EngineLog.Engine(GcMode.LogLine(GcMode.Describe(System.Runtime.GCSettings.IsServerGC, gcConfig), effective.Gc, EffectiveOptions.From(effective.GcSource),
+                gcOutcome == GcMode.Outcome.Relaunch ? GcMode.Outcome.NotApplied : gcOutcome, Environment.GetEnvironmentVariable)
+                + (gcRelaunchProblem != null ? $" ({gcRelaunchProblem})" : ""));
+            EngineLog.Engine(GcMode.ConfigLine(gcConfig));
+            GcMode.ForgetRelaunch();
             foreach (var note in options.ArgumentNotes) EngineLog.Engine("arguments: " + note);
             if (effective.UnknownTweaks.Count > 0) EngineLog.Engine($"settings: not tweaks of this player, ignored: {string.Join(", ", effective.UnknownTweaks)}");
             options.Splash = effective.Splash;
@@ -2863,6 +2875,9 @@ namespace OniMoono.Host
         /// --dxgi on|off: Windows, presenting through DXGI (OniMoono.Desktop.Gl.DxgiTarget), over
         /// the Moono Tweaks settings; null when not given (then the effective value).
         public bool? Dxgi;
+        /// --gc fast|low-memory: the garbage collection (GcMode), over the Moono Tweaks settings;
+        /// null when not given. OniMoono.exe reads it too, before the runtime starts.
+        public string? Gc;
         /// Diagnostics (--dxgi-fault WHAT): a made-up DXGI failure (DxgiSwapChain.Fault).
         public string? DxgiFault;
         /// --no-tweaks-menu: the main menu without our Moono Tweaks button, as the original's (test
@@ -3039,6 +3054,14 @@ namespace OniMoono.Host
                             o.Dxgi = value == "on";
                             break;
                         }
+                    case "--gc":
+                        o.Gc = args[++i];
+                        if (!GcMode.IsChoice(o.Gc))
+                        {
+                            Console.Error.WriteLine($"Unknown gc {o.Gc}; known: {string.Join(", ", GcMode.Choices)}");
+                            return false;
+                        }
+                        break;
                     case "--dxgi-fault":
                         o.DxgiFault = args[++i];
                         if (DxgiFaultOption.Unknown(o.DxgiFault) is { } fault)
@@ -3146,7 +3169,7 @@ namespace OniMoono.Host
                         break;
                     default:
                         Console.Error.WriteLine($"Unknown option {args[i]}");
-                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--bindless] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--renderer auto|vulkan|opengl] [--vulkan-validation] [--dxgi on|off] [--dxgi-fault WHAT] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [-logFile PATH] [other Unity player arguments, ignored] [--check-types] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [-- STEAM-COMMAND]");
+                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--bindless] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--renderer auto|vulkan|opengl] [--vulkan-validation] [--dxgi on|off] [--gc fast|low-memory] [--dxgi-fault WHAT] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [-logFile PATH] [other Unity player arguments, ignored] [--check-types] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [-- STEAM-COMMAND]");
                         return false;
                 }
             }
