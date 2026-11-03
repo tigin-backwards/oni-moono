@@ -81,7 +81,7 @@ namespace OniMoono.Desktop.Vulkan
         {
             int levels = TextureFormats.FullMipCount(a.Width, a.Height);
             atlas = VkImageResource.Create(vk, VkFormat.R8G8B8A8UNorm, VkImageViewType._2D, a.Width, a.Height, 1, levels, 1,
-                VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferDstBit | VkImageUsageFlags.TransferSrcBit, name: "splash atlas");
+                VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferDstBit | VkImageUsageFlags.TransferSrcBit, name: "splash atlas", kind: "splash");
             var texels = SplashRain.PremultipliedTexels(a);
             var staging = VkBufferAlloc.Create(vk, texels.Length, VkBufferUsageFlags.TransferSrcBit, hostWrite: true);
             var pool = vk.Device.CreateCommandPool(new VkCommandPoolCreateInfo { QueueFamilyIndex = vk.QueueFamily, Flags = VkCommandPoolCreateFlags.TransientBit }, null);

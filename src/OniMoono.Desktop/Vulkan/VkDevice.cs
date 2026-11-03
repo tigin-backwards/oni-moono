@@ -524,7 +524,12 @@ namespace OniMoono.Desktop.Vulkan
             // DXGI's swap chain and shared texture too), as Windows counts it.
             if (OperatingSystem.IsWindows() && vk.DxgiInterop && vk.Luid != 0 && OniMoono.Desktop.Gl.Dxgi.ProcessVideoMemory(vk.Luid) is var (local, nonLocal))
                 text.Append(text.Length == 0 ? "" : "; ").Append($"process {local >> 20} MiB local, {nonLocal >> 20} MiB non-local");
-            return text.Length == 0 ? null : text.ToString();
+            text.Append(text.Length == 0 ? "" : "; ").Append($"textures {liveTextures.Count}, meshes {liveMeshes.Count}");
+            // The allocations by kind (staging and stream chunks are in host-visible memory), and
+            // the CPU memory uploads go through: readable textures' copies and all texel memory.
+            text.Append("; by kind: ").Append(OniMoono.Desktop.Gl.VideoMemoryLedger.Take());
+            text.Append($"; upload staging: copies {OniMoono.Desktop.Gl.UploadBuffers.Take()}, texel memory {OniMoono.Engine.Rendering.PixelMemory.LiveBytes >> 20} MiB (peak {OniMoono.Engine.Rendering.PixelMemory.TakePeak() >> 20})");
+            return text.ToString();
         });
 
         // ----- Shutdown -----

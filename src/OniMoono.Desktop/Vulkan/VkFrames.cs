@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Brutal.VulkanApi;
 using Brutal.VulkanApi.Vma;
 
+using OniMoono.Desktop.Gl;
+
 namespace OniMoono.Desktop.Vulkan
 {
     /// A buffer and its VMA allocation; `Mapped` is its host address when host visible.
@@ -15,8 +17,21 @@ namespace OniMoono.Desktop.Vulkan
 
         /// `hostWrite`: written by the CPU (mapped; sequential writes); `deviceLocalPreferred`:
         /// VMA may pick device memory that the CPU cannot map (the caller then copies into it).
+        /// The ledger kind of its allocation and the allocation's size (VideoMemoryLedger).
+        string kind;
+        long bytes;
+
+        /// Moves the allocation to another kind in the ledger (a mesh's buffer kept as a spare).
+        public void Relabel(string to)
+        {
+            if (Buffer.IsNull() || to == kind) return;
+            VideoMemoryLedger.Add(kind, -bytes, -1);
+            kind = to;
+            VideoMemoryLedger.Add(kind, bytes, 1);
+        }
+
         public static VkBufferAlloc Create(VkContext vk, long size, VkBufferUsageFlags usage, bool hostWrite, bool allowTransferInstead = false, bool readback = false,
-            bool preferHost = false)
+            bool preferHost = false, string kind = "other buffers")
         {
             var info = new VkBufferCreateInfo { Size = (Brutal.ByteSize64)size, Usage = usage, SharingMode = VkSharingMode.Exclusive };
             var flags = VmaAllocationCreateFlags.None;
@@ -27,6 +42,9 @@ namespace OniMoono.Desktop.Vulkan
             var result = vk.Allocator.CreateBuffer(info, alloc, out var buffer, out var allocation, out var allocationInfo);
             VkCheck.Ok(result, "vmaCreateBuffer");
             var made = new VkBufferAlloc { Buffer = buffer, Allocation = allocation, Mapped = (byte*)allocationInfo.PMappedData.Pointer, Size = size };
+            made.kind = kind;
+            made.bytes = (long)allocationInfo.Size.Value;
+            VideoMemoryLedger.Add(kind, made.bytes, 1);
             bool first;
             lock (loggedUsages) first = loggedUsages.Add(usage);
             if (first)
@@ -51,6 +69,7 @@ namespace OniMoono.Desktop.Vulkan
             if (Buffer.IsNull()) return;
             vk.Allocator.DestroyBuffer(Buffer, Allocation);
             Buffer = default;
+            VideoMemoryLedger.Add(kind, -bytes, -1);
         }
     }
 
@@ -304,7 +323,7 @@ namespace OniMoono.Desktop.Vulkan
         public (VkBuffer Buffer, long Offset, nint Pointer) Stream(long size, long alignment)
         {
             var s = Current;
-            return Take(s.Chunks, ref s.ChunkIndex, size, alignment, streamUsage, preferHost: false);
+            return Take(s.Chunks, ref s.ChunkIndex, size, alignment, streamUsage, preferHost: false, "stream chunks");
         }
 
         /// Copy sources in host memory (texels, meshes staged for a copy): on a GPU whose
@@ -317,7 +336,7 @@ namespace OniMoono.Desktop.Vulkan
         {
             if (!HostStaging) return Stream(size, alignment);
             var s = Current;
-            return Take(s.Staging, ref s.StagingIndex, size, alignment, VkBufferUsageFlags.TransferSrcBit, preferHost: true);
+            return Take(s.Staging, ref s.StagingIndex, size, alignment, VkBufferUsageFlags.TransferSrcBit, preferHost: true, "staging chunks");
         }
 
         public (VkBuffer Buffer, long Offset) Staging(ReadOnlySpan<byte> data, long alignment)
@@ -327,13 +346,13 @@ namespace OniMoono.Desktop.Vulkan
             return (buffer, offset);
         }
 
-        (VkBuffer Buffer, long Offset, nint Pointer) Take(List<Chunk> chunks, ref int index, long size, long alignment, VkBufferUsageFlags usage, bool preferHost)
+        (VkBuffer Buffer, long Offset, nint Pointer) Take(List<Chunk> chunks, ref int index, long size, long alignment, VkBufferUsageFlags usage, bool preferHost, string kind)
         {
             while (true)
             {
                 if (index >= chunks.Count)
                 {
-                    var buffer = VkBufferAlloc.Create(vk, Math.Max(ChunkSize, size), usage, hostWrite: true, preferHost: preferHost);
+                    var buffer = VkBufferAlloc.Create(vk, Math.Max(ChunkSize, size), usage, hostWrite: true, preferHost: preferHost, kind: kind);
                     if (buffer.Mapped == null) throw new InvalidOperationException("the stream buffer is not host visible");
                     chunks.Add(new Chunk { Buffer = buffer });
                 }
@@ -362,7 +381,7 @@ namespace OniMoono.Desktop.Vulkan
             {
                 if (s.UniformIndex >= s.Uniforms.Count)
                 {
-                    var buffer = VkBufferAlloc.Create(vk, UniformChunkSize, VkBufferUsageFlags.UniformBufferBit, hostWrite: true);
+                    var buffer = VkBufferAlloc.Create(vk, UniformChunkSize, VkBufferUsageFlags.UniformBufferBit, hostWrite: true, kind: "uniform chunks");
                     if (buffer.Mapped == null) throw new InvalidOperationException("the uniform stream is not host visible");
                     s.Uniforms.Add(new Chunk { Buffer = buffer });
                 }

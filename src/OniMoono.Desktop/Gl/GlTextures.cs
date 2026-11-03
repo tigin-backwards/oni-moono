@@ -727,7 +727,7 @@ namespace OniMoono.Desktop.Gl
             return kind;
         }
 
-        static string RenderTargetKind(GraphicsFormat colour)
+        internal static string RenderTargetKind(GraphicsFormat colour)
         {
             if (!targetKinds.TryGetValue(colour, out var kind))
                 targetKinds[colour] = kind = colour == GraphicsFormat.None ? "render target depth-only" : "render target " + colour;

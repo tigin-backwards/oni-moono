@@ -202,9 +202,9 @@ namespace OniMoono.Desktop.Vulkan
             var (oldColor, oldDepth) = (b.Color, b.Depth);
             if (oldColor != null) frames.Retire(() => { oldColor.Destroy(vk); oldDepth.Destroy(vk); });
             b.Color = VkImageResource.Create(vk, VkFormat.R8G8B8A8UNorm, VkImageViewType._2D, width, height, 1, 1, 1,
-                VkImageUsageFlags.ColorAttachmentBit | VkImageUsageFlags.TransferSrcBit | VkImageUsageFlags.TransferDstBit, name: "back buffer");
+                VkImageUsageFlags.ColorAttachmentBit | VkImageUsageFlags.TransferSrcBit | VkImageUsageFlags.TransferDstBit, name: "back buffer", kind: "presenter");
             b.Depth = VkImageResource.Create(vk, depthFormat, VkImageViewType._2D, width, height, 1, 1, 1,
-                VkImageUsageFlags.DepthStencilAttachmentBit, name: "back buffer depth");
+                VkImageUsageFlags.DepthStencilAttachmentBit, name: "back buffer depth", kind: "presenter");
             b.Width = width;
             b.Height = height;
             b.DrawnSinceAllocation = false;

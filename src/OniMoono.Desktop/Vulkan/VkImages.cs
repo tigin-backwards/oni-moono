@@ -29,6 +29,9 @@ namespace OniMoono.Desktop.Vulkan
         public VkAccessFlags2 Access;
         /// The pass in which a draw found it ready to sample (VkReadyStamps).
         public long ReadyPass;
+        /// Its allocation's size, and its kind in VideoMemoryLedger.
+        public long Bytes;
+        string kind;
 
         const VkAccessFlags2 Writes = VkAccessFlags2.ShaderWriteBit | VkAccessFlags2.ColorAttachmentWriteBit | VkAccessFlags2.DepthStencilAttachmentWriteBit
                                       | VkAccessFlags2.TransferWriteBit | VkAccessFlags2.HostWriteBit | VkAccessFlags2.MemoryWriteBit;
@@ -87,7 +90,7 @@ namespace OniMoono.Desktop.Vulkan
         /// A device-local image with a view of all its levels (and a level-0 view when it is an
         /// attachment).
         public static VkImageResource Create(VkContext vk, VkFormat format, VkImageViewType viewType, int width, int height, int depth, int levels, int layers,
-            VkImageUsageFlags usage, int samples = 1, VkComponentMapping? swizzle = null, string name = null)
+            VkImageUsageFlags usage, int samples = 1, VkComponentMapping? swizzle = null, string name = null, string kind = "other images")
         {
             var r = new VkImageResource
             {
@@ -110,7 +113,10 @@ namespace OniMoono.Desktop.Vulkan
                 Flags = viewType == VkImageViewType.Cube ? VkImageCreateFlags.CubeCompatibleBit : 0,
             };
             var alloc = new VmaAllocationCreateInfo { Usage = VmaMemoryUsage.AutoPreferDevice };
-            VkCheck.Ok(vk.Allocator.CreateImage(info, alloc, out r.Image, out r.Allocation, out _), $"vmaCreateImage {width}x{height} {format}{(name != null ? " (" + name + ")" : "")}");
+            VkCheck.Ok(vk.Allocator.CreateImage(info, alloc, out r.Image, out r.Allocation, out var allocation), $"vmaCreateImage {width}x{height} {format}{(name != null ? " (" + name + ")" : "")}");
+            r.kind = kind;
+            r.Bytes = (long)allocation.Size.Value;
+            OniMoono.Desktop.Gl.VideoMemoryLedger.Add(kind, r.Bytes, 1);
             try
             {
                 // Depth-and-stencil images are sampled through their depth.
@@ -145,7 +151,11 @@ namespace OniMoono.Desktop.Vulkan
         {
             if (!View.IsNull()) vk.Device.DestroyImageView(View, null);
             if (!AttachmentView.IsNull()) vk.Device.DestroyImageView(AttachmentView, null);
-            if (!Image.IsNull()) vk.Allocator.DestroyImage(Image, Allocation);
+            if (!Image.IsNull())
+            {
+                vk.Allocator.DestroyImage(Image, Allocation);
+                OniMoono.Desktop.Gl.VideoMemoryLedger.Add(kind, -Bytes, -1);
+            }
             View = AttachmentView = default;
             Image = default;
         }

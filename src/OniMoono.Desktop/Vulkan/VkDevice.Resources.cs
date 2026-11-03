@@ -96,7 +96,7 @@ namespace OniMoono.Desktop.Vulkan
             var cb = frames.Uploads;
             void Make(string key, VkImageViewType type, int layers, uint glTarget)
             {
-                var image = VkImageResource.Create(vk, VkFormat.R8G8B8A8UNorm, type, 1, 1, 1, 1, layers, VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferDstBit, name: "default " + name);
+                var image = VkImageResource.Create(vk, VkFormat.R8G8B8A8UNorm, type, 1, 1, 1, 1, layers, VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferDstBit, name: "default " + name, kind: "default textures");
                 var vt = new VkTexture { Image = image, Sampler = defaultSampler };
                 image.ForTransferWrite(cb);
                 var color = new VkClearColorValue();
@@ -140,6 +140,22 @@ namespace OniMoono.Desktop.Vulkan
         /// batch has not used the texture yet, else at this point of the rendering.
         CommandBuffer ForUpdate(VkTexture vt) => vt.LastUsedBatch == frames.Batch ? OutsideRendering() : frames.Uploads;
 
+        /// Mesh buffers kept as spares (VkMesh), in VideoMemoryLedger.
+        const string SpareKind = "mesh spare buffers";
+
+        static readonly Dictionary<(TextureFormat, VkFormat, VkImageViewType), string> textureKinds = new();
+
+        /// A texture's kind in VideoMemoryLedger: its type and format, and the format it is
+        /// stored as when converted.
+        static string TextureKind(TextureFormat format, VkTextureFormat f, VkImageViewType type)
+        {
+            var key = (format, f.Format, type);
+            if (!textureKinds.TryGetValue(key, out var kind))
+                textureKinds[key] = kind = (type == VkImageViewType._2DArray ? "texture array " : type == VkImageViewType._3D ? "texture 3D " : "texture ") + format
+                                           + (f.Conversion != TexelConversion.None ? " (converted to " + f.Format + ")" : "");
+            return kind;
+        }
+
         // ----- IResourceWork (device thread) -----
 
         public DeviceProgram Program(ShaderNative shader, int blobIndex)
@@ -167,19 +183,22 @@ namespace OniMoono.Desktop.Vulkan
             if (vt.DepthOnly)
             {
                 vt.Image = VkImageResource.Create(vk, VkFormat.D32SFloat, VkImageViewType._2D, shape.Width, shape.Height, 1, 1, 1,
-                    VkImageUsageFlags.DepthStencilAttachmentBit | VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferDstBit, name: name);
+                    VkImageUsageFlags.DepthStencilAttachmentBit | VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferDstBit, name: name,
+                    kind: GlTextures.RenderTargetKind(GraphicsFormat.None));
                 ClearDepth(cb, vt.Image);
             }
             else
             {
                 var format = VkFormats.Color(shape.ColorFormat);
                 vt.Image = VkImageResource.Create(vk, format, VkImageViewType._2D, shape.Width, shape.Height, 1, shape.Levels, 1,
-                    VkImageUsageFlags.ColorAttachmentBit | VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferSrcBit | VkImageUsageFlags.TransferDstBit, name: name);
+                    VkImageUsageFlags.ColorAttachmentBit | VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferSrcBit | VkImageUsageFlags.TransferDstBit, name: name,
+                    kind: GlTextures.RenderTargetKind(shape.ColorFormat));
                 ClearColor(cb, vt.Image);
                 if (samples > 1)
                 {
                     vt.Multisampled = VkImageResource.Create(vk, format, VkImageViewType._2D, shape.Width, shape.Height, 1, 1, 1,
-                        VkImageUsageFlags.ColorAttachmentBit | VkImageUsageFlags.TransferSrcBit | VkImageUsageFlags.TransferDstBit, samples, name: name + " (multisampled)");
+                        VkImageUsageFlags.ColorAttachmentBit | VkImageUsageFlags.TransferSrcBit | VkImageUsageFlags.TransferDstBit, samples, name: name + " (multisampled)",
+                        kind: DeviceTexture.MultisampledKind);
                     ClearColor(cb, vt.Multisampled);
                 }
                 if (shape.DepthBits > 0)
@@ -187,7 +206,8 @@ namespace OniMoono.Desktop.Vulkan
                     // As OpenGL's depth renderbuffers (a multisampled one is 24-bit with stencil).
                     var depthFormat = samples > 1 ? this.depthFormat : shape.DepthBits > 24 ? VkFormat.D32SFloatS8UInt : shape.DepthBits > 16 ? this.depthFormat : VkFormat.D16UNorm;
                     vt.DepthStencil = VkImageResource.Create(vk, depthFormat, VkImageViewType._2D, shape.Width, shape.Height, 1, 1, 1,
-                        VkImageUsageFlags.DepthStencilAttachmentBit | VkImageUsageFlags.TransferDstBit, samples, name: name + " (depth)");
+                        VkImageUsageFlags.DepthStencilAttachmentBit | VkImageUsageFlags.TransferDstBit, samples, name: name + " (depth)",
+                        kind: DeviceTexture.DepthKind);
                     ClearDepth(cb, vt.DepthStencil);
                 }
             }
@@ -274,7 +294,7 @@ namespace OniMoono.Desktop.Vulkan
                 // texture as it was, its images still live.
                 VkFault.OutOfMemoryEvery("alloc-every");
                 var made = VkImageResource.Create(vk, f.Format, type, u.Width, u.Height, depth, levels, layers,
-                    VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferDstBit, swizzle: f.Swizzle);
+                    VkImageUsageFlags.SampledBit | VkImageUsageFlags.TransferDstBit, swizzle: f.Swizzle, kind: TextureKind(u.Format, f, type));
                 if (image != null)
                 {
                     var (old, oldDepth, oldMulti) = (image, vt.DepthStencil, vt.Multisampled);
@@ -474,12 +494,14 @@ namespace OniMoono.Desktop.Vulkan
             // A buffer of the mesh's that the GPU is done with (a spare) takes the upload when it
             // is large enough; else a new one, with room for some growth once the mesh changes.
             VkBufferAlloc buffer = vm.TakeSpare(size);
+            buffer?.Relabel(DeviceMesh.Kind);
             if (buffer == null)
                 try
                 {
                     VkFault.OutOfMemoryEvery("alloc-every");
                     buffer = VkBufferAlloc.Create(vk, old != null ? VkMesh.Capacity(size) : size,
-                        VkBufferUsageFlags.VertexBufferBit | VkBufferUsageFlags.IndexBufferBit | VkBufferUsageFlags.TransferDstBit, hostWrite: !StagedMeshes, allowTransferInstead: true);
+                        VkBufferUsageFlags.VertexBufferBit | VkBufferUsageFlags.IndexBufferBit | VkBufferUsageFlags.TransferDstBit, hostWrite: !StagedMeshes, allowTransferInstead: true,
+                        kind: DeviceMesh.Kind);
                 }
                 catch
                 {
@@ -587,6 +609,7 @@ namespace OniMoono.Desktop.Vulkan
             frames.Retire(() =>
             {
                 if (vm.Released || !vm.AddSpare(old)) old.Destroy(vk);
+                else old.Relabel(SpareKind);
             });
         }
 

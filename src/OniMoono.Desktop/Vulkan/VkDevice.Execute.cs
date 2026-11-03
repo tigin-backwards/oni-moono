@@ -526,7 +526,7 @@ namespace OniMoono.Desktop.Vulkan
             int rw = x1 - x0, rh = y1 - y0;
             // The back buffer is stored top row first: its rows are read turned over.
             bool turned = device == null;
-            var buffer = VkBufferAlloc.Create(vk, (long)rw * rh * texel, VkBufferUsageFlags.TransferDstBit, hostWrite: false, readback: true);
+            var buffer = VkBufferAlloc.Create(vk, (long)rw * rh * texel, VkBufferUsageFlags.TransferDstBit, hostWrite: false, readback: true, kind: "readback buffers");
             try
             {
                 image.ForTransferRead(cb);
