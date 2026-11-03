@@ -254,10 +254,36 @@ namespace OniMoono.Desktop.Vulkan
             if (vt.Image.Levels > 1 && autoGenerateMips) VkTextureWork.GenerateMips(cb, vt.Image);
         }
 
+        /// The host staging a frame's texture uploads take before the GPU is waited for and the
+        /// staging taken again (ONI_VULKAN_STAGING_MB; 0: no bound).
+        static readonly long StagingBudget = (long.TryParse(Environment.GetEnvironmentVariable("ONI_VULKAN_STAGING_MB"), out long mb) ? mb : 64) << 20;
+
+        /// Uploads that waited for the staging to be reused (frame counts).
+        long stagingWaits;
+
+        /// A burst of uploads (a load) stages at most StagingBudget (and one upload past it) at
+        /// a time: once this upload would take the frame's staging past it, what is recorded is
+        /// submitted, the GPU waited for (as a readback waits) and the staging reused. Without
+        /// it a frame that uploads a bundle's textures holds them all in host-visible memory
+        /// until the GPU has run the frame.
+        void BoundStaging(TexelUpload u)
+        {
+            if (StagingBudget <= 0 || deviceLost || u.Memory == null || frames.Staged == 0) return;
+            // Conversions to wider formats stage up to twice the texels (RGB24 as RGBA8).
+            if (frames.Staged + 2 * u.Memory.Size <= StagingBudget) return;
+            OutsideRendering();
+            FlushStreams();
+            frames.Submit(endFrame: false);
+            vk.Queue.WaitIdle();
+            frames.ReuseStaging();
+            stagingWaits++;
+        }
+
         public void UploadTexture(DeviceTexture g, TexelUpload u)
         {
             long t = System.Diagnostics.Stopwatch.GetTimestamp();
             u.Copying?.Wait();
+            BoundStaging(u);
             try
             {
                 Upload(g, u);

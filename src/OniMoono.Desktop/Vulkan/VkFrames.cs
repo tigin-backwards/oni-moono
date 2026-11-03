@@ -282,6 +282,7 @@ namespace OniMoono.Desktop.Vulkan
             s.ChunkIndex = 0;
             RecycleChunks(s.Staging);
             s.StagingIndex = 0;
+            Staged = 0;
             foreach (var c in s.Uniforms) c.Used = 0;
             s.UniformIndex = 0;
             foreach (var pool in s.DescriptorPools) vk.Device.PInvoke.vkResetDescriptorPool.Invoke(vk.Device.Handle, pool, 0);
@@ -336,7 +337,24 @@ namespace OniMoono.Desktop.Vulkan
         {
             if (!HostStaging) return Stream(size, alignment);
             var s = Current;
+            Staged += size;
             return Take(s.Staging, ref s.StagingIndex, size, alignment, VkBufferUsageFlags.TransferSrcBit, preferHost: true, "staging chunks");
+        }
+
+        /// Bytes staged since the frame began or the staging was last reused (ReuseStaging).
+        public long Staged { get; private set; }
+
+        /// The frame's staging chunks taken again from their start: the caller has submitted
+        /// everything recorded and the GPU has finished it (as a readback waits for it), so no
+        /// copy still reads them. Only the host staging (HostStaging): the stream also holds
+        /// the frame's uniform blocks and geometry.
+        public void ReuseStaging()
+        {
+            if (!HostStaging) return;
+            var s = Current;
+            foreach (var c in s.Staging) c.Used = 0;
+            s.StagingIndex = 0;
+            Staged = 0;
         }
 
         public (VkBuffer Buffer, long Offset) Staging(ReadOnlySpan<byte> data, long alignment)

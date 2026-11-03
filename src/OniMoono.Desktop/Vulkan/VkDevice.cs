@@ -491,12 +491,12 @@ namespace OniMoono.Desktop.Vulkan
         {
             string text = VkTimings.Take(n) + $"; draws {draws / n}, pipeline binds {pipelineBinds / n}, render passes {renderPasses / n}, passes broken by uploads {uploadBreaks / n}, "
                 + $"submits {frames.Submits / (double)n:F1}, programs built {programs.Built}, pipelines made {pipelines.Created} ({pipelines.CreateTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F0} ms), "
-                + $"texture uploads {textureUploads / (double)n:F1} ({textureUploadBytes / n / 1024} KiB), unchanged {unchangedUploads / (double)n:F1}, "
+                + $"texture uploads {textureUploads / (double)n:F1} ({textureUploadBytes / n / 1024} KiB), unchanged {unchangedUploads / (double)n:F1}, staging waits {stagingWaits}, "
                 + $"descriptor sets made {descriptorCache.Made / (double)n:F1}, found {descriptorCache.Found / n}, kept {descriptorCache.Count}; "
                 + OniMoono.Desktop.Gl.PresenterTimings.Take() + VkDrawAlternation.EndWindow();
             draws = pipelineBinds = renderPasses = uploadBreaks = 0;
             frames.Submits = 0;
-            textureUploads = textureUploadBytes = unchangedUploads = 0;
+            textureUploads = textureUploadBytes = unchangedUploads = stagingWaits = 0;
             descriptorCache.Made = descriptorCache.Found = 0;
             return text;
         });
