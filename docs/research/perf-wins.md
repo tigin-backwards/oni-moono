@@ -343,6 +343,8 @@ These are not per-frame, so they are outside the ranking above:
 | Candidate | Verdict | c100 | DeCrew | soggy lab 2 | U57 |
 |---|---|---|---|---|---|
 | 1. Symbol overrides | **Landed**, exact | 34.9, 40.7 → 62.4, 84.7 fps; main thread 28.4, 24.3 → 15.9, 11.7 ms | 107.2, 82.3 → 129.8, 107.8 fps | 31.3, 33.7 → 28.9, 33.4 fps | 62.3, 70.9 → 66.4, 70.6 fps |
+| 2. `Cull`'s queued loop | **Landed**, exact | 24.0, 23.4 → 19.4, 20.1 µs per Cull call (about 960 meshes) | 30.1, 25.3 → 22.3, 22.9 µs per call (about 2,000 meshes) | – | – |
+| Closures and delegates (sweep) | **Landed (allocations)**, exact | closures and delegates 83-102 → 0.7-2.2 KiB/frame; ours 354-417 → 311-348; total 664-785 → 642-702 | 64-80 → 0; ours 312-374 → 260-261; total 876-997 → 858-886 | – | – |
 
 Candidate 1 (`fast-symbol-overrides`, kept applications):
 - **Cause**: Duplicants re-apply their overrides on every dirty mark
@@ -364,6 +366,32 @@ Candidate 1 (`fast-symbol-overrides`, kept applications):
   25 fps between pairs on c100 and DeCrew. c100 gains in both pairs, every phase included
   (fewer texture uploads). soggy and U57 show no change beyond noise: their late phase, where
   the change runs, is 5.77, 5.20 → 5.69, 5.28 ms (soggy) and 5.62, 5.02 → 5.18, 4.89 ms (U57).
+
+Candidate 2 and the closure sweep (Linux, U60 761211, OpenGL on Xvfb, speed 3, busiest world,
+30 s traces with GC allocation ticks from 90 s after the busiest world; Windows not measured):
+- **Cull's queued loop**: the boxed enumerators had already gone (6d296cca); the `foreach`
+  still copied each `QueuedMesh` out of its list. The loop reads each in place by index, in
+  the same order. A stopwatch around it gives the numbers above, two runs per build. That is
+  15-25% of the loop, a few microseconds per camera: well short of the estimate, which was
+  `Cull`'s whole own frame.
+- **Closures and delegates**: per-change and per-draw closures and delegates in our code. GL
+  texture and mesh uploads and sampler changes, render targets, viewports, scissors and clears
+  (GL and Vulkan) are now commands reused from the frame's arena. Closures C# made on entry to
+  `GlDrawRecorder.Program`, `GlTextures.Upload2D` and `TexelCopies.Start` are made only on
+  their rare paths. Image effects, nested canvases, video planes, immediate draws' variant
+  selection and the symbol-override overlap sort allocate nothing per call. "Ours" counts
+  allocations whose innermost non-BCL frame is in our code: −16 to −23%. Total allocation is
+  about −8%, most of the rest being the game's conduit meshes. The main thread's time could
+  not be measured at this size (30-80 ms a frame with the machine's load), and neither could
+  fps.
+- **Start-up** (35 mods, to the main menu): mod access checks and missing-type scans no longer
+  look up every loaded assembly's name or make a delegate per type checked. Start-up allocations
+  from our code fell from 3,353 to 3,011 MiB. The time to the main menu (22-26 s) did not
+  change beyond noise.
+- **Windows**: a Vulkan smoke run on c100 (761211, speed 3, busiest world) loaded and played
+  for two minutes with no errors in the log. The GC ran one gen0 and one gen1 collection in a
+  60 s trace: with Server GC's budgets, collections are already too few for these allocations
+  to change their count measurably.
 
 ## Next
 
