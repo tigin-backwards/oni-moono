@@ -238,6 +238,7 @@ namespace OniMoono.Desktop.Vulkan
         void Presented()
         {
             presented++;
+            if (VkDrawVerify.On) VkDrawVerify.Presented(presented);
             if (presented == crashAt)
             {
                 EngineLog.Engine($"vulkan: ONI_VULKAN_FAIL=crash-at:{crashAt}: the process ends as a crash would");

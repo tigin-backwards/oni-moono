@@ -113,6 +113,9 @@ namespace OniMoono.Desktop.Vulkan
             return p;
         }
 
+        /// The pipeline kept for the key, without the last-key shortcut (verify mode).
+        public bool Kept(in VkPipelineKey key, out VkPipeline pipeline) => pipelines.TryGetValue(key, out pipeline);
+
         readonly HashSet<VkProgram> refused = new(), outOfMemory = new();
         VkPipelineKey lastKey;
         VkPipeline lastPipeline;

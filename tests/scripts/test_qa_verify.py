@@ -108,6 +108,17 @@ class VerifySummary(unittest.TestCase):
                         '[engine] bundle blocks: a read of 4096 bytes at 131000 in dlc2_bundle differs from the whole decode at byte 131072 (7 for 9)')
         self.assertVerdicts(result, 1, 'FAIL bundle blocks:', 'FAIL incident bundle blocks: a read')
 
+    def test_vulkan_draws(self):
+        line = ("[engine] vulkan draws: 1,234,567 verified, {0} wrong in preparation, {1} wrong in set 0's key, "
+                "{2} wrong in set 0, {3} wrong in the pipeline")
+        self.assertVerdicts(verify(line.format(0, 0, 0, 0)), 0, 'ok   vulkan draws:')
+        for at in range(4):
+            counts = [0, 0, 0, 0]
+            counts[at] = 2
+            self.assertVerdicts(verify(line.format(*counts)), 1, 'FAIL vulkan draws:')
+        self.assertVerdicts(verify(line.format(0, 0, 0, 0), '[engine] vulkan draws: mismatch: set 0: Klei/BatchedAnimation: identity 3 (binding 1) is 5, the full path\'s 6'),
+                            1, 'ok   vulkan draws:', 'FAIL incident vulkan draws: mismatch')
+
     def test_the_last_report_of_each_shape(self):
         result = verify('[engine] canvas skips: 100 verified, 1 wrong', '[engine] canvas skips: 200 verified, 0 wrong',
                         '[engine] canvas skips: 0 graphics skipped by masks, 0 wrong')

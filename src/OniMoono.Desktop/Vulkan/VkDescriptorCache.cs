@@ -70,6 +70,20 @@ namespace OniMoono.Desktop.Vulkan
             return false;
         }
 
+        /// The value for the owner and identities, leaving every entry as it is (verify mode).
+        public bool Peek(object owner, ReadOnlySpan<long> ids, out TValue value)
+        {
+            if (buckets.TryGetValue(HashOf(owner, ids), out var e))
+                for (; e != null; e = e.Next)
+                    if (e.Owner == owner && ids.SequenceEqual(e.Ids))
+                    {
+                        value = e.Value;
+                        return true;
+                    }
+            value = default;
+            return false;
+        }
+
         public bool TryGet(object owner, ReadOnlySpan<long> ids, long now, out TValue value)
         {
             object last = null;
@@ -214,6 +228,15 @@ namespace OniMoono.Desktop.Vulkan
             }
             set = default;
             return false;
+        }
+
+        /// The set kept for the program and identities, without marking it used or counting it
+        /// (verify mode).
+        public bool Kept(VkProgram program, ReadOnlySpan<long> ids, out VkDescriptorSet set)
+        {
+            bool found = table.Peek(program, ids, out var known);
+            set = known.Set;
+            return found;
         }
 
         /// A new set for the program, remembered for these identities; the caller writes it.

@@ -2223,6 +2223,12 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   60-frame window, each window's counts ending in `variant=0` (before) or `variant=1`, so one
   run compares both under the same load (`VkDrawAlternation`,
   docs/research/vulkan-draw-binding.md).
+  `ONI_VERIFY_VK_DRAWS=1` (`VkDrawVerify`, qa.sh's verify stage) runs each draw's full work
+  beside the draw path's shortcuts and counts where they part: textures skipped as found ready
+  in the pass, set 0's identities against those built with its writes, the cached set against
+  the one kept for them, and the pipeline lookup's last-key shortcut against the pipeline kept
+  for the key; a `vulkan draws:` summary every 600 frames, which fails
+  `qa-tools.py verify` on any non-zero count.
   `--check-shaders` on Vulkan builds every variant and a pipeline for its pass's state, and counts
   what fails.
 

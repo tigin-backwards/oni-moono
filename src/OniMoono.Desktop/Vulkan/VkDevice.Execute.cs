@@ -316,6 +316,7 @@ namespace OniMoono.Desktop.Vulkan
         /// (VkReadyStamps).
         void PrepareTextures(ProgramInputs r)
         {
+            if (VkDrawVerify.On) VerifyReady(r);
             bool outside = false;
             for (int i = 0; i < r.TextureCount; i++)
             {
@@ -344,15 +345,40 @@ namespace OniMoono.Desktop.Vulkan
         /// of the pass, needs no work and is marked used by this batch.
         bool Ready(VkTexture vt) => ready.IsReady(vt.Image);
 
+        /// Verify mode: a texture skipped as found ready is one the full check would have left
+        /// as it is (no attachment, in its sampling layout, no resolve or mips due) and already
+        /// marked used by this batch.
+        void VerifyReady(ProgramInputs r)
+        {
+            for (int i = 0; i < r.TextureCount; i++)
+            {
+                var vt = r.Textures[i].Texture.Vk;
+                if (vt?.Image == null || !Ready(vt)) continue;
+                string problem = null;
+                if (!rendering) problem = "stamped outside a pass";
+                else if (Attached(vt)) problem = "an attachment of the pass";
+                else if (vt.Image.Layout != VkImageLayout.ShaderReadOnlyOptimal) problem = $"in layout {vt.Image.Layout}";
+                else if (vt.RenderTarget && vt.Dirty && (vt.Multisampled != null || vt.Image.Levels > 1 && r.Textures[i].AutoGenerateMips)) problem = "a resolve or mips due";
+                else if (vt.LastUsedBatch != frames.Batch) problem = "not marked used by this batch";
+                if (problem != null) VkDrawVerify.Wrong(VkDrawVerify.Kind.Preparation, r.Program.Vk?.Name, $"texture {i} found ready but {problem}");
+            }
+        }
+
         /// The texture is (or is about to be, once the pass begins) an attachment of the
         /// current target.
-        bool IsAttached(VkTexture vt)
+        bool Attached(VkTexture vt)
         {
             var t = target;
             if (t.Colors == null) return false;
             bool hit = t.Depth?.Vk == vt;
             foreach (var c in t.Colors) hit |= c?.Vk == vt;
-            if (!hit) return false;
+            return hit;
+        }
+
+        /// Attached, and a feedback loop reported once.
+        bool IsAttached(VkTexture vt)
+        {
+            if (!Attached(vt)) return false;
             // A feedback loop, undefined on OpenGL: the draw reads no texture there.
             if (!feedbackReported)
             {
@@ -368,6 +394,7 @@ namespace OniMoono.Desktop.Vulkan
         {
             var key = new VkPipelineKey(program, r.State, layoutKey, topology, targetFormats);
             var pipeline = pipelines.Get(key, layout);
+            if (VkDrawVerify.On) VerifyPipeline(program, key, pipeline);
             if (pipeline.IsNull()) return false;
             var cb = frames.Main;
             if (pipeline.VkHandle != boundPipeline.VkHandle)
@@ -381,17 +408,78 @@ namespace OniMoono.Desktop.Vulkan
             return true;
         }
 
+        /// Verify mode: the pipeline the lookup gave against the one kept for the key (the
+        /// last-key shortcut kept stale would part from it).
+        void VerifyPipeline(VkProgram program, in VkPipelineKey key, VkPipeline pipeline)
+        {
+            VkDrawVerify.Verified();
+            if (pipelines.Kept(key, out var kept) && kept.VkHandle != pipeline.VkHandle)
+                VkDrawVerify.Wrong(VkDrawVerify.Kind.Pipeline, program.Name, "the lookup gave another pipeline than the one kept for the key");
+        }
+
         /// A draw's set-0 textures: the program's texture at each slot, or the unbound stand-in
         /// for one without an image or rendered into by this pass (never one found ready).
-        readonly struct DrawTextures(VkDevice device, ProgramInputs r) : ITextureSlots
+        /// `full`: every texture checked as before VkReadyStamps (verify mode).
+        readonly struct DrawTextures(VkDevice device, ProgramInputs r, bool full = false) : ITextureSlots
         {
             public VkTexture Texture(VkBindingSlot slot)
             {
                 if (slot.Index < 0) return null;
                 var vt = r.Textures[slot.Index].Texture.Vk;
-                if (vt?.Image == null || !device.Ready(vt) && device.IsAttached(vt)) vt = device.DefaultTexture(Unbound, r.Program.Samplers[slot.Index].Target).Vk;
+                bool unbound = vt?.Image == null || (full ? device.Attached(vt) : !device.Ready(vt) && device.IsAttached(vt));
+                if (unbound) vt = device.DefaultTexture(Unbound, r.Program.Samplers[slot.Index].Target).Vk;
                 return vt;
             }
+        }
+
+        /// Verify mode: set 0 as the draw path before the shortcuts made it (every texture
+        /// checked in full, writes and identities built together), against what the draw used:
+        /// the same identities, the same pushed writes, the same cached set.
+        void VerifyTextureSet(ProgramInputs r, VkProgram program, VkDescriptorSet used, in VkDescriptorBufferInfo storage)
+        {
+            var slots = program.Slots;
+            int n = slots.Length;
+            var source = new DrawTextures(this, r);
+            var full = new DrawTextures(this, r, full: true);
+            Span<long> ids = stackalloc long[2 * n], fullIds = stackalloc long[2 * n];
+            VkTextureSet.Identities(ref source, slots, defaultSampler, ids);
+            var writes = stackalloc VkWriteDescriptorSet[n];
+            var bufferInfos = stackalloc VkDescriptorBufferInfo[n];
+            var imageInfos = stackalloc VkDescriptorImageInfo[n];
+            VkTextureSet.Writes(ref full, slots, defaultSampler, storage, default, writes, bufferInfos, imageInfos, fullIds);
+            if (!ids.SequenceEqual(fullIds))
+            {
+                int at = 0;
+                while (ids[at] == fullIds[at]) at++;
+                VkDrawVerify.Wrong(VkDrawVerify.Kind.Key, program.Name, $"identity {at} (binding {slots[at / 2].Binding}) is {ids[at]}, the full path's {fullIds[at]}");
+                return;
+            }
+            if (program.Push)
+            {
+                var pushed = stackalloc VkWriteDescriptorSet[n];
+                var pushedBuffers = stackalloc VkDescriptorBufferInfo[n];
+                var pushedImages = stackalloc VkDescriptorImageInfo[n];
+                VkTextureSet.Writes(ref source, slots, defaultSampler, storage, default, pushed, pushedBuffers, pushedImages);
+                for (int i = 0; i < n; i++)
+                    if (!SameWrite(pushed[i], writes[i]))
+                    {
+                        VkDrawVerify.Wrong(VkDrawVerify.Kind.Set, program.Name, $"pushed write {i} (binding {slots[i].Binding}) differs from the full path's");
+                        return;
+                    }
+                return;
+            }
+            if (!descriptorCache.Kept(program, fullIds, out var kept) || kept.VkHandle != used.VkHandle)
+                VkDrawVerify.Wrong(VkDrawVerify.Kind.Set, program.Name, "the cache gave another set than the one kept for the full path's identities");
+        }
+
+        static bool SameWrite(in VkWriteDescriptorSet a, in VkWriteDescriptorSet b)
+        {
+            if (a.DstBinding != b.DstBinding || a.DescriptorType != b.DescriptorType || a.DescriptorCount != b.DescriptorCount) return false;
+            if ((a.ImageInfo == null) != (b.ImageInfo == null) || (a.BufferInfo == null) != (b.BufferInfo == null)) return false;
+            if (a.ImageInfo != null && (a.ImageInfo->Sampler.VkHandle != b.ImageInfo->Sampler.VkHandle || a.ImageInfo->ImageView.VkHandle != b.ImageInfo->ImageView.VkHandle
+                                        || a.ImageInfo->ImageLayout != b.ImageInfo->ImageLayout)) return false;
+            return a.BufferInfo == null || a.BufferInfo->Buffer.VkHandle == b.BufferInfo->Buffer.VkHandle && a.BufferInfo->Offset == b.BufferInfo->Offset
+                                           && a.BufferInfo->Range == b.BufferInfo->Range;
         }
 
         /// Set 0: each binding's texture, its sampler, or an empty storage buffer; pushed, or
@@ -410,12 +498,14 @@ namespace OniMoono.Desktop.Vulkan
                 var imageInfos = stackalloc VkDescriptorImageInfo[n];
                 VkTextureSet.Writes(ref source, slots, defaultSampler, storage, default, writes, bufferInfos, imageInfos);
                 vk.Device.PInvoke.vkCmdPushDescriptorSetKHR.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 0, n, writes);
+                if (VkDrawVerify.On) VerifyTextureSet(r, program, default, storage);
                 return default;
             }
             // A set naming the same descriptors is bound again; else one is made and kept.
             var set = VkDrawAlternation.Before(VkDrawAlternation.WritesFirst)
                 ? descriptorCache.SetForWritesFirst(program, ref source, defaultSampler, storage, presented)
                 : descriptorCache.SetFor(program, ref source, defaultSampler, storage, presented);
+            if (VkDrawVerify.On) VerifyTextureSet(r, program, set, storage);
             if (program.Uniforms.Length == 0) vk.Device.PInvoke.vkCmdBindDescriptorSets.Invoke(cb.Handle, VkPipelineBindPoint.Graphics, program.Layout, 0, 1, &set, 0, null);
             return set;
         }
