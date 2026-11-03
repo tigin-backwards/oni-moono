@@ -189,6 +189,7 @@ namespace UnityEngine
             t.Dimension = src.Dimension;
             t.VolumeDepth = src.VolumeDepth;
             t.MipCount = src.MipCount;
+            t.MipRequest = src.MipRequest;
         }
 
         RenderTextureNative Data => (RenderTextureNative)NativeOrThrow;
@@ -208,13 +209,13 @@ namespace UnityEngine
         public override int width
         {
             get => Data.Width;
-            set { var t = Describable("width"); if (t != null) t.Width = value; }
+            set { var t = Describable("width"); if (t != null) { t.Width = value; t.MipsChanged(); } }
         }
 
         public override int height
         {
             get => Data.Height;
-            set { var t = Describable("height"); if (t != null) t.Height = value; }
+            set { var t = Describable("height"); if (t != null) { t.Height = value; t.MipsChanged(); } }
         }
 
         public int volumeDepth
@@ -268,7 +269,8 @@ namespace UnityEngine
                 var t = Describable("useMipMap");
                 if (t == null) return;
                 t.UseMipMap = value;
-                t.MipCount = value ? TextureFormats.FullMipCount(t.Width, t.Height) : 1;
+                t.MipRequest = -1;
+                t.MipsChanged();
             }
         }
 
@@ -454,6 +456,7 @@ namespace UnityEngine
                 VolumeDepth = volumeDepth,
                 // Unity: with mip maps, mipCount -1 is the full chain; without, one level.
                 MipCount = !useMipMap ? 1 : mipCount > 0 ? mipCount : TextureFormats.FullMipCount(width, height),
+                MipRequest = mipCount > 0 ? mipCount : -1,
             };
         }
 
@@ -461,7 +464,7 @@ namespace UnityEngine
         {
             msaaSamples = Math.Max(1, t.AntiAliasing),
             volumeDepth = t.VolumeDepth,
-            mipCount = t.MipCount,
+            mipCount = t.UseMipMap ? t.MipRequest : t.MipCount,
             useMipMap = t.UseMipMap,
             autoGenerateMips = t.AutoGenerateMips,
             enableRandomWrite = t.EnableRandomWrite,

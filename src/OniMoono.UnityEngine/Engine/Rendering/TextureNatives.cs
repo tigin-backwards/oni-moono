@@ -413,7 +413,22 @@ namespace OniMoono.Engine.Rendering
         public GraphicsFormat DepthStencilFormat;
         public int AntiAliasing = 1;
         public bool UseMipMap;
+        /// The mip count asked for with mipmaps (RenderTextureDescriptor.mipCount), -1 for the
+        /// full chain of whatever size the texture has when it is created: Unity's player keeps
+        /// that, and `useMipMap = true` at 256x256 then 1024x1024 gives 11 levels (UnityProbe
+        /// vram: mipmapCount 11, descriptor.mipCount -1; a descriptor's mipCount 3 gives 3, and
+        /// the device memory of 3 levels).
+        public int MipRequest = -1;
         public bool AutoGenerateMips = true;
+
+        /// The levels the texture has: one without mipmaps, else MipRequest or the full chain.
+        public int RequestedMipCount => !UseMipMap ? 1 : MipRequest > 0 ? MipRequest : TextureFormats.FullMipCount(Width, Height);
+
+        /// The levels its device surfaces get: RequestedMipCount, at most the full chain.
+        public int DeviceLevels => Math.Min(RequestedMipCount, TextureFormats.FullMipCount(Width, Height));
+
+        /// MipCount (mipmapCount) after the size or mipmap settings changed.
+        public void MipsChanged() => MipCount = RequestedMipCount;
         public bool EnableRandomWrite;
         public bool Created;
 
@@ -437,6 +452,9 @@ namespace OniMoono.Engine.Rendering
             ColorFormat = (GraphicsFormat)f.Int("m_ColorFormat");
             Format = RenderTextureFormats.FromGraphicsFormat(ColorFormat);
             UseMipMap = f.Bool("m_MipMap");
+            // A saved count above one is kept; one or none with mipmaps is the full chain, the
+            // levels these render textures always had on the device.
+            MipRequest = UseMipMap && MipCount > 1 ? MipCount : -1;
             AutoGenerateMips = f.Bool("m_GenerateMips");
             Srgb = f.Bool("m_SRGB");
             EnableRandomWrite = f.Bool("m_EnableRandomWrite");
