@@ -1,0 +1,22 @@
+# The overlap badge and the update badge together on the main menu, in English (the test mod of
+# mod-overlaps-en.yaml and the releases list of update-badge.yaml): the update badge moves right
+# of the overlap badge, both hover and press as the menu's buttons. Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+test_mods: [OverlapTestMod]
+update_check: {releases: update-releases.json, tag: v2026.11.01.04}
+env: {ONI_TWEAK_SETTINGS: "1"}
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - ui_wait: {path: "**/MoonoUpdateBadge", cond: stable, frames: 600}
+  - expect_ui:
+      "**/MoonoOverlapBadge/Count": {active: true, text: "2 overlaps"}
+      "**/MoonoUpdateBadge/**/Version": {text: "v2026.11.03.02"}
+  - shot: menu
+  - press: {ui: "**/MoonoOverlapBadge", hover: true}
+  - shot: {name: overlap-hover, pointer: stay}
+  - press: {ui: "**/MoonoUpdateBadge", hover: true}
+  - shot: {name: update-hover, pointer: stay}
