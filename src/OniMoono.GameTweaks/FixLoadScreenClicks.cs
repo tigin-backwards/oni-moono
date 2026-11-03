@@ -27,16 +27,58 @@ namespace OniMoono.GameTweaks
     {
         public const string Name = "fix-load-screen-clicks";
 
-        static readonly AccessTools.FieldRef<LoadScreen, UIPool<HierarchyReferences>> pool =
-            AccessTools.FieldRefAccess<LoadScreen, UIPool<HierarchyReferences>>("colonyListPool");
-        static readonly AccessTools.FieldRef<UIPool<HierarchyReferences>, Stack<HierarchyReferences>> free =
-            AccessTools.FieldRefAccess<UIPool<HierarchyReferences>, Stack<HierarchyReferences>>("freeElements");
-        static readonly AccessTools.FieldRef<KButton, System.Action> onClick = AccessTools.FieldRefAccess<KButton, System.Action>("onClick");
+        static AccessTools.FieldRef<LoadScreen, UIPool<HierarchyReferences>> pool;
+        static AccessTools.FieldRef<UIPool<HierarchyReferences>, Stack<HierarchyReferences>> free;
+        static AccessTools.FieldRef<KButton, System.Action> onClick;
 
+        /// Installs the fix only where the game still has the bug: AddColonyToList with the
+        /// signature, and the pool, free-row stack and onClick fields with the types, it was
+        /// written for, and an `onClick +=` with no ClearOnClick before it (LoadScreenClickBug).
+        /// A later build that changes them (as a Klei fix may) leaves it out with a log line,
+        /// rather than stopping start-up.
         public static void Install(Harmony harmony)
-            => harmony.Patch(AccessTools.Method(typeof(LoadScreen), "AddColonyToList"),
+        {
+            var add = AccessTools.Method(typeof(LoadScreen), "AddColonyToList");
+            var parameters = add?.GetParameters();
+            var poolField = AccessTools.Field(typeof(LoadScreen), "colonyListPool");
+            var freeField = AccessTools.Field(typeof(UIPool<HierarchyReferences>), "freeElements");
+            var onClickField = AccessTools.Field(typeof(KButton), "onClick");
+            if (add == null || add.ReturnType != typeof(void) || parameters.Length != 1 || parameters[0].ParameterType != SavesType()
+                || poolField?.FieldType != typeof(UIPool<HierarchyReferences>) || freeField?.FieldType != typeof(Stack<HierarchyReferences>)
+                || onClickField?.FieldType != typeof(System.Action))
+            {
+                global::Debug.Log($"{Name}: left out, this build's LoadScreen is not the one it fixes");
+                return;
+            }
+            string fixedBy;
+            try
+            {
+                fixedBy = LoadScreenClickBug.Fixed(add);
+            }
+            catch (Exception e)
+            {
+                global::Debug.Log($"{Name}: left out, this build's LoadScreen.AddColonyToList could not be read: {e.GetType().Name}: {e.Message}");
+                return;
+            }
+            if (fixedBy != null)
+            {
+                global::Debug.Log($"{Name}: left out, this build already {fixedBy} in LoadScreen.AddColonyToList");
+                return;
+            }
+            pool = AccessTools.FieldRefAccess<LoadScreen, UIPool<HierarchyReferences>>(poolField);
+            free = AccessTools.FieldRefAccess<UIPool<HierarchyReferences>, Stack<HierarchyReferences>>(freeField);
+            onClick = AccessTools.FieldRefAccess<KButton, System.Action>(onClickField);
+            harmony.Patch(add,
                 prefix: new HarmonyMethod(typeof(FixLoadScreenClicks), nameof(Prefix)) { priority = Priority.Last },
                 postfix: new HarmonyMethod(typeof(FixLoadScreenClicks), nameof(Postfix)) { priority = Priority.First });
+        }
+
+        /// List<LoadScreen.SaveGameFileDetails> (a private struct), or null when it is gone.
+        static Type SavesType()
+        {
+            var details = AccessTools.Inner(typeof(LoadScreen), "SaveGameFileDetails");
+            return details == null ? null : typeof(List<>).MakeGenericType(details);
+        }
 
         /// The row AddColonyToList will reuse (UIPool.GetFreeElement pops the top free one), with
         /// the handlers its button has from earlier refreshes.

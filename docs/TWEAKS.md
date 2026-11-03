@@ -196,7 +196,10 @@ the earlier builds' log lines (`Failed to find cluster ...` for a save of an unk
 are not written, a mod patching `LoadScreen.ShowColony` sees one call instead of k + 1, and the
 rows those builds made and destroyed within the frame are not made. It is on by default (the
 player's choice), but in the Bug fixes group and left out of `exact`, since the original does
-the repeated work.
+the repeated work. It installs only where the Load screen still has the bug: when a game update
+changes `LoadScreen.AddColonyToList` or the fields the fix reads, or the method no longer adds
+the handler without clearing the button first, the tweak is left out with one line in
+Player.log (`fix-load-screen-clicks: left out, ...`).
 
 ## Translating Moono Tweaks
 
