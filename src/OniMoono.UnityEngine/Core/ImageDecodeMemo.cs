@@ -30,21 +30,41 @@ namespace OniMoono.Engine
         static readonly Dictionary<long, List<Entry>> entries = new();
         static long kept;
         static bool open;
+        static Func<bool> stillOpen;
+        static Action closed;
 
         public static int Hits { get; private set; }
         public static int Decodes { get; private set; }
 
-        public static bool IsOpen => open;
-
-        public static void Open()
+        /// Open, and its owner still wants it (else it closes now).
+        public static bool IsOpen
         {
+            get
+            {
+                if (open && stillOpen != null && !stillOpen()) Close();
+                return open;
+            }
+        }
+
+        /// Opens the memo while `whileTrue` holds (the owner's screen is up): it closes when it
+        /// no longer does, even when the owner never says so; `onClose` then runs.
+        public static void Open(Func<bool> whileTrue = null, Action onClose = null)
+        {
+            Close();
             open = true;
+            stillOpen = whileTrue;
+            closed = onClose;
             Hits = Decodes = 0;
         }
 
         public static void Close()
         {
+            var wasOpen = open;
+            var then = closed;
             open = false;
+            stillOpen = null;
+            closed = null;
+            if (wasOpen) then?.Invoke();
             entries.Clear();
             kept = 0;
         }
@@ -55,7 +75,7 @@ namespace OniMoono.Engine
             format = default;
             width = height = 0;
             texels = null;
-            if (!open || !entries.TryGetValue(Key(data), out var list)) return false;
+            if (!IsOpen || !entries.TryGetValue(Key(data), out var list)) return false;
             foreach (var e in list)
                 if (e.Data.AsSpan().SequenceEqual(data))
                 {
@@ -69,7 +89,7 @@ namespace OniMoono.Engine
         /// A decode of `data`: its level-0 texels, kept while the memo is open and under budget.
         public static void Keep(byte[] data, TextureFormat format, int width, int height, ReadOnlySpan<byte> texels)
         {
-            if (!open) return;
+            if (!IsOpen) return;
             Decodes++;
             long size = data.Length + texels.Length;
             if (kept + size > Budget) return;
