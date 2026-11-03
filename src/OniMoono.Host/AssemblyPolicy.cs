@@ -132,7 +132,11 @@ namespace OniMoono.Host
             // Game and mod code sees Mono's DllNotFoundException when nothing loads (D58); the
             // runtime raises this event only once its own probing has failed.
             bool monoMessage = !IsHostAssembly(requester);
-            if (native == null) return monoMessage ? throw MonoDllNotFound.Missing(name) : IntPtr.Zero;
+            if (native == null)
+            {
+                LogMissingPlugin(name);
+                return monoMessage ? throw MonoDllNotFound.Missing(name) : IntPtr.Zero;
+            }
             if (native.Value.Replacement)
                 return Announced(name, NativeLibrary.Load(native.Value.Path), $"{native.Value.Path} (the host's replacement: the game's plugin has no {NativeExports.ArchName(ProcessCpu)} code)");
             if (NativeLibrary.TryLoad(native.Value.Path, out var handle)) return handle;
@@ -152,6 +156,25 @@ namespace OniMoono.Host
         }
 
         static readonly HashSet<string> announced = new(StringComparer.Ordinal);
+
+        /// The plugins the game cannot start without (Steam's, the simulation's, FMOD's).
+        static readonly HashSet<string> missingLogged = new(StringComparer.Ordinal);
+        static readonly string[] requiredPlugins =["steam_api", "steam_api64", "SimDLL", "fmodstudio", "fmodstudioL"];
+
+        /// Logs, once per name, the folders searched for a required plugin that none of them has,
+        /// so a player log tells a misplaced install from a broken library (#49).
+        static void LogMissingPlugin(string name)
+        {
+            if (layout == null || Array.IndexOf(requiredPlugins, name) < 0) return;
+            lock (missingLogged)
+                if (!missingLogged.Add(name)) return;
+            bool windows = OperatingSystem.IsWindows();
+            var root = Path.GetDirectoryName(layout.IsMacBundle ? layout.App.TrimEnd('/') : layout.DataDir) ?? "";
+            var folders = layout.PluginFolders(windows).Select(f => Path.GetRelativePath(root, f));
+            string files = layout.IsMacBundle ? $"{name}.bundle, lib{name}.dylib or {name}.dylib"
+                : windows ? $"{name}.dll" : $"lib{name}.so, {name}.so or {name}";
+            EngineLog.Engine($"Native {name}: no plugin found ({files}); searched {string.Join(", ", folders)}");
+        }
 
         /// Logs, once per name, which library replaced a game plugin; for a SimDLL, also its
         /// SYSINFO_Acquire string (onimaxxing-sim's banner, UTF-16; the game itself never calls it),

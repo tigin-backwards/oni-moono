@@ -162,9 +162,11 @@ def ws_mods():
 
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
-            'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi', 'blocked_plugins', 'data_collection',
-            'extra_saves', 'workshop', 'update_check'}
+            'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi', 'blocked_plugins', 'stray_plugins',
+            'data_collection', 'extra_saves', 'workshop', 'update_check'}
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
+# `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty
+# file (what Steam can leave of another branch's build: #49).
 BLOCKED_HOW = ('unreadable', 'missing')
 # The game's own translations (`language`), as Localization.PreinstalledLanguages names them.
 PREINSTALLED_LANGUAGES = ('zh_klei', 'ko_klei', 'ru_klei')
@@ -362,6 +364,10 @@ def check_spec(spec):
     if not isinstance(blocked, dict) or not all(isinstance(n, str) and n and '/' not in n and how in BLOCKED_HOW
                                                 for n, how in blocked.items()):
         problems.append('`blocked_plugins` maps plugin file names to ' + ' or '.join(BLOCKED_HOW))
+    stray = spec.get('stray_plugins', [])
+    if not isinstance(stray, list) or not all(
+            isinstance(p, str) and re.fullmatch(r'[\w.-]+(/[\w.-]+)*/?', p) and '..' not in p.split('/') for p in stray):
+        problems.append('`stray_plugins` lists paths under Plugins (`DIR/` for an empty folder)')
     extra = spec.get('extra_saves', [])
     if not isinstance(extra, list) or not all(isinstance(n, str) and re.fullmatch(r'[\w.-]+', n) for n in extra):
         problems.append('`extra_saves` is a list of fixture names')
@@ -2496,9 +2502,11 @@ class Player:
 
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
                  translation=None, language=None, keyboard=None, tweaks_menu=False, display_dpi=None,
-                 blocked_plugins=None, data_collection=False, extra_saves=(), workshop=None, update_check=None):
+                 blocked_plugins=None, data_collection=False, extra_saves=(), workshop=None, update_check=None,
+                 stray_plugins=()):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
         self.blocked_plugins = dict(blocked_plugins or {})
+        self.stray_plugins = list(stray_plugins or ())
         self.keyboard = keyboard
         self.display_dpi = display_dpi
         self.tweaks_menu = tweaks_menu
@@ -2676,14 +2684,16 @@ class Player:
                 env[name] = self.env[name]
         if self.kind == 'original':
             env.update(original_environment(self.env.get('E2E_ORIGINAL_ENV')))
-        # `blocked_plugins`: each player runs a copy of its install with those plugins unreadable.
-        # The copy is the lane's (both players of a run use it in turn), at the same path for both,
-        # so the plugin's path in a load error is the same in their logs.
+        # `blocked_plugins`, `stray_plugins`: each player runs a copy of its install with those
+        # plugins unreadable and those files added. The copy is the lane's (both players of a run
+        # use it in turn), at the same path for both, so the plugin's path in a load error is the
+        # same in their logs.
         install = os.path.join(OUT, f'.blocked-{self.lane.number}')
+        altered = bool(self.blocked_plugins or self.stray_plugins)
         if self.kind == 'original':
             executable = self.env['E2E_ORIGINAL']
-            if self.blocked_plugins:
-                blocked_install(os.path.dirname(executable), self.blocked_plugins, install)
+            if altered:
+                blocked_install(os.path.dirname(executable), self.blocked_plugins, install, self.stray_plugins)
                 # The executable itself copied (Unity's unity.lock goes beside it; the copy is
                 # the lane's own, as original_player's folder is).
                 copy = os.path.join(install, os.path.basename(executable))
@@ -2697,8 +2707,8 @@ class Player:
             stdout = os.path.join(self.out, 'stdout.txt')
         else:
             game = self.env['QA_U57_GAME']
-            if self.blocked_plugins:
-                game = blocked_install(game, self.blocked_plugins, install)
+            if altered:
+                game = blocked_install(game, self.blocked_plugins, install, self.stray_plugins)
             env.update(ONI_GAME_DIR=game, ONI_RUN_HOME=self.home, ONI_CONFIG='release')
             # The main menu's update check reads the spec's releases file, as this tag (else
             # scripts/run.sh turns it off).
@@ -2914,16 +2924,22 @@ def original_player(executable, lane, root=OUT):
     return os.path.join(folder, os.path.basename(executable))
 
 
-def blocked_install(source, plugins, dest):
+def blocked_install(source, plugins, dest, stray=()):
     """A copy of the game install at `source` whose native plugins cannot be loaded, as when the
     operating system or an antivirus blocks them. `plugins` maps file names to how
     (`blocked_plugins`): `unreadable` copies the plugin with mode 000, `missing` leaves it out.
-    Everything else is linked, with real folders only on the way to a blocked plugin. Built in
-    the runner's output folder, never in the install."""
+    `stray` lists paths under Plugins added to the copy (`stray_plugins`): `DIR/` an empty
+    folder, anything else an empty file. Everything else is linked, with real folders only on the
+    way to a blocked plugin or a stray path. Built in the runner's output folder, never in the
+    install."""
     names = list(plugins)
     source = os.path.realpath(source)
     found = {}
-    for data in sorted(d for d in os.listdir(source) if d.endswith('_Data')):
+    datas = sorted(d for d in os.listdir(source) if d.endswith('_Data'))
+    if stray and not datas:
+        raise SpecFailure(f'stray_plugins: no {source}/*_Data')
+    strays = [os.path.normpath(os.path.join(datas[0], 'Plugins', p)) + ('/' if p.endswith('/') else '') for p in stray]
+    for data in datas:
         for folder, dirs, files in os.walk(os.path.join(source, data, 'Plugins'), followlinks=True):
             for name in files:
                 if name in names:
@@ -2933,8 +2949,8 @@ def blocked_install(source, plugins, dest):
         raise SpecFailure(f'blocked_plugins: no {", ".join(missing)} under {source}/*_Data/Plugins')
     shutil.rmtree(dest, ignore_errors=True)
     real = {os.curdir}  # the folders on the way to a blocked plugin, relative to the install
-    for path in found.values():
-        parts = path.split(os.sep)[:-1]
+    for path in [*found.values(), *strays]:
+        parts = path.rstrip('/').split(os.sep)[:None if path.endswith('/') else -1]
         real.update(os.path.join(*parts[:i]) for i in range(1, len(parts) + 1))
 
     def mirror(rel):
@@ -2951,6 +2967,15 @@ def blocked_install(source, plugins, dest):
             else:
                 os.symlink(target, os.path.join(dest, child))
     mirror(os.curdir)
+    for path in strays:
+        added = os.path.join(dest, path.rstrip('/'))
+        if path.endswith('/'):
+            os.makedirs(added, exist_ok=True)
+            continue
+        os.makedirs(os.path.dirname(added), exist_ok=True)
+        if os.path.lexists(added):
+            os.remove(added)  # a link into the install: replaced, never written through
+        open(added, 'w').close()
     return dest
 
 
@@ -4087,7 +4112,7 @@ class Run:
                                  driver=uses_driver, expansion1=spaced_out(spec), translation=spec.get('translation'),
                                  language=spec.get('language'), keyboard=spec.get('keyboard'),
                                  tweaks_menu=spec.get('tweaks_menu', False), display_dpi=spec.get('display_dpi'),
-                                 blocked_plugins=spec.get('blocked_plugins'),
+                                 blocked_plugins=spec.get('blocked_plugins'), stray_plugins=spec.get('stray_plugins'),
                                  data_collection=spec.get("data_collection", False),
                                  extra_saves=spec.get('extra_saves', ()), workshop=spec.get('workshop'),
                                  update_check=spec.get('update_check'))

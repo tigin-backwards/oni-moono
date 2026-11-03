@@ -1,0 +1,10 @@
+# #49: a Linux install with a Plugins/x86_64 that Steam left behind (U60's Linux build keeps its
+# plugins there; here it holds the Windows build's DLL names, as empty files). Both players load
+# the colony with Plugins' libSimDLL.so and libfmodstudio.so, so its cells read as in the original
+# (without FMOD ours never reaches the main menu; ours' Steam library is the --native-override
+# double, so steam_api is not looked up here).
+from: early-base
+stray_plugins: [x86_64/SimDLL.dll, x86_64/fmodstudio.dll, x86_64/steam_api64.dll]
+steps:
+  - expect_state:
+      "type:E2eDriver.Census::StartGrid": "== original"

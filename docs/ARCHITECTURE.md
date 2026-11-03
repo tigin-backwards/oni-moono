@@ -2136,8 +2136,10 @@ player is the Windows one: `platform` = `WindowsPlayer`, `persistentDataPath` =
 game itself keeps saves, mods and its settings under `Documents\Klei\OxygenNotIncluded`
 (`Environment.GetFolderPath`). The Windows build is the same game build as the Linux one
 (ChangeList 744825) and its shaders carry OpenGL programs next to the Direct3D ones, so the same
-device runs its data. Natives resolve per platform (`Plugins/x86_64/<name>.dll` on Windows,
-`Plugins/lib<name>.so` on Linux, and for the macOS bundle the executable of
+device runs its data. Natives resolve per platform (`Plugins/x86_64/<name>.dll`, then
+`Plugins/<name>.dll`, on Windows; on Linux the first `lib<name>.so` anywhere under `Plugins/` in
+ordinal path order, as Unity's Linux player loads and binds them, so a folder Steam left of
+another branch's build hides nothing (#49); and for the macOS bundle the executable of
 `Contents/PlugIns/<name>.bundle`: `GameLayout`, which tells the layout from the install's files;
 macOS is groundwork only, `docs/research/metal-backend-design.md`); Steamworks.NET is built per runtime identifier (library name
 and callback packing differ); FreeType comes from BRUTAL's package on both. Company/product/version

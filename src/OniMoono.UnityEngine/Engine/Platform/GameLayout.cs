@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml;
 
 namespace OniMoono.Engine.Platform
@@ -8,7 +9,8 @@ namespace OniMoono.Engine.Platform
     /// Where an install of the game keeps its data and native plugins. Unity's players lay them out
     /// per platform:
     /// - Linux and Windows: `<game>/OxygenNotIncluded_Data` (Application.dataPath) with the plugins
-    ///   in `Plugins/` (Linux, `lib<name>.so`) or `Plugins/x86_64/` (Windows, `<name>.dll`);
+    ///   in `Plugins/` (Linux, `lib<name>.so`) or `Plugins/x86_64/` (Windows, `<name>.dll`), and
+    ///   either player finds them in the other's folder too (PluginCandidates);
     /// - macOS: the bundle `OxygenNotIncluded.app`, whose `Contents/` is Application.dataPath, the
     ///   serialized data in `Contents/Resources/Data`, and each plugin a bundle
     ///   `Contents/PlugIns/<name>.bundle` whose executable (CFBundleExecutable of its Info.plist)
@@ -22,7 +24,7 @@ namespace OniMoono.Engine.Platform
         /// Application.dataPath: the data folder, or the bundle's Contents on macOS.
         public string DataPath { get; private init; } = "";
         public string StreamingAssetsPath => Path.Combine(DataDir, "StreamingAssets");
-        /// The folder the native plugins are in.
+        /// The folder of the native plugins: `Plugins/`, or the bundle's `PlugIns/` on macOS.
         public string PluginsDir { get; private init; } = "";
         /// The .app bundle (null for other layouts).
         public string App { get; private init; }
@@ -40,9 +42,7 @@ namespace OniMoono.Engine.Platform
             var data = Path.Combine(gameDir, DataFolderName);
             if (Directory.Exists(data))
             {
-                // Unity's Windows player keeps 64-bit plugins in Plugins/x86_64; the Linux build in Plugins.
-                var x64 = Path.Combine(data, "Plugins", "x86_64");
-                return new GameLayout { DataDir = data, DataPath = data, PluginsDir = Directory.Exists(x64) ? x64 : Path.Combine(data, "Plugins") };
+                return new GameLayout { DataDir = data, DataPath = data, PluginsDir = Path.Combine(data, "Plugins") };
             }
             var app = IsBundle(gameDir) ? gameDir : SingleBundle(gameDir);
             return app == null ? null : MacBundle(app);
@@ -106,6 +106,17 @@ namespace OniMoono.Engine.Platform
         }
 
         /// The files a native plugin name (a DllImport's) may be, in the order they are tried.
+        /// - Windows: `<name>.dll` (or `<name>`) in Plugins/x86_64, where the Windows build keeps
+        ///   its plugins, then in Plugins.
+        /// - Linux: the files `lib<name>.so`, `<name>.so` or `<name>` anywhere under Plugins, in
+        ///   the ordinal order of their paths. Unity's Linux player loads every library under
+        ///   Plugins, subfolders too, in that order, and a DllImport binds the first of its name
+        ///   (measured on U59's player, Unity 6000.3.5f2: with libsteam_api.so in both Plugins and
+        ///   Plugins/x86_64 Plugins' served; one only in Plugins/x86_64 or Plugins/Other served;
+        ///   Plugins/AnyCPU's beat Plugins' and Plugins/x86_64's). U59's Linux build keeps its
+        ///   plugins in Plugins, U60's in Plugins/x86_64 and Plugins/AnyCPU, and Steam can leave a
+        ///   branch's folder behind when another branch's build replaces it (#49: an empty
+        ///   Plugins/x86_64 hid U59's plugins while only that folder was searched).
         public IEnumerable<string> PluginCandidates(string name, bool windows)
         {
             if (IsMacBundle)
@@ -117,9 +128,32 @@ namespace OniMoono.Engine.Platform
                 yield return Path.Combine(PluginsDir, name + ".dylib");
                 yield break;
             }
-            foreach (var candidate in windows ? new[] { $"{name}.dll", name } : new[] { $"lib{name}.so", $"{name}.so", name })
-                yield return Path.Combine(PluginsDir, candidate);
+            if (windows)
+            {
+                foreach (var dir in PluginFolders(windows))
+                    foreach (var candidate in new[] { $"{name}.dll", name })
+                        yield return Path.Combine(dir, candidate);
+                yield break;
+            }
+            string[] names = [$"lib{name}.so", $"{name}.so", name];
+            if (!Directory.Exists(PluginsDir)) yield break;
+            foreach (var path in Directory.EnumerateFiles(PluginsDir, "*", PluginWalk).Order(StringComparer.Ordinal))
+                if (Array.IndexOf(names, Path.GetFileName(path)) >= 0) yield return path;
         }
+
+        /// The folders PluginCandidates looks in: Plugins/x86_64 and Plugins on Windows, Plugins
+        /// and every folder under it on Linux, the bundle's PlugIns on macOS.
+        public IEnumerable<string> PluginFolders(bool windows)
+        {
+            if (IsMacBundle) return [PluginsDir];
+            if (windows) return [Path.Combine(PluginsDir, "x86_64"), PluginsDir];
+            if (!Directory.Exists(PluginsDir)) return [PluginsDir];
+            return [PluginsDir, .. Directory.EnumerateDirectories(PluginsDir, "*", PluginWalk).Order(StringComparer.Ordinal)];
+        }
+
+        /// Everything under Plugins, however deep (but not round and round a link to a folder
+        /// above).
+        static readonly EnumerationOptions PluginWalk = new() { RecurseSubdirectories = true, MaxRecursionDepth = 8, IgnoreInaccessible = true };
 
         /// The first candidate that exists, or null.
         public string Plugin(string name, bool windows)

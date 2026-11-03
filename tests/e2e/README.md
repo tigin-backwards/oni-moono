@@ -157,6 +157,8 @@ tweaks_menu: true                # ours keeps the main menu's Moono Tweaks butto
 scaled_screen: true              # the game may render smaller than the display (below)
 blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its install (out/e2e/.blocked-LANE)
                                  # with these native plugins `missing` or `unreadable` (mode 000)
+stray_plugins: [x86_64/SimDLL.dll]   # and these paths under Plugins added, empty (`DIR/` a folder),
+                                 # as Steam can leave another branch's (stray-plugin-folder.yaml)
 extra_saves: [terra-wide]        # more colonies in the profile: fixtures/NAME.sav (and NAME.png)
                                  # as save_files/NAME/NAME.sav, for the Load screen
 data_collection: true            # the Data Collection option on, for a spec that opens the Supply
