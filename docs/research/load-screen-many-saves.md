@@ -361,7 +361,7 @@ Items 1 to 4 landed; 5 is measured and designed, not built.
   and, as part of `fast-load-screen` while the screen is shown, a decode memo keyed by the files'
   bytes (`ImageDecodeMemo`) and a memo of U60's downscaled previews
   (`src/OniMoono.Host/GameTweaks/LoadScreenPreviews.cs`).
-- **4**: game tweak `fix-load-screen-clicks`, in the Changes gameplay group and out of `exact`,
+- **4**: game tweak `fix-load-screen-clicks`, in the Bug fixes group and out of `exact`,
   on by default (the user's decision).
 
 ### What the previews cost in ours (a correction)

@@ -31,8 +31,12 @@ msgid "Those rows can't be changed here. Remove the options from the game's laun
 msgstr "这些行无法在此更改。请从游戏的启动选项中移除相应参数，以便在此选择。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.UI.CHANGES_GAMEPLAY_NOTE"
-msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes and Open a colony once on the Load screen."
-msgstr "这些选项会牺牲一点精确性来换取速度。除增量路径探测和“加载游戏界面中殖民地只打开一次”外默认关闭。"
+msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes."
+msgstr "这些选项会牺牲一点精确性来换取速度。除增量路径探测外默认关闭。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.BUG_FIXES_NOTE"
+msgid "These fix bugs in the game, so they change what the original does."
+msgstr "这些选项修复游戏自身的错误，因此会改变原版的行为。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.UI.LAUNCH_OPTION"
 msgid "LAUNCH OPTION"
@@ -485,6 +489,10 @@ msgstr "每次刷新时每个存档的信息只从文件读取一次而不是四
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.LOAD_SCREEN"
 msgid "Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s)"
 msgstr "4,637 个存档时加载游戏界面约 0.6 秒打开（原本约 1.4 秒）"
+
+msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.BUG_FIXES"
+msgid "Bug fixes"
+msgstr "错误修复"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_DISEASE_OVERLAY_CRASH.TITLE"
 msgid "Fix the disease overlay crash"

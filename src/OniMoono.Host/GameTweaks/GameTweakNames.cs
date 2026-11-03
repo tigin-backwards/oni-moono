@@ -13,18 +13,21 @@ namespace OniMoono.Host.GameTweaks
 
     /// A section of the Moono Tweaks screen. `Key`: its translation key's last part
     /// (STRINGS.MOONO.TWEAKS.GROUPS.KEY, TweakStrings). `Gain`: one shared by all of its rows
-    /// (the save tweaks are measured together).
-    internal sealed record TweakGroup(string Key, string Title, TweakGain? Gain = null);
+    /// (the save tweaks are measured together). `ChangesGameplay`: its tweaks change what the game
+    /// does (left out of `exact`, off by default but where OnByDefault; the heading in the warning
+    /// colour, with a note under it).
+    internal sealed record TweakGroup(string Key, string Title, TweakGain? Gain = null, bool ChangesGameplay = false);
 
     /// One row of the Moono Tweaks screen and of docs/TWEAKS.md: `Title` in sentence case,
     /// `Effect` one short line on what a player gets from it, `Detail` (optional) how it does it,
     /// for the row's tooltip and the docs. `IsTweak` is false for the player's own options (the
     /// splash, frame stats, log paths and the GPU), which are rows but not `--game-tweak` names.
     /// `Choices`: a row with more values than on and off (the GPU's), in the order its button
-    /// steps through them; null for a toggle. `ChangesBehaviour`: a tweak outside the Changes
-    /// gameplay group that still changes what the game does a little (off by default, left out
+    /// steps through them; null for a toggle. `ChangesBehaviour`: a tweak outside the groups
+    /// that change gameplay (Changes gameplay, Bug fixes) that still changes what the game does a little (off by default, left out
     /// of `exact`). `OnByDefault`: a tweak that changes what the game does (left out of `exact`)
-    /// but is on by default all the same (the player's choice: path-probe-repair).
+    /// but is on by default all the same (the player's choice: path-probe-repair,
+    /// fix-load-screen-clicks).
     internal sealed record TweakInfo(string Id, TweakGroup Group, string Title, string Effect, string Detail = "", TweakGain? Gain = null, bool IsTweak = true,
         string[]? Choices = null, bool ChangesBehaviour = false, bool OnByDefault = false)
     {
@@ -72,10 +75,13 @@ namespace OniMoono.Host.GameTweaks
         public static readonly TweakGroup Saving = new("SAVING", "Saving", SaveGain);
         public static readonly TweakGroup Simulation = new("SIMULATION", "Simulation");
         public static readonly TweakGroup Graphics = new("GRAPHICS", "Graphics & overlays");
-        /// The tweaks that change what the game does: their own group, last, in the warning colour.
-        public static readonly TweakGroup ChangesGameplay = new("CHANGES_GAMEPLAY", "Changes gameplay");
+        /// The tweaks that change what the game does for speed: their own group, in the warning colour.
+        public static readonly TweakGroup ChangesGameplay = new("CHANGES_GAMEPLAY", "Changes gameplay", ChangesGameplay: true);
+        /// The tweaks that fix bugs in Klei's game: they change what the original does too, so
+        /// they are left out of `exact` as Changes gameplay's are; last, in the warning colour.
+        public static readonly TweakGroup BugFixes = new("BUG_FIXES", "Bug fixes", ChangesGameplay: true);
 
-        public static readonly TweakGroup[] Groups = [General, Saving, Simulation, Graphics, ChangesGameplay];
+        public static readonly TweakGroup[] Groups = [General, Saving, Simulation, Graphics, ChangesGameplay, BugFixes];
 
         /// The rows in the screen's order (by group, then as listed).
         public static readonly TweakInfo[] Rows =
@@ -155,9 +161,9 @@ namespace OniMoono.Host.GameTweaks
                 "They hang just below the world, stepped as falling every tick; landing them where they hang stops that cost."),
             new("brain-rate", ChangesGameplay, "Critter and dupe brain updates capped at 30 updates a second", "Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps.",
                 "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps."),
-            new("fix-disease-overlay-crash", ChangesGameplay, "Fix the disease overlay crash", "Stops a crash when a critter or plant showing germs dies while the Disease overlay is open.",
+            new("fix-disease-overlay-crash", BugFixes, "Fix the disease overlay crash", "Stops a crash when a critter or plant showing germs dies while the Disease overlay is open.",
                 "A bug in U60's own code (the original crashes too, mostly at low frame rates): the destroyed germ marker is dropped before the game reads it. Off by default, as the original crashes."),
-            new("fix-load-screen-clicks", ChangesGameplay, "Open a colony once on the Load screen", "After Load more, a click on a colony no longer builds its list of saves again for every refresh.",
+            new("fix-load-screen-clicks", BugFixes, "Open a colony once on the Load screen", "After Load more, a click on a colony no longer builds its list of saves again for every refresh.",
                 "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, "
                 + "and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same.", OnByDefault: true),
         ];
@@ -170,11 +176,11 @@ namespace OniMoono.Host.GameTweaks
 
         /// The tweaks that change what the game does (each documented in its class); `exact` turns
         /// on every tweak but these.
-        public static readonly string[] ChangingBehaviour = Rows.Where(r => r.IsTweak && (r.Group == ChangesGameplay || r.ChangesBehaviour)).Select(r => r.Id).ToArray();
+        public static readonly string[] ChangingBehaviour = Rows.Where(r => r.IsTweak && (r.Group.ChangesGameplay || r.ChangesBehaviour)).Select(r => r.Id).ToArray();
 
         /// The tweaks off by default: those that change what the game does, but those on by
         /// default all the same (OnByDefault).
-        public static readonly string[] OffByDefault = Rows.Where(r => r.IsTweak && (r.Group == ChangesGameplay || r.ChangesBehaviour) && !r.OnByDefault).Select(r => r.Id).ToArray();
+        public static readonly string[] OffByDefault = Rows.Where(r => r.IsTweak && (r.Group.ChangesGameplay || r.ChangesBehaviour) && !r.OnByDefault).Select(r => r.Id).ToArray();
 
         /// A `--game-tweak` value: a tweak's name, `-NAME` (left out of `all` or `exact`, for
         /// measuring one against the rest), `all`, `exact` (all but ChangingBehaviour) or `none`
@@ -198,7 +204,7 @@ namespace OniMoono.Host.GameTweaks
             {
                 var rows = Rows.Where(r => r.Group == group && r.IsTweak).ToArray();
                 if (rows.Length == 0) continue;
-                string defaults = group != ChangesGameplay ? "on by default" : rows.Any(r => r.OnByDefault) ? "off by default but where marked" : "off by default";
+                string defaults = !group.ChangesGameplay ? "on by default" : rows.Any(r => r.OnByDefault) ? "off by default but where marked" : "off by default";
                 md.Append($"\n### {group.Title} ({defaults})\n\n");
                 if (group.Gain != null) md.Append($"All {rows.Length} together: {Gain(group.Gain)}.\n\n");
                 foreach (var r in rows)
@@ -206,7 +212,7 @@ namespace OniMoono.Host.GameTweaks
                     md.Append($"- **{r.Title}** (`{r.Id}`): {r.Effect}");
                     if (r.Detail.Length > 0) md.Append(' ').Append(r.Detail);
                     if (r.Gain != null) md.Append($" *Measured: {Gain(r.Gain)}.*");
-                    if (r.ChangesBehaviour && group != ChangesGameplay) md.Append(" *Off by default.*");
+                    if (r.ChangesBehaviour && !group.ChangesGameplay) md.Append(" *Off by default.*");
                     if (r.OnByDefault) md.Append(" *On by default.*");
                     md.Append('\n');
                 }

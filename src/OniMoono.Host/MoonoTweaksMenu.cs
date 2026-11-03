@@ -89,7 +89,7 @@ namespace OniMoono.Host
                 rows.Select(r => r.Id).ToArray(), rows.Select(r => TweakStrings.GroupKey(r.Group)).ToArray(),
                 rows.Select(r => TweakStrings.RowKey(r, "TITLE")).ToArray(), rows.Select(r => TweakStrings.RowKey(r, "EFFECT")).ToArray(),
                 rows.Select(DetailKey).ToArray(), rows.Select(GainKey).ToArray(), rows.Select(r => r.LaunchOption).ToArray(),
-                rows.Select(r => r.Group == GameTweakNames.ChangesGameplay).ToArray(),
+                rows.Select(r => r.Group.ChangesGameplay).ToArray(), rows.Select(r => r.Group == GameTweakNames.BugFixes).ToArray(),
                 rows.Select(r => r.Choices?.Select(c => TweakStrings.ChoiceKey(r, c)).ToArray()).ToArray(),
                 states.Select(s => s.Value).ToArray(), states.Select(s => s.Default).ToArray(), states.Select(s => s.Locked).ToArray(),
                 string.Join(" ", locked), settingsPath, save,

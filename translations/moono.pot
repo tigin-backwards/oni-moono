@@ -37,7 +37,12 @@ msgstr ""
 
 #. Under the Changes gameplay heading
 msgctxt "STRINGS.MOONO.TWEAKS.UI.CHANGES_GAMEPLAY_NOTE"
-msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes and Open a colony once on the Load screen."
+msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes."
+msgstr ""
+
+#. Under the Bug fixes heading
+msgctxt "STRINGS.MOONO.TWEAKS.UI.BUG_FIXES_NOTE"
+msgid "These fix bugs in the game, so they change what the original does."
 msgstr ""
 
 #. Beside a row the launch options set (one line)
@@ -603,6 +608,11 @@ msgstr ""
 #. Tooltip: how it works (brain-rate)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
 msgid "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps."
+msgstr ""
+
+#. Section heading (shown in capitals)
+msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.BUG_FIXES"
+msgid "Bug fixes"
 msgstr ""
 
 #. Row title (fix-disease-overlay-crash)

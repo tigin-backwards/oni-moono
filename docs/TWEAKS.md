@@ -51,8 +51,8 @@ never ask GitHub; `tests/e2e/update-badge.yaml` gives the badge a fixture instea
 Launch options still work and win over the screen, which then shows those rows as set by the
 launch options:
 - `--game-tweak exact`: every tweak that leaves the game as the original plays it: all but the
-  Changes gameplay group (so without `path-probe-repair` and `fix-load-screen-clicks`, which are
-  on by default).
+  Changes gameplay and Bug fixes groups (so without `path-probe-repair` and
+  `fix-load-screen-clicks`, which are on by default).
 - `--game-tweak all`: every tweak.
 - `--game-tweak none`: no tweaks.
 - Tweaks by name: `--game-tweak exact --game-tweak slow-reachability`. `--game-tweak -NAME` leaves
@@ -134,6 +134,9 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux und
 - **Lazy unseen conveyor items** (`off-screen-conveyors`): Items riding rails off screen are placed only when they stop or come into view. The rails carry exactly the same things, but items' positions lag while off screen.
 - **Land items lost below a world** (`off-world-fallers`): Items that fall out the bottom of a world (a rocket's chute) stop falling forever. They hang just below the world, stepped as falling every tick; landing them where they hang stops that cost.
 - **Critter and dupe brain updates capped at 30 updates a second** (`brain-rate`): Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps. The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps.
+
+### Bug fixes (off by default but where marked)
+
 - **Fix the disease overlay crash** (`fix-disease-overlay-crash`): Stops a crash when a critter or plant showing germs dies while the Disease overlay is open. A bug in U60's own code (the original crashes too, mostly at low frame rates): the destroyed germ marker is dropped before the game reads it. Off by default, as the original crashes.
 - **Open a colony once on the Load screen** (`fix-load-screen-clicks`): After Load more, a click on a colony no longer builds its list of saves again for every refresh. A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same. *On by default.*
 <!-- tweaks:end -->
@@ -194,8 +197,8 @@ ends up the same; what differs from the original is that the colony is built onc
 the earlier builds' log lines (`Failed to find cluster ...` for a save of an unknown cluster)
 are not written, a mod patching `LoadScreen.ShowColony` sees one call instead of k + 1, and the
 rows those builds made and destroyed within the frame are not made. It is on by default (the
-player's choice), but in the Changes gameplay group and left out of `exact`, since the original
-does the repeated work.
+player's choice), but in the Bug fixes group and left out of `exact`, since the original does
+the repeated work.
 
 ## Translating Moono Tweaks
 
