@@ -131,7 +131,7 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 
 ### Saving (on by default)
 
-All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux under WSL2, by 2026-10-20.
+All 5 together: autosave freeze ~12 s → ~5 s on a large colony; a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, by 2026-10-20.
 
 - **Faster save writing** (`fast-serialization`): Autosaves take less time; the save file is the same. Writes the colony's numbers without boxing each one in an object.
 - **Faster save checks** (`fast-save-type-checks`): Autosaves skip repeating the same checks for every object. Remembers what saving asks about each kind of component instead of asking again for every object.
@@ -141,12 +141,12 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; U57, Linux und
 
 ### Simulation (on by default)
 
-- **Faster worker threads** (`fast-jobs`): Less time lost waking idle worker threads every frame. Wakes only as many of the game's worker threads as a job has work for, instead of all of them for every job (about 14 a frame). *Measured: +11% frame rate on a large colony; U57, Linux under WSL2, by 2026-10-20.*
+- **Faster worker threads** (`fast-jobs`): Less time lost waking idle worker threads every frame. Wakes only as many of the game's worker threads as a job has work for, instead of all of them for every job (about 14 a frame). *Measured: +11% frame rate on a large colony; a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, by 2026-10-20.*
 - **Faster sublimation** (`fast-sublimation`): Items that can't sublimate (polluted dirt in full gas) are skipped. Items already blocked by full gas cells are skipped in one batched update.
 - **Faster radbolt collisions** (`fast-particle-collision`): Radbolts look for each other only where one can be. A radbolt skips searching every stored item nearby when no other radbolt is close.
 - **Faster pickup checks** (`fast-offset-tables`): Where an item can be picked up from is rechecked only when its surroundings change. Fetch updates recheck only the items whose work spots can have changed.
 - **Faster spatial index cleanup** (`fast-partitioner-cleanup`): The once-a-second tidy-up of what is where looks only at what was removed. The spatial index's cleanup visits only the entries that were removed.
-- **Faster conveyor rebuilds** (`fast-conveyor-paths`): Building or removing conveyor rails no longer stalls the game. The rails' network rebuild finds its routes from an index instead of searching every kept route again. *Measured: no hitch on rail edits (was 0.05–0.5 s); U57, Linux under WSL2, 2026-10-25.*
+- **Faster conveyor rebuilds** (`fast-conveyor-paths`): Building or removing conveyor rails no longer stalls the game. The rails' network rebuild finds its routes from an index instead of searching every kept route again. *Measured: no hitch on rail edits (was 0.05–0.5 s); a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, 2026-10-25.*
 - **Compact navigation links** (`compact-nav-links`): The map of where Duplicants and critters can move takes a fraction of the memory. Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; the pathfinder reads the same moves in the same order.
 - **Faster state machine lookups** (`fast-smi-lookups`): Finding one of an object's state machines no longer searches all of them each time. Each object remembers which of its state machines answered each lookup until its list of state machines changes.
 - **Paged path grids** (`paged-path-grids`): Each Duplicant's map of path costs takes memory only where it can walk. A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, and the parts never written read as the empty grid did. The pathfinder reads the same values.
@@ -197,8 +197,8 @@ its search finds first, the repair the one it had or finds first. A Duplicant ca
 other route of the same cost, and when two such routes carry different suit flags (one passes a
 suit checkpoint), what lies beyond can differ as it would after another search order. With
 `ONI_TWEAK_VERIFY=1` every repair is checked against a new search and every search against the
-game's own on the same Duplicant; in c100 and DeCrew (U60) none of about 10,700 repairs and 180
-searches checked gave another cost or reachable cell.
+game's own on the same Duplicant; in a 200-Duplicant colony and a late-game base-game colony
+(U60) none of about 10,700 repairs and 180 searches checked gave another cost or reachable cell.
 
 It stands down for the session, logged once in Player.log (`path-probe-repair: off (...)`), when
 another mod patches the probe or the methods it relies on. Fast Track's **Cache Paths** does:

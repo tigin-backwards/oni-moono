@@ -144,7 +144,7 @@ Moono 运行 Klei 原版的 DLL，并在加载时按照 Mono 与 .NET 的[差异
 
 最大的变化，是把 Unity 自带的那个垃圾 Mono 运行时换成了 CoreCLR。在此基础上，还针对《缺氧》使用引擎的方式加入了一些优化。
 
-在同一台 Windows 机器上，对同一个游戏后期存档（U57：眼冒金星，全部 DLC，第 17,000+ 周期）连续进行对比测试，结果如下：
+在同一台 Windows 机器上，对同一个游戏后期的眼冒金星殖民地（全部 DLC，第 17,000+ 周期）连续进行对比测试，结果如下：
 
 | | 原版 | Moono | |
 |---|---|---|---|
@@ -159,7 +159,7 @@ Moono 运行 Klei 原版的 DLL，并在加载时按照 Mono 与 .NET 的[差异
 
 **注意：** 与原版相比，这会占用更多内存。在游戏中期的一个殖民地中，常驻内存峰值约为 11GB，而原版约为 7GB。对于更快、并行的垃圾回收来说，这是预期行为。
 
-在 U57 中以 3 倍速运行：原版约 11 fps，Moono 约 88 fps。
+该后期殖民地以 3 倍速运行：原版约 11 fps，Moono 约 88 fps。
 
 https://github.com/user-attachments/assets/9d54b5ac-8583-442c-b6ad-8ddaa31e6d6d
 
@@ -167,15 +167,15 @@ https://github.com/user-attachments/assets/9d54b5ac-8583-442c-b6ad-8ddaa31e6d6d
 
 https://github.com/user-attachments/assets/cb1bf869-b031-4090-86b8-1714535f36e4
 
-U57 上的自动存档：原版会卡住约 26 秒，Moono 约 4 秒。
+该后期殖民地的自动存档：原版会卡住约 26 秒，Moono 约 4 秒。
 
 https://github.com/user-attachments/assets/a0534ae4-115f-4b17-b9bb-2f8c28868b89
 
-U57 上平移视角时的温度视图：原版约 8 fps，Moono 约 50 fps。
+在该后期殖民地平移视角时的温度视图：原版约 8 fps，Moono 约 50 fps。
 
 https://github.com/user-attachments/assets/e0054f3c-0462-4333-955b-9ab5c8888810
 
-2minnow，一个游戏中期的殖民地，3 倍速：原版约 35 fps，Moono 约 110 fps。
+一个游戏中期的殖民地，3 倍速：原版约 35 fps，Moono 约 110 fps。
 
 https://github.com/user-attachments/assets/3106d24d-67d3-4bf3-ba23-8f8dc78910f8
 
