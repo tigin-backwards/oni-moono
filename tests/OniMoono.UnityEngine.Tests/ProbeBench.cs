@@ -79,6 +79,7 @@ namespace OniMoono.Tests
             public int Navs, Probes, Floods, Repairs, Large, Unchanged, GaveUp;
             public long WarmApplyTicks, SortTicks, MergeTicks, RepairTicks, FloodTicks, ApplyTicks, DeltaStates, MaxApplyTicks;
             public ulong Digest;
+            public long FlagBytes;
             public List<(double Us, int Changes, long Behind, int Dropped, int Pops, int Relaxed, int Reach)> RepairLog;
             public int[] FlagValues;
             public long Total => MergeTicks + RepairTicks + FloodTicks;
@@ -90,7 +91,7 @@ namespace OniMoono.Tests
                 $"{Navs} navs, {Probes} probes: {Floods} floods {Ms(FloodTicks):F1} ms ({Us(FloodTicks, Floods):F0} us), "
                 + $"{Repairs} repairs {Ms(RepairTicks):F1} ms ({Us(RepairTicks, Repairs):F0} us; {Unchanged} unchanged, {Large} too large, {GaveUp} gave up), "
                 + $"sort {Ms(SortTicks):F1} ms, merge {Ms(MergeTicks):F2} ms, total {Ms(Total):F1} ms; main-thread apply {Ms(ApplyTicks):F2} ms "
-                + $"({Us(ApplyTicks, Repairs):F1} us, max {Us(MaxApplyTicks, 1):F0} us, {DeltaStates / Math.Max(1, Repairs)} states a repair, again {Us(WarmApplyTicks, Repairs):F1} us); digest {Digest:x16}";
+                + $"({Us(ApplyTicks, Repairs):F1} us, max {Us(MaxApplyTicks, 1):F0} us, {DeltaStates / Math.Max(1, Repairs)} states a repair, again {Us(WarmApplyTicks, Repairs):F1} us); digest {Digest:x16}; path flags {FlagBytes / 1e6:F1} MB";
         }
 
         sealed class BenchNav
@@ -133,11 +134,11 @@ namespace OniMoono.Tests
                     stats.Probes++;
                     if (!navs.TryGetValue(p.Nav, out var n))
                     {
-                        navs[p.Nav] = n = new BenchNav { R = new ProbeRepairTests.Result { Cells = new PCell[states], Probers = new PProber[cc], Flags = new byte[states] } };
+                        navs[p.Nav] = n = new BenchNav { R = new ProbeRepairTests.Result { Cells = new PCell[states], Probers = new PProber[cc], Flags = new ProbeFlags(states), RefFlags = reference ? new byte[states] : null } };
                         n.Key = p;
                         // Commit the pages now (as a long-lived grid in the game has them): a first
                         // write to a fresh array's page faults, which the game doesn't pay.
-                        Array.Fill(n.R.Cells, default); Array.Fill(n.R.Probers, default); Array.Fill(n.R.Flags, (byte)0);
+                        Array.Fill(n.R.Cells, default); Array.Fill(n.R.Probers, default); if (reference) Array.Fill(n.R.RefFlags, (byte)0);
                     }
                     var rules = new Rules(this, p);
                     bool repair = false;
@@ -155,7 +156,7 @@ namespace OniMoono.Tests
                     {
                         t0 = Stopwatch.GetTimestamp();
                         if (cs.IsEmpty) { delta.Clear(); stats.Unchanged++; }
-                        else if (reference) refEngine.Repair(n.R.Cells, n.R.Probers, n.R.Flags, n.R.Serial, cs, rules, delta);
+                        else if (reference) refEngine.Repair(n.R.Cells, n.R.Probers, n.R.RefFlags, n.R.Serial, cs, rules, delta);
                         else
                         {
                             int budget = budgetDiv > 0 ? Math.Max(n.R.Reach.Count, 1024) / budgetDiv : budgetDiv == 0 ? int.MaxValue : ProbeEngine.Budget(n.R.Reach.Count);
@@ -200,7 +201,7 @@ namespace OniMoono.Tests
                         n.R.Reach.Clear();
                         long t1 = Stopwatch.GetTimestamp();
                         found.Clear();
-                        if (reference) refEngine.Flood(n.R.Cells, n.R.Probers, n.R.Flags, serial, p.Origin, p.NavType, p.Flags, rules, found);
+                        if (reference) refEngine.Flood(n.R.Cells, n.R.Probers, n.R.RefFlags, serial, p.Origin, p.NavType, p.Flags, rules, found);
                         else engine.Flood(n.R.Cells, n.R.Probers, n.R.Flags, serial, p.Origin, p.NavType, p.Flags, rules, found);
                         // The worker's reachable cells, sorted (the reference: the found list sorted).
                         long s0 = Stopwatch.GetTimestamp();
@@ -213,7 +214,7 @@ namespace OniMoono.Tests
                         if (digest)
                         {
                             var seen = new HashSet<byte>();
-                            for (int st = 0; st < states; st++) if (n.R.Cells[st].QueryId == serial) seen.Add(n.R.Flags[st]);
+                            for (int st = 0; st < states; st++) if (n.R.Cells[st].QueryId == serial) seen.Add(reference ? n.R.RefFlags[st] : n.R.Flags[st]);
                             stats.FlagValues[Math.Min(32, seen.Count)]++;
                         }
                     }
@@ -222,6 +223,7 @@ namespace OniMoono.Tests
                 }
             }
             stats.Navs = navs.Count;
+            foreach (var o in navs.Values) stats.FlagBytes += o.R.RefFlags?.Length ?? o.R.Flags.Size;
             stats.Digest = digest ? dig : 0;
             return stats;
         }
@@ -249,7 +251,7 @@ namespace OniMoono.Tests
                 var c = cells[s];
                 if (c.QueryId != r.Serial) continue;
                 h = Mix(h, ((ulong)(uint)s << 32) | (uint)c.Cost);
-                h = Mix(h, ((ulong)(uint)c.Parent << 32) | ((ulong)c.NavTypes << 16) | ((ulong)c.TransitionId << 8) | r.Flags[s]);
+                h = Mix(h, ((ulong)(uint)c.Parent << 32) | ((ulong)c.NavTypes << 16) | ((ulong)c.TransitionId << 8) | (r.RefFlags != null ? r.RefFlags[s] : r.Flags[s]));
             }
             foreach (int cell in r.Reach) h = Mix(h, ((ulong)(uint)cell << 32) | (uint)r.Probers[cell].Cost);
             return h;

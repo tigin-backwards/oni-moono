@@ -440,7 +440,7 @@ namespace OniMoono.GameTweaks
             public PathGrid Grid;
             public ushort Serial;
             public long Seq;
-            public byte[] StateFlags;
+            public ProbeFlags StateFlags;
             public List<int> Reach = new List<int>(), Spare = new List<int>();
             public readonly ProbeDelta Delta = new ProbeDelta();
             /// A repair waiting for TakeResult, and the pooled grid its result came with.
@@ -490,7 +490,7 @@ namespace OniMoono.GameTweaks
             readonly Stopwatch since = Stopwatch.StartNew();
             PCell[] checkCells;
             PProber[] checkProbers, repairedProbers;
-            byte[] checkFlags;
+            ProbeFlags checkFlags;
             ushort checkSerial;
 
             public Worker(int width, int cellCount, int maxLinks, byte[] navTypes, int[][] voids, PLink[][] rows, Feed feed)
@@ -597,7 +597,7 @@ namespace OniMoono.GameTweaks
                 var cells = cellsOf(grid);
                 if (grid.SerialNo == serial) Array.Clear(cells, 0, cells.Length);
                 grid.BeginUpdate(serial, order.originCell, null);
-                f.StateFlags ??= new byte[cells.Length];
+                f.StateFlags ??= new ProbeFlags(cells.Length);
                 f.Valid = false;
                 // The reachable cells come sorted from the engine (as Reachables wants them), else in
                 // the order found (as the game leaves them when it doesn't compute reachables).
@@ -648,7 +648,7 @@ namespace OniMoono.GameTweaks
             {
                 int states = graph.CellCount * graph.NavCount;
                 checkCells ??= new PCell[states];
-                checkFlags ??= new byte[states];
+                checkFlags ??= new ProbeFlags(states);
                 checkProbers ??= new PProber[graph.CellCount];
                 repairedProbers ??= new PProber[graph.CellCount];
                 if (++checkSerial == 0) { Array.Clear(checkCells, 0, states); Array.Clear(checkProbers, 0, checkProbers.Length); checkSerial = 1; }

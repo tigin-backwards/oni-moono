@@ -18,7 +18,9 @@ namespace OniMoono.Tests
         {
             public PCell[] Cells;
             public PProber[] Probers;
-            public byte[] Flags;
+            public ProbeFlags Flags;
+            /// The reference engine's flags (ProbeBench).
+            public byte[] RefFlags;
             public ushort Serial;
             public List<int> Reach = new List<int>();
             public readonly ChangeSet Pending = new ChangeSet();
@@ -30,7 +32,7 @@ namespace OniMoono.Tests
         static Result Flood(ProbeEngine engine, ProbeModel model, int root, byte nav, byte flags, ProbeModel.Abilities ab, ushort serial)
         {
             int states = engine.Graph.CellCount * engine.Graph.NavCount;
-            var r = new Result { Cells = new PCell[states], Probers = new PProber[engine.Graph.CellCount], Flags = new byte[states], Serial = serial, Root = root, Nav = nav, RootFlags = flags, Ab = ab };
+            var r = new Result { Cells = new PCell[states], Probers = new PProber[engine.Graph.CellCount], Flags = new ProbeFlags(states), Serial = serial, Root = root, Nav = nav, RootFlags = flags, Ab = ab };
             engine.Flood(r.Cells, r.Probers, r.Flags, serial, root, nav, flags, model.Rules(ab), r.Reach);
             r.Reach.Sort();
             return r;
@@ -253,7 +255,7 @@ namespace OniMoono.Tests
             var ab = new ProbeModel.Abilities { Prefab = 1, Proxy = 2, Key = 3 };
             var r = Flood(engine, model, model.CorridorCell(0), ProbeModel.Floor, 8, ab, 3);
             var cells = (PCell[])r.Cells.Clone();
-            var flags = (byte[])r.Flags.Clone();
+            var flags = Enumerable.Range(0, r.Cells.Length).Select(s => r.Flags[s]).ToArray();
             foreach (var e in model.SetDoor(10, ProbeModel.Block, ab.Proxy).Events) r.Pending.Add(e);
             var delta = new ProbeDelta();
             delta.States.Add(1);
@@ -263,7 +265,7 @@ namespace OniMoono.Tests
             Assert.Empty(delta.Newly);
             Assert.Empty(delta.Gone);
             Assert.Equal(cells, r.Cells);
-            Assert.Equal(flags, r.Flags);
+            Assert.Equal(flags, Enumerable.Range(0, r.Cells.Length).Select(s => r.Flags[s]).ToArray());
             Repair(engine, model, r, delta);
             Assert.Equal(10, r.Reach.Count);
             var fresh = Flood(new ProbeEngine(model.Graph()), model, model.CorridorCell(0), ProbeModel.Floor, 8, ab, 1);
