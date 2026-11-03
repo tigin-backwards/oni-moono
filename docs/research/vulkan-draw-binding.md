@@ -367,6 +367,97 @@ the same trimming.
   `ONI_VK_ALT=prepare-every-texture` run each as before it in every other window
   (`VkDrawAlternation`), for the paired method above.
 
+## 7. The rest of step 1, and checking it (2026-11-03)
+
+Two more parts were tried; push templates are on u60, pipeline-key hashes made once were dropped:
+
+- **Push templates.** A pushed program gets a push descriptor update template when it is made,
+  and a draw writes one 24-byte info per binding instead of a `VkWriteDescriptorSet` and its info
+  (`vkCmdPushDescriptorSetWithTemplateKHR`). `ONI_VK_ALT=push-writes`.
+- **Pipeline-key hashes made once (dropped).** The resolved state kept its hash from when it was
+  resolved and the mesh layout its Vulkan key from its first draw. A CPU benchmark of the key and
+  its last-key lookup went from 36-48 to 28 ns a draw (0.01-0.03 ms a frame), and the Windows
+  paired windows below found it within noise, so it is not worth the kept fields.
+
+**Correctness.**
+
+- `ONI_VERIFY_VK_DRAWS=1` (`VkDrawVerify`) runs every draw's full work beside the shortcuts and
+  counts mismatches: a texture skipped as ready that the full check would have touched (an
+  attachment, another layout, a resolve or mips due, not marked used by this batch); set 0's
+  identities against those built with its writes from textures checked in full; a pushed set's
+  writes or template data against the full path's writes, and a cached set against the set kept
+  for the full path's identities; the last-key lookup against the pipeline kept for the key.
+  qa.sh's verify stage runs it; qa-tools.py fails on any non-zero count.
+- `ONI_CAPTURE_TWICE=full-draws`: each super-sized capture renders its frame again with every
+  `VkDrawAlternation` change run as before it. Frames are not reproducible run to run, so this
+  is the byte comparison.
+- Results on Linux (llvmpipe Vulkan 1.4, Mesa 25.2.8), with the shortcuts on (the dropped
+  hashes too):
+
+| Run | Draws verified | Wrong | Captures (x2) byte-identical |
+|---|---|---|---|
+| DeCrew, qa's overlays scenario (14 overlays) | 3,088,978 | 0 | 14 of 14 |
+| U57, six overlays | 3,874,765 | 0 | 7 of 7 |
+| e2e on U60: r6-world-visuals, early-base, a2-menu-assets, the four moono-tweaks specs, r5-overlay-targets, r3-timelapse-capture | 6,392 (a2) to 505,557 (early-base); 992,307 in all | 0 | (not compared) |
+
+- On Windows (RTX 3090, U60 761211, speed 3, busiest world, about 45 s): c100 1,842,466 draws
+  verified and DeCrew 2,892,483, 0 wrong on both.
+- `u60/vk-smoke` fails at step 78 (the pause screen's Load button never settles after the save)
+  with the shortcuts on, with them all off, and on unchanged u60 (3fb34201): it predates these
+  changes. Its 1.64 million draws before that verified 0 wrong.
+- Invalidation of the ready stamp, by reading the code: the target changes only through
+  `SetTarget`, which ends the pass; an upload into a texture this batch used, a resolve, mips and
+  a readback end the pass first (`ForUpdate`, `OutsideRendering`); every submit is preceded by
+  the pass's end, so `frames.Batch` does not change inside one; an upload into new storage, a
+  destroyed and remade texture and a reused handle are new `VkImageResource` objects, unstamped;
+  only a pass's start marks a texture rendered into. Device loss records no more draws. Bindless
+  residency (`ONI_BINDLESS_*`) is the OpenGL device's and does not reach this path. Unit tests:
+  `VkReadyStampsTests`, `VkTextureSetTests` (template data against writes).
+
+**Windows paired windows** (RTX 3090, driver 610.88; U60 761211 frozen install, 1280x720
+windowed, speed 3, busiest world in view; one `ONI_VK_ALT` run of about 120 s per change and
+save; the windows before the busiest world and 5 after left out). Device thread, after minus
+before, per frame: paired median and IQR.
+
+| Change | Save | Draws | IQR | Busy | IQR | Pairs |
+|---|---|---|---|---|---|---|
+| Identities first | c100 | -0.190 ms (1.52 → 1.33) | -0.254..-0.131 | -0.223 ms | -0.565..+0.066 | 80 |
+| Identities first | DeCrew | -0.358 ms (2.20 → 1.86) | -0.455..-0.254 | -0.363 ms | -0.510..-0.220 | 98 |
+| Ready stamp | c100 | -0.115 ms (1.70 → 1.58) | -0.186..-0.059 | -0.223 ms | -0.521..+0.095 | 62 |
+| Ready stamp | DeCrew | -0.238 ms (2.66 → 2.45) | -0.387..-0.046 | -0.260 ms | -0.473..+0.042 | 72 |
+| Pipeline hashes once (dropped) | c100 | -0.040 ms (1.28 → 1.24) | -0.110..+0.030 | -0.045 ms | -0.375..+0.220 | 87 |
+| Pipeline hashes once (dropped) | DeCrew | -0.058 ms (3.11 → 3.03) | -0.175..+0.031 | -0.080 ms | -0.253..+0.065 | 42 |
+| Push templates | c100 | -0.005 ms (1.30 → 1.31) | -0.050..+0.045 | +0.015 ms | -0.210..+0.225 | 83 |
+| Push templates | DeCrew | -0.010 ms (1.64 → 1.66) | -0.091..+0.098 | +0.005 ms | -0.120..+0.156 | 114 |
+| Push templates, AMD Radeon iGPU (`--gpu integrated`, driver 2026.04.17, about 90 s) | c100 | -0.005 ms (2.83 → 2.83) | -0.075..+0.120 | -0.005 ms | -0.705..+2.745 | 19 |
+
+Push templates are neutral on both vendors: the driver's work for a push is the same either way,
+and building the writes was cheap. They stay, as the simpler per-draw code.
+
+**Windows, whole change against u60** (the four parts, the dropped hashes among them, against
+u60 91fd968f with identities first and the ready stamp already on; base, change, base, change on
+each save, about 120 s each; means after the first 20 s at the busiest world). The machine was
+busier than during the paired runs (c100 at 33-37 fps against 90-107 then), so these runs are
+noisy; none of the differences is beyond the run-to-run spread.
+
+| | c100 base | c100 change | DeCrew base | DeCrew change |
+|---|---|---|---|---|
+| fps | 32.8, 33.7 | 34.0, 37.3 | 39.7, 54.2 | 41.9, 41.8 |
+| Slowest 1% of frames | 76.2, 77.7 ms | 76.3, 69.3 ms | 234.6, 171.2 ms | 236.4, 194.6 ms |
+| Main thread | 28.9, 27.3 ms | 27.8, 25.7 ms | 25.5, 19.3 ms | 24.3, 23.7 ms |
+| Device thread busy | 7.78, 7.58 ms | 7.41, 7.06 ms | 5.34, 4.38 ms | 5.24, 5.11 ms |
+
+**Linux paired windows** (`--frame-stats`, one `ONI_VK_ALT` run per change, DeCrew loaded and
+left running, 19 pairs each). llvmpipe records commands on the CPU too, so these give the
+direction on the CPU only; the busy column is dominated by llvmpipe's rasterising.
+
+| Change (after minus before) | Device-thread draws | IQR |
+|---|---|---|
+| Identities first | -0.485 ms (4.82 → 4.44) | -0.655..-0.090 |
+| Ready stamp | -0.610 ms (4.67 → 4.12) | -0.760..+0.030 |
+| Pipeline hashes once (dropped) | -0.140 ms (3.96 → 3.88) | -0.320..+0.300 |
+| Push templates | -0.250 ms (3.22 → 2.96) | -0.310..-0.165 |
+
 ## Sources
 
 - Vulkan specification, Vulkan-Docs `main`: `chapters/descriptorsets.adoc` (Pipeline Layout
