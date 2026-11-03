@@ -164,9 +164,10 @@ namespace OniMoono.Host
 
         static readonly HashSet<string> announced = new(StringComparer.Ordinal);
 
-        /// The plugins the game cannot start without (Steam's, the simulation's, FMOD's).
         static readonly HashSet<string> missingLogged = new(StringComparer.Ordinal);
-        static readonly string[] requiredPlugins =["steam_api", "steam_api64", "SimDLL", "fmodstudio", "fmodstudioL"];
+
+        /// The plugins the game cannot start without (Steam's, the simulation's, FMOD's).
+        static readonly string[] requiredPlugins = ["steam_api", "steam_api64", "SimDLL", "fmodstudio", "fmodstudioL"];
 
         /// Logs, once per name, the folders searched for a required plugin that none of them has,
         /// so a player log tells a misplaced install from a broken library (#49).
