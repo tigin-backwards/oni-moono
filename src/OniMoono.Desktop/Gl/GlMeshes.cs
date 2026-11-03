@@ -50,8 +50,20 @@ namespace OniMoono.Desktop.Gl
         /// The Vulkan device's buffers (null on OpenGL, whose fields above it leaves unused).
         public Vulkan.VkMesh Vk;
 
+        public const string Kind = "mesh buffers";
+
+        /// The bytes of its buffers' storage (VideoMemoryLedger).
+        public long Bytes()
+        {
+            long bytes = IndexCapacity;
+            foreach (long c in Capacities) bytes += c;
+            return bytes;
+        }
+
         public void Delete()
         {
+            long bytes = Bytes();
+            if (bytes != 0) VideoMemoryLedger.Add(Kind, -bytes, -1);
             if (VertexArrays != null)
             {
                 foreach (var (vao, _) in VertexArrays.Values) GlBindings.DeleteVertexArray(vao);
@@ -148,6 +160,20 @@ namespace OniMoono.Desktop.Gl
 
         /// Writes the recorded data into the mesh's buffers (GL thread).
         internal static void Upload(DeviceMesh d, MeshUpload upload)
+        {
+            long before = d.Bytes();
+            try
+            {
+                Fill(d, upload);
+            }
+            finally
+            {
+                long after = d.Bytes();
+                VideoMemoryLedger.Add(DeviceMesh.Kind, after - before, (after != 0 ? 1 : 0) - (before != 0 ? 1 : 0));
+            }
+        }
+
+        static void Fill(DeviceMesh d, MeshUpload upload)
         {
             for (int i = 0; i < upload.Channels.Length; i++)
             {

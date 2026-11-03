@@ -92,6 +92,7 @@ namespace OniMoono.Engine
             Activate(scene);
             StartupStats.Mark($"scene {index} awake and enabled");
             EngineLog.Engine($"Loaded scene {scene.Name} ({gameObjects.Count} GameObjects)");
+            PlayerLoop.LogVideoMemory($"scene {scene.Name} loaded");
             UnityEngine.SceneManagement.SceneManager.RaiseActiveSceneChanged(previous, scene);
             UnityEngine.SceneManagement.SceneManager.RaiseSceneLoaded(scene);
             return scene;

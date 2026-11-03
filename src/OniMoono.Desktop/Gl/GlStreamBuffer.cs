@@ -39,6 +39,7 @@ namespace OniMoono.Desktop.Gl
             mapping = (byte*)N.glMapBufferRange(target, 0, size, MapWrite | MapPersistent | MapCoherent);
             N.glBindBuffer(target, default);
             if (mapping == null) throw new InvalidOperationException("A persistent stream buffer could not be mapped.");
+            VideoMemoryLedger.Add("stream buffers", size, 1);
         }
 
         /// The largest single write.

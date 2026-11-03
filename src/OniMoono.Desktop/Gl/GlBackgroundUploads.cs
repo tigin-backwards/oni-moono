@@ -61,8 +61,12 @@ namespace OniMoono.Desktop.Gl
         static readonly SemaphoreSlim readable = new(0);
         static readonly object budgetGate = new();
         /// Texels read and not yet taken, bounded so reading runs only so far ahead of uploading.
-        static long readyBytes;
+        static long readyBytes, readyPeak;
         const long ReadAhead = 256L << 20;
+
+        /// Diagnostics (--frame-stats): the texels read and not yet uploaded, and their peak
+        /// since the last call.
+        public static string TakeCounters() => $"read ahead {Interlocked.Read(ref readyBytes) >> 20} MiB (peak {Interlocked.Exchange(ref readyPeak, Interlocked.Read(ref readyBytes)) >> 20})";
         static Thread[] readers;
         static GlWorker worker;
 
@@ -135,7 +139,9 @@ namespace OniMoono.Desktop.Gl
                     while (Interlocked.Read(ref readyBytes) > ReadAhead) Monitor.Wait(budgetGate, 50);
                 if (Interlocked.CompareExchange(ref job.State, BackgroundUpload.Reading, BackgroundUpload.Queued) != BackgroundUpload.Queued) continue;
                 job.ReadTexels();
-                Interlocked.Add(ref readyBytes, job.Bytes);
+                long ahead = Interlocked.Add(ref readyBytes, job.Bytes);
+                for (long peak = Interlocked.Read(ref readyPeak); ahead > peak; peak = Interlocked.Read(ref readyPeak))
+                    if (Interlocked.CompareExchange(ref readyPeak, ahead, peak) == peak) break;
                 Volatile.Write(ref job.State, BackgroundUpload.Ready);
                 job.Read.Set();
                 ready.Enqueue(job);

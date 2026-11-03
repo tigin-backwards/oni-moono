@@ -80,8 +80,11 @@ namespace OniMoono.Engine.Rendering
         public long Size { get; private set; }
 
         /// Bytes allocated and not yet freed, process-wide (leak checks).
-        static long liveBytes;
+        static long liveBytes, peakBytes;
         public static long LiveBytes => Interlocked.Read(ref liveBytes);
+
+        /// The most LiveBytes has been since the last call (diagnostics); restarts from now.
+        public static long TakePeak() => Interlocked.Exchange(ref peakBytes, LiveBytes);
 
         public PixelMemory(long size, byte fill) : this(size)
         {
@@ -93,7 +96,9 @@ namespace OniMoono.Engine.Rendering
         {
             Size = size;
             Pointer = (byte*)NativeMemory.AlignedAlloc((nuint)Math.Max(size, 1), 16);
-            Interlocked.Add(ref liveBytes, size);
+            long live = Interlocked.Add(ref liveBytes, size);
+            for (long peak = Interlocked.Read(ref peakBytes); live > peak; peak = Interlocked.Read(ref peakBytes))
+                if (Interlocked.CompareExchange(ref peakBytes, live, peak) == peak) break;
         }
 
         public PixelMemory(ReadOnlySpan<byte> data) : this(data.Length)

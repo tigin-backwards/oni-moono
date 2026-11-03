@@ -65,6 +65,7 @@ namespace OniMoono.Engine
                 Done = true;
             }
             StartupStats.Mark("start-up progress: at the menu");
+            PlayerLoop.LogVideoMemory("at the menu");
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
