@@ -127,7 +127,7 @@ namespace OniMoono.Engine.Rendering
     /// AssetBundle holds on to the bundle's resource node (`Node`), so its texels can still be
     /// read after AssetBundle.Unload(false) unmounts the bundle: an upload queued for the next
     /// frame (the Vulkan device's) or handed to OpenGL's background readers, which read later.
-    internal readonly record struct TexelSource(byte[] Inline, string StreamPath, long Offset, long Size, ArraySegment<byte> Node = default)
+    internal readonly record struct TexelSource(byte[] Inline, string StreamPath, long Offset, long Size, ReadOnlyMemory<byte> Node = default)
     {
         public static TexelSource From(Fields texture)
         {
@@ -141,7 +141,7 @@ namespace OniMoono.Engine.Rendering
         public byte[] Read()
         {
             long start = System.Diagnostics.Stopwatch.GetTimestamp();
-            var bytes = Node.Array != null ? Node.AsSpan(checked((int)Offset), checked((int)Size)).ToArray()
+            var bytes = !Node.IsEmpty ? Node.Span.Slice(checked((int)Offset), checked((int)Size)).ToArray()
                 : StreamPath != null ? AssetSystem.ReadStream(StreamPath, Offset, Size) : Inline;
             System.Threading.Interlocked.Add(ref StartupStats.ReadTicks, System.Diagnostics.Stopwatch.GetTimestamp() - start);
             return bytes;
@@ -153,7 +153,7 @@ namespace OniMoono.Engine.Rendering
             if (StreamPath == null) return new PixelMemory(Inline);
             long start = System.Diagnostics.Stopwatch.GetTimestamp();
             var memory = new PixelMemory(Size);
-            if (Node.Array != null) Node.AsSpan(checked((int)Offset), checked((int)Size)).CopyTo(memory.Span);
+            if (!Node.IsEmpty) Node.Span.Slice(checked((int)Offset), checked((int)Size)).CopyTo(memory.Span);
             else AssetSystem.ReadStreamInto(StreamPath, Offset, memory.Span);
             System.Threading.Interlocked.Add(ref StartupStats.ReadTicks, System.Diagnostics.Stopwatch.GetTimestamp() - start);
             return memory;

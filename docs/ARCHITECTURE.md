@@ -1709,7 +1709,13 @@ of the clone keep their constructor/initializer values.
 **Loading model.** Scenes (`level0..2`) are loaded in full on `SceneManager.LoadScene`.
 Other files load objects **lazily by PPtr**: an object is materialized the first time it is
 referenced, with its dependencies. `Resources.Load` uses the `ResourceManager.m_Container` map;
-`AssetBundle.LoadFromFile(Async)` mounts a UnityFS archive as additional files.
+`AssetBundle.LoadFromFile(Async)` mounts a UnityFS archive as additional files. Its nodes are
+windows on the archive's decompressed data, which a bundle opened from a file keeps in a
+cache file mapped read-only (`BundleCache`: the cache folder's `oni-moono/bundles`, keyed by
+the SHA-256 of the bundle file; a stored bundle is mapped from its own file) instead of the
+managed heap: the same bytes, about 1.1 GB with every DLC that the system can drop and read
+again. `ONI_BUNDLE_CACHE=0` keeps them in memory; `ONI_BUNDLE_CACHE_VERIFY=1` also decodes each
+bundle in memory and compares. LoadFromMemory and LoadFromStream bundles keep their arrays.
 `Resources.UnloadUnusedAssets` releases GPU resources of unreferenced loaded assets.
 
 ### 3.5 Rendering

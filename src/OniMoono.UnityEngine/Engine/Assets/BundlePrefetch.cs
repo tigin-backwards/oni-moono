@@ -9,8 +9,10 @@ namespace OniMoono.Engine.Assets
     /// Decompresses the game's content bundles (StreamingAssets/*_bundle: the expansion's and each
     /// DLC's) on worker threads from start-up, so that AssetBundle.LoadFromFile, which the game
     /// calls for them one after another on the main thread during its start-up, finds them ready.
-    /// Each is a single LZMA stream (about 1 GiB decompressed with every DLC), which only one
-    /// thread can decode. A bundle is installed only with its DLC, so the files present are the
+    /// U59's are each a single LZMA stream (about 1 GiB decompressed with every DLC), which only
+    /// one thread can decode, U60's LZ4 chunks; with the bundle cache (BundleCache) a thread maps
+    /// the bundle's cache file instead, or decodes into a new one, after hashing the bundle's
+    /// file. A bundle is installed only with its DLC, so the files present are the
     /// ones the game loads; what it has not loaded by the time a scene other than the first
     /// loads is dropped. LoadFromFile gets the same nodes it would decode itself; a bundle whose
     /// decode failed, or whose file changed, is opened by LoadFromFile as before.
@@ -23,7 +25,7 @@ namespace OniMoono.Engine.Assets
             public string Path;
             public long Length;
             public DateTime Modified;
-            public List<(string Key, ArraySegment<byte> Data)> Nodes;
+            public List<(string Key, ReadOnlyMemory<byte> Data)> Nodes;
             public bool Failed, Dropped;
             public readonly ManualResetEventSlim Done = new();
         }
@@ -54,7 +56,7 @@ namespace OniMoono.Engine.Assets
             try
             {
                 long start = System.Diagnostics.Stopwatch.GetTimestamp();
-                var nodes = AssetSystem.ReadNodes(UnityFsArchive.Open(entry.Path));
+                var nodes = AssetSystem.ReadNodes(BundleCache.Open(entry.Path));
                 lock (gate)
                 {
                     // Dropped meanwhile: nobody will take it.
@@ -75,7 +77,7 @@ namespace OniMoono.Engine.Assets
 
         /// The decoded nodes of the bundle at `path`, waiting for its decode if it is under way;
         /// null when it was not prefetched, failed, or the file changed since.
-        public static List<(string Key, ArraySegment<byte> Data)> Take(string path)
+        public static List<(string Key, ReadOnlyMemory<byte> Data)> Take(string path)
         {
             Entry entry;
             string full;

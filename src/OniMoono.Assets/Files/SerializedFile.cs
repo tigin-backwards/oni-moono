@@ -27,8 +27,12 @@ namespace OniMoono.Assets.Files
         public List<ScriptTypeRef> ScriptTypes { get; } = new();
         public List<External> Externals { get; } = new();
 
-        // A bundle node's bytes: a window on its archive's decompressed data (UnityFsArchive.Slice).
-        readonly ArraySegment<byte> bytes;
+        // A bundle node's bytes: a window on its archive's decompressed data (UnityFsArchive.Slice),
+        // an array's or a mapping's (MappedMemory, whose pointer `bytesArray` null leaves in
+        // `bytesPointer`).
+        readonly ReadOnlyMemory<byte> bytes;
+        readonly ArraySegment<byte> bytesArray;
+        readonly unsafe byte* bytesPointer;
         readonly MappedFile? mapped;
         long dataOffset;
         bool bigEndianData;
@@ -39,10 +43,14 @@ namespace OniMoono.Assets.Files
             this.mapped = mapped;
         }
 
-        SerializedFile(string name, ArraySegment<byte> bytes)
+        unsafe SerializedFile(string name, ReadOnlyMemory<byte> bytes)
         {
             Name = name;
             this.bytes = bytes;
+            if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray(bytes, out var segment)) bytesArray = segment;
+            else if (System.Runtime.InteropServices.MemoryMarshal.TryGetMemoryManager<byte, MappedMemory>(bytes, out var manager, out int start, out _))
+                bytesPointer = manager.Pointer + start;
+            else throw new ArgumentException("A serialized file's bytes are an array's or a mapping's.", nameof(bytes));
         }
 
         /// A file on disk, mapped (files of 2 GB or more are not serialized files' sizes).
@@ -55,16 +63,19 @@ namespace OniMoono.Assets.Files
             return f;
         }
 
-        DataReader Reader(int offset, int length)
+        unsafe DataReader Reader(int offset, int length)
         {
             if (mapped != null) return new DataReader(mapped, offset, length);
-            if (offset < 0 || length < 0 || offset + length > bytes.Count) throw new ArgumentOutOfRangeException(nameof(length));
-            return new DataReader(bytes.Array!, bytes.Offset + offset, length);
+            if (offset < 0 || length < 0 || offset + length > bytes.Length) throw new ArgumentOutOfRangeException(nameof(length));
+            if (bytesArray.Array == null) return new DataReader(bytesPointer, bytes.Length, offset, length);
+            return new DataReader(bytesArray.Array, bytesArray.Offset + offset, length);
         }
 
-        public static SerializedFile Parse(string name, byte[] bytes) => Parse(name, new ArraySegment<byte>(bytes));
+        public static SerializedFile Parse(string name, byte[] bytes) => Parse(name, new ReadOnlyMemory<byte>(bytes));
 
-        public static SerializedFile Parse(string name, ArraySegment<byte> bytes)
+        public static SerializedFile Parse(string name, ArraySegment<byte> bytes) => Parse(name, (ReadOnlyMemory<byte>)bytes);
+
+        public static SerializedFile Parse(string name, ReadOnlyMemory<byte> bytes)
         {
             var f = new SerializedFile(name, bytes);
             f.ReadMetadata();
@@ -73,7 +84,7 @@ namespace OniMoono.Assets.Files
 
         void ReadMetadata()
         {
-            var r = Reader(0, mapped != null ? checked((int)mapped.Length) : bytes.Count);
+            var r = Reader(0, mapped != null ? checked((int)mapped.Length) : bytes.Length);
             r.BigEndian = true;
             r.ReadUInt32(); // metadata size (legacy)
             r.ReadUInt32(); // file size (legacy)

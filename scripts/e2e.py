@@ -2788,6 +2788,10 @@ class Player:
             if self.update_check:
                 env.update(ONI_UPDATE_RELEASES_URL='file://' + os.path.join(FIXTURES, self.update_check['releases']),
                            ONI_UPDATE_TAG=str(self.update_check['tag']))
+            # The bundles' decompressed data (BundleCache): one cache for every run of the
+            # machine, keyed by the bundles' bytes, instead of 1.1 GB written into each run's home
+            # (a spec's `env` may name its own, for a first launch).
+            env.setdefault('ONI_BUNDLE_CACHE_DIR', os.path.join(shared_dir(), 'bundle-cache'))
             env.update(self.extra_env)
             command = [os.path.join(ROOT, 'scripts', 'run.sh'), '--native-override',
                        'steam_api=' + self.env['QA_U57_STEAM'], *size,

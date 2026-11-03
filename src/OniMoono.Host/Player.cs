@@ -22,6 +22,7 @@ namespace OniMoono.Host
             QuitSignals.Install();
             AssetSystem.Initialize(dataDir);
             ProjectSettings.Load();
+            OniMoono.Assets.Files.BundleCache.Configure(BundleCacheFolder(), Environment.GetEnvironmentVariable("ONI_BUNDLE_CACHE_VERIFY") == "1", EngineLog.Engine);
             BundlePrefetch.Start(EngineConfig.StreamingAssetsPath);
             if (options.Splash == "moo" && !options.Headless && !options.BatchMode)
                 OniMoono.Desktop.Gl.GlDevice.Splash = System.Threading.Tasks.Task.Run(OniMoono.Engine.Rendering.SplashArt.Load);
@@ -123,6 +124,17 @@ namespace OniMoono.Host
             // no ProcessExit handlers.
             ProcessExit(PlayerLoop.ExitCode);
             return PlayerLoop.ExitCode;
+        }
+
+        /// Where AssetBundles keep their decompressed data (BundleCache): the cache folder's
+        /// oni-moono/bundles, beside the converted assemblies (a user folder: the game's own
+        /// may be read-only); ONI_BUNDLE_CACHE_DIR names another (test runs share one), and
+        /// ONI_BUNDLE_CACHE=0 keeps the data in memory, as before the cache.
+        static string? BundleCacheFolder()
+        {
+            if (Environment.GetEnvironmentVariable("ONI_BUNDLE_CACHE") == "0") return null;
+            if (Environment.GetEnvironmentVariable("ONI_BUNDLE_CACHE_DIR") is { Length: > 0 } folder) return folder;
+            return string.IsNullOrEmpty(EngineConfig.TemporaryCachePath) ? null : Path.Combine(EngineConfig.TemporaryCachePath, "oni-moono", "bundles");
         }
 
         /// The window and its graphics device for the renderer option (Renderers.Open: Vulkan

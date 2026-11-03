@@ -20,10 +20,10 @@ namespace UnityEngine
         public static AssetBundle LoadFromFile(string path)
         {
             Threads.AssertMainThread("AssetBundle.LoadFromFile");
-            List<(string Key, ArraySegment<byte> Data)> nodes;
+            List<(string Key, ReadOnlyMemory<byte> Data)> nodes;
             try
             {
-                nodes = BundlePrefetch.Take(path) ?? AssetSystem.ReadNodes(UnityFsArchive.Open(path));
+                nodes = BundlePrefetch.Take(path) ?? AssetSystem.ReadNodes(BundleCache.Open(path));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
             {
@@ -41,7 +41,7 @@ namespace UnityEngine
         {
             Threads.AssertMainThread("AssetBundle.LoadFromMemory");
             if (binary == null) return null;
-            List<(string Key, ArraySegment<byte> Data)> nodes;
+            List<(string Key, ReadOnlyMemory<byte> Data)> nodes;
             try
             {
                 nodes = AssetSystem.ReadNodes(UnityFsArchive.Parse(binary));
@@ -70,7 +70,7 @@ namespace UnityEngine
             Threads.AssertMainThread("AssetBundle.LoadFromStream");
             var bytes = new MemoryStream();
             stream.CopyTo(bytes);
-            List<(string Key, ArraySegment<byte> Data)> nodes;
+            List<(string Key, ReadOnlyMemory<byte> Data)> nodes;
             try
             {
                 nodes = AssetSystem.ReadNodes(UnityFsArchive.Parse(bytes.ToArray()));
@@ -192,13 +192,13 @@ namespace OniMoono.Engine.Assets
 
     internal static class AssetBundles
     {
-        static readonly List<(AssetBundleCreateRequest Request, string Path, Task<List<(string, ArraySegment<byte>)>> Read)> pending = new();
+        static readonly List<(AssetBundleCreateRequest Request, string Path, Task<List<(string, ReadOnlyMemory<byte>)>> Read)> pending = new();
         static bool hooked;
 
         /// The bundles mounted and not unloaded (AssetBundle.GetAllLoadedAssetBundles).
         public static readonly List<AssetBundle> Loaded = new();
 
-        public static AssetBundle Mount(string path, List<(string Key, ArraySegment<byte> Data)> nodes)
+        public static AssetBundle Mount(string path, List<(string Key, ReadOnlyMemory<byte> Data)> nodes)
         {
             foreach (var (key, _) in nodes)
                 if (AssetSystem.IsMounted(key))
@@ -233,7 +233,7 @@ namespace OniMoono.Engine.Assets
                 hooked = true;
                 PlayerLoop.EarlyUpdate += Pump;
             }
-            pending.Add((request, path, Task.Run(() => AssetSystem.ReadNodes(UnityFsArchive.Open(path)))));
+            pending.Add((request, path, Task.Run(() => AssetSystem.ReadNodes(BundleCache.Open(path)))));
         }
 
         static void Pump()
