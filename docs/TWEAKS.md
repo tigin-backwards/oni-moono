@@ -167,11 +167,17 @@ delayed; temperature and building checks are untouched.
 
 What differs from the original: where two routes to a cell cost the same, the game keeps the one
 its search finds first, the repair the one it had or finds first. A Duplicant can then take the
-other route of the same cost, and when two such routes carry different suit flags (one passes a
-suit checkpoint), what lies beyond can differ as it would after another search order. With
-`ONI_TWEAK_VERIFY=1` every repair is checked against a new search and every search against the
-game's own on the same Duplicant; in c100 and DeCrew (U60) none of about 10,700 repairs and 180
-searches checked gave another cost or reachable cell.
+other route of the same cost. The route it keeps can also change what lies beyond that cell: when
+the two routes carry different suit flags (one passes a suit checkpoint), the cells past it may
+cost more or less, or be reachable or not, depending on the flags; and a step back the way the
+route came is never searched from a cell, so with the other route a cell next to it can be found
+at another cost. Such a difference is what the game's own search gives with another search order,
+and lasts until the Duplicant's next full search (when it moves). With `ONI_TWEAK_VERIFY=1` every
+repair is checked against a new search, and one that answers otherwise is checked to be a result
+the game's search can give (each cell set from its route, none reachable cheaper); only a repair
+that is not counts as wrong. Every search is also checked against the game's own on the same
+Duplicant. In a 200-Duplicant colony and a late-game base-game colony (U60) none of about
+10,700 repairs and 180 searches checked gave another cost or reachable cell.
 
 It stands down for the session, logged once in Player.log (`path-probe-repair: off (...)`), when
 another mod patches the probe or the methods it relies on. Fast Track's **Cache Paths** does:

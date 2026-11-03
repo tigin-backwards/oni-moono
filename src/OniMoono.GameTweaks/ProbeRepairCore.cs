@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace OniMoono.GameTweaks
 {
@@ -102,6 +103,100 @@ namespace OniMoono.GameTweaks
                 case ProbeChange.Void: Void.Add(e.Cell); break;
             }
         }
+    }
+
+    /// The change feed's queue (ProbeRepair): events added on the main thread as the game makes
+    /// them, sealed into numbered batches, which the probe thread takes in order (Drain: their
+    /// rows into its graph, the batches into its history) and merges for a repair (Collect).
+    /// The probe thread seals what was added so far before it takes the batches: a probe then
+    /// repairs every change the game made before it started, as a flood of the world then
+    /// would see it (the game's writers record a change as they make it). A change made while
+    /// a probe runs goes to a later batch, which the next repair takes.
+    public sealed class ProbeChanges
+    {
+        ProbeBatch batch = new ProbeBatch();
+        long sealedSeq, seq;
+        readonly System.Collections.Concurrent.ConcurrentQueue<ProbeBatch> queue = new System.Collections.Concurrent.ConcurrentQueue<ProbeBatch>();
+        readonly List<ProbeBatch> history = new List<ProbeBatch>();
+        const int MaxHistory = 4096;
+
+        /// Events added so far, and as many as were sealed.
+        public long Added, Sealed;
+
+        /// Each event's cell as it is added (verify mode's audit).
+        public Action<int> Recorded;
+
+        /// The last batch taken (the probe thread's): its graph has the rows up to it.
+        public long Seq => seq;
+
+        public void Add(ProbeChange kind, int cell, PLink[] row = null)
+        {
+            lock (this)
+            {
+                batch.Events.Add(new ProbeEvent { Kind = kind, Cell = cell, Row = row });
+                Added++;
+                Recorded?.Invoke(cell);
+            }
+        }
+
+        /// The events added so far into a batch of their own; returns how many were added in all.
+        public long Seal()
+        {
+            lock (this)
+            {
+                if (batch.Events.Count > 0)
+                {
+                    batch.Seq = ++sealedSeq;
+                    queue.Enqueue(batch);
+                    batch = new ProbeBatch();
+                }
+                Sealed = Added;
+                return Added;
+            }
+        }
+
+        /// The probe thread: seals what was added, then applies every sealed batch's rows to the
+        /// graph and keeps the batches. Returns how many events were added when it sealed (a
+        /// later count means the world changed since).
+        public long Drain(ProbeGraph graph)
+        {
+            long added = Seal();
+            while (queue.TryDequeue(out var b))
+            {
+                var events = b.Events;
+                for (int i = 0; i < events.Count; i++)
+                {
+                    var e = events[i];
+                    if (e.Kind != ProbeChange.Row) continue;
+                    e.Old = graph.SetRow(e.Cell, e.Row);
+                    events[i] = e;
+                }
+                history.Add(b);
+                seq = b.Seq;
+            }
+            if (history.Count > MaxHistory) history.RemoveRange(0, history.Count - MaxHistory / 2);
+            return added;
+        }
+
+        /// The changes taken since batch `since` merged into cs; false when some are no longer kept.
+        public bool Collect(long since, ChangeSet cs)
+        {
+            cs.Clear();
+            if (since == seq) return true;
+            if (history.Count == 0 || history[0].Seq > since + 1) return false;
+            int lo = 0, hi = history.Count;
+            while (lo < hi)
+            {
+                int mid = (lo + hi) / 2;
+                if (history[mid].Seq <= since) lo = mid + 1; else hi = mid;
+            }
+            for (int i = lo; i < history.Count; i++)
+                foreach (var e in history[i].Events) cs.Add(e);
+            return true;
+        }
+
+        /// Nothing added since the last seal, and every sealed batch taken.
+        public bool Synced => Interlocked.Read(ref Added) == Interlocked.Read(ref Sealed) && queue.IsEmpty;
     }
 
     /// The nav grid's links as the worker sees them: a row per cell (never changed in place; a
@@ -1033,6 +1128,72 @@ namespace OniMoono.GameTweaks
                 i = m;
             }
             hk[i] = key; hs[i] = s;
+        }
+
+        /// Null when the result is what a flood can leave: every state set from its parent's state
+        /// through a link of the parent's row as AddPotentials sets it (its cost and flags), no link
+        /// from a state (but the one back to its parent) that would make another cheaper or reach
+        /// one not reached, and each cell's prober entry its cheapest state but a tube's (and in
+        /// `reach`, sorted, when given). Floods differ from one another only in which of two
+        /// routes of the same cost they keep, and so in what follows from their flags.
+        public static string Fixpoint(ProbePages<PCell> cells, ProbePages<PProber> probers, ProbeFlags flags, ushort serial, int root, ProbeGraph g, IProbeRules rules, List<int> reach)
+        {
+            int nc = g.NavCount;
+            bool V(int s) => cells[s].QueryId == serial;
+            for (int s = 0; s < cells.Length; s++)
+            {
+                if (!V(s)) continue;
+                var c = cells[s];
+                int cell = s / nc;
+                byte nav = g.SlotNav[s % nc];
+                if (c.Parent == -1)
+                {
+                    if (cell != root || c.Cost != 0) return $"state {s} has no parent";
+                }
+                else
+                {
+                    byte pnav = (byte)(c.NavTypes >> 4);
+                    int ps = c.Parent * nc + g.NavSlot[pnav];
+                    if (!V(ps)) return $"state {s}'s parent {ps} is not reached";
+                    var p = cells[ps];
+                    bool found = false;
+                    foreach (var l in g.Rows[c.Parent])
+                    {
+                        if (l.Start != pnav || l.End != nav || l.Trans != c.TransitionId || l.Link != cell) continue;
+                        found = true;
+                        if (l.Link == p.Parent && (p.NavTypes >> 4) == l.Start) return $"state {s}'s parent {ps} skips the link";
+                        bool sub = rules.IsSubmerged(l.Link);
+                        int cand = p.Cost + l.Cost + (sub || l.End == ProbeGraph.Swim ? rules.Penalty(flags[ps], l) : 0);
+                        byte pf = flags[ps];
+                        if (cand != c.Cost) return $"state {s} costs {c.Cost}, {cand} from its parent {ps}";
+                        if (!rules.Traverse(ref pf, l.Link, l.End, c.Parent, pnav, cand, l.Trans, sub)) return $"state {s}'s parent {ps} can't take the link";
+                        if (pf != flags[s]) return $"state {s} has flags {flags[s]}, {pf} from its parent {ps}";
+                    }
+                    if (!found) return $"state {s}'s link from its parent {ps} is not in the row";
+                }
+                foreach (var l in g.Rows[cell])
+                {
+                    if (l.Start != nav || (l.Link == c.Parent && (c.NavTypes >> 4) == l.Start)) continue;
+                    if ((uint)l.Link >= (uint)g.CellCount || g.NavSlot[l.End] < 0) continue;
+                    int t = l.Link * nc + g.NavSlot[l.End];
+                    bool sub = rules.IsSubmerged(l.Link);
+                    int cand = c.Cost + l.Cost + (sub || l.End == ProbeGraph.Swim ? rules.Penalty(flags[s], l) : 0);
+                    if (V(t) && cells[t].Cost <= cand) continue;
+                    byte pf = flags[s];
+                    if (rules.Traverse(ref pf, l.Link, l.End, cell, nav, cand, l.Trans, sub))
+                        return V(t) ? $"state {t} costs {cells[t].Cost}, {cand} from {s}" : $"state {t} is not reached, but {s} reaches it";
+                }
+            }
+            for (int cell = 0; cell < probers.Length; cell++)
+            {
+                int best = -1;
+                for (int k = 0; k < nc; k++)
+                    if (g.SlotNav[k] != ProbeGraph.Tube && V(cell * nc + k) && (best == -1 || cells[cell * nc + k].Cost < best)) best = cells[cell * nc + k].Cost;
+                var p = probers[cell];
+                if ((p.QueryId == serial) != (best != -1) || (best != -1 && p.Cost != best)) return $"cell {cell}'s prober entry is not its cheapest state";
+                if (reach != null && (best != -1) != (reach.BinarySearch(cell) >= 0)) return $"cell {cell} is {(best != -1 ? "" : "not ")}reachable but {(best != -1 ? "not " : "")}listed";
+            }
+            return null;
         }
 
         /// Cells whose prober entries differ in validity or cost between two grids (each with its
