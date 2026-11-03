@@ -44,6 +44,8 @@
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakStrings.cs" Link="Host/TweakStrings.cs" />
     <!-- Development builds' [Debuggable(DisableOptimizations)] ignored as on Mono (MonoJitOptimizerTests). -->
     <Compile Include="../../src/OniMoono.Host/MonoJitOptimizer.cs" Link="Host/MonoJitOptimizer.cs" />
+    <!-- compact-nav-links' store (NavGridLinksTests). -->
+    <Compile Include="../../src/OniMoono.Host/NavGridLinks.cs" Link="Host/NavGridLinks.cs" />
     <!-- The brain-rate game tweak's allowance (BrainRateAllowanceTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/BrainRateAllowance.cs" Link="GameTweaks/BrainRateAllowance.cs" />
     <!-- The path-probe-repair game tweak's search (ProbeRepairTests). -->
