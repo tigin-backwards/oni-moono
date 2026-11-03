@@ -2457,7 +2457,14 @@ The host directory carries a `Restarter` (`Restarter.exe` on Windows, a .NET pro
 player directory does: `App.Restart` (language change) starts it with the player's executable
 path and quits. Ours waits for the player to exit and starts it again with the arguments it was
 started with (recorded by the host in `ONI_MOONO_RESTART_ARGS`, shell-quoted, and
-`ONI_MOONO_RESTART_ARGV`, JSON, with `ONI_MOONO_RESTART_PID`).
+`ONI_MOONO_RESTART_ARGV`, JSON, with `ONI_MOONO_RESTART_PID`). From U60-761654 the Windows
+`App.Restart` also passes the player's arguments (`Environment.GetCommandLineArgs()[1..]`, each in
+quotes as it is, so one holding a quote or ending in a backslash does not survive); Klei's
+761654 `Restarter.exe`, measured, starts the executable with them at once (no wait for the old
+process), in the executable's folder, with .NET's quoting (`ArgumentList`). Ours takes
+`EXECUTABLE [ARGUMENT...]`: the recorded arguments win, the command line's are used without them
+(`RestartCommand`, quoting as Klei's does), and it keeps the player's working folder, so a
+relative `--game` still resolves. The Linux `App.Restart` still passes only the executable.
 
 **Player options (Moono Tweaks).** The game tweaks (`GameTweakNames`), the loading splash, frame
 stats and the log's paths come from three places, later ones winning: built-in defaults (every tweak
