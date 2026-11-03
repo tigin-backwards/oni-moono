@@ -31,7 +31,9 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         /// The change runs as before it in this window.
-        public static bool Before(int change) => (named & change) != 0 && before;
+        /// ONI_CAPTURE_TWICE=full-draws runs every change as before it while a capture renders
+        /// again (FrameRenderer.FullDrawWork).
+        public static bool Before(int change) => (named & change) != 0 && before || System.Threading.Volatile.Read(ref OniMoono.Engine.Rendering.FrameRenderer.FullDrawWork);
 
         /// The ending window's variant for its frame counts (empty when not alternating); the
         /// next window runs the other.

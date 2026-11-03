@@ -548,6 +548,7 @@ namespace OniMoono.Desktop.Vulkan
             {
                 // A lost device: its objects are destroyed regardless.
             }
+            if (VkDrawVerify.On) EngineLog.Engine(VkDrawVerify.Summary());
             vk.SavePipelineCache();
             ReleaseAll();
             vk.Dispose();

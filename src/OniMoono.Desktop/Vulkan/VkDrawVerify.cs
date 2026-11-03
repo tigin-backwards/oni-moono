@@ -7,8 +7,8 @@ namespace OniMoono.Desktop.Vulkan
     /// full work beside its shortcuts and counts where they part. The shortcuts: a texture found
     /// ready earlier in the pass (VkReadyStamps), set 0's identities computed before any write
     /// (VkDescriptorCache.SetFor), and the pipeline lookup's last-key shortcut. A summary every
-    /// 600 frames, which qa-tools.py's verify gate fails on any non-zero count; the first 20
-    /// mismatches each get a line of their own.
+    /// 600 frames and when the device ends, which qa-tools.py's verify gate fails on any non-zero
+    /// count; the first 20 mismatches each get a line of their own.
     internal static class VkDrawVerify
     {
         public static readonly bool On = Environment.GetEnvironmentVariable("ONI_VERIFY_VK_DRAWS") == "1";

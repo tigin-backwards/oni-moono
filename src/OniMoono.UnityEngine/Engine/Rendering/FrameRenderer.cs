@@ -394,10 +394,16 @@ namespace OniMoono.Engine.Rendering
         /// Draw queues are recorded serially, whatever the device would do (diagnostics).
         public static bool SerialQueues;
 
-        /// Diagnostics (ONI_CAPTURE_TWICE=serial|parallel): each super-sized capture renders the
-        /// frame a second time, with draw queues recorded serially or as usual, into
+        /// Diagnostics (ONI_CAPTURE_TWICE=serial|parallel|full-draws): each super-sized capture
+        /// renders the frame a second time, with draw queues recorded serially, as usual, or
+        /// (full-draws) with the Vulkan draw path's shortcuts off (FullDrawWork), into
         /// PATH.again.png: the two must be identical.
         static readonly string captureTwice = Environment.GetEnvironmentVariable("ONI_CAPTURE_TWICE");
+
+        /// The capture being rendered again takes the Vulkan device's draw path without its
+        /// shortcuts (VkDrawAlternation; the device thread reads it during the capture, which
+        /// waits for its readback).
+        public static bool FullDrawWork;
 
         /// Screen drawing after the frame renderer's (IMGUI); captures repeat it.
         public static event Action RenderScreenLate;
@@ -498,8 +504,13 @@ namespace OniMoono.Engine.Rendering
                     if (captureTwice == null || scale == 1) continue;
                     // Diagnostics: the same frame rendered again, into PATH.again.png.
                     SerialQueues = captureTwice == "serial";
+                    System.Threading.Volatile.Write(ref FullDrawWork, captureTwice == "full-draws");
                     try { Capture(path + ".again.png", scale); }
-                    finally { SerialQueues = false; }
+                    finally
+                    {
+                        SerialQueues = false;
+                        System.Threading.Volatile.Write(ref FullDrawWork, false);
+                    }
                 }
             captures.Clear();
             frameQueued.Clear();
