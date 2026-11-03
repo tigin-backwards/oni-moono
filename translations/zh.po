@@ -31,8 +31,8 @@ msgid "Those rows can't be changed here. Remove the options from the game's laun
 msgstr "这些行无法在此更改。请从游戏的启动选项中移除相应参数，以便在此选择。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.UI.CHANGES_GAMEPLAY_NOTE"
-msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes."
-msgstr "这些选项会牺牲一点精确性来换取速度。除增量路径探测外默认关闭。"
+msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes and Open a colony once on the Load screen."
+msgstr "这些选项会牺牲一点精确性来换取速度。除增量路径探测和“加载游戏界面中殖民地只打开一次”外默认关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.UI.LAUNCH_OPTION"
 msgid "LAUNCH OPTION"
@@ -507,5 +507,5 @@ msgid "After Load more, a click on a colony no longer builds its list of saves a
 msgstr "点击“加载更多”后，点击殖民地不再为每次刷新各重建一遍它的存档列表。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.DETAIL"
-msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click opens the colony once for every refresh, and the last one stays on screen. The screen ends up the same; the repeated work and its repeated log lines go. Off by default, as the original repeats them."
-msgstr "这是游戏自身代码的错误：每次“加载更多”都会给已显示的殖民地再添加一份点击处理，于是一次点击会按刷新次数重复打开殖民地，屏幕上留下最后一次的结果。界面最终相同；只是去掉了重复的工作和重复的日志行。默认关闭，因为原版会重复这些工作。"
+msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same."
+msgstr "这是游戏自身代码的错误：每次“加载更多”都会给已显示的殖民地再添加一份点击处理，于是一次点击会按刷新次数重复构建殖民地，屏幕上留下最后一次的结果。开启后一次点击只构建一次、只记录一次日志；界面最终相同。"

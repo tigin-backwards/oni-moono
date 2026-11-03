@@ -37,7 +37,7 @@ msgstr ""
 
 #. Under the Changes gameplay heading
 msgctxt "STRINGS.MOONO.TWEAKS.UI.CHANGES_GAMEPLAY_NOTE"
-msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes."
+msgid "These trade a little exactness for speed. Off by default, but for Incremental path probes and Open a colony once on the Load screen."
 msgstr ""
 
 #. Beside a row the launch options set (one line)
@@ -632,5 +632,5 @@ msgstr ""
 
 #. Tooltip: how it works (fix-load-screen-clicks)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.DETAIL"
-msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click opens the colony once for every refresh, and the last one stays on screen. The screen ends up the same; the repeated work and its repeated log lines go. Off by default, as the original repeats them."
+msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same."
 msgstr ""
