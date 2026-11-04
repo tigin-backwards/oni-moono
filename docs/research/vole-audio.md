@@ -411,3 +411,338 @@ leave FMOD's per-instance cost as it is.
 - What to tell the reporter: it is the original game's behaviour with FMOD, not Moono's or Fast
   Track's. Until a tweak exists, spreading the voles over more cells avoids it, as the first runs
   above show, and so does muting critter sounds (the mod named above).
+
+## Event limits across the banks (2026-11-04)
+
+The questions: which of the game's FMOD events can do what `Rock_creature_land` does to a vole
+pile, why did Beakons freeze games with far fewer critters (sometimes about 50), why does
+Windows fall behind where Linux keeps up, and how audible would a tighter cap be in real
+colonies?
+
+**Verdict.**
+
+- **Limits.** Stealing and virtualize are the norm, not an outlier. Of 5,184 events in U60's
+  banks, 3,363 cap above one instance and steal or virtualize (most steal the quietest).
+  [vole-audio-event-limits.tsv](vole-audio-event-limits.tsv) lists them all.
+- **The freeze.** It follows FMOD's voices: 512, real and virtual together, in both players.
+  When they run out, instances pile up, the Studio thread passes 100% CPU and the command
+  queue blocks the main thread. Two kinds of event get there in a crowd:
+  - stealing events started very fast at one point, where each start plays and stops another:
+    `Rock_creature_land` at 2,000–3,000 a second;
+  - virtualize events, where each instance over the limit keeps a virtual voice until it ends:
+    pre-fix `ParrotFish_idle` freezes at 600–700 a second.
+- **Beakons.** 50 Beakons on the pre-fix bank didn't freeze, on Linux or on Windows. They hold
+  about 1.1 voices each at speed 3, so a quiet colony reaches 512 at about 400 Beakons on screen,
+  a busy one at about 280. The reports of about 50 must have had something these runs didn't:
+  [below](#beakons-pre-fix-and-now).
+- **A leak.** One event leaks without bound: `Squirrel_eat_LP`. The Pip's eat loop plays it as
+  a one-shot, but it is a loop that never ends.
+- **Windows and Linux.** At the same rate, Windows is not worse. In game, at 1,500 starts a
+  second at one point, Windows' Studio thread used 13% CPU and Linux's 22%. Windows' queue peak
+  was the lower one. No startup setting changes which sounds play and also keeps a crowd under
+  the cliff.
+- **Real colonies.** Six colonies at normal zoom used 35–213 voices. Many of their stealing
+  events play more than once at a time for much of each minute (`Rock_jump` 85% of the time),
+  so a blanket "1, steal none" would be audible. A fix should target the crowd, not the list.
+
+### Method
+
+- **Limits.** `tools/FmodLimits/limits.py` is a standalone FMOD host in Python on the game's
+  own `libfmodstudioL.so` (FMOD 2.03.12). It loads every bank of U60 761654 (base and all DLC)
+  and enumerates every event: path, `isOneshot`, 3D, min and max distance, length, user
+  properties.
+  - Per event, 64 instances start at the listener in one update. If the first k play, it steals
+    none. If the last k play, it steals. If all 64 stay alive and some are virtual, it
+    virtualizes.
+  - For stealing events, k old instances then meet one new one: quieter (volume 0.05), further
+    (0.9 × max distance), or louder but further. That separates oldest, quietest and furthest.
+  - A cooldown shows as a second instance that won't start for a while after the first.
+  - Output is `NOSOUND_NRT` with synchronous updates, so every run gives the same result. All
+    banks take about 6 minutes.
+- **Pre-fix banks.** The same survey of 733790 (`SimNotIncluded-U59-733790`, all 55 banks). For
+  the events that changed, also 744825's base banks.
+- **Who plays what.** The game's audio sheets map each event name to the animation file,
+  animation and sound-event type that play it. They are the CSV text assets in
+  `resources.assets` that `GameAudioSheets` loads. The decompiled 761654 code gives the rest.
+- **Load.** `tools/FmodLimits/rate.py` runs the same library in real time in its normal
+  asynchronous mode, on Linux and on Windows (`python.exe` with the Windows `fmodstudioL.dll`,
+  under the Windows game lock, no game running).
+  - It starts one event N times a second at one point from a 60 Hz loop. Each start creates the
+    instance, sets its 3D position and volume, starts it and releases it, as `KFMOD`'s one-shots
+    do.
+  - Once a second it logs the Studio queue, handles, CPU, live instances and voices.
+- **In game.** The #51 test mod, Moono u60, speed 3, in two new modes:
+  - **tank**: a box of water with Neutronium walls at the camera, with N Beakons in it. The DLC5
+    bank can be swapped for 733790's at load.
+  - **noise**: logs every instance created, with its cell and real time, and every event's live
+    instance count twice a second. The camera spends 60 s at orthographic size 18 on each of
+    three busy spots: the densest Duplicants and critters, the densest buildings, and both.
+  - On Linux, Xvfb, with FMOD mixing in real time into the private ALSA sink. On Windows,
+    1280×720 on monitor 2, `--no-focus`, WAV writer output, under the lock.
+
+### What the banks hold
+
+U60 761654, 5,253 bank entries (5,184 distinct events; snapshots left out):
+
+| Bank | Events | Above 1, steal quietest | Above 1, steal oldest | Above 1, virtualize | 1, none | Cooldown | No limit | Other |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Buildings | 1428 | 1102 | 95 | 123 | 52 | 10 | 16 | 30 |
+| Creatures | 684 | 119 | 80 | 18 | 396 | 57 | 0 | 14 |
+| expansion1_Buildings | 421 | 362 | 14 | 30 | 11 | 3 | 1 | 0 |
+| DuplicantActions | 366 | 191 | 4 | 49 | 37 | 1 | 1 | 83 |
+| DLC5_Creatures | 320 | 27 | 166 | 6 | 88 | 33 | 0 | 0 |
+| DuplicantVoices | 292 | 263 | 0 | 0 | 5 | 13 | 0 | 11 |
+| UI | 264 | 17 | 28 | 17 | 77 | 51 | 8 | 66 |
+| expansion1_Creatures | 237 | 86 | 28 | 6 | 62 | 55 | 0 | 0 |
+| Ambiences | 146 | 6 | 4 | 0 | 7 | 10 | 0 | 119 |
+| Environment | 143 | 18 | 13 | 22 | 35 | 0 | 0 | 55 |
+| DLC4_Creatures | 100 | 5 | 0 | 1 | 68 | 26 | 0 | 0 |
+| DLC3_Buildings | 91 | 78 | 11 | 2 | 0 | 0 | 0 | 0 |
+| DLC2_Creatures | 89 | 0 | 0 | 0 | 68 | 21 | 0 | 0 |
+| DLC5_Buildings | 66 | 25 | 2 | 30 | 2 | 0 | 7 | 0 |
+| Plants | 62 | 58 | 3 | 1 | 0 | 0 | 0 | 0 |
+| 32 smaller banks | 544 | 202 | 29 | 67 | 12 | 29 | 59 | 146 |
+| **All** | **5253** | **2559** | **477** | **372** | **920** | **309** | **92** | **524** |
+
+- **Quietest, not oldest.** The #51 section read `Rock_creature_land`'s "start all, keep the
+  last 5" as stealing the oldest. It steals the quietest. At one point all instances are equally
+  loud, so the quietest is the oldest and the vole pile behaves the same. The ParrotFish events
+  do steal the oldest.
+- **Other** holds limits of 2 or more with no stealing, limits of 1 with stealing or virtualize,
+  and events whose pattern wasn't clean (often random or delayed instruments).
+- **No limit** is mostly snapshots and videos. Every sound event has some limit.
+
+**What Klei changed between 733790 and 744825** (740622, by its patch notes):
+
+| Event | 733790 | 744825 and 761654 |
+| --- | --- | --- |
+| 17 `ParrotFish_*` events: `breathe_inhale`, `caught`, `cc_settle`, `cc_sleep_in`, `cc_sleep_out`, `cc_swim`, `drink_gulp`, `grooming_pre`, `grooming_pst`, `hit`, `lay_egg_pre`, `lay_egg_pst`, `poop`, `queue_movement`, `react_neg`, `react_pos`, `sleep_bubble` | 5, steal oldest | 1, none |
+| `ParrotFish_idle`, `ParrotFish_hatching` | 4, virtualize | 1, none |
+| `ParrotFish_eat_chomp` | 1, none, about 1 s cooldown | 1, none |
+| `Open_DoorInternal`, `Close_DoorInternal` (doors) | 8, steal quietest | 1, none |
+| `SteamTurbine_impact` | 6, steal quietest | 1, none |
+| `Liquidator_draw`, `Chlorinator_popping`, `GeoTuner_Tracker_button` | 8, 4 and 4, stealing | 1, none |
+
+- Unchanged:
+  - `ParrotFish_swim_LP` and `ParrotFishBaby_swim_LP`: 4, virtualize. These are looping sounds
+    that the game stops.
+  - `ParrotFish_voice_die_pre`/`_pst`, `ParrotFishBaby_poop` and the baby's death voices: 5,
+    steal oldest.
+  - Every vole and generic movement event.
+- The doors and the other building events changed in the same window, which the patch notes
+  don't mention.
+- Nothing else changed. The remaining differences are events added after 733790.
+
+**Looping events played as one-shots.** `SoundEvent`, the sheets' plain type, starts an instance
+and releases it, whatever the event is. 59 events that FMOD doesn't count as one-shots are
+played this way.
+
+- Each was started once, released and mixed for 60 s. All but 8 ended on their own.
+- Of those 8, the game stops 5 itself. The vole drill events use `HatchDrillSoundEvent` and the
+  Jukebot uses `PhonoboxSoundEvent`, both looping types.
+- 3 never end:
+
+| Event | Limit | Played by | Effect |
+| --- | --- | --- | --- |
+| `Squirrel_eat_LP` | 4, virtualize | every loop of a Pip's `eat_loop`, as a plain `SoundEvent` (the baby's `SquirrelBaby_eat_LP` is a `LoopingSoundEvent`) | each loop a Pip spends eating on screen adds an instance that never ends; past 4 they go virtual, each keeping a voice |
+| `RocketDebris_steaming_LP` | 4, virtualize | rocket debris `landed`, a row with no type | the same, once per landing, if that sheet's default type is `SoundEvent` |
+| `Geyser_erupt_LP`, `Geyser_erupt_water_LP` | 5, virtualize | one cool slush salt water geyser row with no type (every other geyser row is a `LoopingSoundEvent`) | the same, once per eruption, if that sheet's default is `SoundEvent` |
+
+`Squirrel_eat_LP` is the one leak found that a colony can grow without bound. That rests on the
+sheet, the decompiled `SoundEvent` and the standalone run; it wasn't run in game. The sheets'
+default types are in the `GameAudioSheets` asset, which wasn't read.
+
+`ParrotFish_hatching` (looping, played as a one-shot) looks like the same leak but can't happen.
+It sits in a `fish_bioluminescent_kanim` `hatching_pst` row that no code plays. A hatching Beakon
+is the baby, which plays `baby_bioluminescent_kanim`'s `hatching_pst` (`ParrotFishBaby_swim`). A
+grown-up adult plays `growup_pst`.
+
+### Beakons, pre-fix and now
+
+The Beakon is the ParrotFish. Per Beakon in a tank at speed 3, the game starts `ParrotFish_idle`
+1.7 times a second (`idle_loop`, frame 11). It starts `ParrotFish_swim` and a new
+`ParrotFish_swim_LP` loop 0.4 times a second each. 50 Beakons make about 140 starts a second;
+the 1,500 voles made 2,900.
+
+In game: Moono, the early-base colony, 50 Beakons, speed 3, camera on the tank at size 20, for
+180–360 s:
+
+| Player | Bank | Tank | Starts a second | `ParrotFish_idle` alive (real, virtual, other) | Voices, median / max | Studio CPU, median / max | Frame average |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Linux | 733790 (pre-fix) | 24 × 12 | 131 | about 100 (4, 50, 46) | 102 / 145 | 5.2% / 13% | 9.1 ms |
+| Linux | 761654 | 24 × 12 | 134 | 4–7 (1–2, 0, 3–5) | 49 / 69 | 3.3% / 6% | 10.5 ms |
+| Linux | 733790 | 3 × 2 (packed) | 144 | about 100 | 113 / 141 | 5.6% / 10% | 7.9 ms |
+| Linux | 761654 | 3 × 2 | 143 | 4–7 | 62 / 88 | 3.7% / 11% | 7.1 ms |
+| Windows | 733790 | 3 × 2 | 145 | about 105 (4, 50, 50) | 111 / 159 | 3.6% / 7% | 16.7 ms (60 fps cap) |
+
+- No run stalled. For 50 Beakons the pre-fix bank holds about 55 more voices and costs about 2
+  more points of Studio CPU. Its idle instances end, and the count holds at about 100.
+- Standalone, `ParrotFish_idle` at one point on Linux (Windows matched at 100, 400 and 1,000 a
+  second):
+
+| Starts a second | 733790: alive, voices, Studio CPU | 761654: alive, Studio CPU |
+| --- | --- | --- |
+| 100 | 165, –, 2% | 5, 1% |
+| 250 | 410, 228, 5% | – |
+| 400 | 655, –, 5% | 4, 2% |
+| 500 | 820, 455, 10% | – |
+| 700 | growing by 600 a second, **512**, 230%: frozen | – |
+| 1,000 | growing by 700–800 a second: frozen (Windows too) | 4–21, 3% |
+
+- **It's the voices.** With 1,024 voices instead of the game's 512, 400 a second stays up and
+  1,000 freezes. Each virtual instance lives about 1.6 s, twice the event's 0.86 s.
+- **Where 50 Beakons stand.** Pre-fix, Beakons on screen freeze FMOD once their `ParrotFish_idle`
+  voices and the colony's own reach 512. Each Beakon holds about 1.1 voices at speed 3, about
+  0.4 at speed 1. In the quiet early-base colony that is about 400 Beakons on screen at speed 3.
+  In the busiest colony below, whose own sounds peak at 213 voices, it is about 280.
+- **Why the reports differ.** 50 is far short of either. The reports of 50 had something these
+  runs didn't: more of the colony on screen, more instances per Beakon in states a tank doesn't
+  reach (feeding, grooming, queueing), or other events' voices. The pre-fix bank does cost more
+  per Beakon, so it got there sooner. Klei's fix takes Beakons almost out of the voice budget: 4–7
+  idle instances, however many Beakons.
+
+### Windows and Linux
+
+Standalone, `Rock_creature_land` at one point, 20 s, 1,024 voices. Each cell gives the queue's
+peak and Studio's median CPU:
+
+| Starts a second | Linux, 1,024 × 4 | Linux, 512 × 4 | Windows, 512 × 4 | Windows, 1,024 × 4 |
+| --- | --- | --- | --- | --- |
+| 1,000 | 8 KB, 19% | 8 KB, 18% | 7 KB, 12% | 7 KB, 10% |
+| 2,000 | 16 KB, 32% | 43 KB (queue grew to 128 KB), 25% | 21 KB, 21% | 21 KB, 18% |
+| 2,900 | frozen in 3 s (live 6,000+, voices at 1,024) | frozen in 4 s | 20 KB, 25% | 30 KB, 29% |
+
+In game, `Rock_creature_land` at 1,500 a second at one point through `SoundEvent.PlayOneShot`,
+early-base colony, 70 s:
+
+| Player | Studio CPU, median / max | Queue peak (capacity) | Stalls | Voices, median / max | Frame average |
+| --- | --- | --- | --- | --- | --- |
+| Linux | 22% / 28% | 58–62 KB (128 KB) | 2, 3 ms | 66 / 193 | 4.4 ms |
+| Windows | 13% / 16% | 36–42 KB (64 KB) | 1, 1 ms | 52 / 99 | 16.7 ms (60 fps cap) |
+
+- **At the same rate Windows keeps up better.** It uses less Studio CPU and a smaller queue,
+  standalone and in game. Standalone at 2,900 a second, Windows held in all four runs and Linux
+  froze in three of four (Linux here is WSL 2).
+- **Output and buffer don't matter.** NOSOUND against WAVWRITER, and 512 against 1,024 samples,
+  made no difference that showed. WAVWRITER rows are left out of the table for that reason.
+- **The queue grows by itself.** FMOD doubles a full command queue (32 KB → 64 KB → … 1 MB in the
+  frozen runs), and each growth is a stall. The queue's peak tracks the start rate times how many
+  60 Hz frames pass between Studio drains: about 210 bytes per one-shot.
+  - On Windows a 10 ms Studio update period halved the peak at 2,900 a second (20 KB → 10 KB).
+  - `timeBeginPeriod(1)` in the host process changed nothing.
+- **Threads.**
+  - Windows: FMOD's mixer runs at time-critical priority, one thread at highest, and the Studio
+    update thread (the busy one) at normal.
+  - Linux: every FMOD thread is `SCHED_OTHER`, nice 0. FMOD can't raise priorities without
+    real-time rights.
+  - Neither sets an affinity; all 16 cores are allowed.
+  - The game's settings give 512 × 4 DSP buffers on Windows and 1,024 × 4 on Linux. Both get 128
+    software channels, 512 voices, Studio's default 20 ms period and a 32 KB queue.
+- **The #51 difference stays unexplained.** On the pile, Windows froze after 10 s and Linux after
+  29 s, at 2,000–3,300 starts a second. These runs don't explain that from FMOD's settings: at
+  equal rates Windows has more headroom. What differs is the rest of the frame: the pile's own
+  work at 60 fps against Linux's uncapped frames, so a different number of commands per batch.
+  That is an inference; it wasn't isolated.
+- **Exact startup settings Moono could change.** These would go in the host before
+  `Studio::System::initialize`, as `--audio-wav` already does:
+  - a larger command queue: no growth stalls, but the freeze only comes later (#51);
+  - a 10 ms Studio update period: half the queue's peak, and sounds start up to 10 ms sooner,
+    with no change in which play.
+
+  Neither keeps a stealing or virtualize event under its cliff, because the Studio thread's CPU
+  runs out first and then the voices.
+
+### How noisy real colonies are
+
+Linux, Moono, speed 3, orthographic size 18, 60 s on each of three busy spots (the busiest
+Duplicants and critters, the busiest buildings, and both), 761654 banks. Every instance created
+was logged:
+
+| Colony | Instances a second | Events heard | Of them, limit above 1 with stealing or virtualize | Share of instances | Voices, median / max | Studio CPU, median / max |
+| --- | --- | --- | --- | --- | --- | --- |
+| large colony 1 | 297 | 281 | 157 | 40% | 140 / 189 | 7.2% / 11% |
+| large colony 2 | 232 | 335 | 178 | 20% | 169 / 213 | 4.5% / 7% |
+| large colony 3, with voles | 70 | 145 | 63 | 44% | 69 / 85 | 2.1% / 4% |
+| lab colony, without its mods | 16 | 129 | 42 | 32% | 35 / 54 | 1.5% / 3% |
+| early colony | 12 | 89 | 27 | 5% | 34 / 52 | 1.3% / 2% |
+| Prehistoric colony, cycle 1 | 34 | 89 | 29 | 23% | 44 / 57 | 1.7% / 3% |
+
+"Demand" below counts the instances the game asked for that would still be playing, each for
+the event's length. It is sampled every 10 ms over all three spots, before FMOD's limits. "Time
+over 1" is the share of time a "1, none" cap would drop a sound that now plays; "time over 5" is
+the same for a 5-instance cap. A stealing event already plays at most its limit. Changing it to
+"none" at the same limit changes which instances play (the first instead of the newest), not how
+many. The highest-rate events with a limit above 1 and stealing or virtualize:
+
+| Event | Limit | Played by | Highest rate a second (colony) | Demand peak | Time over 1 | Time over 5 | Peak in one cell |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `Rock_jump` | 5, quietest | Duplicants | 17.7 (large colony 1) | 73 | 85% | 72.5% | 17 |
+| `Rock_creature_land` | 5, quietest | critters | 12.0 (large colony 3, with voles) | 69 | 27% | 26.8% | 48 |
+| `BatteryCharger_small_working_electric` | 4, quietest | buildings | 6.2 (large colony 2) | 20 | 53% | 52.7% | 5 |
+| `POI_Research_Unlock_malfunction_beep_add` | 4, quietest | buildings | 4.2 (Prehistoric colony, cycle 1) | 5 | 94% | 0.0% | 5 |
+| `ColdBreather_output` | 8, quietest | plants | 4.0 (large colony 2) | 19 | 28% | 27.6% | 2 |
+| `ColdBreather_intake` | 8, quietest | plants | 4.0 (large colony 2) | 21 | 28% | 27.0% | 2 |
+| `TileBunker_creature_land` | 5, quietest | critters | 3.7 (large colony 3, with voles) | 25 | 27% | 25.9% | 25 |
+| `DupVoc_04_sleep_inhale` | 7, quietest | Duplicants | 3.1 (large colony 1) | 10 | 29% | 13.9% | 2 |
+| `LiquidVent_squirt` | 4, quietest | buildings | 3.1 (large colony 3, with voles) | 6 | 52% | 7.4% | 3 |
+| `DupVoc_04_sleep_exhale` | 6, quietest | Duplicants | 3.1 (large colony 1) | 7 | 26% | 3.8% | 1 |
+| `Sensor_Ping` | 8, quietest | buildings | 2.9 (large colony 3, with voles) | 8 | 57% | 21.8% | 2 |
+| `Dupe_jump_boing` | 5, quietest | Duplicants | 2.7 (large colony 2) | 16 | 26% | 5.3% | 4 |
+| `Battery_smart_rattle` | 8, quietest | buildings | 2.6 (large colony 1) | 9 | 57% | 12.7% | 3 |
+| `Rock_scoot` | 5, quietest | Duplicants | 2.5 (large colony 1) | 8 | 24% | 0.9% | 3 |
+| `ConveyorDropper_output` | 4, oldest | buildings | 2.4 (large colony 2) | 5 | 51% | 0.0% | 3 |
+| `ConveyorIn_piston` | 12, oldest | buildings | 2.4 (large colony 2) | 8 | 31% | 0.2% | 4 |
+| `POI_Research_Unlock_stuck_shake` | 4, quietest | buildings | 2.1 (Prehistoric colony, cycle 1) | 3 | 94% | 0.0% | 3 |
+| `Sensor_Temperature` | 8, oldest | buildings | 1.9 (large colony 3, with voles) | 4 | 42% | 0.0% | 4 |
+| `Liquid_Splat` | 5, virtualize | liquids, tiles | 1.8 (large colony 2) | 8 | 55% | 7.2% | 4 |
+| `Laser_TakeOut_Build` | 2, quietest | Duplicants | 1.8 (large colony 1) | 6 | 5% | 0.0% | 5 |
+| `Ladder_hand` | 5, quietest | Duplicants | 1.7 (large colony 1) | 6 | 10% | 0.2% | 4 |
+| `MicrobeMusher_gross_working` | 4, quietest | buildings | 1.7 (large colony 1) | 11 | 28% | 18.2% | 4 |
+
+- **Duplicants and buildings make the steady noise.** In large colony 1 `Rock_jump` played
+  more than one copy 85% of the time and more than five 72%. "1, none" on Duplicant movement would
+  be clearly audible: most of their jumps and lands would go silent.
+- **Same-cell bursts come from critters.** `Rock_creature_land` reached 48 instances in one cell
+  in the colony with voles, and `TileBunker_creature_land` 25. The busiest Duplicant event's
+  same-cell peak was 17.
+- **There is headroom.** No colony used more than 213 of the 512 voices, and Studio's CPU stayed
+  under 11%.
+- **The lab colony** is the save without its 35 mods, so it plays far less than it does with
+  them.
+
+### Ranking the crowd risks
+
+By how often the game starts each event per object (code and the runs above), and by whether
+the objects can crowd one spot:
+
+| Rank | Events | Limit | Per object, at speed 3 | Crowds |
+| --- | --- | --- | --- | --- |
+| 1 | `*_creature_land` (24 materials; `FloorSoundEvent` on every landing and hop) | 5, steal quietest | about 2 a second per vole; 12 a second for one colony's voles | critters stack in a cell: the 1,500-vole pile froze; 48 in one cell in a real colony |
+| 2 | `Squirrel_eat_LP` | 4, virtualize, never ends | one per `eat_loop` loop per Pip | not needed: it accumulates over time instead |
+| 3 | `ShoveVole_movement` (one-shot), `ShoveVole_drill_LP`/`_emerge`/`_hide` (looping, stopped) | 5, steal quietest or oldest | voles moving and drilling | voles stack in a cell |
+| 4 | `Creature_chew_<material>` (14; `CreatureChewSoundEvent`) | 5, steal oldest | each bite of an eating critter | ranches crowd a feeder |
+| 5 | DLC5 critters' `eat`, `drink`, `excited`, `queue`, `flop` and `idle` events (`Blowfish_*`, `Snail_*`, `Squid_*`, `Merpip_*`, `Seahorse_*`, `Turtle_*` and their babies; 161) | 5, steal oldest | per loop of those animations, like the pre-fix ParrotFish | fish ranches crowd a tank; Klei changed only ParrotFish |
+| 6 | Duplicant movement and voices (`Rock_jump`, `*_land`, `*_climb`, `DupVoc_*`) | 5–8, steal quietest | up to 18 a second for a whole colony | tens of Duplicants at most, not hundreds |
+| 7 | Buildings (`Sensor_Ping`, batteries, conveyors, vents) | 4–12, stealing | 1–6 a second for a whole colony | one per tile; bounded by how many are on screen |
+| 8 | Liquids and tiles (`Liquid_Splat`, 5 virtualize) | 4–8 | about 2 a second | bounded by what is on screen |
+
+### What a fix should target
+
+- **An exact fix isn't available.** FMOD exposes no per-event limit at runtime, the banks are
+  Klei's, and the measured startup settings don't move the cliff.
+- **By event list:** `*_creature_land`, `ShoveVole_movement`, `Creature_chew_*` and the DLC5
+  critter events in rank 5. That is about 200 events, all played by critters, and Klei's own
+  Beakon fix is this kind. It needs managed code, since the banks can't be changed: refuse a new
+  one-shot of a listed event while one is already playing near the same point, rather than let
+  FMOD steal. In real colonies that changes little: these events' same-cell peaks were 1–3,
+  except in the colony with voles (48). A pile changes more, and audibly, as the #51 dedupe did.
+- **By cause:** a per-frame, per-cell dedupe of one-shots, as built for #51, covers every crowd
+  without a list. Real colonies show it would rarely fire outside critter piles. Keeping FMOD
+  below its 512 voices covers the virtualize kind too. That guard would skip new low-priority
+  one-shots when voices pass about 450, a state no colony above came near.
+- **The leak:** start `Squirrel_eat_LP` as a looping sound (as the baby's is) or stop it when
+  `eat_loop` ends. It is a game-data bug to report to Klei with the vole bank settings.
+- **What to tell Klei:**
+  - give `*_creature_land` and `ShoveVole_movement` the Beakon treatment;
+  - give `Squirrel_eat_LP`'s sheet row the `LoopingSoundEvent` type;
+  - the DLC5 critters in rank 5 have the pre-fix ParrotFish settings.
