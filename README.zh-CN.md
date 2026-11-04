@@ -2,7 +2,9 @@
 
 [English](README.md) | 简体中文
 
-一个非官方、超快、超可疑的《缺氧》（Oxygen Not Included）Unity 层替代品，由 Claude 匠心打造。在游戏后期的殖民地中，它的帧率约为原版的 8 倍（见[性能表现](#性能表现)）。
+一个野路子、超快、非官方的《缺氧》（Oxygen Not Included）引擎替代品，是我和 AI 搭档 Claude（Anthropic 公司出品）一起折腾出来的。它替换的是游戏底层的 Unity 引擎，游戏本身的代码仍是 Klei 原版的，所以它不是普通的模组。在游戏后期的殖民地中，它的帧率约为原版的 8 倍（见[性能表现](#性能表现)）。
+
+源代码公开；不改动游戏文件，只在 Steam 启动选项里加一行，清空启动选项即可回到原版；照常使用你的存档、DLC 和模组。目前只支持 Steam 版，不支持 WeGame 和 Epic。
 
 <p align="center"><img src="docs/images/moo-comet.webp" alt="一只释气海牛像彗星一样坠落" height="240"></p>
 
