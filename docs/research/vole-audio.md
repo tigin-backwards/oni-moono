@@ -424,9 +424,10 @@ colonies?
 - **Limits.** Stealing and virtualize are the norm, not an outlier. Of 5,184 events in U60's
   banks, 3,363 cap above one instance and steal or virtualize (most steal the quietest).
   [vole-audio-event-limits.tsv](vole-audio-event-limits.tsv) lists them all.
-- **The freeze.** It follows FMOD's voices: 512, real and virtual together, in both players.
-  When they run out, instances pile up, the Studio thread passes 100% CPU and the command
-  queue blocks the main thread. Two kinds of event get there in a crowd:
+- **The freeze.** It coincides with FMOD's 512 voices running out, in both players, but more
+  voices don't move it ([below](#raising-fmods-voice-limit-2026-11-04)): instances pile up,
+  the Studio thread passes 100% CPU and the command queue blocks the main thread. Two kinds
+  of event get there in a crowd:
   - stealing events started very fast at one point, where each start plays and stops another:
     `Rock_creature_land` at 2,000–3,000 a second;
   - virtualize events, where each instance over the limit keeps a virtual voice until it ends:
@@ -589,12 +590,17 @@ In game: Moono, the early-base colony, 50 Beakons, speed 3, camera on the tank a
 | 700 | growing by 600 a second, **512**, 230%: frozen | – |
 | 1,000 | growing by 700–800 a second: frozen (Windows too) | 4–21, 3% |
 
-- **It's the voices.** With 1,024 voices instead of the game's 512, 400 a second stays up and
-  1,000 freezes. Each virtual instance lives about 1.6 s, twice the event's 0.86 s.
+- **Not the voices.** With 1,024 voices instead of the game's 512, 400 a second stays up and
+  1,000 freezes, as at 512: the cliff is at 550–600 a second at every limit tried
+  ([below](#raising-fmods-voice-limit-2026-11-04)). Each virtual instance lives about 1.6 s,
+  twice the event's 0.86 s.
 - **Where 50 Beakons stand.** Pre-fix, Beakons on screen freeze FMOD once their `ParrotFish_idle`
   voices and the colony's own reach 512. Each Beakon holds about 1.1 voices at speed 3, about
   0.4 at speed 1. In the quiet early-base colony that is about 400 Beakons on screen at speed 3.
   In the busiest colony below, whose own sounds peak at 213 voices, it is about 280.
+  Measured since: in early-base 300 Beakons hold and 400 freeze, at 512 voices and at 2,048
+  alike, so the count is right but the voices aren't the limit
+  ([below](#raising-fmods-voice-limit-2026-11-04)).
 - **Why the reports differ.** 50 is far short of either. The reports of 50 had something these
   runs didn't: more of the colony on screen, more instances per Beakon in states a tank doesn't
   reach (feeding, grooming, queueing), or other events' voices. The pre-fix bank does cost more
@@ -746,3 +752,258 @@ the objects can crowd one spot:
   - give `*_creature_land` and `ShoveVole_movement` the Beakon treatment;
   - give `Squirrel_eat_LP`'s sheet row the `LoopingSoundEvent` type;
   - the DLC5 critters in rank 5 have the pre-fix ParrotFish settings.
+
+## Raising FMOD's voice limit (2026-11-04)
+
+The question: the game initializes FMOD with 512 voices, real and virtual together (the
+`maxchannels` of `Studio::System::initialize`), and 128 of them real. The sections above saw
+the freezes start as the 512 ran out. Does a higher limit fix #51 and the related crowds, and
+what does it cost?
+
+**Verdict: no. A higher voice limit fixes none of the cases and delays none of them by a useful
+margin.** The voices run out at the same moment the freeze starts, but they are not its cause.
+FMOD's mixer and Studio threads run out of CPU first, and that cost follows the number of live
+event instances, which the voice limit doesn't change. At 4,095 voices the vole pile freezes 10 s
+after the camera reaches it, as at 512; 400 pre-fix Beakons freeze after 20–30 s at every limit;
+the Pip eat-loop leak reaches the same Studio overload at the same minute. Below the limit
+nothing changes either: a normal busy colony plays and sounds the same at 512 and 2,048. So
+there is nothing to gain from raising it, and keeping 512 keeps the game's setting. The
+corrections to the sections above are at the end.
+
+### Where the limit is set
+
+- `FMODUnity.RuntimeManager.Initialize` (FMODUnity.dll, U60 761654) reads the platform settings
+  of the game's FMODUnity settings asset: `softwareChannels = Math.Min(RealChannelCount, 256)`
+  for `coreSystem.setSoftwareChannels`, and `VirtualChannelCount` for
+  `studioSystem.initialize(virtualChannelCount, DEFERRED_CALLBACKS, NORMAL, IntPtr.Zero)`. The
+  asset gives 128 and 512 on Windows and Linux. FMODUnity's own defaults are 32 and 128; its
+  play-in-editor platform uses 256 and 1,024. Assembly-CSharp doesn't touch either.
+- If `initialize` fails, `RuntimeManager` retries once with `OUTPUTTYPE.NOSOUND` and then throws
+  `SystemNotInitializedException`. A count FMOD rejects would therefore end in no sound at all
+  or an exception at start-up (from the code; not run in game).
+- A mod can't change it: Studio is initialized before mods load. For these runs a local,
+  uncommitted hook did it, as the command queue test did: a Harmony prefix on
+  `FMOD.Studio.System.initialize` that replaces `maxchannels`, in Moono's host (from
+  `ONI_FMOD_VOICES` or `fmod-voices.txt` in the run home) and in the original's isolation plugin
+  (`fmod-voices.txt` in the run home). Its postfix wrote the result: `maxchannels 512 -> 2048:
+  OK; software channels 128` in every run.
+
+### The cap
+
+FMOD's old documentation (1.03) gave 4,093 as the maximum; the 2.03 documentation reviewed
+here gives no number and suggests "a few hundred up to a thousand or more" for typical games.
+The game's FMOD 2.03.12, called directly (`libfmodstudioL.so` on Linux, `fmodstudioL.dll` on
+Windows, the game's settings, `NOSOUND_NRT`), then 10,000 `playSound` calls of a looping sound:
+
+| `maxchannels` | `initialize` | Voices playing (real) | FMOD memory after `initialize` | With every bank loaded | With the voices full |
+| --- | --- | --- | --- | --- | --- |
+| 512 | OK | 512 (128) | 1.7 MB | 35.1 MB (Linux), 51.4 MB (Windows) | +0.3 MB |
+| 1,024 | OK | 1,024 (128) | 2.8 MB | +1.1 MB | +0.5 MB |
+| 2,048 | OK | 2,048 (128) | 5.0 MB | +3.3 MB | +0.9 MB |
+| 4,095 | OK | 4,095 (128) | 9.2 MB | +7.5 MB | +1.8 MB |
+| 4,096, 4,097, 8,192 | `ERR_INVALID_PARAM` (31) | – | – | – | – |
+
+The cap is 4,095, on both platforms. A voice costs about 2.2 KB when FMOD starts and about
+0.45 KB more while it plays. 4,092–4,095 behaved the same as 4,095.
+
+### Method
+
+- **Players**: Moono u60 (555e7907 plus the hook), release, default game tweaks; Windows on
+  monitor 2 at 1280×720, `--no-focus`, frame cap 60 fps, under the Windows game lock, audio to
+  FMOD's WAV writer (`--audio-wav`). Linux on Xvfb with the private ALSA sink. The original
+  player was run for the vole pile only.
+- **Test mod**: the #51 and survey mod (`VoleSwarm`), `timers=0`, logging once a second: frames,
+  instances created, voices, Studio queue and handles, mixer and Studio CPU, `Memory_GetStats`,
+  private bytes or RSS. For live instances it counted `getInstanceCount` per watched event.
+- **Scenarios**, each at 512, 1,024, 2,048 and 4,095 voices where it mattered:
+  - **A**: the 1,500-vole pile fixture, 30 s away, then the camera on the pile at size 20.
+  - **B**: N Beakons in a 24 × 12 water tank on the early-base colony, with 733790's (pre-fix)
+    `DLC5_Creatures.bank` swapped in at load, camera on the tank for 180 s. Standalone, the
+    survey's `rate.py` started pre-fix `ParrotFish_idle` at one point at 400–2,000 a second.
+  - **C**: a new mode of the mod: 16 Pip animations (`squirrel_kanim`, made with
+    `FXHelpers.CreateEffect`) looping `eat_loop` on screen. The game's own anim events play
+    `Squirrel_eat_LP` once per loop, as for an eating Pip, so this is the real path at a real
+    per-Pip rate. 600 s on screen, then 60 s away.
+  - **D**: the large colony 1 save, the survey's three busy spots at size 18, 60 s each.
+- **Freeze**: the mod's watchdog logs every second the main thread finishes no frame; "frozen"
+  is a stall that never ends (killed after 100 s).
+
+### A: the vole pile
+
+Windows, Moono. Times from the camera reaching the pile:
+
+| Voices | Voices used, peak | Instances a second | Frozen from | Mixer / Studio CPU, peak before | Handles before | FMOD memory / private bytes |
+| --- | --- | --- | --- | --- | --- | --- |
+| 512 | 512 | 2,146 | 9 s | 161% / 86% | 276,000 | 368 MB / 8.2 GB |
+| 1,024 | 1,024 | 2,167 | 9 s | 148% / 93% | 274,000 | 368 MB / 8.2 GB |
+| 2,048 | 2,048 | 2,364 | 9 s | 150% / 87% | 279,000 | 369 MB / 8.1 GB |
+| 4,095 | 2,709 | 2,178 | 10 s | 150% / 94% | 275,000 | 372 MB / 8.3 GB |
+
+- Within 2 s of reaching the pile every run uses all its voices, and the mixer passes 100% in
+  the same second. At 4,095 the pile never used all of them (2,709 at most) and froze all the
+  same.
+- Linux, Moono, 512 and 2,048: frozen from 18 s and 17 s, with a 6–11 s stall at 4 s in both
+  (Linux runs shared the machine with the Windows runs).
+- The original, with the hook in its isolation plugin: at 512 a 97 s stall from 4 s, then
+  frozen from 112 s; at 2,048 frozen from 9 s, with all 2,048 voices in use (mixer 151%).
+
+### B: Beakons on the pre-fix bank
+
+In game, Windows, Moono, times from the spawn:
+
+| Beakons | Voices | Instances a second | Voices used, peak | First stall of 5 s+ | Frozen from |
+| --- | --- | --- | --- | --- | --- |
+| 200 | 512 | 522 | 353 | none | no stall of 1 s in 180 s |
+| 200 | 2,048 | 520 | 355 | none | no stall of 1 s in 180 s |
+| 250 | 512 | 648 | 423 | none | no stall of 1 s in 180 s |
+| 250 | 2,048 | 651 | 477 | none | no stall of 1 s in 180 s |
+| 300 | 512 | 772 | 505 | none | no stall of 1 s in 180 s |
+| 300 | 2,048 | 771 | 525 | none | no stall of 1 s in 180 s |
+| 400 | 512 | 1,034 | 512 | 29 s | 56 s |
+| 400 | 1,024 | 1,024 | 1,024 | 27 s | 51 s |
+| 400 | 2,048 | 1,026 | 2,048 | 29 s | 55 s |
+| 400 | 4,095 | 1,023 | 2,413 | 19 s | a 97 s stall from 40 s |
+
+Standalone, pre-fix `ParrotFish_idle` at one point, Linux, 20 s per run ("over" means Studio
+passed 100% CPU and its queue grew without end; repeats at 550 and 600):
+
+| Starts a second | 512 | 1,024 | 2,048 | 4,095 |
+| --- | --- | --- | --- | --- |
+| 400, 500 | holds | holds | holds | holds |
+| 550 | holds ×3 | – | holds ×3 | – |
+| 600 | 3 of 4 hold | over at 14 s | 3 of 4 hold | over at 18 s |
+| 700–2,000 | over in 2–4 s | over in 3–10 s | over in 3–4 s | over in 2–3 s |
+
+- In game the line falls between 300 Beakons (770 instances a second, mixer 45%) and 400
+  (1,030 a second, mixer past 100%), at 512 and 2,048 alike. 300 Beakons held at 512 with 505
+  voices in use.
+- Standalone the cliff sits at 550–600 starts a second at every limit. The runs at 600 go
+  either way at 512 and at 2,048 alike.
+- What climbs on the way is the mixer, not the voice count. At 500 a second (820 live, 460
+  voices) the mixer uses 45% at 512 and at 1,024 voices alike; at 600 a second, 80–90%, then it
+  passes 100% and live instances run away from 1,000 to 5,000 in a few seconds. At 600 a second
+  with 1,024 voices, 550–670 were in use when the mixer passed 100%: there were voices to
+  spare.
+- So the earlier note that 1,024 voices moved this cliff was wrong: 400 a second holds at 512
+  too, and 1,000 freezes at both.
+
+### C: the Pip eat loop
+
+16 Pips looping `eat_loop`, Windows, Moono:
+
+| Voices | `Squirrel_eat_LP` live, gain a second | Voices full at | Studio past 100% at | Game stalls of 1 s+ in 600 s | Live after 600 s, then 60 s away |
+| --- | --- | --- | --- | --- | --- |
+| 512 | 61 | 10 s | 60 s (3,250 live) | 13, the longest 6 s | 12,048 → 12,064; Studio 252% |
+| 2,048 | 61 | 40 s | 60 s (3,250 live) | 19, the longest 67 s (at 7 min) | 11,904 → 12,176; Studio 360% |
+
+- The Pip plays `Squirrel_eat_LP` 3.8 times a second while it eats at speed 3, each a new
+  instance that never ends. That makes the leak much faster than the survey assumed. One Pip
+  eating on screen reaches the 3,250 instances where Studio passes 100% in about 14 minutes of
+  eating; 10 eating Pips in about 85 s (estimates from the measured rate).
+- Studio's CPU follows the live instances, not the voices: 7–10% at 550, 20% at 1,750, 40% at
+  2,950, then past 100%, with 512 or 2,048 voices. Linux showed the same (Studio past 100% at
+  50–60 s at both limits).
+- After that the game keeps running at 60 fps most seconds, but stalls for seconds now and then,
+  every synchronous FMOD call blocks (the mod's once-a-second queries took 1–6 s each), the
+  command queue grows to 16 MB, and the audio falls behind: the WAV writer got about 60 s of
+  audio for the 11 minutes.
+- Taking the camera away doesn't help: the leaked instances stay, and so does the CPU. Only
+  quitting clears them.
+- More voices only change when the voices fill, which doesn't matter here. The one long stall
+  came at 2,048; with one run each, that is no evidence either way.
+
+### D: a busy colony at normal zoom
+
+Large colony 1, the three busy spots, 180 s, Windows, Moono. Five runs at each limit (three
+with music, two without); the ranges are of the runs' medians over their seconds:
+
+| Voices | Frame avg | Instances a second | Voices used, median / max (real) | Mixer / Studio CPU, median | FMOD memory, max | Private bytes, max |
+| --- | --- | --- | --- | --- | --- | --- |
+| 512 | 25.0–32.8 ms | 313–350 | 132–139 / 173–201 (49–53) | 14.7–18.2% / 11.7–12.6% | 315.9–318.3 MB | 15.06–15.35 GB |
+| 2,048 | 25.9–33.4 ms | 312–359 | 127–144 / 175–206 (47–53) | 14.5–16.5% / 11.5–12.3% | 318.2–320.7 MB | 14.86–15.08 GB |
+
+No difference beyond run-to-run noise. The colony never comes near 512 voices, and FMOD's memory
+is about 3 MB higher at 2,048, as the table of the cap predicts. On Linux (two runs each, sharing
+the machine with the Windows runs) voices, mixer and Studio CPU matched the same way; its frame
+times followed what else was running, not the limit.
+
+### Audio
+
+- **Below the limit it is the same.** In game no two runs give the same samples (music choice,
+  frame timing, FMOD's random seed), so the check was made outside the game: `replay.py` plays a
+  colony's logged one-shots (the survey's noise logs) through the game's FMOD and banks,
+  non-real-time into a WAV file, with a fixed random seed. Large colony 1, 47,271 one-shots in
+  200 s, peak 102 voices:
+
+  | Pair | Identical samples | Difference RMS (signal 0.059) |
+  | --- | --- | --- |
+  | 512 and 2,048 | 97.7% | 0.0017 |
+  | 512 and 512 again | 97.5% | 0.0019 |
+  | 2,048 and 2,048 again | 97.5% | 0.0018 |
+
+  Two runs at the same limit differ as much as runs at different limits (the first 17 s are
+  identical sample for sample, then FMOD's own timing makes them drift apart), so the limit
+  changes nothing measurable below it. Large colony 3 (8,251 one-shots, 50 voices; no repeat
+  run) gave 81% identical samples and a difference RMS of 0.0029, against a signal of 0.029, at
+  512 and 2,048.
+- **In game, below the limit, the effects sound the same.** With the music muted, large colony 1
+  at 512 (two runs plus one through the hook at 512), 1,024, 2,048 (two runs) and 4,095 voices:
+  the spectrum over 170 s agrees within 0.3 dB in every band from 0 to 24 kHz, and the median
+  loudness per second within 15% (888–1,023 RMS), with no order by limit.
+- **The music differed, because of the hook, not the limit.** With music on, the three runs at
+  512 without the hook had more music in the second half than the three at 2,048 (up to 8 dB
+  more at 200–500 Hz over 120–170 s). Runs through the hook at 512 and at 1,024 matched the
+  2,048 runs instead. The game picks its songs with `UnityEngine.Random`
+  (`MusicManager`), and runs of one setup repeat each other closely here, so a change at start-up
+  shifts the pick (an inference; the music path wasn't traced).
+- **In the crowds** the extra voices make no audible difference, because the mix breaks down
+  the same way at every limit. In A and B the WAV writer stops when the game freezes (53 s and
+  37–38 s of audio, at 512 and at 2,048 alike). In C it falls behind: 79 s of audio in about
+  11 minutes, with gaps of near silence.
+- **Clips** for listening, in `C:\Users\Glyn\Downloads\fmod-voices\` (48 kHz stereo, from the
+  WAV writer; A and B end where the game froze, and C's time runs slower than the game's once
+  Studio overloads):
+  - `A-vole-pile-512-voices-last20s-before-freeze.wav`
+  - `A-vole-pile-2048-voices-last20s-before-freeze.wav`
+  - `B-400-prefix-beakons-512-voices-last18s-before-freeze.wav`
+  - `B-400-prefix-beakons-2048-voices-last18s-before-freeze.wav`
+  - `C-pip-eat-leak-512-voices-whole-run.wav`
+  - `C-pip-eat-leak-2048-voices-whole-run.wav`
+
+### What it costs
+
+- **Memory**: 2.2 KB a voice at start-up, about 0.45 KB more while it plays: +3.3 MB at 2,048,
+  +7.5 MB at 4,095, and 1–2 MB more when they fill. Private bytes didn't move beyond noise.
+- **CPU when they fill**: in the crowds the mixer and Studio pass 100% at every limit, so a
+  higher limit's own cost can't be separated there. Where the voices fill without an overload
+  (the Pip leak's first minute), 2,048 voices sometimes took more mixer CPU than 512: 54% against
+  27% at 2,350 live instances on Windows, 71% against 56% on Linux, but level 10 s later (38%
+  against 37%). One run each: an indication, not a measurement.
+- **Frame time**: none measured in D (above).
+
+### What to do instead
+
+| Case | A higher voice limit | What helps |
+| --- | --- | --- |
+| A: one-cell pile of a stealing event | no effect: frozen at 9–10 s at every limit | the per-cell dedupe of #51 (measured: no stalls, 83 instances a second) |
+| B: pre-fix Beakons | no effect on 400 (frozen at 20–30 s); the cliff stays at 550–600 starts a second | Klei's bank fix, already in U59 and U60 |
+| C: Pip eat-loop leak | no effect: Studio overload at 60 s with 16 Pips at both limits | stop the leak: the sheet row as `LoopingSoundEvent`, or a game-side stop at `eat_loop`'s end (a Klei bug; a Moono tweak would change sound) |
+| D: normal colonies | no change, a few MB | nothing needed |
+
+- **Recommended combination**: keep 512; the per-cell dedupe for piles (#51); a fix for the
+  `Squirrel_eat_LP` leak. A guard on live instances, as below, would catch the rest (not built).
+- **A guard that does work**: the measure that predicts the overload is the number of live
+  instances (about 1,000 of pre-fix `ParrotFish_idle`, 3,250 of the Pip loop, a few thousand
+  for the pile), not the voices. At the game's 512, "voices above about 450" works only as an
+  early warning: 300 Beakons held with 505 voices in use, and the Pip loop filled them 50 s
+  before Studio overloaded.
+
+### Corrections to the sections above
+
+- "The freeze follows FMOD's voices" (event limits verdict): the voices fill at the same time,
+  but the measured cause is mixer and Studio CPU, which follows live instances. Raising the
+  limit to 4,095 moved no freeze.
+- "With 1,024 voices instead of the game's 512, 400 a second stays up and 1,000 freezes":
+  both hold at 512 too. The cliff is at 550–600 a second at 512, 1,024, 2,048 and 4,095.
+- The Pip leak (`Squirrel_eat_LP`) now runs in game: about 3.8 never-ending instances a second
+  per eating Pip at speed 3.
