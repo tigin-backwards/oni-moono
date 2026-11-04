@@ -2,6 +2,7 @@
 // Copyright (c) 2010, 2011, Google Inc. All rights reserved. BSD-style license; see
 // src/ThirdParty/rfc6386/LICENSE and PATENTS.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace OniMoono.Engine.Video.Vp8
@@ -78,6 +79,7 @@ namespace OniMoono.Engine.Video.Vp8
         /// A "token entropy context" (token_entropy_ctx_t) has 4 Y values, 2 U, 2 V, and 1 Y2.
         public const int TokenEntropyCtxSize = 4 + 2 + 2 + 1;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static int Clamp255(int x) => x < 0 ? 0 : (x > 255 ? 255 : x);
     }
 
@@ -205,8 +207,10 @@ namespace OniMoono.Engine.Video.Vp8
         /// SplitMvs and SplitModes.
         public fixed uint Split[16];
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static Mv* SplitMvs(MbInfo* mbi) => (Mv*)mbi->Split;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static int* SplitModes(MbInfo* mbi) => (int*)mbi->Split;
     }
 

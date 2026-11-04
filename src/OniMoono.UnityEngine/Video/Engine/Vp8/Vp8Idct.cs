@@ -2,6 +2,7 @@
 // Copyright (c) 2010, 2011, Google Inc. All rights reserved. BSD-style license; see
 // src/ThirdParty/rfc6386/LICENSE and PATENTS.
 
+using System.Runtime.CompilerServices;
 using static OniMoono.Engine.Video.Vp8.Vp8Constants;
 
 namespace OniMoono.Engine.Video.Vp8
@@ -14,6 +15,7 @@ namespace OniMoono.Engine.Video.Vp8
         const int Sinpi8Sqrt2 = 35468;
         const int Rounding = 0;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Walsh(short* input, short* output)
         {
             int i;
@@ -62,6 +64,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void IdctColumns(short* input, short* output)
         {
             int i;
@@ -97,6 +100,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void IdctAdd(byte* recon, byte* predict, int stride, short* coeffs)
         {
             int i;

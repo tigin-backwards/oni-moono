@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace OniMoono.Engine.Video
@@ -30,6 +31,7 @@ namespace OniMoono.Engine.Video
         const int OffR = 911352, OffG = 555003, OffB = 1116152;
 
         /// Converts a `width`×`height` I420 picture into `destination` (width·height·4 bytes).
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void I420ToRgba32(byte* y, int strideY, byte* u, int strideU, byte* v, int strideV,
             int width, int height, byte* destination)
         {
@@ -56,6 +58,7 @@ namespace OniMoono.Engine.Video
             public int StrideY, StrideU, StrideV, Width, Height;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void ConvertRows(Planes p, int startRow, int endRow)
         {
             int chromaWidth = (p.Width + 1) >> 1, chromaHeight = (p.Height + 1) >> 1;
@@ -98,6 +101,7 @@ namespace OniMoono.Engine.Video
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static byte Clamp(int value)
         {
             int v = (value + (1 << 15)) >> 16;

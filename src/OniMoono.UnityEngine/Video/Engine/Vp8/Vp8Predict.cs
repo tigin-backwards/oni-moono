@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static OniMoono.Engine.Video.Vp8.Vp8Constants;
 
@@ -15,6 +16,7 @@ namespace OniMoono.Engine.Video.Vp8
     {
         const int BorderPixels = 16;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictHNxN(byte* predict, int stride, int n)
         {
             byte* left = predict - 1;
@@ -25,6 +27,7 @@ namespace OniMoono.Engine.Video.Vp8
                     predict[i * stride + j] = left[i * stride];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictVNxN(byte* predict, int stride, int n)
         {
             byte* above = predict - stride;
@@ -35,6 +38,7 @@ namespace OniMoono.Engine.Video.Vp8
                     predict[i * stride + j] = above[j];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictTmNxN(byte* predict, int stride, int n)
         {
             // Transposes the left column to the top row for later consumption by the
@@ -54,6 +58,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictDcNxN(byte* predict, int stride, int n)
         {
             byte* left = predict - 1;
@@ -84,6 +89,7 @@ namespace OniMoono.Engine.Video.Vp8
                     predict[i * stride + j] = (byte)dc;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictVe4x4(byte* predict, int stride)
         {
             byte* above = predict - stride;
@@ -99,6 +105,7 @@ namespace OniMoono.Engine.Video.Vp8
                     predict[i * stride + j] = predict[j];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictHe4x4(byte* predict, int stride)
         {
             byte* left = predict - 1;
@@ -133,6 +140,7 @@ namespace OniMoono.Engine.Video.Vp8
             predict[3] = (byte)((left[-stride] + 2 * left[0] + left[0] + 2) >> 2);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictLd4x4(byte* predict, int stride)
         {
             byte* above = predict - stride;
@@ -169,6 +177,7 @@ namespace OniMoono.Engine.Video.Vp8
                                          above[7] + 2) >> 2);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictRd4x4(byte* predict, int stride)
         {
             byte* left = predict - 1;
@@ -206,6 +215,7 @@ namespace OniMoono.Engine.Video.Vp8
             predict[3] = (byte)pred0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictVr4x4(byte* predict, int stride)
         {
             byte* left = predict - 1;
@@ -243,6 +253,7 @@ namespace OniMoono.Engine.Video.Vp8
             predict[3] = (byte)pred6;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictVl4x4(byte* predict, int stride)
         {
             byte* above = predict - stride;
@@ -279,6 +290,7 @@ namespace OniMoono.Engine.Video.Vp8
                                          above[7] + 2) >> 2);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictHd4x4(byte* predict, int stride)
         {
             byte* left = predict - 1;
@@ -316,6 +328,7 @@ namespace OniMoono.Engine.Video.Vp8
             predict[3] = (byte)pred7;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictHu4x4(byte* predict, int stride)
         {
             byte* left = predict - 1;
@@ -349,20 +362,28 @@ namespace OniMoono.Engine.Video.Vp8
             predict[3] = (byte)pred6;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictH16x16(byte* predict, int stride) => PredictHNxN(predict, stride, 16);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictV16x16(byte* predict, int stride) => PredictVNxN(predict, stride, 16);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictTm16x16(byte* predict, int stride) => PredictTmNxN(predict, stride, 16);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictH8x8(byte* predict, int stride) => PredictHNxN(predict, stride, 8);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictV8x8(byte* predict, int stride) => PredictVNxN(predict, stride, 8);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictTm8x8(byte* predict, int stride) => PredictTmNxN(predict, stride, 8);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictTm4x4(byte* predict, int stride) => PredictTmNxN(predict, stride, 4);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void CopyDown(byte* recon, int stride)
         {
             // Copy the four pixels above-right of subblock 3 to above-right of subblocks 7,
@@ -380,6 +401,7 @@ namespace OniMoono.Engine.Video.Vp8
             *copy = tmp;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void BPredict(byte* predict, int stride, MbInfo* mbi, short* coeffs)
         {
             int i;
@@ -437,6 +459,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FixupDcCoeffs(MbInfo* mbi, short* coeffs)
         {
             short* y2 = stackalloc short[16];
@@ -448,6 +471,7 @@ namespace OniMoono.Engine.Video.Vp8
                 coeffs[i * 16] = y2[i];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictIntraLuma(byte* predict, int stride, MbInfo* mbi, short* coeffs)
         {
             if (mbi->YMode == BPred)
@@ -488,6 +512,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictIntraChroma(byte* predictU, byte* predictV, int stride, MbInfo* mbi, short* coeffs)
         {
             int i;
@@ -537,6 +562,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void SixtapHoriz(byte* output, int outputStride, byte* reference, int referenceStride, int cols, int rows, short* filter)
         {
             int r, c, temp;
@@ -562,6 +588,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void SixtapVert(byte* output, int outputStride, byte* reference, int referenceStride, int cols, int rows, short* filter)
         {
             int r, c, temp;
@@ -588,6 +615,7 @@ namespace OniMoono.Engine.Video.Vp8
         }
 
         /// filters: filter_t[8], flattened [8][6].
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void Sixtap2D(byte* output, int outputStride, byte* reference, int referenceStride, int cols, int rows, int mx, int my, short* filters)
         {
             byte* temp = stackalloc byte[16 * (16 + 5)];
@@ -606,6 +634,7 @@ namespace OniMoono.Engine.Video.Vp8
             public int Stride, UvStride;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static byte* FilterBlock(byte* output, byte* reference, int stride, Mv* mv, short* filters)
         {
             int mx, my;
@@ -627,6 +656,7 @@ namespace OniMoono.Engine.Video.Vp8
             return reference;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void Recon1Block(byte* output, byte* reference, int stride, Mv* mv, short* filters, short* coeffs, MbInfo* mbi, int b)
         {
             byte* predict;
@@ -635,6 +665,7 @@ namespace OniMoono.Engine.Video.Vp8
             Vp8Idct.IdctAdd(output, predict, stride, coeffs + 16 * b);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static Mv CalculateChromaSplitMv(MbInfo* mbi, int b, bool fullPixel)
         {
             int temp;
@@ -677,6 +708,7 @@ namespace OniMoono.Engine.Video.Vp8
         /// Note: We rely on the reconstructed border having the same stride as the reference
         /// buffer because the filter_block can't adjust the stride with its return value, only
         /// the reference pointer.
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void BuildMcBorder(byte* dst, byte* src, int stride, int x, int y, int bW, int bH, int w, int h)
         {
             byte* refRow;
@@ -724,6 +756,7 @@ namespace OniMoono.Engine.Video.Vp8
             while (--bH != 0);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void Recon1EdgeBlock(byte* output, byte* emulBlock, byte* reference, int stride, Mv* mv, short* filters, short* coeffs, MbInfo* mbi, int x, int y, int w, int h, int startB)
         {
             byte* predict;
@@ -750,6 +783,7 @@ namespace OniMoono.Engine.Video.Vp8
             Vp8Idct.IdctAdd(output, predict, stride, coeffs + 16 * b);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictInterEmulatedEdge(DecoderCtx* ctx, ImgIndex* img, short* coeffs, MbInfo* mbi, int mbCol, int mbRow)
         {
             // TODO: Move this into its own buffer. This only works because we still have a
@@ -858,6 +892,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void PredictInter(DecoderCtx* ctx, ImgIndex* img, short* coeffs, MbInfo* mbi)
         {
             byte* y = img->Y;
@@ -933,6 +968,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void ReleaseRefFrame(RefCntImg* rcimg)
         {
             if (rcimg != null)
@@ -942,12 +978,14 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static RefCntImg* RefFrame(RefCntImg* rcimg)
         {
             rcimg->RefCnt++;
             return rcimg;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static RefCntImg* FindFreeRefFrame(RefCntImg* frames)
         {
             int i;
@@ -962,6 +1000,7 @@ namespace OniMoono.Engine.Video.Vp8
             throw new InvalidOperationException("VP8: no free frame buffer."); // assert(0)
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FixupLeft(byte* predict, int width, int stride, int row, int mode)
         {
             // The left column of out-of-frame pixels is taken to be 129, unless we're doing
@@ -993,6 +1032,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FixupAbove(byte* predict, int width, int stride, int col, int mode)
         {
             // The above row of out-of-frame pixels is taken to be 127, unless we're doing
@@ -1020,6 +1060,7 @@ namespace OniMoono.Engine.Video.Vp8
 
         /// vpx_img_alloc(img, IMG_FMT_I420, w, h, align) followed by
         /// vpx_img_set_rect(img, x, y, dW, dH). The buffer is zeroed (malloc in the C).
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void ImgAlloc(Vp8Image* img, uint w, uint h, uint strideAlign, uint x, uint y, uint dW, uint dH)
         {
             // Calculate storage sizes given the chroma subsampling
@@ -1045,12 +1086,14 @@ namespace OniMoono.Engine.Video.Vp8
             img->PlaneV = data + (x >> 1) + (nuint)(y >> 1) * (s >> 1);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void ImgFree(Vp8Image* img)
         {
             NativeMemory.Free(img->ImgData);
             *img = default;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Init(DecoderCtx* ctx)
         {
             int i;
@@ -1096,6 +1139,7 @@ namespace OniMoono.Engine.Video.Vp8
             // TODO: No need to do this on every frame...
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Destroy(DecoderCtx* ctx)
         {
             for (int i = 0; i < NumRefFrames; i++)
@@ -1106,6 +1150,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void ProcessRow(DecoderCtx* ctx, int row, int startCol, int numCols)
         {
             ImgIndex img;

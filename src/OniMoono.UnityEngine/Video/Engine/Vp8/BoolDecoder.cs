@@ -3,6 +3,7 @@
 // src/ThirdParty/rfc6386/LICENSE and PATENTS.
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace OniMoono.Engine.Video.Vp8
 {
@@ -16,6 +17,7 @@ namespace OniMoono.Engine.Video.Vp8
         public uint Value;      // contains at least 8 significant bits
         public int BitCount;    // # of bits shifted out of value, max 7
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Init(BoolDecoder* d, byte* startPartition, nuint sz)
         {
             if (sz >= 2)
@@ -36,6 +38,7 @@ namespace OniMoono.Engine.Video.Vp8
             d->BitCount = 0;   // have not yet shifted out any bits
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static int Get(BoolDecoder* d, int probability)
         {
             // range and split are identical to the corresponding values used by the encoder
@@ -76,8 +79,10 @@ namespace OniMoono.Engine.Video.Vp8
             return retval;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static int GetBit(BoolDecoder* br) => Get(br, 128);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static int GetUint(BoolDecoder* br, int bits)
         {
             int z = 0;
@@ -88,6 +93,7 @@ namespace OniMoono.Engine.Video.Vp8
             return z;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static int GetInt(BoolDecoder* br, int bits)
         {
             int z = 0;
@@ -98,9 +104,11 @@ namespace OniMoono.Engine.Video.Vp8
             return GetBit(br) != 0 ? -z : z;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static int MaybeGetInt(BoolDecoder* br, int bits) => GetBit(br) != 0 ? GetInt(br, bits) : 0;
 
         /// bool_read_tree: walks tree t with node probabilities p; returns the negated leaf.
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static int ReadTree(BoolDecoder* bd, ReadOnlySpan<int> t, ReadOnlySpan<byte> p)
         {
             int i = 0;
@@ -112,6 +120,7 @@ namespace OniMoono.Engine.Video.Vp8
             return -i;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static int ReadTree(BoolDecoder* bd, ReadOnlySpan<int> t, byte* p, int probCount) =>
             ReadTree(bd, t, new ReadOnlySpan<byte>(p, probCount));
     }

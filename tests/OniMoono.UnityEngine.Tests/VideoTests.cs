@@ -125,6 +125,26 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void DecoderMethodsAreCompiledOptimizedFromTheirFirstCall()
+        {
+            // Unoptimized tier-0 code decoded the menu's intro four times slower than real time
+            // during start-up (Vp8Decoder's summary).
+            var types = typeof(VideoFrameConverter).Assembly.GetTypes()
+                .Where(t => t.Namespace == "OniMoono.Engine.Video.Vp8" || t == typeof(VideoFrameConverter));
+            var flags = System.Reflection.BindingFlags.DeclaredOnly | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Instance
+                        | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
+            var methods = types.SelectMany(t => t.GetMethods(flags))
+                .Where(m => !m.IsSpecialName && !m.IsAbstract && m.Name != "Finalize" && !m.IsDefined(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), false)
+                            && !m.DeclaringType.IsDefined(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), false))
+                .ToList();
+            Assert.Contains(methods, m => m.Name == "Decode");
+            var unoptimized = methods
+                .Where(m => (m.MethodImplementationFlags & System.Reflection.MethodImplAttributes.AggressiveOptimization) == 0)
+                .Select(m => m.DeclaringType.Name + "." + m.Name);
+            Assert.Empty(unoptimized);
+        }
+
+        [Fact]
         public unsafe void FirstFrameDecodesToAnImage()
         {
             var clip = Clip("Artifact_loop");

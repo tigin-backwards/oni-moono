@@ -2,6 +2,7 @@
 // Copyright (c) 2010, 2011, Google Inc. All rights reserved. BSD-style license; see
 // src/ThirdParty/rfc6386/LICENSE and PATENTS.
 
+using System.Runtime.CompilerServices;
 using static OniMoono.Engine.Video.Vp8.Vp8Constants;
 
 namespace OniMoono.Engine.Video.Vp8
@@ -10,8 +11,10 @@ namespace OniMoono.Engine.Video.Vp8
     /// pixels at -4..3 strides from the edge.
     internal static unsafe class Vp8LoopFilter
     {
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int Abs(int x) => x >= 0 ? x : -x;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int SaturateInt8(int x)
         {
             if (x < -128)
@@ -23,6 +26,7 @@ namespace OniMoono.Engine.Video.Vp8
             return x;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int SaturateUint8(int x)
         {
             if (x < 0)
@@ -34,6 +38,7 @@ namespace OniMoono.Engine.Video.Vp8
             return x;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static bool HighEdgeVariance(byte* pixels, int stride, int hevThreshold)
         {
             int p1 = pixels[-2 * stride], p0 = pixels[-1 * stride];
@@ -43,6 +48,7 @@ namespace OniMoono.Engine.Video.Vp8
                    Abs(q1 - q0) > hevThreshold;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static bool SimpleThreshold(byte* pixels, int stride, int filterLimit)
         {
             int p1 = pixels[-2 * stride], p0 = pixels[-1 * stride];
@@ -51,6 +57,7 @@ namespace OniMoono.Engine.Video.Vp8
             return (Abs(p0 - q0) * 2 + (Abs(p1 - q1) >> 1)) <= filterLimit;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static bool NormalThreshold(byte* pixels, int stride, int edgeLimit, int interiorLimit)
         {
             int p3 = pixels[-4 * stride], p2 = pixels[-3 * stride];
@@ -66,6 +73,7 @@ namespace OniMoono.Engine.Video.Vp8
                    && Abs(q2 - q1) <= i && Abs(q1 - q0) <= i;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterCommon(byte* pixels, int stride, bool useOuterTaps)
         {
             int a, f1, f2;
@@ -94,6 +102,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterMbEdge(byte* pixels, int stride)
         {
             int w, a;
@@ -117,6 +126,7 @@ namespace OniMoono.Engine.Video.Vp8
             pixels[2 * stride] = (byte)SaturateUint8(q2 - a);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterMbVEdge(byte* src, int stride, int edgeLimit, int interiorLimit, int hevThreshold, int size)
         {
             int i;
@@ -135,6 +145,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterSubblockVEdge(byte* src, int stride, int edgeLimit, int interiorLimit, int hevThreshold, int size)
         {
             int i;
@@ -149,6 +160,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterMbHEdge(byte* src, int stride, int edgeLimit, int interiorLimit, int hevThreshold, int size)
         {
             int i;
@@ -168,6 +180,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterSubblockHEdge(byte* src, int stride, int edgeLimit, int interiorLimit, int hevThreshold, int size)
         {
             int i;
@@ -184,6 +197,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterVEdgeSimple(byte* src, int stride, int filterLimit)
         {
             int i;
@@ -197,6 +211,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterHEdgeSimple(byte* src, int stride, int filterLimit)
         {
             int i;
@@ -210,6 +225,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void CalculateFilterParameters(DecoderCtx* ctx, MbInfo* mbi, int* edgeLimitOut, int* interiorLimitOut, int* hevThresholdOut)
         {
             int filterLevel, interiorLimit, hevThreshold;
@@ -281,6 +297,7 @@ namespace OniMoono.Engine.Video.Vp8
             *hevThresholdOut = hevThreshold;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterRowNormal(DecoderCtx* ctx, int row, int startCol, int numCols)
         {
             byte* y, u, v;
@@ -383,6 +400,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FilterRowSimple(DecoderCtx* ctx, int row, int startCol, int numCols)
         {
             byte* y;
@@ -445,6 +463,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void ProcessRow(DecoderCtx* ctx, int row, int startCol, int numCols)
         {
             if (ctx->LoopfilterHdr.UseSimple != 0)
