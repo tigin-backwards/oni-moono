@@ -182,7 +182,7 @@ def image(reference, new, diff, *options):
 # compact-nav-links and paged-path-grids name the moment ("nav links verify (in play)").
 VERIFY_NAMES = (r'(fast-[a-z-]+|path-probe-repair|trim-anim-lists|nav links verify(?: \([a-z ]+\))?|path grids verify'
                 r'|canvas skips?|canvas products|component layouts|texel copies|partial uploads|parallel draws|bindless handles'
-                r'|bundle blocks|vulkan draws)')
+                r'|bundle blocks|vulkan draws|raw texture loads)')
 ZERO_WORDS = (r"(?:wrong skips|wrong|stale items not marked|stale|mismatches|changed while copying|differed|cell\(s\) differ"
               r"|differ|otherwise than a flood|otherwise than the game's|changes the feed missed)")
 ZERO_COUNTS = re.compile(r'(?<![\w.])(\d[\d,]*) ' + ZERO_WORDS + r'(?![\w(])')

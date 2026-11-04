@@ -51,7 +51,7 @@ namespace OniMoono.Engine.Rendering
 
         public void SamplerChanged() => SamplerVersion++;
 
-        public void ContentChanged()
+        public virtual void ContentChanged()
         {
             ContentVersion++;
             UpdateCount++;
@@ -190,9 +190,42 @@ namespace OniMoono.Engine.Rendering
             PendingCopy = null;
         }
 
+        /// The texels may differ from those of the last ContentChanged, the ones the device was
+        /// last told to upload. Every way to reach or replace them sets it (Memory, new or
+        /// dropped memory) except Texels, whose callers set it themselves: LoadRawTextureData
+        /// when its bytes differ, the device never (it only reads). Texture2D.Apply skips the
+        /// re-upload while it is clear.
+        bool texelsChanged = true;
+        /// A NativeArray aliases the texels (GetRawTextureData&lt;T&gt;, GetPixelData&lt;T&gt;): writes
+        /// through it are not seen, so every Apply re-uploads.
+        bool aliased;
+
+        public bool TexelsChanged => texelsChanged || aliased;
+
+        public void MarkTexelsChanged() => texelsChanged = true;
+
+        public void MarkAliased() => aliased = true;
+
+        public override void ContentChanged()
+        {
+            texelsChanged = false;
+            base.ContentChanged();
+        }
+
         /// Texels, loading them from the asset file on first use. Null after the device took
-        /// a non-readable texture's data.
+        /// a non-readable texture's data. Counts as a change of the texels (TexelsChanged).
         public PixelMemory Memory
+        {
+            get
+            {
+                texelsChanged = true;
+                return Texels;
+            }
+        }
+
+        /// Memory without counting as a change (TexelsChanged): for callers that only read, or
+        /// that mark their own changes.
+        public PixelMemory Texels
         {
             get
             {
@@ -202,6 +235,7 @@ namespace OniMoono.Engine.Rendering
                 {
                     memory = GraphicsDevice.Pipelined ? s.ReadMemory() : new PixelMemory(s.Read());
                     source = null;
+                    texelsChanged = true;
                 }
                 return memory;
             }
@@ -219,6 +253,7 @@ namespace OniMoono.Engine.Rendering
             var taken = (memory, source);
             memory = null;
             source = null;
+            texelsChanged = true;
             return taken;
         }
 
@@ -245,6 +280,7 @@ namespace OniMoono.Engine.Rendering
             memory = null;
             source = null;
             unloaded = true;
+            texelsChanged = true;
             // What the device recorded is gone; a reload may bring back texels the game changed.
             ContentVersion++;
             return true;
@@ -275,6 +311,7 @@ namespace OniMoono.Engine.Rendering
             memory?.Free();
             memory = null;
             source = s;
+            texelsChanged = true;
             if (!reloading) GraphicsDevice.QueueUpload(this);
         }
 
@@ -286,6 +323,7 @@ namespace OniMoono.Engine.Rendering
             source = null;
             unloaded = false;
             memory = new PixelMemory(size, fill);
+            texelsChanged = true;
         }
 
         /// Replaces the texels with `texels`, which the texture now owns (filled by the caller,
@@ -307,6 +345,7 @@ namespace OniMoono.Engine.Rendering
             memory?.Free();
             memory = null;
             source = null;
+            texelsChanged = true;
         }
 
         /// The texels, now owned by the caller (the device uploading a non-readable texture);
@@ -317,6 +356,7 @@ namespace OniMoono.Engine.Rendering
             var taken = Memory;
             memory = null;
             source = null;
+            texelsChanged = true;
             return taken;
         }
 

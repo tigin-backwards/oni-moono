@@ -1831,7 +1831,8 @@ renderer, restricted to what the game uses (*usage §1*):
   original (issue #47).
 - `RenderTexture` (incl. MRT via `SetTargetBuffers`, temporaries pool, `active`), `Texture2D`
   (CPU copy + `GetRawTextureData<T>` aliasing NativeArray, `Apply`, DXT/BC upload,
-  `LoadRawTextureData(IntPtr)`), `Texture2DArray`, `Texture3D`, `Mesh` (dynamic buffers,
+  `LoadRawTextureData(IntPtr)`, whose bytes equal to the texture's own make the next `Apply`
+  ask for no upload: `RawTextureLoads`), `Texture2DArray`, `Texture3D`, `Mesh` (dynamic buffers,
   submeshes, topologies), `Material`/`MaterialPropertyBlock`/`Shader` globals, `Graphics.Blit`
   (`Hidden/BlitCopy` from `unity_builtin_extra`), `GL` immediate mode, `CommandBuffer`.
 - Gamma colour space (`m_ActiveColorSpace=0`): no sRGB conversions.
@@ -2260,6 +2261,13 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   the one kept for them, and the pipeline lookup's last-key shortcut against the pipeline kept
   for the key; a `vulkan draws:` summary every 600 frames, which fails
   `qa-tools.py verify` on any non-zero count.
+  `ONI_VERIFY_RAW_LOADS=1` (`RawTextureLoads`, qa.sh's verify stage) checks each
+  `LoadRawTextureData` against a full copy and each upload it skipped against the texels last
+  uploaded (`raw texture loads:` summary, every 3,000 loads); `ONI_RAW_LOADS_ALT=1` (measurement
+  only, with `--frame-stats`) runs every other 60-frame window as before (a full copy and an
+  upload at every `Apply`), its `raw texture loads` line ending in `variant=0` or `variant=1`;
+  `ONI_CAPTURE_TWICE=full-uploads` renders each super-sized capture again after every texture
+  loaded this way is uploaded in full.
   `--check-shaders` on Vulkan builds every variant and a pipeline for its pass's state, and counts
   what fails.
 

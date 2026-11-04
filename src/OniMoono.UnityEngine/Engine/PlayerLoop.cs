@@ -114,6 +114,8 @@ namespace OniMoono.Engine
             EngineLog.Engine($"frame stats (ms/frame over 60): early+fixed {T(4):F2}, update {T(5):F2}, late {T(6):F2}, post-late {T(7):F2}, particles {T(8):F2}, render {T(0):F2}, gui {T(1):F2}, end of frame {T(2):F2}, present {T(3):F2}, gpu {OniMoono.Engine.Rendering.GraphicsDevice.Current.TakeGpuFrameMilliseconds():F2}");
             var counters = OniMoono.Engine.Rendering.GraphicsDevice.Current.TakeFrameCounters(60);
             if (counters != null) EngineLog.Engine("frame counts (per frame over 60): " + counters);
+            var rawLoads = OniMoono.Engine.Rendering.RawTextureLoads.EndWindow(60);
+            if (rawLoads != null) EngineLog.Engine(rawLoads);
             if (++statWindows % 10 == 0)
             {
                 // Every 600 frames: the process's memory and the managed heap, to tell growth from a steady state.

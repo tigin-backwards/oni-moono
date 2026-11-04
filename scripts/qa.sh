@@ -404,7 +404,7 @@ stage_verify()
     local overlays="Oxygen Power Temperature LiquidConduit Logic None" frames=6000
     [ "${QA_VERIFY_FULL:-0}" = 1 ] && { overlays="Oxygen Power Temperature Temperature:HeatFlow Temperature:StateChange TileMode Light Decor Disease Crop HarvestWhenReady Rooms LiquidConduit GasConduit SolidConveyor Logic Suit Radiation Priorities ThermalConductivity None"; frames=10500; }
     U57_SCREENS="consumables vitals jobs research" U57_OVERLAYS="$overlays" \
-    ONI_TWEAK_VERIFY=1 ONI_VERIFY_CANVAS_SKIPS=1 ONI_VERIFY_CANVAS_PRODUCTS=1 ONI_VERIFY_COMPONENT_LAYOUTS=1 ONI_VERIFY_TEXEL_COPIES=1 ONI_VERIFY_PARTIAL_UPLOADS=1 ONI_VERIFY_PARALLEL_DRAWS=1 ONI_VERIFY_BINDLESS=1 ONI_BUNDLE_BLOCKS_VERIFY=1 ONI_VERIFY_VK_DRAWS=1 u57_run "$out" "$frames"
+    ONI_TWEAK_VERIFY=1 ONI_VERIFY_CANVAS_SKIPS=1 ONI_VERIFY_CANVAS_PRODUCTS=1 ONI_VERIFY_COMPONENT_LAYOUTS=1 ONI_VERIFY_TEXEL_COPIES=1 ONI_VERIFY_PARTIAL_UPLOADS=1 ONI_VERIFY_PARALLEL_DRAWS=1 ONI_VERIFY_BINDLESS=1 ONI_BUNDLE_BLOCKS_VERIFY=1 ONI_VERIFY_VK_DRAWS=1 ONI_VERIFY_RAW_LOADS=1 u57_run "$out" "$frames"
     u57_check verify "$out"
     [ -d "$out/hang" ] && return # a hung run has nothing more to check
     local report; report=$(python3 "$tools" verify "$out/stdout.txt"); local status=$?
