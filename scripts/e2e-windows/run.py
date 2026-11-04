@@ -525,15 +525,8 @@ class WinPlayer(e2e.Player):
                 raise e2e.SpecFailure('OniMcp did not start within 15 minutes')
             time.sleep(3)
 
-    def load(self, mcp):
-        if self.fixture:
-            fixture = self.fixture
-            self.fixture = wpath(fixture.replace(self.home, self.whome_u))
-            try:
-                return super().load(mcp)
-            finally:
-                self.fixture = fixture
-        return super().load(mcp)
+    def game_path(self, path):
+        return wpath(path.replace(self.home, self.whome_u))
 
     def game_pid(self):
         return None

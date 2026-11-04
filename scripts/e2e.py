@@ -2943,11 +2943,15 @@ class Player:
         if self.scope:
             stop_scope(self.scope, grace=0)
 
+    def game_path(self, path):
+        """A path in the run home as the game reads it (the Windows runner's differs)."""
+        return path
+
     def load(self, mcp):
         mcp.connect()
         if not self.fixture:
             return  # `from: main-menu`: the steps start at the main menu
-        mcp.call('game_control', domain='launch', action='start', path=self.fixture, confirm=True)
+        mcp.call('game_control', domain='launch', action='start', path=self.game_path(self.fixture), confirm=True)
         deadline = time.time() + 900
         # A colony saved with no Duplicants left (a vent test bed) counts as loaded once its
         # worlds are, and then a few polls later, for the load's last frames.
