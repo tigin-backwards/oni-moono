@@ -1446,6 +1446,22 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   fr-CH, fr-CI, fr-CM, fr-FR, fr-HT, fr-MC, fr-ML, fr-RE and fr-SN. The others with U+202F are
   left as ICU has them: 32 French cultures, vec and vec-IT, which Mono has no data for, and
   fr-BE, whose separator is '.' in Mono.
+- **D60 GZipStream's compressed bytes.** The same input compresses to other bytes: 4,000 bytes
+  ("Oxygen Not Included " 200 times, UnityProbe's `ns21` on U60) give a 70-byte stream in the
+  original and 85 here. Mono's `GZipStream` and `DeflateStream` call
+  the zlib 1.2.11 inside `libMonoPosixHelper` (`support/zlib-helper.c`, `CreateZStream`:
+  `deflateInit2(Z_DEFAULT_COMPRESSION, Z_DEFLATED, 31 or -15, 8, Z_DEFAULT_STRATEGY)`); .NET's
+  call its bundled zlib-ng. Both compress at level 6 (`CompressionMode.Compress` is .NET's
+  `Optimal`), and the gzip header is the same 10 bytes on Linux (no flags, mtime 0, XFL 0, OS 3):
+  the deflate data differs, because zlib-ng's levels 2 to 6 match strings otherwise than
+  zlib's. Measured: zlib 1.3 gives 70 bytes at levels 4 to 9 and 85 at 1 to 3; .NET 10 gives
+  85 at levels 1 to 6 and 70 at 7 to 9 (`ZLibCompressionOptions`). Each player decompresses the
+  other's output. **Kept:** only code comparing compressed bytes or their length notices. The
+  game's saves do not use it: `SaveLoader.CompressContents` writes through Ionic.Zlib's
+  `ZlibStream` at `BestSpeed` and `DecompressContents` reads with `ZlibStream.UncompressBuffer`
+  (`SaveLoader.cs:286`, `:300`), managed code in `Managed/Ionic.Zip.dll` that runs the same in
+  both players. The game's one use of `System.IO.Compression` is the crash reporter's upload
+  (`KCrashReporter.cs:709`, `:718`, a `ZipArchive` at `Fastest`), which it never reads back.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.
