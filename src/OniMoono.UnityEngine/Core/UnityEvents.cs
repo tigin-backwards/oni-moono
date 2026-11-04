@@ -59,11 +59,16 @@ namespace UnityEngine.Events
         /// null when the call does not take part (incomplete, off, or no such method).
         MethodInfo FindMethod(UnityEventBase owner)
         {
-            if (string.IsNullOrEmpty(m_MethodName) || string.IsNullOrEmpty(m_TargetAssemblyTypeName)) return null;
+            if (string.IsNullOrEmpty(m_MethodName)) return null;
             if (m_CallState == UnityEventCallState.Off) return null;
-            // The target's own type when there is one (destroyed or not); otherwise the named
-            // type, whose static methods need no target.
-            var type = m_Target is not null ? m_Target.GetType() : EventCallbacks.ResolveType(m_TargetAssemblyTypeName);
+            // The target's own type when there is one (destroyed or not), whatever the type
+            // name says, even when it is empty (measured: the debug element picker's filter
+            // field, saved without one, runs its call); otherwise the named type, whose static
+            // methods need no target.
+            Type type;
+            if (m_Target is not null) type = m_Target.GetType();
+            else if (string.IsNullOrEmpty(m_TargetAssemblyTypeName)) return null;
+            else type = EventCallbacks.ResolveType(m_TargetAssemblyTypeName);
             if (type == null) return null;
             switch (m_Mode)
             {

@@ -208,17 +208,33 @@ namespace OniMoono.Tests
             AddCall(evt, r, "Pong", PersistentListenerMode.Void, UnityEventCallState.EditorAndRuntime);
             AddCall(evt, r, "", PersistentListenerMode.Void);
             AddCall(evt, r, "Missing", PersistentListenerMode.Void);
-            AddCall(evt, r, "Ping", PersistentListenerMode.Void);
-            // A target type name is required even with a target.
-            var group = typeof(UnityEventBase).GetField("m_PersistentCalls", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(evt);
-            var calls = (List<PersistentCall>)typeof(PersistentCallGroup).GetField("m_Calls", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(group);
-            typeof(PersistentCall).GetField("m_TargetAssemblyTypeName", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(calls[4], "");
+            // No target and no target type name: nothing names a type.
+            AddCall(evt, null, "StaticPing", PersistentListenerMode.Void);
             // An instance method without a target.
             AddCall(evt, null, "Ping", PersistentListenerMode.Void, targetType: typeof(EventReceiver));
             Deserialized(evt);
             evt.Invoke();
             Assert.Equal(["r:Pong"], Log);
             Assert.Equal(6, evt.GetPersistentEventCount());
+        }
+
+        [Fact]
+        public void ATargetNeedsNoTypeName()
+        {
+            // As the debug element picker's filter field has it (#54): a String-mode call on a
+            // string event, saved with a target but no target type name, runs on the target's
+            // own type (measured in the original player).
+            var r = Receiver("r");
+            var evt = new UnityEvent<string>();
+            AddCall(evt, r, "SetString", PersistentListenerMode.String, arguments: c => SetArgument(c, "m_StringArgument", "stored"));
+            AddCall(evt, r, "Ping", PersistentListenerMode.Void);
+            var group = typeof(UnityEventBase).GetField("m_PersistentCalls", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(evt);
+            var calls = (List<PersistentCall>)typeof(PersistentCallGroup).GetField("m_Calls", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(group);
+            foreach (var call in calls)
+                typeof(PersistentCall).GetField("m_TargetAssemblyTypeName", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(call, "");
+            Deserialized(evt);
+            evt.Invoke("typed");
+            Assert.Equal(["r:SetString stored", "r:Ping"], Log);
         }
 
         [Fact]

@@ -1,0 +1,31 @@
+# The sandbox tools' element and entity pickers narrow their lists to what the filter field
+# matches.
+#
+# Checked with the debug element picker's filter (issue-54-debug-element-filter.yaml): these
+# fields are uGUI InputFields that SandboxToolParameterMenu wires with AddListener, not with
+# persistent calls saved in a prefab, so they filtered before that fix too.
+from: rockets-so
+steps:
+  # The save predates two rounds of changes, and the game shows a dialog for each, the later
+  # one on top.
+  - expect_ui: {"**/SpriteListDialog": {count: 2}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton", index: 1}
+  - expect_ui: {"**/SpriteListDialog": {count: 1}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton"}
+  - ui_wait: {path: "**/SpriteListDialog", cond: gone, frames: 120}
+  # A sandbox save: the toggle is unlocked.
+  - click: {ui: "**/TopLeftControlPanel(Clone)/SecondaryRow/SandboxToggle"}
+  - expect_state: {"Game.Instance.SandboxModeActive": true}
+  - key: {code: "Shift+B"}
+  - click: {ui: "**/SandboxToolParameters/SelectorRow/ChangeSelectionButton"}
+  - type: {ui: "**/SandboxToolParameters/**/Filter", text: "copper"}
+  # Back, then Copper, Copper Gas, Copper Ore and Molten Copper.
+  - expect_ui: {"**/SandboxToolParameters/**/Content/optionPrefab": {count: 5}}
+  - ui_dump: {name: elements, root: "**/SandboxToolParameters"}
+  - shot: elements
+  - tool: {toolbar: Spawner}
+  - click: {ui: "**/SandboxToolParameters/SelectorRow/ChangeSelectionButton"}
+  - type: {ui: "**/SandboxToolParameters/**/Filter", text: "hatch"}
+  - expect_ui: {"**/SandboxToolParameters/**/Content/optionPrefab": {count: 14}}
+  - ui_dump: {name: entities, root: "**/SandboxToolParameters"}
+  - shot: entities

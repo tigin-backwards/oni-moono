@@ -71,7 +71,10 @@ those points.
 
 **Which calls take part:**
 - A call is skipped when:
-  - its method name or its target type name is empty;
+  - its method name is empty;
+  - it has no target and its target type name is empty. A call with a target runs with an
+    empty type name (measured: the debug element picker's filter field, whose calls were saved
+    without one, filters the list in the original player);
   - its call state is `Off`;
   - its method cannot be found.
 - `EditorAndRuntime` and `RuntimeOnly` calls run.
