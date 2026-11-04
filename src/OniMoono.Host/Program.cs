@@ -147,6 +147,8 @@ namespace OniMoono.Host
                     MonoCallingAssembly.Install();
                     PInvokePatches.Install();
                     PatchDependents.Install();
+                    // The mod loader's frames call what mods patch meanwhile (D34).
+                    ModLoaderInlining.Install();
                     GenericMemberScopes.Install();
                     // Delegates' GetObjectData writes what Mono's does, which Newtonsoft.Json
                     // writes (D48). A runtime method, but one the engine never calls: patched here,
@@ -889,6 +891,73 @@ namespace OniMoono.Host
                 Run();
                 return countedA - a == 1 && prefixedB - b == 100 ? "the prefixes run from both loops, compiled before with the methods inlined; a later patch of a loop runs too"
                     : throw new InvalidOperationException($"after Loop's own patch: its prefix ran {countedA - a} of 1 calls, Twice's {prefixedB - b} of 100");
+            });
+            Check("Harmony prefixes added while optimized code calling the method runs, as mods patch while the mod loader's loops run (ModLoaderInlining)", () =>
+            {
+                PatchDependents.Install();
+                var marking = System.Diagnostics.Stopwatch.StartNew();
+                ModLoaderInlining.Install();
+                marking.Stop();
+                if (ModLoaderInlining.Missing.Count > 0)
+                    throw new InvalidOperationException("not in the game: " + string.Join(", ", ModLoaderInlining.Missing));
+                // MethodDesc's m_wFlags (UnboxedMethods): NotInline.
+                foreach (var method in ModLoaderInlining.Marked)
+                    if ((System.Runtime.InteropServices.Marshal.ReadInt16(method.MethodHandle.Value, 6) & 0x2000) == 0)
+                        throw new InvalidOperationException($"{method.DeclaringType!.FullName}.{method.Name} is not marked");
+                // Each Loop is compiled optimized at once (as tier 1 compiles a hot loop, and every
+                // method without tiering) and runs 100 times; in the 11th, its hook patches the
+                // small method it calls next, as Fast Track's OnLoad patched Mod.PostLoad from
+                // KMod.Manager.Load's loop. Marked's small method is marked as the mod loader's
+                // callees are; Plain's is not, and keeps its inlined body in the running loop.
+                var module = System.Reflection.Emit.AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("OniMoono.Host.LiveFrameCheck"),
+                    System.Reflection.Emit.AssemblyBuilderAccess.Run).DefineDynamicModule("LiveFrameCheck");
+                var type = module.DefineType("LiveFrame", TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
+                foreach (var name in new[] { "Marked", "Plain" })
+                {
+                    var small = type.DefineMethod("Small" + name, MethodAttributes.Public | MethodAttributes.Static, typeof(int), [typeof(int)]);
+                    var il = small.GetILGenerator();
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0); il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_3); il.Emit(System.Reflection.Emit.OpCodes.Mul); il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                    // static int LoopNAME(Func<int, int> hook, int n) { int s = 0; for (int i = 0; i < n; i++) s += hook(i) + SmallNAME(i); return s; }
+                    var loop = type.DefineMethod("Loop" + name, MethodAttributes.Public | MethodAttributes.Static, typeof(int), [typeof(Func<int, int>), typeof(int)]);
+                    loop.SetImplementationFlags(MethodImplAttributes.AggressiveOptimization);
+                    il = loop.GetILGenerator();
+                    var sum = il.DeclareLocal(typeof(int));
+                    var i = il.DeclareLocal(typeof(int));
+                    var test = il.DefineLabel();
+                    var body = il.DefineLabel();
+                    il.Emit(System.Reflection.Emit.OpCodes.Br, test);
+                    il.MarkLabel(body);
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldloc, sum);
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0); il.Emit(System.Reflection.Emit.OpCodes.Ldloc, i);
+                    il.Emit(System.Reflection.Emit.OpCodes.Callvirt, typeof(Func<int, int>).GetMethod("Invoke")!);
+                    il.Emit(System.Reflection.Emit.OpCodes.Add);
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldloc, i);
+                    il.Emit(System.Reflection.Emit.OpCodes.Call, small);
+                    il.Emit(System.Reflection.Emit.OpCodes.Add); il.Emit(System.Reflection.Emit.OpCodes.Stloc, sum);
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldloc, i); il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_1); il.Emit(System.Reflection.Emit.OpCodes.Add); il.Emit(System.Reflection.Emit.OpCodes.Stloc, i);
+                    il.MarkLabel(test);
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldloc, i); il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1);
+                    il.Emit(System.Reflection.Emit.OpCodes.Blt, body);
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldloc, sum); il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                }
+                var liveFrame = type.CreateType();
+                if (!ModLoaderInlining.Disable(liveFrame.GetMethod("SmallMarked")!)) throw new InvalidOperationException("SmallMarked not marked");
+                var harmony = new HarmonyLib.Harmony("OniMoono.Host.Check");
+                int Run(string name, string prefix)
+                {
+                    var target = liveFrame.GetMethod("Small" + name)!;
+                    Func<int, int> hook = i =>
+                    {
+                        if (i == 10) harmony.Patch(target, prefix: new HarmonyLib.HarmonyMethod(typeof(Program), prefix));
+                        return 0;
+                    };
+                    return (int)liveFrame.GetMethod("Loop" + name)!.Invoke(null, [hook, 100])!;
+                }
+                int expected = 3 * 99 * 100 / 2;
+                int marked = Run("Marked", nameof(CountD)), plain = Run("Plain", nameof(CountE));
+                if (marked != expected || plain != expected) throw new InvalidOperationException($"the loops computed {marked} and {plain}, not {expected}");
+                if (prefixedD != 90) throw new InvalidOperationException($"the prefix of the marked method ran {prefixedD} of the 90 calls after it was added");
+                return $"{ModLoaderInlining.Marked.Count} methods of the mod loader marked in {marking.Elapsed.TotalMilliseconds:0.0} ms; the prefix ran from the running loop on all 90 calls after it was added (on {prefixedE} of 90 without the mark)";
             });
             Check("A Harmony prefix on a generic method over a reference type, from code compiled after it (UnboxedMethods)", () =>
             {
@@ -2728,10 +2797,12 @@ namespace OniMoono.Host
         static void AddFilterPostfix(ref int __result) { filterPostfixed++; __result += 100; }
         static void CountFaultPostfix() => filterPostfixed++;
 
-        static int prefixedB, prefixedC, countedA;
+        static int prefixedB, prefixedC, prefixedD, prefixedE, countedA;
         static void CountA() => countedA++;
         static void CountB() => prefixedB++;
         static void CountC() => prefixedC++;
+        static void CountD() => prefixedD++;
+        static void CountE() => prefixedE++;
         static int prefixedG;
         static void CountG() => prefixedG++;
 

@@ -794,6 +794,48 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   only inlined, patches both methods, and checks that the prefixes run, and that a later patch of
   a loop replaces its copy; `tests/e2e/late-patch.yaml` counts the late prefix on
   `Brain.UpdateBrain` against the brain groups' updates.
+  **Live frames.** A rebuild serves later calls only: a frame already running keeps the code it
+  started in. Mods patch the game while the mod loader runs: each mod's `UserMod2.OnLoad` from
+  `KMod.DLLLoader.LoadDLLs`, in `KMod.Manager.Load`'s loop over the mods, and `OnAllModsLoaded` in
+  its loop after, all under `Global.Awake`. With the default tiering those frames run at tier 0,
+  which inlines nothing. With tiering off (`DOTNET_TieredCompilation=0`), or once a loop goes to
+  on-stack replacement (a thousand iterations by default: about a thousand mods in one
+  `Manager.Load`, or `Global.Awake`'s loop over its forced atlases' sprites), they run optimized
+  code compiled before any mod loaded. There `Manager.Load` had inlined `Mod.PostLoad` (37 bytes
+  of IL), which PLib patches from Fast Track's `OnLoad`: the copy of `Manager.Load` was made
+  ("KMod.Manager.Load copied"), but the running call kept the inlined body, so PLib's start-up hook
+  and its later stages never ran, and Fast Track threw "At least one object must implement
+  IComparable" (its `DescriptorSorter.Instance` null) and a NullReferenceException in
+  `PropertyTextureUpdater`, found in issue #52's hunt with forced on-stack replacement. **Resolved
+  in** `ModLoaderInlining`: before any game code is compiled, the host marks not to be inlined
+  (MonoMod's `TryDisableInlining`, as for a patched method) the methods those frames call after a
+  mod's code may have run: in `Manager.Load`, `Mod.IsEnabledForActiveDlc`, `Mod.Load`,
+  `Mod.PostLoad`, `Mod.loaded_content`'s getter, `Mod.available_content`'s, `Mod.title`'s,
+  `Mod.SetCrashed` and `Manager.Save`; in `Mod.Load`, `loaded_content`'s setter; in `DLLLoader`'s
+  loops, `UserMod2.OnLoad` and `OnAllModsLoaded` (the base methods); and in `Global.Awake` after
+  `Manager.Load(Content.DLL)`, `Manager.Load`, `KSerialization.Manager.Initialize`,
+  `Global.InitializeGlobalInput`, `InitializeGlobalSound`, `InitializeGlobalAnimation`,
+  `Localization.Initialize`, `KMod.Local`'s constructor, `Global.RestoreLegacyMetricsSetting`,
+  `TestDataLocations`, `OnGetUserIdKey`, `KleiAccount.AuthenticateUser`,
+  `KleiItems.LoadInventoryCache`, `WorldGen.LoadSettings` and
+  `ListenForLoadSettingsErrorRoutine` (U59 744825 and U60 761654 alike). Each is called once per
+  mod or once per start; the same methods run in the same order, as at tier 0. Not covered: the
+  general-purpose methods those frames call too (`Debug`'s logging, the BCL's lists and
+  enumerators, Harmony's own methods, `GlobalResources.Instance`, `DistributionPlatform`'s
+  accessors), which stay inlinable for the rest of the game; `DLLLoader.LoadDLLs`'s lambda
+  filtering the patched methods (called through a delegate); any other frame running when a
+  patch goes in (a mod patching from a game callback, as D34's late patches above, reaches the
+  frames after it but not the one under way); and mods' own frames. Mono inlines methods of
+  under 20 bytes of IL, so in the original a patch made from `OnLoad` of the smallest of these
+  (`Global.TestDataLocations`, 1 byte) misses `Global.Awake` too. Cost: none measured. Marking
+  them takes about 2 ms, on the host patches' thread while the window opens; U59 with
+  Fast Track and Better Info Cards reached the main menu in 17.6, 16.3, 16.9 and 17.5 s with
+  the marks, 17.6, 18.1, 19.3 and 18.0 s without (second launches, alternated on a Linux lane;
+  the spread is wider than any difference). `--check-types` checks that every one is found and marked, and runs a
+  loop compiled optimized at once whose hook patches the small method it calls next: the
+  prefix runs from the running loop on every later call when the method is marked, and on none
+  when it is not; `tests/e2e/issue-52-fast-track-no-tiering.yaml` loads a colony with Fast Track
+  with tiering off and checks that PLib's later stage made Fast Track's `DescriptorSorter`.
 - **D35 Strings of fields and events.** Mono prints a field as its type's full name and its name
   (`RuntimeFieldInfo.ToString`, `String.Format("{0} {1}", FieldType, name)`), an event likewise
   (`RuntimeEventInfo.ToString`, `EventHandlerType + " " + Name`; Unity's fork, branch

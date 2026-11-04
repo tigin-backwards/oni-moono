@@ -1,0 +1,18 @@
+# Issue #52's hunt, with tiered compilation off: the mod loader's frames are optimized before any
+# mod loads (ARCHITECTURE D34, the live frames). Ours only (`--player ours`): the original runs on
+# Mono, where DOTNET_ variables mean nothing.
+#
+# Fast Track (a GitHub build: install 0.18.5 or 0.18.6 as $ONI_WS/9000000001, which the mod gate
+# allows by hash) loads PLib, which patches KMod.Mod.PostLoad from Fast Track's OnLoad while
+# KMod.Manager.Load's loop over the mods runs. Optimized, that loop had inlined Mod.PostLoad, so
+# PLib's patch never ran from it: PLib's later stages never came, Fast Track's DescriptorSorter was
+# never made, and building the codex at load threw "At least one object must implement
+# IComparable" (the crash screen came up). With the loader's callees marked not to be inlined,
+# the patch runs from the running loop.
+from: early-base
+mods: [9000000001]
+env: {DOTNET_TieredCompilation: "0"}
+steps:
+  - run: {seconds: 2, speed: 1}
+  - expect_state:
+      "type:PeterHan.FastTrack.UIPatches.DescriptorSorter::Instance.GetHashCode()": "!= 0"
