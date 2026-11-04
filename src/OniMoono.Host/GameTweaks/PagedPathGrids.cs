@@ -243,8 +243,9 @@ namespace OniMoono.Host.GameTweaks
                 {
                     sinceVerify.Restart();
                     var watch = Stopwatch.StartNew();
-                    int wrong = PathGridPages.VerifyAll(out int tables, out long elements, out string? first);
-                    EngineLog.Engine($"path grids verify: {tables} tables, {elements:N0} elements, {wrong} differ from the flat arrays" + (first != null ? $"; first: {first}" : "")
+                    int wrong = PathGridPages.VerifyAll(out int tables, out long elements, out string? first, out int midWrite, out int unsettled);
+                    EngineLog.Engine($"path grids verify: {tables} tables, {elements:N0} elements, {wrong} differ from the flat arrays, {midWrite} only mid-write"
+                                     + (unsettled > 0 ? $", {unsettled} not compared (written throughout)" : "") + (first != null ? $"; first: {first}" : "")
                                      + $" ({watch.ElapsedMilliseconds} ms)");
                 }
             }

@@ -46,7 +46,7 @@ class VerifySummary(unittest.TestCase):
         result = verify(PROBES.format(repairs=0, ties=0, floods=0, missed=0),
                         "[engine] nav links verify (after the load): 19 grids, 1,573,927 links, 0 cell(s) differ from the game's arrays (50 ms)",
                         "[engine] nav links verify (in play): 19 grids, 1,598,914 links, 0 cell(s) differ from the game's arrays (47 ms)",
-                        '[engine] path grids verify: 38 tables, 12,345,678 elements, 0 differ from the flat arrays (12 ms)',
+                        '[engine] path grids verify: 38 tables, 12,345,678 elements, 0 differ from the flat arrays, 3 only mid-write (12 ms)',
                         '[18:42:40.000] [1] [INFO] trim-anim-lists: 5923 lists trimmed, 66.5 MB freed, 0 differed',
                         '[18:42:40.000] [1] [INFO] fast-load-screen: verified 12 header reads (3 from the memo, 9 read ahead): 0 differed',
                         "[engine] fast-load-screen: 4 images from the decode memo, 8 decoded; 2 downscaled previews kept from earlier, 2 checked against the game's, 0 differed",
@@ -86,7 +86,7 @@ class VerifySummary(unittest.TestCase):
 
     def test_nav_links_and_path_grids_differ(self):
         result = verify("[engine] nav links verify (in play): 19 grids, 1,598,914 links, 2 cell(s) differ from the game's arrays; first: 3: cell 7 (47 ms)",
-                        '[engine] path grids verify: 38 tables, 12,345,678 elements, 1 differ from the flat arrays; first: Cells[4] (12 ms)')
+                        '[engine] path grids verify: 38 tables, 12,345,678 elements, 1 differ from the flat arrays, 0 only mid-write; first: Cells[4] (12 ms)')
         self.assertVerdicts(result, 1, 'FAIL nav links verify (in play):', 'FAIL path grids verify:')
 
     def test_trim_and_load_screen_differ(self):

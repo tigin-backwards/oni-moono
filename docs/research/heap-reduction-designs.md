@@ -417,6 +417,14 @@ Design 3.2 as the game tweak `paged-path-grids` (Simulation, exact, on by defaul
   tables, 439.6 M elements, 4 comparisons), soggy lab 2 without its mods (1,146 tables, 105.8 M,
   4) and DeCrew (874, 23.4 M, 5), with path-probe-repair's own checks (repairs against floods,
   floods against the game's PathProber.Run on a rewritten grid) at 0 wrong as well.
+  A write stores into the page and then into the flat array, and the comparison runs on the
+  main thread while the probe threads write, so it can read an element between the two stores.
+  The first comparison looked again after 1 ms, and that was not enough: a writer that the GC
+  or the scheduler stops between its stores stays there longer, and one release QA run reported
+  "1 differ" from that alone. Every write is now counted as it begins and as it ends, the host's
+  helpers and path-probe-repair's views alike, and an element that differs is compared again,
+  its page read afresh, only while no write of its table runs. Only a difference that remains
+  then counts; the summary also gives the number seen mid-write.
   `--check-types` runs the loaded, rewritten PathGrid's own methods on a 40×20 grid against a
   model of its arrays (96,000 reads). Unit tests: reads and writes against a flat array in both
   modes, out-of-range indices, zero stores, writers racing on page creation with readers.

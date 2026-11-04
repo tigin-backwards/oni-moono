@@ -158,7 +158,8 @@ namespace OniMoono.GameTweaks
         /// A PathGrid's array as this tweak's struct: the array itself, or when paged-path-grids
         /// rewrote PathGrid (its `<…>pages` field) a view of its page table, which makes pages
         /// through the host's PathGridPages.Materialise and keeps verify mode's flat array
-        /// (PathGridPages.ShadowOf) written. A grid's table never changes, so its view is kept.
+        /// (PathGridPages.ShadowOf) written, each write counted as the host's are
+        /// (PathGridPages.WritesOf). A grid's table never changes, so its view is kept.
         static Func<PathGrid, ProbePages<TView>> ViewOf<TView>(string array) where TView : struct
         {
             var pagesField = AccessTools.Field(typeof(PathGrid), $"<{array}>pages");
@@ -174,7 +175,7 @@ namespace OniMoono.GameTweaks
                     var a = flat(g);
                     var one = Array.CreateInstance(arrayField.FieldType, 1);
                     one.SetValue(a, 0);
-                    return ProbePages<TView>.Over(Pun<TView[][]>(one), a.Length, 31, null, null, null);
+                    return ProbePages<TView>.Over(Pun<TView[][]>(one), a.Length, 31, null, null, null, null);
                 });
             }
             var table = FieldAs<PathGrid, TView[][]>(pagesField.Name);
@@ -185,11 +186,12 @@ namespace OniMoono.GameTweaks
             var zero = Pun<TView[]>(Type.GetType("OniMoono.Host.Zero`1, OniMoono", true).MakeGenericType(element).GetField("Page").GetValue(null));
             var make = Call<Func<TView[][], int, TView[]>>(host.GetMethod("Materialise").MakeGenericMethod(element), typeof(TView[]), typeof(TView[][]), typeof(int));
             var shadowOf = Call<Func<TView[][], TView[]>>(host.GetMethod("ShadowOf").MakeGenericMethod(element), typeof(TView[]), typeof(TView[][]));
+            var writesOf = Call<Func<TView[][], long[]>>(host.GetMethod("WritesOf").MakeGenericMethod(element), typeof(long[]), typeof(TView[][]));
             var views = new System.Runtime.CompilerServices.ConditionalWeakTable<PathGrid, ProbePages<TView>>();
             return grid => views.GetValue(grid, g =>
             {
                 var t = table(g);
-                return ProbePages<TView>.Over(t, length(g), shift, zero, k => make(t, k), shadowOf(t));
+                return ProbePages<TView>.Over(t, length(g), shift, zero, k => make(t, k), shadowOf(t), writesOf(t));
             });
         }
 

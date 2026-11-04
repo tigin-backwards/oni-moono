@@ -172,6 +172,89 @@ namespace OniMoono.Tests
             }
         }
 
+        /// Verify mode's comparison while writers run, as in play: probe threads write their
+        /// grids (each grid by one thread at a time, as the game's are) while the main thread
+        /// compares every table with its flat array. Half the writers store through the host's
+        /// helpers, half through path-probe-repair's view of a table. Each makes its table's
+        /// pages in a random order (a page the comparison read as Zero may be made and written
+        /// before it compares it), then rewrites every element (the comparison lands between a
+        /// write's two stores, and a writer stopped there by the GC or the scheduler stays there
+        /// for longer than any fixed wait). No difference may be reported: every write stores both.
+        [Fact]
+        public void VerifyQuietUnderWriters()
+        {
+            const int length = 256 * 2048, threads = 4;
+            bool done = false;
+            var tables = new GameTweaks.PCell[threads][][];
+            var writers = Enumerable.Range(0, threads).Select(t => new Thread(() =>
+            {
+                var r = new Random(t);
+                int n = length / 256;
+                var order = Enumerable.Range(0, n).ToArray();
+                while (!Volatile.Read(ref done))
+                {
+                    var pages = PathGridPages.New<GameTweaks.PCell>(length, Paged, shadow: true);
+                    Volatile.Write(ref tables[t], pages);
+                    Action<int, GameTweaks.PCell> store = (t & 1) == 0
+                        ? (i, v) => PathGridPages.StoreShadowed(pages, i, v, Paged, PagedMask)
+                        : GameTweaks.ProbePages<GameTweaks.PCell>.Over(pages, length, Paged, Zero<GameTweaks.PCell>.Page, k => PathGridPages.Materialise(pages, k),
+                            PathGridPages.ShadowOf(pages), PathGridPages.WritesOf(pages)) is var view ? (i, v) => view[i] = v : null;
+                    GameTweaks.PCell Any() => new() { Cost = r.Next(1, 5000), Parent = r.Next(-1, 100000), QueryId = (ushort)r.Next(1, 65536), NavTypes = (byte)r.Next(256) };
+                    for (int k = n - 1; k > 0; k--) { int j = r.Next(k + 1); (order[k], order[j]) = (order[j], order[k]); }
+                    foreach (int k in order) store((k << 8) + r.Next(256), Any());
+                    for (int pass = 0; pass < 2 && !Volatile.Read(ref done); pass++)
+                        for (int i = 0; i < length; i++) store(i, (i & 7) == 0 ? default : Any());
+                }
+            })).ToArray();
+            foreach (var th in writers) th.Start();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            int runs = 0, midWrite = 0, unsettled = 0;
+            long wrong = 0;
+            while (clock.ElapsedMilliseconds < 4000)
+            {
+                wrong += PathGridPages.VerifyAll(out _, out _, out string first, out int mid, out int open);
+                midWrite += mid;
+                unsettled += open;
+                if (first != null) output.WriteLine(first);
+                runs++;
+            }
+            Volatile.Write(ref done, true);
+            foreach (var th in writers) th.Join();
+            output.WriteLine($"{runs} comparisons, {wrong} differences, {midWrite} mid-write, {unsettled} unsettled");
+            Assert.Equal(0, wrong);
+            Assert.Equal(0, unsettled);
+            // With the writers done, every table as its flat array, compared once.
+            Assert.Equal(0, PathGridPages.VerifyAll(out int tableCount, out _, out _, out int after, out _));
+            Assert.Equal(0, after);
+            Assert.True(tableCount >= threads);
+            GC.KeepAlive(tables);
+        }
+
+        /// What verify mode is for: a write that reaches the pages and not the flat array (a
+        /// writer that skips the helpers) is found, in a page made by it and in one made before.
+        [Fact]
+        public void VerifyFindsAWriteOutsideTheHelpers()
+        {
+            var pages = PathGridPages.New<Cell>(256 * 8, Paged, shadow: true);
+            PathGridPages.StoreShadowed(pages, 2 * 256 + 1, new Cell { cost = 3 }, Paged, PagedMask);
+            try
+            {
+                PathGridPages.Materialise(pages, 5)[7] = new Cell { cost = 9, queryId = 2 };
+                pages[2][1].parent = 4;
+                Assert.Equal(2, PathGridPages.VerifyAll(out _, out _, out string first, out int midWrite, out int unsettled));
+                Assert.Equal("Cell element 513 of 2048", first);
+                Assert.Equal(0, midWrite);
+                Assert.Equal(0, unsettled);
+            }
+            finally
+            {
+                // Agreeing again, for the other tests' comparisons.
+                PathGridPages.StoreShadowed(pages, 5 * 256 + 7, default(Cell), Paged, PagedMask);
+                PathGridPages.StoreShadowed(pages, 2 * 256 + 1, default(Cell), Paged, PagedMask);
+            }
+            Assert.Equal(0, PathGridPages.VerifyAll(out _, out _, out _));
+        }
+
         // ---- The rewrite of the game's PathGrid ----
 
         static string GameAssembly(string variable, string folder)
