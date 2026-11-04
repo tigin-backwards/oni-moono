@@ -1,0 +1,105 @@
+# Issue #52 as issue-52-states-bic, with Better Info Cards' UseBaseSelection on: the game's own
+# click cycling, not the mod's.
+from: early-base
+mods: [1960947963]
+options: {"1960947963": {UseBaseSelection: true}}
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicControl\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicWire\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicSwitch\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0, true]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0, true]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0, true]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Dirt\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+steps:
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c1}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c2}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c3}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c4}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2], mods: [Shift]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c5}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2], mods: [Shift]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c6}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2], mods: [Shift]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c7}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - key: {code: "Escape"}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c8}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c9}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c10}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - key: {code: "Shift+F2"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c11}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c12}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c13}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c14}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2], mods: [Shift]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c15}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2], mods: [Shift]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c16}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2], mods: [Shift]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c17}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2], button: right}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c18}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c19}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c20}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - key: {code: "G"}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [112.5, 210.5], button: right}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c21}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c22}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c23}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - key: {code: "F2"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - key: {code: "Shift+F2"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c24}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c25}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c26}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [113.5, 206.5]}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c27}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c28}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c29}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - key: {code: "Shift+F2"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c30}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c31}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c32}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original"}

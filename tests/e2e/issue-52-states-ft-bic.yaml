@@ -1,0 +1,92 @@
+# Issue #52 as issue-52-states-bic, with Fast Track as well (a GitHub build, not on the Workshop:
+# install 0.18.5 or 0.18.6 as $ONI_WS/9000000001, which the mod gate allows by hash), whose
+# SelectTool.OnLeftClickDown prefix gathers what lies under the pointer before Better Info
+# Cards' postfix picks the next card.
+from: early-base
+mods: [9000000001, 1960947963]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicControl\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicWire\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicSwitch\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Dirt\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+steps:
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c1}, "selected:name": {save_as: n1}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d1}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c2}, "selected:name": {save_as: n2}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d2}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c3}, "selected:name": {save_as: n3}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d3}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c4}, "selected:name": {save_as: n4}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d4}}
+  - key: {code: "Escape"}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c5}, "selected:name": {save_as: n5}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d5}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c6}, "selected:name": {save_as: n6}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d6}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c7}, "selected:name": {save_as: n7}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d7}}
+  - key: {code: "Shift+F2"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": {save_as: m7}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c8}, "selected:name": {save_as: n8}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d8}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c9}, "selected:name": {save_as: n9}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d9}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c10}, "selected:name": {save_as: n10}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d10}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c11}, "selected:name": {save_as: n11}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d11}}
+  - click_world: {pos: [109.5, 206.2], button: right}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": {save_as: m11}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c12}, "selected:name": {save_as: n12}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d12}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c13}, "selected:name": {save_as: n13}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d13}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c14}, "selected:name": {save_as: n14}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d14}}
+  - key: {code: "G"}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [112.5, 210.5], button: right}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": {save_as: m14}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c15}, "selected:name": {save_as: n15}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d15}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c16}, "selected:name": {save_as: n16}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d16}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c17}, "selected:name": {save_as: n17}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d17}}
+  - key: {code: "F2"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": {save_as: m17}}
+  - key: {code: "Shift+F2"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": {save_as: m17}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c18}, "selected:name": {save_as: n18}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d18}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c19}, "selected:name": {save_as: n19}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d19}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c20}, "selected:name": {save_as: n20}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d20}}
+  - click_world: {pos: [113.5, 206.5]}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c21}, "selected:name": {save_as: n21}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d21}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c22}, "selected:name": {save_as: n22}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d22}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c23}, "selected:name": {save_as: n23}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d23}}
+  - key: {code: "Shift+F2"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": {save_as: m23}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c24}, "selected:name": {save_as: n24}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d24}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c25}, "selected:name": {save_as: n25}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d25}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c26}, "selected:name": {save_as: n26}, "type:BetterInfoCards.ModifyHits::displayCards.Count": {save_as: d26}}

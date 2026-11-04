@@ -1,0 +1,50 @@
+# Issue #52 with Better Info Cards, the clicks made while the game runs: the cell of
+# issue-52-states-bic clicked with no overlay, in the automation overlay and with the overlay
+# closed again, each click's selection, card count and pause state compared with the original's.
+# No right-click here (issue-52-states-bic has one, paused): while the game runs, the original
+# deselects on it in some runs and not in others, so the clicks after it differ from run to run.
+from: early-base
+mods: [1960947963]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicControl\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicWire\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicSwitch\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Dirt\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+steps:
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - run: {seconds: 1, speed: 1}
+  - key: {code: Space}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c1}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c2}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c3}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c4}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - key: {code: "Shift+F2"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c5}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c6}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c7}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c8}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c9}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c10}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c11}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c12}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - key: {code: "Shift+F2"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c13}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c14}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: c15}, "selected:name": "== original", "type:BetterInfoCards.ModifyHits::displayCards.Count": "== original", "SpeedControlScreen.Instance.IsPaused": "== original"}
