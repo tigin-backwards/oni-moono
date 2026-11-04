@@ -494,6 +494,24 @@ faults count soft and hard together.
 - Both together save 5,294 MiB of private bytes and 1,284 MiB of working set (1,458 MiB
   private working set).
 
+Resident vs committed (`compact-nav-links`), measured the same way on the 200-Duplicant
+colony: defaults and the tweak off by the settings file, two runs each, alternated (defaults,
+off, defaults, off), after a warm-up; means of 9-10 samples.
+
+| Configuration | Working set | Private working set | Private bytes | Managed heap | Page faults a second |
+| --- | --- | --- | --- | --- | --- |
+| Defaults | 8,525, 8,573 MiB | 5,678, 5,726 MiB | 9,784, 9,822 MiB | 3,340, 3,352 MiB | 7,780, 470 |
+| `compact-nav-links` off | 9,120, 9,247 MiB | 6,275, 6,404 MiB | 10,529, 10,530 MiB | 3,950, 3,976 MiB | 400, 360 |
+
+- The compact stores save 726 MiB of private bytes and 634 MiB of working set (637 MiB
+  private working set), so most of the saving is in RAM. The game's flat `Link[]` arrays
+  were all touched: NavGrid's constructor builds the links of every cell
+  (`NavGridUpdater.CreateLinks`), and each cell's row ends with a written end marker, even
+  when the cell has no links. A row is 136-448 bytes (8-byte links, 17-56 slots), so every
+  4 KiB page of the array holds a written marker.
+- Page faults do not separate the two: one run with defaults faulted 7,780 times a second,
+  the other 470.
+
 Path grids in pages (`paged-path-grids`):
 - **Change**: each PathGrid's `Cells` and `ProberCells` (whole-cluster arrays per Duplicant,
   Rover and Flydo) become page tables of 256 elements made on first write, an unwritten page
