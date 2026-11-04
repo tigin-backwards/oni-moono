@@ -373,7 +373,7 @@ stage_verify()
     # Every overlay is opened in turn for 300 frames, for the overlays' tweaks; then three
     # management screens are opened and closed, whose rect masks then clip out of sight.
     U57_SCREENS="consumables vitals jobs" U57_OVERLAYS="Oxygen Power Temperature Temperature:HeatFlow Temperature:StateChange TileMode Light Decor Disease Crop HarvestWhenReady Rooms LiquidConduit GasConduit SolidConveyor Logic Suit Radiation Priorities ThermalConductivity None" \
-    ONI_TWEAK_VERIFY=1 ONI_VERIFY_CANVAS_SKIPS=1 ONI_VERIFY_CANVAS_PRODUCTS=1 ONI_VERIFY_COMPONENT_LAYOUTS=1 ONI_VERIFY_TEXEL_COPIES=1 ONI_VERIFY_PARTIAL_UPLOADS=1 ONI_VERIFY_PARALLEL_DRAWS=1 ONI_VERIFY_BINDLESS=1 u57_run "$out" 10500
+    ONI_TWEAK_VERIFY=1 ONI_VERIFY_CANVAS_SKIPS=1 ONI_VERIFY_CANVAS_PRODUCTS=1 ONI_VERIFY_COMPONENT_LAYOUTS=1 ONI_VERIFY_TEXEL_COPIES=1 ONI_VERIFY_PARTIAL_UPLOADS=1 ONI_VERIFY_PARALLEL_DRAWS=1 ONI_VERIFY_BINDLESS=1 ONI_VERIFY_RAW_LOADS=1 u57_run "$out" 10500
     u57_check verify "$out"
     [ -d "$out/hang" ] && return # a hung run has nothing more to check
     local report; report=$(python3 "$tools" verify "$out/stdout.txt"); local status=$?

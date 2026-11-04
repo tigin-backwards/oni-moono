@@ -390,6 +390,7 @@ namespace UnityEngine
         {
             var t = Readable();
             var memory = t.Memory;
+            t.MarkAliased();
             ulong length = (ulong)(memory?.Size ?? 0) / (ulong)Unsafe.SizeOf<T>();
             if (length > int.MaxValue) throw CreateNativeArrayLengthOverflowException();
             return new NativeArray<T>(memory?.Pointer, (int)length, owned: false);
@@ -402,6 +403,7 @@ namespace UnityEngine
                 throw new ArgumentException("The passed in miplevel " + mipLevel + " is invalid. It needs to be in the range 0 and " + (t.MipCount - 1));
             var memory = t.Memory;
             if (memory == null || memory.Pointer == null) throw new UnityException("Texture '" + name + "' has no data.");
+            t.MarkAliased();
             ulong length = (ulong)t.MipSize(mipLevel) / (ulong)Unsafe.SizeOf<T>();
             if (length > int.MaxValue) throw CreateNativeArrayLengthOverflowException();
             return new NativeArray<T>(memory.Pointer + t.MipOffset(mipLevel), (int)length, owned: false);
@@ -437,13 +439,21 @@ namespace UnityEngine
             if (!LoadRaw(t, new ReadOnlySpan<byte>(data.m_Buffer, checked((int)bytes)))) throw new UnityException("LoadRawTextureData: not enough data provided (will result in overread).");
         }
 
-        /// Copies the whole texture's data; extra input bytes are ignored.
+        /// Copies the whole texture's data; extra input bytes are ignored. The texels count as
+        /// changed (TexelsChanged) only when some byte differed: the game hands its property
+        /// textures over every frame, often unchanged (RawTextureLoads).
         static bool LoadRaw(Texture2DNative t, ReadOnlySpan<byte> data)
         {
             long size = t.SliceSize;
             if (data.Length < size) return false;
-            if (t.Memory == null) t.Allocate(size, 0);
-            data[..checked((int)size)].CopyTo(t.Memory.Span);
+            long started = RawTextureLoads.Start();
+            if (t.Texels == null) t.Allocate(size, 0);
+            var bytes = data[..checked((int)size)];
+            bool changed = RawTextureLoads.CopyChanged(bytes, t.Texels.Span);
+            if (changed) t.MarkTexelsChanged();
+            RawTextureLoads.Loaded(started, changed);
+            if (RawTextureLoads.Verify) RawTextureLoads.VerifyLoad(t, bytes, t.Texels.Span);
+            RawTextureLoads.Register(t);
             return true;
         }
 
@@ -454,13 +464,22 @@ namespace UnityEngine
         public void Apply(bool updateMipmaps) => Apply(updateMipmaps, false);
 
         /// Marks the CPU data for upload; optionally rebuilds mip levels 1… from level 0 (box
-        /// filter, uncompressed formats) and drops the CPU copy after upload.
+        /// filter, uncompressed formats) and drops the CPU copy after upload. Texels unchanged
+        /// since the last upload was marked (TexelsChanged) need none: the device already has
+        /// them. updateCount counts every Apply.
         public void Apply(bool updateMipmaps, bool makeNoLongerReadable)
         {
             var t = Readable();
             if (updateMipmaps) TexelAddressing.BuildMips(t);
             if (makeNoLongerReadable) t.Readable = false;
+            if (!t.TexelsChanged && !makeNoLongerReadable)
+            {
+                if (RawTextureLoads.Verify) RawTextureLoads.VerifySkip(t);
+                t.UpdateCount++;
+                return;
+            }
             t.ContentChanged();
+            if (RawTextureLoads.Verify) RawTextureLoads.VerifyUpload(t);
         }
 
         public bool Reinitialize(int width, int height)

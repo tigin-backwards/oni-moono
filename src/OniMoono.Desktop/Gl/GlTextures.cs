@@ -148,7 +148,7 @@ namespace OniMoono.Desktop.Gl
                 Target = t switch { Texture2DArrayNative => TexTarget2DArray, Texture3DNative => TexTarget3D, _ => TexTarget2D },
             };
             if (!t.Readable) u.Memory = t.TakeTexels();
-            else if (t.Memory is { } m)
+            else if (t.Texels is { } m)
             {
                 u.Memory = UploadBuffers.Rent(m.Size);
                 u.Pooled = true;

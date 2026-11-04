@@ -394,8 +394,9 @@ namespace OniMoono.Engine.Rendering
         /// Draw queues are recorded serially, whatever the device would do (diagnostics).
         public static bool SerialQueues;
 
-        /// Diagnostics (ONI_CAPTURE_TWICE=serial|parallel): each super-sized capture renders the
-        /// frame a second time, with draw queues recorded serially or as usual, into
+        /// Diagnostics (ONI_CAPTURE_TWICE=serial|parallel|full-uploads): each super-sized capture
+        /// renders the frame a second time, with draw queues recorded serially, as usual, or
+        /// (full-uploads) with every raw-loaded texture uploaded in full (RawTextureLoads), into
         /// PATH.again.png: the two must be identical.
         static readonly string captureTwice = Environment.GetEnvironmentVariable("ONI_CAPTURE_TWICE");
 
@@ -498,6 +499,7 @@ namespace OniMoono.Engine.Rendering
                     if (captureTwice == null || scale == 1) continue;
                     // Diagnostics: the same frame rendered again, into PATH.again.png.
                     SerialQueues = captureTwice == "serial";
+                    if (captureTwice == "full-uploads") RawTextureLoads.UploadAll();
                     try { Capture(path + ".again.png", scale); }
                     finally { SerialQueues = false; }
                 }
