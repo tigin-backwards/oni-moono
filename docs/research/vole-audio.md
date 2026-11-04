@@ -188,7 +188,8 @@ because their voles stood over 129 cells.
 **Verdict: reproduced, the same in Moono and the original, on Windows and Linux.** With the camera
 on the pile at orthographic size 20, both players freeze within 7–16 s: the main thread waits in
 an FMOD call for minutes and the game never draws another frame. The cost is FMOD's own work for
-thousands of copies of one event playing at one point. Moono's managed code on this path costs
+thousands of copies of one event playing at one point: `Rock_creature_land`, which Klei's bank
+caps at 5 instances, stealing the oldest. Klei fixed the same setting for Beakons in 740622. Moono's managed code on this path costs
 under 0.5 ms a frame. There is no exact fix of any size. A per-frame dedupe of one-shots of the
 same event in the same cell removes the freeze: 2,900 instances a second become 83, frames stay
 at 60 fps, and the pile sounds quieter.
@@ -267,11 +268,95 @@ at 2,900 a second (the pile's rate):
 | all at the camera's point | 9–11 ms, then frozen | 229 → 512 | rising to 100%+ | frozen after 3 s, for 150 s+, and quitting hung too |
 | spread over 40 × 20 cells around the camera | 7–11 ms | 46–88 (30–56) | 5–7% / 18–24% | 0.02 s of stalls in 60 s |
 
-The rate alone is cheap. FMOD falls behind when thousands of copies of one event start at one
-point at full volume, and it can't let any of them go as inaudible. The spread case puts part of
-its instances near the 20-cell falloff, which may be what lets FMOD drop or virtualize them
-cheaply. This is inferred from the two runs: FMOD's internals weren't profiled (no native
-profiler here) and the event's bank settings weren't read.
+The rate alone is cheap. So is one point, for most events: the same test with
+`Rock_creature_footstep` at 2,900 a second at one point played at 5 ms frames, with Studio at 11%
+and no stalls. What differs is the event's instance limit (next section). `Rock_creature_land`
+caps at 5 and steals the oldest instance, so every new one starts and stops another. The spread
+case puts part of its instances near the 20-cell falloff, which may be what lets FMOD drop them
+cheaply there (an inference: FMOD's internals weren't profiled).
+
+### Event limits in Klei's banks, and the Beakon fix
+
+FMOD's API doesn't expose an event's max instances or stealing mode. The test mod measured them
+instead: it starts 64 instances of an event at the camera's point in one frame and records which
+ones play once none is still starting, and again 50 frames later. Both players load the same
+banks, and Linux's bank files are byte-identical to Windows'. The patterns:
+
+- **1 plays (the first), 63 never start**: max 1 instance, stealing *none*. A new instance over the
+  limit fails at once.
+- **all 64 start, the last 5 remain 50 frames later**: max 5, stealing *oldest*. Every new instance
+  plays and stops an older one.
+- **4 play, 60 virtual**: max 4, stealing *virtualize*.
+
+| Event | 733790 (before the fix) | 744825 (after) | 761654 (now) |
+| --- | --- | --- | --- |
+| `Rock_creature_land` (shared by all critters landing on rock) | 5, oldest | 5, oldest | 5, oldest |
+| `ShoveVole_movement`, `ShoveVole_drill_LP`/`_emerge`/`_hide` | 5, oldest | 5, oldest | 5, oldest |
+| The other `ShoveVole_*` (10) and `ShoveVoleBaby_*` (12) events, `Rock_creature_footstep`, `Rock_creature_climb` | 1, none | 1, none | 1, none |
+| 17 `ParrotFish_*` events (breathe, caught, settle, sleep in and out, swim, drink, grooming, hit, lay egg, poop, queue movement, react, sleep bubble) | 5, oldest (`grooming_pre`: start all, keep 5) | 1, none | 1, none |
+| `ParrotFish_idle`, `ParrotFish_hatching` (also `objectCount` properties: maxObj 3) | 4, virtualize | 1, none | 1, none |
+| `ParrotFish_swim_LP`, `ParrotFishBaby_swim_LP` | 4, virtualize | 4, virtualize | 4, virtualize |
+| `ParrotFish_voice_die_*`, `ParrotFishBaby_poop` | 5, oldest | 5, oldest | 5, oldest |
+
+- The Beakon is the ParrotFish. Game update 740622 (7 July 2026) listed "Fixed audio performance
+  issue with Beakons" under the Aquatic Planet Pack. oni-versioning's 737790 → 740622 C# diff has
+  no change in any sound code: `KFMOD`, `SoundEvent`, `AnimEventManager`, `LoopingSoundManager`
+  and `AudioMixer` changed only in decompiler noise. The only ParrotFish change is the flop
+  animation's frame range (`FlopStates.Def`). The fix was in the bank: `DLC5_Creatures.bank` of
+  733790 (a local copy, `SimNotIncluded-U59-733790`; the build is its folder's name) against 740622's and 744825's (identical
+  files). Klei turned 19 ParrotFish events from "5, steal oldest" or "4, virtualize" into "1, steal
+  none". The DepotDownloader step wasn't needed: copies on E: bracket the fix.
+- The vole pile runs on the events that kept "5, steal oldest". `Rock_creature_land` makes nearly
+  all of the pile's 2,900 instances a second. This is the upstream root cause. The same bank
+  change Klei made for Beakons (stealing *none*, or a lower limit) would apply to
+  `Rock_creature_land` and the four `ShoveVole` events. Those banks are Klei's FMOD Studio project;
+  only Klei can rebuild them.
+- Measured cost of the difference, Linux, Moono, at one point, 2,900 a second: "5, steal oldest"
+  (`Rock_creature_land`) freezes in 3 s; "1, steal none" (`Rock_creature_footstep`) runs at 5 ms
+  frames with no stall.
+
+### Command queue size
+
+FMOD's documentation says a full Studio command queue stalls the calling thread until the async
+update has made room (`FMOD_STUDIO_ADVANCEDSETTINGS.commandqueuesize`, 32 KB by default, set
+before `Studio::System::initialize`). Studio is already up when mods load, in both players (the
+test mod read `RuntimeManager.IsInitialized == true` in its `OnLoad`). So a normal mod can't set
+the size. The test used a local, uncommitted hook instead: a Harmony prefix on
+`FMOD.Studio.System.initialize`, installed in Moono's host next to `--audio-wav`, and in the
+original's isolation plugin (BepInEx, before any game code). FMOD confirmed each size
+(`getAdvancedSettings`: 32768 → the new size). Windows, Moono, the pile at size 20:
+
+| Queue | Stalls on the pile | Frozen from | Handles / Studio CPU / mixer before the freeze |
+| --- | --- | --- | --- |
+| 32 KB (default) | 1.0 s, 1.1 s | 10 s | 135,000 / 66% / 142% |
+| 256 KB | 1.0 s, 1.0 s | 10 s | 134,000 / 57% / 141% |
+| 1 MB | 36 s at 3 s | 43 s | 275,000 / 87% / 121% |
+| 4 MB | none for 4 s, then 41 s at 5 s | 54 s | climbing by about 75,000 a second to 870,000; Studio 88 → 180%; mixer 130–190% |
+
+- A bigger queue only moves the freeze later and makes each stall longer. Handles, Studio CPU and
+  the queue's own use keep climbing the whole time, because the Studio thread consumes commands
+  more slowly than the pile makes them. There is no queue size at which it settles.
+- The audio is the same in content and equally late. In every run, small queue or large, the WAV
+  writer got about 53–56 s of audio in 175–210 s of play, and the loudness per second follows
+  the same pattern. The mixer is overloaded either way, which no queue size changes. A run that
+  didn't stall at the default queue, needed for a sample-for-sample comparison, exists only with
+  the dedupe, which changes the sounds. So no WAV is the "right" one to compare against.
+- So it is not a near-exact fix: it keeps the same commands in the same order, but the freeze
+  stays. It would only help a load that bursts briefly above what the Studio thread can sustain.
+
+### What Moono can change in FMOD, and what a mod can
+
+| Lever | A Harmony mod | Moono (host, load-time rewriter) |
+| --- | --- | --- |
+| Studio init: command queue, handle table size, Studio update period, real and virtual channel counts, DSP buffer, output type | no: Studio initializes before `Global.Awake` loads mods; changing it means releasing and recreating the Studio system with every bank and instance | yes: the host's patches go in before any game code (as `--audio-wav` already sets the output type), so it can set any `ADVANCEDSETTINGS`/`setSoftwareChannels`/`setDSPBufferSize` field before `initialize` |
+| Per-event max instances, stealing | no FMOD API at runtime | no FMOD API either; only through bank data |
+| Bank data | can unload a loaded bank and load another file (`loadBankFile`, as the test mod did to compare bank versions) after start-up, or `loadBankMemory` with bytes it changed | the same, plus before the first load: redirect FMODUnity's bank paths or hand modified bytes to `loadBankMemory`. Editing the stealing mode needs the bank format, which FMOD doesn't document (an estimate: feasible but fragile, and every bank update breaks it) |
+| Managed KFMOD/FMODUnity paths (`BeginOneShot`, `CreateInstance`, culling) | yes, normal Harmony patches (the dedupe above is one) | yes, as a game tweak, or rewritten at load time |
+| Native P/Invoke layer (`fmodstudio` entry points) | only by patching FMODUnity's managed wrappers | can bind the DllImports to a shim library (`--native-override` resolves natives today) that sits in front of FMOD's: count, batch or refuse calls without touching managed code |
+
+The levers that would remove the freeze change sounds (the bank's stealing mode, the dedupe, any
+cap). The ones that keep the sound exact (queue size, Studio update period, P/Invoke speed)
+leave FMOD's per-instance cost as it is.
 
 ### Where the time goes
 
@@ -298,10 +383,10 @@ profiler here) and the event's bank settings weren't read.
 - **(a) Exact fixes: none worth doing.** The main thread's own work on this path is under 0.5 ms
   a frame in Moono. Faster P/Invoke or less managed overhead can't touch a stall that lasts minutes
   inside FMOD. Batching keeps the same calls in the same order, so FMOD does the same work.
-  A larger Studio command queue (`FMOD_STUDIO_ADVANCEDSETTINGS.commandqueuesize`) would only delay
-  the first stall, because the Studio thread consumes commands more slowly than the pile makes
-  them. It would also delay every sound behind the backlog, which isn't exact either (an estimate;
-  not run).
+  A larger Studio command queue was measured above: the freeze moves from 10 s to 54 s and stays.
+- **Upstream**: the root cause is the bank. `Rock_creature_land` and four `ShoveVole` events cap at
+  5 and steal the oldest instance. Klei fixed the same thing for Beakons in 740622 by changing
+  their events to one instance with no stealing. That is the report to make to Klei.
 - **(b) A game tweak, off by default, "Changes gameplay":** skip a one-shot when the same event has
   already started in the same cell in the same frame (prefix on `KFMOD.BeginOneShot(EventReference,
   Vector3, float)`, keyed by event GUID and cell). Measured on Windows, as in the table: 2,900
@@ -313,6 +398,10 @@ profiler here) and the event's bank settings weren't read.
     frame) see 1 instead of N;
   - elsewhere it matters only when two objects start the same event in the same cell in the same
     frame. One of them is then silent, which can't be heard in normal play.
+  Emulating the Beakon fix in managed code is the closer variant: refuse a new
+  `Rock_creature_land` or `ShoveVole_movement`/`drill` one-shot while the earlier ones are still
+  playing at that point, rather than letting FMOD steal. It needs the live instances kept per
+  event and checked with `getPlaybackState` (one P/Invoke each). An estimate; not built.
   A time window (say 50 ms) instead of one frame would make it independent of the frame rate. That
   variant is in the test mod but wasn't run. A cap on live instances per event and position would
   also work, but it needs a count kept per instance until it stops, which the game doesn't track.
