@@ -1477,6 +1477,20 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   text for a file that failed). A plugin file it cannot read is taken to have the process's
   architecture, and so fails at dlopen as in Unity. Windows is assumed to give the name's form in
   both cases (Klei's matcher expects it for a blocked SimDLL.dll); not measured there yet.
+- **D60 French digit-group separators.** ICU separates the digit groups of fr, fr-CD, fr-CH,
+  fr-CI, fr-CM, fr-FR, fr-HT, fr-MC, fr-ML, fr-RE and fr-SN with U+202F (narrow no-break space,
+  CLDR's since version 34); Mono's culture tables (`mono/culture/culture-info-tables.h`, Unity's
+  fork) have U+00A0 (no-break space) for each, as number and currency separators (Mono's percent
+  one is the number one). So `1234567.891.ToString("N2", fr-FR)` is "1 234 567,89" with U+202F
+  here and U+00A0 in the original (UnityProbe's `ns21`, `u60-w1-netstandard-mod.yaml`). The other
+  cultures where ICU has U+202F differ otherwise: Mono has no data for 32 French cultures, vec
+  and vec-IT, and fr-BE's separator is '.' there. **Kept:** the game formats in the invariant
+  culture. `LaunchInitializer` sets the main thread's (`LaunchInitializer.cs:43`,
+  `Util.ApplyInvariantCultureToThread`) and worldgen its thread's (`ProcGenGame/Cluster.cs:231`);
+  under `LANG=fr_FR.UTF-8` the main thread, a new thread and a pool thread all format in the
+  invariant culture in both players, and only `CurrentUICulture` is fr-FR, which no game code
+  formats with. The game's fonts draw both characters (NotoSans-Regular and LiberationSans have
+  U+202F), so only a mod formatting with a French culture by name shows the other space.
 - **D61 GZipStream's compressed bytes.** The same input compresses to other bytes: 4,000 bytes
   ("Oxygen Not Included " 200 times, UnityProbe's `ns21`, `u60-w1-netstandard-mod.yaml`) give
   a 70-byte stream in the original and 85 here. Mono's `GZipStream` and `DeflateStream` call
