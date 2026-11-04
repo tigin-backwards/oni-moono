@@ -15,9 +15,11 @@ namespace OniMoono.Restarter
         /// The Restarter's arguments are EXECUTABLE [ARGUMENT...]: up to U60-761211 App.Restart
         /// passes only the executable; from 761654 on it adds the player's arguments too
         /// (Environment.GetCommandLineArgs()[1..]), each put in quotes as it is, so one holding a
-        /// quote or ending in a backslash does not come through as it was. The arguments the host
-        /// recorded (ONI_MOONO_RESTART_ARGV, a JSON array) are exact and win; the ones on the
-        /// command line are used without them. Null without an executable.
+        /// quote or ending in a backslash does not come through as it was. In ours those are the
+        /// game's arguments (GameCommandLine), without the host's own options. The arguments the
+        /// host recorded (ONI_MOONO_RESTART_ARGV, a JSON array: all of the host's, the game's
+        /// among them) are exact and win, so a restart starts the player as it was started; the
+        /// ones on the command line are used without them. Null without an executable.
         internal static Plan? From(string[] args, string? recordedArgv)
         {
             if (args.Length == 0 || args[0].Length == 0) return null;
