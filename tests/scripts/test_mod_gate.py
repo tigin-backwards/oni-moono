@@ -123,6 +123,21 @@ class Gate(unittest.TestCase):
         self.mod('1135041189', {'data.bin': b'\x7fELF payload'})
         self.assertEqual(self.run_gate(onimaxxing(), ['1135041189'])['1135041189']['verdict'], 'skip')
 
+    def test_github_builds_pass_only_as_a_known_build(self):
+        mid, files = '9000000001', {'mod.yaml': b'title: Fast Track\n', 'FastTrack.dll': b'MZ fast track'}
+        self.mod(mid, files)
+        known = {'FastTrack.dll': hashlib.sha256(files['FastTrack.dll']).hexdigest()}
+        with mock.patch.dict(gate.GITHUB_BUILDS, {mid: ('Fast Track', {'0.18.6.0': known})}):
+            self.assertEqual(self.run_gate(onimaxxing(), [mid])[mid]['verdict'], 'pass')
+            self.mod(mid, {'Extra.dll': b'MZ another'})                # a binary the build lacks
+            self.assertIn('not a known GitHub build', self.run_gate(onimaxxing(), [mid])[mid]['reason'])
+            os.remove(os.path.join(self.ws, mid, 'Extra.dll'))
+            self.mod(mid, {'FastTrack.dll': b'MZ changed'})
+            self.assertEqual(self.run_gate(onimaxxing(), [mid])[mid]['verdict'], 'skip')
+        # Another local id gets no exception.
+        self.mod('9000000002', files)
+        self.assertEqual(self.run_gate(onimaxxing(), ['9000000002'])['9000000002']['verdict'], 'skip')
+
     def test_not_downloaded_and_bad_ids_are_skipped(self):
         results = self.run_gate(onimaxxing(), ['1', '../x'])
         self.assertEqual(results['1']['reason'], 'not downloaded')

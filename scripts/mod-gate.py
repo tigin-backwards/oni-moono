@@ -16,7 +16,10 @@ A mod passes when
      list in managed[], by SHA-256 (not by path: non-ASCII names come out of the zip in
      another encoding), so the unpacked copy is that upload;
   3. onimaxxing's catalog row has no malware, credentials, chatWebhook or obfuscated flag.
-A mod with no binaries at all (a translation, a world) passes on 3 alone. The gate reads
+A mod with no binaries at all (a translation, a world) passes on 3 alone. One exception is
+not on the Workshop: Fast Track's GitHub builds, as the local id 9000000001 (GITHUB_BUILDS),
+pass when the folder's binaries are exactly one known build's, by SHA-256 (the user allowed
+those builds in tests). The gate reads
 onimaxxing's data as JSON and the mod's files as bytes; it never loads a mod's code.
 
 onimaxxing's data comes from https://cdn.onimaxxing.com/mods-data/BUILD/, cached in
@@ -39,6 +42,14 @@ CDN = 'https://cdn.onimaxxing.com/mods-data'
 U59_BUILD = 744825
 TTL = 3600
 FLAGS = ('malware', 'credentials', 'chatWebhook', 'obfuscated')
+# Mods from GitHub, by the local id specs install them as: {id: (name, {version: {path: sha256}})}.
+# Only these exact builds pass (the folder's binaries, all of them, are one build's).
+GITHUB_BUILDS = {
+    '9000000001': ('Fast Track', {
+        '0.18.5.0': {'FastTrack.dll': 'cdf0150546952fda3a31a612d61fbef3808e05db89b9b6e8cceea1f3c752aa3b'},
+        '0.18.6.0': {'FastTrack.dll': '58dbbb3e347b3e9edbaae7fb9bf706c6ab304ce6d9216a8bffbc4624b4138e1a'},
+    }),
+}
 BINARY_EXT = ('.dll', '.exe', '.so', '.dylib')
 BINARY_MAGIC = (b'\x7fELF', b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf', b'\xce\xfa\xed\xfe', b'\xcf\xfa\xed\xfe')
 
@@ -164,6 +175,13 @@ def check(mid, oni, handles, ws=WS):
     folder = os.path.join(ws, mid)
     if not os.path.isdir(folder):
         return verdict(False, 'not downloaded')
+    if mid in GITHUB_BUILDS:
+        name, builds = GITHUB_BUILDS[mid]
+        have = binaries(folder)
+        version = next((v for v, files in builds.items() if files == have), None)
+        if version:
+            return verdict(True, f'a known GitHub build of {name} ({version})')
+        return verdict(False, f'not a known GitHub build of {name}')
     analysis = (oni.row(mid) or {}).get('analysis') or {}
     flags = [k for k in FLAGS if analysis.get(k)]
     if flags:
