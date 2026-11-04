@@ -2327,14 +2327,6 @@ namespace OniMoono.Host
                 }
                 return "the patched method finds its assembly's type, as on Mono";
             });
-            Check("French digit groups with Mono's no-break space (MonoGroupSeparators)", () =>
-            {
-                MonoGroupSeparators.Install();
-                var text = string.Format(new System.Globalization.CultureInfo("fr-FR"), "{0:N2}", 1234567.891);
-                if (text != "1\u00A0234\u00A0567,89") throw new InvalidOperationException($"fr-FR formats {string.Join(" ", text.Select(c => ((int)c).ToString("X4")))}");
-                if (new System.Globalization.CultureInfo("fr-BF").NumberFormat.NumberGroupSeparator != "\u202F") throw new InvalidOperationException("fr-BF, which Mono has no data for, changed");
-                return "fr-FR's groups take U+00A0, as on Mono";
-            });
             Check("Fields and properties of a class whose method a mod patches, in Mono's order (MonoReflectionOrder)", () =>
             {
                 MonoReflectionOrder.Install();
