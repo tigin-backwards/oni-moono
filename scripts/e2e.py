@@ -44,7 +44,7 @@ both, E2E_ORIGINAL (the original player's executable, with a DLC-owning Steam do
 Plugins); E2E_ORIGINAL_ENV holds NAME=VALUE settings for the original player only (on WSL,
 `GALLIUM_DRIVER=llvmpipe` with a shared MESA_SHADER_CACHE_DIR runs it 3-4 times faster; see
 tests/e2e/README.md, "Run time"). Our player runs with `--game-tweak exact --game-tweak
-path-probe-repair` (the users' default tweaks but fix-load-screen-clicks), or with E2E_GAME_TWEAKS,
+path-probe-repair` (the users' default tweaks but the Bug fixes on by default), or with E2E_GAME_TWEAKS,
 space-separated `--game-tweak` values (default `exact path-probe-repair`; `none`, `exact`, `exact
 -no-save-gc`); E2E_PLAYER_ARGS adds host arguments (`--renderer vulkan`), E2E_ORIGINAL_ARGS the
 original's (`-force-glcore`). E2E_SCREEN=WxH and E2E_UI_SCALE=PERCENT run both players at another

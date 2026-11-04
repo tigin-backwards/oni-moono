@@ -1,0 +1,30 @@
+# The fix-endless-sounds game tweak (src/OniMoono.GameTweaks/EndlessLoopSounds.cs; issue #51).
+# Ours only (`--player ours`): the original has no such tweak.
+#
+# The adult Pip's eat_loop row and the rocket debris' landed row become looping sound events, as
+# their siblings are, and no other row changes. Two Pip animations with a LoopingSounds (as a
+# real Pip has), one looping eat_loop and one playing it once and then idling: the first keeps
+# one copy of Squirrel_eat_LP playing, the second's copy is stopped when it leaves eat_loop.
+# Without the fix neither holds one: each loop starts a one-shot that never ends instead.
+from: early-base
+game_tweaks: [fix-endless-sounds]
+setup:
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:.gameObject", method: AddComponent, args: ["LoopingSounds"]}}
+  - driver: {setup.call: {target: "last:.GetComponent<KBatchedAnimController>", method: Play, args: ["eat_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [112.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:.gameObject", method: AddComponent, args: ["LoopingSounds"]}}
+  - driver: {setup.call: {target: "last:.GetComponent<KBatchedAnimController>", method: Play, args: ["eat_loop", Once]}}
+  - driver: {setup.call: {target: "last:.GetComponent<KBatchedAnimController>", method: Queue, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {target: "SpeedControlScreen.Instance", method: Unpause, args: [false]}}
+steps:
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - expect_state:
+      "GameAudioSheets.Get().GetEvents(\"squirrel_kanim.eat_loop\")[0].looping": true
+      "GameAudioSheets.Get().GetEvents(\"rocket_debris_combined_kanim.landed\")[0].looping": true
+      "GameAudioSheets.Get().GetEvents(\"baby_squirrel_kanim.eat_loop\")[0].looping": true
+      "GameAudioSheets.Get().GetEvents(\"squirrel_kanim.eat_pst\")[0].looping": false
+      "GameAudioSheets.Get().GetEvents(\"rocket_debris_combined_kanim.falling\")[0].looping": true
+  - run: {seconds: 20}
+  - expect_state:
+      "count:all:LoopingSounds::[*] if .IsSoundPlaying(\"event:/Creatures/Adults/Squirrel/Squirrel_eat_LP\") == true": 1

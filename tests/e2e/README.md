@@ -25,8 +25,9 @@ load at all, in both players, comes first from [Load sweeps](#load-sweeps).
   Otherwise our runs are compared with the original's evidence (see [Verdicts](#verdicts)).
   `--player ours` alone compares with the references `--bless` stored in `out/e2e-refs/SPEC/`.
   Ours runs with `--game-tweak exact --game-tweak path-probe-repair`, the users' default game
-  tweaks but fix-load-screen-clicks (path-probe-repair may walk another of two equally short
-  routes; close enough to the original's). `E2E_GAME_TWEAKS` gives others, space-separated
+  tweaks but the Bug fixes on by default (fix-load-screen-clicks, fix-endless-sounds and
+  fix-sound-piles). path-probe-repair may walk another of two equally short routes; close enough
+  to the original's. `E2E_GAME_TWEAKS` gives others, space-separated
   `--game-tweak` values: `E2E_GAME_TWEAKS=exact` (no gameplay changes at all), `=none`,
   `=background-save`.
 - **The lock directory.** Runners in every worktree on the machine meet in one directory,

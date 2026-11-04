@@ -729,3 +729,33 @@ msgstr ""
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.DETAIL"
 msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same."
 msgstr ""
+
+#. Row title (fix-endless-sounds)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_ENDLESS_SOUNDS.TITLE"
+msgid "Stop sounds that never end"
+msgstr ""
+
+#. The line under the title (fix-endless-sounds)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_ENDLESS_SOUNDS.EFFECT"
+msgid "An eating Pip no longer leaves sounds playing forever, which in time froze the game."
+msgstr ""
+
+#. Tooltip: how it works (fix-endless-sounds)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_ENDLESS_SOUNDS.DETAIL"
+msgid "A bug in the game's sound data: the adult Pip's eating loop, and a crashed rocket's steaming debris, start a new copy of a looping sound on every loop and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends."
+msgstr ""
+
+#. Row title (fix-sound-piles)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_SOUND_PILES.TITLE"
+msgid "Cap repeated sounds in one tile"
+msgstr ""
+
+#. The line under the title (fix-sound-piles)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_SOUND_PILES.EFFECT"
+msgid "Hundreds of critters in one tile no longer freeze the game with their sounds."
+msgstr ""
+
+#. Tooltip: how it works (fix-sound-piles)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_SOUND_PILES.DETAIL"
+msgid "When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped."
+msgstr ""
