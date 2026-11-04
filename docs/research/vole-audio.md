@@ -6,7 +6,11 @@ optimize graphics, not audio, and the noise of 1,500 voles crashed the game"), a
 mod that mutes critter sounds. Is that a crash of the original too, something Moono does
 differently, or Fast Track, and is U60 different?
 
-**Verdict: not reproduced, and audio is not where Moono differs.** A 1,500-vole save loads and
+GitHub issue #51 (2026-11-04) reports a freeze with 1,500 voles **in one cell**, which these
+runs did not try: [that case reproduces](#issue-51-1500-voles-in-one-cell) in both players, as
+below.
+
+**Verdict for the save above: not reproduced, and audio is not where Moono differs.** A 1,500-vole save loads and
 plays at speed 3 in Moono and in the original, U59 and U60, with and without Fast Track on U59,
 with FMOD mixing in real time. Moono runs the game's own FMOD code and native library unchanged,
 with the same settings as the original. 1,500 active voles create about 900 FMOD event instances
@@ -173,3 +177,148 @@ voles.
   save a `getDescription`/`getPath` round trip per instance. At 900 instances a second that is
   well under 0.1 ms a frame, so it isn't worth doing as a performance tweak. Neither is
   warranted without a report that shows the ceiling.
+
+## Issue #51: 1,500 voles in one cell
+
+The report: about 1,500 Shove Voles stacked in one cell on U60 public_testing (Windows, 4K, Fast
+Track 0.18.4 with its animation optimisations). With the camera away the game runs smoothly; with
+the camera close the frame rate drops sharply and the game may freeze. The runs above missed it
+because their voles stood over 129 cells.
+
+**Verdict: reproduced, the same in Moono and the original, on Windows and Linux.** With the camera
+on the pile at orthographic size 20, both players freeze within 7–16 s: the main thread waits in
+an FMOD call for minutes and the game never draws another frame. The cost is FMOD's own work for
+thousands of copies of one event playing at one point. Moono's managed code on this path costs
+under 0.5 ms a frame. There is no exact fix of any size. A per-frame dedupe of one-shots of the
+same event in the same cell removes the freeze: 2,900 instances a second become 83, frames stay
+at 60 fps, and the pile sounds quieter.
+
+### Method
+
+- **Fixture**: the e2e `early-base` colony on U60 761654. A test mod walled one floor cell with
+  Neutronium (a 5×5 square minus the middle), spawned 1,500 voles in it, ran 60 s at speed 3
+  and saved (`vole-pile-1500.sav`, 2.0 MB; gitignored in tests/e2e/fixtures). All 1,500 voles
+  stay in the cell throughout every run.
+- **Players**: Moono u60 (dc48d2d2) release, default game tweaks; the original 761654. On Windows,
+  `E:\oni-builds\oni-win-761654` and its renamed copy `BrutalNotIncluded-761654`, 1280×720 on the
+  second monitor, High priority, Moono with `--no-focus` and `--frame-stats`. On Linux, Xvfb: Moono
+  on d3d12 and the original on llvmpipe, so the original's Linux frame times are not comparable.
+- **Audio**: volume prefs at 1, so FMOD really mixes. Nothing reaches a sound device. On Windows,
+  Moono's `--audio-wav` and the original's isolation plugin (`tools/OriginalIsolation`) both set
+  FMOD's `WAVWRITER` output into the run home. The original therefore needed no zero volume. On
+  Linux, `scripts/audio-sink/record.sh`'s private ALSA sink takes the mix at a sound card's pace.
+- **Camera script** (the test mod, no pointer): 60 s away (100 cells to the side, size 20), then
+  60 s each on the pile at sizes 20, 10, 6 and 4, then 60 s away. Speed 3 throughout.
+- **Logging**, once a second by the mod in both players: frame times, instances created
+  (`KFMOD.CreateInstance`), FMOD channels playing (total and real), the Studio command queue
+  (`getBufferUsage`: usage, capacity, stalls and stall time), Studio handles, FMOD's own CPU use
+  (mixer and Studio update), FMOD memory, private bytes and the managed heap. Harmony stopwatches
+  time `AnimEventManager.Update`, `LoopingSoundManager.RenderEveryTick`,
+  `SoundEvent.ShouldPlaySound`, `KFMOD.BeginOneShot`/`CreateInstance`/`EndOneShot`,
+  `RuntimeManager.CreateInstance`/`Update`, `EventInstance.set3DAttributes`/`start`/`release`, and
+  the rest of `EventInstance`, `Studio.System` and `EventDescription` as groups. A watchdog thread
+  logs a stall when no frame has finished for 1 s, along with the timed method the main thread is
+  in. On Linux, `dotnet-stack` took the main thread's stack during Moono's stalls. The mod's
+  `getMemoryUsage` call was dropped after the first run: it reported nothing with memory tracking
+  off.
+- Every run was also done without the stopwatches (`timers=0`). It froze the same way.
+
+### Results
+
+Windows (frame cap 60 fps). On the pile, medians are of the seconds before the freeze:
+
+| Run | Away: frame avg / instances a second | Pile, size 20: instances a second | Channels (real) | FMOD mixer / Studio CPU | Main thread |
+| --- | --- | --- | --- | --- | --- |
+| Moono | 17 ms / 0 | 2,000–2,900 | 512 (48) | 143% / 94% | a 1.2 s and a 5.8 s stall, then frozen from 10 s on (killed after 187 s frozen, still in `EventInstance.set3DAttributes`) |
+| Moono, no stopwatches | 17 ms / 0 | 2,168 | 370 (59) | 142% / 66% | frozen from 10 s on (killed after 100 s) |
+| Original | 18 ms / 0 | 1,400–3,300 | 110–512 (40–59) | 118% / 63% | an 11.5 s stall at 3 s, frozen from 16 s on (killed after 100 s, in `EventInstance.start`) |
+| Original, no stopwatches | 18 ms / 0 | 2,418 | 512 (53) | 174% / 100% | frozen from 7 s on (killed after 100 s) |
+| Moono + per-frame dedupe (below) | 17 ms / 0 | 74 at size 20, 67–70 at 10, 6, 4 | 38–55 (26–36) | 6% / 5% | no stall in 4 × 60 s on the pile; 16.7 ms frames, max 333 ms |
+
+- Linux shows the same thing, a little later: Moono stalled for 1 s and 16 s, then froze 29 s
+  after reaching the pile (killed after 192 s frozen). The original stalled for 1, 1.5, 11 and 1 s,
+  then froze at 27 s (killed after 242 s).
+- The smaller zooms were never reached without the dedupe: the freeze comes first. With the
+  dedupe, sizes 10, 6 and 4 made no more instances than 20. Low-priority sounds play below 10, but
+  the pile's sound is `Rock_creature_land`, which plays at every zoom.
+- What plays: `Creatures/Generic Movement Materials/Rock/Rock_creature_land` (falloff 20 cells) is
+  nearly all of it, from `FloorSoundEvent`. The voles in the cell keep landing on its floor.
+- Memory isn't the problem. Private bytes rose 140 MB in Moono's pile seconds and FMOD's memory
+  50 MB. Studio handles reached 166,000–280,000 of a table that grows to 2 million. The command
+  queue held 280,000–450,000 bytes when the main thread blocked.
+- During the freeze one native thread uses a whole core. On Linux it had 248 s of CPU in Moono and
+  261 s in the original: FMOD's Studio thread. The managed stacks end in FMOD's P/Invoke wrappers
+  (`EventInstance.setVolume`, `set3DAttributes`, `start`), called from `FloorSoundEvent.PlaySound`
+  under `AnimEventManager.Update`. FMOD's command queue is full, and each new command waits for the
+  Studio thread to make room.
+- On Windows the mixer fell behind real time: the WAV writer got 88 s of audio in Moono's 297 s run.
+  With the dedupe it got 382 s in 392 s.
+- Quitting in that state hangs as well. `Application.Quit` reaches `RuntimeManager.OnDestroy` →
+  `FMOD.Studio.System.release()`, which waits for the backlog. Moono was still in it 2 minutes
+  later, on Linux. The original's quit wasn't tried in that state.
+
+### What makes it expensive
+
+Linux, Moono, no voles, a synthetic `Rock_creature_land` one-shot through `SoundEvent.PlayOneShot`
+at 2,900 a second (the pile's rate):
+
+| Where | Frames | Channels (real) | Mixer / Studio CPU | Main thread |
+| --- | --- | --- | --- | --- |
+| all at the camera's point | 9–11 ms, then frozen | 229 → 512 | rising to 100%+ | frozen after 3 s, for 150 s+, and quitting hung too |
+| spread over 40 × 20 cells around the camera | 7–11 ms | 46–88 (30–56) | 5–7% / 18–24% | 0.02 s of stalls in 60 s |
+
+The rate alone is cheap. FMOD falls behind when thousands of copies of one event start at one
+point at full volume, and it can't let any of them go as inaudible. The spread case puts part of
+its instances near the 20-cell falloff, which may be what lets FMOD drop or virtualize them
+cheaply. This is inferred from the two runs: FMOD's internals weren't profiled (no native
+profiler here) and the event's bank settings weren't read.
+
+### Where the time goes
+
+- **FMOD native work** (the Studio thread and the mixer): all of the freeze. Both players use the
+  same `FMODUnity.dll`, the same native library and the same settings (output aside: 512 × 4 DSP
+  buffers on Windows, 1024 × 4 on Linux, from the game's settings). They freeze at the same point
+  in the same calls.
+- **The game's own path**: on Windows, in Moono's seconds without a stall, `AnimEventManager.Update`
+  with all sound events took 0.25–0.35 ms a frame. `KFMOD.CreateInstance` took 0.10 ms a frame for
+  2,900 instances (about 2 µs each, P/Invoke and Harmony included). `ShouldPlaySound` took 0.01 ms
+  a frame, and `start` + `release` 0.01 ms. In the original, `AnimEventManager.Update` was
+  1.5 ms a frame.
+- **Moono's own code**: nothing measurable on this path. No Moono-only bug was found. Moono makes
+  as many instances a game second as the original, and fails the same way.
+- **Fast Track**: 0.18.6, the current release (the same hash as the approved copy; static scan:
+  only PLib's update check makes a web request), doesn't load on 761654 in either player:
+  `LocText.ParseText` `__result` type mismatch, then `MissingMethodException`
+  `LocText.ModifyLinkStrings`. 0.18.4 isn't published on GitHub. So the reporter's setup can't be
+  run on this build, and every run above is without Fast Track. Fast Track's animation options
+  don't remove sound events (above), and the original freezes without it.
+
+### Fixes
+
+- **(a) Exact fixes: none worth doing.** The main thread's own work on this path is under 0.5 ms
+  a frame in Moono. Faster P/Invoke or less managed overhead can't touch a stall that lasts minutes
+  inside FMOD. Batching keeps the same calls in the same order, so FMOD does the same work.
+  A larger Studio command queue (`FMOD_STUDIO_ADVANCEDSETTINGS.commandqueuesize`) would only delay
+  the first stall, because the Studio thread consumes commands more slowly than the pile makes
+  them. It would also delay every sound behind the backlog, which isn't exact either (an estimate;
+  not run).
+- **(b) A game tweak, off by default, "Changes gameplay":** skip a one-shot when the same event has
+  already started in the same cell in the same frame (prefix on `KFMOD.BeginOneShot(EventReference,
+  Vector3, float)`, keyed by event GUID and cell). Measured on Windows, as in the table: 2,900
+  instances a second → 83, of which `Rock_creature_land` is about 10 a second. No stalls at any
+  zoom. The mixer stays at 6% and keeps real time. What changes audibly:
+  - the pile plays one copy of a sound per frame per cell instead of up to about 40 at once, so it
+    sounds much quieter and thinner. The first copy in each frame starts at the same time as before;
+  - events that read the game's `objectCount` parameter (the copies of a path started in the
+    frame) see 1 instead of N;
+  - elsewhere it matters only when two objects start the same event in the same cell in the same
+    frame. One of them is then silent, which can't be heard in normal play.
+  A time window (say 50 ms) instead of one frame would make it independent of the frame rate. That
+  variant is in the test mod but wasn't run. A cap on live instances per event and position would
+  also work, but it needs a count kept per instance until it stops, which the game doesn't track.
+  The dedupe is simpler and measured.
+- **(c) Moono-only bugs**: none found. The quit hang is FMOD's `System.release()` draining the same
+  backlog. It happens in the original's code path too, but it wasn't run there.
+- What to tell the reporter: it is the original game's behaviour with FMOD, not Moono's or Fast
+  Track's. Until a tweak exists, spreading the voles over more cells avoids it, as the first runs
+  above show, and so does muting critter sounds (the mod named above).
