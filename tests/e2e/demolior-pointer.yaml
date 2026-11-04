@@ -12,9 +12,10 @@ steps:
   - ui_wait: {path: "**/LargeImpactorSequenceReticle/CalculatingImpactSection/label", cond: exists, frames: 600}
   # The pointer to the screen's centre, over the reticle's empty "calculating" label.
   - scroll: {at: center, notches: 0}
-  # The sequence's fade plane takes raycasts for its first seconds (about 1000 frames in the
-  # original, paused), in both players.
-  - expect_hit: {at: center, not: "~FadePlaneFront", frames: 3000}
+  # The sequence's fade plane takes raycasts for its first seconds, in both players: about 20 s
+  # of real time (about 1000 frames in the original, paused, and over 3000 in ours). The wait
+  # allows 12000 frames, over 25 s at the frame rates either player reaches here.
+  - expect_hit: {at: center, not: "~FadePlaneFront", frames: 12000}
   - expect_hit: {at: center, not: "~TMP SubMeshUI"}
   - expect_state:
       "type:UnityEngine.EventSystems.EventSystem::current.IsPointerOverGameObject()": false
