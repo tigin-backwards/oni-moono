@@ -16,6 +16,8 @@
     <Reference Include="$(OniManaged)/Assembly-CSharp.dll" Private="false" />
     <Reference Include="$(OniManaged)/Assembly-CSharp-firstpass.dll" Private="false" />
     <Reference Include="$(OniManaged)/0Harmony.dll" Private="false" />
+    <!-- FMOD's event descriptions and instances, for the sound fixes. -->
+    <Reference Include="$(OniManaged)/FMODUnity.dll" Private="false" />
     <!-- The screen's widgets (LocText is a TextMeshProUGUI, KImage a UI Image): bound at run time
          to this project's UI packages, as the game's own assemblies are. -->
     <Reference Include="$(OniManaged)/UnityEngine.UI.dll" Private="false" />

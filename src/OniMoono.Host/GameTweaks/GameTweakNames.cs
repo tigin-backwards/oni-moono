@@ -27,7 +27,7 @@ namespace OniMoono.Host.GameTweaks
     /// that change gameplay (Changes gameplay, Bug fixes) that still changes what the game does a little (off by default, left out
     /// of `exact`). `OnByDefault`: a tweak that changes what the game does (left out of `exact`)
     /// but is on by default all the same (the player's choice: path-probe-repair,
-    /// fix-load-screen-clicks).
+    /// fix-load-screen-clicks, fix-endless-sounds, fix-sound-piles).
     internal sealed record TweakInfo(string Id, TweakGroup Group, string Title, string Effect, string Detail = "", TweakGain? Gain = null, bool IsTweak = true,
         string[]? Choices = null, bool ChangesBehaviour = false, bool OnByDefault = false)
     {
@@ -57,7 +57,7 @@ namespace OniMoono.Host.GameTweaks
             UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
-            PagedPathGrids = "paged-path-grids";
+            PagedPathGrids = "paged-path-grids", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -181,10 +181,16 @@ namespace OniMoono.Host.GameTweaks
             new("fix-load-screen-clicks", BugFixes, "Open a colony once on the Load screen", "After Load more, a click on a colony no longer builds its list of saves again for every refresh.",
                 "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, "
                 + "and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same.", OnByDefault: true),
+            new(EndlessSounds, BugFixes, "Stop sounds that never end", "An eating Pip no longer leaves sounds playing forever, which in time froze the game.",
+                "A bug in the game's sound data: the adult Pip's eating loop, and a crashed rocket's steaming debris, start a new copy of a looping sound on every loop "
+                + "and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends.", OnByDefault: true),
+            new(SoundPiles, BugFixes, "Cap repeated sounds in one tile", "Hundreds of critters in one tile no longer freeze the game with their sounds.",
+                "When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. "
+                + "A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped.", OnByDefault: true),
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "fix-disease-overlay-crash", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists"];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "fix-disease-overlay-crash", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", EndlessSounds, SoundPiles];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();

@@ -1,0 +1,38 @@
+# The fix-sound-piles game tweak (src/OniMoono.GameTweaks/OneShotPiles.cs; issue #51). Ours only
+# (`--player ours`): the original has no such tweak.
+#
+# Ten Pip animations in one cell, made while the game is paused so they run in step once it
+# resumes: each loop of idle_loop starts Squirrel_voice_idle in all ten in the same frame, and
+# all but the first copies of each frame are skipped. The game keeps running.
+from: early-base
+game_tweaks: [fix-sound-piles]
+setup:
+  - driver: {setup.call: {target: "SpeedControlScreen.Instance", method: Pause, args: [false]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - driver: {setup.call: {target: "SpeedControlScreen.Instance", method: Unpause, args: [false]}}
+steps:
+  - expect_state:
+      "type:OniMoono.GameTweaks.OneShotPiles::PerCell": 3
+  - run: {seconds: 30}
+  - expect_state:
+      "type:OniMoono.GameTweaks.OneShotPiles::Skipped": "> 40"

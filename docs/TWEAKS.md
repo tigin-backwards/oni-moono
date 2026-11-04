@@ -112,8 +112,8 @@ Workstation concurrent GC) and why, and a `gc config:` line with the runtime's G
 Launch options still work and win over the screen, which then shows those rows as set by the
 launch options:
 - `--game-tweak exact`: every tweak that leaves the game as the original plays it: all but the
-  Changes gameplay and Bug fixes groups (so without `path-probe-repair` and
-  `fix-load-screen-clicks`, which are on by default).
+  Changes gameplay and Bug fixes groups (so without `path-probe-repair`,
+  `fix-load-screen-clicks`, `fix-endless-sounds` and `fix-sound-piles`, which are on by default).
 - `--game-tweak all`: every tweak.
 - `--game-tweak none`: no tweaks.
 - Tweaks by name: `--game-tweak exact --game-tweak slow-reachability`. `--game-tweak -NAME` leaves
@@ -204,6 +204,8 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; a late-game Sp
 - **Land items lost below a world** (`off-world-fallers`): Items that fall out the bottom of a world (a rocket's chute) stop falling forever. A bug in the game: they hang just below the world, stepped as falling every tick. This lands them where they hang.
 - **Fix the disease overlay crash** (`fix-disease-overlay-crash`): Stops a crash when a critter or plant showing germs dies while the Disease overlay is open. A bug in U60's own code (the original crashes too, mostly at low frame rates): the destroyed germ marker is dropped before the game reads it. Off by default, as the original crashes.
 - **Open a colony once on the Load screen** (`fix-load-screen-clicks`): After Load more, a click on a colony no longer builds its list of saves again for every refresh. A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same. *On by default.*
+- **Stop sounds that never end** (`fix-endless-sounds`): An eating Pip no longer leaves sounds playing forever, which in time froze the game. A bug in the game's sound data: the adult Pip's eating loop, and a crashed rocket's steaming debris, start a new copy of a looping sound on every loop and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends. *On by default.*
+- **Cap repeated sounds in one tile** (`fix-sound-piles`): Hundreds of critters in one tile no longer freeze the game with their sounds. When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped. *On by default.*
 <!-- tweaks:end -->
 
 ### Incremental path probes
@@ -273,6 +275,39 @@ the repeated work. It installs only where the Load screen still has the bug: whe
 changes `LoadScreen.AddColonyToList` or the fields the fix reads, or the method no longer adds
 the handler without clearing the button first, the tweak is left out with one line in
 Player.log (`fix-load-screen-clicks: left out, ...`).
+
+### The sound fixes
+
+Two bugs in the original game let FMOD, the game's sound engine, pile up event instances until
+its Studio thread runs out of CPU: the game then stalls in an FMOD call and falls silent, or
+freezes for good (issue #51; [measurements](research/vole-audio.md#the-two-sound-fixes-2026-11-04)).
+Both tweaks are on by default, in the Bug fixes group and left out of `exact`. Each installs only
+where the game still has what it was written for; otherwise it is left out with one line in
+Player.log.
+
+`fix-endless-sounds` fixes two rows of the game's audio sheets (U59 and U60) that play a looping
+sound as a one-shot. The adult Pip's `eat_loop` plays `Squirrel_eat_LP` once per loop of the
+animation, and each copy loops forever; the baby Pip's row is a looping sound event, started
+once and stopped when the animation ends. A crashed rocket's debris payload does the same with
+`RocketDebris_steaming_LP` on every loop of its `landed` animation in the crater, where the
+railgun payload's row for the same state is a looping sound event. With the tweak both rows are
+built as looping sound events, as their siblings are. What differs from the original: while the
+animation plays, one copy of the sound plays, and it stops when the animation does, instead of a
+new never-ending copy every loop (about 3.8 a second for one eating Pip at speed 3, 3.2 for one
+debris payload). Nothing else changes. It is left out for a row that a game update changes (its
+type, its name, or an event that no longer loops).
+
+`fix-sound-piles` limits how many copies of one sound start in one cell in one frame. A one-shot
+over that limit (3) of the same event, in the same cell, in the same frame, is not made. Only 3D
+one-shot events are counted, played anywhere but the origin, where the game plays its menu, UI
+and screen sounds; looping, 2D and UI sounds are never skipped. What differs from the original:
+where many critters stand in one cell (1,500 Shove Voles in one cell start about 2,400 landing
+sounds a second, all at one point), only the first copies of each frame play, so a pile sounds
+quieter, and the game doesn't freeze. Events that read the game's `objectCount` parameter see
+the copies made. In normal colonies it fires only where critters or Duplicants crowd one cell
+(a ranch, a fish tank), and in the six colonies measured only on sounds whose FMOD event plays one
+copy at a time anyway, so the copies it skipped would not have played. Player.log notes how many it skipped, at most once a minute
+(`fix-sound-piles: skipped ...`).
 
 ## Translating Moono Tweaks
 
