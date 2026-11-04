@@ -473,6 +473,27 @@ These are not per-frame, so they are outside the ranking above:
 | Path grids in pages (`paged-path-grids`, heap-reduction-designs.md §3.3) | **Landed**, exact, on by default | Windows: managed heap 8,729, 8,676 → 4,308, 4,339 MiB; private bytes 15,441, 15,291 → 11,199, 11,104 MiB; working set 10,212, 10,083 → 9,579, 9,618 MiB; fps 46.2, 54.2 → 46.3, 56.1, main thread 25.7, 16.1 → 17.8, 19.6 ms (noise); probe thread 0.66, 0.47 → 0.59, 0.60 ms a probe | tables 265.5 → 177.7 MB (Linux) | Linux, without mods: heap after a full GC 4,267 → 3,276 MB; GC commit 5,554 → 4,189 MB | – |
 | Bundles read block by block (U60; src/OniMoono.Assets/Files/ArchiveBlocks.cs, heap-reduction-designs.md §1.3) | **Landed**, engine-side, always on (`ONI_BUNDLE_BLOCKS=0` off), exact: verify mode (`ONI_BUNDLE_BLOCKS_VERIFY=1`) 0 mismatches; replaces the mapped bundle cache, reverted. At the menu (Linux, every DLC, any save): live heap 1,717 → 637 MB, committed 2,717-2,754 → 1,169-1,403 MB, time to the menu 16.6-16.7 → 16.0-16.7 s. Windows (Vulkan, interleaved, second launch, 5 runs each): private bytes 6,675-6,911 → 5,462-5,697 MiB, managed heap 1,966-2,239 → 862-1,032 MiB; time to the menu 14.4-17.8 (mean 16.4) → 15.6-17.9 (mean 17.0) s, inside the spread; the main thread's reads 265-300 ms | Linux: live heap at the load 3,449, 3,450 → 2,336, 2,337 MB; 300 s in 4,685, 4,697 → 3,577, 3,579 MB; load 16.1, 16.6 → 17.6, 17.0 s (no block read during it: spread); frame interval 26.4, 26.0 → 25.1, 27.3 ms (spread); main thread's bundle reads 0 → 0.14-0.20 s before the menu. Windows: private bytes 10,781, 11,117 → 9,926, 9,898 MiB, managed heap 4,357, 4,482 → 3,420, 3,414 MiB (110 s in); load 18.4, 15.1 → 13.8, 15.8 s; fps 37.6, 42.9 → 47.4, 42.9, worst 1% 50.5, 47.9 → 44.6, 49.2 ms (noise); the same slow frames, none from uploads | Windows: private bytes 17,452, 16,979 → 15,657, 15,799 MiB, managed heap 9,669, 9,384 → 7,812, 7,998 MiB (110 s in); load 26.2, 26.4 → 24.8, 24.4 s; fps 46.4, 51.9 → 51.6, 54.7, worst 1% 59.2, 51.4 → 49.9, 48.8 ms (noise); the same slow frames | – | – |
 
+Resident vs committed (`paged-path-grids` and bundle block reads, the two rows above), on the
+200-Duplicant colony: Windows, U60 761654, Vulkan, speed 3, busiest world, one run each after
+a warm-up, means of 10 samples (every 10 s, 30-130 s after the camera reached the world). Page
+faults count soft and hard together.
+
+| Configuration | Working set | Private working set | Private bytes | Managed heap | Page faults a second |
+| --- | --- | --- | --- | --- | --- |
+| Defaults | 8,654 MiB | 5,807 MiB | 9,910 MiB | 3,462 MiB | 8,200 |
+| `paged-path-grids` off | 8,936 MiB | 6,089 MiB | 13,909 MiB | 7,488 MiB | 7,900 |
+| `ONI_BUNDLE_BLOCKS=0` | 9,639 MiB | 6,968 MiB | 11,176 MiB | 4,548 MiB | 1,050 |
+| Both off | 9,938 MiB | 7,265 MiB | 15,204 MiB | 8,604 MiB | 320 |
+
+- Paged path grids save 3,999 MiB of private bytes but only 282 MiB of working set: the
+  Duplicants' flat path arrays were committed but mostly never touched, so they never took
+  RAM.
+- Block reads save 1,267 MiB of private bytes and 986 MiB of working set (1,161 MiB private
+  working set): the whole-bundle copies were unpacked and touched, so this saving is in RAM
+  too. They come with more page faults: 8,200 a second against 1,050 without them.
+- Both together save 5,294 MiB of private bytes and 1,284 MiB of working set (1,458 MiB
+  private working set).
+
 Path grids in pages (`paged-path-grids`):
 - **Change**: each PathGrid's `Cells` and `ProberCells` (whole-cluster arrays per Duplicant,
   Rover and Flydo) become page tables of 256 elements made on first write, an unwritten page
