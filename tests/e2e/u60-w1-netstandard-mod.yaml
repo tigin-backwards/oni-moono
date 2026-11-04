@@ -12,9 +12,9 @@
 # and a float's default format (ARCHITECTURE D2, the shortest round trip), Int32's assembly name
 # (System.Private.CoreLib against mscorlib), the GZip stream's compressed length (.NET's zlib-ng
 # against Mono's zlib, D61; both round-trip) and fr-FR's group separator (U+202F in ours, ICU's;
-# U+00A0 in the original, Mono's; D60). The font list is recorded too: every font has both
-# glyphs, itself or through its fallbacks, in the original; in ours HasCharacter's fallback
-# search finds neither in a font that lacks it (u60-761654.md, W1).
+# U+00A0 in the original, Mono's; D60). The font list is compared: every font has both glyphs,
+# itself or through TMP_Settings' fallbacks and the default font asset, which HasCharacter's
+# fallback search walks (u60-761654.md, W1; probe-font-fallback.yaml).
 from: early-base
 require_log: ['NS21 Linq=', 'NS21 NetstandardRef=netstandard 2\.1\.0\.0']
 steps:
@@ -36,4 +36,4 @@ steps:
       "type:SemanticsProbe.NetStandard::FormatInvariant": {save_as: formatinvariant}
       "type:SemanticsProbe.NetStandard::Int32Assembly": {save_as: int32assembly}
       "type:SemanticsProbe.NetStandard::NetstandardRef": "== original"
-      "type:SemanticsProbe.NetStandard::Glyphs": {save_as: glyphs}
+      "type:SemanticsProbe.NetStandard::Glyphs": "== original"

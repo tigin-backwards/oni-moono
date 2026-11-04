@@ -1,0 +1,7 @@
+# probe-font-fallback.yaml in the game's own Russian (ru_klei): the menu's texts and the global
+# fallbacks are the Russian UI's. Same set-up.
+from: main-menu
+language: ru_klei
+steps:
+  - ui_wait: {path: "**/FontFallbackProbeDone", cond: exists, frames: 20000}
+  - shot: fallback

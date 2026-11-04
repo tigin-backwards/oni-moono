@@ -238,6 +238,11 @@ namespace SemanticsProbe
                 go.AddComponent<EmptyText>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "fontfallback")
+            {
+                go.AddComponent<FontFallback>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "ns21")
             {
                 NetStandard.Run(harmony);
