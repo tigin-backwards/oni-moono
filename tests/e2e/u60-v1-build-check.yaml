@@ -6,7 +6,8 @@
 # 761212 save refused, the 761211 one offered.
 #
 # The fixtures are made from early-base.sav: bytes 0-3 (SaveGame.Header.buildVersion, little
-# endian) set to 761211 and 761212.
+# endian) set to the build under test and the one after it: 761211 and 761212 on 761211, 761654
+# and 761655 on 761654 (u60-761654.md, W13).
 from: main-menu
 extra_saves: [v1-current, v1-newer]
 steps:

@@ -1,0 +1,46 @@
+# W8 (docs/research/u60-761654.md): the collider's animation offset; critters off screen.
+#
+# 761654's KCollider2D keeps the animation offset apart from its rest offset (offset is
+# _offset + animOffset; restOffset; SetAnimOffset marks the collider dirty only on change), and
+# AnimEventHandler.UpdateOffset sets the animation offset rather than overwriting offset from a
+# stored base. GravityComponent, BurrowMonitor, FallerComponent and Pickupable read the rest
+# offset. The bug it fixes ("critters sometimes becoming entombed in the floor while off-screen")
+# followed the game's culling, which our camera drives.
+#
+# From early-base: six Hatches spawned on the pod's east floor (setup), on screen, beside the one
+# the colony has; their rest offsets read. The camera then moves far away so they are culled,
+# and 600 game seconds pass at speed 3. Then the Hatches entombed (Pickupable.IsEntombed; a Hatch
+# has no EntombVulnerable) are counted and their rest offsets read, against the original's (the
+# live offset is recorded, not compared: it follows the animation frame). Burrowing
+# (BurrowMonitor) puts a Hatch into the ground on purpose, so a solid cell is no measure.
+from: early-base
+setup:
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(130, 207)"}, 0, 0, "Hatch", Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(131, 207)"}, 0, 0, "Hatch", Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(132, 207)"}, 0, 0, "Hatch", Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(133, 207)"}, 0, 0, "Hatch", Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(134, 207)"}, 0, 0, "Hatch", Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Scenario, method: SpawnPrefab, args: [{"$": "Grid.XYToCell(135, 207)"}, 0, 0, "Hatch", Creatures]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {camera.set: {pos: [132.5, 208.5], ortho: 10}}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "count:all:CreatureBrain::[*] if .GetComponent<KPrefabID>.PrefabTag.Name == Hatch": [">= 6", "== original"]
+      "all:CreatureBrain::[0].GetComponent<KBoxCollider2D>.restOffset": "== original"
+  - driver: {camera.set: {pos: [40.5, 300.5], ortho: 10}}
+  - run: {seconds: 600}
+  - expect_state:
+      "count:all:CreatureBrain::[*] if .GetComponent<KPrefabID>.PrefabTag.Name == Hatch": "== original"
+      "count:all:CreatureBrain::[*] if .GetComponent<KPrefabID>.PrefabTag.Name == Hatch and .GetComponent<Pickupable>.IsEntombed == true": [0, "== original"]
+      "all:CreatureBrain::[0].GetComponent<KBoxCollider2D>.restOffset": "== original"
+      "all:CreatureBrain::[0].GetComponent<KBoxCollider2D>.offset": {save_as: offset_after}
+  - driver: {camera.set: {pos: [132.5, 208.5], ortho: 10}}
+  - run: {seconds: 2}
+  - expect_state:
+      "count:all:CreatureBrain::[*] if .GetComponent<KPrefabID>.PrefabTag.Name == Hatch and .GetComponent<Pickupable>.IsEntombed == true": [0, "== original"]

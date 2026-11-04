@@ -1,0 +1,89 @@
+# W7 (docs/research/u60-761654.md): sensor sliders in each temperature unit.
+#
+# 761654's ThresholdSwitchSideScreen passes the slider's value to the switch as it is (drag,
+# pointer down, wheel), no longer through GameUtil.GetRoundedTemperatureInKelvin, so the value no
+# longer snaps (to the minimum on the wheel, to a rounded Kelvin step on a drag) and reads the
+# same in Celsius, Kelvin and Fahrenheit. The input is our uGUI Slider and event system (U60 QA
+# I2's wheel path).
+#
+# From early-base: setup builds a Temperature Sensor. For each unit, chosen on Options > Game
+# (the unit toggles, UnitConfigurationScreen), the sensor is selected and its slider gets a click
+# on its background, at the middle (pointer down), three wheel notches up and three down, a minor
+# increment button and a typed value. The sensor's threshold after each step, the slider's value
+# and the side screen's text are compared with the original's: the threshold exactly, the
+# slider's value within 1e-4 (after the minor increment in Kelvin, 50.357143 in the original and
+# 50.35714 in ours: a float step apart, or one value printed two ways).
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicTemperatureSensor\")", method: Build, args: [{"$": "Grid.XYToCell(115, 207)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"LogicTemperatureSensor\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {camera.set: {pos: [118.5, 209.5], ortho: 10}}
+steps:
+  # Celsius.
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent"}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/OptionsButton"}
+  - ui_wait: {path: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton", cond: stable}
+  - click: {ui: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton"}
+  - ui_wait: {path: "**/GameOptionsScreen", cond: stable}
+  - click: {ui: "**/GameOptionsScreen/**/TemperatureUnits/UnitToggle/Checkbox", index: 0}   # Celsius
+  - expect_state: {"GameUtil.temperatureUnit": ["== 'Celsius'", "== original"]}
+  - key: {code: Escape, until: "**/PauseScreen", cond: gone}
+  - click_world: {cell: [115, 207], select: LogicTemperatureSensor}
+  - ui_wait: {path: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", cond: stable}
+  - click: {ui: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Background"}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - scroll: {at: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", notches: 3}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - scroll: {at: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", notches: -3}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - click: {ui: "**/ThresholdSwitchSideScreen/ValidContent/Input/Inc Minor"}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - type: {ui: "**/ThresholdSwitchSideScreen/ValidContent/Input/NumberInputField", text: "35", enter: true, clear: true}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - ui_dump: {name: celsius, root: "**/ThresholdSwitchSideScreen/ValidContent"}
+  - key: {code: Escape}
+  # Kelvin.
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent"}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/OptionsButton"}
+  - ui_wait: {path: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton", cond: stable}
+  - click: {ui: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton"}
+  - ui_wait: {path: "**/GameOptionsScreen", cond: stable}
+  - click: {ui: "**/GameOptionsScreen/**/TemperatureUnits/UnitToggle/Checkbox", index: 1}   # Kelvin
+  - expect_state: {"GameUtil.temperatureUnit": ["== 'Kelvin'", "== original"]}
+  - key: {code: Escape, until: "**/PauseScreen", cond: gone}
+  - click_world: {cell: [115, 207], select: LogicTemperatureSensor}
+  - ui_wait: {path: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", cond: stable}
+  - click: {ui: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Background"}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - scroll: {at: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", notches: 3}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - scroll: {at: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", notches: -3}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - click: {ui: "**/ThresholdSwitchSideScreen/ValidContent/Input/Inc Minor"}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - type: {ui: "**/ThresholdSwitchSideScreen/ValidContent/Input/NumberInputField", text: "300", enter: true, clear: true}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - ui_dump: {name: kelvin, root: "**/ThresholdSwitchSideScreen/ValidContent"}
+  - key: {code: Escape}
+  # Fahrenheit.
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent"}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/OptionsButton"}
+  - ui_wait: {path: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton", cond: stable}
+  - click: {ui: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton"}
+  - ui_wait: {path: "**/GameOptionsScreen", cond: stable}
+  - click: {ui: "**/GameOptionsScreen/**/TemperatureUnits/UnitToggle/Checkbox", index: 2}   # Fahrenheit
+  - expect_state: {"GameUtil.temperatureUnit": ["== 'Fahrenheit'", "== original"]}
+  - key: {code: Escape, until: "**/PauseScreen", cond: gone}
+  - click_world: {cell: [115, 207], select: LogicTemperatureSensor}
+  - ui_wait: {path: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", cond: stable}
+  - click: {ui: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Background"}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - scroll: {at: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", notches: 3}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - scroll: {at: "**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider/Handle Slide Area/Handle", notches: -3}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - click: {ui: "**/ThresholdSwitchSideScreen/ValidContent/Input/Inc Minor"}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - type: {ui: "**/ThresholdSwitchSideScreen/ValidContent/Input/NumberInputField", text: "100", enter: true, clear: true}
+  - expect_state: {"all:LogicTemperatureSensor::[0].Threshold": "== original", "ui:**/ThresholdSwitchSideScreen/ValidContent/SliderContainer/Slider::GetComponent<KSlider>.value": [">= original - 0.0001", "<= original + 0.0001"]}
+  - ui_dump: {name: fahrenheit, root: "**/ThresholdSwitchSideScreen/ValidContent"}
+  - key: {code: Escape}

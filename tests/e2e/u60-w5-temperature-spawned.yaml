@@ -1,0 +1,35 @@
+# W5 (docs/research/u60-761654.md): objects white on the Temperature overlay.
+#
+# 761654's TemperatureOverlayInfraredVisualizerBase.OnSpawn registers the visualizer as visible
+# when its controller already is (KBatchedAnimController.IsVisible). Before, only the
+# controller's visibility event (6106694, raised by SetVisiblity) registered it, so an object
+# visible from its spawn on was never tinted: it drew white. Whether a controller reports
+# visible at its visualizer's OnSpawn follows our camera and KAnim culling.
+#
+# From early-base: dig orders in the floor east of the pod and a ladder ordered, then the
+# Temperature overlay on (F3) and the game run, so the debris spawns and the ladder is finished
+# on screen with the overlay on. Then the visible objects left untinted (overlay colour black,
+# KBatchedAnimController.OverlayColour, which the visualizer sets) are counted, among the debris
+# and among every visible animated object (a tile has no controller), and the area is shot. How
+# many objects are visible is recorded, not compared: after 300 s of play the debris differs by
+# one or two pieces.
+from: early-base
+setup:
+  - driver: {camera.set: {pos: [128.5, 208.5], ortho: 10}}
+steps:
+  # The orders first (OniMcp places them on its map of the default view), then the overlay;
+  # the debris and the ladder appear while the game runs with it on.
+  - dig: [131, 206, 133, 206]
+  - build: {prefab: Ladder, cells: [[134, 207], [134, 208]]}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - expect_state:
+      "OverlayScreen.Instance.mode.HashValue": ["== original"]
+  - run: {seconds: 300, until: {pending_digs: 0, pending_construction: 0}}
+  - expect: {pending_digs: 0, buildings: {Ladder: ">=2"}}
+  - expect_state:
+      "count:all:Pickupable::[*] if .GetComponent<KBatchedAnimController>.IsVisible() == true and .GetComponent<KBatchedAnimController>.OverlayColour.r == 0 and .GetComponent<KBatchedAnimController>.OverlayColour.g == 0 and .GetComponent<KBatchedAnimController>.OverlayColour.b == 0": "== original"
+      "count:all:Pickupable::[*] if .GetComponent<KBatchedAnimController>.IsVisible() == true": ">= 1"
+      "count:all:KBatchedAnimController::[*] if .IsVisible() == true and .OverlayColour.r == 0 and .OverlayColour.g == 0 and .OverlayColour.b == 0": "== original"
+      "count:all:KBatchedAnimController::[*] if .IsVisible() == true": ">= 1"
+  - world_shot: {name: temperature, ortho: 10, at: [128, 208]}

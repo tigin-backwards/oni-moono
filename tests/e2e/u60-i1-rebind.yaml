@@ -1,7 +1,9 @@
 # U60 QA spec I1 (docs/research/u60-qa-spec.md): mouse buttons 3 to 6 as bindings. In a
 # colony, Options > Game > Controls: Dig (the fifth entry) is rebound to the back side button
 # (X button 8), its label dumped, then the button is pressed over the world: the Dig tool must
-# be active as in the original.
+# be active as in the original. Since 761654 the label reads "Mouse 4" for X button 8 in both
+# players (GameUtil.GetKeycodeLocalized names Mouse3 to Mouse6 "Mouse 4" to "Mouse 7"; the key
+# code is unchanged); 761211 read "Mouse 3".
 from: early-base
 steps:
   - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent"}
@@ -17,6 +19,8 @@ steps:
   - click: {at: [1100, 650], button: 8}
   - ui_wait: {path: "**/InputBindingsScreen/**/Entry/KeyButton", cond: stable}
   - ui_dump: {name: back, root: "**/InputBindingsScreen/**/Group"}
+  - expect_ui:
+      "**/InputBindingsScreen/**/Group/Entry/KeyButton/Text": {any_text: "Mouse 4"}
   - click: {ui: "**/InputBindingsScreen/Content/Buttons/DoneButton"}
   - key: {code: Escape, until: "**/PauseScreen", cond: gone}
   # The side button over the world picks the Dig tool.

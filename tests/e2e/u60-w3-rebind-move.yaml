@@ -1,0 +1,63 @@
+# W3 (docs/research/u60-761654.md): Move To / Relocate rebinding and the inserted action.
+#
+# 761654 inserts Action.MoveRelocateTo at 150 (every later action moves up one, NumActions is
+# 282), binds it to Q in the Root group (Global.GenerateDefaultBindings) and lists it on the
+# controls screen; UserMenuScreen.OnKeyDown takes it in place of BuildMenuKeyQ for a selected
+# Movable or a Duplicant's MoveToLocationMonitor.
+#
+# From early-base, Options > Game > Controls: the Root group's rows dumped (the Move To row is
+# the fourteenth, after Disconnect), the Move To row rebound to Semicolon (no default binding
+# uses it, so no conflict dialog), the rows dumped again; the game's bindings then hold
+# MoveRelocateTo on Semicolon and the profile holds keybindings.json. In the world: the sand
+# debris east of the pod selected, Q pressed (the active tool compared), then Semicolon (the
+# Move To tool). Then Mop (M) and Disinfect (I), actions above 150, pressed over the world: the
+# active tool compared each time.
+from: early-base
+setup:
+  - driver: {camera.set: {pos: [128.5, 209.5], ortho: 10}}
+steps:
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent"}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/OptionsButton"}
+  - ui_wait: {path: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton", cond: stable}
+  - click: {ui: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton"}
+  - ui_wait: {path: "**/GameOptionsScreen", cond: stable}
+  - click: {ui: "**/GameOptionsScreen/**/ControlsButton"}
+  - ui_wait: {path: "**/InputBindingsScreen/**/Entry/KeyButton", cond: stable, frames: 600}
+  - ui_dump: {name: before, root: "**/InputBindingsScreen/**/Group"}
+  - expect_ui:
+      "**/InputBindingsScreen/**/Group/Entry/KeyButton/Text": {count: "== original"}
+  # The Move To row is below the list's fold: scrolled into view first.
+  - scroll: {at: "**/InputBindingsScreen/**/Group/Entry/KeyButton", notches: -15}
+  - ui_wait: {path: "**/InputBindingsScreen/Content/Scroll View/Viewport/Content", cond: stable}
+  - expect_state:
+      "ui:**/InputBindingsScreen/Content/Scroll View::GetComponent<ScrollRect>.verticalNormalizedPosition": ["< 0.99", "== original"]
+  - click: {ui: "**/InputBindingsScreen/**/Entry/KeyButton", index: 13}
+  - key: {code: Semicolon}
+  - ui_wait: {path: "**/InputBindingsScreen/**/Entry/KeyButton", cond: stable}
+  - ui_dump: {name: rebound, root: "**/InputBindingsScreen/**/Group"}
+  - expect_state:
+      "count:GameInputMapping.KeyBindings[*] if .mAction == MoveRelocateTo and .mKeyCode == Semicolon": [1, "== original"]
+      "count:GameInputMapping.KeyBindings[*] if .mAction == MoveRelocateTo and .mKeyCode == Q": [0, "== original"]
+  - click: {ui: "**/InputBindingsScreen/Content/Buttons/DoneButton"}
+  - key: {code: Escape, until: "**/PauseScreen", cond: gone}
+  - expect_state:
+      "file:keybindings.json": exists
+  # Q no longer moves the selected debris; Semicolon does.
+  - click_world: {pos: [135.44, 207.3], select: Sand}
+  - ui_wait: {path: "**/DetailsScreen/TitleBar", cond: stable}
+  - key: {code: Q, at: [135, 207]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": ["!= 'MoveToLocationTool'", "== original"]
+  - key: {code: Semicolon, at: [135, 207]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": ["== 'MoveToLocationTool'", "== original"]
+  - key: {code: Escape}
+  - key: {code: Escape}
+  # Actions numbered above 150.
+  - key: {code: M, at: [128, 208]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": "== original"
+  - key: {code: Escape}
+  - key: {code: I, at: [128, 208]}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": "== original"

@@ -1,0 +1,21 @@
+# W14 (docs/research/u60-761654.md, "W14 Game logic"): 761654's game-logic changes, read in both
+# players. Game code only, no new engine surface: the values the changed code sets up, compared
+# with the original's, then the colony runs a game minute.
+# - Remote Worker Dock prioritizable (RemoteWorkerDockConfig adds Prioritizable).
+# - Gildgo Molt tagged MoltShell (SnailIronShellConfig), so the sandbox spawner lists it.
+# - Seaquine Egg and Slogo care packages (Immigration, DLC5_ID list, from cycle 48).
+# - The worn Lead Suit's repair takes any Glassy material (SuitFabricatorConfig): its recipes
+#   counted (a recipe's ingredient options cannot be read past a recipe with one ingredient).
+from: early-base
+steps:
+  - expect_state:
+      "Assets.GetPrefab(\"RemoteWorkerDock\").GetComponent<Prioritizable>().name": ["== 'RemoteWorkerDockComplete'", "== original"]
+      "Assets.GetPrefab(\"SnailIronShell\").GetComponent<KPrefabID>().Tags": {contains: MoltShell}
+      "count:Immigration.Instance.carePackagesByDlc.get_Item(\"DLC5_ID\")[*] if .id == SeaHorseEgg": [1, "== original"]
+      "count:Immigration.Instance.carePackagesByDlc.get_Item(\"DLC5_ID\")[*] if .id == Snail": [1, "== original"]
+      "count:Immigration.Instance.carePackagesByDlc.get_Item(\"DLC5_ID\")[*]": "== original"
+      "count:ComplexRecipeManager.Get().recipes[*] if .ingredients[0].material.Name == Worn_Lead_Suit": "== original"
+      "sum:ComplexRecipeManager.Get().recipes[*].ingredients.Length if .ingredients[0].material.Name == Worn_Lead_Suit": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

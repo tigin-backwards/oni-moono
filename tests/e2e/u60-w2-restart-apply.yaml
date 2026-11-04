@@ -1,0 +1,22 @@
+# W2 (docs/research/u60-761654.md): a Moono Tweaks "Restart to apply" in ours. The menu's
+# frame-stats toggle changed, then Toggle All's restart: the player quits through App.Restart,
+# whose Restarter (src/OniMoono.Restarter, src/OniMoono.Host/Restarter) must start ours again with
+# the same command line. e2e.py does not follow the restarted process: the run ends on a wait for
+# a file that is never written, while a watcher outside the runner records the run home's
+# processes (watch.ps1 on Windows, the lane's processes on Linux). Ours only (tweaks_menu).
+from: main-menu
+tweaks_menu: true
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {ui: "**/MainMenuButtons/MoonoTweaksButton"}
+  - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
+  - click: {ui: "**/MoonoTweaksScreen/**/frame-stats/EnabledToggle"}
+  - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
+  - ui_dump: {name: screen, root: "**/MoonoTweaksScreen/Panel/DetailsView"}
+  - shot: screen
+  - click: {ui: "**/MoonoTweaksScreen/Panel/DetailsView/ToggleAllButton", quits: true}
+  - expect_exit: {seconds: 120}
+  - file_shot: {name: hold, path: never-written.png, wait: 150}

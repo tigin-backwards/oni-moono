@@ -1,0 +1,45 @@
+# W6 (docs/research/u60-761654.md): hidden table screens turn off their raycasters. 761654's
+# ShowOptimizedKScreen.SetHiddenBehavioursEnabled(false) also turns off every enabled
+# GraphicRaycaster below the screen (fp761654:ShowOptimizedKScreen.cs:61) and turns them on again
+# when the screen shows. All Resources keeps each category's rows in a nested canvas with a
+# raycaster of its own; in ours these go through our uGUI BaseRaycaster.OnEnable/OnDisable and
+# the event system's raycaster list.
+#
+# From early-base: All Resources opened from the resource panel's "see all" button, its enabled
+# raycasters counted; closed (hidden): counted again (none); opened again: counted, then the
+# first resource row's pin clicked, which needs its nested canvas's raycaster (a click that
+# lands elsewhere fails as occluded). The pinned resources are compared with the original's.
+# Then the Vitals table: closed and opened again, a sort toggle clicked.
+from: early-base
+steps:
+  - click: {ui: "**/PinnedResourcesPanel/Resources/EntryContainer/SeeAllButton"}
+  - ui_wait: {path: "**/TopRight/AllResourcesScreen", cond: stable}
+  - expect_state:
+      "count:ui:**/TopRight/AllResourcesScreen::GetComponentsInChildren<GraphicRaycaster>[*] if .enabled == true": [">= 2", "== original"]
+      "ClusterManager.Instance.activeWorld.worldInventory.pinnedResources.Count": {save_as: pinned}
+  - click: {ui: "**/PinnedResourcesPanel/Resources/EntryContainer/SeeAllButton"}   # closes it
+  - ui_wait: {path: "**/TopRight/AllResourcesScreen", cond: stable}
+  - expect_state:
+      "ui:**/TopRight/AllResourcesScreen::GetComponent<CanvasGroup>.alpha": 0
+      "count:ui:**/TopRight/AllResourcesScreen::GetComponentsInChildren<GraphicRaycaster>[*] if .enabled == true": [0, "== original"]
+  - click: {ui: "**/PinnedResourcesPanel/Resources/EntryContainer/SeeAllButton"}
+  - ui_wait: {path: "**/TopRight/AllResourcesScreen", cond: stable}
+  - expect_state:
+      "count:ui:**/TopRight/AllResourcesScreen::GetComponentsInChildren<GraphicRaycaster>[*] if .enabled == true": [">= 2", "== original"]
+  - click: {ui: "**/AllResourcesScreen/Scroll/RootList/CategoryRow/Container/ResourceRow/Pin"}
+  - expect_state:
+      "ClusterManager.Instance.activeWorld.worldInventory.pinnedResources.Count": ["!= pinned", "== original"]
+  - ui_dump: {name: all-resources, root: "**/TopRight/AllResourcesScreen"}
+  - click: {ui: "**/PinnedResourcesPanel/Resources/EntryContainer/SeeAllButton"}   # closes it
+  - open: {key: V}
+  - ui_wait: {path: "**/VitalsTableScreen*", cond: stable}
+  - open: {key: V}   # closes it
+  - ui_wait: {path: "**/VitalsTableScreen", cond: stable}
+  - expect_state:
+      "count:ui:**/VitalsTableScreen::GetComponentsInChildren<GraphicRaycaster>[*] if .enabled == true": [0, "== original"]
+  - open: {key: V}
+  - ui_wait: {path: "**/VitalsTableScreen*", cond: stable}
+  - expect_state:
+      "count:ui:**/VitalsTableScreen::GetComponentsInChildren<GraphicRaycaster>[*] if .enabled == true": [">= 1", "== original"]
+  - click: {ui: "**/VitalsTableScreen/HeaderContent/prefab_row_header/LabelHeader/SortToggle(Clone)/Hitbox", index: 1}
+  - ui_dump: {name: vitals-sorted, root: "**/VitalsTableScreen*"}

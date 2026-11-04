@@ -1,0 +1,25 @@
+# W2 (docs/research/u60-761654.md): the Restarter with command-line arguments. 761654's
+# App.Restart passes every Environment.GetCommandLineArgs() entry after the first, each quoted,
+# to the Restarter after the executable's path, and logs "Restarter arguments: ...".
+#
+# From a first start: Translations, the second language button (a language the game ships),
+# its restart dialog dumped and Restart clicked; the player quits. e2e.py does not follow the
+# restarted process: the run ends on a wait for a file that is never written, while a watcher
+# outside the runner records the processes of the lane (their command lines, parents and start
+# times) and the restarted player's log. The restarted process's arguments must be the first
+# one's, in both players.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {ui: "**/MainMenuButtons/ButtonTemplate", index: 4}
+  - ui_wait: {path: "**/LanguageOptionsMenu/Content", cond: stable}
+  - ui_dump: {name: languages, root: "**/LanguageOptionsMenu/Content"}
+  - click: {ui: "**/LanguageOptionsMenu/**/*_button", index: 1}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel", cond: stable}
+  - ui_dump: {name: restart, root: "**/ConfirmDialog/GameObject/Panel"}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton", quits: true}
+  - expect_exit: {seconds: 120, code: null}
+  - file_shot: {name: hold, path: never-written.png, wait: 120}

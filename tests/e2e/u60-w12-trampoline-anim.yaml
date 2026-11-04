@@ -1,0 +1,25 @@
+# W12 (docs/research/u60-761654.md): the Trampoline's animation at low Athletics. 761654 adds
+# TrampolineWorkable (a RecreationWorkable): GetAnim swaps in anim_interacts_trampoline1_kanim
+# for a worker whose Athletics is below 10; TrampolineConfig sets both animation files, which
+# come from dlc5_bundle (changed in 761654) through our asset loader.
+#
+# From early-base (its save lists DLC5_ID): setup builds a Trampoline (BuildingDef.Build with
+# its default elements; the building is the test's furniture). Its workable's type and both
+# animation files, the files' animation counts and names, and the Duplicants' Athletics are
+# compared with the original's; the building is shot.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Trampoline\")", method: Build, args: [{"$": "Grid.XYToCell(120, 207)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"Trampoline\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {camera.set: {pos: [121.5, 209.5], ortho: 6}}
+steps:
+  - run: {seconds: 1}
+  - expect_state:
+      "count:all:TrampolineWorkable::[*]": [1, "== original"]
+      "all:TrampolineWorkable::[0].overrideAnims[0].name": ["== 'anim_interacts_trampoline_kanim'", "== original"]
+      "all:TrampolineWorkable::[0].unskilledOverrideAnims[0].name": ["== 'anim_interacts_trampoline1_kanim'", "== original"]
+      "Assets.GetAnim(\"anim_interacts_trampoline1_kanim\").GetData().animCount": [">= 1", "== original"]
+      "Assets.GetAnim(\"anim_interacts_trampoline_kanim\").GetData().animCount": [">= 1", "== original"]
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Modifiers>().attributes.Get(\"Athletics\").GetTotalValue()": "== original"
+      "Components.LiveMinionIdentities.Items[1].GetComponent<Modifiers>().attributes.Get(\"Athletics\").GetTotalValue()": "== original"
+      "Components.LiveMinionIdentities.Items[2].GetComponent<Modifiers>().attributes.Get(\"Athletics\").GetTotalValue()": "== original"
+  - world_shot: {name: trampoline, ortho: 6, at: [121, 209]}
