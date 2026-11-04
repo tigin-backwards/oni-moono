@@ -1,0 +1,33 @@
+# Issue #54: the debug element picker's filter field narrows its list of elements.
+#
+# With debug mode on, Backspace opens DebugPaintElementScreen; its Element button opens the
+# picker (a KPopupMenu), whose FilterInput (a KInputTextField) calls OnElementsFilterEdited on
+# each edit and at the end of one. That method hides the picker's buttons whose text does not
+# contain the filter. The calls are persistent ones saved in the prefab with the target but no
+# target type name (m_TargetAssemblyTypeName empty, mode String); the original runs them on the
+# target's own type. Ours skipped calls without a type name, so the list never changed.
+from: early-base
+setup:
+  # As debug_enable.txt in the game folder would (DebugHandler reads it at start-up).
+  - driver: {setup.call: {type: "DebugHandler", method: "SetDebugEnabled", args: [true]}}
+steps:
+  - key: {code: Backspace}
+  - expect_state:
+      "DebugPaintElementScreen.Instance.gameObject.activeSelf": true
+      "DebugPaintElementScreen.Instance.filterInput.onValueChanged.m_PersistentCalls.m_Calls[0].m_TargetAssemblyTypeName": ""
+  - click: {ui: "**/DebugPaintElementScreen(Clone)/**/Element/Element/Button"}
+  - expect_ui:
+      "**/DebugPaintElementScreen(Clone)/ElementsMenu/Viewport/Content/ElementMenu/*Button": {count: ">= 100"}
+  - click: {ui: "**/DebugPaintElementScreen(Clone)/ElementsMenu/Filter/FilterInput"}
+  - type: {ui: "**/DebugPaintElementScreen(Clone)/ElementsMenu/Filter/FilterInput", text: "cop"}
+  # Copper, Copper Gas, Copper Ore and Molten Copper.
+  - expect_ui:
+      "**/DebugPaintElementScreen(Clone)/ElementsMenu/Viewport/Content/ElementMenu/*Button": {count: 4}
+  - expect_state: {"DebugPaintElementScreen.Instance.filter": "== 'cop'"}
+  - ui_dump: {name: filtered, root: "**/DebugPaintElementScreen(Clone)/ElementsMenu"}
+  - shot: {name: filtered, crop: "**/DebugPaintElementScreen(Clone)/ElementsMenu"}
+  - type: {ui: "**/DebugPaintElementScreen(Clone)/ElementsMenu/Filter/FilterInput", text: "per o"}
+  - expect_ui:
+      "**/DebugPaintElementScreen(Clone)/ElementsMenu/Viewport/Content/ElementMenu/*Button": {count: 1}
+      "**/DebugPaintElementScreen(Clone)/ElementsMenu/Viewport/Content/ElementMenu/*Button/Text": {text: "~Copper Ore"}
+  - ui_dump: {name: one, root: "**/DebugPaintElementScreen(Clone)/ElementsMenu"}
