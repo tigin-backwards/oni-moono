@@ -828,13 +828,13 @@ current build. Its `sim` line splits `StepTheSim` into SimDLL and managed time o
 Our run's data: `out/soggy/runs/soggy1.*` in worktree `agent-a6e1bc274ec67af1a` (log,
 nettrace, speedscope, `stepthesim.txt`).
 
-## Final comparison (2026-11-03)
+## Final comparison (2026-11-04)
 
-The last U60 release against the current `u60`, on a quiet machine.
+The last U60 release against the current `u60`, with candidate 3, on a quiet machine.
 
 ### Method
 
-- **Builds**: base is release v2026.11.03.03 (`529b58c1`), change is `u60` at `02ec3344`. Both
+- **Builds**: base is release v2026.11.03.03 (`529b58c1`), change is `u60` at `ff1571c9`. Both
   built with `scripts/build-windows.sh release` and run on their defaults (Vulkan, default
   tweaks), with the same PerfProbe.
 - **Game**: the frozen U60 761211 Windows install, with the all-DLC Steam double.
@@ -842,7 +842,7 @@ The last U60 release against the current `u60`, on a quiet machine.
   the mod-differences dialog. Fast Track 0.18.6 and Rocketry Expanded 2.15.0 still fail on
   761211: Fast Track's patch of `LocText.ParseText` and Rocketry Expanded's
   `FixesVanillaCrashOnPlanetSelection` throw in Harmony, and the game's mod-error dialog quits
-  after 3 frames (one launch with both added, on the change build).
+  after 3 frames (found in the 2026-11-03 run).
 - **Runs**: one launch per run, base, change, base, change for each save, after one unmeasured
   launch of each build. Speed 3, busiest world, 1280x720 windowed on monitor 2, `--no-focus`,
   High priority, sound off, `--frame-stats`. Each run lasts 130 s after the busiest world is
@@ -852,11 +852,10 @@ The last U60 release against the current `u60`, on a quiet machine.
   130 s in. Load is from `Loading save file` to the colony's first frame.
 - **Quiet machine**: each run started only after a minute with no other e2e player, QA lane or
   Linux player and a WSL load under 2. A run during which one started, or the load reached 3,
-  was run again (one DeCrew run). A first series, which other agents' lanes loaded part-way
-  through, is left out. Measured runs had a WSL load of 0.05-1.80. Frame stats'
-  machine lines: CPU clock 4.70 GHz throughout, Balanced power plan, the player's process on
-  2.2-4.7 cores, its main thread on the CPU 89-99% of the time (soggy 68-73%, where it waits on
-  the sim's threads), 21-55 GiB of RAM free.
+  would have been run again; none was. The highest WSL load while measuring was 0.14-2.02.
+  Frame stats' machine lines: CPU clock 4.70 GHz throughout, Balanced power plan, the
+  player's process on 2.3-4.6 cores, its main thread on the CPU 90-99% of the time (soggy lab
+  2 67-72%, where it waits on the sim's threads), 35-55 GiB of RAM free.
 
 ### Results
 
@@ -865,52 +864,66 @@ Per run, base → change, the two pairs in launch order:
 | | DeCrew | soggy lab 2 (35 mods) | c100 | U57 |
 |---|---|---|---|---|
 | Busiest world | 0 | 2 | 0 | 0 |
-| Frame rate (fps) | 152.6, 136.4 → 149.7, 150.5 | 34.2, 34.3 → 33.2, 34.7 | 92.7, 109.9 → 94.5, 104.9 | 82.9, 85.9 → 81.5, 86.5 |
-| Slowest 1% of frames (ms) | 20.5, 23.8 → 21.3, 20.8 | 63.3, 59.2 → 62.4, 54.7 | 23.6, 19.3 → 24.3, 20.9 | 34.4, 33.1 → 32.5, 31.0 |
-| Main thread (ms) | 6.51, 7.45 → 6.62, 6.61 | 29.14, 29.01 → 30.32, 28.71 | 10.77, 9.03 → 10.50, 9.52 | 11.99, 11.57 → 12.20, 11.51 |
-| Device thread busy (ms) | 1.92, 2.24 → 2.01, 1.98 | 4.04, 4.11 → 4.33, 3.98 | 3.54, 2.94 → 3.45, 3.14 | 1.52, 1.50 → 1.69, 1.61 |
-| Private bytes (MiB) | 18,639, 17,969 → 16,763, 16,873 | 14,534, 14,514 → 12,260, 12,043 | 15,311, 15,334 → 9,867, 9,973 | 16,333, 15,865 → 14,506, 15,221 |
-| Managed heap (MiB) | 9,954, 9,310 → 8,128, 8,228 | 5,954, 5,846 → 4,012, 3,928 | 8,714, 8,748 → 3,325, 3,374 | 9,507, 8,971 → 7,229, 7,950 |
-| Load (s) | 17.1, 16.2 → 16.7, 16.4 | 13.4, 14.0 → 13.6, 13.8 | 9.6, 9.7 → 9.6, 9.5 | 18.3, 18.1 → 17.9, 17.9 |
+| Frame rate (fps) | 162.0, 152.8 → 158.3, 165.4 | 34.9, 35.4 → 34.4, 35.4 | 108.9, 106.4 → 118.8, 120.5 | 89.4, 88.4 → 93.1, 96.9 |
+| Slowest 1% of frames (ms) | 19.0, 19.9 → 20.6, 19.1 | 61.0, 55.3 → 56.1, 54.1 | 19.3, 19.3 → 19.5, 19.2 | 31.9, 33.4 → 28.8, 27.7 |
+| Main thread (ms) | 6.14, 6.49 → 6.32, 6.00 | 28.57, 28.22 → 28.99, 28.09 | 9.17, 9.48 → 8.46, 8.31 | 11.08, 11.24 → 10.70, 10.32 |
+| Device thread busy (ms) | 1.76, 2.00 → 1.82, 1.81 | 4.12, 4.00 → 4.20, 3.85 | 3.17, 3.15 → 2.69, 2.68 | 1.44, 1.46 → 1.47, 1.33 |
+| Private bytes (MiB) | 17,120, 18,113 → 17,110, 16,761 | 14,564, 14,257 → 12,678, 12,034 | 15,316, 15,240 → 9,912, 9,898 | 16,398, 15,949 → 14,638, 13,705 |
+| Managed heap (MiB) | 8,796, 9,440 → 8,399, 8,068 | 5,981, 5,853 → 4,317, 3,859 | 8,789, 8,721 → 3,333, 3,320 | 9,535, 9,097 → 7,324, 7,162 |
+| Load (s) | 17.1, 16.2 → 16.6, 16.4 | 14.3, 14.0 → 13.7, 14.2 | 9.3, 9.6 → 9.3, 9.7 | 18.3, 18.3 → 17.9, 17.7 |
 
-- **Memory is the one clear change.** The managed heap is 1.4-1.9 GiB smaller on DeCrew, soggy
-  lab 2 and U57 and 5.3 GiB smaller on c100 (means of the two runs); private bytes are 1.2-2.3
-  GiB and 5.3 GiB smaller. The heap's size at a given moment also depends on when the last
-  collection ran (U57's two change runs differ by 0.7 GiB).
-- **Frame rate, the slowest 1%, the main thread and the device thread are within the noise**
-  on every save: each change falls inside the spread between two runs of the same build.
-  Load time moved by at most 0.4 s (U57 18.3, 18.1 → 17.9, 17.9 s), too little to call from
-  two runs each.
-- **Noise**: between two runs of the same build, DeCrew's base differed by 16 fps (152.6 and
-  136.4), c100's by 17 fps (base) and 10 fps (change), the second pair faster in both builds.
-  soggy lab 2 and U57 repeat within 3-6%. Within a run, the 600-frame windows spread over
-  104-169 fps on DeCrew, 78-122 on c100, 76-92 on U57 and 32-35 on soggy lab 2.
-- **Against the baseline**: this machine was quiet, and the baseline's was not. DeCrew runs at
-  about 150 fps here against 64.6 there, so the baseline's frame rates are not a reference for
-  these.
+- **Memory**: the managed heap is 5.3 GiB smaller on c100 (means of the two runs), 1.8 GiB on
+  soggy lab 2, 2.0 GiB on U57 and 0.9 GiB on DeCrew. Private bytes are 5.2, 2.0, 2.0 and 0.7
+  GiB smaller. The heap's size at a given moment also depends on when the last collection ran
+  (DeCrew's two base runs differ by 0.6 GiB).
+- **c100 is faster in both pairs**: 107.6 → 119.7 fps (means), the main thread 9.33 → 8.39
+  ms and the device thread 3.16 → 2.69 ms. The two runs of each build are within 2.5 fps of
+  each other. The main and device thread drops are the size candidate 3 measured on its own
+  (-0.9 and -0.4 to -0.5 ms, above), but this comparison does not separate it from the other
+  changes.
+- **U57 is a little faster in both pairs**: 88.9 → 95.0 fps, the main thread 11.16 → 10.51 ms
+  and the slowest 1% 32.7 → 28.3 ms. Its runs of one build differ by 1.0 fps (base) and 3.9
+  fps (change). With two runs each, that is a small gain, not a measured size.
+- **DeCrew and soggy lab 2 are within the noise** on frame rate, the slowest 1%, the main
+  thread and the device thread. Load time moved by at most 0.5 s (U57), too little to call
+  from two runs each.
+- **Noise**: between two runs of the same build, DeCrew differed by 9.2 fps (base) and 7.1
+  (change), c100 by 2.5 and 1.7, U57 by 1.0 and 3.9, soggy lab 2 by 0.5 and 1.0. Within a run,
+  the 600-frame windows spread over 134-178 fps on DeCrew, 83-142 on c100, 82-103 on U57 and
+  33-36 on soggy lab 2. The 2026-11-03 run saw a 17 fps spread between two c100 runs of one
+  build, so two runs each can still mislead.
+- **Earlier run**: the 2026-11-03 run, with `u60` at `dc48d2d2` (before candidate 3), found
+  the same memory drop (heap 1.4-1.9 GiB smaller on DeCrew, soggy lab 2 and U57, 5.3 GiB on
+  c100) and frame rate within the noise on every save (c100 92.7, 109.9 → 94.5, 104.9 fps;
+  DeCrew 152.6, 136.4 → 149.7, 150.5).
 
 ### What differs between the two builds
 
-From `git log v2026.11.03.03..origin/u60`. The release is `a51a116a` with fixes cherry-picked
+From `git log v2026.11.03.03..ff1571c9`. The release is `a51a116a` with fixes cherry-picked
 from `u60` (path-probe-repair's change feed, the restarter's arguments, the tweaks search), so
 those are in both builds. What only the change build has:
 
+- **Property-texture upload skip** (candidate 3, `RawTextureLoads`): `fd149794`, `ff1571c9`.
 - **Paged path grids** (`paged-path-grids`, on by default): `c2bfa28c`, `643cd13e`,
-  `0b958e8d`.
+  `0b958e8d`. Its verify mode waits for writes to end (`23e4a2f4`); the write counts it adds
+  are kept only in verify mode.
 - **Bundles read block by block** (`1fb784f9`), after the mapped bundle cache (`38f9f5e1`) was
   reverted (`daedb53f`).
 - **Push descriptor templates** on Vulkan (`7ef39374`, 8e above). Identities first and the
   ready stamp (8a, 8c) are in both builds.
 - **Garbage collection option** (`38ce49d4`): its default, fast, is the Server GC both builds
   use, so it changes nothing here.
+- **VP8 decoder compiled optimized** from its first call (`1f5aafb9`): the intro video, which
+  these runs do not play.
 - Not in play at defaults: the Vulkan draw verify mode and `ONI_CAPTURE_TWICE=full-draws`
-  (`6ee47554`, `70fd25be`), and frame stats naming the longest GC pause and peak memory
-  (`36c08d03`).
+  (`6ee47554`, `70fd25be`), `ONI_VERIFY_RAW_LOADS` and `ONI_CAPTURE_TWICE=full-uploads`, and
+  frame stats naming the longest GC pause and peak memory (`36c08d03`).
 
-The two memory changes are not measured apart here. Their own measurements (Verdicts) are of
-the same size: block reads took 1.0-1.6 GiB off the heap on c100 and DeCrew, and paged path
-grids 4.3 GiB on c100; the grids' arrays were 1.0-1.1 GB → about 50 MB on soggy lab 2 without
-mods and 266 → 178 MB on DeCrew.
+The memory changes are not measured apart here. Their own measurements (Verdicts) are of the
+same size: block reads took 1.0-1.6 GiB off the heap on c100 and DeCrew, and paged path grids
+4.3 GiB on c100; the grids' arrays were 1.0-1.1 GB → about 50 MB on soggy lab 2 without mods
+and 266 → 178 MB on DeCrew. Nor are the frame-rate gains on c100 and U57 measured apart from
+the rest.
 
 ## Next
 
