@@ -271,17 +271,29 @@ prototyped yet.
     35 gated mods.
   - **Runs**: one unmeasured launch of each build, then base, change, base, change (about
     130 s after the busiest world, means from 30 s on). Then two launches of the change with
-    `ONI_RAW_LOADS_ALT=1`, which runs every other 60-frame window as before.
+    `ONI_RAW_LOADS_ALT=1`, which runs every other 60-frame window as before. Later the same
+    day, with the same staged build and setup: one unmeasured launch and two ALT launches on
+    U57, and two more ALT launches on DeCrew (its third and fourth).
   - **Machine**: every run started after a minute with no other player and a WSL load
     under 2. The highest load while measuring was 0.05-2.48.
-  - **Paired windows**: change minus before, median (IQR). "Unchanged" is the change's
-    unchanged loads per frame (of 5).
+  - **Paired windows**: change minus before, median (IQR), one value per launch.
+    "Unchanged" is the change's unchanged loads per frame (of 5).
 
     | Save | Unchanged | Main thread (ms) | `LoadRawTextureData` (ms) | Device thread busy (ms) | Its texture uploads (ms) |
     |---|---|---|---|---|---|
     | c100 | 4.40, 4.34 | -0.93 (-1.41..-0.23), -0.89 (-1.72..-0.03) | +0.002, +0.003 (of 0.21) | -0.39 (-0.63..-0.17), -0.47 (-0.70..-0.08) | -0.28, -0.32 |
-    | DeCrew | 4.25, 4.31 | -0.17 (-0.40..+0.09), -0.16 (-0.46..+0.10) | +0.007, +0.008 (of 0.05) | -0.09 (-0.16..-0.03), -0.11 (-0.17..-0.02) | -0.04, -0.04 |
+    | DeCrew | 4.25, 4.31, 4.26, 4.27 | -0.17 (-0.40..+0.09), -0.16 (-0.46..+0.10), -0.20 (-0.52..+0.05), -0.14 (-0.44..+0.09) | +0.007, +0.008, +0.009, +0.010 (of 0.05) | -0.09 (-0.16..-0.03), -0.11 (-0.17..-0.02), -0.11 (-0.20..-0.03), -0.09 (-0.18..-0.02) | -0.04, -0.04, -0.05, -0.04 |
+    | U57 | 4.20, 4.16 | -0.39 (-1.10..+0.21), -0.29 (-0.98..+0.30) | +0.005, +0.008 (of 0.06) | -0.07 (-0.14..-0.03), -0.08 (-0.13..-0.02) | -0.05, -0.05 |
     | soggy lab 2 | 0.50, 0.46 | -0.05 (-0.30..+0.19), -0.01 (-0.37..+0.15) | +0.021 (+0.011..+0.032), +0.021 (of 0.80) | -0.13 (-0.20..-0.05), -0.08 (-0.18..-0.02) | -0.11, -0.10 |
+
+  - **Pooled pairs** (all of a save's ALT launches; fps is 1000 / main-thread ms of each
+    60-frame window, which tracks PerfProbe's fps to within 1%):
+
+    | Save | Launches | Main thread (ms) | Device thread busy (ms) | fps |
+    |---|---|---|---|---|
+    | c100 | 2 | -0.91 (-1.57..-0.12) | -0.43 (-0.65..-0.15) | +12.0 (+1.6..+21.1) |
+    | DeCrew | 4 | -0.16 (-0.44..+0.08) | -0.10 (-0.18..-0.02) | +4.6 (-2.3..+12.0) |
+    | U57 | 2 | -0.35 (-1.02..+0.24) | -0.07 (-0.14..-0.02) | +2.8 (-2.0..+8.7) |
 
   - **Launches**: base, base → change, change.
 
@@ -296,11 +308,20 @@ prototyped yet.
       the skipped uploads save main-thread time.
     - On c100 that is 0.9 ms, spread over update (-0.4), late (-0.2) and render (-0.15).
       That fits the worker copies and the texel-copy fence at the frame's start, though
-      this was not traced further. On DeCrew it is about 0.16 ms (the IQR crosses zero).
+      this was not traced further.
+    - On DeCrew (four launches) the main thread gains about 0.16 ms and on U57 (two) about
+      0.35 ms, but on both the IQR crosses zero. Four launches did not narrow DeCrew's:
+      each launch gives the same spread. The device thread is 0.07-0.11 ms less busy on
+      both, with IQRs that do not cross zero.
     - soggy lab 2 runs at 35 fps, and nearly every load changes. Its main thread is
       neutral; the compare adds 0.02 ms and the device saves 0.1 ms.
     - Launch fps moves with the windows, inside the noise between two launches of one
       build (c100's base launches differ by 3 fps, its change launches by 13).
+- **Verdict: kept, main-thread gain clear on one save only.** It is exact and costs at most
+  0.02 ms (the compare), so it stays in. Its main-thread gain is clear only on c100 (-0.9
+  ms). DeCrew and U57 lean the same way and soggy lab 2 is neutral, so it does not meet the
+  two-save rule for a measured main-thread gain. The device-thread saving is clear on all
+  four saves, at 0.07-0.47 ms.
 
 ### 4. UI canvas batching. Up to 0.3-0.9 ms.
 
@@ -441,7 +462,7 @@ These are not per-frame, so they are outside the ranking above:
 | 6. Mesh channel copies (with 4's baked meshes) | **Landed (allocations)**, exact | reuse 26.9, 25.0 → 15.0, 15.4 MiB/s; all of it 468-575 → 258-373 MiB per 600 frames | reuse 34.2, 36.9, 59.0 → 16.5, 17.4, 20.9 MiB/s; all 546-609 → 181-241 MiB | reuse 20.4 → 10.2 MiB/s (without its mods) | reuse 24.7, 30.0 → 15.6, 12.2 MiB/s; all 744-770 → 350-407 MiB |
 | 4. UI canvas batching | **Allocations landed** (in 6's numbers); **time rejected** | `BuildMesh` 5.7 MiB/s, its colours (2.8) kept when only moved | – | – | – |
 | 5. Upload staging | **Rejected** | `TexelUpload.Take` 0.30-0.41 ms a frame: rent 0.02-0.04, small copies 0.17-0.23, task starts 0.07-0.09 | – | – | – |
-| 3. Property-texture uploads (`RawTextureLoads`) | **Landed**, exact: verify 0 wrong, captures byte-identical | paired windows: main thread -0.93, -0.89 ms; device -0.39, -0.47 ms; fps 100.1, 96.9 → 109.3, 122.6 | main thread -0.17, -0.16 ms (IQR crosses zero); device -0.09, -0.11 ms | main thread -0.05, -0.01 ms (neutral); `LoadRawTextureData` +0.02 ms; device -0.13, -0.08 ms | – |
+| 3. Property-texture uploads (`RawTextureLoads`) | **Kept**, exact (verify 0 wrong, captures byte-identical); main-thread gain clear on one save only (c100); device thread less busy on all four | paired windows: main thread -0.93, -0.89 ms; device -0.39, -0.47 ms; fps 100.1, 96.9 → 109.3, 122.6 | four launches: main thread -0.17, -0.16, -0.20, -0.14 ms (pooled -0.16, IQR -0.44..+0.08: crosses zero); device -0.09 to -0.11 ms | main thread -0.05, -0.01 ms (neutral); `LoadRawTextureData` +0.02 ms; device -0.13, -0.08 ms | two launches: main thread -0.39, -0.29 ms (pooled -0.35, IQR -1.02..+0.24: crosses zero); device -0.07, -0.08 ms |
 | 7. `CollectMesh`/`CollectSprite` | **Rejected** | no sprites drawn; sheets come from blits and blocks | – | – | – |
 | NavGrid links in compact stores (`compact-nav-links`, navgrid-links-store.md) | **Landed**, exact, on by default | managed heap 9,200, 9,240 → 8,628, 8,592 MiB; load 43.3, 39.1 → 35.3, 32.8 s; fps 40.8, 47.4 → 46.4, 38.7 (noise) | links 256.4 → 26.2 MB (Linux) | managed heap 7,736, 7,696 → 5,602, 5,594 MiB; working set 12,094, 12,030 → 9,835, 9,772 MiB; fps 70.2, 41.8 → 54.5, 44.7 (noise) | – |
 | 8a. Identities before set 0's writes (c7868f47) | **Landed**; correct (verify 0 wrong, captures byte-identical) | Windows: device-thread draws -0.19 ms (IQR -0.25..-0.13) | Windows: draws -0.36 ms (IQR -0.46..-0.25); Linux (llvmpipe, CPU direction): -0.49 ms (IQR -0.66..-0.09) | – | – |
