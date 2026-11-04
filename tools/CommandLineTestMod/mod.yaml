@@ -1,0 +1,3 @@
+title: "Command Line Test"
+description: "Moono test mod: logs the command line the game's code sees"
+staticID: CommandLineTestMod

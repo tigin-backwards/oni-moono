@@ -1,0 +1,15 @@
+# #53: the game and its mods read Environment.GetCommandLineArgs(), as the original player passes
+# it every argument it is given. tools/CommandLineTestMod logs what that returns as the mods load:
+# the executable's file name, then every entry after it. The game's arguments go after the
+# original's executable, and after the game's executable in our Steam form
+# (`OniMoono [options] -- …/OxygenNotIncluded -foo bar --baz=1 -moddev`): ours passes the
+# game everything after its executable, an unknown `--baz=1` included, and none of its own
+# options (--game, --game-tweak, --native-override and the like).
+from: main-menu
+test_mods: [CommandLineTestMod]
+game_args: [-foo, bar, --baz=1, -moddev]
+require_log:
+  - '^.*CommandLineTest: executable (OxygenNotIncluded|BrutalNotIncluded)\S*$'
+  - '^.*CommandLineTest: after the executable: (?!.*--(game|game-tweak|native-override|no-tweaks-menu|splash|log-paths|run-home|log|audio-wav)\b).*-foo bar --baz=1 -moddev$'
+steps:
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}

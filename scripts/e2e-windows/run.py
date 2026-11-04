@@ -493,7 +493,7 @@ class WinPlayer(e2e.Player):
             env.update(ORIG_DIR=WIN_ORIG, ONI_STEAM_STUB=STUB, ONI_RUN_HOME=self.whome, ORIG_SECONDS='3600',
                        ONI_WIN_GAME_DIR=WIN_GAME, ONI_BEPINEX_SOURCE=os.environ.get('WIN_BEPINEX_SOURCE', ''))
             command = [os.path.join(e2e.ROOT, 'scripts', 'original-windows.sh'), *size,
-                       *os.environ.get('E2E_ORIGINAL_ARGS', '').split()]
+                       *os.environ.get('E2E_ORIGINAL_ARGS', '').split(), *self.game_args]
         else:
             host = os.path.join(stage_dir(), 'host')
             shutil.rmtree(host, ignore_errors=True)
@@ -506,7 +506,9 @@ class WinPlayer(e2e.Player):
                        *(['--renderer', RENDERER] if RENDERER else []),
                        *(a for t in os.environ.get('E2E_GAME_TWEAKS', 'exact').split() for a in ('--game-tweak', t)),
                        *([] if self.tweaks_menu else ['--no-tweaks-menu']),
-                       *os.environ.get('E2E_PLAYER_ARGS', '').split()]
+                       *os.environ.get('E2E_PLAYER_ARGS', '').split(),
+                       # `game_args`: in the Steam form, after the game's executable.
+                       *(['--', WIN_GAME + '\\OxygenNotIncluded.exe', *self.game_args] if self.game_args else [])]
         with open(os.path.join(self.out, 'command.txt'), 'w') as f:
             f.write(' '.join(command) + '\n')
         self.process = subprocess.Popen(command, env=env, stdout=stdout, stderr=subprocess.STDOUT, start_new_session=True)
