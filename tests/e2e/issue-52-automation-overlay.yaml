@@ -1,0 +1,41 @@
+# Issue #52: a player saw clicks on one point select only the topmost object, with the
+# automation overlay open. That overlay lets SelectTool pick only what it moved to its
+# MaskedOverlay layers (SetLayerMask), here the logic wire and the logic switch, not the debris.
+#
+# A logic wire, a logic switch and two debris lie in cell (109, 206). The cell is clicked twice
+# without an overlay, five times in the automation overlay (the first with debris still
+# selected) and twice after it closes; what is selected after each click is the original's.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicControl\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicWire\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicSwitch\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Dirt\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+steps:
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - key: {code: "Shift+F2"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - key: {code: Escape}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:name": "== original"}

@@ -168,7 +168,7 @@ TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 
             'data_collection', 'extra_saves', 'workshop', 'update_check', 'game_tweaks', 'env', 'test_mods'}
 # `test_mods`: our own test mods (tools/NAME, built to out/bin/NAME/release), installed as Local
 # mods beside the spec's Workshop ones, with the title their mod.yaml gives.
-TEST_MODS = ('OverlapTestMod',)
+TEST_MODS = ('OverlapTestMod', 'SelectCycleTestMod')
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 # `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty
 # file (what Steam can leave of another branch's build: #49).
