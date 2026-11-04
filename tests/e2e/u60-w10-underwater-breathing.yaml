@@ -1,0 +1,278 @@
+# W10 (docs/research/u60-761654.md): breath recovery at an underwater breathing location.
+# 761654's UnderwaterBreathingLocationWorkable sets its work time to its work animations' total
+# length at OnStartWork and ends the work in OnWorkTick once the worker's animation has stopped
+# on the last work animation; BreathMonitor's recovery chore at a location (a WorkChore on that
+# workable, reserved for the Duplicant) changed with it.
+#
+# The fixture (u60-w10-breathing) is an Aquatic Spaced Out colony of ten Duplicants with a
+# saltwater pool of Pufferfish; it was saved by the 761654 original from a save of build 737790
+# (its old mod list dropped). Its Pufferfish hold almost no oxygen, so setup builds an Underwater
+# Breathing Station in the pool (BuildingDef.Build), puts 30 kg of oxygen in its storage (three
+# charges), moves the first Duplicant into the water three cells from it (to cell 101699, that
+# is (131, 138)) and sets its breath to 30 (below the retreat amount). The Duplicant swims to the
+# station and recovers there.
+#
+# Every game second at speed 1 for 24 s (OniMcp steps whole seconds): the game clock and frame
+# count, the Duplicant's breath, the workable it works on and its animation, and the station's
+# work time, time remaining and oxygen stored, recorded for the comparison
+# (docs/research/u60-761654.md, "QA results"). Then the station's work time (the animations'
+# length) and the oxygen left (one charge used), the Duplicant's recovered breath and that its
+# work has ended, against the original's.
+from: u60-w10-breathing
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"UnderwaterBreathingStation\")", method: Build, args: [{"$": "Grid.XYToCell(134, 137)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"UnderwaterBreathingStation\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "last:GetComponent<Storage>()", method: AddGasChunk, args: [{"$": "SimHashes.Oxygen"}, 30, 293.15, 255, 0, false, true]}}
+  - driver: {setup.call: {type: TransformExtensions, method: SetPosition, args: [{"$": "Components.LiveMinionIdentities.Items[0].transform"}, [131.5, 138, -25.5]]}}
+  - driver: {setup.call: {target: "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\")", method: SetValue, args: [30]}}
+steps:
+  - expect_state:
+      "Components.LiveMinionIdentities.Items[0].name": "== original"
+      "count:all:UnderwaterBreathingLocationWorkable::[*] if .name == UnderwaterBreathingStationComplete": [1, "== original"]
+      "Components.UnderwaterBreathingLocations.Count": "== original"
+      "Grid.IsSubstantialLiquid(101699, 0.35)": [true, "== original"]
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t0}
+      "UnityEngine.Time.frameCount": {save_as: f0}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b0}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w0}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a0}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r0}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt0}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m0}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t1}
+      "UnityEngine.Time.frameCount": {save_as: f1}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b1}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w1}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a1}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r1}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt1}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m1}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t2}
+      "UnityEngine.Time.frameCount": {save_as: f2}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b2}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w2}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a2}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r2}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt2}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m2}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t3}
+      "UnityEngine.Time.frameCount": {save_as: f3}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b3}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w3}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a3}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r3}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt3}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m3}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t4}
+      "UnityEngine.Time.frameCount": {save_as: f4}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b4}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w4}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a4}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r4}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt4}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m4}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t5}
+      "UnityEngine.Time.frameCount": {save_as: f5}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b5}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w5}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a5}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r5}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt5}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m5}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t6}
+      "UnityEngine.Time.frameCount": {save_as: f6}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b6}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w6}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a6}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r6}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt6}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m6}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t7}
+      "UnityEngine.Time.frameCount": {save_as: f7}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b7}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w7}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a7}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r7}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt7}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m7}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t8}
+      "UnityEngine.Time.frameCount": {save_as: f8}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b8}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w8}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a8}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r8}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt8}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m8}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t9}
+      "UnityEngine.Time.frameCount": {save_as: f9}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b9}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w9}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a9}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r9}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt9}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m9}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t10}
+      "UnityEngine.Time.frameCount": {save_as: f10}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b10}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w10}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a10}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r10}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt10}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m10}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t11}
+      "UnityEngine.Time.frameCount": {save_as: f11}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b11}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w11}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a11}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r11}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt11}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m11}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t12}
+      "UnityEngine.Time.frameCount": {save_as: f12}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b12}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w12}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a12}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r12}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt12}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m12}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t13}
+      "UnityEngine.Time.frameCount": {save_as: f13}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b13}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w13}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a13}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r13}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt13}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m13}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t14}
+      "UnityEngine.Time.frameCount": {save_as: f14}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b14}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w14}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a14}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r14}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt14}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m14}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t15}
+      "UnityEngine.Time.frameCount": {save_as: f15}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b15}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w15}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a15}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r15}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt15}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m15}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t16}
+      "UnityEngine.Time.frameCount": {save_as: f16}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b16}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w16}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a16}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r16}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt16}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m16}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t17}
+      "UnityEngine.Time.frameCount": {save_as: f17}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b17}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w17}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a17}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r17}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt17}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m17}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t18}
+      "UnityEngine.Time.frameCount": {save_as: f18}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b18}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w18}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a18}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r18}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt18}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m18}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t19}
+      "UnityEngine.Time.frameCount": {save_as: f19}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b19}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w19}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a19}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r19}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt19}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m19}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t20}
+      "UnityEngine.Time.frameCount": {save_as: f20}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b20}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w20}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a20}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r20}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt20}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m20}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t21}
+      "UnityEngine.Time.frameCount": {save_as: f21}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b21}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w21}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a21}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r21}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt21}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m21}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t22}
+      "UnityEngine.Time.frameCount": {save_as: f22}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b22}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w22}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a22}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r22}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt22}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m22}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t23}
+      "UnityEngine.Time.frameCount": {save_as: f23}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": {save_as: b23}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<StandardWorker>().GetWorkable()": {save_as: w23}
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KBatchedAnimController>().currentAnim.ToString()": {save_as: a23}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].WorkTimeRemaining if .name == UnderwaterBreathingStationComplete": {save_as: r23}
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": {save_as: wt23}
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": {save_as: m23}
+  - run: {seconds: 4, speed: 1}
+  - expect_state:
+      "sum:all:UnderwaterBreathingLocationWorkable::[*].GetWorkTime() if .name == UnderwaterBreathingStationComplete": [">= 1", "< 150", "== original"]
+      "sum:all:UnderwaterBreathingLocation::[*].storage.MassStored() if .name == UnderwaterBreathingStationComplete": [20, "== original"]
+      "Components.LiveMinionIdentities.Items[0].GetComponent<Klei.AI.Modifiers>().amounts.Get(\"Breath\").value": ">= 180"
+      "Components.LiveMinionIdentities.Items[0].GetComponent<KPrefabID>().HasTag(\"RecoveringBreath\")": [false, "== original"]

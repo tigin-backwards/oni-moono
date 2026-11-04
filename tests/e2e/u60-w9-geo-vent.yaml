@@ -1,0 +1,51 @@
+# W9 (docs/research/u60-761654.md): a Geo Vent's emitted mass per game time. 761654 stops
+# reading the vent's emitted mass in its own Sim200ms: Game.UnsafeSim200ms calls
+# GeothermalVent.ProcessEmittedMass after each sim step, for every vent, and OnMassEmitted takes
+# the mass from the matching material entries. The patch note: "Fixed an issue where, at low
+# framerates, a Geo Vent could emit more mass than intended." Ours and the original step the sim
+# at different frame rates, so the mass a vent gives up per game second is compared.
+#
+# The fixture (u60-w9-geovent) is a Frosty Spaced Out test colony with no Duplicants whose
+# geothermal plant has finished its quest and filled two vents with steam (about 5,400 kg each,
+# no germs), both venting at load; it was saved by the 761654 original from a U59 save (its old
+# mod list dropped, so no MOD DIFFERENCES dialog). Nothing is set up: the vents run as loaded.
+#
+# The vents' material left (GeothermalVent.MaterialAvailable, summed) and the game clock are read
+# at the start and every 60 game seconds for 240 at speed 3. The mass emitted (start minus end)
+# must be the original's within 1 %, and no vent may stop on over-pressure. A run of ours with
+# E2E_PLAYER_ARGS="--max-frame-rate 20" (or 5) against the original's blessed run (`--player
+# original --bless` first) checks the fix's own claim at a low frame rate. The frame count at the
+# start and the end gives each run's frames per game second.
+from: u60-w9-geovent
+steps:
+  - run: {seconds: 1}
+  - expect_state:
+      "count:all:GeothermalVent::[*]": [2, "== original"]
+      "count:all:GeothermalVent::[*] if .HasMaterial() == true": [2, "== original"]
+      "sum:all:GeothermalVent::[*].MaterialAvailable()": {save_as: m0}
+      "GameClock.Instance.GetTime()": {save_as: t0}
+      "UnityEngine.Time.frameCount": {save_as: f0}
+  - run: {seconds: 60}
+  - expect_state:
+      "sum:all:GeothermalVent::[*].MaterialAvailable()": {save_as: m60}
+      "GameClock.Instance.GetTime()": {save_as: t60}
+      "count:all:GeothermalVent::[*] if .IsOverPressure() == true": [0, "== original"]
+  - run: {seconds: 60}
+  - expect_state:
+      "sum:all:GeothermalVent::[*].MaterialAvailable()": {save_as: m120}
+      "GameClock.Instance.GetTime()": {save_as: t120}
+      "count:all:GeothermalVent::[*] if .IsOverPressure() == true": [0, "== original"]
+  - run: {seconds: 60}
+  - expect_state:
+      "sum:all:GeothermalVent::[*].MaterialAvailable()": {save_as: m180}
+      "GameClock.Instance.GetTime()": {save_as: t180}
+      "count:all:GeothermalVent::[*] if .IsOverPressure() == true": [0, "== original"]
+  - run: {seconds: 60}
+  - expect_state:
+      "all:GeothermalVent::[0].MaterialAvailable()": {save_as: v0}
+      "all:GeothermalVent::[1].MaterialAvailable()": {save_as: v1}
+      "GameClock.Instance.GetTime()": [{save_as: t240}, ">= original - 1", "<= original + 1"]
+      "UnityEngine.Time.frameCount": {save_as: f240}
+      "count:all:GeothermalVent::[*] if .IsOverPressure() == true": [0, "== original"]
+      "count:all:GeothermalVent::[*] if .HasMaterial() == true": [2, "== original"]
+      "sum:all:GeothermalVent::[*].MaterialAvailable()": [{save_as: m240}, "< m0 - 1000", ">= original - 0.01 * (m0 - original)", "<= original + 0.01 * (m0 - original)"]
