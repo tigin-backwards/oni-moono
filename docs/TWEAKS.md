@@ -138,6 +138,12 @@ launch options:
   Windows").
 - `--gc fast|low-memory`: the [garbage collection](#garbage-collection).
 
+Arguments for the game itself, a mod's own flags for instance, go after `%command%`:
+`"…\OniMoono.exe" -- %command% -moddev --my-mod-flag=1`. The game and its mods see everything
+after `%command%` as they would in the original player (`Environment.GetCommandLineArgs()`),
+and none of Moono's own options. Started without Steam, `--game-arg ARG` passes one argument to
+the game, and so does any argument that does not start with `--`.
+
 Older setups put `--game-tweak exact` in the launch options; remove it (the setup prints the new
 line) to choose in the game instead.
 

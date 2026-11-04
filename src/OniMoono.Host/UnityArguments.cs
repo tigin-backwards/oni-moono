@@ -7,9 +7,11 @@ namespace OniMoono.Host
 {
     /// Unity's standalone player arguments, which players put in the game's Steam launch options:
     /// the ones the player acts on are read here, the rest are ignored with a note for the log, as
-    /// Unity's player ignores what it does not know. Unity documents them in "Unity Standalone
-    /// Player command line arguments" (docs.unity.com, Unity 6000.3: unity-editor/command-line-
-    /// arguments/player). A malformed value is a note too, and the setting keeps its default.
+    /// Unity's player ignores what it does not know. All of them reach the game too
+    /// (Options.GameArguments), as Unity's player passes every argument on. Unity documents them
+    /// in "Unity Standalone Player command line arguments" (docs.unity.com, Unity 6000.3:
+    /// unity-editor/command-line-arguments/player). A malformed value is a note too, and the
+    /// setting keeps its default.
     internal static class UnityArguments
     {
         /// Unity's documented arguments that take the next argument as their value (-parentHWND
@@ -61,10 +63,10 @@ namespace OniMoono.Host
             string name = args[i];
             if (TakesValue(name) && i + 1 < args.Length)
             {
-                notes.Add($"{name} {args[++i]}: not read by this player; ignored");
+                notes.Add($"{name} {args[++i]}: not read by this player; passed to the game");
                 return;
             }
-            notes.Add($"{name}: not read by this player; ignored");
+            notes.Add($"{name}: not read by this player; passed to the game");
         }
     }
 }

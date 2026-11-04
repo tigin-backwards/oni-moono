@@ -2510,6 +2510,31 @@ process), in the executable's folder, with .NET's quoting (`ArgumentList`). Ours
 `EXECUTABLE [ARGUMENT...]`: the recorded arguments win, the command line's are used without them
 (`RestartCommand`, quoting as Klei's does), and it keeps the player's working folder, so a
 relative `--game` still resolves. The Linux `App.Restart` still passes only the executable.
+Since the game's `GetCommandLineArgs()` gives the game's arguments (below), the arguments
+`App.Restart` passes are those; the recorded ones, the host's whole command line, start the
+player again with the same options and the same game arguments.
+
+**The game's command line (#53).** In the original player `Environment.GetCommandLineArgs()`
+gives the game's executable (its full path) followed by every argument the player was started
+with, in order: Unity's own (`-screen-width`, `-logFile`) and ones it does not know (`-foo bar
+--baz=1 -moddev`) alike, so mods read flags of their own there (measured with
+`tools/CommandLineTestMod` in the 761654 Linux and Windows players,
+`tests/e2e/issue-53-command-line.yaml`). Neither 744825's nor 761654's Assembly-CSharp reads it;
+761654's firstpass reads it for `App.Restart` only. Ours used to give the host's: `OniMoono.dll`
+and our own options, `-- %command%` included, and stopped at an unknown `--` option after the
+game's executable. Now the host sets the runtime's command line (`GameCommandLine`, through
+Environment's `s_commandLineArgs`, which `Environment.CommandLine` is built from too) to the
+game's before any game code runs (`Options.GameArguments`):
+- the executable: the one Steam's command names after `--`, else the game folder's
+  (`OxygenNotIncluded.exe`, `OxygenNotIncluded`, or the Mac bundle's);
+- in the Steam form, every argument after the game's executable, as it is. Ours and Unity's
+  among them are still read as before; an unknown `--` option there no longer stops the player;
+- before `--` and in the direct form, Unity's player arguments and stray words with their
+  values (anything that does not start with `--`), and each `--game-arg ARG` (any argument,
+  `--baz=1` too). Our own `--` options never reach the game, and an unknown one there still
+  stops the player with "Unknown option", so a mistyped option of ours is not silently passed on.
+
+The log has a `game arguments:` line with the list.
 
 **Player options (Moono Tweaks).** The game tweaks (`GameTweakNames`), the loading splash, frame
 stats and the log's paths come from three places, later ones winning: built-in defaults (every tweak

@@ -43,6 +43,10 @@
     <Compile Include="../../src/OniMoono.Host/UpdateCheck.cs" Link="Host/UpdateCheck.cs" />
     <!-- Unity's player arguments, read or ignored (UnityArgumentsTests). -->
     <Compile Include="../../src/OniMoono.Host/UnityArguments.cs" Link="Host/UnityArguments.cs" />
+    <!-- The player's options and the game's command line (GameCommandLineTests). -->
+    <Compile Include="../../src/OniMoono.Host/Options.cs" Link="Host/Options.cs" />
+    <Compile Include="../../src/OniMoono.Host/GameCommandLine.cs" Link="Host/GameCommandLine.cs" />
+    <Compile Include="../../src/OniMoono.Host/ScriptedInput.cs" Link="Host/ScriptedInput.cs" />
     <!-- What the Windows Restarter starts again, and its command line (RestartCommandTests). -->
     <Compile Include="../../src/OniMoono.Restarter/RestartCommand.cs" Link="Restarter/RestartCommand.cs" />
     <!-- The Moono Tweaks catalog (GameTweakCatalogTests; BackgroundSave names itself from it). -->
