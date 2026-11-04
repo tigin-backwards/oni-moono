@@ -305,9 +305,9 @@ where many critters stand in one cell (1,500 Shove Voles in one cell start about
 sounds a second, all at one point), only the first copies of each frame play, so a pile sounds
 quieter, and the game doesn't freeze. Events that read the game's `objectCount` parameter see
 the copies made. In normal colonies it fires only where critters or Duplicants crowd one cell
-(a ranch, a fish tank), and in the six colonies measured only on sounds whose FMOD event plays one
-copy at a time anyway, so the copies it skipped would not have played. Player.log notes how many it skipped, at most once a minute
-(`fix-sound-piles: skipped ...`).
+(a ranch, a fish tank), and in the six colonies measured only on sounds whose FMOD event plays
+one copy at a time anyway, so the copies it skipped would not have played. Player.log notes how
+many it skipped, at most once a minute (`fix-sound-piles: skipped ...`).
 
 ## Translating Moono Tweaks
 

@@ -1007,3 +1007,171 @@ times followed what else was running, not the limit.
   both hold at 512 too. The cliff is at 550–600 a second at 512, 1,024, 2,048 and 4,095.
 - The Pip leak (`Squirrel_eat_LP`) now runs in game: about 3.8 never-ending instances a second
   per eating Pip at speed 3.
+
+## The two sound fixes (2026-11-04)
+
+The sections above found two causes of the #51 freezes that a game tweak can remove: the Pip
+eat-loop leak, and one-shots piling up at one point. Both are now game tweaks in the Bug fixes
+group, on by default and left out of `exact` (docs/TWEAKS.md, "The sound fixes"):
+`fix-endless-sounds` and `fix-sound-piles`.
+
+**Verdict: both freezes are gone, on Windows and Linux, U60 761654.** The 1,500-vole pile plays
+at 60 fps on Windows for 150 s with no stall, where it froze 10 s after the camera reached it
+without the fixes. 16 eating Pips hold 16 instances of their loop instead of gaining 3.8 a second
+each. In six normal colonies `fix-endless-sounds` changed nothing (no eating Pip or crater
+debris on the busy spots), and every copy `fix-sound-piles` skipped was of an event FMOD plays
+one copy at a time, so it would not have played.
+
+### What each fix changes
+
+- **`fix-endless-sounds`** (src/OniMoono.GameTweaks/EndlessLoopSounds.cs). The game's audio
+  sheets (the `SFXTags_*` text assets that `GameAudioSheets` loads) give each row a type, or the
+  sheet's default when it has none. `SoundEvent` makes a one-shot per play; `LoopingSoundEvent`
+  makes the same `SoundEvent` with `looping` set, which starts the sound once through the
+  object's `LoopingSounds` and stops it when the animation stops. A prefix on
+  `AudioSheets.CreateSound` turns these rows' type into `LoopingSoundEvent`, so the game's own
+  constructor builds them:
+
+  | Row (sheet) | Type | Event | Its sibling |
+  | --- | --- | --- | --- |
+  | `squirrel_kanim` `eat_loop` (Creatures) | `SoundEvent` | `Squirrel_eat_LP` (4, virtualize, loops) | `baby_squirrel_kanim` `eat_loop`: `LoopingSoundEvent`, `SquirrelBaby_eat_LP` |
+  | `rocket_debris_combined_kanim` `landed` (Buildings) | none: the sheet's default, `SoundEvent` | `RocketDebris_steaming_LP` (4, virtualize, loops) | `railgun_capsule_kanim` `landed`: `LoopingSoundEvent`, `RailGunCapsule_steaming_LP` |
+
+  The debris payload is what a self-destructed rocket leaves (`CraftModuleInterface
+  .SpawnRocketDebris`); in its crater it loops `landed` (`RailGunPayload`'s `grounded.crater`,
+  the same state as the railgun payload's). Both objects have `LoopingSounds`
+  (`BaseSquirrelConfig`, `DebrisPayloadConfig`). A row is changed only when it is still a
+  `GameAudioSheets` row of that file, animation and event, built as `SoundEvent`, and FMOD says
+  the event is not a one-shot. The log says which rows it changed.
+- **`fix-sound-piles`** (src/OniMoono.GameTweaks/OneShotPiles.cs). A prefix on
+  `KFMOD.BeginOneShot(EventReference, Vector3, float)`, the call every positional one-shot goes
+  through, keyed by event GUID, the grid cell of the position the game passes (the sound's own on
+  screen; vertically scaled off screen) and `Time.frameCount`. Past 3 copies of one key, it
+  returns no instance, as `BeginOneShot` does when FMOD isn't up. It counts only events FMOD calls
+  3D one-shots (`isOneshot`, `is3D`, read once per event), not in `event:/UI/`, played anywhere
+  but the origin (where the menu, UI and screen sounds play). Postfixes on both bool overloads of
+  `SoundEvent.PlayOneShot` report a skipped copy as played; otherwise `SoundEvent.PlaySound` logs
+  "SoundEvent has invalid sound" for each, 2,400 lines a second on the pile.
+
+### Other rows with the same mistake
+
+The sheets of 761654 and of 744825 (U59) have the same rows. Of the 59 events FMOD doesn't call
+one-shots that a sheet plays as `SoundEvent` ([above](#what-the-banks-hold)), three never end:
+the two above and the slush geyser's `erupt_water` row (`geyser_liquid_salt_water_cool_slush_kanim`,
+no type, so `SoundEvent`: `Geyser_erupt_LP` and `Geyser_erupt_water_LP`, which every other
+geyser's `erupt_water` row plays as `LoopingSoundEvent`). No code plays `erupt_water`: `Geyser`
+plays `erupt`, which is a `LoopingSoundEvent` row for that geyser too. So that row can't leak and
+is left alone.
+
+### Method
+
+- **Players**: Moono u60 with the fixes, release; "before" is the same build with
+  `--game-tweak exact`, "after" adds `--game-tweak fix-endless-sounds --game-tweak
+  fix-sound-piles`. Windows: 1280×720 on monitor 2, `--no-focus`, frame cap 60 fps, under the
+  Windows game lock, audio to FMOD's WAV writer (`--audio-wav`). Linux: Xvfb, FMOD mixing in
+  real time into the private ALSA sink. The #51 test mod (`VoleSwarm`, `timers=0`) logs once a
+  second as above, plus the tweak's skip count (`OneShotPiles.Skipped`).
+- **Vole pile**: the `vole-pile-1500.sav` fixture, 30 s away, then 60 s on the pile at size 20,
+  45 s at 10 and 45 s at 6, at speed 3. The limit per cell and frame was set to 1, 2 and 3
+  (`ONI_SOUND_PILE_LIMIT`).
+- **Pip eat loop**: the mode of C above, with a `LoopingSounds` on each of the 16 Pip animations
+  (a real Pip has one) and a cycle: 20 game seconds of `eat_loop`, then `eat_pst` and
+  `idle_loop` for 20, so the loop starts and stops again and again. The same for 16 debris
+  payloads looping `landed`.
+- **Normal colonies**: the noise survey above (three busy spots, 60 s each at size 18, speed 3)
+  on the four large colonies, the early colony and the Prehistoric colony. Once with the fixes,
+  counting skips; once without, logging every one-shot with its frame and cell, so the copies a
+  limit of 1, 2 or 3 would skip can be counted per event and checked against the event's limit
+  in the banks (`all761654.jsonl` of the survey).
+
+### Freezes
+
+| Case | Platform | Before | After |
+| --- | --- | --- | --- |
+| Vole pile | Windows | frozen 10 s after the camera reached the pile (2,384 instances a second, Studio 91%, 512 voices); killed after 100 s frozen | limit 1, 2, 3: 60 fps on the pile at every size, no stall in 150 s; 71, 131 and 190 instances a second; Studio 5–8%; 40–58 voices |
+| Vole pile | Linux | 5 fps on the pile, frozen 27 s after it reached it, for 200 s until killed | 5 fps on the pile at every limit, no stall in 150 s (1–6 s stalls only while quitting); Studio under 5% |
+| 16 Pips eating, 20 s on, 20 s off | Windows, 300 s | `Squirrel_eat_LP` alive: 1,664 at 1 min, 6,848 at 5 min, never falling; Studio up to 99.5%, 30 stalls of 1 s or more | 16 while they eat, 0 after `eat_pst`; Studio at most 6.5%, no stall |
+| 16 Pips eating, as above | Linux, 150 s | 944 at the first sample, 2,880 at 150 s | 16 while they eat, 0 between |
+| 16 debris payloads in craters | Linux, 90 s | `RocketDebris_steaming_LP` alive grows by 3.2 a second per payload (3,040 at 80 s) | 16 throughout |
+
+The Linux pile's 5 fps is the same before and after: it is the pile, not the fix (with the camera
+away both run at 37–55 fps on that machine).
+
+### How often they fire
+
+`fix-sound-piles` on (limit 2 in these runs), three busy spots, 180 s:
+
+| Colony | Positional one-shots made | Skipped | Mostly |
+| --- | --- | --- | --- |
+| large colony 1 | 45,755 | 807 | `Pacu_swim` (a fish tank) |
+| large colony 2 | 42,624 | 4,125 | `Raptor_footstep`, `Raptor_VO_grunt` (a ranch) |
+| large colony 3, with voles | 17,335 | 1,047 | `Liquid_footstep`, `ShoveVole_jump` |
+| lab colony | 7,941 | 33 | `uw_footstep`, `Chlorinator_popping` |
+| early colony | 7,880 | 0 | – |
+| Prehistoric colony, cycle 1 | 11,650 | 0 | – |
+
+From the runs without the fixes, the one-shots each limit would skip (counted ones only: 3D
+one-shots off the origin), and how many of them FMOD would have refused anyway (an event of
+limit k with no stealing, k at most the limit, plays no copy past its first k):
+
+| Colony | Counted | Limit 1: skipped (refused anyway) | Limit 2 | Limit 3 |
+| --- | --- | --- | --- | --- |
+| large colony 1 | 43,936 | 3,914 (3,648) | 693 (686) | 224 (224) |
+| large colony 2 | 40,255 | 7,261 (7,201) | 4,140 (4,140) | 3,029 (3,029) |
+| large colony 3, with voles | 6,526 | 1,038 (1,034) | 410 (409) | 174 (174) |
+| lab colony | 2,414 | 340 (340) | 42 (42) | 0 |
+| early colony | 2,152 | 5 (4) | 0 | 0 |
+| Prehistoric colony, cycle 1 | 5,193 | 1 (1) | 0 | 0 |
+
+- At 3 every skipped copy is of a "1, steal none" event (`Pacu_swim`, `Raptor_footstep`,
+  `Liquid_footstep` and the like), so in these colonies the limit changes no sound that plays.
+  At 2, 8 copies in all could have played (`Rock_jump`, 5 stealing, in large colony 1); at 1,
+  about 400. The tweak uses 3.
+- With the fixes on, the in-game counts at limit 2 match the offline ones (807 against 693,
+  4,125 against 4,140; the runs differ in what the colony does).
+- `fix-endless-sounds` changed nothing in these colonies: no `Squirrel_eat_LP` or
+  `RocketDebris_steaming_LP` instance was created on any busy spot, before or after.
+
+### Audio
+
+Windows, FMOD's WAV writer, 48 kHz stereo. In game no two runs give the same samples (frame
+timing, FMOD's random seed), so the comparisons are of loudness. Clips for listening are in
+`C:\Users\Glyn\Downloads\fmod-fixes\`.
+
+| Clip | RMS | Peak |
+| --- | --- | --- |
+| Vole pile, music off: before, the first seconds on the pile before the freeze | −21.0 dBFS | −6.2 dBFS |
+| Vole pile, music off: after, the first 8 s on the pile, limit 1 / 2 / 3 | −20.5 / −19.8 / −19.2 dBFS | −4.6 to −4.7 dBFS |
+| Vole pile, music off: after, 20 s from 10 s on the pile, limit 1 / 2 / 3 | −20.0 / −19.9 / −20.0 dBFS | −3.6 to −3.9 dBFS |
+| Same runs, the camera away | −20.8 to −21.7 dBFS | −4.7 to −4.9 dBFS |
+| 16 Pips, 20 s from the start: before / after | −19.9 / −21.9 dBFS | −2.9 / −4.7 dBFS |
+| 16 Pips, the last 30 s of 5 minutes: before / after | −39.1 / −24.1 dBFS | −13.9 / −3.6 dBFS |
+| Large colony 1, music off, busy spots 1, 2, 3 (40 s each): before | −20.3, −22.9, −33.8 dBFS | |
+| The same, after (limit 3; 155 skips in 180 s, nearly all `Pacu_swim`) | −20.0, −23.2, −32.8 dBFS | |
+
+- **The pile** sounds about as loud with the fix as in its last seconds before the freeze, and
+  each limit adds a little: the loudness rises 0.7 dB from 1 to 2 and 0.6 dB from 2 to 3 in the
+  first seconds, where the voles land the most. Afterwards the pile is level at every limit and
+  only about 1 dB above the colony around it: `Rock_creature_land` is capped at 5 instances by
+  its bank either way. In the frozen run the mixer falls behind and the WAV writer stops 23 s
+  after the pile is reached.
+- **The Pips** are a little quieter at first with the fix: 16 copies of the loop, where the
+  leak gains about 60 a second, of which FMOD plays 4 (4, virtualize). After 5 minutes the
+  leak's mix is near silence with gaps (the WAV writer got 235 s of audio in 321 s), and the
+  fix's is as at the start.
+- **The normal colony** is the same within 1 dB at each spot, as two runs of one setup differ.
+- Files:
+  - music off: `vole-pile-before-nomusic-last20s-before-freeze.wav`,
+    `vole-pile-after-limit{1,2,3}-nomusic.wav`;
+  - music on: `vole-pile-before-last20s-before-freeze.wav`, `vole-pile-after-limit{1,2,3}.wav`,
+    `pip-eat-loop-{before,after}-{first,last}30s.wav`;
+  - music off: `normal-colony-{before,after}-busy-spot1-40s.wav`.
+
+### Checks
+
+- e2e specs, ours only: `fix-endless-sounds` (the two rows loop, their siblings and other rows
+  are unchanged; of two Pip animations with `LoopingSounds`, the one still in `eat_loop` holds
+  its sound after 20 s and the one that left it doesn't) and `fix-sound-piles` (ten Pip
+  animations made in one cell while paused run in step, so their `Squirrel_voice_idle` starts
+  together: more than 40 skips in 30 s). Both fail with the tweaks off. They pass on U60 761654
+  and U59 744825, as do the Moono Tweaks and mod-overlap specs.
