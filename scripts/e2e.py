@@ -165,10 +165,14 @@ def ws_mods():
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
             'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi', 'blocked_plugins', 'stray_plugins',
-            'data_collection', 'extra_saves', 'workshop', 'update_check', 'game_tweaks', 'env', 'test_mods'}
+            'data_collection', 'extra_saves', 'workshop', 'update_check', 'game_tweaks', 'env', 'test_mods',
+            'game_args'}
+# `game_args`: arguments for the game itself, after the original's own (its executable's
+# arguments) and after the game's executable in our Steam form (`-- GAME-EXECUTABLE ARGS`), which
+# passes them on to the game (#53).
 # `test_mods`: our own test mods (tools/NAME, built to out/bin/NAME/release), installed as Local
 # mods beside the spec's Workshop ones, with the title their mod.yaml gives.
-TEST_MODS = ('OverlapTestMod', 'SelectCycleTestMod')
+TEST_MODS = ('OverlapTestMod', 'SelectCycleTestMod', 'CommandLineTestMod')
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 # `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty
 # file (what Steam can leave of another branch's build: #49).
@@ -367,6 +371,9 @@ def check_spec(spec):
     tweaks = spec.get('game_tweaks', [])
     if not isinstance(tweaks, list) or not all(isinstance(t, str) and t for t in tweaks):
         problems.append('`game_tweaks` is a list of `--game-tweak` values')
+    game_args = spec.get('game_args', [])
+    if not isinstance(game_args, list) or not all(isinstance(a, str) for a in game_args):
+        problems.append('`game_args` is a list of strings')
     extra_env = spec.get('env', {})
     if not isinstance(extra_env, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in extra_env.items()):
         problems.append('`env` maps names to strings')
@@ -2569,8 +2576,9 @@ class Player:
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
                  translation=None, language=None, keyboard=None, tweaks_menu=False, display_dpi=None,
                  blocked_plugins=None, data_collection=False, extra_saves=(), workshop=None, update_check=None,
-                 stray_plugins=(), game_tweaks=(), extra_env=None, test_mods=()):
+                 stray_plugins=(), game_tweaks=(), extra_env=None, test_mods=(), game_args=()):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
+        self.game_args = list(game_args or ())
         self.test_mods = list(test_mods or ())
         self.game_tweaks = list(game_tweaks)
         self.extra_env = dict(extra_env or {})
@@ -2789,7 +2797,8 @@ class Player:
             else:
                 executable = original_player(executable, self.lane.number)
             # E2E_ORIGINAL_ARGS: more Unity player arguments for the original (e.g. -force-vulkan).
-            command = [executable, *size, '-logFile', self.log, *os.environ.get('E2E_ORIGINAL_ARGS', '').split()]
+            command = [executable, *size, '-logFile', self.log, *os.environ.get('E2E_ORIGINAL_ARGS', '').split(),
+                       *self.game_args]
             stdout = os.path.join(self.out, 'stdout.txt')
         else:
             game = self.env['QA_U57_GAME']
@@ -2823,7 +2832,9 @@ class Player:
                        # (a spec of the Moono Tweaks screen keeps it: `tweaks_menu: true`).
                        *([] if self.tweaks_menu else ['--no-tweaks-menu']),
                        # E2E_PLAYER_ARGS: more host arguments for our player (e.g. --renderer vulkan).
-                       *os.environ.get('E2E_PLAYER_ARGS', '').split()]
+                       *os.environ.get('E2E_PLAYER_ARGS', '').split(),
+                       # `game_args`: in the Steam form, after the game's executable.
+                       *(['--', os.path.join(game, 'OxygenNotIncluded'), *self.game_args] if self.game_args else [])]
             stdout = self.log
         # The runner's own display (a desktop's) must reach neither the player nor xvfb-run's
         # server, whose environment find_display reads: input would land on the desktop.
@@ -4229,7 +4240,7 @@ class Run:
                                  extra_saves=spec.get('extra_saves', ()), workshop=spec.get('workshop'),
                                  update_check=spec.get('update_check'),
                                  game_tweaks=spec.get('game_tweaks', ()), extra_env=spec.get('env'),
-                                 test_mods=spec.get('test_mods', ()))
+                                 test_mods=spec.get('test_mods', ()), game_args=spec.get('game_args', ()))
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
             started = time.time()
