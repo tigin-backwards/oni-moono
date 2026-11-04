@@ -6,7 +6,12 @@ namespace OniMoono.Tests
 {
     public class PrimitiveTests : EngineTest
     {
-        static readonly string DataDir = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects/oni-linux-761211/OxygenNotIncluded_Data");
+        // The game's data as the other suites find it: ONI_GAME_DIR, else the frozen 761211 install.
+        // The asset system opens one folder per process, so a suite naming another folder fails.
+        static readonly string DataDir = System.IO.Path.Combine(
+            System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
+                ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211"),
+            "OxygenNotIncluded_Data");
 
         [Theory]
         [InlineData(PrimitiveType.Cube, typeof(BoxCollider))]
