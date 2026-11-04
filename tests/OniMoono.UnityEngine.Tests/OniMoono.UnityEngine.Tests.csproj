@@ -85,8 +85,6 @@
     </Reference>
     <!-- Delegates through the game's Newtonsoft.Json as Mono serializes them (MonoDelegateSerializationTests). -->
     <Compile Include="../../src/OniMoono.Host/MonoDelegateSerialization.cs" Link="Host/MonoDelegateSerialization.cs" />
-    <!-- French group separators as Mono's tables have them (MonoGroupSeparatorsTests). -->
-    <Compile Include="../../src/OniMoono.Host/MonoGroupSeparators.cs" Link="Host/MonoGroupSeparators.cs" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>$(OniGameDir)/OxygenNotIncluded_Data/Managed/Newtonsoft.Json.dll</HintPath>
     </Reference>
