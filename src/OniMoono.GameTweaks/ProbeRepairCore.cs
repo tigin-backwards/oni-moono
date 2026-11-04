@@ -377,7 +377,8 @@ namespace OniMoono.GameTweaks
     /// paged-path-grids' tables behind a PathGrid's arrays (the host's PathGridPages, its pages
     /// made through `make`) and this tweak's own whole-map arrays (Paged). Reads and writes give
     /// what the flat array would hold. `shadow` (paged-path-grids' verify mode): the flat array
-    /// kept beside the table, written too.
+    /// kept beside the table, written too, each write counted in `writes` as it begins ([0]) and
+    /// ends ([1]) so that the host's comparison never reads between the two copies' stores.
     public sealed class ProbePages<T> where T : struct
     {
         public const int PageShift = 8;
@@ -392,10 +393,12 @@ namespace OniMoono.GameTweaks
         readonly int shift, mask;
         readonly Func<int, T[]> make;
         readonly T[] shadow;
+        readonly long[] writes;
         public readonly int Length;
 
-        ProbePages(T[][] pages, int length, int shift, T[] zero, T fill, Func<int, T[]> make, T[] shadow)
+        ProbePages(T[][] pages, int length, int shift, T[] zero, T fill, Func<int, T[]> make, T[] shadow, long[] writes = null)
         {
+            this.writes = writes;
             this.pages = pages;
             Length = length;
             this.shift = shift;
@@ -437,9 +440,12 @@ namespace OniMoono.GameTweaks
 
         /// A view of another's table (paged-path-grids', unwritten pages zeros): `zero` its
         /// unwritten page, `make` makes page k (or returns the one another thread made).
-        public static ProbePages<T> Over(T[][] table, int length, int shift, T[] zero, Func<int, T[]> make, T[] shadow) =>
-            table.Length == 1 && table[0].Length == length ? new ProbePages<T>(table, length, 31, null, default, null, shadow)
-                : new ProbePages<T>(table, length, shift, zero, default, make, shadow);
+        /// `shadow` and `writes`: verify mode's flat array and the counts of its writes (both or
+        /// neither).
+        public static ProbePages<T> Over(T[][] table, int length, int shift, T[] zero, Func<int, T[]> make, T[] shadow, long[] writes) =>
+            (shadow == null) != (writes == null) ? throw new ArgumentException("a flat array to keep written needs its counts of writes")
+                : table.Length == 1 && table[0].Length == length ? new ProbePages<T>(table, length, 31, null, default, null, shadow, writes)
+                : new ProbePages<T>(table, length, shift, zero, default, make, shadow, writes);
 
         public T this[int i]
         {
@@ -448,19 +454,41 @@ namespace OniMoono.GameTweaks
             [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
             set
             {
+                if (shadow != null)
+                {
+                    SetShadowed(i, value);
+                    return;
+                }
                 int k = i >> shift;
                 var page = pages[k];
                 if (page == zero)
                 {
-                    if (IsFill(value))
-                    {
-                        if (shadow != null) shadow[i] = value;
-                        return;
-                    }
+                    if (IsFill(value)) return;
                     page = make(k);
                 }
                 page[i & mask] = value;
-                if (shadow != null) shadow[i] = value;
+            }
+        }
+
+        /// Verify mode's write: the page, then the flat array, counted.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        void SetShadowed(int i, T value)
+        {
+            System.Threading.Interlocked.Increment(ref writes[0]);
+            try
+            {
+                int k = i >> shift;
+                var page = pages[k];
+                if (page == zero)
+                {
+                    if (!IsFill(value)) make(k)[i & mask] = value;
+                }
+                else page[i & mask] = value;
+                shadow[i] = value;
+            }
+            finally
+            {
+                System.Threading.Interlocked.Increment(ref writes[1]);
             }
         }
 
@@ -484,9 +512,17 @@ namespace OniMoono.GameTweaks
         public void Clear()
         {
             if (!IsDefault(fill)) throw new InvalidOperationException("a table of another fill than zeros is not cleared");
-            foreach (var page in pages)
-                if (page != zero) Array.Clear(page, 0, page.Length);
-            if (shadow != null) Array.Clear(shadow, 0, shadow.Length);
+            if (writes != null) System.Threading.Interlocked.Increment(ref writes[0]);
+            try
+            {
+                foreach (var page in pages)
+                    if (page != zero) Array.Clear(page, 0, page.Length);
+                if (shadow != null) Array.Clear(shadow, 0, shadow.Length);
+            }
+            finally
+            {
+                if (writes != null) System.Threading.Interlocked.Increment(ref writes[1]);
+            }
         }
 
         /// The bytes of the pages made (and the table), for the tweak's report.

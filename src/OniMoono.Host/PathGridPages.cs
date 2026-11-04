@@ -38,7 +38,10 @@ namespace OniMoono.Host
     /// stores nothing (ResetProberCells clears every element of a grid).
     ///
     /// With ONI_TWEAK_VERIFY=1 each table also keeps the game's flat array, written by the same
-    /// helpers, and PagedPathGrids compares the two (Verify).
+    /// helpers, and PagedPathGrids compares the two (Verify). A write stores into the page and
+    /// then into the flat array, so a comparison can land between the two: each write is counted
+    /// as it begins and as it ends (Info.Writes), and an element found to differ is compared
+    /// again while no write of its table runs (VerifyAll).
     public static class PathGridPages
     {
         public const int PageShift = 8, PageSize = 1 << PageShift, PageMask = PageSize - 1;
@@ -66,15 +69,19 @@ namespace OniMoono.Host
             internal Array? Zero;
             /// Verify mode: the game's array, written as the game writes it.
             internal Array? Shadow;
+            /// Verify mode: the table's writes begun ([0]) and ended ([1]).
+            internal long[]? Writes;
         }
 
         /// Pages made (both arrays, all grids), for the summary.
         internal static long PagesMade;
 
         /// For tests (E2eDriver's state reads, `type:OniMoono.Host.PathGridPages::VerifyRuns`):
-        /// verify mode's comparisons of every table, and the elements found to differ in them.
+        /// verify mode's comparisons of every table, the elements found to differ in them, and
+        /// those that differed only while a write ran (compared again once it ended).
         public static int VerifyRuns { get; private set; }
         public static long VerifyDifferences { get; private set; }
+        public static long VerifyMidWrite { get; private set; }
 
         /// For tests: the tables' count and what they hold now, and what the game's arrays would
         /// (bytes).
@@ -89,7 +96,9 @@ namespace OniMoono.Host
         /// (the rewritten constructor keeps it, its Length and its Handle in PathGrid's fields).
         public static T[][] New<T>(int length) where T : unmanaged => New<T>(length, PageMode.Shift);
 
-        internal static T[][] New<T>(int length, int shift) where T : unmanaged
+        internal static T[][] New<T>(int length, int shift) where T : unmanaged => New<T>(length, shift, Verify);
+
+        internal static T[][] New<T>(int length, int shift, bool shadow) where T : unmanaged
         {
             if (length < 0) throw new OverflowException();
             T[][] pages;
@@ -105,7 +114,11 @@ namespace OniMoono.Host
                 pages[n - 1] = new T[length - ((n - 1) << shift)];
             }
             var info = new Info { Kind = typeof(T).Name, Length = length, ElementSize = Unsafe.SizeOf<T>(), Flat = flat, Zero = Zero<T>.Page };
-            if (Verify && !flat) info.Shadow = new T[length];
+            if (shadow && !flat)
+            {
+                info.Shadow = new T[length];
+                info.Writes = new long[2];
+            }
             Tables.AddOrUpdate(pages, info);
             return pages;
         }
@@ -138,19 +151,42 @@ namespace OniMoono.Host
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void StoreIn<T>(T[][] pages, int index, T value, int shift, int mask) where T : unmanaged
         {
+            if (Verify) StoreShadowed(pages, index, value, shift, mask);
+            else StorePaged(pages, index, value, shift, mask);
+        }
+
+        /// Verify mode's store: into the page, then into the flat array, counted (Info.Writes).
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static void StoreShadowed<T>(T[][] pages, int index, T value, int shift, int mask) where T : unmanaged
+        {
+            if (!Tables.TryGetValue(pages, out var info) || info.Writes is not { } writes)
+            {
+                StorePaged(pages, index, value, shift, mask);
+                return;
+            }
+            Interlocked.Increment(ref writes[0]);
+            try
+            {
+                StorePaged(pages, index, value, shift, mask);
+                ((T[])info.Shadow!)[index] = value;
+            }
+            finally
+            {
+                Interlocked.Increment(ref writes[1]);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void StorePaged<T>(T[][] pages, int index, T value, int shift, int mask) where T : unmanaged
+        {
             int k = index >> shift;
             var page = pages[k];
             if (page == Zero<T>.Page)
             {
-                if (IsZero(value))
-                {
-                    if (Verify) Shadow(pages, index, value);
-                    return;
-                }
+                if (IsZero(value)) return;
                 page = Materialise(pages, k);
             }
             page[index & mask] = value;
-            if (Verify) Shadow(pages, index, value);
         }
 
         /// Page k of the table, made if it is Zero (path-probe-repair's views write through it).
@@ -175,11 +211,11 @@ namespace OniMoono.Host
         public static T[]? ShadowOf<T>(T[][] pages) where T : unmanaged =>
             Tables.TryGetValue(pages, out var info) ? (T[]?)info.Shadow : null;
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static void Shadow<T>(T[][] pages, int index, T value) where T : unmanaged
-        {
-            if (ShadowOf(pages) is { } shadow) shadow[index] = value;
-        }
+        /// Verify mode: the table's counts of writes begun ([0]) and ended ([1]), which a writer
+        /// outside these helpers (path-probe-repair's views) increments around each write of the
+        /// page and the flat array, as StoreShadowed does (null otherwise).
+        public static long[]? WritesOf<T>(T[][] pages) where T : unmanaged =>
+            Tables.TryGetValue(pages, out var info) ? info.Writes : null;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool IsZero<T>(T value) where T : unmanaged =>
@@ -202,17 +238,22 @@ namespace OniMoono.Host
             return (tables, pageBytes, tableBytes, flat);
         }
 
-        /// Verify mode: every element of every table against its flat array. A difference seen
-        /// again after a moment counts (one seen once is a write landing between the two reads).
-        internal static int VerifyAll(out int tables, out long elements, out string? first)
+        /// Verify mode: every element of every table against its flat array. An element that
+        /// differs is compared again while no write of its table runs, its page read afresh (it
+        /// may have been made since): one that differed only mid-write counts in `midWrite`, one
+        /// whose table never stopped being written for a second in `unsettled`.
+        internal static int VerifyAll(out int tables, out long elements, out string? first) => VerifyAll(out tables, out elements, out first, out _, out _);
+
+        internal static int VerifyAll(out int tables, out long elements, out string? first, out int midWrite, out int unsettled)
         {
             tables = 0;
             elements = 0;
             first = null;
+            midWrite = unsettled = 0;
             int wrong = 0;
             foreach (var (table, info) in Tables)
             {
-                if (info.Shadow == null) continue;
+                if (info.Shadow == null || info.Writes == null) continue;
                 tables++;
                 elements += info.Length;
                 int size = info.ElementSize;
@@ -221,25 +262,55 @@ namespace OniMoono.Host
                 ref byte shadow = ref MemoryMarshal.GetArrayDataReference(info.Shadow);
                 for (int k = 0; k < pages.Length; k++)
                 {
-                    var page = pages[k];
+                    var page = Volatile.Read(ref pages[k]);
                     int start = k << shift, count = page.Length;
                     ref byte flat = ref Unsafe.Add(ref shadow, (nint)start * size);
-                    ref byte paged = ref MemoryMarshal.GetArrayDataReference(page);
-                    if (MemoryMarshal.CreateReadOnlySpan(ref flat, count * size).SequenceEqual(MemoryMarshal.CreateReadOnlySpan(ref paged, count * size))) continue;
+                    if (MemoryMarshal.CreateReadOnlySpan(ref flat, count * size).SequenceEqual(MemoryMarshal.CreateReadOnlySpan(ref MemoryMarshal.GetArrayDataReference(page), count * size))) continue;
                     for (int e = 0; e < count; e++)
                     {
-                        if (Same(ref flat, ref paged, e, size)) continue;
-                        // Again, a moment later.
-                        Thread.Sleep(1);
-                        if (Same(ref flat, ref paged, e, size)) continue;
-                        wrong++;
-                        first ??= $"{info.Kind} element {start + e} of {info.Length}";
+                        if (Same(ref flat, ref MemoryMarshal.GetArrayDataReference(page), e, size)) continue;
+                        switch (Settled(info.Writes, pages, k, ref flat, e, size))
+                        {
+                            case true:
+                                midWrite++;
+                                break;
+                            case false:
+                                wrong++;
+                                first ??= $"{info.Kind} element {start + e} of {info.Length}";
+                                break;
+                            default:
+                                unsettled++;
+                                break;
+                        }
+                        page = Volatile.Read(ref pages[k]);
                     }
                 }
             }
             VerifyRuns++;
             VerifyDifferences += wrong;
+            VerifyMidWrite += midWrite;
             return wrong;
+        }
+
+        /// Element e of page k against the flat array while no write of the table runs: none
+        /// had begun and not ended when the comparison started, and none began during it (null
+        /// when the table was never so for a second).
+        static bool? Settled(long[] writes, Array[] pages, int k, ref byte flat, int e, int size)
+        {
+            long deadline = System.Diagnostics.Stopwatch.GetTimestamp() + System.Diagnostics.Stopwatch.Frequency;
+            for (int tries = 0; ; tries++)
+            {
+                long begun = Volatile.Read(ref writes[0]);
+                if (Volatile.Read(ref writes[1]) == begun)
+                {
+                    bool same = Same(ref flat, ref MemoryMarshal.GetArrayDataReference(Volatile.Read(ref pages[k])), e, size);
+                    Interlocked.MemoryBarrier();
+                    if (Volatile.Read(ref writes[0]) == begun) return same;
+                }
+                if (System.Diagnostics.Stopwatch.GetTimestamp() > deadline) return null;
+                if (tries < 20) Thread.Yield();
+                else Thread.Sleep(1);
+            }
         }
 
         static bool Same(ref byte a, ref byte b, int e, int size) =>
