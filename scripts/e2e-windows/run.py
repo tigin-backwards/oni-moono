@@ -16,7 +16,9 @@ E2eDriver and OniMcp listen on the Windows loopback, which WSL cannot reach: eac
 through a Windows Python bridge (bridge.py) on a relay port here (the lane's + 1000). Input is
 E2eDriver's synthetic input (input.*, tools/E2eDriver/README.md), never the desktop's pointer or
 keyboard; so these runs check what the game and the UI do with input, not how either player
-reads Windows input. `type` sets the field's text whole; steps that need real input (keyboard
+reads Windows input. The exception is the side buttons (X11's 8 and 9 in specs): xbutton.ps1
+posts WM_XBUTTONDOWN/UP for XBUTTON1, XBUTTON2 to the player's own window, which both players
+read. `type` sets the field's text whole; steps that need real input (keyboard
 layouts, physical keys) fail with "needs real input". Front-end shots come from E2eDriver's
 screen.capture.
 """
@@ -233,14 +235,22 @@ class NeedsRealInput(e2e.SpecFailure):
     pass
 
 
-class WinInput:
-    """E2eDriver's synthetic input (input.*) in the place of XTEST."""
+# X11's side buttons 8 and 9 (the Linux specs' numbering) are Windows' XBUTTON1 and XBUTTON2.
+X_BUTTONS = {8: 1, 9: 2}
 
-    def __init__(self, driver):
+
+class WinInput:
+    """E2eDriver's synthetic input (input.*) in the place of XTEST. The side buttons (8, 9) go
+    as real WM_XBUTTON messages posted to the player's own window (xbutton.ps1): the platform
+    reads them, and the desktop's pointer and focus are not touched."""
+
+    def __init__(self, driver, home=None):
         self.driver = driver
+        self.home = home
         self.scale = (1.0, 1.0)
         self.held = []
         self.mods = []
+        self.focused = False
 
     def frames(self, n):
         self.driver.frames(n)
@@ -260,7 +270,24 @@ class WinInput:
         self.driver.request('input.move', x=float(x), y=float(y))
 
     def button(self, button, down):
+        if button in X_BUTTONS:
+            return self.post_x(button, 'down' if down else 'up')
         self.driver.request('input.button', button=button, down=bool(down))
+
+    def post_x(self, button, action, x=0, y=0):
+        if not self.home:
+            raise NeedsRealInput(f'button {button} needs the player\'s run home')
+        if not self.focused:
+            # The game drops input while unfocused (KInputManager.isFocused): E2eDriver tells
+            # it it has the focus, as for its synthetic input.
+            self.driver.request('input.focus')
+            self.focused = True
+        r = ps('xbutton.ps1', '-Match', self.home, '-Button', str(X_BUTTONS[button]), '-X', str(int(x)),
+               '-Y', str(int(y)), '-Action', action)
+        for line in (r.stdout + r.stderr).strip().splitlines():
+            log(f'  (xbutton) {line}')
+        if r.returncode:
+            raise e2e.SpecFailure(f'xbutton.ps1 failed ({r.returncode})')
 
     def key_event(self, name, down):
         mods, key = win_key(name) if not isinstance(name, tuple) else name
@@ -281,6 +308,12 @@ class WinInput:
             self.mods = old
 
     def click(self, x, y, button='left', mods=(), double=False):
+        if button in X_BUTTONS and not mods and not double:
+            self.move(x, y)
+            self.frames(2)
+            self.post_x(button, 'press', x, y)
+            self.frames(4)
+            return
         if mods:
             log(f'  (synthetic input: {"+".join(mods)} held for KInput only; the UI reads no modifier)')
         with self.modifiers(mods):
@@ -344,7 +377,7 @@ class WinInput:
 
 def need_input(self):
     if not self.input:
-        self.input = WinInput(self.need_driver())
+        self.input = WinInput(self.need_driver(), getattr(self.player, 'whome', None))
     return self.input
 
 

@@ -1,0 +1,42 @@
+# 761654 QA W4 (docs/research/u60-761654.md): the side buttons, read by the player, as keys and
+# as bindings. In a colony: E2eDriver's key log records the mouse key codes Input.GetKeyDown
+# reports for X button 8 then 9 (on Windows XBUTTON1, XBUTTON2, posted to the game's window by
+# scripts/e2e-windows/run.py); then Options > Game > Controls: Dig (the fifth entry) is rebound
+# to button 8 and the next entry to button 9, the labels "Mouse 4" and "Mouse 5" (761654's
+# GameUtil.GetKeycodeLocalized for Mouse3 and Mouse4); then button 8 over the world picks the
+# Dig tool. All as in the original.
+from: early-base
+steps:
+  - driver: {keys.log: {}}
+  - click: {at: [1100, 650], button: 8}
+  - click: {at: [1100, 650], button: 9}
+  - expect_state:
+      "type:E2eDriver.KeyLog::MouseDown": "== original"
+      "type:E2eDriver.KeyLog::MouseEvents": "== original"
+  - driver: {keys.log: {"on": false}}
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent"}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/OptionsButton"}
+  - ui_wait: {path: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton", cond: stable}
+  - click: {ui: "**/OptionsMenu/CenterContent/Content/Buttons/GameButton"}
+  - ui_wait: {path: "**/GameOptionsScreen", cond: stable}
+  - click: {ui: "**/GameOptionsScreen/**/ControlsButton"}
+  - ui_wait: {path: "**/InputBindingsScreen/**/Entry/KeyButton", cond: stable, frames: 600}
+  - ui_dump: {name: before, root: "**/InputBindingsScreen/**/Group"}
+  - click: {ui: "**/InputBindingsScreen/**/Entry/KeyButton", index: 4}
+  - click: {at: [1100, 650], button: 8}
+  - ui_wait: {path: "**/InputBindingsScreen/**/Entry/KeyButton", cond: stable}
+  - expect_ui:
+      "**/InputBindingsScreen/**/Group/Entry/KeyButton/Text": {any_text: "Mouse 4"}
+  - click: {ui: "**/InputBindingsScreen/**/Entry/KeyButton", index: 5}
+  - click: {at: [1100, 650], button: 9}
+  - ui_wait: {path: "**/InputBindingsScreen/**/Entry/KeyButton", cond: stable}
+  - expect_ui:
+      "**/InputBindingsScreen/**/Group/Entry/KeyButton/Text": {any_text: "Mouse 5"}
+  - ui_dump: {name: bound, root: "**/InputBindingsScreen/**/Group"}
+  - shot: bindings
+  - click: {ui: "**/InputBindingsScreen/Content/Buttons/DoneButton"}
+  - key: {code: Escape, until: "**/PauseScreen", cond: gone}
+  - driver: {camera.set: {pos: [110.5, 208.5], ortho: 20}}
+  - click_world: {cell: [110, 208], button: 8}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": "== original"
