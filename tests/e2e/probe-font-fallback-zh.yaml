@@ -1,0 +1,7 @@
+# probe-font-fallback.yaml in the game's own Chinese (zh_klei): the menu's texts and the global
+# fallbacks are the Chinese UI's. Same set-up.
+from: main-menu
+language: zh_klei
+steps:
+  - ui_wait: {path: "**/FontFallbackProbeDone", cond: exists, frames: 20000}
+  - shot: fallback

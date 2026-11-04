@@ -238,6 +238,11 @@ namespace SemanticsProbe
                 go.AddComponent<EmptyText>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "fontfallback")
+            {
+                go.AddComponent<FontFallback>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "u60")
             {
                 go.AddComponent<U60Bcl>();

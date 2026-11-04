@@ -320,6 +320,16 @@ tall rect (`metrics`), and the details screen's title in its own rect. Check the
 `tools/UnityProbe/tl-check.py rule LOG`, and compare the players with `tl-check.py diff ORIG
 OURS`. `textmeshpro.md` ("Lines that grow part-way") records what it measured.
 
+With `PROBE_SCENARIO=fontfallback` only the font fallback probe runs (`FontFallback.cs`, lines
+`FF …`, 10 s into the main menu, a few seconds): `TMP_Settings`' global fallbacks and default
+font asset, each loaded font's fallback list, `HasCharacter` with and without `searchFallbacks`
+(and `tryAddCharacter`) for each font and a set of characters, the chain the search walks
+(empty assets with the global list or the default emptied, nested fallbacks, null entries,
+dynamic assets that add), and which font asset each character of five strings (no-break spaces,
+CJK, Cyrillic, symbols, other scripts) is drawn from in every loaded font, with the menu's own
+texts. `tests/e2e/probe-font-fallback.yaml` (and `-zh`, `-ru`) run it; diff the players' `FF`
+lines. `textmeshpro.md` (`TMP_FontAsset.HasCharacter`) records what it measured.
+
 With `PROBE_SCENARIO=emptytext` only the empty-text probe runs (`EmptyText.cs`, lines `ET …`, 10 s
 into the main menu, about a minute). It lays out texts with nothing visible: "", a space, texts
 of rich-text tags alone ("<b></b>", "<b> </b>", "<br>") and U+200B, in NotoSans-Regular 16 pt

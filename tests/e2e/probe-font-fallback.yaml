@@ -1,0 +1,10 @@
+# UnityProbe's font fallback probe (tools/UnityProbe/FontFallback.cs) at the main menu:
+# TMP_Settings' fallbacks, each font's fallback table, HasCharacter with and without
+# searchFallbacks, which fallbacks the search walks, and which font asset each drawn character
+# comes from, in the probe's texts and the menu's own. Run with E2E_ONIMCP pointing at a copy of
+# OniMcp's mod folder with SemanticsProbe.dll added and PROBE_SCENARIO=fontfallback; compare the
+# two players' "FF " lines.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/FontFallbackProbeDone", cond: exists, frames: 20000}
+  - shot: fallback
