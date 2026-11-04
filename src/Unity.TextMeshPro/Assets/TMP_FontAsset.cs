@@ -324,25 +324,24 @@ namespace TMPro
         public bool HasCharacter(char character, bool searchFallbacks = false, bool tryAddCharacter = false)
             => HasCharacter((uint)character, searchFallbacks, tryAddCharacter);
 
+        // With searchFallbacks, the same search as HasCharacters' (FindCharacter): this asset's
+        // fallbacks, TMP_Settings' fallbacks and the default font asset.
         public bool HasCharacter(uint character, bool searchFallbacks = false, bool tryAddCharacter = false)
-        {
-            if (characterLookupTable.ContainsKey(character)) return true;
-            if (tryAddCharacter && m_AtlasPopulationMode != AtlasPopulationMode.Static && TryAddCharacter(character, out _)) return true;
-            if (!searchFallbacks) return false;
-            var visited = new HashSet<int> { GetInstanceID() };
-            return FallbackHasCharacter(this, character, tryAddCharacter, visited);
-        }
+            => FindCharacter(character, searchFallbacks, tryAddCharacter);
 
-        static bool FallbackHasCharacter(TMP_FontAsset asset, uint character, bool tryAdd, HashSet<int> visited)
+        // The fallbacks of a list, depth-first: each asset's table (a dynamic one adding the
+        // character with tryAdd), then its own fallbacks. A null entry ends that list's search,
+        // the lists around it going on (measured on the shipped package: fallbacks [null,
+        // NotoSans] do not find "a"; [M, NotoSans], M's own fallbacks being [null], do).
+        static bool FallbackHasCharacter(List<TMP_FontAsset> fallbacks, uint character, bool tryAdd, HashSet<int> visited)
         {
-            var fallbacks = asset.m_FallbackFontAssetTable;
             if (fallbacks == null) return false;
             foreach (var f in fallbacks)
             {
-                if (f == null || !visited.Add(f.GetInstanceID())) continue;
-                if (f.characterLookupTable.ContainsKey(character)) return true;
-                if (tryAdd && f.m_AtlasPopulationMode != AtlasPopulationMode.Static && f.TryAddCharacter(character, out _)) return true;
-                if (FallbackHasCharacter(f, character, tryAdd, visited)) return true;
+                if (f == null) return false;
+                if (!visited.Add(f.GetInstanceID())) continue;
+                if (HasOrAdds(f, character, tryAdd)) return true;
+                if (FallbackHasCharacter(f.m_FallbackFontAssetTable, character, tryAdd, visited)) return true;
             }
             return false;
         }
@@ -392,23 +391,20 @@ namespace TMPro
             return false;
         }
 
+        // This asset (adding the character with tryAdd when dynamic), then with searchFallbacks
+        // its fallbacks, TMP_Settings' fallbacks and the default font asset, each with its own
+        // fallbacks, depth-first; tryAdd adds to the first dynamic asset in that order whose face
+        // has the character (measured on the shipped package, UnityProbe's fontfallback).
         bool FindCharacter(uint unicode, bool searchFallbacks, bool tryAdd)
         {
             if (HasOrAdds(this, unicode, tryAdd)) return true;
             if (!searchFallbacks) return false;
             var visited = new HashSet<int> { GetInstanceID() };
-            if (FallbackHasCharacter(this, unicode, tryAdd, visited)) return true;
-            var globals = TMP_Settings.fallbackFontAssets;
-            if (globals != null)
-                foreach (var f in globals)
-                {
-                    if (f == null || !visited.Add(f.GetInstanceID())) continue;
-                    if (HasOrAdds(f, unicode, tryAdd) || FallbackHasCharacter(f, unicode, tryAdd, visited)) return true;
-                }
+            if (FallbackHasCharacter(m_FallbackFontAssetTable, unicode, tryAdd, visited)) return true;
+            if (FallbackHasCharacter(TMP_Settings.fallbackFontAssets, unicode, tryAdd, visited)) return true;
             var def = TMP_Settings.defaultFontAsset;
-            if (def != null && visited.Add(def.GetInstanceID()))
-                if (HasOrAdds(def, unicode, tryAdd) || FallbackHasCharacter(def, unicode, tryAdd, visited)) return true;
-            return false;
+            if (def == null || !visited.Add(def.GetInstanceID())) return false;
+            return HasOrAdds(def, unicode, tryAdd) || FallbackHasCharacter(def.m_FallbackFontAssetTable, unicode, tryAdd, visited);
         }
 
         static bool HasOrAdds(TMP_FontAsset asset, uint unicode, bool tryAdd)
