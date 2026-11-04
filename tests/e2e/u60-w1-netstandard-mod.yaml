@@ -4,14 +4,17 @@
 # netstandard2.1, built against 761654's Managed: -p:OniManaged=...) runs its `ns21` scenario at
 # OnLoad (tools/UnityProbe/NetStandard.cs): values from Linq, HashSet, Span and
 # MemoryExtensions, System.Xml.Linq, System.Numerics, System.IO.Compression, culture formatting
-# and Type.GetType, each a static field, and a Harmony postfix on Game.OnSpawn.
+# and Type.GetType, each a static field, and a Harmony postfix on Game.OnSpawn, which lists the
+# loaded TMP font assets and whether each, and its fallbacks, has U+202F and U+00A0.
 # The run needs: SemanticsProbe.dll copied into a copy of OniMcp's mod folder, E2E_ONIMCP pointing
 # at the copy, PROBE_SCENARIO=ns21. Each value is compared with the original's, except five
 # that differ for reasons known before the retarget, which are recorded only: Vector3.ToString
 # and a float's default format (ARCHITECTURE D2, the shortest round trip), Int32's assembly name
 # (System.Private.CoreLib against mscorlib) and the GZip stream's compressed length (.NET's
-# zlib against Mono's; both round-trip). fr-FR's group separator is compared: U+202F in ours
-# (ICU), U+00A0 in the original (u60-761654.md, W1).
+# zlib against Mono's, ARCHITECTURE D61; both round-trip). fr-FR's group separator is compared:
+# U+00A0 in both since D60 (ICU's is U+202F). The font list is recorded: every font has both
+# glyphs, itself or through its fallbacks, in the original; in ours HasCharacter's fallback search
+# finds neither in a font that lacks it (u60-761654.md, W1).
 from: early-base
 require_log: ['NS21 Linq=', 'NS21 NetstandardRef=netstandard 2\.1\.0\.0']
 steps:
@@ -33,3 +36,4 @@ steps:
       "type:SemanticsProbe.NetStandard::FormatInvariant": {save_as: formatinvariant}
       "type:SemanticsProbe.NetStandard::Int32Assembly": {save_as: int32assembly}
       "type:SemanticsProbe.NetStandard::NetstandardRef": "== original"
+      "type:SemanticsProbe.NetStandard::Glyphs": {save_as: glyphs}

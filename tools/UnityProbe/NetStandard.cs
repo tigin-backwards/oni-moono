@@ -4,7 +4,9 @@
 // (Linq, HashSet, Span and MemoryExtensions, System.Xml.Linq, System.Numerics, System.IO
 // .Compression, culture formatting, Type.GetType), each as a static field a spec reads with
 // expect_state (type:SemanticsProbe.NetStandard::NAME), and as a line "NS21 NAME=VALUE". A Harmony
-// postfix on Game.OnSpawn counts its calls (GameSpawns).
+// postfix on Game.OnSpawn counts its calls (GameSpawns) and, at the first, lists every loaded
+// TMP font asset with whether it, and its fallbacks, have U+202F and U+00A0 (Glyphs; fr-FR's group
+// separator is U+202F in .NET's ICU data, U+00A0 in Mono's).
 // Run alone with PROBE_SCENARIO=ns21, built against 761654's Managed (-p:OniManaged=...).
 using System;
 using System.Collections.Generic;
@@ -22,7 +24,7 @@ namespace SemanticsProbe
     {
         public static string Linq, HashSetValue, SpanValue, XmlValue, VectorValue, VectorLength,
             GzipRoundTrip, GzipLength, DeflateRoundTrip, FormatDe, FormatFr, FormatRu, FormatInvariant,
-            Int32Assembly, NetstandardRef, Done;
+            Int32Assembly, NetstandardRef, Glyphs, Done;
         public static int GameSpawns;
 
         static string Codes(string s) => string.Join(" ", s.Select(c => ((int)c).ToString("X4")));
@@ -97,6 +99,17 @@ namespace SemanticsProbe
             Done = "yes";
         }
 
-        static void GameSpawnPostfix() => GameSpawns++;
+        static void GameSpawnPostfix()
+        {
+            if (GameSpawns++ > 0) return;
+            Glyphs = Try(() => string.Join(";", Resources.FindObjectsOfTypeAll<TMPro.TMP_FontAsset>()
+                .Select(f => f.name + " " + f.atlasPopulationMode + " 202F=" + Has(f, '\u202F') + " 00A0=" + Has(f, '\u00A0'))
+                .Distinct().OrderBy(s => s, StringComparer.Ordinal)));
+            Debug.Log("NS21 Glyphs=" + Glyphs);
+        }
+
+        // Own table, then with fallbacks; a dynamic asset adds the glyph if its face has it.
+        static string Has(TMPro.TMP_FontAsset f, char c) =>
+            (f.HasCharacter(c, false, true) ? "own" : "-") + "/" + (f.HasCharacter(c, true, true) ? "fallback" : "-");
     }
 }
