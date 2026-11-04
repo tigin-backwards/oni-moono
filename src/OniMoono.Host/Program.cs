@@ -169,8 +169,6 @@ namespace OniMoono.Host
                 MonoNestedTypeNames.Install();
                 // Type.GetType in a patched method looks where Mono's does (D49).
                 MonoTypeByName.Install();
-                // French digit groups are separated with Mono's no-break space, not ICU's narrow one (D60).
-                MonoGroupSeparators.Install();
                 GameTweaks.GameTweaks.Install(effective.EnabledTweaks.ToHashSet(StringComparer.Ordinal));
                 if (effective.FrameStats) GameTweaks.GameTweaks.InstallFrameStats();
                 if (!options.NoTweaksMenu) MoonoTweaksMenu.Install(effective, settings, settingsPath);
