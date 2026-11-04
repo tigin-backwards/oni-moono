@@ -1477,6 +1477,22 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   text for a file that failed). A plugin file it cannot read is taken to have the process's
   architecture, and so fails at dlopen as in Unity. Windows is assumed to give the name's form in
   both cases (Klei's matcher expects it for a blocked SimDLL.dll); not measured there yet.
+- **D60 French digit-group separators.** ICU separates the digit groups of `fr-FR` and ten other
+  French cultures with U+202F (narrow no-break space, CLDR's since version 34); Mono's culture
+  tables (`mono/culture/culture-info-tables.h`) have U+00A0 (no-break space), so
+  `1234567.891.ToString("N2", fr-FR)` printed "1 234 567,89" with another space than the
+  original's. The game itself never formats so: `LaunchInitializer` sets the main thread's
+  culture to the invariant one (`Util.ApplyInvariantCultureToThread`), and under
+  `LANG=fr_FR.UTF-8` the main thread, a new thread and a pool thread all format in the invariant
+  culture in both players (only `CurrentUICulture` is fr-FR, which no game code formats with).
+  A mod formatting in a French culture does, and the game's fonts draw both characters
+  (NotoSans-Regular and LiberationSans have U+202F; every font reaches it through its
+  fallbacks). **Resolved by a patch** (`MonoGroupSeparators`): `CultureData.GetNFIValues`, which
+  fills each new `NumberFormatInfo`, gives the number, currency and percent group separators
+  Mono's U+00A0 for exactly the cultures where ICU has U+202F and Mono's table U+00A0: fr, fr-CD,
+  fr-CH, fr-CI, fr-CM, fr-FR, fr-HT, fr-MC, fr-ML, fr-RE and fr-SN. The others with U+202F are
+  left as ICU has them: 32 French cultures, vec and vec-IT, which Mono has no data for, and
+  fr-BE, whose separator is '.' in Mono.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.
