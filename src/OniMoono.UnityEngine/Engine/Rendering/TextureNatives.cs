@@ -335,6 +335,7 @@ namespace OniMoono.Engine.Rendering
             source = null;
             unloaded = false;
             memory = texels;
+            texelsChanged = true;
         }
 
         /// Called by the device after uploading a texture whose CPU copy is not kept
