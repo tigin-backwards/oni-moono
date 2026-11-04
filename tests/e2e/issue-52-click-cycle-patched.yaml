@@ -1,0 +1,148 @@
+# Issue #52: clicking one point again and again selected only the topmost object, in a
+# player's colony with Fast Track and Better Info Cards, the automation overlay open. Our test mod
+# tools/SelectCycleTestMod patches click selection in their shape: GetObjectUnderCursor<KSelectable>
+# transpiled to `return null`, a postfix taking __result by reference added by a second Patch
+# call, and a SelectTool.OnLeftClickDown prefix that calls it (25 times a click, so its shared
+# code tiers up early) and cycles itself when it returns null. Were the patched body skipped (the
+# #48 failure: the detour left on the old code after tier-up), the original body would return the
+# first object every click: with the host's forwarding of recompiled shared code turned off, ours
+# stuck on one object from the 23rd click.
+#
+# A logic wire, a logic switch and two debris lie in cell (109, 206). It is clicked 30 times
+# without an overlay and 30 times in the automation overlay, where only the wire and the switch
+# are selectable; each click selects another object than the one before. The test mod orders the
+# objects by instance id, so the objects are not compared with the original's.
+from: early-base
+test_mods: [SelectCycleTestMod]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicControl\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicWire\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicSwitch\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"SandStone\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Dirt\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 200, 300, 255, 0]}}
+steps:
+  - driver: {camera.set: {cell: [110, 207], ortho: 8}}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": {save_as: s0}}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s0", {save_as: s1}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s1", {save_as: s2}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s2", {save_as: s3}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s3", {save_as: s4}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s4", {save_as: s5}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s5", {save_as: s6}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s6", {save_as: s7}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s7", {save_as: s8}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s8", {save_as: s9}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s9", {save_as: s10}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s10", {save_as: s11}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s11", {save_as: s12}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s12", {save_as: s13}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s13", {save_as: s14}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s14", {save_as: s15}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s15", {save_as: s16}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s16", {save_as: s17}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s17", {save_as: s18}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s18", {save_as: s19}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s19", {save_as: s20}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s20", {save_as: s21}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s21", {save_as: s22}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s22", {save_as: s23}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s23", {save_as: s24}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s24", {save_as: s25}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s25", {save_as: s26}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s26", {save_as: s27}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s27", {save_as: s28}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s28", {save_as: s29}]}
+  - key: {code: "Shift+F2"}
+  - run: {seconds: 1, speed: 1}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s29", {save_as: s30}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s30", {save_as: s31}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s31", {save_as: s32}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s32", {save_as: s33}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s33", {save_as: s34}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s34", {save_as: s35}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s35", {save_as: s36}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s36", {save_as: s37}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s37", {save_as: s38}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s38", {save_as: s39}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s39", {save_as: s40}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s40", {save_as: s41}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s41", {save_as: s42}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s42", {save_as: s43}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s43", {save_as: s44}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s44", {save_as: s45}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s45", {save_as: s46}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s46", {save_as: s47}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s47", {save_as: s48}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s48", {save_as: s49}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s49", {save_as: s50}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s50", {save_as: s51}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s51", {save_as: s52}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s52", {save_as: s53}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s53", {save_as: s54}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s54", {save_as: s55}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s55", {save_as: s56}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s56", {save_as: s57}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s57", {save_as: s58}]}
+  - click_world: {pos: [109.5, 206.2]}
+  - expect_state: {"selected:GetInstanceID()": ["!= s58", {save_as: s59}]}
