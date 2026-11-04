@@ -2585,9 +2585,63 @@ CJK, Arabic, Hebrew and Thai fonts among them) and `TMP_Settings.defaultFontAsse
   lacks stay missing ("一" in DejaVu Sans) and are not added. Already present characters are not
   added again.
 - With `tryAddCharacter` false, nothing is added anywhere.
+- **A null entry** in any of the lists searched ends that list's search; the search goes on in
+  the list around it and in the next stage, as for `HasCharacter` below: an empty asset with
+  fallbacks [null, NotoSans] does not find "a" (`missing` [61]); with the global list
+  [null, NotoSans] and no default font asset, neither.
 
 **Requirement:** the overload with this signature, parameter names and defaults, behaving as
 above.
+
+#### `TMP_FontAsset.HasCharacter(char, bool, bool)`
+
+**Why:** a mod asks whether a font, with its fallbacks, draws a character (UnityProbe's `ns21`
+asks it for U+202F and U+00A0, the group separators of French cultures, in every loaded font).
+
+**Interface (metadata):** `public bool HasCharacter(int character)` (the asset's own table) and
+`public bool HasCharacter(char character, bool searchFallbacks = false, bool tryAddCharacter =
+false)`. There is no `uint` overload in the shipped package's metadata.
+
+**Measured** (UnityProbe `fontfallback`, lines `FF chain`, `FF has` and `FF hasadd`, at the main
+menu in English, Chinese and Russian; `TMP_Settings` holds 11 global fallbacks, NotoSans-Regular
+and the Noto CJK, Arabic, Hebrew and Thai fonts and Roboto-Regular among them, and the default
+font asset LiberationSans SDF, whose own fallback is the dynamic LiberationSans SDF - Fallback;
+GRAYSTROKE's, Economica's, Roboto-Bold's and Roboto-Italic's own fallback lists are [null]). The
+empty assets are static and dynamic assets made with `CreateFontAsset` from the LiberationSans
+face:
+- **`searchFallbacks` false:** the asset's own table; with `tryAddCharacter`, a dynamic asset
+  adds the character when its face has it. `HasCharacter(int)` is the own table only.
+- **`searchFallbacks` true:** the same search as `HasCharacters` above, in this order:
+  1. the asset itself;
+  2. its `fallbackFontAssetTable`, depth-first (each asset, then its own fallbacks);
+  3. `TMP_Settings.fallbackFontAssets`, each with its own fallbacks;
+  4. `TMP_Settings.defaultFontAsset`, with its own fallbacks.
+  So an empty static asset finds "a", U+00A0 and U+202F (in the global fallbacks or the default
+  font asset) and "一" (in the global CJK fonts). With the global list empty it still finds "a"
+  and U+202F, not "一"; with the default font asset null too, nothing, and the same with a null
+  global list (no exception). Every loaded font finds U+00A0 and U+202F: GRAYSTROKE, Roboto and
+  Economica, which lack them, through the global fallbacks.
+- **Null entries:** a null entry ends the search of its list; the list around it, and the next
+  stage, go on. An empty asset with fallbacks [null, NotoSans] does not find "a"; with [M,
+  NotoSans] where M's fallbacks are [null], it does; with [M] where M's are [null, NotoSans], it
+  does not. With own fallbacks [null] and NotoSans in the global list, it does; with the global
+  list [null] and the default font asset NotoSans, it does; with the global list [null,
+  NotoSans] and no default, it does not; with the default font asset M whose fallbacks are
+  [null, NotoSans], it does not.
+- **The asset among the globals:** an empty asset that is itself the first global fallback,
+  NotoSans the second, finds "a".
+- **`tryAddCharacter`:** the character is added to the first dynamic asset in the order above
+  whose face has it, before any later asset is looked in: with the global list [dynamic D,
+  NotoSans], "u" is added to D (table 0 → 1). With a dynamic own fallback and a dynamic global
+  fallback, "r" goes to the own fallback; with only a dynamic global and a dynamic default
+  font asset, "q" goes to the global one, and with only the default, to the default. "一", which
+  the LiberationSans face lacks, is added nowhere. Without `tryAddCharacter` nothing is added.
+- **Drawing** walks the same chain (the font, its fallbacks, the global fallbacks, the default
+  font asset) and draws the same characters from the same assets in all three languages, but a
+  null entry does not end a list there: a static empty asset with fallbacks [null, NotoSans]
+  draws "a" from NotoSans.
+
+**Requirement:** behaving as above.
 
 #### `TextMeshProUGUI.canvasRenderer`
 

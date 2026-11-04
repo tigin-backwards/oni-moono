@@ -664,6 +664,120 @@ namespace OniMoono.Tests
             });
         }
 
+        // ----- TMP_FontAsset.HasCharacter(char, bool, bool) -----
+        // Measured on the shipped package (UnityProbe fontfallback, lines "FF chain"): with
+        // searchFallbacks the asset's fallbacks, TMP_Settings' fallbacks and the default font
+        // asset are searched, each with its own fallbacks; a null entry ends its list.
+
+        [Fact]
+        public void HasCharacterSearchesTheSettingsFallbacksAndTheDefault()
+        {
+            TmpTestSupport.LoadGameData();
+            var noto = TmpTestSupport.FindAsset<TMP_FontAsset>("NotoSans-Regular");
+            var empty = NewDynamic(AtlasPopulationMode.Static);
+            // As the game has them: the CJK fonts are global fallbacks, LiberationSans the default.
+            Assert.False(empty.HasCharacter('a'));
+            Assert.False(empty.HasCharacter((int)'a'));
+            Assert.True(empty.HasCharacter('a', true));
+            Assert.True(empty.HasCharacter('一', true));
+            Assert.True(empty.HasCharacter(' ', true));
+            Assert.True(empty.HasCharacter(' ', true));
+            WithSettings(new List<TMP_FontAsset>(), TMP_Settings.defaultFontAsset, () =>
+            {
+                Assert.True(empty.HasCharacter('a', true));
+                Assert.False(empty.HasCharacter('一', true));
+            });
+            WithSettings(TMP_Settings.fallbackFontAssets, null, () => Assert.True(empty.HasCharacter('一', true)));
+            WithSettings(new List<TMP_FontAsset>(), null, () => Assert.False(empty.HasCharacter('a', true)));
+            WithSettings(null, null, () => Assert.False(empty.HasCharacter('a', true)));
+            WithSettings(new List<TMP_FontAsset>(), noto, () => Assert.True(empty.HasCharacter('a', true)));
+            // A global's and the default's own fallbacks are searched too.
+            var middle = NewDynamic(AtlasPopulationMode.Static);
+            middle.fallbackFontAssetTable = new List<TMP_FontAsset> { noto };
+            WithSettings(new List<TMP_FontAsset> { middle }, null, () => Assert.True(empty.HasCharacter('a', true)));
+            WithSettings(new List<TMP_FontAsset>(), middle, () => Assert.True(empty.HasCharacter('a', true)));
+            // The asset itself among the globals.
+            WithSettings(new List<TMP_FontAsset> { empty, noto }, null, () => Assert.True(empty.HasCharacter('a', true)));
+        }
+
+        [Fact]
+        public void ANullFallbackEndsItsListsSearch()
+        {
+            TmpTestSupport.LoadGameData();
+            var noto = TmpTestSupport.FindAsset<TMP_FontAsset>("NotoSans-Regular");
+            var empty = NewDynamic(AtlasPopulationMode.Static);
+            var middle = NewDynamic(AtlasPopulationMode.Static);
+            WithSettings(new List<TMP_FontAsset>(), null, () =>
+            {
+                empty.fallbackFontAssetTable = new List<TMP_FontAsset> { null, noto };
+                Assert.False(empty.HasCharacter('a', true));
+                Assert.False(empty.HasCharacters("a", out uint[] missing, true));
+                Assert.Equal(new uint[] { 0x61 }, missing);
+                middle.fallbackFontAssetTable = new List<TMP_FontAsset> { null, noto };
+                empty.fallbackFontAssetTable = new List<TMP_FontAsset> { middle };
+                Assert.False(empty.HasCharacter('a', true));
+                // The list around it goes on.
+                middle.fallbackFontAssetTable = new List<TMP_FontAsset> { null };
+                empty.fallbackFontAssetTable = new List<TMP_FontAsset> { middle, noto };
+                Assert.True(empty.HasCharacter('a', true));
+            });
+            // So do the global fallbacks and the default after one in the asset's own list.
+            WithSettings(new List<TMP_FontAsset> { noto }, null, () =>
+            {
+                empty.fallbackFontAssetTable = new List<TMP_FontAsset> { null, middle };
+                Assert.True(empty.HasCharacter('a', true));
+            });
+            empty.fallbackFontAssetTable = new List<TMP_FontAsset>();
+            WithSettings(new List<TMP_FontAsset> { null }, noto, () => Assert.True(empty.HasCharacter('a', true)));
+            WithSettings(new List<TMP_FontAsset> { null, noto }, null, () =>
+            {
+                Assert.False(empty.HasCharacter('a', true));
+                Assert.False(empty.HasCharacters("a", out uint[] missing, true));
+            });
+            middle.fallbackFontAssetTable = new List<TMP_FontAsset> { null, noto };
+            WithSettings(new List<TMP_FontAsset>(), middle, () => Assert.False(empty.HasCharacter('a', true)));
+        }
+
+        [Fact]
+        public void HasCharacterAddsToTheFirstDynamicAssetInTheSearch()
+        {
+            TmpTestSupport.LoadGameData();
+            var noto = TmpTestSupport.FindAsset<TMP_FontAsset>("NotoSans-Regular");
+            var empty = NewDynamic(AtlasPopulationMode.Static);
+            var global = NewDynamic();
+            var def = NewDynamic();
+            var own = NewDynamic();
+            WithSettings(new List<TMP_FontAsset> { global }, def, () =>
+            {
+                Assert.False(empty.HasCharacter('q', true));
+                Assert.Empty(global.characterTable);
+                Assert.True(empty.HasCharacter('q', true, true));
+                Assert.Single(global.characterTable);
+                Assert.Empty(def.characterTable);
+                // A character no face has is added nowhere.
+                Assert.False(empty.HasCharacter('一', true, true));
+                Assert.Single(global.characterTable);
+                // The asset's own fallbacks come first.
+                empty.fallbackFontAssetTable = new List<TMP_FontAsset> { own };
+                Assert.True(empty.HasCharacter('r', true, true));
+                Assert.Single(own.characterTable);
+                Assert.Single(global.characterTable);
+                empty.fallbackFontAssetTable = new List<TMP_FontAsset>();
+            });
+            WithSettings(new List<TMP_FontAsset>(), def, () =>
+            {
+                Assert.True(empty.HasCharacter('s', true, true));
+                Assert.Single(def.characterTable);
+            });
+            // A dynamic asset adds before a later asset's table is looked in.
+            var first = NewDynamic();
+            WithSettings(new List<TMP_FontAsset> { first, noto }, null, () =>
+            {
+                Assert.True(empty.HasCharacter('u', true, true));
+                Assert.Single(first.characterTable);
+            });
+        }
+
         // ----- TextMeshProUGUI.canvasRenderer -----
 
         [Fact]

@@ -258,7 +258,9 @@ namespace TMPro
                 uint missing = (uint)TMP_Settings.missingGlyphCharacter;
                 if (missing == 0) missing = 0x25A1;
                 if (!TMP_Settings.warningsDisabled && s_ReportedMissing.Add(shown))
-                    Debug.LogWarning($"The character with Unicode value \\u{shown:X4} was not found in the [{state.Font?.name}] font asset or any potential fallbacks. It was replaced by Unicode character \\u{missing:X4} in text object [{m_Text.name}].", m_Text);
+                    // A code point past the BMP is written \U and eight digits (\U0001F600), as
+                    // the shipped package writes it.
+                    Debug.LogWarning($"The character with Unicode value {(shown > 0xFFFF ? $"\\U{shown:X8}" : $"\\u{shown:X4}")} was not found in the [{state.Font?.name}] font asset or any potential fallbacks. It was replaced by Unicode character \\u{missing:X4} in text object [{m_Text.name}].", m_Text);
                 if (!ResolveGlyph(missing, state, out character, out asset, out alternate))
                 {
                     // Nothing to draw: the element still takes its place as an empty character.
