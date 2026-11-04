@@ -1,5 +1,5 @@
 """e2e.py's spec parsing and validation, options, keys and expectations."""
-import json, os, tempfile, unittest
+import json, os, struct, tempfile, unittest
 
 import helpers  # noqa: F401  (puts scripts/ on the path)
 import e2e
@@ -667,9 +667,20 @@ class Translation(unittest.TestCase):
 class SpacedOut(unittest.TestCase):
     """Which mode a spec's players run in: its `spaced_out`, else its fixture's header."""
 
-    def save(self, folder, name, info):
+    def save(self, folder, name, info, header_size=None):
+        # Build, header size, header version and compression, then the header's JSON.
+        text = json.dumps(info).encode()
+        prefix = struct.pack('<4I', 761654, len(text) if header_size is None else header_size, 1, 1)
         with open(os.path.join(folder, name + '.sav'), 'wb') as f:
-            f.write(b'\x00\x01KSAV' + json.dumps(info).encode() + b'\x00tail{not json')
+            f.write(prefix + text + b'\x00tail{not json')
+
+    def test_header_size_holding_a_brace(self):
+        # 0x17b's low byte is '{': the JSON is still the one after the prefix.
+        with tempfile.TemporaryDirectory() as folder:
+            self.save(folder, 'brace', {'numberOfDuplicants': 0, 'dlcIds': ['EXPANSION1_ID']}, header_size=0x17b)
+            info = e2e.save_info(os.path.join(folder, 'brace.sav'))
+            self.assertEqual(info['numberOfDuplicants'], 0)
+            self.assertTrue(e2e.save_is_spaced_out(os.path.join(folder, 'brace.sav')))
 
     def test_mode_follows_the_fixture_or_the_spec(self):
         with tempfile.TemporaryDirectory() as folder:

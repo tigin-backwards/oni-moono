@@ -21,7 +21,7 @@ file="$(wslpath -w "$d/cloud_save_files/76561197960265729/$name/$name.sav")"
 expansion1=$(python3 -I - "$save" <<'PY'
 import json, sys
 head = open(sys.argv[1], 'rb').read(65536).decode('latin1')
-start = head.index('{'); depth = 0
+start = head.index('{', 16); depth = 0   # after the four int32s (a header size can hold 0x7b)
 for i, c in enumerate(head[start:], start):
     depth += (c == '{') - (c == '}')
     if depth == 0: break

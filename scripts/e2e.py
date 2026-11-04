@@ -1234,13 +1234,21 @@ def fixture_of(spec):
     return None if spec['from'] == MAIN_MENU else os.path.join(FIXTURES, spec['from'] + '.sav')
 
 
+def save_info(path):
+    """A save's header JSON (numberOfDuplicants, dlcIds, clusterId and the rest)."""
+    with open(path, 'rb') as f:
+        head = f.read(65536).decode('latin1')
+    # The JSON follows four int32s (build, header size, header version, compression); a header
+    # size whose low byte is 0x7b would read as a '{' before it.
+    start = head.index('{', 16)
+    info, _ = json.JSONDecoder().raw_decode(head, start)
+    return info
+
+
 def save_is_spaced_out(path):
     """Whether a save is a Spaced Out one, from its header's dlcIds (scripts/windows-run-home.sh);
     older saves list none, and their cluster names the expansion."""
-    with open(path, 'rb') as f:
-        head = f.read(65536).decode('latin1')
-    start = head.index('{')
-    info, _ = json.JSONDecoder().raw_decode(head, start)
+    info = save_info(path)
     return 'EXPANSION1_ID' in (info.get('dlcIds') or []) or str(info.get('clusterId', '')).startswith('expansion1::')
 
 
@@ -2941,6 +2949,10 @@ class Player:
             return  # `from: main-menu`: the steps start at the main menu
         mcp.call('game_control', domain='launch', action='start', path=self.fixture, confirm=True)
         deadline = time.time() + 900
+        # A colony saved with no Duplicants left (a vent test bed) counts as loaded once its
+        # worlds are, and then a few polls later, for the load's last frames.
+        empty = save_info(self.fixture).get('numberOfDuplicants') == 0
+        settled = 0
         while True:
             time.sleep(3)
             if self.process.poll() is not None:
@@ -2952,6 +2964,10 @@ class Player:
             # The player starts at the main menu, so a colony with Duplicants is the fixture's.
             if isinstance(status, dict) and status.get('duplicantCount', 0) > 0:
                 break
+            if empty and isinstance(status, dict) and status.get('worldCount', 0) > 0:
+                settled += 1
+                if settled >= 3:
+                    break
             if time.time() > deadline:
                 raise SpecFailure('the fixture did not load within 15 minutes')
         mcp.call('game_control', domain='speed', action='pause', confirm=True)
