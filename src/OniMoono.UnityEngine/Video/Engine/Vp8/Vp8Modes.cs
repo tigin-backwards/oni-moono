@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static OniMoono.Engine.Video.Vp8.Vp8Constants;
 
@@ -17,6 +18,7 @@ namespace OniMoono.Engine.Video.Vp8
             public int ToLeft, ToRight, ToTop, ToBottom;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static Mv ClampMv(Mv raw, MvClampRect* bounds)
         {
             Mv newmv;
@@ -32,6 +34,7 @@ namespace OniMoono.Engine.Video.Vp8
             return newmv;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int ReadSegmentId(BoolDecoder* bd, SegmentHdr* seg)
         {
             return BoolDecoder.Get(bd, (int)seg->TreeProbs[0]) != 0
@@ -39,6 +42,7 @@ namespace OniMoono.Engine.Video.Vp8
                    : BoolDecoder.Get(bd, (int)seg->TreeProbs[1]);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int AboveBlockMode(MbInfo* self, MbInfo* above, int b)
         {
             if (b < 4)
@@ -63,6 +67,7 @@ namespace OniMoono.Engine.Video.Vp8
             return MbInfo.SplitModes(self)[b - 4];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int LeftBlockMode(MbInfo* self, MbInfo* left, int b)
         {
             if ((b & 3) == 0)
@@ -87,6 +92,7 @@ namespace OniMoono.Engine.Video.Vp8
             return MbInfo.SplitModes(self)[b - 1];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeKfMbMode(MbInfo* self, MbInfo* left, MbInfo* above, BoolDecoder* bd)
         {
             int yMode, uvMode;
@@ -117,6 +123,7 @@ namespace OniMoono.Engine.Video.Vp8
             self->RefFrame = 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeIntraMbMode(MbInfo* self, EntropyHdr* hdr, BoolDecoder* bd)
         {
             // Like decode_kf_mb_mode, but with probabilities transmitted in the bitstream and
@@ -144,6 +151,7 @@ namespace OniMoono.Engine.Video.Vp8
             self->RefFrame = CurrentFrame;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int ReadMvComponent(BoolDecoder* bd, byte* mvc)
         {
             const int IsShort = 0, Sign = 1, Short = 2, Bits = Short + 8 - 1, LongWidth = 10;
@@ -172,6 +180,7 @@ namespace OniMoono.Engine.Video.Vp8
             return x << 1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static Mv AboveBlockMv(MbInfo* self, MbInfo* above, int b)
         {
             if (b < 4)
@@ -185,6 +194,7 @@ namespace OniMoono.Engine.Video.Vp8
             return MbInfo.SplitMvs(self)[b - 4];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static Mv LeftBlockMv(MbInfo* self, MbInfo* left, int b)
         {
             if ((b & 3) == 0)
@@ -205,6 +215,7 @@ namespace OniMoono.Engine.Video.Vp8
         const int SubMvRefLeftAboveSame = 3;
         const int SubMvRefLeftAboveZed = 4;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int SubMvRef(BoolDecoder* bd, Mv l, Mv a)
         {
             bool lez = l.Raw == 0;
@@ -226,12 +237,14 @@ namespace OniMoono.Engine.Video.Vp8
         }
 
         /// mvc: mv_component_probs_t[2], flattened.
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void ReadMv(BoolDecoder* bd, Mv* mv, byte* mvc)
         {
             mv->Y = (short)ReadMvComponent(bd, mvc);
             mv->X = (short)ReadMvComponent(bd, mvc + MvProbCnt);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void MvBias(MbInfo* mb, uint* signBias, int refFrame, Mv* mv)
         {
             if ((signBias[mb->RefFrame] ^ signBias[refFrame]) != 0)
@@ -248,6 +261,7 @@ namespace OniMoono.Engine.Video.Vp8
         const int CntNear = 2;
         const int CntSplitMv = 3;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void FindNearMvs(MbInfo* self, MbInfo* left, MbInfo* above, uint* signBias, Mv* nearMvs, int* cnt)
         {
             MbInfo* aboveleft = above - 1;
@@ -347,6 +361,7 @@ namespace OniMoono.Engine.Video.Vp8
                 nearMvs[CntBest] = nearMvs[CntNearest];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeSplitMv(MbInfo* self, MbInfo* left, MbInfo* above, EntropyHdr* hdr, Mv* bestMv, BoolDecoder* bd)
         {
             ReadOnlySpan<int> partition;
@@ -402,6 +417,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static bool NeedMcBorder(Mv mv, int l, int t, int bW, int w, int h)
         {
             int b, r;
@@ -417,6 +433,7 @@ namespace OniMoono.Engine.Video.Vp8
             return (l >> 1 < 2 || r >> 1 < 3 || t >> 1 < 2 || b >> 1 < 3);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeMvs(DecoderCtx* ctx, MbInfo* self, MbInfo* left, MbInfo* above, MvClampRect* bounds, BoolDecoder* bd)
         {
             const int Best = 0, Nearest = 1, Near = 2;
@@ -514,6 +531,7 @@ namespace OniMoono.Engine.Video.Vp8
                 self->NeedMcBorder = 1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void ProcessRow(DecoderCtx* ctx, BoolDecoder* bd, int row, int startCol, int numCols)
         {
             MbInfo* above, self;
@@ -561,6 +579,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Init(DecoderCtx* ctx)
         {
             uint mbiW, mbiH, i;
@@ -595,6 +614,7 @@ namespace OniMoono.Engine.Video.Vp8
             ctx->MbInfoRows = ctx->MbInfoRowsStorage + 1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Destroy(DecoderCtx* ctx)
         {
             NativeMemory.Free(ctx->MbInfoStorage);

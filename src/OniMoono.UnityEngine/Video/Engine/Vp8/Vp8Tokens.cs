@@ -3,6 +3,7 @@
 // src/ThirdParty/rfc6386/LICENSE and PATENTS.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static OniMoono.Engine.Video.Vp8.Vp8Constants;
 
@@ -34,10 +35,12 @@ namespace OniMoono.Engine.Video.Vp8
         const int DctValCategory6 = 10;
 
         /// extrabits[t].probs[bitsCount]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int ExtraBitProb(ReadOnlySpan<byte> extraBitsProbs, int t, int bitsCount) => extraBitsProbs[t * 12 + bitsCount];
 
         /// decode_mb_tokens. left and above are token_entropy_ctx_t; probs is the
         /// coeff_probs_table_t; factor is short[TOKEN_BLOCK_TYPES][2].
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int DecodeMbTokens(BoolDecoder* bd, int* left, int* above, short* tokens, int mode, byte* probs, short* factor)
         {
             int i, stop, type;
@@ -238,16 +241,19 @@ namespace OniMoono.Engine.Video.Vp8
             return eobMask;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void ResetRowContext(int* left)
         {
             new Span<int>(left, TokenEntropyCtxSize).Clear();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void ResetAboveContext(int* above, int cols)
         {
             new Span<int>(above, cols * TokenEntropyCtxSize).Clear();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void ResetMbContext(int* left, int* above, int mode)
         {
             // Reset the macroblock context on the left and right. We have to preserve the
@@ -262,6 +268,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void ProcessRow(DecoderCtx* ctx, int partition, int row, int startCol, int numCols)
         {
             TokenDecoder* tokens = &ctx->Tokens[partition];
@@ -305,6 +312,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Init(DecoderCtx* ctx)
         {
             if (ctx->FrameHdr.FrameSizeUpdated != 0)
@@ -324,6 +332,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static void Destroy(DecoderCtx* ctx)
         {
             for (int i = 0; i < MaxPartitions; i++)

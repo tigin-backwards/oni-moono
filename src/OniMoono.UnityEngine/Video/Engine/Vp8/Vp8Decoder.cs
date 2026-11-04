@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static OniMoono.Engine.Video.Vp8.Vp8Constants;
 
@@ -14,6 +15,14 @@ namespace OniMoono.Engine.Video.Vp8
     /// A port of dixie.c: frame header parsing, the segmentation, loop filter, quantizer,
     /// reference and entropy headers, token partitions, the per-row decode loop and reference
     /// frame management. The decoder state is a DecoderCtx in native memory.
+    ///
+    /// Every method of the decoder (and VideoFrameConverter's) is compiled optimized at its
+    /// first call (AggressiveOptimization). Tiered compilation would start them as unoptimized
+    /// code and optimize them only once the runtime's call counting begins, which it puts off
+    /// while start-up compiles new methods: the main menu's intro, playing from start-up, was
+    /// decoded about four times slower than real time for its first seconds and ran up to
+    /// 1.5 s behind its audio, every fourth frame shown. The decoder is integer code; the
+    /// pictures are the same.
     internal sealed unsafe class Vp8Decoder : IDisposable
     {
         const int FrameHeaderSz = 3;
@@ -26,6 +35,7 @@ namespace OniMoono.Engine.Video.Vp8
 
         DecoderCtx* ctx;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public Vp8Decoder()
         {
             ctx = (DecoderCtx*)NativeMemory.AllocZeroed((nuint)sizeof(DecoderCtx));
@@ -44,6 +54,7 @@ namespace OniMoono.Engine.Video.Vp8
         /// Decodes one compressed frame (one WebM block). Returns true when the frame is to be
         /// shown; the image fields below then describe it until the next call.
         /// Throws InvalidDataException for corrupt or unsupported data.
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public bool Decode(ReadOnlySpan<byte> frame)
         {
             ObjectDisposedException.ThrowIf(ctx == null, this);
@@ -80,12 +91,14 @@ namespace OniMoono.Engine.Video.Vp8
 
         public int StrideV => Image != null ? Image->StrideUv : 0;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public void Dispose()
         {
             Free();
             GC.SuppressFinalize(this);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         void Free()
         {
             if (ctx == null) return;
@@ -99,8 +112,10 @@ namespace OniMoono.Engine.Video.Vp8
         }
 
         /// vpx_internal_error
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static InvalidDataException Error(string message) => new("VP8: " + message);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeEntropyHeader(DecoderCtx* ctx, BoolDecoder* bd, EntropyHdr* hdr)
         {
             int i, j, k, l;
@@ -149,6 +164,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeReferenceHeader(DecoderCtx* ctx, BoolDecoder* bd, ReferenceHdr* hdr)
         {
             bool key = ctx->FrameHdr.IsKeyframe != 0;
@@ -165,6 +181,7 @@ namespace OniMoono.Engine.Video.Vp8
             hdr->RefreshLast = key ? 1u : (uint)BoolDecoder.GetBit(bd);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeQuantizerHeader(BoolDecoder* bd, QuantHdr* hdr)
         {
             int update;
@@ -180,6 +197,7 @@ namespace OniMoono.Engine.Video.Vp8
             hdr->DeltaUpdate = update;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeAndInitTokenPartitions(DecoderCtx* ctx, BoolDecoder* bd, byte* data, uint sz, TokenHdr* hdr)
         {
             int i;
@@ -214,6 +232,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeLoopfilterHeader(DecoderCtx* ctx, BoolDecoder* bd, LoopfilterHdr* hdr)
         {
             if (ctx->FrameHdr.IsKeyframe != 0)
@@ -236,6 +255,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeSegmentationHeader(DecoderCtx* ctx, BoolDecoder* bd, SegmentHdr* hdr)
         {
             if (ctx->FrameHdr.IsKeyframe != 0)
@@ -276,12 +296,14 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DequantGlobalInit(DequantFactors* dqf)
         {
             for (int i = 0; i < MaxMbSegments; i++)
                 dqf[i].QuantIdx = -1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int ClampQ(int q)
         {
             if (q < 0) return 0;
@@ -290,10 +312,13 @@ namespace OniMoono.Engine.Video.Vp8
             return q;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int DcQ(int q) => Vp8Tables.DcQLookup[ClampQ(q)];
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int AcQ(int q) => Vp8Tables.AcQLookup[ClampQ(q)];
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DequantInit(DequantFactors* factors, SegmentHdr* seg, QuantHdr* quantHdr)
         {
             int i, q;
@@ -330,6 +355,7 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeFrame(DecoderCtx* ctx, byte* data, uint sz)
         {
             int res;
@@ -482,12 +508,14 @@ namespace OniMoono.Engine.Video.Vp8
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeInit(DecoderCtx* ctx)
         {
             DequantGlobalInit(ctx->DequantFactors);
         }
 
         /// CHECK_FOR_UPDATE(lval, rval, update_flag)
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void CheckForUpdate(ref uint lval, uint rval, ref uint updateFlag)
         {
             uint old = lval;
@@ -495,8 +523,10 @@ namespace OniMoono.Engine.Video.Vp8
         }
 
         /// BITS_GET(val, bit, len): len bits, with the LSB at position bit.
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static uint BitsGet(uint val, int bit, int len) => (val >> bit) & ((1u << len) - 1);
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static int ParseFrameHeader(byte* data, uint sz, FrameHdr* hdr)
         {
             uint raw;
@@ -542,6 +572,7 @@ namespace OniMoono.Engine.Video.Vp8
             return CodecOk;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         static void DecodeDestroy(DecoderCtx* ctx)
         {
             Vp8Predict.Destroy(ctx);
