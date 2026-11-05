@@ -619,6 +619,12 @@ class Translation(unittest.TestCase):
             self.assertIn('`extra_saves` is a list of fixture names',
                           e2e.check_spec({'from': 'main-menu', 'extra_saves': bad, 'steps': []}))
 
+    def test_retired_colonies_are_json_fixtures(self):
+        self.assertEqual(e2e.check_spec({'from': 'main-menu', 'retired_colonies': ['retired-chart-colony'], 'steps': []}), [])
+        for bad in ('retired-chart-colony', ['../x'], [1], ['no-such-colony']):
+            self.assertIn('`retired_colonies` lists fixtures/NAME.json files',
+                          e2e.check_spec({'from': 'main-menu', 'retired_colonies': bad, 'steps': []}))
+
     def test_blocked_install_links_all_but_the_blocked_plugin(self):
         with tempfile.TemporaryDirectory() as root:
             game, elsewhere = os.path.join(root, 'game'), os.path.join(root, 'depot')
