@@ -500,3 +500,95 @@ all: it reads inactive throughout.
 Raw data and scripts: `out/ft2/out/results/` (local), scripts on branch `frame-timing-probe`
 (`tools/PerfProbe/frametiming/`: ft-run.sh, ftan.py, table.py, lagcheck.py, events.py). The
 original's late-colony behaviour comes from the earlier runs in `out/frametime/out/ft-results/`.
+
+## Linux under WSLg (2026-11-05)
+
+The question: does the delta's mismatch with the display make panning uneven on Linux too? On
+Linux ours times frames by the wall clock, as Unity's Linux player does. The display here is
+WSLg: Weston's RDP backend, with XWayland for our X11 window. All runs were windowed (1280×720)
+on monitor 2, placed through X11 and checked before measuring (at 3206,387 in every run), with
+vsync on unless noted. Each cell is one run.
+
+**Verdict: no change.** WSLg's OpenGL ignores the swap interval, so no frame is paced by a
+refresh. Our deltas are the wall clock and add up to it, and FramePacing's rounding has nothing
+to correct. Panning is uneven on WSLg, but the cause is unpaced frames against a 60 Hz repaint,
+which a delta cannot fix. No tweak was built.
+
+**The display's rate:**
+- **RandR (XWayland):** three outputs, each 2560×1440. The mode's timings (312.25 MHz,
+  htotal 3488, vtotal 1493) give 59.9606 Hz, a period of 16.6776 ms. XWayland makes this CVT mode
+  up from the output's nominal rate.
+- **Weston:** its log gives `rdp_monitor_refresh_rate: 60000`, so 60.000 Hz.
+- **The monitor:** 59.951 Hz (above).
+- **The repaint clock:** measured with the X Present extension on an 8×8 window in monitor 2's
+  corner, presenting at every next MSC. It follows none of the three rates above:
+
+| When | intervals | mean or median | sd | notes |
+|---|---|---|---|---|
+| idle, 20 s | 1,239 | mean 16.134 ms (61.97 Hz) | 0.21 ms | min 14.2, max 18.7 ms |
+| idle, 60 s | 3,653 | median 16.127 ms | n/a | one stall of 843 ms |
+| ours, small base | 540 | mean 16.424 ms | 0.33 ms | |
+| ours, 200-Duplicant colony | 3,071 | mean 16.368 ms, median 16.231 ms | 0.96 ms | 5.7-33.2 ms |
+
+  The repaint is a software timer whose rate wanders, between about 60.5 and 62 Hz in these runs.
+  It is not the monitor's vblank, and the RDP link to Windows adds another resampling onto the
+  59.951 Hz desktop. That step cannot be seen from Linux.
+
+**The game's pictures cannot be timed.**
+- Mesa's d3d12 driver has no `/dev/dri` under WSL, so GLX runs its software path and copies each
+  picture into the window.
+- The game's window got no Present events, and its MSC stayed at 1 throughout. The window manager's
+  frame around it behaved the same.
+- So no picture has a display time. The per-picture figures below come from a **model**: a
+  repaint shows the newest frame whose next Update began 0, 4 or 8 ms before it. All three
+  latencies gave the same picture.
+
+**Measured, per frame:**
+
+| Run | fps | deltas within 0.05 ms of whole repaints | sum of deltas / wall clock |
+|---|---|---|---|
+| ours, small base, vsync on | 164.3 (138.1 in another run) | 0.0% | 1.0001 |
+| ours, small base, vsync off | 166.1 | 0.0% | 1.0001 |
+| ours, small base, Xvfb (no compositor) | 180.6 | n/a | 1.0001 |
+| ours, 200-Duplicant colony, vsync on | 30.2 (median frame 26.1 ms) | 0.7% | 0.9997 |
+| original, small base, Xvfb, llvmpipe | 5.7 | 5 of 1,199 frames (of 16.667 ms) | 1.0000 |
+
+- With vsync on and off the frame rates are the same, so the swap interval has no effect here.
+- The original's deltas are the wall clock as well. It ran on Xvfb, not WSLg: whether Unity's
+  `-monitor 2` keeps its window off monitor 1 could not be checked beforehand. Its GL path is the
+  same software copy. On Mesa's d3d12 driver it draws about 2 frames a second (tests/e2e/README.md),
+  so its panning on WSLg would say nothing about frame timing. The colony was not run in the
+  original.
+
+**Modelled, per picture.** The table gives sd / share more than 10% off / share more than 25% off
+the median. "Replayed" runs the pan filter (ftan.py's fit) on the run's wall clock, or on
+FramePacing's rounding replayed with the measured repaint period:
+
+| Run | frames per repaint | on-screen speed | replayed, wall clock | replayed, rounding | dt off display |
+|---|---|---|---|---|---|
+| small base | 2-4 (mostly 3) | 30-47% / 59% / 25% | 31-46% / 58-62% / 28-29% | 81-89% / 67-71% / 47-49% | 2.2-2.5% |
+| 200-Duplicant colony | 0-1; 59-60% of pictures shown for more than one repaint | 40-41% / 77-78% / 44-45% | 35-38% / 75-76% / 43-44% | 42-44% / 57-61% / 40-45% | 40-43% |
+
+- **Small base:** each repaint shows the newest of 2 to 4 frames, so a picture moves by 2, 3 or 4
+  frames' worth. Rounding makes it worse. Frames this short would also hit FramePacing's
+  short-frame fallback after eight frames, but a refresh-length frame between them resets the
+  count.
+- **Colony:** frames of about 26 ms show for one or two repaints, and 40-43% of deltas differ
+  from their displayed interval by more than half a repaint. In the model, rounding lowers the
+  share more than 10% off, leaves the share more than 25% off level and raises the sd. That rests
+  on display times the model assumes. Without a paced swap the rounded count matches the display
+  only by chance, and the RDP step is not modelled.
+
+**U60's Vulkan:** WSL has only lavapipe's Vulkan driver (no d3d12 one). U60 does not choose a
+software device unless `--renderer vulkan` is given, so on WSLg it renders with OpenGL, as above.
+
+**What this does not show:**
+- Linux desktops whose drivers pace the swap: Mesa on DRI3 with the Present extension, NVIDIA's
+  driver, Wayland compositors. There, frames are paced by the refresh, and the Windows result may
+  carry over. The period would come from RandR's mode timings, and the displayed times from
+  PresentCompleteNotify or `GLX_OML_sync_control`. None of this exists under WSLg.
+- What the monitor shows after the RDP link.
+
+Scripts on the local branch `ft-linux`, under `tools/PerfProbe/frametiming/`: ft-wslg.sh,
+ftwan.py, clockan.py. The X probe (RandR timings, window placement, the Present clock) is a
+scratch tool and is not kept.
