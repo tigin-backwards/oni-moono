@@ -9,6 +9,15 @@ namespace OniMoono.Tests
     /// whole (also when it was active already), it is created, and null is the back buffer.
     public class ActiveRenderTargetTests : EngineTest
     {
+        /// A RenderTexture reads the project's colour space (PlayerSettings) when it is made.
+        public ActiveRenderTargetTests()
+        {
+            var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
+                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107");
+            OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            OniMoono.Engine.Assets.ProjectSettings.Load();
+        }
+
         static RecordingDevice Install(out RenderDevice previous)
         {
             var device = new RecordingDevice();
