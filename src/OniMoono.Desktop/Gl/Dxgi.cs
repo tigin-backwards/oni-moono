@@ -107,40 +107,6 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
-        /// DISPLAYCONFIG_PATH_INFO (72 bytes): the source's adapter and id, the target's refresh rate.
-        [StructLayout(LayoutKind.Explicit, Size = 72)]
-        public struct DisplayConfigPath
-        {
-            [FieldOffset(0)] public long SourceAdapter;
-            [FieldOffset(8)] public uint SourceId;
-            [FieldOffset(48)] public uint RefreshNumerator;
-            [FieldOffset(52)] public uint RefreshDenominator;
-        }
-
-        /// DISPLAYCONFIG_SOURCE_DEVICE_NAME (84 bytes).
-        [StructLayout(LayoutKind.Explicit, Size = 84)]
-        public struct DisplayConfigSourceName
-        {
-            [FieldOffset(0)] public int Type;
-            [FieldOffset(4)] public uint Size;
-            [FieldOffset(8)] public long Adapter;
-            [FieldOffset(16)] public uint Id;
-            [FieldOffset(20)] public fixed char GdiName[32];
-        }
-
-        public const uint QdcOnlyActivePaths = 2;
-        public const int DisplayConfigGetSourceName = 1;
-        public const uint DisplayConfigPathInfoSize = 72, DisplayConfigModeInfoSize = 64;
-
-        [DllImport("user32.dll")]
-        public static extern int GetDisplayConfigBufferSizes(uint flags, uint* paths, uint* modes);
-
-        [DllImport("user32.dll")]
-        public static extern int QueryDisplayConfig(uint flags, uint* pathCount, DisplayConfigPath* paths, uint* modeCount, void* modes, IntPtr topology);
-
-        [DllImport("user32.dll")]
-        public static extern int DisplayConfigGetDeviceInfo(DisplayConfigSourceName* request);
-
         /// DXGI_QUERY_VIDEO_MEMORY_INFO.
         [StructLayout(LayoutKind.Sequential)]
         public struct VideoMemoryInfo
@@ -209,7 +175,6 @@ namespace OniMoono.Desktop.Gl
         }
         public static int ResizeBuffers(void* swapChain, uint count, uint width, uint height, uint format, uint flags)
             => ((delegate* unmanaged<void*, uint, uint, uint, uint, uint, int>)Vtbl(swapChain)[13])(swapChain, count, width, height, format, flags);
-        public static int GetContainingOutput(void* swapChain, void** output) => ((delegate* unmanaged<void*, void**, int>)Vtbl(swapChain)[15])(swapChain, output);
         public static int GetDesc1(void* swapChain, SwapChainDesc1* desc) => ((delegate* unmanaged<void*, SwapChainDesc1*, int>)Vtbl(swapChain)[18])(swapChain, desc);
         public static int SetMaximumFrameLatency(void* swapChain2, uint latency) => ((delegate* unmanaged<void*, uint, int>)Vtbl(swapChain2)[31])(swapChain2, latency);
         public static IntPtr GetFrameLatencyWaitableObject(void* swapChain2) => ((delegate* unmanaged<void*, IntPtr>)Vtbl(swapChain2)[33])(swapChain2);
