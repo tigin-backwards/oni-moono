@@ -2,8 +2,9 @@
 """Checks the Windows player's executable (src/OniMoono.NativeHost) from its PE file alone, so it
 runs anywhere: the GPU hint exports NvOptimusEnablement and AmdPowerXpressRequestHighPerformance
 are DWORDs of value 1 in a writable section (read at the export RVA's section offset, as the
-original OxygenNotIncluded.exe's were), the GUI subsystem, the icon group 32512 that
-GlfwPlatform.SetClassIcon loads, the application manifest and the version information.
+original OxygenNotIncluded.exe's were), the native crash records' exports, the GUI subsystem,
+the icon group 32512 that GlfwPlatform.SetClassIcon loads, the application manifest and the
+version information.
 
     scripts/check-windows-host.py out/win/host/OniMoono.exe [--like OTHER.exe]
 
@@ -17,6 +18,7 @@ import struct
 import sys
 
 EXPORTS = ("NvOptimusEnablement", "AmdPowerXpressRequestHighPerformance")
+CRASH_EXPORTS = ("moono_crash_install", "moono_crash_exiting", "moono_crash_test")
 RT_ICON, RT_GROUP_ICON, RT_VERSION, RT_MANIFEST = 3, 14, 16, 24
 IMAGE_SCN_MEM_WRITE = 0x80000000
 
@@ -160,6 +162,8 @@ def main():
     if a.exports_only:
         return 1 if failed else 0
 
+    crash = [name for name in CRASH_EXPORTS if name not in exports]
+    check(not crash, f"crash record exports (NativeCrashes.cs): {'missing ' + ', '.join(crash) if crash else ', '.join(CRASH_EXPORTS)}")
     check(pe.subsystem == 2, f"subsystem {pe.subsystem} ({'Windows GUI' if pe.subsystem == 2 else 'not GUI'}), DllCharacteristics {pe.dll_characteristics:#06x}")
     groups, icons, manifest, version = describe(pe)
     check("32512" in groups, f"icon group(s) {', '.join(groups) or 'none'} ({icons} images); 32512 for SetClassIcon")

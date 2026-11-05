@@ -9,7 +9,9 @@
  * Otherwise it does what the apphost does, the documented way (dotnet/runtime,
  * docs/design/features/native-hosting.md): find hostfxr, start OniMoono.dll with this process's
  * arguments, and return its exit code. One thing more: the garbage collection option (GcMode.cs),
- * which the runtime fixes as it starts, set as the runtime property System.GC.Server. A self-contained player (setup and releases) has
+ * which the runtime fixes as it starts, set as the runtime property System.GC.Server; and the
+ * native crash records (crash.c): a watcher process, started first, that writes what a crash in
+ * native code leaves to Player.log. A self-contained player (setup and releases) has
  * hostfxr.dll beside this exe, which the apphost uses first, and so does this; a
  * framework-dependent one (scripts/build-windows.sh) finds the installed .NET through nethost,
  * which looks where the apphost looks (DOTNET_ROOT, the registered install, Program Files).
@@ -24,6 +26,7 @@
 #include <string.h>
 #include "nethost.h"
 #include "hostfxr.h"
+#include "crash.h"
 
 /* NVIDIA Optimus and AMD PowerXpress: nonzero asks for the high-performance GPU, as the original
  * game's exe exports them. Nothing changes them at run time (GpuChoice). */
@@ -47,9 +50,11 @@ static void HOSTFXR_CALLTYPE collect_error(const wchar_t *message)
 }
 
 /* stderr when the parent redirected it (a pipe or a file: WSL interop, `2> err.txt`). */
+static HANDLE startup_stderr = INVALID_HANDLE_VALUE;  /* as started, before crash_start's pipe */
+
 static HANDLE redirected_stderr(void)
 {
-    HANDLE handle = GetStdHandle(STD_ERROR_HANDLE);
+    HANDLE handle = startup_stderr != INVALID_HANDLE_VALUE ? startup_stderr : GetStdHandle(STD_ERROR_HANDLE);
     if (handle == NULL || handle == INVALID_HANDLE_VALUE) return NULL;
     DWORD type = GetFileType(handle);
     return type == FILE_TYPE_PIPE || type == FILE_TYPE_DISK ? handle : NULL;
@@ -152,9 +157,11 @@ static int wants_workstation_gc(int argc, wchar_t **argv)
 
 int wmain(int argc, wchar_t **argv)
 {
+    if (argc >= 2 && wcscmp(argv[1], L"--crash-watch") == 0) return crash_watch(argc, argv);
     static wchar_t exe[LONG_PATH], dir[LONG_PATH], app[LONG_PATH], fxr[LONG_PATH];
     DWORD length = GetModuleFileNameW(NULL, exe, LONG_PATH);
     if (length == 0 || length >= LONG_PATH) return fail((int)GetLastError(), L"the executable's own path is unknown", NULL);
+    startup_stderr = crash_start(exe);
     wcscpy_s(dir, LONG_PATH, exe);
     wchar_t *slash = wcsrchr(dir, L'\\');
     if (slash == NULL) return fail(1, L"the executable's own path is unknown", exe);
@@ -215,6 +222,7 @@ int wmain(int argc, wchar_t **argv)
     /* The app's exit code; or a hosting status (0x8000808x) with hostfxr's reasons when the
      * runtime itself could not start (the app writes its own errors to Player.log). */
     rc = run_app(context);
+    crash_exiting((DWORD)rc);
     close(context);
     if (((unsigned)rc & 0xFFFFFF00u) == 0x80008000u && hostfxr_messages[0]) return fail(rc, L"the .NET runtime could not start", app);
     return rc;

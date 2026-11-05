@@ -118,5 +118,8 @@ if [ -f "$root/out/win/host/OniMoono.exe" ]; then
 else
     echo "check-windows-host skipped: no out/win/host/OniMoono.exe (scripts/build-windows.sh)"
 fi
+# The native crash records (scripts/check-native-crash.sh): Linux always, Windows with a Windows build.
+crashes=$("$root/scripts/check-native-crash.sh") || { failed+=(check-native-crash); grep -E '^FAIL' <<< "$crashes"; }
+tail -1 <<< "$crashes"
 "$root/scripts/build-packages.sh" >/dev/null; echo "packages: $(sed -n 2p "$root/out/apicheck-packages.txt")"
 [ ${#failed[@]} -eq 0 ] || { echo "test suites failed: ${failed[*]}"; exit 1; }

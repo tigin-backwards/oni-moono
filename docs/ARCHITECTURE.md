@@ -116,7 +116,9 @@ runtime by `build.cmd`, driven from WSL by `scripts/build-native-host.sh` (`buil
 `release.sh` call it); `setup.ps1` builds it when the Visual Studio C++ build tools are installed
 and otherwise keeps the SDK's apphost, with a warning (that player starts the same but gives no
 GPU hint). `scripts/check-windows-host.py EXE [--like OTHER]` checks a built exe from its PE file
-alone: both exports present, writable and 1, the icon, manifest, version and subsystem.
+alone: both exports present, writable and 1, the icon, manifest, version and subsystem. It also
+starts a second copy of itself as the crash watcher before the runtime starts (`crash.c`; §7,
+"Native crashes").
 
 **The GPU option** (`GpuChoice`; Moono Tweaks' "Graphics card", settings.json `"gpu"`, `--gpu
 default|discrete|integrated`) is applied in `Program.Main` before the window opens, so before
@@ -2679,6 +2681,72 @@ as logged: mods and the game's crash reporter read it there. The console writer 
 partial line until its line break (or a flush, or other output, which writes it first, so the
 order stays), so a path written in pieces is replaced too. The settings are read before the
 log opens, so its first lines are covered.
+
+**Native crashes** (Windows; `src/OniMoono.NativeHost/crash.c`, `NativeCrashes.cs`). A crash in
+native code (the GPU driver, Klei's SimDLL, a mod's library, the runtime) has no managed
+exception, so before this the log just stopped. Now Player.log ends with what crashed, the
+native stack (module+offset frames, runs of managed code counted), the runtime's own text, how
+the process ended and a minidump beside the log:
+
+```
+[engine] native crash: 0xC0000005 access violation (writing 0x0) in OniMoono.exe+0x41FE (1.0.0.0, %USERPROFILE%\...\OniMoono.exe) on thread 65064 "Test worker"
+[engine] native crash stack: OniMoono.exe+0x41FE, 2 frames of generated code, System.Private.CoreLib.dll+0x3C5A1B, 1 frame of generated code, coreclr.dll+0x188BE3, ..., KERNEL32.DLL+0x2DDA7, ntdll.dll+0x7EE4C
+[engine] native crash: runtime: Fatal error.
+[engine] native crash: runtime: 0xC0000005
+[engine] native crash: runtime:    at OniMoono.Host.NativeCrashes.Fault(System.String)
+[engine] native crash: the process ended with 0xC0000005 (access violation)
+[engine] native crash dump: %USERPROFILE%\AppData\LocalLow\Klei\Oxygen Not Included\crash-20261105-100100.dmp (3795 KB)
+```
+
+The thread is `(main)`, or named as .NET names its threads (`"GL"`, `"Presenter"`, the game's
+`"KFastWorker3"`); SimDLL's and the drivers' own threads have no name. What sees a crash, measured
+with .NET 10 (`--test-native-crash`):
+
+| Crash | In the process | The record |
+|---|---|---|
+| Fault in native code called from managed code (a P/Invoke: the GL driver on the main or GL thread, SimDLL) | the runtime's vectored handler leaves it; its personality routine prints `Fatal error.` and calls TerminateProcess: no unhandled-exception filter, no Windows Error Reporting | the line and stack (noted at first chance), the runtime's text with the managed stack, the exit code, a dump |
+| Fault on a thread with no managed frames (a native thread) | our vectored handler, then the unhandled-exception filter (ours, then the runtime's) | line, stack, exit code, dump |
+| Native stack overflow on such a thread | the same | line, stack (`(x95)` for the recursion), dump |
+| Heap corruption (0xC0000374) | raised to the vectored handlers just before the heap ends the process | line, stack, dump |
+| `__fastfail`, a /GS check, `abort()` (0xC0000409), `TerminateProcess` by another module | nothing | the exit code alone |
+| `Environment.FailFast`; a stack overflow on a managed thread (in managed code or native code it called) | the runtime's text (`Process terminated.`, `Stack overflow.`), which it handles first | that text with the managed stack, the exit code, a dump |
+| A managed null reference, caught or not; the mods' stack probes | the runtime's vectored handler, which is first, handles it | nothing (the managed exception is logged as before) |
+
+The record is written by a watcher: OniMoono.exe starts a second copy of itself (`--crash-watch`,
+with inherited handles: no paths on its command line, so `win-run.ps1 -Match RUN_HOME` finds only
+the game) before the runtime, sharing a page of memory with the game. The watcher waits for the
+game to end, and when it ends without the player's own exit (`Player.ProcessExit`, `Main`'s
+return and `AppDomain.ProcessExit` say so, with their exit code) it appends the record. It writes
+after the end because the log's own writer writes at its own offset and would write over lines
+added while the game runs. In the game, a vectored handler added after the runtime's notes a
+fault the runtime left alone (so not one in managed code); native code may still handle it then,
+so the note is used only when the game then ends with that fault's code. The unhandled-exception
+filter, set over the runtime's once it is up, notes a fault and calls the runtime's after. A
+note copies the fault into the shared page and a thread made at start formats it there (the
+faulting thread may have no stack left; nothing allocates; a structured exception handler covers
+a broken stack). Standard error goes to the watcher through a pipe with no buffer and from there
+to where it went before, if anywhere; when the runtime's `Fatal error.` text starts, the watcher
+suspends the game, writes the minidump and lets it go on (the runtime's next write waits for the
+watcher's next read, so the game can't end first). A player started from a terminal keeps its
+console, so a P/Invoke fault there gets no runtime text and no dump. The watcher costs about
+5 ms at start and 1.8 MB (7 MB working set); `ONI_MOONO_CRASH_WATCH=off` leaves it out. To
+Steam it is a child process that ends with the game; the game is still the process Steam started.
+
+The dump (MiniDumpNormal with thread information and unloaded modules: about 0.4 MB at start-up,
+3.8 MB at the main menu) holds the threads' registers and stacks and the module list with full
+paths, so it can hold whatever the game had on its stacks: parts of file paths, names, text. It
+holds none of the heap. It is written only on a crash and never sent anywhere; it is on by
+default, as a player sends it only by attaching it to a report, and `--crash-dumps off` leaves it
+out. Module paths in the crash line are hidden as the log's are (`--log-paths`).
+
+On Linux nothing is recorded: the Linux player is the SDK's apphost, with no native code of ours
+to install a signal handler, and the runtime reads its own dump settings only from the environment
+at start. A player can set them in the launch options, before the command:
+`DOTNET_DbgEnableMiniDump=1 DOTNET_DbgMiniDumpType=1 DOTNET_EnableCrashReport=1 "…/OniMoono" --
+%command%` writes a dump and a `.crashreport.json` (each thread's frames, with modules) to `/tmp`,
+or to `DOTNET_DbgMiniDumpName`. `scripts/check-native-crash.sh` (in `check.sh`) runs every case
+above on Windows, as Steam starts the player and with standard error redirected, and on Linux the
+caught null reference and that recipe.
 
 Development diagnostics (host options, never needed by players): `--trace-exceptions` logs every
 first-chance exception with per-frame IL offsets (the game ships without symbols; the offset
