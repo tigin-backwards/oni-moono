@@ -84,6 +84,20 @@ material made from a shader. Run `probe-texfallback.yaml`; the two players' `TF`
 the same. `DefaultTextureTests` encodes the table (the U59 and U60 originals gave the same one;
 the original exits on `-force-vulkan` here).
 
+With `PROBE_SCENARIO=apigaps` only the API gaps probe runs (`ApiGaps.cs`, lines `AG …`, 10 s into
+the main menu, ending with an `ApiGapsProbeDone` canvas): Unity members Workshop mods call that ours
+lacked (`docs/research/unity-api-gaps.md`), by part: what `RenderTexture.active` binds, every loaded
+shader's property introspection, the RenderTexture constructors, UnityWebRequest upload and
+download handlers against a loopback server that logs the raw requests, AnimationCurve's
+RemoveKey and SmoothTangents, Graphics.CopyTexture, a few small members (GarbageCollector,
+Camera.cullingMatrix, SpriteRenderer.drawMode, NativeArray), particle bursts and velocity over
+lifetime, collider bounds, VideoPlayer URL sources and IMGUI's SelectionGrid and PasswordField.
+`PROBE_AG_PARTS=rt,shader,…` runs only some parts (the gui part waits for OnGUI, so leave it out
+for a player without SelectionGrid). Run `tests/e2e/probe-apigaps.yaml` in each player and
+compare with `ag-check.py ORIGINAL.log OURS.log [PART…]`, which masks what differs between runs
+and players (frame numbers, ids, ports, Mono's nine-digit floats, the shaders only one player has
+loaded). The original's video part has ended its player with a double fault once in five runs.
+
 Both players write the same version stamp for the mod (ARCHITECTURE D3), so one `mods.json`
 serves both. In U59 that stamp is `692750779`, with `enabledForDlc: ["", "EXPANSION1_ID"]`;
 with another stamp the game reinstalls the mod and disables it.

@@ -25,6 +25,9 @@
     <Reference Include="$(OniManaged)/UnityEngine.InputLegacyModule.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.ScreenCaptureModule.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.ImageConversionModule.dll" Private="false" />
+    <Reference Include="$(OniManaged)/UnityEngine.UnityWebRequestModule.dll" Private="false" />
+    <Reference Include="$(OniManaged)/UnityEngine.UnityWebRequestTextureModule.dll" Private="false" />
+    <Reference Include="$(OniManaged)/UnityEngine.VideoModule.dll" Private="false" />
     <Reference Include="$(OniManaged)/Assembly-CSharp.dll" Private="false" />
     <Reference Include="$(OniManaged)/Assembly-CSharp-firstpass.dll" Private="false" />
     <Reference Include="$(OniManaged)/0Harmony.dll" Private="false" />
