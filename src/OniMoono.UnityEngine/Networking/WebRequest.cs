@@ -14,6 +14,27 @@ namespace UnityEngine.Networking
         public byte[] data => GetData();
         public string text => GetText();
 
+        /// True once the response was taken whole: a request that succeeded (or whose
+        /// processing failed); not after a protocol or connection error.
+        public bool isDone => m_Done;
+
+        /// Why the handler's processing failed ("" otherwise).
+        public string error => m_Error ?? "";
+
+        internal volatile bool m_Done;
+        internal volatile string m_Error;
+
+        // The transfer's calls (pool thread): the response's Content-Type, each chunk of the
+        // body, and the end (false: a protocol or connection error). OnEnd(true) returns false
+        // when processing the body fails, with m_Error set.
+        internal virtual void OnBegin(string responseContentType) { }
+        internal virtual void OnReceive(byte[] buffer, int count) { }
+        internal virtual bool OnEnd(bool succeeded)
+        {
+            if (succeeded) m_Done = true;
+            return true;
+        }
+
         /// A copy of the bytes received so far; null when nothing has been received.
         protected virtual byte[] GetData()
         {
@@ -127,6 +148,41 @@ namespace UnityEngine.Networking
             this.uri = uri;
             this.method = method;
         }
+
+        public UnityWebRequest(string url, string method, DownloadHandler downloadHandler, UploadHandler uploadHandler) : this(url, method)
+        {
+            this.downloadHandler = downloadHandler;
+            this.uploadHandler = uploadHandler;
+        }
+
+        public UnityWebRequest(Uri uri, string method, DownloadHandler downloadHandler, UploadHandler uploadHandler) : this(uri, method)
+        {
+            this.downloadHandler = downloadHandler;
+            this.uploadHandler = uploadHandler;
+        }
+
+        internal UploadHandler m_UploadHandler;
+
+        /// The body sent: its data, and its contentType unless a Content-Type header is set
+        /// (none: application/octet-stream on the wire).
+        public UploadHandler uploadHandler
+        {
+            get => m_UploadHandler;
+            set
+            {
+                if (!isModifiable) throw new InvalidOperationException("UnityWebRequest has already been sent; cannot modify the upload handler");
+                m_UploadHandler = value;
+            }
+        }
+
+        /// False: requests are never sent chunked (the original's default).
+        public bool chunkedTransfer => false;
+
+        /// True, the original's default (curl's Expect: 100-continue for large bodies).
+        public bool useHttpContinue => true;
+
+        /// A request header the script set, or null.
+        public string GetRequestHeader(string name) => Native.GetRequestHeader(name);
 
         /// Throws Unity's NullReferenceException for a disposed request.
         WebRequestNative Native => m_Native ?? throw new NullReferenceException();
@@ -279,6 +335,7 @@ namespace UnityEngine.Networking
         public void Dispose()
         {
             if (disposeDownloadHandlerOnDispose) m_DownloadHandler?.Dispose();
+            if (disposeUploadHandlerOnDispose) m_UploadHandler?.Dispose();
             m_Native?.Abort();
             m_Native = null;
             GC.SuppressFinalize(this);
@@ -295,6 +352,29 @@ namespace UnityEngine.Networking
         public static UnityWebRequest Head(string uri) => new UnityWebRequest(uri, "HEAD");
 
         public static UnityWebRequest Head(Uri uri) => new UnityWebRequest(uri, "HEAD");
+
+        /// postData, URL-escaped, as form data (an upload handler with content type
+        /// application/x-www-form-urlencoded); none for "" or null.
+        public static UnityWebRequest Post(string uri, string postData)
+        {
+            var request = new UnityWebRequest(uri, "POST");
+            SetupPostForm(request, postData);
+            return request;
+        }
+
+        public static UnityWebRequest Post(Uri uri, string postData)
+        {
+            var request = new UnityWebRequest(uri, "POST");
+            SetupPostForm(request, postData);
+            return request;
+        }
+
+        static void SetupPostForm(UnityWebRequest request, string postData)
+        {
+            request.downloadHandler = new DownloadHandlerBuffer();
+            if (string.IsNullOrEmpty(postData)) return;
+            request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(WebRequestNative.EscapeForm(postData))) { contentType = "application/x-www-form-urlencoded" };
+        }
 
         public static UnityWebRequest Post(string uri, List<IMultipartFormSection> multipartFormSections)
             => Post(uri, multipartFormSections, GenerateBoundary());
@@ -320,7 +400,7 @@ namespace UnityEngine.Networking
         /// content type "multipart/form-data; boundary=&lt;boundary&gt;".
         static void SetupPost(UnityWebRequest request, List<IMultipartFormSection> multipartFormSections, byte[] boundary)
         {
-            request.downloadHandler = new BufferDownloadHandler();
+            request.downloadHandler = new DownloadHandlerBuffer();
             byte[] body = null;
             if (multipartFormSections != null && multipartFormSections.Count != 0) body = SerializeFormSections(multipartFormSections, boundary);
             if (body != null)
@@ -329,7 +409,7 @@ namespace UnityEngine.Networking
 
         static UnityWebRequest WithBuffer(UnityWebRequest request)
         {
-            request.downloadHandler = new BufferDownloadHandler();
+            request.downloadHandler = new DownloadHandlerBuffer();
             return request;
         }
 

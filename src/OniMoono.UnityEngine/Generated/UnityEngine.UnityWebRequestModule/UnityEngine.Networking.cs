@@ -5,6 +5,12 @@ namespace UnityEngine.Networking
     public partial class DownloadHandler : global::System.IDisposable
     {
     }
+    public sealed partial class DownloadHandlerBuffer : global::UnityEngine.Networking.DownloadHandler
+    {
+    }
+    public sealed partial class DownloadHandlerFile : global::UnityEngine.Networking.DownloadHandler
+    {
+    }
     public interface IMultipartFormSection
     {
         string sectionName { get; }
@@ -33,6 +39,12 @@ namespace UnityEngine.Networking
         }
     }
     public partial class UnityWebRequestAsyncOperation : global::UnityEngine.AsyncOperation
+    {
+    }
+    public partial class UploadHandler : global::System.IDisposable
+    {
+    }
+    public sealed partial class UploadHandlerRaw : global::UnityEngine.Networking.UploadHandler
     {
     }
 }

@@ -26,39 +26,6 @@ namespace OniMoono.Engine
         NoInternetConnection, DataProcessingError, InsecureConnectionNotAllowed,
     }
 
-    /// DownloadHandlerBuffer: accumulates the response body in memory.
-    internal sealed class BufferDownloadHandler : DownloadHandler
-    {
-        readonly object gate = new();
-        MemoryStream body = new();
-        string contentType;
-
-        internal override byte[] ReceivedBytes()
-        {
-            lock (gate) return body?.ToArray();
-        }
-
-        internal override string ContentType
-        {
-            get { lock (gate) return contentType; }
-        }
-
-        internal void Begin(string responseContentType)
-        {
-            lock (gate) contentType = responseContentType;
-        }
-
-        internal void Receive(byte[] buffer, int count)
-        {
-            lock (gate) body?.Write(buffer, 0, count);
-        }
-
-        internal override void ReleaseData()
-        {
-            lock (gate) body = null;
-        }
-    }
-
     /// The engine side of a UnityWebRequest: its settings, and the transfer run on a pool thread
     /// with HttpClient. Results are published as they happen (isDone may turn true on any
     /// thread's read); the async operation completes on the main thread in EarlyUpdate.
@@ -145,6 +112,31 @@ namespace OniMoono.Engine
             return WebRequestError.OK;
         }
 
+        /// UnityWebRequest.Post(uri, string)'s escape of form data: UTF-8, every byte but ASCII
+        /// letters, digits and ( ) * - . _ ~ as %xx in lower-case hex (measured in the original:
+        /// UnityProbe's apigaps "web", every printable ASCII character).
+        public static string EscapeForm(string s)
+        {
+            var bytes = Encoding.UTF8.GetBytes(s);
+            var sb = new StringBuilder(bytes.Length * 3);
+            foreach (byte b in bytes)
+            {
+                if (b is >= (byte)'a' and <= (byte)'z' or >= (byte)'A' and <= (byte)'Z' or >= (byte)'0' and <= (byte)'9'
+                    || b is (byte)'(' or (byte)')' or (byte)'*' or (byte)'-' or (byte)'.' or (byte)'_' or (byte)'~')
+                    sb.Append((char)b);
+                else sb.Append('%').Append(b.ToString("x2"));
+            }
+            return sb.ToString();
+        }
+
+        /// A header the script set, or null.
+        public string GetRequestHeader(string name)
+        {
+            foreach (var (key, value) in requestHeaders)
+                if (string.Equals(key, name, StringComparison.OrdinalIgnoreCase)) return value;
+            return null;
+        }
+
         public string GetResponseHeader(string name)
         {
             var headers = ResponseHeaders;
@@ -162,7 +154,13 @@ namespace OniMoono.Engine
             }
             operation = new UnityWebRequestAsyncOperation();
             WebRequests.Track(this, operation);
-            var handler = owner.m_DownloadHandler as BufferDownloadHandler;
+            var handler = owner.m_DownloadHandler;
+            if (owner.m_UploadHandler != null)
+            {
+                var ct = owner.m_UploadHandler.contentType;
+                SetUpload(owner.m_UploadHandler.m_Data ?? Array.Empty<byte>(), string.IsNullOrEmpty(ct) ? "application/octet-stream" : ct);
+                owner.m_UploadHandler.m_Request = this;
+            }
             Task.Run(() => RunAsync(handler));
             return operation;
         }
@@ -197,7 +195,7 @@ namespace OniMoono.Engine
 
         // ---- Transfer ----
 
-        async Task RunAsync(BufferDownloadHandler handler)
+        async Task RunAsync(DownloadHandler handler)
         {
             if (aborted)
             {
@@ -233,36 +231,63 @@ namespace OniMoono.Engine
                 Interlocked.Exchange(ref responseCode, (long)response.StatusCode);
                 long? length = response.Content.Headers.ContentLength;
                 if (length.HasValue) Interlocked.Exchange(ref downloadTotal, length.Value);
-                handler?.Begin(response.Content.Headers.ContentType?.ToString());
-                if (!string.Equals(Method, "HEAD", StringComparison.Ordinal))
+                handler?.OnBegin(response.Content.Headers.ContentType?.ToString());
+                // Without a download handler the body is not read: downloadedBytes stays 0.
+                if (handler != null && !string.Equals(Method, "HEAD", StringComparison.Ordinal))
                 {
                     await using var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
                     var buffer = new byte[16384];
                     int read;
                     while ((read = await stream.ReadAsync(buffer, token).ConfigureAwait(false)) > 0)
                     {
-                        handler?.Receive(buffer, read);
+                        handler?.OnReceive(buffer, read);
                         Interlocked.Add(ref downloaded, read);
                     }
                 }
-                Finish((int)response.StatusCode >= 400 ? UnityWebRequest.Result.ProtocolError : UnityWebRequest.Result.Success, WebRequestError.OK);
+                if ((int)response.StatusCode >= 400)
+                {
+                    handler?.OnEnd(false);
+                    Finish(UnityWebRequest.Result.ProtocolError, WebRequestError.OK);
+                }
+                else Complete(handler);
             }
             catch (OperationCanceledException)
             {
-                Finish(UnityWebRequest.Result.ConnectionError, aborted ? WebRequestError.Aborted : WebRequestError.Timeout);
+                Fail(handler, aborted ? WebRequestError.Aborted : WebRequestError.Timeout);
             }
             catch (HttpRequestException e)
             {
-                Finish(UnityWebRequest.Result.ConnectionError, MapError(e, sending));
+                Fail(handler, MapError(e, sending));
             }
             catch (IOException)
             {
-                Finish(UnityWebRequest.Result.ConnectionError, sending ? WebRequestError.FailedToSendData : WebRequestError.FailedToReceiveData);
+                Fail(handler, sending ? WebRequestError.FailedToSendData : WebRequestError.FailedToReceiveData);
             }
             catch (Exception)
             {
-                Finish(UnityWebRequest.Result.ConnectionError, WebRequestError.Unknown);
+                Fail(handler, WebRequestError.Unknown);
             }
+        }
+
+        /// A connection error: responseCode 0 when no response came (as the original's curl
+        /// backend reports it).
+        void Fail(DownloadHandler handler, WebRequestError error)
+        {
+            if (!responded) Interlocked.Exchange(ref responseCode, 0);
+            handler?.OnEnd(false);
+            Finish(UnityWebRequest.Result.ConnectionError, error);
+        }
+
+        /// A response the download handler took whole: its processing (a texture's decode) can
+        /// still fail the request (DataProcessingError, the handler's error saying why).
+        void Complete(DownloadHandler handler)
+        {
+            if (handler != null && !handler.OnEnd(true))
+            {
+                Finish(UnityWebRequest.Result.DataProcessingError, WebRequestError.DataProcessingError);
+                return;
+            }
+            Finish(UnityWebRequest.Result.Success, WebRequestError.OK);
         }
 
         /// Default headers as Unity's curl backend sends them, then the script's headers. The
@@ -273,6 +298,10 @@ namespace OniMoono.Engine
             var version = EngineConfig.UnityVersion;
             request.Headers.TryAddWithoutValidation("User-Agent", $"UnityPlayer/{version} (UnityWebRequest/1.0, libcurl/8.10.1-DEV)");
             request.Headers.TryAddWithoutValidation("X-Unity-Version", version);
+            // As the original's curl backend sends them (UnityProbe's apigaps "web"); the
+            // handler still decompresses what comes back.
+            request.Headers.TryAddWithoutValidation("Accept", "*/*");
+            request.Headers.TryAddWithoutValidation("Accept-Encoding", "deflate, gzip");
 
             string contentType = uploadContentType;
             var contentHeaders = new List<KeyValuePair<string, string>>();
@@ -287,6 +316,10 @@ namespace OniMoono.Engine
                 }
             }
 
+            // A POST without a body still sends one, empty, as form data (as the original's
+            // curl backend does: UnityProbe's apigaps "web").
+            if (uploadData == null && contentType == null && string.Equals(Method, "POST", StringComparison.Ordinal))
+                contentType = "application/x-www-form-urlencoded";
             if (uploadData != null || contentType != null || contentHeaders.Count > 0)
             {
                 var body = uploadData ?? Array.Empty<byte>();
@@ -334,7 +367,7 @@ namespace OniMoono.Engine
 
         /// file:// URLs are read directly; the response code is 0 and a missing or unreadable
         /// file is "Cannot connect to destination host", as with Unity's curl backend.
-        void RunFile(Uri uri, BufferDownloadHandler handler)
+        void RunFile(Uri uri, DownloadHandler handler)
         {
             byte[] bytes;
             try
@@ -345,16 +378,16 @@ namespace OniMoono.Engine
             // rejects, such as one with a NUL character).
             catch (Exception)
             {
-                Finish(UnityWebRequest.Result.ConnectionError, WebRequestError.CannotConnectToHost);
+                Fail(handler, WebRequestError.CannotConnectToHost);
                 return;
             }
             Interlocked.Exchange(ref responseCode, 0);
             Interlocked.Exchange(ref downloadTotal, bytes.Length);
             responded = true;
-            handler?.Begin(null);
-            handler?.Receive(bytes, bytes.Length);
+            handler?.OnBegin(null);
+            handler?.OnReceive(bytes, bytes.Length);
             Interlocked.Exchange(ref downloaded, bytes.Length);
-            Finish(UnityWebRequest.Result.Success, WebRequestError.OK);
+            Complete(handler);
         }
 
         /// A request body that counts bytes as they are written to the connection.

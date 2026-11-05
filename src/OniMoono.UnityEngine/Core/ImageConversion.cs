@@ -22,6 +22,11 @@ namespace UnityEngine
     {
         public static bool LoadImage(this Texture2D tex, byte[] data) => LoadImage(tex, data, false);
 
+        /// Whether LoadImage would take the data as an image (a PNG or JPEG signature).
+        internal static bool LooksLikeImage(byte[] data)
+            => data != null && (data.Length >= 8 && data[0] == 0x89 && data[1] == (byte)'P' && data[2] == (byte)'N' && data[3] == (byte)'G'
+                                || data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF);
+
         /// Replaces the texture with a PNG or JPEG image: PNGs load as ARGB32, JPEGs as RGB24,
         /// at the image's size, keeping a mip chain if the texture had one. False (texture
         /// unchanged) when the data is not an image.

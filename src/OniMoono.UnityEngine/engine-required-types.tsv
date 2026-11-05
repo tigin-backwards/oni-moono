@@ -79,3 +79,9 @@ UnityEngine.CoreModule	UnityEngine.FrameTimingManager	# as above
 UnityEngine.CoreModule	UnityEngine.Rendering.ShaderPropertyFlags	# mods: Shader.GetPropertyFlags
 UnityEngine.CoreModule	UnityEngine.Rendering.TextureDimension	# mods: Shader.GetPropertyTextureDimension, RenderTexture.dimension
 UnityEngine.CoreModule	UnityEngine.Experimental.Rendering.DefaultFormat	# mods: the RenderTexture constructor with a DefaultFormat
+UnityEngine.UnityWebRequestModule	UnityEngine.Networking.UploadHandler	# mods (Mod Manager, bottle emptier extend): UnityWebRequest.uploadHandler
+UnityEngine.UnityWebRequestModule	UnityEngine.Networking.UploadHandlerRaw	# as above
+UnityEngine.UnityWebRequestModule	UnityEngine.Networking.DownloadHandlerBuffer	# mods (Mod Manager)
+UnityEngine.UnityWebRequestModule	UnityEngine.Networking.DownloadHandlerFile	# mods (Mod Manager): downloads into a file
+UnityEngine.UnityWebRequestTextureModule	UnityEngine.Networking.UnityWebRequestTexture	# mods (starship): textures downloaded
+UnityEngine.UnityWebRequestTextureModule	UnityEngine.Networking.DownloadHandlerTexture	# as above
