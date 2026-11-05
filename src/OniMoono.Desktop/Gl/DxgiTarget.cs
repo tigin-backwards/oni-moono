@@ -20,7 +20,7 @@ namespace OniMoono.Desktop.Gl
     /// window outgrows it.
     ///
     /// Threads: everything here is made, used and released on the presenter thread, with the
-    /// window's GL context current; no other thread holds any of it.
+    /// presenter's GL context current; no other thread holds any of it.
     internal sealed unsafe class DxgiTarget : IWindowTarget
     {
         // Read and write: the splash blends over the copied frame, which reads the texture. With
@@ -56,9 +56,9 @@ namespace OniMoono.Desktop.Gl
 
         DxgiTarget(IntPtr hwnd) => this.hwnd = hwnd;
 
-        /// The target for window `hwnd`, whose GL context is current, for a first picture of
-        /// `width` x `height`; null, with the reason, when any step fails (what was made is
-        /// released).
+        /// The target for window `hwnd`, with the presenter's GL context current, for a first
+        /// picture of `width` x `height`; null, with the reason, when any step fails (what was
+        /// made is released).
         public static DxgiTarget Create(IntPtr hwnd, int width, int height, out string reason, out bool windowTouched)
         {
             var target = new DxgiTarget(hwnd);

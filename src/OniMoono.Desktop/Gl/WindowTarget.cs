@@ -6,7 +6,7 @@ namespace OniMoono.Desktop.Gl
 {
     /// Where the presenter thread puts the window's picture and how it shows it: OpenGL's own
     /// default framebuffer and SwapBuffers (GlSwapTarget), or on Windows a DXGI swap chain
-    /// (DxgiTarget). Every call is on the presenter thread, with the window's context current.
+    /// (DxgiTarget). Every call is on the presenter thread, with the presenter's context current.
     /// ARCHITECTURE §3.5, "Presentation on Windows".
     internal interface IWindowTarget : IDisposable
     {
@@ -40,11 +40,23 @@ namespace OniMoono.Desktop.Gl
     }
 
     /// OpenGL's own presentation: the window's default framebuffer, swapped with SwapBuffers.
-    internal sealed class GlSwapTarget(GlfwWindow window) : IWindowTarget
+    /// Through GLFW on the window whose context the presenter uses, or on Windows, for a window
+    /// made without a context (GlfwPlatform.ContextFreeWindow), through WGL with that context
+    /// put on the visible window (Win32GlWindow).
+    internal sealed class GlSwapTarget : IWindowTarget
     {
         const uint SyncGpuCommandsComplete = 0x9117, TimeoutExpired = 0x911B;
         const ulong WaitSliceNanoseconds = 100_000_000;
+        readonly GlfwWindow window;
+        readonly Win32GlWindow win32;
         int swapInterval = -1;
+
+        public GlSwapTarget(GlfwWindow window) => this.window = window;
+
+        /// SwapBuffers on `hwnd`, a window without a context of its own, with the presenter's
+        /// context (current on its hidden window) made current on it; or, not `onWindow`, on the
+        /// hidden window, where nobody sees the pictures (paced by the compositor with vsync).
+        public GlSwapTarget(IntPtr hwnd, bool onWindow) => win32 = new Win32GlWindow(hwnd, onWindow);
 
         public string Name => "OpenGL (SwapBuffers)";
         public uint Framebuffer => 0;
@@ -64,10 +76,12 @@ namespace OniMoono.Desktop.Gl
             LastWait = 0;
             if (!again && interval != swapInterval)
             {
-                Glfw.SwapInterval(interval);
+                if (win32 != null) win32.SwapInterval(interval);
+                else Glfw.SwapInterval(interval);
                 swapInterval = interval;
             }
-            window.SwapBuffers();
+            if (win32 != null) win32.SwapBuffers(again ? 0 : interval);
+            else window.SwapBuffers();
             if (!again && interval > 0)
             {
                 // With vsync, a fence after the swap, waited for so that the frame counts as
@@ -87,6 +101,6 @@ namespace OniMoono.Desktop.Gl
             return true;
         }
 
-        public void Dispose() { }
+        public void Dispose() => win32?.Dispose();
     }
 }
