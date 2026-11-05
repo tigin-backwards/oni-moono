@@ -65,7 +65,7 @@ typedef struct
     volatile LONG seen;              /* SEEN_*: what text holds */
     DWORD seen_code, seen_thread;
     ULONGLONG seen_tick;
-    DWORD dumps;                     /* write a minidump */
+    DWORD dumps;                     /* 0: no dump, 1: a minidump, 2: one with the process's memory */
     DWORD text_length;
     char text[TEXT_MOST];            /* the fault's lines, UTF-8 */
     wchar_t log_path[PATH_MOST];
@@ -549,7 +549,8 @@ void crash_exiting(DWORD code)
 }
 
 /* Called by the player (NativeCrashes.cs) once Player.log is open, with the runtime up: the log's
- * path, the main thread, whether to write a minidump, and the personal folders to hide as
+ * path, the main thread, the dump to write (0 none, 1 a minidump, 2 with memory: --crash-dumps
+ * full), and the personal folders to hide as
  * "PATH\0REPLACEMENT\0...\0" (empty with --log-paths full). 1 when the watcher runs. */
 __declspec(dllexport) int moono_crash_install(const wchar_t *log_path, DWORD main, int dumps, const wchar_t *prefixes)
 {
@@ -565,7 +566,7 @@ __declspec(dllexport) int moono_crash_install(const wchar_t *log_path, DWORD mai
         wcsncpy_s(shared->replacement[i], 32, prefixes, _TRUNCATE);
         prefixes += wcslen(prefixes) + 1;
     }
-    shared->dumps = dumps ? 1 : 0;
+    shared->dumps = dumps == 2 ? 2 : dumps ? 1 : 0;
     get_thread_description = (get_thread_description_fn)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "GetThreadDescription");
     format_wanted = CreateEventW(NULL, FALSE, FALSE, NULL);
     format_done = CreateEventW(NULL, FALSE, FALSE, NULL);
@@ -691,9 +692,16 @@ static void write_dump(int with_fault)
             {
                 if (suspend) suspend(game);
                 MINIDUMP_EXCEPTION_INFORMATION fault = { shared->seen_thread, (PEXCEPTION_POINTERS)shared->pointers_in_game, TRUE };
-                BOOL ok = write(game, GetProcessId(game), file,
-                                (MINIDUMP_TYPE)(MiniDumpNormal | MiniDumpWithThreadInfo | MiniDumpWithUnloadedModules),
-                                with_fault ? &fault : NULL, NULL, NULL);
+                /* --crash-dumps full: the process's private read-write memory (every heap, the
+                 * runtime's included; not the mapped images and files, which the debugger reads
+                 * from disk) with the modules' data sections (ntdll's heap globals and its record
+                 * of a heap failure, which !heap needs to decode the heaps), and the layout of
+                 * all memory (!address). */
+                MINIDUMP_TYPE type = MiniDumpNormal | MiniDumpWithThreadInfo | MiniDumpWithUnloadedModules;
+                if (shared->dumps == 2)
+                    type |= MiniDumpWithPrivateReadWriteMemory | MiniDumpWithDataSegs | MiniDumpWithFullMemoryInfo
+                            | MiniDumpWithHandleData | MiniDumpIgnoreInaccessibleMemory;
+                BOOL ok = write(game, GetProcessId(game), file, type, with_fault ? &fault : NULL, NULL, NULL);
                 if (resume) resume(game);
                 LARGE_INTEGER size;
                 if (ok && GetFileSizeEx(file, &size)) dump_size = (ULONG64)size.QuadPart;

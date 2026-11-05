@@ -78,9 +78,11 @@ namespace OniMoono.Host
         public string? Gc;
         /// Diagnostics (--dxgi-fault WHAT): a made-up DXGI failure (DxgiSwapChain.Fault).
         public string? DxgiFault;
-        /// --crash-dumps on|off: a minidump beside Player.log when the player crashes in native
-        /// code (Windows; NativeCrashes). On by default.
-        public bool CrashDumps = true;
+        /// --crash-dumps on|off|full: a minidump beside Player.log when the player crashes in
+        /// native code (Windows; NativeCrashes). On by default; `full` adds the process's memory
+        /// (diagnostics: as large as the game's private memory). ONI_CRASH_DUMPS=on|off|full, for
+        /// test runs, takes the place of the option.
+        public string CrashDumps = "on";
         /// Diagnostics (--test-native-crash WHERE[:FRAME]): a crash on purpose once the log is
         /// open, or at the start of frame FRAME on the main thread (NativeCrashes.Test).
         public string? TestNativeCrash;
@@ -291,12 +293,12 @@ namespace OniMoono.Host
                     case "--crash-dumps":
                         {
                             var value = args[++i];
-                            if (value is not ("on" or "off"))
+                            if (value is not ("on" or "off" or "full"))
                             {
-                                Console.Error.WriteLine($"Unknown crash dumps {value}; known: on, off");
+                                Console.Error.WriteLine($"Unknown crash dumps {value}; known: on, off, full");
                                 return false;
                             }
-                            o.CrashDumps = value == "on";
+                            o.CrashDumps = value;
                             break;
                         }
                     case "--test-native-crash":
@@ -414,7 +416,7 @@ namespace OniMoono.Host
                         break;
                     default:
                         Console.Error.WriteLine($"Unknown option {args[i]}");
-                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--bindless] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--dxgi on|off] [--gc fast|low-memory] [--dxgi-fault WHAT] [--crash-dumps on|off] [--test-native-crash WHERE[:FRAME]] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [-logFile PATH] [other Unity player arguments, passed to the game] [--check-types] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [--game-arg ARG] [-- STEAM-COMMAND [ARG...]]");
+                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--bindless] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--dxgi on|off] [--gc fast|low-memory] [--dxgi-fault WHAT] [--crash-dumps on|off|full] [--test-native-crash WHERE[:FRAME]] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [-logFile PATH] [other Unity player arguments, passed to the game] [--check-types] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [--game-arg ARG] [-- STEAM-COMMAND [ARG...]]");
                         return false;
                 }
                 // Unity's player arguments and stray words among ours, with their values: the
