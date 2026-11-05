@@ -29,6 +29,17 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void ARetiredTweakIsIgnored()
+        {
+            // fix-endless-sounds left with U60 762107, whose sound sheets fix the rows themselves:
+            // a launch option naming it still starts the player, without it.
+            var o = Options.Parse(["--game-tweak", "fix-endless-sounds", "--game-tweak", "-fix-endless-sounds", "--", Exe])!;
+            Assert.NotNull(o);
+            Assert.DoesNotContain(o.GameTweaks, t => t.Contains("endless"));
+            Assert.Null(Options.Parse(["--game-tweak", "no-such-tweak", "--", Exe]));
+        }
+
+        [Fact]
         public void EverythingAfterTheGamesExecutableIsTheGames()
         {
             // Steam's command: its wrappers (with a `--` of their own), then the game's executable.

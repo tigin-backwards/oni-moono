@@ -215,6 +215,11 @@ namespace OniMoono.Host
                     case "--game-tweak":
                     {
                         var name = args[++i];
+                        if (OniMoono.Host.GameTweaks.GameTweakNames.IsRetired(name))
+                        {
+                            Console.Error.WriteLine($"Game tweak {name} is no longer part of Moono: the game fixes it now; ignored");
+                            break;
+                        }
                         if (!OniMoono.Host.GameTweaks.GameTweakNames.IsKnown(name))
                         {
                             Console.Error.WriteLine($"Unknown game tweak {name}; known: all, none, exact (all but {string.Join(", ", OniMoono.Host.GameTweaks.GameTweakNames.ChangingBehaviour)}), {string.Join(", ", OniMoono.Host.GameTweaks.GameTweakNames.All)}");
