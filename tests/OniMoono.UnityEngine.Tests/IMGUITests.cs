@@ -38,10 +38,19 @@ namespace OniMoono.Tests
             return true;
         }
         public override void WarmupShaders() { }
-        public override void SetRenderTarget(in OniMoono.Engine.Rendering.RenderTargetBinding target) { }
-        public override void SetViewport(Rect pixels) { }
+        /// The colour target of each SetRenderTarget (null: the back buffer), and each viewport
+        /// and colour clear, in order.
+        public readonly List<OniMoono.Engine.Rendering.RenderTextureNative> Targets = new();
+        public readonly List<Rect> Viewports = new();
+        public readonly List<(OniMoono.Engine.Rendering.RenderTextureNative Target, Color Color)> Clears = new();
+        public override void SetRenderTarget(in OniMoono.Engine.Rendering.RenderTargetBinding target)
+            => Targets.Add(target.Colors is { Length: > 0 } c ? c[0] : null);
+        public override void SetViewport(Rect pixels) => Viewports.Add(pixels);
         public override void SetScissor(Rect? pixels) { }
-        public override void Clear(bool color, bool depth, Color backgroundColor, float depthValue) { }
+        public override void Clear(bool color, bool depth, Color backgroundColor, float depthValue)
+        {
+            if (color) Clears.Add((Targets.Count > 0 ? Targets[^1] : null, backgroundColor));
+        }
         protected override void ApplyCamera(in OniMoono.Engine.Rendering.CameraConstants camera) { }
         /// Mesh draws with the view and projection in effect.
         public readonly List<(Material Material, Matrix4x4 View, Matrix4x4 Projection)> MeshDraws = new();
