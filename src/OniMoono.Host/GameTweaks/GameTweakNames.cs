@@ -182,7 +182,7 @@ namespace OniMoono.Host.GameTweaks
                 "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, "
                 + "and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same.", OnByDefault: true),
             new(EndlessSounds, BugFixes, "Stop sounds that never end", "An eating Pip no longer leaves sounds playing forever, which in time froze the game.",
-                "A bug in the game's sound data: the adult Pip's eating loop, and a crashed rocket's steaming debris, start a new copy of a looping sound on every loop "
+                "A bug in the game's sound data: the adult Pip's eating loop, and the debris left by a self-destructed rocket, start a new copy of a looping sound on every loop "
                 + "and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends.", OnByDefault: true),
             new(SoundPiles, BugFixes, "Cap repeated sounds in one tile", "Hundreds of critters in one tile no longer freeze the game with their sounds.",
                 "When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. "

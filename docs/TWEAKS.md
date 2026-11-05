@@ -210,7 +210,7 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; a late-game Sp
 - **Land items lost below a world** (`off-world-fallers`): Items that fall out the bottom of a world (a rocket's chute) stop falling forever. A bug in the game: they hang just below the world, stepped as falling every tick. This lands them where they hang.
 - **Fix the disease overlay crash** (`fix-disease-overlay-crash`): Stops a crash when a critter or plant showing germs dies while the Disease overlay is open. A bug in U60's own code (the original crashes too, mostly at low frame rates): the destroyed germ marker is dropped before the game reads it. Off by default, as the original crashes.
 - **Open a colony once on the Load screen** (`fix-load-screen-clicks`): After Load more, a click on a colony no longer builds its list of saves again for every refresh. A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same. *On by default.*
-- **Stop sounds that never end** (`fix-endless-sounds`): An eating Pip no longer leaves sounds playing forever, which in time froze the game. A bug in the game's sound data: the adult Pip's eating loop, and a crashed rocket's steaming debris, start a new copy of a looping sound on every loop and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends. *On by default.*
+- **Stop sounds that never end** (`fix-endless-sounds`): An eating Pip no longer leaves sounds playing forever, which in time froze the game. A bug in the game's sound data: the adult Pip's eating loop, and the debris left by a self-destructed rocket, start a new copy of a looping sound on every loop and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends. *On by default.*
 - **Cap repeated sounds in one tile** (`fix-sound-piles`): Hundreds of critters in one tile no longer freeze the game with their sounds. When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped. *On by default.*
 <!-- tweaks:end -->
 
@@ -294,7 +294,7 @@ Player.log.
 `fix-endless-sounds` fixes two rows of the game's audio sheets (U59 and U60) that play a looping
 sound as a one-shot. The adult Pip's `eat_loop` plays `Squirrel_eat_LP` once per loop of the
 animation, and each copy loops forever; the baby Pip's row is a looping sound event, started
-once and stopped when the animation ends. A crashed rocket's debris payload does the same with
+once and stopped when the animation ends. A self-destructed rocket's debris does the same with
 `RocketDebris_steaming_LP` on every loop of its `landed` animation in the crater, where the
 railgun payload's row for the same state is a looping sound event. With the tweak both rows are
 built as looping sound events, as their siblings are. What differs from the original: while the
