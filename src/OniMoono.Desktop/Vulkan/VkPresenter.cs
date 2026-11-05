@@ -38,6 +38,10 @@ namespace OniMoono.Desktop.Vulkan
     {
         const int MaxQueued = 2, MaxQueuedWithVsync = 1, Slots = 2;
 
+        /// As GlPresenter.QueueLimit: one with vsync, else QualitySettings.maxQueuedFrames, at
+        /// most two (three back buffers).
+        static int QueueLimit(int interval) => interval > 0 ? MaxQueuedWithVsync : Math.Clamp(UnityEngine.QualitySettings.maxQueuedFrames, 1, MaxQueued);
+
         readonly VkContext vk;
         readonly GlfwWindow window;
         readonly VkSurfaceKHR surface;
@@ -89,7 +93,9 @@ namespace OniMoono.Desktop.Vulkan
 
         readonly Thread thread;
         readonly object gate = new();
-        readonly Queue<(VkBackBuffer Buffer, int Interval, int Width, int Height, long Started)> queue = new();
+        readonly Queue<(VkBackBuffer Buffer, int Interval, int Width, int Height, long Started, int Frame, long Need)> queue = new();
+        /// The frames through this presenter, which the main thread waits on with vsync.
+        public readonly QueuedFrames Presented = new();
         int queued;
         bool stopping, refreshWanted;
         volatile Exception failure;
@@ -213,7 +219,8 @@ namespace OniMoono.Desktop.Vulkan
         /// Hands the frame drawn into the current back buffer to the presenter (device thread,
         /// after the frame's commands are submitted), as GlPresenter.Present: a frame that drew
         /// nothing shows the last frame again.
-        public void Present(int interval, int width, int height)
+        /// `need`: the main and device threads' time on the frame (QueuedFrames).
+        public void Present(int interval, int width, int height, long need = 0)
         {
             // The window's size, which a frame of another size is stretched over (RecordCopy).
             windowWidth = Math.Max(1, width);
@@ -224,7 +231,11 @@ namespace OniMoono.Desktop.Vulkan
             if (!complete)
             {
                 b.DrawnThisFrame = false;
-                if (choice == GlPresenter.PresentChoice.Nothing) return;
+                if (choice == GlPresenter.PresentChoice.Nothing)
+                {
+                    Presented.Done(Frame);
+                    return;
+                }
                 b = handedOver;
             }
             else
@@ -234,15 +245,15 @@ namespace OniMoono.Desktop.Vulkan
             }
             lock (gate)
             {
-                if (queued >= (interval > 0 ? MaxQueuedWithVsync : MaxQueued) && OniMoono.Engine.PlayerLoop.FrameStats)
+                if (queued >= QueueLimit(interval) && OniMoono.Engine.PlayerLoop.FrameStats)
                 {
                     long waiting = GlTimings.Now;
-                    while (queued >= (interval > 0 ? MaxQueuedWithVsync : MaxQueued) && failure == null) Monitor.Wait(gate);
+                    while (queued >= QueueLimit(interval) && failure == null) Monitor.Wait(gate);
                     Interlocked.Add(ref OniMoono.Engine.FrameStatsWindow.PresenterQueueWait, GlTimings.Now - waiting);
                 }
-                while (queued >= (interval > 0 ? MaxQueuedWithVsync : MaxQueued) && failure == null) Monitor.Wait(gate);
-                if (failure != null) return; // VkDevice reports it (Failure)
-                queue.Enqueue((b, interval, Math.Max(1, width), Math.Max(1, height), complete ? FrameStarted : 0));
+                while (queued >= QueueLimit(interval) && failure == null) Monitor.Wait(gate);
+                if (failure != null) return; // VkDevice reports it (Failure); Run's end stopped Presented
+                queue.Enqueue((b, interval, Math.Max(1, width), Math.Max(1, height), complete ? FrameStarted : 0, Frame, need));
                 queued++;
                 Monitor.PulseAll(gate);
             }
@@ -277,7 +288,7 @@ namespace OniMoono.Desktop.Vulkan
             {
                 while (true)
                 {
-                    (VkBackBuffer Buffer, int Interval, int Width, int Height, long Started) frame = default;
+                    (VkBackBuffer Buffer, int Interval, int Width, int Height, long Started, int Frame, long Need) frame = default;
                     bool redraw = false;
                     lock (gate)
                     {
@@ -299,13 +310,17 @@ namespace OniMoono.Desktop.Vulkan
                         refreshWanted = false;
                         if (redraw) queued++;
                     }
+                    long presenterBusy = 0;
                     if (redraw) Show(shown, swapInterval < 0 ? 1 : swapInterval, windowWidth, windowHeight, gameFrame: false);
                     else
                     {
                         // vSyncCount 2-4: FIFO shows an image per vertical blank, so the frame
                         // is presented that many times (OpenGL's swap interval does the same).
                         PresenterTimings.FrameStarted = frame.Started;
+                        if (Presented.Drain() && OperatingSystem.IsWindows()) dxgi?.HoldBack();
+                        long t = GlTimings.Now;
                         Show(frame.Buffer, frame.Interval, frame.Width, frame.Height, gameFrame: true);
+                        presenterBusy = GlTimings.Now - t - lastWait;
                         PresenterTimings.FrameStarted = 0;
                         // (DXGI's Present takes the interval itself.)
                         for (int again = 1; again < frame.Interval && dxgi == null; again++) Show(frame.Buffer, frame.Interval, frame.Width, frame.Height, gameFrame: false);
@@ -315,6 +330,7 @@ namespace OniMoono.Desktop.Vulkan
                         queued--;
                         Monitor.PulseAll(gate);
                     }
+                    if (!redraw) Presented.Done(frame.Frame, frame.Need > 0 ? frame.Need + presenterBusy : 0);
                 }
             }
             catch (Exception e)
@@ -326,6 +342,7 @@ namespace OniMoono.Desktop.Vulkan
                     queued = 0;
                     Monitor.PulseAll(gate);
                 }
+                Presented.Stop();
             }
         }
 
@@ -815,6 +832,7 @@ namespace OniMoono.Desktop.Vulkan
                 }
                 thread.Join();
             }
+            Presented.Stop();
             try { vk.Queue.WaitIdle(); } catch (VkResultError) { }
             if (ownsSplash) splash?.Dispose();
             if (OperatingSystem.IsWindows()) dxgi?.Dispose();

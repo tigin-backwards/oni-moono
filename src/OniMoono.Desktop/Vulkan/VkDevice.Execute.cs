@@ -689,11 +689,15 @@ namespace OniMoono.Desktop.Vulkan
             return read;
         }
 
-        void PresentNow(int frame, int interval, int width, int height, long started)
+        void PresentNow(int frame, int interval, int width, int height, long started, long mainBusy)
         {
             // The frame's texel buffers, copied into the stream by now.
             UploadBuffers.ReturnAll(returnedUploads);
-            if (deviceLost) return;
+            if (deviceLost)
+            {
+                presenter.Presented.Done(frame);
+                return;
+            }
             long t = System.Diagnostics.Stopwatch.GetTimestamp();
             EndRendering();
             presenter.Frame = frame;
@@ -704,10 +708,12 @@ namespace OniMoono.Desktop.Vulkan
             if (presenter.Failure is { } failed)
             {
                 PresenterFailed(failed);
+                presenter.Presented.Done(frame);
                 return;
             }
             presenter.FrameStarted = started;
-            presenter.Present(interval, width, height);
+            presenter.Present(interval, width, height, mainBusy + worker.TakeFrameBusy());
+            worker.NotBusy();
             presenter.Frame = frame + 1;
             Presented();
             descriptorCache.Sweep(presented);

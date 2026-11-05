@@ -256,7 +256,7 @@ namespace OniMoono.Tests
                 seen.Clear();
                 var lines = FrameStatsWindow.Take(600);
                 Assert.Equal("report 600", lines[0]);
-                Assert.StartsWith("main thread waits (ms/frame over 600): device frame 0.00, device calls 0.00 (0.00 a frame), texel copies 0.00; device thread waiting for the presenter 0.00; GC paused ", lines[1]);
+                Assert.StartsWith("main thread waits (ms/frame over 600): device frame 0.00, queued frames 0.00 (on for 0.00%), device calls 0.00 (0.00 a frame), texel copies 0.00; device thread waiting for the presenter 0.00; GC paused ", lines[1]);
                 Assert.StartsWith("machine (over ", lines[2]);
                 Assert.Equal(3, lines.Count);
                 Assert.Equal([600], seen);

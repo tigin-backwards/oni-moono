@@ -50,6 +50,9 @@ namespace OniMoono.Desktop.Vulkan
         public string Failure => failure ?? chain?.Failure;
         public long LastWait => chain?.LastWait ?? 0;
 
+        /// The next picture waits for one more to retire first (DxgiSwapChain.HoldBack).
+        public void HoldBack() => chain?.HoldBack();
+
         VkDxgiTarget(VkContext vk, IntPtr hwnd)
         {
             this.vk = vk;

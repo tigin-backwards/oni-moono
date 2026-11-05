@@ -478,8 +478,12 @@ namespace OniMoono.Desktop.Vulkan
             int width = platform.WindowFramebufferWidth, height = platform.WindowFramebufferHeight;
             int frame = Time.frameCount;
             long started = PlayerLoop.FrameStartedAt;
-            worker.Post(() => PresentNow(frame, interval, width, height, started));
+            long mainBusy = System.Diagnostics.Stopwatch.GetTimestamp() - started;
+            worker.Post(() => PresentNow(frame, interval, width, height, started, mainBusy));
             worker.Submit();
+            // With vsync, as GlDevice: while frames leave time to spare, the next frame starts
+            // once the frame maxQueuedFrames - 1 before this one has been presented (QueuedFrames).
+            if (interval > 0) OniMoono.Desktop.Gl.GlDevice.WaitForQueuedFrames(presenter.Presented, frame, interval);
         }
 
         bool quitRequested;

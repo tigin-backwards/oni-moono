@@ -189,6 +189,19 @@ namespace UnityEngine
             set => s_VSync = Mathf.Clamp(value, 0, 4);
         }
 
+        static int s_MaxQueuedFrames = 2;
+
+        /// How many frames the main thread may run ahead of the screen: with vsync, while frames
+        /// leave time to spare, it waits before a frame until the picture this many frames back
+        /// has been presented (OniMoono.Desktop's QueuedFrames); without vsync at most two (or
+        /// one) frames wait for the presenter. 2 by default, as the original reads it; set, it
+        /// reads back at most 10, as the original's does (measured: 0 reads 0, 20 reads 10).
+        public static int maxQueuedFrames
+        {
+            get => s_MaxQueuedFrames;
+            set => s_MaxQueuedFrames = Math.Min(value, 10);
+        }
+
         /// Gamma or linear, from the project's player settings.
         public static ColorSpace activeColorSpace
             => OniMoono.Engine.Assets.ProjectSettings.PlayerSettings.Int("m_ActiveColorSpace") == 1 ? ColorSpace.Linear : ColorSpace.Gamma;

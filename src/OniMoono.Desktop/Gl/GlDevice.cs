@@ -982,6 +982,7 @@ namespace OniMoono.Desktop.Gl
             int width = platform.WindowFramebufferWidth, height = platform.WindowFramebufferHeight;
             int frame = Time.frameCount;
             long started = PlayerLoop.FrameStartedAt;
+            long mainBusy = GlTimings.Now - started;
             worker.Post(() =>
             {
                 presenter.Frame = frame;
@@ -994,13 +995,27 @@ namespace OniMoono.Desktop.Gl
                 // since the frame drew: that would present undefined content (black) in place of
                 // the frame. The presenter scales the frame to the window instead.
                 long t = GlTimings.Now;
-                presenter.Present(interval, width, height);
+                presenter.Present(interval, width, height, mainBusy + worker.TakeFrameBusy());
+                worker.NotBusy();
                 presenter.Frame = frame + 1;
                 GlTimings.Present += GlTimings.Now - t;
                 framebufferValid = false;
                 gpuTimingArmed = gpuTiming;
             });
             worker.Submit();
+            // With vsync, while frames leave time to spare, the next frame starts once this one's
+            // predecessor (at the default of two queued frames) has been presented, as in Unity's
+            // player (QueuedFrames).
+            if (interval > 0) WaitForQueuedFrames(presenter.Presented, frame, interval);
+        }
+
+        /// The main thread's wait before the next frame (QueuedFrames), counted in frame stats.
+        internal static void WaitForQueuedFrames(QueuedFrames presented, int frame, int interval)
+        {
+            long waited = presented.WaitFor(frame, QualitySettings.maxQueuedFrames, FramePacing.PeriodTicks * interval, out bool on);
+            if (!PlayerLoop.FrameStats) return;
+            OniMoono.Engine.FrameStatsWindow.QueuedFrameWait += waited;
+            if (on) OniMoono.Engine.FrameStatsWindow.QueuedFrameWaitsOn++;
         }
 
         // ----- GPU frame timing (diagnostics, GL thread) -----

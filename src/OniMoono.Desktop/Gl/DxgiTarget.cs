@@ -48,6 +48,9 @@ namespace OniMoono.Desktop.Gl
         public string Failure => failure ?? chain?.Failure;
         public long LastWait => chain?.LastWait ?? 0;
 
+        /// The next picture waits for one more to retire first (DxgiSwapChain.HoldBack).
+        public void HoldBack() => chain?.HoldBack();
+
         delegate* unmanaged<void*, IntPtr> dxOpenDevice;
         delegate* unmanaged<IntPtr, int> dxCloseDevice;
         delegate* unmanaged<IntPtr, void*, uint, uint, uint, IntPtr> dxRegisterObject;
