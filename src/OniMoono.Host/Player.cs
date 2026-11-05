@@ -81,6 +81,7 @@ namespace OniMoono.Host
                 foreach (var (dumpFrame, path) in options.HierarchyDumps)
                     if (dumpFrame == frame) EngineLog.Engine($"mouse {Input.mousePosition} dt {Time.unscaledDeltaTime}\n" + HierarchyDump(path));
                 options.Input.Apply(frame);
+                if (frame == options.TestNativeCrashFrame) NativeCrashes.Test(options.TestNativeCrash!);
                 PlayerLoop.RunFrame(dt);
                 StartupStats.FrameEnd(frame);
                 StartupProgress.FrameEnded(frame);
@@ -197,6 +198,7 @@ namespace OniMoono.Host
         /// plugins' DLL detach code, under their own threads, as static destructors would).
         static void ProcessExit(int status)
         {
+            NativeCrashes.Exiting(status);
             if (OperatingSystem.IsWindows()) TerminateProcess(GetCurrentProcess(), (uint)status);
             else LinuxExit(status);
         }

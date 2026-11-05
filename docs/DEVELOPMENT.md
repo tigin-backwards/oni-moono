@@ -116,7 +116,11 @@ scripts/run-windows.sh         # from WSL: a test run on the Windows install
 made from WSL. `scripts/check-windows-host.py EXE [--like OTHER.exe]` checks a built one from its
 PE file (the two GPU exports present, writable and 1; the icon, manifest, version and subsystem);
 `build-windows.sh` and `release.sh` run it, and `check.sh` runs it on `out/win/host` when
-there is one.
+there is one. `scripts/check-native-crash.sh` (also in `check.sh`) crashes the player on purpose
+with `--test-native-crash WHERE` and checks the crash lines and minidump in its log
+(ARCHITECTURE §7, "Native crashes"): on Linux, and on Windows with `out/win/host`, in run homes
+under `%TEMP%`, before any window opens (`ONI_WIN_GAME_DIR` names the game, as for
+`run-windows.sh`).
 
 The Windows player uses the Windows build's own data, whose shaders include OpenGL programs
 alongside the Direct3D ones. `run-windows.sh` copies `out/win` to `%TEMP%\oni-brutal` and starts

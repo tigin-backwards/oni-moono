@@ -18,7 +18,12 @@ namespace OniMoono.Host
             if (!OperatingSystem.IsWindows()) return;
             bool output = Unredirected(StdOutput), error = Unredirected(StdError);
             if (!output && !error) return;
+            // AttachConsole sets every standard handle to the console's, the redirected ones too
+            // (OniMoono.exe's standard error pipe, NativeCrashes): those are put back.
+            IntPtr keptOutput = output ? IntPtr.Zero : GetStdHandle(StdOutput), keptError = error ? IntPtr.Zero : GetStdHandle(StdError);
             if (!AttachConsole(AttachParentProcess)) return; // started without a console (Steam, Explorer)
+            if (!output) SetStdHandle(StdOutput, keptOutput);
+            if (!error) SetStdHandle(StdError, keptError);
             var conout = CreateFileW("CONOUT$", GenericRead | GenericWrite, FileShareRead | FileShareWrite, IntPtr.Zero, OpenExisting, 0, IntPtr.Zero);
             if (conout == InvalidHandle) return;
             if (output && !OtherDevice(StdOutput)) SetStdHandle(StdOutput, conout);

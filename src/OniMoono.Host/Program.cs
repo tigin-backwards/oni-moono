@@ -56,8 +56,9 @@ namespace OniMoono.Host
             var gcOutcome = GcMode.Plan(effective.Gc, System.Runtime.GCSettings.IsServerGC, Environment.GetEnvironmentVariable, canRelaunch: !OperatingSystem.IsWindows());
             string? gcRelaunchProblem = null;
             if (gcOutcome == GcMode.Outcome.Relaunch) gcRelaunchProblem = GcMode.Relaunch(args, effective.Gc);
-            EngineLog.Open(options.LogPath ?? EngineConfig.ConsoleLogPath, keepPrevious: options.LogPath == null,
-                effective.HideLogPaths ? LogScrubber.ForThisMachine() : null);
+            var logPath = options.LogPath ?? EngineConfig.ConsoleLogPath;
+            var scrubber = effective.HideLogPaths ? LogScrubber.ForThisMachine() : null;
+            EngineLog.Open(logPath, keepPrevious: options.LogPath == null, scrubber);
             // Which build this is (the commit the SDK stamps into the informational version) and
             // where it runs from, so a log tells which release, or which stray copy, wrote it.
             var built = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
@@ -65,6 +66,12 @@ namespace OniMoono.Host
             EngineLog.Engine($"Moono starting: commit={commit} exe={Environment.ProcessPath} game={options.GameDir} .NET={Environment.Version}");
             StartupStats.Mark("host starts (runtime up)");
             UnhandledExceptions.Install();
+            EngineLog.Engine(NativeCrashes.Install(logPath, options.CrashDumps, scrubber));
+            if (options.TestNativeCrash != null && options.TestNativeCrashFrame < 0)
+            {
+                NativeCrashes.Test(options.TestNativeCrash);
+                return 0;
+            }
             if (migrated != null) EngineLog.Engine($"settings: copied {migrated} (from before the Moono name) to {settingsPath}");
             if (migrateProblem != null) EngineLog.Engine($"settings: could not copy {PlayerSettings.OldPathIn(EngineConfig.PersistentDataPath)} to {settingsPath}: {migrateProblem}");
             EngineLog.Engine(settingsProblem != null ? $"settings: {settingsPath} could not be read, so defaults apply: {settingsProblem}"

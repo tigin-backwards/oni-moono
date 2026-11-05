@@ -12,6 +12,21 @@ namespace OniMoono.Tests
     {
         static readonly string Exe = Path.GetFullPath("/games/oni/OxygenNotIncluded");
 
+        /// The crash records' options (NativeCrashes) are the player's, never the game's.
+        [Fact]
+        public void NativeCrashOptionsAreThePlayers()
+        {
+            var o = Options.Parse(["--crash-dumps", "off", "--test-native-crash", "worker:300", "--", Exe, "-foo"])!;
+            Assert.False(o.CrashDumps);
+            Assert.Equal("worker", o.TestNativeCrash);
+            Assert.Equal(300, o.TestNativeCrashFrame);
+            Assert.Equal(["-foo"], o.GameArguments);
+            Assert.True(Options.Parse(["--", Exe])!.CrashDumps);
+            Assert.Equal(-1, Options.Parse(["--test-native-crash", "managed-null", "--", Exe])!.TestNativeCrashFrame);
+            Assert.Null(Options.Parse(["--test-native-crash", "nowhere", "--", Exe]));
+            Assert.Null(Options.Parse(["--crash-dumps", "maybe", "--", Exe]));
+        }
+
         [Fact]
         public void EverythingAfterTheGamesExecutableIsTheGames()
         {
