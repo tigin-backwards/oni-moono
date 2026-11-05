@@ -981,6 +981,41 @@ namespace SemanticsProbe
         static string Burst(ParticleSystem.Burst b) => "time=" + F(b.time) + " count=" + Curve(b.count) + " min=" + b.minCount + " max=" + b.maxCount + " cycles=" + b.cycleCount
                                                         + " interval=" + F(b.repeatInterval) + " p=" + F(b.probability);
 
+        static string Mutate(ref ParticleSystem.Burst b, int what)
+        {
+            try
+            {
+                switch (what)
+                {
+                    case 0: b.probability = 2f; break;
+                    case 1: b.probability = -1f; break;
+                    case 2: b.cycleCount = -3; break;
+                    case 3: b.repeatInterval = -1f; break;
+                    case 4: b.repeatInterval = 0f; break;
+                    case 5: b.time = -2f; break;
+                    case 6: b.minCount = 9; b.maxCount = 4; break;
+                    default: b.count = 7f; break;
+                }
+                return "'" + Burst(b) + "'";
+            }
+            catch (Exception e)
+            {
+                return "THROWS " + Ex(e);
+            }
+        }
+
+        static string NewBurst(int which)
+        {
+            try
+            {
+                return "'" + Burst(which == 0 ? new ParticleSystem.Burst(0f, (short)2, (short)5, 0, 0.1f) : new ParticleSystem.Burst(0f, (short)2, (short)5, 3, 0f)) + "'";
+            }
+            catch (Exception e)
+            {
+                return "THROWS " + Ex(e);
+            }
+        }
+
         IEnumerator ParticleParts()
         {
             L("Burst(0, 12): " + Burst(new ParticleSystem.Burst(0f, (short)12)));
@@ -989,17 +1024,19 @@ namespace SemanticsProbe
             L("Burst(1, curve 4): " + Burst(new ParticleSystem.Burst(1f, new ParticleSystem.MinMaxCurve(4f))));
             L("Burst(1, 3f): " + Burst(new ParticleSystem.Burst(1f, 3f)));
             L("Burst(1, curve 2..6, 2, 0.25): " + Burst(new ParticleSystem.Burst(1f, new ParticleSystem.MinMaxCurve(2f, 6f), 2, 0.25f)));
+            // No lambda captures a Burst: a closure's field of a type the player lacks fails
+            // the whole assembly's GetTypes (and with it the game's mod loading).
             var bb = new ParticleSystem.Burst(0f, (short)1);
-            L("Burst probability 2: " + Try(() => { bb.probability = 2f; return Burst(bb); }));
-            L("Burst probability -1: " + Try(() => { bb.probability = -1f; return Burst(bb); }));
-            L("Burst cycleCount -3: " + Try(() => { bb.cycleCount = -3; return Burst(bb); }));
-            L("Burst repeatInterval -1: " + Try(() => { bb.repeatInterval = -1f; return Burst(bb); }));
-            L("Burst repeatInterval 0: " + Try(() => { bb.repeatInterval = 0f; return Burst(bb); }));
-            L("Burst time -2: " + Try(() => { bb.time = -2f; return Burst(bb); }));
-            L("Burst min 9 max 4: " + Try(() => { bb.minCount = 9; bb.maxCount = 4; return Burst(bb); }));
-            L("Burst count 7: " + Try(() => { bb.count = 7f; return Burst(bb); }));
-            L("Burst(0, 2, 5, 0, 0.1): " + Try(() => Burst(new ParticleSystem.Burst(0f, (short)2, (short)5, 0, 0.1f))));
-            L("Burst(0, 2, 5, 3, 0): " + Try(() => Burst(new ParticleSystem.Burst(0f, (short)2, (short)5, 3, 0f))));
+            L("Burst probability 2: " + Mutate(ref bb, 0));
+            L("Burst probability -1: " + Mutate(ref bb, 1));
+            L("Burst cycleCount -3: " + Mutate(ref bb, 2));
+            L("Burst repeatInterval -1: " + Mutate(ref bb, 3));
+            L("Burst repeatInterval 0: " + Mutate(ref bb, 4));
+            L("Burst time -2: " + Mutate(ref bb, 5));
+            L("Burst min 9 max 4: " + Mutate(ref bb, 6));
+            L("Burst count 7: " + Mutate(ref bb, 7));
+            L("Burst(0, 2, 5, 0, 0.1): " + NewBurst(0));
+            L("Burst(0, 2, 5, 3, 0): " + NewBurst(1));
             L("default Burst: " + Burst(default(ParticleSystem.Burst)));
 
             var go = new GameObject("ApiGapsPs");
