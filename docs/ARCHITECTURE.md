@@ -1796,6 +1796,43 @@ renderer, restricted to what the game uses (*usage §1*):
 - Unity's built-in shader constants are maintained per draw/camera (`unity_ObjectToWorld`,
   `unity_MatrixVP`, `_ProjectionParams`, `_ScreenParams`, `_Time`, `_ZBufferParams`, …) with GL
   clip-space conventions as Unity's GLCore device sets them.
+- On Windows the original draws with Direct3D 11, whose projection into a render texture has y
+  negated (`_ProjectionParams.x` -1) so that the texture's rows come out in OpenGL's order, and
+  whose programs are compiled with UNITY_UV_STARTS_AT_TOP. Measured on Windows (U59 and U60,
+  `issue-47-missile-trail`'s world shots), the original on Direct3D 11 and on `-force-glcore`
+  differ in 17 % of the pixels by more than 40 levels (56 % by more than 8), and ours on OpenGL
+  matched the GLCore one exactly. The two causes, from the game's GLCore programs traced from
+  their projection products to what their fragment stages read and compared with the Direct3D
+  11 programs (all shaders of U59 and U60, the DLC bundles included):
+  - *Clip-space coordinates (drawn as Direct3D does).* `Klei/Stars`, the space and nebula
+    background drawn into the base camera's render texture, takes its layers' coordinates from
+    clip y, so on Direct3D 11 they sit mirrored about the screen's middle row. It is the only
+    program that does: ComputeScreenPos (`_ProjectionParams.x`) and ComputeGrabScreenPos
+    (UNITY_UV_STARTS_AT_TOP) come out the same on both, and no fragment stage reads its pixel
+    position. On Windows the device draws `Klei/Stars` as Direct3D does (`Direct3DClip`): into
+    a render texture its program reads the projection with y negated and `_ProjectionParams.x`
+    -1, and after its own main its vertex stage turns gl_Position's y back, so only the
+    coordinates change. Ours on OpenGL against the original on Direct3D 11 went from 17 % to
+    0.5 % (more than 40 levels) on those shots.
+  - *GLCore-only `1 - v` (kept: GLCore parity).* About 16 Klei shaders read the property pages
+    `Klei/TexturePage` writes, which the two APIs store turned over, at `1 - v` in their GLCore
+    text only. The same coordinates also read textures the CPU uploads, whose rows both APIs
+    store alike, so GLCore looks those up mirrored about the world's middle row and Direct3D 11
+    does not: `_WorldZoneTex` (SubworldZoneRenderData) in `Klei/GasTest`,
+    `Klei/PostFX/LightBufferCompositor`, `Klei/Substance` and `Klei/TiledBlock`, and
+    `_ExposedToSunlightTex` (an externally updated PropertyTextures texture) in `Substance` and
+    `TiledBlock`. OpenGL keeps the GLCore result, which is what the original draws on OpenGL;
+    Vulkan is not in this build. In those shots it leaves space about 10 % brighter than the original on
+    Direct3D 11 (27 % of the pixels by more than 8 levels, 0.5 % by more than 40), tiles and UI
+    alike. Still to classify (read at the GLCore `1 - v`, source not yet checked): `Klei/Liquid`'s
+    `_LiquidDataTex`, `_MaterialDataTex` and `_SolidLiquidGasMassTex`; `LightBufferCompositor`'s
+    `_RadHaze1Tex`, `_BlurredTemperature` and `_RadiationTex`; `_LightBufferTex` in
+    `Klei/AnimationSimple`, `Klei/Biome/Unlit Transparent`, `Klei/ConduitBall` and
+    `Klei/TiledWall`.
+
+  Linux is unchanged: the original there is GLCore. Metal (a macOS port) also renders into
+  render textures with the projection flipped and UVs starting at the top, as Direct3D does, so
+  both apply there and are to be measured against the macOS original.
 - A renderer draws its material's forward passes: those whose LightMode is none, `Always`,
   `ForwardBase` or `Vertex`. A pass keeps its tags in its state (`m_State.m_Tags`, the
   subshader's merged in), and the build stores LightMode upper-case, so values compare without

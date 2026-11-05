@@ -37,6 +37,8 @@ namespace OniMoono.Desktop.Gl
         public int Block = -1;
         public int Offset;
         public int ArrayStride;
+        /// The program runs with Direct3D's render-texture convention (Direct3DClip).
+        public bool Direct3DClip;
     }
 
     internal sealed class SamplerBinding
@@ -185,7 +187,9 @@ namespace OniMoono.Desktop.Gl
         {
             var program = new DeviceProgram();
             if (!Supported(variant)) return program;
-            uint vs = GlApi.CompileShader(VertexShader, Prepare(variant.VertexSource), out var vlog);
+            bool direct3D = Direct3DClip.Applies(shader.ShaderName);
+            var vertexSource = direct3D ? Direct3DClip.Vertex(variant.VertexSource) : variant.VertexSource;
+            uint vs = GlApi.CompileShader(VertexShader, Prepare(vertexSource), out var vlog);
             uint fs = GlApi.CompileShader(FragmentShader, Prepare(variant.FragmentSource), out var flog);
             uint gs = 0;
             string glog = "";
@@ -210,7 +214,10 @@ namespace OniMoono.Desktop.Gl
             if (!layouts.TryGetValue(layout, out program.LayoutId)) layouts[layout] = program.LayoutId = layouts.Count;
             Reflect(program);
             foreach (var u in program.Uniforms)
+            {
+                u.Direct3DClip = direct3D;
                 if (u.Block < 0) program.LooseLength += GlUniforms.Length(u);
+            }
             foreach (var size in program.BlockSizes) program.BlocksLength += Math.Max(size, 16);
             return program;
         }
@@ -347,11 +354,64 @@ namespace OniMoono.Desktop.Gl
         internal static bool HasTextures(uint target) => target is TexTarget2D or TexTarget2DArray or TexTarget3D or TexTargetCubeMap;
     }
 
+    /// Programs drawn as Unity's Direct3D 11 player draws them, which the original on Windows
+    /// is: the few whose output depends on the projection Direct3D turns over into a render
+    /// texture, in a way the program does not undo. Unity's Direct3D projection into a render
+    /// texture has y negated (`_ProjectionParams.x` -1), so that the texture's rows come out in
+    /// OpenGL's order; a program that takes texture coordinates from its clip-space position
+    /// reads them turned over. `Klei/Stars` (the space and nebula background, drawn into the
+    /// base camera's render texture) takes its layers' coordinates from clip y, so on
+    /// Direct3D they sit mirrored about the screen's middle row compared with GLCore. Programs
+    /// that read clip y through ComputeScreenPos (`_ProjectionParams.x`) or
+    /// ComputeGrabScreenPos (UNITY_UV_STARTS_AT_TOP) come out the same on both, and no fragment
+    /// stage reads its pixel position; every other program of the game's shaders was checked.
+    /// The GLCore-only `1 - v` reads of CPU-uploaded textures stay GLCore's (ARCHITECTURE.md
+    /// §3.5, Engine renderer).
+    ///
+    /// Such a program gets the projection and `_ProjectionParams` Direct3D gives it (y negated
+    /// and -1 into a render texture, as UniformSource values with UniformBinding.Direct3DClip),
+    /// and after its own main its vertex stage turns gl_Position's y back, so the rasterised
+    /// position is OpenGL's and only what the program derives from clip y changes. Windows
+    /// only: the original on Linux is GLCore, as is this device.
+    internal static class Direct3DClip
+    {
+        /// The shaders (names as the game data gives them, trimmed: `Klei/Stars ` ends in a space).
+        static readonly HashSet<string> shaders = new(StringComparer.Ordinal) { "Klei/Stars" };
+
+        /// Whether the convention applies at all (the Windows player; tests set it).
+        public static bool Enabled = OperatingSystem.IsWindows();
+
+        public static bool Applies(string shaderName) => Enabled && shaders.Contains(shaderName.Trim());
+
+        /// The vertex stage with its main renamed and a main that calls it, then turns
+        /// gl_Position's y by `_ProjectionParams.x` (declared when the program does not read it).
+        public static string Vertex(string source)
+        {
+            var main = System.Text.RegularExpressions.Regex.Match(source, @"\bvoid\s+main\s*\(\s*\)");
+            if (!main.Success) throw new FormatException("vertex stage without main");
+            bool declared = source.Contains("_ProjectionParams", StringComparison.Ordinal);
+            return source[..main.Index] + (declared ? "" : "uniform vec4 _ProjectionParams;\n") + "void oni_main()" + source[(main.Index + main.Length)..]
+                + "\nvoid main()\n{\n    oni_main();\n    gl_Position.y *= _ProjectionParams.x;\n}\n";
+        }
+
+        /// The projection a Direct3D program reads (GL.GetGPUProjectionMatrix's y): into a render
+        /// texture y negated. Depth stays OpenGL's: no program of these reads it, and the
+        /// rasterised depth must be the device's.
+        public static Matrix4x4 Projection(Matrix4x4 p, bool renderTexture)
+        {
+            if (renderTexture)
+                for (int c = 0; c < 4; c++) p[1, c] = -p[1, c];
+            return p;
+        }
+    }
+
     /// Everything a draw's uniforms can depend on.
     internal sealed class DrawInputs
     {
         public Matrix4x4 ObjectToWorld = Matrix4x4.identity;
         public CameraConstants Camera;
+        /// The draw's target is a render texture (not the back buffer).
+        public bool RenderTexture;
         public PropertySheet Block;
         public MaterialNative Material;
         public ShaderNative Shader;
@@ -456,6 +516,9 @@ namespace OniMoono.Desktop.Gl
         internal static int Resolve(UniformBinding u, DrawInputs d, Span<float> o)
         {
             var cam = d.Camera;
+            // Direct3D's projection for a program drawn as Direct3D draws it (Direct3DClip).
+            bool flipped = u.Direct3DClip && d.RenderTexture;
+            var projection = u.Direct3DClip ? Direct3DClip.Projection(cam.Projection, d.RenderTexture) : cam.Projection;
             if (u.IsMatrix)
             {
                 int matrices = Math.Max(1, u.Size / 4);
@@ -471,11 +534,12 @@ namespace OniMoono.Desktop.Gl
                     UniformSource.WorldToObject => d.ObjectToWorld.inverse,
                     UniformSource.MatrixV => cam.View,
                     UniformSource.MatrixInvV => cam.View.inverse,
-                    UniformSource.MatrixP or UniformSource.CameraProjection => cam.Projection,
+                    UniformSource.MatrixP => projection,
+                    UniformSource.CameraProjection => cam.Projection,
                     UniformSource.CameraInvProjection => cam.Projection.inverse,
-                    UniformSource.MatrixVP => cam.Projection * cam.View,
-                    UniformSource.MatrixInvVP => (cam.Projection * cam.View).inverse,
-                    UniformSource.MatrixMVP => cam.Projection * cam.View * d.ObjectToWorld,
+                    UniformSource.MatrixVP => projection * cam.View,
+                    UniformSource.MatrixInvVP => (projection * cam.View).inverse,
+                    UniformSource.MatrixMVP => projection * cam.View * d.ObjectToWorld,
                     UniformSource.CameraToWorld => cam.View.inverse * Matrix4x4.Scale(new Vector3(1f, 1f, -1f)),
                     UniformSource.WorldToCamera => Matrix4x4.Scale(new Vector3(1f, 1f, -1f)) * cam.View,
                     _ => d.TryMatrix(u.PropertyId, out var pm) ? pm : Matrix4x4.zero,
@@ -514,8 +578,8 @@ namespace OniMoono.Desktop.Gl
                     v = new Vector4(cam.TargetSize.x, cam.TargetSize.y, 1f + 1f / cam.TargetSize.x, 1f + 1f / cam.TargetSize.y);
                     break;
                 case UniformSource.ProjectionParams:
-                    // OpenGL renders textures upright: no projection flip.
-                    v = new Vector4(1f, cam.Near, cam.Far, 1f / cam.Far);
+                    // OpenGL renders textures upright: no projection flip (but Direct3DClip).
+                    v = new Vector4(flipped ? -1f : 1f, cam.Near, cam.Far, 1f / cam.Far);
                     break;
                 case UniformSource.ZBufferParams:
                 {

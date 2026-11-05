@@ -81,6 +81,8 @@ namespace OniMoono.Desktop.Gl
 
         /// The camera constants of the following draws.
         public CameraConstants Camera;
+        /// The following draws go into a render texture (Direct3DClip).
+        public bool RenderTexture;
 
         /// Draw queues are recorded on worker threads (ONI_PARALLEL_DRAWS=0: never).
         public static readonly bool ParallelByDefault = Environment.GetEnvironmentVariable("ONI_PARALLEL_DRAWS") != "0";
@@ -332,6 +334,7 @@ namespace OniMoono.Desktop.Gl
             var inputs = drawInputs;
             inputs.ObjectToWorld = draw.ObjectToWorld;
             inputs.Camera = Camera;
+            inputs.RenderTexture = RenderTexture;
             inputs.Block = draw.Properties;
             inputs.Material = material;
             drawPasses.Clear();
@@ -587,6 +590,7 @@ namespace OniMoono.Desktop.Gl
             var inputs = c.Inputs;
             inputs.ObjectToWorld = draw.ObjectToWorld;
             inputs.Camera = Camera;
+            inputs.RenderTexture = RenderTexture;
             inputs.Block = draw.Properties;
             inputs.Material = material;
             var passes = c.Passes;

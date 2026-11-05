@@ -387,6 +387,7 @@ namespace OniMoono.Desktop.Gl
                 if (binding.Depth != null) depth = binding.Depth == binding.Colors[0] ? colors[0] : GlTextures.Prepare(worker, binding.Depth);
             }
             var bound = new BoundTarget(colors, depth, platform.FramebufferWidth, platform.FramebufferHeight);
+            recorder.RenderTexture = colors != null;
             worker.Post(worker.Arena.Command(setTargetNow ??= SetTargetNow, bound));
         }
 
@@ -799,6 +800,7 @@ namespace OniMoono.Desktop.Gl
             {
                 ObjectToWorld = objectToWorld,
                 Camera = camera with { View = view, Projection = projection },
+                RenderTexture = recorder.RenderTexture,
                 Material = material,
                 Shader = shader,
             };
