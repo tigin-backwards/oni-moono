@@ -72,7 +72,7 @@ namespace OniMoono.Assets.Tests
         public void DamagedArchivesAreInvalidData()
         {
             var dir = System.IO.Path.Combine(System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211"), "OxygenNotIncluded_Data", "StreamingAssets");
+                ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107"), "OxygenNotIncluded_Data", "StreamingAssets");
             var bundle = System.IO.Directory.GetFiles(dir, "*", System.IO.SearchOption.AllDirectories)
                 .Where(f => { using var s = System.IO.File.OpenRead(f); return s.Length > 1000; }) // through symbolic links, as test installs link their content
                 .First(f => { using var r = System.IO.File.OpenRead(f); var h = new byte[7]; r.ReadExactly(h); return System.Text.Encoding.ASCII.GetString(h) == "UnityFS"; });

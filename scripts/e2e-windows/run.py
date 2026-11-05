@@ -2,10 +2,10 @@
 """scripts/e2e-windows/run.py [e2e.py options] SPEC...: scripts/e2e.py with both players on
 Windows, from WSL. Not part of the product.
 
-Ours: out/win (scripts/build-windows.sh) staged in %TEMP%\\oni-brutal\\qa-win\\host, on the 761211
-Windows data (WIN_GAME, default E:\\oni-builds\\oni-win-761211), --renderer from WIN_RENDERER
+Ours: out/win (scripts/build-windows.sh) staged in %TEMP%\\oni-brutal\\qa-win\\host, on the U60
+Windows data (WIN_GAME, default E:\\oni-builds\\oni-win-762107), --renderer from WIN_RENDERER
 (default vulkan; empty for none). The original: a renamed copy of that install (WIN_ORIG, default
-E:\\oni-builds\\BrutalNotIncluded-761211), set up by scripts/original-windows.sh on its first run
+E:\\oni-builds\\BrutalNotIncluded-762107), set up by scripts/original-windows.sh on its first run
 (WIN_BEPINEX_SOURCE: a game folder with BepInEx 6), on Unity's default renderer (Direct3D 11);
 WIN_ORIG_PRODUCT is the product name in its globalgamemanagers. Both players run windowed
 1280x720 on the second monitor, never focused, and muted (volume prefs 0; ours --audio-wav, the
@@ -54,8 +54,8 @@ LOCAL_LOW = subprocess.run(['wslpath', '-u', windows_env('USERPROFILE') + '\\App
 # The original's product name (globalgamemanagers): its LocalLow folder holds OniMcp's options.
 ORIG_PRODUCT = os.environ.get('WIN_ORIG_PRODUCT', 'Brutal Not Included')
 STAGE = 'oni-brutal\\qa-win'
-WIN_GAME = os.environ.get('WIN_GAME', 'E:\\oni-builds\\oni-win-761211')
-WIN_ORIG = os.environ.get('WIN_ORIG', 'E:\\oni-builds\\BrutalNotIncluded-761211')
+WIN_GAME = os.environ.get('WIN_GAME', 'E:\\oni-builds\\oni-win-762107')
+WIN_ORIG = os.environ.get('WIN_ORIG', 'E:\\oni-builds\\BrutalNotIncluded-762107')
 RENDERER = os.environ.get('WIN_RENDERER', 'vulkan')
 # A DLC-owning Steam double for Windows (as QA_U57_STEAM is for Linux).
 STUB = os.environ.get('WIN_STEAM_STUB') or os.path.join(ROOT, 'out', 'local-tools', 'steamstub-dlc-win', 'steam_api64.dll')
@@ -404,7 +404,7 @@ def menu_grab(self, name):
 
 e2e.Run.menu_grab = menu_grab
 
-# The Windows 761211 original is a development build: Unity draws "Development Build" in the
+# The Windows U60 original is a development build: Unity draws "Development Build" in the
 # bottom right corner of every frame, which ours does not. Every shot masks it.
 WATERMARK = [e2e.WIDTH - 130, e2e.HEIGHT - 28, 130, 28]
 _shot, _world_shot = e2e.Run.shot, e2e.Run.world_shot

@@ -16,7 +16,7 @@ namespace OniMoono.Tests
     {
         [Theory]
         [InlineData("oni-linux")] // U59 (744825)
-        [InlineData("oni-linux-761211")] // U60
+        [InlineData("oni-linux-762107")] // U60
         public void TheGamesAddColonyToListHasTheBug(string build)
         {
             var managed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", build, "OxygenNotIncluded_Data", "Managed");

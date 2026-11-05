@@ -18,7 +18,7 @@ namespace OniMoono.Tests
         public void ABlockChangedAfterDrawMeshKeepsTheQueuedValues()
         {
             var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
+                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107");
             AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             ProjectSettings.Load();
             FrameRenderer.Install();
@@ -63,7 +63,7 @@ namespace OniMoono.Tests
         public void DrawMeshNowDrawsWithThePassSetInTheCameraView()
         {
             var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
+                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107");
             AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             ProjectSettings.Load();
             FrameRenderer.Install();
@@ -152,7 +152,7 @@ namespace OniMoono.Tests
         public void TransparentDrawsAtTheSameDistanceGoByMaterial()
         {
             var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
+                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107");
             AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             ProjectSettings.Load();
             FrameRenderer.Install();

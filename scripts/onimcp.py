@@ -57,7 +57,7 @@ def run(*args, cwd=None):
 
 def main():
     dest = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'out', 'local-tools', 'onimcp')
-    game = os.environ.get('ONI_GAME_DIR') or os.path.expanduser('~/projects/oni-linux-761211')
+    game = os.environ.get('ONI_GAME_DIR') or os.path.expanduser('~/projects/oni-linux-762107')
     if not os.path.isdir(os.path.join(game, 'OxygenNotIncluded_Data', 'Managed')):
         sys.exit(f'onimcp: {game} is not a game install; set ONI_GAME_DIR')
     if not os.path.isdir(os.path.join(SOURCE, '.git')):

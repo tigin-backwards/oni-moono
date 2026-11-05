@@ -128,7 +128,7 @@ namespace OniMoono.Tests
         public void GravityComesFromThePhysicsManager()
         {
             var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
+                       ?? Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107");
             var file = SerializedFile.Open(Path.Combine(game, "OxygenNotIncluded_Data", "globalgamemanagers"));
             var obj = file.Objects.First(o => file.TypeOf(o).ClassId == 55);
             PhysicsWorld.Configure(TypeTreeReader.ReadNative(55, file.OpenObject(obj)));

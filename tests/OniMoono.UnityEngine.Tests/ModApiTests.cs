@@ -14,7 +14,7 @@ namespace OniMoono.Tests
     public class ModApiTests : EngineTest
     {
         static string DataDir => Path.Combine(Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211"), "OxygenNotIncluded_Data");
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107"), "OxygenNotIncluded_Data");
 
         [Fact]
         public void LoadedAssetBundlesAreListedUntilUnloaded()

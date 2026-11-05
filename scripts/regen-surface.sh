@@ -3,7 +3,7 @@
 # compiled into OniMoono.UnityEngine, and the module map used by FacadeGen.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
-game="${ONI_GAME_DIR:-$HOME/projects/oni-linux-761211}"
+game="${ONI_GAME_DIR:-$HOME/projects/oni-linux-762107}"
 managed="$game/OxygenNotIncluded_Data/Managed"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 [ -x "$HOME/.dotnet/dotnet" ] && export PATH="$HOME/.dotnet:$PATH" DOTNET_ROOT="$HOME/.dotnet"

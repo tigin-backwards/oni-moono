@@ -10,7 +10,7 @@ namespace OniMoono.Tests
         // The asset system opens one folder per process, so a suite naming another folder fails.
         static readonly string DataDir = System.IO.Path.Combine(
             System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211"),
+                ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107"),
             "OxygenNotIncluded_Data");
 
         [Theory]

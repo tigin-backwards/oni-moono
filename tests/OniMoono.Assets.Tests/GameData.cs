@@ -3,7 +3,7 @@ using System.IO;
 
 namespace OniMoono.Assets.Tests
 {
-    /// The reference game install (ONI_GAME_DIR, default ~/projects/oni-linux-761211). Corpus tests need
+    /// The reference game install (ONI_GAME_DIR, default ~/projects/oni-linux-762107). Corpus tests need
     /// it; they fail with a clear message when it is missing rather than silently passing.
     static class GameData
     {
@@ -12,7 +12,7 @@ namespace OniMoono.Assets.Tests
             get
             {
                 var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                           ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-761211");
+                           ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107");
                 var dir = Path.Combine(game, "OxygenNotIncluded_Data");
                 if (!Directory.Exists(dir)) throw new InvalidOperationException($"Game data not found at {dir}; set ONI_GAME_DIR.");
                 return dir;
