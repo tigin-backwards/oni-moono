@@ -67,8 +67,7 @@ namespace OniMoono.Host
             while (!PlayerLoop.QuitRequested && (options.Frames < 0 || frame < options.Frames))
             {
                 double now = clock.Elapsed.TotalSeconds;
-                // With vsync, whole refreshes (FramePacing), as Unity times a frame by its presentation.
-                float dt = frame == 0 ? 0f : FramePacing.Delta(now - last);
+                float dt = frame == 0 ? 0f : (float)(now - last);
                 last = now;
                 foreach (var (captureFrame, path, scale) in options.Captures)
                     if (captureFrame == frame) ScreenCapture.CaptureScreenshot(path, scale);
