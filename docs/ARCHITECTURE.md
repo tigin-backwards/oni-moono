@@ -1861,6 +1861,39 @@ player: with vSync the swap paces frames; otherwise `Application.targetFrameRate
 otherwise none. Without a display (`--headless`, `--batchmode`) frames are paced at
 `targetFrameRate` or 60 Hz.
 
+**Frame deltas with vsync.** Unity (2020.2 on) times a vsynced frame by its presentation, so its
+`Time.unscaledDeltaTime` is a whole number of refreshes: in the original on Windows (U59 and U60,
+windowed at 59.95 Hz, panning a small colony with the keyboard) 98.7% and 99.3% of 1,199 frames read
+within 0.05 ms of one, two or three refreshes. The wall clock between our frames' starts varied by
+about ±0.5 ms around the refresh (sd 0.24-0.46 ms against the original's 0.01-0.09), and
+`CameraController` moves the view by `unscaledDeltaTime`, so the pan's steps were uneven (sd
+0.6-1.1% of a step in steady panning against 0.05-0.3%) over a display that showed every picture for
+one refresh. With vsync, `FramePacing` now rounds the wall-clock time since the last frame, plus
+what earlier rounding left over, to whole refreshes (at least one), so the deltas still add up to
+the wall clock within half a refresh, and `Time.unscaledTime`, `time` and `realtimeSinceStartup`
+keep the sums the original's do (its `unscaledTime` is the sum of its deltas; `realtimeSinceStartup`
+the wall clock). The refresh period is that of the current mode of the display the swap chain is on
+(`DxgiSwapChain`, OpenGL and Vulkan alike: its containing output, matched by GDI name in
+`QueryDisplayConfig`'s active paths), looked up again every 300 pictures off the presenter thread,
+so a move to another monitor or a mode change is followed within seconds. DXGI's frame statistics
+would give the measured period, but Windows updates them only now and then for a windowed swap chain
+(in some 20 s runs they stayed on one picture throughout); where they did update, the period they
+gave (16.6807 ms) agreed with the mode's 59.951 Hz to 0.003%. The wall clock is used as before
+without vsync, without a known period (Linux, OpenGL without DXGI), when nothing has been presented
+for a quarter second (a long frame keeps its length: the first frame after a hitch reads the hitch,
+as in the original, and `deltaTime` is capped by `maximumDeltaTime` as before), and when eight
+frames in a row come in under half a refresh (a faster monitor not looked up yet). Measured after
+the change, the same runs (OpenGL on U59, Vulkan on U60): deltas within 0.05 ms of a whole refresh
+in 100% of frames, the pan's steady steps even to 0.00%. Below 60 fps the original's deltas are not
+a model: on a 200-Duplicant colony (about 21-25 fps in U59's original) they read one refresh for
+most frames of 40-47 ms, so the view panned at about 40% of its speed, with deltas of up to 5.9 s
+now and then (the step capped at ten times its size); U60's original, at about 15 fps, gave the wall
+clock. Ours there (about 38 fps) keeps whole refreshes adding up to the wall clock; how long each
+picture stays on screen still depends on when its frame reaches the GPU, which the delta cannot
+know: a frame's delta and its picture's time on screen differed by a refresh or more in 24-31% of
+the sampled frames before the change and 19-26% after, and the on-screen speed was more than 10% off
+in 53-75% of them before and 35-46% after.
+
 **Presentation on Windows (DXGI).** On Windows the presenter shows the picture through a
 Direct3D 11 flip-model swap chain (`DxgiSwapChain`, `DxgiTarget`), on by default (Moono Tweaks'
 "Present through Direct3D on Windows", settings.json `"dxgi"`, `--dxgi on|off`). The original
