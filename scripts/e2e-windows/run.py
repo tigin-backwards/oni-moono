@@ -9,8 +9,8 @@ E:\\oni-builds\\BrutalNotIncluded-761211), set up by scripts/original-windows.sh
 (WIN_BEPINEX_SOURCE: a game folder with BepInEx 6), on Unity's default renderer (Direct3D 11);
 WIN_ORIG_PRODUCT is the product name in its globalgamemanagers. Both players run windowed
 1280x720 on the second monitor, never focused, and muted (volume prefs 0; ours --audio-wav, the
-original's isolation writes a wav); guard.ps1 kills a window that lands on the first monitor.
-One player at a time, on lane WIN_LANE (default 25).
+original's isolation writes a wav); guard.ps1 kills a window that stays on the first monitor
+for over half a second. One player at a time, on lane WIN_LANE (default 25).
 
 E2eDriver and OniMcp listen on the Windows loopback, which WSL cannot reach: each connection goes
 through a Windows Python bridge (bridge.py) on a relay port here (the lane's + 1000). Input is
