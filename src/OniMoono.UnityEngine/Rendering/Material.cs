@@ -33,11 +33,63 @@ namespace UnityEngine
 
         public UnityEngine.Rendering.ShaderPropertyType GetPropertyType(int propertyIndex) => (UnityEngine.Rendering.ShaderPropertyType)Property(propertyIndex).Kind;
 
-        /// An index out of range throws as Unity's does (the exception's default message).
+        /// The index of the property of that name (case-sensitive), -1 for none (null and "" too).
+        public int FindPropertyIndex(string propertyName)
+        {
+            if (string.IsNullOrEmpty(propertyName)) return -1;
+            var properties = Data.Properties;
+            for (int i = 0; i < properties.Length; i++)
+                if (properties[i].Name == propertyName) return i;
+            return -1;
+        }
+
+        public int GetPropertyNameId(int propertyIndex) => Property(propertyIndex).Id;
+
+        public UnityEngine.Rendering.ShaderPropertyFlags GetPropertyFlags(int propertyIndex) => (UnityEngine.Rendering.ShaderPropertyFlags)Property(propertyIndex).Attributes;
+
+        public string GetPropertyDescription(int propertyIndex) => Property(propertyIndex).Description;
+
+        public string[] GetPropertyAttributes(int propertyIndex) => (string[])Property(propertyIndex).PropertyAttributes.Clone();
+
+        // The typed getters throw ArgumentException for a property of another type, with the
+        // original's messages (UnityProbe's apigaps "shader", the game's 84 shaders).
+
+        public float GetPropertyDefaultFloatValue(int propertyIndex)
+            => Typed(propertyIndex, ShaderPropertyKind.Float, ShaderPropertyKind.Range, "Float or Range").Default.x;
+
+        public Vector4 GetPropertyDefaultVectorValue(int propertyIndex)
+            => Typed(propertyIndex, ShaderPropertyKind.Color, ShaderPropertyKind.Vector, "Color or Vector").Default;
+
+        public int GetPropertyDefaultIntValue(int propertyIndex)
+            => (int)Typed(propertyIndex, ShaderPropertyKind.Int, ShaderPropertyKind.Int, "Int").Default.x;
+
+        /// A range's (min, max).
+        public Vector2 GetPropertyRangeLimits(int propertyIndex)
+        {
+            var p = Typed(propertyIndex, ShaderPropertyKind.Range, ShaderPropertyKind.Range, "Range");
+            return new Vector2(p.Default.y, p.Default.z);
+        }
+
+        public UnityEngine.Rendering.TextureDimension GetPropertyTextureDimension(int propertyIndex)
+            => (UnityEngine.Rendering.TextureDimension)Typed(propertyIndex, ShaderPropertyKind.Texture, ShaderPropertyKind.Texture, "TexEnv").TextureDimension;
+
+        /// The default texture's name as declared ("white", "grey", "" ...).
+        public string GetPropertyTextureDefaultName(int propertyIndex)
+            => Typed(propertyIndex, ShaderPropertyKind.Texture, ShaderPropertyKind.Texture, "Texture").DefaultTexture;
+
+        ShaderProperty Typed(int index, ShaderPropertyKind a, ShaderPropertyKind b, string types)
+        {
+            var p = Property(index);
+            if (p.Kind != a && p.Kind != b) throw new ArgumentException("Property type is not " + types + ".");
+            return p;
+        }
+
+        /// An index out of range throws ArgumentOutOfRangeException for propertyIndex, as Unity's
+        /// does.
         ShaderProperty Property(int index)
         {
             var properties = Data.Properties;
-            if (index < 0 || index >= properties.Length) throw new ArgumentOutOfRangeException();
+            if (index < 0 || index >= properties.Length) throw new ArgumentOutOfRangeException("propertyIndex");
             return properties[index];
         }
 

@@ -145,6 +145,22 @@ namespace UnityEngine.Rendering
     public partial struct RenderTargetIdentifier : global::System.IEquatable<global::UnityEngine.Rendering.RenderTargetIdentifier>
     {
     }
+    [global::System.Flags]
+    public enum ShaderPropertyFlags
+    {
+        None = 0,
+        HideInInspector = 1,
+        PerRendererData = 2,
+        NoScaleOffset = 4,
+        Normal = 8,
+        HDR = 16,
+        Gamma = 32,
+        NonModifiableTextureData = 64,
+        MainTexture = 128,
+        MainColor = 256,
+        Vector2 = 512,
+        Vector3 = 1024,
+    }
     public enum ShaderPropertyType
     {
         Color = 0,
@@ -175,5 +191,16 @@ namespace UnityEngine.Rendering
         Invert = 5,
         IncrementWrap = 6,
         DecrementWrap = 7,
+    }
+    public enum TextureDimension
+    {
+        Unknown = unchecked((int)-1),
+        None = 0,
+        Any = 1,
+        Tex2D = 2,
+        Tex3D = 3,
+        Cube = 4,
+        Tex2DArray = 5,
+        CubeArray = 6,
     }
 }

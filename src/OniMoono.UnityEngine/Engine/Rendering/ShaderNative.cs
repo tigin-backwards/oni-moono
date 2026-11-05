@@ -46,6 +46,10 @@ namespace OniMoono.Engine.Rendering
         public string DefaultTexture;
         /// TextureDimension of a texture property.
         public int TextureDimension;
+        /// The ShaderLab description (the inspector's label).
+        public string Description = "";
+        /// The attributes before the property, as written ("Toggle", "Enum(...)"), in order.
+        public string[] PropertyAttributes = Array.Empty<string>();
     }
 
     internal sealed class ShaderPass
@@ -197,6 +201,8 @@ namespace OniMoono.Engine.Rendering
                     Default = new Vector4(p.Float("m_DefValue[0]"), p.Float("m_DefValue[1]"), p.Float("m_DefValue[2]"), p.Float("m_DefValue[3]")),
                     DefaultTexture = tex.String("m_DefaultName"),
                     TextureDimension = tex.Int("m_TexDim"),
+                    Description = p.Contains("m_Description") ? p.String("m_Description") : "",
+                    PropertyAttributes = p.Contains("m_Attributes") ? p.Array("m_Attributes").Cast<string>().ToArray() : Array.Empty<string>(),
                 };
             }).ToArray();
             Properties = props;
