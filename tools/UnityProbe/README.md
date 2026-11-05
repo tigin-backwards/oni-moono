@@ -426,6 +426,14 @@ Unity's Mathf.RoundToInt/FloorToInt/CeilToInt, Vector2Int/Vector3Int's and Color
 Check the rule with `tools/UnityProbe/cv-check.py rule LOG`, and compare the players with
 `cv-check.py diff ORIG OURS`. ARCHITECTURE D29 records what it measured.
 
+With `PROBE_SCENARIO=nulldelegate` only the null-delegate probe runs (`NullDelegate.cs`, lines
+`ND …`, at mod load): delegates to instance methods built with a null target (C#'s method groups
+on null, ldftn and ldvirtftn in emitted IL, a struct's method, `Delegate.CreateDelegate` with a
+null first argument), what invoking them does, what they report (Target, Method, Equals,
+GetHashCode) and what combining them gives, then the construction's exception in full. It runs
+through `scripts/e2e.py` with OniMcp's mod folder as above and a spec `from: main-menu`; diff
+the players' `ND` lines. ARCHITECTURE D61 records what it measured.
+
 With `PROBE_SCENARIO=jpg` only the image-encoder probe runs (`JpgEncode.cs`, lines `JPG …`, at
 mod load): `EncodeToJPG`, `EncodeToTGA` and `EncodeToPNG` of gradient textures in each
 uncompressed, HDR and block-compressed format, an unreadable one and JPEG qualities from -5 to
