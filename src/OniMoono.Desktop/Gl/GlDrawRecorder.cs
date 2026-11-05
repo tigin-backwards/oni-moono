@@ -258,7 +258,7 @@ namespace OniMoono.Desktop.Gl
                     var device = GlTextures.Prepare(worker, tn);
                     if (SamplerOf(device, tn, s, out r.Textures[i])) continue;
                 }
-                r.Textures[i] = DefaultSampler(inputs.Shader, s);
+                r.Textures[i] = DefaultSampler(inputs.Shader, s, found && binding.Texture is not null && binding.Texture.Native == null);
             }
             return r;
         }
@@ -296,10 +296,13 @@ namespace OniMoono.Desktop.Gl
         /// A declared property falls back to its default texture. A sampler the shader does not
         /// declare, with no global set, has no texture bound in Unity's GLCore player and reads
         /// (0, 0, 0, 1) as GL defines for a missing texture (the overlay compositor relies on an
-        /// unset _MRT2 reading black).
-        SamplerTexture DefaultSampler(ShaderNative shader, SamplerBinding s)
+        /// unset _MRT2 reading black). One set to a texture since destroyed (`destroyed`) reads
+        /// grey there instead: the gas shader's _GasOffsetTex after a load, while paused
+        /// (FlowOffsetRenderer makes new offset textures on the first resize and sets the global
+        /// again only when time runs); the original's gas then matches ours only with grey.
+        SamplerTexture DefaultSampler(ShaderNative shader, SamplerBinding s, bool destroyed = false)
         {
-            string name = shader.PropertiesById.TryGetValue(s.PropertyId, out var prop) ? prop.DefaultTexture : Unbound;
+            string name = shader.PropertiesById.TryGetValue(s.PropertyId, out var prop) ? prop.DefaultTexture : destroyed ? "gray" : Unbound;
             return new SamplerTexture(defaultTexture(name, s.Target), false, false);
         }
 
@@ -647,7 +650,7 @@ namespace OniMoono.Desktop.Gl
                     }
                     if (SamplerOf((DeviceTexture)tn.Gpu, tn, s, out r.Textures[i])) continue;
                 }
-                r.Textures[i] = DefaultSampler(inputs.Shader, s);
+                r.Textures[i] = DefaultSampler(inputs.Shader, s, found && binding.Texture is not null && binding.Texture.Native == null);
             }
             return r;
         }

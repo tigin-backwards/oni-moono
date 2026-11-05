@@ -1,0 +1,18 @@
+# Gases where they meet, as a loaded colony shows them while paused (a player report: "the
+# texture where gases meet is completely different").
+#
+# The gas shader (Klei/GasTest) shifts its cloud texture by _GasOffsetTex, the flow offsets
+# FlowOffsetRenderer draws while time runs. Its first resize after a load makes new offset
+# textures and destroys the old one the global still names, and nothing sets the global again
+# until time runs. The original then reads grey (0.5) offsets: a half-tile shift of the clouds.
+# Ours read none, so every gas showed other clouds (7.7% of the close shot's pixels off by more
+# than 40, against 0.4% with grey).
+#
+# The paused frames are deterministic (the same sim state from the save, no flow update), so the
+# shots take a 1% threshold, not the 5% default. Run gas-boundary.yaml with --bless first.
+from: gas-boundary
+thresholds: {world_shot: 0.01}
+steps:
+  - world_shot: {name: normal, ortho: 10, at: [113, 215]}
+  - world_shot: {name: close, ortho: 4, at: [113, 215]}
+  - world_shot: {name: closer, ortho: 2, at: [113, 215]}
