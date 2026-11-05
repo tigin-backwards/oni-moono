@@ -32,6 +32,12 @@ one `mods.json` serves both players:
 The game log shows `[E2eDriver] listening on 127.0.0.1:PORT` once the mod has loaded, early
 in start-up and before the main menu.
 
+With `E2E_GLOBALS_WATCH=1` the driver also logs the game's global shader textures, as
+`Shader.GetGlobalTexture` returns them, on each frame one of them changes (`[E2eDriver] GLOBALS
+f<frame> ...`: the screen size, the time scale and each changed global, null or its type, name,
+size and whether a render texture is created). Comparing the two players' lines shows when each
+global is set, destroyed or replaced (`GlobalTextures.cs`).
+
 ## Transport
 
 - TCP on `127.0.0.1`. The port comes from the environment variable `E2E_DRIVER_PORT` and

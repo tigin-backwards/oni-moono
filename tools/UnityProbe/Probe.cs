@@ -22,6 +22,11 @@ namespace SemanticsProbe
                 go.AddComponent<CanvasProbe>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "texfallback")
+            {
+                go.AddComponent<TextureFallback>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "drawmeshnow")
             {
                 go.AddComponent<DrawMeshNow>();
