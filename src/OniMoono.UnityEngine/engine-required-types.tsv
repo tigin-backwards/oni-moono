@@ -89,3 +89,8 @@ UnityEngine.UnityWebRequestModule	UnityEngine.Networking.DownloadHandlerFile	# m
 UnityEngine.UnityWebRequestTextureModule	UnityEngine.Networking.UnityWebRequestTexture	# mods (starship): textures downloaded
 UnityEngine.UnityWebRequestTextureModule	UnityEngine.Networking.DownloadHandlerTexture	# as above
 UnityEngine.CoreModule	UnityEngine.WeightedMode	# mods: Keyframe.weightedMode
+UnityEngine.VideoModule	UnityEngine.Video.VideoPlayer+ErrorEventHandler	# mods (Modular Power): fields of it, without which the mod's types do not load
+UnityEngine.VideoModule	UnityEngine.Video.VideoPlayer+FrameReadyEventHandler	# as above (Rookie 100-Day Quest Guide)
+UnityEngine.VideoModule	UnityEngine.Video.VideoSource	# the same mods' VideoPlayer settings
+UnityEngine.VideoModule	UnityEngine.Video.VideoRenderMode	# as above
+UnityEngine.VideoModule	UnityEngine.Video.VideoTimeUpdateMode	# as above

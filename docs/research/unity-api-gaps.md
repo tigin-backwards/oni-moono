@@ -81,7 +81,7 @@ God Tools reference none.
 | `UploadHandler`, `UploadHandlerRaw`, `UnityWebRequest.uploadHandler` | 4 | Mod Manager (#26), bottle emptier extend (#63), telescope auto research (#301), generic fabricator | fixed |
 | `UnityWebRequest.Post(string, string)` | 3 | bottle emptier extend, telescope auto research, generic fabricator | fixed |
 | `Input.inputString` | 3 | Refreshpicks (#1479), Superduplicant (#1499), Custom Material Costs | open: typed characters reach the engine in `GlfwPlatform.cs`'s input feed, which other work is changing |
-| `VideoPlayer` source, url, renderMode, timeUpdateMode, sendFrameReadyEvents, errorReceived, frameReady, width, height | 2-3 | Rookie 100-Day Quest Guide (#943), Modular Power (#1865), Extra Twitch Events | open: playing from a URL needs a file source in the video engine (only VideoClips play); measured so far: a missing file raises errorReceived "VideoPlayer cannot play url : URL\nCannot read file.", an .mp4 "VideoPlayer cannot play url : URL", url reads "" with a VideoClip source |
+| `VideoPlayer` source, url, renderMode, timeUpdateMode, sendFrameReadyEvents, errorReceived, frameReady, width, height | 2-3 | Rookie 100-Day Quest Guide (#943), Modular Power (#1865), Extra Twitch Events | types fixed (Modular Power's fields of ErrorEventHandler kept its types from loading); members open: playing from a URL needs a file source in the video engine (only VideoClips play); measured so far: a missing file raises errorReceived "VideoPlayer cannot play url : URL\nCannot read file.", an .mp4 "VideoPlayer cannot play url : URL", url reads "" with a VideoClip source |
 | `ParticleSystem.Burst`, `EmissionModule.SetBurst`/`burstCount`/`rateOverTimeMultiplier`, `MainModule.startSize`, `velocityOverLifetime` | 2-3 | Metal Bird Volcano (#2758), Metal Hatch Volcano (#2580), Extra Twitch Events | open: velocity over lifetime needs the simulation; measured in the probe's "ps" part (burst clamps and errors, burstCount 0 to 8, defaults, local and world space velocity) |
 | `GUILayout.SelectionGrid` (2 overloads), `GUILayout.PasswordField` | 2 | ModTools (#1676), AI Advisor | open: measured rects in the probe's "gui" part (grid rows 42 high for two rows, 0 for xCount 0 with a warning) |
 | `DownloadHandlerBuffer`, `DownloadHandlerFile` | 1 | Mod Manager (#26) | fixed |
@@ -99,7 +99,9 @@ God Tools reference none.
 | `TrailRenderer`, `ParticleSystem.Particle` triggers | 1 | Extra Twitch Events | open: no trail rendering, no particle collision |
 
 Smaller differences the probe showed and that were left: PhysX widens 3D collider bounds by a few
-ulps (1.3660257 against 1.3660254); a sprite renderer's bounds have a z extent of 0.1 in the
+ulps (1.3660257 against 1.3660254); a render texture asked for D16_UNorm_S8_UInt gets
+D24_UNorm_S8_UInt but its descriptor reports the request (ours reports what it got); a sprite
+renderer's bounds have a z extent of 0.1 in the
 original (0 here); the original logs "ReadPixels was called to read pixels from system frame
 buffer, while not inside drawing frame." and "Releasing render texture that is set to be
 RenderTexture.active!", and warns that a tight-mesh sprite may not tile well; Mono prints `R`
