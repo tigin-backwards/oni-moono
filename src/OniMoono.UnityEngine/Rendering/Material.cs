@@ -82,7 +82,7 @@ namespace UnityEngine
         public static Color GetGlobalColor(string name) => GetGlobalVector(PropertyToID(name));
         public static Color GetGlobalColor(int nameID) => GetGlobalVector(nameID);
         public static Texture GetGlobalTexture(string name) => GetGlobalTexture(PropertyToID(name));
-        public static Texture GetGlobalTexture(int nameID) => ShaderGlobals.Properties.Textures.TryGetValue(nameID, out var t) ? t.Texture : null;
+        public static Texture GetGlobalTexture(int nameID) => ShaderGlobals.Properties.Textures.TryGetValue(nameID, out var t) && t.Texture != null ? t.Texture : null;
 
         internal override void EngineOnDestroy()
         {

@@ -542,6 +542,10 @@ Fixtures are blessed saves (`--bless` copies a spec's `save:` into `fixtures/`, 
   both players in the base game: the runner writes `EXPANSION1_ID.ENABLED: 0` into the run's
   `kplayerprefs.yaml` for a save whose header lists no `EXPANSION1_ID`, as
   `scripts/windows-run-home.sh` does.
+- `gas-boundary` (`gas-boundary.yaml`): `landing` with a sealed box of oxygen, carbon dioxide,
+  chlorine and hydrogen side by side, mixed for 4 seconds, for
+  [`gas-view.yaml`](gas-view.yaml). Bless it with
+  `scripts/e2e.py --player original --bless gas-boundary`.
 
 `from: main-menu` loads no fixture: the steps start at the main menu, as `vanilla-base.yaml`'s
 do. Spaced Out stays on there unless the spec says `spaced_out: false`.
