@@ -2308,7 +2308,13 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   projection the back buffer is stored top row first, as the window shows it, and the presenter
   copies it unflipped. Into a render texture the projection's y is negated as well
   (`_ProjectionParams.x` -1), which leaves render textures' rows in OpenGL's order, so sampling
-  them reads what OpenGL's do. The projection the programs read (`UNITY_MATRIX_P` and the
+  them reads what OpenGL's do. A program that derives texture coordinates from its clip-space
+  position therefore reads them turned over in a render texture: `Klei/Stars` (the space and
+  nebula background, drawn into the base camera's render texture) takes its UVs from clip y, so
+  its layers sit mirrored about the screen's middle row compared with GLCore. The original
+  shows the same on Direct3D 11 and Vulkan (measured on Windows: its shots match ours on Vulkan
+  and differ from the Linux GLCore original by 12 % of the pixels), so Vulkan lanes compared with
+  the Linux original differ in space. The projection the programs read (`UNITY_MATRIX_P` and the
   products with it; `RenderConventions`) maps depth to [1, 0], near to far, `_ZBufferParams`
   takes the reversed form, and `unity_CameraProjection` keeps the camera's own matrix. Depth
   tests compare the other way (Less and Greater, LessEqual and GreaterEqual swapped), depth

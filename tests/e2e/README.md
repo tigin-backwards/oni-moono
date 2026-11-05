@@ -608,7 +608,11 @@ bound in one thread: Unity's graphics worker spends about 85 % of its time copyi
 Mesa's d3d12 driver. It shows its main menu after about 125 s, loads `early-base` in 20-30 s,
 draws about 2.2 frames a second whatever the window size, vsync, GL level, buffer storage or
 Unity's graphics threading, and a `run: {seconds: 60}` takes about 140 s. Vulkan is not offered
-(WSL has no d3d12 Vulkan driver, and Unity refuses llvmpipe's), and zink needs one.
+(WSL has no d3d12 Vulkan driver, and Unity refuses llvmpipe's), and zink needs one. So ours
+with `--renderer vulkan` is compared with the original on GLCore, and world shots with space in
+them differ there (7-12 % in `issue-47-missile-trail` and `sandbox-search`): Unity's Direct3D 11
+and Vulkan players draw the space background mirrored (ARCHITECTURE.md, Vulkan conventions),
+and ours on Vulkan matches the original on Windows.
 
 Mesa's software rasteriser is faster for it: `E2E_ORIGINAL_ENV` gives the original player its
 own environment, for example in `out/local-tools/qa.env`:
