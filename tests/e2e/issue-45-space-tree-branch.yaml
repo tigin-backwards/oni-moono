@@ -11,7 +11,12 @@
 # destruction point. In Unity a behaviour whose Awake destroys its object is not enabled after
 # it and never starts; ours enabled it, so KPrefabID started, StartSMIS found the SpaceTreeBranch
 # machine created after the drop, and it ran without its PlantBranch. Both players now drop the
-# branch at load and count the same branches and trees.
+# branch at load and count the same branches and trees: no SpaceTreeBranch exception (a log
+# signature the original lacks) and no crash screen.
+#
+# The save names dozens of mods, none installed here: both players list them in a MOD
+# DIFFERENCES dialog at load. In U60 the list pushes its OK button below the 1280x720 screen,
+# and the runner closes it with Escape, as a player can.
 from: issue-45-old
 memory_gb: 10
 steps:
@@ -19,3 +24,5 @@ steps:
       "count:all:KPrefabID::[*] if .PrefabTag.Name == SpaceTreeBranch": "== original"
       "count:all:KPrefabID::[*] if .PrefabTag.Name == SpaceTree": "== original"
   - run: {seconds: 2}
+  - expect_ui:
+      "ErrorCanvas/CrashReportScreen*": {exists: false}
