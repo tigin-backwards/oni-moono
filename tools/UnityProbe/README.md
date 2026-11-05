@@ -84,6 +84,17 @@ material made from a shader. Run `probe-texfallback.yaml`; the two players' `TF`
 the same. `DefaultTextureTests` encodes the table (the U59 and U60 originals gave the same one;
 the original exits on `-force-vulkan` here).
 
+With `PROBE_SCENARIO=uiztest` only the overlay depth probe runs (`UiZTest.cs`, lines `UZ …`, 10 s
+after the intro video has gone, ending with a `UiZTestProbeDone` canvas): quads drawn in overlay
+canvases with the game's `Lines/Colored Blended` shader, which tests depth (ZTest LEqual), at z 0,
++500 and -500, over a quad a camera drew near its near plane, and over a depth-writing quad in the
+same or a lower overlay canvas. Run `tests/e2e/probe-uiztest.yaml` with OniMcp's mod folder as above.
+In the original every quad over the cameras' depth draws, and a quad behind a depth-writing one
+in the overlays (z -500) does not, in the same canvas or one sorted above: the depth buffer is
+cleared once before the overlay canvases, and +z is nearer. `CanvasTests`
+(`OverlayCanvasesDrawAfterOneDepthClear`) encodes it. Ours draws BRUTAL's credit tile over the
++500 quad.
+
 With `PROBE_SCENARIO=apigaps` only the API gaps probe runs (`ApiGaps.cs`, lines `AG …`, 10 s into
 the main menu, ending with an `ApiGapsProbeDone` canvas): Unity members Workshop mods call that ours
 lacked (`docs/research/unity-api-gaps.md`), by part: what `RenderTexture.active` binds, every loaded

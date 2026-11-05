@@ -828,5 +828,56 @@ namespace OniMoono.Tests
             Assert.Equal(32001, n.Override.sortingOrder);
             Assert.All(n.Elements, r => Assert.Equal(-1, r.absoluteDepth));
         }
+
+        /// Overlay canvases draw over a depth buffer cleared once, before the first of them
+        /// (UnityProbe UiZTest, #57): the Colony Summary's chart lines use a shader that tests
+        /// depth itself (ZTest LEqual), and drew nothing over the depth the cameras had left.
+        [Fact]
+        public void OverlayCanvasesDrawAfterOneDepthClear()
+        {
+            var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
+                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
+            AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            ProjectSettings.Load();
+            FrameRenderer.Install();
+            OniMoono.Engine.UI.CanvasSystem.Install();
+            var device = new RecordingDevice();
+            var previous = GraphicsDevice.Current;
+            GraphicsDevice.Install(device);
+            var canvases = new System.Collections.Generic.List<GameObject>();
+            try
+            {
+                Frame();
+                Assert.Empty(device.DepthClears);
+
+                for (int i = 0; i < 2; i++)
+                {
+                    var canvasGo = new GameObject("Overlay" + i, typeof(RectTransform));
+                    canvases.Add(canvasGo);
+                    var canvas = canvasGo.AddComponent<Canvas>();
+                    canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                    canvas.sortingOrder = i;
+                    var element = new GameObject("Element", typeof(RectTransform));
+                    element.transform.SetParent(canvasGo.transform, false);
+                    var renderer = element.AddComponent<CanvasRenderer>();
+                    renderer.SetMesh(new Mesh { vertices = [Vector3.zero, new Vector3(0f, 100f), new Vector3(100f, 0f)], triangles = [0, 1, 2] });
+                    renderer.materialCount = 1;
+                    renderer.SetMaterial(new Material(Shader.Find("UI/Default")), 0);
+                }
+                device.MeshDraws.Clear();
+                device.DepthClears.Clear();
+                Frame();
+                Assert.Equal(2, device.MeshDraws.Count);
+                var clear = Assert.Single(device.DepthClears);
+                Assert.Null(clear.Target);
+                Assert.Equal(1f, clear.Value);
+                Assert.Equal(0, clear.DrawsBefore);
+            }
+            finally
+            {
+                foreach (var c in canvases) Object.DestroyImmediate(c);
+                GraphicsDevice.Install(previous);
+            }
+        }
     }
 }

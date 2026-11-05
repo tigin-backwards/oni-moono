@@ -1382,7 +1382,11 @@ namespace OniMoono.Engine.UI
         static bool IsOverlay(CanvasNative root) => root.RenderMode == RenderMode.ScreenSpaceOverlay
                                                      || (root.RenderMode == RenderMode.ScreenSpaceCamera && root.WorldCamera == null);
 
-        /// Overlay canvases draw after every camera, in render order, in screen pixels.
+        /// Overlay canvases draw after every camera, in render order, in screen pixels, over a
+        /// depth buffer cleared once before the first of them. Measured in the original
+        /// (UnityProbe UiZTest): a shader that tests depth itself (the Colony Summary's chart lines,
+        /// "Lines/Colored Blended", ZTest LEqual) draws over what the cameras left at any depth,
+        /// while a nearer depth-writing draw before it, in its canvas or a lower one, hides it.
         static void RenderOverlays()
         {
             var device = GraphicsDevice.Current;
@@ -1396,6 +1400,7 @@ namespace OniMoono.Engine.UI
                     FrameRenderer.Bind(device, FrameRenderer.ScreenBinding);
                     device.SetViewport(new Rect(0f, 0f, size.x * FrameRenderer.ScreenScale, size.y * FrameRenderer.ScreenScale));
                     device.SetCamera(new CameraConstants(Matrix4x4.identity, Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f), Vector3.zero, -1000f, 1000f, true, size));
+                    device.Clear(false, true, default, 1f);
                     bound = true;
                 }
                 // Canvas items name no pass (-1).
