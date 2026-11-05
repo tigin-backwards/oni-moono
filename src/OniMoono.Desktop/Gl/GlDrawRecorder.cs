@@ -85,6 +85,8 @@ namespace OniMoono.Desktop.Gl
         /// The rendering conventions the following draws' built-in values follow (the device's;
         /// for Vulkan, also whether the target is a render texture).
         public RenderConventions Conventions;
+        /// The following draws go into a render texture (the OpenGL device's; Direct3DClip).
+        public bool RenderTexture;
 
         /// The ShaderCompilerPlatform whose programs a shader's draws select (0: none), when the
         /// device chooses per shader (the Vulkan device); null: OpenGLCore.
@@ -347,6 +349,7 @@ namespace OniMoono.Desktop.Gl
             var inputs = drawInputs;
             inputs.ObjectToWorld = draw.ObjectToWorld;
             inputs.Camera = Camera;
+            inputs.RenderTexture = RenderTexture;
             inputs.Conventions = Conventions;
             inputs.Block = draw.Properties;
             inputs.Material = material;
@@ -603,6 +606,7 @@ namespace OniMoono.Desktop.Gl
             var inputs = c.Inputs;
             inputs.ObjectToWorld = draw.ObjectToWorld;
             inputs.Camera = Camera;
+            inputs.RenderTexture = RenderTexture;
             inputs.Conventions = Conventions;
             inputs.Block = draw.Properties;
             inputs.Material = material;
