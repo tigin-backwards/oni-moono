@@ -225,7 +225,7 @@ Moono 也会加速游戏自身的一些代码。大多数调整项不会改变�
 
 ## 问题反馈
 
-请提交一个 issue，并附上你的日志和当时正在玩的存档。
+请[提交一个 issue](https://github.com/tigin-backwards/oni-moono/issues)，并附上你的日志和当时正在玩的存档。
 
 日志是以下位置中的 `Player.log`：
 - Windows：`%USERPROFILE%\AppData\LocalLow\Klei\Oxygen Not Included\`
