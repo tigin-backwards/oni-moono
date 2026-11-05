@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Threading;
 using OniMoono.Engine;
 
 namespace OniMoono.Desktop.Gl
@@ -87,6 +89,16 @@ namespace OniMoono.Desktop.Gl
         /// never to report): taken down to nothing before the next Present.
         bool resync = true;
         int resizes, presents, waitTimeouts;
+        /// The refresh period of the display the window is on (Stopwatch ticks, which are QPC
+        /// ticks on Windows; 0: not known), for FramePacing: its current mode's refresh rate
+        /// (QueryDisplayConfig), looked up again every RefreshLookupPresents pictures, so a move
+        /// to another monitor or a mode change is followed within seconds. DXGI's frame
+        /// statistics would give the measured period, but Windows updates them only now and then
+        /// for a windowed swap chain (measured on Windows 11: in some runs they stayed on one
+        /// picture for all of 30 s); the mode's rate agreed with them to 0.003% (59.951 Hz).
+        long refreshPeriod;
+        int refreshLookupIn;
+        const int RefreshLookupPresents = 300;
 
         public void* Device => device;
         public void* Context => context;
@@ -321,7 +333,68 @@ namespace OniMoono.Desktop.Gl
                 }
                 LastWait = GlTimings.Now - t;
             }
+            if (sync == 0 || nowOccluded) FramePacing.UnpacedPresent();
+            else
+            {
+                MeasureRefresh();
+                FramePacing.PacedPresent(Interlocked.Read(ref refreshPeriod));
+            }
             return true;
+        }
+
+        /// Looks refreshPeriod up now and then (see refreshPeriod): the containing output on the
+        /// presenter thread, the display configuration (milliseconds at times) on the thread
+        /// pool, so no picture waits for it.
+        void MeasureRefresh()
+        {
+            if (--refreshLookupIn > 0) return;
+            refreshLookupIn = RefreshLookupPresents;
+            string name = OutputName();
+            if (name == null) { Interlocked.Exchange(ref refreshPeriod, 0); return; }
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                long period = LookUpRefreshPeriod(name);
+                long before = Interlocked.Exchange(ref refreshPeriod, period);
+                if (period != before)
+                    EngineLog.Engine(period > 0 ? $"present: {name} refreshes every {period * 1000.0 / Stopwatch.Frequency:F4} ms; vsynced frames last whole refreshes" : $"present: {name}'s refresh rate not known; frames timed by the wall clock");
+            });
+        }
+
+        /// The GDI name of the output the swap chain is on (\\.\DISPLAY2), or null.
+        string OutputName()
+        {
+            void* output;
+            if (Dxgi.Failed(Dxgi.GetContainingOutput(swapChain, &output))) return null;
+            Dxgi.OutputDesc desc;
+            int hr = Dxgi.GetDesc(output, &desc);
+            Dxgi.Release(ref output);
+            return Dxgi.Failed(hr) ? null : desc.Name;
+        }
+
+        /// The refresh period of the named display's current mode, or 0.
+        static long LookUpRefreshPeriod(string name)
+        {
+            uint pathCount, modeCount;
+            if (Dxgi.GetDisplayConfigBufferSizes(Dxgi.QdcOnlyActivePaths, &pathCount, &modeCount) != 0 || pathCount == 0) return 0;
+            var paths = new Dxgi.DisplayConfigPath[pathCount];
+            var modes = new byte[modeCount * Dxgi.DisplayConfigModeInfoSize];
+            fixed (Dxgi.DisplayConfigPath* p = paths)
+            fixed (byte* m = modes)
+            {
+                if (Dxgi.QueryDisplayConfig(Dxgi.QdcOnlyActivePaths, &pathCount, p, &modeCount, m, IntPtr.Zero) != 0) return 0;
+                for (int i = 0; i < pathCount; i++)
+                {
+                    var request = new Dxgi.DisplayConfigSourceName { Type = Dxgi.DisplayConfigGetSourceName, Size = 84, Adapter = p[i].SourceAdapter, Id = p[i].SourceId };
+                    if (Dxgi.DisplayConfigGetDeviceInfo(&request) != 0) continue;
+                    if (new string(request.GdiName, 0, 32).TrimEnd('\0') != name) continue;
+                    uint num = p[i].RefreshNumerator, den = p[i].RefreshDenominator;
+                    if (num == 0 || den == 0) return 0;
+                    long period = (long)((double)den / num * Stopwatch.Frequency);
+                    // 20 to 500 Hz.
+                    return period >= Stopwatch.Frequency / 500 && period <= Stopwatch.Frequency / 20 ? period : 0;
+                }
+            }
+            return 0;
         }
 
         /// Copies into the back buffer without presenting (see PresentCopied).
@@ -335,6 +408,7 @@ namespace OniMoono.Desktop.Gl
         /// step, and more than once. The caller releases its shared texture first.
         public void Dispose()
         {
+            FramePacing.UnpacedPresent();
             Dxgi.Release(ref backBuffer);
             Dxgi.Release(ref swapChain2);
             Dxgi.Release(ref swapChain);
