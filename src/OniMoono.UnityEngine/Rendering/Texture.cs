@@ -39,6 +39,8 @@ namespace UnityEngine
 
         public int mipmapCount => TextureData.MipCount;
 
+        public virtual UnityEngine.Rendering.TextureDimension dimension => (UnityEngine.Rendering.TextureDimension)TextureData.Dimension;
+
         public uint updateCount => TextureData.UpdateCount;
 
         public void IncrementUpdateCount() => TextureData.UpdateCount++;
