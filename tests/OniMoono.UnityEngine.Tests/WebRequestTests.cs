@@ -144,7 +144,8 @@ namespace OniMoono.Tests
             Pump(request.SendWebRequest());
             Assert.Equal(UnityWebRequest.Result.ConnectionError, request.result);
             Assert.Equal("Cannot connect to destination host", request.error);
-            Assert.Equal(-1, request.responseCode);
+            // 0, as in the original (UnityProbe's apigaps "web": a refused connection).
+            Assert.Equal(0, request.responseCode);
             Assert.Null(request.downloadHandler.data);
             Assert.Equal("", request.downloadHandler.text);
         }
@@ -197,6 +198,171 @@ namespace OniMoono.Tests
             Assert.Equal("https://localhost/a/b", new UnityWebRequest("/a/b").url);
             Assert.Equal("https://example.com/x", new UnityWebRequest("example.com/x").url);
             Assert.Equal("POST", new UnityWebRequest("http://h/", "post").method);
+        }
+
+        // ----- Upload and download handlers, as measured in the original (UnityProbe's apigaps
+        // "web", against a loopback server logging the raw requests). -----
+
+        [Fact]
+        public void PostWithStringDataUploadsItEscapedAsForm()
+        {
+            using var server = new Server(ctx => Reply(ctx, 200, "ok"));
+            var request = UnityWebRequest.Post(server.Url, "a=1&b=two words \u00e9!'()*~");
+            Assert.Equal("application/x-www-form-urlencoded", request.uploadHandler.contentType);
+            Assert.IsType<DownloadHandlerBuffer>(request.downloadHandler);
+            Assert.Null(request.GetRequestHeader("Content-Type"));
+            Pump(request.SendWebRequest());
+            Assert.Equal("a%3d1%26b%3dtwo%20words%20%c3%a9%21%27()*~", server.LastBody);
+            Assert.Equal("application/x-www-form-urlencoded", server.LastContentType);
+            Assert.Null(UnityWebRequest.Post(server.Url, "").uploadHandler);
+            Assert.Null(UnityWebRequest.Post(server.Url, (string)null).uploadHandler);
+        }
+
+        [Fact]
+        public void APostWithoutBodySendsEmptyFormData()
+        {
+            using var server = new Server(ctx => Reply(ctx, 200, "ok"));
+            var request = new UnityWebRequest(server.Url, "POST");
+            Pump(request.SendWebRequest());
+            Assert.Equal("application/x-www-form-urlencoded", server.LastContentType);
+            Assert.Equal("", server.LastBody);
+            // Without a download handler nothing is read.
+            Assert.Equal(0ul, request.downloadedBytes);
+        }
+
+        [Fact]
+        public void RawUploadsSendTheirContentTypeOrOctetStream()
+        {
+            using var server = new Server(ctx => Reply(ctx, 200, "ok"));
+            var plain = new UnityWebRequest(server.Url, "PUT", new DownloadHandlerBuffer(), new UploadHandlerRaw(Encoding.UTF8.GetBytes("put body")));
+            Pump(plain.SendWebRequest());
+            Assert.Equal("application/octet-stream", server.LastContentType);
+            Assert.Equal("put body", server.LastBody);
+            Assert.Equal(8ul, plain.uploadedBytes);
+            Assert.Equal(1f, plain.uploadHandler.progress);
+
+            var json = UnityWebRequest.Post(server.Url, "");
+            json.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes("{}")) { contentType = "application/json" };
+            Pump(json.SendWebRequest());
+            Assert.Equal("application/json", server.LastContentType);
+
+            var header = UnityWebRequest.Post(server.Url, "");
+            header.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes("xyz")) { contentType = "application/json" };
+            header.SetRequestHeader("Content-Type", "text/x-header");
+            Assert.Equal("text/x-header", header.GetRequestHeader("Content-Type"));
+            Pump(header.SendWebRequest());
+            Assert.Equal("text/x-header", server.LastContentType);
+            var e = Assert.Throws<InvalidOperationException>(() => header.uploadHandler = new UploadHandlerRaw(new byte[1]));
+            Assert.Equal("UnityWebRequest has already been sent; cannot modify the upload handler", e.Message);
+        }
+
+        [Fact]
+        public void UploadHandlerRawKeepsACopy()
+        {
+            var bytes = new byte[] { 1, 2, 3 };
+            var raw = new UploadHandlerRaw(bytes);
+            bytes[0] = 9;
+            Assert.Equal(new byte[] { 1, 2, 3 }, raw.data);
+            Assert.NotSame(raw.data, raw.data);
+            Assert.Equal("", raw.contentType);
+            Assert.Equal(0f, raw.progress);
+            Assert.Null(new UploadHandlerRaw(new byte[0]).data);
+            Assert.Equal(1f, new UploadHandlerRaw(new byte[0]).progress);
+            Assert.Null(new UploadHandlerRaw(null).data);
+            raw.Dispose();
+            Assert.Null(raw.data);
+            Assert.Throws<NullReferenceException>(() => raw.contentType);
+        }
+
+        [Fact]
+        public void DownloadHandlerBufferIsEmptyAndNotDoneUntilASuccess()
+        {
+            var buffer = new DownloadHandlerBuffer();
+            Assert.Equal("", buffer.text);
+            Assert.Null(buffer.data);
+            Assert.False(buffer.isDone);
+            Assert.Equal("", buffer.error);
+            using var server = new Server(ctx => Reply(ctx, ctx.Request.Url.AbsolutePath == "/404" ? 404 : 200, "body"));
+            var ok = new UnityWebRequest(server.Url, "GET", buffer, null);
+            Pump(ok.SendWebRequest());
+            Assert.True(buffer.isDone);
+            var missing = UnityWebRequest.Get(server.Url + "404");
+            Pump(missing.SendWebRequest());
+            Assert.Equal("body", missing.downloadHandler.text);
+            Assert.False(missing.downloadHandler.isDone);
+        }
+
+        [Fact]
+        public void DownloadHandlerFileWritesTheBody()
+        {
+            using var server = new Server(ctx => Reply(ctx, ctx.Request.Url.AbsolutePath == "/404" ? 404 : 200, ctx.Request.Url.AbsolutePath == "/404" ? "missing" : "hello"));
+            var dir = Path.Combine(Path.GetTempPath(), "dlfile-" + Guid.NewGuid().ToString("N"));
+            var path = Path.Combine(dir, "a", "b.txt");
+            try
+            {
+                var handler = new DownloadHandlerFile(path);
+                Assert.True(File.Exists(path));
+                Assert.False(handler.removeFileOnAbort);
+                Assert.Equal("String access is not supported", Assert.Throws<NotSupportedException>(() => handler.text).Message);
+                Assert.Equal("Raw data access is not supported", Assert.Throws<NotSupportedException>(() => handler.data).Message);
+                var request = new UnityWebRequest(server.Url, "GET", handler, null);
+                Pump(request.SendWebRequest());
+                request.Dispose();
+                Assert.Equal("hello", File.ReadAllText(path));
+
+                var append = new UnityWebRequest(server.Url, "GET", new DownloadHandlerFile(path, true), null);
+                Pump(append.SendWebRequest());
+                append.Dispose();
+                Assert.Equal("hellohello", File.ReadAllText(path));
+
+                var kept = new UnityWebRequest(server.Url + "404", "GET", new DownloadHandlerFile(path), null);
+                Pump(kept.SendWebRequest());
+                kept.Dispose();
+                Assert.Equal("missing", File.ReadAllText(path));
+
+                var removed = new UnityWebRequest(server.Url + "404", "GET", new DownloadHandlerFile(path) { removeFileOnAbort = true }, null);
+                Pump(removed.SendWebRequest());
+                removed.Dispose();
+                Assert.False(File.Exists(path));
+            }
+            finally
+            {
+                if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            }
+        }
+
+        [Fact]
+        public void TextureDownloadsDecodeOrFailTheRequest()
+        {
+            var source = new Texture2D(4, 2, TextureFormat.RGBA32, false);
+            var png = source.EncodeToPNG();
+            using var server = new Server(ctx =>
+            {
+                if (ctx.Request.Url.AbsolutePath == "/png")
+                {
+                    ctx.Response.ContentType = "image/png";
+                    ctx.Response.OutputStream.Write(png);
+                    ctx.Response.Close();
+                }
+                else Reply(ctx, 200, "hello");
+            });
+            Assert.Equal("Texture has not yet finished downloading", Assert.Throws<InvalidOperationException>(() => new DownloadHandlerTexture().texture).Message);
+            foreach (bool nonReadable in new[] { false, true })
+            {
+                var request = UnityWebRequestTexture.GetTexture(server.Url + "png", nonReadable);
+                Pump(request.SendWebRequest());
+                Assert.Equal(UnityWebRequest.Result.Success, request.result);
+                var texture = DownloadHandlerTexture.GetContent(request);
+                Assert.Same(texture, ((DownloadHandlerTexture)request.downloadHandler).texture);
+                Assert.Equal((4, 2, TextureFormat.ARGB32, 3, !nonReadable), (texture.width, texture.height, texture.format, texture.mipmapCount, texture.isReadable));
+            }
+            var text = UnityWebRequestTexture.GetTexture(server.Url + "x");
+            Pump(text.SendWebRequest());
+            Assert.Equal(UnityWebRequest.Result.DataProcessingError, text.result);
+            Assert.Equal("Data Processing Error, see Download Handler error", text.error);
+            Assert.Equal("Failed to create texture from downloaded bytes", text.downloadHandler.error);
+            Assert.True(text.downloadHandler.isDone);
+            Assert.Null(((DownloadHandlerTexture)text.downloadHandler).texture);
         }
     }
 }
