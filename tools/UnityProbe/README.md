@@ -70,6 +70,20 @@ above and a spec `from: main-menu` that waits for `**/DrawMeshNowProbeDone`; dif
 `DMN` lines. The file's header lists the cases and what they measured; `DrawMeshTests`
 (`DrawMeshNowDrawsWithThePassSetInTheCameraView`) encodes it.
 
+With `PROBE_SCENARIO=texfallback` only the texture fallback probe runs (`TextureFallback.cs`, lines
+`TF …`, 10 s into the main menu): what a sampler reads when its texture is missing. It needs a
+game whose `Resources/unity_builtin_extra` holds eight copies of Hidden/BlitCopy with `_MainTex`
+declared white, black, grey, gray, bump, red, with a name Unity does not know, and not at all:
+`tf-shaders.py TYPETREES SOURCE DEST` writes one, for a scratch install of links to the game's
+files but that one (pass it as `QA_U57_GAME` and `E2E_ORIGINAL`). Each case draws a quad into a
+4 × 4 render texture with GL and reads one texel back, for the material's `_MainTex` and the
+global, never set, set to null, to a live texture or render texture, to one since destroyed, to a
+render texture released, resized (and created again or not), or never created. It also logs
+`Material.GetTexture`, `HasProperty` and `HasTexture` of an undeclared property and the name of a
+material made from a shader. Run `probe-texfallback.yaml`; the two players' `TF` lines should be
+the same. `DefaultTextureTests` encodes the table (the U59 and U60 originals gave the same one;
+the original exits on `-force-vulkan` here).
+
 Both players write the same version stamp for the mod (ARCHITECTURE D3), so one `mods.json`
 serves both. In U59 that stamp is `692750779`, with `enabledForDlc: ["", "EXPANSION1_ID"]`;
 with another stamp the game reinstalls the mod and disables it.

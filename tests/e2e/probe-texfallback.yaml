@@ -1,0 +1,8 @@
+# UnityProbe's texture fallback probe (tools/UnityProbe/TextureFallback.cs): what a sampler reads
+# when its texture is missing, in both players. Run with QA_U57_GAME and E2E_ORIGINAL at
+# installs whose unity_builtin_extra tf-shaders.py wrote, E2E_ONIMCP at a copy of OniMcp's mod
+# folder with SemanticsProbe.dll added and PROBE_SCENARIO=texfallback (tools/UnityProbe/README.md,
+# "texfallback").
+from: main-menu
+steps:
+  - ui_wait: {path: "**/TextureFallbackProbeDone", cond: exists, frames: 20000}

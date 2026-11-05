@@ -35,6 +35,7 @@ namespace E2eDriver
             var keeper = new GameObject("E2eDriver");
             UnityEngine.Object.DontDestroyOnLoad(keeper);
             keeper.AddComponent<Driver>().Listen(port);
+            GlobalTextures.StartIfAsked(keeper);
         }
     }
 
