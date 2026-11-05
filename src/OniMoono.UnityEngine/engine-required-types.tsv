@@ -76,3 +76,5 @@ UnityEngine.CoreModule	UnityEngine.Scripting.RequiredMemberAttribute	# as above
 UnityEngine.CoreModule	UnityEngine.DefaultExecutionOrder	# mods (Radbolt Demolisher): [DefaultExecutionOrder] on its MonoBehaviours
 UnityEngine.CoreModule	UnityEngine.FrameTiming	# mods (System Performance Observer): FrameTimingManager.GetLatestTimings
 UnityEngine.CoreModule	UnityEngine.FrameTimingManager	# as above
+UnityEngine.CoreModule	UnityEngine.Rendering.ShaderPropertyFlags	# mods: Shader.GetPropertyFlags
+UnityEngine.CoreModule	UnityEngine.Rendering.TextureDimension	# mods: Shader.GetPropertyTextureDimension, RenderTexture.dimension
