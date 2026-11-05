@@ -164,7 +164,7 @@ namespace OniMoono.Desktop.Gl
             GlBindings.Invalidate();
             CreateDefaults();
             GlStateCache.Invalidate();
-            presenter = new GlPresenter(platform.Window, Splash != null ? new GlSplash(Splash) : null, platform.WindowFramebufferWidth, platform.WindowFramebufferHeight);
+            presenter = new GlPresenter(platform.Window, platform.PresentWindow, platform.ContextFreeWindow, Splash != null ? new GlSplash(Splash) : null, platform.WindowFramebufferWidth, platform.WindowFramebufferHeight);
             platform.ContentsDamaged += presenter.Refresh;
             // From here on the context belongs to the GL thread.
             worker = new GlWorker(platform.RenderWindow, CommandFailed);

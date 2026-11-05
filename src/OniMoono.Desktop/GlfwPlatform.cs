@@ -29,6 +29,9 @@ namespace OniMoono.Desktop
         /// --no-focus: the window opens without taking the desktop's focus, and still takes
         /// input once someone focuses it (test runs on a desktop someone is using).
         public bool NoFocus { get; init; }
+        /// Windows, DXGI on, OpenGL: the visible window gets no OpenGL context or pixel format,
+        /// so that only our DXGI swap chain presents to it (GlfwPlatform.PresentWindow).
+        public bool ContextFreeWindow { get; init; }
     }
 
     internal enum RenderApi { OpenGl, Vulkan }
@@ -38,6 +41,9 @@ namespace OniMoono.Desktop
     internal sealed unsafe class GlfwPlatform : IPlatform, IDisposable
     {
         readonly GlfwWindow window, renderWindow;
+        /// OpenGL with a context-free window: the hidden stand-in for the presenter thread's
+        /// context (else null: the presenter uses the visible window's).
+        readonly GlfwWindow presentWindow;
         readonly InputStateFeed feed = new();
         FullScreenMode mode;
         int2 windowedPosition, windowedSize;
@@ -63,6 +69,12 @@ namespace OniMoono.Desktop
         public GlfwWindow Window => window;
         /// The hidden window whose context the main thread renders with.
         public GlfwWindow RenderWindow => renderWindow;
+        /// The window whose context the presenter thread presents with: the visible one, or with
+        /// ContextFreeWindow a hidden one (GlPresenter puts that context on the visible window
+        /// only if DXGI cannot present: Win32GlWindow).
+        public GlfwWindow PresentWindow => presentWindow ?? window;
+        /// Whether the visible window was made without the OpenGL context (WindowSettings).
+        public bool ContextFreeWindow => presentWindow != null;
 
         readonly bool scripted;
 
@@ -108,10 +120,17 @@ namespace OniMoono.Desktop
             Api = settings.Api;
             Initialize();
             Glfw.DefaultWindowHints();
+            bool contextFree = Api == RenderApi.OpenGl && settings.ContextFreeWindow && OperatingSystem.IsWindows();
             if (Api == RenderApi.Vulkan) Glfw.WindowHint(GlfwWindowHint.ClientApi, GLFW_NO_API);
             else
             {
-                Glfw.WindowHint(GlfwWindowHint.ClientApi, GLFW_OPENGL_API);
+                // A window has one flip-model swap chain at most (CreateSwapChainForHwnd), and an
+                // OpenGL driver may give a window with a GL pixel format and context one of its
+                // own: with NVIDIA's "Vulkan/OpenGL present method" at "Prefer layered on DXGI
+                // swapchain" ours was refused with E_ACCESSDENIED (measured). So with DXGI the
+                // visible window gets no context, and the presenter's lives on a hidden window
+                // (presentWindow).
+                Glfw.WindowHint(GlfwWindowHint.ClientApi, contextFree ? GLFW_NO_API : GLFW_OPENGL_API);
                 Glfw.WindowHint(GlfwWindowHint.ContextVersionMajor, 4);
                 Glfw.WindowHint(GlfwWindowHint.ContextVersionMinor, 5);
                 Glfw.WindowHint(GlfwWindowHint.OpenGlProfile, GLFW_OPENGL_CORE_PROFILE);
@@ -181,15 +200,26 @@ namespace OniMoono.Desktop
                 || mode == FullScreenMode.Windowed && TooLargeForWorkArea(monitor, new int2(width, height)))
                 window.Maximize();
             // OpenGL: rendering happens on this thread in a hidden window's context shared with
-            // the visible one, whose context belongs to the presenter thread (GlPresenter).
+            // the presenter thread's (GlPresenter): the visible window's, or a context-free
+            // window's hidden stand-in.
             if (Api == RenderApi.OpenGl)
             {
+                if (contextFree)
+                {
+                    Glfw.WindowHint(GlfwWindowHint.ClientApi, GLFW_OPENGL_API);
+                    presentWindow = Glfw.CreateWindow(new GlfwWindow.CreateInfo
+                    {
+                        Title = settings.Title,
+                        Size = new int2(1, 1),
+                        Monitor = GlfwMonitor.Null,
+                    });
+                }
                 renderWindow = Glfw.CreateWindow(new GlfwWindow.CreateInfo
                 {
                     Title = settings.Title,
                     Size = new int2(1, 1),
                     Monitor = GlfwMonitor.Null,
-                    Share = window,
+                    Share = PresentWindow,
                 });
                 renderWindow.MakeContextCurrent();
             }
@@ -805,6 +835,7 @@ namespace OniMoono.Desktop
             ime?.Dispose();
             if (!customCursor.IsNull()) customCursor.Dispose();
             if (Api == RenderApi.OpenGl) renderWindow.Dispose();
+            presentWindow?.Dispose();
             window.Dispose();
             Glfw.Terminate();
             initialized = false;

@@ -2047,10 +2047,24 @@ flip-model swap chain at a time (Microsoft's `CreateSwapChainForHwnd` remarks, w
 error for it); Windows 11 returned `E_ACCESSDENIED` (0x80070005) when it already had one
 (`--dxgi-fault occupied`, which gives it a real one of a second D3D11 device first; measured),
 and a player's log showed that error at start-up, before any swap chain of ours, on a laptop with
-a Ryzen 5600H's iGPU and a GTX 1650, whose built-in screen is most likely the iGPU's. Who held
-that swap chain is not known: OpenGL's driver presenting through DXGI itself is the suspect; on
-OpenGL on this machine's RTX 3090 nothing had loaded `dxgi.dll` by then (on Vulkan the loader
-has). A refused swap chain's log line
+a Ryzen 5600H's iGPU and a GTX 1650, whose built-in screen is most likely the iGPU's, and in
+later players' logs on NVIDIA GPUs (#56). The holder was the OpenGL driver presenting through
+DXGI itself: with NVIDIA's "Vulkan/OpenGL present method" at "Prefer layered on DXGI swapchain",
+set for a test executable alone through an NVAPI driver profile, a window with our OpenGL context
+refused our swap chain with that error at start-up on this machine's RTX 3090 too (measured on
+U59, 2026-11-05). Vulkan's window never has a context (`GLFW_NO_API`), and Vulkan presented
+through DXGI under that profile. So on Windows with DXGI on, OpenGL's visible window is made
+without a context or pixel format too and only DXGI presents to it; the presenter thread's
+context lives on a hidden 1x1 window instead, shared with the device thread's as before (the
+interop registers textures with a context and a D3D11 device, never with a window). With that
+setting DXGI then started and presented. The window gets a pixel format, the hidden window's,
+with the presenter's context made current on it (WGL takes any window with the context's pixel
+format, `Win32GlWindow`), only once DXGI is given up: it could not start, or no restart is left.
+Not sooner: a window's pixel format cannot be changed once set, and with that setting a
+SwapBuffers on the window gave it the driver's swap chain, after which every restart was refused
+with `E_ACCESSDENIED` (measured). While restarts are pending OpenGL's pictures go nowhere (paced
+by `DwmFlush` with vsync) and the window keeps its last picture. `--dxgi off`, Linux and macOS
+keep the context on the visible window, as before. A refused swap chain's log line
 names the window's owner thread and process, its styles and size, the adapter showing its monitor
 against the device's, and the graphics runtimes and hooks (overlays, capture, a proxy `dxgi.dll`)
 loaded before DXGI started. Once the window has a swap chain, a failure (the chain's own set-up at start-up; while running a lost device:
@@ -2065,11 +2079,13 @@ never completes is not known to happen; if one did, the game would freeze (the p
 device thread wait for the queue, which cannot finish the batch), and nothing here handles it.
 Restarts come in bursts of ten tries,
 1, 2, 4 then 8 s apart (about a minute, outlasting a slow driver reset); a restart that presents
-for 60 s ends its burst, so a later failure gets ten tries again. Until a restart succeeds the
-device's own presentation stands in: Vulkan's swapchain reaches the screen then (measured), but
-OpenGL's SwapBuffers does not on a window whose flip-model swap chain has presented (measured:
-the window kept DXGI's last picture while frames went on), so on OpenGL a DXGI that cannot
-restart leaves the window still. The
+for 60 s ends its burst, so a later failure gets ten tries again. Until a restart succeeds
+Vulkan's own swapchain stands in and reaches the screen (measured); OpenGL's window keeps its
+last picture, and once no restart is left SwapBuffers stands in, which does not reach the screen
+on a window whose flip-model swap chain has presented (measured: the window kept DXGI's last
+picture while frames went on) unless the driver presents OpenGL through DXGI itself (measured
+with NVIDIA's layered present), so on OpenGL a DXGI that cannot restart usually leaves the window
+still. The
 `present:` line at start-up names the adapter and the swap chain's settings; `--dxgi-fault STEP`
 makes up a failure at one step, for testing the ways back; with `--frame-stats` the frame counts
 include the presenter's time per picture and, every 600 frames, the process's video memory on the
@@ -2110,6 +2126,30 @@ frame's start to its picture's present, with the game's vsync (a paused colony),
 DXGI took 28 to 31 ms at either maximum frame latency (1 or 2) and through its swapchain 25 to 32;
 the time from the present to the screen, and the original's, need PresentMon, which needs rights
 this account lacks. Not measured: Intel GPUs, click-to-photon latency.
+
+Measured with OpenGL's context off the window (U59 744825 and U60 761654, 2026-11-05, the same
+machine, NVIDIA's driver 610.88, a test executable under its own driver profile with "Prefer
+layered on DXGI swapchain"): before the change OpenGL's DXGI was refused at start-up
+(`E_ACCESSDENIED`), after it DXGI presented, as Vulkan's did. Under that profile every start-up
+`--dxgi-fault` step ended with SwapBuffers showing frames on the window; `association`,
+`lock:200` and `removed:300` restarted DXGI on the first try; a restart after two failed ones (a
+one-off build) started too; with `norestart` the window kept its last picture until the tenth
+try, then showed SwapBuffers' frames. Without the profile, `removed:300,norestart` left the
+window still, as before. Loading a colony, panning, fullscreen and back, resizes and
+minimize/restore cycles showed no failure and frames after each, on OpenGL and Vulkan; `--dxgi
+off` swapped on the window as before.
+
+Measured with the context off the window (U59 744825 and U60 761654, 2026-11-05, the same
+machine, NVIDIA's driver 610.88, a test executable under its own driver profile with "Prefer
+layered on DXGI swapchain"): before the change DXGI was refused at start-up (`E_ACCESSDENIED`),
+after it DXGI presented (U60's Vulkan, whose window never had a context, presented through
+DXGI under the profile too). Under that profile every start-up `--dxgi-fault` step ended with
+SwapBuffers showing frames on the window; `association`, `lock:200` and `removed:300` restarted
+DXGI on the first try; a restart after two failed ones (a one-off build) started too; with
+`norestart` the window kept its last picture until the tenth try, then showed SwapBuffers'
+frames. Without the profile, `removed:300,norestart` left the window still, as before. Loading a
+colony, panning, fullscreen and back, resizes and minimize/restore cycles showed no failure and
+frames after each; `--dxgi off` swapped on the window as before.
 
 **Loading splash (`--splash moo`, on by default; `--splash none` or Moono Tweaks turns it off).** The player's own presentation, not the
 game's: the presenter thread draws Gassy Moo comets (the game's `meteor_gassymoo` kanim, its

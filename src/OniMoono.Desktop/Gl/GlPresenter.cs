@@ -51,6 +51,11 @@ namespace OniMoono.Desktop.Gl
         }
 
         readonly GlfwWindow window;
+        /// The window whose context this thread presents with: `window`, or for a window made
+        /// without a context (Windows, DXGI on) a hidden one, whose context goes on `window`
+        /// only for SwapBuffers (GlSwapTarget's Win32GlWindow).
+        readonly GlfwWindow contextWindow;
+        readonly bool contextFree;
         const int MaxQueued = 2, MaxQueuedWithVsync = 1;
         readonly Buffer[] buffers = [new() { Index = 0 }, new() { Index = 1 }, new() { Index = 2 }];
         int current;
@@ -76,16 +81,21 @@ namespace OniMoono.Desktop.Gl
         IWindowTarget target;
         /// Windows, DXGI on: the window's handle (taken on the main thread, the window's).
         readonly IntPtr dxgiWindow;
+        /// Windows: the window's handle (taken on the main thread, the window's).
+        readonly IntPtr windowHandle;
         /// The adapter DXGI found for the GL context (0: none), for the video memory counters.
         public long DxgiAdapterLuid { get; private set; }
 
-        public GlPresenter(GlfwWindow window, GlSplash splash = null, int width = 0, int height = 0)
+        public GlPresenter(GlfwWindow window, GlfwWindow contextWindow, bool contextFree, GlSplash splash = null, int width = 0, int height = 0)
         {
             this.window = window;
+            this.contextWindow = contextWindow;
+            this.contextFree = contextFree;
             this.splash = splash;
             windowWidth = width;
             windowHeight = height;
-            if (OperatingSystem.IsWindows() && DxgiSwapChain.Enabled) dxgiWindow = (IntPtr)window.GetWin32Window();
+            if (OperatingSystem.IsWindows()) windowHandle = (IntPtr)window.GetWin32Window();
+            if (DxgiSwapChain.Enabled) dxgiWindow = windowHandle;
             thread = new Thread(Run) { Name = "Presenter", IsBackground = true };
             thread.Start();
         }
@@ -261,7 +271,7 @@ namespace OniMoono.Desktop.Gl
         {
             try
             {
-                window.MakeContextCurrent();
+                contextWindow.MakeContextCurrent();
                 target = StartTarget();
                 while (true)
                 {
@@ -345,8 +355,17 @@ namespace OniMoono.Desktop.Gl
                     + (windowTouched ? "; the window had DXGI's swap chain by then, so DXGI is restarted" : ""));
             }
             else if (OperatingSystem.IsWindows()) EngineLog.Engine("present: OpenGL's SwapBuffers (DXGI is off)");
-            return new GlSwapTarget(window);
+            return SwapTarget();
         }
+
+        /// OpenGL's own presentation on the window: through GLFW when the window has the
+        /// presenter's context, else with that context put on it (Win32GlWindow), once DXGI is
+        /// given up (it could not start, or no restart is left). While restarts are pending it
+        /// stays on its hidden window: with NVIDIA's "Prefer layered on DXGI swapchain", SwapBuffers
+        /// on the window gave it the driver's swap chain, and every restart after it was refused
+        /// with E_ACCESSDENIED (measured); without it, SwapBuffers does not reach a window whose
+        /// DXGI swap chain has presented anyway (measured).
+        GlSwapTarget SwapTarget() => contextFree ? new GlSwapTarget(windowHandle, onWindow: !dxgiLost || dxgiRestarts.Exhausted) : new GlSwapTarget(window);
 
         /// DXGI's restarts after it failed while running (DxgiRestarts: bursts of at most ten
         /// tries, 1 to 8 s apart).
@@ -370,7 +389,7 @@ namespace OniMoono.Desktop.Gl
                 DxgiAdapterLuid = 0;
                 target = RestartDxgi();
             }
-            target ??= new GlSwapTarget(window);
+            target ??= SwapTarget();
         }
 
         /// DXGI started anew after it failed, when DxgiRestarts allows a try; null when it does
@@ -391,7 +410,7 @@ namespace OniMoono.Desktop.Gl
                 return dxgi;
             }
             EngineLog.Engine(!dxgiRestarts.Exhausted
-                ? $"present: DXGI restart {tries} failed: {reason}{MadeUp}; OpenGL's SwapBuffers until the next in {DxgiRestarts.DelaySeconds(tries):F0} s, which Windows may not show"
+                ? $"present: DXGI restart {tries} failed: {reason}{MadeUp}; {(contextFree ? "the window keeps its last picture" : "OpenGL's SwapBuffers, which Windows may not show,")} until the next in {DxgiRestarts.DelaySeconds(tries):F0} s"
                 : $"present: DXGI restart {tries} failed: {reason}{MadeUp}; no more tries: OpenGL's SwapBuffers from here on, which Windows may not show");
             return null;
         }
@@ -403,10 +422,13 @@ namespace OniMoono.Desktop.Gl
         bool BeginTarget(int width, int height)
         {
             long t = GlTimings.Now;
-            if (dxgiLost && RestartDxgi() is { } restarted)
+            // The stand-in is released before DXGI starts again (its context goes back to its
+            // hidden window), and made anew when the restart fails.
+            if (dxgiLost && dxgiRestarts.MayTry(t))
             {
                 target.Dispose();
-                target = restarted;
+                target = null;
+                target = RestartDxgi() ?? SwapTarget();
             }
             // Ends: restarts are at least a second apart, and OpenGL's Begin never fails.
             while (!target.Begin(width, height)) FallBack();
