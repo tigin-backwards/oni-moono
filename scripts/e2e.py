@@ -3757,7 +3757,8 @@ class Run:
 
     # Dialogs a load may open, by their header text: a fixture saved with other mods than the
     # spec's opens "MOD DIFFERENCES" in both players (in a spec's `language:`, the game's own
-    # translation of it). Its OK button is pressed like a player would.
+    # translation of it). Its OK button is pressed like a player would, or Escape when the button
+    # is off screen.
     LOAD_DIALOGS = ('MOD DIFFERENCES', '模组差异', '모드 차이', 'РАЗЛИЧИЯ МОДОВ')
 
     def dismiss_load_dialogs(self):
@@ -3784,7 +3785,14 @@ class Run:
                 self.click_element({'ui': ok[top].path, 'index': top})
                 self.frames(10)
                 continue
-            self.click_element({'ui': ok[top].path, 'index': top})
+            if ok[top].onscreen is False:
+                # A long list (a save with dozens of mods not installed) pushes the OK button
+                # below the screen, and the dialog does not scroll: a player presses Escape,
+                # which closes it as OK does (neither has an action of its own).
+                self.log(f'  its OK button is off screen (rect {ok[top].rect}): pressing Escape')
+                self.need_input().key('Escape')
+            else:
+                self.click_element({'ui': ok[top].path, 'index': top})
             self.driver.wait(dialog, 'gone', 120)
 
     # -- steps
