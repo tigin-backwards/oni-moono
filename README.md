@@ -293,7 +293,7 @@ Feel free to slop. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Issues
 
-File an issue, and please attach your log and the save you were playing.
+[File an issue](https://github.com/tigin-backwards/oni-moono/issues), and please attach your log and the save you were playing.
 
 The log is `Player.log` in:
 - Windows: `%USERPROFILE%\AppData\LocalLow\Klei\Oxygen Not Included\`
