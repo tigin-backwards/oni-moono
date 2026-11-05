@@ -12,6 +12,14 @@
 # The drag goes left and down from the starting view, which sits at the top edge: the tree
 # follows the pointer, then springs back up to the edge after the release; the held D key
 # sets panRight in both.
+#
+# The y checks after the drag are fixed bounds, not the original's value in the same run. At a
+# steady 6 fps (every unscaledDeltaTime 0.1667 s) the original reads -151.02 to -151.03 at step
+# 5 and -150.0 at steps 7 and 13 (nine runs); ours reads -151.04 to -151.09. Under
+# llvmpipe the original now and then draws a frame of 0.18-0.27 s, and a frame of 0.25 s or more
+# zeroes the inertia (max(0, 1 - 4 dt)): the tree stops where it is, at -127.5 to -150.45 at step
+# 5 and as high as -148.9 after it. A run like that is the wrong reference. The x checks stay
+# relative: x drifts by at most 0.3 there.
 from: early-base
 setup:
   - driver: {camera.set: {pos: [128.5, 210.5], ortho: 10}}
@@ -26,12 +34,12 @@ steps:
   - drag: {from: [134, 213], to: [124, 207], hold: 2}
   - expect_state:
       "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": [">= original - 1", "<= original + 1"]
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= original - 1", "<= original + 1"]
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= -152.03", "<= -150.03"]
   - run: {seconds: 3, speed: 1}
   - expect_state:
       "all:ResearchScreen::[0].isDragging": false
       "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": ["< -200", ">= original - 1", "<= original + 1"]
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= original - 1", "<= original + 1"]
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= -151", "<= -149"]
   - key: {code: D, down: true}
   - run: {seconds: 1, speed: 1}
   - expect_state:
@@ -41,4 +49,4 @@ steps:
   - expect_state:
       "all:ResearchScreen::[0].panRight": false
       "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": [">= original - 1", "<= original + 1"]
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= original - 1", "<= original + 1"]
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= -151", "<= -149"]
