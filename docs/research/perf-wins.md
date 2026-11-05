@@ -295,6 +295,24 @@ prototyped yet.
     | DeCrew | 4 | -0.16 (-0.44..+0.08) | -0.10 (-0.18..-0.02) | +4.6 (-2.3..+12.0) |
     | U57 | 2 | -0.35 (-1.02..+0.24) | -0.07 (-0.14..-0.02) | +2.8 (-2.0..+8.7) |
 
+  - **More windows (2026-11-04, late)**: two more ALT launches each on DeCrew and U57, with
+    the same setup and staged build as the behaviour-dispatch runs below (`u60` at `d7a2619c`
+    plus that prototype, whose direct calls run in both halves). The WSL load while measuring
+    was 0.12-0.71.
+
+    | Save | Launch | Unchanged | Main thread (ms) | Device thread busy (ms) |
+    |---|---|---|---|---|
+    | DeCrew | 5th | 4.31 | -0.15 (-0.45..+0.23) | -0.10 (-0.18..0.00) |
+    | DeCrew | 6th | 4.31 | -0.19 (-0.48..+0.06) | -0.12 (-0.20..-0.04) |
+    | U57 | 3rd | 4.15 | -0.62 (-1.37..-0.09) | -0.11 (-0.16..-0.05) |
+    | U57 | 4th | 4.11 | -0.40 (-1.01..+0.27) | -0.08 (-0.14..-0.03) |
+    | **DeCrew, all 6 pooled** | | | **-0.17 (-0.45..+0.10)**, 1,690 pairs | -0.10 (-0.18..-0.02) |
+    | **U57, all 4 pooled** | | | **-0.43 (-1.11..+0.17)**, 637 pairs | -0.08 (-0.14..-0.03) |
+
+    Every one of the ten launches has a negative median, but only one (U57's third) has an
+    IQR clear of zero. Pooling more launches moves the median a little and leaves the IQR as
+    wide: the spread is the window-to-window noise, which more windows do not shrink.
+
   - **Launches**: base, base → change, change.
 
     | Save | fps | Slowest 1% (ms) | Main thread (ms) | Device busy (ms) | `PropertyTextures.LateUpdate` (ms) |
@@ -317,11 +335,12 @@ prototyped yet.
       neutral; the compare adds 0.02 ms and the device saves 0.1 ms.
     - Launch fps moves with the windows, inside the noise between two launches of one
       build (c100's base launches differ by 3 fps, its change launches by 13).
-- **Verdict: kept, main-thread gain clear on one save only.** It is exact and costs at most
+- **Verdict: kept; it does not meet the two-save rule.** It is exact and costs at most
   0.02 ms (the compare), so it stays in. Its main-thread gain is clear only on c100 (-0.9
-  ms). DeCrew and U57 lean the same way and soggy lab 2 is neutral, so it does not meet the
-  two-save rule for a measured main-thread gain. The device-thread saving is clear on all
-  four saves, at 0.07-0.47 ms.
+  ms). With six launches on DeCrew (-0.17 ms pooled, IQR -0.45..+0.10) and four on U57
+  (-0.43 ms, IQR -1.11..+0.17), both lean the same way but neither IQR clears zero, and soggy
+  lab 2 is neutral. So it does not meet the two-save rule for a measured main-thread gain.
+  The device-thread saving is clear on all four saves, at 0.07-0.47 ms.
 
 ### 4. UI canvas batching. Up to 0.3-0.9 ms.
 
@@ -462,7 +481,8 @@ These are not per-frame, so they are outside the ranking above:
 | 6. Mesh channel copies (with 4's baked meshes) | **Landed (allocations)**, exact | reuse 26.9, 25.0 → 15.0, 15.4 MiB/s; all of it 468-575 → 258-373 MiB per 600 frames | reuse 34.2, 36.9, 59.0 → 16.5, 17.4, 20.9 MiB/s; all 546-609 → 181-241 MiB | reuse 20.4 → 10.2 MiB/s (without its mods) | reuse 24.7, 30.0 → 15.6, 12.2 MiB/s; all 744-770 → 350-407 MiB |
 | 4. UI canvas batching | **Allocations landed** (in 6's numbers); **time rejected** | `BuildMesh` 5.7 MiB/s, its colours (2.8) kept when only moved | – | – | – |
 | 5. Upload staging | **Rejected** | `TexelUpload.Take` 0.30-0.41 ms a frame: rent 0.02-0.04, small copies 0.17-0.23, task starts 0.07-0.09 | – | – | – |
-| 3. Property-texture uploads (`RawTextureLoads`) | **Kept**, exact (verify 0 wrong, captures byte-identical); main-thread gain clear on one save only (c100); device thread less busy on all four | paired windows: main thread -0.93, -0.89 ms; device -0.39, -0.47 ms; fps 100.1, 96.9 → 109.3, 122.6 | four launches: main thread -0.17, -0.16, -0.20, -0.14 ms (pooled -0.16, IQR -0.44..+0.08: crosses zero); device -0.09 to -0.11 ms | main thread -0.05, -0.01 ms (neutral); `LoadRawTextureData` +0.02 ms; device -0.13, -0.08 ms | two launches: main thread -0.39, -0.29 ms (pooled -0.35, IQR -1.02..+0.24: crosses zero); device -0.07, -0.08 ms |
+| 3. Property-texture uploads (`RawTextureLoads`) | **Kept**, exact (verify 0 wrong, captures byte-identical); main-thread gain clear on one save only (c100), so it does not meet the two-save rule; device thread less busy on all four | paired windows: main thread -0.93, -0.89 ms; device -0.39, -0.47 ms; fps 100.1, 96.9 → 109.3, 122.6 | six launches: main thread -0.14 to -0.20 ms (pooled -0.17, IQR -0.45..+0.10: crosses zero); device -0.09 to -0.12 ms | main thread -0.05, -0.01 ms (neutral); `LoadRawTextureData` +0.02 ms; device -0.13, -0.08 ms | four launches: main thread -0.39, -0.29, -0.62, -0.40 ms (pooled -0.43, IQR -1.11..+0.17: crosses zero); device -0.07 to -0.11 ms |
+| Behaviour dispatch (direct update calls) | **Rejected**, exact (verify 0 wrong on three saves) but no clear main-thread gain on any save; local branch `behaviour-calls-u60` | paired windows (761654): main thread -0.13 ms pooled (IQR -0.85..+0.49) | -0.06 ms (IQR -0.36..+0.22) | – | -0.25 ms (IQR -0.86..+0.34) |
 | 7. `CollectMesh`/`CollectSprite` | **Rejected** | no sprites drawn; sheets come from blits and blocks | – | – | – |
 | NavGrid links in compact stores (`compact-nav-links`, navgrid-links-store.md) | **Landed**, exact, on by default | managed heap 9,200, 9,240 → 8,628, 8,592 MiB; load 43.3, 39.1 → 35.3, 32.8 s; fps 40.8, 47.4 → 46.4, 38.7 (noise) | links 256.4 → 26.2 MB (Linux) | managed heap 7,736, 7,696 → 5,602, 5,594 MiB; working set 12,094, 12,030 → 9,835, 9,772 MiB; fps 70.2, 41.8 → 54.5, 44.7 (noise) | – |
 | 8a. Identities before set 0's writes (c7868f47) | **Landed**; correct (verify 0 wrong, captures byte-identical) | Windows: device-thread draws -0.19 ms (IQR -0.25..-0.13) | Windows: draws -0.36 ms (IQR -0.46..-0.25); Linux (llvmpipe, CPU direction): -0.49 ms (IQR -0.66..-0.09) | – | – |
@@ -888,6 +908,81 @@ current build. Its `sim` line splits `StepTheSim` into SimDLL and managed time o
 Our run's data: `out/soggy/runs/soggy1.*` in worktree `agent-a6e1bc274ec67af1a` (log,
 nettrace, speedscope, `stepthesim.txt`).
 
+## Behaviour dispatch (2026-11-04)
+
+`BehaviourManager`'s per-phase lists (`PhaseList.Run`) call every active MonoBehaviour's
+`Update` and `LateUpdate` through the message's delegate, `Lifecycle.Invoke(MessageOf(script),
+(MonoBehaviour)b.Managed)`: two delegate calls and a cast through the shared generic code's
+dictionary per behaviour. At the busiest world that is 3,996 `Update` and 282 `LateUpdate`
+calls a frame on DeCrew, 4,487 and 1,020 on U57, and 2,387 and 208 on c100 (the prototype's
+counters).
+
+### The prototype
+
+- **Change** (local branch `behaviour-calls-u60`, `59336eea`; src/OniMoono.UnityEngine/Engine):
+  `ScriptInfo` keeps each update message's `MethodInfo` and its entry point
+  (`MethodHandle.GetFunctionPointer()`) when the message returns void, is not abstract and is
+  not on a value type. `PhaseList.Run` calls it as a `delegate*<MonoBehaviour, void>` on
+  `Unsafe.As<MonoBehaviour>(b.Managed)`, inside the same try/catch as before. Other messages
+  (one returning a value) go through the delegate as before. A call through a pointer is not
+  inlined, so a Harmony patch added later still runs (D34).
+- **Exact?** The entry point is the type's most-derived declaration, and there is one
+  `ScriptInfo` per runtime type, so it is the method virtual dispatch chooses.
+  - `BehaviourCallsTests` runs virtual, overridden, hidden (`new`), private-inherited,
+    generic-base, throwing and value-returning `Update`s both ways. It checks the same calls
+    in the same order, with the same logged exceptions.
+  - Verify mode (`ONI_VERIFY_BEHAVIOUR_CALLS=1`) checks the first call of each script's
+    message against a delegate bound to that instance. Windows, 761654: DeCrew 112 messages,
+    U57 120, c100 112; 0 wrong. On 761211 earlier the same day: DeCrew 112, U57 120; 0 wrong.
+- **Measurement switch**: `ONI_BEHAVIOUR_CALLS_ALT=1` (with `--frame-stats`) calls through the
+  delegates in every other 60-frame window, as candidate 3's `ONI_RAW_LOADS_ALT` does.
+
+### Method
+
+- **Build**: `u60` at `d7a2619c` (the v2026.11.04.06 commit) plus the prototype,
+  `scripts/build-windows.sh release`, on its defaults (Vulkan, default tweaks).
+- **Game**: the frozen U60 761654 install (`E:\oni-builds\oni-win-761654`). The runs before
+  this section used 761211; current releases support 761654 only.
+- **Runs**: as in candidate 3: speed 3, busiest world, 1280x720 windowed on monitor 2,
+  `--no-focus`, High priority with throttling off, sound off (`Volume_*` prefs at 0,
+  `--audio-wav`), `--frame-stats`. One unmeasured launch, the three verify launches, then two
+  ALT launches each of DeCrew, U57 and c100, interleaved by save, 150 s from the busiest world
+  and measured from 30 s on. Each launch started after a minute with no other player or lane
+  and a WSL load under 2; the highest load while measuring was 0.12-0.57.
+- **Pairs**: each 60-frame window against its neighbour of the other variant (direct calls
+  minus delegates), median (IQR). soggy lab 2 is left out: its main thread is the sim's
+  (`Game.StepTheSim`), and on the three saves where scripts are a larger share the change
+  shows nothing clear.
+
+### Results
+
+| Save | Launch | Main thread (ms) | `update` phase (ms) | `late update` phase (ms) | Device thread busy (ms) |
+|---|---|---|---|---|---|
+| DeCrew | 1 | -0.07 (-0.34..+0.14) | -0.06 (-0.20..+0.09) | -0.02 (-0.09..+0.04) | -0.03 (-0.10..+0.03) |
+| DeCrew | 2 | -0.05 (-0.40..+0.32) | -0.01 (-0.20..+0.15) | -0.02 (-0.11..+0.08) | -0.01 (-0.11..+0.06) |
+| U57 | 1 | -0.20 (-0.90..+0.38) | -0.13 (-0.56..+0.24) | -0.08 (-0.24..+0.12) | -0.01 (-0.07..+0.04) |
+| U57 | 2 | -0.30 (-0.85..+0.28) | -0.21 (-0.50..+0.12) | -0.08 (-0.27..+0.11) | -0.03 (-0.07..+0.03) |
+| c100 | 1 | -0.19 (-0.93..+0.56) | -0.13 (-0.47..+0.25) | -0.03 (-0.29..+0.18) | -0.05 (-0.31..+0.26) |
+| c100 | 2 | -0.10 (-0.81..+0.46) | -0.08 (-0.38..+0.20) | +0.01 (-0.21..+0.17) | +0.01 (-0.28..+0.20) |
+| **DeCrew pooled** | 591 pairs | **-0.06 (-0.36..+0.22)** | -0.04 (-0.20..+0.11) | -0.02 (-0.10..+0.06) | -0.02 (-0.11..+0.05) |
+| **U57 pooled** | 341 pairs | **-0.25 (-0.86..+0.34)** | -0.17 (-0.53..+0.18) | -0.08 (-0.25..+0.12) | -0.02 (-0.07..+0.03) |
+| **c100 pooled** | 437 pairs | **-0.13 (-0.85..+0.49)** | -0.11 (-0.41..+0.21) | -0.02 (-0.23..+0.17) | -0.02 (-0.29..+0.23) |
+
+- The launches ran at 150-154 fps (DeCrew), 88-90 (U57) and 103-121 (c100).
+- Every median is at or below zero, but no IQR clears zero, on any save, in either phase.
+- Per call, the pooled medians come to about 14 ns on DeCrew (0.06 ms over 4,280 calls), 45
+  ns on U57 (0.25 ms over 5,510) and 50 ns on c100 (0.13 ms over 2,600). This is an estimate
+  from the medians, which are inside the noise.
+- An earlier, interrupted pass on 761211 (one launch each) gave c100 -0.17 (-0.93..+0.74) and
+  DeCrew -0.13 (-0.49..+0.18): the same picture.
+
+### Verdict
+
+**Rejected (not landed).** It is exact (verify 0 wrong on three saves, the unit tests), but
+its main-thread gain is not clear on any save: DeCrew -0.06, U57 -0.25, c100 -0.13 ms, every
+IQR across zero. It would add unsafe function-pointer calls to the engine's hottest loop for
+a gain that is not measured, so it stays parked on the local branch `behaviour-calls-u60`.
+
 ## Final comparison (2026-11-04)
 
 The last U60 release against the current `u60`, with candidate 3, on a quiet machine.
@@ -985,10 +1080,90 @@ same size: block reads took 1.0-1.6 GiB off the heap on c100 and DeCrew, and pag
 and 266 → 178 MB on DeCrew. Nor are the frame-rate gains on c100 and U57 measured apart from
 the rest.
 
+## Final comparison on 761654 (2026-11-05)
+
+The goal's combined gain: the last U60 release against the last U60 build before the goal, on
+the current game build. Neither new candidate landed (behaviour dispatch rejected; candidate
+3 was in the release already), so the release is the goal's whole result.
+
+### Method
+
+- **Builds**:
+  - Base: `u60` at `3ac5d19f`, the baseline's build (Method above).
+  - Change: release v2026.11.04.06 (`d7a2619c`), its own archive.
+  - Both are packaged the same way: the base by its commit's own `scripts/release.sh`, into a
+    local archive (no tag, nothing published). Both are self-contained players with .NET
+    10.0.13. Both run on their defaults (Vulkan, default tweaks), with the same PerfProbe.
+- **Game**: the frozen U60 761654 Windows install, with the all-DLC Steam double. The
+  earlier final comparison and the baseline ran on 761211; current releases support 761654
+  only.
+- **Saves**: as in the baseline. soggy lab 2 has its 35 U60-loading mods. All 35 pass
+  `scripts/mod-gate.py` on onimaxxing's 761211 data. Its 761654 data has not analysed these
+  uploads yet, but they are the same files.
+- **Runs**: as in the earlier final comparison: one unmeasured launch of each build, then
+  base, change, base, change for each save, 130 s from the busiest world, means over the 100
+  s from 30 s on. Speed 3, busiest world, 1280x720 windowed on monitor 2, `--no-focus`, High
+  priority, sound off, `--frame-stats`.
+- **Quiet machine**: each run started after a minute with no other e2e player, QA lane or
+  Linux player and a WSL load under 2. A run that saw another player or lane, or a load of 3
+  or more, was run again. Five were: c100's first change run twice, U57's first base run
+  once and its second base run twice. Other agents' lanes held U57's runs back, so its pairs
+  ran about an hour apart (01:49-01:57 and 02:54-03:02).
+- **soggy lab 2's speed**: its Speed Control mod makes speed 3 ask for 10x
+  (`game speed ... asked 10.00`). 98-100% of frames hit the game's limit of one 200 ms sim
+  step a frame, so the speed it gets is about fps x 0.2 s: 6.8-7.0 game seconds a real
+  second on the release. Its fps is therefore not comparable with the other saves, which run
+  at plain 3x (2.96-3.00 game seconds a real second on the release). The base build has no
+  game-speed line, so its figure is derived as fps x 0.2.
+- **soggy lab 2's first base run** ran at 20.6 fps against 33.4 for the second. It is likely
+  a warm-up outlier (its first launch with the mods on this build). A third pair was run
+  after the series, under the same conditions, and is in the table.
+
+### Results
+
+Per run, base → change, in launch order:
+
+| | DeCrew | soggy lab 2 (35 mods) | c100 | U57 |
+|---|---|---|---|---|
+| Busiest world | 0 | 2 | 0 | 0 |
+| Frame rate (fps) | 132.4, 122.4 → 147.0, 154.8 | 20.6 (outlier), 33.4, 34.8 → 34.2, 35.1, 35.1 | 43.8, 46.9 → 93.7, 108.1 | 75.4, 78.0 → 68.3, 86.8 |
+| Game seconds a real second | – | 4.1, 6.7, 7.0 (derived) → 6.83, 7.02, 7.03 | – | – |
+| Slowest 1% of frames (ms) | 21.8, 25.1 → 21.1, 20.7 | 102.7, 62.9, 54.6 → 56.0, 52.8, 52.2 | 39.7, 35.9 → 25.0, 23.1 | 30.8, 29.8 → 41.0, 32.8 |
+| Main thread (ms) | 7.55, 8.10 → 6.80, 6.41 | 48.44, 30.01, 28.62 → 29.20, 28.44, 28.36 | 22.93, 21.36 → 10.78, 9.27 | 13.19, 12.82 → 14.69, 11.48 |
+| Device thread busy (ms) | 3.00, 3.11 → 1.88, 1.92 | 5.38, 4.86, 4.58 → 4.07, 3.96, 4.30 | 8.21, 8.36 → 3.27, 2.91 | 1.82, 1.82 → 1.85, 1.54 |
+| Private bytes (MiB) | 16,935, 17,518 → 16,223, 16,870 | 16,644, 16,267, 16,355 → 12,277, 12,089, 12,611 | 15,880, 15,989 → 9,884, 9,980 | 17,508, 16,501 → 14,526, 14,607 |
+| Managed heap (MiB) | 9,893, 9,951 → 8,069, 8,232 | 7,908, 7,767, 7,785 → 3,992, 3,992, 4,278 | 9,077, 9,218 → 3,303, 3,446 | 10,285, 9,072 → 7,266, 7,328 |
+| Load (s) | 16.2, 17.1 → 18.0, 16.7 | 14.0, 14.0, 13.4 → 14.0, 13.8, 13.7 | 9.3, 9.6 → 9.6, 9.9 | 18.6, 18.0 → 18.3, 18.2 |
+
+- **c100 runs at more than twice the frame rate**: 45.4 → 100.9 fps (means), main thread
+  22.15 → 10.03 ms, device thread 8.29 → 3.09 ms, slowest 1% 37.8 → 24.1 ms. Every release
+  run beats every base run by more than 45 fps. Candidate 1 (symbol overrides) measured most
+  of this on its own (Verdicts).
+- **DeCrew is faster in both pairs**: 127.4 → 150.9 fps, main thread 7.83 → 6.61 ms, device
+  thread 3.06 → 1.90 ms. The slower release run beats the faster base run by 14.6 fps, more
+  than the 10.0 fps between the two base runs.
+- **soggy lab 2** is a little faster without the outlier: 34.1 → 34.8 fps, 6.8 → 7.0 game
+  seconds a real second, main thread 29.32 → 28.67 ms. That is inside the spread between its
+  runs (1.4 fps between the two clean base runs). Its slowest 1% is 58.8 → 53.7 ms without
+  the outlier, and its device thread is 4.72 → 4.11 ms.
+- **U57 is within the noise**: 76.7 → 77.6 fps. Its release runs differ by 18.4 fps from each
+  other (68.3 then 86.8, an hour apart), its base runs by 2.6. Two runs each say nothing about
+  its frame rate here.
+- **Memory**: the managed heap is 5.6 GiB smaller on c100 (means), 3.6 GiB on soggy lab 2,
+  2.3 GiB on U57 and 1.7 GiB on DeCrew. Private bytes are 5.9, 4.0, 2.4 and 0.7 GiB smaller.
+- **Load time** is unchanged within its spread: the means moved by 0.7 s at most
+  (DeCrew, 16.7 → 17.4 s), and DeCrew's two release runs differ by 1.3 s from each other.
+- **What differs**: 191 commits on `u60` from `3ac5d19f` to `d7a2619c`. The landings this
+  document records are among them: candidates 1, 2, 3, 6 and 8, the closures sweep, the
+  culling registry, compact NavGrid links, paged path grids and bundle block reads. The
+  comparison does not separate them.
+
 ## Next
 
-1. Put stopwatches on candidates 1-3: `ApplyOverrides` calls by cause, the queued loop in
-   `Cull`, and `LoadRaw`'s copy with the changed fraction. Then prototype the ones whose
-   measured share holds up.
-2. Re-measure this baseline on a quiet machine (no Linux players) before comparing fps.
-   Until then, compare main-thread phase times within paired runs.
+- The goal's done-criterion is met: the 761654 final comparison above shows the combined gain
+  against the last pre-goal U60 build. c100 is more than twice as fast and DeCrew is about
+  18% faster. soggy lab 2 (at its sim-step cap) and U57 are within their noise. The managed
+  heap is 1.7-5.6 GiB smaller on all four saves.
+- Left open: candidate 3's main-thread gain on a second save (window noise wider than the
+  effect on DeCrew and U57); behaviour dispatch is parked on `behaviour-calls-u60`.
+- U57's frame rate needs more than two runs a build to call either way.
