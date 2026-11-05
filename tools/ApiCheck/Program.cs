@@ -289,6 +289,13 @@ sealed class OurAssemblies
         return null;
     }
 
+    /// The type's base type, when it is in these assemblies.
+    public FoundType? BaseOf(FoundType type)
+    {
+        var (h, la) = BaseOf(type.Assembly, type.Assembly.MD.GetTypeDefinition(type.Handle));
+        return h is { } th ? new FoundType(la, th) : null;
+    }
+
     (TypeDefinitionHandle?, LoadedAssembly) BaseOf(LoadedAssembly la, TypeDefinition td)
     {
         var md = la.MD;
