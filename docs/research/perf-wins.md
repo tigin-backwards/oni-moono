@@ -1158,6 +1158,144 @@ Per run, base → change, in launch order:
   culling registry, compact NavGrid links, paged path grids and bundle block reads. The
   comparison does not separate them.
 
+## Data structures on the main thread (2026-11-05)
+
+Four candidates, each the cost of a game data structure rather than of the work done through
+it: event dispatch, the scene partitioner, tag and hashed-string lookups, and the pathfinder's
+open list. The question for each: how much of the main thread is the structure's own work, as
+opposed to the handlers, visitors or callers it serves?
+
+### Method
+
+- **Traces** (Windows): `u60` at `f214446a`, `scripts/build-windows.sh release`, defaults
+  (Vulkan, default tweaks), the frozen U60 761654 install, PerfProbe at speed 3 with the
+  busiest world, 1280x720 on monitor 2, `--no-focus`, High priority, sound off,
+  `--frame-stats`. One launch a save; `dotnet-trace` (sampled thread time) for 30 s from 150
+  s after the busiest world. Each launch started after a minute with no other player or lane
+  and a WSL load under 2. Other agents' Linux players started during the c100 and U57 traces
+  (load up to 5.2), so their frame times are higher than usual; the shares within a trace are
+  the basis, as in the baseline.
+- **Main-thread time in the trace windows** (sum of the frame phases): c100 12.74 ms, DeCrew
+  7.35, U57 17.71. A share is turned into ms a frame with these.
+- **Inclusive and own**: inclusive is every sample with the structure's entry method on the
+  stack (`EventSystem.Trigger`; `ScenePartitioner`'s and `GameScenePartitioner`'s gathers,
+  visits and events; `PathFinder.Run`/`UpdatePath`). Own is the samples whose frames below the
+  innermost entry are only the structure's own code and the BCL (the dictionary lookup, the
+  entry list, the node walk, the heap), not a handler, visitor or query it calls. Safe-point
+  artifacts are charged to the first real frame above them (Method, above).
+- **Counts** (Linux, direction only): a local profiling build (not committed) with Harmony
+  counters on `EventSystem.Trigger` (calls, intra-object routes scanned and matched, entries
+  invoked, by event), `ScenePartitioner.GatherEntries` (calls, entries returned, by layer),
+  `FetchManager.IsFetchablePickup_Exclude` and `KPrefabID.HasAnyTags` (calls, and whether the
+  item's tag set changed since its last test), main thread only. e2e lanes, release build,
+  OpenGL on Xvfb, speed 3, 300 game seconds a save, 600-frame windows.
+- soggy lab 2 is left out: its main thread is the sim's (`Game.StepTheSim`), and nothing below
+  comes near a measurable size on the other three.
+
+### How the game stores them (761654, decompiled)
+
+- **Events**: each object's `EventSystem` already keeps a `Dictionary<int,
+  SBOVector4<Entry>>` from event hash to its handlers, in subscription order, with removals
+  during a dispatch deferred and applied when the outermost one ends. `Trigger` makes one
+  lookup and calls the entries. The linear part is the obsolete `IntraObjectHandler` routes,
+  scanned only when some object subscribed one for that hash: in the three saves no `Trigger`
+  scanned one. The per-object hash index the candidate proposed is what U60 already does.
+- **Partitioner**: a `[layer, y, x]` array of 16x16-cell nodes, each a
+  `HybridListHashSet<Handle>`; a query walks the nodes its extents touch, from the end of each
+  list, and resolves each handle through `KCompactedVector` with a version check.
+- **Tags**: `KPrefabID.HasTag` compares the prefab tag, then calls `HashSet<Tag>.Contains`.
+  `Tag`, `HashedString` and `KAnimHashedString` implement `IEquatable<T>` with a stored int
+  hash, so the default comparer neither boxes nor calls `ValueType.Equals`.
+- **Open list**: `PathFinder.PotentialList`, a hot/cold pair of binary heaps. path-probe-repair
+  floods with a copy of it with the same sift rules (ProbeRepairCore), so floods match
+  `PathProber.Run`'s order.
+
+### Results
+
+ms a frame of the main thread (Windows traces):
+
+| Candidate | c100 | DeCrew | U57 |
+|---|---|---|---|
+| Event dispatch, inclusive (with its handlers) | 0.857 | 0.254 | 0.967 |
+| · own: lookup, entry copies, the loop | **0.041** | **0.025** | **0.098** |
+| · of that, copying the entry list out of the dictionary (`Buffer.BulkMoveWithWriteBarrier`) | 0.035 | 0.015 | 0.078 |
+| Partitioner, inclusive (with visitors and event callbacks) | 0.024 | 0.041 | 0.121 |
+| · own: the node walk and handle lookups | **0.020** | **0.005** | **0.007** |
+| Tag and hashed-string lookups, self time | **0.070** | **0.011** | **0.213** |
+| Boxing equality (`ObjectEqualityComparer`, `ValueType.Equals`/`GetHashCode`), inclusive | 0.016 | 0.005 | 0.027 |
+| Pathfinder on the main thread (`Navigator.AdvancePath`'s path updates), inclusive | 0.024 | 0.000 | 0.001 |
+| · of that, the open list | **0.002** | **0.000** | **0.000** |
+
+- **Event dispatch** (Linux counts, per frame): c100 573-583 `Trigger` calls, DeCrew 639-862,
+  U57 2,049-3,170; 1.3-1.9 entries invoked a call, and 206-1,205 calls a frame find no
+  handler. No call scanned an intra-object route. The most frequent events are
+  `OnStorageChange` (226, 243 and 1,099 a frame), `CellChanged` (105, 139, 285) and
+  `TagsChanged` (12, 40, 120). Of the inclusive time, `CellChangeMonitor.RenderEveryTick`'s
+  cell-change events are about half (0.54, 0.13, 0.48 ms): the handlers' work.
+- **Partitioner** (Linux counts): `GatherEntries` is called on 4 layers, 18-95 times a frame,
+  for 0.28-0.54 ms on Linux in all (the game's code runs about 2.5x slower there; see the state
+  machine phase above). On Windows its callers are `ChoreConsumer.FindNextChore` (0.026 ms on
+  DeCrew, 0.091 on U57), the nav grid update's event and critters' food and climbing searches.
+- **Tags**: on U57 `ClosestPickupableSensor.Update`'s `HashSet<Tag>` lookups are 0.15 ms; on
+  c100 `SolidConsumerMonitor.FindFood`'s `HasAnyTags` 0.06 ms. `HasTag` itself is inlined into
+  its callers, but the set's `FindItemIndex` is not, so the self time bounds the lookups.
+  - Counts (Linux, U57): the sensors call `IsFetchablePickup_Exclude` about 1,470 times a
+    frame, 1,400 of which reach `HasAllTags`, over only 382 items. 1,333 of those found the
+    item's tag set unchanged since its last test (its `HashSet._version`), 1,209 in the same
+    frame: several Duplicants' sensors test the same items every frame. That comes to about
+    110 ns a test on Windows (0.156 ms over 1,400; an estimate, the two from different runs).
+    c100 makes 4,440-4,570 `HasAnyTags` calls a frame (critters' food searches) and 100 fetch
+    tests.
+  - A cache keyed on the set's version still reads the set (for its version) and its own
+    table on every test, where the lookup now reads the set and two of its arrays. It could
+    save part of 0.15 ms on U57 and 0.06 ms on c100, at most.
+- **Boxing comparers**: a scan of Assembly-CSharp and -firstpass (U59 744825 and U60 761654
+  alike) finds 24 struct types hashed or compared through the default comparer without
+  `IEquatable<T>`, so each test boxes or uses `ValueType.Equals`/`GetHashCode`. Those with the
+  most sites: `ToolMenu.CellColorData` (32, the tools' overlay colours),
+  `HandleVector<int>.Handle` (17: `KComponentManager`'s and `KSplitComponentManager`'s pending
+  sets, `FetchablesByPrefabId`, `FallingWater`),
+  `PrioritySetting` (12), `Nullable<Vector2>` (7), `BubbleManager.WorldArchetype` and
+  `NoteEntryKey` (5 each). Our engine's `UnityEngine` structs implement `IEquatable<T>` as
+  Unity's do. In the traces the flagged types' collections are at most 0.001 ms a frame, and
+  all boxing equality together (with reference types' `ObjectEqualityComparer`) 0.005-0.027 ms.
+- **Open list**: on the main thread at most 0.002 ms. The probes run on their own thread:
+  there the queue's own frames took 461 ms of 30 s on c100 (about 6% of the probe thread's
+  samples outside waits), 1,223 ms on DeCrew (about 7%) and 115 ms on U57. A queue twice as
+  fast would save half of that on the probe thread and nothing on the main thread.
+
+### GC settings and the first-touch misses (exploratory)
+
+Much of the cost above, as in the state machine phase, is the first read of another object.
+Whether the GC's heap layout changes those misses was checked on Linux with the CPU's own
+counters (`perf stat -t` on the player's main thread, 60 s from 150 s after the load; DeCrew,
+e2e lane, release build, two runs a mode, in turn). Modes: the default (Server GC with
+regions and DATAS), DATAS off (`DOTNET_GCDynamicAdaptationMode=0`, 16 heaps), and segments
+instead of regions (`DOTNET_GCName=libclrgc.so`, confirmed by the log's `GCRegionRange=0`).
+
+| Mode | L1 misses a 1,000 instructions | Last-level misses a 1,000 instructions | Instructions a cycle | Main thread (ms) |
+|---|---|---|---|---|
+| Default (regions, DATAS) | 23.5, 23.5 | 18.7, 19.2 | 0.52, 0.46 | 29.1, 30.7 |
+| DATAS off | 24.7, 24.0 | 20.0, 19.4 | 0.40, 0.57 | 32.6, 27.2 |
+| Segments | 23.7, 24.3 | 19.2, 19.2 | 0.52, 0.48 | 29.6, 33.4 |
+
+- The miss rates are within 5% of each other in every mode, and the two runs of one mode
+  differ as much as the modes do (other agents' players ran: load 1.5-7.1). The GC's layout
+  does not visibly change the misses; nothing to act on. Windows was not measured.
+
+### Verdicts
+
+All four are under 0.3 ms a frame on every save. The tag lookups were looked at further at the
+user's request (above); none was prototyped.
+
+| Candidate | Verdict | c100 | DeCrew | U57 |
+|---|---|---|---|---|
+| Event dispatch: per-object hash index | **Rejected**: U60 already indexes handlers by hash per object; the dispatch's own work is under 0.1 ms. Avoiding the entry list's copy (a ref into the dictionary) would save at most 0.02-0.08 ms and must keep the copy's view of entries removed or added during a dispatch | own 0.041 ms | 0.025 | 0.098 |
+| Partitioner: flatter per-layer cells | **Rejected**: under 0.03 ms of its own work | 0.020 | 0.005 | 0.007 |
+| Tag lookups: version-keyed caches or skipped repeats | **Not built**: at most 0.21 ms (U57) and 0.07 (c100), one hash lookup a test already; a cache still reads the set for its version, so it saves part of that, inside the paired runs' noise (U57's IQR was about ±0.6 ms in the earlier phases) | 0.070 | 0.011 | 0.213 |
+| Comparers for structs without `IEquatable<T>` | **Rejected**: 24 types, none hot | 0.016 | 0.005 | 0.027 |
+| Pathfinder open list: radix or bucket heap | **Rejected for the main thread** (at most 0.002 ms there). On the probe thread it is 6-7% of the busy time; not worth the ties another queue would bring to floods, which now match the game's | 0.002 (probe thread 15 ms/s) | 0.000 (41 ms/s) | 0.000 (4 ms/s) |
+
 ## Next
 
 - The goal's done-criterion is met: the 761654 final comparison above shows the combined gain
@@ -1167,3 +1305,5 @@ Per run, base → change, in launch order:
 - Left open: candidate 3's main-thread gain on a second save (window noise wider than the
   effect on DeCrew and U57); behaviour dispatch is parked on `behaviour-calls-u60`.
 - U57's frame rate needs more than two runs a build to call either way.
+- Data structures (event dispatch, the partitioner, tag lookups, the open list): each under 0.3 ms
+  a frame of its own work on every save; none prototyped (above).
