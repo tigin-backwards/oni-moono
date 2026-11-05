@@ -742,7 +742,7 @@ msgstr ""
 
 #. Tooltip: how it works (fix-endless-sounds)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_ENDLESS_SOUNDS.DETAIL"
-msgid "A bug in the game's sound data: the adult Pip's eating loop, and a crashed rocket's steaming debris, start a new copy of a looping sound on every loop and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends."
+msgid "A bug in the game's sound data: the adult Pip's eating loop, and the debris left by a self-destructed rocket, start a new copy of a looping sound on every loop and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends."
 msgstr ""
 
 #. Row title (fix-sound-piles)
