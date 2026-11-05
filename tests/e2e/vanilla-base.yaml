@@ -2,11 +2,12 @@
 # (`supportedContent: VANILLA_ID`). Saves the vanilla-base checkpoint.
 #
 # From the main menu with Spaced Out off: New Game, Survival, Classic, Terra at a fixed
-# coordinate, embark. Then, as early-base does: dig out both sides of the printing pod, build an
-# outhouse and a cot, climb a ladder to the cuprite above the west end, build a manual generator
-# and a research station wired to it behind the pod, research Basic Farming and play on to
-# cycle 3. (The pit west of the pod has no floor, and OniMcp's own wiring went for a far power
-# source, so the metal comes from above and the wire is laid by hand.)
+# coordinate, embark, and close the welcome message with its Begin button. Then, as early-base
+# does: dig out both sides of the printing pod, build an outhouse and a cot, climb a ladder to
+# the cuprite above the west end, build a manual generator and a research station wired to it
+# behind the pod, research Basic Farming and play on to cycle 3. (The pit west of the pod has no
+# floor, and OniMcp's own wiring went for a far power source, so the metal comes from above and
+# the wire is laid by hand.)
 from: main-menu
 spaced_out: false
 steps:
@@ -28,6 +29,11 @@ steps:
   - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
   - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
   - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  # The welcome message (WattsonMessage) pauses the game and stays over the screen until its
+  # Begin button is clicked; the button turns interactable once the panel has opened.
+  - ui_wait: {path: "**/WattsonMessage/Dialog/FG/Button", cond: interactable, frames: 3000}
+  - click: {ui: "**/WattsonMessage/Dialog/FG/Button"}
+  - ui_wait: {path: "**/WattsonMessage", cond: gone, frames: 600}
   - expect_state:
       "DlcManager.IsExpansion1Active()": false
       "ClusterManager.Instance.WorldContainers.Count": 1
