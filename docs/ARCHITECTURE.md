@@ -2800,6 +2800,19 @@ holds none of the heap. It is written only on a crash and never sent anywhere; i
 default, as a player sends it only by attaching it to a report, and `--crash-dumps off` leaves it
 out. Module paths in the crash line are hidden as the log's are (`--log-paths`).
 
+`--crash-dumps full` (or `ONI_CRASH_DUMPS=full`, which takes the place of the option for test
+runs) writes a dump with memory, for diagnosing heap corruption (issue #56): the process's private
+read-write memory, which holds every heap (the game's, the drivers', the runtime's managed heap),
+with the modules' data sections (ntdll's heap globals and its record of the heap failure, which
+`!heap` needs to decode the heaps) and the layout of all memory (`!address`). Mapped images and
+files are left out (the debugger reads them from disk), which is what makes it smaller than a
+full-memory dump; private read-only regions are left out too (two 24 KB heaps at start-up).
+`!heap -s` then names the damaged block, the failure's type and its stack, and `!heap -x` the
+block's heap and segment (`--test-native-crash heap`: 20 MB at start-up). Its size is about the
+game's private memory, several GB in a colony, and it holds everything the game had in memory
+(the colony, text, file paths and whatever else the process read), so it is for test runs and for
+a player who agrees to send it; the default stays the small dump.
+
 On Linux nothing is recorded: the Linux player is the SDK's apphost, with no native code of ours
 to install a signal handler, and the runtime reads its own dump settings only from the environment
 at start. A player can set them in the launch options, before the command:

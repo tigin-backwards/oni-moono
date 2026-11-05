@@ -70,17 +70,17 @@ if [ "$which" != linux ]; then
         # run CASE [redirect]: one player, in its own run home; with redirect, its standard error
         # to a file (as a terminal's 2> does), else no standard streams (as Steam starts it).
         run() {
-            local home="$wstage\\$1${2:+-$2}" shell='$true' redirect=''
+            local home="$wstage\\$1${2:+-$2}${extra:+-full}" shell='$true' redirect=''
             [ -n "${2:-}" ] && { shell='$false'; redirect="\$psi.RedirectStandardError = \$true;"; }
             (cd /mnt/c && timeout 300 powershell.exe -NoProfile -Command "
                 \$psi = New-Object System.Diagnostics.ProcessStartInfo
                 \$psi.FileName = '$wstage\\host\\OniMoono.exe'
-                \$psi.Arguments = '--game \"$wgame\" --run-home \"$home\" --test-native-crash $1'
+                \$psi.Arguments = '--game \"$wgame\" --run-home \"$home\" --test-native-crash $1 ${extra:-}'
                 \$psi.UseShellExecute = $shell; $redirect
                 \$p = [System.Diagnostics.Process]::Start(\$psi)
                 if (-not \$psi.UseShellExecute) { Set-Content -Path '$home-stderr.txt' -Value \$p.StandardError.ReadToEnd() }
                 \$p.WaitForExit()" > /dev/null 2>&1) || true
-            dir="$stage/$1${2:+-$2}/AppData/LocalLow/Klei/Oxygen Not Included"
+            dir="$stage/$1${2:+-$2}${extra:+-full}/AppData/LocalLow/Klei/Oxygen Not Included"
             log="$dir/Player.log"
             # The watcher writes once the game has gone.
             for _ in $(seq 50); do grep -q 'native crash: the process ended\|test native crash: the null' "$log" 2> /dev/null && break; sleep 0.2; done
@@ -107,6 +107,11 @@ if [ "$which" != linux ]; then
         run thread && crashed thread 0xC0000005 '[[:space:]]*$'
         run stack-overflow && crashed stack-overflow 0xC00000FD
         run heap && crashed heap 0xC0000374
+        # --crash-dumps full: the dump holds the heaps, many times the small one's size.
+        small=$(du -k "$dump" 2> /dev/null | cut -f1)
+        extra='--crash-dumps full' run heap && { crashed heap 0xC0000374
+            full=$(du -k "$dump" 2> /dev/null | cut -f1)
+            [ "${full:-0}" -gt $(( ${small:-0} * 3 )) ] && pass "windows heap full: memory in the dump ($full KB, $small KB without)" || fail "windows heap full: $full KB, not much more than the $small KB without"; }
         run main-stack-overflow && { expect "windows main-stack-overflow: runtime text" "$log" 'native crash: runtime: Stack overflow\.'
             expect "windows main-stack-overflow: end" "$log" 'native crash: the process ended with 0xC00000FD'; dumped main-stack-overflow none; }
         for c in fastfail gs abort; do

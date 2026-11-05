@@ -23,8 +23,10 @@ namespace OniMoono.Host
 
         /// Called on the main thread once the log is open; returns the log line saying what is
         /// recorded. `scrubber`: the log's (null with --log-paths full).
-        public static string Install(string logPath, bool dumps, LogScrubber? scrubber)
+        public static string Install(string logPath, string dumps, LogScrubber? scrubber)
         {
+            var forced = Environment.GetEnvironmentVariable("ONI_CRASH_DUMPS");
+            if (forced is "on" or "off" or "full") dumps = forced;
             if (!OperatingSystem.IsWindows())
                 return Environment.GetEnvironmentVariable("DOTNET_DbgEnableMiniDump") == "1"
                     ? $"native crashes: the runtime writes a dump (DOTNET_DbgEnableMiniDump; DOTNET_DbgMiniDumpName {Environment.GetEnvironmentVariable("DOTNET_DbgMiniDumpName") ?? "unset: /tmp"})"
@@ -44,12 +46,17 @@ namespace OniMoono.Host
             prefixes.Append('\0');
             int watching;
             fixed (char* log = Path.GetFullPath(logPath), hidden = prefixes.ToString())
-                watching = install(log, GetCurrentThreadId(), dumps ? 1 : 0, hidden);
+                watching = install(log, GetCurrentThreadId(), dumps switch { "full" => 2, "off" => 0, _ => 1 }, hidden);
             // Main's return and Environment.Exit; Player.ProcessExit says so itself.
             AppDomain.CurrentDomain.ProcessExit += (_, _) => Exiting(Environment.ExitCode);
             if (Environment.GetEnvironmentVariable("ONI_MOONO_CRASH_WATCH") == "off") return "native crashes: not recorded (ONI_MOONO_CRASH_WATCH=off)";
             return watching != 0
-                ? $"native crashes: recorded in this log by a watcher process{(dumps ? ", with a minidump beside it" : " (no minidump: --crash-dumps off)")}"
+                ? "native crashes: recorded in this log by a watcher process" + dumps switch
+                {
+                    "full" => ", with a dump of the process's memory beside it (--crash-dumps full)",
+                    "off" => " (no minidump: --crash-dumps off)",
+                    _ => ", with a minidump beside it",
+                }
                 : "native crashes: not recorded (the watcher process did not start)";
         }
 
