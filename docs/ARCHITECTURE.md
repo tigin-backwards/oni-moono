@@ -1964,9 +1964,10 @@ would give the measured period, but Windows updates them only now and then for a
 (in some 20 s runs they stayed on one picture throughout); where they did update, the period they
 gave (16.6807 ms) agreed with the mode's 59.951 Hz to 0.003%. The wall clock is used as before
 without vsync, without a known period (Linux, OpenGL without DXGI), when nothing has been presented
-for a quarter second (a long frame keeps its length: the first frame after a hitch reads the hitch,
-as in the original, and `deltaTime` is capped by `maximumDeltaTime` as before), and when eight
-frames in a row come in under half a refresh (a faster monitor not looked up yet). Measured after
+for a quarter second, for a frame over a second (a hitch or a resume keeps its length and drops the
+rounding's remainder; `deltaTime` is capped by `maximumDeltaTime` as before) or under a millisecond
+(vsync off whatever the game asked for), both as Godot's DeltaSmoother does, and when eight frames
+in a row come in under half a refresh (a faster monitor not looked up yet). Measured after
 the change, the same runs (OpenGL on U59, Vulkan on U60): deltas within 0.05 ms of a whole refresh
 in 100% of frames, the pan's steady steps even to 0.00%. Below 60 fps the original's deltas are not
 a model: on a 200-Duplicant colony (about 21-25 fps in U59's original) they read one refresh for
@@ -1976,7 +1977,12 @@ clock. Ours there (about 38 fps) keeps whole refreshes adding up to the wall clo
 picture stays on screen still depends on when its frame reaches the GPU, which the delta cannot
 know: a frame's delta and its picture's time on screen differed by a refresh or more in 24-31% of
 the sampled frames before the change and 19-26% after, and the on-screen speed was more than 10% off
-in 53-75% of them before and 35-46% after.
+in 53-75% of them before and 35-46% after. Variable refresh (G-Sync, FreeSync) gets the same
+rounding: measured with G-Sync engaged on a 144 Hz mode (focused, borderless, the 200-Duplicant
+colony at 92-103 fps), frames more than 10% off the pan's speed fell from 47-53% with the wall clock
+to 32-37% with rounding, and the steady spread from 11-14% to 7%; at a 60 Hz mode the two were within
+noise ([research/frame-timing.md](research/frame-timing.md)). Rounding to the refresh's quanta errs
+by less than our frame starts jitter, so no variable-refresh guard is needed.
 
 **Presentation on Windows (DXGI).** On Windows both devices present through a Direct3D 11
 flip-model swap chain (`DxgiSwapChain`), on by default (Moono Tweaks' "Present through Direct3D

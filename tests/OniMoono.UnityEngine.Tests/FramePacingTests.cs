@@ -43,5 +43,47 @@ namespace OniMoono.Tests
             double d = FramePacing.Quantize(5.6, P, ref carry);
             Assert.InRange(d, 5.6 - P * 0.5, 5.6 + P * 0.5);
         }
+
+        [Fact]
+        public void WithoutAKnownRefreshTheWallClock()
+        {
+            double carry = 0.004; int shortFrames = 0;
+            Assert.Equal(0.0173, FramePacing.Next(0.0173, 0, ref carry, ref shortFrames));
+            Assert.Equal(0, carry);
+        }
+
+        [Fact]
+        public void AFrameOverASecondPassesThroughAndDropsTheRemainder()
+        {
+            double carry = 0.005; int shortFrames = 0;
+            Assert.Equal(1.37, FramePacing.Next(1.37, P, ref carry, ref shortFrames));
+            Assert.Equal(0, carry);
+            Assert.Equal(P, FramePacing.Next(0.0167, P, ref carry, ref shortFrames), 9);
+        }
+
+        [Fact]
+        public void AFrameUnderAMillisecondPassesThrough()
+        {
+            double carry = 0.002; int shortFrames = 0;
+            Assert.Equal(0.0004, FramePacing.Next(0.0004, P, ref carry, ref shortFrames));
+            Assert.Equal(0.002, carry);
+        }
+
+        [Fact]
+        public void EightShortFramesInARowGiveTheWallClock()
+        {
+            double carry = 0; int shortFrames = 0;
+            for (int i = 0; i < 7; i++) Assert.Equal(P, FramePacing.Next(0.0069, P, ref carry, ref shortFrames), 9);
+            Assert.Equal(0.0069, FramePacing.Next(0.0069, P, ref carry, ref shortFrames));
+            Assert.Equal(0, carry);
+            Assert.Equal(P, FramePacing.Next(0.0168, P, ref carry, ref shortFrames), 9);
+        }
+
+        [Fact]
+        public void PacedFramesAreRounded()
+        {
+            double carry = 0; int shortFrames = 0;
+            Assert.Equal(2 * P, FramePacing.Next(0.0329, P, ref carry, ref shortFrames), 9);
+        }
     }
 }

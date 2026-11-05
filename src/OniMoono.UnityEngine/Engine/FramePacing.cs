@@ -19,8 +19,11 @@ namespace OniMoono.Engine
     /// deltas still add up to the wall clock (within half a refresh). The wall clock is used as
     /// before without vsync, without a known period (Linux, OpenGL without DXGI, the first
     /// seconds before the period is measured), when the presenter has shown nothing for a
-    /// quarter second, and while frames keep coming in under half a refresh (the window moved
-    /// to a faster monitor and the period is not measured again yet).
+    /// quarter second, for a frame over a second or under a millisecond, and while frames keep
+    /// coming in under half a refresh (the window moved to a faster monitor and the period is
+    /// not measured again yet). Variable refresh (G-Sync, FreeSync) gets the rounding too:
+    /// measured with G-Sync on, it panned at least as evenly as the wall clock
+    /// (docs/research/frame-timing.md).
     internal static class FramePacing
     {
         static long periodTicks;
@@ -48,12 +51,24 @@ namespace OniMoono.Engine
         {
             long period = Interlocked.Read(ref periodTicks);
             long last = Interlocked.Read(ref lastPacedPresent);
-            if (period <= 0 || last == 0 || Stopwatch.GetTimestamp() - last > Stopwatch.Frequency / 4)
+            bool paced = period > 0 && last != 0 && Stopwatch.GetTimestamp() - last <= Stopwatch.Frequency / 4;
+            return (float)Next(wall, paced ? (double)period / Stopwatch.Frequency : 0, ref carry, ref shortFrames);
+        }
+
+        /// The delta for a frame `wall` seconds after the last one, `p` the refresh period in
+        /// seconds (0: not paced by a known refresh), with the rounding's remainder and the run of
+        /// short frames so far. The wall clock, unrounded, without a period; for a frame over a
+        /// second (a hitch, a resume after sleep: Godot's DeltaSmoother passes those through too),
+        /// which also drops the remainder; for one under a millisecond (vsync off whatever the
+        /// game asked for); and while frames keep coming in under half a refresh.
+        internal static double Next(double wall, double p, ref double carry, ref int shortFrames)
+        {
+            if (p <= 0 || wall > 1.0)
             {
                 carry = 0;
-                return (float)wall;
+                return wall;
             }
-            double p = (double)period / Stopwatch.Frequency;
+            if (wall < 0.001) return wall;
             // Frames shorter than half a refresh, one after another: the display is faster than
             // the period says (the window moved to another monitor, not measured again yet).
             // One such frame alone is the pipeline catching up after a slow one.
@@ -61,9 +76,9 @@ namespace OniMoono.Engine
             if (shortFrames >= 8)
             {
                 carry = 0;
-                return (float)wall;
+                return wall;
             }
-            return (float)Quantize(wall, p, ref carry);
+            return Quantize(wall, p, ref carry);
         }
 
         /// `wall` plus `carry` rounded to whole refreshes of `p` seconds (at least one), the
