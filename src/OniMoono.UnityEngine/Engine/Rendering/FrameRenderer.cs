@@ -649,6 +649,9 @@ namespace OniMoono.Engine.Rendering
             Event(CameraEvent.AfterForwardAlpha);
             VideoPlanes.Draw(camera, cam, nearPlane: true);
 
+            // In onPostRender the camera's target is the active one (measured in the original,
+            // UnityProbe's apigaps "rt"); it is bound already, so only the field changes.
+            RenderTexture.SetActiveBound(source ?? cam.TargetTexture);
             SendToEnabled(cam.GameObject, s => s.OnPostRender);
             Camera.onPostRender?.Invoke(camera);
 

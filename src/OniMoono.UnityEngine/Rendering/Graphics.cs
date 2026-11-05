@@ -370,11 +370,17 @@ namespace OniMoono.Engine.Rendering
         public static Vector2 SetTarget(RenderTexture dest)
         {
             RenderTexture.active = dest;
+            return dest == null ? GLState.TargetSize * FrameRenderer.ScreenScale : GLState.TargetSize;
+        }
+
+        /// Binds dest (null: the screen) on the device, with the viewport over all of it; what
+        /// setting RenderTexture.active does.
+        internal static void Bind(RenderTexture dest)
+        {
             var device = GraphicsDevice.Current;
             FrameRenderer.Bind(device, dest == null ? FrameRenderer.ScreenBinding : RenderTargetBinding.Of((RenderTextureNative)dest.NativeOrThrow));
             var size = dest == null ? GLState.TargetSize * FrameRenderer.ScreenScale : GLState.TargetSize;
             device.SetViewport(new Rect(0f, 0f, size.x, size.y));
-            return size;
         }
 
         static void BeginFullTarget(RenderTexture dest)

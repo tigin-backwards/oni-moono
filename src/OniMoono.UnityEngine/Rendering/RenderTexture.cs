@@ -316,7 +316,9 @@ namespace UnityEngine
         static RenderTexture s_Active;
 
         /// The render target of immediate drawing (GL, Graphics.Blit targets, ReadPixels source);
-        /// null is the back buffer.
+        /// null is the back buffer. Setting it is Graphics.SetRenderTarget: GL.Clear, GL drawing
+        /// and ReadPixels go to it, the viewport covers it whole (also when it was active
+        /// already), and it is created (measured in the original, UnityProbe's apigaps "rt").
         public static RenderTexture active
         {
             get => s_Active != null ? s_Active : null;
@@ -324,8 +326,12 @@ namespace UnityEngine
             {
                 if (value != null) value.Create();
                 s_Active = value;
+                if (Threads.IsMainThread) Blits.Bind(value);
             }
         }
+
+        /// RenderTexture.active for a target the device has bound already.
+        internal static void SetActiveBound(RenderTexture value) => s_Active = value;
 
         // ----- Temporary render textures -----
 
