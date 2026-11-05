@@ -19,6 +19,12 @@ namespace OniMoono.Engine
         /// last frame's texel copies.
         public static long DeviceFrameWait, DeviceCallWait, DeviceCalls, TexelCopyWait;
 
+        /// Main thread, Stopwatch ticks: waiting before a frame, with vsync, for the picture
+        /// QualitySettings.maxQueuedFrames frames back to be presented (QueuedFrames).
+        public static long QueuedFrameWait;
+        /// The frames whose wait was on (frames left time to spare).
+        public static long QueuedFrameWaitsOn;
+
         /// The device's thread waiting for the presenter to take a picture (its queue full), in
         /// Stopwatch ticks; added to with Interlocked.
         public static long PresenterQueueWait;
@@ -83,7 +89,7 @@ namespace OniMoono.Engine
                 lines.Add(Waits(frames, seconds, runtime - lastRuntime));
                 lines.Add(MachineStats.Describe(lastMachine, machine, seconds));
             }
-            DeviceFrameWait = DeviceCallWait = DeviceCalls = TexelCopyWait = 0;
+            DeviceFrameWait = DeviceCallWait = DeviceCalls = TexelCopyWait = QueuedFrameWait = QueuedFrameWaitsOn = 0;
             longestGcPause = mostGcPauseInFrame = 0;
             Interlocked.Exchange(ref PresenterQueueWait, 0);
             windowStarted = now;
@@ -98,7 +104,7 @@ namespace OniMoono.Engine
             double ms = 1000.0 / Stopwatch.Frequency;
             string Ms(long ticks) => (ticks * ms / frames).ToString("F2", c);
             string PerFrame(double n) => (n / frames).ToString("F2", c);
-            return $"main thread waits (ms/frame over {frames}): device frame {Ms(DeviceFrameWait)}, device calls {Ms(DeviceCallWait)} ({PerFrame(DeviceCalls)} a frame), texel copies {Ms(TexelCopyWait)}; "
+            return $"main thread waits (ms/frame over {frames}): device frame {Ms(DeviceFrameWait)}, queued frames {Ms(QueuedFrameWait)} (on for {PerFrame(QueuedFrameWaitsOn * 100.0)}%), device calls {Ms(DeviceCallWait)} ({PerFrame(DeviceCalls)} a frame), texel copies {Ms(TexelCopyWait)}; "
                 + $"device thread waiting for the presenter {Ms(Interlocked.Read(ref PresenterQueueWait))}; "
                 + $"GC paused {(d.PauseMs / frames).ToString("F2", c)} (gen0 {d.Gen0}, gen1 {d.Gen1}, gen2 {d.Gen2} in the window; longest pause {longestGcPause.ToString("F1", c)} ms, "
                 + $"most in a frame {mostGcPauseInFrame.ToString("F1", c)} ms), allocated {(d.Allocated / 1048576.0 / Math.Max(seconds, 1e-9)).ToString("F1", c)} MiB/s; "

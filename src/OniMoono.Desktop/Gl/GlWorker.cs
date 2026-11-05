@@ -44,6 +44,26 @@ namespace OniMoono.Desktop.Gl
         /// Runs on the GL thread before each handed-over batch of commands executes.
         public Action BatchStarting;
 
+        // The device thread's time executing batches since the last TakeFrameBusy (device
+        // thread): batches already done, and when the current one, or the part of it after the
+        // last take, began.
+        long busyBefore, busyFrom;
+
+        /// Device thread, from a command: the time spent executing batches since the last call,
+        /// up to now (a frame's work, when called at its present: QueuedFrames).
+        public long TakeFrameBusy()
+        {
+            long now = GlTimings.Now;
+            long busy = busyBefore + (now - busyFrom);
+            busyBefore = 0;
+            busyFrom = now;
+            return busy;
+        }
+
+        /// Device thread, from a command: the time since the last call or TakeFrameBusy is not
+        /// work (the wait for the presenter to take a frame).
+        public void NotBusy() => busyFrom = GlTimings.Now;
+
         /// Work the GL thread does while no frame is handed over, one short piece at a time
         /// (false: there was none), and whether there is any (GlBackgroundUploads).
         public Func<bool> IdleWork;
@@ -204,12 +224,14 @@ namespace OniMoono.Desktop.Gl
                     }
                     BatchStarting?.Invoke();
                     long start = GlTimings.Now;
+                    busyFrom = start;
                     foreach (var command in frame.Commands)
                     {
                         try { command(); }
                         catch (Exception e) { commandFailed(e); }
                     }
                     GlTimings.Busy += GlTimings.Now - start;
+                    busyBefore += GlTimings.Now - busyFrom;
                     System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.GlBusyTicks, GlTimings.Now - start);
                     frame.Reset();
                     lock (gate)

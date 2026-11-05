@@ -72,6 +72,14 @@ namespace OniMoono.Desktop.Gl
         /// Presents that may still go before one is waited for (MaximumFrameLatency - 1 after a
         /// resync).
         int freeSlots;
+
+        /// The next present first waits for one more picture to retire (presenter thread;
+        /// QueuedFrames: the main thread's wait turned on, and the pictures queued meanwhile are
+        /// shed). The display shows its last picture a refresh longer, once.
+        public void HoldBack() => holdBack = true;
+        bool holdBack;
+        // How long the last present waited for its predecessor to retire, in Stopwatch ticks.
+        long lastPostWait;
         /// How long a present waits for its picture to be on its way before going on regardless.
         /// It does happen: on Windows 11 25H2 with an RTX 3090, a switch to borderless fullscreen
         /// (from windowed, or from exclusive) and an outside display-mode change each logged
@@ -308,7 +316,19 @@ namespace OniMoono.Desktop.Gl
                 for (int i = 0; i < 16 && Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0; i++) { }
                 resync = false;
                 freeSlots = (int)MaximumFrameLatency - 1;
+                holdBack = false;
             }
+            // Held back (QueuedFrames): when the last present waited most of a refresh for its
+            // predecessor (the queue full), one more picture retires before this one goes, so
+            // one fewer is in flight from here on. At most a refresh: with none in flight
+            // nothing would retire.
+            else if (holdBack && interval > 0 && freeSlots == 0 && Interlocked.Read(ref refreshPeriod) is long period && period > 0 && lastPostWait > period / 2)
+            {
+                long t = GlTimings.Now;
+                Dxgi.WaitForSingleObjectEx(waitable, (uint)(period * 1000 / Stopwatch.Frequency) + 2, 0);
+                LastWait = GlTimings.Now - t;
+            }
+            holdBack = false;
             uint sync = (uint)Math.Clamp(interval, 0, 4);
             uint flags = sync == 0 && tearing ? Dxgi.PresentAllowTearing : 0;
             int hr = Faulty("removed", presents) ? Dxgi.ErrorDeviceRemoved : Dxgi.Present(swapChain, sync, flags);
@@ -333,7 +353,8 @@ namespace OniMoono.Desktop.Gl
                     resync = true;
                     if (waitTimeouts++ < 3) EngineLog.Engine($"present: DXGI picture {presents} not on its way after {WaitMilliseconds} ms; going on");
                 }
-                LastWait = GlTimings.Now - t;
+                lastPostWait = GlTimings.Now - t;
+                LastWait += lastPostWait;
             }
             if (sync == 0 || nowOccluded) FramePacing.UnpacedPresent();
             else

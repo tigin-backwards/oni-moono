@@ -23,7 +23,8 @@ namespace OniMoono.Desktop.Gl
     /// return and that a fence after it signals once the swap is done are that driver's
     /// behaviour, not documented (GlSwapTarget.Show); other drivers and compositors are
     /// unmeasured. Three back buffers rotate, so the GL thread never draws into a buffer that is
-    /// queued or being shown.
+    /// queued or being shown. With vsync the main thread also waits before each frame until the
+    /// frame QualitySettings.maxQueuedFrames before it has been through here (QueuedFrames).
     internal sealed unsafe class GlPresenter : IDisposable
     {
         const uint SyncGpuCommandsComplete = 0x9117;
@@ -57,13 +58,20 @@ namespace OniMoono.Desktop.Gl
         readonly GlfwWindow contextWindow;
         readonly bool contextFree;
         const int MaxQueued = 2, MaxQueuedWithVsync = 1;
+
+        /// Frames that may wait here: with vsync one (the main thread's wait bounds the rest,
+        /// QueuedFrames); without, QualitySettings.maxQueuedFrames, at most two (three back
+        /// buffers: two queued and the one being drawn).
+        internal static int QueueLimit(int interval) => interval > 0 ? MaxQueuedWithVsync : Math.Clamp(UnityEngine.QualitySettings.maxQueuedFrames, 1, MaxQueued);
         readonly Buffer[] buffers = [new() { Index = 0 }, new() { Index = 1 }, new() { Index = 2 }];
         int current;
         readonly Thread thread;
         readonly object gate = new();
         // Handed to the presenter under the gate; a frame counts as queued until it has been
         // presented.
-        readonly System.Collections.Generic.Queue<(Buffer Buffer, GlSync Fence, int Interval, int Width, int Height, long Started)> queue = new();
+        readonly System.Collections.Generic.Queue<(Buffer Buffer, GlSync Fence, int Interval, int Width, int Height, long Started, int Frame, long Need)> queue = new();
+        /// The frames through this presenter, which the main thread waits on with vsync.
+        public readonly QueuedFrames Presented = new();
         int queued;
         bool stopping;
         Exception failure;
@@ -198,7 +206,8 @@ namespace OniMoono.Desktop.Gl
         /// frame or undefined content (black on most drivers). The last frame shown is presented
         /// again in its place and the next frame draws into the same buffer, so the screen keeps
         /// the last complete frame, as a game's back buffer does across stalls and resizes.
-        public void Present(int interval, int width, int height)
+        /// `need`: the main and GL threads' time on the frame (QueuedFrames).
+        public void Present(int interval, int width, int height, long need = 0)
         {
             windowWidth = Math.Max(1, width);
             windowHeight = Math.Max(1, height);
@@ -214,7 +223,11 @@ namespace OniMoono.Desktop.Gl
             if (!complete)
             {
                 b.DrawnThisFrame = false;
-                if (choice == PresentChoice.Nothing) return;
+                if (choice == PresentChoice.Nothing)
+                {
+                    Presented.Done(Frame);
+                    return;
+                }
                 b = handedOver;
             }
             else
@@ -226,15 +239,15 @@ namespace OniMoono.Desktop.Gl
             N.glFlush();
             lock (gate)
             {
-                if (queued >= (interval > 0 ? MaxQueuedWithVsync : MaxQueued) && OniMoono.Engine.PlayerLoop.FrameStats)
+                if (queued >= QueueLimit(interval) && OniMoono.Engine.PlayerLoop.FrameStats)
                 {
                     long waiting = GlTimings.Now;
-                    while (queued >= (interval > 0 ? MaxQueuedWithVsync : MaxQueued) && failure == null) Monitor.Wait(gate);
+                    while (queued >= QueueLimit(interval) && failure == null) Monitor.Wait(gate);
                     Interlocked.Add(ref OniMoono.Engine.FrameStatsWindow.PresenterQueueWait, GlTimings.Now - waiting);
                 }
-                while (queued >= (interval > 0 ? MaxQueuedWithVsync : MaxQueued) && failure == null) Monitor.Wait(gate);
+                while (queued >= QueueLimit(interval) && failure == null) Monitor.Wait(gate);
                 if (failure != null) throw new InvalidOperationException("Presenting failed.", failure);
-                queue.Enqueue((b, fence, interval, Math.Max(1, width), Math.Max(1, height), complete ? FrameStarted : 0));
+                queue.Enqueue((b, fence, interval, Math.Max(1, width), Math.Max(1, height), complete ? FrameStarted : 0, Frame, need));
                 queued++;
                 Monitor.PulseAll(gate);
             }
@@ -275,7 +288,7 @@ namespace OniMoono.Desktop.Gl
                 target = StartTarget();
                 while (true)
                 {
-                    (Buffer Buffer, GlSync Fence, int Interval, int Width, int Height, long Started) frame = default;
+                    (Buffer Buffer, GlSync Fence, int Interval, int Width, int Height, long Started, int Frame, long Need) frame = default;
                     bool redraw = false;
                     lock (gate)
                     {
@@ -304,11 +317,17 @@ namespace OniMoono.Desktop.Gl
                         // another buffer, and it can hand over only one more meanwhile.
                         if (redraw) queued++;
                     }
+                    long presenterBusy = 0;
                     if (redraw) Redraw();
                     else
                     {
                         PresenterTimings.FrameStarted = frame.Started;
+                        if (Presented.Drain() && target is DxgiTarget dxgiTarget) dxgiTarget.HoldBack();
+                        long t = GlTimings.Now;
                         PresentBuffer(frame.Buffer, frame.Fence, frame.Interval, frame.Width, frame.Height);
+                        // Up to issuing the picture: the swap's own wait for vsync (inside
+                        // SwapBuffers on OpenGL, after Present on DXGI) is not the frame's need.
+                        presenterBusy = showStarted - t;
                         PresenterTimings.FrameStarted = 0;
                     }
                     lock (gate)
@@ -316,6 +335,7 @@ namespace OniMoono.Desktop.Gl
                         queued--;
                         Monitor.PulseAll(gate);
                     }
+                    if (!redraw) Presented.Done(frame.Frame, frame.Need > 0 ? frame.Need + presenterBusy : 0);
                 }
             }
             catch (Exception e)
@@ -330,6 +350,7 @@ namespace OniMoono.Desktop.Gl
             }
             finally
             {
+                Presented.Stop();
                 target?.Dispose();
                 target = null;
                 Glfw.PInvoke.MakeContextCurrent(null!);
@@ -496,8 +517,12 @@ namespace OniMoono.Desktop.Gl
             N.glFlush();
             PresenterTimings.Add(ref PresenterTimings.Copy, GlTimings.Now - copyStart);
             if (PresentTrace.Enabled) Probe(b, width, height);
+            showStarted = GlTimings.Now;
             ShowTarget(interval, again: false);
         }
+
+        /// When the last frame's picture began to be issued (QueuedFrames' need).
+        long showStarted;
 
         /// The swap interval of the last frame presented, for redraws between frames.
         int lastInterval = 1;

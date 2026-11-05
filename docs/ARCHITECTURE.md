@@ -1870,13 +1870,28 @@ used to unwind only that draw. The GL thread renders into an offscreen back buff
 texture + depth-stencil); at present it fences the frame and hands it to a presenter thread
 current on the window's context, which waits for the fence on its own thread (neither context's
 GPU queue waits on the other's), blits to the window, fences the copy and swaps with
-`QualitySettings.vSyncCount` as the interval. Without vSync up to two frames are queued for
-presentation (`QualitySettings.maxQueuedFrames` is 2 by default on PC, though Unity documents it
-for Direct3D 11 and 12 only). With vSync one is, and it counts as queued until a fence placed
+`QualitySettings.vSyncCount` as the interval. Without vSync up to `QualitySettings.maxQueuedFrames`
+frames are queued for presentation, at most two (2 by default on PC, as the original reads it,
+though Unity documents it for Direct3D 11 and 12 only). With vSync one is, and it counts as queued until a fence placed
 after the swap has signalled: the driver returned from `SwapBuffers` at once and queued frames of
 its own on top. That fence waiting for the swap is driver behaviour, not a GL guarantee; with it a
 key press reached the screen in 50 ms instead of 83, as in the original (19827d58: Windows 11, 60
 Hz, windowed, an RTX 3090 on NVIDIA's driver 610.88; other drivers and compositors unmeasured).
+With vSync the main thread also waits, after handing a frame over, until the frame
+`QualitySettings.maxQueuedFrames - 1` before it (2 by default, as in the original) has been
+through the presenter (`QueuedFrames`), as Unity's main thread waits before a frame for frame
+*n − maxQueuedFrames* to appear. Without that wait the main thread, the GL thread and the
+presenter each held a frame, and a frame's start reached the screen one or two refreshes later
+than in the original (docs/research/input-latency.md: 66-85 ms against 48-50 on a small colony
+at 60 Hz; 47 with the wait). The wait serializes a frame's stages, so it is on only while they
+fit a refresh one after the other, by the pipeline-mode rule of Android's Frame Pacing library
+(Swappy): over a sliding two seconds of frames, on once the stages' mean plus 1 ms, and half
+again, fits the refresh; off once more than 10% of the frames miss their refresh; the samples
+start anew at each change. The stages: the main thread's time to its present, the GL thread's on
+the frame and the presenter's until it issues the picture; the refresh is the display's through
+DXGI, else the mean time between frames. Always on, it cost a 200-Duplicant colony at about 50
+fps 6-25% of its frames in four runs of five. When it turns on, DXGI's next present first waits for one
+more picture to retire, once, shedding the picture DXGI queued while it was off.
 Three back buffers rotate; the GL thread waits (on the GPU) for a buffer's copy fence before
 drawing into it again. Back-buffer reads (`ReadPixels` of the screen,
 captures) read the offscreen buffer of the current frame. Pacing follows Unity's desktop
