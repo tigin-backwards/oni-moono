@@ -567,13 +567,25 @@ namespace OniMoono.Desktop
                 }
                 default:
                 {
-                    window.SetAttribute(GlfwWindowAttribute.Decorated, GLFW_TRUE);
                     var size = new int2(width, height);
+                    // Out of a fullscreen window, the window takes its windowed client rect while
+                    // still undecorated, and only then its frame. GLFW keeps the client rect when
+                    // the frame changes, so decorated first, the frame grew around the
+                    // monitor-sized client onto the next monitor, for 8-35 ms at each switch
+                    // (measured: 2552,-31 to 5128,1448 for a monitor at 2560,0); the original's
+                    // frame stays on its monitor. With no windowed position yet (it started
+                    // fullscreen), the client is centred without a frame here and again with it
+                    // below; at the monitor's corner its frame was off the monitor too (measured
+                    // out of exclusive fullscreen: 2552,-31 for about 100 ms).
+                    var target = windowedPositionKnown ? windowedPosition : CentredPosition(monitor.Position, new int2(desktop.Width, desktop.Height), size, 0, 0, 0, 0);
+                    if (mode == FullScreenMode.FullScreenWindow && newMode != FullScreenMode.MaximizedWindow && !TooLargeForWorkArea(monitor, size))
+                        window.SetWindowed(target, size);
+                    window.SetAttribute(GlfwWindowAttribute.Decorated, GLFW_TRUE);
                     // Out of exclusive fullscreen first: GLFW gives a window its frame only once it
                     // is no monitor's (glfwSetWindowAttrib stores DECORATED until then, and
                     // win32's frame size is a popup's, none), and the work area is the exclusive
                     // mode's until the desktop mode is back.
-                    if (mode == FullScreenMode.ExclusiveFullScreen) window.SetWindowed(windowedPosition, size);
+                    if (mode == FullScreenMode.ExclusiveFullScreen) window.SetWindowed(target, size);
                     bool maximize = newMode == FullScreenMode.MaximizedWindow || TooLargeForWorkArea(monitor, size);
                     bool restored = window.IsMaximised && !maximize;
                     if (restored) window.Restore();
