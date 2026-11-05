@@ -27,6 +27,11 @@ namespace SemanticsProbe
                 go.AddComponent<ApiGaps>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "uiztest")
+            {
+                go.AddComponent<UiZTest>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "texfallback")
             {
                 go.AddComponent<TextureFallback>();

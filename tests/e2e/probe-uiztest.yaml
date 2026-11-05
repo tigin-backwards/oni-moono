@@ -1,0 +1,10 @@
+# UnityProbe's overlay depth probe (tools/UnityProbe/UiZTest.cs): how an overlay canvas's draws
+# meet the depth buffer, in both players. Run with E2E_ONIMCP at a copy of OniMcp's mod folder
+# with SemanticsProbe.dll added and PROBE_SCENARIO=uiztest (tools/UnityProbe/README.md,
+# "uiztest").
+from: main-menu
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/UiZTestProbeDone", cond: exists, frames: 20000}

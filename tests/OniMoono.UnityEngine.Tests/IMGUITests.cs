@@ -47,9 +47,12 @@ namespace OniMoono.Tests
             => Targets.Add(target.Colors is { Length: > 0 } c ? c[0] : null);
         public override void SetViewport(Rect pixels) => Viewports.Add(pixels);
         public override void SetScissor(Rect? pixels) { }
+        /// Each depth clear: its target, its value and how many mesh draws came before it.
+        public readonly List<(OniMoono.Engine.Rendering.RenderTextureNative Target, float Value, int DrawsBefore)> DepthClears = new();
         public override void Clear(bool color, bool depth, Color backgroundColor, float depthValue)
         {
             if (color) Clears.Add((Targets.Count > 0 ? Targets[^1] : null, backgroundColor));
+            if (depth) DepthClears.Add((Targets.Count > 0 ? Targets[^1] : null, depthValue, MeshDraws.Count));
         }
         protected override void ApplyCamera(in OniMoono.Engine.Rendering.CameraConstants camera) { }
         /// Mesh draws with the view and projection in effect.
