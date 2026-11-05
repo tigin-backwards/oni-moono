@@ -10,14 +10,19 @@
 // unsealed types, on public (or public nested) types. Members of a type that is missing
 // altogether are counted under the type, not listed one by one.
 //
-// --mods DIR scans every DLL under each DIR/ID/ (the root and archived_versions alike, so every
-// build the game could load). Each member reference into a provider that does not resolve in
+// --mods DIR scans the DLLs the game could load from each DIR/ID/: those at the top of the mod's
+// folder and of each archived_versions/* folder (KMod.DLLLoader lists one folder, not its
+// subfolders), but not copies of the shipped assemblies (a mod's bin/ folder or a stray
+// UnityEngine.UIModule.dll), whose references the game never binds. Each member reference into a provider that does not resolve in
 // ours is resolved in the shipped assemblies, which gives its declaring type (references bind
 // through base types) and whether it is public there. --catalog adds each mod's rank and
-// onimaxxing flags.
+// onimaxxing flags and name; the JSON also has, per reference, the DLLs that hold it, and
+// (modReflection) the missing members whose name a mod's string literals hold while the mod
+// references the member's type: a hint of reflection by name, not proof.
 // Exit code: 0.
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
 using System.Text.Json;
 
@@ -60,18 +65,23 @@ static class Surface
         foreach (var (asm, x) in missing.PerAssembly.OrderBy(k => k.Key, StringComparer.Ordinal))
             Console.WriteLine($"  {asm,-48} {x.types,6} {x.members,8} {x.missingTypes,10} {x.membersOfMissing,10} {x.missingMembers,9}");
 
-        Dictionary<string, SortedSet<string>>? modPublic = null, modOther = null;
+        Dictionary<string, SortedSet<string>>? modPublic = null, modOther = null, modDlls = null, modReflection = null;
+        Func<SortedSet<string>, object>? modNames = null;
         if (modsDir != null)
         {
             var cat = catalog != null ? ReadCatalog(catalog) : new();
-            (modPublic, modOther) = ScanMods(modsDir, IsProvider, ours, shipped);
+            (modPublic, modOther, modDlls, modReflection) = ScanMods(modsDir, gameDir, IsProvider, ours, shipped, missing);
             string Who(SortedSet<string> ids) => string.Join(" ", ids.Select(id => cat.TryGetValue(id, out var c) ? $"{id}(#{c.rank}{(c.flags.Length > 0 ? "," + c.flags : "")})" : id));
+            modNames = ids => ids.Select(id => cat.TryGetValue(id, out var c) ? new { id, rank = c.rank, name = c.name } : new { id, rank = "", name = "" }).ToArray();
             Console.WriteLine();
             Console.WriteLine($"MOD-REFERENCED, public in the shipped assemblies and missing in ours: {modPublic.Count} ({modPublic.Count(k => k.Key.StartsWith("TYPE ", StringComparison.Ordinal))} types)");
             foreach (var (k, ids) in modPublic.OrderBy(k => k.Key, StringComparer.Ordinal)) Console.WriteLine($"  {k}  [{ids.Count}] {Who(ids)}");
             Console.WriteLine();
             Console.WriteLine($"MOD-REFERENCED, missing in ours, not public in the shipped assemblies or not in them: {modOther.Count}");
             foreach (var (k, ids) in modOther.OrderBy(k => k.Key, StringComparer.Ordinal)) Console.WriteLine($"  {k}  [{ids.Count}] {Who(ids)}");
+            Console.WriteLine();
+            Console.WriteLine($"MOD STRINGS naming a missing member of a type the mod references (reflection candidates): {modReflection.Count}");
+            foreach (var (k, ids) in modReflection.OrderBy(k => k.Key, StringComparer.Ordinal)) Console.WriteLine($"  {k}  [{ids.Count}] {Who(ids)}");
         }
 
         Console.WriteLine();
@@ -88,6 +98,9 @@ static class Surface
                 perAssembly = missing.PerAssembly.ToDictionary(k => k.Key, k => new { k.Value.types, k.Value.members, k.Value.missingTypes, k.Value.membersOfMissing, k.Value.missingMembers }),
                 modReferenced = modPublic?.ToDictionary(k => k.Key, k => k.Value.ToArray()),
                 modReferencedNotPublic = modOther?.ToDictionary(k => k.Key, k => k.Value.ToArray()),
+                modReferencedDlls = modDlls?.ToDictionary(k => k.Key, k => k.Value.ToArray()),
+                modReflection = modReflection?.ToDictionary(k => k.Key, k => k.Value.ToArray()),
+                mods = modNames == null || modPublic == null ? null : modNames(new SortedSet<string>(modPublic.Values.Concat(modReflection!.Values).SelectMany(v => v), StringComparer.Ordinal)),
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
         return 0;
@@ -209,11 +222,13 @@ static class Surface
 
     /// Mod references into the providers that ours does not resolve, keyed by where the shipped
     /// assemblies declare them; split into public ones and the rest.
-    static (Dictionary<string, SortedSet<string>> pub, Dictionary<string, SortedSet<string>> other) ScanMods(
-        string modsDir, Func<string, bool> isProvider, OurAssemblies ours, OurAssemblies shipped)
+    static (Dictionary<string, SortedSet<string>> pub, Dictionary<string, SortedSet<string>> other, Dictionary<string, SortedSet<string>> dlls, Dictionary<string, SortedSet<string>> reflection) ScanMods(
+        string modsDir, string gameDir, Func<string, bool> isProvider, OurAssemblies ours, OurAssemblies shipped, Missing missing)
     {
         var pub = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
         var other = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+        var dlls = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+        var reflection = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
         void Note(Dictionary<string, SortedSet<string>> map, string key, string id)
         {
             if (!map.TryGetValue(key, out var set)) map[key] = set = new(StringComparer.Ordinal);
@@ -221,11 +236,34 @@ static class Surface
         }
         bool TypeVisible(FoundType t) => IsVisible(t.Assembly.MD, t.Assembly.MD.GetTypeDefinition(t.Handle));
         string TypeKey(FoundType t) => $"[{t.Assembly.Name}]{RefNames.FullName(t.Assembly.MD, t.Handle)}";
+        // Missing members of present types by declaring type ("[asm]Type") and by the name a
+        // reflection call would use (accessors by their property's or event's name).
+        var byType = new Dictionary<string, List<(string name, string key)>>(StringComparer.Ordinal);
+        foreach (var key in missing.Members)
+        {
+            var sep = key.IndexOf("::", StringComparison.Ordinal);
+            var type = key[..sep];
+            var sig = key[(sep + 2)..];
+            var paren = sig.IndexOf('(');
+            var head = paren < 0 ? sig : sig[..paren];
+            var name = head[(head.LastIndexOf(' ') + 1)..];
+            var lt = name.IndexOf('<');
+            if (lt > 0) name = name[..lt];
+            foreach (var prefix in new[] { "get_", "set_", "add_", "remove_" })
+                if (name.StartsWith(prefix, StringComparison.Ordinal)) { name = name[prefix.Length..]; break; }
+            if (name.StartsWith('.')) continue;
+            if (!byType.TryGetValue(type, out var list)) byType[type] = list = new();
+            list.Add((name, key));
+        }
 
         foreach (var dir in Directory.GetDirectories(modsDir).Order(StringComparer.Ordinal))
         {
             var id = Path.GetFileName(dir);
-            foreach (var file in Directory.EnumerateFiles(dir, "*.dll", SearchOption.AllDirectories))
+            var folders = new List<string> { dir };
+            var archived = Path.Combine(dir, "archived_versions");
+            if (Directory.Exists(archived)) folders.AddRange(Directory.GetDirectories(archived).Order(StringComparer.Ordinal));
+            foreach (var file in folders.SelectMany(f => Directory.EnumerateFiles(f, "*.dll", SearchOption.TopDirectoryOnly))
+                         .Where(f => !Path.GetFileName(f).StartsWith("._", StringComparison.Ordinal)))
             {
                 PEReader pe;
                 MetadataReader md;
@@ -237,7 +275,12 @@ static class Surface
                 }
                 catch (BadImageFormatException) { continue; }
                 using var _ = pe;
+                if (!md.IsAssembly) continue;
+                var self = md.GetString(md.GetAssemblyDefinition().Name);
+                if (isProvider(self) || File.Exists(Path.Combine(gameDir, self + ".dll"))) continue;
+                var dllName = id + "/" + Path.GetRelativePath(dir, file).Replace('\\', '/');
                 var names = new RefNames(md);
+                var referencedTypes = new HashSet<string>(StringComparer.Ordinal);
                 // An obfuscated or damaged assembly can hold metadata the reader cannot follow:
                 // what it read before that counts, the rest of it is skipped.
                 try
@@ -245,9 +288,19 @@ static class Surface
                     foreach (var h in md.TypeReferences)
                     {
                         var (asm, name) = names.Resolve(h);
-                        if (asm == null || !isProvider(asm) || ours.FindType(asm, name) != null) continue;
+                        if (asm == null || !isProvider(asm)) continue;
+                        if (ours.FindType(asm, name) is { } ot)
+                        {
+                            // Members are keyed by the shipped declaring type (references bind
+                            // through base types), so note the type and its shipped bases.
+                            for (var t = shipped.FindType(asm, name); t is { } tt; t = shipped.BaseOf(tt)) referencedTypes.Add(TypeKey(tt));
+                            continue;
+                        }
                         if (shipped.FindType(asm, name) is { } st)
+                        {
                             Note(TypeVisible(st) ? pub : other, "TYPE " + TypeKey(st), id);
+                            Note(dlls, "TYPE " + TypeKey(st), dllName);
+                        }
                         else Note(other, $"TYPE [{asm}]{name} (not in the shipped assemblies)", id);
                     }
                     foreach (var h in md.MemberReferences)
@@ -275,7 +328,14 @@ static class Surface
                         var declTd = f.Assembly.MD.GetTypeDefinition(f.Declaring);
                         var isPublic = TypeVisible(decl) && Visible(f.Access, (declTd.Attributes & TypeAttributes.Sealed) == 0);
                         Note(isPublic ? pub : other, $"{TypeKey(decl)}::{sig.Display(name)}", id);
+                        Note(dlls, $"{TypeKey(decl)}::{sig.Display(name)}", dllName);
                     }
+                    var strings = new HashSet<string>(StringComparer.Ordinal);
+                    for (var uh = MetadataTokens.UserStringHandle(1); !uh.IsNil; uh = md.GetNextHandle(uh)) strings.Add(md.GetUserString(uh));
+                    foreach (var type in referencedTypes)
+                        if (byType.TryGetValue(type, out var list))
+                            foreach (var (name, key) in list)
+                                if (strings.Contains(name)) { Note(reflection, key, id); Note(dlls, "STRING " + key, dllName); }
                 }
                 catch (BadImageFormatException e)
                 {
@@ -283,16 +343,17 @@ static class Surface
                 }
             }
         }
-        return (pub, other);
+        return (pub, other, dlls, reflection);
     }
 
-    static Dictionary<string, (string rank, string flags)> ReadCatalog(string path)
+    static Dictionary<string, (string rank, string flags, string name)> ReadCatalog(string path)
     {
-        var map = new Dictionary<string, (string, string)>(StringComparer.Ordinal);
+        var map = new Dictionary<string, (string, string, string)>(StringComparer.Ordinal);
         foreach (var line in File.ReadLines(path))
         {
             var f = line.Split('\t');
-            if (f.Length >= 4) map[f[1]] = (f[0], f[3]);
+            if (f.Length >= 5) map[f[1]] = (f[0], f[3], f[4]);
+            else if (f.Length >= 4) map[f[1]] = (f[0], f[3], "");
         }
         return map;
     }
