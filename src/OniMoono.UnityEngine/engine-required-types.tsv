@@ -78,3 +78,4 @@ UnityEngine.CoreModule	UnityEngine.FrameTiming	# mods (System Performance Observ
 UnityEngine.CoreModule	UnityEngine.FrameTimingManager	# as above
 UnityEngine.CoreModule	UnityEngine.Rendering.ShaderPropertyFlags	# mods: Shader.GetPropertyFlags
 UnityEngine.CoreModule	UnityEngine.Rendering.TextureDimension	# mods: Shader.GetPropertyTextureDimension, RenderTexture.dimension
+UnityEngine.CoreModule	UnityEngine.Experimental.Rendering.DefaultFormat	# mods: the RenderTexture constructor with a DefaultFormat

@@ -390,6 +390,10 @@ namespace OniMoono.Engine.Rendering
     /// RenderTexture: a device render target described on the CPU side.
     internal sealed class RenderTextureNative : TextureNative
     {
+        /// A render texture made at runtime clamps (measured in the original, UnityProbe's
+        /// apigaps "rtctor"); a serialized one reads its settings.
+        public RenderTextureNative() => WrapU = WrapV = WrapW = UnityEngine.TextureWrapMode.Clamp;
+
         public int VolumeDepth = 1;
         public RenderTextureFormat Format = RenderTextureFormat.ARGB32;
         public GraphicsFormat ColorFormat = GraphicsFormat.R8G8B8A8_UNorm;
@@ -413,8 +417,12 @@ namespace OniMoono.Engine.Rendering
         public int DeviceLevels => Math.Min(RequestedMipCount, TextureFormats.FullMipCount(Width, Height));
 
         /// MipCount (mipmapCount) after the size or mipmap settings changed.
-        public void MipsChanged() => MipCount = RequestedMipCount;
+        /// A count asked for past the full chain reads as the full chain (measured: mipCount 6
+        /// at 16x8 with mipmaps reads 5, and Create fails).
+        public void MipsChanged() => MipCount = DeviceLevels;
         public bool EnableRandomWrite;
+        /// Made with an sRGB GraphicsFormat (Create warns in gamma colour space).
+        public bool SrgbFormatAsked;
 
         /// Created (IsCreated); released resources clear it.
         public bool Created
@@ -544,6 +552,23 @@ namespace OniMoono.Engine.Rendering
             24 => GraphicsFormat.D24_UNorm_S8_UInt,
             _ => GraphicsFormat.D32_SFloat_S8_UInt,
         };
+
+        public static bool IsDepthStencil(GraphicsFormat f) => f is GraphicsFormat.D16_UNorm or GraphicsFormat.D24_UNorm or GraphicsFormat.D24_UNorm_S8_UInt
+            or GraphicsFormat.D32_SFloat or GraphicsFormat.D32_SFloat_S8_UInt or GraphicsFormat.S8_UInt or GraphicsFormat.D16_UNorm_S8_UInt;
+
+        public static bool IsSrgb(GraphicsFormat f) => f is GraphicsFormat.R8G8B8A8_SRGB or GraphicsFormat.B8G8R8A8_SRGB;
+
+        /// A colour format render textures can have here: one with a RenderTextureFormat the
+        /// device renders to, but not the BGRA ones (the original's GLCore player refuses
+        /// B8G8R8A8_UNorm, compressed formats and YUV2).
+        public static bool CanRenderTo(GraphicsFormat f)
+        {
+            if (f is GraphicsFormat.B8G8R8A8_UNorm or GraphicsFormat.B8G8R8A8_SRGB) return false;
+            RenderTextureFormat r;
+            try { r = FromGraphicsFormat(f); }
+            catch (ArgumentException) { return false; }
+            return SystemInfo.SupportsRenderTextureFormat(r);
+        }
 
         public static int DepthBits(GraphicsFormat depthStencil) => depthStencil switch
         {

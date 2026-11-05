@@ -137,6 +137,111 @@ namespace UnityEngine
             Bind(Describe(width, height, depth, format));
         }
 
+        // The constructors below were measured in the original (UnityProbe's apigaps "rtctor",
+        // GLCore, gamma colour space): none checks its arguments; Create does (sizes, mip count,
+        // formats), and an unsupported colour format leaves the object destroyed.
+
+        /// readWrite asks for sRGB only in a linear-colour-space project (in the game's gamma
+        /// space sRGB is false whatever it asks for); a BGRA32 format falls back to ARGB32 with
+        /// a warning; mipCount above 0 is the descriptor's mipCount, else -1.
+        public RenderTexture(int width, int height, int depth, RenderTextureFormat format, RenderTextureReadWrite readWrite)
+            => Construct(width, height, depth, format, readWrite, -1);
+
+        public RenderTexture(int width, int height, int depth, RenderTextureFormat format, int mipCount)
+            => Construct(width, height, depth, format, RenderTextureReadWrite.Default, mipCount);
+
+        void Construct(int width, int height, int depth, RenderTextureFormat format, RenderTextureReadWrite readWrite, int mipCount)
+        {
+            format = RenderTextureFormats.Resolve(format);
+            if (format == RenderTextureFormat.BGRA32)
+            {
+                Debug.LogWarning("'B8G8R8A8_UNorm' is not supported. RenderTexture::GetTemporary fallbacks to R8G8B8A8_UNorm format on this platform. Use 'SystemInfo.IsFormatSupported' C# API to check format support.");
+                format = RenderTextureFormat.ARGB32;
+            }
+            if (!ValidateFormat(format)) return;
+            if (format == RenderTextureFormat.Depth && depth <= 0)
+                Debug.LogWarning("Depth RenderTexture requested without a depth buffer. Changing to a 16 bit depth buffer. To resolve this warning, please specify the desired number of depth bits when creating the render texture.");
+            bool srgb = QualitySettings.activeColorSpace == ColorSpace.Linear && readWrite != RenderTextureReadWrite.Linear;
+            var t = Describe(width, height, depth, format, srgb ? RenderTextureReadWrite.sRGB : RenderTextureReadWrite.Linear);
+            t.MipRequest = mipCount > 0 ? mipCount : -1;
+            Bind(t);
+        }
+
+        /// DefaultFormat.LDR and HDR are colour formats with the depth asked for; DepthStencil
+        /// (24 bits) and Shadow (16) are depth-only formats of their own depth; Video's YUV2
+        /// cannot be rendered to.
+        public RenderTexture(int width, int height, int depth, DefaultFormat format)
+        {
+            var g = SystemInfo.GetGraphicsFormat(format);
+            switch (format)
+            {
+                case DefaultFormat.DepthStencil:
+                case DefaultFormat.Shadow:
+                {
+                    var t = Describe(width, height, RenderTextureFormats.DepthBits(g), format == DefaultFormat.Shadow ? RenderTextureFormat.Shadowmap : RenderTextureFormat.Depth);
+                    t.DepthStencilFormat = g;
+                    Bind(t);
+                    return;
+                }
+                default:
+                    ConstructGraphics(width, height, g, RenderTextureFormats.DepthFormat(DepthBufferBits(depth)), -1);
+                    return;
+            }
+        }
+
+        public RenderTexture(int width, int height, int depth, GraphicsFormat format)
+            : this(width, height, depth, format, -1) { }
+
+        /// A depth-stencil format as the colour format is an error and gives R8G8B8A8_UNorm.
+        public RenderTexture(int width, int height, int depth, GraphicsFormat format, int mipCount)
+            => ConstructGraphics(width, height, format, RenderTextureFormats.DepthFormat(DepthBufferBits(depth)), mipCount);
+
+        public RenderTexture(int width, int height, GraphicsFormat colorFormat, GraphicsFormat depthStencilFormat)
+            : this(width, height, colorFormat, depthStencilFormat, -1) { }
+
+        /// A depth-stencil format that is not one is an error and gives D24_UNorm_S8_UInt;
+        /// D16_UNorm_S8_UInt gives it too, silently.
+        public RenderTexture(int width, int height, GraphicsFormat colorFormat, GraphicsFormat depthStencilFormat, int mipCount)
+        {
+            if (depthStencilFormat != GraphicsFormat.None && !RenderTextureFormats.IsDepthStencil(depthStencilFormat))
+            {
+                Debug.LogError("Invalid Depth/Stencil GraphicsFormat");
+                depthStencilFormat = GraphicsFormat.D24_UNorm_S8_UInt;
+            }
+            else if (depthStencilFormat == GraphicsFormat.D16_UNorm_S8_UInt) depthStencilFormat = GraphicsFormat.D24_UNorm_S8_UInt;
+            ConstructGraphics(width, height, colorFormat, depthStencilFormat, mipCount);
+        }
+
+        static int DepthBufferBits(int depth) => depth <= 0 ? 0 : depth <= 16 ? 16 : depth <= 24 ? 24 : 32;
+
+        void ConstructGraphics(int width, int height, GraphicsFormat color, GraphicsFormat depthStencil, int mipCount)
+        {
+            if (RenderTextureFormats.IsDepthStencil(color))
+            {
+                Debug.LogError("RenderTexture color format cannot be set to a depth/stencil format");
+                color = GraphicsFormat.R8G8B8A8_UNorm;
+            }
+            if (color != GraphicsFormat.None && !RenderTextureFormats.CanRenderTo(color))
+            {
+                Debug.LogError($"Texture creation failed. '{color}' is not supported for Render usage on this platform. Use 'SystemInfo.IsFormatSupported' C# API to check format support.", this);
+                return;
+            }
+            int bits = RenderTextureFormats.DepthBits(depthStencil);
+            Bind(new RenderTextureNative
+            {
+                Width = width,
+                Height = height,
+                Format = color == GraphicsFormat.None ? RenderTextureFormat.Depth : RenderTextureFormats.FromGraphicsFormat(color),
+                ColorFormat = color,
+                Srgb = RenderTextureFormats.IsSrgb(color),
+                DepthBits = bits,
+                DepthStencilFormat = depthStencil,
+                Dimension = TextureKind.Tex2D,
+                MipRequest = mipCount > 0 ? mipCount : -1,
+                SrgbFormatAsked = RenderTextureFormats.IsSrgb(color),
+            });
+        }
+
         /// A new render texture with the other's description (not its contents).
         public RenderTexture(RenderTexture textureToCopy)
         {
@@ -250,6 +355,13 @@ namespace UnityEngine
 
         public GraphicsFormat graphicsFormat => Data.ColorFormat;
 
+        public GraphicsFormat depthStencilFormat => Data.DepthStencilFormat;
+
+        /// Render textures here have no separate stencil view.
+        public GraphicsFormat stencilFormat => GraphicsFormat.None;
+
+        public override TextureDimension dimension => (TextureDimension)Data.Dimension;
+
         public int antiAliasing
         {
             get => Data.AntiAliasing;
@@ -268,8 +380,9 @@ namespace UnityEngine
             {
                 var t = Describable("useMipMap");
                 if (t == null) return;
+                // The mip count a constructor asked for stays (measured: mipCount 3, then
+                // useMipMap, gives 3 levels; UnityProbe's apigaps "rtctor").
                 t.UseMipMap = value;
-                t.MipRequest = -1;
                 t.MipsChanged();
             }
         }
@@ -288,14 +401,32 @@ namespace UnityEngine
 
         public bool sRGB => Data.Srgb;
 
-        public override bool isReadable => false;
+        /// True, as measured in the original (UnityProbe's apigaps "rtctor"), although only
+        /// ReadPixels reads one back.
+        public override bool isReadable => true;
 
         public bool IsCreated() => Data.Created;
 
         /// The device resource is created on first use; Create marks the texture as created.
+        /// It fails, with the original's errors, for a size of 0 or less, a mip count over the
+        /// full chain, and neither a colour nor a depth format; an sRGB GraphicsFormat given to a
+        /// constructor in the game's gamma colour space is a warning.
         public bool Create()
         {
             var t = Data;
+            if (t.Created) return true;
+            string error = t.Width <= 0 ? "Texture must have width greater than 0."
+                : t.Height <= 0 ? "Texture must have height greater than 0."
+                : t.ColorFormat == GraphicsFormat.None && t.DepthStencilFormat == GraphicsFormat.None ? "colorFormat & depthStencilFormat cannot both be none."
+                : t.MipRequest > TextureFormats.FullMipCount(t.Width, t.Height) ? $"Invalid mip count ({t.MipRequest}) for Texture with a max mip count of {TextureFormats.FullMipCount(t.Width, t.Height)}."
+                : null;
+            if (error != null)
+            {
+                Debug.LogError("RenderTexture.Create failed: " + error, this);
+                return false;
+            }
+            if (t.SrgbFormatAsked && QualitySettings.activeColorSpace == ColorSpace.Gamma)
+                Debug.LogWarning("Requested RenderTexture with sRGB format. sRGB formats are not supported in gamma mode, fallback to a UNorm format. Use a UNorm format instead of sRGB to silence this warning.", this);
             t.Created = true;
             return true;
         }
@@ -402,8 +533,12 @@ namespace UnityEngine
 
         public RenderTextureFormat colorFormat
         {
-            get => RenderTextureFormats.FromGraphicsFormat(graphicsFormat);
-            set => graphicsFormat = RenderTextureFormats.ToGraphicsFormat(value, sRGB);
+            get => shadowmap && graphicsFormat == GraphicsFormat.None ? RenderTextureFormat.Shadowmap : RenderTextureFormats.FromGraphicsFormat(graphicsFormat);
+            set
+            {
+                graphicsFormat = RenderTextureFormats.ToGraphicsFormat(value, sRGB);
+                shadowmap = value == RenderTextureFormat.Shadowmap;
+            }
         }
 
         /// The colour format stores sRGB-encoded values; setting it picks the sRGB or linear
@@ -449,7 +584,7 @@ namespace UnityEngine
             {
                 Width = width,
                 Height = height,
-                Format = graphicsFormat == GraphicsFormat.None ? RenderTextureFormat.Depth : RenderTextureFormats.FromGraphicsFormat(graphicsFormat),
+                Format = colorFormat,
                 ColorFormat = graphicsFormat,
                 Srgb = sRGB,
                 DepthBits = depthBufferBits,
@@ -466,11 +601,29 @@ namespace UnityEngine
             };
         }
 
+        /// The depth/stencil format: the one depthBufferBits gives unless one was set.
+        public GraphicsFormat depthStencilFormat
+        {
+            get => depthStencil ?? RenderTextureFormats.DepthFormat(depthBufferBits);
+            set => depthStencil = value;
+        }
+
+        GraphicsFormat? depthStencil;
+
+        public TextureDimension dimension => TextureDimension.Tex2D;
+
+        /// mipCount is the count asked for, -1 for none (measured: -1 after the constructors
+        /// without one, with useMipMap false).
+        // Shadowmap has no GraphicsFormat of its own (None, as Depth): kept to report it.
+        bool shadowmap;
+
         internal static RenderTextureDescriptor Of(RenderTextureNative t) => new(t.Width, t.Height, t.ColorFormat, t.DepthBits)
         {
+            shadowmap = t.Format == RenderTextureFormat.Shadowmap,
+            depthStencil = t.DepthStencilFormat,
             msaaSamples = Math.Max(1, t.AntiAliasing),
             volumeDepth = t.VolumeDepth,
-            mipCount = t.UseMipMap ? t.MipRequest : t.MipCount,
+            mipCount = t.MipRequest,
             useMipMap = t.UseMipMap,
             autoGenerateMips = t.AutoGenerateMips,
             enableRandomWrite = t.EnableRandomWrite,
@@ -513,6 +666,9 @@ namespace OniMoono.Engine.Rendering
                 t.TemporaryLastFrame = Time.frameCount;
                 return rt;
             }
+            // A temporary's anisoLevel reads 0, a constructed one's 1 (measured in the original,
+            // UnityProbe's apigaps "rtctor").
+            description.Aniso = 0;
             description.IsTemporary = true;
             description.TemporaryInUse = true;
             description.TemporaryLastFrame = Time.frameCount;

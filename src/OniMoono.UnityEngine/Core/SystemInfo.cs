@@ -44,6 +44,18 @@ namespace UnityEngine
         public static bool SupportsTextureFormat(TextureFormat format) => Gfx.SupportsTexture(format);
         public static bool SupportsRenderTextureFormat(RenderTextureFormat format) => Gfx.SupportsRenderTexture(format);
 
+        /// The platform's default formats, as the original's GLCore player gives them in gamma
+        /// colour space (UnityProbe's apigaps "rtctor").
+        public static UnityEngine.Experimental.Rendering.GraphicsFormat GetGraphicsFormat(UnityEngine.Experimental.Rendering.DefaultFormat format) => format switch
+        {
+            UnityEngine.Experimental.Rendering.DefaultFormat.LDR => UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm,
+            UnityEngine.Experimental.Rendering.DefaultFormat.HDR => UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat,
+            UnityEngine.Experimental.Rendering.DefaultFormat.DepthStencil => UnityEngine.Experimental.Rendering.GraphicsFormat.D24_UNorm_S8_UInt,
+            UnityEngine.Experimental.Rendering.DefaultFormat.Shadow => UnityEngine.Experimental.Rendering.GraphicsFormat.D16_UNorm,
+            UnityEngine.Experimental.Rendering.DefaultFormat.Video => UnityEngine.Experimental.Rendering.GraphicsFormat.YUV2,
+            _ => UnityEngine.Experimental.Rendering.GraphicsFormat.None,
+        };
+
         /// A value under HKEY_LOCAL_MACHINE (Windows), or null.
         static string MachineRegistryString(string key, string name)
         {
