@@ -279,6 +279,15 @@ namespace UnityEngine
             set => Data.Size = value;
         }
 
+        /// Simple at first; changing it keeps the size (measured in the original, UnityProbe's
+        /// apigaps "misc"). Sliced draws the 9-slice grid of size; Tiled is kept but drawn as
+        /// Sliced (tiling is not drawn).
+        public SpriteDrawMode drawMode
+        {
+            get => (SpriteDrawMode)Data.DrawMode;
+            set => Data.DrawMode = (SpriteDrawKind)value;
+        }
+
 
 
         public Color color
@@ -655,7 +664,7 @@ namespace OniMoono.Engine.Rendering
             geometry ??= new MeshNative();
             Vector2[] positions, uvs;
             int[] triangles;
-            if (DrawMode == SpriteDrawKind.Sliced) SlicedGrid(s, out positions, out uvs, out triangles);
+            if (DrawMode != SpriteDrawKind.Simple) SlicedGrid(s, out positions, out uvs, out triangles);
             else
             {
                 positions = s.Vertices;

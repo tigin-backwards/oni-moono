@@ -715,7 +715,7 @@ namespace OniMoono.Engine.Rendering
         static List<DrawItem> Cull(Camera camera, CameraNative cam)
         {
             var draws = NewDrawList();
-            var frustum = new Frustum(cam.Projection * cam.WorldToCamera);
+            var frustum = new Frustum(cam.CullingOverride ?? cam.Projection * cam.WorldToCamera);
             // A renderer's draws go by when it became a candidate; then the queued meshes and
             // the other draws, in submission order.
             long sequence = 1L << 62;

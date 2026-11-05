@@ -194,6 +194,18 @@ namespace OniMoono.Engine
             Offset = TransformBinder.ToVector2(data.Struct("m_Offset"));
             Serialized = null;
         }
+
+        /// The shape's AABB under the transform (x and y; Collider2D.bounds sets z).
+        public abstract Bounds WorldBounds(Matrix4x4 localToWorld);
+
+        protected static Bounds PointBounds(Matrix4x4 m, Vector2[] points, Vector2 offset, float radius)
+        {
+            var p = new Vector3[points.Length];
+            for (int i = 0; i < p.Length; i++) p[i] = points[i] + offset;
+            var b = ShapeBounds.Of(m, p);
+            if (radius > 0f) b.Expand(new Vector3(radius, radius, 0f) * 2f);
+            return b;
+        }
     }
 
     internal sealed class BoxCollider2DNative : Collider2DNative
@@ -217,12 +229,26 @@ namespace OniMoono.Engine
             Size = TransformBinder.ToVector2(data.Struct("m_Size"));
             EdgeRadius = data.Float("m_EdgeRadius");
         }
+
+        /// The box's centre under the transform, and its half size through the absolute
+        /// rotation and scale (plus the edge radius).
+        public override Bounds WorldBounds(Matrix4x4 m)
+        {
+            float hx = Size.x * 0.5f, hy = Size.y * 0.5f;
+            var e = new Vector3(Math.Abs(m.m00) * hx + Math.Abs(m.m01) * hy + EdgeRadius, Math.Abs(m.m10) * hx + Math.Abs(m.m11) * hy + EdgeRadius, 0f);
+            return new Bounds(m.MultiplyPoint3x4(Offset), e * 2f);
+        }
     }
 
     /// A PolygonCollider2D's paths (closed outlines in local space).
     internal sealed class PolygonCollider2DNative : Collider2DNative
     {
-        public List<Vector2[]> Paths = new();
+        /// Unity's default outline, a pentagon of radius 1 (as the original's GetPath(0) gives it
+        /// for one added at runtime, UnityProbe's apigaps "bounds").
+        public List<Vector2[]> Paths = new()
+        {
+            new Vector2[] { new(0f, 1f), new(-0.95105654f, 0.309016973f), new(-0.5877852f, -0.809017062f), new(0.587785363f, -0.809016943f), new(0.9510565f, 0.309017122f) },
+        };
 
         public override void CopyStateFrom(NativeObject source)
         {
@@ -237,12 +263,15 @@ namespace OniMoono.Engine
             foreach (var path in data.Struct("m_Points").Array("m_Paths"))
                 Paths.Add(((object[])path).Cast<Fields>().Select(TransformBinder.ToVector2).ToArray());
         }
+
+        public override Bounds WorldBounds(Matrix4x4 m) => PointBounds(m, Paths.SelectMany(p => p).ToArray(), Offset, 0f);
     }
 
     /// An EdgeCollider2D's open line (points in local space) and its radius.
     internal sealed class EdgeCollider2DNative : Collider2DNative
     {
-        public Vector2[] Points = Array.Empty<Vector2>();
+        /// Unity's default line: (-0.5, 0) to (0.5, 0).
+        public Vector2[] Points = [new(-0.5f, 0f), new(0.5f, 0f)];
         public float EdgeRadius;
 
         public override void CopyStateFrom(NativeObject source)
@@ -259,6 +288,8 @@ namespace OniMoono.Engine
             Points = data.Array("m_Points").Cast<Fields>().Select(TransformBinder.ToVector2).ToArray();
             EdgeRadius = data.Float("m_EdgeRadius");
         }
+
+        public override Bounds WorldBounds(Matrix4x4 m) => PointBounds(m, Points, Offset, EdgeRadius);
     }
 
     internal sealed class Rigidbody2DNative : ComponentNative
@@ -312,6 +343,14 @@ namespace OniMoono.Engine
         {
             base.Bind(data, resolver);
             Radius = data.Float("m_Radius");
+        }
+
+        /// The radius scales by the larger of the x and y scales.
+        public override Bounds WorldBounds(Matrix4x4 m)
+        {
+            float sx = new Vector3(m.m00, m.m10, m.m20).magnitude, sy = new Vector3(m.m01, m.m11, m.m21).magnitude;
+            float r = Radius * Math.Max(sx, sy);
+            return new Bounds(m.MultiplyPoint3x4(Offset), new Vector3(r, r, 0f) * 2f);
         }
     }
 }

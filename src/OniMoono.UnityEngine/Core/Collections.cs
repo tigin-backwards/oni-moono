@@ -31,6 +31,32 @@ namespace Unity.Collections
             return new NativeArray<T>(p, length, owned: true);
         }
 
+        /// Memory of the Temp, TempJob or Persistent allocator (all the same here), zeroed
+        /// unless UninitializedMemory. Any other allocator throws as the original's does
+        /// (ArgumentNullException for "destination", NullReferenceException uninitialized:
+        /// UnityProbe's apigaps "misc"); a negative length, which ends the original's player,
+        /// throws ArgumentOutOfRangeException.
+        public NativeArray(int length, Allocator allocator, NativeArrayOptions options = NativeArrayOptions.ClearMemory)
+        {
+            if (length < 0) throw new ArgumentOutOfRangeException(nameof(length), "Length must be >= 0");
+            if (allocator is not (Allocator.Temp or Allocator.TempJob or Allocator.Persistent))
+            {
+                if ((options & NativeArrayOptions.ClearMemory) != 0) throw new ArgumentNullException("destination");
+                throw new NullReferenceException();
+            }
+            nuint bytes = (nuint)length * (nuint)Unsafe.SizeOf<T>();
+            m_Buffer = NativeMemory.AlignedAlloc(bytes == 0 ? 1 : bytes, 16);
+            if ((options & NativeArrayOptions.ClearMemory) != 0) NativeMemory.Clear(m_Buffer, bytes);
+            m_Length = length;
+            m_AllocatorLabel = 1;
+        }
+
+        /// A copy of the array.
+        public NativeArray(T[] array, Allocator allocator) : this(array?.Length ?? throw new ArgumentNullException(nameof(array)), allocator, NativeArrayOptions.UninitializedMemory)
+        {
+            for (int i = 0; i < array.Length; i++) Unsafe.Write((byte*)m_Buffer + (long)i * Unsafe.SizeOf<T>(), array[i]);
+        }
+
         public int Length => m_Length;
         public bool IsCreated => m_Buffer != null;
 

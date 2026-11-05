@@ -141,6 +141,17 @@ namespace UnityEngine
         public void ResetWorldToCameraMatrix() => Data.WorldToCameraOverride = null;
         public void ResetProjectionMatrix() => Data.ProjectionOverride = null;
 
+        /// What renderers are culled against: projection × world-to-camera, until set; a set
+        /// matrix stays as set (the camera moving or resizing does not change it) until
+        /// ResetCullingMatrix (measured in the original, UnityProbe's apigaps "misc").
+        public Matrix4x4 cullingMatrix
+        {
+            get => Data.CullingOverride ?? Data.Projection * Data.WorldToCamera;
+            set => Data.CullingOverride = value;
+        }
+
+        public void ResetCullingMatrix() => Data.CullingOverride = null;
+
         // ----- Coordinate conversions -----
         // The original's, bit for bit (tools/UnityProbe PROBE_SCENARIO=projection, pj-check.py
         // camera: 1,440 points of 240 cameras), but for the rays' perspective direction
@@ -285,6 +296,7 @@ namespace OniMoono.Engine.Rendering
         public float? AspectOverride;
         public Matrix4x4? WorldToCameraOverride;
         public Matrix4x4? ProjectionOverride;
+        public Matrix4x4? CullingOverride;
         public RenderBuffer[] TargetColorBuffers;
         public RenderBuffer TargetDepthBuffer;
         public readonly Dictionary<UnityEngine.Rendering.CameraEvent, List<UnityEngine.Rendering.CommandBuffer>> CommandBuffers = new();
@@ -579,6 +591,7 @@ namespace OniMoono.Engine.Rendering
             AspectOverride = o.AspectOverride;
             WorldToCameraOverride = o.WorldToCameraOverride;
             ProjectionOverride = o.ProjectionOverride;
+            CullingOverride = o.CullingOverride;
             TargetColorBuffers = (RenderBuffer[])o.TargetColorBuffers?.Clone();
             TargetDepthBuffer = o.TargetDepthBuffer;
         }
