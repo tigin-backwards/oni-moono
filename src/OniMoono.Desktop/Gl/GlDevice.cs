@@ -329,14 +329,7 @@ namespace OniMoono.Desktop.Gl
 
         void CreateDefaults()
         {
-            Make("white", 255, 255, 255, 255);
-            Make("black", 0, 0, 0, 0);
-            Make("gray", 128, 128, 128, 128);
-            Make("grey", 128, 128, 128, 128);
-            Make("", 128, 128, 128, 128);
-            Make("bump", 128, 128, 255, 128);
-            Make("red", 255, 0, 0, 255);
-            Make(Unbound, 0, 0, 0, 255);
+            foreach (var (name, r, g, b, a) in DefaultTextures.Colors) Make(name, r, g, b, a);
         }
 
         void Make(string name, byte r, byte g, byte b, byte a)
@@ -369,13 +362,11 @@ namespace OniMoono.Desktop.Gl
             defaults["cube:" + name] = cube;
         }
 
-        const string Unbound = "<unbound>";
-
         DeviceTexture DefaultTexture(string name, uint target)
         {
             name ??= "";
             string prefix = target == TexTarget2DArray ? "array:" : target == TexTarget3D ? "3d:" : target == TexTargetCubeMap ? "cube:" : "";
-            return defaults.TryGetValue(prefix + name, out var t) ? t : defaults[prefix + "white"];
+            return defaults.TryGetValue(prefix + name, out var t) ? t : defaults[prefix + DefaultTextures.Unnamed];
         }
 
         // ----- Targets -----
@@ -653,7 +644,7 @@ namespace OniMoono.Desktop.Gl
                     // No handle (an incomplete texture): the default the sampler reads unbound.
                     if (h == 0 && !bind)
                     {
-                        texture = DefaultTexture(Unbound, texture.Target);
+                        texture = DefaultTexture(DefaultTextures.Unbound, texture.Target);
                         h = GlBindless.Handle(texture, out bind);
                     }
                     if (BindlessVerify.Enabled) BindlessVerify.Sampler(program, i, texture, h, bind);

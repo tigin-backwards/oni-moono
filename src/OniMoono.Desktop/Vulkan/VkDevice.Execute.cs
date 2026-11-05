@@ -427,7 +427,7 @@ namespace OniMoono.Desktop.Vulkan
                 if (slot.Index < 0) return null;
                 var vt = r.Textures[slot.Index].Texture.Vk;
                 bool unbound = vt?.Image == null || (full ? device.Attached(vt) : !device.Ready(vt) && device.IsAttached(vt));
-                if (unbound) vt = device.DefaultTexture(Unbound, r.Program.Samplers[slot.Index].Target).Vk;
+                if (unbound) vt = device.DefaultTexture(DefaultTextures.Unbound, r.Program.Samplers[slot.Index].Target).Vk;
                 return vt;
             }
         }

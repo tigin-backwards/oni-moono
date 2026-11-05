@@ -135,8 +135,6 @@ namespace OniMoono.Desktop.Gl
             newInputs = NewInputs;
         }
 
-        const string Unbound = "<unbound>";
-
         // ----- Serial recording -----
 
         /// Forward rendering draws the passes for unlit and base lighting; others serve other
@@ -252,27 +250,54 @@ namespace OniMoono.Desktop.Gl
             for (int i = 0; i < r.TextureCount; i++)
             {
                 var s = program.Samplers[i];
-                FindTexture(inputs, materialValues, i, s, out bool found, out var binding);
-                if (found && binding.Texture != null && binding.Texture.Native is TextureNative tn)
+                FindTexture(inputs, materialValues, i, s, out bool found, out var binding, out bool global);
+                if (Missing(found, binding, global, out string fallback))
                 {
-                    var device = GlTextures.Prepare(worker, tn);
-                    if (SamplerOf(device, tn, s, out r.Textures[i])) continue;
+                    r.Textures[i] = new SamplerTexture(defaultTexture(fallback ?? DefaultTextures.Of(inputs.Shader, s.PropertyId), s.Target), false, false);
+                    continue;
                 }
-                r.Textures[i] = DefaultSampler(inputs.Shader, s, found && binding.Texture is not null && binding.Texture.Native == null);
+                var tn = (TextureNative)binding.Texture.Native;
+                var device = GlTextures.Prepare(worker, tn);
+                if (SamplerOf(device, tn, s, out r.Textures[i])) continue;
+                r.Textures[i] = DefaultSampler(inputs.Shader, s);
             }
             return r;
         }
 
         /// The draw's block first, then what the material and globals give (resolved once).
-        static void FindTexture(DrawInputs inputs, MaterialValues materialValues, int i, SamplerBinding s, out bool found, out TextureBinding binding)
+        /// `global`: the texture is the global's.
+        static void FindTexture(DrawInputs inputs, MaterialValues materialValues, int i, SamplerBinding s, out bool found, out TextureBinding binding, out bool global)
         {
+            global = false;
             if (inputs.Block != null && inputs.Block.Textures.TryGetValue(s.PropertyId, out binding)) found = true;
             else if (materialValues != null)
             {
                 found = materialValues.Found[i];
                 binding = materialValues.Textures[i];
+                global = materialValues.Global[i];
             }
-            else found = inputs.TryTexture(s.PropertyId, out binding);
+            else found = inputs.TryTexture(s.PropertyId, out binding, out global);
+        }
+
+        /// Whether the sampler has no texture to read, and then which default it reads
+        /// (`fallback`; null: the property's default). A global since destroyed counts as not
+        /// set; a material's or block's texture since destroyed, and a render texture not created
+        /// (released, or resized and not created again), read as nothing bound (DefaultTextures).
+        static bool Missing(bool found, in TextureBinding binding, bool global, out string fallback)
+        {
+            fallback = null;
+            if (!found || binding.Texture is null) return true;
+            if (binding.Texture.Native is not TextureNative tn)
+            {
+                if (!global) fallback = DefaultTextures.Unbound;
+                return true;
+            }
+            if (tn is RenderTextureNative { Created: false })
+            {
+                fallback = DefaultTextures.Unbound;
+                return true;
+            }
+            return false;
         }
 
         /// A prepared texture as a sampler reads it; false when it does not fit the sampler.
@@ -280,7 +305,7 @@ namespace OniMoono.Desktop.Gl
         {
             if (device.RecordedEmpty)
             {
-                sampler = new SamplerTexture(defaultTexture(Unbound, s.Target), false, false);
+                sampler = new SamplerTexture(defaultTexture(DefaultTextures.Unbound, s.Target), false, false);
                 return true;
             }
             if (device.RecordedTarget == s.Target)
@@ -293,18 +318,12 @@ namespace OniMoono.Desktop.Gl
             return false;
         }
 
-        /// A declared property falls back to its default texture. A sampler the shader does not
-        /// declare, with no global set, has no texture bound in Unity's GLCore player and reads
-        /// (0, 0, 0, 1) as GL defines for a missing texture (the overlay compositor relies on an
-        /// unset _MRT2 reading black). One set to a texture since destroyed (`destroyed`) reads
-        /// grey there instead: the gas shader's _GasOffsetTex after a load, while paused
-        /// (FlowOffsetRenderer makes new offset textures on the first resize and sets the global
-        /// again only when time runs); the original's gas then matches ours only with grey.
-        SamplerTexture DefaultSampler(ShaderNative shader, SamplerBinding s, bool destroyed = false)
-        {
-            string name = shader.PropertiesById.TryGetValue(s.PropertyId, out var prop) ? prop.DefaultTexture : destroyed ? "gray" : Unbound;
-            return new SamplerTexture(defaultTexture(name, s.Target), false, false);
-        }
+        /// The property's default texture (DefaultTextures.Of): what a sampler reads with no
+        /// texture set, or with a global set to one since destroyed (the gas shader's
+        /// _GasOffsetTex after a load, while paused: FlowOffsetRenderer makes new offset textures
+        /// on the first resize and sets the global again only when time runs).
+        SamplerTexture DefaultSampler(ShaderNative shader, SamplerBinding s)
+            => new(defaultTexture(DefaultTextures.Of(shader, s.PropertyId), s.Target), false, false);
 
         // Draw's scratch (main thread; a draw records completely before the next starts).
         readonly DrawInputs drawInputs = new();
@@ -639,18 +658,21 @@ namespace OniMoono.Desktop.Gl
             {
                 var s = program.Samplers[i];
                 r.Pending[i] = null;
-                FindTexture(inputs, materialValues, i, s, out bool found, out var binding);
-                if (found && binding.Texture != null && binding.Texture.Native is TextureNative tn)
+                FindTexture(inputs, materialValues, i, s, out bool found, out var binding, out bool global);
+                if (Missing(found, binding, global, out string fallback))
                 {
-                    if (!GlTextures.IsCurrent(tn))
-                    {
-                        r.Pending[i] = tn;
-                        r.HasPending = true;
-                        continue;
-                    }
-                    if (SamplerOf((DeviceTexture)tn.Gpu, tn, s, out r.Textures[i])) continue;
+                    r.Textures[i] = new SamplerTexture(defaultTexture(fallback ?? DefaultTextures.Of(inputs.Shader, s.PropertyId), s.Target), false, false);
+                    continue;
                 }
-                r.Textures[i] = DefaultSampler(inputs.Shader, s, found && binding.Texture is not null && binding.Texture.Native == null);
+                var tn = (TextureNative)binding.Texture.Native;
+                if (!GlTextures.IsCurrent(tn))
+                {
+                    r.Pending[i] = tn;
+                    r.HasPending = true;
+                    continue;
+                }
+                if (SamplerOf((DeviceTexture)tn.Gpu, tn, s, out r.Textures[i])) continue;
+                r.Textures[i] = DefaultSampler(inputs.Shader, s);
             }
             return r;
         }

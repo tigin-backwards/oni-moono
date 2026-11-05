@@ -1,0 +1,57 @@
+# Every overlay of a loaded colony while paused, close up, against the original. Paused right
+# after a load, some globals name textures destroyed or never drawn (the gas offsets, the
+# coloured overlay buffer _MRT2), so samplers read the defaults Unity gives missing textures
+# (tools/UnityProbe/TextureFallback.cs). A sweep of three colonies at three zooms matched the
+# original within 0.4% of pixels in every view; this keeps the gas fixture's at 1%.
+#
+# The paused frames are deterministic, so the shots take a 1% threshold. Run gas-boundary.yaml
+# with --bless first.
+from: gas-boundary
+thresholds: {world_shot: 0.01}
+steps:
+  - world_shot: {name: normal, ortho: 4, at: [113, 215]}
+  - key: {code: "F1"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: oxygen, ortho: 4, at: [113, 215]}
+  - key: {code: "F2"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: power, ortho: 4, at: [113, 215]}
+  - key: {code: "F3"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: temperature, ortho: 4, at: [113, 215]}
+  - key: {code: "F4"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: materials, ortho: 4, at: [113, 215]}
+  - key: {code: "F5"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: light, ortho: 4, at: [113, 215]}
+  - key: {code: "F6"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: liquid, ortho: 4, at: [113, 215]}
+  - key: {code: "F7"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: gas, ortho: 4, at: [113, 215]}
+  - key: {code: "F8"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: decor, ortho: 4, at: [113, 215]}
+  - key: {code: "F9"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: germs, ortho: 4, at: [113, 215]}
+  - key: {code: "F10"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: farming, ortho: 4, at: [113, 215]}
+  - key: {code: "F11"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: rooms, ortho: 4, at: [113, 215]}
+  - key: {code: "Shift+F1"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: exosuit, ortho: 4, at: [113, 215]}
+  - key: {code: "Shift+F2"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: automation, ortho: 4, at: [113, 215]}
+  - key: {code: "Shift+F3"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: conveyor, ortho: 4, at: [113, 215]}
+  - key: {code: "Shift+F4"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: radiation, ortho: 4, at: [113, 215]}

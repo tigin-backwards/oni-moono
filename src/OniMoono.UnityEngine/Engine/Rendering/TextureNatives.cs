@@ -471,7 +471,24 @@ namespace OniMoono.Engine.Rendering
         /// MipCount (mipmapCount) after the size or mipmap settings changed.
         public void MipsChanged() => MipCount = RequestedMipCount;
         public bool EnableRandomWrite;
-        public bool Created;
+
+        /// Created (IsCreated); released resources clear it.
+        public bool Created
+        {
+            get => created;
+            set
+            {
+                created = value;
+                if (value) EverCreated = true;
+            }
+        }
+
+        bool created;
+
+        /// Created at some point. Until then Shader.GetGlobalTexture returns null for it,
+        /// though a sampler reads it as a texture not created (tools/UnityProbe,
+        /// texfallback: "rt-new").
+        public bool EverCreated { get; private set; }
 
         /// Temporary render texture pool bookkeeping (RenderTexture.GetTemporary).
         public bool IsTemporary;

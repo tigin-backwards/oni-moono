@@ -81,7 +81,11 @@ namespace UnityEngine
         public static Color GetGlobalColor(string name) => GetGlobalVector(PropertyToID(name));
         public static Color GetGlobalColor(int nameID) => GetGlobalVector(nameID);
         public static Texture GetGlobalTexture(string name) => GetGlobalTexture(PropertyToID(name));
-        public static Texture GetGlobalTexture(int nameID) => ShaderGlobals.Properties.Textures.TryGetValue(nameID, out var t) && t.Texture != null ? t.Texture : null;
+        /// Null for a texture since destroyed, and for a render texture never created
+        /// (measured: tools/UnityProbe, texfallback).
+        public static Texture GetGlobalTexture(int nameID)
+            => ShaderGlobals.Properties.Textures.TryGetValue(nameID, out var t) && t.Texture != null
+               && t.Texture.Native is not RenderTextureNative { EverCreated: false } ? t.Texture : null;
 
         internal override void EngineOnDestroy()
         {
@@ -99,7 +103,8 @@ namespace UnityEngine
         {
             if ((object)shader == null) throw new ArgumentNullException(nameof(shader));
             if (shader == null) throw new ArgumentNullException(nameof(shader));
-            var m = new MaterialNative { Name = "" };
+            // Named after the shader, as in the original (tools/UnityProbe, texfallback).
+            var m = new MaterialNative { Name = shader.name };
             m.AssignShader(shader);
             Bind(m);
         }
@@ -210,11 +215,13 @@ namespace UnityEngine
         public void DisableKeyword(string keyword) { var m = Data; m.Keywords.Disable(keyword); m.Changed(); }
         public bool IsKeywordEnabled(string keyword) => Data.Keywords.Contains(keyword);
 
-        /// Whether the material's shader declares the property.
+        /// Whether the material's shader declares the property, or the material holds a
+        /// texture for it (true after SetTexture of an undeclared property, as in the original;
+        /// tools/UnityProbe, texfallback).
         public bool HasProperty(int nameID)
         {
             var s = Data.Shader;
-            return s != null && ((ShaderNative)s.NativeOrThrow).PropertiesById.ContainsKey(nameID);
+            return s != null && ((ShaderNative)s.NativeOrThrow).PropertiesById.ContainsKey(nameID) || Sheet.Textures.ContainsKey(nameID);
         }
 
         public bool HasProperty(string name) => HasProperty(Shader.PropertyToID(name));
@@ -299,7 +306,26 @@ namespace UnityEngine
         public void SetTexture(string name, Texture value) => SetTexture(Shader.PropertyToID(name), value);
         public void SetTexture(int nameID, Texture value) { var m = Data; m.Properties.SetTexture(nameID, value); m.Changed(); }
         public Texture GetTexture(string name) => GetTexture(Shader.PropertyToID(name));
-        public Texture GetTexture(int nameID) => Sheet.Textures.TryGetValue(nameID, out var t) && t.Texture != null ? t.Texture : null;
+        /// Null, with an error logged, for a property the shader does not declare as a texture,
+        /// though the material holds a value its draws use (measured: tools/UnityProbe,
+        /// texfallback).
+        public Texture GetTexture(int nameID)
+        {
+            var shader = Data.Shader;
+            if (shader != null && !(((ShaderNative)shader.NativeOrThrow).PropertiesById.TryGetValue(nameID, out var p) && p.Kind == ShaderPropertyKind.Texture))
+            {
+                Debug.LogError($"Material '{name}' with Shader '{shader.name}' doesn't have a texture property '{ShaderPropertyIds.NameOf(nameID)}'");
+                return null;
+            }
+            return Sheet.Textures.TryGetValue(nameID, out var t) && t.Texture != null ? t.Texture : null;
+        }
+
+        /// The material holds a texture for the property, or its shader declares one.
+        public bool HasTexture(int nameID)
+            => Sheet.Textures.ContainsKey(nameID)
+               || Data.Shader is { } shader && ((ShaderNative)shader.NativeOrThrow).PropertiesById.TryGetValue(nameID, out var p) && p.Kind == ShaderPropertyKind.Texture;
+
+        public bool HasTexture(string name) => HasTexture(Shader.PropertyToID(name));
 
         /// The material's texture properties (its saved ones and its shader's), assigned or not.
         public string[] GetTexturePropertyNames()

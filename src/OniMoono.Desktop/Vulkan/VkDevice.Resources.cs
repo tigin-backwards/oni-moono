@@ -60,7 +60,6 @@ namespace OniMoono.Desktop.Vulkan
         VkSampler defaultSampler;
         long textureUploads, textureUploadBytes, unchangedUploads;
         byte[] conversionScratch;
-        const string Unbound = "<unbound>";
 
         /// What every draw may need: constant attribute values, an empty storage buffer, a
         /// default sampler and the shader properties' default textures (main thread, before the
@@ -80,14 +79,7 @@ namespace OniMoono.Desktop.Vulkan
                 MagFilter = VkFilter.Linear, MinFilter = VkFilter.Linear, MipmapMode = VkSamplerMipmapMode.Nearest,
                 AddressModeU = VkSamplerAddressMode.Repeat, AddressModeV = VkSamplerAddressMode.Repeat, AddressModeW = VkSamplerAddressMode.Repeat,
             }, null);
-            MakeDefault("white", 255, 255, 255, 255);
-            MakeDefault("black", 0, 0, 0, 0);
-            MakeDefault("gray", 128, 128, 128, 128);
-            MakeDefault("grey", 128, 128, 128, 128);
-            MakeDefault("", 128, 128, 128, 128);
-            MakeDefault("bump", 128, 128, 255, 128);
-            MakeDefault("red", 255, 0, 0, 255);
-            MakeDefault(Unbound, 0, 0, 0, 255);
+            foreach (var (name, r, g, b, a) in DefaultTextures.Colors) MakeDefault(name, r, g, b, a);
         }
 
         /// A 1x1 texture of a colour for each sampler kind (as GlDevice's defaults).
@@ -116,7 +108,7 @@ namespace OniMoono.Desktop.Vulkan
         {
             name ??= "";
             string prefix = target == TexTarget2DArray ? "array:" : target == TexTarget3D ? "3d:" : target == TexTargetCubeMap ? "cube:" : "";
-            return defaults.TryGetValue(prefix + name, out var t) ? t : defaults[prefix + "white"];
+            return defaults.TryGetValue(prefix + name, out var t) ? t : defaults[prefix + DefaultTextures.Unnamed];
         }
 
         void DestroyShared()

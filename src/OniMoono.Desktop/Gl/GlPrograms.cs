@@ -88,6 +88,8 @@ namespace OniMoono.Desktop.Gl
         public readonly byte[] Blocks;
         public readonly TextureBinding[] Textures;
         public readonly bool[] Found;
+        /// Each found texture is the global's (not the material's).
+        public readonly bool[] Global;
         /// The pass state resolved from the same values, for one pass (ResolvedState.Of); one
         /// object, so that threads recording a queue replace it whole.
         public ResolvedFor Resolved;
@@ -98,6 +100,7 @@ namespace OniMoono.Desktop.Gl
             Blocks = new byte[p.BlocksLength];
             Textures = new TextureBinding[p.Samplers.Count];
             Found = new bool[p.Samplers.Count];
+            Global = new bool[p.Samplers.Count];
         }
     }
 
@@ -432,11 +435,22 @@ namespace OniMoono.Desktop.Gl
             return false;
         }
 
-        public bool TryTexture(int id, out TextureBinding t)
+        public bool TryTexture(int id, out TextureBinding t) => TryTexture(id, out t, out _);
+
+        /// `global`: the value is the global's. A material's empty value stands only for a
+        /// property declared with a default Unity knows; otherwise the global is read
+        /// (DefaultTextures).
+        public bool TryTexture(int id, out TextureBinding t, out bool global)
         {
+            global = false;
             if (Block != null && Block.Textures.TryGetValue(id, out t)) return true;
-            if (Material != null && Material.Properties.Textures.TryGetValue(id, out t)) return true;
-            if (ShaderGlobals.Properties.Textures.TryGetValue(id, out t)) return true;
+            if (Material != null && Material.Properties.Textures.TryGetValue(id, out t)
+                && ((object)t.Texture != null || DefaultTextures.KeepsGlobalsOut(Shader, id))) return true;
+            if (ShaderGlobals.Properties.Textures.TryGetValue(id, out t))
+            {
+                global = true;
+                return true;
+            }
             t = default;
             return false;
         }
@@ -708,7 +722,7 @@ namespace OniMoono.Desktop.Gl
                 Array.Clear(e.Blocks);
                 RecordAll(p, d, e.Loose, e.Blocks, perDraw: false, null);
                 for (int i = 0; i < p.Samplers.Count; i++)
-                    e.Found[i] = d.TryTexture(p.Samplers[i].PropertyId, out e.Textures[i]);
+                    e.Found[i] = d.TryTexture(p.Samplers[i].PropertyId, out e.Textures[i], out e.Global[i]);
             }
             finally
             {
