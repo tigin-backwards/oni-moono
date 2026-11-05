@@ -25,6 +25,19 @@ namespace UnityEngine.Scripting
         /// False: the original player's build does not use the incremental collector (measured,
         /// tools/UnityProbe PROBE_SCENARIO=statics), and the engine offers none.
         public static bool isIncremental => false;
+
+        static ulong s_TimeSlice = 50000000;
+
+        /// 50 ms at first, kept as set; with no incremental collector nothing reads it (the
+        /// original's values, UnityProbe's apigaps "misc").
+        public static ulong incrementalTimeSliceNanoseconds
+        {
+            get => s_TimeSlice;
+            set => s_TimeSlice = value;
+        }
+
+        /// False and no work: the collector is not incremental (as in the original).
+        public static bool CollectIncremental(ulong nanoseconds) => false;
     }
 }
 

@@ -113,6 +113,21 @@ namespace OniMoono.Engine
 
         /// PhysX scales the radius by the larger of the two cross-axis scales and the height by
         /// the axis scale.
+        /// The capsule's segment along its axis (height and radius scaled as PhysX does: the
+        /// height by the axis's scale, the radius by the larger of the other two).
+        public override Bounds WorldBounds(TransformNative t)
+        {
+            var scale = Hierarchy.LossyScale(t);
+            var abs = new Vector3(Math.Abs(scale.x), Math.Abs(scale.y), Math.Abs(scale.z));
+            float axisScale = abs[Direction], r = Radius * Math.Max(abs[(Direction + 1) % 3], abs[(Direction + 2) % 3]);
+            float halfSegment = Math.Max(0f, Height * axisScale * 0.5f - r);
+            var axis = Vector3.zero;
+            axis[Direction] = 1f;
+            var a = t.WorldRotation * axis * halfSegment;
+            var e = new Vector3(Math.Abs(a.x) + r, Math.Abs(a.y) + r, Math.Abs(a.z) + r);
+            return new Bounds(t.LocalToWorld.MultiplyPoint3x4(Center), e * 2f);
+        }
+
         public override bool Raycast(Vector3 origin, Vector3 direction, out float distance, out Vector3 normal)
         {
             distance = 0f;
@@ -206,6 +221,14 @@ namespace OniMoono.Engine
         }
 
         /// Möller–Trumbore against each triangle in world space; front faces wind clockwise.
+        /// The AABB of the mesh's vertices under the transform.
+        public override Bounds WorldBounds(TransformNative t)
+        {
+            var vertices = Mesh != null ? Mesh.vertices : Array.Empty<Vector3>();
+            if (vertices.Length == 0) return new Bounds(Hierarchy.Position(t), Vector3.zero);
+            return ShapeBounds.Of(t.LocalToWorld, vertices);
+        }
+
         public override bool Raycast(Vector3 origin, Vector3 direction, out float distance, out Vector3 normal)
         {
             distance = 0f;

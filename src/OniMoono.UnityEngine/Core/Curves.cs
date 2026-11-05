@@ -17,10 +17,12 @@ namespace UnityEngine
         private float m_InWeight;
         private float m_OutWeight;
 
-        public Keyframe(float time, float value) : this(time, value, 0f, 0f, DefaultWeight, DefaultWeight) { }
+        // Weights 0 unless given (as the original's keys read back; unweighted segments do not
+        // use them).
+        public Keyframe(float time, float value) : this(time, value, 0f, 0f, 0f, 0f) { }
 
         public Keyframe(float time, float value, float inTangent, float outTangent)
-            : this(time, value, inTangent, outTangent, DefaultWeight, DefaultWeight) { }
+            : this(time, value, inTangent, outTangent, 0f, 0f) { }
 
         public Keyframe(float time, float value, float inTangent, float outTangent, float inWeight, float outWeight)
         {
@@ -41,6 +43,12 @@ namespace UnityEngine
         public float outWeight { get => m_OutWeight; set => m_OutWeight = value; }
 
         internal int WeightedModeBits => m_WeightedMode;
+
+        public WeightedMode weightedMode
+        {
+            get => (WeightedMode)m_WeightedMode;
+            set => m_WeightedMode = (int)value;
+        }
 
         internal static Keyframe FromSerialized(float time, float value, float inTangent, float outTangent, int weightedMode, float inWeight, float outWeight)
             => new() { m_Time = time, m_Value = value, m_InTangent = inTangent, m_OutTangent = outTangent, m_WeightedMode = weightedMode, m_InWeight = inWeight, m_OutWeight = outWeight };
@@ -164,6 +172,44 @@ namespace UnityEngine
         }
 
         public int AddKey(float time, float value) => AddKey(new Keyframe(time, value));
+
+        /// The other keys keep their tangents. An index out of range throws
+        /// IndexOutOfRangeException("RemoveKey"), as in the original.
+        public void RemoveKey(int index)
+        {
+            if (index < 0 || index >= m_Keys.Length) throw new IndexOutOfRangeException("RemoveKey");
+            var list = new System.Collections.Generic.List<Keyframe>(m_Keys);
+            list.RemoveAt(index);
+            keys = list.ToArray();
+        }
+
+        /// Both tangents become the neighbouring segments' slopes mixed by weight: (1 + w) / 2
+        /// of the one before and (1 - w) / 2 of the one after (the only one at an end), and the
+        /// weights on the sides with a neighbour 1/3; a lone key is left as it is. Measured in
+        /// the original (UnityProbe's apigaps "curve"): weights 0, ±1/2, 1, 2 and uneven spacing.
+        public void SmoothTangents(int index, float weight)
+        {
+            if (index < 0 || index >= m_Keys.Length) throw new IndexOutOfRangeException("SmoothTangents");
+            if (m_Keys.Length < 2) return;
+            var copy = (Keyframe[])m_Keys.Clone();
+            var k = copy[index];
+            float tangent;
+            if (index == 0) tangent = Slope(copy[0], copy[1]);
+            else if (index == copy.Length - 1) tangent = Slope(copy[index - 1], copy[index]);
+            else tangent = (1f + weight) * 0.5f * Slope(copy[index - 1], k) + (1f - weight) * 0.5f * Slope(k, copy[index + 1]);
+            k.inTangent = tangent;
+            k.outTangent = tangent;
+            if (index > 0) k.inWeight = Keyframe.DefaultWeight;
+            if (index < copy.Length - 1) k.outWeight = Keyframe.DefaultWeight;
+            copy[index] = k;
+            m_Keys = copy;
+        }
+
+        static float Slope(Keyframe a, Keyframe b)
+        {
+            float dt = b.time - a.time;
+            return dt == 0f ? 0f : (b.value - a.value) / dt;
+        }
 
         public int AddKey(Keyframe key)
         {

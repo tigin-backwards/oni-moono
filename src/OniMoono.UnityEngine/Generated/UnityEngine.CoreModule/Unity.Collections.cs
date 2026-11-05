@@ -2,6 +2,22 @@
 #nullable disable
 namespace Unity.Collections
 {
+    public enum Allocator
+    {
+        Invalid = 0,
+        None = 1,
+        Temp = 2,
+        TempJob = 3,
+        Persistent = 4,
+        AudioKernel = 5,
+        Domain = 6,
+        FirstUserIndex = 64,
+    }
+    public enum NativeArrayOptions
+    {
+        UninitializedMemory = 0,
+        ClearMemory = 1,
+    }
     public partial struct NativeArray<T> : global::System.IDisposable, global::System.Collections.Generic.IEnumerable<T>, global::System.Collections.IEnumerable, global::System.IEquatable<global::Unity.Collections.NativeArray<T>> where T : struct
     {
     }

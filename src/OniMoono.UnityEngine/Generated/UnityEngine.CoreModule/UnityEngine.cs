@@ -988,6 +988,12 @@ namespace UnityEngine
     public sealed partial class Sprite : global::UnityEngine.Object
     {
     }
+    public enum SpriteDrawMode
+    {
+        Simple = 0,
+        Sliced = 1,
+        Tiled = 2,
+    }
     public enum SpriteMaskInteraction
     {
         None = 0,
@@ -1225,6 +1231,13 @@ namespace UnityEngine
     }
     public sealed partial class WaitUntil : global::UnityEngine.CustomYieldInstruction
     {
+    }
+    public enum WeightedMode
+    {
+        None = 0,
+        In = 1,
+        Out = 2,
+        Both = 3,
     }
     public enum WrapMode
     {
