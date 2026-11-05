@@ -43,7 +43,9 @@ folder; default out/bin/E2eDriver/release) for specs that use it and, for --play
 both, E2E_ORIGINAL (the original player's executable, with a DLC-owning Steam double in its
 Plugins); E2E_ORIGINAL_ENV holds NAME=VALUE settings for the original player only (on WSL,
 `GALLIUM_DRIVER=llvmpipe` with a shared MESA_SHADER_CACHE_DIR runs it 3-4 times faster; see
-tests/e2e/README.md, "Run time"). Our player runs with `--game-tweak exact --game-tweak
+tests/e2e/README.md, "Run time"). --player both refuses to start when QA_U57_GAME
+and the original's install differ in game build or in DLC content (StreamingAssets/dlc).
+Our player runs with `--game-tweak exact --game-tweak
 path-probe-repair` (the users' default tweaks but the Bug fixes on by default), or with E2E_GAME_TWEAKS,
 space-separated `--game-tweak` values (default `exact path-probe-repair`; `none`, `exact`, `exact
 -no-save-gc`); E2E_PLAYER_ARGS adds host arguments (`--renderer vulkan`), E2E_ORIGINAL_ARGS the
@@ -63,7 +65,7 @@ that tests/e2e/known-findings.yaml explains make a run of ours a warning, not a 
 the hold file in its run folder is removed, for a look through OniMcp and E2eDriver while
 writing a spec; a QA perf stage waiting to start ends it 10 minutes later.
 """
-import contextlib, ctypes, fcntl, glob, importlib.util, itertools, json, os, re, shutil, signal, socket, subprocess, sys
+import contextlib, ctypes, fcntl, glob, hashlib, importlib.util, itertools, json, os, re, shutil, signal, socket, subprocess, sys
 import threading, time, urllib.error, urllib.request, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -3056,6 +3058,43 @@ def original_environment(text):
     return pairs
 
 
+def install_identity(folder):
+    """What a game install holds that a comparison of both players depends on, cheaply: its
+    build (a hash of Managed/Assembly-CSharp.dll, and a six-digit build number in its folder's
+    name, for the message) and its DLC content (the names under StreamingAssets/dlc). None when
+    the folder has no *_Data/Managed/Assembly-CSharp.dll."""
+    data = sorted(glob.glob(os.path.join(folder, '*_Data')))
+    assembly = data and os.path.join(data[0], 'Managed', 'Assembly-CSharp.dll')
+    if not assembly or not os.path.isfile(assembly):
+        return None
+    with open(assembly, 'rb') as f:
+        digest = hashlib.sha1(f.read()).hexdigest()[:12]
+    try:
+        dlc = sorted(os.listdir(os.path.join(data[0], 'StreamingAssets', 'dlc')))
+    except OSError:
+        dlc = []
+    number = re.findall(r'(?<!\d)\d{6}(?!\d)', os.path.abspath(folder))
+    return {'folder': folder, 'assembly': digest, 'build': number[-1] if number else None, 'dlc': dlc}
+
+
+def install_mismatch(ours, original):
+    """Why OURS (QA_U57_GAME) and the original's install (E2E_ORIGINAL's folder) cannot be
+    compared, or None: a different game build, or different DLC content. Our player on an install
+    without the DLC content loads a DLC save with missing prefabs, and its log signatures then
+    fail the run as the engine's (2026-11-05: five on a U60 run whose QA_U57_GAME was the bare
+    install)."""
+    a, b = install_identity(ours), install_identity(original)
+    if a is None or b is None:
+        return None
+    describe = lambda i: (f'{i["folder"]} (build {i["build"] or "?"}, Assembly-CSharp {i["assembly"]}, '
+                          f'DLC content: {", ".join(i["dlc"]) or "none"})')
+    if a['assembly'] != b['assembly']:
+        return f'the game builds differ: ours {describe(a)}, the original {describe(b)}'
+    if a['dlc'] != b['dlc']:
+        return f'the DLC content differs: ours {describe(a)}, the original {describe(b)}'
+    return None
+
+
 def original_player(executable, lane, root=OUT):
     """The original player's executable in a folder of the lane's own: Unity's Linux player runs
     single-instance, locking unity.lock beside its executable ("Player is already running"), so
@@ -4762,7 +4801,6 @@ def record_verdict(runs):
 
 def mod_hashes(ids):
     """The SHA-256 of each mod's DLLs (out/ws/ID, top level), so a record says which build it played."""
-    import hashlib
     ws = os.environ.get('ONI_WS') or os.path.join(ROOT, 'out', 'ws')
     found = {}
     for i in ids:
@@ -4953,6 +4991,12 @@ def main(argv):
     if missing:
         print('e2e: skipped, needs ' + ', '.join(missing) + ' (out/local-tools/qa.env)')
         return 0
+    if 'original' in kinds and 'ours' in kinds:
+        mismatch = install_mismatch(env['QA_U57_GAME'], os.path.dirname(os.path.abspath(env['E2E_ORIGINAL'])))
+        if mismatch:
+            print(f'e2e: refusing to compare the players, {mismatch}. Point QA_U57_GAME and E2E_ORIGINAL '
+                  'at installs of one build with the same DLC content (out/local-tools/qa.env).')
+            return 2
     # Its players and Xvfbs end with it, however it ends (see "leftovers").
     install_teardown()
     start_reaper()

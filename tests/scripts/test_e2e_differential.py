@@ -85,3 +85,38 @@ class Differential(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class InstallMismatch(unittest.TestCase):
+    """e2e.install_mismatch: both players need one game build with the same DLC content."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def install(self, name, assembly=b'build-1', dlc=('expansion1', 'dlc2')):
+        folder = os.path.join(self.temp.name, name)
+        os.makedirs(os.path.join(folder, 'OxygenNotIncluded_Data', 'Managed'))
+        open(os.path.join(folder, 'OxygenNotIncluded_Data', 'Managed', 'Assembly-CSharp.dll'), 'wb').write(assembly)
+        for d in dlc:
+            os.makedirs(os.path.join(folder, 'OxygenNotIncluded_Data', 'StreamingAssets', 'dlc', d))
+        return folder
+
+    def test_same_install_passes(self):
+        self.assertIsNone(e2e.install_mismatch(self.install('ours-761654'), self.install('orig-761654')))
+
+    def test_missing_dlc_content_is_refused(self):
+        why = e2e.install_mismatch(self.install('bare-761654', dlc=()), self.install('orig-761654'))
+        self.assertIn('DLC content differs', why)
+        self.assertIn('DLC content: none', why)
+
+    def test_other_build_is_refused(self):
+        why = e2e.install_mismatch(self.install('ours', assembly=b'build-2'), self.install('orig-761654'))
+        self.assertIn('game builds differ', why)
+        self.assertIn('build 761654', why)
+
+    def test_unreadable_install_is_not_judged(self):
+        os.makedirs(os.path.join(self.temp.name, 'empty'))
+        self.assertIsNone(e2e.install_mismatch(os.path.join(self.temp.name, 'empty'), self.install('orig')))
