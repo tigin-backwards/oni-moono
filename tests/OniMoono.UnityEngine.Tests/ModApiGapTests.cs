@@ -127,6 +127,27 @@ namespace OniMoono.Tests
             copy.Dispose();
         }
 
+        /// A mod's delegate field of a video type loads (Modular Power caches an
+        /// ErrorEventHandler): the types have Unity's shapes.
+        static UnityEngine.Video.VideoPlayer.ErrorEventHandler cachedError;
+        static UnityEngine.Video.VideoPlayer.FrameReadyEventHandler cachedFrame;
+
+        [Fact]
+        public void VideoTypesModsHoldHaveUnitysShapes()
+        {
+            string got = null;
+            cachedError = (source, message) => got = message;
+            cachedError(null, "m");
+            Assert.Equal("m", got);
+            long frame = -1;
+            cachedFrame = (source, index) => frame = index;
+            cachedFrame(null, 7);
+            Assert.Equal(7, frame);
+            Assert.Equal(1, (int)UnityEngine.Video.VideoSource.Url);
+            Assert.Equal(2, (int)UnityEngine.Video.VideoRenderMode.RenderTexture);
+            Assert.Equal(2, (int)UnityEngine.Video.VideoTimeUpdateMode.UnscaledGameTime);
+        }
+
         static string B(Bounds b) => $"c=({b.center.x:R},{b.center.y:R},{b.center.z:R}) e=({b.extents.x:R},{b.extents.y:R},{b.extents.z:R})";
 
         [Fact]

@@ -4,10 +4,10 @@ using OniMoono.Engine.Video;
 namespace UnityEngine.Video
 {
     /// Plays VideoClips (VP8 WebM) into a render texture, a camera plane or its own texture.
-    /// OniMoono.Engine.Video.VideoPlayerNative documents the playback model. Members whose
-    /// types are outside the game's API surface (source, renderMode, aspectRatio,
-    /// timeUpdateMode, errorReceived, frameReady, …) are absent; their serialized values still
-    /// drive playback.
+    /// OniMoono.Engine.Video.VideoPlayerNative documents the playback model. Members the game
+    /// does not use (source, renderMode, aspectRatio, timeUpdateMode, errorReceived, frameReady,
+    /// …) are absent; their serialized values still drive playback. Their types exist, so that a
+    /// mod's fields of them load (docs/research/unity-api-gaps.md).
     public partial class VideoPlayer
     {
         public event EventHandler prepareCompleted;

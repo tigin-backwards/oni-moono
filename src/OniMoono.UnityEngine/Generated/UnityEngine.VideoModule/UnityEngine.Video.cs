@@ -18,12 +18,39 @@ namespace UnityEngine.Video
     }
     public partial class VideoPlayer
     {
+        public delegate void ErrorEventHandler(global::UnityEngine.Video.VideoPlayer source, string message);
+    }
+    public partial class VideoPlayer
+    {
         public delegate void EventHandler(global::UnityEngine.Video.VideoPlayer source);
+    }
+    public partial class VideoPlayer
+    {
+        public delegate void FrameReadyEventHandler(global::UnityEngine.Video.VideoPlayer source, long frameIdx);
+    }
+    public enum VideoRenderMode
+    {
+        CameraFarPlane = 0,
+        CameraNearPlane = 1,
+        RenderTexture = 2,
+        MaterialOverride = 3,
+        APIOnly = 4,
+    }
+    public enum VideoSource
+    {
+        VideoClip = 0,
+        Url = 1,
     }
     public enum VideoTimeReference
     {
         Freerun = 0,
         InternalTime = 1,
         ExternalTime = 2,
+    }
+    public enum VideoTimeUpdateMode
+    {
+        DSPTime = 0,
+        GameTime = 1,
+        UnscaledGameTime = 2,
     }
 }
