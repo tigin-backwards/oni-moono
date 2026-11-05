@@ -176,6 +176,8 @@ stray_plugins: [x86_64/SimDLL.dll]   # and these paths under Plugins added, empt
                                  # as Steam can leave another branch's (stray-plugin-folder.yaml)
 extra_saves: [terra-wide]        # more colonies in the profile: fixtures/NAME.sav (and NAME.png)
                                  # as save_files/NAME/NAME.sav, for the Load screen
+retired_colonies: [retired-chart-colony]   # Colony Summary entries: fixtures/NAME.json as
+                                 # RetiredColonies/COLONY/COLONY.json, as a save writes them
 data_collection: true            # the Data Collection option on, for a spec that opens the Supply
                                  # Closet (KleiInventoryScreen reads it); off by default in every
                                  # e2e and qa.sh profile, so no test run sends Klei a crash report

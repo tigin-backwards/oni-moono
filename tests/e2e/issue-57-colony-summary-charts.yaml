@@ -1,0 +1,28 @@
+# Issue #57: the Colony Summary's per-cycle charts showed their titles, axis labels and tooltips
+# but no lines. The lines and the guides behind them are UILineRenderers drawn with the game's
+# "Lines/Colored Blended" shader, which tests depth (ZTest LEqual) instead of reading
+# unity_GUIZTestMode as the UI shaders do. Unity draws the overlay canvases over a depth buffer
+# cleared before the first of them (UnityProbe UiZTest); ours drew them over the depth the
+# cameras had left, which hid every line.
+#
+# A retired colony from fixtures/retired-chart-colony.json, 40 cycles of every statistic, opened
+# from the main menu and scrolled to its last charts. Each chart's maximum is one where a tenth of
+# its axis (1.2 times the maximum) rounds down, so Mono and .NET both draw ten guides (ARCHITECTURE
+# D25: Mono evaluates the guide count in double, where 100 gives nine).
+from: main-menu
+retired_colonies: [retired-chart-colony]
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "COLONY SUMMARIES", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ColonyMenu/Grid/SelectColonyButton", cond: stable, frames: 600}
+  - click: {ui: "**/ColonyMenu/Grid/SelectColonyButton"}
+  # U60 no longer names the lines line_ID; their container holds them in both.
+  - ui_wait: {path: "**/LoadedColony/**/LineGraphWidget/Graph/line_container/*", cond: exists, frames: 600}
+  # To the end of the colony's page, where the scroll stops in both players.
+  - scroll: {at: "**/Colonies and Achievements/Colonies/ColonyScroll", notches: -200}
+  - ui_wait: {path: "**/LoadedColony/Stats and Achievements", cond: stable, frames: 600}
+  - ui_dump: {name: chart, root: "**/LoadedColony/**/LineGraphWidget/Graph/line_container"}
+  - shot: {name: charts, crop: "**/Colonies and Achievements/Colonies/ColonyScroll", threshold: 0.002}

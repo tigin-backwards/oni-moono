@@ -165,8 +165,8 @@ def ws_mods():
 TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
             'keyboard', 'tweaks_menu', 'scaled_screen', 'display_dpi', 'blocked_plugins', 'stray_plugins',
-            'data_collection', 'extra_saves', 'workshop', 'update_check', 'game_tweaks', 'env', 'test_mods',
-            'game_args'}
+            'data_collection', 'extra_saves', 'retired_colonies', 'workshop', 'update_check', 'game_tweaks', 'env',
+            'test_mods', 'game_args'}
 # `game_args`: arguments for the game itself, after the original's own (its executable's
 # arguments) and after the game's executable in our Steam form (`-- GAME-EXECUTABLE ARGS`), which
 # passes them on to the game (#53).
@@ -392,6 +392,11 @@ def check_spec(spec):
     extra = spec.get('extra_saves', [])
     if not isinstance(extra, list) or not all(isinstance(n, str) and re.fullmatch(r'[\w.-]+', n) for n in extra):
         problems.append('`extra_saves` is a list of fixture names')
+    retired = spec.get('retired_colonies', [])
+    if not isinstance(retired, list) or not all(
+            isinstance(n, str) and re.fullmatch(r'[\w.-]+', n) and os.path.exists(os.path.join(FIXTURES, n + '.json'))
+            for n in retired):
+        problems.append('`retired_colonies` lists fixtures/NAME.json files')
     if not isinstance(spec.get('data_collection', True), bool):
         problems.append('`data_collection` is true or false')
     update = spec.get('update_check')
@@ -2575,7 +2580,8 @@ class Player:
 
     def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
                  translation=None, language=None, keyboard=None, tweaks_menu=False, display_dpi=None,
-                 blocked_plugins=None, data_collection=False, extra_saves=(), workshop=None, update_check=None,
+                 blocked_plugins=None, data_collection=False, extra_saves=(), retired_colonies=(), workshop=None,
+                 update_check=None,
                  stray_plugins=(), game_tweaks=(), extra_env=None, test_mods=(), game_args=()):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
         self.game_args = list(game_args or ())
@@ -2612,6 +2618,14 @@ class Player:
                     shutil.copy(source, os.path.join(folder, name + ext))
                 elif ext == '.sav':
                     raise SpecFailure(f'no fixture {source} (extra_saves)')
+        # `retired_colonies`: Colony Summary entries, each fixtures/NAME.json in a folder named
+        # for its colony (RetiredColonies/COLONY/COLONY.json), as the game writes them on a save.
+        for name in retired_colonies:
+            with open(os.path.join(FIXTURES, name + '.json'), encoding='utf-8-sig') as f:
+                colony = json.load(f)['colonyName']
+            folder = os.path.join(self.profile, 'RetiredColonies', colony)
+            os.makedirs(folder, exist_ok=True)
+            shutil.copy(os.path.join(FIXTURES, name + '.json'), os.path.join(folder, colony + '.json'))
         # E2E_CLOUD_SAVES=DIR: the profile's cloud saves (the Steam double's user) are DIR's tree,
         # copied as hard links (DIR on the same disk), for a look at the Load screen with many
         # saves. Never a real saves folder: the game may write and delete there.
@@ -4245,7 +4259,8 @@ class Run:
                                  tweaks_menu=spec.get('tweaks_menu', False), display_dpi=spec.get('display_dpi'),
                                  blocked_plugins=spec.get('blocked_plugins'), stray_plugins=spec.get('stray_plugins'),
                                  data_collection=spec.get("data_collection", False),
-                                 extra_saves=spec.get('extra_saves', ()), workshop=spec.get('workshop'),
+                                 extra_saves=spec.get('extra_saves', ()),
+                                 retired_colonies=spec.get('retired_colonies', ()), workshop=spec.get('workshop'),
                                  update_check=spec.get('update_check'),
                                  game_tweaks=spec.get('game_tweaks', ()), extra_env=spec.get('env'),
                                  test_mods=spec.get('test_mods', ()), game_args=spec.get('game_args', ()))
