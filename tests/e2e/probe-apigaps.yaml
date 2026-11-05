@@ -1,0 +1,7 @@
+# UnityProbe's API gaps probe (tools/UnityProbe/ApiGaps.cs): Unity members mods call that ours
+# lacked, in both players. Run with E2E_ONIMCP at a copy of OniMcp's mod folder with
+# SemanticsProbe.dll added and PROBE_SCENARIO=apigaps (tools/UnityProbe/README.md, "apigaps");
+# PROBE_AG_PARTS picks parts.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/ApiGapsProbeDone", cond: exists, frames: 40000}
