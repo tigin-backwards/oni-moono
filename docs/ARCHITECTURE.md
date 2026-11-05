@@ -1551,6 +1551,27 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   (`SaveLoader.cs:296`, `:310`), managed code in `Managed/Ionic.Zip.dll` that runs the same in
   both players. The game's one use of `System.IO.Compression` is the crash reporter's upload
   (`KCrashReporter.cs:797`, `:807`, a `ZipArchive` at `Fastest`), which it never reads back.
+- **D62 Delegates to instance methods with a null target.** Measured in the U59 and U60
+  originals with UnityProbe's null-delegate probe (`NullDelegate.cs`,
+  `PROBE_SCENARIO=nulldelegate`): Mono refuses such a delegate as CoreCLR does. `new D(x.M)` with
+  `x` null (ldftn and newobj, from C# and from emitted IL, for a non-virtual, a generic, a
+  virtual and a struct's method) throws ArgumentException as the delegate is built, so the
+  method never runs and no such delegate exists to invoke, compare or combine; an ldvirtftn on
+  null throws NullReferenceException. `Delegate.CreateDelegate(type, null, method)` and
+  `MethodInfo.CreateDelegate(type, null)` make a delegate closed over null in both (Target null,
+  Method the method): invoking it runs the method with `this` null, which returns when the
+  method does not read `this` and throws NullReferenceException when it reads a field; a virtual
+  method runs its own body. `CreateDelegate(type, null, "name")` throws ArgumentNullException in
+  both. Every case gives the same result in both players. Only the exception's text differs:
+  Mono's message is ArgumentException's default ("Value does not fall within the expected
+  range.") and its trace starts at the method building the delegate; CoreCLR's says "Delegate to
+  an instance method cannot have null 'this'." under `MulticastDelegate.CtorClosed`. The game's
+  `ManagementMenu.OnPrefabInit` builds `clusterMapScreen.TryHandleCancel` with
+  `clusterMapScreen` null when a base-game save is loaded into a Spaced Out session without the
+  load screen (PerfProbe's `load.txt`): both players log that ArgumentException from
+  `OnPrefabInit`, then a NullReferenceException from `ManagementMenu.OnSpawn`
+  (`SetNotificationDisplay`), and open the crash reporter. **Kept:** no rewrite, since one
+  storing the null target would make ours differ from the original.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.
