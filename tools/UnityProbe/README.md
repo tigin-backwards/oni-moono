@@ -849,6 +849,11 @@ what it logs:
   values, every exponent, the smallest scale with an inverse, by bisection). `is-check.py diff
   ORIG OURS` compares players; `is-check.py table LOG OUT` rebuilds the engine's
   `Math/InverseScale.bin` from a `full` run.
+  `PROBE_IS_PART=position` logs Transform.position's setter and InverseTransformPoint on 4,000
+  rotation-free chains (`IS7`) and 1,000 with rotations (`IS8`); `is-check.py position LOG`
+  tests the engine's per-level rule on the IS7 lines, `diff` compares players on both. It runs at
+  mod load: run any spec with OniMcp's folder copied, `SemanticsProbe.dll` added,
+  E2E_ONIMCP pointing at the copy and `PROBE_SCENARIO=invscale PROBE_IS_PART=position`.
 - `scrollgeo` (`ScrollGeo.cs`, `SG`): in any screen, after each `KScrollRect.LateUpdate` of a
   scroll rect whose path contains `PROBE_SG_NAME` (default `SideScreen`), when anything changed:
   its normalized position, the content's world corners, the view's matrices and every level of
