@@ -278,15 +278,18 @@ compares it as an image (`qa-tools.py image` already compares two PNGs).
 
 ### R4 Colony previews on the Load and Colony Summary screens
 
-**Status:** fails in ours: repro `tests/e2e/u60/r4-load-previews.yaml` (Colony Summaries dump), not
-fixed because the one difference left is a KScrollRect's horizontal normalizedPosition, 1 in ours
-and 0 in the original, its content's left edge on the viewport's (the sub-ulp case of
-known-findings' `scroll-normalized-position`, whose inputs are not traced here). The item's own
-criterion passes (816dde15, Linux OpenGL; Windows Vulkan: passes, 041860a5, within 0.6 %, the Colony
-Summaries scroll position again the one difference): the 2176x1536 previews of two saves on the Load
-screen, before and after closing it five times, within 0.2 %. The spec also found an achievement's
-`<sup>` text 6 px taller in ours, fixed in 816dde15. Texture memory over the reopenings was not
-logged (ONI_TEXTURE_MEMORY_LOG is ours only).
+**Status:** passes (Linux OpenGL, 2026-11-06): `tests/e2e/u60/r4-load-previews.yaml`, both dumps
+equal and the shots within 0.4 %. Its last difference was the Colony Summaries' KScrollRect
+reading horizontal normalizedPosition 1 in ours and 0 in the original. Its content fits the view,
+and `RetiredColonyInfoScreen.ToggleExplorer` sets the content's position: the original leaves
+anchoredPosition x at 2^-14, where our setter left 1.8e-6, putting the content's left edge on
+the view's. The engine's position setter and InverseTransformPoint now follow the original's
+per-level form on rotation-free chains (docs/cleanroom/ugui.md, "Transform hierarchy to the
+bit"). The item's own criterion passed before that (816dde15, Linux OpenGL; Windows Vulkan,
+041860a5, within 0.6 %): the 2176x1536 previews of two saves on the Load screen, before and after
+closing it five times, within 0.2 %. The spec also found an achievement's `<sup>` text 6 px
+taller in ours, fixed in 816dde15. Texture memory over the reopenings was not logged
+(ONI_TEXTURE_MEMORY_LOG is ours only).
 
 **Risk: high.** Every Load screen shows one.
 
