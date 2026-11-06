@@ -10,6 +10,7 @@ scripts/e2e.py NAME                         # ours, on the first free lane
 scripts/e2e.py --player both --repeat 2 NAME
 scripts/e2e.py --player original --bless NAME   # bless fixtures and references
 scripts/e2e.py --lanes 4 A B C D            # four at once, from a queue
+scripts/e2e.py --player both --lanes 2 --list tests/e2e/release.txt   # release QA (tests/e2e/periodic.txt: the rest)
 scripts/e2e.py --player ours --repeat 2 --record --note "..." NAME   # write tests/e2e/results/NAME.json
 scripts/e2e.py --status                     # lanes, holders, waits, leftovers: look here first
 scripts/e2e.py --clean                      # clean what dead runners left on free lanes

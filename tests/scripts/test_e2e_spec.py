@@ -261,10 +261,13 @@ class Arguments(unittest.TestCase):
 
     def test_list(self):
         with tempfile.NamedTemporaryFile('w', suffix='.txt') as f:
-            f.write('# a comment\n\nearly-base  # play\nupdate-badge ours  # ours only\n')
+            f.write("# a comment\n\nearly-base  # play\nupdate-badge ours  # ours only\n"
+                    "vk-smoke player-args='--renderer vulkan'  # a # in the comment\n")
             f.flush()
             o = e2e.parse_args(['--list', f.name, 'census'])
-            self.assertEqual((o['names'], o['ours_only']), (['early-base', 'update-badge', 'census'], {'update-badge'}))
+            self.assertEqual(o['names'], ['early-base', 'update-badge', 'vk-smoke', 'census'])
+            self.assertEqual(o['list_settings'], {'early-base': {}, 'update-badge': {'ours_only': True},
+                                                  'vk-smoke': {'player_args': ['--renderer', 'vulkan']}})
             f.write('census both\n')
             f.flush()
             with self.assertRaises(e2e.SpecError):
