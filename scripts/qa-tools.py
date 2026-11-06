@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Helpers of scripts/qa.sh.
-  qa-tools.py signatures LOG              the log's exceptions and errors, one normalized line each
+  qa-tools.py signatures LOG [ERRORS]     the log's exceptions and errors, one normalized line each;
+                                          ERRORS (the player's ONI_LOG_ERRORS file) adds the
+                                          errors logged as plain lines
   qa-tools.py new-signatures REF NEW      lines of NEW whose canonical form REF lacks (signature files)
   qa-tools.py image REFERENCE NEW DIFF [--crop X,Y,W,H] [--crop-new X,Y,W,H] [--mask X,Y,W,H]...
                                           fraction of (unmasked) pixels differing visibly; writes
@@ -13,7 +15,7 @@
                                           split, stopping it once the first autosave has passed
                                           and RSS has settled
 """
-import re, sys
+import os, re, sys
 
 def normalize(text):
     text = re.sub(r' \(at [^)]*\)', '', text)  # source locations change with every edit
@@ -106,7 +108,7 @@ def joined_inner_exceptions(lines):
             out.append(line)
     return out
 
-def signatures(path):
+def signatures(path, errors=None):
     lines = joined_inner_exceptions(open(path, encoding='utf-8', errors='replace').read().splitlines())
     found = set()
     for i, line in enumerate(lines):
@@ -120,6 +122,16 @@ def signatures(path):
                         break  # the first frame past the runtime's own
                     frame = ''
             found.add(canonical(normalize(body) + (' @ ' + normalize(frame) if frame else '')))
+    # A UnityEngine.Debug.LogError's message is a plain line in the log, as in Unity's player
+    # (the game's own Debug.LogError writes an [ERROR] line before it): the player lists those
+    # messages in ERRORS. One the log already gave a signature (an [ERROR] line's) adds none.
+    if errors and os.path.exists(errors):
+        messages = {s.partition(' @ ')[0] for s in found}
+        for line in open(errors, encoding='utf-8', errors='replace').read().splitlines():
+            s = canonical(normalize(line))
+            if s and s not in messages:
+                found.add(s)
+                messages.add(s)
     for s in sorted(found):
         print(s)
 

@@ -260,7 +260,28 @@ namespace OniMoono.Engine
                     WriteRaw(report.Condition + "\n" + report.LogTrace);
                 }
             }
+            if (errors != null && type is LogType.Error or LogType.Assert) WriteError(message);
             WriteRaw(logTrace.Length > 0 ? message + "\n" + logTrace : message);
+        }
+
+        /// ONI_LOG_ERRORS=FILE: the first line of each logged error and assertion also goes to FILE
+        /// (scripts/qa.sh's log signatures). The log writes such a message as a plain line, as
+        /// Unity's player does, so it alone does not tell one from a Debug.Log's.
+        static readonly StreamWriter errors = OpenErrors();
+
+        static StreamWriter OpenErrors()
+        {
+            var path = Environment.GetEnvironmentVariable("ONI_LOG_ERRORS");
+            if (string.IsNullOrEmpty(path)) return null;
+            try { return new StreamWriter(path, append: false, new UTF8Encoding(false)) { AutoFlush = true }; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+        }
+
+        static void WriteError(string message)
+        {
+            int end = message.IndexOf('\n');
+            var line = (end < 0 ? message : message.Substring(0, end)).TrimEnd('\r');
+            lock (errors) errors.WriteLine(line);
         }
 
         /// This thread is inside the log callbacks.
