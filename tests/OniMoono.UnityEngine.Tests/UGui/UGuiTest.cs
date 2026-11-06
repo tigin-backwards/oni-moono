@@ -16,7 +16,7 @@ namespace OniMoono.Tests.UGui
         protected static void UseGameAssets()
         {
             var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107");
+                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
             OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
             OniMoono.Engine.Assets.ProjectSettings.Load();
         }

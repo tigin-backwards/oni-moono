@@ -12,7 +12,7 @@ namespace OniMoono.Tests
     {
         internal static string GameDir =>
             Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762107");
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
 
         static bool s_Loaded;
 

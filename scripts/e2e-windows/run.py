@@ -3,9 +3,9 @@
 Windows, from WSL. Not part of the product.
 
 Ours: out/win (scripts/build-windows.sh) staged in %TEMP%\\oni-brutal\\qa-win\\host, on the U60
-Windows data (WIN_GAME, default E:\\oni-builds\\oni-win-762107), --renderer from WIN_RENDERER
+Windows data (WIN_GAME, default E:\\oni-builds\\oni-win-762230), --renderer from WIN_RENDERER
 (default vulkan; empty for none). The original: a renamed copy of that install (WIN_ORIG, default
-E:\\oni-builds\\BrutalNotIncluded-762107), set up by scripts/original-windows.sh on its first run
+E:\\oni-builds\\BrutalNotIncluded-762230), set up by scripts/original-windows.sh on its first run
 (WIN_BEPINEX_SOURCE: a game folder with BepInEx 6), on Unity's default renderer (Direct3D 11);
 WIN_ORIG_PRODUCT is the product name in its globalgamemanagers. Both players run windowed
 1280x720 on the second monitor, never focused, and muted (volume prefs 0; ours --audio-wav, the
@@ -54,8 +54,8 @@ LOCAL_LOW = subprocess.run(['wslpath', '-u', windows_env('USERPROFILE') + '\\App
 # The original's product name (globalgamemanagers): its LocalLow folder holds OniMcp's options.
 ORIG_PRODUCT = os.environ.get('WIN_ORIG_PRODUCT', 'Brutal Not Included')
 STAGE = 'oni-brutal\\qa-win'
-WIN_GAME = os.environ.get('WIN_GAME', 'E:\\oni-builds\\oni-win-762107')
-WIN_ORIG = os.environ.get('WIN_ORIG', 'E:\\oni-builds\\BrutalNotIncluded-762107')
+WIN_GAME = os.environ.get('WIN_GAME', 'E:\\oni-builds\\oni-win-762230')
+WIN_ORIG = os.environ.get('WIN_ORIG', 'E:\\oni-builds\\BrutalNotIncluded-762230')
 RENDERER = os.environ.get('WIN_RENDERER', 'vulkan')
 # A DLC-owning Steam double for Windows (as QA_U57_STEAM is for Linux).
 STUB = os.environ.get('WIN_STEAM_STUB') or os.path.join(ROOT, 'out', 'local-tools', 'steamstub-dlc-win', 'steam_api64.dll')

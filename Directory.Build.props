@@ -14,9 +14,9 @@
     <!-- All engine and tool output lands in one tree so the host, facades and tests agree on paths. -->
     <ArtifactsPath>$(MSBuildThisFileDirectory)out</ArtifactsPath>
     <!-- Game install used by tools, tests and the host's default. Override with -p:OniGameDir=... -->
-    <!-- The u60 branch builds against U60 (762107): ONI_GAME_DIR when set (as the scripts and tests
-         use it), else the frozen Linux 762107 install. -->
+    <!-- The u60 branch builds against U60 (762230): ONI_GAME_DIR when set (as the scripts and tests
+         use it), else the frozen Linux 762230 install. -->
     <OniGameDir Condition="'$(OniGameDir)' == '' and '$(ONI_GAME_DIR)' != ''">$(ONI_GAME_DIR)</OniGameDir>
-    <OniGameDir Condition="'$(OniGameDir)' == ''">$(HOME)/projects/oni-linux-762107</OniGameDir>
+    <OniGameDir Condition="'$(OniGameDir)' == ''">$(HOME)/projects/oni-linux-762230</OniGameDir>
   </PropertyGroup>
 </Project>
