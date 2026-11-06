@@ -55,7 +55,9 @@ namespace UnityEngine
             set
             {
                 var t = TransformNative;
-                t.SetLocalPositionInternal(t.Parent == null ? value : t.Parent.LocalToWorld.inverse.MultiplyPoint3x4(value));
+                if (t.Parent == null) t.SetLocalPositionInternal(value);
+                else if (Hierarchy.TryInverseTransformPoint(t.Parent, value, out var local)) t.SetLocalPositionInternal(local);
+                else t.SetLocalPositionInternal(t.Parent.LocalToWorld.inverse.MultiplyPoint3x4(value));
             }
         }
 
@@ -141,7 +143,10 @@ namespace UnityEngine
 
         public Vector3 TransformPoint(Vector3 position) => TransformNative.LocalToWorld.MultiplyPoint3x4(position);
         public Vector3 TransformPoint(float x, float y, float z) => TransformPoint(new Vector3(x, y, z));
-        public Vector3 InverseTransformPoint(Vector3 position) => TransformNative.WorldToLocal.MultiplyPoint3x4(position);
+        /// Without rotations in the chain, the original's per-level form (Hierarchy.
+        /// TryInverseTransformPoint); with them, the worldToLocalMatrix product.
+        public Vector3 InverseTransformPoint(Vector3 position)
+            => Hierarchy.TryInverseTransformPoint(TransformNative, position, out var local) ? local : TransformNative.WorldToLocal.MultiplyPoint3x4(position);
         public Vector3 InverseTransformPoint(float x, float y, float z) => InverseTransformPoint(new Vector3(x, y, z));
 
         /// Rotation only; scale does not apply to directions.

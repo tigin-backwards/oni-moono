@@ -255,6 +255,15 @@ namespace OniMoono.Engine
 
         InverseCache Inverses() => inverse ?? Interlocked.CompareExchange(ref inverse, new InverseCache(), null) ?? inverse;
 
+        /// The inverse scale of each axis (InverseScale.Of), the diagonal of the cached local
+        /// inverse: exactly that while the local rotation is the identity, which is the only
+        /// case Hierarchy.TryInverseTransformPoint reads it in.
+        public Vector3 UnrotatedInverseScale()
+        {
+            var m = LocalInverse();
+            return new Vector3(m.M00, m.M11, m.M22);
+        }
+
         HierarchyMath.Affine LocalInverse()
         {
             var cache = Inverses();
