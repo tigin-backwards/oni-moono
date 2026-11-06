@@ -1,51 +1,127 @@
-# The e2e specs release QA leaves out (master): run them periodically, not as release blockers.
+# The e2e specs u60's release QA leaves out: run them periodically, not as release blockers.
 #   scripts/e2e.py --player both --lanes 2 --list tests/e2e/periodic.txt
-# Seconds are the last release QA's player times, original + ours. The specs at the end need set-ups
-# of their own and are listed as comments.
+# Seconds are the last u60 release QA's player times, original + ours; "-": not measured (that
+# run was stopped before it, or the mod gate skipped it).
 
 # Long plays and new games
-rocket-launch                       # 1140+292: a Spaced Out rocket launch
-vanilla-base                        # 3062 (timed out in the original): a base-game new game; fixture step
-klei-unreachable                    # 462+339: Klei's servers out of reach (#28)
-thermal-gas-fissure                 # 315+101: Aquatic Pack fissure bubbles
+vanilla-base                        # 2694+786: a base-game new game; fixture step
+rocket-launch                       # 1134+290: a Spaced Out rocket launch
+klei-unreachable                    # 553+346: Klei's servers out of reach (#28)
+thermal-gas-fissure                 # 321+92: Aquatic Pack fissure bubbles
+vista-toggle                        # 155+56: the vista projector's Resources.Load/UnloadAsset
 
 # Issue regressions: fixed, in code that changes rarely, or a variant of a kept spec
-issue-52-fast-track                 # 345+56: Fast Track and Better Info Cards
-issue-52-click-cycle-patched        # 329+63: our test mod's transpiler on click selection
-issue-52-states-ft-bic-grouped      # 188+76
-issue-52-states-bic-grouped         # 164+57
-issue-52-states-bic-no-hover        # 167+55
-issue-52-states-ft-bic              # 163+64
-issue-52-states-bic-base-selection  # 141+66
-issue-52-states-bic-running         # 99+51
-issue-52-automation-overlay         # 101+52
-issue-48-fast-track                 # 170+48
-issue-48-pipes                      # 98+61: fixture step
-issue-48-stack2                     # 70+55: fixture step
-issue-41-conduits-in-tiles          # 167+103: wire and pipes through tiles in an overlay
-issue-41-fast-track                 # 85+51
-issue-45-space-tree-branch          # 81+50: a load crash
-issue-54-debug-element-filter       # 95+59: sandbox-search covers the same fields
-stray-plugin-folder                 # 66+43: a Steam leftover Plugins folder (#49)
+issue-48-fast-track                 # - (Fast Track gated)
+issue-48-pipes                      # 71+59: fixture step
+issue-48-stack2                     # 41+47: fixture step
+issue-45-space-tree-branch          # 49+38: a load crash
+issue-54-debug-element-filter       # 63+43: sandbox-search covers the same fields
+stray-plugin-folder                 # 41+45 (#49)
+pipe-flow                           # - (Pipe Flow Overlay gated): U60's conduit shader
 
 # One-off verification
-overlap-autosave                    # 122+63: Klei's own bug, both players
-gas-boundary                        # 81+33: the gas-boundary fixture (gas-view starts from it)
-demolior-pointer                    # 82+47: TMP sub-mesh raycasts
-keyboard-layout                     # 101+31: AZERTY key codes (keyboard-layout-text is kept)
-side-buttons                        # 32+27: U60 QA I1 played on U59
-side-button-11                      # 35+27: U60 QA I1 played on U59
+overlap-autosave                    # 96+53: Klei's own bug, both players
+gas-boundary                        # 80+37: fixture step for gas-view
+demolior-pointer                    # 64+48: TMP sub-mesh raycasts
+keyboard-layout                     # 46+39: AZERTY key codes (keyboard-layout-text is kept)
 
-# Own set-ups (scripts that set the environment; the last release QA's special.sh):
-# bcl-probe                         # 43+37: ONIMCP probe, PROBE_SCENARIO=u60 (U60 QA L2/U1)
-# p2-renderer                       # 28+27: E2E_ORIGINAL_ARGS and E2E_PLAYER_ARGS -force-glcore (U60 QA P2)
-# probe-font-fallback               # 36+36: PROBE_SCENARIO=fontfallback
-# probe-font-fallback-ru            # 42+41
-# probe-font-fallback-zh            # 41+38
-# probe-richtext                    # 38+35: PROBE_SCENARIO=richtext, PROBE_CAPTURE_DIR
-# renderer-cull-probe               # 79+40: PROBE_SCENARIO=renderercull
+# The U60 QA series (docs/research/u60-qa-spec.md and the per-build notes): one-time verification
+u60-a4-cosmetic2-not-owned          # 42+33
+u60-a4-cosmetic2-owned              # 27+30
+u60-a4-metal-traits                 # 23+27
+u60-g1                              # 119+72
+u60-g2                              # 127+57
+u60-g3                              # 112+74
+u60-g4                              # 144+63
+u60-g5                              # 124+60
+u60-g6                              # 125+68
+u60-g7                              # 124+60
+u60-g8                              # 123+62
+u60-g9                              # 122+59
+u60-g13                             # 137+64
+u60-i1-button-11                    # 24+24
+u60-i1-rebind                       # 108+73
+u60-i1-side-buttons                 # 24+32
+u60-l1-cell-change                  # 883 fail
+u60-m1-legacy-zip                   # -
+u60-m1-loose-folder                 # -
+u60-m2-corrupt-zip                  # -
+u60-start-ceres                     # 72+58
+u60-start-forest                    # 71+54
+u60-start-forest-grid               # 80+75 fail
+u60-start-prehistoric               # 71+49
+u60-start-swamp                     # -
+u60-start-terra                     # -
+u60-u7-ko                           # -
+u60-u7-ru                           # -
+u60-u7-zh                           # -
+u60-v1-build-check                  # -
+u60-v3-delivery                     # -
+u60-w2-restart                      # -
+u60-w3-rebind-move                  # -
+u60-w4-side-buttons                 # -
+u60-w5-temperature-spawned          # -
+u60-w6-raycasters                   # -
+u60-w7-sensor-units                 # -
+u60-w8-offscreen-critters           # -
+u60-w9-geo-vent                     # -
+u60-w10-underwater-breathing        # -
+u60-w12-trampoline-anim             # -
+u60-w14-game-logic                  # -
+u60-x1-drag-diagonal                # -
+u60-x2-pip-eat-loop                 # -
+u60-x3-sandbox-placement            # -
+u60-x4-study-tools-preview          # -
+u60-x5-aquatic-logic                # -
+u60-x6-rocket-walls                 # -
+u60-x7-new-world-trees              # -
+
+# u60/: more of the U60 QA series (not in the last release QA)
+u60/a2-menu-assets                  # -
+u60/a3-vista-starts                 # -
+u60/au1-ui-sounds                   # -
+u60/i2-slider-wheel                 # -
+u60/i3-key-pan                      # -
+u60/i3-key-pan-free                 # -
+u60/i4-move-to-hotkey               # -
+u60/i5-rename-enter                 # -
+u60/i6-priority-and-research-icons  # -
+u60/i7-pointer-in-world             # -
+u60/p1-sim-blocked                  # -
+u60/p1-sim-unreadable               # -
+u60/p5-imgui-devtools               # -
+u60/r1-pipe-flow-vanilla            # -
+u60/r2-batch-pooling                # -
+u60/r3-timelapse-capture            # -
+u60/r4-load-previews                # -
+u60/r5-overlay-targets              # -
+u60/r6-world-visuals                # -
+u60/r7-new-anims                    # -
+u60/r8-colour-mode                  # -
+u60/r9-codex-video                  # -
+u60/s1-u59-save-roundtrip           # -
+u60/s2-save-and-quit                # -
+u60/u2-diagnostics-autosize         # -
+u60/u2-hidden-table-screens         # -
+u60/u3-build-menu                   # -
+u60/u4-fuzzy-scores                 # -
+u60/u5-codex-layouts                # -
+u60/u6-tutorial-hiding              # -
+u60/u8-front-end                    # -
+u60/u9-sandbox-tools                # -
+
+# Ours only
+# u60-w2-restart-apply ours         # 176 (failed): a Moono Tweaks restart (W2)
+
+# Own set-ups (the last release QA's special.sh):
+# u60-bcl-probe, -ru, -zh           # 35+37, 37+34, 32+38: PROBE_SCENARIO=u60
+# u60-w1-netstandard-mod            # 53+47: PROBE_SCENARIO=ns21
+# u60-p2-renderer                   # 24+27: -force-glcore in both
+# probe-font-fallback, -ru, -zh     # 32+40, 35+40, 33+39: PROBE_SCENARIO=fontfallback
+# probe-richtext                    # 34+40: PROBE_SCENARIO=richtext
+# renderer-cull-probe               # 76+42: PROBE_SCENARIO=renderercull
 # vram-probe                        # 466 (failed in the original): PROBE_SCENARIO=vram
-# probe-uiztest                     # 41+38: PROBE_SCENARIO=uiztest
-# probe-apigaps                     # 42+38: PROBE_SCENARIO=apigaps
-# probe-texfallback                 # 41+40: PROBE_SCENARIO=texfallback, patched installs
-# load-screen-many-saves            # 600+150: E2E_CLOUD_SAVES with a synthetic saves tree
+# probe-uiztest                     # 36+41: PROBE_SCENARIO=uiztest
+# probe-apigaps                     # 38+37: PROBE_SCENARIO=apigaps
+# probe-texfallback                 # 36+42: PROBE_SCENARIO=texfallback, patched installs
+# load-screen-many-saves            # 415+108: E2E_CLOUD_SAVES with a synthetic saves tree
