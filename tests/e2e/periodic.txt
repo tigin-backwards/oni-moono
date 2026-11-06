@@ -1,0 +1,51 @@
+# The e2e specs release QA leaves out (master): run them periodically, not as release blockers.
+#   scripts/e2e.py --player both --lanes 2 --list tests/e2e/periodic.txt
+# Seconds are the last release QA's player times, original + ours. The specs at the end need set-ups
+# of their own and are listed as comments.
+
+# Long plays and new games
+rocket-launch                       # 1140+292: a Spaced Out rocket launch
+vanilla-base                        # 3062 (timed out in the original): a base-game new game; fixture step
+klei-unreachable                    # 462+339: Klei's servers out of reach (#28)
+thermal-gas-fissure                 # 315+101: Aquatic Pack fissure bubbles
+
+# Issue regressions: fixed, in code that changes rarely, or a variant of a kept spec
+issue-52-fast-track                 # 345+56: Fast Track and Better Info Cards
+issue-52-click-cycle-patched        # 329+63: our test mod's transpiler on click selection
+issue-52-states-ft-bic-grouped      # 188+76
+issue-52-states-bic-grouped         # 164+57
+issue-52-states-bic-no-hover        # 167+55
+issue-52-states-ft-bic              # 163+64
+issue-52-states-bic-base-selection  # 141+66
+issue-52-states-bic-running         # 99+51
+issue-52-automation-overlay         # 101+52
+issue-48-fast-track                 # 170+48
+issue-48-pipes                      # 98+61: fixture step
+issue-48-stack2                     # 70+55: fixture step
+issue-41-conduits-in-tiles          # 167+103: wire and pipes through tiles in an overlay
+issue-41-fast-track                 # 85+51
+issue-45-space-tree-branch          # 81+50: a load crash
+issue-54-debug-element-filter       # 95+59: sandbox-search covers the same fields
+stray-plugin-folder                 # 66+43: a Steam leftover Plugins folder (#49)
+
+# One-off verification
+overlap-autosave                    # 122+63: Klei's own bug, both players
+gas-boundary                        # 81+33: the gas-boundary fixture (gas-view starts from it)
+demolior-pointer                    # 82+47: TMP sub-mesh raycasts
+keyboard-layout                     # 101+31: AZERTY key codes (keyboard-layout-text is kept)
+side-buttons                        # 32+27: U60 QA I1 played on U59
+side-button-11                      # 35+27: U60 QA I1 played on U59
+
+# Own set-ups (scripts that set the environment; the last release QA's special.sh):
+# bcl-probe                         # 43+37: ONIMCP probe, PROBE_SCENARIO=u60 (U60 QA L2/U1)
+# p2-renderer                       # 28+27: E2E_ORIGINAL_ARGS and E2E_PLAYER_ARGS -force-glcore (U60 QA P2)
+# probe-font-fallback               # 36+36: PROBE_SCENARIO=fontfallback
+# probe-font-fallback-ru            # 42+41
+# probe-font-fallback-zh            # 41+38
+# probe-richtext                    # 38+35: PROBE_SCENARIO=richtext, PROBE_CAPTURE_DIR
+# renderer-cull-probe               # 79+40: PROBE_SCENARIO=renderercull
+# vram-probe                        # 466 (failed in the original): PROBE_SCENARIO=vram
+# probe-uiztest                     # 41+38: PROBE_SCENARIO=uiztest
+# probe-apigaps                     # 42+38: PROBE_SCENARIO=apigaps
+# probe-texfallback                 # 41+40: PROBE_SCENARIO=texfallback, patched installs
+# load-screen-many-saves            # 600+150: E2E_CLOUD_SAVES with a synthetic saves tree

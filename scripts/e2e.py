@@ -3,7 +3,10 @@
   scripts/e2e.py [--player ours|original|both] [--repeat N] [--bless] [--lanes N] [--first-lane L]
                  [--last-lane L] [--displays :88,:89 | --xvfb-run] [--no-perf-wait] [--max-wait MIN]
                  [--results PATH] [--run-id ID] [--record [--note TEXT]] [--hold | --hold-on-fail]
-                 SPEC...
+                 [--list FILE] SPEC...
+  --list FILE                                the specs FILE names, one a line (tests/e2e/release.txt):
+                                             `SPEC [ours]  # comment`; `ours` runs that spec in ours
+                                             only, even under --player both
   scripts/e2e.py --check SPEC...             parse and validate specs (and known-findings.yaml)
   scripts/e2e.py --status                    the machine's lanes, players and perf jobs, who waits on
                                              what, and what dead runners left (look here first when a
@@ -1736,7 +1739,7 @@ def plan_jobs(specs, kinds, repeat):
     jobs = []
     for spec in specs:
         originals = []
-        for kind in kinds:
+        for kind in [k for k in kinds if k == 'ours'] if spec.get('ours_only') else kinds:
             for index in range(1, repeat + 1):
                 job = {'id': f'{spec["name"]}/{kind}-{index}', 'spec': spec, 'kind': kind, 'index': index,
                        'after': list(originals) if kind == 'ours' else []}
@@ -4838,10 +4841,31 @@ def usage():
     sys.exit(__doc__)
 
 
+def read_list(path):
+    """A list file's spec names, and those of them marked `ours` (run in ours only)."""
+    try:
+        with open(path) as f:
+            lines = f.read().splitlines()
+    except OSError as e:
+        raise SpecError(f'--list {path}: {e.strerror}')
+    names, ours_only = [], set()
+    for number, line in enumerate(lines, 1):
+        words = line.split('#', 1)[0].split()
+        if not words:
+            continue
+        if words[1:] not in ([], ['ours']):
+            raise SpecError(f'{path}:{number}: a line is `SPEC [ours]  # comment`')
+        names.append(words[0])
+        if words[1:]:
+            ours_only.add(words[0])
+    return names, ours_only
+
+
 def parse_args(argv):
     opts = {'players': 'ours', 'repeat': 1, 'bless': False, 'hold': None, 'lanes': 1, 'first_lane': FIRST_LANE,
             'last_lane': None, 'displays': None, 'xvfb_run': False, 'perf_wait': True, 'results': None, 'check': False,
-            'status': False, 'clean': False, 'record': False, 'note': None, 'max_wait': None, 'run_id': None, 'names': []}
+            'status': False, 'clean': False, 'record': False, 'note': None, 'max_wait': None, 'run_id': None, 'names': [],
+            'ours_only': set()}
     i = 0
     takes = {'--player': 'players', '--repeat': 'repeat', '--lanes': 'lanes', '--first-lane': 'first_lane',
              '--last-lane': 'last_lane', '--displays': 'displays', '--results': 'results', '--note': 'note',
@@ -4852,6 +4876,13 @@ def parse_args(argv):
             if i + 1 >= len(argv):
                 raise SpecError(f'{a} needs a value')
             opts[takes[a]] = argv[i + 1]
+            i += 1
+        elif a == '--list':
+            if i + 1 >= len(argv):
+                raise SpecError('--list needs a file')
+            names, ours_only = read_list(argv[i + 1])
+            opts['names'] += names
+            opts['ours_only'] |= ours_only
             i += 1
         elif a == '--bless':
             opts['bless'] = True
@@ -4942,7 +4973,7 @@ def main(argv):
     os.environ.pop(OWNER_ENV, None)  # this runner's children carry its own
     try:
         opts = parse_args(argv)
-        specs = [load_spec(n) for n in opts['names']]
+        specs = [dict(load_spec(n), ours_only=n in opts['ours_only']) for n in opts['names']]
         findings = load_findings()
     except (SpecError, ValueError) as e:
         print(f'e2e: {e}', file=sys.stderr)

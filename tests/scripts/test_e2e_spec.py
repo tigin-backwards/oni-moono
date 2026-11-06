@@ -259,6 +259,26 @@ class Arguments(unittest.TestCase):
         self.assertEqual((o['lanes'], o['first_lane'], o['displays'], o['perf_wait'], o['names']),
                          (2, 2, [':88', ':89'], False, ['a', 'b']))
 
+    def test_list(self):
+        with tempfile.NamedTemporaryFile('w', suffix='.txt') as f:
+            f.write('# a comment\n\nearly-base  # play\nupdate-badge ours  # ours only\n')
+            f.flush()
+            o = e2e.parse_args(['--list', f.name, 'census'])
+            self.assertEqual((o['names'], o['ours_only']), (['early-base', 'update-badge', 'census'], {'update-badge'}))
+            f.write('census both\n')
+            f.flush()
+            with self.assertRaises(e2e.SpecError):
+                e2e.parse_args(['--list', f.name])
+        jobs = e2e.plan_jobs([{'name': 'a'}, {'name': 'b', 'ours_only': True}], ['original', 'ours'], 1)
+        self.assertEqual([j['id'] for j in jobs], ['a/original-1', 'a/ours-1', 'b/ours-1'])
+        self.assertEqual(jobs[2]['after'], [])
+
+    def test_shipped_lists(self):
+        for name in ('release.txt', 'periodic.txt'):
+            names, _ = e2e.read_list(os.path.join(e2e.SPECS, name))
+            for n in names:
+                e2e.load_spec(n)
+
     def test_bad(self):
         for argv in (['--lanes', '7', 'a'], ['--lanes', '2', '--displays', ':88', 'a'], ['--player', 'x', 'a'],
                      ['--displays', ':88,:88', 'a'], ['--frob', 'a'], [], ['--lanes']):
