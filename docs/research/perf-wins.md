@@ -1296,6 +1296,65 @@ user's request (above); none was prototyped.
 | Comparers for structs without `IEquatable<T>` | **Rejected**: 24 types, none hot | 0.016 | 0.005 | 0.027 |
 | Pathfinder open list: radix or bucket heap | **Rejected for the main thread** (at most 0.002 ms there). On the probe thread it is 6-7% of the busy time; not worth the ties another queue would bring to floods, which now match the game's | 0.002 (probe thread 15 ms/s) | 0.000 (41 ms/s) | 0.000 (4 ms/s) |
 
+## Transform data layout (2026-11-05)
+
+Would a contiguous-array layout for transform data (positions, parents, world matrices) pay off?
+The bar: transform code at 1 ms a frame or more on c100 or U57, and miss-bound.
+
+### Method
+
+- **Build**: `u60` at `fa786067` with a local measurement patch (not committed): every
+  transform accessor marked `NoInlining` (`position`, `localPosition`, `rotation`, `lossyScale`,
+  the matrices, `TransformPoint`, `parent`, `GetChild`, `childCount`, `.transform` on
+  components and GameObjects, RectTransform's `rect`, anchors, `anchoredPosition`, `sizeDelta`,
+  `pivot`, and `TransformNative`'s world-data getters). In the release build these are inlined
+  into their callers, so a sampled trace charges them to the caller; with them kept as calls,
+  their samples are their own. The call overhead makes the numbers an upper bound.
+- **Trace** (Windows): as in the data-structure phase above (761654, Vulkan defaults, PerfProbe
+  at speed 3 with the busiest world, monitor 2, `--no-focus`, High priority, sound off,
+  `--frame-stats`), `dotnet-trace` for 30 s from 150 s after the busiest world. Main thread in
+  the trace windows: 18.14 ms (52.6-65.6 fps). Another agent's Linux player ran during it
+  (load up to 5.8); the shares are the basis.
+- **Counted as transform code**: `Transform`, `RectTransform`, `TransformNative`,
+  `RectTransformNative`, `Hierarchy`, `HierarchyMath` and the `.transform` getters. Inclusive:
+  any such frame on the stack. Own: only transform code, vector maths and the BCL below the
+  outermost one (not the messages and layout callbacks it sends).
+
+### Results
+
+c100, ms a frame of the main thread:
+
+| | Inclusive | Own |
+|---|---|---|
+| All transform code | **0.103** (0.57%) | **0.074** (0.41%) |
+| · called from the UI packages (uGUI, TextMeshPro) | 0.067 | 0.048 |
+| · called from the game's scripts | 0.022 | 0.017 |
+| · called from our engine (culling, canvases, cameras) | 0.009 | 0.005 |
+| · called from our game tweaks | 0.004 | 0.004 |
+
+- The largest single item is `lossyScale`, 0.031 ms, nearly all from TextMeshPro's
+  `RescaleIfScaleChanged` (each text, each frame). Then `RectTransformNative.SendDimensionsChange`
+  at 0.020 ms inclusive (0.001 own: the rest is the layout callbacks it sends), `position` get
+  0.017 ms (plus `Hierarchy.Position` 0.005), `GetChild` 0.011 ms (`LayoutRebuilder`) and
+  `SetParent` 0.007 ms.
+- World-matrix recompute (`ComputeLocalToWorld`, `LocalTrs`) is 0.008 ms and `MarkDirty`'s
+  propagation 0.005 ms.
+- The largest game caller is `RadiationVulnerable`'s threshold check, 0.005 ms. The per-object
+  readers (KAnim batches, cell-change monitors, sensors) are each 0.001 ms or less.
+- The release build's own traces (the data-structure phase, `f214446a`) show what is left as
+  calls there: 0.025 ms inclusive on c100 and 0.083 ms on U57, where most of it is
+  `Storage.Store`'s `SetParent` (0.054 ms with its messages, 0.014 own) and
+  `NameDisplayScreen.UpdatePos` (0.015 ms).
+- **Not measured**: U57 with the `NoInlining` build (the machine stayed busy with other agents'
+  lanes for over two hours), and the Linux cache counters. At 0.1 ms a frame, a miss rate
+  cannot bring transform code near the 1 ms bar, so they were not needed for the verdict.
+
+### Verdict
+
+**Not worth it.** Transform code is about 0.1 ms a frame on c100 even with its accessors kept
+out of line, a tenth of the bar. No loop over transforms is large enough for array order to
+matter; the biggest, TextMeshPro reading each text's `lossyScale`, is 0.03 ms.
+
 ## Next
 
 - The goal's done-criterion is met: the 761654 final comparison above shows the combined gain
@@ -1307,3 +1366,5 @@ user's request (above); none was prototyped.
 - U57's frame rate needs more than two runs a build to call either way.
 - Data structures (event dispatch, the partitioner, tag lookups, the open list): each under 0.3 ms
   a frame of its own work on every save; none prototyped (above).
+- Transform data layout: about 0.1 ms a frame on c100 with the accessors out of line; not worth
+  a contiguous layout (above).
