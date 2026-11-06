@@ -5,8 +5,9 @@
                  [--results PATH] [--run-id ID] [--record [--note TEXT]] [--hold | --hold-on-fail]
                  [--list FILE] SPEC...
   --list FILE                                the specs FILE names, one a line (tests/e2e/release.txt):
-                                             `SPEC [ours]  # comment`; `ours` runs that spec in ours
-                                             only, even under --player both
+                                             `SPEC [ours] [player-args='ARGS']  # comment`; `ours` runs
+                                             that spec in ours only, even under --player both, and
+                                             player-args adds host arguments to our player for it
   scripts/e2e.py --check SPEC...             parse and validate specs (and known-findings.yaml)
   scripts/e2e.py --status                    the machine's lanes, players and perf jobs, who waits on
                                              what, and what dead runners left (look here first when a
@@ -68,7 +69,7 @@ that tests/e2e/known-findings.yaml explains make a run of ours a warning, not a 
 the hold file in its run folder is removed, for a look through OniMcp and E2eDriver while
 writing a spec; a QA perf stage waiting to start ends it 10 minutes later.
 """
-import contextlib, ctypes, fcntl, glob, hashlib, importlib.util, itertools, json, os, re, shutil, signal, socket, subprocess, sys
+import contextlib, ctypes, fcntl, glob, hashlib, importlib.util, itertools, json, os, re, shlex, shutil, signal, socket, subprocess, sys
 import threading, time, urllib.error, urllib.request, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -2596,8 +2597,9 @@ class Player:
                  translation=None, language=None, keyboard=None, tweaks_menu=False, blocked_plugins=None,
                  data_collection=False, extra_saves=(), retired_colonies=(), display_dpi=None, workshop=None,
                  update_check=None,
-                 stray_plugins=(), game_tweaks=(), extra_env=None, test_mods=(), game_args=()):
+                 stray_plugins=(), game_tweaks=(), extra_env=None, test_mods=(), game_args=(), player_args=()):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
+        self.player_args = list(player_args or ())
         self.game_args = list(game_args or ())
         self.test_mods = list(test_mods or ())
         self.game_tweaks = list(game_tweaks)
@@ -2861,6 +2863,8 @@ class Player:
                        *([] if self.tweaks_menu else ['--no-tweaks-menu']),
                        # E2E_PLAYER_ARGS: more host arguments for our player (e.g. --renderer vulkan).
                        *os.environ.get('E2E_PLAYER_ARGS', '').split(),
+                       # A list file's player-args for this spec (--list).
+                       *self.player_args,
                        # `game_args`: in the Steam form, after the game's executable.
                        *(['--', os.path.join(game, 'OxygenNotIncluded'), *self.game_args] if self.game_args else [])]
             stdout = self.log
@@ -4325,7 +4329,7 @@ class Run:
                                  extra_saves=spec.get('extra_saves', ()),
                                  retired_colonies=spec.get('retired_colonies', ()),
                                  display_dpi=spec.get('display_dpi'), workshop=spec.get('workshop'),
-                                 update_check=spec.get('update_check'),
+                                 update_check=spec.get('update_check'), player_args=spec.get('player_args', ()),
                                  game_tweaks=spec.get('game_tweaks', ()), extra_env=spec.get('env'),
                                  test_mods=spec.get('test_mods', ()), game_args=spec.get('game_args', ()))
             self.mcp.on_reply = self.player.watchdog.progress
@@ -4864,30 +4868,38 @@ def usage():
 
 
 def read_list(path):
-    """A list file's spec names, and those of them marked `ours` (run in ours only)."""
+    """A list file's spec names, and each one's settings from its line: `ours` (ours_only, run in
+    ours only) and player-args='ARGS' (player_args, more host arguments for our player)."""
     try:
         with open(path) as f:
             lines = f.read().splitlines()
     except OSError as e:
         raise SpecError(f'--list {path}: {e.strerror}')
-    names, ours_only = [], set()
+    names, settings = [], {}
     for number, line in enumerate(lines, 1):
-        words = line.split('#', 1)[0].split()
+        try:
+            words = shlex.split(line, comments=True)
+        except ValueError as e:
+            raise SpecError(f'{path}:{number}: {e}')
         if not words:
             continue
-        if words[1:] not in ([], ['ours']):
-            raise SpecError(f'{path}:{number}: a line is `SPEC [ours]  # comment`')
         names.append(words[0])
-        if words[1:]:
-            ours_only.add(words[0])
-    return names, ours_only
+        mine = settings.setdefault(words[0], {})
+        for word in words[1:]:
+            if word == 'ours':
+                mine['ours_only'] = True
+            elif word.startswith('player-args='):
+                mine['player_args'] = word[len('player-args='):].split()
+            else:
+                raise SpecError(f"{path}:{number}: a line is `SPEC [ours] [player-args='ARGS']  # comment`")
+    return names, settings
 
 
 def parse_args(argv):
     opts = {'players': 'ours', 'repeat': 1, 'bless': False, 'hold': None, 'lanes': 1, 'first_lane': FIRST_LANE,
             'last_lane': None, 'displays': None, 'xvfb_run': False, 'perf_wait': True, 'results': None, 'check': False,
             'status': False, 'clean': False, 'record': False, 'note': None, 'max_wait': None, 'run_id': None, 'names': [],
-            'ours_only': set()}
+            'list_settings': {}}
     i = 0
     takes = {'--player': 'players', '--repeat': 'repeat', '--lanes': 'lanes', '--first-lane': 'first_lane',
              '--last-lane': 'last_lane', '--displays': 'displays', '--results': 'results', '--note': 'note',
@@ -4902,9 +4914,9 @@ def parse_args(argv):
         elif a == '--list':
             if i + 1 >= len(argv):
                 raise SpecError('--list needs a file')
-            names, ours_only = read_list(argv[i + 1])
+            names, settings = read_list(argv[i + 1])
             opts['names'] += names
-            opts['ours_only'] |= ours_only
+            opts['list_settings'].update(settings)
             i += 1
         elif a == '--bless':
             opts['bless'] = True
@@ -4995,7 +5007,7 @@ def main(argv):
     os.environ.pop(OWNER_ENV, None)  # this runner's children carry its own
     try:
         opts = parse_args(argv)
-        specs = [dict(load_spec(n), ours_only=n in opts['ours_only']) for n in opts['names']]
+        specs = [dict(load_spec(n), **opts['list_settings'].get(n, {})) for n in opts['names']]
         findings = load_findings()
     except (SpecError, ValueError) as e:
         print(f'e2e: {e}', file=sys.stderr)

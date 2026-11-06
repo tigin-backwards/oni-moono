@@ -86,6 +86,10 @@ player into `%LOCALAPPDATA%\oni-moono\player`. Both print the launch options lin
 
 ## Releases
 
+Before a release, its e2e run is the core list, both players on two lanes (about 40 minutes):
+`scripts/e2e.py --player both --lanes 2 --list tests/e2e/release.txt`. The specs it leaves out,
+in `tests/e2e/periodic.txt`, run periodically and do not block a release.
+
 ```sh
 MOONO_RELEASE=vYYYY.MM.DD.NN scripts/release.sh   # out/release: the Windows zip and the Linux tar.gz
 gh release create vYYYY.MM.DD.NN out/release/oni-moono-*.zip out/release/oni-moono-*.tar.gz \
@@ -156,6 +160,7 @@ scripts/check.sh               # before every commit
 scripts/qa.sh [STAGE...]       # the full harness: unit, dogfood, verify, perf
 scripts/qa.sh --memory         # U57's peak memory alone, beside other runs
 scripts/e2e.py SPEC...         # end-to-end specs: tests/e2e
+scripts/e2e.py --player both --lanes 2 --list tests/e2e/release.txt   # release QA's e2e run
 scripts/e2e.py --status        # what runs, holds and waits on the machine: look here first
 ```
 
