@@ -33,9 +33,10 @@ namespace OniMoono.GameTweaks
     /// is kept (the game's own behaviour). While another Harmony owner patches CreateRenderTarget
     /// (a mod freeing these itself), the tweak frees nothing.
     ///
-    /// With ONI_TWEAK_VERIFY=1, before each release every material's textures, every component's
-    /// fields holding textures (or arrays or lists of them) and the checks above are searched for
-    /// the texture: a reference found is counted wrong, and the texture is kept.
+    /// With ONI_TWEAK_VERIFY=1, before each release every material's textures (those its shader
+    /// declares), every component's fields holding textures (or arrays or lists of them) and the
+    /// checks above are searched for the texture: a reference found is counted wrong, and the
+    /// texture is kept.
     public static class FastOverlayTextures
     {
         public const string Name = "fast-overlay-textures";
@@ -176,12 +177,27 @@ namespace OniMoono.GameTweaks
                         break;
                 }
             }
+            // GetTexture of a property the shader does not declare as a texture logs Unity's
+            // error (which the game's crash reporter turns into an exit code 1 at quit), so
+            // only the shader's texture properties are read, as Unity lets them be.
             var ids = new List<int>();
+            var shaderTextures = new Dictionary<Shader, HashSet<int>>();
             foreach (var material in Resources.FindObjectsOfTypeAll<Material>())
             {
+                var shader = material.shader;
+                if (shader == null) continue;
+                if (!shaderTextures.TryGetValue(shader, out var declared))
+                {
+                    declared = new HashSet<int>();
+                    for (int i = 0, n = shader.GetPropertyCount(); i < n; i++)
+                        if (shader.GetPropertyType(i) == UnityEngine.Rendering.ShaderPropertyType.Texture)
+                            declared.Add(shader.GetPropertyNameId(i));
+                    shaderTextures[shader] = declared;
+                }
                 ids.Clear();
                 material.GetTexturePropertyNameIDs(ids);
-                foreach (var id in ids) Look(material.GetTexture(id));
+                foreach (var id in ids)
+                    if (declared.Contains(id)) Look(material.GetTexture(id));
             }
             foreach (var component in Resources.FindObjectsOfTypeAll<MonoBehaviour>())
             {
