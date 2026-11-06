@@ -659,6 +659,52 @@ static ULONG64 dump_size;
 static char runtime_text[RUNTIME_TEXT_MOST];
 static DWORD runtime_length;
 
+/* A heap failure (0xC0000374): the exception's first parameter points at ntdll's record of it
+ * (the heap, the damaged block, the blocks before and after it, the stack that found it), which
+ * the minidump otherwise leaves out with the rest of ntdll's data. The dump gets the record and
+ * 1 KB around each address in it that points into the game's private read-write memory. */
+static struct { ULONG64 at; ULONG size; } extra[16];
+static int extra_count, extra_next;
+
+static void heap_failure_memory(void)
+{
+    if (shared->record.ExceptionCode != STATUS_HEAP_CORRUPTION_CODE || shared->record.NumberParameters < 1) return;
+    ULONG64 info = shared->record.ExceptionInformation[0], words[12];
+    SIZE_T got = 0;
+    if (!info || !ReadProcessMemory(game, (void *)info, words, sizeof words, &got) || got != sizeof words) return;
+    extra[extra_count].at = info;
+    extra[extra_count++].size = 0x200;
+    for (int i = 0; i < 12 && extra_count < 16; i++)
+    {
+        MEMORY_BASIC_INFORMATION m;
+        if (words[i] < 0x10000 || !VirtualQueryEx(game, (void *)words[i], &m, sizeof m)) continue;
+        if (m.State != MEM_COMMIT || m.Type != MEM_PRIVATE || (m.Protect & PAGE_GUARD)
+            || !(m.Protect & (PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY))) continue;
+        ULONG64 base = (ULONG64)m.BaseAddress, end = base + m.RegionSize;
+        ULONG64 from = words[i] - base > 512 ? words[i] - 512 : base, to = end - words[i] > 512 ? words[i] + 512 : end;
+        extra[extra_count].at = from;
+        extra[extra_count++].size = (ULONG)(to - from);
+    }
+}
+
+/* Adds the memory above to the dump; the rest as without a callback. */
+static BOOL CALLBACK dump_callback(void *context, PMINIDUMP_CALLBACK_INPUT in, PMINIDUMP_CALLBACK_OUTPUT out)
+{
+    (void)context;
+    switch (in->CallbackType)
+    {
+    case IncludeModuleCallback: case IncludeThreadCallback: case ModuleCallback: case ThreadCallback: case ThreadExCallback:
+        return TRUE;
+    case MemoryCallback:
+        if (extra_next >= extra_count) return FALSE;
+        out->MemoryBase = extra[extra_next].at;
+        out->MemorySize = extra[extra_next++].size;
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
 /* The minidump beside the log, the game suspended meanwhile, once. `with_fault`: the fault the
  * game noted, as the dump's exception. */
 static void write_dump(int with_fault)
@@ -692,16 +738,23 @@ static void write_dump(int with_fault)
             {
                 if (suspend) suspend(game);
                 MINIDUMP_EXCEPTION_INFORMATION fault = { shared->seen_thread, (PEXCEPTION_POINTERS)shared->pointers_in_game, TRUE };
-                /* --crash-dumps full: the process's private read-write memory (every heap, the
-                 * runtime's included; not the mapped images and files, which the debugger reads
-                 * from disk) with the modules' data sections (ntdll's heap globals and its record
-                 * of a heap failure, which !heap needs to decode the heaps), and the layout of
-                 * all memory (!address). */
-                MINIDUMP_TYPE type = MiniDumpNormal | MiniDumpWithThreadInfo | MiniDumpWithUnloadedModules;
+                /* The threads' registers and stacks, 1 KB around each value on them that points
+                 * into readable memory (a heap block, an object: MiniDumpWithIndirectly-
+                 * ReferencedMemory) and a heap failure's record with the blocks it names
+                 * (heap_failure_memory). --crash-dumps full: the process's private read-write memory
+                 * (every heap, the runtime's included; not the mapped images and files, which the
+                 * debugger reads from disk) with the modules' data sections (ntdll's heap globals
+                 * and its record of a heap failure, which !heap needs to decode the heaps), and the
+                 * layout of all memory (!address). */
+                MINIDUMP_TYPE type = MiniDumpNormal | MiniDumpWithThreadInfo | MiniDumpWithUnloadedModules
+                                   | MiniDumpWithIndirectlyReferencedMemory;
                 if (shared->dumps == 2)
                     type |= MiniDumpWithPrivateReadWriteMemory | MiniDumpWithDataSegs | MiniDumpWithFullMemoryInfo
                             | MiniDumpWithHandleData | MiniDumpIgnoreInaccessibleMemory;
-                BOOL ok = write(game, GetProcessId(game), file, type, with_fault ? &fault : NULL, NULL, NULL);
+                extra_count = extra_next = 0;
+                if (with_fault) heap_failure_memory();
+                MINIDUMP_CALLBACK_INFORMATION callback = { dump_callback, NULL };
+                BOOL ok = write(game, GetProcessId(game), file, type, with_fault ? &fault : NULL, NULL, &callback);
                 if (resume) resume(game);
                 LARGE_INTEGER size;
                 if (ok && GetFileSizeEx(file, &size)) dump_size = (ULONG64)size.QuadPart;
