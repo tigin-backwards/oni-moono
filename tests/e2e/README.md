@@ -169,7 +169,7 @@ spaced_out: false                # Spaced Out off in both players (default: the 
 translation: 929139073           # the language of this translation mod (one of `mods`), picked in the prefs
 language: zh_klei                # or one of the game's own languages (zh_klei, ko_klei, ru_klei)
 tweaks_menu: true                # ours keeps the main menu's Moono Tweaks button (run with --player ours)
-game_tweaks: [slow-reachability] # ours runs with these `--game-tweak` values after E2E_GAME_TWEAKS's
+game_tweaks: [brain-rate]        # ours runs with these `--game-tweak` values after E2E_GAME_TWEAKS's
 env: {ONI_TWEAK_VERIFY: "1"}     # ours runs with these in its environment (ONI_TWEAK_SETTINGS: "1":
                                  # no --game-tweak at all, the tweaks as a player has them)
 scaled_screen: true              # the game may render smaller than the display (below)

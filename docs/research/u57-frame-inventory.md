@@ -148,7 +148,8 @@ Columns: ms per frame (main thread), count of the objects involved where known, 
   ms. Skipping the looping entries without events would need their elapsed time deferred, and
   their per-frame float additions replayed, to stay exact.
 - **Reachability every 4 game seconds: 1.88 → 0.53 ms.** Done (`slow-reachability`, changes
-  behaviour, docs/PLAN.md). Slowing only stored items (most of the 27,000 pickupables) gained
+  behaviour, docs/PLAN.md; since replaced by `instant-reachability`, which rechecks only what
+  changed). Slowing only stored items (most of the 27,000 pickupables) gained
   nothing: the test for being stored reads the item, which is most of the check's cost.
 - **Sublimation, batched with exact skips: 1.45 → about 1.0 ms.** Done (`fast-sublimation`,
   docs/PLAN.md). The earlier exact early-out gained nothing because it still entered each item;

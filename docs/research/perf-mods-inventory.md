@@ -388,7 +388,9 @@ performance).
   - Mods: Fast Track `FastReachability`.
   - What it changes: `ReachabilityMonitor`.
   - Exact: No. It uses a prober of its own that refreshes every 4 s.
-  - In Moono: `slow-reachability`, which isn't exact either. Its delay is one the project accepts.
+  - In Moono: `instant-reachability` (on by default), which rechecks only what changed, with the
+    game's own check: the answers are the game's, up to a second sooner. It replaced
+    `slow-reachability` (every 4 s instead of every second).
   - Measured gain: 1.88 → 0.53 ms.
 - **A walking Duplicant stays "moving" between sim sub-ticks**: not applicable.
   - Mods: ONI Perf `moveHold` (off by default).
@@ -641,7 +643,7 @@ achievement tracker, `TrackerTool` and `SuitMarker` of 8 were measured and dropp
    `BrainScheduler.RenderEveryTick` time at speed 3 on U57 and Gluttony, then the same with the
    probe count scaled to a real-time allowance (ONI Perf's "spread" form, which keeps the frames
    even). This changes when Duplicants decide, so it needs the user's call on whether it belongs
-   with the timing tweaks (like `slow-reachability`) or not at all.
+   with the timing tweaks (like `brain-rate`) or not at all.
 2. **Switched-off effects left out of the cell-change and animation lists** (ONI Perf `markSkip` and
    `parkAnims`, both on by default there, near exact). Every Duplicant carries 14 laser-effect
    children, almost always off, which are still marked dirty whenever it moves and then put on the

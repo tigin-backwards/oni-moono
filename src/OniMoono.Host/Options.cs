@@ -215,10 +215,15 @@ namespace OniMoono.Host
                     case "--game-tweak":
                     {
                         var name = args[++i];
-                        if (OniMoono.Host.GameTweaks.GameTweakNames.IsRetired(name))
+                        if (OniMoono.Host.GameTweaks.GameTweakNames.IsRetired(name, out var replacement))
                         {
-                            Console.Error.WriteLine($"Game tweak {name} is no longer part of Moono: the game fixes it now; ignored");
-                            break;
+                            if (replacement == null)
+                            {
+                                Console.Error.WriteLine($"Game tweak {name} is no longer part of Moono: the game fixes it now; ignored");
+                                break;
+                            }
+                            Console.Error.WriteLine($"Game tweak {name} is replaced by {replacement}; using that");
+                            name = replacement;
                         }
                         if (!OniMoono.Host.GameTweaks.GameTweakNames.IsKnown(name))
                         {

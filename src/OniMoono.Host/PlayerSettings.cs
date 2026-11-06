@@ -19,7 +19,7 @@ namespace OniMoono.Host
     /// defaults, so a default that changes in an update (a new tweak among them) reaches every user
     /// who has not chosen otherwise:
     ///
-    ///     { "gameTweaks": { "slow-reachability": true, "fast-jobs": false }, "splash": "moo", "frameStats": true, "logPaths": "full", "gpu": "discrete", "renderer": "opengl",
+    ///     { "gameTweaks": { "brain-rate": true, "fast-jobs": false }, "splash": "moo", "frameStats": true, "logPaths": "full", "gpu": "discrete", "renderer": "opengl",
     ///       "dxgi": false, "updateCheck": false, "gc": "low-memory" }
     ///
     /// Tweaks no longer known (one removed in an update) are ignored and kept.

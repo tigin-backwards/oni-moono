@@ -171,8 +171,6 @@ namespace OniMoono.Host.GameTweaks
             new(InstantReachability, ChangesGameplay, "Instant reachability checks", "Duplicants notice a newly opened or blocked path at once, using less CPU.",
                 "Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. "
                 + "The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second.", OnByDefault: true),
-            new("slow-reachability", ChangesGameplay, "Slower reachability checks", "Duplicants notice a newly opened or blocked path up to 3 s later.",
-                "Which errands and items can be reached is rechecked every 4 s instead of every second; temperature and building checks are never delayed."),
             new("off-screen-conveyors", ChangesGameplay, "Lazy unseen conveyor items", "Items riding rails off screen are placed only when they stop or come into view.",
                 "The rails carry exactly the same things, but items' positions lag while off screen."),
             new("brain-rate", ChangesGameplay, "Critter and dupe brain updates capped at 30 updates a second", "Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps.",
@@ -190,7 +188,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "fix-disease-overlay-crash", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "fix-disease-overlay-crash", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
@@ -203,16 +201,33 @@ namespace OniMoono.Host.GameTweaks
         /// default all the same (OnByDefault).
         public static readonly string[] OffByDefault = Rows.Where(r => r.IsTweak && (r.Group.ChangesGameplay || r.ChangesBehaviour) && !r.OnByDefault).Select(r => r.Id).ToArray();
 
+        /// Tweaks this build no longer has, and the tweak that took each one's place (null: none, the
+        /// game fixes it now). A launch option naming one names its replacement instead, or is
+        /// ignored, with a line on stderr (Options); a settings file's entry is ignored and kept, as
+        /// any unknown tweak's (PlayerSettings). fix-endless-sounds: U60 762107's sound sheets loop
+        /// both rows. slow-reachability (checked every 4 s instead of every second):
+        /// instant-reachability checks only what changed, sooner and for less.
+        public static readonly (string Old, string? New)[] Retired = [("fix-endless-sounds", null), ("slow-reachability", InstantReachability)];
+
+        /// Whether a `--game-tweak` value names a retired tweak, with the value naming its
+        /// replacement (with its `-` when the name has one), or null when none took its place.
+        public static bool IsRetired(string name, out string? replacement)
+        {
+            bool minus = name.StartsWith('-');
+            var bare = minus ? name.Substring(1) : name;
+            foreach (var (old, successor) in Retired)
+                if (old == bare)
+                {
+                    replacement = successor == null ? null : minus ? "-" + successor : successor;
+                    return true;
+                }
+            replacement = null;
+            return false;
+        }
+
         /// A `--game-tweak` value: a tweak's name, `-NAME` (left out of `all` or `exact`, for
         /// measuring one against the rest), `all`, `exact` (all but ChangingBehaviour) or `none`
         /// (no tweak unless one is named, whatever the settings file says: test runs).
-        /// Tweaks this build no longer has, because the game fixed what they fixed: a launch option
-        /// naming one is ignored with a line on stderr (Options), a settings file's entry is ignored
-        /// and kept (PlayerSettings). fix-endless-sounds: U60 762107's sound sheets loop both rows.
-        public static readonly string[] Retired = ["fix-endless-sounds"];
-
-        public static bool IsRetired(string name) => Array.IndexOf(Retired, name.StartsWith('-') ? name.Substring(1) : name) >= 0;
-
         public static bool IsKnown(string name) => name is "all" or "exact" or "none" || Array.IndexOf(All, name.StartsWith('-') ? name.Substring(1) : name) >= 0;
 
         /// A row's gain as its tooltip shows it (the screen styles it), with the gain it comes
