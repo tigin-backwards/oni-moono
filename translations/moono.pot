@@ -665,21 +665,6 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.INSTANT_REACHABILITY.DETAIL"
 msgid "Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second."
 msgstr ""
 
-#. Row title (slow-reachability)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SLOW_REACHABILITY.TITLE"
-msgid "Slower reachability checks"
-msgstr ""
-
-#. The line under the title (slow-reachability)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SLOW_REACHABILITY.EFFECT"
-msgid "Duplicants notice a newly opened or blocked path up to 3 s later."
-msgstr ""
-
-#. Tooltip: how it works (slow-reachability)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SLOW_REACHABILITY.DETAIL"
-msgid "Which errands and items can be reached is rechecked every 4 s instead of every second; temperature and building checks are never delayed."
-msgstr ""
-
 #. Row title (off-screen-conveyors)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_SCREEN_CONVEYORS.TITLE"
 msgid "Lazy unseen conveyor items"

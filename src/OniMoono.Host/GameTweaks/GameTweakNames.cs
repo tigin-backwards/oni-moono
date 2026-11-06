@@ -167,8 +167,6 @@ namespace OniMoono.Host.GameTweaks
             new(InstantReachability, ChangesGameplay, "Instant reachability checks", "Duplicants notice a newly opened or blocked path at once, using less CPU.",
                 "Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. "
                 + "The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second.", OnByDefault: true),
-            new("slow-reachability", ChangesGameplay, "Slower reachability checks", "Duplicants notice a newly opened or blocked path up to 3 s later.",
-                "Which errands and items can be reached is rechecked every 4 s instead of every second; temperature and building checks are never delayed."),
             new("off-screen-conveyors", ChangesGameplay, "Lazy unseen conveyor items", "Items riding rails off screen are placed only when they stop or come into view.",
                 "The rails carry exactly the same things, but items' positions lag while off screen."),
             new("brain-rate", ChangesGameplay, "Critter and dupe brain updates capped at 30 updates a second", "Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps.",
@@ -187,7 +185,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
@@ -199,6 +197,23 @@ namespace OniMoono.Host.GameTweaks
         /// The tweaks off by default: those that change what the game does, but those on by
         /// default all the same (OnByDefault).
         public static readonly string[] OffByDefault = Rows.Where(r => r.IsTweak && (r.Group.ChangesGameplay || r.ChangesBehaviour) && !r.OnByDefault).Select(r => r.Id).ToArray();
+
+        /// Tweaks this build no longer has, and the one that took each one's place: a launch
+        /// option naming one names its replacement instead, with a line on stderr (Options); a
+        /// settings file's entry is ignored and kept, as any unknown tweak's (PlayerSettings).
+        /// slow-reachability (checked every 4 s instead of every second): instant-reachability
+        /// checks only what changed, sooner and for less.
+        public static readonly (string Old, string New)[] Replaced = [("slow-reachability", InstantReachability)];
+
+        /// The tweak replacing a retired one (with its `-` when the name has one), or null.
+        public static string? ReplacedBy(string name)
+        {
+            bool minus = name.StartsWith('-');
+            var bare = minus ? name.Substring(1) : name;
+            foreach (var (old, replacement) in Replaced)
+                if (old == bare) return minus ? "-" + replacement : replacement;
+            return null;
+        }
 
         /// A `--game-tweak` value: a tweak's name, `-NAME` (left out of `all` or `exact`, for
         /// measuring one against the rest), `all`, `exact` (all but ChangingBehaviour) or `none`

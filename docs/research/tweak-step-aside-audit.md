@@ -98,7 +98,7 @@ replaces `KAnimBatch.UpdateDirty`), `fast-overlays`' power cache for Colony Perf
 |---|---|---|---|---|
 | 15 | `brain-rate` | Its `BrainScheduler.RenderEveryTick` prefix (400, returns false) skips the later gating prefixes: Fast Track's (priority 200, `PickupOpts`, on by default), which runs the brain groups through its asynchronous updater, never runs; neither does Cooperative Colonies' lockstep gate. | Fast Track 0.18.5/0.18.6; Cooperative Colonies (3824584976, rank 2591); CycleTrim (3807166689, rank 2716) caps creature brains in `BrainGroup.RenderEveryTick` too. | Global, rechecked: while another owner patches `RenderEveryTick`, return true. Fewer `Brain.UpdateBrain` calls (Multiplayer Mod 3728274068, Cooperative Colonies) is what the tweak is for. |
 | 16 | `off-screen-conveyors` | Same shape on `SolidConduitFlow.RenderEveryTick`: Cooperative Colonies' lockstep gate is skipped. Postfixes (Controlled Visuals 3672588272, Multi Channel Utilities 3821447025) still run. | Cooperative Colonies. | Global, rechecked: a foreign prefix that returns bool, or a transpiler, on `RenderEveryTick`: return true. |
-| 17 | `slow-reachability` | Fast Track's *FastReachability* (on by default) replaces `ReachabilityMonitor.InitializeStates`, so the tweak's transpiler never runs: no effect, no harm. | Fast Track. | Log that it has no effect. |
+| 17 | `instant-reachability` (was `slow-reachability`) | Fast Track's *FastReachability* (on by default) replaces `ReachabilityMonitor.InitializeStates`, and *PickupOpts* patches `OffsetTracker.GetOffsets`. | Fast Track. | Done: the tweak stands down for the session when another owner patches a method it relies on, logged once. |
 | 18 | `off-world-fallers` | Compatible with the known `GravityComponents.FixedUpdate` patches: Bubbles Bathtub (3286559448, rank 447) and Floating[fix] (3501501795) read-only prefixes, Floatation (1751123054, broken upstream), Cooperative Colonies (a gating prefix and a transpiler on `GetInstanceID` calls), Fast Track's *NoSplash* transpiler (on `IsVisiblyInLiquid` and the splash sound). | – | Only #14. |
 
 ## Per tweak
@@ -325,7 +325,6 @@ prefix is at `Priority.Last` and checks `__runOriginal`.
 | `off-screen-conveyors` | `SolidConduitFlow.RenderEveryTick` | R (prefix 400) | no (#16) | Cooperative Colonies (gating prefix), Controlled Visuals, Multi Channel Utilities (postfixes) |
 | | `Transform.SetPosition` of items | F (the point) | – | – |
 | | `SolidConduitFlow.RemovePickupable` | W (prefix) | – | Ronivan's Legacy, Utility Layers, Insulated Solid Conduit |
-| `slow-reachability` | `ReachabilityMonitor.InitializeStates` | R (transpiler: a constant) | no (#17) | Fast Track (replaces it) |
 | `instant-reachability` | `ReachabilityMonitor.InitializeStates`, `Instance.UpdateReachability`, `MinionGroupProber`'s readers and writers, `Workable.GetCell`/`GetOffsets`/`SetOffsets`/`SetOffsetTable`, `Pickupable.GetCell`/`UpdateCachedCell`, `Diggable.GetCell`, `Unsealable.GetOffsets`, `OffsetTracker.GetOffsets`, `OffsetTableTracker.UpdateOffsets`/`UpdateCell`/`OnCellChanged` | R (prefixes returning false on the writers, root state enter and exit) + W (postfixes) | yes: any other owner's patch on one of them stands it down for the session, checked once when the monitor's states are made | Fast Track *FastReachability* (replaces `InitializeStates`) and *PickupOpts* (`OffsetTracker.GetOffsets`) |
 | `off-world-fallers` | `GravityComponents.FixedUpdate` | R (transpiler: `Grid.IsValidCellInWorld` call site) + W (postfix) | no (#18) | Bubbles Bathtub, Floating[fix], Floatation, Cooperative Colonies, Fast Track |
 | `fix-disease-overlay-crash` (u60) | `CellChangeMonitor.RenderEveryTick` | W (read-only prefix, edits the dictionary) | – | Fast Track *FastReachability* (replaces it: the fix then does nothing), Cooperative Colonies |
@@ -375,7 +374,7 @@ The test proves the foreign patch runs as in the original, in both players:
   - Smarter Conditioner (#5): the Power overlay's tint of a Thermo Regulator circuit, and
     `count` on its getter, match the original's.
   - Fast Track (#15, #17) and Cooperative Colonies (#15, #16) with `brain-rate`,
-    `off-screen-conveyors` and `slow-reachability` on: the log line that the tweak stepped
+    `off-screen-conveyors` and `instant-reachability` on: the log line that the tweak stepped
     aside, and `count` on Fast Track's `AsyncBrainGroupUpdater.StartBrainCollect` above 0.
   - Fast Save and Mod Profile Manager (#12): an autosave with Fast Save's background save,
     loaded back; Mod Profile Manager's list read right after a pause-menu save.
@@ -402,7 +401,8 @@ The test proves the foreign patch runs as in the original, in both players:
 - **`fast-anim-events` copies two methods Fast Track patches** (`PlayEvents`/`StopEvents`).
 - **Fast Track already turns three tweaks into no-ops:** `fast-anim-batches` (steps aside),
   `fast-particle-collision` (Fast Track's `CheckCollision` prefix returns false) and
-  `slow-reachability` (Fast Track replaces `InitializeStates`); on u60 also
+  `slow-reachability` (Fast Track replaces `InitializeStates`; its successor
+  `instant-reachability` stands down for it); on u60 also
   `fix-disease-overlay-crash`.
 - **Background save under Fast Save's background autosave** is a second background write
   behind the first; it works on paper, untested.

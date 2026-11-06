@@ -29,6 +29,16 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void AReplacedTweakNamesItsReplacement()
+        {
+            // slow-reachability gave way to instant-reachability: a launch option naming it still
+            // starts the player, with the new one (and `-NAME` leaves the new one out).
+            var o = Options.Parse(["--game-tweak", "slow-reachability", "--game-tweak", "-slow-reachability", "--", Exe])!;
+            Assert.Equal(new[] { "instant-reachability", "-instant-reachability" }, o.GameTweaks);
+            Assert.Null(Options.Parse(["--game-tweak", "no-such-tweak", "--", Exe]));
+        }
+
+        [Fact]
         public void EverythingAfterTheGamesExecutableIsTheGames()
         {
             // Steam's command: its wrappers (with a `--` of their own), then the game's executable.
