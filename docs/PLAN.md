@@ -388,12 +388,15 @@ unchanged.
   each time) kept per type; the same answers. U57: CoreCLR's share of a save 19% → 8%, saves
   about 12% shorter (4.17 → 3.66 s averaged over five).
 
-- `slow-reachability` (**changes behaviour**): ReachabilityMonitor re-checks each workable every
-  4 game seconds instead of every second (still spread across frames), so a workable whose
-  reachability changes (a door, a dug or blocked path) is seen up to 3 game seconds later and its
-  errands become available or are dropped that much later. U57: 1.88 → 0.53 ms a frame. A version
-  that slowed only items in storage gained nothing: telling whether an item is stored reads the
-  item, which is most of what the check costs.
+- `instant-reachability` (**changes timing**, on by default): ReachabilityMonitor's answers are
+  rechecked, with the game's own UpdateReachability, only when an input changed: a cell's count of
+  Duplicants reaching it crossing 0 (MinionGroupProber's writers), the object's cell, or its work
+  offsets. The answers are the game's, up to a game second sooner than its once-a-second poll.
+  U57 (Linux, 2026-11-06): 0.42–0.47 → 0.010–0.014 ms a frame; 27,600 objects covered, none left
+  to the poll; at load 42,500 crossed cells, then about one a second and 900 moves a second
+  (items on rails and falling). Verify mode: every covered object against a fresh check every
+  few frames. It replaced `slow-reachability` (every 4 game seconds, 1.88 → 0.53 ms in the
+  U57 inventory, answers up to 3 s late).
 
 - `fast-partitioner-cleanup`: ScenePartitioner.Sim1000ms looks up every entry of every node
   dirtied since its last run (every insertion dirties its nodes too) to drop freed handles.
