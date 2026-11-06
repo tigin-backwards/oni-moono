@@ -156,6 +156,9 @@ options:                         # PLib options, merged into the mod's config.js
   SweepByType: {DisableIcons: true}       # by static ID (or Workshop ID)
   "2890083659": {$file: MiniBox.json, Wires: 3.0}   # a [ConfigFile] name other than config.json
 require_log: ['\[SweepByType\] options saved']   # regexes: in the original's log -> must be in ours
+expect_log: ['renderer: Vulkan']  # regexes: must be in every run's log, original or not
+allowed_signatures: []           # ours with no original's evidence (an ours-only spec): fails on any
+                                 # log signature none of these regexes match ([] allows none)
 mask_text: ['\d+:\d+', 'Cycle \d+']      # masked in every ui_dump's text before the diff
 ignore_fields: [depth]           # NAME=VALUE members left out of every ui_dump's diff
 tolerance: 2                     # ui_dump rect tolerance in pixels (default 2)
@@ -393,9 +396,13 @@ step. The original run itself records it and passes.
 - shot: {name: dialog, crop: "**/Dialog", threshold: 0.04}     # a text-dense screen
 - shot: overview                                               # the whole frame
 - world_shot: {name: zoomed, ortho: 45, at: [128, 210], hide_ui: true, mask: [[600, 300, 80, 80]]}
+- world_shot: {name: plain, varied: true}                     # also fails at once if it looks blank
 - file_shot: {name: preview, path: "save_files/e2e/e2e.png"}   # an image the game wrote in the profile
 ```
 
+- `varied: true` on a `shot` or `world_shot` fails the step when the image looks blank: one colour
+  over 90 % of it, or fewer than 32 colours at 4 bits a channel. It is the image check of an
+  ours-only spec (u60/vk-gate.yaml), which has no original's shot to compare with.
 - `file_shot` copies an image the game wrote into the run's profile (a save's colony preview, a
   timelapse frame; `path` relative to the profile, a glob's newest match) into the evidence, once
   it exists and its size holds for a second (`wait`, default 60 s), and compares it as a

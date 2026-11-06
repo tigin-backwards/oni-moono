@@ -1,4 +1,4 @@
-# Release QA's core e2e list (u60), about 50 minutes on two lanes:
+# Release QA's core e2e list (u60), about 40 minutes on two lanes:
 #   scripts/e2e.py --player both --lanes 2 --list tests/e2e/release.txt
 # One spec a line, `SPEC [ours] [player-args='ARGS']  # comment`; `ours` runs it in ours only
 # (the original has no such tweak or screen), against the references --bless stored, and
@@ -6,8 +6,8 @@
 # QA's player times, original + ours (est: master's, where u60's run home's mod gate skipped the
 # spec). Longest first, so the lanes even out. Everything else: tests/e2e/periodic.txt.
 
-# The Vulkan gate: ours on Vulkan, U60's Linux default, against the original's default renderer
-u60/vk-smoke player-args='--renderer vulkan'  # 1055+352 (a 2026-11-02 run), 15 GB: overlays, screens, save and load
+# The Vulkan gate: ours alone on Vulkan, U60's Linux default
+u60/vk-gate ours player-args='--renderer vulkan'  # 140, 6 GB: a colony at speed 3, overlays, research; no fallback, no errors, no blank shots
 
 # Play and the engine under it
 late-patch                          # 331+93: Harmony patch reaching tiered-up JIT code (D34)

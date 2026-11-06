@@ -87,7 +87,7 @@ player into `%LOCALAPPDATA%\oni-moono\player`. Both print the launch options lin
 
 ## Releases
 
-Before a release, its e2e run is the core list, both players on two lanes (about 50 minutes):
+Before a release, its e2e run is the core list, both players on two lanes (about 40 minutes):
 `scripts/e2e.py --player both --lanes 2 --list tests/e2e/release.txt`. The specs it leaves out,
 in `tests/e2e/periodic.txt`, run periodically and do not block a release.
 

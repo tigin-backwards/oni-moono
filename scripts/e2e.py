@@ -172,7 +172,7 @@ TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 
             'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
             'keyboard', 'tweaks_menu', 'scaled_screen', 'blocked_plugins', 'stray_plugins', 'data_collection',
             'extra_saves', 'retired_colonies', 'display_dpi', 'workshop', 'update_check', 'game_tweaks', 'env',
-            'test_mods', 'game_args'}
+            'test_mods', 'game_args', 'expect_log', 'allowed_signatures'}
 # `game_args`: arguments for the game itself, after the original's own (its executable's
 # arguments) and after the game's executable in our Steam form (`-- GAME-EXECUTABLE ARGS`), which
 # passes them on to the game (#53).
@@ -381,6 +381,16 @@ def check_spec(spec):
     game_args = spec.get('game_args', [])
     if not isinstance(game_args, list) or not all(isinstance(a, str) for a in game_args):
         problems.append('`game_args` is a list of strings')
+    for key in ('expect_log', 'allowed_signatures'):
+        patterns = spec.get(key, [])
+        if not isinstance(patterns, list) or not all(isinstance(x, str) for x in patterns):
+            problems.append(f'`{key}` is a list of regexes')
+        else:
+            for x in patterns:
+                try:
+                    re.compile(x)
+                except re.error as e:
+                    problems.append(f'`{key}`: {x!r} is no regex ({e})')
     extra_env = spec.get('env', {})
     if not isinstance(extra_env, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in extra_env.items()):
         problems.append('`env` maps names to strings')
@@ -4229,6 +4239,8 @@ class Run:
         with open(os.path.join(self.out, name + '.shot.json'), 'w') as f:
             json.dump(meta, f)
         self.evidence['shot'].append(meta)
+        if value.get('varied') and (problem := varied_problem(path)):
+            raise SpecFailure(f'shot {name} looks blank: {problem}')
 
     def world_shot(self, value):
         name = value['name']
@@ -4261,6 +4273,8 @@ class Run:
         with open(os.path.join(self.out, name + '.shot.json'), 'w') as f:
             json.dump(meta, f)
         self.evidence['world_shot'].append(meta)
+        if value.get('varied') and (problem := varied_problem(path)):
+            raise SpecFailure(f'world_shot {name} looks blank: {problem}')
 
     def expect_exit(self, value):
         """The player quits by itself (Quit to Desktop): waits for its process to end, with
@@ -4646,6 +4660,32 @@ def bless(spec, result):
     os.rename(temp, folder)
     shutil.rmtree(old, ignore_errors=True)
     return folder
+
+
+def ours_alone(spec, result):
+    """An ours-only spec's own check, with no original's evidence: every log signature of ours
+    must match one of its `allowed_signatures` (regexes; [] allows none)."""
+    allowed = spec.get('allowed_signatures') or []
+    new = sorted(s for s in result['signatures'] if not any(re.search(p, s) for p in allowed))
+    reasons = [f'{len(new)} log signature(s) allowed_signatures does not allow'] if new else []
+    return {'signatures': {'new': new, 'allowed': allowed}}, reasons
+
+
+def varied_problem(path):
+    """Why a shot looks blank (one colour over 90 % of it, or under 32 colours at 4 bits a
+    channel), or None. For ours-only specs, which have no original's shot to compare with."""
+    from PIL import Image
+    image = Image.open(path).convert('RGB')
+    image.thumbnail((320, 320))
+    colours = image.point(lambda v: v >> 4).getcolors(4096) or []
+    if not colours:
+        return None  # more than 4096 colours
+    top = max(colours)[0] / (image.width * image.height)
+    if top > 0.9:
+        return f'{top:.0%} of it is one colour'
+    if len(colours) < 32:
+        return f'it has only {len(colours)} colours'
+    return None
 
 
 def differential(spec, result, reference, findings=None):
@@ -5105,6 +5145,13 @@ def main(argv):
                 checks, more = differential(spec, result, reference, findings)
                 record['checks'] = checks
                 reasons += more
+            elif 'allowed_signatures' in spec:
+                checks, more = ours_alone(spec, result)
+                record['checks'] = checks
+                reasons += more
+        missing = [p for p, found in log_matches(result['log'], spec.get('expect_log', [])).items() if not found]
+        if missing:
+            reasons.append('expected log lines missing: ' + ', '.join(missing))
         record['findings'] = checks.get('findings', [])
         record.update(verdict='fail' if reasons else 'warn' if record['findings'] else 'pass', reasons=reasons)
         if opts['bless'] and kind == 'original' and not result['outcome'] and index == 1:

@@ -212,6 +212,32 @@ steps:
         self.assertEqual(len(e2e.check_spec(s)), 1)
 
 
+class OursAlone(unittest.TestCase):
+    def test_keys_are_regex_lists(self):
+        good = spec("from: early-base\nexpect_log: ['renderer: Vulkan']\nallowed_signatures: []\nsteps: [{run: {seconds: 1}}]")
+        self.assertEqual(e2e.check_spec(good), [])
+        for bad in ("expect_log: 'x'", "allowed_signatures: ['(']"):
+            self.assertTrue(e2e.check_spec(spec(f"from: early-base\n{bad}\nsteps: [{{run: {{seconds: 1}}}}]")), bad)
+
+    def test_allowed_signatures(self):
+        result = {'signatures': {'ERR shader cache miss', 'EXC NullReferenceException at X'}}
+        checks, reasons = e2e.ours_alone({'allowed_signatures': ['shader cache']}, result)
+        self.assertEqual(checks['signatures']['new'], ['EXC NullReferenceException at X'])
+        self.assertTrue(reasons)
+        self.assertEqual(e2e.ours_alone({'allowed_signatures': ['.']}, result)[1], [])
+
+    def test_varied(self):
+        from PIL import Image
+        with tempfile.TemporaryDirectory() as d:
+            flat, busy = os.path.join(d, 'flat.png'), os.path.join(d, 'busy.png')
+            Image.new('RGB', (64, 64), (0, 0, 0)).save(flat)
+            image = Image.new('RGB', (64, 64))
+            image.putdata([((i * 37) % 256, (i * 11) % 256, (i * 5) % 256) for i in range(64 * 64)])
+            image.save(busy)
+            self.assertIn('one colour', e2e.varied_problem(flat))
+            self.assertIsNone(e2e.varied_problem(busy))
+
+
 class Aggregates(unittest.TestCase):
     parse = staticmethod(e2e.parse_aggregate)
 

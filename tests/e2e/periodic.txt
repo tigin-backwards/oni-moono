@@ -77,6 +77,7 @@ u60-x6-rocket-walls                 # -
 u60-x7-new-world-trees              # -
 
 # u60/: more of the U60 QA series (not in the last release QA)
+u60/vk-smoke player-args='--renderer vulkan'  # 1055+352 (a 2026-11-02 run), 15 GB: ours on Vulkan against the original
 u60/a2-menu-assets                  # -
 u60/a3-vista-starts                 # -
 u60/au1-ui-sounds                   # -

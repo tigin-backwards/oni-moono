@@ -1,0 +1,32 @@
+# The release gate for Vulkan, U60's Linux default: a short run of a colony in ours alone, on
+# Vulkan (the release list gives it player-args='--renderer vulkan'). u60/vk-smoke is the long
+# check against the original; this one runs before every release, with no original.
+#
+# The device must be Vulkan: the host logs "renderer: Vulkan (vulkan, ...)" when Vulkan started,
+# and "renderer: OpenGL (Vulkan unavailable: ...)" when it fell back, and SystemInfo then reports
+# OpenGLCore. early-base is played at speed 3, two overlays and the research screen are opened,
+# and each shot must not look blank (`varied`). Ours must log no error or exception signature at
+# all (`allowed_signatures`).
+#
+# Ours only: scripts/e2e.py --player ours tests/e2e/u60/vk-gate.yaml, with
+# E2E_PLAYER_ARGS='--renderer vulkan' when run alone.
+from: early-base
+expect_log: ['renderer: Vulkan \(vulkan, ']
+allowed_signatures: []
+steps:
+  - expect_state: {"type:UnityEngine.SystemInfo::graphicsDeviceType": "== 'Vulkan'"}
+  - run: {seconds: 45}               # about a minute here: the lanes run speed 3 below real time
+  - world_shot: {name: world, ortho: 12, at: [114, 208], varied: true}
+  - key: {code: F1}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: oxygen, ortho: 12, at: [114, 208], varied: true}
+  - key: {code: F3}
+  - ui_wait: {path: "**/OverlayLegend", cond: stable}
+  - world_shot: {name: temperature, ortho: 12, at: [114, 208], varied: true}
+  - key: {code: F3}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable}
+  - shot: {name: hud, varied: true}
+  - open: {management: research}
+  - shot: {name: research, varied: true}
+  - key: {code: Escape}
+  - run: {seconds: 5}
