@@ -796,6 +796,29 @@ RectTransforms, every level logged. Each operation below rounds to float; no fus
 - **position** is the world matrix's translation for rotation-free chains (all 1,149); with
   rotations it is not (the native rotates each level's position by the quaternion with a
   formula not found).
+- **position's setter and InverseTransformPoint, rotation-free** (measured 2026-11-06,
+  `invscale` with `PROBE_IS_PART=position`, lines `IS7`; `is-check.py position LOG`). The
+  setter's localPosition is the parent's `InverseTransformPoint` of the point (8,000 of 8,000
+  values the same), and neither is a matrix product: from the root down, each level takes
+  p = ((p − localPosition) + 0) × f(localScale), per axis, every operation rounded to float,
+  with f the inverse scale below (the `worldToLocalMatrix` table). The + 0 is the identity
+  inverse rotation's: a −0 difference becomes +0 before the scale, so a zero lane's sign is
+  the sign of the last scale it passed through. 4,000 chains of 1 to 8 levels (UI-like and
+  general; negative, non-uniform and z-1 scales; zero positions), the setter and
+  `InverseTransformPoint` each bit for bit, signs of zeros included; without the + 0, 82
+  differ in a zero's sign. The engine had used the inverted world matrix for the setter (501
+  of 4,000) and the `worldToLocalMatrix` product for `InverseTransformPoint` (918 of 4,000);
+  it now follows this rule whenever no level of the chain is rotated
+  (`Hierarchy.TryInverseTransformPoint`). Found with the Colony Summaries screen:
+  `RetiredColonyInfoScreen.ToggleExplorer` sets its scroll content's position, and the
+  original leaves anchoredPosition x at 2^-14, where the inverted matrix gave 1.8e-6, so the
+  content that exactly fits its view read normalizedPosition x 1 in ours and 0 in the
+  original ("ScrollRect: normalized position and scrollbars, measured", above).
+- **The same with rotations** (`IS8`: 1,000 chains of 1 to 8 levels with z-only or general
+  rotations on some levels) is not reproduced. The engine keeps its matrix products there,
+  which give the original's setter result in 15 of 1,000 chains and its
+  `InverseTransformPoint` in 66, within a few ulps otherwise (setter lanes: 24 % exact, 25 %
+  one ulp, 14 % two; more where a lane cancels).
 - **Not reproduced** (searched, no formula matches every case):
   - `TransformDirection`, `TransformVector`, `TransformPoint` and `position` under rotation.
     The result for a basis vector is the local matrix's column, but for a general vector it is
@@ -807,8 +830,10 @@ RectTransforms, every level logged. Each operation below rounds to float; no fus
     Inverse3DAffine's and Rotate's findings in hand: the managed `Quaternion * Vector3` matrix
     form in float gives 18% of vectors (66% of x lanes), in double 12%, the basis formula in
     double 10%.
-  - `InverseTransformPoint` and the other `InverseTransform*`: not the worldToLocalMatrix
-    product (IS1 `itp`: 1,780 of 6,000 even without rotation), not reproduced.
+  - `InverseTransformPoint` and position's setter under rotation, and the other
+    `InverseTransform*` (`InverseTransformVector`, `InverseTransformDirection`): not the
+    worldToLocalMatrix product (IS1 `itp`: 1,780 of 6,000), not reproduced. Without rotation,
+    `InverseTransformPoint` and the setter are reproduced (the bullet above).
   - The formula of the per-axis inverse scale f(s) (`worldToLocalMatrix` below takes it from a
     measured table instead). It is a function of the mantissa alone (all 2^23 mantissas of
     [1, 2) measured, `PROBE_IS_PART=full`; 26,414 drawn scales of exponents −8 to 8 and both

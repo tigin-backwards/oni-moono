@@ -145,6 +145,35 @@ namespace OniMoono.Engine
             return new Vector3(m.m03, m.m13, m.m23);
         }
 
+        /// A world point in t's local space as the original player's InverseTransformPoint and
+        /// position setter compute it, when no level of t's chain is rotated: from the root down,
+        /// each level's ((p - localPosition) + 0) * InverseScale.Of(localScale), per axis in
+        /// float. The + 0 stands for the identity inverse rotation, which turns a -0 difference
+        /// into +0 before the scale. tools/UnityProbe `invscale` IS7: 4,000 chains of 1 to 8
+        /// levels, the setter and InverseTransformPoint bit for bit, signs of zeros included.
+        /// False when a level is rotated: that form is not known (IS8), and the callers keep
+        /// their matrix products.
+        public static bool TryInverseTransformPoint(TransformNative t, Vector3 point, out Vector3 local)
+        {
+            local = point;
+            return InverseUnrotated(t, ref local);
+        }
+
+        static bool InverseUnrotated(TransformNative t, ref Vector3 p)
+        {
+            if (t.Parent != null && !InverseUnrotated(t.Parent, ref p)) return false;
+            var q = t.LocalRotation;
+            if (q.x != 0f || q.y != 0f || q.z != 0f || q.w != 1f) return false;
+            var lp = t.LocalPosition;
+            var f = t.UnrotatedInverseScale();
+            p = new Vector3(PlusZero(p.x - lp.x) * f.x, PlusZero(p.y - lp.y) * f.y, PlusZero(p.z - lp.z) * f.z);
+            return true;
+        }
+
+        /// x + 0 in IEEE arithmetic: -0 becomes +0, everything else is unchanged. Not inlined
+        /// away: the JIT keeps a float add of 0 (it is not an identity for -0).
+        static float PlusZero(float x) => x + 0f;
+
         /// World scale with the world rotation removed (exact without skew).
         public static Vector3 LossyScale(TransformNative t) => t.LossyScale;
 
