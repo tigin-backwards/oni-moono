@@ -2853,10 +2853,15 @@ console, so a P/Invoke fault there gets no runtime text and no dump. The watcher
 5 ms at start and 1.8 MB (7 MB working set); `ONI_MOONO_CRASH_WATCH=off` leaves it out. To
 Steam it is a child process that ends with the game; the game is still the process Steam started.
 
-The dump (MiniDumpNormal with thread information and unloaded modules: about 0.4 MB at start-up,
-3.8 MB at the main menu) holds the threads' registers and stacks and the module list with full
-paths, so it can hold whatever the game had on its stacks: parts of file paths, names, text. It
-holds none of the heap. It is written only on a crash and never sent anywhere; it is on by
+The dump (MiniDumpNormal with thread information, unloaded modules and indirectly referenced
+memory: about 0.6 MB at start-up, 4.6 MB at the main menu, 5.7 MB in a 200-Duplicant colony,
+written in under a second) holds the threads' registers and stacks, the module list with full
+paths and 1 KB of memory around each value on a stack that points into memory, so the heap
+blocks and objects the threads were using are in it. For a heap corruption (0xC0000374) it also
+holds ntdll's record of the failure, which the exception points at, with 1 KB around the damaged
+block it names and the start of its heap. These are small pieces of the game's memory, so the
+dump can hold whatever the game had in them: parts of file paths, names, text. The rest of the
+heap is left out. It is written only on a crash and never sent anywhere; it is on by
 default, as a player sends it only by attaching it to a report, and `--crash-dumps off` leaves it
 out. Module paths in the crash line are hidden as the log's are (`--log-paths`).
 

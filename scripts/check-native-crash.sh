@@ -36,6 +36,28 @@ print('none')
 PY
 }
 
+# A heap failure's dump (0xC0000374): its memory holds ntdll's record of the failure, which the
+# exception's first parameter points at, and the damaged block the record names (its fourth
+# word): "record and block", else what is missing.
+dump_heap_record() {
+    python3 -I - "$1" <<'PY'
+import struct, sys
+d = open(sys.argv[1], 'rb').read()
+u32 = lambda o: struct.unpack_from('<I', d, o)[0]
+u64 = lambda o: struct.unpack_from('<Q', d, o)[0]
+streams = {}
+for i in range(u32(8)):
+    kind, size, at = struct.unpack_from('<III', d, u32(12) + 12 * i)
+    streams.setdefault(kind, at)
+mem = [(u64(streams[5] + 4 + 16 * i), u32(streams[5] + 12 + 16 * i), u32(streams[5] + 16 + 16 * i)) for i in range(u32(streams[5]))] if 5 in streams else []
+def at(a):
+    return next((r + a - s for s, z, r in mem if s <= a and a + 8 <= s + z), None)
+record = at(u64(streams[6] + 40)) if 6 in streams else None
+if record is None: print('no record'); sys.exit()
+print('record and block' if at(u64(record + 24)) is not None else 'record without the block')
+PY
+}
+
 if [ "$which" != windows ]; then
     player="$root/out/bin/OniMoono.Host/debug/OniMoono"
     tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -106,7 +128,8 @@ if [ "$which" != linux ]; then
         run worker && { crashed worker 0xC0000005 ' "Test worker"'; expect "windows worker: runtime text" "$log" 'native crash: runtime: Fatal error\.'; }
         run thread && crashed thread 0xC0000005 '[[:space:]]*$'
         run stack-overflow && crashed stack-overflow 0xC00000FD
-        run heap && crashed heap 0xC0000374
+        run heap && { crashed heap 0xC0000374
+            [ -n "$dump" ] && { held=$(dump_heap_record "$dump"); [ "$held" = "record and block" ] && pass "windows heap: dump holds the heap failure's record and block" || fail "windows heap: dump: $held"; }; }
         # --crash-dumps full: the dump holds the heaps, many times the small one's size.
         small=$(du -k "$dump" 2> /dev/null | cut -f1)
         extra='--crash-dumps full' run heap && { crashed heap 0xC0000374
