@@ -12,6 +12,12 @@
 //      Logs each level's local values (read back) and the leaf's localToWorldMatrix,
 //      worldToLocalMatrix, InverseTransformPoint of a drawn point and that point.
 // IS4: the same chains with general rotations and non-uniform scales.
+// IS7 (PROBE_IS_PART=position): Transform.position's setter on a child of rotation-free chains
+//      of 1 to 8 levels (UI-like and general: non-uniform, negative and z-1 scales, zero
+//      positions); logs each level's local values, the point, the child's localPosition after
+//      the set and the parent's InverseTransformPoint of the point.
+// IS8 (PROBE_IS_PART=position): the same with rotations on some levels (z only, as UI rotates,
+//      and general), for what the engine's fallback keeps.
 // Run alone with PROBE_SCENARIO=invscale.
 using System;
 using System.Collections.Generic;
@@ -60,6 +66,61 @@ namespace SemanticsProbe
             return Quaternion.Euler((float)(rng.NextDouble() * 360), (float)(rng.NextDouble() * 360), (float)(rng.NextDouble() * 360));
         }
 
+        static float DrawUiScale(System.Random rng)
+        {
+            switch (rng.Next(5))
+            {
+                case 0: return 1f;
+                case 1: return 0.86f;
+                case 2: return (float)(0.25 + rng.NextDouble() * 2) * (rng.Next(6) == 0 ? -1 : 1);
+                case 3: return DrawScale(rng);
+                default: return (float)Math.Pow(2, rng.Next(-3, 4)) * (float)(0.5 + rng.NextDouble());
+            }
+        }
+
+        static float DrawUiPos(System.Random rng) => rng.Next(4) == 0 ? 0f : DrawPos(rng);
+
+        /// IS7 and IS8: localPosition after Transform.position is set, and InverseTransformPoint.
+        static void PositionSet(System.Random rng)
+        {
+            for (int pass = 0; pass < 2; pass++)
+            {
+                bool rotated = pass == 1;
+                string tag = rotated ? "IS8" : "IS7";
+                for (int i = 0; i < (rotated ? 1000 : 4000); i++)
+                {
+                    int n = 1 + rng.Next(8);
+                    Transform parent = null, first = null;
+                    var sb = new StringBuilder(tag + " " + i + " n=" + n);
+                    bool anyRotation = false;
+                    for (int l = 0; l < n; l++)
+                    {
+                        var lt = new GameObject("P" + l).transform;
+                        if (first == null) first = lt;
+                        if (parent != null) lt.SetParent(parent, false);
+                        lt.localPosition = new Vector3(DrawUiPos(rng), DrawUiPos(rng), rng.Next(3) == 0 ? DrawUiPos(rng) : 0f);
+                        float sc = DrawUiScale(rng);
+                        lt.localScale = rng.Next(3) == 0 ? new Vector3(sc, DrawUiScale(rng), rng.Next(2) == 0 ? 1f : DrawUiScale(rng))
+                            : new Vector3(sc, sc, rng.Next(2) == 0 ? sc : 1f);
+                        if (rotated && (rng.Next(3) == 0 || (l == n - 1 && !anyRotation)))
+                        {
+                            lt.localRotation = DrawQ(rng, rng.Next(2) == 0);
+                            anyRotation = true;
+                        }
+                        sb.Append(" L" + l + "=" + H(lt.localPosition) + ";" + H(lt.localRotation) + ";" + H(lt.localScale));
+                        parent = lt;
+                    }
+                    var leaf = new GameObject("leaf").transform;
+                    leaf.SetParent(parent, false);
+                    var v = new Vector3(DrawUiPos(rng), DrawUiPos(rng), rng.Next(2) == 0 ? 0f : DrawUiPos(rng));
+                    leaf.position = v;
+                    sb.Append(" v=" + H(v) + " set=" + H(leaf.localPosition) + " itp=" + H(parent.InverseTransformPoint(v)));
+                    Rec.Log(sb.ToString());
+                    UnityEngine.Object.DestroyImmediate(first.gameObject);
+                }
+            }
+        }
+
         public static void Run()
         {
             var rng = new System.Random(5723);
@@ -86,6 +147,13 @@ namespace SemanticsProbe
                     while (hi - lo > 1) { int mid = lo + (hi - lo) / 2; if (inv(Bits(mid)) == 0f) lo = mid; else hi = mid; }
                 Rec.Log("IS6 smallest nonzero s=" + H(Bits(hi)) + " f=" + H(inv(Bits(hi))) + " below s=" + H(Bits(lo)) + " f=" + H(inv(Bits(lo))));
                 for (int b = hi - 3; b <= hi + 3; b++) Rec.Log("IS6 s=" + H(Bits(b)) + " f=" + H(inv(Bits(b))));
+                Rec.Log("IS done");
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("PROBE_IS_PART") == "position")
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+                PositionSet(rng);
                 Rec.Log("IS done");
                 return;
             }
