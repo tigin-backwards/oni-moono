@@ -1,0 +1,62 @@
+# Release QA's core e2e list (master), about 40 minutes on two lanes:
+#   scripts/e2e.py --player both --lanes 2 --list tests/e2e/release.txt
+# One spec a line, `SPEC [ours]  # comment`; `ours` runs it in ours only (the original has no such
+# tweak or screen), against the references --bless stored. Seconds are the last release QA's
+# player times, original + ours, on uncontended lanes. Longest first, so the lanes even out.
+# Everything else runs periodically: tests/e2e/periodic.txt.
+
+# Play and the engine under it
+early-base                          # 234+116: dig, build, chores, pathing from the landing
+late-patch                          # 263+81: Harmony patch reaching tiered-up JIT code (D34)
+census                              # 43+31: a loaded colony's objects and cells as the original's
+
+# Rendering, by the overlays and the issues of shaders still changing
+paused-overlays                     # 147+56: every overlay of a loaded colony, close up
+issue-57-colony-summary-charts      # 89+55: UI lines' ZTest (#57)
+issue-47-missile-trail              # 83+45: particle shader trail (#47)
+gas-view                            # 58+31: the gas shader where gases meet
+
+# Mods: the loader, Harmony and two popular mods
+issue-52-states-bic                 # 168+60: click cycling with Better Info Cards (#52)
+plib-options-copies                 # 87+60: four mods, PLib options dialogs (#14)
+issue-32-better-info-cards-blueprints  # 58+43: two mods patching one method in order (#32)
+translation-screen                  # 36+32: a translation mod and the language restart
+issue-53-command-line               # 30+27: command-line args as mods read them (#53)
+
+# UI and input
+sandbox-search                      # 128+51: sandbox pickers' filter fields, a Spaced Out colony
+unreachable-materials               # 90+53: the build menu's materials, reachability
+issue-48-click-cycle                # 92+44: selection cycling through a stack (#48)
+keyboard-layout-text                # 83+42: AZERTY typing and Ctrl shortcuts in a text field
+scroll-zoom                         # 82+42: wheel zoom and scrolling per notch
+research-pan                        # ~75+45: research tree drag and pan (spec reworked in 2272247b)
+consumables-scroll                  # 77+40: table screen ScrollRects in step
+issue-23-storage-row-click          # 80+42: a destroyed object's row clicked (#23)
+geyser-title                        # 59+32: details screen title (#12)
+build-menu-search                   # 54+32: build menu search grid layout
+menu-tiles                          # 30+25: the main menu and its tiles
+
+# Saving
+overlap-manual                      # 89+45: pause-menu save and Save and Quit during an autosave
+
+# Windowing and the host
+screen-dpi                          # 34+27: Screen.dpi
+fullscreen-window-resolution        # 38+20: fullscreen at a lower resolution, pointer mapping
+
+# Ours only: the game tweaks, Moono Tweaks and the update badge
+path-probe-repair ours              # 181: the default-on tweak, every repair checked
+fix-sound-piles ours                # 42: the bug-fix tweak (#51)
+fix-endless-sounds ours             # 37: the bug-fix tweak (#51)
+issue-52-fast-track-no-tiering ours # 37: Fast Track with tiered compilation off (#52)
+mod-overlaps-en ours                # 26: Moono Tweaks' mod overlaps
+mod-overlaps-zh ours                # 27
+mod-overlaps-none ours              # 26
+mod-overlaps-badges ours            # 29
+moono-tweaks-en ours                # 26: the Moono Tweaks screen
+moono-tweaks-zh ours                # 27
+moono-tweaks-search-en ours         # 22
+moono-tweaks-search-zh ours         # 22
+update-badge ours                   # 23: Check for updates
+update-badge-none ours              # 22
+update-badge-states ours            # 25
+menu-button-states ours             # 24
