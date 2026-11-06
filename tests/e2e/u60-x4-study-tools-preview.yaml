@@ -1,0 +1,47 @@
+# X4 (docs/research/u60-762107.md): the Study Tools' placement preview tiles with Study Tools
+# under construction. 762107's ResearchArchivesConfig.DoPostConfigurePreview lets the preview
+# tile with ResearchArchivesUnderConstruction as well as finished ones, with a partitioner range
+# of 2 and only neighbours whose cell is of interest (u762107:ResearchArchivesConfig.cs:109-114);
+# AnimTilableSingleController keeps its extents' offset from the spawn cell instead of
+# recomputing it from the cell it is checked at (u762107:AnimTilableSingleController.cs:49-51,
+# 92-95). The preview's animation comes from RefreshTiledAnim: "place_right_2wide" beside one
+# Study Tools on its left, "place" alone.
+#
+# From rockets-so (a sandbox save, where research is not needed): sandbox mode on, instant build
+# off, one Study Tools placed as a blueprint right of the Printing Pod; then the pointer one cell
+# right of it with the tool still active, and the preview's animation read, as in the original.
+from: rockets-so
+steps:
+  - expect_ui: {"**/SpriteListDialog": {count: 2}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton", index: 1}
+  - expect_ui: {"**/SpriteListDialog": {count: 1}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton"}
+  - ui_wait: {path: "**/SpriteListDialog", cond: gone, frames: 120}
+  - driver: {camera.set: {pos: [80.5, 137], ortho: 8}}
+  - click: {ui: "**/TopLeftControlPanel(Clone)/SecondaryRow/SandboxToggle"}
+  - expect_state: {"Game.Instance.SandboxModeActive": true}
+  - click: {ui: "**/PlanScreen/Toggle:Operations"}
+  - driver: {buildmenu.settled: {}}
+  # The Operations panel is taller than the screen: the building is found by the search field.
+  - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
+  - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
+  - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "Study Tools"}
+  - driver: {buildmenu.settled: {}}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/ResearchArchives Group:*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_*", cond: stable}
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_*", index: 0}
+  - click: {ui: "**/ProductInfoScreen/InstantBuildToggle"}
+  - expect_state: {"SandboxToolParameterMenu.instance.settings.InstantBuild": false}
+  - key: {code: Keypad5, at: [90, 137]}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "BuildTool.Instance.visualizer.GetComponent<KBatchedAnimController>().currentAnim": [{save_as: alone}, "== original"]
+  - click_world: {cell: [82, 135]}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "count:all:BuildingUnderConstruction::[*] if .GetComponent<Building>.Def.PrefabID == ResearchArchives": [1, "== original"]
+  - key: {code: Keypad5, at: [83, 135]}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "BuildTool.Instance.visualizer.GetComponent<KBatchedAnimController>().currentAnim": [{save_as: beside}, "== original"]
+  - world_shot: {name: preview, ortho: 6, at: [82, 137], hide_ui: true}

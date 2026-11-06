@@ -1,0 +1,23 @@
+# X6 (docs/research/u60-762107.md): rocket interior walls survive a load. A tile's
+# SimCellOccupier destroys the tile when the solid element in one of its cells changes; 761654
+# destroyed it when the cell's element was not the tile's own, 762107 only when the cell is no
+# longer solid (u762107:SimCellOccupier.cs:141). A rocket interior's walls are made of one
+# element and stand in cells the interior world fills with another as it loads.
+#
+# From rockets-so (two rockets on launch pads, their interiors loaded with the save): the
+# interior walls and windows counted after the load and after a game minute, as in the original.
+from: rockets-so
+steps:
+  - expect_ui: {"**/SpriteListDialog": {count: 2}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton", index: 1}
+  - expect_ui: {"**/SpriteListDialog": {count: 1}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton"}
+  - ui_wait: {path: "**/SpriteListDialog", cond: gone, frames: 120}
+  - expect_state:
+      "count:all:Building::[*] if .Def.PrefabID == RocketWallTile": [{save_as: walls}, "== original"]
+      "count:all:Building::[*] if .Def.PrefabID == RocketEnvelopeWindowTile": "== original"
+      "count:all:WorldContainer::[*] if .IsModuleInterior == true": "== original"
+  - run: {seconds: 60}
+  - expect_state:
+      "count:all:Building::[*] if .Def.PrefabID == RocketWallTile": ["== walls", "== original"]
+      "count:all:Building::[*] if .Def.PrefabID == RocketEnvelopeWindowTile": "== original"

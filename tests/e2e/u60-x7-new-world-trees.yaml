@@ -1,0 +1,53 @@
+# X7 (docs/research/u60-762107.md): a new world's Arbor Trees and the forest start's template.
+# 762107's PlantBranchGrower turns off its trunk's Growing.RandomizeMaturityOnNewGameSpawn (new),
+# so at a new game only PlantBranchGrower sets the trunk's maturity: grown (9 in 10) or 75-99 %
+# (u762107:PlantBranchGrower.cs:86-92, 149-165; Growing.cs:235-238). In 761654 Growing's own
+# new-game handler could then set the trunk to a random maturity under its branches, which grow
+# from the worldgen state: branches growing on a trunk not yet grown. The forest start template
+# (templates/bases/forestBase.yaml) changed too: 17 to 18 wide, 109 to 115 cells, its rock
+# chunks moved.
+#
+# The new game is u60-start-forest.yaml's (Verdante, FRST-C-12345-0-0-0, Spaced Out category);
+# then the start world's Arbor Trees: how many, how many grown, their branches, and the start
+# base's spawns, as in the original. The trunks' maturity is random, so the grown count is held
+# to the 9-in-10 rule (at least 7 in 10 of the trunks) and not compared with the original's.
+from: main-menu
+memory_gb: 8
+steps:
+  # A new profile shows the DLC intro video over the menu first.
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/SpacedOutGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/SpacedOutGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "FRST-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 600}
+  - expect_state:
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"ClusterLayout\").id": ["== original", "!= 'expansion1::clusters/KleiFest2023Cluster'"]
+      "CustomGameSettings.Instance.GetSettingsCoordinate()": [{contains: "FRST-C-12345"}, "== original"]
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
+  - click: {ui: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton"}
+  - ui_wait: {path: "**/MinionSelectScreen", cond: gone, frames: 6000}
+  - expect_state:
+      "ClusterManager.Instance.GetStartWorld().worldName": "== original"
+      "ClusterManager.Instance.GetStartWorld().worldSize.x": "== original"
+      "ClusterManager.Instance.GetStartWorld().worldSize.y": "== original"
+      "Components.LiveMinionIdentities.Count": 3
+      "count:all:BuildingComplete::[*]": "== original"
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == Hatch": "== original"
+      "count:all:KPrefabID::[*] if .PrefabTag.Name.EndsWith(\"Vista\") == true": "== original"
+      "count:all:Pickupable::[*] if .GetComponent<KPrefabID>.HasTag(\"Edible\") == true": "== original"
+      "count:all:Pickupable::[*] if .GetComponent<KPrefabID>.HasTag(\"Seed\") == true": "== original"
+      "count:all:Pickupable::[*] if .GetComponent<KPrefabID>.HasTag(\"Minion\") == true": "== original"
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == ForestTree": [{save_as: trunks}, ">= 1", "== original"]
+      "count:all:Growing::[*] if .GetComponent<KPrefabID>.PrefabTag.Name == ForestTree and .IsGrown() == true": [{save_as: grown}, ">= 0.7 * trunks"]
+      "count:all:Growing::[*] if .GetComponent<KPrefabID>.PrefabTag.Name == ForestTree and .RandomizeMaturityOnNewGameSpawn == false": ["== trunks", "== original"]
+      "count:all:KPrefabID::[*] if .PrefabTag.Name == ForestTreeBranch": {save_as: branches}

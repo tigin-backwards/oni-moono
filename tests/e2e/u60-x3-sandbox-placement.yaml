@@ -1,0 +1,72 @@
+# X3 (docs/research/u60-762107.md): placing a building in sandbox mode plays its placement sound
+# and no longer shows "Not Enough Materials". 762107's BuildTool.PostProcessBuild plays the
+# Place_Building_ sound when the materials are there, in instant build mode or in sandbox mode,
+# and only otherwise pops "Not Enough Materials" (u762107:BuildTool.cs:489-507); the utility tool
+# no longer pops it in sandbox mode (u762107:BaseUtilityBuildTool.cs:470, 510). 761654 popped it
+# for any building placed in sandbox mode without the materials, and played no sound.
+#
+# From rockets-so (a sandbox save): its two upgrade dialogs closed, sandbox mode turned on with
+# the HUD's toggle. In sandbox mode the material selector picks the first material of its list
+# whether the colony has it or not (u762107:MaterialSelector.cs:454-459): Wood for a Ladder, which
+# the colony has none of. The Ladder placed right of the Printing Pod (instant build, the
+# default); then instant build turned off and a Wire dragged over three cells in the pod's room.
+# The pop-ups (PopFXManager.SpawnFX, the overload every other one ends in) and one-shot sounds
+# (SoundEvent.BeginOneShot by event name, as the placement sound starts) counted over each
+# placement, as in the original.
+from: rockets-so
+steps:
+  - expect_ui: {"**/SpriteListDialog": {count: 2}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton", index: 1}
+  - expect_ui: {"**/SpriteListDialog": {count: 1}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton"}
+  - ui_wait: {path: "**/SpriteListDialog", cond: gone, frames: 120}
+  - driver: {camera.set: {pos: [80.5, 137], ortho: 8}}
+  - click: {ui: "**/TopLeftControlPanel(Clone)/SecondaryRow/SandboxToggle"}
+  - expect_state: {"Game.Instance.SandboxModeActive": true}
+  - click: {ui: "**/PlanScreen/Toggle:Base"}
+  - driver: {buildmenu.settled: {}}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/Ladder Group:*"}
+  # Wood picked by hand (the first of the list, which the sandbox picks too).
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_<link=\"WOOD\">*", cond: stable}
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_<link=\"WOOD\">*"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "BuildTool.Instance.selectedElements[0]": ["== 'WoodLog'", "== original"]
+      "ClusterManager.Instance.activeWorld.worldInventory.GetAmount(\"WoodLog\", true)": [0, "== original"]
+      "SandboxToolParameterMenu.instance.settings.InstantBuild": true
+      "count:all:BuildingComplete::[*] if .Def.PrefabID == Ladder": [{save_as: ladders}, "== original"]
+  # The pointer over the cell first: at the original's frame rate on llvmpipe a click's move and
+  # press can land in one frame, and the brush then lays Ladders along the pointer's way there.
+  - key: {code: Keypad5, at: [83, 135]}
+  - run: {seconds: 1, speed: 1}
+  - driver: {count: {methods: ["PopFXManager:SpawnFX(UnityEngine.Sprite,UnityEngine.Sprite,System.String,UnityEngine.Transform,UnityEngine.Vector3,System.Single,System.Boolean,System.Boolean,System.Boolean)", "SoundEvent:BeginOneShot(System.String,UnityEngine.Vector3,System.Single,System.Boolean)"]}}
+  - click_world: {cell: [83, 135]}
+  - driver: {buildmenu.settled: {}}
+  - expect_state:
+      "count:all:BuildingComplete::[*] if .Def.PrefabID == Ladder": ["== ladders + 1", "== original"]
+      "type:E2eDriver.Counting::Of(\"PopFXManager:SpawnFX(UnityEngine.Sprite,UnityEngine.Sprite,System.String,UnityEngine.Transform,UnityEngine.Vector3,System.Single,System.Boolean,System.Boolean,System.Boolean)\")": "== original"
+      "type:E2eDriver.Counting::Of(\"SoundEvent:BeginOneShot(System.String,UnityEngine.Vector3,System.Single,System.Boolean)\")": [">= 1", "== original"]
+  - click: {ui: "**/ProductInfoScreen/InstantBuildToggle"}
+  - expect_state: {"SandboxToolParameterMenu.instance.settings.InstantBuild": false}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - driver: {buildmenu.settled: {}}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/Wire Group:*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_*", cond: stable}
+  - expect_state:
+      "WireBuildTool.Instance.selectedElements[0]": [{save_as: metal}, "== original"]
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_*", index: 0}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": [{save_as: tool}, "== original"]
+  - key: {code: Keypad5, at: [80, 137]}
+  - run: {seconds: 1, speed: 1}
+  - driver: {count: {methods: ["PopFXManager:SpawnFX(UnityEngine.Sprite,UnityEngine.Sprite,System.String,UnityEngine.Transform,UnityEngine.Vector3,System.Single,System.Boolean,System.Boolean,System.Boolean)"]}}
+  - drag: {from: [80, 137], to: [82, 137], steps: 6, hold: 2}
+  # Read before anything runs: a running game pops its own pop-ups (Duplicants at work).
+  - expect_state:
+      "type:E2eDriver.Counting::Of(\"PopFXManager:SpawnFX(UnityEngine.Sprite,UnityEngine.Sprite,System.String,UnityEngine.Transform,UnityEngine.Vector3,System.Single,System.Boolean,System.Boolean,System.Boolean)\")": "== original"
+  - key: {code: Escape}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "count:all:BuildingUnderConstruction::[*] if .GetComponent<Building>.Def.PrefabID == Wire": [3, "== original"]
+

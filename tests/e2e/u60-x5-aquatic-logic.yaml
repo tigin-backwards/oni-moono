@@ -1,0 +1,47 @@
+# X5 (docs/research/u60-762107.md, "X5 Aquatic and the other game-logic rows"): 762107's
+# game-logic changes, read in both players. Game code and data only, no new engine surface:
+# the values the changed code sets up, compared with the original's, then a game minute.
+# - Sandpit: SandboxArtable (an Artable) is replaced by SandboxWorkable, a RecreationWorkable
+#   with the tracking effect RecentlyPlayedSandbox (new MinionModifiers row) and a 30 s work
+#   time; its stage sets the "Beachy" status item (BuildingStatusItems.SandBoxLookingSandy). The
+#   sand sculptures leave the artable stages (7 for SandboxBuilding in 761654) and so the Supply
+#   Closet's sculpture subcategory.
+# - Trampoline: Rubber requested at 5 kg (refillMass 12.5 to 5), a visits-remaining status item.
+# - Merpip (SquirrelAquatic): tagged SwimmingCreature before its bagged-creature setup, so the
+#   Fish Pick-Up lists it; the Fish Feeder's filters add the swimming Pips' food.
+# - Pip and Cuddle Pip tagged Walker in their own configs, no longer in BaseSquirrelConfig.
+# - Party Line Phone: the caller's base priority from RELAXATION TIER3 (30) to TIER5 (50).
+# - Study Tools' preview tiles with ones under construction too.
+#
+# From early-base (its save lists DLC5_ID): setup builds a Sandpit (BuildingDef.Build with its
+# default elements; the building is the test's furniture) and a Trampoline beside it.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SandboxBuilding\")", method: Build, args: [{"$": "Grid.XYToCell(111, 207)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"SandboxBuilding\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Trampoline\")", method: Build, args: [{"$": "Grid.XYToCell(120, 207)"}, {"$": "Orientation.Neutral"}, null, {"$": "Assets.GetBuildingDef(\"Trampoline\").DefaultElements()"}, 293.15, false, -1]}}
+  - driver: {camera.set: {pos: [115.5, 209.5], ortho: 8}}
+steps:
+  - run: {seconds: 1}
+  - expect_state:
+      "count:all:SandboxWorkable::[*]": [1, "== original"]
+      "all:SandboxWorkable::[0].trackingEffect": ["== 'RecentlyPlayedSandbox'", "== original"]
+      "all:SandboxWorkable::[0].specificEffect": ["== 'PlayedSandbox'", "== original"]
+      "all:SandboxWorkable::[0].workTime": "== original"
+      "all:SandboxWorkable::[0].basePriority": "== original"
+      "Db.Get().effects.Get(\"RecentlyPlayedSandbox\").duration": "== original"
+      "Db.Get().BuildingStatusItems.SandBoxLookingSandy.Name": "== original"
+      "Db.Get().BuildingStatusItems.TrampolineBouncesRemaining.Name": "== original"
+      "Db.GetArtableStages().TryGet(\"sandsculpture_merpip\")": missing
+      "count:Db.GetArtableStages().resources[*] if .prefabId == SandboxBuilding": [0, "== original"]
+      "Assets.GetPrefab(\"Trampoline\").GetComponent<ManualDeliveryKG>().refillMass": [5, "== original"]
+      "Assets.GetPrefab(\"SquirrelAquatic\").GetComponent<KPrefabID>().Tags": [{contains: SwimmingCreature}, "== original"]
+      "Assets.GetPrefab(\"Squirrel\").GetComponent<KPrefabID>().Tags": [{contains: Walker}, "== original"]
+      "Assets.GetPrefab(\"SquirrelHug\").GetComponent<KPrefabID>().Tags": [{contains: Walker}, "== original"]
+      "count:Assets.GetBuildingDef(\"FishFeeder\").BuildingComplete.GetComponent<Storage>().storageFilters[*]": "== original"
+      "Assets.GetBuildingDef(\"FishFeeder\").BuildingComplete.GetComponent<Storage>().storageFilters": "== original"
+      "Assets.GetPrefab(\"Telephone\").GetComponent<TelephoneCallerWorkable>().basePriority": [50, "== original"]
+      "Assets.GetBuildingDef(\"ResearchArchives\").BuildingPreview.GetComponent<AnimTilableSingleController>().tagsOfNeightboursThatICanTileWith.Length": [2, "== original"]
+  - world_shot: {name: sandpit, ortho: 8, at: [115, 209]}
+  - run: {seconds: 60}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== original"

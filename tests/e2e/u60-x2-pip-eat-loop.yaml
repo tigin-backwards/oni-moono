@@ -1,0 +1,31 @@
+# X2 (docs/research/u60-762107.md): the Pip's eating loop no longer leaks. 762107's audio sheets
+# build the adult Pip's eat_loop row (SFXTags_Creatures) and the rocket debris' landed row
+# (SFXTags_Buildings) as LoopingSoundEvent, the two rows fix-endless-sounds rebuilt, and two more
+# (anim_slip_kanim slip_loop as LoopingVoiceSoundEvent, the cool slush geyser's erupt_water as
+# LoopingSoundEvent). The original and ours now keep one copy of Squirrel_eat_LP playing for an
+# eating Pip; Moono's fix-endless-sounds tweak, which rebuilt the two rows, is removed on U60.
+#
+# The setup is the removed tweak's spec's: one Pip animation looping eat_loop, one playing it
+# once and then idling, each with a LoopingSounds; after 20 game seconds one copy plays, in both.
+from: early-base
+setup:
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:.gameObject", method: AddComponent, args: ["LoopingSounds"]}}
+  - driver: {setup.call: {target: "last:.GetComponent<KBatchedAnimController>", method: Play, args: ["eat_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [112.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:.gameObject", method: AddComponent, args: ["LoopingSounds"]}}
+  - driver: {setup.call: {target: "last:.GetComponent<KBatchedAnimController>", method: Play, args: ["eat_loop", Once]}}
+  - driver: {setup.call: {target: "last:.GetComponent<KBatchedAnimController>", method: Queue, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {target: "SpeedControlScreen.Instance", method: Unpause, args: [false]}}
+steps:
+  - driver: {camera.set: {cell: [111, 207], ortho: 8}}
+  - expect_state:
+      "GameAudioSheets.Get().GetEvents(\"squirrel_kanim.eat_loop\")[0].looping": [true, "== original"]
+      "GameAudioSheets.Get().GetEvents(\"rocket_debris_combined_kanim.landed\")[0].looping": [true, "== original"]
+      "GameAudioSheets.Get().GetEvents(\"anim_slip_kanim.slip_loop\")[0].looping": [true, "== original"]
+      "GameAudioSheets.Get().GetEvents(\"geyser_liquid_salt_water_cool_slush_kanim.erupt_water\")[0].looping": [true, "== original"]
+      "GameAudioSheets.Get().GetEvents(\"baby_squirrel_kanim.eat_loop\")[0].looping": [true, "== original"]
+      "GameAudioSheets.Get().GetEvents(\"squirrel_kanim.eat_pst\")[0].looping": [false, "== original"]
+  - run: {seconds: 20}
+  - expect_state:
+      "count:all:LoopingSounds::[*] if .IsSoundPlaying(\"event:/Creatures/Adults/Squirrel/Squirrel_eat_LP\") == true": [1, "== original"]

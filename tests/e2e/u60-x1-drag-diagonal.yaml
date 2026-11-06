@@ -1,0 +1,43 @@
+# X1 (docs/research/u60-762107.md): drag-to-build no longer leaves disconnected sections.
+# 762107's BaseUtilityBuildTool.OnDragTool fills a diagonal step: when the dragged cell touches
+# the path's last cell only at a corner, the cell beside it in the same row is added first
+# (u762107:BaseUtilityBuildTool.cs:110-122). A utility tool drags in brush mode, sampling the
+# pointer's way at quarter-cell steps (u762107:DragTool.cs:441-454), so a drag along a 45° line
+# from cell centre to cell centre crosses each corner exactly and steps diagonally: 761654 placed
+# 3 wires there, one a cell, unconnected; 762107 places 5, joined.
+#
+# From early-base (cells 110-118, 207-209 dug out): the Wire picked from the Power menu by real
+# clicks, dragged from (110, 207) to (112, 209), the wire blueprints counted and their cells
+# listed, as in the original. The pointer's way reaches the game as X11 motion events, each frame
+# sampling where the pointer is: the frame rate decides how many samples a frame takes, not
+# where they lie (all on the line).
+from: early-base
+steps:
+  # After a load, the colony's inventory counts what the Duplicants can reach once their path
+  # probes have run, over frames: at the original's frame rate on llvmpipe the Copper Ore reads
+  # 0 kg for a while, and the build menu offers the Wire's requirements, not its tool.
+  - run: {seconds: 30}
+  - expect_state:
+      "ClusterManager.Instance.activeWorld.worldInventory.GetAmount(\"Cuprite\", true)": ">= 25"
+  - driver: {camera.set: {pos: [113.5, 208.5], ortho: 8}}
+  - click: {ui: "**/PlanScreen/Toggle:Power"}
+  - driver: {buildmenu.settled: {}}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/Wire Group:*"}
+  # Copper Ore picked by hand, as a player would.
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_*CUPRITE*", cond: stable}
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_*CUPRITE*"}
+  - run: {seconds: 1, speed: 1}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": [{save_as: tool}, "== original"]
+  # 45 px a cell (ortho 8 at 720 px): 9 steps of 10 px keep every pointer position on the
+  # diagonal, in whole pixels. With 12 steps of 7.5 px the rounded positions leave it by a pixel
+  # and the way crosses a row before the column: a staircase, joined in either build.
+  - drag: {from: [110, 207], to: [112, 209], steps: 9, hold: 2}
+  - key: {code: Escape}
+  - run: {seconds: 1, speed: 1}
+  - expect: {blueprints: {Wire: 5}}
+  - expect_state:
+      "count:all:BuildingUnderConstruction::[*] if .GetComponent<Building>.Def.PrefabID == Wire": [5, "== original"]
+      "sum:all:BuildingUnderConstruction::[*].transform.position.x if .GetComponent<Building>.Def.PrefabID == Wire": "== original"
+      "sum:all:BuildingUnderConstruction::[*].transform.position.y if .GetComponent<Building>.Def.PrefabID == Wire": "== original"
+  - world_shot: {name: wires, ortho: 6, at: [111, 208]}
