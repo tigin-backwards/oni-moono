@@ -36,14 +36,16 @@ as --64 -o "$work/steam/stub.o" "$work/steam/stub.s"
 ld -shared -soname libsteam_api.so -o "$work/steam/libsteam_api.so" "$work/steam/stub.o"
 
 # The original's folder: links to everything but Plugins/libsteam_api.so.
-source_dir="$(dirname "$(readlink -f "$E2E_ORIGINAL")")"
+# The folder the executable sits in, not where its link points: an install of links can have
+# its own OxygenNotIncluded_Data (DLC content) beside a linked executable.
+source_dir="$(cd "$(dirname "$E2E_ORIGINAL")" && pwd -P)"
 original="$work/original"
 rm -rf "$original"
 mkdir -p "$original/OxygenNotIncluded_Data/Plugins"
 # The folder's links (the install's files); its own files (the executable, logs) are not shared.
 for f in "$source_dir"/*; do
     n="$(basename "$f")"
-    case "$n" in OxygenNotIncluded_Data|unity.lock) continue ;; esac
+    case "$n" in OxygenNotIncluded_Data|unity.lock|"$(basename "$E2E_ORIGINAL")") continue ;; esac
     [ -L "$f" ] && ln -s "$(readlink -f "$f")" "$original/$n"
 done
 cp "$E2E_ORIGINAL" "$original/$(basename "$E2E_ORIGINAL")"
