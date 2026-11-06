@@ -105,3 +105,25 @@ class VerifySummary(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class InstantReachability(unittest.TestCase):
+    SUMMARY = ('[12:00:00.000] [1] [INFO] instant-reachability: 31250 objects answered by events (412 transforms watched), 18 polled; '
+               '9123 cells crossed, 81234 objects notified, 345 moves, 90011 rechecks in 5400 frames (0.041 ms a frame), '
+               '{checks} checks, {mismatches} mismatches')
+
+    def test_its_summary_counts_mismatches(self):
+        code, lines = verify(self.SUMMARY.format(checks='21600000', mismatches=0))
+        self.assertEqual((code, len(lines)), (0, 1), lines)
+        self.assertTrue(lines[0].startswith('ok   instant-reachability:'), lines)
+        code, lines = verify(self.SUMMARY.format(checks='21600000', mismatches=2))
+        self.assertEqual(code, 1, lines)
+        self.assertTrue(lines[0].startswith('FAIL instant-reachability:'), lines)
+
+    def test_a_mismatch_line_is_an_incident(self):
+        code, lines = verify(self.SUMMARY.format(checks='100', mismatches=0),
+                             '[12:00:00.000] [1] [INFO] instant-reachability: mismatch: Sand (Pickupable, CachedPickupableCell) at cell 1234 '
+                             '(indexed at 1234), offsets [0,0] in bounds 0..0, 0..0, tracker StandardOffsetTracker: answered False, '
+                             'the table says True (frame 99) (1)')
+        self.assertEqual(code, 1, lines)
+        self.assertTrue(any(line.startswith('FAIL incident instant-reachability: mismatch') for line in lines), lines)

@@ -55,7 +55,7 @@ namespace OniMoono.Host.GameTweaks
         public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
-            PagedPathGrids = "paged-path-grids", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles";
+            PagedPathGrids = "paged-path-grids", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -164,6 +164,9 @@ namespace OniMoono.Host.GameTweaks
                 "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. "
                 + "Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may walk the other one, not the original's. "
                 + "Keeps about 0.9 MB a Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths).", OnByDefault: true),
+            new(InstantReachability, ChangesGameplay, "Instant reachability checks", "Duplicants notice a newly opened or blocked path at once, using less CPU.",
+                "Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. "
+                + "The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second.", OnByDefault: true),
             new("slow-reachability", ChangesGameplay, "Slower reachability checks", "Duplicants notice a newly opened or blocked path up to 3 s later.",
                 "Which errands and items can be reached is rechecked every 4 s instead of every second; temperature and building checks are never delayed."),
             new("off-screen-conveyors", ChangesGameplay, "Lazy unseen conveyor items", "Items riding rails off screen are placed only when they stop or come into view.",
@@ -184,7 +187,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", "slow-reachability", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();

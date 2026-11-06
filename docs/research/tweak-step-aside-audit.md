@@ -326,6 +326,7 @@ prefix is at `Priority.Last` and checks `__runOriginal`.
 | | `Transform.SetPosition` of items | F (the point) | – | – |
 | | `SolidConduitFlow.RemovePickupable` | W (prefix) | – | Ronivan's Legacy, Utility Layers, Insulated Solid Conduit |
 | `slow-reachability` | `ReachabilityMonitor.InitializeStates` | R (transpiler: a constant) | no (#17) | Fast Track (replaces it) |
+| `instant-reachability` | `ReachabilityMonitor.InitializeStates`, `Instance.UpdateReachability`, `MinionGroupProber`'s readers and writers, `Workable.GetCell`/`GetOffsets`/`SetOffsets`/`SetOffsetTable`, `Pickupable.GetCell`/`UpdateCachedCell`, `Diggable.GetCell`, `Unsealable.GetOffsets`, `OffsetTracker.GetOffsets`, `OffsetTableTracker.UpdateOffsets`/`UpdateCell`/`OnCellChanged` | R (prefixes returning false on the writers, root state enter and exit) + W (postfixes) | yes: any other owner's patch on one of them stands it down for the session, checked once when the monitor's states are made | Fast Track *FastReachability* (replaces `InitializeStates`) and *PickupOpts* (`OffsetTracker.GetOffsets`) |
 | `off-world-fallers` | `GravityComponents.FixedUpdate` | R (transpiler: `Grid.IsValidCellInWorld` call site) + W (postfix) | no (#18) | Bubbles Bathtub, Floating[fix], Floatation, Cooperative Colonies, Fast Track |
 | `fix-disease-overlay-crash` (u60) | `CellChangeMonitor.RenderEveryTick` | W (read-only prefix, edits the dictionary) | – | Fast Track *FastReachability* (replaces it: the fix then does nothing), Cooperative Colonies |
 

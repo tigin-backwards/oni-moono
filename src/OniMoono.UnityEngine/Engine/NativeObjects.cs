@@ -144,6 +144,9 @@ namespace OniMoono.Engine
         public Quaternion LocalRotation = Quaternion.identity;
         public Vector3 LocalScale = Vector3.one;
         public bool HasChanged = true;
+        /// Someone outside the engine follows this transform's moves (TransformMoveWatch): set on
+        /// a few thousand game objects at most; every other transform pays the one test of it.
+        internal bool MoveWatched;
 
         // World data, computed when first read after a change (MarkDirty). Reads may come from
         // several threads at once while nothing changes the hierarchy (game tweaks that read
@@ -323,7 +326,11 @@ namespace OniMoono.Engine
             var cache = inverse;
             if (cache != null) cache.LocalDirty = cache.WorldDirty = true;
             HasChanged = true;
-            if (moved) OnMoved();
+            if (moved)
+            {
+                OnMoved();
+                if (MoveWatched) TransformMoveWatch.Note(this);
+            }
             foreach (var c in Children) c.MarkDirty(moved);
         }
 

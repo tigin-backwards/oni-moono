@@ -1,0 +1,41 @@
+# The instant-reachability game tweak (src/OniMoono.GameTweaks/InstantReachability.cs) under a
+# deliberate storm of reachability changes. Ours only (`--player ours`): the original has no
+# such tweak. In periodic.txt, not the release list.
+#
+# ReachStressTestMod (tools/ReachStressTestMod) walls in a test area beside early-base's base,
+# digs rooms with thousands of debris items, storage bins, dig, mop and construction orders, a
+# Hatch and a powered auto-sweeper in them, and then, phase after phase, opens and closes the
+# Duplicants' reach to them: a door locked and opened, and closed to every Duplicant by access
+# permissions; a wall filled and dug; a ladder or fire pole built and removed; debris teleported
+# (SetPosition) in and out; a construction order moved by raw transform sets (which only the
+# engine's move flags see); debris falling into reach; a Duplicant who alone reaches a room
+# spawned and deleted (and a bionic one where the DLC is on); table cells occupied and vacated,
+# and the door opened and locked, within one frame; the sweeper built and removed. Duplicants
+# who wandered in are moved out before a way in closes. With ONI_TWEAK_VERIFY=1 the tweak checks
+# its answers against the table every frame (all of them every few frames): none may differ,
+# and every kind of change must have reached it (cells crossed, or moves for the moves).
+from: early-base
+memory_gb: 10
+game_tweaks: [instant-reachability]
+test_mods: [ReachStressTestMod]
+env: {ONI_TWEAK_VERIFY: "1"}
+steps:
+  - run: {seconds: 380}
+  - expect_state:
+      "type:ReachStressTestMod.Stress::Failed": false
+      "type:ReachStressTestMod.Stress::Ready": true
+      "type:ReachStressTestMod.Stress::PhasesRun": ">= 17"
+      "type:OniMoono.GameTweaks.InstantReachability::Running": true
+      "type:OniMoono.GameTweaks.InstantReachability::Covered": "> 4000"
+      "type:OniMoono.GameTweaks.InstantReachability::Checks": "> 100000"
+      "type:OniMoono.GameTweaks.InstantReachability::Mismatches": 0
+      "type:ReachStressTestMod.Stress::DoorCrossings": "> 0"
+      "type:ReachStressTestMod.Stress::WallCrossings": "> 0"
+      "type:ReachStressTestMod.Stress::LadderCrossings": "> 0"
+      "type:ReachStressTestMod.Stress::DupesCrossings": "> 0"
+      "type:ReachStressTestMod.Stress::FlipCrossings": "> 0"
+      "type:ReachStressTestMod.Stress::SweeperCrossings": "> 0"
+      "type:ReachStressTestMod.Stress::TeleportMoves": "> 0"
+      "type:ReachStressTestMod.Stress::RawMoves": "> 0"
+      "type:ReachStressTestMod.Stress::RawTransformNotices": "> 0"
+      "type:ReachStressTestMod.Stress::FallingMoves": "> 0"

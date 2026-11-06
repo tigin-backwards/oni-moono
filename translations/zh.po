@@ -506,6 +506,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.CHANGES_GAMEPLAY"
 msgid "Changes gameplay"
 msgstr "改变玩法"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.INSTANT_REACHABILITY.TITLE"
+msgid "Instant reachability checks"
+msgstr "即时可达性检查"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.INSTANT_REACHABILITY.EFFECT"
+msgid "Duplicants notice a newly opened or blocked path at once, using less CPU."
+msgstr "复制人立即察觉新打开或被阻断的路径，并且占用更少的 CPU。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.INSTANT_REACHABILITY.DETAIL"
+msgid "Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second."
+msgstr "哪些任务和物品可达，只在复制人可达范围发生变化的地方、变化的那一刻重新检查，而不是每秒把所有任务和物品都检查一遍。结果与游戏本身相同，只是最多提前 1 秒得到。无法跟踪的物品（部分模组自己的）仍每秒检查一次。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SLOW_REACHABILITY.TITLE"
 msgid "Slower reachability checks"
 msgstr "更慢的可达性检查"
