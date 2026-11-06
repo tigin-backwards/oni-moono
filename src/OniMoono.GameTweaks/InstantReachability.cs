@@ -64,7 +64,8 @@ namespace OniMoono.GameTweaks
         static readonly int verifySlice = int.TryParse(Environment.GetEnvironmentVariable("ONI_REACH_VERIFY_SLICE"), out var s) && s > 0 ? s : 4000;
 
         static readonly AccessTools.FieldRef<Workable, OffsetTracker> offsetTracker = AccessTools.FieldRefAccess<Workable, OffsetTracker>("offsetTracker");
-        static readonly AccessTools.FieldRef<OffsetTracker, CellOffset[]> trackerOffsets = AccessTools.FieldRefAccess<OffsetTracker, CellOffset[]>("offsets");
+        // U60: a tracker's offsets are a List (StandardOffsetTracker copies its offsets into it).
+        static readonly AccessTools.FieldRef<OffsetTracker, List<CellOffset>> trackerOffsets = AccessTools.FieldRefAccess<OffsetTracker, List<CellOffset>>("offsets");
         static readonly AccessTools.FieldRef<OffsetTableTracker, CellOffset[][]> trackerTable = AccessTools.FieldRefAccess<OffsetTableTracker, CellOffset[][]>("table");
         static readonly AccessTools.FieldRef<OffsetTableTracker, KMonoBehaviour> tableOwner = AccessTools.FieldRefAccess<OffsetTableTracker, KMonoBehaviour>("cmp");
         static readonly AccessTools.FieldRef<MinionGroupProber, int[]> proberCells = AccessTools.FieldRefAccess<MinionGroupProber, int[]>("cells");
@@ -194,7 +195,7 @@ namespace OniMoono.GameTweaks
             monitor = __instance;
             var actions = __instance.root.updateActions;
             for (int i = 0; actions != null && i < actions.Count; i++)
-                // By its updater, not its rate (slow-reachability makes it SIM_4000ms).
+                // By its updater, not its rate.
                 if (actions[i].updater != null && actions[i].updater.GetType().Name == "UpdateReachabilityCB")
                 {
                     updateIndex = i;
@@ -541,7 +542,7 @@ namespace OniMoono.GameTweaks
                 Mismatches++;
                 if (Mismatches <= 50)
                     global::Debug.Log($"{Name}: mismatch: {entry.Master.name} ({entry.Master.GetType().Name}, {entry.CellSource}) at cell {cell} (indexed at {index.CellOf(entry.Slot)}), "
-                        + $"offsets [{string.Join(" ", Array.ConvertAll(entry.Master.GetOffsets(cell), o => $"{o.x},{o.y}"))}] in bounds "
+                        + $"offsets [{string.Join(" ", System.Linq.Enumerable.Select(entry.Master.GetOffsets(cell), o => $"{o.x},{o.y}"))}] in bounds "
                         + $"{index.BoundsOf(entry.Slot).MinX}..{index.BoundsOf(entry.Slot).MaxX}, {index.BoundsOf(entry.Slot).MinY}..{index.BoundsOf(entry.Slot).MaxY}, "
                         + $"tracker {offsetTracker(entry.Master)?.GetType().Name}: answered {ours}, the table says {fresh} (frame {GameClock.Instance?.GetFrame() ?? 0}) ({Mismatches})");
                 // Fix it, so one miss is counted once.
