@@ -127,15 +127,25 @@ namespace PerfProbe
         /// its test flag by reflection.
         /// `autosave.txt`: the game's own autosave (GameClock.DoAutoSave, as at a cycle's end) three
         /// times, 900 frames apart, each timed as the frames it stalls: the longest frame, and
-        /// the total of frames over 100 ms in the 300 frames after it starts.
+        /// the total of frames over 100 ms in the 300 frames after it starts. A frame count in
+        /// the file waits that many frames first, beside the frame rate windows, so one launch
+        /// measures both. The game's own cycle-end autosave is held off through the autosaves:
+        /// one overlapping the probe's breaks the save indicator (SaveActive.DoCallBack).
         System.Collections.IEnumerator AutosaveFreeze()
         {
             SpeedControlScreen.Instance.Unpause(false);
+            int.TryParse(System.IO.File.ReadAllText(System.IO.Path.Combine(Path, "autosave.txt")).Trim(), out int delay);
+            for (int i = 0; i < delay; i++) yield return null;
+            Video.NoAutosave(true);
+            Debug.Log($"PERF autosave start f{Time.frameCount} after {delay} frames");
             var doAutoSave = HarmonyLib.AccessTools.Method(typeof(GameClock), "DoAutoSave");
             for (int n = 1; n <= 3; n++)
             {
                 for (int i = 0; i < 900; i++) yield return null;
+                // Let through for the probe's own call only, as in Video.Actions.
+                Video.NoAutosave(false);
                 doAutoSave.Invoke(GameClock.Instance, new object[] { GameClock.Instance.GetCycle() });
+                Video.NoAutosave(true);
                 // 20 s of real time, whatever the frame rate: the game starts writing a few
                 // seconds after the autosave is asked for (300 frames, as before, ended before it
                 // at 80 fps).
@@ -1701,7 +1711,11 @@ namespace PerfProbe
             WallTime.Extra = System.IO.Path.Combine(Path, "walltime.txt");
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "walltime.txt")) && !overlays) StartCoroutine(WallTime.Run(10));
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "savetest.txt"))) { yield return SaveTest(); yield break; }
-            if (System.IO.File.Exists(System.IO.Path.Combine(Path, "autosave.txt"))) { yield return AutosaveFreeze(); yield break; }
+            if (System.IO.File.Exists(System.IO.Path.Combine(Path, "autosave.txt")))
+            {
+                if (System.IO.File.ReadAllText(System.IO.Path.Combine(Path, "autosave.txt")).Trim().Length > 0) StartCoroutine(AutosaveFreeze());
+                else { yield return AutosaveFreeze(); yield break; }
+            }
             // `camera.txt`: where the view stays, as world cells `x y` with an optional orthographic
             // size, `top` (the active world's top centre) or `quiet` (the discovered planetoid with
             // the fewest building cells made active, and its 48×28-cell window with the fewest, for
