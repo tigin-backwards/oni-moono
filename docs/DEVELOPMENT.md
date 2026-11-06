@@ -70,7 +70,8 @@ player's defaults nor a settings file in the run home changes what a test measur
 Moono Tweaks screen as a player has it.
 
 `Player.log` keeps its first 20 MB and its last 20 MB or so, cut with a banner between them;
-`ONI_LOG_FULL=1` keeps all of it. More diagnostics (`--trace-exceptions`, `--dump-hierarchy`,
+`ONI_LOG_FULL=1` keeps all of it. `ONI_LOG_ERRORS=FILE` also writes the first line of each logged
+error to FILE (`scripts/qa.sh` reads it: the log writes such errors as plain lines). More diagnostics (`--trace-exceptions`, `--dump-hierarchy`,
 `ONI_OBJECT_CENSUS`, …) are in [ARCHITECTURE.md](ARCHITECTURE.md) §7.
 
 The offline stub says you own the base game, with no DLC and no Workshop items. It's for testing

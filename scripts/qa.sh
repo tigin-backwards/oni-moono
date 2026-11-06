@@ -183,7 +183,7 @@ run_scenario() # NAME
     local caps=() f
     for f in $DUMPS; do caps+=(--capture "$f:$out/f$f.png" --dump-ui "$f:$out/f$f.txt"); done
     # In the background and waited for, so that a signal's trap runs at once.
-    ONI_GAME_DIR="$gamedir" ONI_RUN_HOME="$home" ONI_CONFIG=release player "dogfood-$name" xvfb-run -a -s "-screen 0 1280x1024x24" \
+    ONI_LOG_ERRORS="$out/errors.txt" ONI_GAME_DIR="$gamedir" ONI_RUN_HOME="$home" ONI_CONFIG=release player "dogfood-$name" xvfb-run -a -s "-screen 0 1280x1024x24" \
         timeout -k "${E2E_QUIT_GRACE:-10}" 1800 "$root/scripts/audio-sink/record.sh" "$out/audio.raw" "${runner[@]}" \
         -screen-width 1024 -screen-height 768 -screen-fullscreen 0 --frames "$FRAMES" --max-frame-rate 60 \
         --log "$out/log.txt" "${caps[@]}" "${ARGS[@]}" > "$out/stdout.txt" 2>&1
@@ -191,7 +191,7 @@ run_scenario() # NAME
     local status=$?
     rm -f "$out/audio.raw"
     # The game's own log (Debug.Log, exceptions) goes to stdout with the engine's.
-    { echo "exit $status"; python3 "$tools" signatures "$out/stdout.txt"; } > "$out/signatures.txt"
+    { echo "exit $status"; python3 "$tools" signatures "$out/stdout.txt" "$out/errors.txt"; } > "$out/signatures.txt"
     local rdir="$ref/dogfood/$name"
     if [ $bless -eq 1 ]; then
         [ $status -eq 0 ] || { fail "dogfood $name: the player exited $status; not blessed"; return; }
@@ -310,7 +310,7 @@ u57_run()
     # U57_SCREENS: then PerfProbe opens and closes these management screens in turn (its screens.txt).
     [ -n "${U57_SCREENS:-}" ] && { echo 'wait overlays'; for s in $U57_SCREENS; do printf 'open %s\nclose\n' "$s"; done; echo 'hold 600 after-screens'; } > "$d/mods/Local/PerfProbe/screens.txt"
     echo '{"version":1,"mods":[{"label":{"distribution_platform":0,"id":"PerfProbe","title":"PerfProbe","version":-2037174645},"status":1,"enabled":true,"enabledForDlc":["","EXPANSION1_ID"],"crash_count":0,"reinstall_path":null,"staticID":"PerfProbe"}],"mod_load_in_progress":false}' > "$d/mods/mods.json"
-    ONI_GAME_DIR="$QA_U57_GAME" ONI_RUN_HOME="$home" ONI_CONFIG=release player "u57-$(basename "$out")" xvfb-run -a -s "-screen 0 1280x1024x24" \
+    ONI_LOG_ERRORS="$out/errors.txt" ONI_GAME_DIR="$QA_U57_GAME" ONI_RUN_HOME="$home" ONI_CONFIG=release player "u57-$(basename "$out")" xvfb-run -a -s "-screen 0 1280x1024x24" \
         timeout -k "${E2E_QUIT_GRACE:-10}" 3600 "$root/scripts/run.sh" --native-override "steam_api=$QA_U57_STEAM" -screen-width 1024 -screen-height 768 -screen-fullscreen 0 \
         --frames "$frames" --input 400:click:948,75 --input 900:click:153,192 --game-tweak all --log "$out/log.txt" "$@" > "$out/stdout.txt" 2>&1
     local pid=$player_pid peak=0 rss p perfs=0 n progress=$SECONDS hang=$(( ${QA_HANG_MIN:-5} * 60 ))
@@ -355,7 +355,7 @@ u57_check()
         fail "$stage: the player hung (no PERF line for ${QA_HANG_MIN:-5} min) and was stopped; diagnostics in $out/hang"
         sed 's/^/       /' "$out/hang/summary.txt" | tee -a "$run/summary.txt"
     elif [ "$status" != 0 ]; then fail "$stage: the player exited $status"; fi
-    python3 "$tools" signatures "$out/stdout.txt" > "$out/signatures.txt"
+    python3 "$tools" signatures "$out/stdout.txt" "$out/errors.txt" > "$out/signatures.txt"
     if [ $bless -eq 1 ]; then
         [ "$status" = 0 ] || return # a failed run is not a reference
         cp "$out/signatures.txt" "$ref/$stage-signatures.txt"; ok "$stage: $(wc -l < "$out/signatures.txt") log signatures blessed"; return

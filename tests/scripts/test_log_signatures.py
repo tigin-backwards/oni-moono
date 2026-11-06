@@ -6,14 +6,19 @@ import helpers
 qa_tools = helpers.script('qa-tools.py')
 
 
-def signatures(text):
+def signatures(text, errors=None):
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, 'log')
         with open(path, 'w') as f:
             f.write(text)
+        errors_path = None
+        if errors is not None:
+            errors_path = os.path.join(d, 'errors')
+            with open(errors_path, 'w') as f:
+                f.write(errors)
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            qa_tools.signatures(path)
+            qa_tools.signatures(path, errors_path)
         return out.getvalue().splitlines()
 
 
@@ -180,6 +185,21 @@ class LogSignatures(unittest.TestCase):
         ours = 'InvalidCastException: Unable to cast object of type "Boxed`N[A+B]" to type "B". @ Mod.Prefix'
         self.assertEqual(qa_tools.unknown([ours], ['InvalidCastException: Specified cast is not valid. @ Mod.Prefix']), [])
         self.assertEqual(qa_tools.unknown([ours], ['InvalidCastException: Specified cast is not valid. @ Mod.Other']), [ours])
+
+    def test_plain_logged_errors(self):
+        # UnityEngine.Debug.LogError writes a plain line, which the player's ONI_LOG_ERRORS file
+        # names as an error; the game's Debug.LogError's [ERROR] line already gives its message.
+        log = ("Material 'Material:0x6BB96198' with Shader 'Klei/X' doesn't have a texture property 'instanceTex'\n"
+               'A plain Debug.Log line\n'
+               '[08:02:46.562] [1] [ERROR] Could not find ChoreGroup: \n'
+               'Could not find ChoreGroup: \n')
+        errors = ("Material 'Material:0x6BB96198' with Shader 'Klei/X' doesn't have a texture property 'instanceTex'\n"
+                  'Could not find ChoreGroup: \n')
+        self.assertEqual(signatures(log), ['Could not find ChoreGroup:'])
+        self.assertEqual(signatures(log, errors),
+                         ['Could not find ChoreGroup:',
+                          'Material "Material:N" with Shader "Klei/X" doesn"t have a texture property "instanceTex"'])
+        self.assertEqual(signatures(log, None), signatures(log, ''))
 
     def test_a_different_frame_is_new(self):
         self.assertEqual(qa_tools.unknown(['X: msg @ Mod.G'], ['X: msg @ Mod.F']), ['X: msg @ Mod.G'])
