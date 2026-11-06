@@ -177,8 +177,6 @@ namespace OniMoono.Host.GameTweaks
                 "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps."),
             new("off-world-fallers", BugFixes, "Land items lost below a world", "Items that fall out the bottom of a world (a rocket's chute) stop falling forever.",
                 "A bug in the game: they hang just below the world, stepped as falling every tick. This lands them where they hang."),
-            new("fix-disease-overlay-crash", BugFixes, "Fix the disease overlay crash", "Stops a crash when a critter or plant showing germs dies while the Disease overlay is open.",
-                "A bug in U60's own code (the original crashes too, mostly at low frame rates): the destroyed germ marker is dropped before the game reads it. Off by default, as the original crashes."),
             new("fix-load-screen-clicks", BugFixes, "Open a colony once on the Load screen", "After Load more, a click on a colony no longer builds its list of saves again for every refresh.",
                 "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, "
                 + "and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same.", OnByDefault: true),
@@ -188,7 +186,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "fix-disease-overlay-crash", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
@@ -205,9 +203,10 @@ namespace OniMoono.Host.GameTweaks
         /// game fixes it now). A launch option naming one names its replacement instead, or is
         /// ignored, with a line on stderr (Options); a settings file's entry is ignored and kept, as
         /// any unknown tweak's (PlayerSettings). fix-endless-sounds: U60 762107's sound sheets loop
-        /// both rows. slow-reachability (checked every 4 s instead of every second):
+        /// both rows. fix-disease-overlay-crash: U60 762230's CellChangeMonitor drops a destroyed
+        /// object's entry itself. slow-reachability (checked every 4 s instead of every second):
         /// instant-reachability checks only what changed, sooner and for less.
-        public static readonly (string Old, string? New)[] Retired = [("fix-endless-sounds", null), ("slow-reachability", InstantReachability)];
+        public static readonly (string Old, string? New)[] Retired = [("fix-endless-sounds", null), ("fix-disease-overlay-crash", null), ("slow-reachability", InstantReachability)];
 
         /// Whether a `--game-tweak` value names a retired tweak, with the value naming its
         /// replacement (with its `-` when the name has one), or null when none took its place.

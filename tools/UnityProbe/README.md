@@ -581,8 +581,9 @@ With `PROBE_SCENARIO=cellchangecrash` only the cell-change probe runs (`CellChan
 `CC …`, at the main menu, U60 or later): Klei's own `CellChangeMonitor` (given a grid) with that
 cascade, a moved child carrying a `KObject` destroyed after `RenderEveryTick` read it, with and
 without a fixed step in the next frame; each frame logs whether `RenderEveryTick` threw. The
-original throws `NullReferenceException` when a fixed step comes first, as the game's own
-Disease overlay does when a critter with a `DiseaseSourceVisualizer` dies.
+original up to 762107 throws `NullReferenceException` when a fixed step comes first, as the
+game's own Disease overlay does when a critter with a `DiseaseSourceVisualizer` dies; 762230's
+`RenderEveryTick` skips destroyed objects and no longer throws (docs/research/u60-762230.md).
 
 Run these with a scratch profile as in steps 1 to 4 above (the original's executable copied into
 a folder of its own, as `scripts/e2e.py` does, beside links to the rest of its install), and the

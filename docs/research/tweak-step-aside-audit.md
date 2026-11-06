@@ -8,10 +8,10 @@ tweak changed. Branches: origin/master (U59, 5f945509) and origin/u60 (U60, 2c2c
 
 - **Tweaks:** `src/OniMoono.GameTweaks/*.cs` and `src/OniMoono.Host/GameTweaks/*.cs` on both
   branches. They are the same on both but for: `fast-overlays`, `fast-overlay-textures` and
-  `CallSiteReroute` (master only); `fix-disease-overlay-crash` (`DestroyedCellChangeObjects`,
-  u60 only); `fast-anim-batches`' write path (U60's `GetCustomShaderParams` for
-  `GetPostProcessingParams`, and missing methods fail the install); `fast-serialization`'s
-  member checks at install (u60).
+  `CallSiteReroute` (master only); `fast-anim-batches`' write path (U60's
+  `GetCustomShaderParams` for `GetPostProcessingParams`, and missing methods fail the install);
+  `fast-serialization`'s member checks at install (u60). (u60's `fix-disease-overlay-crash` was
+  retired with U60 762230, which fixes the crash itself.)
 - **Game code:** onimaxxing's decompiles `decomp/u59-csharp*` and `decomp/u60-csharp*`. The
   methods the tweaks touch differ between U59 and U60 only in decompiler noise, except where
   noted.
@@ -327,7 +327,6 @@ prefix is at `Priority.Last` and checks `__runOriginal`.
 | | `SolidConduitFlow.RemovePickupable` | W (prefix) | – | Ronivan's Legacy, Utility Layers, Insulated Solid Conduit |
 | `instant-reachability` | `ReachabilityMonitor.InitializeStates`, `Instance.UpdateReachability`, `MinionGroupProber`'s readers and writers, `Workable.GetCell`/`GetOffsets`/`SetOffsets`/`SetOffsetTable`, `Pickupable.GetCell`/`UpdateCachedCell`, `Diggable.GetCell`, `Unsealable.GetOffsets`, `OffsetTracker.GetOffsets`, `OffsetTableTracker.UpdateOffsets`/`UpdateCell`/`OnCellChanged` | R (prefixes returning false on the writers, root state enter and exit) + W (postfixes) | yes: any other owner's patch on one of them stands it down for the session, checked once when the monitor's states are made | Fast Track *FastReachability* (replaces `InitializeStates`) and *PickupOpts* (`OffsetTracker.GetOffsets`) |
 | `off-world-fallers` | `GravityComponents.FixedUpdate` | R (transpiler: `Grid.IsValidCellInWorld` call site) + W (postfix) | no (#18) | Bubbles Bathtub, Floating[fix], Floatation, Cooperative Colonies, Fast Track |
-| `fix-disease-overlay-crash` (u60) | `CellChangeMonitor.RenderEveryTick` | W (read-only prefix, edits the dictionary) | – | Fast Track *FastReachability* (replaces it: the fix then does nothing), Cooperative Colonies |
 
 ## Guard shapes
 
@@ -402,8 +401,7 @@ The test proves the foreign patch runs as in the original, in both players:
 - **Fast Track already turns three tweaks into no-ops:** `fast-anim-batches` (steps aside),
   `fast-particle-collision` (Fast Track's `CheckCollision` prefix returns false) and
   `slow-reachability` (Fast Track replaces `InitializeStates`; its successor
-  `instant-reachability` stands down for it); on u60 also
-  `fix-disease-overlay-crash`.
+  `instant-reachability` stands down for it).
 - **Background save under Fast Save's background autosave** is a second background write
   behind the first; it works on paper, untested.
 - **Class comments call default-on tweaks "opt-in"** (fast-jobs, fast-sublimation,

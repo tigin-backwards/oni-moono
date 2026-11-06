@@ -725,21 +725,6 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_WORLD_FALLERS.DETAIL"
 msgid "A bug in the game: they hang just below the world, stepped as falling every tick. This lands them where they hang."
 msgstr ""
 
-#. Row title (fix-disease-overlay-crash)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_DISEASE_OVERLAY_CRASH.TITLE"
-msgid "Fix the disease overlay crash"
-msgstr ""
-
-#. The line under the title (fix-disease-overlay-crash)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_DISEASE_OVERLAY_CRASH.EFFECT"
-msgid "Stops a crash when a critter or plant showing germs dies while the Disease overlay is open."
-msgstr ""
-
-#. Tooltip: how it works (fix-disease-overlay-crash)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_DISEASE_OVERLAY_CRASH.DETAIL"
-msgid "A bug in U60's own code (the original crashes too, mostly at low frame rates): the destroyed germ marker is dropped before the game reads it. Off by default, as the original crashes."
-msgstr ""
-
 #. Row title (fix-load-screen-clicks)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.TITLE"
 msgid "Open a colony once on the Load screen"
