@@ -9,6 +9,7 @@ rocket-launch                       # 1134+290: a Spaced Out rocket launch
 klei-unreachable                    # 553+346: Klei's servers out of reach (#28)
 thermal-gas-fissure                 # 321+92: Aquatic Pack fissure bubbles
 vista-toggle                        # 155+56: the vista projector's Resources.Load/UnloadAsset
+instant-reachability-stress ours    # ours only, ~6 min: instant-reachability's verify under a storm of reach changes
 
 # Issue regressions: fixed, in code that changes rarely, or a variant of a kept spec
 issue-48-fast-track                 # - (Fast Track gated)

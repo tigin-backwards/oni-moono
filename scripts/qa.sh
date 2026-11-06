@@ -411,7 +411,7 @@ stage_verify()
     echo "$report" | sed 's/^/     /' | tee -a "$run/summary.txt"
     [ $status -eq 0 ] || fail "verify: a verify mode reported mismatches"
     local tweak
-    for tweak in fast-anim-events fast-anim-batches fast-sublimation fast-jobs fast-particle-collision fast-offset-tables fast-anim-cleanup fast-partitioner-cleanup fast-conveyor-paths fast-smi-lookups path-probe-repair trim-anim-lists "nav links verify (in play)" "path grids verify" "canvas skips" "canvas products" "component layouts" "texel copies" "partial uploads" "parallel draws" "bundle blocks" "vulkan draws"; do
+    for tweak in fast-anim-events fast-anim-batches fast-sublimation fast-jobs fast-particle-collision fast-offset-tables fast-anim-cleanup fast-partitioner-cleanup fast-conveyor-paths fast-smi-lookups path-probe-repair instant-reachability trim-anim-lists "nav links verify (in play)" "path grids verify" "canvas skips" "canvas products" "component layouts" "texel copies" "partial uploads" "parallel draws" "bundle blocks" "vulkan draws"; do
         # The partial uploads' read-back check is the OpenGL device's (glGetTexImage); the
         # draw path's shortcuts checked are the Vulkan device's.
         [ "$tweak" = "partial uploads" ] && grep -aq "renderer: Vulkan" "$out/stdout.txt" && { note "verify: partial uploads not checked on Vulkan"; continue; }

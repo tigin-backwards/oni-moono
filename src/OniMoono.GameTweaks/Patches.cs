@@ -18,6 +18,7 @@ namespace OniMoono.GameTweaks
                 case FastJobs.Name: FastJobs.Install(harmony); return true;
                 case FastOffsetTables.Name: FastOffsetTables.Install(harmony); return true;
                 case SlowReachability.Name: SlowReachability.Install(harmony); return true;
+                case InstantReachability.Name: InstantReachability.Install(harmony); return true;
                 case OffWorldFallers.Name: OffWorldFallers.Install(harmony); return true;
                 case FastPartitionerCleanup.Name: FastPartitionerCleanup.Install(harmony); return true;
                 case FastAnimBatches.Name: FastAnimBatches.Install(harmony); return true;

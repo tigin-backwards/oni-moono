@@ -52,11 +52,11 @@ namespace OniMoono.Tests
             Assert.Same(GameTweakNames.BugFixes, GameTweakNames.Groups[^1]);
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Groups[^2]);
             Assert.Equal(new[] { "CHANGES_GAMEPLAY", "BUG_FIXES" }, GameTweakNames.Groups.Where(g => g.ChangesGameplay).Select(g => g.Key));
-            Assert.Equal(new[] { "brain-rate", "fix-disease-overlay-crash", "fix-load-screen-clicks", "fix-sound-piles", "off-screen-conveyors", "off-world-fallers", "path-probe-repair", "slow-reachability" }, GameTweakNames.ChangingBehaviour.Order());
-            // path-probe-repair, fix-load-screen-clicks and fix-sound-piles change behaviour
+            Assert.Equal(new[] { "brain-rate", "fix-disease-overlay-crash", "fix-load-screen-clicks", "fix-sound-piles", "instant-reachability", "off-screen-conveyors", "off-world-fallers", "path-probe-repair", "slow-reachability" }, GameTweakNames.ChangingBehaviour.Order());
+            // path-probe-repair, instant-reachability, fix-load-screen-clicks and fix-sound-piles change behaviour
             // (out of `exact`, in the Changes gameplay and Bug fixes groups) but are on by default
             // (the player's choice); the others are off.
-            Assert.Equal(GameTweakNames.ChangingBehaviour.Where(n => n is not ("path-probe-repair" or "fix-load-screen-clicks" or "fix-sound-piles")).Order(),
+            Assert.Equal(GameTweakNames.ChangingBehaviour.Where(n => n is not ("path-probe-repair" or "instant-reachability" or "fix-load-screen-clicks" or "fix-sound-piles")).Order(),
                 GameTweakNames.OffByDefault.Order());
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Rows.Single(r => r.Id == "path-probe-repair").Group);
             Assert.Equal(new[] { "off-world-fallers", "fix-disease-overlay-crash", "fix-load-screen-clicks", "fix-sound-piles" },

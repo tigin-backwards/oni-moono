@@ -112,7 +112,7 @@ Workstation concurrent GC) and why, and a `gc config:` line with the runtime's G
 Launch options still work and win over the screen, which then shows those rows as set by the
 launch options:
 - `--game-tweak exact`: every tweak that leaves the game as the original plays it: all but the
-  Changes gameplay and Bug fixes groups (so without `path-probe-repair`,
+  Changes gameplay and Bug fixes groups (so without `path-probe-repair`, `instant-reachability`,
   `fix-load-screen-clicks` and `fix-sound-piles`, which are on by default).
 - `--game-tweak all`: every tweak.
 - `--game-tweak none`: no tweaks.
@@ -201,6 +201,7 @@ All 5 together: autosave freeze ~12 s → ~5 s on a large colony; a late-game Sp
 ### Changes gameplay (off by default but where marked)
 
 - **Incremental path probes** (`path-probe-repair`): Duplicants' path checks redo only what changed in the world, using less CPU. Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may walk the other one, not the original's. Keeps about 0.9 MB a Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths). *On by default.*
+- **Instant reachability checks** (`instant-reachability`): Duplicants notice a newly opened or blocked path at once, using less CPU. Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second. *On by default.*
 - **Slower reachability checks** (`slow-reachability`): Duplicants notice a newly opened or blocked path up to 3 s later. Which errands and items can be reached is rechecked every 4 s instead of every second; temperature and building checks are never delayed.
 - **Lazy unseen conveyor items** (`off-screen-conveyors`): Items riding rails off screen are placed only when they stop or come into view. The rails carry exactly the same things, but items' positions lag while off screen.
 - **Critter and dupe brain updates capped at 30 updates a second** (`brain-rate`): Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps. The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps.
@@ -252,6 +253,28 @@ turn off Cache Paths to use this. Fast Track's **Background Pathing** only wraps
 methods in locks; the tweak checks that they answer as the game's and runs alongside it. With
 Fast Track's Fast Reachability on and its next chore priority set to Delay, Fast Track also
 patches the probe's work order, and the tweak stands down.
+
+### Instant reachability
+
+On by default, though it changes timing (it is in the Changes gameplay group and not in `exact`):
+the answers are the original's, but they come sooner.
+
+The game rechecks once a game second, for every errand and item it tracks (tens of thousands in
+a large colony, most of them items in storage), whether a Duplicant can reach it: its cell and
+work spots against the cells the Duplicants can reach. A change, such as a door locked or a tile
+dug, is seen up to a second later, at each one's next check. With `instant-reachability` an
+answer is rechecked only when something it reads changes: a cell becoming reachable or
+unreachable for every Duplicant (found where the game updates its count of Duplicants reaching
+each cell), the object moving, or its work spots changing. The recheck is the game's own, on the
+frame of the change, so the reachable tag, the status items and the fetch lists change as they do
+in the original, up to a second sooner. An object whose cell or work spots come from code it
+does not know (some mods' own) keeps the game's once-a-second check.
+
+With `ONI_TWEAK_VERIFY=1` every answer is compared with the counts every few frames
+(`instant-reachability: ... N checks, M mismatches` in Player.log every 30 s). It stands down
+for the session, logged once (`instant-reachability: off (...)`), when another mod patches the
+monitor, the counts or how an object's cell and work spots are read; Fast Track's **Fast
+Reachability** does, and replaces the same check its own way.
 
 ### The Load screen
 
