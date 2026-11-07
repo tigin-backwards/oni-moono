@@ -376,8 +376,23 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   MonoMod's method-compiled event and hands MonoMod's handler every patched method of a generic
   class that has the recompiled method's handle (instantiations sharing code share their method
   handle). Code that inlined such shared code before the patch is not rebuilt (D34).
-  `--check-types` patches an emitted generic class's method for one argument and calls it for
-  another past tier-up.
+  With several instantiations patched, each detour handed over points the shared code at its own
+  replacement, so the last one wins. On Mono, which never recompiles, that is the replacement
+  Harmony detoured last. MonoMod's table enumerates in hash-code order, which changes from run to
+  run, so once the code tiered up a random one won. Fast Track patches
+  `Components.Cmps<T>.GetWorldItems` for each of the game's ~100 lists. When the replacement for
+  `Cmps<GameObject>` won, its `(item as KMonoBehaviour)` on an item typed as the sealed
+  GameObject compiled to null on CoreCLR (the JIT folds a cast from a sealed class to an unrelated
+  one), and every list threw NullReferenceException from about 10 s after a load (IdleTracker,
+  PlanScreen, MeterScreen; the crash screen opened). The original keeps Fast Track's last,
+  `Cmps<MinnowImperativePOIStates.Instance>`, for good. **Resolved**: `SharedGenerics` numbers
+  Harmony's detours (a postfix of `PatchTools.DetourMethod`) and hands them over in that order,
+  the latest last. Not covered: when the replacement detoured last is itself typed over a sealed
+  class unrelated to what other instantiations hold, CoreCLR still folds its casts where Mono
+  checks them at run time; no mod is known to do so. `--check-types` patches an emitted generic
+  class's method for one argument and calls it for another past tier-up. A second check patches
+  seven instantiations, the sealed `string` first, and fails unless every call past tier-up
+  runs the one patched last.
 - **D19 Patch methods' frames.** Harmony calls a mod's prefixes, postfixes and finalizers from
   the replacement it builds for the patched method, a dynamic method owned by 0Harmony. CoreCLR's
   JIT inlines a small patch method into it, so what the patch method calls sees 0Harmony as its
