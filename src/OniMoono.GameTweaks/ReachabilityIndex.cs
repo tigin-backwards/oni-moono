@@ -271,6 +271,45 @@ namespace OniMoono.GameTweaks
         }
     }
 
+    /// An item of a ReachRoster: its place in the roster's list, kept by the roster.
+    public interface IRosterItem
+    {
+        int RosterIndex { get; set; }
+    }
+
+    /// The objects answered by events, in a list whose removal is O(1): each item keeps its
+    /// index, and a removal moves the last item into its place, the same order a linear
+    /// IndexOf and the same swap would leave. Main thread only. Plain .NET (unit tests).
+    public sealed class ReachRoster<T> where T : class, IRosterItem
+    {
+        readonly List<T> items = new List<T>();
+
+        public int Count => items.Count;
+        public T this[int i] => items[i];
+        /// The list itself, for ReachSession.HandBack (which empties it).
+        public List<T> Items => items;
+
+        public void Add(T item)
+        {
+            item.RosterIndex = items.Count;
+            items.Add(item);
+        }
+
+        /// Takes the item out (false when it isn't in, e.g. after the list was emptied).
+        public bool Remove(T item)
+        {
+            int at = item.RosterIndex;
+            item.RosterIndex = -1;
+            if (at < 0 || at >= items.Count || !ReferenceEquals(items[at], item)) return false;
+            int last = items.Count - 1;
+            var moved = items[last];
+            items[at] = moved;
+            moved.RosterIndex = at;
+            items.RemoveAt(last);
+            return true;
+        }
+    }
+
     /// Which monitored objects the tweak answers by events, and which keep the game's polling:
     /// only the cells and offsets the tweak can follow. Plain .NET (unit tests): the game side
     /// names the declaring types.

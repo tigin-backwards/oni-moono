@@ -203,6 +203,54 @@ namespace OniMoono.Tests
             Assert.Equal(0, ReachSession.HandBack(covered, m => true, m => { }, m => { }, (m, e) => { }));
         }
 
+        sealed class Rostered : IRosterItem
+        {
+            public int RosterIndex { get; set; } = -1;
+        }
+
+        /// The roster's O(1) removal leaves the list in the order the linear IndexOf and swap
+        /// with the last left it (the verify mode's walk reads that order), whatever the sequence
+        /// of adds and removes, and an item gone with the emptied list is not removed twice.
+        [Fact]
+        public void TheRosterRemovesInConstantTimeInTheLinearScansOrder()
+        {
+            var rng = new System.Random(57);
+            var roster = new ReachRoster<Rostered>();
+            var reference = new List<Rostered>();
+            var live = new List<Rostered>();
+            for (int step = 0; step < 20000; step++)
+            {
+                if (live.Count == 0 || rng.Next(3) != 0)
+                {
+                    var item = new Rostered();
+                    roster.Add(item);
+                    reference.Add(item);
+                    live.Add(item);
+                }
+                else
+                {
+                    var item = live[rng.Next(live.Count)];
+                    live.Remove(item);
+                    Assert.True(roster.Remove(item));
+                    int at = reference.IndexOf(item);
+                    reference[at] = reference[reference.Count - 1];
+                    reference.RemoveAt(reference.Count - 1);
+                    Assert.False(roster.Remove(item)); // a second Forget finds nothing
+                }
+                if (step % 997 == 0) Assert.Equal(reference, roster.Items);
+            }
+            Assert.Equal(reference, roster.Items);
+            for (int i = 0; i < roster.Count; i++) Assert.Equal(i, roster[i].RosterIndex);
+
+            // HandBack empties the list itself: a later removal of an old item touches nothing.
+            var old = roster[0];
+            roster.Items.Clear();
+            var fresh = new Rostered();
+            roster.Add(fresh);
+            Assert.False(roster.Remove(old));
+            Assert.Equal(new[] { fresh }, roster.Items);
+        }
+
         [Fact]
         public void UnknownCellsOffsetsAndTrackersKeepTheGamesPolling()
         {
