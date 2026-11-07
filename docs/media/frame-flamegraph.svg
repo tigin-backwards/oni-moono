@@ -1,65 +1,62 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="328" viewBox="0 0 1000 328" font-family="Segoe UI, Helvetica, Arial, sans-serif">
 <rect width="1000" height="328" fill="#fffdf8"/>
-<text x="500.0" y="22" text-anchor="middle" font-size="16" font-weight="600" fill="#2b2b2b">Where a frame goes (U57, every tweak, about 79 fps)</text>
+<text x="500.0" y="22" text-anchor="middle" font-size="16" font-weight="600" fill="#2b2b2b">Where a frame goes (U57, every tweak, about 129 fps)</text>
 <text x="500.0" y="38" text-anchor="middle" font-size="11" fill="#666">bar width = milliseconds of main-thread time a frame; a bar under another is part of it</text>
-<g><title>Main thread, one frame at 79 fps 12.7 ms</title><rect x="2.0" y="46" width="996.0" height="24" rx="3" fill="#e8875a" stroke="#ffffff" stroke-width="0.5"/>
-<text x="7.0" y="62.0" font-size="12" fill="#2b2b2b">Main thread, one frame at 79 fps 12.7 ms</text>
+<g><title>Main thread, one frame at 129 fps 7.8 ms</title><rect x="2.0" y="46" width="996.0" height="24" rx="3" fill="#e8875a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="7.0" y="62.0" font-size="12" fill="#2b2b2b">Main thread, one frame at 129 fps 7.8 ms</text>
 </g>
-<g><title>Game.Update 4.4 ms</title><rect x="2.0" y="72" width="344.9" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
-<text x="7.0" y="88.0" font-size="12" fill="#2b2b2b">Game.Update 4.4 ms</text>
+<g><title>Game.Update 2.9 ms</title><rect x="2.0" y="72" width="367.5" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="7.0" y="88.0" font-size="12" fill="#2b2b2b">Game.Update 2.9 ms</text>
 </g>
-<g><title>Game.SimEveryTick 3.8 ms</title><rect x="2.0" y="98" width="297.6" height="24" rx="3" fill="#f4b86e" stroke="#ffffff" stroke-width="0.5"/>
-<text x="7.0" y="114.0" font-size="12" fill="#2b2b2b">Game.SimEveryTick 3.8 ms</text>
+<g><title>Game.SimEveryTick 2.3 ms</title><rect x="2.0" y="98" width="299.3" height="24" rx="3" fill="#f4b86e" stroke="#ffffff" stroke-width="0.5"/>
+<text x="7.0" y="114.0" font-size="12" fill="#2b2b2b">Game.SimEveryTick 2.3 ms</text>
 </g>
-<g><title>state machine sim sub-ticks 2.7 ms</title><rect x="2.0" y="124" width="210.9" height="24" rx="3" fill="#f6c983" stroke="#ffffff" stroke-width="0.5"/>
-<text x="107.4" y="140.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">1</text>
+<g><title>state machine sim sub-ticks 1.5 ms</title><rect x="2.0" y="124" width="191.1" height="24" rx="3" fill="#f6c983" stroke="#ffffff" stroke-width="0.5"/>
+<text x="97.6" y="140.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">1</text>
 </g>
-<g><title>Game.UnsafeSim200ms 1.1 ms</title><rect x="214.9" y="124" width="84.7" height="24" rx="3" fill="#f6c983" stroke="#ffffff" stroke-width="0.5"/>
-<text x="257.2" y="140.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">2</text>
+<g><title>Game.UnsafeSim200ms 0.8 ms</title><rect x="195.1" y="124" width="106.1" height="24" rx="3" fill="#f6c983" stroke="#ffffff" stroke-width="0.5"/>
+<text x="248.2" y="140.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">2</text>
 </g>
-<g><title>waiting on the native simulation step (SimDLL) 1.0 ms</title><rect x="214.9" y="150" width="76.8" height="24" rx="3" fill="#f8d898" stroke="#ffffff" stroke-width="0.5"/>
-<text x="253.3" y="166.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">3</text>
+<g><title>Game.StepTheSim (0.04 of it in SimDLL) 0.7 ms</title><rect x="195.1" y="150" width="86.8" height="24" rx="3" fill="#f8d898" stroke="#ffffff" stroke-width="0.5"/>
+<text x="238.5" y="166.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">3</text>
 </g>
-<g><title>Game.LateUpdate 2.1 ms</title><rect x="348.9" y="72" width="163.6" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
-<text x="353.9" y="88.0" font-size="12" fill="#2b2b2b">Game.LateUpdate 2.1 ms</text>
+<g><title>Game.LateUpdate 1.0 ms</title><rect x="371.5" y="72" width="121.6" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="432.3" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">4</text>
 </g>
-<g><title>Duplicant and critter brains 1.4 ms</title><rect x="348.9" y="98" width="108.4" height="24" rx="3" fill="#f4b86e" stroke="#ffffff" stroke-width="0.5"/>
-<text x="403.1" y="114.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">4</text>
+<g><title>Duplicant and critter brains 0.4 ms</title><rect x="371.5" y="98" width="53.4" height="24" rx="3" fill="#f4b86e" stroke="#ffffff" stroke-width="0.5"/>
+<text x="398.2" y="114.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">5</text>
 </g>
-<g><title>fetch updates 0.5 ms</title><rect x="348.9" y="124" width="37.4" height="24" rx="3" fill="#f6c983" stroke="#ffffff" stroke-width="0.5"/>
-<text x="367.6" y="140.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">5</text>
+<g><title>Rendering (engine) 1.0 ms</title><rect x="495.1" y="72" width="121.6" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="500.1" y="88.0" font-size="12" fill="#2b2b2b">Rendering 1.0 ms</text>
 </g>
-<g><title>Rendering (engine) 2.1 ms</title><rect x="514.5" y="72" width="163.6" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
-<text x="519.5" y="88.0" font-size="12" fill="#2b2b2b">Rendering 2.1 ms</text>
+<g><title>Global.LateUpdate (animation updates) 0.7 ms</title><rect x="618.7" y="72" width="85.5" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="661.4" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">6</text>
 </g>
-<g><title>Global.LateUpdate (animation updates) 0.9 ms</title><rect x="680.0" y="72" width="69.0" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
-<text x="714.5" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">6</text>
+<g><title>UI canvases (engine) 0.5 ms</title><rect x="706.2" y="72" width="55.9" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="734.2" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">7</text>
 </g>
-<g><title>World.LateUpdate (animation batch uploads) 0.6 ms</title><rect x="751.0" y="72" width="45.3" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
-<text x="773.7" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">7</text>
+<g><title>World.LateUpdate (animation batch uploads) 0.2 ms</title><rect x="764.2" y="72" width="30.2" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="779.2" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">8</text>
 </g>
-<g><title>UI canvases (engine) 0.5 ms</title><rect x="798.3" y="72" width="37.4" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
-<text x="817.0" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">8</text>
+<g><title>Global.Update (animation events) 0.2 ms</title><rect x="796.3" y="72" width="28.9" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="810.8" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">9</text>
 </g>
-<g><title>Global.Update (animation events) 0.3 ms</title><rect x="837.7" y="72" width="21.7" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
-<text x="848.6" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">9</text>
+<g><title>PropertyTextures.LateUpdate 0.1 ms</title><rect x="827.2" y="72" width="14.7" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
+<text x="834.6" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">10</text>
 </g>
-<g><title>PropertyTextures.LateUpdate 0.2 ms</title><rect x="861.4" y="72" width="13.8" height="24" rx="3" fill="#f2a65a" stroke="#ffffff" stroke-width="0.5"/>
-<text x="868.3" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">10</text>
+<g><title>rest of the frame 1.2 ms</title><rect x="844.0" y="72" width="154.0" height="24" rx="3" fill="#d9d2c5" stroke="#ffffff" stroke-width="0.5"/>
+<text x="921.0" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">11</text>
 </g>
-<g><title>rest of the frame 1.6 ms</title><rect x="877.1" y="72" width="120.9" height="24" rx="3" fill="#d9d2c5" stroke="#ffffff" stroke-width="0.5"/>
-<text x="937.6" y="88.0" text-anchor="middle" font-size="11" font-weight="600" fill="#2b2b2b">11</text>
-</g>
-<rect x="8.0" y="186" width="16" height="14" rx="2" fill="#f6c983"/><text x="16.0" y="197" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">1</text><text x="32.0" y="197" font-size="12" fill="#2b2b2b">state machine sim sub-ticks <tspan fill="#666">2.7 ms</tspan></text>
-<rect x="508.0" y="186" width="16" height="14" rx="2" fill="#f6c983"/><text x="516.0" y="197" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">2</text><text x="532.0" y="197" font-size="12" fill="#2b2b2b">Game.UnsafeSim200ms <tspan fill="#666">1.1 ms</tspan></text>
-<rect x="8.0" y="206" width="16" height="14" rx="2" fill="#f8d898"/><text x="16.0" y="217" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">3</text><text x="32.0" y="217" font-size="12" fill="#2b2b2b">waiting on the native simulation step (SimDLL) <tspan fill="#666">1.0 ms</tspan></text>
-<rect x="508.0" y="206" width="16" height="14" rx="2" fill="#f4b86e"/><text x="516.0" y="217" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">4</text><text x="532.0" y="217" font-size="12" fill="#2b2b2b">Duplicant and critter brains <tspan fill="#666">1.4 ms</tspan></text>
-<rect x="8.0" y="226" width="16" height="14" rx="2" fill="#f6c983"/><text x="16.0" y="237" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">5</text><text x="32.0" y="237" font-size="12" fill="#2b2b2b">fetch updates <tspan fill="#666">0.5 ms</tspan></text>
-<rect x="508.0" y="226" width="16" height="14" rx="2" fill="#f2a65a"/><text x="516.0" y="237" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">6</text><text x="532.0" y="237" font-size="12" fill="#2b2b2b">Global.LateUpdate (animation updates) <tspan fill="#666">0.9 ms</tspan></text>
-<rect x="8.0" y="246" width="16" height="14" rx="2" fill="#f2a65a"/><text x="16.0" y="257" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">7</text><text x="32.0" y="257" font-size="12" fill="#2b2b2b">World.LateUpdate (animation batch uploads) <tspan fill="#666">0.6 ms</tspan></text>
-<rect x="508.0" y="246" width="16" height="14" rx="2" fill="#f2a65a"/><text x="516.0" y="257" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">8</text><text x="532.0" y="257" font-size="12" fill="#2b2b2b">UI canvases (engine) <tspan fill="#666">0.5 ms</tspan></text>
-<rect x="8.0" y="266" width="16" height="14" rx="2" fill="#f2a65a"/><text x="16.0" y="277" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">9</text><text x="32.0" y="277" font-size="12" fill="#2b2b2b">Global.Update (animation events) <tspan fill="#666">0.3 ms</tspan></text>
-<rect x="508.0" y="266" width="16" height="14" rx="2" fill="#f2a65a"/><text x="516.0" y="277" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">10</text><text x="532.0" y="277" font-size="12" fill="#2b2b2b">PropertyTextures.LateUpdate <tspan fill="#666">0.2 ms</tspan></text>
-<rect x="8.0" y="286" width="16" height="14" rx="2" fill="#d9d2c5"/><text x="16.0" y="297" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">11</text><text x="32.0" y="297" font-size="12" fill="#2b2b2b">rest of the frame <tspan fill="#666">1.6 ms</tspan></text>
+<rect x="8.0" y="186" width="16" height="14" rx="2" fill="#f6c983"/><text x="16.0" y="197" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">1</text><text x="32.0" y="197" font-size="12" fill="#2b2b2b">state machine sim sub-ticks <tspan fill="#666">1.5 ms</tspan></text>
+<rect x="508.0" y="186" width="16" height="14" rx="2" fill="#f6c983"/><text x="516.0" y="197" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">2</text><text x="532.0" y="197" font-size="12" fill="#2b2b2b">Game.UnsafeSim200ms <tspan fill="#666">0.8 ms</tspan></text>
+<rect x="8.0" y="206" width="16" height="14" rx="2" fill="#f8d898"/><text x="16.0" y="217" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">3</text><text x="32.0" y="217" font-size="12" fill="#2b2b2b">Game.StepTheSim (0.04 of it in SimDLL) <tspan fill="#666">0.7 ms</tspan></text>
+<rect x="508.0" y="206" width="16" height="14" rx="2" fill="#f2a65a"/><text x="516.0" y="217" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">4</text><text x="532.0" y="217" font-size="12" fill="#2b2b2b">Game.LateUpdate <tspan fill="#666">1.0 ms</tspan></text>
+<rect x="8.0" y="226" width="16" height="14" rx="2" fill="#f4b86e"/><text x="16.0" y="237" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">5</text><text x="32.0" y="237" font-size="12" fill="#2b2b2b">Duplicant and critter brains <tspan fill="#666">0.4 ms</tspan></text>
+<rect x="508.0" y="226" width="16" height="14" rx="2" fill="#f2a65a"/><text x="516.0" y="237" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">6</text><text x="532.0" y="237" font-size="12" fill="#2b2b2b">Global.LateUpdate (animation updates) <tspan fill="#666">0.7 ms</tspan></text>
+<rect x="8.0" y="246" width="16" height="14" rx="2" fill="#f2a65a"/><text x="16.0" y="257" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">7</text><text x="32.0" y="257" font-size="12" fill="#2b2b2b">UI canvases (engine) <tspan fill="#666">0.5 ms</tspan></text>
+<rect x="508.0" y="246" width="16" height="14" rx="2" fill="#f2a65a"/><text x="516.0" y="257" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">8</text><text x="532.0" y="257" font-size="12" fill="#2b2b2b">World.LateUpdate (animation batch uploads) <tspan fill="#666">0.2 ms</tspan></text>
+<rect x="8.0" y="266" width="16" height="14" rx="2" fill="#f2a65a"/><text x="16.0" y="277" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">9</text><text x="32.0" y="277" font-size="12" fill="#2b2b2b">Global.Update (animation events) <tspan fill="#666">0.2 ms</tspan></text>
+<rect x="508.0" y="266" width="16" height="14" rx="2" fill="#f2a65a"/><text x="516.0" y="277" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">10</text><text x="532.0" y="277" font-size="12" fill="#2b2b2b">PropertyTextures.LateUpdate <tspan fill="#666">0.1 ms</tspan></text>
+<rect x="8.0" y="286" width="16" height="14" rx="2" fill="#d9d2c5"/><text x="16.0" y="297" text-anchor="middle" font-size="10" font-weight="600" fill="#2b2b2b">11</text><text x="32.0" y="297" font-size="12" fill="#2b2b2b">rest of the frame <tspan fill="#666">1.2 ms</tspan></text>
 <text x="994" y="320" text-anchor="end" font-size="10" fill="#999">scripts/flamegraph.py from docs/PERFORMANCE.md</text>
 </svg>
