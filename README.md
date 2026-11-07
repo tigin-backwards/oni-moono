@@ -3,7 +3,7 @@
 [English](README.md) | [简体中文](README.zh-CN.md)
 
 An unofficial, super fast, super sussy replacement for the Unity layer of Oxygen Not Included,
-artisanally crafted by Claude. On a late-game colony the game runs at about 8× the original's
+artisanally crafted by Claude. On a late-game colony the game runs at up to 13× the original's
 frame rate ([Performance](#performance)).
 
 <p align="center"><img src="docs/images/moo-comet.webp" alt="A Gassy Moo falling as a comet" height="240"></p>
@@ -194,14 +194,14 @@ options in Steam.
 The biggest change is swapping the very garbage Mono runtime that Unity ships for CoreCLR. On
 top of that there are optimizations tuned to the way Oxygen Not Included uses the engine.
 
-On a late-game Spaced Out colony with every DLC (cycle 17,000+), on Windows, on the same machine, back to back:
+On a late-game Spaced Out colony with every DLC (cycle 17,000+), on Windows, on the same machine, back to back, with every Moono tweak on:
 
 | | Original | Moono | |
 |---|---|---|---|
-| Frame rate at speed&nbsp;3 (default tweaks) | about 11&nbsp;fps | about 88&nbsp;fps | about 8× |
-| Loading the save | 2&nbsp;min&nbsp;22&nbsp;s | about 35&nbsp;s | about 4× faster |
-| Autosave freeze | about 26&nbsp;s | about 2.3&nbsp;s | about 11× shorter |
-| Starting the game, to the main menu (every DLC, second launch) | about 17.4&nbsp;s | about 9.8&nbsp;s | about 1.8× faster |
+| Frame rate at speed&nbsp;3 | about 11&nbsp;fps | about 144&nbsp;fps | about 13× |
+| Loading the save | 2&nbsp;min&nbsp;22&nbsp;s | about 25&nbsp;s | about 5.5× faster |
+| Autosave freeze | about 26&nbsp;s | about 2.2&nbsp;s | about 12× shorter |
+| Starting the game, to the main menu (every DLC, second launch) | about 17.4&nbsp;s | about 10.3&nbsp;s | about 1.7× faster |
 
 How much faster it runs depends on your hardware. Moono removes the runtime's overhead, so the
 faster your CPU, the more of the gain you see. On slower machines, you'll get bottlenecked by other
@@ -212,29 +212,29 @@ Garbage-collection hitches are mostly gone: collections now run in the backgroun
 across every core, and their pauses are about a quarter as long.
 
 **Note:** This uses more memory compared to the original. On a mid-game colony, memory peaked at
-around 11GB resident compared to 7GB in the original. This is expected behavior for faster,
+around 11 GB resident compared to 7 GB in the original. This is expected behavior for faster,
 parallel collection.
 
-The late-game colony at speed 3: about 11 fps in the original, about 88 in Moono.
+The late-game colony at speed 3: about 11 fps in the original, about 136 in Moono.
 
-https://github.com/user-attachments/assets/9d54b5ac-8583-442c-b6ad-8ddaa31e6d6d
+https://github.com/user-attachments/assets/5775cbda-42b6-49cb-b178-669fdbeb9f0a
 
-Starting the game to the main menu, every DLC, second launch: 17.6 s in the original, 10.0 s in
+Starting the game to the main menu, every DLC, second launch: 17.5 s in the original, 9.8 s in
 Moono.
 
-https://github.com/user-attachments/assets/cb1bf869-b031-4090-86b8-1714535f36e4
+https://github.com/user-attachments/assets/f73ebf1a-8440-4579-ab2a-0b2eaa2a6853
 
-An autosave on the late-game colony: the original freezes for about 26 s, Moono for about 4 s.
+An autosave on the late-game colony: the original freezes for about 25 s, Moono for about 2.1 s.
 
-https://github.com/user-attachments/assets/a0534ae4-115f-4b17-b9bb-2f8c28868b89
+https://github.com/user-attachments/assets/02076cf7-15ec-406a-889d-254ceb7a3e61
 
-The temperature overlay on the late-game colony, panning: about 8 fps in the original, about 50 in Moono.
+The temperature overlay on the late-game colony, panning: about 7 fps in the original, about 57 in Moono.
 
-https://github.com/user-attachments/assets/e0054f3c-0462-4333-955b-9ab5c8888810
+https://github.com/user-attachments/assets/99767c1f-8600-467c-94c3-f92398aa833d
 
-A mid-game colony at speed 3: about 35 fps in the original, about 110 in Moono.
+A mid-game colony at speed 3: about 28 fps in the original, about 126 in Moono.
 
-https://github.com/user-attachments/assets/3106d24d-67d3-4bf3-ba23-8f8dc78910f8
+https://github.com/user-attachments/assets/e5293dda-2aa1-4dd9-9ef8-eeaa8808e7dd
 
 For a more detailed breakdown, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 

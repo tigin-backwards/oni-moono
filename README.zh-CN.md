@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-一个野路子、超快、非官方的《缺氧》（Oxygen Not Included）引擎替代品，是我和 AI 搭档 Claude（Anthropic 公司出品）一起折腾出来的。它替换的是游戏底层的 Unity 引擎，游戏本身的代码仍是 Klei 原版的，所以它不是普通的模组。在游戏后期的殖民地中，它的帧率约为原版的 8 倍（见[性能表现](#性能表现)）。
+一个野路子、超快、非官方的《缺氧》（Oxygen Not Included）引擎替代品，是我和 AI 搭档 Claude（Anthropic 公司出品）一起折腾出来的。它替换的是游戏底层的 Unity 引擎，游戏本身的代码仍是 Klei 原版的，所以它不是普通的模组。在游戏后期的殖民地中，游戏的帧率最高可达原版的 13 倍（见[性能表现](#性能表现)）。
 
 源代码公开；不改动游戏文件，只在 Steam 启动选项里加一行，清空启动选项即可回到原版；照常使用你的存档、DLC 和模组。目前只支持 Steam 版，不支持 WeGame 和 Epic。
 
@@ -146,40 +146,40 @@ Moono 运行 Klei 原版的 DLL，并在加载时按照 Mono 与 .NET 的[差异
 
 最大的变化，是把 Unity 自带的那个垃圾 Mono 运行时换成了 CoreCLR。在此基础上，还针对《缺氧》使用引擎的方式加入了一些优化。
 
-在同一台 Windows 机器上，对同一个游戏后期的眼冒金星殖民地（全部 DLC，第 17,000+ 周期）连续进行对比测试，结果如下：
+在同一台 Windows 机器上，对同一个游戏后期的眼冒金星殖民地（全部 DLC，第 17,000+ 周期）连续进行对比测试（Moono 开启全部调整项），结果如下：
 
 | | 原版 | Moono | |
 |---|---|---|---|
-| 3 倍速下的帧率（默认调整项） | 约 11 fps | 约 88 fps | 约 8 倍 |
-| 加载存档 | 2 分 22 秒 | 约 35 秒 | 快约 4 倍 |
-| 自动存档卡顿 | 约 26 秒 | 约 2.3 秒 | 缩短约 11 倍 |
-| 启动游戏到主菜单（全部 DLC，第二次启动） | 约 17.4 秒 | 约 9.8 秒 | 快约 1.8 倍 |
+| 3 倍速下的帧率 | 约 11 fps | 约 144 fps | 约 13 倍 |
+| 加载存档 | 2 分 22 秒 | 约 25 秒 | 快约 5.5 倍 |
+| 自动存档卡顿 | 约 26 秒 | 约 2.2 秒 | 缩短约 12 倍 |
+| 启动游戏到主菜单（全部 DLC，第二次启动） | 约 17.4 秒 | 约 10.3 秒 | 快约 1.7 倍 |
 
 运行速度的提升幅度取决于你的硬件。Moono 消除了运行时的开销，因此 CPU 越快，你能看到的提升就越大。在较慢的机器上，你会更早遇到其他瓶颈：内存耗尽，或游戏本身的 C++ 模拟——Moono 不会加速这部分（在非常大的自定义地图上尤其明显）。
 
 垃圾回收造成的卡顿基本消失了：回收现在在后台运行，分摊到所有核心上，停顿时间约为原来的四分之一。
 
-**注意：** 与原版相比，这会占用更多内存。在游戏中期的一个殖民地中，常驻内存峰值约为 11GB，而原版约为 7GB。对于更快、并行的垃圾回收来说，这是预期行为。
+**注意：** 与原版相比，这会占用更多内存。在游戏中期的一个殖民地中，常驻内存峰值约为 11 GB，而原版约为 7 GB。对于更快、并行的垃圾回收来说，这是预期行为。
 
-该后期殖民地以 3 倍速运行：原版约 11 fps，Moono 约 88 fps。
+该后期殖民地以 3 倍速运行：原版约 11 fps，Moono 约 136 fps。
 
-https://github.com/user-attachments/assets/9d54b5ac-8583-442c-b6ad-8ddaa31e6d6d
+https://github.com/user-attachments/assets/5775cbda-42b6-49cb-b178-669fdbeb9f0a
 
-从启动游戏到主菜单（全部 DLC，第二次启动）：原版 17.6 秒，Moono 10.0 秒。
+从启动游戏到主菜单（全部 DLC，第二次启动）：原版 17.5 秒，Moono 9.8 秒。
 
-https://github.com/user-attachments/assets/cb1bf869-b031-4090-86b8-1714535f36e4
+https://github.com/user-attachments/assets/f73ebf1a-8440-4579-ab2a-0b2eaa2a6853
 
-该后期殖民地的自动存档：原版会卡住约 26 秒，Moono 约 4 秒。
+该后期殖民地的自动存档：原版会卡住约 25 秒，Moono 约 2.1 秒。
 
-https://github.com/user-attachments/assets/a0534ae4-115f-4b17-b9bb-2f8c28868b89
+https://github.com/user-attachments/assets/02076cf7-15ec-406a-889d-254ceb7a3e61
 
-在该后期殖民地平移视角时的温度视图：原版约 8 fps，Moono 约 50 fps。
+在该后期殖民地平移视角时的温度视图：原版约 7 fps，Moono 约 57 fps。
 
-https://github.com/user-attachments/assets/e0054f3c-0462-4333-955b-9ab5c8888810
+https://github.com/user-attachments/assets/99767c1f-8600-467c-94c3-f92398aa833d
 
-一个游戏中期的殖民地，3 倍速：原版约 35 fps，Moono 约 110 fps。
+一个游戏中期的殖民地，3 倍速：原版约 28 fps，Moono 约 126 fps。
 
-https://github.com/user-attachments/assets/3106d24d-67d3-4bf3-ba23-8f8dc78910f8
+https://github.com/user-attachments/assets/e5293dda-2aa1-4dd9-9ef8-eeaa8808e7dd
 
 如需更详细的分析，请参阅 [docs/PERFORMANCE.md](docs/PERFORMANCE.md)。
 
