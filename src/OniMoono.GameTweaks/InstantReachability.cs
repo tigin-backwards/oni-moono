@@ -76,8 +76,9 @@ namespace OniMoono.GameTweaks
         static readonly AccessTools.FieldRef<OffsetTableTracker, KMonoBehaviour> tableOwner = AccessTools.FieldRefAccess<OffsetTableTracker, KMonoBehaviour>("cmp");
         static readonly AccessTools.FieldRef<MinionGroupProber, int[]> proberCells = AccessTools.FieldRefAccess<MinionGroupProber, int[]>("cells");
 
-        sealed class Entry
+        sealed class Entry : IRosterItem
         {
+            public int RosterIndex { get; set; } = -1;
             public Instance Smi;
             public Workable Master;
             public int Slot = -1;
@@ -99,7 +100,7 @@ namespace OniMoono.GameTweaks
         static ReachIndex index;
         static MinionGroupProber boundTo;
         static readonly Dictionary<Workable, Entry> byMaster = new Dictionary<Workable, Entry>();
-        static readonly List<Entry> covered = new List<Entry>();
+        static readonly ReachRoster<Entry> covered = new ReachRoster<Entry>();
         /// The objects to recheck at the next drain (a cell, an offset or a tracker changed).
         static readonly List<Entry> pending = new List<Entry>();
         static readonly List<int> gathered = new List<int>();
@@ -231,7 +232,7 @@ namespace OniMoono.GameTweaks
             if (state == State.Off) return;
             // A second table in this session (a mod's): the objects still monitored go back to the
             // game's polling, from the old parked bucket. A new session's are gone already.
-            int handed = ReachSession.HandBack(covered,
+            int handed = ReachSession.HandBack(covered.Items,
                 e => !e.Removed && parked != null && monitor != null && e.Master != null && e.Smi.IsRunning(),
                 e => Unpark(e.Smi),
                 e => e.Removed = true,
@@ -396,12 +397,7 @@ namespace OniMoono.GameTweaks
             entry.Removed = true;
             byMaster.Remove(entry.Master);
             index.Remove(entry.Slot);
-            int at = covered.IndexOf(entry);
-            if (at >= 0)
-            {
-                covered[at] = covered[covered.Count - 1];
-                covered.RemoveAt(covered.Count - 1);
-            }
+            covered.Remove(entry);
             if (entry.Watched && entry.Master != null) EngineMoves.Unwatch(entry.Master.transform);
             entry.Watched = false;
         }
