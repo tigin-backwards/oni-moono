@@ -264,7 +264,7 @@ ones marked on by default in [TWEAKS.md](TWEAKS.md); `--game-tweak NAME` names t
 line. The last column says whether the game's results stay exactly the same; those that don't
 are left out of `--game-tweak exact`.
 
-The "Now" figures are leave-one-out runs on Linux under WSL2 (2026-11-06, v2026.11.06.01),
+The measured figures are leave-one-out runs on Linux under WSL2 (2026-11-06, v2026.11.06.01),
 which gives the CPU side's direction rather than player-facing frame rates: U57 at speed 3 with
 `--game-tweak all` against `--game-tweak all --game-tweak -NAME`, three runs of 9,000 frames
 each, with `--frame-stats` and `ONI_BUCKET_PROFILE=1`, interleaved over two lanes and over time
@@ -275,63 +275,76 @@ it shows in) and of the whole frame. These runs ran at 27–32 fps, where the wh
 about ±2.5 ms from run to run, so a frame difference under that is noise; `brain-rate` does
 nothing below 30 fps. The tweaks whose effect depends on the frame rate or on what's on screen
 were also measured on Windows the same way, three runs each without frame stats (U57, every
-tweak: 143.7–151.4 fps). The "Earlier" column records older measurements with their dates and
-setups, which aren't directly comparable.
+tweak: 143.7–151.4 fps). Older measurements that still add something, on other colonies or for tweaks these runs don't
+exercise, are in the notes under the tables, with their dates.
 
 ### On by default, exact
 
-| Tweak | Now (2026-11-06) | Earlier | Results |
-|---|---|---|---|
-| `fast-jobs`<br>worker threads aren't all woken and waited on for every small job (about 14 a frame) | jobs and the wait for workers 5.11–5.43 → 2.45–2.62 ms<br>frame 37.4–41.3 → 32.8–36.1 ms | 2026-10-20, U57, Linux: about +11% frame rate | exact |
-| `fast-anim-events`<br>the animation event loop reads a compact copy of each controller | animation events 1.29–1.39 → 0.67–0.73 ms | 2026-10-20, U57, Linux: 2.07 → 0.90 ms | exact |
-| `fast-sublimation`<br>items blocked by full gas cells are skipped in one batched update | sublimation 0.96–1.02 → 0.50–0.57 ms | 2026-10-20, U57, Linux: 1.45 → about 1.0 ms | exact |
-| `fast-particle-collision`<br>a radbolt skips the collider gather when no other radbolt is nearby | radbolts 0.27–0.31 → 0.07–0.09 ms | 2026-10-20, U57, Linux: 0.94 → 0.44 ms | exact |
-| `fast-offset-tables`<br>fetch updates recheck only items whose work spots can have changed | Duplicant brains 3.19–3.38 → 2.85–3.04 ms | 2026-10-20, U57, Linux: the fetch updates alone 1.74 → 1.33 ms | exact |
-| `fast-anim-cleanup`<br>the sweep for destroyed animations skips chunks that can't hold any | animation updates (`Global.LateUpdate`, the sweep inside) 1.86–2.19 → 1.78–1.83 ms | 2026-10-20, U57, Linux: the sweep alone 0.48 → 0.12 ms | exact |
-| `fast-partitioner-cleanup`<br>the spatial index's cleanup looks only at removed entries | the spatial index's cleanup 0.25–0.29 → 0.06 ms | 2026-10-22, Gluttony, Linux: 0.38 → 0.16 ms | exact |
-| `fast-symbol-overrides`<br>unchanged symbol-override blocks aren't uploaded again | animation batch uploads (`World.LateUpdate`) 1.48–1.52 → 0.90–0.98 ms<br>frame 40.9–44.8 → 32.8–36.1 ms | 2026-11-02, c100 (200 Duplicants), Windows, Vulkan: 34.9 and 40.7 → 62.4 and 84.7 fps | exact |
-| `fast-anim-batches`<br>animation batches are written on worker threads | `World.LateUpdate` 0.96–1.01 → 0.90–0.98 ms | 2026-10-23, Gluttony, Linux: 1.9–2.0 → 1.5–1.65 ms | exact |
-| `fast-conveyor-paths`<br>the conveyor network's rebuild finds its paths from an index | the load, from the menu to the colony, 28.3–29.0 → 25.4–27.6 s | 2026-10-25, U57, platform not recorded:<br>a rebuild 50–510 → 2–14 ms<br>the load's rebuild 840–850 → 14 ms | exact |
-| `compact-nav-links`<br>the pathfinding grids keep each cell's links packed | managed heap after the windows 7,752–7,951 → 7,525–7,729 MiB<br>frame within noise | 2026-11-03, U60, platform not recorded: the grids' links: soggy lab 2 2,387.5 → 118.2 MB, c100 670.1 → 55.3 MB, DeCrew 256.4 → 26.2 MB<br>2026-11-03, U60, Windows: managed heap −2.1 GiB on soggy lab 2, −0.6 GiB on c100, whose load is 7 s shorter; frame rate unchanged beyond noise | exact |
-| `fast-smi-lookups`<br>state machine lookups (`GetSMI<T>()`) are answered from earlier answers | frame within noise | 2026-11-03, U60, Windows:<br>c100 (200 Duplicants): sleeping Duplicants' updates 0.51 → 0.26 ms<br>DeCrew: ranch stations and sweep bots 0.01–0.02 ms each<br>frame rate unchanged beyond noise | exact |
-| `trim-anim-lists`<br>the anims' frame and symbol lists are cut to their length once loaded | not in these runs | 2026-11-03, U60 with every DLC, Linux: 5,923 lists, 66.5 MB of unused slots<br>c100's live managed heap at the load 8,251 → 8,186 MB | exact |
-| Save tweaks<br>`fast-serialization`, `fast-save-type-checks`, `fast-save-compression`, `no-save-gc`, `background-save` | not in these runs | 2026-10-20, U57, Linux: autosave freeze 11.7 → 4.8 s | exact; saves still load in the original |
+| Tweak | Measured | Results |
+|---|---|---|
+| `fast-jobs`<br>worker threads aren't all woken and waited on for every small job (about 14 a frame) | jobs and the wait for workers 5.11–5.43 → 2.45–2.62 ms<br>frame 37.4–41.3 → 32.8–36.1 ms | exact |
+| `fast-anim-events`<br>the animation event loop reads a compact copy of each controller | animation events 1.29–1.39 → 0.67–0.73 ms | exact |
+| `fast-sublimation`<br>items blocked by full gas cells are skipped in one batched update | sublimation 0.96–1.02 → 0.50–0.57 ms | exact |
+| `fast-particle-collision`<br>a radbolt skips the collider gather when no other radbolt is nearby | radbolts 0.27–0.31 → 0.07–0.09 ms | exact |
+| `fast-offset-tables`<br>fetch updates recheck only items whose work spots can have changed | Duplicant brains 3.19–3.38 → 2.85–3.04 ms | exact |
+| `fast-anim-cleanup`<br>the sweep for destroyed animations skips chunks that can't hold any | animation updates (`Global.LateUpdate`, the sweep inside) 1.86–2.19 → 1.78–1.83 ms | exact |
+| `fast-partitioner-cleanup`<br>the spatial index's cleanup looks only at removed entries | the spatial index's cleanup 0.25–0.29 → 0.06 ms | exact |
+| `fast-symbol-overrides`<br>unchanged symbol-override blocks aren't uploaded again | animation batch uploads (`World.LateUpdate`) 1.48–1.52 → 0.90–0.98 ms<br>frame 40.9–44.8 → 32.8–36.1 ms | exact |
+| `fast-anim-batches`<br>animation batches are written on worker threads | `World.LateUpdate` 0.96–1.01 → 0.90–0.98 ms | exact |
+| `fast-conveyor-paths`<br>the conveyor network's rebuild finds its paths from an index | the load, from the menu to the colony, 28.3–29.0 → 25.4–27.6 s | exact |
+| `compact-nav-links`<br>the pathfinding grids keep each cell's links packed | managed heap after the windows 7,752–7,951 → 7,525–7,729 MiB<br>frame within noise | exact |
+| `fast-smi-lookups`<br>state machine lookups (`GetSMI<T>()`) are answered from earlier answers | frame within noise | exact |
+| `trim-anim-lists`<br>the anims' frame and symbol lists are cut to their length once loaded | not measured in these runs (see note) | exact |
+| Save tweaks<br>`fast-serialization`, `fast-save-type-checks`, `fast-save-compression`, `no-save-gc`, `background-save` | not measured in these runs (see note) | exact; saves still load in the original |
 
 ### On by default, changing behaviour
 
-| Tweak | Now (2026-11-06) | Earlier | Results |
-|---|---|---|---|
-| `path-probe-repair`<br>each Duplicant's last path probe is repaired instead of searched again | the state machines' 200 ms updates 5.51–7.09 → 4.87–5.69 ms<br>frame 36.1–41.1 → 32.8–36.1 ms (+11%)<br>Windows: 115.6–135.7 → 143.7–151.4 fps (+24%), about 1.7 ms a frame | – | same costs and reachable cells; equal-cost routes may differ |
-| `instant-reachability`<br>reachability rechecked only where and when something changed | reachability (`UpdateReachability`, the game's polling) 1.03–1.16 → under 0.01 ms, below the bucket profile's top 40<br>Windows: 131.1–137.6 → 143.7–151.4 fps (+6%), about 0.4 ms a frame | 2026-11-06, U57, Linux, an earlier run at a higher frame rate: 0.42–0.47 → 0.010–0.014 ms | changes timing: answers up to a second sooner |
+| Tweak | Measured | Results |
+|---|---|---|
+| `path-probe-repair`<br>each Duplicant's last path probe is repaired instead of searched again | the state machines' 200 ms updates 5.51–7.09 → 4.87–5.69 ms<br>frame 36.1–41.1 → 32.8–36.1 ms (+11%)<br>Windows: 115.6–135.7 → 143.7–151.4 fps (+24%), about 1.7 ms a frame | same costs and reachable cells; equal-cost routes may differ |
+| `instant-reachability`<br>reachability rechecked only where and when something changed | reachability (`UpdateReachability`, the game's polling) 1.03–1.16 → under 0.01 ms, below the bucket profile's top 40<br>Windows: 131.1–137.6 → 143.7–151.4 fps (+6%), about 0.4 ms a frame | changes timing: answers up to a second sooner |
 
 ### Off by default
 
-| Tweak | Now (2026-11-06) | Earlier | Results |
-|---|---|---|---|
-| `brain-rate`<br>at most 30 Duplicant and 150 critter brain updates a second of real time | brains 2.91–3.06 → 2.85–3.04 ms (does nothing below 30 fps)<br>Windows: 89.6–112.7 → 143.7–151.4 fps (+40%), the frame 9.7 → 6.9 ms (medians) | 2026-10-25, Linux:<br>U57 at 35–39 fps: 6.0 → 4.7–5.1 brain updates a frame, 2.7–2.8 → 2.2–2.45 ms<br>2minnow at 42–45 fps: 6.0 → 4.1–4.3, 1.82 → 1.35–1.45 ms<br>Gluttony at 14 fps: unchanged (under 30 fps it does nothing)<br>the frame rates within the runs' noise | changes timing |
-| `off-screen-conveyors`<br>items on rails off screen are placed when they stop or come into view | animation updates (`Global.LateUpdate`) 2.32–2.50 → 1.78–1.83 ms; the conveyor items' colliders 0.34–0.40 → 0.08 ms<br>frame 36.4–42.2 → 32.8–36.1 ms (+6%)<br>Windows: 126.8–133.6 → 143.7–151.4 fps (+11%), about 0.8 ms a frame | – | changes positions while off screen |
-| `off-world-fallers`<br>bug fix for items stuck falling below a world; faster only on colonies that have them | no measurable effect on U57 (3 objects landed)<br>frame 34.6–36.0 → 32.8–36.1 ms, within noise<br>Windows: 124.7–138.8 → 143.7–151.4 fps, within the runs' noise | 2026-10-22, Gluttony, Windows, the original save: objects in the gravity step about 17,570 → 33, 18.6 → 25.1 fps ([case study 3](PERFORMANCE_CASE_STUDY_3.md#objects-falling-forever)) | bug fix: such items are landed where they hang |
+| Tweak | Measured | Results |
+|---|---|---|
+| `brain-rate`<br>at most 30 Duplicant and 150 critter brain updates a second of real time | brains 2.91–3.06 → 2.85–3.04 ms (does nothing below 30 fps)<br>Windows: 89.6–112.7 → 143.7–151.4 fps (+40%), the frame 9.7 → 6.9 ms (medians) | changes timing |
+| `off-screen-conveyors`<br>items on rails off screen are placed when they stop or come into view | animation updates (`Global.LateUpdate`) 2.32–2.50 → 1.78–1.83 ms; the conveyor items' colliders 0.34–0.40 → 0.08 ms<br>frame 36.4–42.2 → 32.8–36.1 ms (+6%)<br>Windows: 126.8–133.6 → 143.7–151.4 fps (+11%), about 0.8 ms a frame | changes positions while off screen |
+| `off-world-fallers`<br>bug fix for items stuck falling below a world; faster only on colonies that have them | no measurable effect on U57 (3 objects landed)<br>frame 34.6–36.0 → 32.8–36.1 ms, within noise<br>Windows: 124.7–138.8 → 143.7–151.4 fps, within the runs' noise | bug fix: such items are landed where they hang |
 
 Notes on the rows (more in [TWEAKS.md](TWEAKS.md)):
-- `fast-symbol-overrides` also re-applies Duplicants' overrides only where they changed.
-  `fast-anim-batches` writes each controller's instance and symbol data on workers and the rest
-  in the game's order.
+- `fast-symbol-overrides` also re-applies Duplicants' overrides only where they changed. On c100,
+  a 200-Duplicant colony, it took the frame rate from 34.9 and 40.7 to 62.4 and 84.7 fps
+  (2026-11-02, Windows, Vulkan).
+- `fast-anim-batches` writes each controller's instance and symbol data on workers and the rest
+  in the game's order. On Gluttony, a very late colony with 67 Duplicants, it took them from
+  1.9–2.0 to 1.5–1.65 ms a frame (2026-10-23, Linux).
 - `fast-conveyor-paths`: the rails' network is rebuilt on every rail built, removed or
   reconnected, and at the load; its path searches are answered from an index of the kept paths
-  instead of searching every kept path for every path found.
+  instead of searching every kept path for every path found. On U57 it took a rebuild after an
+  edit from 50–510 to 2–14 ms, and the load's from 840–850 to 14 ms (2026-10-25).
 - `trim-anim-lists`: the batch groups' frame, frame element and symbol frame lists grew by
-  doubling.
+  doubling. On U60 with every DLC it cut 5,923 lists, 66.5 MB of unused slots, and c100's live
+  managed heap at the load went from 8,251 to 8,186 MB (2026-11-03, Linux).
 - `compact-nav-links` keeps the links as compressed rows instead of a fixed row of slots for
-  every cell of the map. `fast-smi-lookups` keeps each object's answers until its list of state
-  machines changes.
+  every cell of the map. On soggy lab 2, a large modded colony, the grids' links went from
+  2,387.5 to 118.2 MB and on c100 from 670.1 to 55.3 MB; on Windows the managed heap was 2.1 GiB
+  lower on soggy lab 2 and 0.6 GiB on c100, whose load was 7 s shorter, frame rate unchanged
+  beyond noise (2026-11-03, U60).
+- `fast-smi-lookups` keeps each object's answers until its list of state machines changes. On
+  c100 it took sleeping Duplicants' updates from 0.51 to 0.26 ms a frame, frame rate unchanged
+  beyond noise (2026-11-03, U60, Windows).
+- The save tweaks took U57's autosave freeze from 11.7 to 4.8 s (2026-10-20, Linux).
 - `instant-reachability` rechecks where a Duplicant's reach, an object's cell or its work spots
   changed, on the frame they changed, with the game's own check.
 - `brain-rate` spreads the updates over frames, instead of 1 Duplicant and 5 critter brains
   every rendered frame.
-- `off-world-fallers` speeds up only colonies with objects stuck falling forever. Gluttony has
-  17,552 (10,317 diamonds and about 7,200 egg shells below two rocket interiors, fed by a
-  conveyor chute), and the game steps every falling object 30 times a game second; see
-  [case study 3](PERFORMANCE_CASE_STUDY_3.md#objects-falling-forever). On a colony without them
+- `off-world-fallers` speeds up only colonies with objects stuck falling forever. On Gluttony,
+  a colony with 17,552 of them (10,317 diamonds and about 7,200 egg shells below two rocket
+  interiors, fed by a conveyor chute), the game steps every falling object 30 times a game
+  second; the tweak took the gravity step from about 17,570 objects to 33 and the frame rate
+  from 18.6 to 25.1 fps (2026-10-22, Windows; see
+  [case study 3](PERFORMANCE_CASE_STUDY_3.md#objects-falling-forever)). On a colony without them
   it does nothing for speed.
 
 The bug fixes on by default, `fix-endless-sounds` and `fix-sound-piles`, left U57's frame within
