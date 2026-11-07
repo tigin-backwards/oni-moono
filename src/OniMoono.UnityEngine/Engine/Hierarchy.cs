@@ -165,10 +165,15 @@ namespace OniMoono.Engine
             var q = t.LocalRotation;
             if (q.x != 0f || q.y != 0f || q.z != 0f || q.w != 1f) return false;
             var lp = t.LocalPosition;
-            var f = t.UnrotatedInverseScale();
+            var s = t.LocalScale;
+            // Scale (1, 1, 1), most transforms', needs no inverse: its own local inverse goes
+            // stale with every position set, and a parent's is read for each set of a child.
+            var f = s.x == 1f && s.y == 1f && s.z == 1f ? new Vector3(InverseOfOne, InverseOfOne, InverseOfOne) : t.UnrotatedInverseScale();
             p = new Vector3(PlusZero(p.x - lp.x) * f.x, PlusZero(p.y - lp.y) * f.y, PlusZero(p.z - lp.z) * f.z);
             return true;
         }
+
+        static readonly float InverseOfOne = InverseScale.Of(1f);
 
         /// x + 0 in IEEE arithmetic: -0 becomes +0, everything else is unchanged. Not inlined
         /// away: the JIT keeps a float add of 0 (it is not an identity for -0).
