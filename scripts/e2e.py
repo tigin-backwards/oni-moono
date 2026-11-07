@@ -70,7 +70,7 @@ the hold file in its run folder is removed, for a look through OniMcp and E2eDri
 writing a spec; a QA perf stage waiting to start ends it 10 minutes later.
 """
 import contextlib, ctypes, fcntl, glob, hashlib, importlib.util, itertools, json, os, re, shlex, shutil, signal, socket, subprocess, sys
-import threading, time, urllib.error, urllib.request, zipfile
+import struct, threading, time, urllib.error, urllib.request, zipfile, zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SPECS = os.path.join(ROOT, 'tests', 'e2e')
@@ -1278,6 +1278,71 @@ def save_is_spaced_out(path):
     older saves list none, and their cluster names the expansion."""
     info = save_info(path)
     return 'EXPANSION1_ID' in (info.get('dlcIds') or []) or str(info.get('clusterId', '')).startswith('expansion1::')
+
+
+def save_written(path):
+    """Whether the save at PATH is whole. SaveLoader.Save writes a 16-byte prefix (build, header
+    size, header version, compression), the JSON header, KSerialization's type directory and then
+    the colony: as one zlib stream when compressed. With background-save, until its background
+    write has finished the file holds all but that stream (ours then moves the whole file over it).
+    So a compressed save is whole once a zlib stream after the header ends, checksum and all, at
+    the file's end; the directory's length is not stored, so each place a zlib header may start
+    is tried. An uncompressed save is written in one go (background-save leaves it to the game)."""
+    try:
+        with open(path, 'rb') as f:
+            data = f.read()
+    except OSError:
+        return False
+    if len(data) < 16:
+        return False
+    _, header_size, _, compression = struct.unpack_from('<IiIi', data)
+    start = 16 + header_size
+    if header_size < 0 or start > len(data):
+        return False
+    if not compression:
+        return True
+    view = memoryview(data)
+    for i in range(start, len(data) - 1):
+        # A zlib header: deflate (CM 8) and a check value making the pair a multiple of 31.
+        if data[i] & 0x0f != 8 or ((data[i] << 8) | data[i + 1]) % 31:
+            continue
+        z = zlib.decompressobj()
+        try:
+            for at in range(i, len(data), 1 << 20):
+                z.decompress(view[at:at + (1 << 20)])
+                if z.eof:
+                    break
+        except zlib.error:
+            continue
+        if z.eof:
+            return not z.unused_data
+    return False
+
+
+BACKGROUND_SAVE_WRITTEN = '[engine] background save written: '
+
+
+def wait_save_written(path, log, offset, timeout=300.0, poll=0.2, clock=time.monotonic, sleep=time.sleep):
+    """Waits until the save OniMcp reported at PATH is on disk whole, which `save` copies. Ours
+    with background-save says so in its log (LOG, read from OFFSET: the size it had before the
+    save) with "[engine] background save written: PATH"; the file itself is checked too
+    (save_written), which is what tells for the original, whose save is whole once SaveLoader.Save
+    returns. False after TIMEOUT seconds."""
+    deadline = clock() + timeout
+    line = BACKGROUND_SAVE_WRITTEN + path
+    while True:
+        try:
+            with open(log, 'rb') as f:
+                f.seek(offset)
+                if any(l.decode('utf-8', 'replace').rstrip('\r\n') == line for l in f):
+                    return True
+        except OSError:
+            pass
+        if save_written(path):
+            return True
+        if clock() >= deadline:
+            return False
+        sleep(poll)
 
 
 def spaced_out(spec):
@@ -3883,11 +3948,17 @@ class Run:
         elif kind == 'call':
             mcp.call(value['tool'], **value.get('args', {}))
         elif kind == 'save':
+            offset = os.path.getsize(self.player.log) if os.path.exists(self.player.log) else 0
             saved = mcp.call('game_control', domain='save', action='save', name=value, overwrite=True,
                              updateActiveSave=False, confirm=True)
             path = saved.get('saved') if isinstance(saved, dict) else None
             if not path or not os.path.exists(path):
                 raise SpecFailure(f'save {value} failed: {json.dumps(saved)[:600]}')
+            # OniMcp answers once SaveLoader.Save returns; with background-save the file is still
+            # being written then (its header only).
+            if not wait_save_written(path, self.player.log, offset):
+                raise SpecFailure(f'save {value}: {path} not written whole after 300 s '
+                                  f'({os.path.getsize(path)} bytes)')
             shutil.copy(path, os.path.join(self.out, value + '.sav'))
             self.saves.append(value)
         elif kind == 'shot':
