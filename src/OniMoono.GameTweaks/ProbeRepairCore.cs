@@ -1405,5 +1405,36 @@ namespace OniMoono.GameTweaks
                         return $"{o} patches {kv.Key}";
             return null;
         }
+
+        /// Which kinds of another owner's patch of a guarded method make a tweak stand down.
+        /// `AllButPostfixes`: a postfix there runs after the game's code as before. `Finalizers`:
+        /// the tweak's own postfix there runs after any prefix (even one that skips the body), the
+        /// transpiled body and other postfixes, so only a finalizer, which can swallow an exception
+        /// that skipped it, counts.
+        public enum GuardedKinds { All, AllButPostfixes, Finalizers }
+
+        /// The owners of one method's patches that count under `kinds` (inner patches change calls
+        /// inside the body, as a transpiler does).
+        public static List<string> Counted(GuardedKinds kinds, IEnumerable<string> prefixes, IEnumerable<string> postfixes,
+            IEnumerable<string> transpilers, IEnumerable<string> finalizers, IEnumerable<string> inner)
+        {
+            var counted = new List<string>();
+            void Add(IEnumerable<string> owners)
+            {
+                foreach (var o in owners)
+                    if (!counted.Contains(o)) counted.Add(o);
+            }
+            Add(finalizers);
+            if (kinds == GuardedKinds.Finalizers) return counted;
+            Add(prefixes);
+            Add(transpilers);
+            Add(inner);
+            if (kinds == GuardedKinds.All) Add(postfixes);
+            return counted;
+        }
+
+        /// Whether a patch of `kind` counts under `kinds` (as Counted, for the overlaps screen).
+        public static bool Counts(GuardedKinds kinds, PatchKind kind) =>
+            kinds == GuardedKinds.All || kind == PatchKind.Finalizer || (kinds == GuardedKinds.AllButPostfixes && kind != PatchKind.Postfix);
     }
 }

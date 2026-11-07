@@ -45,8 +45,10 @@ step aside. It only shows what it finds; it never turns a tweak on or off.
 - **Steps aside**: the tweak turns itself off for such a patch, so there is no conflict and it
   isn't counted: `path-probe-repair` (the probe and what it relies on), `fast-anim-batches` (its
   write path), `fast-symbol-overrides` (its kept calls), `fast-smi-lookups`
-  (`StateMachineController.GetSMI`), `fast-conveyor-paths` (`SolidConduitFlow.TryAdd`), and the
-  two rewrites for a transpiler they did not review. The icon is the grey disabled sign.
+  (`StateMachineController.GetSMI`), `fast-conveyor-paths` (`SolidConduitFlow.TryAdd`),
+  `fast-anim-events` (the animation event loop and what it reads; see
+  [Animation events](#animation-events)), and the two rewrites for a transpiler they did not
+  review. The icon is the grey disabled sign.
 
 An affected row gets the icon beside its switch, and its tooltip names each mod and what it
 patches ("Fast Track also patches KAnimBatch.UpdateDirty (it can skip the game's code). If
@@ -273,6 +275,27 @@ With `ONI_TWEAK_VERIFY=1` every answer is compared with the counts every few fra
 for the session, logged once (`instant-reachability: off (...)`), when another mod patches the
 monitor, the counts or how an object's cell and work spots are read; Fast Track's **Fast
 Reachability** does, and replaces the same check its own way.
+
+### Animation events
+
+Every frame the game's animation event loop visits each playing animation and reads its
+controller: whether it was destroyed, its current animation and play mode (for the frame), and
+its play speed. With `fast-anim-events` the loop is the same, entry by entry, but those inputs
+come from a compact copy, refreshed whenever the game changes them (an animation started, queued
+or swapped, a mode set, a controller destroyed, an animation's events restarted).
+
+It stands down for the session, logged once (`fast-anim-events: off (...)`), when another mod
+patches the loop or the methods it copies or reads (`PlayEvents`, `StopEvents`, the frame index,
+the play speed), checked at the first frame in a colony. A postfix alone keeps it on, except on
+the methods it copies or reads. On the methods whose changes refresh the copy only a finalizer
+counts: the refresh is marked after anything else a mod's patch does there (Fast Track's
+animation options patch one). With `ONI_TWEAK_VERIFY=1` every entry's copy is compared with the
+controller's own, and differences are logged.
+
+A mod that writes an animation's play speed directly, without restarting the animation, isn't
+seen until the animation next changes. On screen its events stay within 0.01 s of it (each frame
+the game resets their clock to the animation's once the two differ by that much); off screen
+their timing drifts from the animation until it next changes.
 
 ### The Load screen
 
