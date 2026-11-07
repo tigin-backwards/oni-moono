@@ -30,7 +30,10 @@ namespace ReachStressTestMod
     /// dropped from C down the shaft;
     /// a Duplicant spawned in C, the only one who reaches it, then deleted (and a bionic one in
     /// the base, where the DLC is on); the table's cells occupied and vacated within one frame;
-    /// the sweeper built and removed. Doors change state at once (as in instant build mode).
+    /// the sweeper built and removed; copper ore on C's floor, C cut off, whose work offsets this
+    /// mod's postfix on OffsetTableTracker's private UpdateOffsets stretches to B's floor, outside
+    /// its table's rows (as a mod could), with W filled and dug. Doors change state at once (as in
+    /// instant build mode).
     /// Duplicants who wandered into an area are moved out before its way in closes. Each phase logs what it did and what the tweak counted
     /// while it ran (crossed cells, notified objects, moves, rechecks: the tweak's statics, read
     /// by name), and the static totals here are what the spec checks.
@@ -45,11 +48,25 @@ namespace ReachStressTestMod
         {
             harmony.Patch(AccessTools.Method(typeof(Game), "OnSpawn"), postfix: new HarmonyMethod(typeof(Mod), nameof(GameSpawned)));
             harmony.Patch(AccessTools.Method(typeof(EnergyConsumer), nameof(EnergyConsumer.SetConnectionStatus)), prefix: new HarmonyMethod(typeof(Mod), nameof(Powered)));
+            harmony.Patch(AccessTools.Method(typeof(OffsetTableTracker), "UpdateOffsets", new[] { typeof(int), typeof(CellOffset[][]) }), postfix: new HarmonyMethod(typeof(Mod), nameof(Stretch)));
             Timing.Install(new Harmony("PerfProbe.ReachStress"));
             global::Debug.Log("[ReachStressTestMod] loaded");
         }
 
         static void GameSpawned(Game __instance) => __instance.gameObject.AddComponent<Stress>();
+
+        // U60: a tracker's offsets are a List.
+        static readonly AccessTools.FieldRef<OffsetTracker, List<CellOffset>> trackerOffsets = AccessTools.FieldRefAccess<OffsetTracker, List<CellOffset>>("offsets");
+        static readonly AccessTools.FieldRef<OffsetTableTracker, KMonoBehaviour> tableOwner = AccessTools.FieldRefAccess<OffsetTableTracker, KMonoBehaviour>("cmp");
+
+        /// Copper ore at Stress.WideCell also works from B's floor: an offset outside its table's.
+        static void Stretch(OffsetTableTracker __instance, int cell)
+        {
+            if (cell != Stress.WideCell) return;
+            var owner = tableOwner(__instance);
+            if (owner == null || owner.GetComponent<PrimaryElement>()?.ElementID != SimHashes.Copper) return;
+            trackerOffsets(__instance).Add(Stress.WideOffset);
+        }
 
         /// The test's sweeper is always powered.
         static void Powered(EnergyConsumer __instance, ref CircuitManager.ConnectionStatus connection_status)
@@ -100,12 +117,15 @@ namespace ReachStressTestMod
         // The area (early-base's coordinates).
         const int Y = 207, DoorX = 136, WallX = 147, ShaftX = 139;
         const float PhaseSeconds = 20f;
+        /// The stretched copper's cell (C's floor) and its offset to B's floor.
+        internal static int WideCell = -1;
+        internal static readonly CellOffset WideOffset = new CellOffset(152 - 142, Y - (Y + 4));
         /// ONI_REACH_STRESS_PHASES (comma-separated) runs only those, for a quicker look at one.
-        static readonly string[] Phases = (Environment.GetEnvironmentVariable("ONI_REACH_STRESS_PHASES") ?? "door,wall,ladder,teleport,raw,falling,dupes,flip,sweeper")
+        static readonly string[] Phases = (Environment.GetEnvironmentVariable("ONI_REACH_STRESS_PHASES") ?? "offsets,door,wall,ladder,teleport,raw,falling,dupes,flip,sweeper")
             .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
 
         // Totals per phase, for the spec (`type:ReachStressTestMod.Stress::DoorCrossings`).
-        public static long DoorCrossings, WallCrossings, LadderCrossings, DupesCrossings, FlipCrossings, SweeperCrossings, FallingCrossings;
+        public static long DoorCrossings, WallCrossings, LadderCrossings, DupesCrossings, FlipCrossings, SweeperCrossings, FallingCrossings, OffsetsCrossings;
         public static long TeleportMoves, RawMoves, RawTransformNotices, FallingMoves;
         public static long Actions, PhasesRun, Frames, Evictions;
         public static bool Ready, Failed;
@@ -273,6 +293,7 @@ namespace ReachStressTestMod
             var storage = locker.GetComponent<Storage>();
             for (int i = 0; i < 100; i++) storage.Store(Debris(SimHashes.Granite, Pos(150, Y), 2f).gameObject, hide_popups: true);
             for (int x = 149; x <= 156; x++) flipCells.Add(Cell(x, Y));
+            WideCell = Cell(142, Y + 4);
             global::Debug.Log($"[ReachStressTestMod] area ready: {Components.Pickupables.Count} pickupables");
         }
 
@@ -408,6 +429,18 @@ namespace ReachStressTestMod
                     }
                     SetDoor(door.GetComponent<Door>(), Door.ControlState.Locked);
                     break;
+                case "offsets":
+                    // C cut off; copper on its floor works from B's floor too (Mod.Stretch), so
+                    // only W decides its reach: filled and dug.
+                    if (step == 0)
+                    {
+                        if (ladder.Count > 0) { Evict(137, 142, Y + 6, Y + 3); RemoveLadder(); }
+                        for (int i = 0; i < 10; i++) dropped.Add(Debris(SimHashes.Copper, Pos(142, Y + 4)).gameObject);
+                    }
+                    else if (odd) { Evict(WallX, 156, Y + 2); Solid(WallX, Y); Solid(WallX, Y + 1); }
+                    else { Open(WallX, Y); Open(WallX, Y + 1); }
+                    Actions++;
+                    break;
                 case "sweeper":
                     if (Arm != null && step < 2)
                     {
@@ -490,6 +523,7 @@ namespace ReachStressTestMod
                 case "dupes": DupesCrossings += crossings; break;
                 case "flip": FlipCrossings += crossings; break;
                 case "sweeper": SweeperCrossings += crossings; break;
+                case "offsets": OffsetsCrossings += crossings; break;
                 case "teleport": TeleportMoves += moves; break;
                 case "raw": RawMoves += moves; RawTransformNotices += Count("TransformNotices") - at[4]; break;
                 case "falling": FallingMoves += moves; FallingCrossings += crossings; break;

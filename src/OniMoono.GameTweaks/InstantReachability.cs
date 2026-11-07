@@ -42,7 +42,13 @@ namespace OniMoono.GameTweaks
     ///
     /// An object the tweak can't follow keeps the game's polling: a type overriding GetCell or
     /// GetOffsets with code it doesn't know (mods), or a tracker of a type it doesn't know. The
-    /// others are taken out of the poll's bucket.
+    /// others are taken out of the poll's bucket. One whose table tracker answers offsets outside
+    /// the rectangle of its rows' first cells (a mod's postfix on the private
+    /// OffsetTableTracker.UpdateOffsets(int, CellOffset[][]) or IsValidRow, which the tweak does
+    /// not guard) goes back to the poll: its offsets are checked against its bounds when it
+    /// registers and after each recheck that follows a change of its offsets' inputs. A second
+    /// MinionGroupProber in one session (only a mod would make one) hands every object back to
+    /// the poll too.
     ///
     /// What changes: an answer comes on the frame its input changed, instead of at the object's
     /// next poll (up to a game second later); a Duplicant can pick up an errand that much sooner.
@@ -78,6 +84,11 @@ namespace OniMoono.GameTweaks
             public ReachCoverage.CellSource CellSource;
             public bool Watched;
             public bool Removed;
+            /// Scheduled since its last recheck: its offsets may have been set anew.
+            public bool CheckBounds;
+            /// Its index bounds, kept here too: the check after a recheck reads the entry the
+            /// drain just read, not the index's array.
+            public OffsetBounds Bounds;
         }
 
         enum State { Unchecked, On, Off }
@@ -110,6 +121,8 @@ namespace OniMoono.GameTweaks
         public static long TransformNotices { get; private set; }
         public static long Checks { get; private set; }
         public static long Mismatches { get; private set; }
+        /// Objects handed back to the poll for offsets outside their bounds.
+        public static long OutOfBounds { get; private set; }
         public static long Drains { get; private set; }
         public static double DrainMs => drainTicks * 1000.0 / Stopwatch.Frequency;
         static long drainTicks;
@@ -216,14 +229,20 @@ namespace OniMoono.GameTweaks
         static void ProberInit(MinionGroupProber __instance)
         {
             if (state == State.Off) return;
+            // A second table in this session (a mod's): the objects still monitored go back to the
+            // game's polling, from the old parked bucket. A new session's are gone already.
+            int handed = ReachSession.HandBack(covered,
+                e => !e.Removed && parked != null && monitor != null && e.Master != null && e.Smi.IsRunning(),
+                e => Unpark(e.Smi),
+                e => e.Removed = true,
+                (e, ex) => global::Debug.LogWarning($"{Name}: {e.Master?.name} not handed back to the game's polling: {ex}"));
+            if (handed > 0) global::Debug.Log($"{Name}: a new MinionGroupProber; {handed} objects back to the game's polling");
             boundTo = __instance;
             crossings = new ReachCrossings(Grid.CellCount);
             index = new ReachIndex(Grid.CellCount, Grid.WidthInCells);
-            foreach (var e in covered) e.Removed = true;
             byMaster.Clear();
-            covered.Clear();
             pending.Clear();
-            Polled = 0;
+            Polled = handed;
             parked = new UpdateBucketWithUpdater<Instance>(Name + " (event-driven)");
             parkedRemovals = 0;
             EngineMoves.Clear();
@@ -337,7 +356,8 @@ namespace OniMoono.GameTweaks
                 var (cellSource, offsetSource) = SourcesOf(master.GetType());
                 var b = cellSource == ReachCoverage.CellSource.Unknown ? null : BoundsOf(master, offsetSource);
                 if (b == null) { Polled++; return; }
-                var entry = new Entry { Smi = smi, Master = master, CellSource = cellSource };
+                if (!InBounds(master, b.Value)) { Polled++; OffsetsOutside(master); return; }
+                var entry = new Entry { Smi = smi, Master = master, CellSource = cellSource, Bounds = b.Value };
                 entry.Slot = index.Add(entry, master.GetCell(), b.Value);
                 byMaster[master] = entry;
                 covered.Add(entry);
@@ -413,9 +433,46 @@ namespace OniMoono.GameTweaks
                 (UpdateBucketWithUpdater<Instance>.IUpdater)updater);
         }
 
+        /// A parked object back to the game's polling.
+        static void ToPolling(Entry entry)
+        {
+            var smi = entry.Smi;
+            Forget(entry);
+            Unpark(smi);
+            Polled++;
+        }
+
+        /// Whether the object's current offsets lie inside its indexed bounds. A table tracker's
+        /// are its rows' first cells, unless a mod's patch adds others. They are set anew only
+        /// after they were invalidated (OnCellChanged, ForceRefresh) or the tracker's cell or the
+        /// tracker changed, each of which schedules a recheck: the check runs after those
+        /// rechecks (whose GetOffsets just set them), not after a crossing's, which would read
+        /// offsets IsAllReachable mostly never touches.
+        static bool InBounds(Workable master, OffsetBounds b)
+        {
+            if (!(offsetTracker(master) is OffsetTableTracker tracker)) return true;
+            var offsets = trackerOffsets(tracker);
+            if (offsets == null) return true;
+            for (int i = 0; i < offsets.Count; i++)
+                if (!b.Contains(offsets[i].x, offsets[i].y)) return false;
+            return true;
+        }
+
+        static readonly HashSet<Type> outsideLogged = new HashSet<Type>();
+
+        static void OffsetsOutside(Workable master)
+        {
+            OutOfBounds++;
+            if (outsideLogged.Add(master.GetType()))
+                global::Debug.Log($"{Name}: a {master.GetType().Name} ({master.name}) left to the game's polling: its offsets go outside its offset table's "
+                    + "(a mod's patch of OffsetTableTracker.UpdateOffsets or IsValidRow); others of its type will be too, unlogged");
+        }
+
         static void Schedule(Entry entry)
         {
-            if (!entry.Removed) pending.Add(entry);
+            if (entry.Removed) return;
+            entry.CheckBounds = true;
+            pending.Add(entry);
         }
 
         // ---- Their inputs ----
@@ -451,13 +508,12 @@ namespace OniMoono.GameTweaks
             {
                 // A tracker it doesn't know: back to the game's polling.
                 var smi = entry.Smi;
-                Forget(entry);
-                Unpark(smi);
-                Polled++;
+                ToPolling(entry);
                 smi.UpdateReachability();
                 return;
             }
             index.SetBounds(entry.Slot, b.Value);
+            entry.Bounds = b.Value;
             Schedule(entry);
         }
 
@@ -517,6 +573,17 @@ namespace OniMoono.GameTweaks
                     if (entry.Removed) continue;
                     Rechecks++;
                     entry.Smi.UpdateReachability();
+                    if (entry.CheckBounds)
+                    {
+                        // Its offsets may be new: outside its bounds, the poll answers it.
+                        entry.CheckBounds = false;
+                        if (!entry.Removed && !InBounds(entry.Master, entry.Bounds))
+                        {
+                            var master = entry.Master;
+                            ToPolling(entry);
+                            OffsetsOutside(master);
+                        }
+                    }
                 }
             }
         }

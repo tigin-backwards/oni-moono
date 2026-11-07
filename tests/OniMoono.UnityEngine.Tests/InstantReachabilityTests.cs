@@ -141,6 +141,68 @@ namespace OniMoono.Tests
             Assert.Empty(found);
         }
 
+        /// A table's bounds are its rows' first cells; an offset a mod's patch of the tracker adds
+        /// outside them is a read no crossing finds. The tweak checks the tracker's offsets with
+        /// Contains (at registration and after each recheck) and hands such an object back to
+        /// the game's polling.
+        [Fact]
+        public void OffsetsOutsideTheBoundsAreReadsGatherMisses()
+        {
+            const int width = 20;
+            var index = new ReachIndex(width * 10, width);
+            var b = OffsetBounds.Origin;
+            foreach (var (x, y) in new[] { (-1, 0), (1, 0), (0, 1), (-1, -1), (1, 1) }) b.Include(x, y); // a table's first cells
+            int cell = 4 * width + 5;
+            int slot = index.Add("item", cell, b);
+            var found = new List<int>();
+            // Every first cell is found, and a crossing beside the rectangle is not.
+            index.NewPass();
+            index.Gather(cell + 1 + width, found);
+            Assert.Equal(new[] { slot }, found);
+            Assert.True(index.BoundsOf(slot).Contains(1, 1));
+            // A mod's offset (6, -3): its cell's crossing is missed, so the tweak must not keep it.
+            found.Clear();
+            index.NewPass();
+            index.Gather(cell + 6 - 3 * width, found);
+            Assert.Empty(found);
+            Assert.False(index.BoundsOf(slot).Contains(6, -3));
+            Assert.False(index.BoundsOf(slot).Contains(2, 0));
+            Assert.False(index.BoundsOf(slot).Contains(0, -2));
+        }
+
+        sealed class Monitored
+        {
+            public bool Running = true, Parked = true, Removed, Throws;
+        }
+
+        /// A second table in one session: every object still monitored goes back to the poll,
+        /// one that fails doesn't stop the rest, the gone ones are left alone, and every entry is
+        /// dropped.
+        [Fact]
+        public void ANewTableHandsEveryMonitoredObjectBackToThePoll()
+        {
+            var covered = new List<Monitored>
+            {
+                new Monitored(), new Monitored { Running = false }, new Monitored { Throws = true }, new Monitored(), new Monitored { Removed = true },
+            };
+            var all = covered.ToList();
+            var failed = new List<Monitored>();
+            int handed = ReachSession.HandBack(covered,
+                m => !m.Removed && m.Running,
+                m => { if (m.Throws) throw new InvalidOperationException("its bucket"); m.Parked = false; },
+                m => m.Removed = true,
+                (m, e) => failed.Add(m));
+            Assert.Equal(2, handed);
+            Assert.Empty(covered);
+            Assert.All(all, m => Assert.True(m.Removed));
+            Assert.False(all[0].Parked);
+            Assert.True(all[1].Parked);  // not running: its state machine is gone
+            Assert.Equal(new[] { all[2] }, failed);
+            Assert.False(all[3].Parked); // after the one that threw
+            Assert.True(all[4].Parked);  // already gone
+            Assert.Equal(0, ReachSession.HandBack(covered, m => true, m => { }, m => { }, (m, e) => { }));
+        }
+
         [Fact]
         public void UnknownCellsOffsetsAndTrackersKeepTheGamesPolling()
         {
