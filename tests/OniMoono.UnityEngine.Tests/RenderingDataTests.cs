@@ -215,6 +215,10 @@ namespace OniMoono.Tests
             Rebuild(fresh);
             Rebuild(reused);
             Rebuild(new Mesh());
+            // Each path run once more before it is measured: what the JIT allocates on this thread
+            // when it compiles a method counts too (a handler of MonoMod's compile event).
+            Rebuild(reused);
+            Rebuild(new Mesh());
             // A mesh that held all those channels allocates no more than a new one does: at most
             // the new channel arrays themselves (with no upload pending it reuses its own).
             long expected = Rebuild(new Mesh());
