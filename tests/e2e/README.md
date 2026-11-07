@@ -248,6 +248,9 @@ paths from a `ui.find` or `ui_dump` of a run, not from guesses.
 ones), `duplicants`, `pending_construction`, `pending_digs`, `rooms: {Type: N}` and `cycle`. N is a
 number, or `">=N"`, `"<=N"`, `">N"`, `"<N"`.
 
+`save` copies the save into the run's evidence once it is on disk whole: with background-save,
+ours finishes writing it after OniMcp has answered.
+
 `build` places a blueprint through OniMcp's viewport map. OniMcp would also connect a powered
 building to a power source with wire blueprints and dig orders of its own choosing; the runner
 turns that off (`autoConnectPower: false`) unless the step says `wire: true`. A blueprint whose
