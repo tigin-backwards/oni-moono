@@ -241,6 +241,36 @@ namespace OniMoono.GameTweaks
         }
     }
 
+    /// The objects answered by events when their table is replaced (a second
+    /// MinionGroupProber.OnPrefabInit in one session, which only a mod would do): the new table's
+    /// crossings start from nothing, so each object still monitored goes back to the game's
+    /// polling, which reads whichever table is current. Plain .NET (unit tests).
+    public static class ReachSession
+    {
+        /// Hands each still-monitored object of `covered` to `toPoll` (one that throws is
+        /// reported to `failed` and the rest still go), marks each entry gone with `drop`, and
+        /// empties the list. Returns how many went back to the poll.
+        public static int HandBack<T>(List<T> covered, Func<T, bool> monitored, Action<T> toPoll, Action<T> drop, Action<T, Exception> failed)
+        {
+            int handed = 0;
+            foreach (var entry in covered)
+            {
+                try
+                {
+                    if (monitored(entry))
+                    {
+                        toPoll(entry);
+                        handed++;
+                    }
+                }
+                catch (Exception e) { failed(entry, e); }
+                drop(entry);
+            }
+            covered.Clear();
+            return handed;
+        }
+    }
+
     /// Which monitored objects the tweak answers by events, and which keep the game's polling:
     /// only the cells and offsets the tweak can follow. Plain .NET (unit tests): the game side
     /// names the declaring types.

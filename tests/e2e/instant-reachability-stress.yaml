@@ -10,10 +10,13 @@
 # (SetPosition) in and out; a construction order moved by raw transform sets (which only the
 # engine's move flags see); debris falling into reach; a Duplicant who alone reaches a room
 # spawned and deleted (and a bionic one where the DLC is on); table cells occupied and vacated,
-# and the door opened and locked, within one frame; the sweeper built and removed. Duplicants
-# who wandered in are moved out before a way in closes. With ONI_TWEAK_VERIFY=1 the tweak checks
-# its answers against the table every frame (all of them every few frames): none may differ,
-# and every kind of change must have reached it (cells crossed, or moves for the moves).
+# and the door opened and locked, within one frame; the sweeper built and removed; copper ore in
+# a room cut off, whose work offsets the mod's patch of the tracker's private UpdateOffsets
+# stretches into another room, outside its table's (as a mod could): the tweak must hand it back
+# to the game's polling. Duplicants who wandered in are moved out before a way in closes. With
+# ONI_TWEAK_VERIFY=1 the tweak checks its answers against the table every frame (all of them
+# every few frames): none may differ, and every kind of change must have reached it (cells
+# crossed, or moves for the moves).
 from: early-base
 memory_gb: 10
 game_tweaks: [instant-reachability]
@@ -35,6 +38,8 @@ steps:
       "type:ReachStressTestMod.Stress::DupesCrossings": "> 0"
       "type:ReachStressTestMod.Stress::FlipCrossings": "> 0"
       "type:ReachStressTestMod.Stress::SweeperCrossings": "> 0"
+      "type:ReachStressTestMod.Stress::OffsetsCrossings": "> 0"
+      "type:OniMoono.GameTweaks.InstantReachability::OutOfBounds": "> 0"
       "type:ReachStressTestMod.Stress::TeleportMoves": "> 0"
       "type:ReachStressTestMod.Stress::RawMoves": "> 0"
       "type:ReachStressTestMod.Stress::RawTransformNotices": "> 0"
