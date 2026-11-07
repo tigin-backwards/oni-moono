@@ -280,6 +280,14 @@ lines `DA …`, at mod load): a small hierarchy deactivated, activated and destr
 component. Diff the players' `DA` lines; `LifecycleTests` (`DeactivationTurnsEachObjectInactive…`)
 encodes it.
 
+With `PROBE_SCENARIO=haschanged` only the hasChanged probe runs (`HasChanged.cs`, lines `HC …` and
+`HCP …`, 5 s into the main menu, a second): a root with a chain of three children, every
+`hasChanged` cleared, then one set (position, localPosition, rotation, localRotation, localScale,
+eulerAngles to the value held, an ulp or 1 away, -0 for +0, NaN twice, SetParent to the same
+parent, reads straight after sets), and each level's flag and world position as float bits. It
+ends with a `HasChangedProbeDone` canvas; `tests/e2e/probe-haschanged.yaml` runs it.
+`TransformCacheTests` (`HasChangedFollowsTheOriginal`) encodes it.
+
 With `PROBE_SCENARIO=execorder` only the execution order probe runs (`ExecOrder.cs`, lines `EO
 …`, 2 s into the main menu): the probe's own types marked `[DefaultExecutionOrder(-1000)]` and
 `(1000)`, a subclass of the first and an unmarked type, as separate objects made in one frame

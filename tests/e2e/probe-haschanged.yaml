@@ -1,0 +1,7 @@
+# UnityProbe's `haschanged` scenario (tools/UnityProbe/HasChanged.cs): Transform.hasChanged and
+# world positions around position, rotation and scale sets, equal values included, on the main
+# menu. Needs SemanticsProbe.dll (built against the game's Managed) in a copy of OniMcp's mod
+# folder, E2E_ONIMCP pointing at the copy, PROBE_SCENARIO=haschanged. Read the "HC" lines.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/HasChangedProbeDone", cond: exists, frames: 20000}

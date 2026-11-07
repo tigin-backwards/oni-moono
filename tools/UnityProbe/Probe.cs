@@ -422,6 +422,11 @@ namespace SemanticsProbe
                 go.AddComponent<ParticleEmit>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "haschanged")
+            {
+                go.AddComponent<HasChanged>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "frametiming")
             {
                 go.AddComponent<FrameTimings>();
