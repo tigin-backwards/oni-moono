@@ -198,7 +198,7 @@ MANAGEMENT_ACTIONS = {'vitals': 'ManageVitals', 'consumables': 'ManageConsumable
 DRIVER_STEPS = {'click', 'toggle', 'dropdown', 'type', 'drag', 'tool', 'expect_ui', 'expect_state', 'ui_dump',
                 'ui_wait', 'world_shot', 'driver', 'click_world', 'scroll', 'expect_hit', 'press'}
 STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_shot', 'open', 'key', 'keyboard',
-              'expect_exit'} | DRIVER_STEPS
+              'expect_exit', 'wait_state'} | DRIVER_STEPS
 DRIVER_COMMANDS = {'ping', 'ui.action', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
                    'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'stopwatch', 'keys.log', 'imgui.scrollview', 'templates.load',
                    'buildmenu.settled'}
@@ -238,6 +238,19 @@ def check_step(where, kind, value, in_setup):
         if kind == 'expect_state' and isinstance(value, dict):
             for expr, wanted in value.items():
                 need(not isinstance(wanted, list) or wanted, f'{expr}: a list of checks is not empty')
+                try:
+                    parse_aggregate(str(expr))
+                except SpecFailure as e:
+                    problems.append(f'{where}: {e}')
+    elif kind == 'wait_state':
+        state = value.get('state') if isinstance(value, dict) else None
+        need(isinstance(state, dict) and state and set(value) <= {'state', 'seconds'}
+             and isinstance(value.get('seconds', 60), (int, float)),
+             'wait_state takes {state: {EXPR: WANTED}, seconds: N}')
+        if isinstance(state, dict):
+            for expr, wanted in state.items():
+                need(not re.search(r'\boriginal\b', json.dumps(wanted)),
+                     f'wait_state {expr}: waits for a value of this run, not the original\'s')
                 try:
                     parse_aggregate(str(expr))
                 except SpecFailure as e:
@@ -502,6 +515,8 @@ def needs_driver(spec):
     for step in (spec.get('setup') or []) + spec['steps']:
         (kind, value), = step.items()
         if kind in DRIVER_STEPS and not (kind == 'expect_state' and all(k.startswith('file:') for k in value)):
+            return True
+        if kind == 'wait_state' and not all(k.startswith('file:') for k in value['state']):
             return True
         if kind == 'shot' and isinstance(value, dict) and (value.get('crop') or value.get('mask')):
             return True
@@ -4054,6 +4069,8 @@ class Run:
             self.expect_ui(value)
         elif kind == 'expect_state':
             self.expect_state(value, number)
+        elif kind == 'wait_state':
+            self.wait_state(value)
         elif kind == 'ui_wait':
             more = {k: value[k] for k in ('value', 'stable', 'under') if k in value}
             self.need_driver().wait(value['path'], value.get('cond', 'exists'), value.get('frames', 300), **more)
@@ -4248,6 +4265,22 @@ class Run:
                 misses.append(f'{expr} is {json.dumps(have)[:200]}, wanted {wanted}')
         if misses:
             raise SpecFailure('; '.join(misses))
+
+    def wait_state(self, value):
+        """Waits (wall time: the game may be paused) until each of `state`'s expressions holds,
+        checked every quarter second, for at most `seconds` (default 60). Nothing is recorded."""
+        deadline = time.monotonic() + float(value.get('seconds', 60))
+        while True:
+            misses = []
+            for expr, wanted in value['state'].items():
+                have = self.state_value(expr)
+                if not state_check(have, wanted, self.saved)[0]:
+                    misses.append(f'{expr} is {json.dumps(have)[:200]}, wanted {wanted}')
+            if not misses:
+                return
+            if time.monotonic() > deadline:
+                raise SpecFailure(f'wait_state: after {value.get("seconds", 60)} s ' + '; '.join(misses))
+            time.sleep(0.25)
 
     def shot(self, value):
         name = value['name']

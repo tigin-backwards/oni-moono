@@ -345,7 +345,13 @@ colony's frame rate would autorepeat). E2eDriver's key log (`driver: {keys.log: 
 - expect_state: {"mass:debris": ">= 0.95 * before"} # ...and compare with it later
 - expect_state: {"Research.Instance.queuedTech.Count": "== original"}   # the original's value here
 - expect_hit: {at: center, not: "~TMP SubMeshUI"}  # the top raycast hit there (ui.at); or top: PATTERN
+- wait_state: {state: {"file:save_files/e2e/auto_save/early-base Cycle 1.sav": exists}, seconds: 120}
 ```
+
+`wait_state` waits until each of its `state` expectations holds (as `expect_state` checks them,
+but never against `original`), checked every quarter second in wall time, so also while the game
+is paused; it fails after `seconds` (default 60) and records nothing. It waits for what the game
+does at its own pace, such as an autosave that starts once its indicator has played.
 
 `expect_hit` takes `at` as `scroll` does (`center`, a cell or a UI path) and checks the path of
 the topmost raycast hit there, the empty path when nothing is hit: `top` must match it, `not`
