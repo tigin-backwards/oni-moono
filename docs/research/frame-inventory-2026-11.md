@@ -26,6 +26,34 @@ costs about 75 µs there, against about 2.5 µs on Windows (docs/PERFORMANCE.md)
 colony would be main-thread-bound, as U57 is here. Use the Linux numbers for CPU-side direction,
 not frame rates (Windows: U57 about 144 fps, 2minnow about 160 fps with every tweak; PERFORMANCE.md).
 
+## Where the main thread goes
+
+Each colony's sampled main-thread CPU per frame (U57 22.5 ms, 2minnow 18.5 ms), split into
+groups that don't overlap, from the perf tables below. Removing a share x raises the frame rate
+by up to 1/(1 − x) where the main thread limits the frame, as on Windows for both colonies.
+
+| Group | Where | U57 ms | U57 % | 2minnow ms | 2minnow % |
+|---|---|---|---|---|---|
+| Animation: updates, batch writes and uploads, events | Game | 2.97 | 13.2% | 2.64 | 14.3% |
+| Per-object monitors and checks (building inputs, plant absorbers, sublimation, critter temperature, ranching, building heat, work ticks, amounts, gas exposure, suit lockers) | Game | 2.14 | 9.5% | 1.34 | 7.2% |
+| Rendering (draw recording, culling, HUD batching) | Engine | 1.80 | 8.0% | 2.89 | 15.6% |
+| Duplicant and critter brains (chore choice, sensors, the fetch scan's main-thread share) | Game | 1.50 | 6.7% | 1.05 | 5.7% |
+| Canvas build and update | Engine | 1.30 | 5.8% | 1.31 | 7.1% |
+| UI input (raycasts) | Engine | 1.29 | 5.7% | 1.08 | 5.8% |
+| Conveyors (rail sim, items moving, transfer arms) | Game | 1.18 | 5.2% | 0.14 | 0.8% |
+| Moving objects (cell-change handlers) | Game | 1.18 | 5.2% | 0.78 | 4.2% |
+| Pipes and power | Game | 1.03 | 4.6% | 0.41 | 2.2% |
+| World visuals (conduit flow meshes, property textures, wires, name labels, hover card) | Game | 0.97 | 4.3% | 0.59 | 3.2% |
+| Navigators and state transitions (walking steps, polled conditions) | Game | 0.91 | 4.0% | 1.00 | 5.4% |
+| Reachability (instant-reachability, including the Forget scan) | Tweak | 0.50 | 2.2% | 0.08 | 0.4% |
+| Script dispatch and object lifecycle | Engine | 0.45 | 2.0% | 0.34 | 1.8% |
+| Garbage collection | Runtime | 0.13 | 0.6% | 0.05 | 0.3% |
+| Everything else: dozens of game systems under ~0.2 ms each (doors, chore drivers, colliders, sounds, schedulers, nav grid updates, partitioner queries, spawns), uGUI/TMP outside the canvas | mixed | 5.15 | 22.9% | 4.80 | 25.9% |
+| **Total** | | **22.5** | **100%** | **18.5** | **100%** |
+
+Off the main thread, not in these shares: the fetch scan's workers (3.8 ms CPU a frame in U57, 1.9 in
+2minnow), path probes, draw recording, texture copies and the GL thread.
+
 ## Method
 
 Each colony was run in Moono's Linux player under WSL2 (`scripts/run.sh` → `contain.sh`, Xvfb
@@ -261,64 +289,68 @@ differently (rendering and uploads cost less there), so treat the shares as a gu
 
 ### Bucket profile: the costliest update kinds (mean over windows, timed)
 
+% main is of the frame-stats runs' main-thread time per frame (U57 24.6 ms; 2minnow 21.0 ms,
+leaving out its 4.85 ms wait for the device). These are timed, so they carry the timing patches'
+own cost.
+
 U57 (all buckets 7.5–10.6 ms a frame, 512–524 kinds):
 
-| Update kind | rate | ms/frame | entries a call | µs/entry |
-|---|---|---|---|---|
-| BrainScheduler | render every tick | 2.03 | 1 | 2,027 |
-| RequireInputs | 200 ms | 0.43 | 1,746 | 0.66 |
-| SolidTransferArm (batch, jobs) | 1000 ms | 0.41 | 278 | 19.6 |
-| UpdateNavigator (Navigator.States) | every tick | 0.37 | 109 | 0.76 |
-| Sublimates (fast-sublimation batch) | 200 ms | 0.34 | 207 (per tick slice) | 0.36 |
-| CritterTemperatureMonitor.root | 200 ms | 0.24 | 1,064 | 0.61 |
-| AmountInstance (batch, jobs) | 200 ms | 0.23 | 14,908 | 0.04 |
-| RanchStation FindRanachable | 200 ms | 0.21 | 62 | 9.1 |
-| Work(Pickup) (FetchAreaChore) | 33 ms | 0.21 | 8 | 5.4 |
-| KComponentsInitializer (KComponents: structure temperatures, disease containers) | 200 ms | 0.17 | 1 | 463 |
-| OvercrowdingMonitor | 1000 ms | 0.15 | 31 | 1.1 |
-| EggProtectionMonitor find_egg (batch) | 200 ms | 0.15 | 66 | 6.0 |
-| SolidTransferArm | render every tick | 0.10 | 278 | 0.35 |
-| CreatureCalorieMonitor | 200 ms | 0.08 | 919 | 0.24 |
-| ConvertMass (ElementConverter) | 1000 ms | 0.08 | 2 | 7.7 |
-| LoopingSoundManager | render every tick | 0.08 | 1 | 75 |
-| ChoreDriver haschore / nochore | 200 ms | 0.07 / 0.06 | 763 / 683 | 0.26 / 0.21 |
-| Rottable | 1000 ms | 0.07 | 5 | 3.2 |
-| TemperatureVulnerableUpdater | 200 ms | 0.07 | 1 | 188 |
-| ArtifactModule | render every tick | 0.07 | 58 | 1.1 |
-| GasLiquidExposureMonitor | 33 ms | 0.07 | 22 | 1.3 |
-| Door.Controller RefreshIsBlocked | 200 ms | 0.06 | 768 | 0.22 |
-| KBoxCollider2D / KCircleCollider2D | render every tick | 0.06 / 0.06 | 168 / 217 | 0.38 / 0.26 |
-| DrowningMonitorUpdater | 200 ms | 0.06 | 1 | 157 |
-| Electrobank | 200 ms | 0.06 | 2,702 | 0.06 |
-| OxygenBreather | 200 ms | 0.05 | 22 | 6.4 |
-| HighEnergyParticle ready | every tick | 0.05 | 2 | 5.5 |
-| PressureVulnerableUpdater | 200 ms | 0.05 | 1 | 123 |
-| ScenePartitioner | 1000 ms | 0.04 | 1 | 546 |
-| ReachabilityMonitor (game polling) | 1000 ms | **not in the top 40** | | |
+| Update kind | rate | ms/frame | % main | entries a call | µs/entry |
+|---|---|---|---|---|---|
+| BrainScheduler | render every tick | 2.03 | 8.3% | 1 | 2,027 |
+| RequireInputs | 200 ms | 0.43 | 1.8% | 1,746 | 0.66 |
+| SolidTransferArm (batch, jobs) | 1000 ms | 0.41 | 1.7% | 278 | 19.6 |
+| UpdateNavigator (Navigator.States) | every tick | 0.37 | 1.5% | 109 | 0.76 |
+| Sublimates (fast-sublimation batch) | 200 ms | 0.34 | 1.4% | 207 (per tick slice) | 0.36 |
+| CritterTemperatureMonitor.root | 200 ms | 0.24 | 1.0% | 1,064 | 0.61 |
+| AmountInstance (batch, jobs) | 200 ms | 0.23 | 0.9% | 14,908 | 0.04 |
+| RanchStation FindRanachable | 200 ms | 0.21 | 0.9% | 62 | 9.1 |
+| Work(Pickup) (FetchAreaChore) | 33 ms | 0.21 | 0.9% | 8 | 5.4 |
+| KComponentsInitializer (KComponents: structure temperatures, disease containers) | 200 ms | 0.17 | 0.7% | 1 | 463 |
+| OvercrowdingMonitor | 1000 ms | 0.15 | 0.6% | 31 | 1.1 |
+| EggProtectionMonitor find_egg (batch) | 200 ms | 0.15 | 0.6% | 66 | 6.0 |
+| SolidTransferArm | render every tick | 0.10 | 0.4% | 278 | 0.35 |
+| CreatureCalorieMonitor | 200 ms | 0.08 | 0.3% | 919 | 0.24 |
+| ConvertMass (ElementConverter) | 1000 ms | 0.08 | 0.3% | 2 | 7.7 |
+| LoopingSoundManager | render every tick | 0.08 | 0.3% | 1 | 75 |
+| ChoreDriver haschore / nochore | 200 ms | 0.07 / 0.06 | 0.5% | 763 / 683 | 0.26 / 0.21 |
+| Rottable | 1000 ms | 0.07 | 0.3% | 5 | 3.2 |
+| TemperatureVulnerableUpdater | 200 ms | 0.07 | 0.3% | 1 | 188 |
+| ArtifactModule | render every tick | 0.07 | 0.3% | 58 | 1.1 |
+| GasLiquidExposureMonitor | 33 ms | 0.07 | 0.3% | 22 | 1.3 |
+| Door.Controller RefreshIsBlocked | 200 ms | 0.06 | 0.2% | 768 | 0.22 |
+| KBoxCollider2D / KCircleCollider2D | render every tick | 0.06 / 0.06 | 0.5% | 168 / 217 | 0.38 / 0.26 |
+| DrowningMonitorUpdater | 200 ms | 0.06 | 0.2% | 1 | 157 |
+| Electrobank | 200 ms | 0.06 | 0.2% | 2,702 | 0.06 |
+| OxygenBreather | 200 ms | 0.05 | 0.2% | 22 | 6.4 |
+| HighEnergyParticle ready | every tick | 0.05 | 0.2% | 2 | 5.5 |
+| PressureVulnerableUpdater | 200 ms | 0.05 | 0.2% | 1 | 123 |
+| ScenePartitioner | 1000 ms | 0.04 | 0.2% | 1 | 546 |
+| ReachabilityMonitor (game polling) | 1000 ms | **not in the top 40** | 162.8% | | |
 
 2minnow (all buckets about 6 ms):
 
-| Update kind | rate | ms/frame | entries a call | µs/entry |
-|---|---|---|---|---|
-| BrainScheduler | render every tick | 1.47 | 1 | 1,473 |
-| UpdateNavigator | every tick | 0.72 | 90 | 1.66 |
-| KComponentsInitializer | 200 ms | 0.27 | 1 | 680 |
-| GasLiquidExposureMonitor | 33 ms | 0.20 | 50 | 1.66 |
-| RequireInputs | 200 ms | 0.19 | 541 | 0.87 |
-| AmountInstance (batch) | 200 ms | 0.17 | 8,971 | 0.05 |
-| CritterTemperatureMonitor | 200 ms | 0.15 | 605 | 0.61 |
-| Work(Pickup) | 33 ms | 0.13 | 3 | 8.7 |
-| SuitLocker ChargeSuit | 200 ms | 0.13 | 2 | 157 |
-| RanchStation FindRanachable | 200 ms | 0.11 | 13 | 21.8 |
-| OxygenBreather | 200 ms | 0.10 | 50 | 5.0 |
-| OvercrowdingMonitor | 1000 ms | 0.10 | 13 | 1.5 |
-| Sublimates (batch) | 200 ms | 0.09 | 32 | 0.59 |
-| LightSymbolTracker | render every tick | 0.09 | 205 | 0.45 |
-| ChoreDriver haschore | 200 ms | 0.08 | 542 | 0.38 |
-| BionicOxygenTankMonitor (critical) | 200 ms | 0.08 (in 3 of 11 windows: 2.2 ms a call) | 1 | 2,217 |
-| KBoxCollider2D | render every tick | 0.07 | 126 | 0.51 |
-| PressureVulnerableUpdater | 200 ms | 0.06 | 1 | 161 |
-| SolidTransferArm (batch) | 1000 ms | 0.06 | 42 | 16.9 |
+| Update kind | rate | ms/frame | % main | entries a call | µs/entry |
+|---|---|---|---|---|---|
+| BrainScheduler | render every tick | 1.47 | 7.0% | 1 | 1,473 |
+| UpdateNavigator | every tick | 0.72 | 3.4% | 90 | 1.66 |
+| KComponentsInitializer | 200 ms | 0.27 | 1.3% | 1 | 680 |
+| GasLiquidExposureMonitor | 33 ms | 0.20 | 1.0% | 50 | 1.66 |
+| RequireInputs | 200 ms | 0.19 | 0.9% | 541 | 0.87 |
+| AmountInstance (batch) | 200 ms | 0.17 | 0.8% | 8,971 | 0.05 |
+| CritterTemperatureMonitor | 200 ms | 0.15 | 0.7% | 605 | 0.61 |
+| Work(Pickup) | 33 ms | 0.13 | 0.6% | 3 | 8.7 |
+| SuitLocker ChargeSuit | 200 ms | 0.13 | 0.6% | 2 | 157 |
+| RanchStation FindRanachable | 200 ms | 0.11 | 0.5% | 13 | 21.8 |
+| OxygenBreather | 200 ms | 0.10 | 0.5% | 50 | 5.0 |
+| OvercrowdingMonitor | 1000 ms | 0.10 | 0.5% | 13 | 1.5 |
+| Sublimates (batch) | 200 ms | 0.09 | 0.4% | 32 | 0.59 |
+| LightSymbolTracker | render every tick | 0.09 | 0.4% | 205 | 0.45 |
+| ChoreDriver haschore | 200 ms | 0.08 | 0.4% | 542 | 0.38 |
+| BionicOxygenTankMonitor (critical) | 200 ms | 0.08 (in 3 of 11 windows: 2.2 ms a call) | 0.4% | 1 | 2,217 |
+| KBoxCollider2D | render every tick | 0.07 | 0.3% | 126 | 0.51 |
+| PressureVulnerableUpdater | 200 ms | 0.06 | 0.3% | 1 | 161 |
+| SolidTransferArm (batch) | 1000 ms | 0.06 | 0.3% | 42 | 16.9 |
 
 ## System by system
 
