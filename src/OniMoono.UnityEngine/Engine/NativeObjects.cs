@@ -321,28 +321,30 @@ namespace OniMoono.Engine
         /// moved false: only cached data changed (an object made, cloned or loaded, a rect
         /// resized in place), not the transform's place. The local matrices are this
         /// transform's alone: its descendants keep theirs and lose only their world data.
-        public void MarkDirty(bool moved)
+        /// changed false: not even marked changed (hasChanged), for a value stored in place of
+        /// an equal one with other bits (KeepsEqualPosition).
+        public void MarkDirty(bool moved, bool changed = true)
         {
             localTrsDirty = true;
             var cache = inverse;
             if (cache != null) cache.LocalDirty = true;
-            WorldChanged(moved);
-            foreach (var c in Children) c.MarkWorldDirty(moved);
+            WorldChanged(moved, changed);
+            foreach (var c in Children) c.MarkWorldDirty(moved, changed);
         }
 
-        void MarkWorldDirty(bool moved)
+        void MarkWorldDirty(bool moved, bool changed)
         {
-            WorldChanged(moved);
-            foreach (var c in Children) c.MarkWorldDirty(moved);
+            WorldChanged(moved, changed);
+            foreach (var c in Children) c.MarkWorldDirty(moved, changed);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void WorldChanged(bool moved)
+        void WorldChanged(bool moved, bool changed)
         {
             worldDirty = rotationDirty = scaleDirty = true;
             var cache = inverse;
             if (cache != null) cache.WorldDirty = true;
-            HasChanged = true;
+            if (changed) HasChanged = true;
             if (moved)
             {
                 OnMoved();
