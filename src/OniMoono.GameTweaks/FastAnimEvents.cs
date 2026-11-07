@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-anim-events` (opt-in). Every frame AnimEventManager's loop visits each
-    /// playing animation (U57: about 6,450), and for each reads its controller: whether it was
-    /// destroyed, its frame index for the elapsed time (from its current animation and play
+    /// Game tweak `fast-anim-events` (on by default). Every frame AnimEventManager's loop visits
+    /// each playing animation (U57: about 6,450), and for each reads its controller: whether it
+    /// was destroyed, its frame index for the elapsed time (from its current animation and play
     /// mode), and its play speed. Those reads are a cache miss per controller and most of the
     /// loop's 2 ms; the loop's own entries are compact structs.
     ///
@@ -16,13 +17,29 @@ namespace OniMoono.GameTweaks
     /// destroyed. A mirror row is refreshed from the controller when its entry holds a different
     /// controller (a reference compare) or when the controller was flagged: every method that
     /// changes those inputs (StartQueuedAnim, Queue, the PlayMode setter, SwapAnims, OnDestroy)
-    /// flags it. Frame events, completions and everything else run as in the game.
+    /// flags it, as does AnimEventManager.PlayAnim (an entry started anew, for a mod that sets
+    /// the controller's animation by reflection and then restarts its events). Frame events,
+    /// completions and everything else run as in the game. A mod that writes those fields
+    /// directly and does not restart the events is read stale until the next flag.
+    ///
+    /// Stands down for the session (logged once) when another Harmony owner patches what the loop
+    /// replaces or relies on (Guarded, which kinds count by KindsOf), checked at the first update
+    /// in a game, when every mod's patches are made: the game's loop runs instead.
     ///
     /// With ONI_TWEAK_VERIFY=1 every entry's mirrored inputs are compared with the controller's
     /// own, and the controller's are used; differences are logged.
     public static class FastAnimEvents
     {
         public const string Name = "fast-anim-events";
+
+        enum State { Unchecked, On, Off }
+        static State state;
+
+        /// For tests (E2eDriver's state reads): whether the loop is ours, why not, and verify's counts.
+        public static bool Running => state == State.On;
+        public static string OffReason { get; private set; }
+        public static long Checks => checks;
+        public static long Mismatches => wrong;
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
         static readonly AccessTools.FieldRef<AnimEventManager, List<KBatchedAnimController>> finishedCalls =
@@ -58,18 +75,112 @@ namespace OniMoono.GameTweaks
             harmony.Patch(AccessTools.PropertySetter(typeof(KAnimControllerBase), nameof(KAnimControllerBase.PlayMode)), postfix: flag);
             harmony.Patch(AccessTools.Method(typeof(KBatchedAnimController), nameof(KBatchedAnimController.SwapAnims)), postfix: flag);
             harmony.Patch(AccessTools.Method(typeof(KAnimControllerBase), "OnDestroy"), postfix: new HarmonyMethod(typeof(FastAnimEvents), nameof(Destroyed)));
-            harmony.Patch(AccessTools.Method(typeof(AnimEventManager), "Update", new[] { typeof(float), typeof(List<AnimEventManager.AnimData>), typeof(List<AnimEventManager.EventPlayerData>) }),
-                prefix: new HarmonyMethod(typeof(FastAnimEvents), nameof(Update)));
+            harmony.Patch(AccessTools.Method(typeof(AnimEventManager), nameof(AnimEventManager.PlayAnim)), postfix: new HarmonyMethod(typeof(FastAnimEvents), nameof(Started)));
+            harmony.Patch(LoopUpdate(), prefix: new HarmonyMethod(typeof(FastAnimEvents), nameof(Update)));
         }
+
+        static MethodBase LoopUpdate() =>
+            AccessTools.Method(typeof(AnimEventManager), "Update", new[] { typeof(float), typeof(List<AnimEventManager.AnimData>), typeof(List<AnimEventManager.EventPlayerData>) });
+
+        // ---- Standing down ----
+
+        /// The methods another owner's patch makes this tweak stand down for: the loop and its
+        /// caller, what the loop copies or caches, the entries' other writers, and the methods whose
+        /// flags keep the mirror current.
+        internal static IEnumerable<MethodBase> Guarded()
+        {
+            var aem = typeof(AnimEventManager);
+            var handle = typeof(HandleVector<int>.Handle);
+            yield return LoopUpdate();
+            yield return AccessTools.Method(aem, nameof(AnimEventManager.Update), Type.EmptyTypes);
+            yield return AccessTools.Method(aem, "PlayEvents");
+            yield return AccessTools.Method(aem, "StopEvents");
+            yield return AccessTools.Method(aem, nameof(AnimEventManager.GetElapsedTime), new[] { handle });
+            yield return AccessTools.Method(aem, nameof(AnimEventManager.SetElapsedTime), new[] { handle, typeof(float) });
+            yield return AccessTools.Method(aem, nameof(AnimEventManager.PlayAnim));
+            yield return AccessTools.Method(aem, nameof(AnimEventManager.StopAnim));
+            yield return AccessTools.Method(aem, nameof(AnimEventManager.SetMode));
+            var controller = typeof(KAnimControllerBase);
+            yield return AccessTools.Method(controller, "StartQueuedAnim");
+            yield return AccessTools.Method(controller, nameof(KAnimControllerBase.Queue));
+            yield return AccessTools.PropertySetter(controller, nameof(KAnimControllerBase.PlayMode));
+            yield return AccessTools.Method(typeof(KBatchedAnimController), nameof(KBatchedAnimController.SwapAnims));
+            yield return AccessTools.Method(controller, "OnDestroy");
+            yield return AccessTools.PropertyGetter(controller, nameof(KAnimControllerBase.CurrentAnim));
+            yield return AccessTools.Method(controller, nameof(KAnimControllerBase.GetPlaySpeed));
+            foreach (var m in AccessTools.GetDeclaredMethods(controller))
+                if (m.Name == nameof(KAnimControllerBase.GetFrameIdx)) yield return m;
+            foreach (var m in AccessTools.GetDeclaredMethods(typeof(KAnim.Anim)))
+                if (m.Name == nameof(KAnim.Anim.GetFrameIdx)) yield return m;
+        }
+
+        /// Which patches of a guarded method count (ProbeRepairPolicy.GuardedKinds): every kind on
+        /// what the loop copies (PlayEvents, StopEvents, the frame index) or caches (the play speed,
+        /// the current animation), where another owner's postfix would not run or its answer would
+        /// be kept; only finalizers on the methods whose flag postfix keeps the mirror current, as
+        /// the flag runs after anything else they do and the mirror reads it at the next update;
+        /// all but postfixes on the rest (the loop, its caller and the entries' other writers).
+        internal static ProbeRepairPolicy.GuardedKinds KindsOf(MethodBase m) => m.Name switch
+        {
+            "PlayEvents" or "StopEvents" or "GetFrameIdx" or "GetPlaySpeed" or "get_CurrentAnim" => ProbeRepairPolicy.GuardedKinds.All,
+            "StartQueuedAnim" or "Queue" or "set_PlayMode" or "SwapAnims" or "OnDestroy" or "PlayAnim" => ProbeRepairPolicy.GuardedKinds.Finalizers,
+            _ => ProbeRepairPolicy.GuardedKinds.AllButPostfixes,
+        };
+
+        static IEnumerable<string> Owners(IEnumerable<Patch> patches)
+        {
+            foreach (var p in patches) yield return p.owner;
+        }
+
+        static string Foreign()
+        {
+            var owners = new List<KeyValuePair<string, IEnumerable<string>>>();
+            foreach (var m in Guarded())
+            {
+                if (m == null) return "a method it relies on was not found";
+                var info = Harmony.GetPatchInfo(m);
+                if (info == null) continue;
+                var counted = ProbeRepairPolicy.Counted(KindsOf(m), Owners(info.Prefixes), Owners(info.Postfixes), Owners(info.Transpilers), Owners(info.Finalizers),
+                    System.Linq.Enumerable.Concat(Owners(info.InnerPrefixes), Owners(info.InnerPostfixes)));
+                owners.Add(new KeyValuePair<string, IEnumerable<string>>($"{m.DeclaringType?.Name}.{m.Name}", counted));
+            }
+            return ProbeRepairPolicy.Foreign(owners);
+        }
+
+        /// Once, at the first update in a game (every mod has patched by then; the main menu's few
+        /// animations run the game's loop until then).
+        static void Check()
+        {
+            string why;
+            try { why = Foreign(); }
+            catch (Exception e) { why = "its methods could not be read: " + e.Message; }
+            if (why != null)
+            {
+                state = State.Off;
+                OffReason = why;
+                global::Debug.Log($"{Name}: off ({why}); the game's loop stays");
+                return;
+            }
+            state = State.On;
+            global::Debug.Log($"{Name}: on");
+        }
+
+        // ---- The flags (no-ops unless the loop is ours) ----
 
         static void Flag(KAnimControllerBase __instance)
         {
-            if (watches.TryGetValue(__instance, out int watch)) stale[watch] = true;
+            if (state == State.On && watches.TryGetValue(__instance, out int watch)) stale[watch] = true;
+        }
+
+        /// AnimEventManager.PlayAnim: the controller's entry was (re)started.
+        static void Started(KAnimControllerBase controller)
+        {
+            if (state == State.On && controller is not null && watches.TryGetValue(controller, out int watch)) stale[watch] = true;
         }
 
         static void Destroyed(KAnimControllerBase __instance)
         {
-            if (!watches.TryGetValue(__instance, out int watch)) return;
+            if (state != State.On || !watches.TryGetValue(__instance, out int watch)) return;
             watches.Remove(__instance);
             stale[watch] = true; // rows holding it re-read it (and find it destroyed)
         }
@@ -77,6 +188,12 @@ namespace OniMoono.GameTweaks
         /// AnimEventManager.Update(dt, anim_data, event_data), the game's loop with mirrored inputs.
         static bool Update(AnimEventManager __instance, float dt, List<AnimEventManager.AnimData> anim_data, List<AnimEventManager.EventPlayerData> event_data)
         {
+            if (state != State.On)
+            {
+                if (state == State.Off || Game.Instance == null) return true;
+                Check();
+                if (state != State.On) return true;
+            }
             if (dt <= 0f) return false;
             mirrors.TryGetValue(event_data, out var rows);
             var finished = finishedCalls(__instance);

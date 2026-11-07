@@ -16,10 +16,12 @@ namespace OniMoono.GameTweaks
     /// returns bool, so it can skip the original), the host's IL rewrite of it, and `Guard`: the
     /// tweak steps aside when another owner patches it. `StepsAsideOnTranspiler`: a rewrite whose
     /// tweak runs flat when an unreviewed transpiler changes the method (compact-nav-links).
+    /// `GuardKinds`: the kinds of patch the guard counts there (fast-anim-events passes over some).
     public sealed class TweakUse
     {
         public string Tweak;
         public bool Prefix, SkipPrefix, Postfix, Transpiler, Finalizer, Rewrite, Guard, StepsAsideOnTranspiler;
+        public ProbeRepairPolicy.GuardedKinds GuardKinds;
 
         /// The tweak changes what the method's body does: a mod skipping the body skips it too.
         public bool Replaces => SkipPrefix || Transpiler || Rewrite;
@@ -77,15 +79,16 @@ namespace OniMoono.GameTweaks
             owner == null || owner.StartsWith("OniMoono.", StringComparison.Ordinal) || owner == "PerfProbe" || owner.StartsWith("PerfProbe.", StringComparison.Ordinal);
 
         /// How a mod's patch on a method meets a tweak's use of it:
-        /// - steps aside: the tweak guards the method (it turns itself off for such a patch), or a
-        ///   transpiler that was not reviewed changes a method compact-nav-links rewrites;
+        /// - steps aside: the tweak guards the method against that kind of patch (it turns itself
+        ///   off for it), or a transpiler that was not reviewed changes a method compact-nav-links
+        ///   rewrites;
         /// - high: a transpiler on a method the tweak patches or rewrites (it sees other IL than
         ///   the game's), or a prefix that can skip the original on a method the tweak replaces;
         /// - low: anything else (postfixes, finalizers, prefixes that return nothing, a
         ///   reviewed transpiler).
         public static OverlapGrade Grade(TweakUse use, ForeignPatch patch, bool reviewed)
         {
-            if (use.Guard) return OverlapGrade.StepsAside;
+            if (use.Guard && ProbeRepairPolicy.Counts(use.GuardKinds, patch.Kind)) return OverlapGrade.StepsAside;
             if (patch.Kind == PatchKind.Transpiler)
             {
                 if (use.Rewrite && use.StepsAsideOnTranspiler) return reviewed ? OverlapGrade.Low : OverlapGrade.StepsAside;

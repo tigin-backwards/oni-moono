@@ -1,0 +1,25 @@
+# The fast-anim-events game tweak (src/OniMoono.GameTweaks/FastAnimEvents.cs) keeps its copy of
+# each animation's inputs current when a mod sets a controller's animation by reflection and
+# restarts its events. Ours only (`--player ours`): the original has no such tweak.
+#
+# A late-game colony at speed 3 for two game minutes. Our test mod (tools/OverlapTestMod,
+# ONI_OVERLAP_TEST_ANIM=swap), during the event loop (after an event's Play), gives controllers
+# another animation of the same file by writing `curAnim`, then restarts their events
+# (StopAnimEventSequence, StartAnimEventSequence), as Colony Cuisine does: the one the previous
+# pass visited last while it is still the last entry (InPlace: restarted, it lands in the slot
+# whose copy already holds it, which the loop visits later in the same pass, and only the tweak's
+# flag on AnimEventManager.PlayAnim refreshes it there), and every fifth frame a random one. With
+# ONI_TWEAK_VERIFY=1 every entry's copy is compared with its controller every frame: none may
+# differ.
+from: early-base
+game_tweaks: [fast-anim-events]
+test_mods: [OverlapTestMod]
+env: {ONI_OVERLAP_TEST_ANIM: swap, ONI_TWEAK_VERIFY: "1"}
+steps:
+  - run: {seconds: 120}
+  - expect_state:
+      "type:OniMoono.GameTweaks.FastAnimEvents::Running": true
+      "type:OverlapTestMod.Swap::Swaps": "> 200"
+      "type:OverlapTestMod.Swap::InPlace": "> 20"
+      "type:OniMoono.GameTweaks.FastAnimEvents::Checks": "> 100000"
+      "type:OniMoono.GameTweaks.FastAnimEvents::Mismatches": 0

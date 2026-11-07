@@ -1,0 +1,23 @@
+# The fast-anim-events game tweak (src/OniMoono.GameTweaks/FastAnimEvents.cs) stands down for
+# another owner's prefix on the animation event loop. Ours only (`--player ours`): the original
+# has no such tweak.
+#
+# Our test mod (tools/OverlapTestMod, ONI_OVERLAP_TEST_ANIM=prefix) patches AnimEventManager's
+# three-argument Update with a prefix that returns true and counts its calls, as ONI Multiplayer's
+# asteroid freeze patches it. At the first update in the colony the tweak must turn itself off,
+# naming the mod's patch, and leave the game's loop in place: the mod's prefix runs (Harmony skips
+# it after the tweak's false return) and the game's PlayEvents is called (the tweak's loop copies
+# it and never calls it).
+from: early-base
+game_tweaks: [fast-anim-events]
+test_mods: [OverlapTestMod]
+env: {ONI_OVERLAP_TEST_ANIM: prefix}
+steps:
+  - run: {seconds: 10}
+  - driver: {count: {methods: ["AnimEventManager:PlayEvents"]}}
+  - run: {seconds: 10}
+  - expect_state:
+      "type:OniMoono.GameTweaks.FastAnimEvents::Running": false
+      "type:OniMoono.GameTweaks.FastAnimEvents::OffReason": {contains: "patches AnimEventManager.Update"}
+      "type:OverlapTestMod.Mod::LoopCalls": "> 100"
+      'E2eDriver.Counting.Of("AnimEventManager:PlayEvents")': "> 100"

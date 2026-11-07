@@ -64,6 +64,22 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void GuardsStepAsideOnlyForTheKindsTheyCount()
+        {
+            // fast-anim-events: postfixes pass on the loop, all but finalizers on the flagged methods.
+            var loop = Use("fast-anim-events", skipPrefix: true, guard: true);
+            loop.GuardKinds = ProbeRepairPolicy.GuardedKinds.AllButPostfixes;
+            Assert.Equal(OverlapGrade.Low, ModOverlapsCore.Grade(loop, Patch(PatchKind.Postfix), false));
+            foreach (var kind in new[] { PatchKind.Prefix, PatchKind.Transpiler, PatchKind.Finalizer })
+                Assert.Equal(OverlapGrade.StepsAside, ModOverlapsCore.Grade(loop, Patch(kind, canSkip: kind == PatchKind.Prefix), false));
+            var flagged = Use("fast-anim-events", postfix: true, guard: true);
+            flagged.GuardKinds = ProbeRepairPolicy.GuardedKinds.Finalizers;
+            Assert.Equal(OverlapGrade.StepsAside, ModOverlapsCore.Grade(flagged, Patch(PatchKind.Finalizer), false));
+            Assert.Equal(OverlapGrade.Low, ModOverlapsCore.Grade(flagged, Patch(PatchKind.Prefix, canSkip: true), false));
+            Assert.Equal(OverlapGrade.High, ModOverlapsCore.Grade(flagged, Patch(PatchKind.Transpiler), false));
+        }
+
+        [Fact]
         public void EachTweakHasItsOwnHarmonyId()
         {
             Assert.Equal("OniMoono.Host.GameTweaks.fast-jobs", ModOverlapsCore.OwnerOf("fast-jobs"));

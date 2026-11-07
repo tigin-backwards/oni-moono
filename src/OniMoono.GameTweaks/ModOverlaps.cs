@@ -137,7 +137,12 @@ namespace OniMoono.GameTweaks
                     u.StepsAsideOnTranspiler = true;
                 }
                 if (guards.TryGetValue((method.Module, method.MetadataToken), out var guarding))
-                    foreach (var tweak in guarding) Use(tweak).Guard = true;
+                    foreach (var (tweak, kinds) in guarding)
+                    {
+                        var u = Use(tweak);
+                        u.Guard = true;
+                        u.GuardKinds = kinds;
+                    }
                 // Uses of a tweak that is off this run (none: its patches are not made) are kept
                 // out all the same.
                 foreach (var tweak in uses.Keys.ToList())
@@ -174,11 +179,12 @@ namespace OniMoono.GameTweaks
         }
 
         /// The methods whose patching by another owner makes an enabled tweak step aside (each
-        /// tweak's own list, which its check reads).
-        static Dictionary<(Module, int), List<string>> Guards()
+        /// tweak's own list, which its check reads), and which kinds of patch count there
+        /// (`kindsOf`, default all).
+        static Dictionary<(Module, int), List<(string, ProbeRepairPolicy.GuardedKinds)>> Guards()
         {
-            var guards = new Dictionary<(Module, int), List<string>>();
-            void Add(string tweak, Func<IEnumerable<MethodBase>> methods)
+            var guards = new Dictionary<(Module, int), List<(string, ProbeRepairPolicy.GuardedKinds)>>();
+            void Add(string tweak, Func<IEnumerable<MethodBase>> methods, Func<MethodBase, ProbeRepairPolicy.GuardedKinds> kindsOf = null)
             {
                 if (!enabled.Contains(tweak)) return;
                 try
@@ -186,8 +192,8 @@ namespace OniMoono.GameTweaks
                     foreach (var m in methods())
                         if (m != null)
                         {
-                            if (!guards.TryGetValue((m.Module, m.MetadataToken), out var list)) guards[(m.Module, m.MetadataToken)] = list = new List<string>();
-                            list.Add(tweak);
+                            if (!guards.TryGetValue((m.Module, m.MetadataToken), out var list)) guards[(m.Module, m.MetadataToken)] = list = new List<(string, ProbeRepairPolicy.GuardedKinds)>();
+                            list.Add((tweak, kindsOf?.Invoke(m) ?? ProbeRepairPolicy.GuardedKinds.All));
                         }
                 }
                 catch (Exception e)
@@ -202,6 +208,7 @@ namespace OniMoono.GameTweaks
             Add(FastConveyorPaths.Name, () => new[] { FastConveyorPaths.Guarded() });
             Add(FastOverlays.Name, FastOverlays.Guarded);
             Add(FastOverlayTextures.Name, () => new[] { FastOverlayTextures.Guarded() });
+            Add(FastAnimEvents.Name, FastAnimEvents.Guarded, FastAnimEvents.KindsOf);
             return guards;
         }
     }

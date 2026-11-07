@@ -9,6 +9,8 @@ vanilla-base                        # 3062 (timed out in the original): a base-g
 klei-unreachable                    # 462+339: Klei's servers out of reach (#28)
 thermal-gas-fissure                 # 315+101: Aquatic Pack fissure bubbles
 instant-reachability-stress ours    # ours only, ~6 min: instant-reachability's verify under a storm of reach changes
+fast-anim-events-stand-down ours    # ours only: fast-anim-events turns off for a mod's prefix on the event loop
+fast-anim-events-restart ours       # ours only, ~3 min: fast-anim-events' verify with animations swapped by reflection
 
 # Issue regressions: fixed, in code that changes rarely, or a variant of a kept spec
 issue-52-fast-track                 # 345+56: Fast Track and Better Info Cards
