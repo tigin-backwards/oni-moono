@@ -29,7 +29,23 @@ ONI's own C# makes thousands of small engine calls per frame: positions (`transf
 Unity each of these reaches the native object behind the wrapper [1]. In Moono each is a normal
 method call on managed data, which the JIT can inline into the caller.
 
-*Measured per call, original vs Moono:* pending (UnityProbe `callcost` scenario, Linux, main menu).
+Measured per call, original vs Moono (UnityProbe's `callcost` scenario: Linux, main menu, 1,000
+objects up to 3 deep, 2 million calls a measurement, median of three passes; two runs each, with
+other test players running, so rough):
+
+| Call | Original, ns | Moono, ns |
+|---|---|---|
+| `transform.position` (get) | 10.6–15.6 | 2.5–2.7 |
+| `transform.position = v` | ~23 | 41–68 |
+| `GetComponent<T>` (present / absent) | 45–57 | 3.5–5.0 |
+| `obj == null` (live object) | ~4.1 | ~0.7 |
+| `activeInHierarchy` | 4.1–6.1 | ~1.1 |
+| `transform.parent` (get) | 6.6–10.4 | 3.0–4.3 |
+| `component.transform` | 12.5–19.5 | ~0.7 |
+
+Reads and lookups are 2–25× cheaper in Moono; `== null`, `activeInHierarchy` and
+`component.transform` cost about as much as reading a field. Setting a position is the exception:
+2–3× slower than the original's, and noisy, probably from marking the moved object's children.
 
 Moono also keeps a per-prefab layout of each GameObject's components, so `GetComponent` returns
 from an array lookup instead of testing each component's type: the game's component lookups went
