@@ -390,6 +390,8 @@ namespace OniMoono.Host
                 }
                 return missed == 0 ? "every call ran the patch" : throw new InvalidOperationException($"{missed} calls ran the original");
             });
+            Check("Harmony patches of several instantiations of a generic class's method over reference types, after their shared code tiers up (SharedGenerics)",
+                SharedGenericsOrderCheck.Run);
             Check("Harmony patches of one instantiation of a generic class's method over reference and value types (SharedInstantiations)", () =>
             {
                 SharedGenerics.Install();
