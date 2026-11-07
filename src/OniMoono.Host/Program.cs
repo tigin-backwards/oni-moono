@@ -66,7 +66,8 @@ namespace OniMoono.Host
             EngineLog.Engine($"Moono starting: commit={commit} exe={Environment.ProcessPath} game={options.GameDir} .NET={Environment.Version}");
             StartupStats.Mark("host starts (runtime up)");
             UnhandledExceptions.Install();
-            EngineLog.Engine(NativeCrashes.Install(logPath, options.CrashDumps, scrubber));
+            EngineLog.Engine(NativeCrashes.Install(logPath, options.CrashDumps, scrubber, UpdateCheck.CurrentTag() ?? $"commit {commit}",
+                NativeCrashes.Dialog(options.CrashDialog, options.RunHome)));
             if (options.TestNativeCrash != null && options.TestNativeCrashFrame < 0)
             {
                 NativeCrashes.Test(options.TestNativeCrash);
@@ -185,6 +186,7 @@ namespace OniMoono.Host
                 if (effective.FrameStats) GameTweaks.GameTweaks.InstallFrameStats();
                 if (!options.NoTweaksMenu) MoonoTweaksMenu.Install(effective, settings, settingsPath);
                 StateMachineSaveNames.Install(dataDir, AppContext.BaseDirectory);
+                NativeCrashes.DescribeGame();
                 StartupStats.Mark("host patches installed");
             });
         }

@@ -1,6 +1,7 @@
 @echo off
-rem Builds OniMoono.exe (host.c, crash.c) with MSVC, in the current folder, which holds host.c,
-rem crash.c, crash.h, host.rc, OniMoono.exe.manifest, Moo.ico, and from the .NET SDK's
+rem Builds OniMoono.exe (host.c, crash.c, crash_dialog.cpp) with MSVC, in the current folder, which
+rem holds the sources (*.c, *.cpp, *.h), host.rc, the manifests, Moo.ico, the crash window's fonts
+rem (fonts\*.ttf, copied flat), and from the .NET SDK's
 rem Microsoft.NETCore.App.Host.win-x64 pack nethost.h, hostfxr.h and libnethost.lib
 rem (scripts/build-windows.sh and setup.ps1 copy them there).
 rem   build.cmd COMMIT
@@ -19,7 +20,8 @@ call "%VCVARS64%" >nul || exit /b 1
 echo #define MOONO_PRODUCT_VERSION "1.0.0+%commit%"> version.h
 rem /MT: the static C runtime, so the exe needs no Visual C++ redistributable. /guard:cf, as the
 rem SDK's apphost has (DllCharacteristics GUARD_CF).
-cl /nologo /O2 /W4 /WX /MT /GS /guard:cf /DUNICODE /D_UNICODE /c host.c crash.c || exit /b 1
+rem /utf-8: the crash window's Chinese strings.
+cl /nologo /O2 /W4 /WX /MT /GS /guard:cf /utf-8 /DUNICODE /D_UNICODE /c host.c crash.c crash_dialog.cpp || exit /b 1
 rc /nologo /fo host.res host.rc || exit /b 1
 link /nologo /OUT:OniMoono.exe /SUBSYSTEM:WINDOWS /ENTRY:wmainCRTStartup /MANIFEST:NO /GUARD:CF /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA ^
-    host.obj crash.obj host.res libnethost.lib shell32.lib ole32.lib advapi32.lib user32.lib || exit /b 1
+    host.obj crash.obj crash_dialog.obj host.res libnethost.lib shell32.lib ole32.lib advapi32.lib user32.lib gdi32.lib || exit /b 1

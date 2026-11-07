@@ -61,6 +61,8 @@ namespace OniMoono.Desktop
         Exception callbackFailure;
 
         public GlfwWindow Window => window;
+        /// The window's HWND on Windows (the crash window opens on its monitor), else zero.
+        public IntPtr Win32Handle => OperatingSystem.IsWindows() ? (IntPtr)window.GetWin32Window() : IntPtr.Zero;
         /// The hidden window whose context the main thread renders with.
         public GlfwWindow RenderWindow => renderWindow;
         /// The window whose context the presenter thread presents with: the visible one, or with

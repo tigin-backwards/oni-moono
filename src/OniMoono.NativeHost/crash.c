@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include "crash.h"
+#include "crash_dialog.h"
 
 #define TEXT_MOST 12288
 #define RUNTIME_TEXT_MOST 4096
@@ -71,6 +72,12 @@ typedef struct
     wchar_t log_path[PATH_MOST];
     wchar_t prefix[PREFIX_MOST][PATH_MOST / 2];   /* personal paths, as the log hides them */
     wchar_t replacement[PREFIX_MOST][32];
+    wchar_t fault_module[64];        /* the noted fault's module, for the crash window */
+    /* For the crash window (moono_crash_describe), as the game gives them. */
+    wchar_t version[64], game_build[32], language[16], gpu[128];
+    volatile LONG mods;              /* enabled mods; -1 unknown */
+    volatile LONG dialog_off;        /* --crash-dialog off (or a run with --run-home) */
+    volatile ULONG64 window;         /* the game's window (HWND), 0 before it opens */
 } shared_t;
 
 /* ---- text into preallocated buffers ------------------------------------------------------- */
@@ -264,8 +271,10 @@ static void format_fault(void)
     put(&o, " in ");
     const wchar_t *module;
     ULONG64 base = module_of(ip, &module);
+    shared->fault_module[0] = 0;
     if (base)
     {
+        wcsncpy_s(shared->fault_module, 64, module, _TRUNCATE);
         put_wide(&o, module);
         put(&o, "+");
         put_hex(&o, ip - base, 1);
@@ -449,6 +458,7 @@ HANDLE crash_start(const wchar_t *exe)
     shared->pointers.ExceptionRecord = &shared->record;
     shared->pointers.ContextRecord = &shared->context;
     shared->pointers_in_game = (ULONG64)&shared->pointers;
+    shared->mods = -1;
     dump_wanted = CreateEventW(&inherit, FALSE, FALSE, NULL);
     dump_written = CreateEventW(&inherit, FALSE, FALSE, NULL);
     HANDLE self = NULL;
@@ -580,6 +590,21 @@ __declspec(dllexport) int moono_crash_install(const wchar_t *log_path, DWORD mai
     return watcher != NULL;
 }
 
+/* What the crash window shows, from the player (NativeCrashes.Describe) as it learns it: `version`
+ * (the release or commit), `build` (the game's), `language` (its code), `mods` (enabled), `gpu`
+ * (GL_RENDERER), `window` (the HWND, hexadecimal) and `dialog` (`off`: no window). */
+__declspec(dllexport) void moono_crash_describe(const wchar_t *key, const wchar_t *value)
+{
+    if (!shared || !key || !value) return;
+    if (wcscmp(key, L"version") == 0) wcsncpy_s(shared->version, 64, value, _TRUNCATE);
+    else if (wcscmp(key, L"build") == 0) wcsncpy_s(shared->game_build, 32, value, _TRUNCATE);
+    else if (wcscmp(key, L"language") == 0) wcsncpy_s(shared->language, 16, value, _TRUNCATE);
+    else if (wcscmp(key, L"gpu") == 0) wcsncpy_s(shared->gpu, 128, value, _TRUNCATE);
+    else if (wcscmp(key, L"mods") == 0) shared->mods = _wtoi(value);
+    else if (wcscmp(key, L"window") == 0) shared->window = _wcstoui64(value, NULL, 16);
+    else if (wcscmp(key, L"dialog") == 0) shared->dialog_off = wcscmp(value, L"off") == 0;
+}
+
 /* The player's own exit (Player.ProcessExit, AppDomain.ProcessExit), with its exit code. */
 __declspec(dllexport) void moono_crash_exiting(DWORD code)
 {
@@ -658,6 +683,7 @@ static wchar_t dump_path[PATH_MOST];
 static ULONG64 dump_size;
 static char runtime_text[RUNTIME_TEXT_MOST];
 static DWORD runtime_length;
+static char managed_line[1024], managed_at[512];   /* an unhandled managed exception's first lines */
 
 /* A heap failure (0xC0000374): the exception's first parameter points at ntdll's record of it
  * (the heap, the damaged block, the blocks before and after it, the stack that found it), which
@@ -863,7 +889,13 @@ static DWORD WINAPI pass_on(void *pipe)
                 write_dump(shared->seen != SEEN_NONE && GetTickCount64() - shared->seen_tick < 10000);
             }
             /* A managed exception nothing caught: the player logs it; this says it ended the process. */
-            else if (!keeping && starts_with(line, "Unhandled exception.")) keeping = 1;
+            else if (!keeping && starts_with(line, "Unhandled exception."))
+            {
+                keeping = 1;
+                strncpy_s(managed_line, sizeof managed_line, line, _TRUNCATE);
+            }
+            else if (keeping && managed_line[0] && !managed_at[0] && starts_with(line, "   at "))
+                strncpy_s(managed_at, sizeof managed_at, line + 6, _TRUNCATE);
             if (keeping && kept_lines < 40 && runtime_length + line_length + 32 < RUNTIME_TEXT_MOST)
             {
                 out_t o = { runtime_text, runtime_length, RUNTIME_TEXT_MOST };
@@ -877,6 +909,115 @@ static DWORD WINAPI pass_on(void *pipe)
         }
     }
     return 0;
+}
+
+/* Where the game's window is, while it is there: the crash window opens on that monitor. */
+static void game_monitor(RECT *monitor)
+{
+    HWND window = (HWND)(ULONG_PTR)shared->window;
+    if (!window || !IsWindow(window)) return;
+    MONITORINFO info = { sizeof info };
+    if (GetMonitorInfoW(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST), &info)) *monitor = info.rcMonitor;
+}
+
+/* The crash window: -1 none (ONI_MOONO_CRASH_DIALOG=off, --crash-dialog off, a run with
+ * --run-home, an end by Ctrl+C, by Windows or from outside with -1), 1 shown and activated, 0
+ * shown without taking the focus (ONI_MOONO_CRASH_DIALOG=inactive, for test runs). The
+ * environment wins over the option. */
+static int dialog_wanted(DWORD code)
+{
+    if (code == 0xC000013A || code == 0x40010004 || code == 0xFFFFFFFF) return -1;
+    wchar_t value[16];
+    if (GetEnvironmentVariableW(L"ONI_MOONO_CRASH_DIALOG", value, 16))
+    {
+        if (wcscmp(value, L"off") == 0) return -1;
+        if (wcscmp(value, L"inactive") == 0) return 0;
+        if (wcscmp(value, L"on") == 0) return 1;
+    }
+    return shared->dialog_off ? -1 : 1;
+}
+
+/* The error line from the record: the fault and its module, the managed exception's type, method
+ * and message, else the exit code with its name (an exit code alone: the window says so). */
+static void error_line(DWORD code, int used_fault, wchar_t *out, size_t most)
+{
+    char text[1600];
+    out_t o = { text, 0, sizeof text };
+    char name[96] = "";
+    const char *full = exception_name(code);
+    if (full)
+    {
+        strncpy_s(name, sizeof name, full, _TRUNCATE);
+        char *colon = strchr(name, ':');
+        if (colon) *colon = 0;
+    }
+    if (used_fault && is_fault(shared->seen_code))
+    {
+        const char *fault = exception_name(shared->seen_code);
+        char fault_name[96] = "";
+        if (fault) { strncpy_s(fault_name, sizeof fault_name, fault, _TRUNCATE); char *c = strchr(fault_name, ':'); if (c) *c = 0; }
+        put_hex(&o, shared->seen_code, 8);
+        if (fault_name[0]) { put(&o, " ("); put(&o, fault_name); put(&o, ")"); }
+        if (shared->fault_module[0]) { put(&o, " in "); put_wide(&o, shared->fault_module); }
+    }
+    else if (managed_line[0])
+    {
+        /* "Unhandled exception. System.X: message" and "   at Namespace.Type.Method(arguments)" */
+        const char *what = managed_line + strlen("Unhandled exception.");
+        while (*what == ' ') what++;
+        const char *colon = strstr(what, ": ");
+        char type[256];
+        size_t type_n = colon ? (size_t)(colon - what) : strlen(what);
+        strncpy_s(type, sizeof type, what, type_n < sizeof type - 1 ? type_n : sizeof type - 1);
+        put(&o, type);
+        if (managed_at[0])
+        {
+            char method[512];
+            strncpy_s(method, sizeof method, managed_at, _TRUNCATE);
+            char *paren = strchr(method, '(');
+            if (paren) *paren = 0;
+            put(&o, " in ");
+            put(&o, method);
+        }
+        if (colon) { put(&o, ": "); put(&o, colon + 2); }
+    }
+    else if (code < 0x10000)
+    {
+        out[0] = 0;
+        return;
+    }
+    else
+    {
+        put_hex(&o, code, 8);
+        if (name[0]) { put(&o, " ("); put(&o, name); put(&o, ")"); }
+    }
+    if (!MultiByteToWideChar(CP_UTF8, 0, text, -1, out, (int)most)) out[0] = 0;
+}
+
+static void show_dialog(DWORD code, int used_fault, const RECT *monitor, int activate)
+{
+    static crash_report_t r;
+    r.language = _wcsnicmp(shared->language, L"zh", 2) == 0 ? CRASH_CHINESE : CRASH_ENGLISH;
+    error_line(code, used_fault, r.error, _countof(r.error));
+    r.exit_code = code;
+    wcscpy_s(r.version, _countof(r.version), shared->version);
+    wcscpy_s(r.game_build, _countof(r.game_build), shared->game_build);
+    wcscpy_s(r.gpu, _countof(r.gpu), shared->gpu);
+    r.mods = shared->mods;
+    FILETIME created, ended, kernel, user;
+    r.play_seconds = ~0ull;
+    if (GetProcessTimes(game, &created, &ended, &kernel, &user))
+    {
+        ULONG64 from = ((ULONG64)created.dwHighDateTime << 32) | created.dwLowDateTime, to = ((ULONG64)ended.dwHighDateTime << 32) | ended.dwLowDateTime;
+        if (to > from) r.play_seconds = (to - from) / 10000000;
+    }
+    wcscpy_s(r.log_path, _countof(r.log_path), shared->log_path);
+    wcscpy_s(r.dump_path, _countof(r.dump_path), dump_path);
+    r.dump_size = dump_path[0] ? dump_size : 0;
+    GetLocalTime(&r.crashed);
+    r.monitor = *monitor;
+    r.activate = activate;
+    crash_dialog_show(&r);
 }
 
 static ULONG64 parse_handle(const wchar_t *text)
@@ -899,10 +1040,17 @@ int crash_watch(int argc, wchar_t **argv)
     HANDLE reader = pipe ? CreateThread(NULL, 64 * 1024, pass_on, pipe, 0, NULL) : NULL;
 
     HANDLE waits[2] = { game, wanted };
-    while (WaitForMultipleObjects(2, waits, FALSE, INFINITE) == WAIT_OBJECT_0 + 1)
+    RECT monitor = { 0, 0, 0, 0 };
+    for (;;)
     {
-        write_dump(1);
-        SetEvent(written);
+        DWORD woke = WaitForMultipleObjects(2, waits, FALSE, 1000);
+        if (woke == WAIT_OBJECT_0 + 1)
+        {
+            write_dump(1);
+            SetEvent(written);
+        }
+        else if (woke == WAIT_TIMEOUT) game_monitor(&monitor);
+        else break;
     }
     DWORD code = 0;
     GetExitCodeProcess(game, &code);
@@ -956,5 +1104,7 @@ int crash_watch(int argc, wchar_t **argv)
         FlushFileBuffers(log);
         CloseHandle(log);
     }
+    int activate = dialog_wanted(code);
+    if (activate >= 0) show_dialog(code, seen == SEEN_UNHANDLED || (seen == SEEN_FIRST_CHANCE && shared->seen_code == code), &monitor, activate);
     return 0;
 }
