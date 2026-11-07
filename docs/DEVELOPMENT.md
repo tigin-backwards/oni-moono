@@ -123,7 +123,8 @@ there is one. `scripts/check-native-crash.sh` (also in `check.sh`) crashes the p
 with `--test-native-crash WHERE` and checks the crash lines and minidump in its log
 (ARCHITECTURE §7, "Native crashes"): on Linux, and on Windows with `out/win/host`, in run homes
 under `%TEMP%`, before any window opens (`ONI_WIN_GAME_DIR` names the game, as for
-`run-windows.sh`).
+`run-windows.sh`). On Windows it also checks the crash window offscreen (`--crash-dialog-render`
+PNGs, its zip and issue link) and that no crash case leaves one open.
 
 The Windows player uses the Windows build's own data, whose shaders include OpenGL programs
 alongside the Direct3D ones. `run-windows.sh` copies `out/win` to `%TEMP%\oni-brutal` and starts

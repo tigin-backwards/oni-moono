@@ -94,6 +94,11 @@ Steamworks (`libsteam_api.so`, Steamworks.NET under MIT); `cimgui.so` (Dear ImGu
 - `src/OniMoono.NativeHost` (the Windows `OniMoono.exe`) links `libnethost.lib` and includes
   `nethost.h` and `hostfxr.h` from the .NET SDK's `Microsoft.NETCore.App.Host.win-x64` pack
   (dotnet/runtime, © .NET Foundation and Contributors, MIT). The notice is in `NOTICE.txt`.
+- `src/OniMoono.NativeHost/fonts/`: Gabarito (© 2023 The Gabarito Project Authors) and Red Hat
+  Mono (© 2024 The Red Hat Project Authors), SIL OFL 1.1, as onimaxxing.com subsets them
+  (Latin-1 and the punctuation it uses), cut to static weights for the crash window
+  (`crash_dialog.cpp`). The crash window also draws the GitHub mark from Octicons (© GitHub Inc.,
+  MIT). Both notices are in `NOTICE.txt`.
 - `src/OniMoono.Assets/Shaders/SmolV.cs` (the Vulkan device reads Unity's SMOL-V-compressed
   SPIR-V): a port of `smolv::Decode` and its opcode table from Aras Pranckevičius' smol-v
   (`source/smolv.cpp`, github.com/aras-p/smol-v, master as of 2026-10-30, file SHA-256

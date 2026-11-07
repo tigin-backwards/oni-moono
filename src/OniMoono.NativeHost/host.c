@@ -11,7 +11,8 @@
  * arguments, and return its exit code. One thing more: the garbage collection option (GcMode.cs),
  * which the runtime fixes as it starts, set as the runtime property System.GC.Server; and the
  * native crash records (crash.c): a watcher process, started first, that writes what a crash in
- * native code leaves to Player.log. A self-contained player (setup and releases) has
+ * native code leaves to Player.log and, after a crash, shows the crash window (crash_dialog.cpp),
+which `--crash-dialog-render` also draws to a PNG without showing it. A self-contained player (setup and releases) has
  * hostfxr.dll beside this exe, which the apphost uses first, and so does this; a
  * framework-dependent one (scripts/build-windows.sh) finds the installed .NET through nethost,
  * which looks where the apphost looks (DOTNET_ROOT, the registered install, Program Files).
@@ -27,6 +28,7 @@
 #include "nethost.h"
 #include "hostfxr.h"
 #include "crash.h"
+#include "crash_dialog.h"
 
 /* NVIDIA Optimus and AMD PowerXpress: nonzero asks for the high-performance GPU, as the original
  * game's exe exports them. Nothing changes them at run time (GpuChoice). */
@@ -158,6 +160,7 @@ static int wants_workstation_gc(int argc, wchar_t **argv)
 int wmain(int argc, wchar_t **argv)
 {
     if (argc >= 2 && wcscmp(argv[1], L"--crash-watch") == 0) return crash_watch(argc, argv);
+    if (argc >= 2 && wcscmp(argv[1], L"--crash-dialog-render") == 0) return crash_dialog_render(argc, argv);
     static wchar_t exe[LONG_PATH], dir[LONG_PATH], app[LONG_PATH], fxr[LONG_PATH];
     DWORD length = GetModuleFileNameW(NULL, exe, LONG_PATH);
     if (length == 0 || length >= LONG_PATH) return fail((int)GetLastError(), L"the executable's own path is unknown", NULL);

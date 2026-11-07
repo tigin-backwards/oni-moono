@@ -26,6 +26,9 @@ namespace OniMoono.Tests
             Assert.Equal(-1, Options.Parse(["--test-native-crash", "managed-null", "--", Exe])!.TestNativeCrashFrame);
             Assert.Null(Options.Parse(["--test-native-crash", "nowhere", "--", Exe]));
             Assert.Null(Options.Parse(["--crash-dumps", "maybe", "--", Exe]));
+            Assert.Equal("off", Options.Parse(["--crash-dialog", "off", "--", Exe])!.CrashDialog);
+            Assert.Null(Options.Parse(["--", Exe])!.CrashDialog);
+            Assert.Null(Options.Parse(["--crash-dialog", "maybe", "--", Exe]));
         }
 
         [Fact]

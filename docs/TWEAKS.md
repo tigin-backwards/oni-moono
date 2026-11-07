@@ -111,6 +111,18 @@ other GC, the player starts itself again in place (the same process, `execve`) w
 over the option. `Player.log` has a `gc:` line naming the GC in use (Server GC with DATAS,
 Workstation concurrent GC) and why, and a `gc config:` line with the runtime's GC settings.
 
+## When the game crashes
+
+On Windows, when the game closes unexpectedly, a small window says so, with the error from the
+crash. **Show details** lists what a report needs: Moono's version, the game's build, Windows,
+the GPU and its driver, memory, how long you played, how many mods are on, and the files.
+**Report on GitHub** packs `Player.log` and, if ticked, the crash dump into
+`OniMoono-crash-….zip` beside the log, and opens a new GitHub issue in your browser with the
+error, the details and your note filled in. Drag the zip from the window into the issue, then
+submit it. Nothing is sent unless you submit the issue yourself. The dump can hold bits of what
+the game had in memory; untick it to leave it out. `--crash-dialog off` turns the window off;
+`Player.log` still records the crash. Linux has no crash window.
+
 ## Launch options
 
 Launch options still work and win over the screen, which then shows those rows as set by the
@@ -141,6 +153,7 @@ launch options:
   renderer's own presentation (Vulkan's swapchain, OpenGL's SwapBuffers) ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering), "Presentation on
   Windows").
 - `--gc fast|low-memory`: the [garbage collection](#garbage-collection).
+- `--crash-dialog on|off`: Windows, the [crash window](#when-the-game-crashes).
 
 Arguments for the game itself, a mod's own flags for instance, go after `%command%`:
 `"…\OniMoono.exe" -- %command% -moddev --my-mod-flag=1`. The game and its mods see everything

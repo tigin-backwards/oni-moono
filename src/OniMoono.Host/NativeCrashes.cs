@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using HarmonyLib;
 using OniMoono.Engine;
 
 namespace OniMoono.Host
@@ -13,17 +14,24 @@ namespace OniMoono.Host
     /// (src/OniMoono.NativeHost/crash.c) starts a watcher process before the runtime, which writes
     /// to Player.log, once the game has ended without its own exit, the fault the game noted (code,
     /// module+offset, thread, a native stack), the runtime's "Fatal error." text and the exit code,
-    /// with a minidump beside the log. This gives it the log's path, the main thread and the
-    /// personal folders to hide, and tells it about the player's own exits.
+    /// with a minidump beside the log, and then shows the crash window (crash_dialog.cpp). This
+    /// gives it the log's path, the main thread and the personal folders to hide, what the window
+    /// shows (Describe), and tells it about the player's own exits.
     internal static unsafe class NativeCrashes
     {
         static delegate* unmanaged<char*, uint, int, char*, int> install;
         static delegate* unmanaged<uint, void> exiting;
         static delegate* unmanaged<char*, int> test;
+        static delegate* unmanaged<char*, char*, void> describe;
+
+        /// The crash window, from --crash-dialog: on unless the option says off, or the run has a
+        /// run home of its own (a test run) and the option does not say on.
+        public static string Dialog(string? option, string? runHome) => option ?? (runHome != null ? "off" : "on");
 
         /// Called on the main thread once the log is open; returns the log line saying what is
-        /// recorded. `scrubber`: the log's (null with --log-paths full).
-        public static string Install(string logPath, string dumps, LogScrubber? scrubber)
+        /// recorded. `scrubber`: the log's (null with --log-paths full). `version`: this build's
+        /// release or commit, `dialog`: on or off (Dialog), for the crash window.
+        public static string Install(string logPath, string dumps, LogScrubber? scrubber, string version, string dialog)
         {
             var forced = Environment.GetEnvironmentVariable("ONI_CRASH_DUMPS");
             if (forced is "on" or "off" or "full") dumps = forced;
@@ -39,6 +47,8 @@ namespace OniMoono.Host
             install = (delegate* unmanaged<char*, uint, int, char*, int>)installAt;
             exiting = (delegate* unmanaged<uint, void>)exitingAt;
             test = (delegate* unmanaged<char*, int>)testAt;
+            if (NativeLibrary.TryGetExport(exe, "moono_crash_describe", out var describeAt))
+                describe = (delegate* unmanaged<char*, char*, void>)describeAt;
             var prefixes = new StringBuilder();
             if (scrubber != null)
                 foreach (var (path, replacement) in HiddenFolders())
@@ -47,6 +57,8 @@ namespace OniMoono.Host
             int watching;
             fixed (char* log = Path.GetFullPath(logPath), hidden = prefixes.ToString())
                 watching = install(log, GetCurrentThreadId(), dumps switch { "full" => 2, "off" => 0, _ => 1 }, hidden);
+            Describe("version", version);
+            Describe("dialog", dialog);
             // Main's return and Environment.Exit; Player.ProcessExit says so itself.
             AppDomain.CurrentDomain.ProcessExit += (_, _) => Exiting(Environment.ExitCode);
             if (Environment.GetEnvironmentVariable("ONI_MOONO_CRASH_WATCH") == "off") return "native crashes: not recorded (ONI_MOONO_CRASH_WATCH=off)";
@@ -56,7 +68,7 @@ namespace OniMoono.Host
                     "full" => ", with a dump of the process's memory beside it (--crash-dumps full)",
                     "off" => " (no minidump: --crash-dumps off)",
                     _ => ", with a minidump beside it",
-                }
+                } + (dialog == "off" ? "; no crash window (--crash-dialog off, or a run home of its own; ONI_MOONO_CRASH_DIALOG wins)" : "")
                 : "native crashes: not recorded (the watcher process did not start)";
         }
 
@@ -75,6 +87,52 @@ namespace OniMoono.Host
             if (temp.EndsWith(tempTail, StringComparison.OrdinalIgnoreCase) && !temp.StartsWith(profile + "\\", StringComparison.OrdinalIgnoreCase))
                 folders.Add((temp[..^tempTail.Length], LogScrubber.ProfileText));
             return folders;
+        }
+
+        /// A fact for the crash window (moono_crash_describe in crash.c): version, build, language,
+        /// mods, gpu, window, dialog. Nothing without the watcher.
+        public static void Describe(string key, string value)
+        {
+            if (describe == null) return;
+            fixed (char* k = key, v = value) describe(k, v);
+        }
+
+        /// What the crash window says of the game, once its main menu is up (the language and the
+        /// mods are known by then; a change of language restarts the game): the game's build, its
+        /// language's code and the number of enabled mods. Read by reflection, as the host has no
+        /// reference to the game's assemblies; anything missing is left out.
+        public static void DescribeGame()
+        {
+            if (describe == null) return;
+            var mainMenu = AccessTools.TypeByName("MainMenu");
+            var spawn = mainMenu != null ? AccessTools.Method(mainMenu, "OnPrefabInit") : null;
+            if (spawn == null) return;
+            new Harmony("OniMoono.Host.NativeCrashes").Patch(spawn, postfix: new HarmonyMethod(typeof(NativeCrashes), nameof(GameDescribed)));
+        }
+
+        static void GameDescribed()
+        {
+            try
+            {
+                if (AccessTools.TypeByName("KleiVersion")?.GetField("ChangeList")?.GetValue(null) is { } build)
+                    Describe("build", Convert.ToString(build, System.Globalization.CultureInfo.InvariantCulture) ?? "");
+                var locale = AccessTools.Method(AccessTools.TypeByName("Localization"), "GetLocale")?.Invoke(null, null);
+                var code = locale != null ? AccessTools.Property(locale.GetType(), "Code")?.GetValue(locale) as string : null;
+                Describe("language", string.IsNullOrEmpty(code) ? "en" : code);
+                var global = AccessTools.Property(AccessTools.TypeByName("Global"), "Instance")?.GetValue(null);
+                var manager = global != null ? AccessTools.Field(global.GetType(), "modManager")?.GetValue(global) : null;
+                if (manager != null && AccessTools.Field(manager.GetType(), "mods")?.GetValue(manager) is System.Collections.IEnumerable mods)
+                {
+                    int enabled = 0;
+                    foreach (var mod in mods)
+                        if (AccessTools.Method(mod.GetType(), "IsEnabledForActiveDlc")?.Invoke(mod, null) is true) enabled++;
+                    Describe("mods", enabled.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                }
+            }
+            catch (Exception e)
+            {
+                EngineLog.Engine($"native crashes: the game's facts for the crash window could not be read: {e.GetType().Name}: {e.Message}");
+            }
         }
 
         /// The player's own exit, with its exit code: not reported as a crash.

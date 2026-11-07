@@ -1,12 +1,21 @@
 // OniMoono.exe's resources, as the .NET SDK's apphost had them: the icon as resource 32512
 // (GlfwPlatform.SetClassIcon loads it for the taskbar), the SDK's manifest, and the version
-// information the SDK copied from OniMoono.dll. version.h (build.cmd) has the commit.
+// information the SDK copied from OniMoono.dll. version.h (build.cmd) has the commit. Then the
+// crash window's manifest and fonts.
 #include <winres.h>
 #include "version.h"
 
 32512 ICON "Moo.ico"
 
 1 RT_MANIFEST "OniMoono.exe.manifest"
+
+// The crash window (crash_dialog.cpp): comctl32 v6 for its controls, in an activation context of
+// its own (the process's manifest above stays as it was), and its fonts (SIL OFL 1.1, NOTICE.txt).
+3 RT_MANIFEST "crash_dialog.manifest"
+101 RCDATA "Gabarito-Regular.ttf"
+102 RCDATA "Gabarito-Medium.ttf"
+103 RCDATA "Gabarito-SemiBold.ttf"
+104 RCDATA "RedHatMono-Regular.ttf"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,0,0,0

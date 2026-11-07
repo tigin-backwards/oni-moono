@@ -4,7 +4,9 @@ runs anywhere: the GPU hint exports NvOptimusEnablement and AmdPowerXpressReques
 are DWORDs of value 1 in a writable section (read at the export RVA's section offset, as the
 original OxygenNotIncluded.exe's were), the native crash records' exports, the GUI subsystem,
 the icon group 32512 that GlfwPlatform.SetClassIcon loads, the application manifest and the
-version information.
+version information; the crash window's manifest (resource 3) and fonts, and that the exe imports
+nothing the game's process would not load anyway (the crash window loads its graphics and UI
+libraries itself, in the watcher).
 
     scripts/check-windows-host.py out/win/host/OniMoono.exe [--like OTHER.exe]
 
@@ -18,8 +20,11 @@ import struct
 import sys
 
 EXPORTS = ("NvOptimusEnablement", "AmdPowerXpressRequestHighPerformance")
-CRASH_EXPORTS = ("moono_crash_install", "moono_crash_exiting", "moono_crash_test")
-RT_ICON, RT_GROUP_ICON, RT_VERSION, RT_MANIFEST = 3, 14, 16, 24
+CRASH_EXPORTS = ("moono_crash_install", "moono_crash_exiting", "moono_crash_test", "moono_crash_describe")
+RT_ICON, RT_RCDATA, RT_GROUP_ICON, RT_VERSION, RT_MANIFEST = 3, 10, 14, 16, 24
+CRASH_FONTS = (101, 102, 103, 104)   # host.rc: Gabarito 400, 500, 600 and Red Hat Mono 400
+# Libraries the crash window must load itself (in the watcher), never through the import table.
+LOADED_LATER = ("d2d1.dll", "dwrite.dll", "dxgi.dll", "dwmapi.dll", "comctl32.dll", "windowscodecs.dll", "uxtheme.dll", "oleacc.dll")
 IMAGE_SCN_MEM_WRITE = 0x80000000
 
 
@@ -79,6 +84,19 @@ class Pe:
             result[self.cstr(name_rva)] = func
         return result
 
+    def imports(self):
+        """The DLLs in the import table, lower case."""
+        rva, size = self.dirs[1]
+        result = []
+        o = self.offset(rva) if size else 0
+        while size:
+            name_rva, = struct.unpack_from("<I", self.data, o + 12)
+            if not name_rva:
+                break
+            result.append(self.cstr(name_rva).lower())
+            o += 20
+        return result
+
     def resources(self):
         """{(type, name): [data bytes per language]}"""
         rva, size = self.dirs[2]
@@ -129,7 +147,7 @@ def describe(pe):
     res = pe.resources()
     groups = sorted(str(n) for (t, n) in res if t == RT_GROUP_ICON)
     icons = sum(1 for (t, _) in res if t == RT_ICON)
-    manifest = [manifest_text(b[0]) for (t, n), b in res.items() if t == RT_MANIFEST]
+    manifest = [manifest_text(b[0]) for (t, n), b in res.items() if t == RT_MANIFEST and n == 1]
     version = [version_strings(b[0]) for (t, _), b in res.items() if t == RT_VERSION]
     return groups, icons, manifest, version[0] if version else {}
 
@@ -169,6 +187,14 @@ def main():
     check("32512" in groups, f"icon group(s) {', '.join(groups) or 'none'} ({icons} images); 32512 for SetClassIcon")
     check(len(manifest) == 1, f"manifest: {manifest[0] if manifest else 'none'}")
     check(bool(version.get("ProductVersion")), f"version: {version}")
+    res = pe.resources()
+    window = [manifest_text(b[0]) for (t, n), b in res.items() if t == RT_MANIFEST and n == 3]
+    check(bool(window) and "Microsoft.Windows.Common-Controls" in window[0], "crash window manifest (resource 3): comctl32 v6")
+    fonts = [n for n in CRASH_FONTS if res.get((RT_RCDATA, n), [b""])[0][:4] == b"\0\1\0\0"]
+    check(len(fonts) == len(CRASH_FONTS), f"crash window fonts: {len(fonts)} of {len(CRASH_FONTS)} TrueType resources")
+    imports = pe.imports()
+    late = [n for n in imports if n in LOADED_LATER]
+    check(not late, f"imports {', '.join(imports)}" + (f": {', '.join(late)} would load into the game" if late else ""))
     if a.like:
         other = Pe(a.like)
         ogroups, oicons, omanifest, oversion = describe(other)

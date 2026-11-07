@@ -5,7 +5,9 @@
 # here: each case crashes before the window opens, so nothing shows on screen and nothing plays,
 # started as Steam starts it (no standard streams), in its own run home under %TEMP%. Linux: a
 # caught null reference writes no crash line, and the runtime's own dump settings, which
-# docs/ARCHITECTURE.md gives Linux players, write a crash report for a crash in libc.
+# docs/ARCHITECTURE.md gives Linux players, write a crash report for a crash in libc. Windows also
+# checks the crash window: no case leaves one open (a run with --run-home shows none), and its
+# drawing (--crash-dialog-render, nothing shown), zip and issue link are checked offscreen.
 #   scripts/check-native-crash.sh [linux|windows|both]
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
@@ -75,6 +77,89 @@ if [ "$which" != windows ]; then
     if [ -n "$report" ] && grep -q 'libc' "$report"; then pass "linux main: crash report names libc ($(du -k "$(ls "$tmp"/crash-*.dmp | head -1)" | cut -f1) KB dump)"
     else fail "linux main: no crash report naming libc ($(ls "$tmp"))"; fi
 fi
+
+# The crash window drawn offscreen (--crash-dialog-render): the PNG's size at the scale and the
+# palette's colours where the title bar, the body and the footer are; then the zip "Report on
+# GitHub" writes (deflate, checked by Python's zipfile) and the issue link (under 7,500 characters
+# with a long note, the error in its title).
+png_check() { # png_check NAME FILE WIDTH CAPTION BODY FOOTER (colours as RRGGBB)
+    local out; out=$(python3 -I - "$@" <<'PY'
+import struct, sys, zlib
+name, path, width, caption, body, footer = sys.argv[1:7]
+d = open(path, 'rb').read()
+if d[:8] != b'\x89PNG\r\n\x1a\n': print('not a PNG'); sys.exit()
+at, idat, w = 8, b'', 0
+while at < len(d):
+    n, kind = struct.unpack_from('>I4s', d, at)
+    if kind == b'IHDR': w, h, depth, ctype = struct.unpack_from('>IIBB', d, at + 8)
+    if kind == b'IDAT': idat += d[at + 8:at + 8 + n]
+    at += 12 + n
+bpp = {6: 4, 2: 3}.get(ctype)
+if depth != 8 or not bpp: print('PNG of depth %d type %d' % (depth, ctype)); sys.exit()
+raw, rows, prev, stride = zlib.decompress(idat), [], bytearray(w * bpp), w * bpp
+for y in range(h):
+    f, line = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+    for i in range(stride):
+        a = line[i - bpp] if i >= bpp else 0; b = prev[i]; c = prev[i - bpp] if i >= bpp else 0
+        p = a + b - c; pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+        line[i] = (line[i] + (0, a, b, (a + b) // 2, a if pa <= pb and pa <= pc else b if pb <= pc else c)[f]) & 255
+    rows.append(line); prev = line
+px = lambda x, y: '%02X%02X%02X' % tuple(rows[y][x * bpp:x * bpp + 3])
+problems = []
+if w != int(width): problems.append('width %d, not %s' % (w, width))
+if not (w * 0.45 < h < w * 1.6): problems.append('height %d' % h)
+for what, (x, y), want in (('title bar', (w // 2, 3), caption), ('body', (3, h // 3), body), ('footer', (3, h - 3), footer)):
+    if px(x, y) != want: problems.append('%s %s, not %s' % (what, px(x, y), want))
+ink = sum(1 for y in range(h // 8, h - h // 8) for x in range(0, w, 2) if abs(rows[y][x * bpp] - int(body[4:6], 16)) > 96)
+if ink < w: problems.append('almost no text (%d)' % ink)
+print('; '.join(problems) if problems else 'ok %dx%d' % (w, h))
+PY
+)
+    [ "${out%% *}" = ok ] && pass "windows crash window $1: $out" || fail "windows crash window $1: $out"
+}
+crash_window() {
+    local exe="$stage/host/OniMoono.exe"
+    render() { (cd /mnt/c && timeout 60 "$exe" --crash-dialog-render "$@" > /dev/null 2>&1) || return 1; }
+    render "$wstage\\dark.png" --theme dark --scale 1.5 --sample gpu --details-open && png_check "dark, 150%, details" "$stage/dark.png" 660 100C0A 191512 1D1A17 \
+        || fail "windows crash window: dark render"
+    render "$wstage\\light.png" --theme light --scale 1.25 --sample managed --language zh --reported && png_check "light, 125%, Chinese" "$stage/light.png" 550 F7F4ED FFFCF6 F7F4ED \
+        || fail "windows crash window: light render"
+    # The zip: a 40 MB log (cut to its head and tail) and a dump of zeros and noise.
+    python3 -I - "$stage/zip-in" <<'PY'
+import os, random, sys
+os.makedirs(sys.argv[1], exist_ok=True); random.seed(7)
+with open(os.path.join(sys.argv[1], 'Player.log'), 'wb') as f:
+    for i in range(700000): f.write(b'[engine] line %d of the log, with some text that repeats %d\r\n' % (i, random.randrange(1000)))
+with open(os.path.join(sys.argv[1], 'crash-20261107-141502.dmp'), 'wb') as f:
+    f.write(b'MDMP' + bytes(1 << 20) + random.randbytes(1 << 19))
+PY
+    render "$wstage\\zip.png" --zip "$wstage\\crash.zip" --log "$wstage\\zip-in\\Player.log" --dump "$wstage\\zip-in\\crash-20261107-141502.dmp" \
+        --url "$wstage\\url.txt" --note "$(printf 'what I was doing %.0s' $(seq 600))" || fail "windows crash window: zip and link"
+    local zipped; zipped=$(python3 -I - "$stage/crash.zip" "$stage/zip-in" <<'PY'
+import os, sys, zipfile
+z = zipfile.ZipFile(sys.argv[1]); bad = z.testzip()
+if bad: print('bad entry', bad); sys.exit()
+log = open(os.path.join(sys.argv[2], 'Player.log'), 'rb').read(); got = z.read('Player.log')
+dump = open(os.path.join(sys.argv[2], 'crash-20261107-141502.dmp'), 'rb').read()
+if len(log) <= 32 << 20 and got != log: print('log differs')
+elif len(log) > 32 << 20 and not (got[:4 << 20] == log[:4 << 20] and got[-(28 << 20):] == log[-(28 << 20):] and b'left out by the crash window' in got): print('log not cut to head and tail')
+elif z.read('crash-20261107-141502.dmp') != dump: print('dump differs')
+else: print('ok %d KB for %d KB' % (os.path.getsize(sys.argv[1]) // 1024, (len(log) + len(dump)) // 1024))
+PY
+)
+    [ "${zipped%% *}" = ok ] && pass "windows crash window zip: $zipped" || fail "windows crash window zip: $zipped"
+    local linked; linked=$(python3 -I - "$stage/url.txt" <<'PY'
+import sys, urllib.parse
+u = open(sys.argv[1], encoding='utf-8').read(); q = urllib.parse.parse_qs(urllib.parse.urlsplit(u).query)
+if not u.startswith('https://github.com/tigin-backwards/oni-moono/issues/new?'): print('not the issue page'); sys.exit()
+if len(u) > 7500: print('%d characters' % len(u)); sys.exit()
+if q.get('title') != ['Crash: 0xC0000005 (access violation) in nvoglv64.dll']: print('title', q.get('title')); sys.exit()
+body = q['body'][0]
+print('ok %d characters' % len(u) if '\u2026' in body and 'OniMoono-crash-20261107-1415.zip' in body and 'game build 762230' in body else 'body: ' + body[:200])
+PY
+)
+    [ "${linked%% *}" = ok ] && pass "windows crash window link: $linked" || fail "windows crash window link: $linked"
+}
 
 if [ "$which" != linux ]; then
     host="$root/out/win/host/OniMoono.exe"
@@ -168,6 +253,12 @@ if [ "$which" != linux ]; then
         # Standard error redirected: still passed on, with the runtime's text kept.
         run main redirect && { expect "windows main (stderr redirected): runtime text" "$log" 'native crash: runtime: Fatal error\.'
             expect "windows main (stderr redirected): passed on" "$stage/main-redirect-stderr.txt" '^Fatal error\.'; }
+        # No crash window waits: each run has a run home of its own, which shows none. A watcher
+        # still there (a window) is ended by its process id and fails the check.
+        sleep 2
+        left=$(cd /mnt/c && powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { \$_.ExecutablePath -eq '$wstage\\host\\OniMoono.exe' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force; \$_.ProcessId }" 2> /dev/null | tr -d '\r' | xargs) || true
+        [ -z "$left" ] && pass "windows: no crash window left open" || fail "windows: crash watchers left running (ended): $left"
+        crash_window
     fi
 fi
 echo "check-native-crash: $ok ok, $bad failed"

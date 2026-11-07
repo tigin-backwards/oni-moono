@@ -42,6 +42,12 @@ namespace OniMoono.Host
                 (platform, var device) = OpenDevice(options);
                 OniMoono.Engine.Platform.PlatformLoop.Install(platform);
                 OniMoono.Engine.Rendering.GraphicsDevice.Install(device);
+                // The crash window opens on the game window's monitor and names its GPU.
+                if (OperatingSystem.IsWindows())
+                {
+                    NativeCrashes.Describe("window", ((long)platform.Win32Handle).ToString("x"));
+                    NativeCrashes.Describe("gpu", device.Caps.DeviceName);
+                }
             }
             StartupStats.Mark("window and device ready");
             StartupProgress.Checkpoint("window");

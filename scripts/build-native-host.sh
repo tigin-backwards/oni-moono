@@ -20,7 +20,8 @@ win_temp="$(cd /mnt/c && cmd.exe /c 'echo %TEMP%' 2>/dev/null | tr -d '\r')"
 stage="$(wslpath "$win_temp")/oni-moono-nativehost-$$"
 rm -rf "$stage"; mkdir -p "$stage"
 trap 'rm -rf "$stage"' EXIT
-cp "$root/src/OniMoono.NativeHost/"{host.c,crash.c,crash.h,host.rc,OniMoono.exe.manifest,build.cmd} "$root/src/OniMoono.Host/Moo.ico" \
+cp "$root/src/OniMoono.NativeHost/"{host.c,crash.c,crash.h,crash_dialog.cpp,crash_dialog.h,host.rc,OniMoono.exe.manifest,crash_dialog.manifest,build.cmd} \
+   "$root/src/OniMoono.NativeHost/fonts/"*.ttf "$root/src/OniMoono.Host/Moo.ico" \
    "$pack/"{nethost.h,hostfxr.h,libnethost.lib} "$stage/"
 commit="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo unknown)"
 (cd "$stage" && cmd.exe /c build.cmd "$commit" 2>&1 | tr -d '\r') || true

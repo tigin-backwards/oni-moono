@@ -2895,6 +2895,49 @@ game's private memory, several GB in a colony, and it holds everything the game 
 (the colony, text, file paths and whatever else the process read), so it is for test runs and for
 a player who agrees to send it; the default stays the small dump.
 
+**The crash window** (`crash_dialog.cpp`). Once the watcher has written a crash record it shows
+a window, the onimaxxing site's dialog in its light or dark palette: "The game closed
+unexpectedly", the error line taken from the record (the fault's code, its name and module, as
+`0xC0000005 (access violation) in nvoglv64.dll`; an unhandled managed exception's type, method and
+message; or the exit code and its name, as `0xC0000409 (fast fail)`), **Show details** (Moono's
+release, the game's build, Windows, the GPU and its driver, installed memory, the session's
+length, the enabled mods, the files), a box for what the player was doing, a check box to include
+the dump (its size; left out when there is none, greyed over 96 MB), **Close** and **Report on
+GitHub**. Reporting packs `Player.log` (a log over 32 MB keeps its first 4 and last 28 MB, with a
+line between) and the dump if ticked into `OniMoono-crash-YYYYMMDD-hhmm.zip` beside the log (our
+own deflate; under 24 MB, else without the dump: GitHub takes no `.dmp` and files up to 25 MB),
+opens `issues/new` of this repository in the default browser with the title `Crash: <error>` and
+the note, the details and a line asking for the zip as the body (under 7,500 characters; a long
+note is cut with "…"), and then shows the zip as a chip to drag into the page (a shell data object,
+as Explorer drags a file; clicking it shows it in Explorer). Nothing is sent by the window: the
+player submits the issue, or not. The game gives the watcher what only it knows through
+`moono_crash_describe` (`NativeCrashes.Describe`): its release, its window (the crash window opens
+centred on that monitor), the GPU's renderer string, and from the main menu the game's build, its
+language (English, or Simplified Chinese for `zh`) and the mods' count; the watcher adds Windows'
+version, the driver version (DXGI) and the memory itself. The window is drawn without the GPU, as
+the driver may be what crashed: Direct2D into a WIC bitmap through a software render target, with
+DirectWrite text in Gabarito and Red Hat Mono (the site's fonts, SIL OFL 1.1, embedded and loaded
+from memory; CJK and other missing characters fall back to the system's fonts). Its controls are
+standard ones (buttons, a check box, an edit box, through comctl32 v6 in an activation context of
+its own, so the process's manifest is unchanged), each painting its part of the drawing, so Tab,
+Enter (Report on GitHub), Esc and screen readers work as in any dialog. Its theme follows Windows'
+app mode (high contrast: the system's colours), with a dark or light title bar coloured as the
+palette's on Windows 11. Every size is in DIPs times the monitor's scale, the watcher's thread
+per-monitor DPI aware (v2), relaid out on `WM_DPICHANGED`; lines are whole pixels. The executable's
+manifest still declares no DPI awareness, so the game's process is as before (GLFW sets its
+own). `--crash-dialog off` or `ONI_MOONO_CRASH_DIALOG=off` leaves the window out (the record and
+the dump stay), and so does `ONI_MOONO_CRASH_WATCH=off`, which leaves out the watcher; a run with
+`--run-home` (every test run) shows none unless `--crash-dialog on`, so a crash in a test never
+leaves a window waiting. `ONI_MOONO_CRASH_DIALOG=inactive` shows it without taking the focus (to
+look at it in a test run), and an end by Ctrl+C, by Windows shutting down or from outside with
+exit code -1 shows none. While it is
+open the watcher is still running, so Steam counts the game as running until it closes.
+`OniMoono.exe --crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--sample
+gpu|managed|fastfail] [--language zh] [--details-open] [--reported]` draws it to a PNG from sample
+facts, with a drawn title bar, showing nothing; `check-native-crash.sh` checks such renders, the zip
+(with Python's `zipfile`) and the issue link, and that no crash case leaves a watcher running.
+Linux has no crash window (no native host).
+
 On Linux nothing is recorded: the Linux player is the SDK's apphost, with no native code of ours
 to install a signal handler, and the runtime reads its own dump settings only from the environment
 at start. A player can set them in the launch options, before the command:
