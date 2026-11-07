@@ -76,6 +76,7 @@ u60-x4-study-tools-preview          # -
 u60-x5-aquatic-logic                # -
 u60-x6-rocket-walls                 # -
 u60-x7-new-world-trees              # -
+u60-y1-entombed-sweep               # -
 
 # u60/: more of the U60 QA series (not in the last release QA)
 u60/vk-smoke player-args='--renderer vulkan'  # 1055+352 (a 2026-11-02 run), 15 GB: ours on Vulkan against the original

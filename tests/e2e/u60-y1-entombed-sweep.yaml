@@ -1,0 +1,52 @@
+# Y1 (docs/research/u60-762230.md): an Auto-Sweeper no longer stores an entombed item as
+# entombed. 762230's FetchAreaChore skips entombed items when it gathers more of the root item's
+# kind around it (u762230:FetchAreaChore.cs:231-234), and Pickupable.OnStore clears the entombed
+# status of anything stored (u762230:Pickupable.cs:904-908). 762107's gather did not skip an
+# entombed item, and an item stored while entombed kept its Entombed tag.
+#
+# Setup, in the corridor west of early-base's pod (floor at y 205): a powered Auto-Sweeper
+# (centre 108, 207; a dev generator above it), a Storage Bin at (106, 206) accepting only Sleet
+# Wheat Grain, one grain loose on the floor at x 109 and one inside the floor tile below it
+# (109, 205), which the game entombs (a seed is no element chunk, so it stays an item). An
+# Arbor Acorn is entombed in the floor at x 114, out of the sweeper's reach, and after two
+# seconds stored into the sweeper's storage directly: the OnStore change alone. Then a game
+# minute: the bin's fetch takes the loose grain (sweeper or Duplicant). In 762230 nothing stored
+# is entombed and the entombed grain stays in its tile. The 762107 original fails at the acorn
+# (stored, still Entombed); with that check left out it also left the entombed grain in its
+# tile, so this setup does not reach the area gather's change, only OnStore's.
+# Ours runs with instant-reachability (the users' default; e2e's `exact` leaves it out): the
+# sweeper writes its reach through MinionGroupProber, which the tweak follows.
+from: early-base
+game_tweaks: [instant-reachability]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SolidTransferArm\")", method: Build, args: [131760, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"DevGenerator\")", method: Build, args: [132396, Neutral, null, [Steel], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [132396, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [131760, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: AddConnection, args: [Down, 132396, true]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: AddConnection, args: [Up, 131760, true]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: ForceRebuildNetworks}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [131122, Neutral, null, [SandStone], 293.15]}}
+  - driver: {setup.call: {target: "last:TreeFilterable", method: AddTagToFilter, args: [ColdWheatSeed]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"ColdWheatSeed\")"}, [109.5, 206.3, -19]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"ColdWheatSeed\")"}, [109.5, 205.5, -19]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"ForestTreeSeed\")"}, [114.5, 205.5, -19]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - run: {seconds: 2, speed: 1}
+  - driver: {setup.call: {target: "all:SolidTransferArm::[0].GetComponent<Storage>", method: Store, args: [{"$": "last:"}]}}
+steps:
+  - expect: {buildings: {SolidTransferArm: 1}}
+  - expect_state:
+      "count:all:Pickupable::[*] if .KPrefabID.PrefabTag.Name == ForestTreeSeed and .KPrefabID.HasTag(\"Stored\") == true": [">= 1", "== original"]
+      "count:all:Pickupable::[*] if .KPrefabID.PrefabTag.Name == ForestTreeSeed and .KPrefabID.HasTag(\"Stored\") == true and .IsEntombed == true": [0, "== original"]
+      "count:all:Pickupable::[*] if .KPrefabID.PrefabTag.Name == ForestTreeSeed and .KPrefabID.HasTag(\"Entombed\") == true and .KPrefabID.HasTag(\"Stored\") == true": [0, "== original"]
+      "count:all:Pickupable::[*] if .KPrefabID.PrefabTag.Name == ColdWheatSeed and .IsEntombed == true": [1, "== original"]
+      "count:all:Pickupable::[*] if .KPrefabID.PrefabTag.Name == ColdWheatSeed": {save_as: grains}
+  - run: {seconds: 60}
+  - expect_state:
+      "count:all:Pickupable::[*] if .KPrefabID.PrefabTag.Name == ColdWheatSeed and .KPrefabID.HasTag(\"Stored\") == true": [">= 1", "== original"]
+      "count:all:Pickupable::[*] if .KPrefabID.PrefabTag.Name == ColdWheatSeed and .KPrefabID.HasTag(\"Stored\") == true and .IsEntombed == true": [0, "== original"]
+      "count:all:Pickupable::[*] if .KPrefabID.PrefabTag.Name == ColdWheatSeed and .KPrefabID.HasTag(\"Stored\") == true and .KPrefabID.HasTag(\"Entombed\") == true": [0, "== original"]
+      "count:all:Pickupable::[*] if .KPrefabID.PrefabTag.Name == ColdWheatSeed and .IsEntombed == true and .KPrefabID.HasTag(\"Stored\") == false": [1, "== original"]
