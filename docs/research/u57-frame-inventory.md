@@ -1,5 +1,8 @@
 # U57 frame inventory (2026-10-19)
 
+Before the tweaks. For the frame with every tweak on (2026-11-07, U57 and 2minnow), see
+[frame-inventory-2026-11.md](frame-inventory-2026-11.md).
+
 What a large colony's frame is made of, system by system, and what could be made faster without
 changing what the game does. U57: Spaced Out with every DLC, cycle 17077, 24 Duplicants, 1,186
 critters, about 62,000 buildings, 90,000 animated objects; played at speed 3.
