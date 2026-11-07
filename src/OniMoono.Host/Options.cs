@@ -79,9 +79,9 @@ namespace OniMoono.Host
         /// Diagnostics (--dxgi-fault WHAT): a made-up DXGI failure (DxgiSwapChain.Fault).
         public string? DxgiFault;
         /// --crash-dumps on|off|full: a minidump beside Player.log when the player crashes in
-        /// native code (Windows; NativeCrashes). On by default; `full` adds the process's memory
-        /// (diagnostics: as large as the game's private memory). ONI_CRASH_DUMPS=on|off|full, for
-        /// test runs, takes the place of the option.
+        /// native code (Windows; NativeCrashes), the two newest kept. On by default; `full` adds
+        /// the process's memory (diagnostics: as large as the game's private memory).
+        /// ONI_CRASH_DUMPS=on|off|full, for test runs, takes the place of the option.
         public string CrashDumps = "on";
         /// Diagnostics (--test-native-crash WHERE[:FRAME]): a crash on purpose once the log is
         /// open, or at the start of frame FRAME on the main thread (NativeCrashes.Test).

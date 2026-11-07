@@ -705,6 +705,57 @@ static BOOL CALLBACK dump_callback(void *context, PMINIDUMP_CALLBACK_INPUT in, P
     }
 }
 
+/* Our dump's name, crash-YYYYMMDD-hhmmss.dmp, and nothing else. */
+static int is_dump_name(const wchar_t *name)
+{
+    static const wchar_t shape[] = L"crash-########-######.dmp";
+    for (int i = 0; shape[i]; i++, name++)
+        if (shape[i] == L'#' ? *name < L'0' || *name > L'9' : *name != shape[i]) return 0;
+    return *name == 0;
+}
+
+/* Before the dump `name` is written (`folder` its folder, with the separator): our older dumps
+ * there deleted but the newest (last written; the name breaks a tie), so two remain with the new
+ * one. Before, not after: a full dump is GBs, and the space comes back first; a write that fails
+ * still leaves the newest older dump. Plain files only (no directories, links or other reparse
+ * points); one in use or read-only stays. */
+static void prune_dumps(const wchar_t *folder, const wchar_t *name)
+{
+    static wchar_t path[PATH_MOST], newest[64];
+    size_t length = wcslen(folder);
+    if (length + 64 >= PATH_MOST) return;
+    for (int pass = 0; pass < 2; pass++)
+    {
+        FILETIME newest_time = { 0, 0 };
+        if (pass == 0) newest[0] = 0;
+        swprintf_s(path, PATH_MOST, L"%lscrash-*.dmp", folder);
+        WIN32_FIND_DATAW found;
+        HANDLE find = FindFirstFileExW(path, FindExInfoBasic, &found, FindExSearchNameMatch, NULL, 0);
+        if (find == INVALID_HANDLE_VALUE) return;
+        do
+        {
+            if ((found.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT))
+                || !is_dump_name(found.cFileName) || !wcscmp(found.cFileName, name)) continue;
+            if (pass == 0)
+            {
+                LONG later = CompareFileTime(&found.ftLastWriteTime, &newest_time);
+                if (!newest[0] || later > 0 || (later == 0 && wcscmp(found.cFileName, newest) > 0))
+                {
+                    newest_time = found.ftLastWriteTime;
+                    wcscpy_s(newest, 64, found.cFileName);
+                }
+            }
+            else if (wcscmp(found.cFileName, newest))
+            {
+                swprintf_s(path, PATH_MOST, L"%ls%ls", folder, found.cFileName);
+                DeleteFileW(path);
+            }
+        } while (FindNextFileW(find, &found));
+        FindClose(find);
+        if (!newest[0]) return;
+    }
+}
+
 /* The minidump beside the log, the game suspended meanwhile, once. `with_fault`: the fault the
  * game noted, as the dump's exception. */
 static void write_dump(int with_fault)
@@ -731,8 +782,12 @@ static void write_dump(int with_fault)
         GetLocalTime(&now);
         if (slash && write)
         {
+            static wchar_t folder[PATH_MOST];
+            slash[1] = 0;
+            wcscpy_s(folder, PATH_MOST, dump_path);
             swprintf_s(slash + 1, PATH_MOST - (slash + 1 - dump_path), L"crash-%04u%02u%02u-%02u%02u%02u.dmp",
                        now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond);
+            prune_dumps(folder, slash + 1);
             HANDLE file = CreateFileW(dump_path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
             if (file != INVALID_HANDLE_VALUE)
             {
