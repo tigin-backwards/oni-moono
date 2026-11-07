@@ -31,6 +31,7 @@ namespace UnityEngine
             {
                 var t = TransformNative;
                 var rotation = HierarchyMath.Normalize(value);
+                if (t.KeepsEqual(rotation)) return;
                 bool moved = rotation != t.LocalRotation;
                 t.LocalRotation = rotation;
                 t.MarkDirty(moved);
@@ -43,6 +44,7 @@ namespace UnityEngine
             set
             {
                 var t = TransformNative;
+                if (t.KeepsEqualScale(value)) return;
                 bool moved = value != t.LocalScale;
                 t.LocalScale = value;
                 t.MarkDirty(moved);
@@ -68,6 +70,7 @@ namespace UnityEngine
             {
                 var t = TransformNative;
                 var rotation = Quaternion.Normalize(t.Parent == null ? value : Quaternion.Inverse(t.Parent.WorldRotation) * value);
+                if (t.KeepsEqual(rotation)) return;
                 bool moved = rotation != t.LocalRotation;
                 t.LocalRotation = rotation;
                 t.MarkDirty(moved);
@@ -322,9 +325,49 @@ namespace OniMoono.Engine
         /// Sets the local position (RectTransforms also update their anchored position).
         public virtual void SetLocalPositionInternal(UnityEngine.Vector3 value)
         {
+            if (KeepsEqualPosition(value)) return;
             bool moved = value != LocalPosition;
             LocalPosition = value;
             MarkDirty(moved);
         }
+
+        // A local position, rotation or scale set to a value equal to the one held, component by
+        // component in float ==, changes nothing the original player reports: hasChanged stays as
+        // it was on the transform and below it (tools/UnityProbe `haschanged`, position,
+        // localPosition, rotation, localRotation, localScale and eulerAngles; a NaN never equals
+        // and always counts as a change). The value is still stored, so a -0 for a +0 reads back
+        // as -0; the caches made from its bits go stale then, and nothing else.
+        // True when the set is done.
+
+        internal bool KeepsEqualPosition(UnityEngine.Vector3 value)
+        {
+            var held = LocalPosition;
+            if (value.x != held.x || value.y != held.y || value.z != held.z) return false;
+            LocalPosition = value;
+            if (!SameBits(value, held)) MarkDirty(false, changed: false);
+            return true;
+        }
+
+        internal bool KeepsEqualScale(UnityEngine.Vector3 value)
+        {
+            var held = LocalScale;
+            if (value.x != held.x || value.y != held.y || value.z != held.z) return false;
+            LocalScale = value;
+            if (!SameBits(value, held)) MarkDirty(false, changed: false);
+            return true;
+        }
+
+        internal bool KeepsEqual(UnityEngine.Quaternion value)
+        {
+            var held = LocalRotation;
+            if (value.x != held.x || value.y != held.y || value.z != held.z || value.w != held.w) return false;
+            LocalRotation = value;
+            if (!SameBits(value.x, held.x) || !SameBits(value.y, held.y) || !SameBits(value.z, held.z) || !SameBits(value.w, held.w))
+                MarkDirty(false, changed: false);
+            return true;
+        }
+
+        static bool SameBits(float a, float b) => System.BitConverter.SingleToInt32Bits(a) == System.BitConverter.SingleToInt32Bits(b);
+        static bool SameBits(UnityEngine.Vector3 a, UnityEngine.Vector3 b) => SameBits(a.x, b.x) && SameBits(a.y, b.y) && SameBits(a.z, b.z);
     }
 }

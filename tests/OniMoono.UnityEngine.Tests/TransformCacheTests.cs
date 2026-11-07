@@ -118,5 +118,83 @@ namespace OniMoono.Tests
             Assert.Equal(new Vector3(4f, 3f, 0f), leaf.localPosition);
             Assert.Equal(new Vector3(5f, 5f, 0f), leaf.position);
         }
+
+        static Transform[] Chain()
+        {
+            // The probe's chain: four levels, the root scaled (2, 2, 1) and the third 0.86.
+            var chain = new Transform[4];
+            for (int i = 0; i < 4; i++)
+            {
+                var t = new GameObject("hc" + i).transform;
+                if (i > 0) t.SetParent(chain[i - 1], false);
+                t.localPosition = new Vector3(1.25f * (i + 1), -0.5f * i, i == 2 ? 0.75f : 0f);
+                if (i == 0) t.localScale = new Vector3(2f, 2f, 1f);
+                if (i == 2) t.localScale = new Vector3(0.86f, 0.86f, 0.86f);
+                chain[i] = t;
+            }
+            return chain;
+        }
+
+        static string Flags(Transform[] chain, Action<Transform[]> act)
+        {
+            foreach (var t in chain) t.hasChanged = false;
+            act(chain);
+            var s = "";
+            foreach (var t in chain) s += t.hasChanged ? "1" : "0";
+            UnityEngine.Object.DestroyImmediate(chain[0].gameObject);
+            return s;
+        }
+
+        /// hasChanged after one set, root first, as the original player reports it
+        /// (tools/UnityProbe `haschanged`, HC lines): a set to the value held, == component by
+        /// component, marks nothing; one an ulp away marks the transform and everything below.
+        [Fact]
+        public void HasChangedFollowsTheOriginal()
+        {
+            Assert.Equal("0000", Flags(Chain(), c => c[0].position = c[0].position));
+            Assert.Equal("0000", Flags(Chain(), c => c[0].localPosition = c[0].localPosition));
+            Assert.Equal("0000", Flags(Chain(), c => c[0].rotation = c[0].rotation));
+            Assert.Equal("0000", Flags(Chain(), c => c[0].localRotation = c[0].localRotation));
+            Assert.Equal("0000", Flags(Chain(), c => c[0].localScale = c[0].localScale));
+            Assert.Equal("0000", Flags(Chain(), c => c[0].eulerAngles = c[0].eulerAngles));
+            Assert.Equal("1111", Flags(Chain(), c => c[0].position = c[0].position + new Vector3(1e-7f, 0f, 0f)));
+            Assert.Equal("1111", Flags(Chain(), c => c[0].position = c[0].position + new Vector3(1f, 0f, 0f)));
+            Assert.Equal("0000", Flags(Chain(), c => c[2].position = c[2].position));
+            Assert.Equal("0000", Flags(Chain(), c => c[2].localPosition = c[2].localPosition));
+            Assert.Equal("0000", Flags(Chain(), c => c[2].position = c[2].position + new Vector3(0f, 1e-7f, 0f)));
+            Assert.Equal("0011", Flags(Chain(), c => c[2].position = c[2].position + new Vector3(0f, 1f, 0f)));
+            // Under the 0.86 scale the leaf's world position does not come back to its local one.
+            Assert.Equal("0001", Flags(Chain(), c => c[3].position = c[3].position));
+            Assert.Equal("0000", Flags(Chain(), c => c[0].SetPositionAndRotation(c[0].position, c[0].rotation)));
+            Assert.Equal("0000", Flags(Chain(), c => c[2].SetParent(c[1], true)));
+            Assert.Equal("1111", Flags(Chain(), c =>
+            {
+                var p = c[0].position;
+                c[0].position = p + new Vector3(3f, 0f, 0f);
+                c[0].position = p;
+            }));
+            Assert.Equal("1111", Flags(Chain(), c =>
+            {
+                c[0].position = new Vector3(float.NaN, 1f, 0f);
+                foreach (var t in c) t.hasChanged = false;
+                c[0].position = new Vector3(float.NaN, 1f, 0f);
+            }));
+        }
+
+        /// A -0 set in place of a +0 is equal, so marks nothing, but is stored, and the world
+        /// matrices take its bits (the original's root position reads back with z -0).
+        [Fact]
+        public void NegativeZeroForZeroIsStoredUnmarked()
+        {
+            var chain = Chain();
+            foreach (var t in chain) { var _ = t.localToWorldMatrix; t.hasChanged = false; }
+            var p = chain[0].position;
+            chain[0].position = new Vector3(p.x, p.y, -0f);
+            Assert.Equal("80000000", Bits(chain[0].position.z));
+            Assert.Equal("80000000", Bits(chain[0].localToWorldMatrix.m23));
+            foreach (var t in chain) Assert.False(t.hasChanged);
+            var fresh = Fresh(chain, 4);
+            for (int i = 0; i < 4; i++) Assert.Equal(Read(fresh[i]), Read(chain[i]));
+        }
     }
 }
