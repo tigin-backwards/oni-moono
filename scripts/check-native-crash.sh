@@ -92,7 +92,7 @@ if [ "$which" != linux ]; then
         # run CASE [redirect]: one player, in its own run home; with redirect, its standard error
         # to a file (as a terminal's 2> does), else no standard streams (as Steam starts it).
         run() {
-            local home="$wstage\\$1${2:+-$2}${extra:+-full}" shell='$true' redirect=''
+            local home="$wstage\\${name:-$1${2:+-$2}${extra:+-full}}" shell='$true' redirect=''
             [ -n "${2:-}" ] && { shell='$false'; redirect="\$psi.RedirectStandardError = \$true;"; }
             (cd /mnt/c && timeout 300 powershell.exe -NoProfile -Command "
                 \$psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -102,12 +102,12 @@ if [ "$which" != linux ]; then
                 \$p = [System.Diagnostics.Process]::Start(\$psi)
                 if (-not \$psi.UseShellExecute) { Set-Content -Path '$home-stderr.txt' -Value \$p.StandardError.ReadToEnd() }
                 \$p.WaitForExit()" > /dev/null 2>&1) || true
-            dir="$stage/$1${2:+-$2}${extra:+-full}/AppData/LocalLow/Klei/Oxygen Not Included"
+            dir="$stage/${name:-$1${2:+-$2}${extra:+-full}}/AppData/LocalLow/Klei/Oxygen Not Included"
             log="$dir/Player.log"
             # The watcher writes once the game has gone.
             for _ in $(seq 50); do grep -q 'native crash: the process ended\|test native crash: the null' "$log" 2> /dev/null && break; sleep 0.2; done
             [ -f "$log" ] || { fail "windows $1: no Player.log"; return 1; }
-            dump=$(ls "$dir"/crash-*.dmp 2> /dev/null | head -1) || true
+            dump=$(ls -td "$dir"/crash-*.dmp 2> /dev/null | head -1) || true
         }
         crashed() { # crashed CASE CODE [THREAD]: the fault line, its stack, the end, the dump
             expect "windows $1: fault line" "$log" "native crash: $2 [a-z -]+ .* in [A-Za-z0-9_.]+\+0x[0-9A-F]+ \([0-9.]+, [^)]+\) on thread [0-9]+${3:-}"
@@ -145,6 +145,26 @@ if [ "$which" != linux ]; then
             expect "windows failfast: end" "$log" 'native crash: the process ended with 0x80131623'; dumped failfast none; }
         run managed-null && { expect "windows managed-null: caught" "$log" 'test native crash: the null reference was caught'
             refuse "windows managed-null: no crash line" "$log" '\[engine\] native crash:'; [ -z "$dump" ] && pass "windows managed-null: no dump" || fail "windows managed-null: a dump"; }
+        # The watcher keeps the two newest dumps: three crashes in one run home after three old
+        # dumps, the last a full one, leave the last two; files not named as ours stay.
+        pdir="$stage/prune/AppData/LocalLow/Klei/Oxygen Not Included"
+        mkdir -p "$pdir/crash-20200104-000000.dmp"; touch -d 2020-01-04 "$pdir/crash-20200104-000000.dmp"
+        for d in 01 02 03; do echo old > "$pdir/crash-202001$d-000000.dmp"; touch -d "2020-01-$d" "$pdir/crash-202001$d-000000.dmp"; done
+        echo other > "$pdir/crash-old.dmp"; echo other > "$pdir/crash-20200101-000000.dmp.txt"
+        touch -d 2020-01-01 "$pdir/crash-old.dmp" "$pdir/crash-20200101-000000.dmp.txt"
+        kept=()
+        for c in main worker heap; do
+            [ $c = heap ] && extra='--crash-dumps full'
+            name=prune run $c && kept+=("$(basename "$dump")")
+            extra=''; sleep 1
+        done
+        left=$(cd "$pdir" && find . -maxdepth 1 -type f -regextype posix-extended -regex '.*/crash-[0-9]{8}-[0-9]{6}\.dmp' -printf '%f\n' | sort | tr '\n' ' ')
+        [ "$left" = "$(printf '%s\n' "${kept[@]:1}" | sort | tr '\n' ' ')" ] && [ ${#kept[@]} -eq 3 ] \
+            && pass "windows prune: the two newest dumps kept ($left)" || fail "windows prune: left $left after ${kept[*]}"
+        [ -f "$pdir/crash-old.dmp" ] && [ -f "$pdir/crash-20200101-000000.dmp.txt" ] && [ -d "$pdir/crash-20200104-000000.dmp" ] \
+            && pass "windows prune: other files and folders kept" || fail "windows prune: $(ls "$pdir")"
+        [ -n "$dump" ] && { held=$(dump_heap_record "$dump"); [ "$held" = "record and block" ] \
+            && pass "windows prune: the newest dump intact ($(du -k "$dump" | cut -f1) KB, full)" || fail "windows prune: newest dump: $held"; }
         # Standard error redirected: still passed on, with the runtime's text kept.
         run main redirect && { expect "windows main (stderr redirected): runtime text" "$log" 'native crash: runtime: Fatal error\.'
             expect "windows main (stderr redirected): passed on" "$stage/main-redirect-stderr.txt" '^Fatal error\.'; }

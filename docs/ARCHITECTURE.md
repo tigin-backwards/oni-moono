@@ -2878,7 +2878,9 @@ block it names and the start of its heap. These are small pieces of the game's m
 dump can hold whatever the game had in them: parts of file paths, names, text. The rest of the
 heap is left out. It is written only on a crash and never sent anywhere; it is on by
 default, as a player sends it only by attaching it to a report, and `--crash-dumps off` leaves it
-out. Module paths in the crash line are hidden as the log's are (`--log-paths`).
+out. The watcher keeps the two newest dumps, full ones included: before it writes one, it
+deletes all but the newest of the older `crash-*.dmp` files beside the log. Module paths in the
+crash line are hidden as the log's are (`--log-paths`).
 
 `--crash-dumps full` (or `ONI_CRASH_DUMPS=full`, which takes the place of the option for test
 runs) writes a dump with memory, for diagnosing heap corruption (issue #56): the process's private
