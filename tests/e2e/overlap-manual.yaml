@@ -5,7 +5,10 @@
 # autosave (Cycle 1) once the indicator has started, then Save and Quit writes the colony again
 # and the main menu comes up. With background-save, each save waits for the writes before it
 # (BackgroundSave.WaitAll), so ours writes the same three saves, whole, in the same order.
-# setup.call starts the autosave (nothing in the UI asks for one).
+# setup.call starts the autosave (nothing in the UI asks for one). Save and Quit waits until the
+# autosave has begun: ours can reach it about a second after the menu's save (U60), before the
+# save indicator's working_pre animation has let the autosave start, and quitting then ends it
+# unwritten.
 from: early-base
 setup:
   - driver: {setup.call: {target: "GameClock.Instance", method: DoAutoSave, args: [0]}}
@@ -20,6 +23,7 @@ steps:
   - click: {text: "Main Menu", under: "**/PauseScreen/LayoutContent"}
   - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/OKButton", cond: stable}
   - ui_dump: {name: quit, root: "**/ConfirmDialog"}
+  - wait_state: {state: {"file:save_files/e2e/auto_save/early-base Cycle 1.sav": exists}, seconds: 120}
   # SAVE AND QUIT
   - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton"}
   - ui_wait: {path: "**/MainMenuButtons", frames: 60000}

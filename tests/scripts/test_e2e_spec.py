@@ -159,6 +159,17 @@ steps:
         s = spec('from: x\nsteps:\n  - shot: {name: a, crop: "**/X"}\n')
         self.assertTrue(e2e.needs_driver(s))
 
+    def test_wait_state(self):
+        s = spec('from: x\nsteps:\n  - wait_state: {state: {"file:save_files/a.sav": exists}, seconds: 30}\n')
+        self.assertEqual(e2e.check_spec(s), [])
+        self.assertFalse(e2e.needs_driver(s))
+        s = spec('from: x\nsteps:\n  - wait_state: {state: {"Game.Instance.IsPaused()": true}}\n')
+        self.assertEqual(e2e.check_spec(s), [])
+        self.assertTrue(e2e.needs_driver(s))
+        for bad in ('{state: {"X.Y": "== original"}}', '{state: {}}', '{"X.Y": 1}', '{state: {"X.Y": 1}, seconds: soon}'):
+            with self.subTest(bad=bad):
+                self.assertTrue(e2e.check_spec(spec(f'from: x\nsteps:\n  - wait_state: {bad}\n')))
+
     def test_load_spec_rejects_invalid(self):
         with tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False) as f:
             f.write('from: landing\nsteps:\n  - nope: 1\n')
