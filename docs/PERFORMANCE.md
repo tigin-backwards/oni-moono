@@ -285,7 +285,7 @@ ones differ from them.
 | `fast-anim-events`: the animation event loop reads a compact copy of each controller | animation events 1.29–1.39 → 0.67–0.73 ms (earlier: 2.07 → 0.90) | exact |
 | `fast-sublimation`: items already blocked by full gas cells are skipped in one batched update | sublimation 0.96–1.02 → 0.50–0.57 ms (earlier: 1.45 → about 1.0) | exact |
 | `fast-particle-collision`: a radbolt skips the collider gather when no other radbolt is nearby | radbolts 0.27–0.31 → 0.07–0.09 ms (earlier: 0.94 → 0.44) | exact |
-| `fast-offset-tables`: fetch updates recheck only items whose work spots can have changed | brains, the fetch updates included, 3.19–3.38 → 2.85–3.04 ms (earlier, the fetch updates alone: 1.74 → 1.33) | exact |
+| `fast-offset-tables`: fetch updates recheck only items whose work spots can have changed | Duplicant brains 3.19–3.38 → 2.85–3.04 ms. The fetch updates inside them, timed on their own in an earlier measurement: 1.74 → 1.33 ms | exact |
 | `fast-anim-cleanup`: the sweep for destroyed animations skips chunks that can't hold any | animation updates (`Global.LateUpdate`, the sweep inside) 1.86–2.19 → 1.78–1.83 ms (earlier, the sweep alone: 0.48 → 0.12) | exact |
 | `fast-partitioner-cleanup`: the spatial index's cleanup looks only at entries that were removed | U57: the spatial index's cleanup 0.25–0.29 → 0.06 ms; Gluttony, earlier: 0.38 → 0.16 ms | exact |
 | `fast-symbol-overrides`: unchanged symbol-override blocks aren't uploaded again; Duplicants' overrides are re-applied only where they changed | animation batch uploads (`World.LateUpdate`) 1.48–1.52 → 0.90–0.98 ms, the frame 40.9–44.8 → 32.8–36.1 ms; c100 (200 Duplicants, Windows, Vulkan), earlier: 34.9 and 40.7 → 62.4 and 84.7 fps | exact |
