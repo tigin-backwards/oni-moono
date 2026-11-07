@@ -1,0 +1,16 @@
+# Issue #52 fixture step: an AND gate under a logic wire in cell (109, 206), for
+# issue-52-after-load (clicks on them straight after the save loads). Saved as the issue-52-gate
+# checkpoint; bless it with `scripts/e2e.py --player original --bless issue-52-gate-fixture`.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicControl\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"LogicCircuits\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicGateAND\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicWire\")", method: Build, args: [{"$": "Grid.XYToCell(109, 206)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LogicWire\")", method: Build, args: [{"$": "Grid.XYToCell(108, 206)"}, Neutral, null, [Copper], 293.15]}}
+steps:
+  - run: {seconds: 2, speed: 1}
+  - expect: {buildings: {LogicGateAND: 1, LogicWire: 2}}
+  - save: issue-52-gate

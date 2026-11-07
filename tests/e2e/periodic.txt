@@ -20,6 +20,13 @@ issue-52-states-ft-bic              # 163+64
 issue-52-states-bic-base-selection  # 141+66
 issue-52-states-bic-running         # 99+51
 issue-52-automation-overlay         # 101+52
+issue-52-gate-fixture               # 78 in the original: fixture step (issue-52-gate)
+issue-52-after-load                 # 172+47: clicks right after a load, the overlay open
+issue-52-after-load-ft-bic          # 160+41
+issue-52-after-load-bao             # 162+43
+issue-52-after-load-bao-pan         # 224+51
+issue-52-after-load-mods            # 153+45
+issue-52-after-load-mods-pan        # 175+45
 issue-48-fast-track                 # 170+48
 issue-48-pipes                      # 98+61: fixture step
 issue-48-stack2                     # 70+55: fixture step

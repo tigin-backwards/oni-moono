@@ -558,6 +558,9 @@ Fixtures are blessed saves (`--bless` copies a spec's `save:` into `fixtures/`, 
   chlorine and hydrogen side by side, mixed for 4 seconds, for
   [`gas-view.yaml`](gas-view.yaml). Bless it with
   `scripts/e2e.py --player original --bless gas-boundary`.
+- `issue-52-gate` (`issue-52-gate-fixture.yaml`): `early-base` with an AND gate under a logic
+  wire in cell (109, 206), for the `issue-52-after-load*.yaml` specs. Bless it with
+  `scripts/e2e.py --player original --bless issue-52-gate-fixture`.
 
 `from: main-menu` loads no fixture: the steps start at the main menu, as `vanilla-base.yaml`'s
 do. Spaced Out stays on there unless the spec says `spaced_out: false`.
