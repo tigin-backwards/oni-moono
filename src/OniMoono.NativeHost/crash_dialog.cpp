@@ -37,6 +37,7 @@
 #include <wincodec.h>
 #include <dxgi.h>
 #include <oleacc.h>
+#include <richedit.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -542,6 +543,8 @@ struct Dialog
     const wchar_t *const *t;      /* strings[language] */
     wchar_t error[1024], details[2048];
     float scale;
+    float text;                     /* Windows' text size (Accessibility > Text size), 1 to 2.25 */
+    float extra_cause, extra_details;   /* px the read-only text fields need beyond the drawn lines */
     Palette pal;
     bool details_open, reported, include_dump, can_include_dump, render_only;
     bool forced_theme, forced_dark;
@@ -570,7 +573,9 @@ struct Dialog
     void *dib_bits;
     Look drawn;
     bool drawn_valid;
-    HFONT note_font;
+    HFONT note_font, cause_font, mono_font;
+    HANDLE gdi_mono;
+    IAccPropServer *expand;
     HBRUSH panel_brush;
     HANDLE gdi_font;
     HWND restore_focus;
@@ -580,6 +585,17 @@ struct Dialog
 Dialog g;
 
 float dip(float v) { return v * g.scale; }
+/* Sizes that follow the text: DIPs times the scale times Windows' text size. */
+float tdip(float v) { return v * g.scale * g.text; }
+
+/* Settings > Accessibility > Text size, 100 to 225 percent. */
+float text_scale()
+{
+    DWORD percent = 100, size = sizeof percent;
+    if (RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Accessibility", L"TextScaleFactor", RRF_RT_REG_DWORD, NULL, &percent, &size) != ERROR_SUCCESS)
+        return 1.0f;
+    return percent < 100 ? 1.0f : percent > 225 ? 2.25f : percent / 100.0f;
+}
 float snap(float v) { return floorf(v + 0.5f); }
 
 /* ---- text ----------------------------------------------------------------------------------- */
@@ -662,13 +678,13 @@ void release_formats()
 void make_formats()
 {
     release_formats();
-    g.f_head = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_SEMI_BOLD, dip(16));
-    g.f_body = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_NORMAL, dip(13));
-    g.f_small = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_NORMAL, dip(12));
-    g.f_mono = text_format(mono(), g.fonts, DWRITE_FONT_WEIGHT_NORMAL, dip(12));
-    g.f_button = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_MEDIUM, dip(12.5f));
-    g.f_chip = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_SEMI_BOLD, dip(12.5f));
-    g.f_zip = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_SEMI_BOLD, dip(9.5f));
+    g.f_head = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_SEMI_BOLD, tdip(16));
+    g.f_body = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_NORMAL, tdip(13));
+    g.f_small = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_NORMAL, tdip(12));
+    g.f_mono = text_format(mono(), g.fonts, DWRITE_FONT_WEIGHT_NORMAL, tdip(12));
+    g.f_button = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_MEDIUM, tdip(12.5f));
+    g.f_chip = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_SEMI_BOLD, tdip(12.5f));
+    g.f_zip = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_SEMI_BOLD, tdip(9.5f));
     g.f_caption = text_format(L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL, dip(12));
 }
 
@@ -709,7 +725,8 @@ Box pixel_box(float l, float t, float r, float b)
 }
 
 /* The approved mockup's measures (CSS px = DIPs): 440 wide, 20 of padding, 4 between the
- * headline and the error, 12 to the details and the check box, 16 around the note and the zip. */
+ * headline and the error, 12 to the details and the check box, 16 around the note and the zip.
+ * What holds text grows with Windows' text size, and the window widens by half as much. */
 void lay_out()
 {
     release_layout();
@@ -717,44 +734,44 @@ void lay_out()
     const wchar_t *const *t = g.t;
     float s = g.scale;
     l.line = maxf(1.0f, floorf(s));
-    l.width = (int)snap(dip(440));
+    l.width = (int)snap(dip(440 * (1 + (g.text - 1) / 2)));
     float pad = dip(20), inner = l.width - 2 * pad, y = dip(20);
 
-    l.t_head = make_text(t[S_HEADLINE], g.f_head, inner, dip(16 * 1.3f));
+    l.t_head = make_text(t[S_HEADLINE], g.f_head, inner, tdip(16 * 1.3f));
     IDWriteTextLayout1 *spaced = nullptr;
     if (l.t_head && SUCCEEDED(l.t_head->QueryInterface(__uuidof(IDWriteTextLayout1), (void **)&spaced)))
     {
         DWRITE_TEXT_RANGE all = { 0, (UINT32)wcslen(t[S_HEADLINE]) };
-        spaced->SetCharacterSpacing(0, dip(-0.2f), 0, all);   /* letter-spacing: -0.2px */
+        spaced->SetCharacterSpacing(0, tdip(-0.2f), 0, all);   /* letter-spacing: -0.2px */
         spaced->Release();
     }
     float h = metrics(l.t_head).height;
     l.head = pixel_box(pad, y, pad + inner, y + h);
     y += h + dip(4);
 
-    l.t_cause = make_text(g.error, g.f_body, inner, dip(13 * 1.45f));
-    h = metrics(l.t_cause).height;
+    l.t_cause = make_text(g.error, g.f_body, inner, tdip(13 * 1.45f));
+    h = metrics(l.t_cause).height + g.extra_cause;
     l.cause = pixel_box(pad, y, pad + inner, y + h);
     y += h + dip(12);
 
-    l.t_toggle = make_text(t[S_SHOW_DETAILS], g.f_small, inner, dip(18), false, false);
-    l.toggle = pixel_box(pad, y, pad + dip(12) + metrics(l.t_toggle).widthIncludingTrailingWhitespace, y + dip(18));
-    y += dip(18);
+    l.t_toggle = make_text(t[S_SHOW_DETAILS], g.f_small, inner, tdip(18), false, false);
+    l.toggle = pixel_box(pad, y, pad + tdip(12) + metrics(l.t_toggle).widthIncludingTrailingWhitespace, y + tdip(18));
+    y += tdip(18);
 
     if (g.details_open)
     {
         y += dip(8);
         float text_w = inner - 2 * dip(12) - 2 * l.line;
-        l.t_details = make_text(g.details, g.f_mono, text_w, dip(12 * 1.55f), true);
-        h = metrics(l.t_details).height + 2 * dip(10) + 2 * l.line;
+        l.t_details = make_text(g.details, g.f_mono, text_w, tdip(12 * 1.55f), true);
+        h = metrics(l.t_details).height + g.extra_details + 2 * dip(10) + 2 * l.line;
         l.details = pixel_box(pad, y, pad + inner, y + h);
         y += h;
     }
     else l.details = pixel_box(0, 0, 0, 0);
 
     y += dip(16);
-    l.t_note = make_text(t[S_NOTE], g.f_body, inner - 2 * dip(10) - 2 * l.line, dip(13 * 1.5f), false, false);
-    h = 2 * l.line + 2 * dip(8) + 2 * dip(13 * 1.5f);
+    l.t_note = make_text(t[S_NOTE], g.f_body, inner - 2 * dip(10) - 2 * l.line, tdip(13 * 1.5f));
+    h = 2 * l.line + 2 * dip(8) + maxf(2 * tdip(13 * 1.5f), metrics(l.t_note).height);
     l.note = pixel_box(pad, y, pad + inner, y + h);
     y = l.note.b;
 
@@ -764,9 +781,10 @@ void lay_out()
         wchar_t size[32], label[160];
         format_size(g.report.dump_size, size, _countof(size));
         swprintf_s(label, t[S_INCLUDE_DUMP], size);
-        l.t_check = make_text(label, g.f_small, inner - dip(19), dip(18), false, false);
-        l.check = pixel_box(pad, y, pad + dip(13 + 6) + metrics(l.t_check).widthIncludingTrailingWhitespace, y + dip(18));
-        y += dip(18);
+        l.t_check = make_text(label, g.f_small, inner - tdip(13) - dip(6), tdip(18));
+        h = metrics(l.t_check).height;
+        l.check = pixel_box(pad, y, pad + tdip(13) + dip(6) + metrics(l.t_check).widthIncludingTrailingWhitespace, y + h);
+        y += h;
     }
     else l.check = pixel_box(0, 0, 0, 0);
 
@@ -776,14 +794,14 @@ void lay_out()
         wchar_t size[32], name[300];
         format_size(g.chip_size, size, _countof(size));
         swprintf_s(name, L"%ls", file_name(g.chip_path));
-        float text_w = inner - 2 * l.line - 2 * dip(10) - dip(28 + 10);
-        l.t_chip_name = make_text(name, g.f_chip, text_w, dip(12.5f * 1.5f));
+        float text_w = inner - 2 * l.line - 2 * dip(10) - tdip(28) - dip(10);
+        l.t_chip_name = make_text(name, g.f_chip, text_w, tdip(12.5f * 1.5f));
         wchar_t hint[200];
-        swprintf_s(hint, L"%ls \u00B7 %ls", size, t[S_DRAG]);
-        l.t_chip_hint = make_text(hint, g.f_small, text_w, dip(18));
-        l.t_zip = make_text(L"ZIP", g.f_zip, dip(28), dip(14), false, false);
+        swprintf_s(hint, L"%ls · %ls", size, t[S_DRAG]);
+        l.t_chip_hint = make_text(hint, g.f_small, text_w, tdip(18));
+        l.t_zip = make_text(L"ZIP", g.f_zip, tdip(28), tdip(14), false, false);
         if (l.t_zip) l.t_zip->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-        float content = maxf(dip(34), metrics(l.t_chip_name).height + metrics(l.t_chip_hint).height);
+        float content = maxf(tdip(34), metrics(l.t_chip_name).height + metrics(l.t_chip_hint).height);
         h = 2 * l.line + 2 * dip(8) + content;
         l.chip = pixel_box(pad, y, pad + inner, y + h);
         y = l.chip.b;
@@ -792,15 +810,14 @@ void lay_out()
 
     y += dip(16);
     float top = snap(y);
-    l.footer = pixel_box(0, top, (float)l.width, top + l.line + dip(12 + 30 + 12));
+    l.footer = pixel_box(0, top, (float)l.width, top + l.line + dip(24) + tdip(30));
     l.height = (int)l.footer.b;
 
     /* The site's order: Close (outlined), then Report on GitHub (filled), on the right. */
-    l.t_close = make_text(t[S_CLOSE], g.f_button, 1000, dip(12.5f * 1.5f), false, false);
-    l.t_report = make_text(g.reported ? t[S_REPORTED] : t[S_REPORT], g.f_button, 1000, dip(12.5f * 1.5f), false, false);
-    float bt = l.footer.t + l.line + dip(12), bb = bt + dip(30);
-    float report_w = 2 * l.line + dip(12 + 15 + 6 + 12) + metrics(l.t_report).widthIncludingTrailingWhitespace;
-    if (g.reported) report_w -= dip(15 + 6);
+    l.t_close = make_text(t[S_CLOSE], g.f_button, 10000, tdip(12.5f * 1.5f), false, false);
+    l.t_report = make_text(g.reported ? t[S_REPORTED] : t[S_REPORT], g.f_button, 10000, tdip(12.5f * 1.5f), false, false);
+    float bt = l.footer.t + l.line + dip(12), bb = bt + tdip(30);
+    float report_w = 2 * l.line + dip(24) + (g.reported ? 0 : tdip(15) + dip(6)) + metrics(l.t_report).widthIncludingTrailingWhitespace;
     float close_w = 2 * l.line + dip(24) + metrics(l.t_close).widthIncludingTrailingWhitespace;
     float right = l.width - pad;
     l.report = pixel_box(right - report_w, bt, right, bb);
@@ -852,20 +869,20 @@ void focus_ring(const Box &b, float radius)
 void draw_chevron(float x, float cy, bool open, D2D1_COLOR_F c)
 {
     /* The mockup's: a 6-DIP square's two sides, 1.5 DIPs, turned to point right (or down). */
-    float k = dip(4.24f), cx = x + dip(3);
+    float k = tdip(4.24f), cx = x + tdip(3);
     D2D1_POINT_2F p[3];
     if (open) { p[0] = D2D1::Point2F(cx - k, cy - k / 2); p[1] = D2D1::Point2F(cx, cy + k / 2); p[2] = D2D1::Point2F(cx + k, cy - k / 2); }
     else { p[0] = D2D1::Point2F(cx - k / 2, cy - k); p[1] = D2D1::Point2F(cx + k / 2, cy); p[2] = D2D1::Point2F(cx - k / 2, cy + k); }
     g.brush->SetColor(c);
-    g.rt->DrawLine(p[0], p[1], g.brush, dip(1.5f));
-    g.rt->DrawLine(p[1], p[2], g.brush, dip(1.5f));
-    g.rt->FillEllipse(D2D1::Ellipse(p[1], dip(0.75f), dip(0.75f)), g.brush);
+    g.rt->DrawLine(p[0], p[1], g.brush, tdip(1.5f));
+    g.rt->DrawLine(p[1], p[2], g.brush, tdip(1.5f));
+    g.rt->FillEllipse(D2D1::Ellipse(p[1], tdip(0.75f), tdip(0.75f)), g.brush);
 }
 
 void draw_check_box(float x, float cy, bool checked, bool hot, bool disabled)
 {
     /* As a browser draws a native check box with accent-color: the foreground. */
-    float size = snap(dip(13));
+    float size = snap(tdip(13));
     Box b = { snap(x), snap(cy - size / 2), snap(x) + size, snap(cy - size / 2) + size };
     float radius = dip(2.5f);
     const Palette &p = g.pal;
@@ -877,9 +894,9 @@ void draw_check_box(float x, float cy, bool checked, bool hot, bool disabled)
         float w = b.w();
         D2D1_POINT_2F a = D2D1::Point2F(b.l + w * 0.22f, b.t + w * 0.52f), m = D2D1::Point2F(b.l + w * 0.42f, b.t + w * 0.72f),
                       e = D2D1::Point2F(b.l + w * 0.78f, b.t + w * 0.30f);
-        g.rt->DrawLine(a, m, g.brush, dip(1.6f));
-        g.rt->DrawLine(m, e, g.brush, dip(1.6f));
-        g.rt->FillEllipse(D2D1::Ellipse(m, dip(0.8f), dip(0.8f)), g.brush);
+        g.rt->DrawLine(a, m, g.brush, tdip(1.6f));
+        g.rt->DrawLine(m, e, g.brush, tdip(1.6f));
+        g.rt->FillEllipse(D2D1::Ellipse(m, tdip(0.8f), tdip(0.8f)), g.brush);
     }
     else
     {
@@ -911,13 +928,13 @@ void draw_button(const Box &b, IDWriteTextLayout *label, bool primary, bool hot,
         stroke_round(b, radius, g.lay.line, border_c);
     }
     DWRITE_TEXT_METRICS m = metrics(label);
-    float icon_w = icon ? dip(15 + 6) : 0;
+    float icon_w = icon ? tdip(15) + dip(6) : 0;
     float content = icon_w + m.widthIncludingTrailingWhitespace;
-    float x = snap(b.l + (b.w() - content) / 2), line = dip(12.5f * 1.5f), y = b.t + (b.h() - line) / 2;
+    float x = snap(b.l + (b.w() - content) / 2), line = tdip(12.5f * 1.5f), y = b.t + (b.h() - line) / 2;
     if (icon && g.mark)
     {
-        float k = dip(15) / 16;
-        float iy = snap(b.t + (b.h() - dip(15)) / 2);
+        float k = tdip(15) / 16;
+        float iy = snap(b.t + (b.h() - tdip(15)) / 2);
         g.rt->SetTransform(D2D1::Matrix3x2F::Scale(k, k) * D2D1::Matrix3x2F::Translation(x, iy) * base);
         g.brush->SetColor(text_c);
         g.rt->FillGeometry(g.mark, g.brush);
@@ -964,10 +981,11 @@ void draw(const Look &look, float offset)
 
     draw_text(l.t_head, l.head.l, l.head.t, p.fg);
     draw_text(l.t_cause, l.cause.l, l.cause.t, p.fg2);
+    if (look.focus[C_CAUSE] && look.cues) focus_ring(l.cause, dip(4));
 
     D2D1_COLOR_F toggle_c = look.hot[C_TOGGLE] ? p.fg : p.mut;
-    draw_chevron(l.toggle.l, l.toggle.t + dip(9), g.details_open, toggle_c);
-    draw_text(l.t_toggle, l.toggle.l + dip(12), l.toggle.t, toggle_c);
+    draw_chevron(l.toggle.l, l.toggle.t + tdip(9), g.details_open, toggle_c);
+    draw_text(l.t_toggle, l.toggle.l + tdip(12), l.toggle.t, toggle_c);
     if (look.focus[C_TOGGLE] && look.cues) focus_ring(l.toggle, dip(4));
 
     if (g.details_open)
@@ -975,6 +993,7 @@ void draw(const Look &look, float offset)
         fill_round(l.details, dip(8), p.panel);
         stroke_round(l.details, dip(8), l.line, p.border);
         draw_text(l.t_details, l.details.l + l.line + dip(12), l.details.t + l.line + dip(10), p.fg2);
+        if (look.focus[C_DETAILS] && look.cues) focus_ring(l.details, dip(8));
     }
 
     /* The note box: an edit control sits inside it in the window; here, its placeholder. */
@@ -990,8 +1009,8 @@ void draw(const Look &look, float offset)
     if (g.report.dump_path[0])
     {
         bool disabled = !g.can_include_dump;
-        draw_check_box(l.check.l, l.check.t + dip(9), look.checked, look.hot[C_CHECK], disabled);
-        draw_text(l.t_check, l.check.l + dip(13 + 6), l.check.t, disabled ? mix(p.fg2, p.bg, 0.5f) : p.fg2);
+        draw_check_box(l.check.l, l.check.t + tdip(9), look.checked, look.hot[C_CHECK], disabled);
+        draw_text(l.t_check, l.check.l + tdip(13) + dip(6), l.check.t, disabled ? mix(p.fg2, p.bg, 0.5f) : p.fg2);
         if (look.focus[C_CHECK] && look.cues) focus_ring(l.check, dip(4));
     }
 
@@ -1001,10 +1020,10 @@ void draw(const Look &look, float offset)
         if (look.hot[C_CHIP] || look.pressed[C_CHIP]) fill_round(l.chip, radius, p.hover);
         stroke_round(l.chip, radius, l.line, look.hot[C_CHIP] ? p.mut : p.dark ? rgb(0xFFFFFF, 0.18f) : p.border, g.dashed);
         float x = l.chip.l + l.line + dip(10), inner_t = l.chip.t + l.line + dip(8), inner_h = l.chip.h() - 2 * l.line - 2 * dip(8);
-        Box icon = pixel_box(x, inner_t + (inner_h - dip(34)) / 2, x + dip(28), inner_t + (inner_h - dip(34)) / 2 + dip(34));
+        Box icon = pixel_box(x, inner_t + (inner_h - tdip(34)) / 2, x + tdip(28), inner_t + (inner_h - tdip(34)) / 2 + tdip(34));
         fill_round(icon, dip(4), p.panel);
         stroke_round(icon, dip(4), l.line, p.border);
-        draw_text(l.t_zip, icon.l, icon.t + (icon.h() - dip(14)) / 2, p.fg2);
+        draw_text(l.t_zip, icon.l, icon.t + (icon.h() - tdip(14)) / 2, p.fg2);
         float tx = icon.r + dip(10), th = metrics(l.t_chip_name).height + metrics(l.t_chip_hint).height;
         float ty = inner_t + (inner_h - th) / 2;
         draw_text(l.t_chip_name, tx, ty, p.fg);
@@ -1394,12 +1413,21 @@ void apply_theme()
     g.drawn_valid = false;
 }
 
+HFONT gdi_font(const wchar_t *face, float px)
+{
+    return CreateFontW(-(int)snap(px), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
+                       ANTIALIASED_QUALITY, DEFAULT_PITCH, face);
+}
+
 void make_note_font()
 {
     if (g.note_font) DeleteObject(g.note_font);
+    if (g.cause_font) DeleteObject(g.cause_font);
+    if (g.mono_font) DeleteObject(g.mono_font);
     const wchar_t *face = g.report.language == CRASH_CHINESE ? L"Microsoft YaHei UI" : g.gdi_font ? L"Gabarito" : L"Segoe UI";
-    g.note_font = CreateFontW(-(int)snap(dip(13)), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS,
-                              ANTIALIASED_QUALITY, DEFAULT_PITCH, face);
+    g.note_font = gdi_font(face, tdip(13));
+    g.cause_font = gdi_font(g.gdi_font ? L"Gabarito" : L"Segoe UI", tdip(13));
+    g.mono_font = gdi_font(g.gdi_mono ? L"Red Hat Mono" : L"Consolas", tdip(12));
 }
 
 Look current_look()
@@ -1465,7 +1493,7 @@ void refresh(HWND painting)
     g.drawn_valid = true;
     InvalidateRect(g.hwnd, NULL, FALSE);
     for (int i = 0; i < C_COUNT; i++)
-        if (g.child[i] && g.child[i] != painting && i != C_NOTE) InvalidateRect(g.child[i], NULL, FALSE);
+        if (g.child[i] && g.child[i] != painting && i != C_NOTE && i != C_CAUSE && i != C_DETAILS) InvalidateRect(g.child[i], NULL, FALSE);
 }
 
 void copy_to(HWND control, HDC dc)
@@ -1476,6 +1504,9 @@ void copy_to(HWND control, HDC dc)
     MapWindowPoints(control, g.hwnd, (POINT *)&r, 2);
     BitBlt(dc, 0, 0, r.right - r.left, r.bottom - r.top, g.memdc, r.left, r.top, SRCCOPY);
 }
+
+void style_field(HWND h, HFONT font, D2D1_COLOR_F fg, D2D1_COLOR_F bg, float line);
+float field_raise(HWND h, HFONT font, float line);
 
 /* The controls over their drawn parts; a little larger than the buttons, for the focus ring. */
 void place_children()
@@ -1488,9 +1519,16 @@ void place_children()
                      SWP_NOZORDER | SWP_NOACTIVATE | (show ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
     };
     place(C_HEAD, l.head, 0, true);
-    place(C_CAUSE, l.cause, 0, true);
+    float cause_line = tdip(13 * 1.45f), details_line = tdip(12 * 1.55f);
+    float raise = g.child[C_CAUSE] ? field_raise(g.child[C_CAUSE], g.cause_font, cause_line) : 0;
+    place(C_CAUSE, Box{ l.cause.l, l.cause.t - raise, l.cause.r, l.cause.b }, 0, true);
     place(C_TOGGLE, l.toggle, ring, true);
-    place(C_DETAILS, l.details, 0, g.details_open);
+    raise = g.child[C_DETAILS] ? field_raise(g.child[C_DETAILS], g.mono_font, details_line) : 0;
+    Box details = { l.details.l + l.line + snap(dip(12)), l.details.t + l.line + snap(dip(10)) - raise, l.details.r - l.line - snap(dip(12)),
+                    l.details.b - l.line - snap(dip(10)) };
+    place(C_DETAILS, details, 0, g.details_open);
+    if (g.child[C_CAUSE]) style_field(g.child[C_CAUSE], g.cause_font, g.pal.fg2, g.pal.bg, cause_line);
+    if (g.child[C_DETAILS]) style_field(g.child[C_DETAILS], g.mono_font, g.pal.fg2, g.pal.panel, details_line);
     Box note = { l.note.l + l.line + snap(dip(10)), l.note.t + l.line + snap(dip(8)), l.note.r - l.line - snap(dip(10)), l.note.b - l.line - snap(dip(8)) };
     place(C_NOTE, note, 0, true);
     place(C_CHECK, l.check, ring, g.report.dump_path[0] != 0);
@@ -1514,6 +1552,25 @@ void place_children()
     }
 }
 
+/* Rich edit may wrap a line more than DirectWrite: then its box grows by those lines (once per
+ * layout). True when it did. */
+bool fit_fields()
+{
+    bool grew = false;
+    struct { int child; IDWriteTextLayout *text; float line, *extra; } fields[] = {
+        { C_CAUSE, g.lay.t_cause, tdip(13 * 1.45f), &g.extra_cause },
+        { C_DETAILS, g.details_open ? g.lay.t_details : nullptr, tdip(12 * 1.55f), &g.extra_details },
+    };
+    for (auto &f : fields)
+    {
+        if (!g.child[f.child] || !f.text) continue;
+        LONG lines = (LONG)SendMessageW(g.child[f.child], EM_GETLINECOUNT, 0, 0);
+        float extra = maxf(0, (lines - (LONG)metrics(f.text).lineCount) * f.line);
+        if (extra > *f.extra) { *f.extra = extra; grew = true; }
+    }
+    return grew;
+}
+
 /* Lays the window out again (a new DPI, the details, the zip) and sizes it; the top-left stays
  * unless `where` gives the new rectangle (WM_DPICHANGED's). */
 void relayout(const RECT *where)
@@ -1529,6 +1586,7 @@ void relayout(const RECT *where)
     int x = where ? where->left : now.left, y = where ? where->top : now.top;
     SetWindowPos(g.hwnd, NULL, x, y, size.cx, size.cy, SWP_NOZORDER | SWP_NOACTIVATE);
     place_children();
+    if (fit_fields()) relayout(where);
     g.drawn_valid = false;
     refresh(NULL);
     InvalidateRect(g.hwnd, NULL, FALSE);
@@ -1537,6 +1595,105 @@ void relayout(const RECT *where)
 void set_name(HWND h, const wchar_t *name)
 {
     if (g.acc && h) g.acc->SetHwndPropStr(h, (DWORD)OBJID_CLIENT, CHILDID_SELF, PROPID_ACC_NAME, name);
+}
+
+/* What assistive technology reads of the controls, as MSAA role and state (Dynamic Annotation):
+ * the controls are comctl32 v6's from an activation context of our own, whose class names come
+ * out versioned ("6.0.x!Button"), so the proxies that know Button, Edit and Static by name don't
+ * take them. The state is read when asked: focus, enabled, checked, and for "Show details"
+ * expanded or collapsed. The rich edit fields describe themselves. */
+struct ControlState : IAccPropServer
+{
+    ULONG refs = 1;
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **out) override
+    {
+        if (iid == __uuidof(IUnknown) || iid == __uuidof(IAccPropServer)) { *out = this; AddRef(); return S_OK; }
+        *out = nullptr;
+        return E_NOINTERFACE;
+    }
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++refs; }
+    ULONG STDMETHODCALLTYPE Release() override { return --refs; }   /* static: never freed */
+    HRESULT STDMETHODCALLTYPE GetPropValue(const BYTE *identity, DWORD length, MSAAPROPID id, VARIANT *value, BOOL *got) override
+    {
+        *got = FALSE;
+        HWND h = NULL;
+        DWORD object = 0, child = 0;
+        if (!g.acc || FAILED(g.acc->DecomposeHwndIdentityString(identity, length, &h, &object, &child))) return S_OK;
+        int which = -1;
+        for (int i = 0; i < C_COUNT; i++) if (g.child[i] == h) which = i;
+        if (which < 0) return S_OK;
+        value->vt = VT_I4;
+        if (id == PROPID_ACC_ROLE)
+        {
+            value->lVal = which == C_CHECK ? ROLE_SYSTEM_CHECKBUTTON : which == C_NOTE ? ROLE_SYSTEM_TEXT
+                        : which == C_HEAD ? ROLE_SYSTEM_STATICTEXT : ROLE_SYSTEM_PUSHBUTTON;
+            *got = TRUE;
+        }
+        else if (id == PROPID_ACC_STATE)
+        {
+            LONG state = which == C_HEAD ? STATE_SYSTEM_READONLY : STATE_SYSTEM_FOCUSABLE;
+            if (GetFocus() == h) state |= STATE_SYSTEM_FOCUSED;
+            if (!IsWindowEnabled(h)) state |= STATE_SYSTEM_UNAVAILABLE;
+            if (which == C_CHECK && SendMessageW(h, BM_GETCHECK, 0, 0) == BST_CHECKED) state |= STATE_SYSTEM_CHECKED;
+            if (which == C_TOGGLE) state |= g.details_open ? STATE_SYSTEM_EXPANDED : STATE_SYSTEM_COLLAPSED;
+            if (which == C_REPORT && !g.reported) state |= STATE_SYSTEM_DEFAULT;
+            value->lVal = state;
+            *got = TRUE;
+        }
+        return S_OK;
+    }
+};
+ControlState control_state;
+
+/* The error line and the details are read-only rich edit controls over their drawn text, so they
+ * can be selected, copied and read by screen readers (rich edit also finds a font for characters
+ * the font lacks). Their font, colours and line spacing are the drawn text's; rich edit puts the
+ * extra space of exact line spacing above the text, so the control sits that much higher. */
+void style_field(HWND h, HFONT font, D2D1_COLOR_F fg, D2D1_COLOR_F bg, float line)
+{
+    SendMessageW(h, WM_SETFONT, (WPARAM)font, FALSE);
+    SendMessageW(h, EM_SETBKGNDCOLOR, 0, (LPARAM)to_colorref(bg));
+    CHARFORMAT2W cf = {};
+    cf.cbSize = sizeof cf;
+    cf.dwMask = CFM_COLOR;
+    cf.crTextColor = to_colorref(fg);
+    SendMessageW(h, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
+    HDC dc = GetDC(h);
+    int ppi = GetDeviceCaps(dc, LOGPIXELSY);
+    ReleaseDC(h, dc);
+    PARAFORMAT2 pf = {};
+    pf.cbSize = sizeof pf;
+    pf.dwMask = PFM_LINESPACING;
+    pf.bLineSpacingRule = 4;   /* exactly dyLineSpacing twips */
+    pf.dyLineSpacing = (LONG)lroundf(line * 1440 / (ppi ? ppi : 96));
+    SendMessageW(h, EM_SETSEL, 0, -1);
+    SendMessageW(h, EM_SETPARAFORMAT, 0, (LPARAM)&pf);
+    SendMessageW(h, EM_SETSEL, 0, 0);
+    SendMessageW(h, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, 0);
+}
+
+/* How much higher than the drawn text a field sits: the half-leading. */
+float field_raise(HWND h, HFONT font, float line)
+{
+    HDC dc = GetDC(h);
+    HGDIOBJ old = SelectObject(dc, font);
+    TEXTMETRICW tm;
+    GetTextMetricsW(dc, &tm);
+    SelectObject(dc, old);
+    ReleaseDC(h, dc);
+    return maxf(0, snap((line - tm.tmHeight) / 2));
+}
+
+LRESULT CALLBACK field_proc(HWND h, UINT m, WPARAM w, LPARAM l)
+{
+    WNDPROC original = (WNDPROC)GetWindowLongPtrW(h, GWLP_USERDATA);
+    if (m == WM_GETDLGCODE)
+    {
+        /* Tab, Enter and Esc go to the window, as from the note */
+        LRESULT code = CallWindowProcW(original, h, m, w, l);
+        return code & ~DLGC_WANTALLKEYS;
+    }
+    return CallWindowProcW(original, h, m, w, l);
 }
 
 void open_folder()
@@ -1651,6 +1808,7 @@ void toggle_details()
     g.details_open = !g.details_open;
     SetWindowTextW(g.child[C_TOGGLE], g.t[g.details_open ? S_HIDE_DETAILS : S_SHOW_DETAILS]);
     relayout(NULL);
+    NotifyWinEvent(EVENT_OBJECT_STATECHANGE, g.child[C_TOGGLE], OBJID_CLIENT, CHILDID_SELF);
 }
 
 LRESULT CALLBACK window_proc(HWND hwnd, UINT m, WPARAM w, LPARAM l)
@@ -1721,6 +1879,8 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT m, WPARAM w, LPARAM l)
             refresh(NULL);
             return 0;
         }
+        if ((id == ID_CAUSE || id == ID_DETAILS) && (code == EN_SETFOCUS || code == EN_KILLFOCUS)) { refresh(NULL); return 0; }
+        if (id == ID_CHECK && code == BN_CLICKED) NotifyWinEvent(EVENT_OBJECT_STATECHANGE, g.child[C_CHECK], OBJID_CLIENT, CHILDID_SELF);
         if (code == BN_SETFOCUS || code == BN_KILLFOCUS || code == BN_CLICKED) { refresh(NULL); return 0; }
         break;
     }
@@ -1736,13 +1896,15 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT m, WPARAM w, LPARAM l)
         return 0;
     case WM_DPICHANGED:
         set_icons(HIWORD(w));
+        g.extra_cause = g.extra_details = 0;
         relayout((RECT *)l);
         return 0;
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
         apply_theme();
-        refresh(NULL);
+        if (text_scale() != g.text) { g.text = text_scale(); g.extra_cause = g.extra_details = 0; }
+        relayout(NULL);
         RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
         break;
     case WM_CLOSE:
@@ -1847,6 +2009,9 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
     const void *font_data;
     DWORD font_size, font_count = 0;
     if (resource_data(FONT_REGULAR, &font_data, &font_size)) g.gdi_font = AddFontMemResourceEx((void *)font_data, font_size, NULL, &font_count);
+    if (resource_data(FONT_MONO, &font_data, &font_size)) g.gdi_mono = AddFontMemResourceEx((void *)font_data, font_size, NULL, &font_count);
+    g.text = text_scale();
+    bool rich = system_library(L"msftedit.dll") != NULL;
 
     WNDCLASSEXW wc = { sizeof wc };
     wc.lpfnWndProc = window_proc;
@@ -1867,9 +2032,10 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
 
     /* In the order Tab goes through them. */
     g.child[C_HEAD] = make_child(L"STATIC", g.t[S_HEADLINE], WS_VISIBLE | SS_OWNERDRAW, ID_HEAD);
-    g.child[C_CAUSE] = make_child(L"STATIC", g.error, WS_VISIBLE | SS_OWNERDRAW, ID_CAUSE);
+    const DWORD field = WS_TABSTOP | ES_MULTILINE | ES_READONLY;
+    g.child[C_CAUSE] = rich ? make_child(MSFTEDIT_CLASS, g.error, WS_VISIBLE | field, ID_CAUSE) : make_child(L"STATIC", g.error, WS_VISIBLE | SS_OWNERDRAW, ID_CAUSE);
     g.child[C_TOGGLE] = make_child(L"BUTTON", g.t[S_SHOW_DETAILS], WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_TOGGLE);
-    g.child[C_DETAILS] = make_child(L"STATIC", g.details, SS_OWNERDRAW, ID_DETAILS);
+    g.child[C_DETAILS] = rich ? make_child(MSFTEDIT_CLASS, g.details, field, ID_DETAILS) : make_child(L"STATIC", g.details, SS_OWNERDRAW, ID_DETAILS);
     g.child[C_NOTE] = make_child(L"EDIT", L"", WS_VISIBLE | WS_TABSTOP | ES_MULTILINE | ES_AUTOVSCROLL, ID_NOTE);
     g.child[C_CHECK] = make_child(L"BUTTON", L"", WS_TABSTOP | BS_AUTOCHECKBOX | BS_NOTIFY, ID_CHECK);
     g.child[C_CHIP] = make_child(L"BUTTON", L"", WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_CHIP);
@@ -1877,6 +2043,15 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
     g.child[C_REPORT] = make_child(L"BUTTON", g.t[S_REPORT], WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON | BS_NOTIFY, ID_REPORT);
     g.note_proc = (WNDPROC)SetWindowLongPtrW(g.child[C_NOTE], GWLP_WNDPROC, (LONG_PTR)note_proc);
     g.chip_proc = (WNDPROC)SetWindowLongPtrW(g.child[C_CHIP], GWLP_WNDPROC, (LONG_PTR)chip_proc);
+    if (rich)
+        for (int i : { C_CAUSE, C_DETAILS })
+            SetWindowLongPtrW(g.child[i], GWLP_USERDATA, SetWindowLongPtrW(g.child[i], GWLP_WNDPROC, (LONG_PTR)field_proc));
+    if (g.acc)
+    {
+        MSAAPROPID props[2] = { PROPID_ACC_ROLE, PROPID_ACC_STATE };
+        for (int i : { C_HEAD, C_TOGGLE, C_NOTE, C_CHECK, C_CHIP, C_CLOSE, C_REPORT })
+            g.acc->SetHwndPropServer(g.child[i], (DWORD)OBJID_CLIENT, CHILDID_SELF, props, 2, &control_state, ANNO_THIS);
+    }
     SendMessageW(g.child[C_NOTE], EM_LIMITTEXT, 3000, 0);
     set_name(g.child[C_NOTE], g.t[S_NOTE]);
     if (r->dump_path[0])
@@ -1895,6 +2070,7 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
     SIZE size = window_size(dpi);
     SetWindowPos(g.hwnd, NULL, cx - size.cx / 2, cy - size.cy / 2, size.cx, size.cy, SWP_NOZORDER | SWP_NOACTIVATE);
     place_children();
+    if (fit_fields()) relayout(NULL);
     SendMessageW(g.hwnd, WM_CHANGEUISTATE, MAKEWPARAM(UIS_INITIALIZE, 0), 0);
     SetFocus(g.child[C_NOTE]);
     g.restore_focus = g.child[C_NOTE];
@@ -1918,13 +2094,17 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
     if (g.note_font) DeleteObject(g.note_font);
     if (g.panel_brush) DeleteObject(g.panel_brush);
     if (g.gdi_font) RemoveFontMemResourceEx(g.gdi_font);
+    if (g.gdi_mono) RemoveFontMemResourceEx(g.gdi_mono);
+    if (g.cause_font) DeleteObject(g.cause_font);
+    if (g.mono_font) DeleteObject(g.mono_font);
     release(g.acc);
     stop_graphics();
     OleUninitialize();
 }
 
 /* --crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--sample gpu|managed|fastfail]
- * [--language en|zh] [--details-open] [--reported]: the window as it would show, with a drawn title
+ * [--language en|zh] [--text-size 1-2.25] [--details-open] [--reported]: the window as it would show
+ * (at Windows' text size, from Accessibility > Text size), with a drawn title
  * bar, from fixed sample facts, to a PNG. For scripts/check-native-crash.sh also [--zip OUT.zip
  * --log FILE [--dump FILE]]: the zip "Report on GitHub" writes, of these files; [--url OUT.txt
  * --note TEXT]: the issue's URL, UTF-8. */
@@ -1934,7 +2114,7 @@ extern "C" int crash_dialog_render(int argc, wchar_t **argv)
     const wchar_t *out = argv[2], *sample = L"gpu";
     static crash_report_t r;
     bool dark = true, details = false, reported = false;
-    float scale = 1.0f;
+    float scale = 1.0f, text = 1.0f;
     const wchar_t *zip_out = nullptr, *log = nullptr, *dump = nullptr, *url_out = nullptr, *note = L"";
     r.language = CRASH_ENGLISH;
     for (int i = 3; i < argc; i++)
@@ -1942,6 +2122,7 @@ extern "C" int crash_dialog_render(int argc, wchar_t **argv)
         const wchar_t *a = argv[i], *v = i + 1 < argc ? argv[i + 1] : L"";
         if (wcscmp(a, L"--theme") == 0) { dark = wcscmp(v, L"light") != 0; i++; }
         else if (wcscmp(a, L"--scale") == 0) { scale = (float)_wtof(v); i++; }
+        else if (wcscmp(a, L"--text-size") == 0) { text = (float)_wtof(v); i++; }
         else if (wcscmp(a, L"--sample") == 0) { sample = v; i++; }
         else if (wcscmp(a, L"--language") == 0) { r.language = wcscmp(v, L"zh") == 0 ? CRASH_CHINESE : CRASH_ENGLISH; i++; }
         else if (wcscmp(a, L"--zip") == 0) { zip_out = v; i++; }
@@ -1953,7 +2134,7 @@ extern "C" int crash_dialog_render(int argc, wchar_t **argv)
         else if (wcscmp(a, L"--reported") == 0) reported = true;
         else return 2;
     }
-    if (scale < 0.5f || scale > 4.0f) return 2;
+    if (scale < 0.5f || scale > 4.0f || text < 1.0f || text > 2.25f) return 2;
     /* the mockup's sample */
     wcscpy_s(r.version, L"v2026.11.06.01");
     wcscpy_s(r.game_build, L"762230");
@@ -1989,6 +2170,7 @@ extern "C" int crash_dialog_render(int argc, wchar_t **argv)
     g.system.ram_gb = 32;
     details_text(&g.report, &g.system, r.language, g.details, _countof(g.details));
     g.scale = scale;
+    g.text = text;
     g.forced_theme = true;
     g.forced_dark = dark;
     g.pal = palette_for(dark, false);

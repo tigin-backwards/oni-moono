@@ -124,6 +124,9 @@ crash_window() {
         || fail "windows crash window: dark render"
     render "$wstage\\light.png" --theme light --scale 1.25 --sample managed --language zh --reported && png_check "light, 125%, Chinese" "$stage/light.png" 550 F7F4ED FFFCF6 F7F4ED \
         || fail "windows crash window: light render"
+    # Windows' text size at its largest: the window widens by half as much (440 x 1.625).
+    render "$wstage\\text.png" --theme dark --scale 1 --text-size 2.25 --sample managed --details-open && png_check "dark, 100%, text size 225%" "$stage/text.png" 715 100C0A 191512 1D1A17 \
+        || fail "windows crash window: text size render"
     # The zip: a 40 MB log (cut to its head and tail) and a dump of zeros and noise.
     python3 -I - "$stage/zip-in" <<'PY'
 import os, random, sys

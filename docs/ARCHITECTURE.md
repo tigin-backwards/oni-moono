@@ -2920,10 +2920,19 @@ DirectWrite text in Gabarito and Red Hat Mono (the site's fonts, SIL OFL 1.1, em
 from memory; CJK and other missing characters fall back to the system's fonts). Its controls are
 standard ones (buttons, a check box, an edit box, through comctl32 v6 in an activation context of
 its own, so the process's manifest is unchanged), each painting its part of the drawing, so Tab,
-Enter (Report on GitHub), Esc and screen readers work as in any dialog. Its theme follows Windows'
-app mode (high contrast: the system's colours), with a dark or light title bar coloured as the
-palette's on Windows 11. Every size is in DIPs times the monitor's scale, the watcher's thread
-per-monitor DPI aware (v2), relaid out on `WM_DPICHANGED`; lines are whole pixels. The executable's
+Enter (Report on GitHub), Esc and screen readers work as in any dialog. The error line and the
+details are read-only rich edit controls over their drawn text, in the same fonts, colours and
+line spacing, so they can be selected and copied with the mouse or the keyboard and read by
+screen readers (rich edit also picks a font for characters ours lack); where rich edit wraps a
+line more than DirectWrite, the box grows. Each control's MSAA role and state come from a
+Dynamic Annotation server that reads them when asked (button, check box and whether it is
+checked, focus, enabled, the default button, and for "Show details" expanded or collapsed, whose
+name is "Hide details" when open). Its theme follows Windows' app mode (high contrast: the system's colours), with a dark or
+light title bar coloured as the palette's on Windows 11. Every size is in DIPs times the monitor's
+scale, the watcher's thread per-monitor DPI aware (v2), relaid out on `WM_DPICHANGED`; lines are
+whole pixels. Text and what holds it (lines, buttons, the check box, the icons) also scale by
+Windows' text size (Accessibility > Text size, `TextScaleFactor`, 100 to 225%), re-read on
+`WM_SETTINGCHANGE`; the window widens by half as much and grows as the text wraps. The executable's
 manifest still declares no DPI awareness, so the game's process is as before (GLFW sets its
 own). `--crash-dialog off` or `ONI_MOONO_CRASH_DIALOG=off` leaves the window out (the record and
 the dump stay), and so does `ONI_MOONO_CRASH_WATCH=off`, which leaves out the watcher; a run with
@@ -2932,8 +2941,8 @@ leaves a window waiting. `ONI_MOONO_CRASH_DIALOG=inactive` shows it without taki
 look at it in a test run), and an end by Ctrl+C, by Windows shutting down or from outside with
 exit code -1 shows none. While it is
 open the watcher is still running, so Steam counts the game as running until it closes.
-`OniMoono.exe --crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--sample
-gpu|managed|fastfail] [--language zh] [--details-open] [--reported]` draws it to a PNG from sample
+`OniMoono.exe --crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--text-size T]
+[--sample gpu|managed|fastfail] [--language zh] [--details-open] [--reported]` draws it to a PNG from sample
 facts, with a drawn title bar, showing nothing; `check-native-crash.sh` checks such renders, the zip
 (with Python's `zipfile`) and the issue link, and that no crash case leaves a watcher running.
 Linux has no crash window (no native host).

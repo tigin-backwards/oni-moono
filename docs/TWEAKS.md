@@ -120,7 +120,8 @@ the GPU and its driver, memory, how long you played, how many mods are on, and t
 `OniMoono-crash-….zip` beside the log, and opens a new GitHub issue in your browser with the
 error, the details and your note filled in. Drag the zip from the window into the issue, then
 submit it. Nothing is sent unless you submit the issue yourself. The dump can hold bits of what
-the game had in memory; untick it to leave it out. `--crash-dialog off` turns the window off;
+the game had in memory; untick it to leave it out. The error and the details can be selected and
+copied, and the window follows Windows' dark or light mode and its text size. `--crash-dialog off` turns the window off;
 `Player.log` still records the crash. Linux has no crash window.
 
 ## Launch options
