@@ -7,5 +7,7 @@ obj/
 /.cate/
 
 # e2e fixture saves are made locally (scripts/e2e.py --bless), not kept in git
-tests/e2e/fixtures/*.sav
+tests/e2e/fixtures/**/*.sav
+# autosaves the game writes next to a fixture during runs
+tests/e2e/fixtures/auto_save/
 __pycache__/
