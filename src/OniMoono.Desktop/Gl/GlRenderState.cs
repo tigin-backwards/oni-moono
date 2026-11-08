@@ -83,8 +83,15 @@ namespace OniMoono.Desktop.Gl
         }
     }
 
-    /// A pass's state resolved for it (a cache entry).
-    internal sealed record ResolvedFor(PassState Pass, ResolvedState State);
+    /// A pass's state resolved for it (a cache entry). Pass and State never change; Stamp names
+    /// the material and global versions the state is current for, and moves on when the state,
+    /// resolved again for newer values, comes out the same in every bit.
+    internal sealed class ResolvedFor(PassState pass, ResolvedState state, long stamp)
+    {
+        public readonly PassState Pass = pass;
+        public readonly ResolvedState State = state;
+        public long Stamp = stamp;
+    }
 
     /// A pass's fixed-function state with its property references resolved.
     internal struct ResolvedState : IEquatable<ResolvedState>
@@ -105,32 +112,109 @@ namespace OniMoono.Desktop.Gl
         /// properties; from the material's values (resolved with them) unless the draw's block
         /// sets a property the state reads.
         ///
-        /// Threads recording one queue at once may call it together: the cached states are whole
-        /// objects, replaced at once, and threads that resolve the same one store equal values.
+        /// The values keep one entry per pass (a material drawn with two passes alternates
+        /// between them), current for the versions it was resolved at; when the material or the
+        /// globals change, the state is resolved again and the entry kept if it came out the
+        /// same, so a change that leaves the state as it was makes nothing new.
+        ///
+        /// Threads recording one queue at once may call it together: entries never change but
+        /// for their stamp, which a thread moves on only after resolving the same state for
+        /// those versions (as every thread would: nothing changes while a queue is recorded);
+        /// the list is replaced whole.
         public static ResolvedState Of(PassState s, DrawInputs d, MaterialValues values)
         {
             if (s.PropertyIds.Length == 0)
             {
                 var constant = System.Threading.Volatile.Read(ref s.Constant);
-                if (constant == null) System.Threading.Volatile.Write(ref s.Constant, constant = new ResolvedFor(s, Resolve(s, d)));
+                if (constant == null) System.Threading.Volatile.Write(ref s.Constant, constant = new ResolvedFor(s, Resolve(s, d), 0));
                 return constant.State;
             }
             if (values == null || BlockSetsAny(d.Block, s.PropertyIds)) return Resolve(s, d);
-            var cached = System.Threading.Volatile.Read(ref values.Resolved);
-            if (cached?.Pass == s) return cached.State;
+            long stamp = ((long)System.Threading.Volatile.Read(ref values.MaterialVersion) << 32) | (uint)System.Threading.Volatile.Read(ref values.GlobalsVersion);
+            var entries = System.Threading.Volatile.Read(ref values.Resolved);
+            ResolvedFor entry = null;
+            int at = -1;
+            for (int i = 0; i < entries.Length; i++)
+                if (entries[i].Pass == s)
+                {
+                    entry = entries[i];
+                    at = i;
+                    break;
+                }
+            if (entry != null && System.Threading.Volatile.Read(ref entry.Stamp) == stamp)
+            {
+                if (VerifyCache) Verify(entry.State, s, d);
+                return entry.State;
+            }
             var block = d.Block;
             d.Block = null;
+            ResolvedState fresh;
             try
             {
-                cached = new ResolvedFor(s, Resolve(s, d));
+                fresh = Resolve(s, d);
             }
             finally
             {
                 d.Block = block;
             }
-            System.Threading.Volatile.Write(ref values.Resolved, cached);
-            return cached.State;
+            if (entry != null && entry.State.SameBits(fresh))
+            {
+                System.Threading.Volatile.Write(ref entry.Stamp, stamp);
+                return entry.State;
+            }
+            var made = new ResolvedFor(s, fresh, stamp);
+            ResolvedFor[] next;
+            if (at >= 0)
+            {
+                next = (ResolvedFor[])entries.Clone();
+                next[at] = made;
+            }
+            else if (entries.Length < MaxPasses)
+            {
+                next = new ResolvedFor[entries.Length + 1];
+                entries.CopyTo(next, 0);
+                next[^1] = made;
+            }
+            else
+            {
+                // More passes than kept: the oldest entry goes.
+                next = new ResolvedFor[MaxPasses];
+                Array.Copy(entries, 1, next, 0, MaxPasses - 1);
+                next[^1] = made;
+            }
+            System.Threading.Volatile.Write(ref values.Resolved, next);
+            return fresh;
         }
+
+        const int MaxPasses = 8;
+
+        /// ONI_VERIFY_PASS_STATES=1: each state the cache gives is resolved afresh too and
+        /// compared bit for bit.
+        static readonly bool VerifyCache = Environment.GetEnvironmentVariable("ONI_VERIFY_PASS_STATES") == "1";
+        static long verified, wrong;
+
+        static void Verify(in ResolvedState kept, PassState s, DrawInputs d)
+        {
+            var block = d.Block;
+            d.Block = null;
+            ResolvedState fresh;
+            try
+            {
+                fresh = Resolve(s, d);
+            }
+            finally
+            {
+                d.Block = block;
+            }
+            long n = System.Threading.Interlocked.Increment(ref verified);
+            if (!kept.SameBits(fresh))
+                OniMoono.Engine.EngineLog.Engine($"pass states wrong ({System.Threading.Interlocked.Increment(ref wrong)}): a kept state differs from the one resolved afresh");
+            if (n % 200000 == 0) OniMoono.Engine.EngineLog.Engine($"pass states: {n} kept states verified, {System.Threading.Interlocked.Read(ref wrong)} wrong");
+        }
+
+        /// Equal in every field, the floats by their bits.
+        public bool SameBits(in ResolvedState o) => Equals(o) && BitConverter.SingleToInt32Bits(OffsetFactor) == BitConverter.SingleToInt32Bits(o.OffsetFactor)
+            && BitConverter.SingleToInt32Bits(OffsetUnits) == BitConverter.SingleToInt32Bits(o.OffsetUnits);
 
         static bool BlockSetsAny(PropertySheet block, int[] ids)
         {
