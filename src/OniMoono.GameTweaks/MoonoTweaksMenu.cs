@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
+using OniMoono.Tweaks;
 using STRINGS;
 using TMPro;
 using UnityEngine;
@@ -24,8 +25,32 @@ namespace OniMoono.GameTweaks
     /// translations/CODE.po for the game's locale with the game's own reader, as a mod reads its
     /// translations, falling back to English string by string, and puts the result in the game's
     /// string table (Strings).
+    ///
+    /// Checked against the game as a tweak is (OniMoono.Host.GameTweaks.TweakInstall, ARCHITECTURE
+    /// "How game tweaks install"): the members below and every game reference of its code, before
+    /// it patches anything, and its install all or nothing. The game UI it takes by name at run
+    /// time (the Mods screen's row references) is checked when the first main menu is made, before
+    /// the button is (Problem). Either way, off the menu has no entry, one log line says why, and
+    /// the game and the tweaks run as without it.
+    [GameMember(GameUse.Postfix, "System.Void MainMenu::OnPrefabInit()")]
+    [GameMember(GameUse.Uses, "KButton MainMenu::buttonPrefab")]
+    [GameMember(GameUse.Uses, "UnityEngine.GameObject MainMenu::buttonParent")]
+    [GameMember(GameUse.Uses, "ColorStyleSetting MainMenu::normalButtonStyle")]
+    [GameMember(GameUse.Uses, "KButton ModsScreen::closeButtonTitle")]
+    [GameMember(GameUse.Uses, "KButton ModsScreen::closeButton")]
+    [GameMember(GameUse.Uses, "KButton ModsScreen::toggleAllButton")]
+    [GameMember(GameUse.Uses, "KButton ModsScreen::workshopButton")]
+    [GameMember(GameUse.Uses, "UnityEngine.GameObject ModsScreen::entryPrefab")]
+    [GameMember(GameUse.Uses, "UnityEngine.Transform ModsScreen::entryParent")]
+    [GameMember(GameUse.Uses, "LocText ModsScreen::windowTitle")]
+    // The search box is left out without them (MoonoTweaksScreen.SearchBox).
+    [GameMember(GameUse.Uses, "KInputTextField KleiInventoryScreen::searchField", Optional = true)]
+    [GameMember(GameUse.Uses, "KButton KleiInventoryScreen::clearSearchButton", Optional = true)]
     public static class MoonoTweaksMenu
     {
+        /// What the host checks and installs this as (OniMoono.Host.GameTweaks.GameTweakNames.Menu).
+        public const string Name = "moono-tweaks-menu";
+
         /// The rows' text in the game's language (Localize), and the launch options (`Notes`).
         internal static string[] Ids, Groups, Titles, Effects, Details, Gains, Notes;
         internal static bool[] ChangesGameplay, BugFixes, Locked;
@@ -161,15 +186,87 @@ namespace OniMoono.GameTweaks
         /// One of the screen's own labels (STRINGS.MOONO.TWEAKS.UI.NAME) in the game's language.
         internal static string Ui(string name) => Text(UiPrefix + name);
 
+        /// The Mods screen's row references the screen takes, with their types (Entry, Row,
+        /// Heading, ChoiceRow, NoMatches, FooterNote).
+        static readonly (string Name, Type Type)[] rowReferences =
+        {
+            ("BG", typeof(KImage)), ("Title", typeof(LocText)), ("Description", typeof(ToolTip)),
+            ("EnabledToggle", typeof(MultiToggle)), ("Version", typeof(LocText)), ("ManageButton", typeof(KButton)),
+        };
+
+        /// The first main menu's verdict (Problem): null before it, "" when the menu can be made.
+        static string problem;
+
+        /// Whether the game's UI has every part the button and the screen take by name: the main
+        /// menu's button prefab, parent and style, and the Mods screen's prefab with its parts and
+        /// its rows' references (each of its type). Why not, or null. Checked once, when the first
+        /// main menu is made, so that a game update that renamed one leaves the menu out rather
+        /// than failing while it is built or opened. `ONI_TWEAK_TEST_MENU_MISSING=NAME,…` (test
+        /// runs) takes those parts as missing.
+        internal static string Problem(MainMenu menu)
+        {
+            var missing = (Environment.GetEnvironmentVariable("ONI_TWEAK_TEST_MENU_MISSING") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            T Part<T>(Traverse owner, string name) where T : class => Array.IndexOf(missing, name) >= 0 ? null : owner.Field(name).GetValue<T>();
+            var parts = Traverse.Create(menu);
+            var prefab = Part<KButton>(parts, "buttonPrefab");
+            if (prefab == null) return "the main menu has no button prefab (MainMenu.buttonPrefab)";
+            if (prefab.GetComponent<KImage>() == null || prefab.GetComponentInChildren<LocText>(true) == null) return "the main menu's button prefab has no KImage or LocText";
+            if (Part<GameObject>(parts, "buttonParent") == null) return "the main menu has no button parent (MainMenu.buttonParent)";
+            if (Part<ColorStyleSetting>(parts, "normalButtonStyle") == null) return "the main menu has no button style (MainMenu.normalButtonStyle)";
+            var mods = ScreenPrefabs.Instance != null && ScreenPrefabs.Instance.modsMenu != null ? ScreenPrefabs.Instance.modsMenu.GetComponent<ModsScreen>() : null;
+            if (mods == null) return "the game has no Mods screen prefab (ScreenPrefabs.modsMenu)";
+            var screen = Traverse.Create(mods);
+            foreach (var name in new[] { "closeButtonTitle", "closeButton", "toggleAllButton", "workshopButton" })
+            {
+                var button = Part<KButton>(screen, name);
+                if (button == null) return $"the Mods screen has no {name} (ModsScreen.{name})";
+                if (name is "toggleAllButton" or "workshopButton" && button.GetComponentInChildren<LocText>(true) == null) return $"the Mods screen's {name} has no label";
+            }
+            var close = Part<KButton>(screen, "closeButton");
+            if (close.transform.parent == null) return "the Mods screen's close button has no footer";
+            var title = Part<LocText>(screen, "windowTitle");
+            if (title == null) return "the Mods screen has no title (ModsScreen.windowTitle)";
+            if (title.transform.parent == null || title.transform.parent.parent == null) return "the Mods screen's title is not in its panel";
+            if (Part<Transform>(screen, "entryParent") == null) return "the Mods screen has no list (ModsScreen.entryParent)";
+            var entry = Part<GameObject>(screen, "entryPrefab");
+            var references = entry != null ? entry.GetComponent<HierarchyReferences>() : null;
+            if (references == null) return "the Mods screen has no row prefab (ModsScreen.entryPrefab)";
+            foreach (var (name, type) in rowReferences)
+            {
+                Component found = null;
+                if (Array.IndexOf(missing, name) < 0 && references.references != null)
+                    foreach (var reference in references.references)
+                        if (reference.Name == name) found = reference.behaviour;
+                if (found == null) return $"the Mods screen's rows have no {name}";
+                if (!type.IsInstanceOfType(found)) return $"the Mods screen's rows' {name} is a {found.GetType().Name}, not a {type.Name}";
+            }
+            var manage = (KButton)Array.Find(references.references, r => r.Name == "ManageButton").behaviour;
+            if (manage.GetComponentInChildren<LocText>(true) == null) return "the Mods screen's rows' ManageButton has no label";
+            return null;
+        }
+
         /// After MainMenu.OnPrefabInit has made its buttons: one more, as its MakeButton makes them
         /// (the menu's button prefab, normal style, 14 pt).
         static void AddButton(MainMenu __instance)
         {
-            Localize();
-            // Every mod has made its patches by now (KMod loads them before the first menu).
-            ModOverlaps.Refresh();
+            if (problem == null)
+            {
+                try
+                {
+                    problem = Problem(__instance) ?? "";
+                }
+                catch (Exception e)
+                {
+                    problem = $"the game's UI could not be read: {e.GetType().Name}: {e.Message}";
+                }
+                if (problem.Length > 0) Debug.LogWarning("[Moono] Moono Tweaks menu: off, " + problem);
+            }
+            if (problem.Length > 0) return;
             try
             {
+                Localize();
+                // Every mod has made its patches by now (KMod loads them before the first menu).
+                ModOverlaps.Refresh();
                 var menu = Traverse.Create(__instance);
                 var prefab = menu.Field("buttonPrefab").GetValue<KButton>();
                 var parent = menu.Field("buttonParent").GetValue<GameObject>();

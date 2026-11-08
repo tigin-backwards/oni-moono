@@ -217,7 +217,7 @@ namespace OniMoono.Tests
             // guarded install (TweakInstall.Guarded) every tweak goes through.
             var guard = File.ReadAllText(Path.Combine(RepoRoot(), "src", "OniMoono.Host", "GameTweaks", "TweakInstall.cs"));
             Assert.Single(System.Text.RegularExpressions.Regex.Matches(guard, @"new Harmony\("));
-            Assert.Contains($"new Harmony(\"{ModOverlapsCore.TweakOwnerPrefix}.\" + name)", guard);
+            Assert.Contains($"new Harmony(harmonyId ?? \"{ModOverlapsCore.TweakOwnerPrefix}.\" + name)", guard);
             var host = File.ReadAllText(Path.Combine(RepoRoot(), "src", "OniMoono.Host", "GameTweaks", "GameTweaks.cs"));
             var install = host.Substring(host.IndexOf("public static void Install(", StringComparison.Ordinal));
             install = install.Substring(0, install.IndexOf("public static void InstallFrameStats", StringComparison.Ordinal));

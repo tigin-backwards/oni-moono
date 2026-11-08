@@ -146,6 +146,9 @@ namespace OniMoono.Host.GameTweaks
             // Test runs (ONI_TWEAK_TEST_UNREVIEWED=NAME,…): those tweaks' reviewed fingerprints are
             // ignored, as on a game build whose bodies nobody reviewed yet (the screen's spec).
             var unreviewed = (Environment.GetEnvironmentVariable("ONI_TWEAK_TEST_UNREVIEWED") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+            // ONI_TWEAK_TEST_MISSING=NAME,…: those tweaks' declared members are taken as gone from
+            // the game, as a game update that removed them (the menu's spec).
+            var missing = (Environment.GetEnvironmentVariable("ONI_TWEAK_TEST_MISSING") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
             foreach (var tweak in tweaks)
             {
                 var check = new TweakCheck(tweak);
@@ -153,22 +156,40 @@ namespace OniMoono.Host.GameTweaks
                 foreach (var assembly in assemblies)
                     if (assembly.Declared.TryGetValue(tweak, out var members))
                         check.Members.AddRange(Array.IndexOf(unreviewed, tweak) < 0 ? members : members.Select(m => m with { Fingerprints = [] }));
-                foreach (var member in check.Members) Declared(game, member, check, bodies);
+                foreach (var member in check.Members) Declared(game, member, check, bodies, gone: Array.IndexOf(missing, tweak) >= 0);
                 foreach (var assembly in assemblies)
                     if (assembly.Typed && assembly.Classes.TryGetValue(tweak, out var classes))
-                        foreach (var problem in assembly.Scan(game).Problems(classes))
+                        foreach (var problem in assembly.Scan(game).Problems(classes, OtherTweaks(assembly, tweak)))
                             if (!check.Problems.Contains(problem)) check.Problems.Add(problem);
             }
             return result;
         }
 
-        /// 1 and 3 for one declared member.
-        static void Declared(GameFiles game, GameMemberDeclaration member, TweakCheck check, bool bodies)
+        /// Where the menu's reference scan stops: the tweaks' own classes. The menu reaches
+        /// them only to read which methods a tweak guards (ModOverlaps.Guards, each in its own
+        /// try), so a tweak that does not match the game turns off that tweak, not the menu. A
+        /// tweak's scan follows everything it uses.
+        static HashSet<TypeDefinitionHandle>? OtherTweaks(Assembly assembly, string tweak)
+        {
+            if (tweak != GameTweakNames.Menu) return null;
+            var stop = new HashSet<TypeDefinitionHandle>();
+            foreach (var (name, classes) in assembly.Classes)
+                if (name != tweak) stop.UnionWith(classes);
+            return stop;
+        }
+
+        /// 1 and 3 for one declared member. `gone`: taken as missing from the game (a test run's).
+        static void Declared(GameFiles game, GameMemberDeclaration member, TweakCheck check, bool bodies, bool gone = false)
         {
             var (typeName, name) = GameMemberDeclaration.Split(member.Member);
             if (typeName.Length == 0)
             {
                 check.Problems.Add($"`{member.Member}` is not a member's signature");
+                return;
+            }
+            if (gone && !member.Optional)
+            {
+                check.Problems.Add($"`{member.Display}` is missing in this game version");
                 return;
             }
             if (game.Find(typeName) is not { } owner)

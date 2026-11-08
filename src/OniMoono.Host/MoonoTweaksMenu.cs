@@ -14,9 +14,31 @@ namespace OniMoono.Host
     /// gives the screen its rows and saves what it chose; options the command line set are shown
     /// but not changeable. Each row's value is a number: 0 or 1 for a toggle (off, on), else the
     /// index in its Choices (the GPU's).
+    ///
+    /// Checked and installed as a tweak is (TweakInstall, GameTweakNames.Menu): its game members
+    /// and references before it patches MainMenu, its install all or nothing. Off, the main menu
+    /// has no entry and one log line says why; the settings file and the tweaks it chose are
+    /// read and applied before this, without it (Program, EffectiveOptions).
     internal static class MoonoTweaksMenu
     {
-        public static void Install(EffectiveOptions effective, PlayerSettings file, string settingsPath)
+        /// The Harmony ID of the menu's patch (ours, never a mod overlap: ModOverlapsCore.IsOurs).
+        public const string HarmonyId = "OniMoono.Host.MoonoTweaksMenu";
+
+        /// The screen, then what the menu shows beside it (mod overlaps, the update badge).
+        /// False when the menu is off.
+        public static bool Install(EffectiveOptions effective, PlayerSettings file, string settingsPath)
+        {
+            if (!InstallScreen(effective, file, settingsPath)) return false;
+            InstallBeside(effective);
+            return true;
+        }
+
+        /// The button and its screen, all or nothing (TweakInstall.Guarded); the check tool's too.
+        internal static bool InstallScreen(EffectiveOptions effective, PlayerSettings file, string settingsPath) =>
+            TweakInstall.Guarded(GameTweakNames.Menu, harmony => InstallScreen(harmony, effective, file, settingsPath), () => GameTweaks.GameTweaks.typed,
+                log: false, harmonyId: HarmonyId);
+
+        static void InstallScreen(Harmony harmony, EffectiveOptions effective, PlayerSettings file, string settingsPath)
         {
             // The rows, their sections and copy from the one catalog (GameTweakNames.Rows).
             var rows = GameTweakNames.Rows;
@@ -83,7 +105,7 @@ namespace OniMoono.Host
             };
 
             var install = GameTweaks.GameTweaks.TypedAssembly.GetType("OniMoono.GameTweaks.MoonoTweaksMenu", throwOnError: true)!.GetMethod("Install")!;
-            install.Invoke(null, [new Harmony("OniMoono.Host.MoonoTweaksMenu"),
+            install.Invoke(null, [harmony,
                 rows.Select(r => r.Id).ToArray(), rows.Select(r => TweakStrings.GroupKey(r.Group)).ToArray(),
                 rows.Select(r => TweakStrings.RowKey(r, "TITLE")).ToArray(), rows.Select(r => TweakStrings.RowKey(r, "EFFECT")).ToArray(),
                 rows.Select(DetailKey).ToArray(), rows.Select(GainKey).ToArray(), rows.Select(r => r.LaunchOption).ToArray(),
@@ -92,7 +114,10 @@ namespace OniMoono.Host
                 states.Select(s => s.Value).ToArray(), states.Select(s => s.Default).ToArray(), states.Select(s => s.Locked).ToArray(), off,
                 settingsPath, save,
                 TweakStrings.All.Select(t => t.Key).ToArray(), TweakStrings.All.Select(t => t.English).ToArray(), resolve, translations]);
+        }
 
+        static void InstallBeside(EffectiveOptions effective)
+        {
             // The mods' patches on the tweaks' methods, read at each main menu: the tweaks on this
             // run, the methods their load-time rewrites changed, and the transpilers reviewed
             // against compact-nav-links' rewrite.
@@ -115,8 +140,16 @@ namespace OniMoono.Host
                 UpdateCheck.Start(EngineConfig.PersistentDataPath, GameVersionCheck.ThisUpdate == "U60", EngineLog.Engine);
                 Func<string[]?> poll = () => !UpdateCheck.Done ? null
                     : UpdateCheck.Result is { } found ? [found.Tag, found.Url, found.Notes, found.Truncated ? "1" : "0"] : [];
-                GameTweaks.GameTweaks.TypedAssembly.GetType("OniMoono.GameTweaks.UpdateBadge", throwOnError: true)!.GetMethod("Install")!
-                    .Invoke(null, [poll]);
+                try
+                {
+                    GameTweaks.GameTweaks.TypedAssembly.GetType("OniMoono.GameTweaks.UpdateBadge", throwOnError: true)!.GetMethod("Install")!
+                        .Invoke(null, [poll]);
+                }
+                catch (Exception e)
+                {
+                    var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
+                    EngineLog.Engine($"update badge: not installed: {cause.GetType().Name}: {cause.Message}");
+                }
             }
         }
     }

@@ -20,6 +20,7 @@ namespace OniMoono.Host.GameTweaks
     /// - review: the same, exit 0, and for each fingerprinted member whose body is not a reviewed
     ///   one, the fingerprint to add once it is reviewed (`--tweak-listings DIR`: every
     ///   fingerprinted body's normalised IL, for diffing two builds).
+    ///   The Moono Tweaks menu (GameTweakNames.Menu) is checked and installed the same way.
     /// - declare: every tweak installed without its checks, and each patched method printed as a
     ///   GameMember line with its fingerprint and rewrites (a tweak's first declarations).
     internal static class TweakCheckTool
@@ -43,7 +44,7 @@ namespace OniMoono.Host.GameTweaks
             if (typedFile != null) assemblies.Add(new TweakChecks.Assembly(typedFile, typed: true));
             else Console.WriteLine("check-tweaks: no OniMoono.GameTweaks.dll beside the host");
             var clock = System.Diagnostics.Stopwatch.StartNew();
-            var checks = TweakChecks.Run(game, assemblies, GameTweakNames.All, bodies: true);
+            var checks = TweakChecks.Run(game, assemblies, GameTweakNames.Checked, bodies: true);
             double ms = clock.Elapsed.TotalMilliseconds;
             if (mode == "declare")
             {
@@ -80,6 +81,12 @@ namespace OniMoono.Host.GameTweaks
             if (undeclared.Count > 0 && mode == "check") failed = true;
             Console.WriteLine($"check-tweaks {label}: {GameTweakNames.All.Length - off} of {GameTweakNames.All.Length} tweaks pass the file checks, {off} off ({ms:F1} ms)");
             if (off > 0 && mode == "check") failed = true;
+            // The Moono Tweaks menu, checked as a tweak is.
+            var menu = checks[GameTweakNames.Menu];
+            if (menu.Members.Count == 0) Console.WriteLine("  the Moono Tweaks menu declares nothing");
+            foreach (var problem in menu.Problems) Console.WriteLine($"  off {GameTweakNames.Menu}: {problem}");
+            Console.WriteLine($"check-tweaks {label}: the Moono Tweaks menu {(menu.Problems.Count == 0 ? "passes" : "fails")} the file checks");
+            if ((menu.Problems.Count > 0 || menu.Members.Count == 0) && mode == "check") failed = true;
             return off;
         }
 
@@ -95,7 +102,7 @@ namespace OniMoono.Host.GameTweaks
                 return;
             }
             TweakInstall.Reset();
-            TweakInstall.Check(Path.Combine(dataDir, "Managed"), Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"), typeof(TweakCheckTool).Assembly, GameTweakNames.All);
+            TweakInstall.Check(Path.Combine(dataDir, "Managed"), Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"), typeof(TweakCheckTool).Assembly, GameTweakNames.Checked);
             var installed = new HashSet<string>(StringComparer.Ordinal);
             int off = 0;
             var problems = new List<string>();
@@ -109,22 +116,34 @@ namespace OniMoono.Host.GameTweaks
                     continue;
                 }
                 installed.Add(name);
-                var declared = TweakInstall.Declared(name);
-                foreach (var method in harmony.GetPatchedMethods().ToList())
-                {
-                    var info = Harmony.GetPatchInfo(method);
-                    if (info == null) continue;
-                    var uses = Uses(info, harmony.Id);
-                    if (uses == GameUse.Uses) continue;
-                    string signature = TweakChecks.Signature(method);
-                    var member = declared.FirstOrDefault(m => m.Member == signature);
-                    if (member == null) problems.Add($"{name} patches {signature} ({uses}), which it does not declare");
-                    else if ((member.Use & uses) != uses) problems.Add($"{name} declares {signature} as {member.Use}, but its patches are {uses}");
-                }
+                AsDeclared(name, harmony, problems);
             }
+            // The Moono Tweaks menu as in play, with the default options and no settings file.
+            var options = EffectiveOptions.Resolve(GameTweakNames.All, GameTweakNames.ChangingBehaviour, [], null, false, new PlayerSettings(),
+                offByDefault: GameTweakNames.OffByDefault);
+            bool menu = MoonoTweaksMenu.InstallScreen(options, new PlayerSettings(), Path.Combine(Path.GetTempPath(), "check-tweaks-settings.json"));
+            if (menu) AsDeclared(GameTweakNames.Menu, new Harmony(MoonoTweaksMenu.HarmonyId), problems);
+            else Console.WriteLine($"  off {GameTweakNames.Menu}: {TweakInstall.Unavailable[GameTweakNames.Menu]}");
             foreach (var problem in problems) Console.WriteLine("  " + problem);
-            Console.WriteLine($"check-tweaks {label} installs: {installed.Count} installed, {off} off; {(problems.Count == 0 ? "every patch declared" : $"{problems.Count} patches not as declared")}");
-            if ((off > 0 || problems.Count > 0) && mode == "check") failed = true;
+            Console.WriteLine($"check-tweaks {label} installs: {installed.Count} installed, {off} off, the Moono Tweaks menu {(menu ? "installed" : "off")}; {(problems.Count == 0 ? "every patch declared" : $"{problems.Count} patches not as declared")}");
+            if ((off > 0 || !menu || problems.Count > 0) && mode == "check") failed = true;
+        }
+
+        /// Each patch `harmony` made must be one `name` declares, of that kind.
+        static void AsDeclared(string name, Harmony harmony, List<string> problems)
+        {
+            var declared = TweakInstall.Declared(name);
+            foreach (var method in harmony.GetPatchedMethods().ToList())
+            {
+                var info = Harmony.GetPatchInfo(method);
+                if (info == null) continue;
+                var uses = Uses(info, harmony.Id);
+                if (uses == GameUse.Uses) continue;
+                string signature = TweakChecks.Signature(method);
+                var member = declared.FirstOrDefault(m => m.Member == signature);
+                if (member == null) problems.Add($"{name} patches {signature} ({uses}), which it does not declare");
+                else if ((member.Use & uses) != uses) problems.Add($"{name} declares {signature} as {member.Use}, but its patches are {uses}");
+            }
         }
 
         /// The kinds of patch `owner` has on a method.
