@@ -118,17 +118,29 @@ If the build needs another file from the game's `Managed` folder, add it to the 
 
 ## Reproducibility
 
-The builds aim at deterministic output but are not reproducible bit for bit yet:
+How close the builds are to reproducible, as checked on the first dry run (2026-11-08):
 
-- **Managed assemblies** are deterministic (`Deterministic`, `ContinuousIntegrationBuild` in CI,
-  `DeterministicSourcePaths`, so the symbols name sources as `/_/...`). The same commit built
-  against the same reference assemblies with the same SDK gives the same files. Built against a
-  real game install instead (a local `release.sh`) they differ only in their IDs (MVID, PE
-  timestamp, PDB ID), since those hash the referenced assemblies; the IL is the same.
-- **The SDK and runtime**: CI installs exactly `global.json`'s SDK, on its own, and the
-  self-contained player carries that SDK's runtime. `global.json` lets a local build roll
-  forward to a later SDK patch, whose runtime then ships instead.
-- **OniMoono.exe** is built with `/Brepro` (no timestamps), but with the MSVC toolset of the
-  runner image, which changes as GitHub updates it; it embeds the commit.
-- **The archives** record file times (and the tar.gz its owner and gzip time), so two builds of
-  the same files give different archives.
+- **The Linux archive's files are reproducible.** Built locally from the same commit, with the
+  same tag, against the same reference assemblies and in CI mode, every one of its 291 files is
+  byte for byte the one GitHub built (the fetch needs read access to the refs repository):
+
+  ```sh
+  python3 -I scripts/fetch-game-refs.py out/game-refs
+  ContinuousIntegrationBuild=true MOONO_RELEASE=vYYYY.MM.DD.NN MOONO_PLATFORMS=linux \
+    ONI_GAME_DIR=out/game-refs scripts/release.sh "$(scripts/release-version.sh)"
+  ```
+
+  This needs `global.json`'s exact SDK and nothing newer: CI installs that SDK alone, since
+  the player carries the SDK's runtime and the symbols record the runtime the compiler ran on.
+  Managed builds are deterministic (`Deterministic`, `ContinuousIntegrationBuild`,
+  `DeterministicSourcePaths`: the symbols name sources as `/_/...`). Built against a real game
+  install instead of the reference assemblies, they differ only in their IDs (MVID, PE
+  timestamp, PDB ID), which hash the referenced assemblies; the IL is the same.
+- **The Windows archive** has the same files, but a WSL build (`release.sh` as it was run before)
+  is not the same as GitHub's Windows one: on Windows the SDK writes its generated files with
+  CRLF and records the native files' versions in `OniMoono.deps.json`, and `OniMoono.exe` comes
+  from the runner image's MSVC toolset, which changes as GitHub updates the image. Reproducing it
+  takes a Windows machine with the same toolset. `OniMoono.exe` is built with `/Brepro`, so it
+  holds no timestamps; it embeds the commit.
+- **The archives themselves** record file times (the tar.gz also its owner and gzip time), so
+  two builds of the same files give different archives. Compare their contents.
