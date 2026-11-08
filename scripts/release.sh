@@ -38,6 +38,19 @@ stage() { # stage DIR SETUP: the archive's oni-moono folder
     cp "$root/$2" "$root/README.md" "$root/NOTICE.txt" "$1/"
 }
 
+# manifest DIR FILE: FILE lists the SHA-256 of every file under DIR (the archive's oni-moono
+# folder), with paths relative to it and /, sorted, in sha256sum's format: release.yml signs
+# provenance for each file in it (docs/RELEASES.md), and it is a release asset of its own.
+manifest() {
+    (cd "$1" && $py -I -c "
+import hashlib, os, sys
+paths = sorted(os.path.relpath(os.path.join(d, f)).replace(os.sep, '/') for d, _, files in os.walk('.') for f in files)
+with open(sys.argv[1], 'wb') as out:
+    for p in paths:
+        with open(p, 'rb') as f: out.write(('%s  %s\\n' % (hashlib.sha256(f.read()).hexdigest(), p)).encode())
+" "$2")
+}
+
 # Windows: OniMoono.exe with the Restarter.exe the game's App.Restart starts.
 if [[ " $platforms " == *" windows "* ]]; then
 build "$root/src/OniMoono.Host" win-x64
@@ -53,6 +66,7 @@ cp "$root/out/bin/OniMoono.Restarter/release_win-x64/Restarter."{exe,dll,deps.js
 "$root/scripts/build-native-host.sh" "$win/player/OniMoono.exe"
 check=$($py -I "$root/scripts/check-windows-host.py" "$win/player/OniMoono.exe") || { echo "$check"; exit 1; }
 [ -f "$win/player/translations/zh.po" ] || { echo "$win/player/translations/zh.po missing"; exit 1; }
+manifest "$win" "$out/oni-moono-$version-windows-x64.SHA256SUMS"
 # zip for Windows (the archive's paths with /, as from WSL); tar.gz for Linux, which keeps the
 # executable bits.
 (cd "$out/windows" && $py -I -c "
@@ -73,6 +87,7 @@ rm -f "$lin/player/"FacadeGen*
 chmod +x "$lin/setup.sh" "$lin/player/OniMoono" "$lin/player/Restarter"
 # The Moono Tweaks screen's translations (translations/*.po from the build).
 [ -f "$lin/player/translations/zh.po" ] || { echo "$lin/player/translations/zh.po missing"; exit 1; }
+manifest "$lin" "$out/oni-moono-$version-linux-x64.SHA256SUMS"
 tar -C "$out/linux" -czf "$out/oni-moono-$version-linux-x64.tar.gz" oni-moono
 fi
 ls -la "$out"/oni-moono-*

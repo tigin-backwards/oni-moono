@@ -1,11 +1,14 @@
-# Makes a release's draft (docs/RELEASES.md): builds both archives on GitHub-hosted runners
-# (build.yml, without caches), signs their SLSA provenance in attest.yml, which is given only
-# their digests, and creates a draft release with them, its notes starting with where it was
-# built and how to verify it. It never publishes: the notes are written in the draft on GitHub,
-# and publishing it there (which creates the tag and makes the release immutable) is a person's
-# step. Run it on master for a release, on u60 for a U60 beta (a pre-release).
-# dry_run checks the whole path (the draft's assets downloaded again and verified) and deletes
-# the draft at the end; its draft is tagged vtest-..., and no tag is left behind.
+# Makes a release's draft (docs/RELEASES.md): builds both archives and their SHA256SUMS
+# manifests on GitHub-hosted runners (build.yml, without caches), signs SLSA provenance for the
+# archives, the manifests and every file in them in attest.yml, which is given only names and
+# digests, and creates a draft release with the archives and manifests, its notes starting with
+# where it was built and how to verify it. It never publishes: the notes are written in the
+# draft on GitHub, and publishing it there (which creates the tag and makes the release
+# immutable) is a person's step. Run it on master for a release, on u60 for a U60 beta (a
+# pre-release).
+# dry_run checks the whole path (the draft's assets downloaded again and verified, and single
+# files from an extracted archive) and deletes the draft at the end; its draft is tagged
+# vtest-..., and no tag is left behind.
 name: Release
 
 on:
@@ -76,17 +79,40 @@ jobs:
     permissions: {}
     outputs:
       checksums: ${{ steps.sums.outputs.checksums }}
+      manifests: ${{ steps.sums.outputs.manifests }}
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: release-*
           merge-multiple: true
           path: dist
+      # Each archive holds exactly the files its manifest lists, with those digests.
+      - name: Check the archives against their manifests
+        run: |
+          shopt -s nullglob
+          for plat in windows-x64 linux-x64; do
+            files=(dist/oni-moono-*-"$plat".zip dist/oni-moono-*-"$plat".tar.gz dist/oni-moono-*-"$plat".SHA256SUMS)
+            [ "${#files[@]}" -eq 2 ] && [[ "${files[1]}" == *.SHA256SUMS ]] || { echo "::error::expected one $plat archive and manifest"; exit 1; }
+            archive="${files[0]}"; manifest="${files[1]}"
+            x="$RUNNER_TEMP/$plat"; mkdir "$x"
+            case "$archive" in *.zip) python3 -I -m zipfile -e "$archive" "$x" ;; *) tar -xzf "$archive" -C "$x" ;; esac
+            [ "$(ls -A "$x")" = oni-moono ] || { echo "::error::$archive has more than its oni-moono folder"; exit 1; }
+            [ -z "$(find "$x/oni-moono" ! -type f ! -type d)" ] || { echo "::error::$archive holds links or special files"; exit 1; }
+            diff <(cd "$x/oni-moono" && find . -type f | sed 's|^\./||' | LC_ALL=C sort) <(cut -c67- "$manifest" | LC_ALL=C sort) \
+              || { echo "::error::$archive's files are not the ones $manifest lists"; exit 1; }
+            (cd "$x/oni-moono" && sha256sum --strict --quiet -c "$GITHUB_WORKSPACE/$manifest")
+            echo "$archive: $(wc -l < "$manifest") files, as $manifest lists"
+          done
       - id: sums
         run: |
           cd dist
           sha256sum oni-moono-* | tee "$RUNNER_TEMP/SHA256SUMS"
           { echo "checksums<<SUMS_END"; cat "$RUNNER_TEMP/SHA256SUMS"; echo "SUMS_END"; } >> "$GITHUB_OUTPUT"
+          {
+            echo "manifests<<SUMS_END"
+            for plat in windows-x64 linux-x64; do sed "s/^/$plat /" oni-moono-*-"$plat".SHA256SUMS; done
+            echo "SUMS_END"
+          } >> "$GITHUB_OUTPUT"
 
   attest:
     needs: digests
@@ -96,6 +122,7 @@ jobs:
     uses: ./.github/workflows/attest.yml
     with:
       checksums: ${{ needs.digests.outputs.checksums }}
+      manifests: ${{ needs.digests.outputs.manifests }}
 
   draft:
     name: Draft release
@@ -130,7 +157,7 @@ jobs:
         run: |
           tag_note="\`gh release verify-asset $DRAFT_TAG FILE -R $GH_REPO\` (once published) or"
           cat > notes.md <<EOF
-          Built by GitHub Actions from commit $GITHUB_SHA ([build]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)). Verify a download with $tag_note \`gh attestation verify FILE -R $GH_REPO --signer-workflow $SIGNER\`.
+          Built by GitHub Actions from commit $GITHUB_SHA ([build]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)). Verify a download with $tag_note \`gh attestation verify FILE -R $GH_REPO --signer-workflow $SIGNER\`. The second also verifies any single file from an archive, extracted or installed; each archive's \`.SHA256SUMS\` lists its files.
 
           Install or update: download the archive for your system, extract it, and run the setup in the \`oni-moono\` folder (Windows: double-click \`setup.cmd\`; Linux: \`./setup.sh\`). If you already set it up, running the new setup is enough.
           EOF
@@ -166,6 +193,22 @@ jobs:
           for f in again/*; do
             gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER"
           done
+      - name: Verify single files from an extracted archive (dry run)
+        if: inputs.dry_run
+        run: |
+          mkdir extracted
+          python3 -I -m zipfile -e again/oni-moono-*-windows-x64.zip extracted
+          for f in extracted/oni-moono/player/OniMoono.exe extracted/oni-moono/player/OniMoono.dll \
+                   extracted/oni-moono/setup.ps1 again/oni-moono-*-windows-x64.SHA256SUMS; do
+            gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" --source-digest "$GITHUB_SHA"
+          done
+          # A changed file has no attestation.
+          cp extracted/oni-moono/player/OniMoono.exe changed.exe
+          printf '\0' >> changed.exe
+          if gh attestation verify changed.exe -R "$GH_REPO" --signer-workflow "$SIGNER"; then
+            echo "::error::a changed OniMoono.exe verified"; exit 1
+          fi
+          echo "Dry run: single files verified, a changed one refused" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Delete the draft (dry run)
         if: always() && inputs.dry_run && steps.create.outputs.id != ''
         env:

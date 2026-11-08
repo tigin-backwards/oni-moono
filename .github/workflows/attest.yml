@@ -1,7 +1,8 @@
-# Signs SLSA build provenance for a release's archives. It is given only their names and SHA-256
-# digests, never the files or the build, and is the only job that holds the signing identity
-# (id-token, attestations): the build steps cannot sign anything (SLSA Build Level 3). Verify an
-# archive with
+# Signs SLSA build provenance for a release's archives, their SHA256SUMS manifests and every file
+# the manifests list. It is given only names and SHA-256 digests, never the files or the build,
+# and is the only job that holds the signing identity (id-token, attestations): the build steps
+# cannot sign anything (SLSA Build Level 3). Verify an archive, a manifest or any single file from
+# an archive (as extracted or installed) with
 #   gh attestation verify FILE -R tigin-backwards/oni-moono \
 #     --signer-workflow tigin-backwards/oni-moono/.github/workflows/attest.yml
 name: Attest
@@ -10,7 +11,13 @@ on:
   workflow_call:
     inputs:
       checksums:
-        description: sha256sum lines (DIGEST  NAME), one per archive.
+        description: sha256sum lines (DIGEST  NAME), one per archive and one per manifest.
+        type: string
+        required: true
+      manifests:
+        description: >-
+          The manifests' lines, each prefixed with its platform (PLATFORM DIGEST  PATH), in the
+          manifests' order.
         type: string
         required: true
 
@@ -24,17 +31,65 @@ jobs:
       id-token: write
       attestations: write
     steps:
+      # Anything but the expected names and digests is refused before signing. The manifests'
+      # lines must make up exactly the manifests whose digests were given, so each file's subject
+      # is one the build's manifest lists. One attestation per platform: its archive, manifest
+      # and files (attest-build-provenance takes at most 1024 subjects in one).
       - name: Check the subjects
         env:
           CHECKSUMS: ${{ inputs.checksums }}
+          MANIFESTS: ${{ inputs.manifests }}
         run: |
-          printf '%s\n' "$CHECKSUMS" | sed '/^$/d' > "$RUNNER_TEMP/subjects.sha256"
-          # Archive names and digests only: anything else is refused before signing.
-          if grep -vqE '^[0-9a-f]{64}  oni-moono-[0-9]{4}\.[0-9]{2}\.[0-9]{2}(-u60)?-(windows-x64\.zip|linux-x64\.tar\.gz)$' "$RUNNER_TEMP/subjects.sha256"; then
-            echo "::error::unexpected subject line"; cat "$RUNNER_TEMP/subjects.sha256"; exit 1
-          fi
-          [ "$(wc -l < "$RUNNER_TEMP/subjects.sha256")" -eq 2 ] || { echo "::error::expected 2 subjects"; exit 1; }
-          cat "$RUNNER_TEMP/subjects.sha256"
-      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+          python3 -I - "$RUNNER_TEMP" <<'PY'
+          import hashlib, os, re, sys
+          def fail(msg):
+              print(f"::error::{msg}"); sys.exit(1)
+          platforms = {"windows-x64": "zip", "linux-x64": "tar.gz"}
+          given = {}
+          version = None
+          for line in os.environ["CHECKSUMS"].splitlines():
+              if not line: continue
+              m = re.fullmatch(r"([0-9a-f]{64})  oni-moono-([0-9]{4}\.[0-9]{2}\.[0-9]{2}(?:-u60)?)-(windows-x64|linux-x64)\.(zip|tar\.gz|SHA256SUMS)", line)
+              if not m: fail(f"unexpected subject line: {line!r}")
+              digest, v, plat, ext = m.groups()
+              if ext not in (platforms[plat], "SHA256SUMS"): fail(f"unexpected subject line: {line!r}")
+              if version not in (None, v): fail("the subjects name two versions")
+              version = v
+              kind = "manifest" if ext == "SHA256SUMS" else "archive"
+              if (plat, kind) in given: fail(f"two {kind}s for {plat}")
+              given[plat, kind] = (digest, line[66:])
+          if len(given) != 4: fail(f"expected an archive and a manifest for each of {', '.join(platforms)}")
+          component = re.compile(r"[A-Za-z0-9._+-]+")
+          entries = {p: [] for p in platforms}
+          for line in os.environ["MANIFESTS"].splitlines():
+              if not line: continue
+              m = re.fullmatch(r"(windows-x64|linux-x64) ([0-9a-f]{64})  ([^\x00-\x1f\x7f]{1,240})", line)
+              if not m: fail(f"unexpected manifest line: {line!r}")
+              plat, digest, path = m.groups()
+              # Relative paths of plain names: no /, .. or . components, no absolute paths.
+              if not all(component.fullmatch(c) and c.strip(".") for c in path.split("/")):
+                  fail(f"unexpected path in the {plat} manifest: {path!r}")
+              entries[plat].append((digest, path))
+          for plat, lines in entries.items():
+              if not lines: fail(f"the {plat} manifest is empty")
+              if len(lines) + 2 > 1024: fail(f"the {plat} manifest has {len(lines)} files, more than one attestation takes")
+              if len({p for _, p in lines}) != len(lines): fail(f"the {plat} manifest names a file twice")
+              text = "".join(f"{d}  {p}\n" for d, p in lines).encode()
+              if hashlib.sha256(text).hexdigest() != given[plat, "manifest"][0]:
+                  fail(f"the {plat} manifest's lines are not the manifest whose digest was given")
+              with open(os.path.join(sys.argv[1], f"{plat}.sha256"), "w", newline="\n") as out:
+                  for kind in ("archive", "manifest"):
+                      out.write("%s  %s\n" % given[plat, kind])
+                  for d, p in lines:
+                      out.write(f"{d}  oni-moono/{p}\n")
+              print(f"{plat}: {given[plat, 'archive'][1]}, {given[plat, 'manifest'][1]} and {len(lines)} files")
+          PY
+          cat "$RUNNER_TEMP"/*.sha256
+      - name: Sign the Windows archive's provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-checksums: ${{ runner.temp }}/subjects.sha256
+          subject-checksums: ${{ runner.temp }}/windows-x64.sha256
+      - name: Sign the Linux archive's provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: ${{ runner.temp }}/linux-x64.sha256

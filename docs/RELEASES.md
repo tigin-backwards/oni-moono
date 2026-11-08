@@ -11,8 +11,13 @@ commit of `master` (or `u60` for a U60 beta):
 | Workflow | What it does |
 |---|---|
 | `.github/workflows/build.yml` | On every push to `master` and `u60` (and when run by hand): the Linux archive on Ubuntu, the Windows archive natively on Windows (MSVC builds `OniMoono.exe`), and the unit tests that need no game. Both archives come from `scripts/release.sh` (`MOONO_PLATFORMS` picks one), so they are the archives a local `release.sh` makes. |
-| `.github/workflows/release.yml` | Run by hand with the release's tag. Calls `build.yml` without caches, takes the archives' SHA-256 digests, has `attest.yml` sign their provenance, and creates a **draft** release with them. It never publishes. |
+| `.github/workflows/release.yml` | Run by hand with the release's tag. Calls `build.yml` without caches, checks each archive against its manifest, has `attest.yml` sign provenance for the archives, the manifests and every file in the archives, and creates a **draft** release with the archives and manifests. It never publishes. |
 | `.github/workflows/attest.yml` | Signs SLSA build provenance for the digests it is given, and does nothing else. |
+
+Each archive comes with a manifest, `oni-moono-<version>-windows-x64.SHA256SUMS` or
+`…-linux-x64.SHA256SUMS`: the SHA-256 of every file in the archive, with paths relative to its
+`oni-moono` folder, in `sha256sum`'s format. `release.sh` writes it from the staged folder just
+before archiving.
 
 The release is published by hand: write its notes in the draft on GitHub and press Publish.
 Publishing creates the tag at the built commit and, as the repository has immutable releases on,
@@ -21,7 +26,8 @@ attestation of its own. The draft's notes start with where it was built and how 
 keep that paragraph.
 
 `dry_run` (on by default) runs everything up to the draft, then downloads the draft's assets
-again, verifies them, and deletes the draft. Its draft is tagged `vtest-<tag>-<run id>` and
+again, verifies them and a few single files from the extracted Windows archive (and checks that
+a changed file fails), and deletes the draft. Its draft is tagged `vtest-<tag>-<run id>` and
 titled `TEST …`; a draft's tag is only made when it is published, and the workflow checks that
 none is left. Dry runs do sign provenance, so their attestations stay in the repository's
 attestation list and in the public Sigstore log; keep them few.
@@ -32,9 +38,13 @@ attestation list and in the public Sigstore log; keep them few.
   runs.
 - The build jobs have only `contents: read`. The signing identity (`id-token: write`,
   `attestations: write`) exists only in `attest.yml`'s job, a separate reusable workflow on a
-  fresh runner that receives nothing but the archive names and digests (checked against the
-  expected names before signing). A compromised build step cannot sign anything, and the
-  provenance names `attest.yml` as its signer, which is what verification checks.
+  fresh runner that receives nothing but names and digests: the archives' and manifests', and
+  the manifests' lines. Before signing it checks the archive and manifest names, rejects any
+  path that is not a plain relative one, and checks that the lines hash to the manifests'
+  digests, so each file it signs is one a manifest lists. It signs one attestation per archive
+  (the archive, its manifest and its files: about 290 subjects, where the action takes up to
+  1024). A compromised build step cannot sign anything, and the provenance names `attest.yml`
+  as its signer, which is what verification checks.
 - Every action is pinned to a full commit SHA. Workflows run only on pushes to `master`/`u60`
   and by hand, never on pull requests, so a fork's code never sees the secret.
 
@@ -77,15 +87,33 @@ new test class that needs the game goes into that list.
 
 ## Verifying a release
 
-Each archive has SLSA provenance signed by `attest.yml`:
+Each archive, each manifest and every file in the archives has SLSA provenance signed by
+`attest.yml`:
 
 ```sh
 gh attestation verify oni-moono-YYYY.MM.DD-windows-x64.zip -R tigin-backwards/oni-moono \
   --signer-workflow tigin-backwards/oni-moono/.github/workflows/attest.yml
 ```
 
-It shows the commit and workflow run the archive was built by; `--source-ref refs/heads/master`
-(or `refs/heads/u60`) also checks the branch. A published release also has GitHub's immutable
+A single file works the same way, as extracted or as installed (setup copies the player's files
+unchanged), so an installed player can be checked without its archive:
+
+```sh
+gh attestation verify oni-moono/player/OniMoono.exe -R tigin-backwards/oni-moono \
+  --signer-workflow tigin-backwards/oni-moono/.github/workflows/attest.yml
+```
+
+To check a whole folder at once, verify its manifest and run `sha256sum -c` against it in the
+`oni-moono` folder:
+
+```sh
+gh attestation verify oni-moono-YYYY.MM.DD-linux-x64.SHA256SUMS -R tigin-backwards/oni-moono \
+  --signer-workflow tigin-backwards/oni-moono/.github/workflows/attest.yml
+(cd oni-moono && sha256sum -c ../oni-moono-YYYY.MM.DD-linux-x64.SHA256SUMS)
+```
+
+Verification shows the commit and workflow run a file was built by; `--source-ref
+refs/heads/master` (or `refs/heads/u60`) also checks the branch. A published release also has GitHub's immutable
 release attestation:
 
 ```sh
@@ -94,7 +122,7 @@ gh release verify-asset vYYYY.MM.DD.NN oni-moono-YYYY.MM.DD-windows-x64.zip -R t
 ```
 
 Releases before the first one built by Actions (2026.11.06.02 and older) were built locally and
-have neither.
+have neither. Releases before the manifests were added have provenance for their archives only.
 
 ## Adding a new game build
 
