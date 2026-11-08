@@ -125,8 +125,9 @@ The builds aim at deterministic output but are not reproducible bit for bit yet:
   against the same reference assemblies with the same SDK gives the same files. Built against a
   real game install instead (a local `release.sh`) they differ only in their IDs (MVID, PE
   timestamp, PDB ID), since those hash the referenced assemblies; the IL is the same.
-- **The SDK and runtime**: `global.json` allows later SDK patch releases, and the self-contained
-  player carries the runtime of whichever SDK built it.
+- **The SDK and runtime**: CI installs exactly `global.json`'s SDK, on its own, and the
+  self-contained player carries that SDK's runtime. `global.json` lets a local build roll
+  forward to a later SDK patch, whose runtime then ships instead.
 - **OniMoono.exe** is built with `/Brepro` (no timestamps), but with the MSVC toolset of the
   runner image, which changes as GitHub updates it; it embeds the commit.
 - **Restarter.exe** built on Windows carries the version resources the SDK adds there; a WSL

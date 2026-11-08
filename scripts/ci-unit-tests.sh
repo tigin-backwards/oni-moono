@@ -9,6 +9,8 @@ source "$(dirname "$0")/env.sh"
 game_dir="$1"
 suites=(ModTriage.Tests OniMoono.Assets.Tests OniMoono.UnityEngine.Tests)
 failed=()
+# ModOverlapsTests reads the built game tweaks.
+dotnet build "$root/src/OniMoono.GameTweaks" -c Debug -p:OniGameDir="$game_dir" -v q -nologo "-clp:ErrorsOnly;NoSummary"
 for suite in "${suites[@]}"; do
     dotnet build "$root/tests/$suite" -c Debug -p:OniGameDir="$game_dir" -v q -nologo "-clp:ErrorsOnly;NoSummary"
     skip=()
