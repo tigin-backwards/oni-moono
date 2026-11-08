@@ -130,7 +130,5 @@ The builds aim at deterministic output but are not reproducible bit for bit yet:
   forward to a later SDK patch, whose runtime then ships instead.
 - **OniMoono.exe** is built with `/Brepro` (no timestamps), but with the MSVC toolset of the
   runner image, which changes as GitHub updates it; it embeds the commit.
-- **Restarter.exe** built on Windows carries the version resources the SDK adds there; a WSL
-  build's has none.
 - **The archives** record file times (and the tar.gz its owner and gzip time), so two builds of
   the same files give different archives.
