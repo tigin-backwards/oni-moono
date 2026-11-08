@@ -2883,7 +2883,8 @@ greyed out with "Not available on this game version", its setting left as the fi
   exception clauses by type (`Fingerprints.Of`); each build with another body adds its hash, with
   the builds' names after it. The checks run on a worker from start-up (tens of ms) and the
   tweaks' install waits for them; compact-nav-links and paged-path-grids, whose rewrites run as
-  the assemblies load, are checked at once from their declarations alone.
+  the assemblies load, take the verdict at their first grid (`Decide`): off, the session keeps
+  the game's flat arrays behind the rewritten accesses, as when a mod's access can't be rewritten.
 - *All or nothing* (`TweakInstall.Guarded`): each tweak patches under its own Harmony ID; when
   its install throws, every patch of that ID is taken back. (4) Each transpiler reports the sites
   it rewrote (`TranspilerCounts`) and declares how many (`Rewrites`): more fails, fewer only

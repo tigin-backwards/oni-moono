@@ -53,6 +53,8 @@ namespace OniMoono.Host.GameTweaks
 
         static string? Reason()
         {
+            // Its checks against the game (TweakInstall): off, the session keeps the game's flat arrays.
+            if (TweakInstall.Unavailable.TryGetValue(Name, out var off)) return off;
             lock (PathGridPagesRewrite.Problems)
                 if (PathGridPagesRewrite.Problems.Count > 0) return "a mod uses PathGrid's arrays otherwise than to lock them: " + PathGridPagesRewrite.Problems[0];
             // Every assembly that names the arrays was checked by the rewrite.

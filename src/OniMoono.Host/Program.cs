@@ -134,11 +134,11 @@ namespace OniMoono.Host
             }
             // Each tweak against the game's files, before any is enabled: one written for another
             // game version is off (TweakInstall).
-            if (options.CheckTweaks == null) GameTweaks.GameTweaks.Check(Path.Combine(dataDir, "Managed"), effective.EnabledTweaks.ToHashSet(StringComparer.Ordinal));
+            if (options.CheckTweaks == null) GameTweaks.GameTweaks.Check(Path.Combine(dataDir, "Managed"));
             // compact-nav-links rewrites the game's assemblies and mods as they load.
-            if (effective.EnabledTweaks.Contains(GameTweaks.CompactNavLinks.Name) && GameTweaks.GameTweaks.RewriteAvailable(GameTweaks.CompactNavLinks.Name)) GameTweaks.CompactNavLinks.Enable();
+            if (effective.EnabledTweaks.Contains(GameTweaks.CompactNavLinks.Name) ) GameTweaks.CompactNavLinks.Enable();
             // paged-path-grids too.
-            if (effective.EnabledTweaks.Contains(GameTweaks.PagedPathGrids.Name) && GameTweaks.GameTweaks.RewriteAvailable(GameTweaks.PagedPathGrids.Name)) GameTweaks.PagedPathGrids.Enable();
+            if (effective.EnabledTweaks.Contains(GameTweaks.PagedPathGrids.Name) ) GameTweaks.PagedPathGrids.Enable();
             AssemblyPolicy.Install(layout, AppContext.BaseDirectory);
             if (options.CheckNatives) return NativeCheck.Run(layout, AssemblyPolicy.RuntimeAssemblyPaths(), options.NativeArch ?? AssemblyPolicy.ProcessCpu, options.NativeDir);
             var assemblies = AssemblyPolicy.PreloadScriptingAssemblies(dataDir);
