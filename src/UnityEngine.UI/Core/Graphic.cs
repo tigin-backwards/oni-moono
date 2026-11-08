@@ -77,6 +77,7 @@ namespace UnityEngine.UI
                 if (m_RaycastTarget == value) return;
                 if (m_RaycastTarget) GraphicRegistry.UnregisterRaycastGraphicForCanvas(cachedCanvas, this);
                 m_RaycastTarget = value;
+                OniMoono.Engine.UI.RaycastInputs.Changed();
                 if (m_RaycastTarget && isActiveAndEnabled) GraphicRegistry.RegisterRaycastGraphicForCanvas(canvas, this);
             }
         }
@@ -85,7 +86,11 @@ namespace UnityEngine.UI
         public Vector4 raycastPadding
         {
             get => m_RaycastPadding;
-            set => m_RaycastPadding = value;
+            set
+            {
+                if (!m_RaycastPadding.Equals(value)) OniMoono.Engine.UI.RaycastInputs.Changed();
+                m_RaycastPadding = value;
+            }
         }
 
         public void SetRaycastDirty()

@@ -98,11 +98,27 @@ namespace UnityEngine.UI
         public static IList<Graphic> GetRaycastableGraphicsForCanvas(Canvas canvas)
             => canvas != null && instance.raycastGraphics.TryGetValue(canvas, out var set) ? set.Items : none;
 
+        /// The canvas's raycast targets and a number for them as listed: each change of any
+        /// canvas's list takes a new one, so while it stands the list holds the same graphics in
+        /// the same order (GraphicRaycaster keeps its pass while it does).
+        internal static IList<Graphic> GetRaycastableGraphicsForCanvas(Canvas canvas, out long version)
+        {
+            if (canvas != null && instance.raycastGraphics.TryGetValue(canvas, out var set))
+            {
+                version = set.Version;
+                return set.Items;
+            }
+            version = 0;
+            return none;
+        }
+
         /// Graphics in registration order, each once; removal swaps in the last one.
         sealed class GraphicSet
         {
             public readonly List<Graphic> Items = new();
             readonly Dictionary<Graphic, int> positions = new(ReferenceEqualityComparer.Instance);
+            static long versions;
+            public long Version = ++versions;
 
             public int Count => Items.Count;
 
@@ -111,6 +127,7 @@ namespace UnityEngine.UI
                 if (positions.ContainsKey(g)) return;
                 positions[g] = Items.Count;
                 Items.Add(g);
+                Version = ++versions;
             }
 
             public void Remove(Graphic g)
@@ -123,6 +140,7 @@ namespace UnityEngine.UI
                     positions[Items[i]] = i;
                 }
                 Items.RemoveAt(last);
+                Version = ++versions;
             }
         }
     }

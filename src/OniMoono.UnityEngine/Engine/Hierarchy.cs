@@ -15,6 +15,7 @@ namespace OniMoono.Engine
         public static void Touch(TransformNative t)
         {
             Touches++;
+            if (t != null) t.GameObject.SelfVersion++;
             for (; t != null; t = t.Parent) t.GameObject.SubtreeVersion++;
         }
 

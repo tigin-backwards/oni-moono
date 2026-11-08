@@ -372,7 +372,7 @@ namespace UnityEngine
         public bool cull
         {
             get => Data.Cull;
-            set { var d = Data; d.Cull = value; d.Changed(); }
+            set { var d = Data; if (d.Cull != value) OniMoono.Engine.UI.RaycastInputs.Changed(); d.Cull = value; d.Changed(); }
         }
 
         /// Not drawn while its effective alpha is zero.
