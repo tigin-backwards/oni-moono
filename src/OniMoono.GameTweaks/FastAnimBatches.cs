@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using HarmonyLib;
 using Unity.Collections;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -49,6 +50,12 @@ namespace OniMoono.GameTweaks
     /// version it had when the loop reached it. Gluttony (Linux, stopwatch, steady windows):
     /// 1.92–2.01 → 1.49–1.65 ms a frame; what stays on the main thread is mostly applying the
     /// overrides (SymbolOverrideController, FaceGraph), which is game logic with side effects.
+    [GameMember(GameUse.Transpiler, "System.Int32 KAnimBatch::UpdateDirty(System.Int32)", "179b53cbc38cbf63 linux-744825 win-744825", Rewrites = 3)]
+    [GameMember(GameUse.Uses, "System.Void KAnimBatch::WriteBatchedAnimInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
+    [GameMember(GameUse.Uses, "System.Boolean KAnimBatch::WriteSymbolInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
+    [GameMember(GameUse.Uses, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Int32 KAnimBatchManager::UpdateDirty(System.Int32)")]
+    [GameMember(GameUse.Uses, "UnityEngine.Vector4 KBatchedAnimTracker::MyAnimGetPosition()")]
     public static class FastAnimBatches
     {
         public const string Name = "fast-anim-batches";
@@ -140,7 +147,7 @@ namespace OniMoono.GameTweaks
 
         /// KAnimBatch.UpdateDirty: its two per-controller write calls go through WriteInstance
         /// and WriteSymbols (same arguments, the batch first).
-        static IEnumerable<CodeInstruction> Transpile(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> Transpile(IEnumerable<CodeInstruction> instructions, MethodBase original)
         {
             int found = 0;
             foreach (var i in instructions)
@@ -150,7 +157,8 @@ namespace OniMoono.GameTweaks
                 else if (i.Calls(writeOverridesMethod)) { i.opcode = OpCodes.Call; i.operand = AccessTools.Method(typeof(FastAnimBatches), nameof(WriteOverrides)); found++; }
                 yield return i;
             }
-            if (found != 3) throw new InvalidOperationException($"{Name}: expected the three write calls in KAnimBatch.UpdateDirty, found {found}");
+            // The three write calls (TweakInstall checks the count).
+            OniMoono.Tweaks.TranspilerCounts.Report(Name, original, found);
         }
 
         /// The methods whose code runs on the workers: patched by anyone else, the tweak is off.

@@ -6,6 +6,7 @@ using System.Reflection;
 using HarmonyLib;
 using OniMoono.Engine;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
@@ -22,6 +23,9 @@ namespace OniMoono.Host.GameTweaks
     /// OnSpawn starts the wait (PostLoadGcGate) as a coroutine on it. Under Workstation GC (the
     /// low-memory option) the young generation is small, the load's survivors are promoted
     /// during the load, and there is no pause to remove: it does nothing there.
+    [GameMember(GameUse.Postfix, "System.Void Game::OnSpawn()")]
+    [GameMember(GameUse.Uses, "SpeedControlScreen SpeedControlScreen::get_Instance()")]
+    [GameMember(GameUse.Uses, "System.Boolean SpeedControlScreen::get_IsPaused()")]
     internal static class PostLoadGc
     {
         public const string Name = GameTweakNames.PostLoadGc;

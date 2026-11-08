@@ -7,12 +7,19 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using HarmonyLib;
 using OniMoono.Engine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
     /// Game tweak `compact-nav-links` (NavGridLinks, NavGridLinksRewrite): enabled before any
     /// game assembly loads, as the rewrite runs while they load; the store is used or not from
     /// the first nav grid on (Decide), for the whole session.
+    [GameMember(GameUse.Uses, "NavGrid/Link[] NavGrid::Links")]
+    [GameMember(GameUse.Uses, "System.String NavGrid::id")]
+    [GameMember(GameUse.Postfix, "System.Void Pathfinding::FlushNavGridsOnLoad()")]
+    [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<NavGrid> Pathfinding::GetNavGrids()")]
+    [GameMember(GameUse.Uses, "Pathfinding Pathfinding::Instance")]
+    [GameMember(GameUse.Postfix, "System.Void Pathfinding::UpdateNavGrids(System.Boolean)")]
     internal static class CompactNavLinks
     {
         public const string Name = GameTweakNames.CompactNavLinks;

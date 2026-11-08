@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -52,6 +53,14 @@ namespace OniMoono.GameTweaks
     /// With ONI_TWEAK_VERIFY=1 each shortened application is checked against a full one: the
     /// lookups are redone and must give the same calls, and every entry the calls write must hold
     /// what they write.
+    [GameMember(GameUse.Postfix, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
+    [GameMember(GameUse.Postfix, "System.Void KAnimBatchManager::CreateInstance()")]
+    [GameMember(GameUse.Postfix, "System.Void KAnimBatchManager::DestroyInstance()")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SymbolOverrideController::ApplyOverrides()", "2a4ef94fd098635f linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SymbolOverrideInfoGpuData::SetSymbolOverrideInfo(System.Int32,KAnim/Build/SymbolFrameInstance&)", "24a459881b542db2 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SymbolOverrideInfoGpuData::SetSymbolOverrideInfo(System.Int32,System.Int32,System.Int32,KBatchGroupData,System.Int32,System.Int32)", "3e09bb5981edcea0 linux-744825 win-744825")]
+    [GameMember(GameUse.Uses, "System.Int32 KAnimControllerBase::pendingSymbolOverrideInfoSymbolCount", Optional = true)]
+    [GameMember(GameUse.Uses, "SymbolOverrideInfoGpuData KAnimControllerBase::_symbolOverrideInfoGpuData", Optional = true)]
     public static class FastSymbolOverrides
     {
         public const string Name = "fast-symbol-overrides";

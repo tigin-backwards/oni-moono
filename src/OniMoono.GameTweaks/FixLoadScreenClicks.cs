@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -23,6 +24,10 @@ namespace OniMoono.GameTweaks
     /// lines are not written (ShowColonySave's `Failed to find cluster ...` for a save of an
     /// unknown cluster, once a run); and the objects those runs made and destroyed within the
     /// frame are not made.
+    [GameMember(GameUse.Uses, "System.Action KButton::onClick")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void LoadScreen::AddColonyToList(System.Collections.Generic.List`1<LoadScreen/SaveGameFileDetails>)")]
+    [GameMember(GameUse.Uses, "UIPool`1<HierarchyReferences> LoadScreen::colonyListPool")]
+    [GameMember(GameUse.Uses, "System.Collections.Generic.Stack`1<!0> UIPool`1::freeElements")]
     public static class FixLoadScreenClicks
     {
         public const string Name = "fix-load-screen-clicks";

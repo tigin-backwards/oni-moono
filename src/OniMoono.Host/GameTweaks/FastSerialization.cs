@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
@@ -20,6 +21,21 @@ namespace OniMoono.Host.GameTweaks
     /// every other field is boxed and handed to Helper.WriteValue as before. The callbacks, the
     /// properties, the custom serializer and the error reporting are the template's own, in its
     /// order. The bytes written are the game's (checked: SaveTest).
+    [GameMember(GameUse.Uses, "System.Void Debug::LogError(System.Object)")]
+    [GameMember(GameUse.Mirrors, "System.Void KSerialization.Helper::WriteValue(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Object)", "2ae90126aff89120 linux-744825 win-744825")]
+    [GameMember(GameUse.Uses, "System.Void KSerialization.IOHelper::WriteSingleFast(System.IO.BinaryWriter,System.Single)")]
+    [GameMember(GameUse.Uses, "System.Reflection.FieldInfo KSerialization.SerializationTemplate/SerializationField::field")]
+    [GameMember(GameUse.Uses, "KSerialization.TypeInfo KSerialization.SerializationTemplate/SerializationField::typeInfo")]
+    [GameMember(GameUse.Uses, "System.Reflection.PropertyInfo KSerialization.SerializationTemplate/SerializationProperty::property")]
+    [GameMember(GameUse.Uses, "KSerialization.TypeInfo KSerialization.SerializationTemplate/SerializationProperty::typeInfo")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void KSerialization.SerializationTemplate::SerializeData(System.Object,System.IO.BinaryWriter)", "e283fa414b66f4a2 linux-744825 win-744825")]
+    [GameMember(GameUse.Uses, "System.Reflection.MethodInfo KSerialization.SerializationTemplate::customSerialize")]
+    [GameMember(GameUse.Uses, "System.Reflection.MethodInfo KSerialization.SerializationTemplate::onSerialized")]
+    [GameMember(GameUse.Uses, "System.Reflection.MethodInfo KSerialization.SerializationTemplate::onSerializing")]
+    [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<KSerialization.SerializationTemplate/SerializationField> KSerialization.SerializationTemplate::serializableFields")]
+    [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<KSerialization.SerializationTemplate/SerializationProperty> KSerialization.SerializationTemplate::serializableProperties")]
+    [GameMember(GameUse.Uses, "System.Type KSerialization.SerializationTemplate::serializableType")]
+    [GameMember(GameUse.Uses, "KSerialization.SerializationTypeInfo KSerialization.TypeInfo::info")]
     internal static class FastSerialization
     {
         public const string Name = GameTweakNames.FastSerialization;

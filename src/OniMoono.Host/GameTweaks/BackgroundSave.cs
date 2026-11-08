@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HarmonyLib;
 using OniMoono.Engine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
@@ -22,6 +23,14 @@ namespace OniMoono.Host.GameTweaks
     /// tests/e2e/overlap-manual.yaml).
     /// A failed write is logged; the game's own failure dialog does not appear for it. A run that
     /// ends by an unhandled exception waits for the write too.
+    [GameMember(GameUse.Prefix, "System.Void LoadScreen::CheckCloudLocalOverlap()")]
+    [GameMember(GameUse.Prefix, "System.Boolean LoadScreen::ConvertToLocalOrCloud(System.String,System.String,System.String)")]
+    [GameMember(GameUse.Prefix, "System.Void LoadScreen::DeleteFileAndEmptyFolder(System.String)")]
+    [GameMember(GameUse.Prefix, "System.Boolean LoadScreen::FileMatch(System.String,System.String,Tuple`2<System.Boolean,System.Boolean>&)")]
+    [GameMember(GameUse.Prefix, "System.Boolean LoadScreen::MigrateSave(System.String,System.String,System.Boolean,System.String&)")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SaveLoader::CompressContents(System.IO.BinaryWriter,System.Byte[],System.Int32)", "7027ce9ea9fd4d7b linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix, "System.Boolean SaveLoader::Load(System.String)")]
+    [GameMember(GameUse.Prefix, "System.String SaveLoader::Save(System.String,System.Boolean,System.Boolean)")]
     internal static class BackgroundSave
     {
         public const string Name = GameTweakNames.BackgroundSave;

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -61,6 +62,27 @@ namespace OniMoono.GameTweaks
     /// ONI_TWEAK_VERIFY=1 compares, every frame after the drain, a slice of the event-driven
     /// objects (all of them every few frames) with a fresh IsAllReachable of their GetCell and
     /// GetOffsets, and logs each mismatch and totals every 30 s.
+    [GameMember(GameUse.Mirrors, "System.Int32 Diggable::GetCell()", "663d3493ec9e896a linux-744825 win-744825")]
+    [GameMember(GameUse.Postfix, "System.Void Game::Update()")]
+    [GameMember(GameUse.Uses, "System.Boolean MinionGroupProber::IsAllReachable(System.Int32,CellOffset[])")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void MinionGroupProber::Occupy(System.Collections.Generic.List`1<System.Int32>)", "4caa914655fa8f59 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void MinionGroupProber::Occupy(System.Int32)", "14cc894f1fbbbaf1 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void MinionGroupProber::OccupyST(System.Collections.Generic.List`1<System.Int32>)", "cdf5795ae580586e linux-744825 win-744825")]
+    [GameMember(GameUse.Postfix, "System.Void MinionGroupProber::OnPrefabInit()")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void MinionGroupProber::Vacate(System.Collections.Generic.List`1<System.Int32>)", "37a4b6241b27d5f4 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void MinionGroupProber::Vacate(System.Int32)", "e6285792b17da841 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void MinionGroupProber::VacateST(System.Collections.Generic.List`1<System.Int32>)", "5bd071b6351d00d4 linux-744825 win-744825")]
+    [GameMember(GameUse.Postfix, "System.Void OffsetTableTracker::OnCellChanged(System.Object)")]
+    [GameMember(GameUse.Postfix, "System.Void OffsetTracker::ForceRefresh()")]
+    [GameMember(GameUse.Mirrors, "CellOffset[] OffsetTracker::GetOffsets(System.Int32)", "efa2ff60f838b2d7 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Int32 Pickupable::GetCell()", "d3f9ca6d90ed510c linux-744825 win-744825")]
+    [GameMember(GameUse.Postfix, "System.Void Pickupable::UpdateCachedCell(System.Int32)")]
+    [GameMember(GameUse.Uses, "System.Void ReachabilityMonitor/Instance::UpdateReachability()")]
+    [GameMember(GameUse.Postfix, "System.Void ReachabilityMonitor::InitializeStates(StateMachine/BaseState&)")]
+    [GameMember(GameUse.Mirrors, "CellOffset[] Unsealable::GetOffsets(System.Int32)", "4406e8f56bfd5b17 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Int32 Workable::GetCell()", "fb2172362f29653c linux-744825 win-744825")]
+    [GameMember(GameUse.Postfix, "System.Void Workable::SetOffsetTable(CellOffset[][])")]
+    [GameMember(GameUse.Postfix, "System.Void Workable::SetOffsets(CellOffset[])")]
     public static class InstantReachability
     {
         public const string Name = "instant-reachability";

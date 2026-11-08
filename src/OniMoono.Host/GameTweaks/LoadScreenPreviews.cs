@@ -5,6 +5,7 @@ using HarmonyLib;
 using OniMoono.Engine;
 using OniMoono.Engine.Rendering;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
@@ -24,6 +25,9 @@ namespace OniMoono.Host.GameTweaks
     /// Both are keyed by the bytes themselves (compared whole on a match): each preview is still
     /// read from its file, and still becomes a new texture and sprite of the game's own, which
     /// the game destroys as before. Everything kept is dropped when the screen closes.
+    [GameMember(GameUse.Prefix, "System.Void LoadScreen::OnActivate()")]
+    [GameMember(GameUse.Postfix, "System.Void LoadScreen::OnDeactivate()")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "UnityEngine.Texture2D RetireColonyUtility::LoadPreviewTexture(System.Byte[])", Optional = true)]
     internal static class LoadScreenPreviews
     {
         public const string Name = "fast-load-screen";

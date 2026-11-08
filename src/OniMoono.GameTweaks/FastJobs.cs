@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -22,6 +23,7 @@ namespace OniMoono.GameTweaks
     /// item runs on the caller.
     ///
     /// With ONI_TWEAK_VERIFY=1 every run checks that each item index ran exactly once.
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void JobManager::Run(IWorkItemCollection)", "dd3f5277f6a47c7f linux-744825 win-744825")]
     public static class FastJobs
     {
         public const string Name = "fast-jobs";

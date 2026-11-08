@@ -5,6 +5,7 @@ using Linq = System.Linq.Expressions;
 using HarmonyLib;
 using UnityEngine;
 using Entry = UpdateBucketWithUpdater<ISim200ms>.Entry;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -29,6 +30,12 @@ namespace OniMoono.GameTweaks
     ///
     /// With ONI_TWEAK_VERIFY=1 the items that would be skipped run their full update instead,
     /// and any change it makes (state, sublimated mass, the item's mass) is logged.
+    [GameMember(GameUse.Uses, "StateMachineUpdater/BaseUpdateBucket[] SimAndRenderScheduler/Entry::buckets")]
+    [GameMember(GameUse.Uses, "System.Collections.Generic.Dictionary`2<System.String,SimAndRenderScheduler/Entry> SimAndRenderScheduler::bucketTable")]
+    [GameMember(GameUse.Prefix, "System.Void Sublimates::OnCleanUp()")]
+    [GameMember(GameUse.Postfix, "System.Void Sublimates::OnSpawn()")]
+    [GameMember(GameUse.Mirrors, "System.Void Sublimates::Sim200ms(System.Single)", "86bc4dc07c603b92 linux-744825 win-744825")]
+    [GameMember(GameUse.Uses, "Sublimates/EmitState Sublimates::lastEmitState")]
     public static class FastSublimation
     {
         public const string Name = "fast-sublimation";

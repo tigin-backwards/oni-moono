@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using OniMoono.Engine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
@@ -31,6 +32,14 @@ namespace OniMoono.Host.GameTweaks
     /// With ONI_TWEAK_VERIFY=1 (test runs) the skipped gathers are still made and checked for a
     /// radbolt the method would have merged with, and both lookups are compared; differences are
     /// logged.
+    [GameMember(GameUse.Uses, "System.Void GameScenePartitioner::GatherEntries(System.Int32,System.Int32,System.Int32,System.Int32,ScenePartitionerLayer,System.Collections.Generic.List`1<ScenePartitionerEntry>)")]
+    [GameMember(GameUse.Postfix, "System.Void HighEnergyParticle::.ctor()")]
+    [GameMember(GameUse.Transpiler, "System.Void HighEnergyParticle::CheckCollision()", "4322d622f5b47a0c linux-744825 win-744825", Rewrites = 2)]
+    [GameMember(GameUse.Uses, "System.Boolean HighEnergyParticle::isCollideable")]
+    [GameMember(GameUse.Uses, "System.Boolean KCollider2D::Intersects(UnityEngine.Vector2)")]
+    [GameMember(GameUse.Uses, "Extents KCollider2D::cachedExtents")]
+    [GameMember(GameUse.Uses, "HandleVector`1/Handle<System.Int32> KCollider2D::partitionerEntry")]
+    [GameMember(GameUse.Uses, "System.Object ScenePartitionerEntry::obj")]
     internal static class FastParticleCollision
     {
         public const string Name = GameTweakNames.FastParticleCollision;
@@ -74,7 +83,7 @@ namespace OniMoono.Host.GameTweaks
             lock (live) live.Add(new Live(__instance));
         }
 
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase original)
         {
             var replacement = AccessTools.Method(typeof(FastParticleCollision), nameof(ParticleOf));
             var gatherIfNeeded = AccessTools.Method(typeof(FastParticleCollision), nameof(GatherIfNeeded));
@@ -95,7 +104,9 @@ namespace OniMoono.Host.GameTweaks
                 }
                 else yield return i;
             }
-            if (replaced != 1 || gathers != 1) throw new InvalidOperationException($"{Name}: expected one GetComponent<HighEnergyParticle>() and one GatherEntries in CheckCollision, found {replaced} and {gathers}");
+            // One GetComponent<HighEnergyParticle>() and one GatherEntries in CheckCollision
+            // (TweakInstall checks the count).
+            OniMoono.Tweaks.TranspilerCounts.Report(Name, original, replaced + gathers);
         }
 
         /// GameScenePartitioner.GatherEntries(x, y, width, height, layer, list), made only when another

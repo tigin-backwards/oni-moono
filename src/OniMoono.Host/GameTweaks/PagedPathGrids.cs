@@ -5,12 +5,18 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using HarmonyLib;
 using OniMoono.Engine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
     /// Game tweak `paged-path-grids` (PathGridPages, PathGridPagesRewrite): enabled before any game
     /// assembly loads, as the rewrite runs while they load; pages or flat arrays from the first
     /// PathGrid on (Decide), for the whole session.
+    [GameMember(GameUse.Postfix, "System.Void AsyncPathProber/Manager::TickFrame()")]
+    [GameMember(GameUse.Uses, "System.Int32 Grid::CellCount")]
+    [GameMember(GameUse.Uses, "System.Int32 Grid::WidthInCells")]
+    [GameMember(GameUse.Uses, "PathFinder/Cell[] PathGrid::Cells")]
+    [GameMember(GameUse.Uses, "PathGrid/ProberCell[] PathGrid::ProberCells")]
     internal static class PagedPathGrids
     {
         public const string Name = GameTweakNames.PagedPathGrids;

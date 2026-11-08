@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -22,6 +23,13 @@ namespace OniMoono.GameTweaks
     /// up the same. The dirty flags are cleared by the game's own code. With ONI_TWEAK_VERIFY=1 each
     /// node is also looked through in full afterwards, and any entry left failing its lookup is
     /// logged and dropped.
+    [GameMember(GameUse.Uses, "System.Int32 ScenePartitioner/DirtyNode::layer")]
+    [GameMember(GameUse.Uses, "System.Int32 ScenePartitioner/DirtyNode::x")]
+    [GameMember(GameUse.Uses, "System.Int32 ScenePartitioner/DirtyNode::y")]
+    [GameMember(GameUse.Uses, "HybridListHashSet`1<HandleVector`1/Handle<System.Int32>> ScenePartitioner/ScenePartitionerNode::entries")]
+    [GameMember(GameUse.Uses, "Extents ScenePartitioner::GetNodeExtents(ScenePartitionerEntry)")]
+    [GameMember(GameUse.Prefix, "System.Void ScenePartitioner::Remove(HandleVector`1/Handle<System.Int32>)")]
+    [GameMember(GameUse.Postfix | GameUse.Transpiler, "System.Void ScenePartitioner::Sim1000ms(System.Single)", "05fc3c89d3d74062 linux-744825 win-744825", Rewrites = 1)]
     public static class FastPartitionerCleanup
     {
         public const string Name = "fast-partitioner-cleanup";
@@ -63,7 +71,7 @@ namespace OniMoono.GameTweaks
         /// In each dirty node's scan, `entries.Count` (where the descending scan starts) becomes
         /// `Clean(entries, layer, y, x)`, which drops the freed entries itself and returns 0, so the
         /// scan's loop runs no times.
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, System.Reflection.MethodBase original)
         {
             var list = new List<CodeInstruction>(instructions);
             var dirtyNode = AccessTools.Inner(typeof(ScenePartitioner), "DirtyNode");
@@ -84,6 +92,7 @@ namespace OniMoono.GameTweaks
                 loadNode.Clone(), new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(dirtyNode, "y")),
                 loadNode.Clone(), new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(dirtyNode, "x")),
             });
+            OniMoono.Tweaks.TranspilerCounts.Report(Name, original, 1);
             return list;
         }
 

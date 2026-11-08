@@ -107,15 +107,38 @@ namespace OniMoono.Host
                 EngineLog.Engine($"Moono's UI packages are missing from {Path.Combine(AppContext.BaseDirectory, "packages")}: {string.Join(", ", missingPackages.Select(p => p + ".dll"))}. Reinstall Moono (or rebuild the host).");
                 return 2;
             }
+            // The tweak check tool: the files' checks for any game update, the installs only with
+            // the build this host is for.
+            bool tweakCheckFailed = false;
+            if (options.CheckTweaks != null)
+            {
+                // check: only the builds this host plays (scripts/check-tweaks.sh runs every frozen
+                // build through each branch's); review and declare: any build, from its files.
+                bool supported = GameVersionCheck.Problem(dataDir) == null;
+                if (!supported && options.CheckTweaks == "check")
+                {
+                    Console.WriteLine($"check-tweaks {GameTweaks.TweakCheckTool.Label(options.GameDir)}: skipped, this Moono build is for {GameVersionCheck.ThisUpdate ?? "another game update"}");
+                    return 0;
+                }
+                GameTweaks.TweakCheckTool.Files(options.GameDir, dataDir, options.CheckTweaks, options.TweakListings, out tweakCheckFailed);
+                if (!supported)
+                {
+                    Console.WriteLine($"check-tweaks: installs not checked, this Moono build is for {GameVersionCheck.ThisUpdate ?? "another game update"}");
+                    return 0;
+                }
+            }
             if (GameVersionCheck.Problem(dataDir) is string versionProblem)
             {
                 GameVersionCheck.Report(versionProblem);
                 return 2;
             }
+            // Each tweak against the game's files, before any is enabled: one written for another
+            // game version is off (TweakInstall).
+            if (options.CheckTweaks == null) GameTweaks.GameTweaks.Check(Path.Combine(dataDir, "Managed"), effective.EnabledTweaks.ToHashSet(StringComparer.Ordinal));
             // compact-nav-links rewrites the game's assemblies and mods as they load.
-            if (effective.EnabledTweaks.Contains(GameTweaks.CompactNavLinks.Name)) GameTweaks.CompactNavLinks.Enable();
+            if (effective.EnabledTweaks.Contains(GameTweaks.CompactNavLinks.Name) && GameTweaks.GameTweaks.RewriteAvailable(GameTweaks.CompactNavLinks.Name)) GameTweaks.CompactNavLinks.Enable();
             // paged-path-grids too.
-            if (effective.EnabledTweaks.Contains(GameTweaks.PagedPathGrids.Name)) GameTweaks.PagedPathGrids.Enable();
+            if (effective.EnabledTweaks.Contains(GameTweaks.PagedPathGrids.Name) && GameTweaks.GameTweaks.RewriteAvailable(GameTweaks.PagedPathGrids.Name)) GameTweaks.PagedPathGrids.Enable();
             AssemblyPolicy.Install(layout, AppContext.BaseDirectory);
             if (options.CheckNatives) return NativeCheck.Run(layout, AssemblyPolicy.RuntimeAssemblyPaths(), options.NativeArch ?? AssemblyPolicy.ProcessCpu, options.NativeDir);
             var assemblies = AssemblyPolicy.PreloadScriptingAssemblies(dataDir);
@@ -124,6 +147,11 @@ namespace OniMoono.Host
             StartupStats.Mark("assemblies preloaded");
 
             if (options.CheckTypes) return CheckTypes(assemblies);
+            if (options.CheckTweaks != null)
+            {
+                GameTweaks.TweakCheckTool.Installs(options.GameDir, dataDir, options.CheckTweaks, tweakCheckFailed, out tweakCheckFailed);
+                return tweakCheckFailed ? 1 : 0;
+            }
             if (options.CheckAssets) return AssetCheck.Run(dataDir, options.ListDataScripts);
             if (options.CheckBind) return BindCheck.Run(dataDir);
             if (options.CheckShaders) return ShaderCheck.Run(dataDir, options);
