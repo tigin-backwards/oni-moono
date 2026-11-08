@@ -41,6 +41,22 @@ namespace OniMoono.GameTweaks
 
         /// The handles removed since the last scan, by node (layer, y, x), for one partitioner.
         static readonly Dictionary<(int, int, int), List<Handle>> removed = new();
+
+        /// Lists `removed` let go of, cleared, with their storage: a list belongs to `removed`
+        /// from Take until the records are done with (Release), and nothing else holds one.
+        static readonly Stack<List<Handle>> spareLists = new();
+
+        static List<Handle> Take() => spareLists.Count > 0 ? spareLists.Pop() : new List<Handle>();
+
+        static void Release()
+        {
+            foreach (var list in removed.Values)
+            {
+                list.Clear();
+                spareLists.Push(list);
+            }
+            removed.Clear();
+        }
         static ScenePartitioner owner;
         static readonly List<(int Place, Handle Handle)> dropping = new();
         static long nodes, dropped, wrong;
@@ -58,12 +74,12 @@ namespace OniMoono.GameTweaks
         static void Removing(ScenePartitioner __instance, Handle handle)
         {
             if (!GameScenePartitioner.Instance.Lookup(handle, out var entry)) return;
-            if (!ReferenceEquals(owner, __instance)) { removed.Clear(); owner = __instance; }
+            if (!ReferenceEquals(owner, __instance)) { Release(); owner = __instance; }
             var e = nodeExtents(__instance, entry);
             for (int y = e.y; y < e.y + e.height; y++)
                 for (int x = e.x; x < e.x + e.width; x++)
                 {
-                    if (!removed.TryGetValue((entry.layer, y, x), out var list)) removed[(entry.layer, y, x)] = list = new List<Handle>();
+                    if (!removed.TryGetValue((entry.layer, y, x), out var list)) removed[(entry.layer, y, x)] = list = Take();
                     list.Add(handle);
                 }
         }
@@ -124,6 +140,6 @@ namespace OniMoono.GameTweaks
         }
 
         /// After the scan: every dirty node has been cleaned, so the records are done with.
-        static void Scanned() => removed.Clear();
+        static void Scanned() => Release();
     }
 }
