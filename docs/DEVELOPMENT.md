@@ -93,20 +93,36 @@ Before a release, its e2e run is the core list, both players on two lanes (about
 `scripts/e2e.py --player both --lanes 2 --list tests/e2e/release.txt`. The specs it leaves out,
 in `tests/e2e/periodic.txt`, run periodically and do not block a release.
 
+Releases are built by GitHub Actions, never on a workstation: run the **Release** workflow
+(`.github/workflows/release.yml`) on `master`, or on `u60` for a U60 beta, with the release's tag:
+
 ```sh
-MOONO_RELEASE=vYYYY.MM.DD.NN scripts/release.sh   # out/release: the Windows zip and the Linux tar.gz
-gh release create vYYYY.MM.DD.NN out/release/oni-moono-*.zip out/release/oni-moono-*.tar.gz \
-  --title "YYYY.MM.DD.NN" --notes "..."
+gh workflow run release.yml --ref master -f tag=vYYYY.MM.DD.NN -f dry_run=false
 ```
 
-`release.sh [VERSION]` names the archives by VERSION, by default the date of HEAD's commit. The
-tag and title add a two-digit counter for the day (`.01` for its first release), so releases sort
-as text. `MOONO_RELEASE` is the tag the release will get: the player compares it with the
-releases on GitHub for the main menu's update badge ([TWEAKS.md](TWEAKS.md#update-check)), and
-`release.sh` fails without it. Development builds need none (they check for no updates). The build compiles against the game's assemblies, so it runs where the game is installed
-(not in CI). Each archive holds an `oni-moono` folder with the setup script, the README,
-`NOTICE.txt` and the self-contained player in `player/`; the setups install a release's player
-without building. Nothing of the game goes into them.
+It builds both archives on GitHub's runners, signs their provenance and leaves a **draft**
+release with them, titled `YYYY.MM.DD.NN` (`YYYY.MM.DD.NN (U60 Beta)`, a pre-release, from
+`u60`), whose notes start with where it was built and how to verify it. Write the notes in the
+draft on GitHub, then publish it there: publishing creates the tag and makes the release
+immutable. The workflow never publishes. The tag adds a two-digit counter for the day (`.01` for
+its first release), so releases sort as text; the archives are named by the date of the commit
+(`-u60` on `u60`). [RELEASES.md](RELEASES.md) has how the pipeline works, how to verify a
+release, how to add a new game build's reference assemblies and how reproducible the builds are.
+
+`scripts/release.sh` still builds the same archives locally, against your game install:
+
+```sh
+MOONO_RELEASE=vYYYY.MM.DD.NN scripts/release.sh   # out/release: the Windows zip and the Linux tar.gz
+```
+
+`release.sh [VERSION]` names the archives by VERSION, by default the date of HEAD's commit.
+`MOONO_RELEASE` is the tag the release will get: the player compares it with the releases on
+GitHub for the main menu's update badge ([TWEAKS.md](TWEAKS.md#update-check)), and `release.sh`
+fails without it (`MOONO_RELEASE=none` builds a development player, which checks for no
+updates). `MOONO_PLATFORMS=linux` or `windows` builds one archive. Each archive holds an
+`oni-moono` folder with the setup script, the README, `NOTICE.txt` and the self-contained player
+in `player/`; the setups install a release's player without building. Nothing of the game goes
+into them.
 
 ## Windows
 
@@ -117,8 +133,8 @@ scripts/run-windows.sh         # from WSL: a test run on the Windows install
 
 `OniMoono.exe` is our native host (`src/OniMoono.NativeHost`, [ARCHITECTURE.md](ARCHITECTURE.md)
 §2), built by `scripts/build-native-host.sh` with MSVC through `cmd.exe` (`VCVARS64` names
-`vcvars64.bat` when vswhere can't find it). `release.sh` builds it the same way, so releases are
-made from WSL. `scripts/check-windows-host.py EXE [--like OTHER.exe]` checks a built one from its
+`vcvars64.bat` when vswhere can't find it), or from Git Bash on Windows, as the release workflow's
+Windows runner does. `release.sh` builds it the same way. `scripts/check-windows-host.py EXE [--like OTHER.exe]` checks a built one from its
 PE file (the two GPU exports present, writable and 1; the icon, manifest, version and subsystem);
 `build-windows.sh` and `release.sh` run it, and `check.sh` runs it on `out/win/host` when
 there is one. `scripts/check-native-crash.sh` (also in `check.sh`) crashes the player on purpose

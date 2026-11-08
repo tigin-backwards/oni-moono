@@ -1,0 +1,40 @@
+# Signs SLSA build provenance for a release's archives. It is given only their names and SHA-256
+# digests, never the files or the build, and is the only job that holds the signing identity
+# (id-token, attestations): the build steps cannot sign anything (SLSA Build Level 3). Verify an
+# archive with
+#   gh attestation verify FILE -R tigin-backwards/oni-moono \
+#     --signer-workflow tigin-backwards/oni-moono/.github/workflows/attest.yml
+name: Attest
+
+on:
+  workflow_call:
+    inputs:
+      checksums:
+        description: sha256sum lines (DIGEST  NAME), one per archive.
+        type: string
+        required: true
+
+permissions: {}
+
+jobs:
+  attest:
+    name: Sign provenance
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+      attestations: write
+    steps:
+      - name: Check the subjects
+        env:
+          CHECKSUMS: ${{ inputs.checksums }}
+        run: |
+          printf '%s\n' "$CHECKSUMS" | sed '/^$/d' > "$RUNNER_TEMP/subjects.sha256"
+          # Archive names and digests only: anything else is refused before signing.
+          if grep -vqE '^[0-9a-f]{64}  oni-moono-[0-9]{4}\.[0-9]{2}\.[0-9]{2}(-u60)?-(windows-x64\.zip|linux-x64\.tar\.gz)$' "$RUNNER_TEMP/subjects.sha256"; then
+            echo "::error::unexpected subject line"; cat "$RUNNER_TEMP/subjects.sha256"; exit 1
+          fi
+          [ "$(wc -l < "$RUNNER_TEMP/subjects.sha256")" -eq 2 ] || { echo "::error::expected 2 subjects"; exit 1; }
+          cat "$RUNNER_TEMP/subjects.sha256"
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: ${{ runner.temp }}/subjects.sha256
