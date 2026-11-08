@@ -27,8 +27,6 @@ permissions: {}
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "1"
-  # Deterministic, CI-mapped builds: source paths in the symbols are /_/..., not the runner's.
-  ContinuousIntegrationBuild: "true"
 
 jobs:
   linux:
@@ -41,6 +39,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        env:
+          # Only global.json's SDK, in a folder of its own: the image's newer one would win the
+          # roll-forward, and its runtime ship in the player.
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
           global-json-file: global.json
       - if: inputs.use_cache != false
@@ -58,6 +60,9 @@ jobs:
           ONI_GAME_DIR: ${{ steps.refs.outputs.game-dir }}
           MOONO_RELEASE: ${{ inputs.release_tag || 'none' }}
           MOONO_PLATFORMS: linux
+          # Deterministic, CI-mapped builds: source paths in the symbols are /_/..., not the
+          # runner's. (Not for the tests, which find the repository from their source paths.)
+          ContinuousIntegrationBuild: "true"
         run: scripts/release.sh "$(scripts/release-version.sh)"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -83,6 +88,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        env:
+          # Only global.json's SDK, in a folder of its own: the image's newer one would win the
+          # roll-forward, and its runtime ship in the player.
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
           global-json-file: global.json
       - if: inputs.use_cache != false
@@ -100,6 +109,9 @@ jobs:
           ONI_GAME_DIR: ${{ steps.refs.outputs.game-dir }}
           MOONO_RELEASE: ${{ inputs.release_tag || 'none' }}
           MOONO_PLATFORMS: windows
+          # Deterministic, CI-mapped builds: source paths in the symbols are /_/..., not the
+          # runner's. (Not for the tests, which find the repository from their source paths.)
+          ContinuousIntegrationBuild: "true"
         run: scripts/release.sh "$(scripts/release-version.sh)"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -119,6 +131,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        env:
+          # Only global.json's SDK, in a folder of its own: the image's newer one would win the
+          # roll-forward, and its runtime ship in the player.
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
           global-json-file: global.json
       - if: inputs.use_cache != false
