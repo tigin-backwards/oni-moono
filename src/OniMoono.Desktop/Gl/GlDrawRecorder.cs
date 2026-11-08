@@ -336,6 +336,7 @@ namespace OniMoono.Desktop.Gl
             inputs.Camera = Camera;
             inputs.RenderTexture = RenderTexture;
             inputs.Block = draw.Properties;
+            if (PropertySheet.Verifying) PropertySheet.CheckDraw(draw.Properties);
             inputs.Material = material;
             drawPasses.Clear();
             Passes(drawPasses, shader, material, draw.Pass, draw.AllPasses);
@@ -592,6 +593,7 @@ namespace OniMoono.Desktop.Gl
             inputs.Camera = Camera;
             inputs.RenderTexture = RenderTexture;
             inputs.Block = draw.Properties;
+            if (PropertySheet.Verifying) PropertySheet.CheckDraw(draw.Properties);
             inputs.Material = material;
             var passes = c.Passes;
             passes.Clear();

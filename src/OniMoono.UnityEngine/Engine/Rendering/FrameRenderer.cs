@@ -565,6 +565,7 @@ namespace OniMoono.Engine.Rendering
             if (CullCache.Verifying && Time.frameCount % 600 == 0) CullCache.Report();
             // The frame's queued draws are done with the property blocks they share.
             PropertySheet.RenderEpoch++;
+            PropertySheet.EndEpoch();
             itemsUsed = 0;
             listsUsed = 0;
             TemporaryRenderTextures.EndFrame();
@@ -1073,7 +1074,8 @@ namespace OniMoono.Engine.Rendering
             var render = s.Render;
             if (render.Texture == null) return;
             var mesh = r.GeometryMesh(s);
-            var props = new PropertySheet();
+            // The sheet is this frame's draws' only (PropertySheet.RentForFrame).
+            var props = PropertySheet.RentForFrame();
             if (r.PropertyBlock != null) props.CopyFrom(r.PropertyBlock);
             props.SetTexture(MainTex, render.Texture);
             if (render.AlphaTexture != null)
