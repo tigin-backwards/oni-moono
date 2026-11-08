@@ -741,43 +741,62 @@ namespace OniMoono.Desktop.Gl
             var recorded = RecordPass(modelView, Matrix4x4.identity, projection, out var shader);
             if (recorded == null) return;
 
-            // Interleaved: position, colour, eight texture coordinates.
+            // Interleaved: position, colour, eight texture coordinates; in the frame's arena,
+            // which the GL thread reads until the frame has run.
             const int stride = sizeof(float) * (3 + 4 + 32);
-            var data = new float[vertices.Length * (stride / 4)];
+            int length = vertices.Length * (stride / 4);
+            var (array, at) = worker.Arena.Floats(length);
+            var data = array.AsSpan(at, length);
             for (int i = 0; i < vertices.Length; i++)
             {
-                var v = vertices[i];
+                ref readonly var v = ref vertices[i];
                 int o = i * (stride / 4);
                 data[o] = v.Position.x; data[o + 1] = v.Position.y; data[o + 2] = v.Position.z;
                 data[o + 3] = v.Color.r; data[o + 4] = v.Color.g; data[o + 5] = v.Color.b; data[o + 6] = v.Color.a;
-                Vector4[] uvs = [v.Uv0, v.Uv1, v.Uv2, v.Uv3, v.Uv4, v.Uv5, v.Uv6, v.Uv7];
-                for (int u = 0; u < 8; u++)
-                {
-                    data[o + 7 + u * 4] = uvs[u].x;
-                    data[o + 8 + u * 4] = uvs[u].y;
-                    data[o + 9 + u * 4] = uvs[u].z;
-                    data[o + 10 + u * 4] = uvs[u].w;
-                }
-            }
-            int[] indices = null;
-            if (primitive == ImmediatePrimitive.Quads)
-            {
-                int quads = vertices.Length / 4;
-                indices = new int[quads * 6];
-                for (int q = 0; q < quads; q++)
-                {
-                    int b = q * 4;
-                    indices.AsSpan(q * 6, 6).SetValues(b, b + 1, b + 2, b, b + 2, b + 3);
-                }
+                Uv(data, o + 7, v.Uv0);
+                Uv(data, o + 11, v.Uv1);
+                Uv(data, o + 15, v.Uv2);
+                Uv(data, o + 19, v.Uv3);
+                Uv(data, o + 23, v.Uv4);
+                Uv(data, o + 27, v.Uv5);
+                Uv(data, o + 31, v.Uv6);
+                Uv(data, o + 35, v.Uv7);
             }
             int count = vertices.Length;
             if (GlGpuProfile.Enabled) recorded.Label = "immediate " + shader.ShaderName;
             worker.Post(() =>
             {
                 uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
-                ExecuteImmediate(recorded, primitive, data, count, indices);
+                ExecuteImmediate(recorded, primitive, array.AsSpan(at, length), count);
                 if (GlGpuProfile.Enabled) GlGpuProfile.End(recorded.Label, q);
             });
+        }
+
+        static void Uv(Span<float> data, int o, in Vector4 uv)
+        {
+            data[o] = uv.x;
+            data[o + 1] = uv.y;
+            data[o + 2] = uv.z;
+            data[o + 3] = uv.w;
+        }
+
+        /// The quads' triangle indices (GL thread): grown, never shrunk; entries depend only on
+        /// their place, so a longer array's first ones are the same.
+        int[] quadIndices = [];
+
+        ReadOnlySpan<int> QuadIndices(int quads)
+        {
+            if (quadIndices.Length < quads * 6)
+            {
+                var indices = new int[Math.Max(quads * 6, quadIndices.Length * 2)];
+                for (int q = 0; q < indices.Length / 6; q++)
+                {
+                    int b = q * 4;
+                    indices.AsSpan(q * 6, 6).SetValues(b, b + 1, b + 2, b, b + 2, b + 3);
+                }
+                quadIndices = indices;
+            }
+            return quadIndices.AsSpan(0, quads * 6);
         }
 
         /// Records the pass set by SetPass for one immediate draw. Null when the pass has nothing
@@ -796,15 +815,23 @@ namespace OniMoono.Desktop.Gl
             if (blob < 0) return null;
             var program = recorder.Program(shader, blob);
             if (program.Id == 0) return null;
-            var inputs = new DrawInputs
+            // One instance (main thread): recording copies out what it reads.
+            var inputs = immediateInputs;
+            inputs.ObjectToWorld = objectToWorld;
+            inputs.Camera = camera with { View = view, Projection = projection };
+            inputs.RenderTexture = recorder.RenderTexture;
+            inputs.Block = null;
+            inputs.Material = material;
+            inputs.Shader = shader;
+            try
             {
-                ObjectToWorld = objectToWorld,
-                Camera = camera with { View = view, Projection = projection },
-                RenderTexture = recorder.RenderTexture,
-                Material = material,
-                Shader = shader,
-            };
-            return recorder.Record(program, recorder.StateOf(pass), inputs, worker.Arena);
+                return recorder.Record(program, recorder.StateOf(pass), inputs, worker.Arena);
+            }
+            finally
+            {
+                inputs.Material = null;
+                inputs.Shader = null;
+            }
         }
 
         /// Graphics.DrawMeshNow: the mesh's sub-mesh (-1: each in turn) with the pass set by
@@ -827,7 +854,9 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
-        void ExecuteImmediate(ProgramInputs recorded, ImmediatePrimitive primitive, float[] data, int count, int[] indices)
+        readonly DrawInputs immediateInputs = new();
+
+        void ExecuteImmediate(ProgramInputs recorded, ImmediatePrimitive primitive, ReadOnlySpan<float> data, int count)
         {
             const int stride = sizeof(float) * (3 + 4 + 32);
             var program = recorded.Program;
@@ -853,8 +882,9 @@ namespace OniMoono.Desktop.Gl
                 int size = c == (int)Channel.Position ? 3 : 4;
                 N.glVertexAttribPointer((uint)location, size, Float, false, stride, (void*)offset);
             }
-            if (indices != null)
+            if (primitive == ImmediatePrimitive.Quads)
             {
+                var indices = QuadIndices(count / 4);
                 GlBindings.BindBuffer(ElementArrayBuffer, immediateIndices);
                 GlApi.BufferData<int>(ElementArrayBuffer, indices, StreamDraw);
                 draws++;
