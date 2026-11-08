@@ -605,6 +605,26 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.DETAIL"
 msgid "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, and the parts never written read as the empty grid did. The pathfinder reads the same values."
 msgstr ""
 
+#. Row title (fetch-by-cell)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.TITLE"
+msgid "Fetch checks by pile"
+msgstr ""
+
+#. The line under the title (fetch-by-cell)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.EFFECT"
+msgid "Duplicants looking for things to fetch check each pile of identical items once, not item by item."
+msgstr ""
+
+#. Tooltip: how it works (fetch-by-cell)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.DETAIL"
+msgid "Keeps the best item of each pile up to date as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. Within a pile of items that are the same in every way the game compares, a Duplicant may take another one than in the original. Off while a mod changes how Duplicants choose what to fetch."
+msgstr ""
+
+#. Tooltip: the measured gain (fetch-by-cell)
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.FETCH"
+msgid "Fetch updates ~8× shorter on a colony with big piles (3.1–3.4 → 0.4 ms each)"
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
 msgid "Graphics & overlays"

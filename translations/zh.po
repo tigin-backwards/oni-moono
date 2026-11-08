@@ -382,6 +382,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.DETAIL"
 msgid "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, and the parts never written read as the empty grid did. The pathfinder reads the same values."
 msgstr "复制人的路径网格覆盖整张地图；它被存放在一个个小页中，某处第一次被寻路探测写入时才创建该页，从未写入的部分读起来和空网格一样。寻路读取到的数值完全相同。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.TITLE"
+msgid "Fetch checks by pile"
+msgstr "按堆检查搬运物品"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.EFFECT"
+msgid "Duplicants looking for things to fetch check each pile of identical items once, not item by item."
+msgstr "复制人寻找要搬运的物品时，每堆相同的物品只检查一次，而不是逐个检查。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.DETAIL"
+msgid "Keeps the best item of each pile up to date as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. Within a pile of items that are the same in every way the game compares, a Duplicant may take another one than in the original. Off while a mod changes how Duplicants choose what to fetch."
+msgstr "在物品移动、被预定或腐坏时随时更新每堆中最好的那一个，并且每堆只寻路一次。复制人到不了的世界上的物品会被跳过。在一堆游戏比较的各方面都相同的物品中，复制人可能会拿走与原版不同的那一个。当有模组改变复制人选择搬运物品的方式时，此项关闭。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.CONVEYOR"
 msgid "No hitch on rail edits (was 0.05–0.5 s)"
 msgstr "修改轨道不再卡顿（原本 0.05–0.5 秒）"
@@ -637,6 +649,10 @@ msgstr "在加载画面仍显示时回收内存，进入游戏后不久不会出
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.DETAIL"
 msgid "Runs the memory cleanup that would otherwise pause the game about a minute into play at the end of the load, while the game is still paused. Only with Fast garbage collection (the default)."
 msgstr "在加载结束、游戏仍处于暂停时进行原本会在开始游玩约一分钟后造成卡顿的内存清理。仅在“快速”垃圾回收（默认）下生效。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.FETCH"
+msgid "Fetch updates ~8× shorter on a colony with big piles (3.1–3.4 → 0.4 ms each)"
+msgstr "在物品成堆的殖民地上，搬运检查缩短约 8 倍（每次 3.1–3.4 → 0.4 毫秒）"
 
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.POST_LOAD"
 msgid "No ~0.3 s freeze a minute after loading a large colony; loading ~0.2 s longer"
