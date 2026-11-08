@@ -605,3 +605,19 @@ msgstr "游戏的动画数据少占约 65 MB 内存。"
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.DETAIL"
 msgid "Once the animations are loaded, the lists of their frames and frame parts give back the room they grew into but don't use; the game reads the same data."
 msgstr "动画加载完成后，其帧和帧部件的列表会交还增长时多占却不用的空间；游戏读取的数据不变。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.TITLE"
+msgid "No pause a minute into play"
+msgstr "开始游玩一分钟后不再卡顿"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.EFFECT"
+msgid "Removes a short freeze about a minute after loading a large colony."
+msgstr "消除加载大型殖民地约一分钟后的一次短暂冻结。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.DETAIL"
+msgid "Runs the memory cleanup behind that freeze at the end of the load instead, while the game is still paused. Only with Fast garbage collection (the default)."
+msgstr "改为在加载结束、游戏仍处于暂停时进行造成那次冻结的内存清理。仅在“快速”垃圾回收（默认）下生效。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.POST_LOAD"
+msgid "No ~0.3 s freeze a minute after loading a large colony; loading ~0.2 s longer"
+msgstr "加载大型殖民地约一分钟后不再有约 0.3 秒的冻结；加载时间延长约 0.2 秒"

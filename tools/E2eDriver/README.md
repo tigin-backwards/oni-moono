@@ -573,6 +573,15 @@ Mouse buttons go apart: the codes `Mouse0` to `Mouse6` `Input.GetKeyDown` is tru
 (`::MouseHeld`), and the button of each IMGUI `MouseDown` event (`::MouseEvents`).
 Answers `{"recording": true}`.
 
+### gc.watch `{on?}`
+
+Starts watching the runtime's GC pauses, or starts again from zero (`on: false` stops it). Each
+frame it adds up the pause time of the collections since the frame before
+(`GC.GetTotalPauseDuration`, ours only: the original's Mono has none and reads 0). Read as
+state: `type:E2eDriver.GcWatch::MostInFrameMs` (the most one frame was paused, in ms),
+`::MostInFrameAt` (when that frame ended, real seconds after the start), `::Frames`, `::Gen1`
+and `::Gen2` (collections since the start). Answers `{"watching": true, "supported": true}`.
+
 ### imgui.scrollview `{on?}`
 
 Shows an IMGUI scroll view 300 by 300 pixels centred on the screen, over content 3000 high, and

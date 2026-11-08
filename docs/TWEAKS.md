@@ -98,7 +98,9 @@ next start.
   often and a colony takes about 10 s longer to load. It is only worth choosing if your PC is
   short on RAM.
 
-Measurements are in [research/gc-modes.md](research/gc-modes.md).
+Measurements are in [research/gc-modes.md](research/gc-modes.md). With Fast, the
+`post-load-gc` tweak (Saving, below) removes a short freeze about a minute after loading a large
+colony ([research/gc-pauses.md](research/gc-pauses.md)).
 
 The runtime fixes its GC as it starts, before Moono's code runs. On Windows, OniMoono.exe reads
 the choice itself (`--gc`, else `settings.json`'s `"gc"`) and sets the runtime property
@@ -172,13 +174,14 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 
 ### Saving (on by default)
 
-All 5 together: autosave freeze ~12 s → ~5 s on a large colony; a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, by 2026-10-20.
+All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colony; a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, by 2026-10-20.
 
 - **Faster save writing** (`fast-serialization`): Autosaves take less time; the save file is the same. Writes the colony's numbers without boxing each one in an object.
 - **Faster save checks** (`fast-save-type-checks`): Autosaves skip repeating the same checks for every object. Remembers what saving asks about each kind of component instead of asking again for every object.
 - **Faster save compression** (`fast-save-compression`): Saving and loading take seconds less; files stay compatible, a little larger. Compresses with .NET's zlib instead of the game's own; the files are about 14% larger.
 - **Background saving** (`background-save`): The save is compressed and written to disk while the game plays on. Compression and the file write move to another thread; quitting waits for them.
 - **No cleanup pause when saving** (`no-save-gc`): Skips the memory cleanup the game forces after each save, a pause of its own. Skips the full garbage collection the game asks for after saving.
+- **No pause a minute into play** (`post-load-gc`): Removes a short freeze about a minute after loading a large colony. Runs the memory cleanup behind that freeze at the end of the load instead, while the game is still paused. Only with Fast garbage collection (the default). *Measured: no ~0.3 s freeze a minute after loading a large colony; loading ~0.2 s longer; a late-game Spaced Out colony with every DLC (cycle 17,000+), Windows, 2026-11-07.*
 
 ### Simulation (on by default)
 

@@ -1,0 +1,12 @@
+# post-load-gc's control (post-load-gc.yaml): the same late-game colony with the tweak off
+# (`-post-load-gc`). Ours only. The first gen1 in play copies the load's young data into gen2,
+# a frame paused by collections for 150 ms or more; the tweak never ran.
+from: U57
+game_tweaks: [-post-load-gc]
+steps:
+  - driver: {gc.watch: {}}
+  - run: {seconds: 270}
+  - expect_state:
+      "type:E2eDriver.GcWatch::Gen1": "> 0"
+      "type:E2eDriver.GcWatch::MostInFrameMs": ">= 150"
+      "type:OniMoono.Host.GameTweaks.PostLoadGc::Collected": 0

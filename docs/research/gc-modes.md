@@ -12,6 +12,10 @@ stay below 1% of the time and its longest pauses were no longer than Fast's. Six
 twelve threads change nothing: DATAS sizes the Server GC for them, and the numbers match those
 on all sixteen threads. A capped heap count (4) saves nothing and pauses up to five times longer.
 
+A later look at Fast's pauses in play found one large one, about a minute after each load of a
+large colony, and moved it into the load: [gc-pauses.md](gc-pauses.md) (the `post-load-gc`
+tweak).
+
 ## Facts checked first
 
 - `src/OniMoono.Host/OniMoono.Host.csproj` sets `ServerGarbageCollection`,

@@ -156,6 +156,7 @@ namespace E2eDriver
         void Update()
         {
             KeyLog.Scan();
+            GcWatch.Frame();
             MethodTimes.Frame();
             long started = System.Diagnostics.Stopwatch.GetTimestamp();
             try { Serve(); }

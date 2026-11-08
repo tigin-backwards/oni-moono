@@ -5,7 +5,7 @@ using HarmonyLib;
 
 namespace OniMoono.Host.GameTweaks
 {
-    /// Game tweak `no-save-gc` (opt-in): SaveLoader.Save ends with GC.Collect(), a full blocking
+    /// Game tweak `no-save-gc` (on by default): SaveLoader.Save ends with GC.Collect(), a full blocking
     /// collection of the whole heap on the main thread (about 9 GB in a large colony), to release
     /// the save's buffers. The collector reclaims them on its own schedule anyway; this removes the
     /// forced collection from saving and nothing else.
