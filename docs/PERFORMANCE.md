@@ -1,12 +1,14 @@
 # Performance
 
-How fast Moono runs against the original game, why, and what's still in the way. Three
+How fast Moono runs against the original game, why, and what's still in the way. Four
 colonies stress it differently, so each has its own case study:
 - **U57**, late game, held back by the game's own logic (this document);
 - **2minnow**, mid game, where more of the frame is drawing
   ([PERFORMANCE_CASE_STUDY_2.md](PERFORMANCE_CASE_STUDY_2.md));
 - **Gluttony**, very late game with 67 Duplicants, where the simulation's many small updates
-  take most of the frame ([PERFORMANCE_CASE_STUDY_3.md](PERFORMANCE_CASE_STUDY_3.md)).
+  take most of the frame ([PERFORMANCE_CASE_STUDY_3.md](PERFORMANCE_CASE_STUDY_3.md));
+- **a heavily modded colony** with 139 mods, where two mods cost more than the colony itself
+  ([PERFORMANCE_CASE_STUDY_4.md](PERFORMANCE_CASE_STUDY_4.md)).
 
 Other test colonies named in the tables below:
 - **c100**, a 200-Duplicant colony;
