@@ -117,7 +117,7 @@ namespace OniMoono.Host.GameTweaks
                 IsTweak: false),
             new(StallRepeatsRow, General, "Steady display during saves and loads", "G-Sync and FreeSync monitors don't flicker while the game saves or loads.",
                 "While no new frame comes for a moment, the last one is shown again at about the game's frame rate (30 to 60 times a second), "
-                + "so the monitor's refresh rate doesn't drop. Nothing changes while frames come as usual. Windows, with the OpenGL renderer and Direct3D presentation on.",
+                + "so the monitor's refresh rate doesn't drop. Nothing changes while frames come as usual. Windows, with Direct3D presentation on.",
                 IsTweak: false),
             new(GcRow, General, "Garbage collection", "How the game frees memory it no longer uses. Needs a restart.",
                 "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. "

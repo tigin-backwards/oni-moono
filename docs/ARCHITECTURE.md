@@ -2240,48 +2240,60 @@ frames. Without the profile, `removed:300,norestart` left the window still, as b
 colony, panning, fullscreen and back, resizes and minimize/restore cycles showed no failure and
 frames after each; `--dxgi off` swapped on the window as before.
 
-**Repeats while no frame comes (DXGI).** A variable-refresh display (G-Sync, FreeSync)
-refreshes when a picture is presented, so while the main thread stalls (an autosave, a load
-hitch) its refresh rate falls towards nothing, and such panels flicker or dim as it does (#60).
-With DXGI presenting, the presenter shows the last frame again while none comes (`StallRepeats`;
-Moono Tweaks' "Steady display during saves and loads", settings.json `"stallRepeats"`,
-`--stall-repeats on|off`, on by default): the first repeat once no frame has been presented for
-three times the usual time between frames (a moving average of the intervals between frames,
-each counted up to four times the average, stalls left out), and at least 50 ms; then one every
-usual frame time, kept between 1/60 and 1/30 s, until a frame comes, so the display keeps about
-the rate it had while the game ran. Three times the usual time, and 50 ms, lie beyond the spread
-of frames in play (on a 200-Duplicant colony at about 95 fps 16 of 26,398 frames took longer, each
-a hitch already), so frames that come as usual never meet one, a display's own low-framerate
-compensation covers shorter gaps, and the presenter's wait for the next frame, untimed
-before, is only timed. A repeat goes only when the frame-latency waitable says the last picture
-has retired (else it is tried again 2 ms on), so it never queues behind a picture nor blocks in
-`Present`; it is the shown back buffer blitted into the shared texture again and presented at sync
-interval 0 without `ALLOW_TEARING`, which the flip model discards when a newer picture is queued
-before it is shown (`IDXGISwapChain::Present`: "discard this frame if a newer frame is queued"),
-so a frame that comes just after one is shown at the vertical blank it would have had. Nothing
-waits after a repeat; the next frame's `Present` counts it as in flight while it has not retired,
-waiting after its own `Present` (at most a refresh) as frames wait for their predecessor, so as
-many pictures are in flight as without repeats. A frame handed over during a repeat is not held
-back (a repeat does not count as queued); the GL thread only never moves on to the buffer a repeat
-reads, which would take two frames handed over during one. Repeats are kept out of frame pacing,
-`QueuedFrames`, the present count, the frame stats' pictures (counted on their own as repeats),
-the present trace's probe and the `--dxgi-fault` steps. The waits between them need a 1 ms timer
-resolution (Windows' default is 15.6 ms), raised with `timeBeginPeriod` for a run of repeats only.
-OpenGL's SwapBuffers has no repeat: a swap there cannot be discarded by the next, so a frame
-right after one would wait a refresh.
-The Vulkan renderer's presenter (`VkPresenter`, its DXGI path too) has no repeats yet: with
-Vulkan, the display still gets no picture while no frame comes.
-Measured on Windows (a 200-Duplicant colony at speed 3, vsync on at 60 Hz, five launches with
-repeats and five without, 165 s of play each from 35 s after the load): no repeat in frames that
-came as usual, one at most a launch, each in a hitch of 70 ms or more; game pictures 56.6 to
-59.0 a second with repeats and 53.7 to 59.1 without (one launch in each a slower 53.7), the
-slowest 1% of frame intervals 33 to 35 ms against 31 to 34 (42 in both slow launches), and
-`Present` 0.045 ms either way. Under five forced 1.5 s stalls and three autosaves, the longest
-time without a picture went from 1.5 s to 55 to 93 ms (repeats every 17 to 28 ms after the
-first), at vsync 1 and 0 alike, and the first frame after a stall was presented 23 ms after it
-on average with repeats and 22 ms without. A garbage collection still leaves a gap: it stops the
-presenter thread too: a 0.33 s collection in play left a 0.33 s gap, and the load, whose
-collections pause 3.6 s in all, gaps of up to 0.87 s.
+**Repeats while no frame comes (DXGI).** A variable-refresh display (G-Sync, FreeSync) refreshes
+when a picture is presented, so while the main thread stalls (an autosave, a load hitch) its refresh
+rate falls towards nothing, and such panels flicker or dim as it does (#60). With DXGI presenting,
+the presenter shows the last frame again while none comes (`StallRepeats`; Moono Tweaks' "Steady
+display during saves and loads", settings.json `"stallRepeats"`, `--stall-repeats on|off`, on by
+default): the first repeat once no frame has been presented for three times the usual time between
+frames (a moving average of the intervals between frames, each counted up to four times the average,
+stalls left out), and at least 50 ms; then one every usual frame time, kept between 1/60 and 1/30 s,
+until a frame comes, so the display keeps about the rate it had while the game ran. Three times the
+usual time, and 50 ms, lie beyond the spread of frames in play (on a 200-Duplicant colony at about
+95 fps 16 of 26,398 frames took longer, each a hitch already), so frames that come as usual never
+meet one, a display's own low-framerate compensation covers shorter gaps, and the presenter's wait
+for the next frame, untimed before, is only timed. A repeat goes only when the frame-latency
+waitable says the last picture has retired (else it is tried again 2 ms on), so it never queues
+behind a picture nor blocks in `Present`; with OpenGL it is the shown back buffer blitted into the
+shared texture again, with Vulkan (`VkPresenter`) D3D11 copying the shared texture, which still
+holds the last picture, into the back buffer once more (no Vulkan work: `Show` left the keyed mutex
+released with key 0, which D3D11 takes and gives back; a texture made anew or a swap chain resized
+since holds no picture to repeat). Either is presented at sync interval 0 without `ALLOW_TEARING`,
+which the flip model discards when a newer picture is queued before it is shown
+(`IDXGISwapChain::Present`: "discard this frame if a newer frame is queued"), so a frame that comes
+just after one is shown at the vertical blank it would have had. Nothing waits after a repeat; the
+next frame's `Present` counts it as in flight while it has not retired, waiting after its own
+`Present` (at most a refresh) as frames wait for their predecessor, so as many pictures are in
+flight as without repeats. A frame handed over during a repeat is not held back (a repeat does not
+count as queued); the GL thread only never moves on to the buffer a repeat reads, which would take
+two frames handed over during one (Vulkan's repeats read no back buffer). Repeats are kept out of
+frame pacing, `QueuedFrames`, the present count, the frame stats' pictures (counted on their own as
+repeats), the present trace's probe and the `--dxgi-fault` steps. The waits between them need a 1 ms
+timer resolution (Windows' default is 15.6 ms), raised with `timeBeginPeriod` for a run of repeats
+only. OpenGL's SwapBuffers has no repeat: a swap there cannot be discarded by the next, so a frame
+right after one would wait a refresh. Vulkan's own swapchain (`--dxgi off`, or standing in while
+DXGI restarts) has none either: FIFO shows every image presented for at least a refresh and never
+discards one for a newer, so a frame right after a repeat would wait for it, and when an image has
+been shown is known only with `VK_KHR_present_wait`. Measured on Windows (a 200-Duplicant colony at
+speed 3, vsync on at 60 Hz, five launches with repeats and five without, 165 s of play each from 35
+s after the load): no repeat in frames that came as usual, one at most a launch, each in a hitch of
+70 ms or more; game pictures 56.6 to 59.0 a second with repeats and 53.7 to 59.1 without (one launch
+in each a slower 53.7), the slowest 1% of frame intervals 33 to 35 ms against 31 to 34 (42 in both
+slow launches), and `Present` 0.045 ms either way. Under five forced 1.5 s stalls and three
+autosaves, the longest time without a picture went from 1.5 s to 55 to 93 ms (repeats every 17 to 28
+ms after the first), at vsync 1 and 0 alike, and the first frame after a stall was presented 23 ms
+after it on average with repeats and 22 ms without. With Vulkan (U60, a big colony at speed 3, vsync
+on at 60 Hz, alternating launches, six with repeats and seven without, 165 s of play each from 35 s
+after the load; a seventh with repeats, under heavy load on the Linux side, left out): no repeat in
+that play (repeats came only in the load's hitches of 60 ms or more), as many presents as game
+pictures without repeats, game pictures 59.4 to 59.5 a second either way, the slowest 1% of frame
+intervals 30 to 33 ms against 27 to 33, intervals over 25 ms 1.2 to 1.4% against 1.1 to 1.3%, and
+`Present` 0.05 ms either way. Under five forced 1.5 s stalls and three autosaves (up to 2.2 s
+without a frame), the longest time without a picture went from 1.5 to 2.2 s to 50 to 80 ms (repeats
+every 17 to 20 ms after the first), at vsync 1 and 0 alike, and the first frame after a stall came
+11.8 ms after it on average with repeats and 12.1 ms without. A garbage collection still leaves a
+gap: it stops the presenter thread too: a 0.33 s collection in play left a 0.33 s gap, and the load,
+whose collections pause 3.6 s in all, gaps of up to 0.87 s.
 
 **Loading splash (`--splash moo`, on by default; `--splash none` or Moono Tweaks turns it off).** The player's own presentation, not the
 game's: the presenter thread draws Gassy Moo comets (the game's `meteor_gassymoo` kanim, its

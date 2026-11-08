@@ -292,7 +292,7 @@ msgstr ""
 
 #. Tooltip: how it works (stall-repeats)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.DETAIL"
-msgid "While no new frame comes for a moment, the last one is shown again at about the game's frame rate (30 to 60 times a second), so the monitor's refresh rate doesn't drop. Nothing changes while frames come as usual. Windows, with the OpenGL renderer and Direct3D presentation on."
+msgid "While no new frame comes for a moment, the last one is shown again at about the game's frame rate (30 to 60 times a second), so the monitor's refresh rate doesn't drop. Nothing changes while frames come as usual. Windows, with Direct3D presentation on."
 msgstr ""
 
 #. Row title (gc)

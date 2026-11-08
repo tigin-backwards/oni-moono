@@ -39,6 +39,9 @@ namespace OniMoono.Desktop.Vulkan
         VkImageView view;
         int capacityWidth, capacityHeight, acquires, imports;
         string failure;
+        // The shared texture holds the picture last presented (a Show went through since it was
+        // made, and the swap chain has kept its size): a repeat can show it again.
+        bool holdsPicture;
 
         public VkImage Image => image;
         public VkImageView View => view;
@@ -147,6 +150,7 @@ namespace OniMoono.Desktop.Vulkan
         /// there is smaller. The caller has made sure no submitted work still uses the old one.
         bool MakeShared(int w, int h)
         {
+            holdsPicture = false;
             ReleaseShared();
             capacityWidth = capacityWidth == 0 ? w : Dxgi.Capacity(capacityWidth, w);
             capacityHeight = capacityHeight == 0 ? h : Dxgi.Capacity(capacityHeight, h);
@@ -259,6 +263,7 @@ namespace OniMoono.Desktop.Vulkan
             if (Failure != null) return false;
             w = Math.Max(1, w);
             h = Math.Max(1, h);
+            if (w != chain.Width || h != chain.Height) holdsPicture = false;
             if (!chain.Resize(w, h)) return false;
             if (w > capacityWidth || h > capacityHeight)
             {
@@ -294,7 +299,27 @@ namespace OniMoono.Desktop.Vulkan
             chain.CopyToBackBuffer(shared);
             hr = Dxgi.ReleaseSync(keyedMutex, 0);
             if (Dxgi.Failed(hr)) return Fail($"IDXGIKeyedMutex::ReleaseSync(0) failed ({Dxgi.Hr(hr)})");
-            return chain.PresentCopied(interval);
+            holdsPicture = chain.PresentCopied(interval);
+            return holdsPicture;
+        }
+
+        /// Whether a repeat may go now: the shared texture holds the last picture and the display
+        /// has taken it (DxgiSwapChain.LastPictureRetired).
+        public bool MayRepeat() => Failure == null && holdsPicture && chain.LastPictureRetired();
+
+        /// Presents the last picture again (StallRepeats, DxgiSwapChain.PresentRepeat) from the
+        /// shared texture, which still holds it: D3D11 alone, no Vulkan work. Show left the
+        /// keyed mutex released with key 0 and only the presenter thread's next submission
+        /// acquires it again, so D3D11 takes key 0 at once and gives it back as it found it.
+        public bool ShowRepeat()
+        {
+            if (Failure != null) return false;
+            int hr = Dxgi.AcquireSync(keyedMutex, 0, MutexTimeoutMilliseconds);
+            if (hr != Dxgi.S_OK) return Fail($"IDXGIKeyedMutex::AcquireSync(0) for a repeat failed ({(hr == Dxgi.WaitTimedOut ? "timed out" : hr == Dxgi.WaitAbandoned ? "abandoned" : Dxgi.Hr(hr))})");
+            chain.CopyToBackBuffer(shared);
+            hr = Dxgi.ReleaseSync(keyedMutex, 0);
+            if (Dxgi.Failed(hr)) return Fail($"IDXGIKeyedMutex::ReleaseSync(0) after a repeat failed ({Dxgi.Hr(hr)})");
+            return chain.PresentRepeatCopied();
         }
 
         /// Releases everything (presenter thread, or the thread that made it when it failed).

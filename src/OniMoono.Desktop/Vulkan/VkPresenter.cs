@@ -289,7 +289,7 @@ namespace OniMoono.Desktop.Vulkan
                 while (true)
                 {
                     (VkBackBuffer Buffer, int Interval, int Width, int Height, long Started, int Frame, long Need) frame = default;
-                    bool redraw = false;
+                    bool redraw = false, repeat = false;
                     lock (gate)
                     {
                         while (queue.Count == 0 && !stopping && !(refreshWanted && shown != null))
@@ -298,17 +298,33 @@ namespace OniMoono.Desktop.Vulkan
                             {
                                 if (!Monitor.Wait(gate, PresenterTimings.SplashWait(dxgi != null))) { redraw = true; break; }
                             }
+                            // DXGI: the last frame again once no frame has come for a while
+                            // (StallRepeats). The wait is the one there was, timed.
+                            else if (MayRepeat)
+                            {
+                                int ms = stall.WaitMilliseconds(GlTimings.Now);
+                                if (ms == 0) { repeat = true; break; }
+                                Monitor.Wait(gate, ms);
+                            }
                             else Monitor.Wait(gate);
                         }
                         if (queue.Count > 0)
                         {
                             frame = queue.Dequeue();
-                            redraw = false;
+                            redraw = repeat = false;
                         }
                         else if (stopping) break;
-                        else redraw = true;
-                        refreshWanted = false;
+                        else if (!repeat) redraw = true;
+                        if (!repeat) refreshWanted = false;
+                        // A repeat does not count as queued: it reads no back buffer (the shared
+                        // texture still holds the picture), so frames handed over meanwhile need
+                        // nothing kept from them.
                         if (redraw) queued++;
+                    }
+                    if (repeat)
+                    {
+                        if (OperatingSystem.IsWindows()) Repeat();
+                        continue;
                     }
                     long presenterBusy = 0;
                     if (redraw) Show(shown, swapInterval < 0 ? 1 : swapInterval, windowWidth, windowHeight, gameFrame: false);
@@ -322,6 +338,7 @@ namespace OniMoono.Desktop.Vulkan
                         Show(frame.Buffer, frame.Interval, frame.Width, frame.Height, gameFrame: true);
                         presenterBusy = GlTimings.Now - t - lastWait;
                         PresenterTimings.FrameStarted = 0;
+                        FramePresented();
                         // (DXGI's Present takes the interval itself.)
                         for (int again = 1; again < frame.Interval && dxgi == null; again++) Show(frame.Buffer, frame.Interval, frame.Width, frame.Height, gameFrame: false);
                     }
@@ -344,6 +361,58 @@ namespace OniMoono.Desktop.Vulkan
                 }
                 Presented.Stop();
             }
+            finally
+            {
+                if (timerRaised && OperatingSystem.IsWindows()) _ = Dxgi.timeEndPeriod(1);
+            }
+        }
+
+        // ----- Repeats while no frame comes (StallRepeats; presenter thread) -----
+
+        readonly StallRepeats stall = new();
+        bool timerRaised;
+
+        /// Repeats are on, through DXGI, with a frame shown and the splash gone (the wait loop
+        /// checks the splash first). Vulkan's own swapchain has none: FIFO shows each image for
+        /// at least a refresh, so a frame presented after a repeat would wait for it.
+        bool MayRepeat => DxgiSwapChain.Repeats && OperatingSystem.IsWindows() && dxgi != null && !dxgiLost && shown != null;
+
+        /// A game frame was presented: repeats start over; the timer resolution raised for them
+        /// goes back once the frame is out (GlPresenter.FramePresented).
+        void FramePresented()
+        {
+            long now = GlTimings.Now;
+            if (stall.Run > 0 && PresentTrace.Enabled)
+                PresentTrace.Log($"frame {shown?.DrawnFrame ?? -1} presented again {stall.Run} times over {(now - stall.RunStarted) * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F0} ms while no frame came (every {stall.Cadence * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F1} ms)");
+            stall.Frame(now);
+            if (timerRaised && OperatingSystem.IsWindows())
+            {
+                timerRaised = false;
+                _ = Dxgi.timeEndPeriod(1);
+            }
+        }
+
+        /// Presents the last picture again through DXGI (VkDxgiTarget.ShowRepeat: D3D11 copies
+        /// it from the shared texture again) once the display has taken the last picture; else
+        /// it waits for the next due time. The waits between repeats need a 1 ms timer
+        /// resolution, raised for the run of repeats only (GlPresenter.Repeat).
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        void Repeat()
+        {
+            if (!timerRaised) timerRaised = Dxgi.timeBeginPeriod(1) == 0;
+            if (!dxgi.MayRepeat())
+            {
+                stall.Skipped(GlTimings.Now);
+                return;
+            }
+            if (!dxgi.ShowRepeat())
+            {
+                // The next frame shows on what stands in (or on DXGI restarted).
+                DxgiFailed();
+                return;
+            }
+            stall.Repeated(GlTimings.Now);
+            PresenterTimings.Repeated();
         }
 
         /// Copies a back buffer (null: black) into the window's next picture, the splash over it,
