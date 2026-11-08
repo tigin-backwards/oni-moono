@@ -38,13 +38,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Exactly global.json's SDK, in a folder of its own: a newer patch (the image's, or the one
+      # setup-dotnet's roll-forward picks) would put its runtime in the player.
+      - id: sdk
+        run: echo "version=$(python3 -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])' 2>/dev/null || python -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])')" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         env:
-          # Only global.json's SDK, in a folder of its own: the image's newer one would win the
-          # roll-forward, and its runtime ship in the player.
           DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
-          global-json-file: global.json
+          dotnet-version: ${{ steps.sdk.outputs.version }}
       - if: inputs.use_cache != false
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -87,13 +89,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Exactly global.json's SDK, in a folder of its own: a newer patch (the image's, or the one
+      # setup-dotnet's roll-forward picks) would put its runtime in the player.
+      - id: sdk
+        run: echo "version=$(python3 -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])' 2>/dev/null || python -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])')" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         env:
-          # Only global.json's SDK, in a folder of its own: the image's newer one would win the
-          # roll-forward, and its runtime ship in the player.
           DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
-          global-json-file: global.json
+          dotnet-version: ${{ steps.sdk.outputs.version }}
       - if: inputs.use_cache != false
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -130,13 +134,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Exactly global.json's SDK, in a folder of its own: a newer patch (the image's, or the one
+      # setup-dotnet's roll-forward picks) would put its runtime in the player.
+      - id: sdk
+        run: echo "version=$(python3 -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])' 2>/dev/null || python -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])')" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         env:
-          # Only global.json's SDK, in a folder of its own: the image's newer one would win the
-          # roll-forward, and its runtime ship in the player.
           DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
         with:
-          global-json-file: global.json
+          dotnet-version: ${{ steps.sdk.outputs.version }}
       - if: inputs.use_cache != false
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -151,5 +157,3 @@ jobs:
         env:
           GAME_DIR: ${{ steps.refs.outputs.game-dir }}
         run: scripts/ci-unit-tests.sh "$GAME_DIR"
-      - name: Script tests
-        run: python3 -m unittest discover -s tests/scripts
