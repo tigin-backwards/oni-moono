@@ -487,8 +487,33 @@ namespace OniMoono.Engine.Rendering
         /// Materials this renderer instantiated (Renderer.material).
         public bool[] Instanced = Array.Empty<bool>();
         public PropertySheet PropertyBlock;
-        public Bounds? BoundsOverride;
-        public Bounds? LocalBoundsOverride;
+
+        public Bounds? BoundsOverride
+        {
+            get => boundsOverride;
+            set
+            {
+                boundsOverride = value;
+                FrameRenderer.BoundsChanged(this);
+            }
+        }
+
+        public Bounds? LocalBoundsOverride
+        {
+            get => localBoundsOverride;
+            set
+            {
+                localBoundsOverride = value;
+                FrameRenderer.BoundsChanged(this);
+            }
+        }
+
+        Bounds? boundsOverride, localBoundsOverride;
+
+        /// The mesh whose bounds its culling bounds were last made from, and its place in that
+        /// mesh's readers (MeshNative.AddBoundsReader).
+        public MeshNative BoundsMesh;
+        public int BoundsMeshIndex = -1;
 
         public void SetMaterials(Material[] materials)
         {
@@ -512,6 +537,41 @@ namespace OniMoono.Engine.Rendering
         public Bounds LocalBounds => LocalBoundsOverride ?? GeometryBounds;
 
         public Bounds WorldBounds => BoundsOverride ?? Transform(LocalBounds, GameObject.Transform.LocalToWorld);
+
+        /// WorldBounds for culling, and whether they may be kept until FrameRenderer.BoundsChanged
+        /// is called for this renderer: then they are made only from what notifies it (the
+        /// assigned bounds, the transform's world matrix, the GameObject's components and the
+        /// mesh this reads), which this sets up.
+        public Bounds CullBounds(out bool keep)
+        {
+            if (boundsOverride is { } b)
+            {
+                keep = true;
+                return b;
+            }
+            Bounds local;
+            if (localBoundsOverride is { } l)
+            {
+                local = l;
+                keep = true;
+            }
+            else local = KeptGeometryBounds(out keep);
+            var t = GameObject.Transform;
+            if (keep)
+            {
+                GameObject.CullBoundsWatched = true;
+                t.CullBoundsWatched = true;
+            }
+            return Transform(local, t.LocalToWorld);
+        }
+
+        /// GeometryBounds, and whether they are made only from the GameObject's components and
+        /// the mesh they name (the readers of which this joins).
+        protected virtual Bounds KeptGeometryBounds(out bool keep)
+        {
+            keep = false;
+            return GeometryBounds;
+        }
 
         /// The axis-aligned box enclosing a transformed box.
         public static Bounds Transform(Bounds b, Matrix4x4 m)
@@ -584,11 +644,35 @@ namespace OniMoono.Engine.Rendering
         {
             get
             {
-                foreach (var c in GameObject.Components)
-                    if (c is MeshFilter && c.Native is MeshFilterNative { Mesh: { } mesh } && mesh != null)
-                        return ((MeshNative)mesh.NativeOrThrow).Bounds;
+                var mesh = FilterMesh();
+                if (mesh != null) return mesh.Bounds;
                 return TextMesh(GameObject)?.Geometry().Bounds ?? default;
             }
+        }
+
+        /// The mesh of the first mesh filter that has one.
+        MeshNative FilterMesh()
+        {
+            foreach (var c in GameObject.Components)
+                if (c is MeshFilter && c.Native is MeshFilterNative { Mesh: { } mesh } && mesh != null)
+                    return (MeshNative)mesh.NativeOrThrow;
+            return null;
+        }
+
+        /// A filter's mesh is kept (its bounds and destruction notify); a TextMesh's geometry is
+        /// made again on every read.
+        protected override Bounds KeptGeometryBounds(out bool keep)
+        {
+            var mesh = FilterMesh();
+            if (mesh != null)
+            {
+                mesh.AddBoundsReader(this);
+                keep = true;
+                return mesh.Bounds;
+            }
+            var text = TextMesh(GameObject);
+            keep = text == null;
+            return text?.Geometry().Bounds ?? default;
         }
 
         public override void CopyStateFrom(NativeObject source)
@@ -767,7 +851,17 @@ namespace OniMoono.Engine.Rendering
 
     internal sealed class MeshFilterNative : ComponentNative
     {
-        public Mesh Mesh;
+        public Mesh Mesh
+        {
+            get => mesh;
+            set
+            {
+                mesh = value;
+                if (GameObject is { CullBoundsWatched: true } go) FrameRenderer.BoundsInputsChanged(go);
+            }
+        }
+
+        Mesh mesh;
         public bool MeshIsInstance;
 
         public override void CopyStateFrom(NativeObject source) => Mesh = ((MeshFilterNative)source).Mesh;

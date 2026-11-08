@@ -1804,6 +1804,18 @@ renderer, restricted to what the game uses (*usage §1*):
   Z for `TransparencySortMode.Orthographic`, ties in submission order) → command buffers at
   their `CameraEvent`s → draw → `OnRenderImage` chain (component order, temporary RTs) →
   `OnPostRender`.
+- Culling walks the cull candidates (enabled renderers on active objects, one list per layer)
+  of the layers in the camera's mask. Beside each candidate the list keeps its world bounds
+  (`CullCache`), made at its first visit and kept until something they were made from changes:
+  bounds or local bounds assigned to the renderer, the transform's world matrix (marked in
+  `MarkDirty`, so a parent's move counts), the GameObject's components (a filter added or
+  removed), the filter's mesh, and that mesh's bounds (to other bits) or destruction; each mesh
+  keeps the renderers that read its bounds. Joining the candidates or another layer's list makes
+  them again. Renderers whose geometry does not notify (sprites, particles, lines, text meshes)
+  have theirs made at every visit, as before. A pass over kept bounds reads the lists' arrays
+  alone and looks at a renderer (its flags, then its draws) only when its box is in view; the
+  same renderers are drawn in the same order. `ONI_CULL_CACHE=0` makes every visit make them;
+  `ONI_VERIFY_CULL_CACHE=1` makes them afresh at each visit too and logs any difference.
 - Draw sources: `MeshRenderer`+`MeshFilter`, `SpriteRenderer`, `ParticleSystemRenderer`,
   `LineRenderer` (mods' lines: its strip as Unity's BakeMesh measures it, corners mitered; rounded
   corners and caps are drawn square), `CanvasRenderer` (world-space and screen-space-camera canvases), and the per-frame

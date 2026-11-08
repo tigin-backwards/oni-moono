@@ -352,6 +352,164 @@ namespace OniMoono.Tests
             Assert.Equal("B", s.Drawn());
         }
 
+        /// Renders a frame, then asserts that every kept culling bound matches a fresh one.
+        static string DrawnKept(RenderScope s)
+        {
+            var drawn = s.Drawn();
+            var (wrong, kept) = FrameRenderer.KeptBounds();
+            Assert.Equal(0, wrong);
+            Assert.True(kept > 0);
+            return drawn;
+        }
+
+        static void AssertKeptMatch()
+        {
+            Assert.Equal(0, FrameRenderer.KeptBounds().Wrong);
+        }
+
+        /// The culling bounds kept for a mesh renderer follow every change they are made from:
+        /// moves of it and of its parent, its filter's mesh, the mesh's vertices, bounds and
+        /// destruction, filters added and removed, and bounds assigned to the renderer.
+        [Fact]
+        public void KeptCullingBoundsFollowWhatTheyAreMadeFrom()
+        {
+            using var s = new RenderScope();
+            s.SetUpCamera();
+            var parent = new GameObject("parent");
+            var a = s.Quadr("A", s.MaterialA, parent.transform);
+            var b = s.Quadr("B", s.MaterialB);
+            Assert.Equal("A,B", DrawnKept(s));
+            long made = CullCache.Made;
+            Assert.Equal("A,B", DrawnKept(s));
+            Assert.Equal(made, CullCache.Made); // nothing changed: nothing made again
+
+            // Its own move, and its parent's.
+            a.transform.position = new Vector3(100f, 100f, 0f);
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            a.transform.position = new Vector3(4f, 4f, 0f);
+            Assert.Equal("A,B", DrawnKept(s));
+            parent.transform.position = new Vector3(-100f, 0f, 0f);
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            parent.transform.position = Vector3.zero;
+            Assert.Equal("A,B", DrawnKept(s));
+            parent.transform.localScale = new Vector3(100f, 100f, 1f);
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s)); // A now at (400, 400)
+            parent.transform.localScale = Vector3.one;
+            Assert.Equal("A,B", DrawnKept(s));
+            // Reparented.
+            var far = new GameObject("far");
+            far.transform.position = new Vector3(200f, 0f, 0f);
+            a.transform.SetParent(far.transform, false);
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            a.transform.SetParent(parent.transform, false);
+            Assert.Equal("A,B", DrawnKept(s));
+
+            // Its filter's mesh: another one, the mesh's vertices and bounds, its destruction.
+            var filter = a.GetComponent<MeshFilter>();
+            var farMesh = new Mesh { vertices = [new Vector3(100f, 0f, 0f), new Vector3(100f, 1f, 0f), new Vector3(101f, 0f, 0f)], triangles = [0, 1, 2] };
+            filter.sharedMesh = farMesh;
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            // (The bounds follow new vertices when their number changes.)
+            farMesh.vertices = [Vector3.zero, Vector3.up, Vector3.right, Vector3.one];
+            AssertKeptMatch();
+            Assert.Equal("A,B", DrawnKept(s));
+            farMesh.bounds = new Bounds(new Vector3(300f, 0f, 0f), Vector3.one);
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            farMesh.RecalculateBounds();
+            Assert.Equal("A,B", DrawnKept(s));
+            farMesh.SetVertices(new List<Vector3> { new(100f, 0f, 0f), new(100f, 1f, 0f), new(101f, 0f, 0f) });
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            filter.sharedMesh = s.Quad;
+            Assert.Equal("A,B", DrawnKept(s));
+            // A second filter's mesh is read when the first's is destroyed.
+            var lone = new GameObject("lone");
+            var mine = new Mesh { vertices = [Vector3.zero, Vector3.up, Vector3.right], triangles = [0, 1, 2] };
+            filter.sharedMesh = mine;
+            Assert.Equal("A,B", DrawnKept(s));
+            Object.DestroyImmediate(mine);
+            AssertKeptMatch();
+            // No mesh now: empty bounds at A's position, still in view.
+            Assert.Equal(0, FrameRenderer.KeptBounds().Wrong);
+            filter.sharedMesh = s.Quad;
+            Assert.Equal("A,B", DrawnKept(s));
+            // The filter's mesh instance (MeshFilter.mesh) and a filter removed.
+            filter.mesh.vertices = [new Vector3(100f, 0f, 0f), new Vector3(100f, 1f, 0f), new Vector3(101f, 0f, 0f), new Vector3(101f, 1f, 0f)];
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            Object.DestroyImmediate(filter);
+            AssertKeptMatch();
+            s.Drawn();
+            AssertKeptMatch();
+            a.gameObject.AddComponent<MeshFilter>().sharedMesh = s.Quad;
+            AssertKeptMatch();
+            Assert.Equal("A,B", DrawnKept(s));
+
+            // Bounds assigned to the renderer, and reset.
+            a.bounds = new Bounds(new Vector3(500f, 0f, 0f), Vector3.one);
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            a.ResetBounds();
+            Assert.Equal("A,B", DrawnKept(s));
+            a.localBounds = new Bounds(new Vector3(500f, 0f, 0f), Vector3.one);
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            a.transform.position = new Vector3(-496f, 4f, 0f);
+            AssertKeptMatch();
+            Assert.Equal("A,B", DrawnKept(s));
+            a.ResetLocalBounds();
+            a.transform.position = new Vector3(4f, 4f, 0f);
+            Assert.Equal("A,B", DrawnKept(s));
+
+            // Disabled, moved, enabled; deactivated, moved, activated; another layer and back.
+            a.enabled = false;
+            a.transform.position = new Vector3(100f, 100f, 0f);
+            a.enabled = true;
+            Assert.Equal("B", DrawnKept(s));
+            a.gameObject.SetActive(false);
+            a.transform.position = new Vector3(4f, 4f, 0f);
+            a.gameObject.SetActive(true);
+            Assert.Equal("B,A", DrawnKept(s));
+            a.gameObject.layer = 3;
+            a.transform.position = new Vector3(100f, 100f, 0f);
+            a.gameObject.layer = 0;
+            Assert.Equal("B", DrawnKept(s));
+            a.transform.position = new Vector3(4f, 4f, 0f);
+            Assert.Equal("B,A", DrawnKept(s));
+            // A transform made a RectTransform keeps the watch.
+            a.gameObject.AddComponent<RectTransform>();
+            AssertKeptMatch();
+            Assert.Equal("B,A", DrawnKept(s));
+            a.transform.position = new Vector3(100f, 100f, 0f);
+            AssertKeptMatch();
+            Assert.Equal("B", DrawnKept(s));
+            Object.DestroyImmediate(lone);
+        }
+
+        /// A move from OnBecameVisible reaches the renderers culled later in that pass.
+        [Fact]
+        public void KeptCullingBoundsSeeMovesMadeDuringThePass()
+        {
+            using var s = new RenderScope();
+            s.SetUpCamera();
+            var trigger = s.Quadr("A", s.MaterialA);
+            var b = s.Quadr("B", s.MaterialB);
+            Assert.Equal("A,B", DrawnKept(s));
+            b.transform.position = new Vector3(100f, 100f, 0f);
+            Assert.Equal("A", DrawnKept(s));
+            trigger.transform.position = new Vector3(100f, 100f, 0f);
+            Assert.Equal("", s.Drawn());
+            trigger.transform.position = new Vector3(4f, 4f, 0f);
+            trigger.gameObject.AddComponent<VisibleHook>().Visible = () => b.transform.position = new Vector3(4f, 4f, 0f);
+            Assert.Equal("A,B", DrawnKept(s));
+        }
+
         [Fact]
         public void RenderersChangedFromOnBecameVisibleWaitForTheNextRender()
         {
