@@ -128,8 +128,8 @@ namespace OniMoono.Host.GameTweaks
                 "Compression and the file write move to another thread; quitting waits for them."),
             new(NoSaveGc, Saving, "No cleanup pause when saving", "Skips the memory cleanup the game forces after each save, a pause of its own.",
                 "Skips the full garbage collection the game asks for after saving."),
-            new(PostLoadGc, Saving, "No pause a minute into play", "Removes a short freeze about a minute after loading a large colony.",
-                "Runs the memory cleanup behind that freeze at the end of the load instead, while the game is still paused. "
+            new(PostLoadGc, Saving, "Memory cleanup during loading", "Collects garbage during the loading screen, avoiding a large hitch shortly after the game starts.",
+                "Runs the memory cleanup that would otherwise pause the game about a minute into play at the end of the load, while the game is still paused. "
                 + "Only with Fast garbage collection (the default).", PostLoadGain),
 
             new("fast-jobs", Simulation, "Faster worker threads", "Less time lost waking idle worker threads every frame.",

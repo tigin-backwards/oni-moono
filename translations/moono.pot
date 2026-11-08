@@ -382,17 +382,17 @@ msgstr ""
 
 #. Row title (post-load-gc)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.TITLE"
-msgid "No pause a minute into play"
+msgid "Memory cleanup during loading"
 msgstr ""
 
 #. The line under the title (post-load-gc)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.EFFECT"
-msgid "Removes a short freeze about a minute after loading a large colony."
+msgid "Collects garbage during the loading screen, avoiding a large hitch shortly after the game starts."
 msgstr ""
 
 #. Tooltip: how it works (post-load-gc)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.DETAIL"
-msgid "Runs the memory cleanup behind that freeze at the end of the load instead, while the game is still paused. Only with Fast garbage collection (the default)."
+msgid "Runs the memory cleanup that would otherwise pause the game about a minute into play at the end of the load, while the game is still paused. Only with Fast garbage collection (the default)."
 msgstr ""
 
 #. Tooltip: the measured gain (post-load-gc)
