@@ -42,12 +42,19 @@ namespace OniMoono.Desktop.Gl
         GlTextures.SamplerSettings sampler;
         DeviceMesh mesh;
         MeshUpload meshUpload;
+        /// The upload record's generation when the command was recorded: records come from the
+        /// frame's arena (FrameArena.Record), and one handed out again before the command ran
+        /// would hold another upload's data.
+        int generation;
+
+        /// Upload records found with another generation than their command's (device thread).
+        internal static long StaleRecords;
 
         public ResourceCommand() => Run = Execute;
 
         public System.Action UploadTexture(IResourceWork work, DeviceTexture texture, TexelUpload upload)
         {
-            (kind, this.work, this.texture, this.upload) = (Kind.UploadTexture, work, texture, upload);
+            (kind, this.work, this.texture, this.upload, generation) = (Kind.UploadTexture, work, texture, upload, upload.Generation);
             return Run;
         }
 
@@ -59,7 +66,7 @@ namespace OniMoono.Desktop.Gl
 
         public System.Action UploadMesh(IResourceWork work, DeviceMesh mesh, MeshUpload upload)
         {
-            (kind, this.work, this.mesh, meshUpload) = (Kind.UploadMesh, work, mesh, upload);
+            (kind, this.work, this.mesh, meshUpload, generation) = (Kind.UploadMesh, work, mesh, upload, upload.Generation);
             return Run;
         }
 
@@ -67,6 +74,13 @@ namespace OniMoono.Desktop.Gl
         {
             var (w, t, u, s, m, mu) = (work, texture, upload, sampler, mesh, meshUpload);
             (work, texture, upload, mesh, meshUpload) = (null, null, null, null, null);
+            int recorded = kind switch { Kind.UploadTexture => u.Generation, Kind.UploadMesh => mu.Generation, _ => generation };
+            if (recorded != generation)
+            {
+                long n = System.Threading.Interlocked.Increment(ref StaleRecords);
+                OniMoono.Engine.EngineLog.Engine($"upload record wrong ({n}): a {(kind == Kind.UploadMesh ? "mesh" : "texture")} upload's record was handed out again before it ran (generation {recorded}, given {generation})");
+                return;
+            }
             switch (kind)
             {
                 case Kind.UploadTexture: w.UploadTexture(t, u); break;

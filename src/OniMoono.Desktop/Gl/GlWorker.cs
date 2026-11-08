@@ -294,6 +294,12 @@ namespace OniMoono.Desktop.Gl
     /// Per-frame storage for command data (uniform values and block contents), reused once the
     /// frame has been executed. Growing replaces the arrays: commands recorded earlier keep
     /// the arrays they were given.
+    /// A record FrameArena.Record hands out: stamped with a new generation each time.
+    internal interface IFrameRecord
+    {
+        int Generation { get; set; }
+    }
+
     internal sealed class FrameArena
     {
         float[] floats;
@@ -320,7 +326,36 @@ namespace OniMoono.Desktop.Gl
             objectCount = 0;
             commandCount = 0;
             foreach (var list in stateCommands.Values) list.Count = 0;
+            foreach (var list in records.Values) list.Count = 0;
             foreach (var c in children) c.Reset();
+        }
+
+        abstract class RecordList
+        {
+            public int Count;
+        }
+
+        sealed class Records<T> : RecordList
+        {
+            public readonly List<T> Items = new();
+        }
+
+        readonly Dictionary<Type, RecordList> records = new();
+
+        /// A record object for one of this frame's commands (a mesh or texture upload), from a
+        /// list per type reused once the frame has run, as Command's are: the GL thread is done
+        /// with it by then. The caller sets every field it reads; the record's Generation is
+        /// stamped anew, so a command can tell it still has the record it was given.
+        public T Record<T>() where T : class, IFrameRecord, new()
+        {
+            if (!records.TryGetValue(typeof(T), out var list)) records[typeof(T)] = list = new Records<T>();
+            var typed = (Records<T>)list;
+            T record;
+            if (typed.Count < typed.Items.Count) record = typed.Items[typed.Count];
+            else typed.Items.Add(record = new T());
+            typed.Count++;
+            record.Generation++;
+            return record;
         }
 
         /// The frame's `index`th child arena, for one thread's recording while others record into

@@ -136,20 +136,30 @@ namespace OniMoono.Desktop.Gl
 
     /// A texture's texels as they were when recorded, for the GL thread to upload: a copy, or
     /// for a non-readable texture its memory itself (Unity keeps no CPU copy of those).
-    internal sealed unsafe class TexelUpload
+    ///
+    /// Take's records come from the recording frame's arena (FrameArena.Record) and are reused
+    /// once that frame has run on the GL thread; the command carries the record's generation
+    /// (RunUpload). Background uploads make records of their own.
+    internal sealed unsafe class TexelUpload : IFrameRecord
     {
+        public int Generation { get; set; }
         public TextureFormat Format;
         public int Width, Height, Depth, MipCount;
         public uint Target;
         public PixelMemory Memory;
 
-        public static TexelUpload Take(TexelTextureNative t)
+        public static TexelUpload Take(TexelTextureNative t, FrameArena arena)
         {
-            var u = new TexelUpload
-            {
-                Format = t.Format, Width = t.Width, Height = t.Height, Depth = t.Depth, MipCount = t.MipCount,
-                Target = t switch { Texture2DArrayNative => TexTarget2DArray, Texture3DNative => TexTarget3D, _ => TexTarget2D },
-            };
+            var u = arena.Record<TexelUpload>();
+            u.Format = t.Format;
+            u.Width = t.Width;
+            u.Height = t.Height;
+            u.Depth = t.Depth;
+            u.MipCount = t.MipCount;
+            u.Target = t switch { Texture2DArrayNative => TexTarget2DArray, Texture3DNative => TexTarget3D, _ => TexTarget2D };
+            u.Memory = null;
+            u.Pooled = false;
+            u.Copying = null;
             if (!t.Readable) u.Memory = t.TakeTexels();
             else if (t.Texels is { } m)
             {
@@ -192,6 +202,7 @@ namespace OniMoono.Desktop.Gl
                 if (Pooled) UploadBuffers.Return(Memory);
                 else Memory?.Free();
                 Memory = null;
+                Copying = null;
             }
         }
     }
@@ -446,7 +457,7 @@ namespace OniMoono.Desktop.Gl
                         g.RecordedContent = tt.ContentVersion;
                         break;
                     }
-                    var upload = TexelUpload.Take(tt);
+                    var upload = TexelUpload.Take(tt, worker.Arena);
                     g.RecordedContent = tt.ContentVersion;
                     g.RecordedTarget = upload.Target;
                     g.RecordedSampler = -1;

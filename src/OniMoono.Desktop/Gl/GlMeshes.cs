@@ -26,6 +26,19 @@ namespace OniMoono.Desktop.Gl
         public bool ByteColors;
 
         public bool SameAs(MeshLayout o) => o != null && ByteColors == o.ByteColors && Components.AsSpan().SequenceEqual(o.Components);
+
+        public void Clear()
+        {
+            Array.Clear(Components);
+            ByteColors = false;
+        }
+
+        public MeshLayout Copy()
+        {
+            var copy = new MeshLayout { ByteColors = ByteColors };
+            Components.CopyTo(copy.Components, 0);
+            return copy;
+        }
     }
 
     /// A mesh on the device: one buffer per channel, one index buffer holding every submesh.
@@ -87,8 +100,13 @@ namespace OniMoono.Desktop.Gl
     /// (a change replaces the array), so they hold what was recorded until the upload runs.
     /// The first VertexCount elements of each channel and IndexCount of the indices are the
     /// data: a mesh setter's arrays can be longer (MeshNative.NewChannelAtLeast).
-    internal sealed class MeshUpload
+    ///
+    /// Records come from the recording frame's arena (FrameArena.Record) and are reused once
+    /// that frame has run on the GL thread; the command carries the record's generation, and a
+    /// record found with another one (handed out again too early) is reported, not uploaded.
+    internal sealed class MeshUpload : IFrameRecord
     {
+        public int Generation { get; set; }
         public readonly Array[] Channels = new Array[(int)Channel.Count];
         public int VertexCount;
         public int[] Indices;
@@ -123,7 +141,7 @@ namespace OniMoono.Desktop.Gl
             if (frame % 600 == 0 && frame != reportedFrame)
             {
                 reportedFrame = frame;
-                OniMoono.Engine.EngineLog.Engine($"mesh reuse: {recorded} uploads recorded, {System.Threading.Interlocked.Read(ref checkedUploads)} checked, {System.Threading.Interlocked.Read(ref wrong)} wrong; {MeshNative.ReuseCounts()}");
+                OniMoono.Engine.EngineLog.Engine($"mesh reuse: {recorded} uploads recorded, {System.Threading.Interlocked.Read(ref checkedUploads)} checked, {System.Threading.Interlocked.Read(ref wrong)} wrong, {System.Threading.Interlocked.Read(ref ResourceCommand.StaleRecords)} stale upload records; {MeshNative.ReuseCounts()}");
             }
         }
 
@@ -177,8 +195,20 @@ namespace OniMoono.Desktop.Gl
                 GraphicsDevice.Adopt(m, d);
             }
             if (d.RecordedVersion == m.Version) return d;
-            var upload = new MeshUpload { Usage = m.Dynamic ? DynamicDraw : StaticDraw, Mesh = m, Sequence = ++m.UploadsPosted, VertexCount = m.VertexCount };
-            var layout = new MeshLayout();
+            var upload = worker.Arena.Record<MeshUpload>();
+            Array.Clear(upload.Channels);
+            upload.Usage = m.Dynamic ? DynamicDraw : StaticDraw;
+            upload.Mesh = m;
+            upload.Sequence = ++m.UploadsPosted;
+            upload.VertexCount = m.VertexCount;
+            upload.Indices = null;
+            upload.IndexCount = 0;
+            upload.Checksum = 0;
+            // Built in a scratch layout (main thread): the device mesh keeps its layout object
+            // while the channels stay the same, and gets a copy of its own when they change (the
+            // GL thread reads the layouts it was given, and vertex arrays are kept per layout).
+            var layout = scratchLayout;
+            layout.Clear();
             AddChannel(upload, layout, Channel.Position, m.Positions, 3);
             AddChannel(upload, layout, Channel.Normal, m.Normals, 3);
             AddChannel(upload, layout, Channel.Tangent, m.Tangents, 4);
@@ -203,8 +233,8 @@ namespace OniMoono.Desktop.Gl
                 // UVs are stored as Vector4 whatever their dimension.
                 AddChannel(upload, layout, Channel.Uv0 + u, uv, uv == null ? 0 : -Math.Max(1, m.UvDimensions[u]));
             }
-            d.SubMeshes = Indices(m, out upload.Indices, out upload.IndexCount);
-            if (!layout.SameAs(d.Layout)) d.Layout = layout;
+            d.SubMeshes = Indices(m, d.SubMeshes, out upload.Indices, out upload.IndexCount);
+            if (!layout.SameAs(d.Layout)) d.Layout = layout.Copy();
             d.RecordedVersion = m.Version;
             if (MeshNative.VerifyReuse) MeshReuseVerify.Recorded(upload);
             PostUpload(worker, d, upload);
@@ -217,6 +247,8 @@ namespace OniMoono.Desktop.Gl
         // A ResourceCommand from the frame's arena: no closure or delegate per changed mesh.
         static void PostUpload(GlWorker worker, DeviceMesh d, MeshUpload upload)
             => worker.Post(worker.Arena.Command().UploadMesh(worker.Resources, d, upload));
+
+        static readonly MeshLayout scratchLayout = new();
 
         static void AddChannel<T>(MeshUpload upload, MeshLayout layout, Channel c, T[] data, int components) where T : unmanaged
         {
@@ -323,9 +355,11 @@ namespace OniMoono.Desktop.Gl
         /// Every submesh's indices in one array (quads as two triangles each), with each
         /// submesh's range. A mesh of one submesh that needs no conversion uploads its own index
         /// array (index arrays, like the channels, are never written once published).
-        static (int, int, uint, int)[] Indices(MeshNative m, out int[] indices, out int count)
+        /// The ranges go into `previous` when it has the length (the device mesh's last ranges:
+        /// read on the main thread only, as values, by the draws it records).
+        static (int, int, uint, int)[] Indices(MeshNative m, (int, int, uint, int)[] previous, out int[] indices, out int count)
         {
-            var subs = new (int, int, uint, int)[m.SubMeshes.Count];
+            var subs = previous.Length == m.SubMeshes.Count ? previous : new (int, int, uint, int)[m.SubMeshes.Count];
             if (subs.Length == 1 && m.SubMeshes[0].Topology != MeshTopology.Quads)
             {
                 var only = m.SubMeshes[0];
