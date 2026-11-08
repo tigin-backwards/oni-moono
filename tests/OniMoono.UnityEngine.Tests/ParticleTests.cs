@@ -396,10 +396,10 @@ namespace OniMoono.Tests
             Assert.Equal(Matrix4x4.identity, objectToWorld);
             Assert.Equal(4 * n, mesh.VertexCount);
             Assert.Equal(6 * n, mesh.SubMeshes[0].Indices.Length);
-            Assert.All(mesh.Positions, p => Assert.Equal(0f, p.z, 4));
+            Assert.All(mesh.Positions.AsSpan(0, mesh.VertexCount).ToArray(), p => Assert.Equal(0f, p.z, 4));
             Assert.Equal(2f, mesh.Bounds.size.x, 3);
             Assert.Equal(2f, mesh.Bounds.size.y, 3);
-            Assert.All(mesh.Normals, nrm => Assert.Equal(Vector3.back, nrm));
+            Assert.All(mesh.Normals.AsSpan(0, mesh.VertexCount).ToArray(), nrm => Assert.Equal(Vector3.back, nrm));
             // Renderer bounds hold the quad at any roll: its diagonal.
             Assert.Equal(2f * Mathf.Sqrt(2f), ps.GetComponent<ParticleSystemRenderer>().bounds.size.x, 3);
 
@@ -430,7 +430,7 @@ namespace OniMoono.Tests
                 var mesh = new MeshNative();
                 Assert.True(renderer.BuildGeometry(new ParticleView(new Vector3(0f, 0f, -20f), Quaternion.identity, null), mesh, out _));
                 Assert.True(mesh.VertexCount >= ps.particleCount * 4);
-                Assert.All(mesh.Positions, p => Assert.True(float.IsFinite(p.x) && float.IsFinite(p.y) && float.IsFinite(p.z)));
+                Assert.All(mesh.Positions.AsSpan(0, mesh.VertexCount).ToArray(), p => Assert.True(float.IsFinite(p.x) && float.IsFinite(p.y) && float.IsFinite(p.z)));
                 Object.DestroyImmediate(ps.gameObject);
             }
         }
@@ -444,7 +444,7 @@ namespace OniMoono.Tests
             var mesh = new MeshNative();
             Assert.True(renderer.BuildGeometry(new ParticleView(new Vector3(0f, 10f, 0f), Quaternion.Euler(90f, 0f, 0f), null), mesh, out _));
             Assert.Equal(2, mesh.SubMeshes.Count);
-            Assert.NotEmpty(mesh.SubMeshes[1].Indices);
+            Assert.NotEqual(0, mesh.SubMeshes[1].IndexCount);
             // Non-looping 5 s system, lifetime 5 s, trail points lasting 5 s: done after 15 s.
             Assert.True(ps.IsAlive());
             Frames(60 * 13);

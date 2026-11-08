@@ -82,10 +82,16 @@ namespace OniMoono.Desktop.Gl
     /// A mesh's vertex and index data as it was when recorded, for the GL thread. The channel
     /// arrays are the mesh's own: MeshNative never writes into a channel array it has published
     /// (a change replaces the array), so they hold what was recorded until the upload runs.
+    /// The first VertexCount elements of each channel and IndexCount of the indices are the
+    /// data: a mesh setter's arrays can be longer (MeshNative.NewChannelAtLeast).
     internal sealed class MeshUpload
     {
         public readonly Array[] Channels = new Array[(int)Channel.Count];
+        public int VertexCount;
         public int[] Indices;
+        public int IndexCount;
+        /// The data's checksum when recorded (MeshReuseVerify).
+        public ulong Checksum;
         public uint Usage;
         /// The mesh and this upload's place in its uploads: once it has run, the arrays it held
         /// may be reused (MeshNative.NewChannel).
@@ -94,6 +100,66 @@ namespace OniMoono.Desktop.Gl
 
         /// The device has copied the arrays out (device thread; also when the upload failed).
         public void Ran() => Mesh?.UploadRan(Sequence);
+    }
+
+    /// ONI_VERIFY_MESH_REUSE=1 (MeshNative.VerifyReuse): every mesh upload's data is
+    /// checksummed when it is recorded (main thread) and again on the GL thread just before it
+    /// is copied into buffers. The arrays are the mesh's own until the upload has run, and
+    /// MeshNative hands one out again only after that; a difference means an array was written
+    /// (reused) while an upload still held it.
+    internal static class MeshReuseVerify
+    {
+        static long recorded, checkedUploads, wrong;
+        static int reportedFrame;
+
+        public static void Recorded(MeshUpload upload)
+        {
+            upload.Checksum = Checksum(upload);
+            recorded++;
+            int frame = Time.frameCount;
+            if (frame % 600 == 0 && frame != reportedFrame)
+            {
+                reportedFrame = frame;
+                OniMoono.Engine.EngineLog.Engine($"mesh reuse: {recorded} uploads recorded, {System.Threading.Interlocked.Read(ref checkedUploads)} checked, {System.Threading.Interlocked.Read(ref wrong)} wrong; {MeshNative.ReuseCounts()}");
+            }
+        }
+
+        public static void Uploading(MeshUpload upload)
+        {
+            System.Threading.Interlocked.Increment(ref checkedUploads);
+            if (Checksum(upload) == upload.Checksum) return;
+            long n = System.Threading.Interlocked.Increment(ref wrong);
+            OniMoono.Engine.EngineLog.Engine($"mesh reuse wrong ({n}): mesh '{upload.Mesh?.Name}' upload {upload.Sequence}: its arrays changed between recording and upload");
+        }
+
+        static ulong Checksum(MeshUpload upload)
+        {
+            ulong h = 14695981039346656037UL;
+            for (int i = 0; i < upload.Channels.Length; i++)
+            {
+                h = Mix(h, (ulong)i);
+                switch (upload.Channels[i])
+                {
+                    case Vector3[] v: h = Mix(h, v.AsSpan(0, Math.Min(upload.VertexCount, v.Length))); break;
+                    case Vector4[] v: h = Mix(h, v.AsSpan(0, Math.Min(upload.VertexCount, v.Length))); break;
+                    case Color[] v: h = Mix(h, v.AsSpan(0, Math.Min(upload.VertexCount, v.Length))); break;
+                    case Color32[] v: h = Mix(h, v.AsSpan(0, Math.Min(upload.VertexCount, v.Length))); break;
+                }
+            }
+            if (upload.Indices != null) h = Mix(h, upload.Indices.AsSpan(0, upload.IndexCount));
+            return h;
+        }
+
+        static ulong Mix(ulong h, ulong v) => (h ^ v) * 1099511628211UL;
+
+        static ulong Mix<T>(ulong h, ReadOnlySpan<T> values) where T : unmanaged
+        {
+            var bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(values);
+            var words = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ulong>(bytes);
+            foreach (ulong w in words) h = Mix(h, w);
+            for (int i = words.Length * 8; i < bytes.Length; i++) h = Mix(h, bytes[i]);
+            return Mix(h, (ulong)bytes.Length);
+        }
     }
 
     internal static unsafe class GlMeshes
@@ -108,7 +174,7 @@ namespace OniMoono.Desktop.Gl
                 GraphicsDevice.Adopt(m, d);
             }
             if (d.RecordedVersion == m.Version) return d;
-            var upload = new MeshUpload { Usage = m.Dynamic ? DynamicDraw : StaticDraw, Mesh = m, Sequence = ++m.UploadsPosted };
+            var upload = new MeshUpload { Usage = m.Dynamic ? DynamicDraw : StaticDraw, Mesh = m, Sequence = ++m.UploadsPosted, VertexCount = m.VertexCount };
             var layout = new MeshLayout();
             AddChannel(upload, layout, Channel.Position, m.Positions, 3);
             AddChannel(upload, layout, Channel.Normal, m.Normals, 3);
@@ -119,9 +185,9 @@ namespace OniMoono.Desktop.Gl
                 layout.Components[(int)Channel.Color] = 4;
                 layout.ByteColors = true;
             }
-            else if (m.Colors != null && m.Colors.Length > 0 && m.ColorsAreBytes)
+            else if (m.Colors != null && m.VertexCount > 0 && m.ColorsAreBytes)
             {
-                var bytes = new Color32[m.Colors.Length];
+                var bytes = new Color32[m.VertexCount];
                 for (int i = 0; i < bytes.Length; i++) bytes[i] = m.Colors[i];
                 upload.Channels[(int)Channel.Color] = bytes;
                 layout.Components[(int)Channel.Color] = 4;
@@ -134,9 +200,10 @@ namespace OniMoono.Desktop.Gl
                 // UVs are stored as Vector4 whatever their dimension.
                 AddChannel(upload, layout, Channel.Uv0 + u, uv, uv == null ? 0 : -Math.Max(1, m.UvDimensions[u]));
             }
-            d.SubMeshes = Indices(m, out upload.Indices);
+            d.SubMeshes = Indices(m, out upload.Indices, out upload.IndexCount);
             if (!layout.SameAs(d.Layout)) d.Layout = layout;
             d.RecordedVersion = m.Version;
+            if (MeshNative.VerifyReuse) MeshReuseVerify.Recorded(upload);
             PostUpload(worker, d, upload);
             return d;
         }
@@ -156,6 +223,7 @@ namespace OniMoono.Desktop.Gl
             uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
             try
             {
+                if (MeshNative.VerifyReuse) MeshReuseVerify.Uploading(upload);
                 Upload(d, upload);
             }
             finally
@@ -190,25 +258,27 @@ namespace OniMoono.Desktop.Gl
 
         static void Fill(DeviceMesh d, MeshUpload upload)
         {
+            int n = upload.VertexCount;
             for (int i = 0; i < upload.Channels.Length; i++)
             {
                 switch (upload.Channels[i])
                 {
                     case null: continue;
-                    case Vector3[] v: Store(d, i, v, upload.Usage); break;
-                    case Vector4[] v: Store(d, i, v, upload.Usage); break;
-                    case Color[] v: Store(d, i, v, upload.Usage); break;
-                    case Color32[] v: Store(d, i, v, upload.Usage); break;
+                    case Vector3[] v: Store(d, i, v, n, upload.Usage); break;
+                    case Vector4[] v: Store(d, i, v, n, upload.Usage); break;
+                    case Color[] v: Store(d, i, v, n, upload.Usage); break;
+                    case Color32[] v: Store(d, i, v, n, upload.Usage); break;
                 }
             }
             if (d.IndexBuffer == 0) d.IndexBuffer = GlApi.CreateBuffer();
-            d.IndexCapacity = Fill(d.IndexBuffer, upload.Indices, d.IndexCapacity, upload.Usage);
+            d.IndexCapacity = Fill(d.IndexBuffer, upload.Indices, upload.IndexCount, d.IndexCapacity, upload.Usage);
         }
 
-        static void Store<T>(DeviceMesh d, int i, T[] data, uint usage) where T : unmanaged
+        static void Store<T>(DeviceMesh d, int i, T[] data, int count, uint usage) where T : unmanaged
         {
             if (d.Buffers[i] == 0) d.Buffers[i] = GlApi.CreateBuffer();
-            d.Capacities[i] = Fill(d.Buffers[i], data, d.Capacities[i], usage);
+            // Channels hold at least VertexCount values (MeshNative).
+            d.Capacities[i] = Fill(d.Buffers[i], data, Math.Min(count, data.Length), d.Capacities[i], usage);
         }
 
         /// The mesh's vertex array for a program's attribute layout and a mesh layout (GL
@@ -269,39 +339,42 @@ namespace OniMoono.Desktop.Gl
         /// Every submesh's indices in one array (quads as two triangles each), with each
         /// submesh's range. A mesh of one submesh that needs no conversion uploads its own index
         /// array (index arrays, like the channels, are never written once published).
-        static (int, int, uint, int)[] Indices(MeshNative m, out int[] indices)
+        static (int, int, uint, int)[] Indices(MeshNative m, out int[] indices, out int count)
         {
             var subs = new (int, int, uint, int)[m.SubMeshes.Count];
             if (subs.Length == 1 && m.SubMeshes[0].Topology != MeshTopology.Quads)
             {
                 var only = m.SubMeshes[0];
-                indices = only.Indices;
-                subs[0] = (0, only.Indices.Length, Mode(only.Topology), only.BaseVertex);
+                indices = only.IndexArray;
+                count = only.IndexCount;
+                subs[0] = (0, count, Mode(only.Topology), only.BaseVertex);
                 return subs;
             }
             int total = 0;
             foreach (var sm in m.SubMeshes)
-                total += sm.Topology == MeshTopology.Quads ? sm.Indices.Length / 4 * 6 : sm.Indices.Length;
+                total += sm.Topology == MeshTopology.Quads ? sm.IndexCount / 4 * 6 : sm.IndexCount;
             indices = new int[total];
+            count = total;
             int at = 0;
             for (int s = 0; s < subs.Length; s++)
             {
                 var sm = m.SubMeshes[s];
+                var source = sm.Indices;
                 int start = at;
                 if (sm.Topology == MeshTopology.Quads)
-                    for (int q = 0; q + 3 < sm.Indices.Length; q += 4)
+                    for (int q = 0; q + 3 < source.Length; q += 4)
                     {
-                        indices[at++] = sm.Indices[q];
-                        indices[at++] = sm.Indices[q + 1];
-                        indices[at++] = sm.Indices[q + 2];
-                        indices[at++] = sm.Indices[q];
-                        indices[at++] = sm.Indices[q + 2];
-                        indices[at++] = sm.Indices[q + 3];
+                        indices[at++] = source[q];
+                        indices[at++] = source[q + 1];
+                        indices[at++] = source[q + 2];
+                        indices[at++] = source[q];
+                        indices[at++] = source[q + 2];
+                        indices[at++] = source[q + 3];
                     }
                 else
                 {
-                    sm.Indices.CopyTo(indices, at);
-                    at += sm.Indices.Length;
+                    source.CopyTo(indices.AsSpan(at));
+                    at += source.Length;
                 }
                 subs[s] = (start, at - start, Mode(sm.Topology), sm.BaseVertex);
             }
@@ -311,9 +384,9 @@ namespace OniMoono.Desktop.Gl
         /// Writes data into a buffer (direct state access: no binding changes, so the bound
         /// vertex array keeps its index buffer): in place when it fits the current storage, else
         /// into new storage. Returns the storage size.
-        static long Fill<T>(uint buffer, T[] data, long capacity, uint usage) where T : unmanaged
+        static long Fill<T>(uint buffer, T[] data, int count, long capacity, uint usage) where T : unmanaged
         {
-            long bytes = (long)data.Length * sizeof(T);
+            long bytes = (long)count * sizeof(T);
             fixed (T* p = data)
             {
                 if (bytes > 0 && bytes <= capacity)

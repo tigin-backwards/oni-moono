@@ -177,7 +177,7 @@ namespace OniMoono.Tests
             var mesh = new OniMoono.Engine.Rendering.MeshNative();
             var native = (OniMoono.Engine.Rendering.LineRendererNative)line.NativeOrThrow;
             if (!native.BuildGeometry(new Vector3(0, 0, -10), Vector3.forward, Vector3.right, Vector3.up, false, mesh)) return (Array.Empty<Vector3>(), Array.Empty<Vector2>(), Array.Empty<Color32>(), Array.Empty<int>());
-            return (mesh.Positions, mesh.Uvs[0].Select(u => new Vector2(u.x, u.y)).ToArray(), mesh.Colors.Select(c => (Color32)c).ToArray(), mesh.SubMeshes[0].Indices);
+            return (mesh.Positions, mesh.Uvs[0].Select(u => new Vector2(u.x, u.y)).ToArray(), mesh.Colors.Select(c => (Color32)c).ToArray(), mesh.SubMeshes[0].Indices.ToArray());
         }
 
         static void Near(Vector3 expected, Vector3 actual) => Assert.True((expected - actual).magnitude < 1e-3f, $"expected {expected}, got {actual}");

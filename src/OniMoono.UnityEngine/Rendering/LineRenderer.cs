@@ -461,7 +461,7 @@ namespace OniMoono.Engine.Rendering
             target.UvDimensions[0] = 2;
             target.IndexFormat = positions.Length > ushort.MaxValue ? 1 : 0;
             target.Dynamic = true;
-            target.SubMeshes = new List<SubMeshData> { new() { Indices = indices } };
+            target.SubMeshes = new List<SubMeshData> { new(indices) };
             target.RecalculateBounds();
             return true;
         }

@@ -1350,7 +1350,7 @@ namespace OniMoono.Engine.UI
                 {
                     var part = new int[p.SubMeshes[0].Indices.Length];
                     for (int i = 0; i < part.Length; i++) part[i] = p.SubMeshes[0].Indices[i] + v;
-                    subMeshes.Add(new SubMeshData { Indices = part });
+                    subMeshes.Add(new SubMeshData(part));
                 }
                 else
                     foreach (int index in p.SubMeshes[0].Indices) indexData[k++] = index + v;
@@ -1376,7 +1376,7 @@ namespace OniMoono.Engine.UI
                 mesh.Uvs[u] = uvData[u];
                 mesh.UvDimensions[u] = uvData[u] != null ? 4 : 0;
             }
-            if (!subMeshEach) subMeshes.Add(new SubMeshData { Indices = indexData });
+            if (!subMeshEach) subMeshes.Add(new SubMeshData(indexData));
             mesh.SubMeshes = subMeshes;
             mesh.RecalculateBounds();
             mesh.Changed();
@@ -1425,8 +1425,8 @@ namespace OniMoono.Engine.UI
             mesh.Tangents = g.Tangents;
             // One submesh with the geometry's indices; its object is kept (nothing holds it
             // past the device's recording).
-            if (mesh.SubMeshes.Count == 1) mesh.SubMeshes[0].Indices = g.Indices;
-            else mesh.SubMeshes = new List<SubMeshData> { new SubMeshData { Indices = g.Indices } };
+            if (mesh.SubMeshes.Count == 1) mesh.SubMeshes[0].SetIndices(g.Indices);
+            else mesh.SubMeshes = new List<SubMeshData> { new SubMeshData(g.Indices) };
             mesh.RecalculateBounds();
             mesh.Changed();
             return mesh;
