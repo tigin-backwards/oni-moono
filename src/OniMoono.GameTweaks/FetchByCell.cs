@@ -27,6 +27,9 @@ namespace OniMoono.GameTweaks
     /// The best item is still checked with CouldBePickedUpByMinion (a key whose best fails checks
     /// all of its items), and so is every item whose answer can differ by Duplicant: those with
     /// reservations, and those in a storage with an Automatable (conveyor loaders and receptacles).
+    /// A cell whose items take their work spots from different sources (CellSources: a bottle
+    /// filler's stored water, given the filler's work cell, beside loose water) is costed as the
+    /// game costs it, through the first item there in the group's list that passes.
     ///
     /// Keys on worlds the Duplicant cannot reach are left out: a cell at least R cells inside a
     /// world's rectangle (R: the largest offset any fetchable's tracker can return) on a world none
@@ -46,7 +49,8 @@ namespace OniMoono.GameTweaks
     ///
     /// ONI_VERIFY_FETCH_BY_CELL=1 (or ONI_TWEAK_VERIFY=1) keeps the game's pass and runs this one
     /// beside it, logging any result that differs other than by a tie, any item in a left-out cell
-    /// that had a path cost, and every resync's mirror drift. ONI_FETCH_STATS=1 times the update.
+    /// that had a path cost, and the mirror's drift from the game's lists, checked every few
+    /// seconds in this mode (in play only after one of its hooks ran off the main thread). ONI_FETCH_STATS=1 times the update.
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void FetchManager::UpdatePickups(Navigator,WorkerBase)")]
     [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<FetchManager/Pickup> FetchManager::pickups")]
     [GameMember(GameUse.Postfix, "HandleVector`1/Handle<System.Int32> FetchManager/FetchablesByPrefabId::AddPickupable(Pickupable)")]
@@ -119,6 +123,8 @@ namespace OniMoono.GameTweaks
             public Key Key;
             public int Pos = -1; // in Key.Members or Key.Specials
             public int Class = -2; // world index counted in G.Interior, -1 counted in G.Outside, -2 not counted
+            public object Source; // where its work spots come from (SourceOf), counted in G.Cells
+            public int RotPos = -1;
         }
 
         sealed class Key
@@ -137,6 +143,7 @@ namespace OniMoono.GameTweaks
             public readonly Dictionary<(int, int, int), Key> Keys = new Dictionary<(int, int, int), Key>();
             public readonly List<Key> KeyList = new List<Key>();
             public readonly List<Item> RotItems = new List<Item>();
+            public readonly Dictionary<int, CellSources> Cells = new Dictionary<int, CellSources>();
             public int[] Interior = new int[64];
             public int Outside;
             public bool Unsafe;
@@ -147,15 +154,15 @@ namespace OniMoono.GameTweaks
             public readonly List<(Item Item, ushort Cost)> SubList = new List<(Item, ushort)>();
             public bool PendingCompare;
             public readonly HashSet<int> SkippedCells = new HashSet<int>();
-            public long Exceptions, SpecialChecks, KeysSeen, KeysSkipped, GroupsSkipped, Recomputes;
+            public long Exceptions, SpecialChecks, KeysSeen, KeysSkipped, GroupsSkipped, Recomputes, MixedCosts;
         }
 
         static FetchManager boundTo;
         static readonly Dictionary<Group, GroupMirror> groups = new Dictionary<Group, GroupMirror>();
         static readonly Dictionary<Pickupable, Item> byItem = new Dictionary<Pickupable, Item>();
-        static bool offThread, needResync;
+        static bool offThread;
         static readonly Stopwatch clock = Stopwatch.StartNew();
-        static double lastResync;
+        static double lastResync, boundAt;
         
         // ---- The world view ----
         static int radius;
@@ -166,8 +173,16 @@ namespace OniMoono.GameTweaks
         static long layout;
         static readonly bool[] reached = new bool[256];
         static bool skipActive, active;
-        static readonly Dictionary<Navigator, (List<int> Cells, int Count, PathGrid Grid, ushort Serial, bool[] Reached)> navCache =
-            new Dictionary<Navigator, (List<int>, int, PathGrid, ushort, bool[])>();
+        /// Each navigator's reached worlds from its last probe (kept weakly: destroyed navigators go).
+        sealed class NavReach
+        {
+            public List<int> Cells;
+            public int Count;
+            public PathGrid Grid;
+            public ushort Serial;
+            public readonly bool[] Reached = new bool[256];
+        }
+        static System.Runtime.CompilerServices.ConditionalWeakTable<Navigator, NavReach> navCache = new System.Runtime.CompilerServices.ConditionalWeakTable<Navigator, NavReach>();
 
         // ---- Shadow counters ----
         static long mismatches, gIdentical, gTie, gOther, lIdentical, lTie, lOther, premiseChecked, premiseWrong, shadowUpdates;
@@ -305,12 +320,14 @@ namespace OniMoono.GameTweaks
             if (!ReferenceEquals(__instance, boundTo)) Bind(__instance);
             if (CheckLayout()) Recount();
             double now = clock.Elapsed.TotalSeconds;
-            if (offThread || needResync || now - lastResync > resyncSeconds)
+            // The mirror is checked against the game's lists only in verify mode (every few
+            // seconds, logging drift) and after a hook ran off the main thread.
+            if (offThread || (verify && now - lastResync > resyncSeconds))
             {
                 Resync(__instance);
                 lastResync = now;
-                if (stats && !measured && resyncs >= 3) MeasureMirror(__instance);
             }
+            if (stats && !measured && now - boundAt > 20) MeasureMirror(__instance);
             if (worldState == State.On) skipActive = Reached(navigator) && radius < UnknownRadius;
             active = true;
         }
@@ -410,27 +427,14 @@ namespace OniMoono.GameTweaks
                     continue;
                 }
                 if (key.Dirty) Recompute(gm, key);
-                Item cand = null;
-                var best = key.Best;
-                if (best != null)
-                {
-                    if (best.P.CouldBePickedUpByMinion(worker)) cand = best;
-                    else
-                    {
-                        gm.Exceptions++;
-                        foreach (var m in key.Members)
-                            if (!ReferenceEquals(m, best) && (cand == null || Better(m, cand)) && m.P.CouldBePickedUpByMinion(worker)) cand = m;
-                    }
-                }
-                foreach (var s in key.Specials)
-                {
-                    gm.SpecialChecks++;
-                    if ((cand == null || Better(s, cand)) && s.P.CouldBePickedUpByMinion(worker)) cand = s;
-                }
+                var cand = PileChoice.Choose(key.Best, key.Members, key.Specials, new ItemRules { Worker = worker }, ref gm.Exceptions, ref gm.SpecialChecks);
                 if (cand == null) continue;
                 if (!costs.TryGetValue(key.Cell, out int cost))
                 {
-                    cost = cand.P.GetNavigationCost(nav, key.Cell);
+                    // The game costs a cell through the first item there in its list that passed;
+                    // while every item there takes its work spots from one source, any gives that.
+                    var via = gm.Cells.TryGetValue(key.Cell, out var sources) && !sources.Uniform ? FirstPassing(gm, key.Cell, worker) : cand.P;
+                    cost = via == null ? -1 : via.GetNavigationCost(nav, key.Cell);
                     costs[key.Cell] = cost;
                 }
                 if (cost == -1) continue;
@@ -454,11 +458,28 @@ namespace OniMoono.GameTweaks
         static void Recompute(GroupMirror gm, Key key)
         {
             gm.Recomputes++;
-            Item best = null;
-            foreach (var m in key.Members)
-                if (best == null || Better(m, best)) best = m;
-            key.Best = best;
+            key.Best = PileChoice.Best(key.Members, new ItemRules());
             key.Dirty = false;
+        }
+
+        /// The game's choice for a cell whose items' work spots differ: the first item there, in
+        /// the group's list, that this Duplicant may pick up.
+        static Pickupable FirstPassing(GroupMirror gm, int cell, int worker)
+        {
+            gm.MixedCosts++;
+            foreach (var data in gm.Group.fetchables.GetDataList())
+            {
+                var p = data.pickupable;
+                if (p.cachedCell == cell && p.CouldBePickedUpByMinion(worker)) return p;
+            }
+            return null;
+        }
+
+        struct ItemRules : IPileRules<Item>
+        {
+            public int Worker;
+            public bool CanPick(Item item) => item.P.CouldBePickedUpByMinion(Worker);
+            public bool Better(Item a, Item b) => FetchByCell.Better(a, b);
         }
 
         /// 0 identical, 1 the same keys with other items, 2 other.
@@ -505,11 +526,11 @@ namespace OniMoono.GameTweaks
             double now = clock.Elapsed.TotalSeconds;
             if (now - lastShadowLog < 30) return;
             lastShadowLog = now;
-            long exc = 0, spc = 0, ks = 0, kk = 0, gsk = 0;
-            foreach (var gm in groups.Values) { exc += gm.Exceptions; spc += gm.SpecialChecks; ks += gm.KeysSeen; kk += gm.KeysSkipped; gsk += gm.GroupsSkipped; }
+            long exc = 0, spc = 0, ks = 0, kk = 0, gsk = 0, mixedCosts = 0;
+            foreach (var gm in groups.Values) { exc += gm.Exceptions; spc += gm.SpecialChecks; ks += gm.KeysSeen; kk += gm.KeysSkipped; gsk += gm.GroupsSkipped; mixedCosts += gm.MixedCosts; }
             global::Debug.Log($"{Name}: {shadowUpdates} updates; {gIdentical + gTie + gOther} group results, {gTie} ties, {gOther} differed; "
                 + $"{lIdentical + lTie + lOther} merged lists, {lTie} ties, {lOther} differed; {premiseChecked} items in left-out cells, {premiseWrong} wrong; "
-                + $"{resyncs} resyncs, {mismatches} mismatches; {ks} keys, {kk} left out, {gsk} groups left out, {exc} best items failed, {spc} special checks");
+                + $"{resyncs} resyncs, {mismatches} mismatches; {ks} keys, {kk} left out, {gsk} groups left out, {exc} best items failed, {spc} special checks, {mixedCosts} cells costed through their first item");
         }
 
         // ---- Worlds ----
@@ -522,17 +543,18 @@ namespace OniMoono.GameTweaks
             var cells = nav.occupiedCells;
             var grid = nav.PathGrid;
             if (cells == null || cells.Count == 0 || grid == null) return false;
-            bool[] flags;
-            if (!verify && navCache.TryGetValue(nav, out var c) && ReferenceEquals(c.Cells, cells) && c.Count == cells.Count && ReferenceEquals(c.Grid, grid) && c.Serial == grid.SerialNo)
-                flags = c.Reached;
-            else
+            var c = navCache.GetOrCreateValue(nav);
+            if (verify || !ReferenceEquals(c.Cells, cells) || c.Count != cells.Count || !ReferenceEquals(c.Grid, grid) || c.Serial != grid.SerialNo)
             {
-                flags = navCache.TryGetValue(nav, out c) ? c.Reached : new bool[256];
-                Array.Clear(flags, 0, 256);
+                Array.Clear(c.Reached, 0, 256);
                 var worldIdx = Grid.WorldIdx;
-                for (int i = 0; i < cells.Count; i++) flags[worldIdx[cells[i]]] = true;
-                navCache[nav] = (cells, cells.Count, grid, grid.SerialNo, flags);
+                for (int i = 0; i < cells.Count; i++) c.Reached[worldIdx[cells[i]]] = true;
+                c.Cells = cells;
+                c.Count = cells.Count;
+                c.Grid = grid;
+                c.Serial = grid.SerialNo;
             }
+            var flags = c.Reached;
             Array.Copy(flags, reached, 256);
             if (Grid.IsValidCell(nav.cachedCell)) reached[Grid.WorldIdx[nav.cachedCell]] = true;
             reached[NoWorld] = true;
@@ -629,6 +651,34 @@ namespace OniMoono.GameTweaks
             return UnknownRadius;
         }
 
+        /// Where an item's work spots come from: its offset table (the same table at the same cell
+        /// gives the same spots), its fixed offsets by value, or the item itself when neither.
+        static object SourceOf(Pickupable p, Item item)
+        {
+            var type = p.GetType();
+            if (!overridesOffsets.TryGetValue(type, out bool overrides))
+            {
+                var m = type.GetMethod(nameof(Workable.GetOffsets), BindingFlags.Instance | BindingFlags.Public, null, new[] { typeof(int) }, null);
+                overrides = m == null || m.DeclaringType != typeof(Workable);
+                overridesOffsets[type] = overrides;
+            }
+            if (overrides) return item;
+            var tracker = offsetTracker(p);
+            if (tracker == null) return "0,0"; // GetOffsets makes a one-offset (0, 0) tracker
+            if (tracker.GetType() == typeof(OffsetTableTracker)) return trackerTable((OffsetTableTracker)tracker);
+            if (tracker.GetType() != typeof(StandardOffsetTracker)) return item;
+            var offsets = trackerOffsets(tracker);
+            if (offsets == null) return item;
+            var keys = new List<long>();
+            foreach (var o in offsets) keys.Add(((long)o.x << 32) | (uint)o.y);
+            keys.Sort();
+            var sb = new System.Text.StringBuilder();
+            long previous = long.MinValue;
+            foreach (var k in keys)
+                if (k != previous) { sb.Append(k >> 32).Append(',').Append((int)k).Append(';'); previous = k; }
+            return sb.Length == 4 && sb.ToString() == "0,0;" ? "0,0" : sb.ToString();
+        }
+
         static void SeeRadius(Pickupable p)
         {
             int rr = RadiusOf(p);
@@ -658,13 +708,13 @@ namespace OniMoono.GameTweaks
             boundTo = manager;
             groups.Clear();
             byItem.Clear();
-            navCache.Clear();
+            navCache = new System.Runtime.CompilerServices.ConditionalWeakTable<Navigator, NavReach>();
             layout = 0;
             radius = 0;
             CheckLayout();
             foreach (var group in manager.prefabIdToFetchables.Values) Build(Mirror(group));
             Recount();
-            lastResync = clock.Elapsed.TotalSeconds;
+            lastResync = boundAt = clock.Elapsed.TotalSeconds;
         }
 
         /// ONI_FETCH_STATS=1, once the colony's items are in: the mirror's managed size, as the
@@ -703,6 +753,7 @@ namespace OniMoono.GameTweaks
             gm.Keys.Clear();
             gm.KeyList.Clear();
             gm.RotItems.Clear();
+            gm.Cells.Clear();
             Array.Clear(gm.Interior, 0, gm.Interior.Length);
             gm.Outside = 0;
             gm.Unsafe = false;
@@ -734,8 +785,13 @@ namespace OniMoono.GameTweaks
                 other.G.Unsafe = true;
             }
             byItem[p] = item;
-            if (item.Rot) gm.RotItems.Add(item);
+            if (item.Rot)
+            {
+                item.RotPos = gm.RotItems.Count;
+                gm.RotItems.Add(item);
+            }
             SeeRadius(p);
+            item.Source = SourceOf(p, item);
             Join(item);
             Count(item, +1);
         }
@@ -759,6 +815,8 @@ namespace OniMoono.GameTweaks
                 gm.KeyList.Add(key);
             }
             item.Key = key;
+            if (!gm.Cells.TryGetValue(item.Cell, out var sources)) gm.Cells[item.Cell] = sources = new CellSources();
+            sources.Add(item.Source);
             var list = item.Special ? key.Specials : key.Members;
             item.Pos = list.Count;
             list.Add(item);
@@ -784,6 +842,11 @@ namespace OniMoono.GameTweaks
             }
             item.Key = null;
             item.Pos = -1;
+            if (item.G.Cells.TryGetValue(key.Cell, out var sources))
+            {
+                sources.Remove(item.Source);
+                if (sources.Count == 0) item.G.Cells.Remove(key.Cell);
+            }
             if (key.Members.Count == 0 && key.Specials.Count == 0)
             {
                 var gm = item.G;
@@ -857,7 +920,15 @@ namespace OniMoono.GameTweaks
             if (!gm.ByHandle.TryGetValue(fetchable_handle.index, out var item)) return;
             gm.ByHandle.Remove(fetchable_handle.index);
             if (byItem.TryGetValue(item.P, out var cur) && ReferenceEquals(cur, item)) byItem.Remove(item.P);
-            if (item.Rot) gm.RotItems.Remove(item);
+            if (item.RotPos >= 0)
+            {
+                var rot = gm.RotItems;
+                int last = rot.Count - 1;
+                rot[item.RotPos] = rot[last];
+                rot[item.RotPos].RotPos = item.RotPos;
+                rot.RemoveAt(last);
+                item.RotPos = -1;
+            }
             Leave(item);
             Count(item, -1);
         }
@@ -916,8 +987,19 @@ namespace OniMoono.GameTweaks
 
         static void TrackerChanged(Workable __instance)
         {
-            if (boundTo == null || !(__instance is Pickupable p) || !byItem.ContainsKey(p)) return;
+            if (boundTo == null || !(__instance is Pickupable p) || !byItem.TryGetValue(p, out var item)) return;
             SeeRadius(p);
+            if (OnMain())
+            {
+                var source = SourceOf(p, item);
+                if (!Equals(source, item.Source) && item.Key != null)
+                {
+                    Leave(item);
+                    item.Source = source;
+                    Join(item);
+                }
+                else item.Source = source;
+            }
             if (needRecount && OnMain()) Recount();
         }
 
@@ -926,9 +1008,8 @@ namespace OniMoono.GameTweaks
         static void Resync(FetchManager manager)
         {
             offThread = false;
-            needResync = false;
             long sw = Stopwatch.GetTimestamp();
-            int missing = 0, extra = 0, fields = 0, cells = 0, special = 0, unsafeGroups = 0, rebuilt = 0, keyDrift = 0;
+            int missing = 0, extra = 0, fields = 0, cells = 0, special = 0, sources = 0, unsafeGroups = 0, rebuilt = 0, keyDrift = 0;
             var seen = new HashSet<Group>();
             foreach (var group in manager.prefabIdToFetchables.Values)
             {
@@ -947,6 +1028,7 @@ namespace OniMoono.GameTweaks
                     if (item.Tag != d.tagBitsHash || item.Prio != d.masterPriority || item.Fresh != d.freshness || item.Qual != d.foodQuality) { fields++; drift = true; }
                     if (item.Cell != d.pickupable.cachedCell) { cells++; drift = true; }
                     if (item.Special != IsSpecial(d.pickupable)) { special++; drift = true; }
+                    if (!Equals(item.Source, SourceOf(d.pickupable, item))) { sources++; drift = true; }
                     if (item.Key == null || item.Key.Cell != item.Cell || item.Key.Tag != item.Tag || item.Key.Prio != item.Prio) { keyDrift++; drift = true; }
                 }
                 if (drift)
@@ -970,13 +1052,13 @@ namespace OniMoono.GameTweaks
             Recount();
             double ms = (Stopwatch.GetTimestamp() - sw) * 1000.0 / Stopwatch.Frequency;
             resyncs++;
-            int drifted = missing + extra + fields + cells + special + keyDrift;
+            int drifted = missing + extra + fields + cells + special + sources + keyDrift;
             mismatches += drifted;
             if (drifted > 0 || (verify && resyncs % 12 == 1))
             {
                 int items = 0, keys = 0, specials = 0;
                 foreach (var g in groups.Values) { items += g.ByHandle.Count; keys += g.KeyList.Count; foreach (var k in g.KeyList) specials += k.Specials.Count; }
-                global::Debug.Log($"{Name}: resync {resyncs}, {ms:F2} ms: {groups.Count} groups, {items} items, {keys} keys, {specials} special; drift {missing} missing, {extra} extra, {fields} fields, {cells} cells, {special} special, {keyDrift} keys{(drifted > 0 ? $" ({mismatches})" : "")}; {rebuilt} groups rebuilt ({unsafeGroups} unsafe), {gone.Count} gone; radius {radius}");
+                global::Debug.Log($"{Name}: resync {resyncs}, {ms:F2} ms: {groups.Count} groups, {items} items, {keys} keys, {specials} special; drift {missing} missing, {extra} extra, {fields} fields, {cells} cells, {special} special, {sources} work-spot sources, {keyDrift} keys{(drifted > 0 ? $" ({mismatches})" : "")}; {rebuilt} groups rebuilt ({unsafeGroups} unsafe), {gone.Count} gone; radius {radius}");
             }
         }
 
