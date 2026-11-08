@@ -50,6 +50,14 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_OFF"
 msgid "Set by the launch options (off)"
 msgstr "由启动选项设置（关）"
 
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NOT_AVAILABLE"
+msgid "NOT AVAILABLE"
+msgstr "不可用"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NOT_AVAILABLE_TIP"
+msgid "Not available on this game version."
+msgstr "此游戏版本无法使用。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_CHOICE"
 msgid "Set by the launch options ({0})"
 msgstr "由启动选项设置（{0}）"

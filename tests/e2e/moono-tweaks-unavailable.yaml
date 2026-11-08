@@ -1,0 +1,40 @@
+# A tweak this game version can't run is off, and its Moono Tweaks row says so: greyed out,
+# labelled NOT AVAILABLE, its toggle doing nothing, its tooltips saying why. fast-jobs' reviewed
+# fingerprints are ignored (ONI_TWEAK_TEST_UNREVIEWED, test runs), as on a game build nobody has
+# reviewed, so its check fails as it would there; the game starts and the other tweaks install.
+# The tweaks as a player has them (ONI_TWEAK_SETTINGS): rows changeable, none set by the launch
+# options. Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+env: {ONI_TWEAK_SETTINGS: "1", ONI_TWEAK_TEST_UNREVIEWED: fast-jobs}
+require_log:
+  - '^\[engine\] game tweak fast-jobs: off, `JobManager\.Run` changed in this game version$'
+  - '^\[engine\] game tweak fast-sublimation$'
+  - '^\[engine\] game tweak fast-offset-tables$'
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {ui: "**/MainMenuButtons/MoonoTweaksButton"}
+  - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
+  # fast-jobs and its neighbours in Simulation: "worker" matches it alone, "faster" a few.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "faster"}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/fast-jobs/**/Version": {active: true, text: "NOT AVAILABLE"}
+      "**/MoonoTweaksScreen/**/Content/fast-sublimation/**/Version": {active: false}
+  - shot: {name: rows, crop: "**/MoonoTweaksScreen"}
+  # The toggle's tooltip, and a click that changes nothing: no Restart to apply.
+  - scroll: {at: "**/MoonoTweaksScreen/**/Content/fast-jobs/**/EnabledToggle", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "Not available on this game version."}
+  - shot: {name: toggle-tip, pointer: stay}
+  - click: {ui: "**/MoonoTweaksScreen/**/Content/fast-jobs/**/EnabledToggle"}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/fast-jobs/**/Version": {active: true, text: "NOT AVAILABLE"}
+  # The row's tooltip says it first, then how the tweak works.
+  - scroll: {at: "**/MoonoTweaksScreen/**/Content/fast-jobs", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~Not available on this game version."}
+  - expect_ui:
+      "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab": {active: true, text: "/^(<color=#FFB040>)?Not available on this game version\\.(<\\/color>)?\\n\\nWakes only as many/"}
+  - shot: {name: row-tip, pointer: stay}

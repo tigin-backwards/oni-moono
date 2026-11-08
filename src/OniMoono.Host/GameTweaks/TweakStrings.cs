@@ -39,6 +39,8 @@ namespace OniMoono.Host.GameTweaks
             ("LAUNCH_OPTION_LINE", "Launch option: {0}", "A row's tooltip, last line; {0}: the launch option"),
             ("LOCKED_ON", "Set by the launch options (on)", "Tooltip of a toggle the launch options set"),
             ("LOCKED_OFF", "Set by the launch options (off)", "Tooltip of a toggle the launch options set"),
+            ("NOT_AVAILABLE", "NOT AVAILABLE", "Beside a row whose tweak this game version can't run (one line)"),
+            ("NOT_AVAILABLE_TIP", "Not available on this game version.", "Tooltip of such a row's toggle, and its tooltip's first line"),
             ("LOCKED_CHOICE", "Set by the launch options ({0})", "Tooltip of a choice button the launch options set; {0}: the choice"),
             ("NEXT_CHOICE", "Click for the next choice: {0}", "Tooltip of a choice button; {0}: the choices, LIST_SEPARATOR between them"),
             ("LIST_SEPARATOR", ", ", "Between the choices in NEXT_CHOICE"),

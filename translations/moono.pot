@@ -60,6 +60,16 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_OFF"
 msgid "Set by the launch options (off)"
 msgstr ""
 
+#. Beside a row whose tweak this game version can't run (one line)
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NOT_AVAILABLE"
+msgid "NOT AVAILABLE"
+msgstr ""
+
+#. Tooltip of such a row's toggle, and its tooltip's first line
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NOT_AVAILABLE_TIP"
+msgid "Not available on this game version."
+msgstr ""
+
 #. Tooltip of a choice button the launch options set; {0}: the choice
 msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_CHOICE"
 msgid "Set by the launch options ({0})"

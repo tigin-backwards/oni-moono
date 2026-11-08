@@ -36,7 +36,11 @@ namespace OniMoono.Host
                 var name => (Flag(effective.Tweaks[name].On), effective.Tweaks[name].Source == OptionSource.CommandLine,
                     Flag(EffectiveOptions.DefaultOn(name, GameTweakNames.OffByDefault))),
             };
-            var states = rows.Select(State).ToArray();
+            // A tweak this game version can't run (GameTweaks.Unavailable): shown off, greyed out
+            // and not changeable, its setting left as the file has it.
+            var unavailable = GameTweaks.GameTweaks.Unavailable;
+            var off = rows.Select(r => r.IsTweak && unavailable.ContainsKey(r.Id)).ToArray();
+            var states = rows.Select(State).Select((s, i) => off[i] ? (Value: 0, Locked: true, s.Default) : s).ToArray();
             // The screen's text goes by its translation keys (TweakStrings; "" for none), with
             // every key's English: the screen shows the game's language from translations/CODE.po
             // beside the player, English where it has none. The launch options stay as they are.
@@ -85,7 +89,7 @@ namespace OniMoono.Host
                 rows.Select(DetailKey).ToArray(), rows.Select(GainKey).ToArray(), rows.Select(r => r.LaunchOption).ToArray(),
                 rows.Select(r => r.Group.ChangesGameplay).ToArray(), rows.Select(r => r.Group == GameTweakNames.BugFixes).ToArray(),
                 rows.Select(r => r.Choices?.Select(c => TweakStrings.ChoiceKey(r, c)).ToArray()).ToArray(),
-                states.Select(s => s.Value).ToArray(), states.Select(s => s.Default).ToArray(), states.Select(s => s.Locked).ToArray(),
+                states.Select(s => s.Value).ToArray(), states.Select(s => s.Default).ToArray(), states.Select(s => s.Locked).ToArray(), off,
                 settingsPath, save,
                 TweakStrings.All.Select(t => t.Key).ToArray(), TweakStrings.All.Select(t => t.English).ToArray(), resolve, translations]);
 
@@ -97,7 +101,7 @@ namespace OniMoono.Host
                 TweakRewrites.Prepare();
                 Func<System.Reflection.MethodBase, string?> rewritten = TweakRewrites.RewrittenBy;
                 GameTweaks.GameTweaks.TypedAssembly.GetType("OniMoono.GameTweaks.ModOverlaps", throwOnError: true)!.GetMethod("Install")!
-                    .Invoke(null, [effective.EnabledTweaks.ToArray(), rewritten,
+                    .Invoke(null, [effective.EnabledTweaks.Where(GameTweaks.GameTweaks.Available).ToArray(), rewritten,
                         CompactNavLinks.reviewed.Select(r => r.Target).ToArray(), CompactNavLinks.reviewed.Select(r => r.Transpiler).ToArray()]);
             }
             catch (Exception e)
