@@ -13,15 +13,18 @@ namespace UnityEngine
         /// batch through DrawMesh with a block it sets each frame before drawing.
         internal PropertySheet Sheet { get; private set; } = new();
 
-        /// The sheet, made the block's own first if a queued draw still shares it.
+        /// The sheet, made the block's own first if a queued draw still shares it. The sheet the
+        /// block leaves is retired (PropertySheet.Retire): the queued draws keep reading it until
+        /// the frame after next begins, and the block's new one is a recycled sheet.
         internal PropertySheet Writable
         {
             get
             {
                 if (Sheet.SharedEpoch == PropertySheet.RenderEpoch)
                 {
-                    var copy = new PropertySheet();
+                    var copy = PropertySheet.Rent();
                     copy.CopyFrom(Sheet);
+                    PropertySheet.Retire(Sheet);
                     Sheet = copy;
                 }
                 return Sheet;
@@ -34,7 +37,11 @@ namespace UnityEngine
 
         public void Clear()
         {
-            if (Sheet.SharedEpoch == PropertySheet.RenderEpoch) Sheet = new PropertySheet();
+            if (Sheet.SharedEpoch == PropertySheet.RenderEpoch)
+            {
+                PropertySheet.Retire(Sheet);
+                Sheet = PropertySheet.Rent();
+            }
             else Sheet.Clear();
         }
 

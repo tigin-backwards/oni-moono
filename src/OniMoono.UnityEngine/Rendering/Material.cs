@@ -532,17 +532,17 @@ namespace OniMoono.Engine.Rendering
                 switch (p.Kind)
                 {
                     case ShaderPropertyKind.Float or ShaderPropertyKind.Range:
-                        Properties.Floats.TryAdd(p.Id, p.Default.x);
+                        Properties.FloatsToWrite.TryAdd(p.Id, p.Default.x);
                         break;
                     // An Integer property's value is the material's integer (m_Ints, SetInteger).
                     case ShaderPropertyKind.Int:
-                        Properties.Ints.TryAdd(p.Id, (int)p.Default.x);
+                        Properties.IntsToWrite.TryAdd(p.Id, (int)p.Default.x);
                         break;
                     case ShaderPropertyKind.Color or ShaderPropertyKind.Vector:
-                        Properties.Vectors.TryAdd(p.Id, p.Default);
+                        Properties.VectorsToWrite.TryAdd(p.Id, p.Default);
                         break;
                     case ShaderPropertyKind.Texture:
-                        Properties.Textures.TryAdd(p.Id, new TextureBinding { ScaleOffset = TextureBinding.IdentityScaleOffset });
+                        Properties.TexturesToWrite.TryAdd(p.Id, new TextureBinding { ScaleOffset = TextureBinding.IdentityScaleOffset });
                         break;
                 }
             }
@@ -608,7 +608,7 @@ namespace OniMoono.Engine.Rendering
                 var env = pair.Struct("second");
                 var scale = env.Struct("m_Scale");
                 var offset = env.Struct("m_Offset");
-                Properties.Textures[ShaderPropertyIds.Get(pair.String("first"))] = new TextureBinding
+                Properties.TexturesToWrite[ShaderPropertyIds.Get(pair.String("first"))] = new TextureBinding
                 {
                     Texture = resolver.Resolve(env.PPtr("m_Texture")) as Texture,
                     ScaleOffset = new Vector4(scale.Float("x"), scale.Float("y"), offset.Float("x"), offset.Float("y")),
@@ -616,12 +616,12 @@ namespace OniMoono.Engine.Rendering
             }
             // Integer properties came with Unity 2021.1.
             if (saved.Contains("m_Ints"))
-                foreach (Fields pair in saved.Array("m_Ints")) Properties.Ints[ShaderPropertyIds.Get(pair.String("first"))] = pair.Int("second");
-            foreach (Fields pair in saved.Array("m_Floats")) Properties.Floats[ShaderPropertyIds.Get(pair.String("first"))] = pair.Float("second");
+                foreach (Fields pair in saved.Array("m_Ints")) Properties.IntsToWrite[ShaderPropertyIds.Get(pair.String("first"))] = pair.Int("second");
+            foreach (Fields pair in saved.Array("m_Floats")) Properties.FloatsToWrite[ShaderPropertyIds.Get(pair.String("first"))] = pair.Float("second");
             foreach (Fields pair in saved.Array("m_Colors"))
             {
                 var c = pair.Struct("second");
-                Properties.Vectors[ShaderPropertyIds.Get(pair.String("first"))] = new Vector4(c.Float("r"), c.Float("g"), c.Float("b"), c.Float("a"));
+                Properties.VectorsToWrite[ShaderPropertyIds.Get(pair.String("first"))] = new Vector4(c.Float("r"), c.Float("g"), c.Float("b"), c.Float("a"));
             }
             if (Shader != null) AddShaderDefaults((ShaderNative)Shader.NativeOrThrow);
             Changed();
