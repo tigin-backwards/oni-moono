@@ -20,8 +20,9 @@ call "%VCVARS64%" >nul || exit /b 1
 echo #define MOONO_PRODUCT_VERSION "1.0.0+%commit%"> version.h
 rem /MT: the static C runtime, so the exe needs no Visual C++ redistributable. /guard:cf, as the
 rem SDK's apphost has (DllCharacteristics GUARD_CF).
-rem /utf-8: the crash window's Chinese strings.
-cl /nologo /O2 /W4 /WX /MT /GS /guard:cf /utf-8 /DUNICODE /D_UNICODE /c host.c crash.c crash_dialog.cpp || exit /b 1
+rem /utf-8: the crash window's Chinese strings. /Brepro: no timestamps in the objects and the exe
+rem (its PE timestamp is a hash of its contents), so a build of the same sources is the same.
+cl /nologo /Brepro /O2 /W4 /WX /MT /GS /guard:cf /utf-8 /DUNICODE /D_UNICODE /c host.c crash.c crash_dialog.cpp || exit /b 1
 rc /nologo /fo host.res host.rc || exit /b 1
-link /nologo /OUT:OniMoono.exe /SUBSYSTEM:WINDOWS /ENTRY:wmainCRTStartup /MANIFEST:NO /GUARD:CF /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA ^
+link /nologo /Brepro /OUT:OniMoono.exe /SUBSYSTEM:WINDOWS /ENTRY:wmainCRTStartup /MANIFEST:NO /GUARD:CF /DYNAMICBASE /NXCOMPAT /HIGHENTROPYVA ^
     host.obj crash.obj crash_dialog.obj host.res libnethost.lib shell32.lib ole32.lib advapi32.lib user32.lib gdi32.lib || exit /b 1
