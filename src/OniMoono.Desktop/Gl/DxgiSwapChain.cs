@@ -26,6 +26,10 @@ namespace OniMoono.Desktop.Gl
         /// host before the device starts.
         public static bool Enabled;
 
+        /// The last picture is presented again while no frame comes (StallRepeats; the Moono
+        /// Tweaks screen's "stall-repeats" row, `--stall-repeats on|off`); set by the host.
+        public static bool Repeats = true;
+
         /// Diagnostics (`--dxgi-fault WHAT[,WHAT]`): failures made up, for testing the ways back.
         /// At start-up (the device's own presentation instead): "adapter", "device", "swapchain",
         /// "association" (after the swap chain is made: DXGI is then restarted), "occupied" (not
@@ -98,6 +102,9 @@ namespace OniMoono.Desktop.Gl
         /// mode switches (WaitMilliseconds); an occluded picture, which flip model is documented
         /// never to report): taken down to nothing before the next Present.
         bool resync = true;
+        /// A repeat was presented since the last game picture: the next resync counts it as in
+        /// flight unless it has retired (PresentRepeat).
+        bool repeatSent;
         int resizes, presents, waitTimeouts;
         /// The refresh period of the display the window is on (Stopwatch ticks, which are QPC
         /// ticks on Windows; 0: not known), for FramePacing: its current mode's refresh rate
@@ -311,11 +318,22 @@ namespace OniMoono.Desktop.Gl
             LastWait = 0;
             if (Failure != null) return false;
             presents++;
+            // After repeats, a repeat not yet retired counts as in flight: this picture then
+            // waits after its Present for it to retire (or to be discarded for this one), at most
+            // a refresh, so the pictures in flight are as many as without repeats.
+            bool afterRepeat = false;
             if (resync)
             {
-                for (int i = 0; i < 16 && Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0; i++) { }
+                int drained = 0;
+                while (drained < 16 && Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0) drained++;
                 resync = false;
                 freeSlots = (int)MaximumFrameLatency - 1;
+                if (repeatSent && drained == 0)
+                {
+                    freeSlots = Math.Max(0, (int)MaximumFrameLatency - 2);
+                    afterRepeat = freeSlots == 0;
+                }
+                repeatSent = false;
                 holdBack = false;
             }
             // Held back (QueuedFrames): when the last present waited most of a refresh for its
@@ -348,10 +366,12 @@ namespace OniMoono.Desktop.Gl
             else
             {
                 long t = GlTimings.Now;
-                if (Dxgi.WaitForSingleObjectEx(waitable, WaitMilliseconds, 0) != Dxgi.WaitObject0)
+                long period = Interlocked.Read(ref refreshPeriod);
+                uint wait = afterRepeat ? (uint)(period > 0 ? period * 1000 / Stopwatch.Frequency : 34) + 2 : WaitMilliseconds;
+                if (Dxgi.WaitForSingleObjectEx(waitable, wait, 0) != Dxgi.WaitObject0)
                 {
                     resync = true;
-                    if (waitTimeouts++ < 3) EngineLog.Engine($"present: DXGI picture {presents} not on its way after {WaitMilliseconds} ms; going on");
+                    if (!afterRepeat && waitTimeouts++ < 3) EngineLog.Engine($"present: DXGI picture {presents} not on its way after {WaitMilliseconds} ms; going on");
                 }
                 lastPostWait = GlTimings.Now - t;
                 LastWait += lastPostWait;
@@ -362,6 +382,45 @@ namespace OniMoono.Desktop.Gl
                 MeasureRefresh();
                 FramePacing.PacedPresent(Interlocked.Read(ref refreshPeriod));
             }
+            return true;
+        }
+
+        /// Repeats presented (StallRepeats).
+        public int RepeatsPresented { get; private set; }
+
+        /// Whether the display has taken the last picture (its frame-latency wait is signalled),
+        /// without waiting: a repeat goes only then, so it never queues behind a picture or
+        /// blocks in Present. Takes the signal; the next game picture counts the waitable anew.
+        public bool LastPictureRetired()
+        {
+            if (Failure != null) return false;
+            if (Dxgi.WaitForSingleObjectEx(waitable, 0, 0) != Dxgi.WaitObject0) return false;
+            resync = true;
+            return true;
+        }
+
+        /// Copies `source` into the back buffer and presents it again at sync interval 0, after
+        /// LastPictureRetired: in the flip model such a picture is discarded when a newer one is
+        /// queued before it is shown (IDXGISwapChain::Present: "discard this frame if a newer
+        /// frame is queued"), so a game picture presented just after it is shown at the vertical
+        /// blank it would have had. Never tears (no ALLOW_TEARING). Nothing waits after it, and
+        /// frame pacing, the present count and the fault steps do not count it.
+        public bool PresentRepeat(void* source)
+        {
+            if (Failure != null) return false;
+            CopyToBackBuffer(source);
+            return PresentRepeatCopied();
+        }
+
+        /// PresentRepeat's second half (as PresentCopied: the keyed mutex is released between).
+        public bool PresentRepeatCopied()
+        {
+            if (Failure != null) return false;
+            int hr = Dxgi.Present(swapChain, 0, 0);
+            if (Dxgi.Failed(hr)) return Fail($"Present (a repeat) failed ({Dxgi.Hr(hr)}{DeviceState(hr)})");
+            resync = true;
+            repeatSent = true;
+            RepeatsPresented++;
             return true;
         }
 

@@ -150,6 +150,10 @@ launch options:
   in `Player.log`: when it says SwapBuffers is used, it says why. Then, on NVIDIA, set
   **Vulkan/OpenGL present method** to **Prefer native** in the NVIDIA Control Panel, and turn
   Auto HDR (Windows' Graphics settings) or RTX HDR (the NVIDIA app) off for OniMoono.exe.
+- `--stall-repeats on|off`: Windows, with Direct3D presentation: while no frame comes (an
+  autosave, a load), the last frame is shown again 30 to 60 times a second, so G-Sync and
+  FreeSync monitors keep their refresh rate instead of flickering
+  ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering), "Repeats while no frame comes").
 
 - `--gc fast|low-memory`: the [garbage collection](#garbage-collection).
 - `--crash-dialog on|off`: Windows, the [crash window](#when-the-game-crashes).

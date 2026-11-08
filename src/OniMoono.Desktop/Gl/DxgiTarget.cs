@@ -308,6 +308,20 @@ namespace OniMoono.Desktop.Gl
             return chain.Present(shared, interval);
         }
 
+        /// Whether a repeat may go now (DxgiSwapChain.LastPictureRetired).
+        public bool MayRepeat() => Failure == null && chain.LastPictureRetired();
+
+        /// Repeats presented so far.
+        public int Repeats => chain?.RepeatsPresented ?? 0;
+
+        /// Shows the picture drawn since Begin as a repeat (DxgiSwapChain.PresentRepeat).
+        public bool ShowRepeat()
+        {
+            if (Failure != null) return false;
+            if (!Unlock()) return false;
+            return chain.PresentRepeat(shared);
+        }
+
         /// Releases everything, in the reverse order of making it (presenter thread, the window's
         /// context current). Safe after a failure at any step, and more than once.
         public void Dispose()

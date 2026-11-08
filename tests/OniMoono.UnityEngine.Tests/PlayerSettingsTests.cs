@@ -247,10 +247,10 @@ namespace OniMoono.Tests
             file.GameTweaks["fast-b"] = false;
             Assert.Equal(["game tweaks on (default): fast-a", "game tweaks off (default): slow-c, off-d", "game tweaks off (the settings file): fast-b",
                           "splash moo (default)", "frame stats off (default)", "log paths hidden (default)", "gpu default (default)",
-                          "dxgi on (default)", "update check on (default)", "gc fast (default)"], Resolve(file).Describe().ToArray());
+                          "dxgi on (default)", "stall repeats on (default)", "update check on (default)", "gc fast (default)"], Resolve(file).Describe().ToArray());
             file.UpdateCheck = false;
             Assert.Equal(["game tweaks from the command line (--game-tweak none): none", "splash none (the command line)", "frame stats on (the command line)",
-                           "log paths full (the command line)", "gpu default (default)", "dxgi on (default)", "update check off (the settings file)", "gc fast (default)"],
+                           "log paths full (the command line)", "gpu default (default)", "dxgi on (default)", "stall repeats on (default)", "update check off (the settings file)", "gc fast (default)"],
                 Resolve(file, ["none"], "none", true, "full").Describe().ToArray());
         }
 
@@ -286,6 +286,36 @@ namespace OniMoono.Tests
             // A screen save that does not touch it keeps what the file had.
             Assert.False(EffectiveOptions.Apply(saved, Changing, none, true, null).Dxgi);
             Assert.Throws<InvalidOperationException>(() => PlayerSettings.Parse("""{ "dxgi": "yes" }"""));
+        }
+
+        // ----- Windows, DXGI: repeats while no frame comes -----
+
+        static EffectiveOptions WithStallRepeats(PlayerSettings file, bool? stallRepeats = null)
+            => EffectiveOptions.Resolve(All, Changing, [], null, false, file, commandLineStallRepeats: stallRepeats);
+
+        [Fact]
+        public void StallRepeatsAreOnUnlessTheFileOrTheCommandLineSaysOff()
+        {
+            var o = WithStallRepeats(new PlayerSettings());
+            Assert.Equal((true, OptionSource.Default), (o.StallRepeats, o.StallRepeatsSource));
+            var file = PlayerSettings.Parse("""{ "stallRepeats": false }""");
+            o = WithStallRepeats(file);
+            Assert.Equal((false, OptionSource.SettingsFile), (o.StallRepeats, o.StallRepeatsSource));
+            o = WithStallRepeats(file, stallRepeats: true);
+            Assert.Equal((true, OptionSource.CommandLine), (o.StallRepeats, o.StallRepeatsSource));
+            o = WithStallRepeats(new PlayerSettings(), stallRepeats: false);
+            Assert.Contains("stall repeats off (the command line)", o.Describe());
+        }
+
+        [Fact]
+        public void TheFileRecordsStallRepeatsOnlyWhenOff()
+        {
+            var none = new Dictionary<string, bool>();
+            var saved = EffectiveOptions.Apply(new PlayerSettings(), Changing, none, null, null, stallRepeats: false);
+            Assert.Equal("{\"stallRepeats\":false}", saved.ToJson(indented: false));
+            Assert.False(PlayerSettings.Parse(saved.ToJson()).StallRepeats);
+            Assert.Null(EffectiveOptions.Apply(saved, Changing, none, null, null, stallRepeats: true).StallRepeats);
+            Assert.False(EffectiveOptions.Apply(saved, Changing, none, true, null).StallRepeats);
         }
 
         [Fact]

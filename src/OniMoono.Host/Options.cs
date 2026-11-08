@@ -73,6 +73,10 @@ namespace OniMoono.Host
         /// --dxgi on|off: Windows, presenting through DXGI (OniMoono.Desktop.Gl.DxgiTarget), over
         /// the Moono Tweaks settings; null when not given (then the effective value).
         public bool? Dxgi;
+        /// --stall-repeats on|off: Windows, DXGI: the last picture presented again while no
+        /// frame comes (OniMoono.Desktop.Gl.StallRepeats), over the Moono Tweaks settings; null
+        /// when not given (then the effective value).
+        public bool? StallRepeats;
         /// --gc fast|low-memory: the garbage collection (GcMode), over the Moono Tweaks settings;
         /// null when not given. OniMoono.exe reads it too, before the runtime starts.
         public string? Gc;
@@ -283,6 +287,17 @@ namespace OniMoono.Host
                             o.Dxgi = value == "on";
                             break;
                         }
+                    case "--stall-repeats":
+                        {
+                            var value = args[++i];
+                            if (value is not ("on" or "off"))
+                            {
+                                Console.Error.WriteLine($"Unknown stall-repeats {value}; known: on, off");
+                                return false;
+                            }
+                            o.StallRepeats = value == "on";
+                            break;
+                        }
                     case "--gc":
                         o.Gc = args[++i];
                         if (!GcMode.IsChoice(o.Gc))
@@ -436,7 +451,7 @@ namespace OniMoono.Host
                         break;
                     default:
                         Console.Error.WriteLine($"Unknown option {args[i]}");
-                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--bindless] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--dxgi on|off] [--gc fast|low-memory] [--dxgi-fault WHAT] [--crash-dumps on|off|full] [--crash-dialog on|off] [--test-native-crash WHERE[:FRAME]] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [-logFile PATH] [other Unity player arguments, passed to the game] [--check-types] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [--game-arg ARG] [-- STEAM-COMMAND [ARG...]]");
+                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--bindless] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--dxgi on|off] [--stall-repeats on|off] [--gc fast|low-memory] [--dxgi-fault WHAT] [--crash-dumps on|off|full] [--crash-dialog on|off] [--test-native-crash WHERE[:FRAME]] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [-logFile PATH] [other Unity player arguments, passed to the game] [--check-types] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [--game-arg ARG] [-- STEAM-COMMAND [ARG...]]");
                         return false;
                 }
                 // Unity's player arguments and stray words among ours, with their values: the

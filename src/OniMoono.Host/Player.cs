@@ -39,6 +39,7 @@ namespace OniMoono.Host
                 OniMoono.Desktop.Gl.GlBindless.Forced = options.Bindless;
                 OniMoono.Desktop.Gl.DxgiSwapChain.Enabled = options.Dxgi != false;
                 OniMoono.Desktop.Gl.DxgiSwapChain.Fault = options.DxgiFault;
+                OniMoono.Desktop.Gl.DxgiSwapChain.Repeats = options.StallRepeats != false;
                 var device = new OniMoono.Desktop.Gl.GlDevice(platform);
                 OniMoono.Engine.Rendering.GraphicsDevice.Install(device);
                 // The crash window opens on the game window's monitor and names its GPU.

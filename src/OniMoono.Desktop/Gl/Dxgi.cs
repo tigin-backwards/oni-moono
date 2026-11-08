@@ -167,6 +167,14 @@ namespace OniMoono.Desktop.Gl
 
         public const uint WaitObject0 = 0, WaitTimeout = 0x102;
 
+        /// The system timer's resolution for this process, in ms (0: done; TIMERR_NOCANDO
+        /// otherwise); each timeBeginPeriod is matched by a timeEndPeriod.
+        [DllImport("winmm.dll")]
+        public static extern uint timeBeginPeriod(uint milliseconds);
+
+        [DllImport("winmm.dll")]
+        public static extern uint timeEndPeriod(uint milliseconds);
+
         // ----- Vtable calls -----
         static void** Vtbl(void* o) => *(void***)o;
 

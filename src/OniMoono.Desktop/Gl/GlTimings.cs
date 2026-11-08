@@ -28,7 +28,7 @@ namespace OniMoono.Desktop.Gl
     /// the slowest 1%. The presenter thread adds; the GL thread takes.
     internal static class PresenterTimings
     {
-        public static long Pictures, FrameWait, Begin, Copy, Show, Wait;
+        public static long Pictures, FrameWait, Begin, Copy, Show, Wait, Repeats;
         static readonly object gate = new();
         static readonly System.Collections.Generic.List<double> intervals = new();
         static readonly System.Collections.Generic.List<double> ages = new();
@@ -79,9 +79,17 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
+        /// The last picture was presented again while no frame came (StallRepeats): counted on
+        /// its own, outside the pictures and their intervals.
+        public static void Repeated()
+        {
+            if (On) Interlocked.Increment(ref Repeats);
+        }
+
         public static string Take()
         {
             long n = Interlocked.Exchange(ref Pictures, 0);
+            long repeats = Interlocked.Exchange(ref Repeats, 0);
             long frameWait = Interlocked.Exchange(ref FrameWait, 0), begin = Interlocked.Exchange(ref Begin, 0),
                 copy = Interlocked.Exchange(ref Copy, 0), show = Interlocked.Exchange(ref Show, 0), wait = Interlocked.Exchange(ref Wait, 0);
             double[] sorted, aged;
@@ -98,7 +106,7 @@ namespace OniMoono.Desktop.Gl
             var (mean, slowest) = MeanAndSlowest(sorted);
             var (age, oldest) = MeanAndSlowest(aged);
             return $"presenter per picture ({n}): frame wait {Ms(frameWait)}, begin {Ms(begin)}, copy {Ms(copy)}, show {Ms(show)}, vsync wait {Ms(wait)}; interval mean {F(mean)}, slowest 1% {F(slowest)}"
-                   + $"; frame start to present mean {F(age)}, slowest 1% {F(oldest)}";
+                   + $"; frame start to present mean {F(age)}, slowest 1% {F(oldest)}" + (repeats > 0 ? $"; {repeats} repeats while no frame came" : "");
         }
 
         /// The mean of `values`, and the mean of their slowest 1% (at least one value); sorts

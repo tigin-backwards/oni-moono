@@ -202,6 +202,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DXGI.DETAIL"
 msgid "Frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through OpenGL's own presentation, which Auto HDR or RTX HDR can take for HDR. If it can't start, OpenGL's own is used and Player.log says why. No effect on Linux."
 msgstr "画面像原版一样通过 Direct3D 11 交换链送到屏幕。关闭时使用 OpenGL 自身的呈现方式，可能被自动 HDR 或 RTX HDR 当作 HDR 内容。无法启动时改用 OpenGL 自身的方式，Player.log 会说明原因。在 Linux 上无效。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.TITLE"
+msgid "Steady display during saves and loads"
+msgstr "存档和读档时保持画面稳定"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.EFFECT"
+msgid "G-Sync and FreeSync monitors don't flicker while the game saves or loads."
+msgstr "游戏存档或读档时，G-Sync 和 FreeSync 显示器不会闪烁。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.DETAIL"
+msgid "While no new frame comes for a moment, the last one is shown again at about the game's frame rate (30 to 60 times a second), so the monitor's refresh rate doesn't drop. Nothing changes while frames come as usual. Windows, with Direct3D presentation on."
+msgstr "当一段时间没有新画面时，以接近游戏帧率的频率（每秒 30 到 60 次）重复显示上一帧，使显示器的刷新率不会骤降。画面正常到来时不做任何改变。仅限 Windows，且需开启 Direct3D 显示。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.TITLE"
 msgid "Garbage collection"
 msgstr "垃圾回收"

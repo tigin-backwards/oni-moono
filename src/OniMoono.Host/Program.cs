@@ -49,7 +49,7 @@ namespace OniMoono.Host
             var settings = PlayerSettings.Read(settingsPath, out var settingsProblem);
             var effective = EffectiveOptions.Resolve(GameTweaks.GameTweakNames.All, GameTweaks.GameTweakNames.ChangingBehaviour,
                 options.GameTweaks, options.Splash, options.FrameStats, settings, options.LogPaths, options.Gpu, options.Dxgi,
-                GameTweaks.GameTweakNames.OffByDefault, commandLineGc: options.Gc);
+                GameTweaks.GameTweakNames.OffByDefault, commandLineGc: options.Gc, commandLineStallRepeats: options.StallRepeats);
             // The garbage collection asked for (GcMode): on Linux and macOS a runtime started with
             // the other one starts again in place, before the log opens (which keeps the previous
             // run's log as Player-prev.log).
@@ -91,6 +91,7 @@ namespace OniMoono.Host
             if (effective.UnknownTweaks.Count > 0) EngineLog.Engine($"settings: not tweaks of this player, ignored: {string.Join(", ", effective.UnknownTweaks)}");
             options.Splash = effective.Splash;
             options.Dxgi = effective.Dxgi;
+            options.StallRepeats = effective.StallRepeats;
             OniMoono.Engine.PlayerLoop.FrameStats = effective.FrameStats;
             // The GPU for laptops with two: before anything loads the OpenGL driver (the window,
             // in Player.Run), whose GPU drivers read the choice as it loads.

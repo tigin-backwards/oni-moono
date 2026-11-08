@@ -250,11 +250,18 @@ namespace OniMoono.Desktop.Gl
                 queue.Enqueue((b, fence, interval, Math.Max(1, width), Math.Max(1, height), complete ? FrameStarted : 0, Frame, need));
                 queued++;
                 Monitor.PulseAll(gate);
+                // The next buffer is never one a repeat is reading (it would take two frames
+                // handed over during one repeat, without vsync).
+                if (complete)
+                    while (repeating == buffers[(current + 1) % buffers.Length] && failure == null) Monitor.Wait(gate);
             }
             if (!complete) return;
             handedOver = b;
             current = (current + 1) % buffers.Length;
         }
+
+        // Under the gate: the buffer a repeat is reading (presenter thread), else null.
+        Buffer repeating;
 
         // Under the gate: the window's contents were damaged since the last copy to it.
         bool refreshWanted;
@@ -289,7 +296,7 @@ namespace OniMoono.Desktop.Gl
                 while (true)
                 {
                     (Buffer Buffer, GlSync Fence, int Interval, int Width, int Height, long Started, int Frame, long Need) frame = default;
-                    bool redraw = false;
+                    bool redraw = false, repeat = false;
                     lock (gate)
                     {
                         while (queue.Count == 0 && !stopping && !(refreshWanted && shown != null))
@@ -300,22 +307,43 @@ namespace OniMoono.Desktop.Gl
                             {
                                 if (!Monitor.Wait(gate, PresenterTimings.SplashWait(target is DxgiTarget))) { redraw = true; break; }
                             }
+                            // DXGI: the last frame again once no frame has come for a while
+                            // (StallRepeats). The wait is the one there was, timed.
+                            else if (MayRepeat)
+                            {
+                                int ms = stall.WaitMilliseconds(GlTimings.Now);
+                                if (ms == 0) { repeat = true; break; }
+                                Monitor.Wait(gate, ms);
+                            }
                             else Monitor.Wait(gate);
                         }
                         if (queue.Count > 0)
                         {
                             frame = queue.Dequeue();
-                            redraw = false;
+                            redraw = repeat = false;
                         }
                         else if (stopping) break;
+                        else if (repeat) repeating = shown;
                         // Otherwise the splash is due, or the window's contents were damaged:
                         // the last frame is shown again at once.
                         else redraw = true;
-                        refreshWanted = false;
+                        if (!repeat) refreshWanted = false;
                         // A redraw counts as queued while it reads the frame last shown: every
                         // frame handed over has been presented, so the GL thread draws into
-                        // another buffer, and it can hand over only one more meanwhile.
+                        // another buffer, and it can hand over only one more meanwhile. A
+                        // repeat does not: a frame handed over during one goes through at once
+                        // (Present keeps the GL thread off the buffer the repeat reads).
                         if (redraw) queued++;
+                    }
+                    if (repeat)
+                    {
+                        Repeat();
+                        lock (gate)
+                        {
+                            repeating = null;
+                            Monitor.PulseAll(gate);
+                        }
+                        continue;
                     }
                     long presenterBusy = 0;
                     if (redraw) Redraw();
@@ -329,6 +357,7 @@ namespace OniMoono.Desktop.Gl
                         // SwapBuffers on OpenGL, after Present on DXGI) is not the frame's need.
                         presenterBusy = showStarted - t;
                         PresenterTimings.FrameStarted = 0;
+                        FramePresented();
                     }
                     lock (gate)
                     {
@@ -350,6 +379,7 @@ namespace OniMoono.Desktop.Gl
             }
             finally
             {
+                if (timerRaised) _ = Dxgi.timeEndPeriod(1);
                 Presented.Stop();
                 target?.Dispose();
                 target = null;
@@ -519,6 +549,62 @@ namespace OniMoono.Desktop.Gl
             if (PresentTrace.Enabled) Probe(b, width, height);
             showStarted = GlTimings.Now;
             ShowTarget(interval, again: false);
+        }
+
+        // ----- Repeats while no frame comes (StallRepeats; presenter thread) -----
+
+        readonly StallRepeats stall = new();
+        bool timerRaised;
+
+        /// Repeats are on, through DXGI, with a frame shown and the splash gone.
+        bool MayRepeat => DxgiSwapChain.Repeats && target is DxgiTarget && !dxgiLost && shown != null;
+
+        /// A game frame was presented: repeats start over; the timer resolution raised for them
+        /// goes back once the frame is out.
+        void FramePresented()
+        {
+            long now = GlTimings.Now;
+            if (stall.Run > 0 && PresentTrace.Enabled)
+                PresentTrace.Log($"frame {shown?.DrawnFrame ?? -1} presented again {stall.Run} times over {(now - stall.RunStarted) * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F0} ms while no frame came (every {stall.Cadence * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F1} ms)");
+            stall.Frame(now);
+            if (timerRaised)
+            {
+                timerRaised = false;
+                _ = Dxgi.timeEndPeriod(1);
+            }
+        }
+
+        /// Presents the frame last shown again (DxgiTarget.ShowRepeat), scaled to the window, once
+        /// the display has taken the last picture; else it waits for the next due time. The
+        /// waits between repeats need a 1 ms timer resolution (Windows' default is 15.6 ms, which
+        /// would make their spacing uneven); it is raised for the run of repeats only.
+        void Repeat()
+        {
+            if (!timerRaised) timerRaised = Dxgi.timeBeginPeriod(1) == 0;
+            if (!((DxgiTarget)target).MayRepeat())
+            {
+                stall.Skipped(GlTimings.Now);
+                return;
+            }
+            int width = windowWidth, height = windowHeight;
+            bool flip = BeginTarget(width, height);
+            GlApi.BindFramebuffer(ReadFramebuffer, shown.PresentFramebuffer);
+            bool scaled = shown.Width != width || shown.Height != height;
+            N.glBlitFramebuffer(0, 0, shown.Width, shown.Height, 0, flip ? height : 0, width, flip ? 0 : height, ColorBufferBit, scaled ? Linear : Nearest);
+            // The GL thread draws into the buffer again only after this copy too has read it.
+            if (shown.HasCopyDone) N.glDeleteSync(shown.CopyDone);
+            shown.CopyDone = N.glFenceSync(SyncGpuCommandsComplete, default);
+            shown.HasCopyDone = true;
+            N.glFlush();
+            bool ok = target is DxgiTarget d ? d.ShowRepeat() : target.Show(lastInterval, again: true);
+            if (!ok)
+            {
+                FallBack();
+                Redraw();
+                return;
+            }
+            stall.Repeated(GlTimings.Now);
+            PresenterTimings.Repeated();
         }
 
         /// When the last frame's picture began to be issued (QueuedFrames' need).
