@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -60,6 +61,42 @@ namespace OniMoono.GameTweaks
     /// with their costs); with ONI_PROBE_REPAIR_OFF=1 only that, of the game's own probes.
     /// ONI_PROBE_REPAIR_SWITCH=FILE turns the repairs off while the file reads `off` (checked every
     /// 30 frames; the change feed keeps running), for measuring both in one run.
+    [GameMember(GameUse.Prefix, "System.Void AsyncPathProber/Manager::TickFrame()")]
+    [GameMember(GameUse.Postfix, "System.Void AsyncPathProber/Manager::Unregister(Navigator)")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AsyncPathProber/WorkOrder::Execute(PathFinder/PotentialList,PathFinder/PotentialScratchPad,AsyncPathProber/WorkResult&)", "a14abd02779d17f6 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix, "System.Void AsyncPathProber::CreateInstance(System.Int32)")]
+    [GameMember(GameUse.Postfix, "Sim/GameDataUpdate* Game::StepTheSim(System.Single)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::ClearRestriction(System.Int32,System.Int32)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::RegisterRestriction(System.Int32,Grid/Restriction/Orientation)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::RegisterSuitMarker(System.Int32)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::RegisterTubeEntrance(System.Int32,System.Int32)")]
+    [GameMember(GameUse.Postfix, "System.Boolean Grid::ReserveEmptyLocker(System.Int32,System.Int32,System.Boolean)")]
+    [GameMember(GameUse.Postfix, "System.Boolean Grid::ReserveSuit(System.Int32,System.Int32,System.Boolean)")]
+    [GameMember(GameUse.Postfix, "System.Boolean Grid::ReserveTubeEntrance(System.Int32,System.Int32,System.Boolean)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::SetRestriction(System.Int32,System.Int32,Grid/Restriction/Directions)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::SetTubeEntranceOperational(System.Int32,System.Boolean)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::SetTubeEntranceReservationCapacity(System.Int32,System.Int32)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::UnregisterRestriction(System.Int32)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::UnregisterSuitMarker(System.Int32)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::UnregisterTubeEntrance(System.Int32)")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void Grid::UpdateBuildMask(System.Int32,Grid/BuildFlags,System.Boolean)")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void Grid::UpdateNavMask(System.Int32,Grid/NavFlags,System.Boolean)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::UpdateSuitMarker(System.Int32,System.Int32,System.Int32,Grid/SuitMarker/Flags,PathFinder/PotentialPath/Flags)")]
+    [GameMember(GameUse.Uses, "System.Collections.Concurrent.ConcurrentDictionary`2<System.Int32,Grid/Restriction> Grid::restrictions")]
+    [GameMember(GameUse.Uses, "System.Collections.Concurrent.ConcurrentDictionary`2<System.Int32,Grid/SuitMarker> Grid::suitMarkers")]
+    [GameMember(GameUse.Uses, "System.Collections.Concurrent.ConcurrentDictionary`2<System.Int32,Grid/TubeEntrance> Grid::tubeEntrances")]
+    [GameMember(GameUse.Uses, "System.Int32 MinionPathFinderAbilities::GetSubmergedPathCostPenalty(PathFinder/PotentialPath,NavGrid/Link)")]
+    [GameMember(GameUse.Uses, "System.Boolean MinionPathFinderAbilities::TraversePath(PathFinder/PotentialPath&,System.Int32,NavType,System.Int32,System.Int32,System.Boolean)")]
+    [GameMember(GameUse.Uses, "NavGrid/Link[] NavGrid::Links")]
+    [GameMember(GameUse.Postfix, "System.Void NavGrid::UpdateGraph(System.Collections.Generic.List`1<System.Int32>)")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "PathGrid Navigator::TakeResult(AsyncPathProber/WorkResult&)", "4abe6f0a0b6d41d9 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder::AddPotential(PathFinder/PotentialPath,System.Int32,NavType,System.Int32,System.Byte,PathFinder/PotentialList,PathGrid,PathFinder/Cell&)", "61aeb7e7eadf8c5a linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder::AddPotentials(PathFinder/PotentialScratchPad,PathFinder/PotentialPath,System.Int32,PathFinderAbilities&,PathFinderQuery,System.Int32,NavGrid/Link[],PathFinder/PotentialList,PathGrid,System.Int32,NavType)", "b092c43ba51ca112 linux-744825 win-744825")]
+    [GameMember(GameUse.Uses, "PathFinder/Cell[] PathGrid::Cells")]
+    [GameMember(GameUse.Uses, "PathGrid/ProberCell[] PathGrid::ProberCells")]
+    [GameMember(GameUse.Mirrors, "System.Void PathGrid::SetCell(PathFinder/PotentialPath,PathFinder/Cell&)", "b0dcc60351852076 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathProber::Run(Navigator,System.Collections.Generic.List`1<System.Int32>)", "d4bc7ec75bac26b5 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathProber::Run(System.Int32,PathFinderAbilities,NavGrid,NavType,PathGrid,System.UInt16,PathFinder/PotentialScratchPad,PathFinder/PotentialList,PathFinder/PotentialPath/Flags,System.Collections.Generic.List`1<System.Int32>)", "13bd4a949ea0c8d9 linux-744825 win-744825")]
     public static class ProbeRepair
     {
         public const string Name = "path-probe-repair";

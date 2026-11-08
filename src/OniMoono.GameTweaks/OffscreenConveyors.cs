@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -18,6 +19,8 @@ namespace OniMoono.GameTweaks
     /// game files it under for partitioner lookups, decor and radiation) lags behind its place in
     /// the conveyor's flow until it stops or comes on screen. The flow itself — what is carried
     /// where, and when it arrives — is the conveyor grid's and is not affected.
+    [GameMember(GameUse.Prefix, "Pickupable SolidConduitFlow::RemovePickupable(System.Int32)")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SolidConduitFlow::RenderEveryTick(System.Single)", "3b200f787174ece4 linux-744825 win-744825")]
     public static class OffscreenConveyors
     {
         public const string Name = "off-screen-conveyors";

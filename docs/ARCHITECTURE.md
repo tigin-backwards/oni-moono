@@ -2524,6 +2524,51 @@ options: `scripts/run.sh` and `scripts/run-windows.sh` pass `--game-tweak none -
 --log-paths full` first, so a run has exactly the tweaks, splash and log paths its own arguments
 name (`--log-paths full`: the test tools read the run home's paths in log lines).
 
+**How game tweaks install** (`src/OniMoono.Host/GameTweaks/TweakInstall.cs`, `TweakChecks.cs`).
+A tweak written for one game version must not crash another's start-up or misbehave in it, so
+each is checked against the game before it patches anything, and one that fails is off for the
+run: a no-op, the game's own code runs, the log says why in one line (`game tweak NAME: off,
+`Type.Method` changed in this game version`), the others install, and its Moono Tweaks row is
+greyed out with "Not available on this game version", its setting left as the file has it.
+- *Declarations.* Each tweak's class declares the game members it relies on with
+  `[GameMember(use, "System.Void KAnimBatch::UpdateDirty(System.Int32)", fingerprints…)]`
+  (`GameMemberAttribute.cs`, one source compiled into the host and `OniMoono.GameTweaks`): each
+  method it patches (prefix, postfix, transpiler, finalizer; a prefix that can skip the method
+  also `Replaces`), each it reimplements (`Mirrors`) and each member it reaches by name
+  (`Uses`), with the full signature as the metadata spells it. `Optional = true` marks a member
+  only some builds have.
+- *Checks, from metadata alone* (`System.Reflection.Metadata` over the game's files as they are
+  on disk, before any load-time rewrite, and over the tweak assemblies; nothing is JIT-compiled or
+  run): (1) every declared member is there with that signature; (2) every type and member reference
+  from the code of a tweak's classes into an assembly the game ships (Assembly-CSharp,
+  firstpass, FMODUnity, Harmony…) resolves, attributed per tweak by following the code from the
+  class whose `Name` constant is its name through every class it uses, nested ones (lambdas,
+  closures, iterators) included: `OniMoono.GameTweaks` is built against the game's types, and a
+  changed member would otherwise throw only when its code first runs in play; (3) every member
+  it transpiles, replaces or mirrors has a body whose fingerprint is one it declares as reviewed.
+  A fingerprint is a hash of the method's IL with every token written as the member or type it
+  names (tokens renumber between builds), branches as instruction counts, and its locals and
+  exception clauses by type (`Fingerprints.Of`); each build with another body adds its hash, with
+  the builds' names after it. The checks run on a worker from start-up (tens of ms) and the
+  tweaks' install waits for them; compact-nav-links and paged-path-grids, whose rewrites run as
+  the assemblies load, are checked at once from their declarations alone.
+- *All or nothing* (`TweakInstall.Guarded`): each tweak patches under its own Harmony ID; when
+  its install throws, every patch of that ID is taken back. (4) Each transpiler reports the sites
+  it rewrote (`TranspilerCounts`) and declares how many (`Rewrites`): more fails, fewer only
+  passes when another owner transpiles the method too, its transpiler having run first (#41,
+  `CallSiteReroute`); an undeclared transpiler fails. The counts are checked at install, when
+  no mod has patched yet; a mod's later patch reruns the transpilers without a check.
+- Nothing is checked in play: no patch carries a guard or a finalizer for this.
+- *Offline* (`OniMoono --game DIR --check-tweaks check|review|declare`, `TweakCheckTool.cs`;
+  `scripts/check-tweaks.sh`, run by check.sh over the frozen builds in `/mnt/e/oni-builds`):
+  check runs 1–3 on a build of this branch's game update and then installs every tweak as in
+  play (4, and every patch made must be declared), failing on any tweak off; review runs 1–3 on
+  any build (a newly downloaded one) and prints each body to review with the fingerprint to add
+  once it is, and `--tweak-listings DIR` writes the normalised bodies for diffing two builds;
+  declare prints each tweak's patches as `GameMember` lines (`ONI_TWEAK_DESCRIBE=Type::name,…`
+  adds members it reaches by name). `ONI_TWEAK_TEST_UNREVIEWED=NAME` (test runs) ignores a
+  tweak's reviewed fingerprints, as on a build nobody reviewed.
+
 Test runs (not the product): `--run-home DIR` keeps a run's per-user data under DIR (Unity's
 paths, and on Windows the Documents and local application data folders the game asks .NET for),
 `--audio-wav DIR` sends the game's audio to `DIR/fmodoutput.wav` (FMOD's WAV writer) instead of

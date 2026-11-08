@@ -11,6 +11,11 @@
     <OniManaged>$(OniGameDir)/OxygenNotIncluded_Data/Managed</OniManaged>
   </PropertyGroup>
   <ItemGroup>
+    <!-- The tweaks' declarations of the game members they use and their transpilers' counts
+         (TweakChecks, TweakInstall in the host), one source for both assemblies. -->
+    <Compile Include="../OniMoono.Host/GameTweaks/GameMemberAttribute.cs" Link="GameMemberAttribute.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="$(OniManaged)/UnityEngine.CoreModule.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.dll" Private="false" />
     <Reference Include="$(OniManaged)/Assembly-CSharp.dll" Private="false" />

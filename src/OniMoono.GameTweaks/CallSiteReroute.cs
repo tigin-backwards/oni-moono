@@ -27,9 +27,12 @@ namespace OniMoono.GameTweaks
 
         /// The instructions, with each call to an instance of a generic method definition that
         /// `replacementFor` maps to another definition sent to that one (a static call with the
-        /// same type arguments). Calls it maps to null are left alone.
-        public static IEnumerable<CodeInstruction> Rewrite(IEnumerable<CodeInstruction> instructions, Func<MethodInfo, MethodInfo> replacementFor)
+        /// same type arguments). Calls it maps to null are left alone. How many were sent is
+        /// reported for `tweak` (TranspilerCounts): fewer than it declares only when a mod's
+        /// transpiler took some first.
+        public static IEnumerable<CodeInstruction> Rewrite(IEnumerable<CodeInstruction> instructions, Func<MethodInfo, MethodInfo> replacementFor, string tweak = null, MethodBase original = null)
         {
+            int rewritten = 0;
             foreach (var instruction in instructions)
             {
                 if ((instruction.opcode == OpCodes.Call || instruction.opcode == OpCodes.Callvirt)
@@ -38,9 +41,11 @@ namespace OniMoono.GameTweaks
                 {
                     instruction.opcode = OpCodes.Call;
                     instruction.operand = replacement.MakeGenericMethod(m.GetGenericArguments());
+                    rewritten++;
                 }
                 yield return instruction;
             }
+            if (tweak != null) OniMoono.Tweaks.TranspilerCounts.Report(tweak, original, rewritten);
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -28,6 +29,8 @@ namespace OniMoono.GameTweaks
     /// grid). It stays where it was. If its rocket interior is destroyed and its items are moved to
     /// the world below, it falls from there at rest instead of at the speed it had. Gravity is not
     /// saved: after a load the object falls again until its first step lands it.
+    [GameMember(GameUse.Uses, "System.Action`1<UnityEngine.Transform> FallerComponents::OnLandedAction")]
+    [GameMember(GameUse.Postfix | GameUse.Transpiler, "System.Void GravityComponents::FixedUpdate(System.Single)", "740814f5168a2a2f linux-744825 win-744825", Rewrites = 1)]
     public static class OffWorldFallers
     {
         public const string Name = "off-world-fallers";
@@ -46,7 +49,7 @@ namespace OniMoono.GameTweaks
 
         /// The step's last test, `Grid.IsValidCellInWorld(next, world)` (false: the object is left
         /// in place), becomes `InWorld(next, world, component, position, groundOffset, dt)`.
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase original)
         {
             var list = new List<CodeInstruction>(instructions);
             var inWorld = AccessTools.Method(typeof(Grid), nameof(Grid.IsValidCellInWorld));
@@ -68,6 +71,7 @@ namespace OniMoono.GameTweaks
                 LoadOf(list[offset + 1]),
                 new CodeInstruction(OpCodes.Ldarg_1),
             });
+            OniMoono.Tweaks.TranspilerCounts.Report(Name, original, 1);
             return list;
         }
 

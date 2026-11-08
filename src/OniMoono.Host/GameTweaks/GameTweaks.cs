@@ -18,42 +18,74 @@ namespace OniMoono.Host.GameTweaks
         /// OniMoono.GameTweaks.dll beside the host: the tweaks built against the game's own types,
         /// and the main menu's Moono Tweaks screen (MoonoTweaksMenu).
         public static System.Reflection.Assembly TypedAssembly => typed ??= System.Reflection.Assembly.LoadFrom(System.IO.Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"));
-        static System.Reflection.Assembly? typed;
+        internal static System.Reflection.Assembly? typed;
+
+        /// The tweaks off for this run, with why (TweakInstall).
+        public static IReadOnlyDictionary<string, string> Unavailable => TweakInstall.Unavailable;
+
+        public static bool Available(string name) => TweakInstall.Available(name);
+
+        /// Program, before the game's assemblies load: every tweak's checks against the game's
+        /// files (TweakInstall), on a worker but for the tweaks whose rewrites run as the
+        /// assemblies load, which are checked at once when on.
+        public static void Check(string managed, IReadOnlySet<string> enabled)
+        {
+            TweakInstall.Start(managed, System.IO.Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"), typeof(GameTweaks).Assembly, GameTweakNames.All);
+            var now = new List<(string, Type)>();
+            if (enabled.Contains(CompactNavLinks.Name)) now.Add((CompactNavLinks.Name, typeof(CompactNavLinks)));
+            if (enabled.Contains(PagedPathGrids.Name)) now.Add((PagedPathGrids.Name, typeof(PagedPathGrids)));
+            TweakInstall.CheckNow(managed, now);
+        }
+
+        /// Whether a tweak's rewrite may run as the assemblies load (CheckNow's verdict alone,
+        /// without waiting for the worker's).
+        public static bool RewriteAvailable(string name) => !TweakInstall.CheckedOff(name);
 
         public static void Install(IReadOnlySet<string> enabled)
         {
-            bool On(string name) => enabled.Contains(name);
             if (enabled.Count == 0) return;
-            // Each tweak patches under its own Harmony ID, so the Moono Tweaks screen can tell which
-            // tweak a mod overlaps (OniMoono.GameTweaks.ModOverlapsCore.OwnerOf).
-            static Harmony For(string name) => new Harmony("OniMoono.Host.GameTweaks." + name);
-            backgroundSave = On(BackgroundSave.Name);
+            backgroundSave = enabled.Contains(BackgroundSave.Name) && Available(BackgroundSave.Name);
+            foreach (var (name, install, log) in Installers(n => enabled.Contains(n) && Available(n)))
+            {
+                bool on = TweakInstall.Guarded(name, install, () => typed, log);
+                if (name == BackgroundSave.Name) backgroundSave = on;
+            }
+            if (enabled.Contains(CompactNavLinks.Name) == false && Environment.GetEnvironmentVariable("ONI_NAVLINKS_DUMP") is { Length: > 0 })
+                CompactNavLinks.InstallDump(new Harmony("OniMoono.Host.GameTweaks." + CompactNavLinks.Name));
+        }
+
+        /// Each tweak that `on` takes, in the order they install, with its install (given the
+        /// tweak's own Harmony ID: the Moono Tweaks screen tells by it which tweak a mod overlaps,
+        /// ModOverlapsCore.OwnerOf, and a tweak whose install fails takes back what it patched)
+        /// and whether its success is logged. Also the check tool's (TweakCheckTool).
+        internal static IEnumerable<(string Name, Action<Harmony> Install, bool Log)> Installers(Func<string, bool> on)
+        {
             // Both replace SaveLoader.CompressContents: with background-save on, it does the
             // compressing, with .NET's zlib when fast-save-compression is on too.
-            if (On(FastSaveCompression.Name)) Report(FastSaveCompression.Name, () => FastSaveCompression.Install(For(FastSaveCompression.Name), compress: !backgroundSave));
-            if (backgroundSave) Report(BackgroundSave.Name, () => BackgroundSave.Install(For(BackgroundSave.Name), fastCompression: On(FastSaveCompression.Name)));
-            if (On(NoSaveGc.Name)) Report(NoSaveGc.Name, () => NoSaveGc.Install(For(NoSaveGc.Name)));
-            if (On(PostLoadGc.Name)) Report(PostLoadGc.Name, () => PostLoadGc.Install(For(PostLoadGc.Name)));
-            if (On(FastSerialization.Name)) Report(FastSerialization.Name, () => FastSerialization.Install(For(FastSerialization.Name)));
-            if (On(FastParticleCollision.Name)) Report(FastParticleCollision.Name, () => FastParticleCollision.Install(For(FastParticleCollision.Name)));
+            bool fastCompression = on(FastSaveCompression.Name);
+            if (fastCompression) yield return (FastSaveCompression.Name, h => FastSaveCompression.Install(h, compress: !on(BackgroundSave.Name)), true);
+            if (on(BackgroundSave.Name)) yield return (BackgroundSave.Name, h => BackgroundSave.Install(h, fastCompression), true);
+            if (on(NoSaveGc.Name)) yield return (NoSaveGc.Name, NoSaveGc.Install, true);
+            if (on(PostLoadGc.Name)) yield return (PostLoadGc.Name, PostLoadGc.Install, true);
+            if (on(FastSerialization.Name)) yield return (FastSerialization.Name, FastSerialization.Install, true);
+            if (on(FastParticleCollision.Name)) yield return (FastParticleCollision.Name, FastParticleCollision.Install, true);
             // Enabled at start-up (CompactNavLinks.Enable); this adds the load's summary.
-            if (On(CompactNavLinks.Name)) Report(CompactNavLinks.Name, () => CompactNavLinks.Install(For(CompactNavLinks.Name)));
-            else if (Environment.GetEnvironmentVariable("ONI_NAVLINKS_DUMP") is { Length: > 0 }) CompactNavLinks.InstallDump(For(CompactNavLinks.Name));
+            if (on(CompactNavLinks.Name)) yield return (CompactNavLinks.Name, CompactNavLinks.Install, true);
             // Enabled at start-up too (PagedPathGrids.Enable); this adds the summary in play.
-            if (On(PagedPathGrids.Name)) Report(PagedPathGrids.Name, () => PagedPathGrids.Install(For(PagedPathGrids.Name)));
+            if (on(PagedPathGrids.Name)) yield return (PagedPathGrids.Name, PagedPathGrids.Install, true);
             // fast-load-screen's engine side; its game side is a typed tweak (below), which logs it.
-            if (On(LoadScreenPreviews.Name)) LoadScreenPreviews.Install(For(LoadScreenPreviews.Name));
+            if (on(LoadScreenPreviews.Name)) yield return (LoadScreenPreviews.Name, LoadScreenPreviews.Install, false);
             // The tweaks built against the game's own types (src/OniMoono.GameTweaks).
-            var typed = GameTweakNames.Typed.Where(On).ToArray();
-            if (typed.Length > 0)
+            System.Reflection.MethodInfo? install = null;
+            foreach (var name in GameTweakNames.Typed)
             {
-                var patches = TypedAssembly.GetType("OniMoono.GameTweaks.Patches")!;
-                var install = patches.GetMethod("Install")!;
-                foreach (var name in typed)
-                    Report(name, () =>
-                    {
-                        if (!(bool)install.Invoke(null, [For(name), name])!) throw new InvalidOperationException($"OniMoono.GameTweaks has no tweak {name}");
-                    });
+                if (!on(name)) continue;
+                install ??= TypedAssembly.GetType("OniMoono.GameTweaks.Patches")!.GetMethod("Install")!;
+                var typedInstall = install;
+                yield return (name, h =>
+                {
+                    if (!(bool)typedInstall.Invoke(null, [h, name])!) throw new InvalidOperationException($"OniMoono.GameTweaks has no tweak {name}");
+                }, true);
             }
         }
 
@@ -72,12 +104,6 @@ namespace OniMoono.Host.GameTweaks
                 var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
                 EngineLog.Engine($"frame stats: the game's update is not timed: {cause.GetType().Name}: {cause.Message}");
             }
-        }
-
-        static void Report(string name, Action install)
-        {
-            install();
-            EngineLog.Engine($"game tweak {name}");
         }
 
         /// The end of the run: saves still being written are finished first.

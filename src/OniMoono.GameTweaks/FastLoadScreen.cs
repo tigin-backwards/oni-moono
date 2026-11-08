@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -39,6 +40,9 @@ namespace OniMoono.GameTweaks
     /// With ONI_TWEAK_VERIFY=1 each header served from the memo or parsed from bytes read ahead
     /// is checked against the game's own LoadHeader of the same file, and each refresh logs how
     /// many were checked and how many differed.
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Collections.Generic.Dictionary`2<System.String,System.Collections.Generic.List`1<LoadScreen/SaveGameFileDetails>> LoadScreen::GetColoniesDetails(System.Collections.Generic.List`1<SaveLoader/SaveFileEntry>)")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void LoadScreen::RefreshColonyList()")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "SaveGame/GameInfo SaveLoader::LoadHeader(System.String,SaveGame/Header&)", "747424c5f90b2bed linux-744825 win-744825")]
     public static class FastLoadScreen
     {
         public const string Name = "fast-load-screen";

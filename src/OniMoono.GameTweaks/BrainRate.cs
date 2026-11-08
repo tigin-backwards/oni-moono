@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -34,6 +35,10 @@ namespace OniMoono.GameTweaks
     /// Measured (Linux, 2026-10-25): U57 at 35–39 fps, 6.0 → 4.7–5.1 brain updates a frame and
     /// 2.7–2.8 → 2.2–2.45 ms; 2minnow at 42–45 fps, 6.0 → 4.1–4.3 and 1.82 → 1.35–1.45 ms;
     /// Gluttony at 14 fps unchanged. The gain grows with the frame rate (at 79 fps, 2.3 a frame).
+    [GameMember(GameUse.Uses, "System.Int32 BrainScheduler/BrainGroup::InitialProbeCount()")]
+    [GameMember(GameUse.Postfix, "System.Int32 BrainScheduler/CreatureBrainGroup::InitialProbeCount()")]
+    [GameMember(GameUse.Postfix, "System.Int32 BrainScheduler/DupeBrainGroup::InitialProbeCount()")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void BrainScheduler::RenderEveryTick(System.Single)", "6014ab20d776bb7b linux-744825 win-744825")]
     public static class BrainRate
     {
         public const string Name = "brain-rate";

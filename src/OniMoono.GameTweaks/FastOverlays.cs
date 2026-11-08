@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -46,6 +47,27 @@ namespace OniMoono.GameTweaks
     /// every kept position, transform and controller is compared with the object's own, and an
     /// object already among the targets runs the game's AddTargetIfVisible, which must leave the
     /// targets as they were.
+    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "System.Single CircuitManager::GetWattsNeededWhenActive(System.UInt16)", "40cf5a1a193b4807 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix, "System.Void Infrared::Update()")]
+    [GameMember(GameUse.Transpiler, "System.Void OverlayModes/ConduitMode::Update()", "3fbe1e9bfa35e929 linux-744825 win-744825", Rewrites = 3)]
+    [GameMember(GameUse.Transpiler, "System.Void OverlayModes/Crop::Update()", "ca97aa7780a77b5f linux-744825 win-744825", Rewrites = 3)]
+    [GameMember(GameUse.Transpiler, "System.Void OverlayModes/Decor::Update()", "0889a4be5f516524 linux-744825 win-744825", Rewrites = 3)]
+    [GameMember(GameUse.Transpiler, "System.Void OverlayModes/Harvest::Update()", "7e3b85ec684456fc linux-744825 win-744825", Rewrites = 3)]
+    [GameMember(GameUse.Transpiler, "System.Void OverlayModes/Logic::Update()", "3e08880112b948db linux-744825 win-744825", Rewrites = 4)]
+    [GameMember(GameUse.Mirrors, "System.Void OverlayModes/Mode::AddTargetIfVisible``1(!!0,Vector2I,Vector2I,System.Collections.Generic.ICollection`1<!!0>,System.Int32,System.Action`1<!!0>,System.Func`2<KMonoBehaviour,System.Boolean>)", "390891f12c0f3f8c linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void OverlayModes/Mode::ClearOutsideViewObjects``1(System.Collections.Generic.ICollection`1<!!0>,Vector2I,Vector2I,System.Collections.Generic.ICollection`1<Tag>,System.Action`1<!!0>)", "885dcecc13e4413c linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void OverlayModes/Mode::RemoveOffscreenTargets``1(System.Collections.Generic.ICollection`1<!!0>,Vector2I,Vector2I,System.Action`1<!!0>)", "8974c02c9003b364 linux-744825 win-744825")]
+    [GameMember(GameUse.Uses, "System.Void OverlayModes/Mode::ResetDisplayValues(KBatchedAnimController)")]
+    [GameMember(GameUse.Mirrors, "System.Void OverlayModes/Mode::UpdateHighlightTypeOverlay``1(Vector2I,Vector2I,System.Collections.Generic.ICollection`1<!!0>,System.Collections.Generic.ICollection`1<Tag>,OverlayModes/ColorHighlightCondition[],OverlayModes/BringToFrontLayerSetting,System.Int32)", "ca8b1abde5808bbd linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Transpiler | GameUse.Finalizer, "System.Void OverlayModes/Power::Update()", "bc8cd6ff3d49dfc8 linux-744825 win-744825", Rewrites = 2)]
+    [GameMember(GameUse.Transpiler, "System.Void OverlayModes/SolidConveyor::Update()", "b0d7f823b1a3f359 linux-744825 win-744825", Rewrites = 2)]
+    [GameMember(GameUse.Transpiler, "System.Void OverlayModes/Suit::Update()", "6e727b1ea78e102d linux-744825 win-744825", Rewrites = 2)]
+    [GameMember(GameUse.Prefix | GameUse.Transpiler | GameUse.Replaces, "System.Void OverlayModes/TileMode::TryAddObject(PrimaryElement,Vector2I,Vector2I)", "79afac687a86706f linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.Void OverlayModes/TileMode::Update()", "d9b384516d2e22ef linux-744825 win-744825", Rewrites = 2)]
+    [GameMember(GameUse.Prefix, "System.Void OverlayScreen::ToggleOverlay(HashedString,System.Boolean)")]
+    [GameMember(GameUse.Mirrors, "System.Void TemperatureOverlayInfraredVisualizerBase::OnTemperatureOverlayInfraredUpdate(System.Object)", "bdb63565d9e72b7f linux-744825 win-744825")]
+    [GameMember(GameUse.Uses, "System.Action`2<System.Object,System.Object> TemperatureOverlayInfraredVisualizerBase::OverlayInfraredUpdateDispatcher")]
+    [GameMember(GameUse.Uses, "System.Void TemperatureOverlayInfraredVisualizerBase::TemperatureOverlayInfraredUpdate(Infrared/TemperatureOverlayInfraredData)")]
     public static class FastOverlays
     {
         public const string Name = "fast-overlays";
@@ -102,12 +124,12 @@ namespace OniMoono.GameTweaks
         /// components) and UpdateHighlightTypeOverlay go through the tweak's, same arguments.
         /// It runs after every other owner's transpilers (CallSiteReroute): a mod that replaces
         /// one of these calls with its own (Fast Track's CullConduits) still finds it.
-        static IEnumerable<CodeInstruction> RerouteAddTarget(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> RerouteAddTarget(IEnumerable<CodeInstruction> instructions, System.Reflection.MethodBase original)
             => CallSiteReroute.Rewrite(instructions, definition =>
             {
                 string ours = definition == addTarget ? nameof(AddTarget) : definition == removeOffscreen ? nameof(RemoveOffscreen) : definition == highlight ? nameof(Highlight) : null;
                 return ours != null ? AccessTools.Method(typeof(FastOverlays), ours) : null;
-            });
+            }, Name, original);
 
         /// The game's AddTargetIfVisible without its own visit to an object already among the
         /// targets: the method's test for that ends it with nothing done.

@@ -102,6 +102,10 @@ dotnet build "$root/src/OniMoono.Host" -c Release -v q -nologo "-clp:ErrorsOnly;
 types=$("$root/out/bin/OniMoono.Host/release/OniMoono" --game "$game" --check-types --log "$root/out/check-types-release.log") || failed+=(check-types-release)
 echo "check-types (release build): $(grep -c '^ok ' <<< "$types") ok, $(grep -c '^FAIL ' <<< "$types") failed"
 grep -A8 '^FAIL ' <<< "$types" || true
+# The game tweaks against the frozen game builds of this branch's game update (their files, and
+# on each build every tweak's install), skipped with a note when none are here.
+tweaks=$("$root/scripts/check-tweaks.sh") || failed+=(check-tweaks)
+grep -E '^check-tweaks .*(installs|tweaks pass|skipped:|failed)|^  ' <<< "$tweaks" | grep -v ', skipped, this Moono build is for' || true
 "$root/out/bin/OniMoono.Host/debug/OniMoono" --game "$game" --check-assets --log "$root/out/check-assets.log" | grep -v '^\[engine\]'
 "$root/out/bin/OniMoono.Host/debug/OniMoono" --game "$game" --check-bind --log "$root/out/check-bind.log" | grep -v '^\[engine\]'
 natives=$("$root/out/bin/OniMoono.Host/debug/OniMoono" --game "$game" --check-natives --log "$root/out/check-natives.log") || failed+=(check-natives)

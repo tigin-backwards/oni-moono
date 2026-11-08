@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -37,6 +38,8 @@ namespace OniMoono.GameTweaks
     /// declares), every component's fields holding textures (or arrays or lists of them) and the
     /// checks above are searched for the texture: a reference found is counted wrong, and the
     /// texture is kept.
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void MultipleRenderTargetProxy::CreateRenderTarget()")]
+    [GameMember(GameUse.Postfix, "System.Void MultipleRenderTargetProxy::Update()")]
     public static class FastOverlayTextures
     {
         public const string Name = "fast-overlay-textures";

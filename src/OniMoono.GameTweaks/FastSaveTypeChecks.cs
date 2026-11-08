@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -18,6 +19,7 @@ namespace OniMoono.GameTweaks
     /// method are replaced. Mods' transpilers of the method run first and see the game's calls
     /// (Better Save replaces the same IsDefined calls with its own cache, and gave up when it
     /// found ours); what they leave of them is replaced.
+    [GameMember(GameUse.Transpiler, "System.Void SaveLoadRoot::SaveWithoutTransform(System.IO.BinaryWriter)", "4847188af20e37a7 linux-744825 win-744825", Rewrites = 3)]
     public static class FastSaveTypeChecks
     {
         public const string Name = "fast-save-type-checks";
@@ -31,7 +33,7 @@ namespace OniMoono.GameTweaks
 
         static bool reported;
 
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase original)
         {
             var isDefined = AccessTools.Method(typeof(MemberInfo), nameof(MemberInfo.IsDefined), new[] { typeof(Type), typeof(bool) });
             var getType = AccessTools.Method(typeof(object), nameof(GetType));
@@ -59,6 +61,7 @@ namespace OniMoono.GameTweaks
                 previous = i;
                 yield return i;
             }
+            OniMoono.Tweaks.TranspilerCounts.Report(Name, original, checks + typeNames);
             if ((checks != 2 || typeNames != 1) && !reported)
             {
                 reported = true;

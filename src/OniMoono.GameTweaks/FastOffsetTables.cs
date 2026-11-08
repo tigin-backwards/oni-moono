@@ -5,6 +5,7 @@ using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
 using Fetchable = FetchManager.Fetchable;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -28,6 +29,18 @@ namespace OniMoono.GameTweaks
     ///
     /// With ONI_TWEAK_VERIFY=1 every update also checks every fetchable item as the game does,
     /// and logs any that fails without being marked (and fixes it).
+    [GameMember(GameUse.Postfix, "HandleVector`1/Handle<System.Int32> FetchManager::Add(Pickupable)")]
+    [GameMember(GameUse.Prefix, "System.Void FetchManager::Remove(Tag,HandleVector`1/Handle<System.Int32>)")]
+    [GameMember(GameUse.Transpiler, "System.Void FetchManager::UpdatePickups(Navigator,WorkerBase)", "c99d507490e92722 linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Uses, "WorkItemCollection`2<FetchManager/UpdateOffsetTables,System.Object> FetchManager::updateOffsetTables")]
+    [GameMember(GameUse.Postfix, "System.Void OffsetTableTracker::OnCellChanged(System.Object)")]
+    [GameMember(GameUse.Postfix, "System.Void OffsetTableTracker::UpdateCell(System.Int32,System.Int32)")]
+    [GameMember(GameUse.Postfix, "System.Void OffsetTracker::UpdateCell(System.Int32,System.Int32)")]
+    [GameMember(GameUse.Transpiler, "CellOffset[] Workable::GetOffsets(System.Int32)", "5ee61caa3c2e4e94 linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.Void Workable::SetOffsetTable(CellOffset[][])", "0aeb0b6fbf1d2786 linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.Void Workable::SetOffsets(CellOffset[])", "7300b07737b428bb linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.Boolean Workable::ValidateOffsets(System.Int32)", "22b59c7ba40b813d linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Uses, "OffsetTracker Workable::offsetTracker")]
     public static class FastOffsetTables
     {
         public const string Name = "fast-offset-tables";
@@ -82,21 +95,26 @@ namespace OniMoono.GameTweaks
                 yield return new CodeInstruction(OpCodes.Ldarg_0);
                 yield return new CodeInstruction(OpCodes.Call, hook);
             }
-            if (found != 1) throw new InvalidOperationException($"{Name}: expected one offsetTracker assignment in Workable.{original.Name}, found {found}");
+            // One offsetTracker assignment (TweakInstall checks the count).
+            OniMoono.Tweaks.TranspilerCounts.Report(Name, original, found);
         }
 
         /// In FetchManager.UpdatePickups, GlobalJobManager.Run(updateOffsetTables) becomes
         /// FixOffsets(updateOffsetTables, this). The work items are still made and finished (each
         /// recycles its pooled list), with nothing collected.
-        static IEnumerable<CodeInstruction> UpdatePickupsTranspiler(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> UpdatePickupsTranspiler(IEnumerable<CodeInstruction> instructions, MethodBase original)
         {
             var run = AccessTools.Method(typeof(GlobalJobManager), nameof(GlobalJobManager.Run));
             var list = new List<CodeInstruction>(instructions);
             int index = list.FindIndex(i => i.opcode == OpCodes.Call && Equals(i.operand, run));
             if (index < 1 || !(list[index - 1].operand is FieldInfo f) || f.Name != "updateOffsetTables")
-                throw new InvalidOperationException($"{Name}: GlobalJobManager.Run(updateOffsetTables) not found in FetchManager.UpdatePickups");
+            {
+                OniMoono.Tweaks.TranspilerCounts.Report(Name, original, 0);
+                return list;
+            }
             list[index].operand = AccessTools.Method(typeof(FastOffsetTables), nameof(FixOffsets));
             list.Insert(index, new CodeInstruction(OpCodes.Ldarg_0));
+            OniMoono.Tweaks.TranspilerCounts.Report(Name, original, 1);
             return list;
         }
 

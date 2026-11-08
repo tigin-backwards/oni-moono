@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -17,6 +18,8 @@ namespace OniMoono.GameTweaks
     /// sweep. An id is forgotten once the sweep has gone round the whole grid since its
     /// destruction (any entry it had was swept by then). With ONI_TWEAK_VERIFY=1 the chunks not
     /// swept are swept anyway and any entry dropped there is logged.
+    [GameMember(GameUse.Prefix, "System.Void KBatchedAnimController::OnDestroy()")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void KBatchedAnimUpdater::CleanUp()", "c7ab6262d3b6aaf6 linux-744825 win-744825")]
     public static class FastAnimCleanup
     {
         public const string Name = "fast-anim-cleanup";

@@ -1,5 +1,6 @@
 using System;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -36,6 +37,8 @@ namespace OniMoono.GameTweaks
     /// that file and animation naming that event, built as `SoundEvent`, whose FMOD event is not a
     /// one-shot. Otherwise (a game update fixed the row, renamed it, or made the event a one-shot)
     /// it is left as it is, with a line in Player.log.
+    [GameMember(GameUse.Prefix, "System.Void AudioSheets::CreateSound(System.String,System.String,System.String,System.Single,System.String,System.Int32,System.String)")]
+    [GameMember(GameUse.Postfix, "System.Void GameAudioSheets::Initialize()")]
     public static class EndlessLoopSounds
     {
         public const string Name = "fix-endless-sounds";

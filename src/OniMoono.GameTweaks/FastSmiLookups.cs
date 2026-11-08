@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
 using Linq = System.Linq.Expressions;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -24,6 +25,8 @@ namespace OniMoono.GameTweaks
     ///
     /// While another Harmony owner patches GetSMI(Type) (checked at the first call and every 2^18
     /// lookups), the game's method runs.
+    [GameMember(GameUse.Postfix, "System.Void Game::OnPrefabInit()")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "StateMachine/Instance StateMachineController::GetSMI(System.Type)", "d570e9bc4aade1e1 linux-744825 win-744825")]
     public static class FastSmiLookups
     {
         public const string Name = "fast-smi-lookups";
