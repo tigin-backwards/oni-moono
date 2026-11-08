@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -20,6 +21,8 @@ namespace OniMoono.GameTweaks
     /// that changes, and nothing in the game or the mods scanned reads it. A list that grows later
     /// (a mod adding elements in play) grows as it would have. With ONI_TWEAK_VERIFY=1 each list's
     /// bytes are compared before and after.
+    [GameMember(GameUse.Postfix, "System.Void Assets::OnPrefabInit()")]
+    [GameMember(GameUse.Uses, "System.Collections.Generic.Dictionary`2<HashedString,KBatchGroupData> KAnimBatchManager::batchGroupData")]
     public static class TrimAnimLists
     {
         public const string Name = "trim-anim-lists";

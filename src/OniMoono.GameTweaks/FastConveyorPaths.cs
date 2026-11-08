@@ -34,7 +34,7 @@ namespace OniMoono.GameTweaks
     /// path, and both lists must end up the same: the same paths, in the same order, with the
     /// same rails.
     [GameMember(GameUse.Postfix, "System.Void SolidConduitFlow::OnUtilityNetworksRebuilt(System.Collections.Generic.IList`1<UtilityNetwork>,System.Collections.Generic.ICollection`1<System.Int32>)")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SolidConduitFlow::TryAdd(System.Collections.Generic.List`1<SolidConduitFlow/Conduit>)", "72811b7834149aa6 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SolidConduitFlow::TryAdd(System.Collections.Generic.List`1<SolidConduitFlow/Conduit>)", "72811b7834149aa6 linux-744825 win-744825", "b01ca6c8268d3622 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     public static class FastConveyorPaths
     {
         public const string Name = "fast-conveyor-paths";

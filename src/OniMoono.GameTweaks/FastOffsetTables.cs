@@ -31,15 +31,15 @@ namespace OniMoono.GameTweaks
     /// and logs any that fails without being marked (and fixes it).
     [GameMember(GameUse.Postfix, "HandleVector`1/Handle<System.Int32> FetchManager::Add(Pickupable)")]
     [GameMember(GameUse.Prefix, "System.Void FetchManager::Remove(Tag,HandleVector`1/Handle<System.Int32>)")]
-    [GameMember(GameUse.Transpiler, "System.Void FetchManager::UpdatePickups(Navigator,WorkerBase)", "c99d507490e92722 linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.Void FetchManager::UpdatePickups(Navigator,WorkerBase)", "c99d507490e92722 linux-744825 win-744825", "5c631d5233025d1f linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
     [GameMember(GameUse.Uses, "WorkItemCollection`2<FetchManager/UpdateOffsetTables,System.Object> FetchManager::updateOffsetTables")]
     [GameMember(GameUse.Postfix, "System.Void OffsetTableTracker::OnCellChanged(System.Object)")]
     [GameMember(GameUse.Postfix, "System.Void OffsetTableTracker::UpdateCell(System.Int32,System.Int32)")]
     [GameMember(GameUse.Postfix, "System.Void OffsetTracker::UpdateCell(System.Int32,System.Int32)")]
-    [GameMember(GameUse.Transpiler, "CellOffset[] Workable::GetOffsets(System.Int32)", "5ee61caa3c2e4e94 linux-744825 win-744825", Rewrites = 1)]
-    [GameMember(GameUse.Transpiler, "System.Void Workable::SetOffsetTable(CellOffset[][])", "0aeb0b6fbf1d2786 linux-744825 win-744825", Rewrites = 1)]
-    [GameMember(GameUse.Transpiler, "System.Void Workable::SetOffsets(CellOffset[])", "7300b07737b428bb linux-744825 win-744825", Rewrites = 1)]
-    [GameMember(GameUse.Transpiler, "System.Boolean Workable::ValidateOffsets(System.Int32)", "22b59c7ba40b813d linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.Collections.Generic.IReadOnlyList`1<CellOffset> Workable::GetOffsets(System.Int32)", "a15b3a9aa9279c46 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.Void Workable::SetOffsetTable(CellOffset[][])", "0aeb0b6fbf1d2786 linux-744825 win-744825", "ceeaa2b15d0cf62e linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.Void Workable::SetOffsets(CellOffset[])", "7300b07737b428bb linux-744825 win-744825", "8b1fc1698d1ea5b7 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.Boolean Workable::ValidateOffsets(System.Int32)", "22b59c7ba40b813d linux-744825 win-744825", "24cfa72c440b0d97 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
     [GameMember(GameUse.Uses, "OffsetTracker Workable::offsetTracker")]
     public static class FastOffsetTables
     {

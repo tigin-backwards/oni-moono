@@ -11,8 +11,8 @@ namespace OniMoono.Host.GameTweaks
     /// original's saves by this one (checked both ways on a 690 MB colony). On that colony saving
     /// compresses in 1.3–1.5 s instead of 5.0–5.5 s and loading decompresses in 1.1–1.5 s instead
     /// of 2.5–3.7 s; the file is about 14% larger.
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SaveLoader::CompressContents(System.IO.BinaryWriter,System.Byte[],System.Int32)", "7027ce9ea9fd4d7b linux-744825 win-744825")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Byte[] SaveLoader::DecompressContents(System.Byte[])", "7f27a2ec6323e63c linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SaveLoader::CompressContents(System.IO.BinaryWriter,System.Byte[],System.Int32)", "7027ce9ea9fd4d7b linux-744825 win-744825", "772347a4c67b2ad9 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Byte[] SaveLoader::DecompressContents(System.Byte[])", "7f27a2ec6323e63c linux-744825 win-744825", "37900e5ea424bf3e linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     internal static class FastSaveCompression
     {
         public const string Name = GameTweakNames.FastSaveCompression;

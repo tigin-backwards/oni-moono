@@ -30,7 +30,7 @@ namespace OniMoono.GameTweaks
     /// the world below, it falls from there at rest instead of at the speed it had. Gravity is not
     /// saved: after a load the object falls again until its first step lands it.
     [GameMember(GameUse.Uses, "System.Action`1<UnityEngine.Transform> FallerComponents::OnLandedAction")]
-    [GameMember(GameUse.Postfix | GameUse.Transpiler, "System.Void GravityComponents::FixedUpdate(System.Single)", "740814f5168a2a2f linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Postfix | GameUse.Transpiler, "System.Void GravityComponents::FixedUpdate(System.Single)", "740814f5168a2a2f linux-744825 win-744825", "8ae11e603474819f linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
     public static class OffWorldFallers
     {
         public const string Name = "off-world-fallers";

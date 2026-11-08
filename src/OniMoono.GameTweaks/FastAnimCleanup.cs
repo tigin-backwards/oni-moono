@@ -19,7 +19,7 @@ namespace OniMoono.GameTweaks
     /// destruction (any entry it had was swept by then). With ONI_TWEAK_VERIFY=1 the chunks not
     /// swept are swept anyway and any entry dropped there is logged.
     [GameMember(GameUse.Prefix, "System.Void KBatchedAnimController::OnDestroy()")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void KBatchedAnimUpdater::CleanUp()", "c7ab6262d3b6aaf6 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void KBatchedAnimUpdater::CleanUp()", "c7ab6262d3b6aaf6 linux-744825 win-744825", "791aedce58afce33 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     public static class FastAnimCleanup
     {
         public const string Name = "fast-anim-cleanup";

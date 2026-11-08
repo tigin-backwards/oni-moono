@@ -63,7 +63,7 @@ namespace OniMoono.GameTweaks
     /// 30 frames; the change feed keeps running), for measuring both in one run.
     [GameMember(GameUse.Prefix, "System.Void AsyncPathProber/Manager::TickFrame()")]
     [GameMember(GameUse.Postfix, "System.Void AsyncPathProber/Manager::Unregister(Navigator)")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AsyncPathProber/WorkOrder::Execute(PathFinder/PotentialList,PathFinder/PotentialScratchPad,AsyncPathProber/WorkResult&)", "a14abd02779d17f6 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AsyncPathProber/WorkOrder::Execute(PathFinder/PotentialList,PathFinder/PotentialScratchPad,AsyncPathProber/WorkResult&)", "a14abd02779d17f6 linux-744825 win-744825", "2c62aa768ec41321 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Prefix, "System.Void AsyncPathProber::CreateInstance(System.Int32)")]
     [GameMember(GameUse.Postfix, "Sim/GameDataUpdate* Game::StepTheSim(System.Single)")]
     [GameMember(GameUse.Postfix, "System.Void Grid::ClearRestriction(System.Int32,System.Int32)")]
@@ -89,14 +89,14 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "System.Boolean MinionPathFinderAbilities::TraversePath(PathFinder/PotentialPath&,System.Int32,NavType,System.Int32,System.Int32,System.Boolean)")]
     [GameMember(GameUse.Uses, "NavGrid/Link[] NavGrid::Links")]
     [GameMember(GameUse.Postfix, "System.Void NavGrid::UpdateGraph(System.Collections.Generic.List`1<System.Int32>)")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "PathGrid Navigator::TakeResult(AsyncPathProber/WorkResult&)", "4abe6f0a0b6d41d9 linux-744825 win-744825")]
-    [GameMember(GameUse.Mirrors, "System.Void PathFinder::AddPotential(PathFinder/PotentialPath,System.Int32,NavType,System.Int32,System.Byte,PathFinder/PotentialList,PathGrid,PathFinder/Cell&)", "61aeb7e7eadf8c5a linux-744825 win-744825")]
-    [GameMember(GameUse.Mirrors, "System.Void PathFinder::AddPotentials(PathFinder/PotentialScratchPad,PathFinder/PotentialPath,System.Int32,PathFinderAbilities&,PathFinderQuery,System.Int32,NavGrid/Link[],PathFinder/PotentialList,PathGrid,System.Int32,NavType)", "b092c43ba51ca112 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "PathGrid Navigator::TakeResult(AsyncPathProber/WorkResult&)", "4abe6f0a0b6d41d9 linux-744825 win-744825", "a0cc0a395a6756c3 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder::AddPotential(PathFinder/PotentialPath,System.Int32,NavType,System.Int32,System.Byte,PathFinder/PotentialList,PathGrid,PathFinder/Cell&)", "61aeb7e7eadf8c5a linux-744825 win-744825", "0a4644ec6dbe44a2 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder::AddPotentials(PathFinder/PotentialScratchPad,PathFinder/PotentialPath,System.Int32,PathFinderAbilities&,PathFinderQuery,System.Int32,NavGrid/Link[],PathFinder/PotentialList,PathGrid,System.Int32,NavType)", "b092c43ba51ca112 linux-744825 win-744825", "7e94ed5a2f37ae5b linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Uses, "PathFinder/Cell[] PathGrid::Cells")]
     [GameMember(GameUse.Uses, "PathGrid/ProberCell[] PathGrid::ProberCells")]
-    [GameMember(GameUse.Mirrors, "System.Void PathGrid::SetCell(PathFinder/PotentialPath,PathFinder/Cell&)", "b0dcc60351852076 linux-744825 win-744825")]
-    [GameMember(GameUse.Mirrors, "System.Void PathProber::Run(Navigator,System.Collections.Generic.List`1<System.Int32>)", "d4bc7ec75bac26b5 linux-744825 win-744825")]
-    [GameMember(GameUse.Mirrors, "System.Void PathProber::Run(System.Int32,PathFinderAbilities,NavGrid,NavType,PathGrid,System.UInt16,PathFinder/PotentialScratchPad,PathFinder/PotentialList,PathFinder/PotentialPath/Flags,System.Collections.Generic.List`1<System.Int32>)", "13bd4a949ea0c8d9 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathGrid::SetCell(PathFinder/PotentialPath,PathFinder/Cell&)", "b0dcc60351852076 linux-744825 win-744825", "80b237a7da7e250f linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Mirrors, "System.Void PathProber::Run(Navigator,System.Collections.Generic.List`1<System.Int32>)", "d4bc7ec75bac26b5 linux-744825 win-744825", "f505c202c618df64 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Mirrors, "System.Void PathProber::Run(System.Int32,PathFinderAbilities,NavGrid,NavType,PathGrid,System.UInt16,PathFinder/PotentialScratchPad,PathFinder/PotentialList,PathFinder/PotentialPath/Flags,System.Collections.Generic.List`1<System.Int32>)", "13bd4a949ea0c8d9 linux-744825 win-744825", "a5546a65d0955dd5 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     public static class ProbeRepair
     {
         public const string Name = "path-probe-repair";

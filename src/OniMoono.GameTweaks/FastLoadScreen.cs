@@ -42,7 +42,7 @@ namespace OniMoono.GameTweaks
     /// many were checked and how many differed.
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Collections.Generic.Dictionary`2<System.String,System.Collections.Generic.List`1<LoadScreen/SaveGameFileDetails>> LoadScreen::GetColoniesDetails(System.Collections.Generic.List`1<SaveLoader/SaveFileEntry>)")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void LoadScreen::RefreshColonyList()")]
-    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "SaveGame/GameInfo SaveLoader::LoadHeader(System.String,SaveGame/Header&)", "747424c5f90b2bed linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "SaveGame/GameInfo SaveLoader::LoadHeader(System.String,SaveGame/Header&)", "747424c5f90b2bed linux-744825 win-744825", "556cd23977cbd791 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     public static class FastLoadScreen
     {
         public const string Name = "fast-load-screen";

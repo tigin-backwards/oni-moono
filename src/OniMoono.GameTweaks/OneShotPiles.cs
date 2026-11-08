@@ -33,7 +33,7 @@ namespace OniMoono.GameTweaks
     ///
     /// Player.log gets a line at most once a minute while it skips any, with how many and the
     /// event skipped most.
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "FMOD.Studio.EventInstance KFMOD::BeginOneShot(FMODUnity.EventReference,UnityEngine.Vector3,System.Single)", "580ac3fbe6cd7569 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "FMOD.Studio.EventInstance KFMOD::BeginOneShot(FMODUnity.EventReference,UnityEngine.Vector3,System.Single)", "580ac3fbe6cd7569 linux-744825 win-744825", "ebdf4f6651143526 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Boolean SoundEvent::PlayOneShot(FMODUnity.EventReference,UnityEngine.Vector3,System.Single)")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Boolean SoundEvent::PlayOneShot(System.String,AnimEventManager/EventPlayerData,EffectorValues,System.Single,System.Boolean)")]
     public static class OneShotPiles

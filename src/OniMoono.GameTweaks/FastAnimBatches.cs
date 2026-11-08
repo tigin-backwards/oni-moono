@@ -50,7 +50,7 @@ namespace OniMoono.GameTweaks
     /// version it had when the loop reached it. Gluttony (Linux, stopwatch, steady windows):
     /// 1.92–2.01 → 1.49–1.65 ms a frame; what stays on the main thread is mostly applying the
     /// overrides (SymbolOverrideController, FaceGraph), which is game logic with side effects.
-    [GameMember(GameUse.Transpiler, "System.Int32 KAnimBatch::UpdateDirty(System.Int32)", "179b53cbc38cbf63 linux-744825 win-744825", Rewrites = 3)]
+    [GameMember(GameUse.Transpiler, "System.Int32 KAnimBatch::UpdateDirty(System.Int32)", "179b53cbc38cbf63 linux-744825 win-744825", "a037122a00fc858c linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 3)]
     [GameMember(GameUse.Uses, "System.Void KAnimBatch::WriteBatchedAnimInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
     [GameMember(GameUse.Uses, "System.Boolean KAnimBatch::WriteSymbolInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
     [GameMember(GameUse.Uses, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]

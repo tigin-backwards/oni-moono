@@ -32,7 +32,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "HandleVector`1/Handle<System.Int32> AnimEventManager::PlayAnim(KAnimControllerBase,KAnim/Anim,KAnim/PlayMode,System.Single,System.Boolean)")]
     [GameMember(GameUse.Uses, "System.Void AnimEventManager::PlayEvents(AnimEventManager/EventPlayerData)")]
     [GameMember(GameUse.Uses, "System.Void AnimEventManager::StopEvents(AnimEventManager/EventPlayerData)")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AnimEventManager::Update(System.Single,System.Collections.Generic.List`1<AnimEventManager/AnimData>,System.Collections.Generic.List`1<AnimEventManager/EventPlayerData>)", "7ed564a03b1e771f linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AnimEventManager::Update(System.Single,System.Collections.Generic.List`1<AnimEventManager/AnimData>,System.Collections.Generic.List`1<AnimEventManager/EventPlayerData>)", "7ed564a03b1e771f linux-744825 win-744825", "da665f499501053d linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Postfix, "System.Void KAnimControllerBase::OnDestroy()")]
     [GameMember(GameUse.Postfix, "System.Void KAnimControllerBase::Queue(HashedString,KAnim/PlayMode,System.Single,System.Single)")]
     [GameMember(GameUse.Postfix, "System.Void KAnimControllerBase::StartQueuedAnim()")]

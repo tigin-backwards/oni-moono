@@ -22,13 +22,13 @@ namespace OniMoono.Host.GameTweaks
     /// properties, the custom serializer and the error reporting are the template's own, in its
     /// order. The bytes written are the game's (checked: SaveTest).
     [GameMember(GameUse.Uses, "System.Void Debug::LogError(System.Object)")]
-    [GameMember(GameUse.Mirrors, "System.Void KSerialization.Helper::WriteValue(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Object)", "2ae90126aff89120 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void KSerialization.Helper::WriteValue(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Object)", "2ae90126aff89120 linux-744825 win-744825", "dd15fef912b3eb70 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Uses, "System.Void KSerialization.IOHelper::WriteSingleFast(System.IO.BinaryWriter,System.Single)")]
     [GameMember(GameUse.Uses, "System.Reflection.FieldInfo KSerialization.SerializationTemplate/SerializationField::field")]
     [GameMember(GameUse.Uses, "KSerialization.TypeInfo KSerialization.SerializationTemplate/SerializationField::typeInfo")]
     [GameMember(GameUse.Uses, "System.Reflection.PropertyInfo KSerialization.SerializationTemplate/SerializationProperty::property")]
     [GameMember(GameUse.Uses, "KSerialization.TypeInfo KSerialization.SerializationTemplate/SerializationProperty::typeInfo")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void KSerialization.SerializationTemplate::SerializeData(System.Object,System.IO.BinaryWriter)", "e283fa414b66f4a2 linux-744825 win-744825")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void KSerialization.SerializationTemplate::SerializeData(System.Object,System.IO.BinaryWriter)", "e283fa414b66f4a2 linux-744825 win-744825", "9678fe80f01a053c linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Uses, "System.Reflection.MethodInfo KSerialization.SerializationTemplate::customSerialize")]
     [GameMember(GameUse.Uses, "System.Reflection.MethodInfo KSerialization.SerializationTemplate::onSerialized")]
     [GameMember(GameUse.Uses, "System.Reflection.MethodInfo KSerialization.SerializationTemplate::onSerializing")]

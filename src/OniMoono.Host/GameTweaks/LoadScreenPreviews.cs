@@ -27,7 +27,7 @@ namespace OniMoono.Host.GameTweaks
     /// the game destroys as before. Everything kept is dropped when the screen closes.
     [GameMember(GameUse.Prefix, "System.Void LoadScreen::OnActivate()")]
     [GameMember(GameUse.Postfix, "System.Void LoadScreen::OnDeactivate()")]
-    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "UnityEngine.Texture2D RetireColonyUtility::LoadPreviewTexture(System.Byte[])", Optional = true)]
+    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "UnityEngine.Texture2D RetireColonyUtility::LoadPreviewTexture(System.Byte[])", "4c7d05418fe99e47 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Optional = true)]
     internal static class LoadScreenPreviews
     {
         public const string Name = "fast-load-screen";
