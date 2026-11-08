@@ -1,0 +1,181 @@
+# Makes a release's draft (docs/RELEASES.md): builds both archives on GitHub-hosted runners
+# (build.yml, without caches), signs their SLSA provenance in attest.yml, which is given only
+# their digests, and creates a draft release with them, its notes starting with where it was
+# built and how to verify it. It never publishes: the notes are written in the draft on GitHub,
+# and publishing it there (which creates the tag and makes the release immutable) is a person's
+# step. Run it on master for a release, on u60 for a U60 beta (a pre-release).
+# dry_run checks the whole path (the draft's assets downloaded again and verified) and deletes
+# the draft at the end; its draft is tagged vtest-..., and no tag is left behind.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The release's tag, vYYYY.MM.DD.NN (the next free counter of the day).
+        type: string
+        required: true
+      dry_run:
+        description: Dry run. The draft (tagged vtest-...) is checked and then deleted.
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Check the request
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      draft_tag: ${{ steps.plan.outputs.draft_tag }}
+      title: ${{ steps.plan.outputs.title }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+    steps:
+      - id: plan
+        env:
+          TAG: ${{ inputs.tag }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/master) prerelease=false ;;
+            refs/heads/u60) prerelease=true ;;
+            *) echo "::error::releases are made from master or u60, not $GITHUB_REF"; exit 1 ;;
+          esac
+          [[ "$TAG" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]] || { echo "::error::the tag must be vYYYY.MM.DD.NN, not '$TAG'"; exit 1; }
+          if [ "$DRY_RUN" != true ] && gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" > /dev/null 2>&1; then
+            echo "::error::the tag $TAG exists already"; exit 1
+          fi
+          title="${TAG#v}"; [ "$prerelease" = false ] || title="$title (U60 Beta)"
+          draft_tag="$TAG"
+          if [ "$DRY_RUN" = true ]; then draft_tag="vtest-${TAG#v}-$GITHUB_RUN_ID"; title="TEST $title (dry run, deleted at its end)"; fi
+          { echo "draft_tag=$draft_tag"; echo "title=$title"; echo "prerelease=$prerelease"; } >> "$GITHUB_OUTPUT"
+          echo "Draft $draft_tag, \"$title\", from $GITHUB_SHA ($GITHUB_REF_NAME), prerelease $prerelease"
+
+  build:
+    needs: plan
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build.yml
+    with:
+      release_tag: ${{ inputs.tag }}
+      use_cache: false
+    secrets:
+      GAME_REFS_DEPLOY_KEY: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+
+  digests:
+    name: Digests
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions: {}
+    outputs:
+      checksums: ${{ steps.sums.outputs.checksums }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+      - id: sums
+        run: |
+          cd dist
+          sha256sum oni-moono-* | tee "$RUNNER_TEMP/SHA256SUMS"
+          { echo "checksums<<SUMS_END"; cat "$RUNNER_TEMP/SHA256SUMS"; echo "SUMS_END"; } >> "$GITHUB_OUTPUT"
+
+  attest:
+    needs: digests
+    permissions:
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/attest.yml
+    with:
+      checksums: ${{ needs.digests.outputs.checksums }}
+
+  draft:
+    name: Draft release
+    needs: [plan, digests, attest]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      attestations: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      DRAFT_TAG: ${{ needs.plan.outputs.draft_tag }}
+      TITLE: ${{ needs.plan.outputs.title }}
+      PRERELEASE: ${{ needs.plan.outputs.prerelease }}
+      CHECKSUMS: ${{ needs.digests.outputs.checksums }}
+      SIGNER: ${{ github.repository }}/.github/workflows/attest.yml
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+      - name: Check the archives against their digests and provenance
+        run: |
+          printf '%s\n' "$CHECKSUMS" | sed '/^$/d' > SHA256SUMS
+          [ "$(ls dist | sort)" = "$(awk '{print $2}' SHA256SUMS | sort)" ] || { echo "::error::the archives are not the attested ones"; exit 1; }
+          (cd dist && sha256sum -c ../SHA256SUMS)
+          for f in dist/*; do
+            gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" --source-digest "$GITHUB_SHA"
+          done
+      - name: Write the notes
+        run: |
+          tag_note="\`gh release verify-asset $DRAFT_TAG FILE -R $GH_REPO\` (once published) or"
+          cat > notes.md <<EOF
+          Built by GitHub Actions from commit $GITHUB_SHA ([build]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)). Verify a download with $tag_note \`gh attestation verify FILE -R $GH_REPO --signer-workflow $SIGNER\`.
+
+          Install or update: download the archive for your system, extract it, and run the setup in the \`oni-moono\` folder (Windows: double-click \`setup.cmd\`; Linux: \`./setup.sh\`). If you already set it up, running the new setup is enough.
+          EOF
+          cat notes.md
+      - id: create
+        name: Create the draft
+        run: |
+          if [ -n "$(gh api "repos/$GH_REPO/releases" --paginate --jq ".[] | select(.tag_name == \"$DRAFT_TAG\") | .id")" ]; then
+            echo "::error::a release or draft with the tag $DRAFT_TAG exists already"; exit 1
+          fi
+          pre=(); [ "$PRERELEASE" = false ] || pre=(--prerelease)
+          gh release create "$DRAFT_TAG" dist/* --draft --target "$GITHUB_SHA" --title "$TITLE" --notes-file notes.md "${pre[@]}"
+          id="$(gh api "repos/$GH_REPO/releases" --paginate --jq ".[] | select(.tag_name == \"$DRAFT_TAG\" and .draft) | .id")"
+          [ "$(wc -w <<< "$id")" -eq 1 ] || { echo "::error::expected one draft $DRAFT_TAG, found '$id'"; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          # A draft's tag is made when it is published, not before.
+          if gh api "repos/$GH_REPO/git/ref/tags/$DRAFT_TAG" > /dev/null 2>&1; then
+            echo "::error::the tag $DRAFT_TAG exists before publishing"; exit 1
+          fi
+          url="$(gh api "repos/$GH_REPO/releases/$id" --jq .html_url)"
+          echo "Draft: $url" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Download the draft's assets and verify them (dry run)
+        if: inputs.dry_run
+        env:
+          ID: ${{ steps.create.outputs.id }}
+        run: |
+          mkdir again
+          gh api "repos/$GH_REPO/releases/$ID" --jq '.assets[] | "\(.id) \(.name)"' | while read -r asset name; do
+            gh api -H "Accept: application/octet-stream" "repos/$GH_REPO/releases/assets/$asset" > "again/$name"
+          done
+          [ "$(ls again | sort)" = "$(ls dist | sort)" ] || { echo "::error::the draft's assets differ"; exit 1; }
+          (cd again && sha256sum -c ../SHA256SUMS)
+          for f in again/*; do
+            gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER"
+          done
+      - name: Delete the draft (dry run)
+        if: always() && inputs.dry_run && steps.create.outputs.id != ''
+        env:
+          ID: ${{ steps.create.outputs.id }}
+        run: |
+          gh api -X DELETE "repos/$GH_REPO/releases/$ID"
+          if gh api "repos/$GH_REPO/git/ref/tags/$DRAFT_TAG" > /dev/null 2>&1; then
+            echo "::warning::the tag $DRAFT_TAG was made; deleting it"
+            gh api -X DELETE "repos/$GH_REPO/git/refs/tags/$DRAFT_TAG"
+          fi
+          left="$(gh api "repos/$GH_REPO/releases" --paginate --jq ".[] | select(.tag_name == \"$DRAFT_TAG\") | .id")"
+          [ -z "$left" ] || { echo "::error::the draft $DRAFT_TAG is still there"; exit 1; }
+          echo "Dry run: draft $DRAFT_TAG deleted, no tag left" | tee -a "$GITHUB_STEP_SUMMARY"
