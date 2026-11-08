@@ -1,7 +1,8 @@
-# Builds the release archives (scripts/release.sh) on GitHub-hosted runners, Linux on Ubuntu and
-# Windows natively on Windows (with its MSVC-built OniMoono.exe), and runs the unit tests that need
-# no game. The game's assemblies come as reference assemblies from the private refs repository
-# (ci/game-refs.json, docs/RELEASES.md). release.yml calls it to build a release.
+# Builds the release archives (scripts/release.sh), each with its SHA256SUMS manifest, on
+# GitHub-hosted runners, Linux on Ubuntu and Windows natively on Windows (with its MSVC-built
+# OniMoono.exe), and runs the unit tests that need no game. The game's assemblies come as
+# reference assemblies from the private refs repository (ci/game-refs.json, docs/RELEASES.md).
+# release.yml calls it to build a release.
 name: Build
 
 on:
@@ -72,7 +73,9 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-linux
-          path: out/release/oni-moono-*-linux-x64.tar.gz
+          path: |
+            out/release/oni-moono-*-linux-x64.tar.gz
+            out/release/oni-moono-*-linux-x64.SHA256SUMS
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
@@ -126,7 +129,9 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-windows
-          path: out/release/oni-moono-*-windows-x64.zip
+          path: |
+            out/release/oni-moono-*-windows-x64.zip
+            out/release/oni-moono-*-windows-x64.SHA256SUMS
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
