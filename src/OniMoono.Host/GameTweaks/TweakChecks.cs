@@ -162,16 +162,6 @@ namespace OniMoono.Host.GameTweaks
             return result;
         }
 
-        /// 1 and 3 for declarations made otherwise (a host class's attributes, read by
-        /// reflection: the start-up's synchronous check).
-        public static TweakCheck Run(GameFiles game, string tweak, IEnumerable<GameMemberDeclaration> members)
-        {
-            var check = new TweakCheck(tweak);
-            check.Members.AddRange(members);
-            foreach (var member in check.Members) Declared(game, member, check, bodies: false);
-            return check;
-        }
-
         /// 1 and 3 for one declared member.
         static void Declared(GameFiles game, GameMemberDeclaration member, TweakCheck check, bool bodies)
         {

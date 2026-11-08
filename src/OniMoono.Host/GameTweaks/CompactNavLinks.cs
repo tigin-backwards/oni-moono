@@ -86,6 +86,8 @@ namespace OniMoono.Host.GameTweaks
         static string? Reason(out List<string> notes)
         {
             notes = new List<string>();
+            // Its checks against the game (TweakInstall): off, the session keeps the game's flat arrays.
+            if (TweakInstall.Unavailable.TryGetValue(Name, out var off)) return off;
             lock (NavGridLinksRewrite.Problems)
                 if (NavGridLinksRewrite.Problems.Count > 0) return "a mod's access to the links cannot be rewritten: " + NavGridLinksRewrite.Problems[0];
             var linkType = AccessTools.TypeByName("NavGrid+Link");

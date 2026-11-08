@@ -29,9 +29,6 @@ namespace OniMoono.Host.GameTweaks
             }
         }
 
-        /// Whether a check already turned the tweak off, without waiting for the worker's.
-        public static bool CheckedOff(string name) => unavailable.ContainsKey(name);
-
         public static bool Available(string name)
         {
             Join();
@@ -75,7 +72,15 @@ namespace OniMoono.Host.GameTweaks
         }
 
         /// The background checks' results, once: each tweak off is logged.
+        static readonly object joining = new();
+
         static void Join()
+        {
+            if (pending == null) return;
+            lock (joining) JoinLocked();
+        }
+
+        static void JoinLocked()
         {
             if (pending == null) return;
             var wait = System.Diagnostics.Stopwatch.StartNew();
@@ -91,31 +96,6 @@ namespace OniMoono.Host.GameTweaks
                     if (check.Reason is { } reason) TurnOff(name, reason);
                 }
             EngineLog.Engine($"game tweaks: checked against the game in {ms:F1} ms on a worker ({waited:F1} ms waited for), {unavailable.Count} off");
-        }
-
-        /// Program, before the game's assemblies load: the tweaks whose rewrite runs as they load
-        /// (compact-nav-links, paged-path-grids) are checked at once, from their classes'
-        /// declarations alone (host code, with no game types to scan).
-        public static void CheckNow(string managed, IEnumerable<(string Name, Type Class)> tweaks)
-        {
-            var clock = System.Diagnostics.Stopwatch.StartNew();
-            int count = 0;
-            try
-            {
-                using var game = new GameFiles(managed);
-                foreach (var (name, type) in tweaks)
-                {
-                    count++;
-                    var members = type.GetCustomAttributes<GameMemberAttribute>(inherit: false)
-                        .Select(a => new GameMemberDeclaration(name, a.Use, a.Member, a.Fingerprints, a.Rewrites, a.Optional)).ToList();
-                    if (TweakChecks.Run(game, name, members).Reason is { } reason) TurnOff(name, reason);
-                }
-            }
-            catch (Exception e) when (e is System.IO.IOException or BadImageFormatException or InvalidOperationException or UnauthorizedAccessException)
-            {
-                EngineLog.Engine($"game tweaks: not checked against the game: {e.GetType().Name}: {e.Message}");
-            }
-            if (count > 0) EngineLog.Engine($"game tweaks: {count} checked before the game's assemblies load in {clock.Elapsed.TotalMilliseconds:F1} ms");
         }
 
         /// A tweak's declarations, as Check read them (none before it).
@@ -153,9 +133,13 @@ namespace OniMoono.Host.GameTweaks
             string? problem;
             try
             {
+                long start = System.Diagnostics.Stopwatch.GetTimestamp();
                 Counts(typed()); // a previous install's leftovers (another tweak's transpilers run again)
+                long installing = System.Diagnostics.Stopwatch.GetTimestamp();
                 install(harmony);
+                long installed = System.Diagnostics.Stopwatch.GetTimestamp();
                 problem = Rewrites(name, harmony, Counts(typed()));
+                CheckTicks += installing - start + System.Diagnostics.Stopwatch.GetTimestamp() - installed;
             }
             catch (Exception e)
             {
@@ -173,6 +157,11 @@ namespace OniMoono.Host.GameTweaks
             return false;
         }
 
+        /// The time Guarded spent on its own bookkeeping (counts and their check), for the log.
+        public static long CheckTicks;
+
+        static MethodInfo? typedTake;
+
         /// The transpilers' counts reported since the last call, from the host's and the typed
         /// assembly's TranspilerCounts.
         static List<(string Tweak, MethodBase Original, int Count)> Counts(Assembly? typed)
@@ -183,7 +172,7 @@ namespace OniMoono.Host.GameTweaks
                 for (int i = 0; i + 2 < flat.Length; i += 3) result.Add(((string)flat[i], (MethodBase)flat[i + 1], (int)flat[i + 2]));
             }
             Add(TranspilerCounts.Take());
-            if (typed?.GetType("OniMoono.Tweaks.TranspilerCounts") is { } other) Add((object[])other.GetMethod("Take")!.Invoke(null, null)!);
+            if (typed != null && (typedTake ??= typed.GetType("OniMoono.Tweaks.TranspilerCounts")?.GetMethod("Take")) is { } take) Add((object[])take.Invoke(null, null)!);
             return result;
         }
 
@@ -195,6 +184,9 @@ namespace OniMoono.Host.GameTweaks
         {
             Join();
             declared.TryGetValue(name, out var members);
+            // A tweak that declares no transpiler and reported no count has nothing to compare
+            // (an undeclared transpiler reports one).
+            if ((members == null || !members.Any(m => (m.Use & GameUse.Transpiler) != 0)) && !counts.Any(c => c.Tweak == name)) return null;
             foreach (var method in harmony.GetPatchedMethods().ToList())
             {
                 var info = Harmony.GetPatchInfo(method);

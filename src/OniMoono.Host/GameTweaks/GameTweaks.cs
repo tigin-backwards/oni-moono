@@ -26,20 +26,11 @@ namespace OniMoono.Host.GameTweaks
         public static bool Available(string name) => TweakInstall.Available(name);
 
         /// Program, before the game's assemblies load: every tweak's checks against the game's
-        /// files (TweakInstall), on a worker but for the tweaks whose rewrites run as the
-        /// assemblies load, which are checked at once when on.
-        public static void Check(string managed, IReadOnlySet<string> enabled)
-        {
+        /// files (TweakInstall), on a worker. compact-nav-links and paged-path-grids, whose
+        /// rewrites run as the assemblies load, take its verdict at their first grid (Decide):
+        /// off, the session keeps the game's flat arrays.
+        public static void Check(string managed) =>
             TweakInstall.Start(managed, System.IO.Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"), typeof(GameTweaks).Assembly, GameTweakNames.All);
-            var now = new List<(string, Type)>();
-            if (enabled.Contains(CompactNavLinks.Name)) now.Add((CompactNavLinks.Name, typeof(CompactNavLinks)));
-            if (enabled.Contains(PagedPathGrids.Name)) now.Add((PagedPathGrids.Name, typeof(PagedPathGrids)));
-            TweakInstall.CheckNow(managed, now);
-        }
-
-        /// Whether a tweak's rewrite may run as the assemblies load (CheckNow's verdict alone,
-        /// without waiting for the worker's).
-        public static bool RewriteAvailable(string name) => !TweakInstall.CheckedOff(name);
 
         public static void Install(IReadOnlySet<string> enabled)
         {
@@ -50,6 +41,7 @@ namespace OniMoono.Host.GameTweaks
                 bool on = TweakInstall.Guarded(name, install, () => typed, log);
                 if (name == BackgroundSave.Name) backgroundSave = on;
             }
+            EngineLog.Engine($"game tweaks: installed, {System.Diagnostics.Stopwatch.GetElapsedTime(0, TweakInstall.CheckTicks).TotalMilliseconds:F1} ms of it the installs' checks");
             if (enabled.Contains(CompactNavLinks.Name) == false && Environment.GetEnvironmentVariable("ONI_NAVLINKS_DUMP") is { Length: > 0 })
                 CompactNavLinks.InstallDump(new Harmony("OniMoono.Host.GameTweaks." + CompactNavLinks.Name));
         }
