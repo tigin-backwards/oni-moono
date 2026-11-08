@@ -448,9 +448,22 @@ namespace OniMoono.Engine.Rendering
         Matrix4x4 cachedView, cachedProjection, cachedViewProjection, cachedInverseViewProjection, cachedCameraToWorld;
         bool cached;
 
-        static bool SameBits(in Matrix4x4 a, in Matrix4x4 b)
+        internal static bool SameBits(in Matrix4x4 a, in Matrix4x4 b)
             => MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in a), 1))
                 .SequenceEqual(MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in b), 1)));
+
+        /// What the world-to-screen conversion reads (WorldToScreen): the view, the projection
+        /// and the whole-pixel viewport. A raycast's rect tests stand while they do
+        /// (UnityEngine.UI.GraphicRaycaster).
+        internal struct ScreenMapping
+        {
+            public Matrix4x4 View, Projection;
+            public (int X, int Y, int Width, int Height) Viewport;
+
+            public readonly bool Same(in ScreenMapping o) => Viewport == o.Viewport && SameBits(View, o.View) && SameBits(Projection, o.Projection);
+        }
+
+        internal ScreenMapping Mapping => new ScreenMapping { View = WorldToCamera, Projection = Projection, Viewport = PixelViewport };
 
         void Matrices()
         {

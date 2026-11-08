@@ -174,7 +174,7 @@ namespace OniMoono.Engine.UI
         static CanvasNative CanvasOn(GameObjectNative go) => PartsOf(go).Canvas is { } c && IsLive(c) ? c : null;
 
         /// A GameObject's canvas, enabled or not.
-        static CanvasNative AnyCanvasOn(GameObjectNative go) => PartsOf(go).Canvas is { } c && !c.Destroyed ? c : null;
+        internal static CanvasNative AnyCanvasOn(GameObjectNative go) => PartsOf(go).Canvas is { } c && !c.Destroyed ? c : null;
 
         /// A GameObject's canvas components, found once per component list: GameObject.Components
         /// is copy-on-write, so the list is the same array until a component is added or removed.
@@ -653,7 +653,7 @@ namespace OniMoono.Engine.UI
                 if (depth.Renumber)
                 {
                     c.DepthDirty = false;
-                    c.DepthEpoch++;
+                    c.DepthEpoch++; // a raycast over its graphics reads it (RaycastInputs.Stamp)
                     if (stats) statsRenumbered++;
                 }
                 var top = c.GameObject.Transform;
@@ -665,6 +665,7 @@ namespace OniMoono.Engine.UI
                 if (c.SortRootBuild != buildNumber)
                 {
                     c.DepthEpoch++;
+                    RaycastInputs.Changed();
                     c.DepthDirty = true;
                 }
             // Render order: by sorting layer, sorting order, then list order (Resort).
@@ -760,6 +761,7 @@ namespace OniMoono.Engine.UI
                 if (verifySkips) VerifySkipped(batch.Canvas, go, isTop: true, raycasters: unraycastTop);
                 return;
             }
+            long hiddenWas = go.CanvasHiddenAt;
             go.CanvasHiddenAt = -1;
             go.CanvasNoRaycastersAt = -1;
             long version = go.SubtreeVersion;
@@ -788,6 +790,10 @@ namespace OniMoono.Engine.UI
                 if (r.Destroyed) continue;
                 if (depth.Renumber)
                 {
+                    // Numbered by another sort root before and still so: whether it had a depth
+                    // followed that one's numbering, which a raycast here does not read (it reads
+                    // the numbering of the sort roots above it).
+                    if (r.DepthBatch != null && r.DepthBatch != batch.Canvas && r.HasDepth) RaycastInputs.Changed();
                     r.DepthBatch = batch.Canvas;
                     r.DepthEpoch = batch.Canvas.DepthEpoch;
                     r.AbsoluteDepth = depth.Value;
@@ -811,6 +817,7 @@ namespace OniMoono.Engine.UI
                     if (!r.Destroyed && r.HasPopInstruction) depth.Value++;
             depth.RelativeBase = relativeBefore;
             if (hiddenTop && depth.IgnoringGroups == ignoringBefore) go.CanvasHiddenAt = version;
+            if (go.CanvasHiddenAt != hiddenWas) RaycastInputs.Changed(); // the raycasts' closed-screen skip reads it
             if (unraycastTop && depth.IgnoringGroups == ignoringBefore && depth.Raycasters == raycastersBefore && !RaycasterAbove(go))
                 go.CanvasNoRaycastersAt = version;
         }

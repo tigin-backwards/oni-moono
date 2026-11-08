@@ -81,6 +81,8 @@ namespace OniMoono.Engine
         public ComponentLayout.Cached Layout;
         /// Changes below and at this object (Hierarchy.Touch).
         public long SubtreeVersion;
+        /// Changes at this object itself (Hierarchy.Touch on its transform).
+        public long SelfVersion;
         /// The SubtreeVersion at which CanvasSystem last walked this object as the top of a
         /// subtree hidden by its CanvasGroups, finding no group that ignores its parents; -1 when
         /// not known to be so.
@@ -329,13 +331,21 @@ namespace OniMoono.Engine
             var cache = inverse;
             if (cache != null) cache.LocalDirty = true;
             WorldChanged(moved, changed);
-            foreach (var c in Children) c.MarkWorldDirty(moved, changed);
+            bool rect = this is RectTransformNative;
+            foreach (var c in Children) rect |= c.MarkWorldDirty(moved, changed);
+            // A RectTransform at or below moved or resized: counted here and on every object
+            // above (UI.RaycastInputs).
+            if (rect)
+                for (var t = this; t != null; t = t.Parent) t.SubtreeMoves++;
         }
 
-        void MarkWorldDirty(bool moved, bool changed)
+        /// Whether a RectTransform was among those marked.
+        bool MarkWorldDirty(bool moved, bool changed)
         {
             WorldChanged(moved, changed);
-            foreach (var c in Children) c.MarkWorldDirty(moved, changed);
+            bool rect = this is RectTransformNative;
+            foreach (var c in Children) rect |= c.MarkWorldDirty(moved, changed);
+            return rect;
         }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -351,6 +361,9 @@ namespace OniMoono.Engine
                 if (MoveWatched) TransformMoveWatch.Note(this);
             }
         }
+
+        /// Moves and resizes of the RectTransforms at or below the transform (MarkDirty).
+        public long SubtreeMoves;
 
         /// The transform's place in the world changed, through its own change or an ancestor's.
         protected virtual void OnMoved() { }

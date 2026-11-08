@@ -2556,6 +2556,18 @@ OpenGL fallback.
 `StencilMaterial`), and draw in order (no reordering across materials; Unity's batch
 merging is an optimisation we may add only where it cannot change the result).
 
+**UI raycasts.** A `GraphicRaycaster` tests every raycast target of its canvas each frame: its
+flags, whether it sits under a closed screen, its rect at the pointer, then its raycast filters.
+It keeps the graphics that reach the filters and reuses them while nothing read before the
+filters has changed (`RaycastInputs`): the pointer position, the canvas's graphic list, camera
+mapping and far plane; the canvas object's hierarchy version, RectTransform moves and resizes at
+or below it (counted in `MarkDirty`) and world matrix; each object above it (its own changes and
+the walk's closed-screen mark); the numbering of each sort root above it; and a global version
+for `raycastTarget`, `raycastPadding`, `cull` and the like. Keys are per canvas because the game
+keeps all its UI under one object that changes every frame. A reuse still asks those graphics'
+filters, which may read anything, and sorts by depth as before. `ONI_RAYCAST_CACHE=0` turns it
+off; `ONI_VERIFY_RAYCAST_CACHE=1` makes each reused pass afresh too and logs any difference.
+
 ### 3.6 Platform
 
 `OniMoono.Desktop` wraps `Brutal.Glfw`: one window, with a GL 4.5 core context or for a Vulkan
