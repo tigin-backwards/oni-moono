@@ -24,6 +24,10 @@ what you type (in the game's language, any case; each word on its own, as the ga
 searches match), and the headings of the sections that keep a row.
 **Reset to defaults** sets every row back to its default. Changes apply when the game restarts, which the screen does for you.
 
+A tweak this build of Moono can't run on your game version (a game update changed the code it
+changes) is off, and its row is greyed out with "Not available on this game version"; the game's
+own code runs instead, and your choice for it is kept for when it is available again.
+
 Your choices are kept in `oni-moono/settings.json` in the game's own data folder (usually
 `~/.config/unity3d/Klei/Oxygen Not Included` on Linux,
 `%USERPROFILE%\AppData\LocalLow\Klei\Oxygen Not Included` on Windows), which updates never touch.

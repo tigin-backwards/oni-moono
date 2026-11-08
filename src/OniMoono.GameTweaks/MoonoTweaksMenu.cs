@@ -29,6 +29,8 @@ namespace OniMoono.GameTweaks
         /// The rows' text in the game's language (Localize), and the launch options (`Notes`).
         internal static string[] Ids, Groups, Titles, Effects, Details, Gains, Notes;
         internal static bool[] ChangesGameplay, BugFixes, Locked;
+        /// The rows whose tweak this game version can't run (also Locked: not changeable, not saved).
+        internal static bool[] Unavailable;
         /// Each row's value: 0 or 1 for a toggle, else the index in its Choices.
         internal static int[] Running, Defaults, Saved;
         internal static string[][] Choices;
@@ -50,14 +52,15 @@ namespace OniMoono.GameTweaks
         /// when it has more than on and off (null for a toggle). `running`: each option as this
         /// run has it (0 or 1 for a toggle, else the index in its choices); `defaults`: as Reset
         /// to defaults sets it; `locked`: set by the command line (shown, not changeable, labelled
-        /// LAUNCH OPTION). `save(ids, values)` writes the changeable rows to
+        /// LAUNCH OPTION); `unavailable`: locked too, as the tweak can't run on this game version
+        /// (greyed out, labelled NOT AVAILABLE). `save(ids, values)` writes the changeable rows to
         /// the settings file, returning why it could not or null. The text (`groups` to `gains`,
         /// `choices`) is given as keys ("" for none) into `keys`, whose English is `englishTexts`;
         /// `resolveTexts` gives every key's text from a .po's strings (key to text, English where
         /// it has none), read from the folder `translations`.
         public static void Install(Harmony harmony, string[] ids, string[] groups, string[] titles, string[] effects,
             string[] details, string[] gains, string[] notes, bool[] changesGameplay, bool[] bugFixes, string[][] choices, int[] running, int[] defaults, bool[] locked,
-            string settingsPath, Func<string[], int[], string> save,
+            bool[] unavailable, string settingsPath, Func<string[], int[], string> save,
             string[] keys, string[] englishTexts, Func<Dictionary<string, string>, string[]> resolveTexts, string translations)
         {
             Ids = ids;
@@ -81,6 +84,7 @@ namespace OniMoono.GameTweaks
             Defaults = defaults;
             Saved = (int[])running.Clone();
             Locked = locked;
+            Unavailable = unavailable;
             SettingsPath = settingsPath;
             Save = save;
             harmony.Patch(AccessTools.Method(typeof(MainMenu), "OnPrefabInit"), postfix: new HarmonyMethod(typeof(MoonoTweaksMenu), nameof(AddButton)));
@@ -554,6 +558,9 @@ namespace OniMoono.GameTweaks
         static string Tooltip(int i)
         {
             var text = MoonoTweaksMenu.Details[i];
+            // A tweak this game version can't run says so first.
+            if (MoonoTweaksMenu.Unavailable[i])
+                text = $"<color=#{Warning}>{MoonoTweaksMenu.Ui("NOT_AVAILABLE_TIP")}</color>" + (text.Length > 0 ? "\n\n" + text : "");
             if (MoonoTweaksMenu.Gains[i].Length > 0)
                 text += (text.Length > 0 ? "\n\n" : "") + $"<color={Constants.POSITIVE_COLOR_STR}>{MoonoTweaksMenu.Gains[i]}</color>";
             if (MoonoTweaksMenu.Notes[i].Length > 0)
@@ -606,9 +613,10 @@ namespace OniMoono.GameTweaks
             // The label beside the toggle: who set a row the launch options set (the section
             // heading says which tweaks change gameplay).
             var label = entry.GetReference<LocText>("Version");
+            bool unavailable = MoonoTweaksMenu.Unavailable[i];
             if (locked)
             {
-                label.text = MoonoTweaksMenu.Ui("LAUNCH_OPTION");
+                label.text = MoonoTweaksMenu.Ui(unavailable ? "NOT_AVAILABLE" : "LAUNCH_OPTION");
                 label.fontSize = 12;
                 // One line: the effect beside it wraps instead.
                 label.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
@@ -644,7 +652,7 @@ namespace OniMoono.GameTweaks
                 effect.gameObject.AddComponent<CanvasGroup>().alpha = 0.55f;
                 var dim = toggle.gameObject.AddComponent<CanvasGroup>();
                 dim.alpha = 0.45f;
-                if (tip != null) tip.OnToolTip = () => MoonoTweaksMenu.Ui(shown[i] != 0 ? "LOCKED_ON" : "LOCKED_OFF");
+                if (tip != null) tip.OnToolTip = () => MoonoTweaksMenu.Ui(unavailable ? "NOT_AVAILABLE_TIP" : shown[i] != 0 ? "LOCKED_ON" : "LOCKED_OFF");
             }
             else
             {
