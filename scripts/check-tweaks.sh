@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# check-tweaks.sh [--review] [GAME_DIR...]: each game tweak against frozen game builds, from their
-# files, without starting the game (OniMoono --check-tweaks; src/OniMoono.Host/GameTweaks/TweakCheckTool.cs).
+# check-tweaks.sh [--review] [GAME_DIR...]: each game tweak and the Moono Tweaks menu against
+# frozen game builds, from their files, without starting the game (OniMoono --check-tweaks;
+# src/OniMoono.Host/GameTweaks/TweakCheckTool.cs).
 # Without GAME_DIRs, every build in $ONI_TWEAK_BUILDS (default /mnt/e/oni-builds, its
 # oni-linux-* and oni-win-* folders). Plain: the builds of this branch's game update must keep
 # every tweak on (signatures, references, reviewed fingerprints; on Linux builds also each

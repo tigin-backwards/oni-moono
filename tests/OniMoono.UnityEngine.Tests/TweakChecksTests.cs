@@ -38,11 +38,12 @@ namespace OniMoono.Tests
         // ---- The game's files ----
 
         /// How a game update changed the stand-in game.
-        public enum Update { None, BodyChanged, MethodGone, SignatureChanged, FieldRetyped, CalleeGone }
+        public enum Update { None, BodyChanged, MethodGone, SignatureChanged, FieldRetyped, CalleeGone, MenuTargetGone }
 
         /// Assembly-CSharp in `folder`: class Machine with Work(int) (returns its argument plus
         /// one; plus two once its body changed), Signed(int) (long once its signature changed),
-        /// a field count (an int, a long once retyped), and Helper(), which the tweak's lambda calls.
+        /// a field count (an int, a long once retyped), and Helper(), which the tweak's lambda
+        /// calls; class MainMenu with OnPrefabInit(), which the Moono Tweaks menu patches.
         static string Game(string folder, Update update)
         {
             Directory.CreateDirectory(folder);
@@ -70,6 +71,11 @@ namespace OniMoono.Tests
             var helper = new Cecil.MethodDefinition("Helper", Cecil.MethodAttributes.Public | Cecil.MethodAttributes.Static, module.TypeSystem.Void);
             helper.Body.GetILProcessor().Emit(Cil.OpCodes.Ret);
             if (update != Update.CalleeGone) machine.Methods.Add(helper);
+            var mainMenu = new Cecil.TypeDefinition("", "MainMenu", Cecil.TypeAttributes.Public | Cecil.TypeAttributes.Class, module.TypeSystem.Object);
+            module.Types.Add(mainMenu);
+            var prefabInit = new Cecil.MethodDefinition("OnPrefabInit", Cecil.MethodAttributes.Family | Cecil.MethodAttributes.Virtual | Cecil.MethodAttributes.HideBySig, module.TypeSystem.Void);
+            prefabInit.Body.GetILProcessor().Emit(Cil.OpCodes.Ret);
+            if (update != Update.MenuTargetGone) mainMenu.Methods.Add(prefabInit);
             string path = Path.Combine(folder, "Assembly-CSharp.dll");
             assembly.Write(path);
             return path;
@@ -79,8 +85,10 @@ namespace OniMoono.Tests
         /// GameUse and GameMemberAttribute (each tweak assembly has its own), tweak `uses-work`
         /// (class UsesWork: replaces Machine.Work, declared with `fingerprint`, and reads
         /// Machine.count), tweak `calls-helper` (class CallsHelper: calls Machine.Helper from a
-        /// lambda's closure class nested in it, declaring nothing) and tweak `signed` (declares
-        /// Machine.Signed(int)).
+        /// lambda's closure class nested in it, declaring nothing), tweak `signed` (declares
+        /// Machine.Signed(int)) and the Moono Tweaks menu (class Menu: declares its postfix of
+        /// MainMenu.OnPrefabInit, and calls CallsHelper's Guarded, which calls Machine.Helper, as
+        /// ModOverlaps reads what each tweak guards).
         static string Tweaks(string folder, string gameFile, string fingerprint)
         {
             Directory.CreateDirectory(folder);
@@ -144,6 +152,19 @@ namespace OniMoono.Tests
             var signed = Tweak("SignedTweak", "signed");
             Declare(signed, GameUse.Postfix, "System.Void Machine::Signed(System.Int32)");
 
+            var guarded = new Cecil.MethodDefinition("Guarded", Cecil.MethodAttributes.Public | Cecil.MethodAttributes.Static, module.TypeSystem.Void);
+            il = guarded.Body.GetILProcessor();
+            il.Emit(Cil.OpCodes.Call, module.ImportReference(machine.Methods.Single(m => m.Name == "Helper")));
+            il.Emit(Cil.OpCodes.Ret);
+            callsHelper.Methods.Add(guarded);
+            var menu = Tweak("Menu", GameTweakNames.Menu);
+            Declare(menu, GameUse.Postfix, "System.Void MainMenu::OnPrefabInit()");
+            var refresh = new Cecil.MethodDefinition("Refresh", Cecil.MethodAttributes.Public | Cecil.MethodAttributes.Static, module.TypeSystem.Void);
+            il = refresh.Body.GetILProcessor();
+            il.Emit(Cil.OpCodes.Call, guarded);
+            il.Emit(Cil.OpCodes.Ret);
+            menu.Methods.Add(refresh);
+
             string path = Path.Combine(folder, "Tweaks.dll");
             assembly.Write(path);
             return path;
@@ -164,8 +185,9 @@ namespace OniMoono.Tests
             string managed = Path.Combine(dir, "game-" + update);
             Game(managed, update);
             TweakInstall.Reset();
-            TweakInstall.Check(managed, tweaks, typeof(TweakChecksTests).Assembly, ["uses-work", "calls-helper", "signed"]);
-            return new[] { "uses-work", "calls-helper", "signed" }.ToDictionary(n => n, n => TweakInstall.Unavailable.TryGetValue(n, out var r) ? r : null);
+            string[] all = ["uses-work", "calls-helper", "signed", GameTweakNames.Menu];
+            TweakInstall.Check(managed, tweaks, typeof(TweakChecksTests).Assembly, all);
+            return all.ToDictionary(n => n, n => TweakInstall.Unavailable.TryGetValue(n, out var r) ? r : null);
         }
 
         [Fact]
@@ -213,6 +235,54 @@ namespace OniMoono.Tests
             off = Checked(Update.CalleeGone);
             Assert.Equal("`Machine.Helper` is missing in this game version", off["calls-helper"]);
             Assert.Null(off["uses-work"]);
+        }
+
+        /// A game update without what the Moono Tweaks menu patches: start-up goes on as Program
+        /// runs it (the tweaks' installs, then the menu's), the tweaks install and the menu does
+        /// not, its install never run and nothing of it patched; the tweaks the settings file
+        /// chose are as it says, read without the menu.
+        [Fact]
+        public void WithoutTheMenusTargetTheTweaksInstallAndThereIsNoMenu()
+        {
+            var off = Checked(Update.MenuTargetGone);
+            Assert.Equal("`MainMenu.OnPrefabInit` is missing in this game version", off[GameTweakNames.Menu]);
+            Assert.Null(off["uses-work"]);
+            Assert.Null(off["calls-helper"]);
+            Assert.Null(off["signed"]);
+            var settings = OniMoono.Host.PlayerSettings.Parse("{\"gameTweaks\": {\"fast-jobs\": false}}");
+            var effective = OniMoono.Host.EffectiveOptions.Resolve(GameTweakNames.All, GameTweakNames.ChangingBehaviour, [], null, false, settings,
+                offByDefault: GameTweakNames.OffByDefault);
+            Assert.DoesNotContain("fast-jobs", effective.EnabledTweaks);
+            Assert.Contains("fast-sublimation", effective.EnabledTweaks);
+            bool menuRan = false;
+            try
+            {
+                Assert.True(TweakInstall.Guarded("signed", h =>
+                    h.Patch(AccessTools.Method(typeof(Target), nameof(Target.B)), prefix: new HarmonyMethod(typeof(Patches), nameof(Patches.Ten))), () => null));
+                Assert.False(TweakInstall.Guarded(GameTweakNames.Menu, h =>
+                {
+                    menuRan = true;
+                    h.Patch(AccessTools.Method(typeof(Target), nameof(Target.A)), prefix: new HarmonyMethod(typeof(Patches), nameof(Patches.Ten)));
+                }, () => null, log: false, harmonyId: "OniMoono.Host.MoonoTweaksMenu"));
+                Assert.False(menuRan);
+                Assert.Equal(1, Target.A());
+                Assert.Equal(10, Target.B());
+                Assert.DoesNotContain(Harmony.GetPatchInfo(AccessTools.Method(typeof(Target), nameof(Target.A)))?.Prefixes ?? [], p => p.owner == "OniMoono.Host.MoonoTweaksMenu");
+            }
+            finally
+            {
+                Unpatch("OniMoono.Host.GameTweaks.signed", "OniMoono.Host.MoonoTweaksMenu");
+            }
+        }
+
+        /// The menu's reference scan stops at the tweaks' classes: a tweak whose code reaches a
+        /// member the game lost is off, the menu that reads what that tweak guards is not.
+        [Fact]
+        public void ATweaksBrokenReferenceLeavesTheMenuOn()
+        {
+            var off = Checked(Update.CalleeGone);
+            Assert.Equal("`Machine.Helper` is missing in this game version", off["calls-helper"]);
+            Assert.Null(off[GameTweakNames.Menu]);
         }
 
         [Fact]

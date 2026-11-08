@@ -692,9 +692,10 @@ namespace OniMoono.Host.GameTweaks
                 return collect;
             }
 
-            public List<string> Problems(IEnumerable<TypeDefinitionHandle> roots)
+            /// `stop`: types not followed into (their own references are not the roots' problems).
+            public List<string> Problems(IEnumerable<TypeDefinitionHandle> roots, IReadOnlySet<TypeDefinitionHandle>? stop = null)
             {
-                var seen = new HashSet<TypeDefinitionHandle>();
+                var seen = new HashSet<TypeDefinitionHandle>(stop ?? (IEnumerable<TypeDefinitionHandle>)[]);
                 var pending = new Queue<TypeDefinitionHandle>();
                 foreach (var root in roots)
                     if (seen.Add(root)) pending.Enqueue(root);

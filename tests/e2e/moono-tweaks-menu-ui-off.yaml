@@ -1,0 +1,25 @@
+# The Moono Tweaks menu whose game UI is not what it takes by name is off, and the game runs
+# without it: the Mods screen's rows' ManageButton is taken as gone (ONI_TWEAK_TEST_MENU_MISSING,
+# test runs), as after a game update that renamed it. The menu's patch is in, but the first main
+# menu's check of the UI finds it missing before the button is made: one log line says why, the
+# main menu has no Moono Tweaks entry, and the tweaks install as the settings file has them.
+# Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+env: {ONI_TWEAK_SETTINGS: "1", ONI_TWEAK_TEST_MENU_MISSING: ManageButton}
+require_log:
+  - "Moono Tweaks menu: off, the Mods screen's rows have no ManageButton$"
+  - '^\[engine\] game tweak fast-jobs$'
+  - '^\[engine\] game tweak fast-sublimation$'
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_ui:
+      "**/MainMenuButtons/MoonoTweaksButton": {exists: false}
+  # The log says why, and the tweaks installed (our own log: require_log compares with the original's).
+  - expect_state:
+      "file:Player.log": [{contains: "[Moono] Moono Tweaks menu: off, the Mods screen's rows have no ManageButton"},
+                          {contains: "[engine] game tweak fast-jobs\n"}, {contains: "[engine] game tweaks: installed"}]
+  - shot: {name: menu, crop: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons"}

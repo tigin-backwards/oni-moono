@@ -119,17 +119,20 @@ namespace OniMoono.Host.GameTweaks
         public static void TurnOff(string name, string reason)
         {
             if (!unavailable.TryAdd(name, reason)) return;
-            EngineLog.Engine($"game tweak {name}: off, {reason}");
+            EngineLog.Engine($"{Label(name)}: off, {reason}");
         }
+
+        /// How the log names what is checked: "game tweak NAME", or the Moono Tweaks menu.
+        static string Label(string name) => name == GameTweakNames.Menu ? "Moono Tweaks menu" : "game tweak " + name;
 
         /// One tweak's install, all or nothing: when it throws, or a transpiler of it rewrote
         /// other than the sites it declares (Rewrites), what it patched is unpatched and it is off
         /// for the run. `typed`: the typed assembly once loaded (its TranspilerCounts too). True
-        /// when it is on.
-        public static bool Guarded(string name, Action<Harmony> install, Func<Assembly?> typed, bool log = true)
+        /// when it is on. `harmonyId`: the install's own (a tweak's is "OniMoono.Host.GameTweaks.NAME").
+        public static bool Guarded(string name, Action<Harmony> install, Func<Assembly?> typed, bool log = true, string? harmonyId = null)
         {
             if (!Available(name)) return false;
-            var harmony = new Harmony("OniMoono.Host.GameTweaks." + name);
+            var harmony = new Harmony(harmonyId ?? "OniMoono.Host.GameTweaks." + name);
             string? problem;
             try
             {
@@ -148,11 +151,11 @@ namespace OniMoono.Host.GameTweaks
             }
             if (problem == null)
             {
-                if (log) EngineLog.Engine($"game tweak {name}");
+                if (log) EngineLog.Engine(Label(name));
                 return true;
             }
             try { harmony.UnpatchAll(harmony.Id); }
-            catch (Exception e) { EngineLog.Engine($"game tweak {name}: its patches could not all be taken back: {e.GetType().Name}: {e.Message}"); }
+            catch (Exception e) { EngineLog.Engine($"{Label(name)}: its patches could not all be taken back: {e.GetType().Name}: {e.Message}"); }
             TurnOff(name, problem);
             return false;
         }

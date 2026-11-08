@@ -2891,11 +2891,30 @@ greyed out with "Not available on this game version", its setting left as the fi
   passes when another owner transpiles the method too, its transpiler having run first (#41,
   `CallSiteReroute`); an undeclared transpiler fails. The counts are checked at install, when
   no mod has patched yet; a mod's later patch reruns the transpilers without a check.
+- *The Moono Tweaks menu* (`OniMoono.GameTweaks.MoonoTweaksMenu`, `GameTweakNames.Menu`) is
+  checked and installed the same way, though it is no tweak (no row, no `--game-tweak` name): its
+  class declares its postfix of `MainMenu.OnPrefabInit` and the fields it reads by name
+  (MainMenu's button prefab, parent and style, the Mods screen's parts; the Supply Closet's search
+  field `Optional`, as the screen leaves its search box out without it), 1 and 2 run on its code
+  with the tweaks', and its install is all or nothing under its own Harmony ID. Its reference
+  scan stops at the tweaks' classes, which it reaches only to read what each guards
+  (`ModOverlaps.Guards`, each in its own try): a tweak that fails turns off that tweak, not the
+  menu. What it takes by name at run time is checked when the first main menu is made, before the
+  button is (`MoonoTweaksMenu.Problem`): the main menu's parts, the Mods screen's prefab and parts,
+  and its rows' references (`BG`, `Title`, `Description`, `EnabledToggle`, `Version`,
+  `ManageButton`), each of its type; the sprites and text style it looks up by name are left out
+  of that, as a missing one only leaves an icon blank or the body text in the label's style. Off
+  either way, the main menu has no Moono Tweaks entry (nor the overlap and update badges beside
+  it), one log line says why (`Moono Tweaks menu: off, …`), and the game and the tweaks run as
+  without it: the settings file and the tweaks it chose are read before, without the menu.
+  `ONI_TWEAK_TEST_MISSING=NAME` (test runs) takes the declared members of a tweak or the menu as
+  gone; `ONI_TWEAK_TEST_MENU_MISSING=PART` a part the menu takes at run time
+  (`tests/e2e/moono-tweaks-menu-off.yaml`, `moono-tweaks-menu-ui-off.yaml`).
 - Nothing is checked in play: no patch carries a guard or a finalizer for this.
 - *Offline* (`OniMoono --game DIR --check-tweaks check|review|declare`, `TweakCheckTool.cs`;
   `scripts/check-tweaks.sh`, run by check.sh over the frozen builds in `/mnt/e/oni-builds`):
-  check runs 1–3 on a build of this branch's game update and then installs every tweak as in
-  play (4, and every patch made must be declared), failing on any tweak off; review runs 1–3 on
+  check runs 1–3 on a build of this branch's game update and then installs every tweak and the
+  menu as in play (4, and every patch made must be declared), failing on any tweak or the menu off; review runs 1–3 on
   any build (a newly downloaded one) and prints each body to review with the fingerprint to add
   once it is, and `--tweak-listings DIR` writes the normalised bodies for diffing two builds;
   declare prints each tweak's patches as `GameMember` lines (`ONI_TWEAK_DESCRIBE=Type::name,…`

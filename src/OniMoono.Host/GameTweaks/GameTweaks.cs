@@ -26,11 +26,11 @@ namespace OniMoono.Host.GameTweaks
         public static bool Available(string name) => TweakInstall.Available(name);
 
         /// Program, before the game's assemblies load: every tweak's checks against the game's
-        /// files (TweakInstall), on a worker. compact-nav-links and paged-path-grids, whose
+        /// files (TweakInstall), and the Moono Tweaks menu's (GameTweakNames.Menu), on a worker. compact-nav-links and paged-path-grids, whose
         /// rewrites run as the assemblies load, take its verdict at their first grid (Decide):
         /// off, the session keeps the game's flat arrays.
         public static void Check(string managed) =>
-            TweakInstall.Start(managed, System.IO.Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"), typeof(GameTweaks).Assembly, GameTweakNames.All);
+            TweakInstall.Start(managed, System.IO.Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"), typeof(GameTweaks).Assembly, GameTweakNames.Checked);
 
         public static void Install(IReadOnlySet<string> enabled)
         {

@@ -209,6 +209,14 @@ namespace OniMoono.Host.GameTweaks
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
 
+        /// The main menu's Moono Tweaks entry and screen (OniMoono.GameTweaks.MoonoTweaksMenu's
+        /// `Name`): checked and installed as a tweak is (TweakInstall), but not one: no row, no
+        /// `--game-tweak` name. Off, the game and the tweaks run without it.
+        public const string Menu = "moono-tweaks-menu";
+
+        /// What TweakInstall checks against the game: every tweak, and the menu.
+        public static readonly string[] Checked = [.. All, Menu];
+
         /// The tweaks that change what the game does (each documented in its class); `exact` turns
         /// on every tweak but these.
         public static readonly string[] ChangingBehaviour = Rows.Where(r => r.IsTweak && (r.Group.ChangesGameplay || r.ChangesBehaviour)).Select(r => r.Id).ToArray();

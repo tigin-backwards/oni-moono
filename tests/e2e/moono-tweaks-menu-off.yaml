@@ -1,0 +1,26 @@
+# The Moono Tweaks menu that does not match the game is off, and the game runs without it: what
+# it patches (MainMenu.OnPrefabInit) is taken as gone from the game (ONI_TWEAK_TEST_MISSING, test
+# runs), as after a game update that removed it. Its checks fail before it patches anything, one
+# log line says why, the main menu has no Moono Tweaks entry, and the tweaks install as the
+# settings file has them. Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+env: {ONI_TWEAK_SETTINGS: "1", ONI_TWEAK_TEST_MISSING: moono-tweaks-menu}
+require_log:
+  - '^\[engine\] Moono Tweaks menu: off, `MainMenu\.OnPrefabInit` is missing in this game version \(and \d+ more\)$'
+  - '^\[engine\] game tweak fast-jobs$'
+  - '^\[engine\] game tweak fast-sublimation$'
+  - '^\[engine\] game tweaks: installed'
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - expect_ui:
+      "**/MainMenuButtons/MoonoTweaksButton": {exists: false}
+      "**/MoonoUpdateBadge": {exists: false}
+  # The log says why, and the tweaks installed (our own log: require_log compares with the original's).
+  - expect_state:
+      "file:Player.log": [{contains: "[engine] Moono Tweaks menu: off, `MainMenu.OnPrefabInit` is missing in this game version"},
+                          {contains: "[engine] game tweak fast-jobs\n"}, {contains: "[engine] game tweaks: installed"}]
+  - shot: {name: menu, crop: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons"}
