@@ -36,7 +36,7 @@ other test players running, so rough):
 | Call | Original, ns | Moono, ns |
 |---|---|---|
 | `transform.position` (get) | 10.6–15.6 | 2.5–2.7 |
-| `transform.position = v` | ~23 | 41–68 |
+| `transform.position = v` | ~23 | 11–15 (warmed up; see below) |
 | `GetComponent<T>` (present / absent) | 45–57 | 3.5–5.0 |
 | `obj == null` (live object) | ~4.1 | ~0.7 |
 | `activeInHierarchy` | 4.1–6.1 | ~1.1 |
@@ -44,8 +44,10 @@ other test players running, so rough):
 | `component.transform` | 12.5–19.5 | ~0.7 |
 
 Reads and lookups are 2–25× cheaper in Moono; `== null`, `activeInHierarchy` and
-`component.transform` cost about as much as reading a field. Setting a position is the exception:
-2–3× slower than the original's, and noisy, probably from marking the moved object's children.
+`component.transform` cost about as much as reading a field. Setting a position first measured 41–68 ns, but the probe timed it before .NET had finished
+optimising the code. Warmed up it was ~25 ns on this layout, and after three exact fixes (caches
+kept on unaffected levels, the parent's inverse not rebuilt, and an equal-value set leaving
+`hasChanged` false as the original does) it is 11–15 ns, a root alone 11 ns.
 
 Moono also keeps a per-prefab layout of each GameObject's components, so `GetComponent` returns
 from an array lookup instead of testing each component's type: the game's component lookups went
