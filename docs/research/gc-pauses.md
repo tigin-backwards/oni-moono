@@ -117,3 +117,85 @@ a Linux lane, 270 game seconds at speed 3 after the load) check it. First runs, 
 
 The collections take longer there than on Windows (a debug build on a WSL2 lane), but they run
 while the game is paused.
+
+## Allocations in play (2026-11-08)
+
+Where managed allocations come from during play, to see whether allocating less could make
+collections rarer, and what a "collect only at autosave" scheme would cost in memory.
+Measurement only.
+
+**Method.** Linux player, release, default tweaks, speed 3, autosave off, the second launch in
+its run home. 180 s of `dotnet-trace` with the runtime's GC keyword at verbose level
+(GCAllocationTick with stacks, about one sample per 100 KB per heap), 90 s after the colony's
+first frame-rate window. Each sample goes to the innermost frame that is not BCL or Harmony
+code, with the owners of the frame inventory: game (Assembly-CSharp, -firstpass, Harmony
+replacements of game methods), engine (OniMoono.*), tweaks (OniMoono.GameTweaks), uGUI/TMP.
+Totals come from GC.GetTotalAllocatedBytes per 600 frames and agree with the samples within 2%.
+Speed 1 runs (counters only) separate per-frame from per-game-second allocation. Runs with more
+than 1.5 cores of other CPU were redone.
+
+**Rate.** The late-game colony allocates 20 MiB/s at 46 fps, a mid-game colony 13 MiB/s at
+43 fps. A fit over the speed 1 and speed 3 runs gives about 210 KiB a frame plus 3.3 MiB a game
+second for the late-game colony, and 245 KiB a frame plus 1.2 MiB a game second for the
+mid-game one. Most allocation is per frame, so it rises with the frame rate: at 144-160 fps it
+comes to about 40 MiB/s at speed 3.
+
+**Owners** (shares of the bytes, late-game / mid-game colony):
+
+| Owner | Late-game | Mid-game |
+|---|---|---|
+| Engine | 70% | 77% |
+| - own work: rendering, canvas batching, GPU uploads, particles | 25% | 40% |
+| - Unity API the game calls: mesh setters, property blocks, immediate draws | 21% | 22% |
+| - Unity API uGUI/TMP calls: CanvasRenderer.SetMesh | 14% | 4% |
+| - object lifecycle: Instantiate, Destroy, SetParent | 10% | 11% |
+| Game | 27% | 16% |
+| Tweaks | 3% | 4% |
+| FMOD and other game libraries | 1% | 1.5% |
+| uGUI/TMP directly | 0.1% | 0.8% |
+
+The engine is the largest owner. Most of its bytes are data Unity keeps in native memory, so
+the original game never puts them on its managed heap. Only the Instantiate path partly
+matches managed allocations that Unity makes too (the cloned components).
+
+**Largest sites** (late-game / mid-game colony, MiB/s):
+
+| Site | Late | Mid | Avoidable without behaviour change |
+|---|---|---|---|
+| Mesh channel setters (MeshNative.NewChannel, Mesh.Widen): conduit flow meshes, falling water, uGUI | 3.0 | 0.4 | Yes. Spares are reused only at the same length, and these meshes change vertex count every frame. UVs are stored widened to Vector4. |
+| Canvas batch merges (CanvasSystem.Concatenate) | 2.3 | - | Yes: write into the merged mesh's previous arrays. |
+| CanvasRenderer.SetMesh copies (CanvasGeometry.From) | 2.2 | 0.5 | Yes: reuse the previous copy when no batch holds it. |
+| MaterialPropertyBlock copy-on-write (PropertySheet: eight dictionaries made up front, then copied and grown) | 1.3 | 2.4 | Yes: lazy dictionaries, sheets recycled after their frame renders. |
+| Draw-state cache misses (ResolvedState.Of: a new ResolvedFor when a material is drawn with alternating passes) | 0.7 | 1.6 | Yes: a cache per pass. |
+| Instantiate (Cloner) | 1.5 | 0.8 | Partly: the per-call remap dictionary, native-side objects and boxing in the field copier are ours; the cloned components are not. |
+| GPU upload records (TexelUpload, MeshUpload, layouts, index flattening) | 1.2 | 1.0 | Yes: pool them. |
+| Particle geometry (new lists and arrays per system per frame) | - | 0.9 | Yes: keep the builder, reuse channel arrays. |
+| Game: RemoteChore.CollectChores boxing a precondition context | 0.8 | - | Game code. |
+| Game: UILineRenderer vertex arrays (diagnostics charts) | 0.6 | - | Game code. |
+
+The engine's avoidable sites above come to about half of all allocated bytes in both colonies.
+
+**Survival.** Each gen0 collection (about one a minute here) promotes 40-60 MiB of the roughly
+0.9 GiB allocated since the last one, about 6%. A gen1 every 2-3 minutes moves 100-135 MiB
+into gen2. Survival by owner was not measured. The object-creation paths (Instantiate, OnSpawn,
+anim batches, state machines; 16-20% of the bytes) make the long-lived objects, while the
+engine's per-frame arrays die within a frame or two. Allocating less per frame therefore makes
+collections rarer but not much shorter.
+
+**Per cycle.** A cycle is 600 game seconds, 200 s of real time at speed 3.
+
+| | Late-game | Mid-game |
+|---|---|---|
+| Measured, Linux, speed 3 (46 / 43 fps) | 4.0 GiB | 2.6 GiB |
+| Measured, Linux, speed 1 (65 / 54 fps) | 9.8 GiB | 8.2 GiB |
+| Projected, speed 3 at 144 / 160 fps | 7.7 GiB | 8.2 GiB |
+| Projected, speed 1 at the same fps | 19 GiB | 23 GiB |
+| Resident memory in play | 14.6 GiB | 10 GiB |
+
+**Collecting only at autosave** would have to hold a whole cycle's allocations on top of the
+working set: on a fast PC about 22 GiB (late-game) and 18 GiB (mid-game) at speed 3, and
+33-34 GiB at speed 1,
+plus a collection at each save that copies the cycle's survivors (likely a few hundred MiB,
+comparable to the post-load hitch). Capping the frame rate would shrink it. Cutting the
+engine's avoidable per-frame allocations would lower both this and the ordinary collection
+rate.
