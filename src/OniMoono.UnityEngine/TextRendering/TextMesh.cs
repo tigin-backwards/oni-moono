@@ -235,7 +235,7 @@ namespace OniMoono.Engine.Text
             mesh.ColorsAreBytes = true;
             mesh.Uvs[0] = uvs;
             mesh.UvDimensions[0] = 2;
-            mesh.SubMeshes[0].Indices = indices;
+            mesh.SubMeshes[0].SetIndices(indices);
             mesh.RecalculateBounds();
             mesh.Changed();
 

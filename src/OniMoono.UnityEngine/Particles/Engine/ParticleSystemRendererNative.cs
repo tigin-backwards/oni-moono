@@ -174,19 +174,23 @@ namespace OniMoono.Engine.Particles
             bool trails = ps.Config.TrailsEnabled || ps.OrphanTrails.Count > 0;
             if (particles.Length == 0 && ps.OrphanTrails.Count == 0) return false;
 
+            // The builder and the per-particle scratch are reused from system to system (main
+            // thread: the frame renderer's culling); the mesh gets arrays of its own (Fill).
+            var b = builder;
+            b.Reset();
             var emitter = ps.CaptureEmitter();
-            var looks = new ParticleSystemNative.ParticleLook[particles.Length];
-            for (int i = 0; i < looks.Length; i++) looks[i] = ps.Look(particles[i], emitter);
-            var order = SortOrder(particles, looks, view);
+            int n = particles.Length;
+            var looks = Grow(ref b.Looks, n);
+            for (int i = 0; i < n; i++) looks[i] = ps.Look(particles[i], emitter);
+            var order = SortOrder(particles, looks, view, b);
 
-            var b = new GeometryBuilder(particles.Length * 4);
-            var quads = new List<int>(particles.Length * 6);
+            var quads = b.Quads;
             foreach (int i in order) AddParticle(b, quads, looks[i], view);
 
             List<int> ribbons = null;
             if (trails)
             {
-                ribbons = new List<int>();
+                ribbons = b.Ribbons;
                 var toWorld = ps.Config.SimulationSpace == 1 ? Matrix4x4.identity : emitter.LocalToWorld;
                 for (int i = 0; i < particles.Length; i++)
                     if (particles[i].Trail is { } trail)
@@ -195,19 +199,27 @@ namespace OniMoono.Engine.Particles
                     AddTrail(b, ribbons, ps.Config, trail, default, trail.LastWidth, trail.LastColor, trail.LastAgeNormalized, false, toWorld, view);
             }
 
-            b.Fill(target);
-            target.SubMeshes = new List<SubMeshData> { new() { Indices = quads.ToArray() } };
-            if (ribbons != null) target.SubMeshes.Add(new SubMeshData { Indices = ribbons.ToArray() });
+            b.Fill(target, ribbons != null);
             target.RecalculateBounds();
             return true;
         }
 
-        int[] SortOrder(ReadOnlySpan<Particle> particles, ParticleSystemNative.ParticleLook[] looks, in ParticleView view)
+        static readonly GeometryBuilder builder = new();
+
+        static T[] Grow<T>(ref T[] scratch, int length)
         {
-            var order = new int[particles.Length];
+            if (scratch.Length < length) scratch = new T[Math.Max(length, scratch.Length * 2)];
+            return scratch;
+        }
+
+        /// The draw order of the particles (in the builder's scratch, valid until its next use).
+        ReadOnlySpan<int> SortOrder(ReadOnlySpan<Particle> particles, ParticleSystemNative.ParticleLook[] looks, in ParticleView view, GeometryBuilder b)
+        {
+            int n = particles.Length;
+            var order = Grow(ref b.Order, n).AsSpan(0, n);
             for (int i = 0; i < order.Length; i++) order[i] = i;
             if (SortMode == 0 || order.Length < 2) return order;
-            var keys = new float[order.Length];
+            var keys = Grow(ref b.Keys, n).AsSpan(0, n);
             var forward = view.Forward;
             for (int i = 0; i < keys.Length; i++)
                 keys[i] = SortMode switch
@@ -220,13 +232,16 @@ namespace OniMoono.Engine.Particles
                     // Youngest in front: oldest drawn first.
                     _ => -particles[i].Age,
                 };
-            // Stable, so equal keys keep buffer order.
-            var indexKeys = new (float Key, int Index)[order.Length];
+            // Stable, so equal keys keep buffer order (the comparison orders every pair, so any
+            // sort gives this one order).
+            var indexKeys = Grow(ref b.IndexKeys, n).AsSpan(0, n);
             for (int i = 0; i < order.Length; i++) indexKeys[i] = (keys[i], i);
-            Array.Sort(indexKeys, (x, y) => x.Key != y.Key ? x.Key.CompareTo(y.Key) : x.Index.CompareTo(y.Index));
+            indexKeys.Sort(byKeyThenIndex);
             for (int i = 0; i < order.Length; i++) order[i] = indexKeys[i].Index;
             return order;
         }
+
+        static readonly Comparison<(float Key, int Index)> byKeyThenIndex = (x, y) => x.Key != y.Key ? x.Key.CompareTo(y.Key) : x.Index.CompareTo(y.Index);
 
         /// Clamps a particle's drawn size to [min, max] × the viewport height at its position.
         Vector2 Clamped(Vector2 size, Vector3 position, in ParticleView view)
@@ -335,7 +350,8 @@ namespace OniMoono.Engine.Particles
         static void AddTrail(GeometryBuilder b, List<int> indices, ParticleConfig c, TrailPath trail, Vector3 head, float particleWidth,
             Color particleColor, float ageNormalized, bool live, Matrix4x4 toWorld, in ParticleView view)
         {
-            var points = new List<Vector3>(trail.Points.Count + 1);
+            var points = b.Points;
+            points.Clear();
             if (live) points.Add(head);
             for (int i = trail.Points.Count - 1; i >= 0; i--)
             {
@@ -345,7 +361,8 @@ namespace OniMoono.Engine.Particles
             if (points.Count < 2) return;
 
             float total = 0f;
-            var along = new float[points.Count];
+            var along = Grow(ref b.Along, points.Count);
+            along[0] = 0f;
             for (int i = 1; i < points.Count; i++) along[i] = total += (points[i] - points[i - 1]).magnitude;
             if (total <= 0f) return;
 
@@ -373,15 +390,38 @@ namespace OniMoono.Engine.Particles
             }
         }
 
-        sealed class GeometryBuilder(int capacity)
+        /// One system's geometry as it is built, and the scratch for building it: one builder,
+        /// reused for every system (main thread). Fill copies it into arrays of the mesh's own,
+        /// taken from the mesh's spares (MeshNative.NewChannelAtLeast): the device's upload holds
+        /// those until it has run, and the mesh reuses them only after that.
+        sealed class GeometryBuilder
         {
-            readonly List<Vector3> positions = new(capacity);
-            readonly List<Vector3> normals = new(capacity);
-            readonly List<Color> colors = new(capacity);
-            readonly List<Vector4> uvs = new(capacity);
+            readonly List<Vector3> positions = new();
+            readonly List<Vector3> normals = new();
+            readonly List<Color32> colors = new();
+            readonly List<Vector4> uvs = new();
+            public readonly List<int> Quads = new(), Ribbons = new();
+            public readonly List<Vector3> Points = new();
+            public ParticleSystemNative.ParticleLook[] Looks = [];
+            public int[] Order = [];
+            public float[] Keys = [];
+            public (float Key, int Index)[] IndexKeys = [];
+            public float[] Along = [];
 
             public int Count => positions.Count;
 
+            public void Reset()
+            {
+                positions.Clear();
+                normals.Clear();
+                colors.Clear();
+                uvs.Clear();
+                Quads.Clear();
+                Ribbons.Clear();
+            }
+
+            /// Colours are given quantized to bytes (Color)(Color32), and uploaded as the bytes
+            /// they convert back to, as the device converted them before.
             public void Add(Vector3 position, Vector3 normal, Color color, Vector2 uv)
             {
                 positions.Add(position);
@@ -390,18 +430,56 @@ namespace OniMoono.Engine.Particles
                 uvs.Add(new Vector4(uv.x, uv.y, 0f, 0f));
             }
 
-            public void Fill(MeshNative mesh)
+            public void Fill(MeshNative mesh, bool ribbons)
             {
                 mesh.Clear();
-                mesh.VertexCount = positions.Count;
-                mesh.Positions = positions.ToArray();
-                mesh.Normals = normals.ToArray();
-                mesh.Colors = colors.ToArray();
+                int n = positions.Count;
+                mesh.VertexCount = n;
+                mesh.Positions = Channel(mesh, positions, MeshNative.SlotPositions);
+                mesh.Normals = Channel(mesh, normals, MeshNative.SlotNormals);
+                var colors32 = Copy(mesh, colors);
+                mesh.SetColors32(colors32);
+                if (colors32 != null) mesh.Give(MeshNative.SlotColors32, colors32);
                 mesh.ColorsAreBytes = true;
-                mesh.Uvs[0] = uvs.ToArray();
+                mesh.Uvs[0] = Channel(mesh, uvs, MeshNative.SlotUv0);
                 mesh.UvDimensions[0] = 2;
-                mesh.IndexFormat = positions.Count > ushort.MaxValue ? 1 : 0;
+                mesh.IndexFormat = n > ushort.MaxValue ? 1 : 0;
                 mesh.Dynamic = true;
+                Indices(mesh, mesh.SubMeshes[0], Quads);
+                if (ribbons)
+                {
+                    var trail = new SubMeshData();
+                    mesh.SubMeshes.Add(trail);
+                    Indices(mesh, trail, Ribbons);
+                }
+            }
+
+            static T[] Channel<T>(MeshNative mesh, List<T> values, int slot) where T : struct
+            {
+                var array = Copy(mesh, values);
+                if (array != null) mesh.Give(slot, array);
+                return array;
+            }
+
+            static T[] Copy<T>(MeshNative mesh, List<T> values) where T : struct
+            {
+                if (values.Count == 0) return null;
+                var array = mesh.NewChannelAtLeast<T>(values.Count);
+                global::System.Runtime.InteropServices.CollectionsMarshal.AsSpan(values).CopyTo(array);
+                return array;
+            }
+
+            static void Indices(MeshNative mesh, SubMeshData s, List<int> indices)
+            {
+                if (indices.Count == 0)
+                {
+                    s.SetIndices(Array.Empty<int>());
+                    return;
+                }
+                var array = mesh.NewChannelAtLeast<int>(indices.Count);
+                global::System.Runtime.InteropServices.CollectionsMarshal.AsSpan(indices).CopyTo(array);
+                s.SetIndices(array, indices.Count);
+                mesh.GiveIndices(s);
             }
         }
     }

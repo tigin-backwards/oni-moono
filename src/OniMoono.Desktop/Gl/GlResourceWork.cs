@@ -130,6 +130,7 @@ namespace OniMoono.Desktop.Gl
             uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
             try
             {
+                if (MeshNative.VerifyReuse) MeshReuseVerify.Uploading(upload);
                 GlMeshes.Upload(mesh, upload);
             }
             finally

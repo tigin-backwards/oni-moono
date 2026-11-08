@@ -715,12 +715,13 @@ namespace OniMoono.Engine.UI
         {
             var g = new CanvasGeometry
             {
-                Positions = (Vector3[])m.Positions?.Clone() ?? Array.Empty<Vector3>(),
-                Colors = (Color[])m.Colors?.Clone(),
-                Normals = (Vector3[])m.Normals?.Clone(),
-                Tangents = (Vector4[])m.Tangents?.Clone(),
+                // The mesh's VertexCount values of each channel (a setter's array can be longer).
+                Positions = m.Exact(m.Positions) ?? Array.Empty<Vector3>(),
+                Colors = m.Exact(m.Colors),
+                Normals = m.Exact(m.Normals),
+                Tangents = m.Exact(m.Tangents),
             };
-            for (int i = 0; i < 4; i++) g.Uvs[i] = (Vector4[])m.Uvs[i]?.Clone();
+            for (int i = 0; i < 4; i++) g.Uvs[i] = m.Exact(m.Uvs[i]);
             // uGUI and TextMeshPro set their meshes on every rebuild: one array, filled in place.
             int count = 0;
             foreach (var s in m.SubMeshes)
@@ -732,7 +733,7 @@ namespace OniMoono.Engine.UI
                 if (s.Topology != MeshTopology.Triangles) continue;
                 var source = s.Indices;
                 int baseVertex = s.BaseVertex;
-                if (baseVertex == 0) source.CopyTo(indices, at);
+                if (baseVertex == 0) source.CopyTo(indices.AsSpan(at));
                 else for (int i = 0; i < source.Length; i++) indices[at + i] = source[i] + baseVertex;
                 at += source.Length;
             }

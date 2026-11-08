@@ -10,7 +10,28 @@ namespace OniMoono.Engine.Rendering
 {
     internal sealed class SubMeshData
     {
-        public int[] Indices = Array.Empty<int>();
+        int[] array = Array.Empty<int>();
+        int count;
+
+        public SubMeshData() { }
+        public SubMeshData(int[] indices) => SetIndices(indices);
+
+        /// The submesh's indices: the first IndexCount elements of IndexArray. A mesh setter's
+        /// array can be longer (MeshNative.NewChannelAtLeast); what lies beyond the count is
+        /// not the submesh's and is never read.
+        public ReadOnlySpan<int> Indices => new(array, 0, count);
+        public int IndexCount => count;
+        public int[] IndexArray => array;
+
+        public void SetIndices(int[] indices) => SetIndices(indices, indices.Length);
+
+        public void SetIndices(int[] indices, int count)
+        {
+            if ((uint)count > (uint)indices.Length) throw new ArgumentOutOfRangeException(nameof(count));
+            array = indices;
+            this.count = count;
+        }
+
         public MeshTopology Topology = MeshTopology.Triangles;
         public int BaseVertex;
         public Bounds Bounds;
@@ -23,6 +44,12 @@ namespace OniMoono.Engine.Rendering
     /// it is published and never written afterwards (a change replaces it, and getters hand out
     /// copies): the device's uploads hold the arrays themselves until they run on the render
     /// thread.
+    ///
+    /// A channel holds VertexCount values, and a submesh IndexCount indices, at the start of its
+    /// array. An array the mesh setters made can be longer (NewChannelAtLeast: a mesh rebuilt
+    /// every frame with another vertex count reuses its larger arrays); what lies beyond the
+    /// count is not the mesh's, so every reader goes by the counts, and getters copy exactly
+    /// that many. Arrays from anywhere else are exactly as long as their count.
     internal sealed class MeshNative : NativeObject
     {
         public const int UvChannels = 8;
@@ -86,7 +113,7 @@ namespace OniMoono.Engine.Rendering
                 MaterializeColors();
                 if (colors == null && colors32 != null)
                 {
-                    var expanded = new Color[colors32.Length];
+                    var expanded = new Color[VertexCount];
                     for (int i = 0; i < expanded.Length; i++) expanded[i] = colors32[i];
                     colors = expanded;
                 }
@@ -238,15 +265,15 @@ namespace OniMoono.Engine.Rendering
 
         /// Reuse statistics (ONI_MESH_SPARES=stats): arrays wanted, taken from spares, and
         /// arrays retired.
-        internal static readonly bool Stats = Environment.GetEnvironmentVariable("ONI_MESH_SPARES") == "stats";
+        internal static readonly bool Stats = Environment.GetEnvironmentVariable("ONI_MESH_SPARES") == "stats" || Environment.GetEnvironmentVariable("ONI_VERIFY_MESH_REUSE") == "1";
         internal static long Wanted, Taken, Retired;
 
         /// Reuse off (ONI_MESH_SPARES=off, or set while running by a measurement): every new
         /// channel array is allocated, and canvas elements rebake their colours (CanvasSystem).
         internal static bool ReuseOff = Environment.GetEnvironmentVariable("ONI_MESH_SPARES") == "off";
 
-        /// A new channel array of `length` (its contents are the caller's to fill): a spare of
-        /// that length no upload holds any more, else a new one.
+        /// A new channel array of exactly `length` (its contents are the caller's to fill): a
+        /// spare of that length no upload holds any more, else a new one.
         internal T[] NewChannel<T>(int length)
         {
             if (Stats) Wanted++;
@@ -264,6 +291,60 @@ namespace OniMoono.Engine.Rendering
             }
             return new T[length];
         }
+
+        /// A new channel array of at least `length` for the mesh setters, which record the count
+        /// beside it (VertexCount, SubMeshData.IndexCount): the smallest spare no upload holds
+        /// any more that is no more than twice as long, else a new one. A mesh that has let go of
+        /// arrays before (one rebuilt again and again) gets a new one at the next size class, so
+        /// that a vertex count that changes a little every frame still finds a spare; others get
+        /// one of exactly `length`. Its contents are the caller's to fill up to `length`.
+        internal T[] NewChannelAtLeast<T>(int length) where T : struct
+        {
+            if (Stats) Wanted++;
+            if (spares != null && !ReuseOff)
+            {
+                int ran = System.Threading.Volatile.Read(ref UploadsRan);
+                int best = -1, bestLength = int.MaxValue;
+                long most = 2L * length;
+                for (int i = spares.Count - 1; i >= 0; i--)
+                {
+                    var (array, posted, _) = spares[i];
+                    if (posted > ran || array is not T[] typed || typed.Length < length || typed.Length > most || typed.Length >= bestLength) continue;
+                    best = i;
+                    bestLength = typed.Length;
+                }
+                if (best >= 0)
+                {
+                    var typed = (T[])spares[best].Array;
+                    spares.RemoveAt(best);
+                    if (Stats) Taken++;
+                    // What a setter fails to write shows as NaNs (verify mode).
+                    if (VerifyReuse) System.Runtime.InteropServices.MemoryMarshal.AsBytes(typed.AsSpan()).Fill(0xFF);
+                    return typed;
+                }
+            }
+            return new T[spares != null && !ReuseOff ? SizeClass(length) : length];
+        }
+
+        /// The smallest of 4, 5, 6, 7 times a power of two that holds `length` (at most a quarter
+        /// more); below 4, `length`.
+        internal static int SizeClass(int length)
+        {
+            if (length <= 4) return length;
+            int shift = 31 - System.Numerics.BitOperations.LeadingZeroCount((uint)length) - 2;
+            int step = 1 << shift;
+            long size = ((long)length + step - 1) / step * step;
+            return size > Array.MaxLength ? length : (int)size;
+        }
+
+        /// Reuse counts for the verify report.
+        internal static string ReuseCounts() => $"{Wanted} arrays wanted, {Taken} reused";
+
+        /// ONI_VERIFY_MESH_REUSE=1: each mesh upload checksums the arrays it holds when it is
+        /// recorded and again on the render thread before copying them; a reused array written in
+        /// between (one handed out again too early) shows as a difference. Reused arrays are
+        /// filled with NaN bytes when taken, so values a setter failed to write show too.
+        internal static readonly bool VerifyReuse = Environment.GetEnvironmentVariable("ONI_VERIFY_MESH_REUSE") == "1";
 
         /// Records `array` (made by NewChannel and filled) as the setter's for `slot`.
         internal void Give(int slot, Array array)
@@ -306,14 +387,14 @@ namespace OniMoono.Engine.Rendering
         /// Records the submesh's index array (made by NewChannel and filled) as a setter's.
         internal void GiveIndices(SubMeshData s)
         {
-            if (!ReuseOff) s.Given = s.Indices;
+            if (!ReuseOff) s.Given = s.IndexArray;
         }
 
         /// A submesh's index array is being replaced or dropped (as Retire).
         internal void RetireIndices(SubMeshData s)
         {
             if (s.Given == null) return;
-            if (ReferenceEquals(s.Given, s.Indices)) AddSpare(s.Given);
+            if (ReferenceEquals(s.Given, s.IndexArray)) AddSpare(s.Given);
             s.Given = null;
         }
 
@@ -402,26 +483,38 @@ namespace OniMoono.Engine.Rendering
 
         /// Gives the channels that hold data the new vertex count, keeping their leading values
         /// (new ones zero). Kept channels without data stay so: they are made at the count when read.
+        /// Called before VertexCount changes: the old count is the arrays' data.
         public void ResizeChannels(int count)
         {
-            // The old arrays are dropped (Array.Resize copies into new ones).
+            // The old arrays are dropped (Resize copies into new ones).
             Retire(SlotNormals, normals);
             Retire(SlotTangents, tangents);
             Retire(SlotColors, colors);
             Retire(SlotColors32, colors32);
             for (int i = 0; i < UvChannels; i++) Retire(SlotUv0 + i, Uvs.Raw[i]);
-            normals = Resize(normals, count);
-            tangents = Resize(tangents, count);
-            colors = Resize(colors, count);
-            colors32 = Resize(colors32, count);
-            for (int i = 0; i < UvChannels; i++) Uvs.Raw[i] = Resize(Uvs.Raw[i], count);
+            int old = VertexCount;
+            normals = Resize(normals, old, count);
+            tangents = Resize(tangents, old, count);
+            colors = Resize(colors, old, count);
+            colors32 = Resize(colors32, old, count);
+            for (int i = 0; i < UvChannels; i++) Uvs.Raw[i] = Resize(Uvs.Raw[i], old, count);
         }
 
-        static T[] Resize<T>(T[] array, int count)
+        /// The first `old` values (the data, however long the array) in an array of `count`,
+        /// new ones zero.
+        static T[] Resize<T>(T[] array, int old, int count)
         {
             if (array == null || count == 0) return null;
-            Array.Resize(ref array, count);
-            return array;
+            var result = new T[count];
+            Array.Copy(array, result, Math.Min(Math.Min(old, array.Length), count));
+            return result;
+        }
+
+        /// The channel's data as an array of its own (VertexCount values), or null.
+        internal T[] Exact<T>(T[] channel)
+        {
+            if (channel == null) return null;
+            return channel.Length == VertexCount ? (T[])channel.Clone() : channel.AsSpan(0, VertexCount).ToArray();
         }
 
         public void RecalculateBounds()
@@ -447,9 +540,10 @@ namespace OniMoono.Engine.Rendering
 
         public Bounds SubMeshBounds(SubMeshData s)
         {
-            if (Positions == null || s.Indices.Length == 0) return default;
-            Vector3 min = Positions[s.Indices[0] + s.BaseVertex], max = min;
-            foreach (int i in s.Indices)
+            var indices = s.Indices;
+            if (Positions == null || indices.Length == 0) return default;
+            Vector3 min = Positions[indices[0] + s.BaseVertex], max = min;
+            foreach (int i in indices)
             {
                 var p = Positions[i + s.BaseVertex];
                 min = Vector3.Min(min, p);
@@ -463,19 +557,19 @@ namespace OniMoono.Engine.Rendering
         public void CopyFrom(MeshNative o)
         {
             VertexCount = o.VertexCount;
-            Positions = (Vector3[])o.Positions?.Clone();
-            normals = (Vector3[])o.normals?.Clone();
-            tangents = (Vector4[])o.tangents?.Clone();
-            colors32 = (Color32[])o.colors32?.Clone();
-            colors = colors32 != null ? null : (Color[])o.colors?.Clone();
+            Positions = o.Exact(o.Positions);
+            normals = o.Exact(o.normals);
+            tangents = o.Exact(o.tangents);
+            colors32 = o.Exact(o.colors32);
+            colors = colors32 != null ? null : o.Exact(o.colors);
             kept = o.kept;
             ColorsAreBytes = o.ColorsAreBytes;
             for (int i = 0; i < UvChannels; i++)
             {
-                Uvs.Raw[i] = (Vector4[])o.Uvs.Raw[i]?.Clone();
+                Uvs.Raw[i] = o.Exact(o.Uvs.Raw[i]);
                 UvDimensions[i] = o.UvDimensions[i];
             }
-            SubMeshes = o.SubMeshes.ConvertAll(s => new SubMeshData { Indices = (int[])s.Indices.Clone(), Topology = s.Topology, BaseVertex = s.BaseVertex, Bounds = s.Bounds });
+            SubMeshes = o.SubMeshes.ConvertAll(s => new SubMeshData(s.Indices.ToArray()) { Topology = s.Topology, BaseVertex = s.BaseVertex, Bounds = s.Bounds });
             Bounds = o.Bounds;
             IndexFormat = o.IndexFormat;
             Dynamic = o.Dynamic;
@@ -504,9 +598,8 @@ namespace OniMoono.Engine.Rendering
                     indices[i] = indexSize == 2
                         ? BinaryPrimitives.ReadUInt16LittleEndian(indexBytes.AsSpan((first + i) * 2))
                         : (int)BinaryPrimitives.ReadUInt32LittleEndian(indexBytes.AsSpan((first + i) * 4));
-                SubMeshes.Add(new SubMeshData
+                SubMeshes.Add(new SubMeshData(indices)
                 {
-                    Indices = indices,
                     Topology = (MeshTopology)s.Int("topology"),
                     BaseVertex = (int)s.Get<uint>("baseVertex"),
                     Bounds = ReadAabb(s.Struct("localAABB")),

@@ -482,6 +482,7 @@ namespace OniMoono.Desktop.Vulkan
         {
             try
             {
+                if (MeshNative.VerifyReuse) MeshReuseVerify.Uploading(upload);
                 CopyMesh(d, upload);
             }
             finally
@@ -503,10 +504,10 @@ namespace OniMoono.Desktop.Vulkan
                 offsets[c] = -1;
                 if (array == null) continue;
                 offsets[c] = total;
-                total = Align(total + Bytes(array), 16);
+                total = Align(total + AsBytes(array, upload.VertexCount).Length, 16);
             }
             long indexOffset = total;
-            total += (long)(upload.Indices?.Length ?? 0) * 4;
+            total += (long)(upload.Indices != null ? upload.IndexCount : 0) * 4;
             var old = vm.Buffer;
             long size = Math.Max(16, total);
             // A buffer of the mesh's that the GPU is done with (a spare) takes the upload when it
@@ -547,10 +548,10 @@ namespace OniMoono.Desktop.Vulkan
             {
                 var array = upload.Channels[c];
                 if (array == null) continue;
-                var bytes = AsBytes(array);
+                var bytes = AsBytes(array, upload.VertexCount);
                 bytes.CopyTo(new Span<byte>(target + vm.ChannelOffsets[c], bytes.Length));
             }
-            if (upload.Indices != null) MemoryMarshal.AsBytes(upload.Indices.AsSpan()).CopyTo(new Span<byte>(target + vm.IndexOffset, upload.Indices.Length * 4));
+            if (upload.Indices != null) MemoryMarshal.AsBytes(upload.Indices.AsSpan(0, upload.IndexCount)).CopyTo(new Span<byte>(target + vm.IndexOffset, upload.IndexCount * 4));
             if (buffer.Mapped != null) buffer.Flush(vk, size);
             else
             {
@@ -576,21 +577,13 @@ namespace OniMoono.Desktop.Vulkan
 
         static long Align(long v, long a) => (v + a - 1) / a * a;
 
-        static long Bytes(Array a) => a switch
+        /// A channel's first `count` values (a mesh setter's array can be longer: MeshNative).
+        static ReadOnlySpan<byte> AsBytes(Array a, int count) => a switch
         {
-            Vector3[] v => v.Length * 12L,
-            Vector4[] v => v.Length * 16L,
-            Color[] v => v.Length * 16L,
-            Color32[] v => v.Length * 4L,
-            _ => throw new NotSupportedException(a.GetType().Name),
-        };
-
-        static ReadOnlySpan<byte> AsBytes(Array a) => a switch
-        {
-            Vector3[] v => MemoryMarshal.AsBytes(v.AsSpan()),
-            Vector4[] v => MemoryMarshal.AsBytes(v.AsSpan()),
-            Color[] v => MemoryMarshal.AsBytes(v.AsSpan()),
-            Color32[] v => MemoryMarshal.AsBytes(v.AsSpan()),
+            Vector3[] v => MemoryMarshal.AsBytes(v.AsSpan(0, Math.Min(count, v.Length))),
+            Vector4[] v => MemoryMarshal.AsBytes(v.AsSpan(0, Math.Min(count, v.Length))),
+            Color[] v => MemoryMarshal.AsBytes(v.AsSpan(0, Math.Min(count, v.Length))),
+            Color32[] v => MemoryMarshal.AsBytes(v.AsSpan(0, Math.Min(count, v.Length))),
             _ => throw new NotSupportedException(a.GetType().Name),
         };
 

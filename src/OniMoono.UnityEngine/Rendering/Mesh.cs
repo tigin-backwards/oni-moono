@@ -83,11 +83,12 @@ namespace UnityEngine
         }
 
         /// A copy of values[start..start+count] as a channel: the mesh's array to keep, new or
-        /// reused (MeshNative.NewChannel), since the device's uploads hold the arrays themselves
-        /// until they run.
-        static T[] Slice<T>(MeshNative m, IList<T> values, int start, int count)
+        /// reused (MeshNative.NewChannelAtLeast, so it can be longer than `count`; the mesh's
+        /// counts say how much of it is data), since the device's uploads hold the arrays
+        /// themselves until they run.
+        static T[] Slice<T>(MeshNative m, IList<T> values, int start, int count) where T : struct
         {
-            var result = m.NewChannel<T>(count);
+            var result = m.NewChannelAtLeast<T>(count);
             if (TrySpan(values, out var span)) span.Slice(start, count).CopyTo(result);
             else for (int i = 0; i < count; i++) result[i] = values[start + i];
             return result;
@@ -134,7 +135,7 @@ namespace UnityEngine
 
         public Vector3[] vertices
         {
-            get => !CanAccess("vertices") || Data.Positions == null ? Array.Empty<Vector3>() : (Vector3[])Data.Positions.Clone();
+            get => !CanAccess("vertices") || Data.Positions == null ? Array.Empty<Vector3>() : Data.Exact(Data.Positions);
             set => SetPositions(value, 0, value?.Length ?? 0);
         }
 
@@ -152,12 +153,12 @@ namespace UnityEngine
         {
             if (vertices == null) throw new ArgumentNullException(nameof(vertices), "The result vertices list cannot be null.");
             vertices.Clear();
-            if (CanAccess("vertices") && Data.Positions != null) vertices.AddRange(Data.Positions);
+            if (CanAccess("vertices") && Data.Positions != null) vertices.AddRange(Data.Positions.AsSpan(0, Data.VertexCount));
         }
 
         public Vector3[] normals
         {
-            get => !CanAccess("normals") || Data.Normals == null ? Array.Empty<Vector3>() : (Vector3[])Data.Normals.Clone();
+            get => !CanAccess("normals") || Data.Normals == null ? Array.Empty<Vector3>() : Data.Exact(Data.Normals);
             set => SetNormalsImpl(value, 0, value?.Length ?? 0);
         }
 
@@ -170,13 +171,14 @@ namespace UnityEngine
             if (!CanAccess("normals")) return;
             var m = Data;
             var positions = m.Positions ?? Array.Empty<Vector3>();
-            var sums = new Vector3[positions.Length];
+            var sums = new Vector3[m.Positions == null ? 0 : m.VertexCount];
             foreach (var s in m.SubMeshes)
             {
                 if (s.Topology != MeshTopology.Triangles) continue;
-                for (int i = 0; i + 2 < s.Indices.Length; i += 3)
+                var indices = s.Indices;
+                for (int i = 0; i + 2 < indices.Length; i += 3)
                 {
-                    int a = s.Indices[i] + s.BaseVertex, b = s.Indices[i + 1] + s.BaseVertex, c = s.Indices[i + 2] + s.BaseVertex;
+                    int a = indices[i] + s.BaseVertex, b = indices[i + 1] + s.BaseVertex, c = indices[i + 2] + s.BaseVertex;
                     var face = Vector3.Cross(positions[b] - positions[a], positions[c] - positions[a]);
                     sums[a] += face;
                     sums[b] += face;
@@ -208,7 +210,7 @@ namespace UnityEngine
 
         public Vector4[] tangents
         {
-            get => !CanAccess("tangents") || Data.Tangents == null ? Array.Empty<Vector4>() : (Vector4[])Data.Tangents.Clone();
+            get => !CanAccess("tangents") || Data.Tangents == null ? Array.Empty<Vector4>() : Data.Exact(Data.Tangents);
             set => SetTangentsImpl(value, 0, value?.Length ?? 0);
         }
 
@@ -232,7 +234,7 @@ namespace UnityEngine
 
         public Color[] colors
         {
-            get => !CanAccess("colors") || Data.Colors == null ? Array.Empty<Color>() : (Color[])Data.Colors.Clone();
+            get => !CanAccess("colors") || Data.Colors == null ? Array.Empty<Color>() : Data.Exact(Data.Colors);
             set => SetColorsImpl(value, 0, value?.Length ?? 0);
         }
 
@@ -241,11 +243,11 @@ namespace UnityEngine
             get
             {
                 if (!CanAccess("colors")) return Array.Empty<Color32>();
-                if (Data.Colors32 != null) return (Color32[])Data.Colors32.Clone();
+                if (Data.Colors32 != null) return Data.Exact(Data.Colors32);
                 if (Data.Colors == null) return Array.Empty<Color32>();
                 var c = Data.Colors;
-                var result = new Color32[c.Length];
-                for (int i = 0; i < c.Length; i++) result[i] = c[i];
+                var result = new Color32[Data.VertexCount];
+                for (int i = 0; i < result.Length; i++) result[i] = c[i];
                 return result;
             }
             set => SetColors32Impl(value, 0, value?.Length ?? 0);
@@ -299,15 +301,16 @@ namespace UnityEngine
             if (!CanAccess("uv")) return Array.Empty<Vector2>();
             var uv = Data.Uvs[channel];
             if (uv == null) return Array.Empty<Vector2>();
-            var result = new Vector2[uv.Length];
-            for (int i = 0; i < uv.Length; i++) result[i] = uv[i];
+            var result = new Vector2[Data.VertexCount];
+            for (int i = 0; i < result.Length; i++) result[i] = uv[i];
             return result;
         }
 
-        /// values[start..start+count] as the mesh's UV array (Vector4 whatever the dimension).
+        /// values[start..start+count] as the mesh's UV array (Vector4 whatever the dimension),
+        /// which can be longer (as Slice).
         static Vector4[] Widen(MeshNative m, IList<Vector2> v, int start, int count)
         {
-            var r = m.NewChannel<Vector4>(count);
+            var r = m.NewChannelAtLeast<Vector4>(count);
             if (TrySpan(v, out var span)) for (int i = 0; i < count; i++) r[i] = span[start + i];
             else for (int i = 0; i < count; i++) r[i] = v[start + i];
             return r;
@@ -315,7 +318,7 @@ namespace UnityEngine
 
         static Vector4[] Widen(MeshNative m, IList<Vector3> v, int start, int count)
         {
-            var r = m.NewChannel<Vector4>(count);
+            var r = m.NewChannelAtLeast<Vector4>(count);
             if (TrySpan(v, out var span)) for (int i = 0; i < count; i++) r[i] = span[start + i];
             else for (int i = 0; i < count; i++) r[i] = v[start + i];
             return r;
@@ -394,7 +397,7 @@ namespace UnityEngine
             if (!CanAccess("uv")) return;
             var values = Data.Uvs[channel];
             if (values == null) return;
-            foreach (var v in values) uvs.Add(convert(v));
+            foreach (var v in values.AsSpan(0, Data.VertexCount)) uvs.Add(convert(v));
         }
 
         // ----- Indices -----
@@ -438,7 +441,7 @@ namespace UnityEngine
                 if (!ValidateIndices(value ?? Array.Empty<int>(), MeshTopology.Triangles, 0)) return;
                 var m = Data;
                 foreach (var old in m.SubMeshes) m.RetireIndices(old);
-                var s = new SubMeshData { Indices = (int[])(value ?? Array.Empty<int>()).Clone() };
+                var s = new SubMeshData((int[])(value ?? Array.Empty<int>()).Clone());
                 s.Bounds = m.SubMeshBounds(s);
                 m.SubMeshes = new List<SubMeshData> { s };
                 m.Changed();
@@ -465,7 +468,7 @@ namespace UnityEngine
 
         static int[] Indices(SubMeshData s, bool applyBaseVertex)
         {
-            var result = (int[])s.Indices.Clone();
+            var result = s.Indices.ToArray();
             if (applyBaseVertex && s.BaseVertex != 0)
                 for (int i = 0; i < result.Length; i++) result[i] += s.BaseVertex;
             return result;
@@ -513,11 +516,12 @@ namespace UnityEngine
             if (!ValidateIndices(indices, topology, baseVertex)) return;
             var s = m.SubMeshes[submesh];
             m.RetireIndices(s);
-            if (indices.Length == 0) s.Indices = Array.Empty<int>();
+            if (indices.Length == 0) s.SetIndices(Array.Empty<int>());
             else
             {
-                s.Indices = m.NewChannel<int>(indices.Length);
-                indices.CopyTo(s.Indices);
+                var array = m.NewChannelAtLeast<int>(indices.Length);
+                indices.CopyTo(array);
+                s.SetIndices(array, indices.Length);
                 m.GiveIndices(s);
             }
             s.Topology = topology;

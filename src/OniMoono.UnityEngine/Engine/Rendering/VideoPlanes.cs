@@ -104,7 +104,7 @@ namespace OniMoono.Engine.Rendering
                 {
                     VertexCount = 4,
                     Positions = [new(0f, 0f, 0f), new(0f, 1f, 0f), new(1f, 1f, 0f), new(1f, 0f, 0f)],
-                    SubMeshes = new List<SubMeshData> { new SubMeshData { Indices = [0, 1, 2, 0, 2, 3] } },
+                    SubMeshes = new List<SubMeshData> { new SubMeshData([0, 1, 2, 0, 2, 3]) },
                 };
                 quad.Uvs[0] = [new(0f, 0f, 0f, 0f), new(0f, 1f, 0f, 0f), new(1f, 1f, 0f, 0f), new(1f, 0f, 0f, 0f)];
                 quad.UvDimensions[0] = 2;

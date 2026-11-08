@@ -772,7 +772,7 @@ namespace OniMoono.Engine.Rendering
             // Flipping one axis reverses the winding; keep triangles front-facing.
             if (FlipX != FlipY)
                 for (int i = 0; i + 2 < triangles.Length; i += 3) (triangles[i + 1], triangles[i + 2]) = (triangles[i + 2], triangles[i + 1]);
-            g.SubMeshes = new List<SubMeshData> { new SubMeshData { Indices = triangles } };
+            g.SubMeshes = new List<SubMeshData> { new SubMeshData(triangles) };
             g.RecalculateBounds();
             return g;
         }
