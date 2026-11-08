@@ -213,12 +213,15 @@ namespace OniMoono.Tests
                 var type = System.Text.RegularExpressions.Regex.Match(file, @"public static class (\w+)").Groups[1].Value;
                 Assert.Contains($"case {type}.Name:", installed);
             }
-            // The host: one Harmony a tweak, with the ID ModOverlapsCore reads.
+            // The host: one Harmony a tweak, with the ID ModOverlapsCore reads, made by the
+            // guarded install (TweakInstall.Guarded) every tweak goes through.
+            var guard = File.ReadAllText(Path.Combine(RepoRoot(), "src", "OniMoono.Host", "GameTweaks", "TweakInstall.cs"));
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(guard, @"new Harmony\("));
+            Assert.Contains($"new Harmony(\"{ModOverlapsCore.TweakOwnerPrefix}.\" + name)", guard);
             var host = File.ReadAllText(Path.Combine(RepoRoot(), "src", "OniMoono.Host", "GameTweaks", "GameTweaks.cs"));
-            Assert.Contains($"new Harmony(\"{ModOverlapsCore.TweakOwnerPrefix}.\" + name)", host);
             var install = host.Substring(host.IndexOf("public static void Install(", StringComparison.Ordinal));
             install = install.Substring(0, install.IndexOf("public static void InstallFrameStats", StringComparison.Ordinal));
-            Assert.Single(System.Text.RegularExpressions.Regex.Matches(install, @"new Harmony\("));
+            Assert.Contains("TweakInstall.Guarded(name, install", install);
             Assert.DoesNotMatch(@"\(harmony[,)]", install);
         }
 

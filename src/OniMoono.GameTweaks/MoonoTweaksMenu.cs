@@ -652,7 +652,7 @@ namespace OniMoono.GameTweaks
                 effect.gameObject.AddComponent<CanvasGroup>().alpha = 0.55f;
                 var dim = toggle.gameObject.AddComponent<CanvasGroup>();
                 dim.alpha = 0.45f;
-                if (tip != null) tip.OnToolTip = () => MoonoTweaksMenu.Ui(unavailable ? "NOT_AVAILABLE_TIP" : shown[i] != 0 ? "LOCKED_ON" : "LOCKED_OFF");
+                if (tip != null) tip.OnToolTip = () => unavailable ? MoonoTweaksMenu.Ui("NOT_AVAILABLE_TIP") : MoonoTweaksMenu.Ui(shown[i] != 0 ? "LOCKED_ON" : "LOCKED_OFF");
             }
             else
             {
