@@ -33,6 +33,7 @@ namespace OniMoono.Host.GameTweaks
             if (On(FastSaveCompression.Name)) Report(FastSaveCompression.Name, () => FastSaveCompression.Install(For(FastSaveCompression.Name), compress: !backgroundSave));
             if (backgroundSave) Report(BackgroundSave.Name, () => BackgroundSave.Install(For(BackgroundSave.Name), fastCompression: On(FastSaveCompression.Name)));
             if (On(NoSaveGc.Name)) Report(NoSaveGc.Name, () => NoSaveGc.Install(For(NoSaveGc.Name)));
+            if (On(PostLoadGc.Name)) Report(PostLoadGc.Name, () => PostLoadGc.Install(For(PostLoadGc.Name)));
             if (On(FastSerialization.Name)) Report(FastSerialization.Name, () => FastSerialization.Install(For(FastSerialization.Name)));
             if (On(FastParticleCollision.Name)) Report(FastParticleCollision.Name, () => FastParticleCollision.Install(For(FastParticleCollision.Name)));
             // Enabled at start-up (CompactNavLinks.Enable); this adds the load's summary.

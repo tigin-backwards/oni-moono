@@ -1,0 +1,21 @@
+# The post-load-gc game tweak (src/OniMoono.Host/GameTweaks/PostLoadGc.cs) on a late-game colony.
+# Ours only (`--player ours`): the original has no such tweak.
+#
+# The load leaves about 1.6 GiB young under Server GC with DATAS; without the tweak the first
+# gen1 in play copies it into gen2, one long pause (post-load-gc-off.yaml shows it). With it, two
+# young collections run once on a paused frame at the end of the load: the tweak's counter shows
+# one load collected and none skipped. Then, for the 270 game seconds at speed 3 in which the
+# control's first gen1 paused a frame for 338 ms (Linux, 2026-11-07), no frame may be paused by
+# collections for 150 ms or more (E2eDriver's gc.watch).
+from: U57
+steps:
+  - wait_state: {state: {"type:OniMoono.Host.GameTweaks.PostLoadGc::Collected": 1}, seconds: 300}
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.PostLoadGc::Skipped": 0
+      "type:OniMoono.Host.GameTweaks.PostLoadGc::LastMs": "> 0"
+  - driver: {gc.watch: {}}
+  - run: {seconds: 270}
+  - expect_state:
+      "type:E2eDriver.GcWatch::Frames": "> 100"
+      "type:E2eDriver.GcWatch::MostInFrameMs": "< 150"
+      "type:OniMoono.Host.GameTweaks.PostLoadGc::Collected": 1

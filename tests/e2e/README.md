@@ -540,6 +540,9 @@ Fixtures are blessed saves (`--bless` copies a spec's `save:` into `fixtures/`, 
 - `decrew`: a late Spaced Out colony with busy gas and liquid networks, copied from
   onimaxxing's `saves/DeCrew.sav` (not blessed; 145 MB, about 4.5 minutes to load in the
   original), for [`pipe-flow.yaml`](pipe-flow.yaml).
+- `U57`: a late-game Spaced Out colony with every DLC (cycle 17,000+), copied (or linked)
+  from onimaxxing's `saves/U57.sav` (not blessed; 150 MB), for
+  [`post-load-gc.yaml`](post-load-gc.yaml) and its control.
 - `rockets-so`: a Spaced Out sandbox colony with two rockets on launch pads, copied from a Klei
   bug-tracker save (onimaxxing's `saves/forum-so/351956__Test_-_fuel_oxy.sav`, not blessed),
   for [`rocket-launch.yaml`](rocket-launch.yaml).

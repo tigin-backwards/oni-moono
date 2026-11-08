@@ -295,6 +295,7 @@ exercise, are in the notes under the tables, with their dates.
 | `compact-nav-links`<br>the pathfinding grids keep each cell's links packed | managed heap after the windows 7,752–7,951 → 7,525–7,729 MiB<br>frame within noise | exact |
 | `fast-smi-lookups`<br>state machine lookups (`GetSMI<T>()`) are answered from what they answered before | frame within noise | exact |
 | Save tweaks<br>`fast-serialization`, `fast-save-type-checks`, `fast-save-compression`, `no-save-gc`, `background-save` | not measured in these runs (see note) | exact; saves still load in the original |
+| `post-load-gc`<br>two young collections at the end of a load, while the game is still paused | Windows, 2026-11-07: the first gen1 in play, a 283–344 ms pause 40–85 s after every load (6 of 6), is gone: no pause over 68 ms in the first 90 s (6 of 6)<br>the load ~0.2–0.25 s longer; steady play and memory unchanged ([research/gc-pauses.md](research/gc-pauses.md)) | exact |
 
 ### On by default, changing behaviour
 

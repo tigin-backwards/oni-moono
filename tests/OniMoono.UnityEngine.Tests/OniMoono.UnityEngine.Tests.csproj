@@ -53,6 +53,8 @@
     <!-- The Moono Tweaks catalog (GameTweakCatalogTests; BackgroundSave names itself from it). -->
     <Compile Include="../../src/OniMoono.Host/GameTweaks/GameTweakNames.cs" Link="Host/GameTweakNames.cs" />
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakStrings.cs" Link="Host/TweakStrings.cs" />
+    <!-- When post-load-gc collects (PostLoadGcGateTests). -->
+    <Compile Include="../../src/OniMoono.Host/GameTweaks/PostLoadGcGate.cs" Link="Host/PostLoadGcGate.cs" />
     <!-- compact-nav-links' store (NavGridLinksTests). -->
     <Compile Include="../../src/OniMoono.Host/NavGridLinks.cs" Link="Host/NavGridLinks.cs" />
     <!-- paged-path-grids' tables and the rewrite of PathGrid (PathGridPagesTests). -->

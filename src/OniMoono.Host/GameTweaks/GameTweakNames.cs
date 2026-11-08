@@ -53,7 +53,7 @@ namespace OniMoono.Host.GameTweaks
     internal static class GameTweakNames
     {
         public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", UpdateCheckRow = "update-check", GcRow = "gc";
-        public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc",
+        public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles";
 
@@ -72,6 +72,9 @@ namespace OniMoono.Host.GameTweaks
 
         static readonly TweakGain LoadScreenGain = new("LOAD_SCREEN", "Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s)",
             "U60, 4,637 saves", "Linux under WSL2", "2026-11-03", "docs/research/load-screen-many-saves.md#results-2026-11-03 (opening 1,285-1,457 → 542-720 ms)");
+
+        static readonly TweakGain PostLoadGain = new("POST_LOAD", "no ~0.3 s freeze a minute after loading a large colony; loading ~0.2 s longer",
+            "a late-game Spaced Out colony with every DLC (cycle 17,000+)", "Windows", "2026-11-07", "docs/research/gc-pauses.md (a 283–344 ms pause in 6 of 6 loads → none over 68 ms in 6 of 6)");
 
         public static readonly TweakGroup General = new("GENERAL", "General");
         public static readonly TweakGroup Saving = new("SAVING", "Saving", SaveGain);
@@ -125,6 +128,9 @@ namespace OniMoono.Host.GameTweaks
                 "Compression and the file write move to another thread; quitting waits for them."),
             new(NoSaveGc, Saving, "No cleanup pause when saving", "Skips the memory cleanup the game forces after each save, a pause of its own.",
                 "Skips the full garbage collection the game asks for after saving."),
+            new(PostLoadGc, Saving, "No pause a minute into play", "Removes a short freeze about a minute after loading a large colony.",
+                "Runs the memory cleanup behind that freeze at the end of the load instead, while the game is still paused. "
+                + "Only with Fast garbage collection (the default).", PostLoadGain),
 
             new("fast-jobs", Simulation, "Faster worker threads", "Less time lost waking idle worker threads every frame.",
                 "Wakes only as many of the game's worker threads as a job has work for, instead of all of them for every job (about 14 a frame).", JobsGain),
@@ -239,7 +245,10 @@ namespace OniMoono.Host.GameTweaks
                 if (rows.Length == 0) continue;
                 string defaults = !group.ChangesGameplay ? "on by default" : rows.Any(r => r.OnByDefault) ? "off by default but where marked" : "off by default";
                 md.Append($"\n### {group.Title} ({defaults})\n\n");
-                if (group.Gain != null) md.Append($"All {rows.Length} together: {Gain(group.Gain)}.\n\n");
+                // The group's gain is that of the rows without one of their own.
+                var own = rows.Where(r => r.Gain != null).Select(r => $"`{r.Id}`").ToArray();
+                if (group.Gain != null)
+                    md.Append(own.Length == 0 ? $"All {rows.Length} together" : $"All but {string.Join(", ", own)} together").Append($": {Gain(group.Gain)}.\n\n");
                 foreach (var r in rows)
                 {
                     md.Append($"- **{r.Title}** (`{r.Id}`): {r.Effect}");

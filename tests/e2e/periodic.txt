@@ -11,6 +11,8 @@ thermal-gas-fissure                 # 315+101: Aquatic Pack fissure bubbles
 instant-reachability-stress ours    # ours only, ~6 min: instant-reachability's verify under a storm of reach changes
 fast-anim-events-stand-down ours    # ours only: fast-anim-events turns off for a mod's prefix on the event loop
 fast-anim-events-restart ours       # ours only, ~3 min: fast-anim-events' verify with animations swapped by reflection
+post-load-gc ours                   # ours only: no long GC pause after loading a late-game colony (fixture U57)
+post-load-gc-off ours               # ours only: its control, the pause with the tweak off
 
 # Issue regressions: fixed, in code that changes rarely, or a variant of a kept spec
 issue-52-fast-track                 # 345+56: Fast Track and Better Info Cards
