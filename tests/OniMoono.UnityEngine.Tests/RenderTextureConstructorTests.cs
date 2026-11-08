@@ -18,7 +18,14 @@ namespace OniMoono.Tests
             if (type != LogType.Log) logged.Add(type + " " + message);
         }
 
-        public RenderTextureConstructorTests() => Application.logMessageReceived += OnLog;
+        /// The colour space comes from the project's player settings, loaded here: an earlier
+        /// test that loaded them is not to be relied on.
+        public RenderTextureConstructorTests()
+        {
+            OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data"));
+            OniMoono.Engine.Assets.ProjectSettings.Load();
+            Application.logMessageReceived += OnLog;
+        }
 
         void IDisposable.Dispose()
         {
