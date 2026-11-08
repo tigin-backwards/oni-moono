@@ -1,0 +1,139 @@
+# Builds the release archives (scripts/release.sh) on GitHub-hosted runners, Linux on Ubuntu and
+# Windows natively on Windows (with its MSVC-built OniMoono.exe), and runs the unit tests that need
+# no game. The game's assemblies come as reference assemblies from the private refs repository
+# (ci/game-refs.json, docs/RELEASES.md). release.yml calls it to build a release.
+name: Build
+
+on:
+  push:
+    branches: [master, u60]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: The tag the release will get (MOONO_RELEASE); empty for a development build.
+        type: string
+        default: ""
+      use_cache:
+        description: Restore and save caches. Release builds use none.
+        type: boolean
+        default: true
+    secrets:
+      GAME_REFS_DEPLOY_KEY:
+        required: true
+
+permissions: {}
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  # Deterministic, CI-mapped builds: source paths in the symbols are /_/..., not the runner's.
+  ContinuousIntegrationBuild: "true"
+
+jobs:
+  linux:
+    name: Linux release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - if: inputs.use_cache != false
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
+      - id: refs
+        uses: ./.github/actions/game-refs
+        with:
+          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          use-cache: ${{ inputs.use_cache != false }}
+      - name: Build the Linux archive
+        env:
+          ONI_GAME_DIR: ${{ steps.refs.outputs.game-dir }}
+          MOONO_RELEASE: ${{ inputs.release_tag || 'none' }}
+          MOONO_PLATFORMS: linux
+        run: scripts/release.sh "$(scripts/release-version.sh)"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-linux
+          path: out/release/oni-moono-*-linux-x64.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  windows:
+    name: Windows release
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The files as committed (LF), as a checkout in WSL has them: the scripts run in Git Bash,
+      # and the archive's README and NOTICE match the Linux one's.
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - if: inputs.use_cache != false
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
+      - id: refs
+        uses: ./.github/actions/game-refs
+        with:
+          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          use-cache: ${{ inputs.use_cache != false }}
+      - name: Build the Windows archive
+        env:
+          ONI_GAME_DIR: ${{ steps.refs.outputs.game-dir }}
+          MOONO_RELEASE: ${{ inputs.release_tag || 'none' }}
+          MOONO_PLATFORMS: windows
+        run: scripts/release.sh "$(scripts/release-version.sh)"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-windows
+          path: out/release/oni-moono-*-windows-x64.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  tests:
+    name: Unit tests (no game)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - if: inputs.use_cache != false
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
+      - id: refs
+        uses: ./.github/actions/game-refs
+        with:
+          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          use-cache: ${{ inputs.use_cache != false }}
+      - name: Unit tests
+        env:
+          GAME_DIR: ${{ steps.refs.outputs.game-dir }}
+        run: scripts/ci-unit-tests.sh "$GAME_DIR"
+      - name: Script tests
+        run: python3 -m unittest discover -s tests/scripts
