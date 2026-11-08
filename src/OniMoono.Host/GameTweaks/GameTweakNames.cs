@@ -41,6 +41,7 @@ namespace OniMoono.Host.GameTweaks
             GameTweakNames.GpuRow => "--gpu " + string.Join("|", Choices!),
             GameTweakNames.RendererRow => "--renderer " + string.Join("|", Choices!),
             GameTweakNames.DxgiRow => "--dxgi on|off",
+            GameTweakNames.StallRepeatsRow => "--stall-repeats on|off",
             GameTweakNames.GcRow => "--gc " + string.Join("|", Choices!),
             _ => "--game-tweak " + Id,
         };
@@ -53,7 +54,7 @@ namespace OniMoono.Host.GameTweaks
     /// before the game's assemblies (Harmony among them) can be resolved, and the tests compile it in.
     internal static class GameTweakNames
     {
-        public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", RendererRow = "renderer", DxgiRow = "dxgi",
+        public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", RendererRow = "renderer", DxgiRow = "dxgi", StallRepeatsRow = "stall-repeats",
             UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
@@ -113,6 +114,10 @@ namespace OniMoono.Host.GameTweaks
                 "With Vulkan or OpenGL, frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through the renderer's own "
                 + "presentation, which Auto HDR or RTX HDR can take for HDR. If it can't start, the renderer's own is used and Player.log says why. "
                 + "No effect on Linux.",
+                IsTweak: false),
+            new(StallRepeatsRow, General, "Steady display during saves and loads", "G-Sync and FreeSync monitors don't flicker while the game saves or loads.",
+                "While no new frame comes for a moment, the last one is shown again at about the game's frame rate (30 to 60 times a second), "
+                + "so the monitor's refresh rate doesn't drop. Nothing changes while frames come as usual. Windows, with the OpenGL renderer and Direct3D presentation on.",
                 IsTweak: false),
             new(GcRow, General, "Garbage collection", "How the game frees memory it no longer uses. Needs a restart.",
                 "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. "

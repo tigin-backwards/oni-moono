@@ -153,6 +153,11 @@ launch options:
 - `--dxgi on|off`: Windows, frames shown through a Direct3D 11 swap chain or through the
   renderer's own presentation (Vulkan's swapchain, OpenGL's SwapBuffers) ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering), "Presentation on
   Windows").
+- `--stall-repeats on|off`: Windows, with Direct3D presentation of OpenGL frames: while no
+  frame comes (an autosave, a load), the last frame is shown again 30 to 60 times a second, so
+  G-Sync and FreeSync monitors keep their refresh rate instead of flickering
+  ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering), "Repeats while no frame comes"). Not yet
+  with Vulkan.
 - `--gc fast|low-memory`: the [garbage collection](#garbage-collection).
 - `--crash-dialog on|off`: Windows, the [crash window](#when-the-game-crashes).
 

@@ -280,6 +280,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DXGI.DETAIL"
 msgid "With Vulkan or OpenGL, frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through the renderer's own presentation, which Auto HDR or RTX HDR can take for HDR. If it can't start, the renderer's own is used and Player.log says why. No effect on Linux."
 msgstr ""
 
+#. Row title (stall-repeats)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.TITLE"
+msgid "Steady display during saves and loads"
+msgstr ""
+
+#. The line under the title (stall-repeats)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.EFFECT"
+msgid "G-Sync and FreeSync monitors don't flicker while the game saves or loads."
+msgstr ""
+
+#. Tooltip: how it works (stall-repeats)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.DETAIL"
+msgid "While no new frame comes for a moment, the last one is shown again at about the game's frame rate (30 to 60 times a second), so the monitor's refresh rate doesn't drop. Nothing changes while frames come as usual. Windows, with the OpenGL renderer and Direct3D presentation on."
+msgstr ""
+
 #. Row title (gc)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.TITLE"
 msgid "Garbage collection"

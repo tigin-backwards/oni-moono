@@ -39,6 +39,7 @@ namespace OniMoono.Host
                 OniMoono.Desktop.Gl.GlBindless.Forced = options.Bindless;
                 OniMoono.Desktop.Gl.DxgiSwapChain.Enabled = options.Dxgi != false;
                 OniMoono.Desktop.Gl.DxgiSwapChain.Fault = options.DxgiFault;
+                OniMoono.Desktop.Gl.DxgiSwapChain.Repeats = options.StallRepeats != false;
                 (platform, var device) = OpenDevice(options);
                 OniMoono.Engine.Platform.PlatformLoop.Install(platform);
                 OniMoono.Engine.Rendering.GraphicsDevice.Install(device);

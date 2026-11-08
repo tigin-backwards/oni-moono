@@ -20,7 +20,7 @@ namespace OniMoono.Host
     /// who has not chosen otherwise:
     ///
     ///     { "gameTweaks": { "brain-rate": true, "fast-jobs": false }, "splash": "moo", "frameStats": true, "logPaths": "full", "gpu": "discrete", "renderer": "opengl",
-    ///       "dxgi": false, "updateCheck": false, "gc": "low-memory" }
+    ///       "dxgi": false, "stallRepeats": false, "updateCheck": false, "gc": "low-memory" }
     ///
     /// Tweaks no longer known (one removed in an update) are ignored and kept.
     internal sealed class PlayerSettings
@@ -38,6 +38,9 @@ namespace OniMoono.Host
         public string? Renderer;
         /// Windows: presenting through DXGI (OniMoono.Desktop.Gl.DxgiTarget); null when not chosen.
         public bool? Dxgi;
+        /// Windows, DXGI: repeats of the last picture while no frame comes
+        /// (OniMoono.Desktop.Gl.StallRepeats); null when not chosen.
+        public bool? StallRepeats;
         /// The main menu's update check (UpdateCheck); null when not chosen.
         public bool? UpdateCheck;
         /// "fast" or "low-memory" (GcMode); null when not chosen. OniMoono.exe reads it too.
@@ -118,6 +121,7 @@ namespace OniMoono.Host
                     : throw new FormatException($"renderer \"{value}\" is not one of: {string.Join(", ", OniMoono.Desktop.Renderers.Choices)}");
             }
             if (root["dxgi"] is JsonNode dxgi) settings.Dxgi = dxgi.GetValue<bool>();
+            if (root["stallRepeats"] is JsonNode stallRepeats) settings.StallRepeats = stallRepeats.GetValue<bool>();
             if (root["updateCheck"] is JsonNode updateCheck) settings.UpdateCheck = updateCheck.GetValue<bool>();
             if (root["gc"] is JsonNode gc)
             {
@@ -143,6 +147,7 @@ namespace OniMoono.Host
             if (Gpu != null) root["gpu"] = Gpu;
             if (Renderer != null) root["renderer"] = Renderer;
             if (Dxgi != null) root["dxgi"] = Dxgi;
+            if (StallRepeats != null) root["stallRepeats"] = StallRepeats;
             if (UpdateCheck != null) root["updateCheck"] = UpdateCheck;
             if (Gc != null) root["gc"] = Gc;
             return indented ? root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) + "\n" : root.ToJsonString();
@@ -166,7 +171,7 @@ namespace OniMoono.Host
     /// settings file, then the command line. A command line naming any game tweak
     /// (`--game-tweak NAME|-NAME|all|exact|none`, repeatable) sets the whole set of tweaks for the
     /// run, as before the settings file existed; `--splash`, `--frame-stats`, `--log-paths`,
-    /// `--gpu`, `--dxgi` and `--gc` set theirs.
+    /// `--gpu`, `--dxgi`, `--stall-repeats` and `--gc` set theirs.
     internal sealed class EffectiveOptions
     {
         public readonly IReadOnlyList<string> AllTweaks;
@@ -198,6 +203,10 @@ namespace OniMoono.Host
         public const bool DefaultDxgi = true;
         public bool Dxgi = DefaultDxgi;
         public OptionSource DxgiSource;
+        /// Windows, DXGI: the last picture again while no frame comes (on unless chosen otherwise).
+        public const bool DefaultStallRepeats = true;
+        public bool StallRepeats = DefaultStallRepeats;
+        public OptionSource StallRepeatsSource;
         /// The main menu's update check (on unless chosen otherwise; no launch option).
         public const bool DefaultUpdateCheck = true;
         public bool UpdateCheck = DefaultUpdateCheck;
@@ -233,7 +242,7 @@ namespace OniMoono.Host
         public static EffectiveOptions Resolve(IReadOnlyList<string> allTweaks, IReadOnlyCollection<string> changing,
             IReadOnlyList<string> commandLineTweaks, string? commandLineSplash, bool commandLineFrameStats, PlayerSettings file,
             string? commandLineLogPaths = null, string? commandLineGpu = null, string? commandLineRenderer = null, bool? commandLineDxgi = null,
-            IReadOnlyCollection<string>? offByDefault = null, string? commandLineGc = null)
+            IReadOnlyCollection<string>? offByDefault = null, string? commandLineGc = null, bool? commandLineStallRepeats = null)
         {
             var options = new EffectiveOptions(allTweaks, commandLineTweaks);
             foreach (var name in allTweaks)
@@ -256,6 +265,8 @@ namespace OniMoono.Host
             else if (file.Renderer != null) (options.Renderer, options.RendererSource) = (file.Renderer, OptionSource.SettingsFile);
             if (commandLineDxgi != null) (options.Dxgi, options.DxgiSource) = (commandLineDxgi.Value, OptionSource.CommandLine);
             else if (file.Dxgi != null) (options.Dxgi, options.DxgiSource) = (file.Dxgi.Value, OptionSource.SettingsFile);
+            if (commandLineStallRepeats != null) (options.StallRepeats, options.StallRepeatsSource) = (commandLineStallRepeats.Value, OptionSource.CommandLine);
+            else if (file.StallRepeats != null) (options.StallRepeats, options.StallRepeatsSource) = (file.StallRepeats.Value, OptionSource.SettingsFile);
             if (file.UpdateCheck != null) (options.UpdateCheck, options.UpdateCheckSource) = (file.UpdateCheck.Value, OptionSource.SettingsFile);
             if (commandLineGc != null) (options.Gc, options.GcSource) = (commandLineGc, OptionSource.CommandLine);
             else if (file.Gc != null) (options.Gc, options.GcSource) = (file.Gc, OptionSource.SettingsFile);
@@ -269,10 +280,10 @@ namespace OniMoono.Host
         /// set, shown but not changeable) keep what the file had.
         public static PlayerSettings Apply(PlayerSettings file, IReadOnlyCollection<string> offByDefault,
             IReadOnlyDictionary<string, bool> tweaks, bool? splashMoo, bool? frameStats, bool? hideLogPaths = null, string? gpu = null, string? renderer = null,
-            bool? dxgi = null, bool? updateCheck = null, string? gc = null)
+            bool? dxgi = null, bool? updateCheck = null, string? gc = null, bool? stallRepeats = null)
         {
             var result = new PlayerSettings { Splash = file.Splash, FrameStats = file.FrameStats, LogPaths = file.LogPaths, Gpu = file.Gpu, Renderer = file.Renderer, Dxgi = file.Dxgi,
-                UpdateCheck = file.UpdateCheck, Gc = file.Gc };
+                StallRepeats = file.StallRepeats, UpdateCheck = file.UpdateCheck, Gc = file.Gc };
             foreach (var (name, on) in file.GameTweaks) result.GameTweaks[name] = on;
             foreach (var (name, on) in tweaks)
             {
@@ -285,6 +296,7 @@ namespace OniMoono.Host
             if (gpu != null) result.Gpu = gpu == DefaultGpu ? null : gpu;
             if (renderer != null) result.Renderer = renderer == DefaultRenderer ? null : renderer;
             if (dxgi != null) result.Dxgi = dxgi == DefaultDxgi ? null : dxgi;
+            if (stallRepeats != null) result.StallRepeats = stallRepeats == DefaultStallRepeats ? null : stallRepeats;
             if (updateCheck != null) result.UpdateCheck = updateCheck == DefaultUpdateCheck ? null : updateCheck;
             if (gc != null) result.Gc = gc == DefaultGc ? null : gc;
             return result;
@@ -317,6 +329,7 @@ namespace OniMoono.Host
             yield return $"gpu {Gpu} ({From(GpuSource)})";
             yield return $"renderer {Renderer} ({From(RendererSource)})";
             yield return $"dxgi {(Dxgi ? "on" : "off")} ({From(DxgiSource)})";
+            yield return $"stall repeats {(StallRepeats ? "on" : "off")} ({From(StallRepeatsSource)})";
             yield return $"update check {(UpdateCheck ? "on" : "off")} ({From(UpdateCheckSource)})";
             yield return $"gc {Gc} ({From(GcSource)})";
         }
