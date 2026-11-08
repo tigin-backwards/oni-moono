@@ -214,6 +214,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Compact navigation links** (`compact-nav-links`): The map of where Duplicants and critters can move takes a fraction of the memory. Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; the pathfinder reads the same moves in the same order.
 - **Faster state machine lookups** (`fast-smi-lookups`): Finding one of an object's state machines no longer searches all of them each time. Each object remembers which of its state machines answered each lookup until its list of state machines changes.
 - **Paged path grids** (`paged-path-grids`): Each Duplicant's map of path costs takes memory only where it can walk. A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, and the parts never written read as the empty grid did. The pathfinder reads the same values.
+- **Fetch checks by pile** (`fetch-by-cell`): Duplicants looking for things to fetch check each pile of identical items once, not item by item. Keeps the best item of each pile up to date as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. Within a pile of items that are the same in every way the game compares, a Duplicant may take another one than in the original. Off while a mod changes how Duplicants choose what to fetch. *Measured: fetch updates ~8× shorter on a colony with big piles (3.1–3.4 → 0.4 ms each); a late-game Spaced Out colony with 33,600 fetchable items, Windows, 2026-11-08.* *Off by default.*
 
 ### Graphics & overlays (on by default)
 
@@ -300,6 +301,47 @@ With `ONI_TWEAK_VERIFY=1` every answer is compared with the counts every few fra
 for the session, logged once (`instant-reachability: off (...)`), when another mod patches the
 monitor, the counts or how an object's cell and work spots are read; Fast Track's **Fast
 Reachability** does, and replaces the same check its own way.
+
+### Fetch checks by pile
+
+Off by default, as it can change which of two identical items a Duplicant takes (it is left out
+of `exact`).
+
+Each time a Duplicant's brain updates (about 30 times a second in all), the game rechecks every
+item that can be fetched: whether this Duplicant may pick it up, the path cost of its cell, then
+a sort that keeps the best item of each kind and priority. A late-game colony can hold tens of
+thousands of such items in a few thousand piles (one tested colony: 33,600 items in 3,600 cells),
+so most of that work repeats the same answer for every item in a pile. With `fetch-by-cell` each
+pile (the items of one kind, tags and priority in one cell) keeps its best item by the order the
+game uses within a cell (food quality, then freshness), updated as items are added, removed,
+moved, stored, retagged, reserved or spoil. An update checks that best item as the game would,
+finds each pile's path cost once, keeps the cheapest pile of each kind and priority, and writes
+the result in the game's order. Items whose answer can differ from one Duplicant to the next
+(reserved ones, those in conveyor loaders and receptacles) are checked one by one, and a pile
+whose best item fails its check falls back to checking all of its items.
+
+Piles on worlds the Duplicant can't reach are skipped. A pile at least a few cells inside a world
+(by the largest work-spot offset any item has) on which the Duplicant's last path probe reached
+no cell has no path for any item in it, so the game would drop it too.
+
+The result is the game's except for ties: where two items of one kind have the same tags,
+priority, path cost, food quality and freshness, the game's sort picks either of them and this
+may pick the other. The merged list the Duplicant's errands read keeps the same order.
+
+It stands down for the session, logged once (`fetch-by-cell: off (...)`), when another mod patches
+the update or what it reads: Efficient Supply, CycleTrim and Fast Track's **Optimize Debris
+Collection** replace the update; Waste Not, Want Not and Delivery Temperature Limit change its
+order; No Manual Delivery, Forbid Items, Controlled Storage and others change who may pick up an
+item. The world skip alone stands down while a mod changes path costs or probes (Teleport Suit,
+GRAVNet, Fast Track's path cache). With Fast Track's **Reduce Debris Checks** the game's update
+never runs, so neither does this.
+
+With `ONI_VERIFY_FETCH_BY_CELL=1` (or `ONI_TWEAK_VERIFY=1`) the game's update runs and is used,
+this one runs beside it, and Player.log reports every 30 s
+(`fetch-by-cell: N updates; N group results, N ties, 0 differed; ...; N resyncs, 0 mismatches`)
+with a line for each result that differs other than by a tie, for each item in a skipped cell
+that had a path, and for each difference found when the mirror is checked against the game's
+lists every 5 s.
 
 ### Animation events
 

@@ -44,6 +44,7 @@ namespace OniMoono.Host.GameTweaks
             EngineLog.Engine($"game tweaks: installed, {System.Diagnostics.Stopwatch.GetElapsedTime(0, TweakInstall.CheckTicks).TotalMilliseconds:F1} ms of it the installs' checks");
             if (enabled.Contains(CompactNavLinks.Name) == false && Environment.GetEnvironmentVariable("ONI_NAVLINKS_DUMP") is { Length: > 0 })
                 CompactNavLinks.InstallDump(new Harmony("OniMoono.Host.GameTweaks." + CompactNavLinks.Name));
+            InstallFetchStats();
         }
 
         /// Each tweak that `on` takes, in the order they install, with its install (given the
@@ -96,6 +97,16 @@ namespace OniMoono.Host.GameTweaks
                 var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
                 EngineLog.Engine($"frame stats: the game's update is not timed: {cause.GetType().Name}: {cause.Message}");
             }
+        }
+
+        /// ONI_FETCH_STATS=1 (measurements): times FetchManager.UpdatePickups and its groups
+        /// (OniMoono.GameTweaks.FetchByCell), whatever tweaks are on.
+        static void InstallFetchStats()
+        {
+            if (Environment.GetEnvironmentVariable("ONI_FETCH_STATS") != "1") return;
+            var type = TypedAssembly.GetType("OniMoono.GameTweaks.FetchByCell")!;
+            type.GetMethod("InstallStats")!.Invoke(null, [new Harmony("OniMoono.Host.GameTweaks.fetch-stats")]);
+            EngineLog.Engine("fetch stats on");
         }
 
         /// The end of the run: saves still being written are finished first.

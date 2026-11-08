@@ -56,7 +56,7 @@ namespace OniMoono.Host.GameTweaks
         public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", StallRepeatsRow = "stall-repeats", UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
-            PagedPathGrids = "paged-path-grids", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles";
+            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -76,6 +76,9 @@ namespace OniMoono.Host.GameTweaks
 
         static readonly TweakGain PostLoadGain = new("POST_LOAD", "no ~0.3 s freeze a minute after loading a large colony; loading ~0.2 s longer",
             "a late-game Spaced Out colony with every DLC (cycle 17,000+)", "Windows", "2026-11-07", "docs/research/gc-pauses.md (a 283–344 ms pause in 6 of 6 loads → none over 68 ms in 6 of 6)");
+
+        static readonly TweakGain FetchGain = new("FETCH", "fetch updates ~8× shorter on a colony with big piles (3.1–3.4 → 0.4 ms each)",
+            "a late-game Spaced Out colony with 33,600 fetchable items", "Windows", "2026-11-08", "docs/PERFORMANCE.md#the-tweaks (fetch-by-cell)");
 
         public static readonly TweakGroup General = new("GENERAL", "General");
         public static readonly TweakGroup Saving = new("SAVING", "Saving", SaveGain);
@@ -157,6 +160,10 @@ namespace OniMoono.Host.GameTweaks
             new(PagedPathGrids, Simulation, "Paged path grids", "Each Duplicant's map of path costs takes memory only where it can walk.",
                 "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, "
                 + "and the parts never written read as the empty grid did. The pathfinder reads the same values."),
+            new(FetchByCell, Simulation, "Fetch checks by pile", "Duplicants looking for things to fetch check each pile of identical items once, not item by item.",
+                "Keeps the best item of each pile up to date as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. "
+                + "Within a pile of items that are the same in every way the game compares, a Duplicant may take another one than in the original. "
+                + "Off while a mod changes how Duplicants choose what to fetch.", FetchGain, ChangesBehaviour: true),
 
             new("fast-anim-events", Graphics, "Faster animation events", "Animations check their sound and effect cues with less work.",
                 "Keeps a compact copy of what each playing animation's per-frame event check reads."),
@@ -196,7 +203,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles, FetchByCell];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
