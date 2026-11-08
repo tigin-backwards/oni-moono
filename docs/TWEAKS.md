@@ -318,7 +318,10 @@ moved, stored, retagged, reserved or spoil. An update checks that best item as t
 finds each pile's path cost once, keeps the cheapest pile of each kind and priority, and writes
 the result in the game's order. Items whose answer can differ from one Duplicant to the next
 (reserved ones, those in conveyor loaders and receptacles) are checked one by one, and a pile
-whose best item fails its check falls back to checking all of its items.
+whose best item fails its check falls back to checking all of its items. A cell whose items
+take their work spots from different places (a bottle filler's stored water beside a loose
+bottle) is costed as the game costs it, through the first item there in the game's list that the
+Duplicant may pick up.
 
 Piles on worlds the Duplicant can't reach are skipped. A pile at least a few cells inside a world
 (by the largest work-spot offset any item has) on which the Duplicant's last path probe reached
@@ -341,7 +344,7 @@ this one runs beside it, and Player.log reports every 30 s
 (`fetch-by-cell: N updates; N group results, N ties, 0 differed; ...; N resyncs, 0 mismatches`)
 with a line for each result that differs other than by a tie, for each item in a skipped cell
 that had a path, and for each difference found when the mirror is checked against the game's
-lists every 5 s.
+lists (every 5 s in this mode; in play only after a change it tracks came from another thread).
 
 ### Animation events
 
