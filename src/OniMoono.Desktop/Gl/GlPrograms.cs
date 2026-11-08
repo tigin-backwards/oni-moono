@@ -84,9 +84,10 @@ namespace OniMoono.Desktop.Gl
         public readonly bool[] Found;
         /// Each found texture is the global's (not the material's).
         public readonly bool[] Global;
-        /// The pass state resolved from the same values, for one pass (ResolvedState.Of); one
-        /// object, so that threads recording a queue replace it whole.
-        public ResolvedFor Resolved;
+        /// The pass states resolved from the same values, one entry per pass the values were
+        /// drawn with (ResolvedState.Of): an array replaced whole when a pass is added, so that
+        /// threads recording a queue read it whole.
+        public ResolvedFor[] Resolved = [];
 
         public MaterialValues(DeviceProgram p)
         {
@@ -744,7 +745,6 @@ namespace OniMoono.Desktop.Gl
             {
                 d.Block = block;
             }
-            e.Resolved = null;
             System.Threading.Volatile.Write(ref e.MaterialVersion, materialVersion);
             System.Threading.Volatile.Write(ref e.GlobalsVersion, globalsVersion);
         }
