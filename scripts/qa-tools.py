@@ -194,7 +194,7 @@ def image(reference, new, diff, *options):
 # compact-nav-links and paged-path-grids name the moment ("nav links verify (in play)").
 VERIFY_NAMES = (r'(fast-[a-z-]+|path-probe-repair|instant-reachability|trim-anim-lists|nav links verify(?: \([a-z ]+\))?|path grids verify'
                 r'|canvas skips?|canvas products|component layouts|texel copies|partial uploads|parallel draws|bindless handles'
-                r'|bundle blocks|vulkan draws|raw texture loads|raycast cache)')
+                r'|bundle blocks|vulkan draws|raw texture loads|raycast cache|cull cache)')
 ZERO_WORDS = (r"(?:wrong skips|wrong|stale items not marked|stale|mismatches|changed while copying|differed|cell\(s\) differ"
               r"|differ|otherwise than a flood|otherwise than the game's|changes the feed missed)")
 ZERO_COUNTS = re.compile(r'(?<![\w.])(\d[\d,]*) ' + ZERO_WORDS + r'(?![\w(])')
@@ -204,7 +204,7 @@ INCIDENT = re.compile(r"\(\d+\)$|answers otherwise|the feed missed|differs from|
 def verify(path):
     last, incidents = {}, []
     for line in open(path, encoding='utf-8', errors='replace'):
-        if 'canvas skip wrong' in line or 'raycast cache wrong' in line:
+        if 'canvas skip wrong' in line or 'raycast cache wrong' in line or 'cull cache wrong' in line:
             incidents.append(line.strip()); continue
         m = re.search(VERIFY_NAMES + r': (.*)$', line)
         if not m: continue

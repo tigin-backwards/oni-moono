@@ -19,7 +19,12 @@ namespace UnityEngine
             return clone;
         }
 
-        internal override void EngineOnDestroy() => Data.ReleaseResources();
+        internal override void EngineOnDestroy()
+        {
+            var m = Data;
+            m.BoundsReadersChanged();
+            m.ReleaseResources();
+        }
 
         public bool isReadable => Data.IsReadable;
 

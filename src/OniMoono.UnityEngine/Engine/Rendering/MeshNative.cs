@@ -146,7 +146,58 @@ namespace OniMoono.Engine.Rendering
         public readonly UvSet Uvs;
         public readonly int[] UvDimensions = new int[UvChannels];
         public List<SubMeshData> SubMeshes = new() { new SubMeshData() };
-        public Bounds Bounds;
+
+        /// The mesh's bounds. A change of them, to other bits, recomputes the culling bounds of
+        /// the renderers that read them (FrameRenderer).
+        public Bounds Bounds
+        {
+            get => bounds;
+            set
+            {
+                bool same = CullCache.SameBits(bounds, value);
+                bounds = value;
+                if (!same) BoundsReadersChanged();
+            }
+        }
+
+        Bounds bounds;
+
+        /// Renderers whose culling bounds were made from these bounds; each one is in the list
+        /// of the last mesh it read, at its BoundsMeshIndex.
+        List<RendererNative> boundsReaders;
+
+        public void AddBoundsReader(RendererNative r)
+        {
+            if (r.BoundsMesh == this) return;
+            r.BoundsMesh?.RemoveBoundsReader(r);
+            boundsReaders ??= new();
+            r.BoundsMesh = this;
+            r.BoundsMeshIndex = boundsReaders.Count;
+            boundsReaders.Add(r);
+        }
+
+        public void RemoveBoundsReader(RendererNative r)
+        {
+            var list = boundsReaders;
+            int i = r.BoundsMeshIndex, last = list.Count - 1;
+            if (i != last)
+            {
+                var moved = list[last];
+                list[i] = moved;
+                moved.BoundsMeshIndex = i;
+            }
+            list.RemoveAt(last);
+            r.BoundsMesh = null;
+            r.BoundsMeshIndex = -1;
+        }
+
+        /// The bounds changed, or the mesh was destroyed (a destroyed mesh counts as none).
+        public void BoundsReadersChanged()
+        {
+            var list = boundsReaders;
+            if (list == null) return;
+            for (int i = 0; i < list.Count; i++) FrameRenderer.BoundsChanged(list[i]);
+        }
         public bool IsReadable = true;
         public bool Dynamic;
         /// 0 = 16-bit, 1 = 32-bit (IndexFormat).

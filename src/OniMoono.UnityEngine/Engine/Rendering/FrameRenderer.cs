@@ -82,11 +82,22 @@ namespace OniMoono.Engine.Rendering
         /// it joined, which orders its draws. Fast Track's mesh renderers leave a tenth of
         /// 30,000 enabled, spread over the layers 15 cameras cull. A renderer leaving a list
         /// leaves a hole (null), compacted away before a pass, so toggling one costs O(1).
+        ///
+        /// Beside each candidate the list keeps its culling bounds (CullCache): made at a visit
+        /// when the slot is Unmade, then kept (Kept) until something they were made from
+        /// changes (BoundsChanged), or made at every visit (Volatile) when the renderer's
+        /// geometry does not notify (sprites, particles, lines, text meshes). A pass over kept
+        /// bounds reads these arrays alone and looks at a renderer only when its box is in view.
         sealed class CandidateList
         {
             public readonly List<RendererNative> Items = new();
             public int Holes;
+            public Bounds[] Bounds = new Bounds[16];
+            public byte[] States = new byte[16];
         }
+
+        /// A candidate slot's bounds (CandidateList.States).
+        const byte Unmade = 0, Kept = 1, Volatile = 2;
 
         static readonly CandidateList[] candidates = Enumerable.Range(0, 32).Select(_ => new CandidateList()).ToArray();
         static long nextStamp;
@@ -140,8 +151,31 @@ namespace OniMoono.Engine.Rendering
         {
             var list = candidates[layer];
             r.CandidateLayer = layer;
-            r.CandidateSlot = list.Items.Count;
+            int slot = r.CandidateSlot = list.Items.Count;
             list.Items.Add(r);
+            if (slot == list.States.Length)
+            {
+                Array.Resize(ref list.Bounds, slot * 2);
+                Array.Resize(ref list.States, slot * 2);
+            }
+            list.States[slot] = Unmade;
+        }
+
+        /// What a candidate's culling bounds were made from changed (its assigned bounds, or
+        /// its mesh's): they are made again at its next visit.
+        public static void BoundsChanged(RendererNative r)
+        {
+            if (r.CandidateSlot < 0) return;
+            ref byte state = ref candidates[r.CandidateLayer].States[r.CandidateSlot];
+            if (state == Kept) state = Unmade;
+        }
+
+        /// The GameObject's components, a mesh filter's mesh or the transform's world matrix
+        /// changed: the culling bounds of its renderers are made again.
+        public static void BoundsInputsChanged(GameObjectNative go)
+        {
+            foreach (var c in go.Components)
+                if (c?.Native is RendererNative r) BoundsChanged(r);
         }
 
         static void RemoveCandidate(RendererNative r)
@@ -176,18 +210,23 @@ namespace OniMoono.Engine.Rendering
             }
             visibleThisFrame.Remove(r);
             visibleLastFrame.Remove(r);
+            r.BoundsMesh?.RemoveBoundsReader(r);
         }
 
         static void Compact(CandidateList list)
         {
             if (list.Holes == 0 || culling > 0) return;
             var items = list.Items;
+            var bounds = list.Bounds;
+            var states = list.States;
             int kept = 0;
             for (int i = 0; i < items.Count; i++)
             {
                 var r = items[i];
                 if (r == null) continue;
                 r.CandidateSlot = kept;
+                bounds[kept] = bounds[i];
+                states[kept] = states[i];
                 items[kept++] = r;
             }
             items.RemoveRange(kept, items.Count - kept);
@@ -201,6 +240,22 @@ namespace OniMoono.Engine.Rendering
 
         /// The candidate lists' lengths, holes included (tests).
         internal static int CandidateSlots => candidates.Sum(l => l.Items.Count);
+
+        /// Candidates whose kept culling bounds differ from their WorldBounds now, and those
+        /// with kept bounds (tests).
+        internal static (int Wrong, int Kept) KeptBounds()
+        {
+            int wrong = 0, kept = 0;
+            foreach (var list in candidates)
+                for (int i = 0; i < list.Items.Count; i++)
+                {
+                    var r = list.Items[i];
+                    if (r == null || list.States[i] != Kept) continue;
+                    kept++;
+                    if (!CullCache.SameBits(list.Bounds[i], r.WorldBounds)) wrong++;
+                }
+            return (wrong, kept);
+        }
 
         /// The cull candidates in their order (tests).
         internal static IEnumerable<RendererNative> Candidates
@@ -225,7 +280,7 @@ namespace OniMoono.Engine.Rendering
         /// queues, logged every TimingFrames frames.
         static readonly bool timing = Environment.GetEnvironmentVariable("ONI_RENDER_TIMING") == "1";
         const int TimingFrames = 600;
-        static long renderTicks, queueTicks, queueDraws, windowStart, candidateChanges, windowVisits, layerMoves;
+        static long renderTicks, queueTicks, queueDraws, windowStart, candidateChanges, windowVisits, layerMoves, windowMade, windowKept;
         static TimeSpan lastCpu;
         static int timedFrames;
 
@@ -254,10 +309,12 @@ namespace OniMoono.Engine.Rendering
             var cpu = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime;
             double cores = (cpu - lastCpu).TotalSeconds / ((now - windowStart) / (double)System.Diagnostics.Stopwatch.Frequency);
             lastCpu = cpu;
-            EngineLog.Engine($"render timing: frame {Time.frameCount}, {fps:F2} fps, rendering {ms(renderTicks):F3} ms a frame, draw queues {ms(queueTicks):F3} ms ({queueDraws / timedFrames} draws a frame), cull candidates {liveCandidates} ({candidateChanges / timedFrames} changes, {layerMoves / timedFrames} layer moves and {(CullVisits - windowVisits) / timedFrames} visits a frame){(device != null ? ", " + device : "")}"
+            EngineLog.Engine($"render timing: frame {Time.frameCount}, {fps:F2} fps, rendering {ms(renderTicks):F3} ms a frame, draw queues {ms(queueTicks):F3} ms ({queueDraws / timedFrames} draws a frame), cull candidates {liveCandidates} ({candidateChanges / timedFrames} changes, {layerMoves / timedFrames} layer moves and {(CullVisits - windowVisits) / timedFrames} visits a frame, culling bounds made at {(CullCache.Made - windowMade) / timedFrames} and kept at {(CullCache.Kept - windowKept) / timedFrames}){(device != null ? ", " + device : "")}"
                 + $"; pool threads {System.Threading.ThreadPool.ThreadCount}, pending {System.Threading.ThreadPool.PendingWorkItemCount}, process threads {System.Diagnostics.Process.GetCurrentProcess().Threads.Count}, cpu {cores:F1} cores, gc {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)}, heap {GC.GetTotalMemory(false) >> 20} MB");
             renderTicks = queueTicks = queueDraws = candidateChanges = layerMoves = 0;
             windowVisits = CullVisits;
+            windowMade = CullCache.Made;
+            windowKept = CullCache.Kept;
             timedFrames = 0;
             windowStart = now;
         }
@@ -516,6 +573,7 @@ namespace OniMoono.Engine.Rendering
                 }
             captures.Clear();
             frameQueued.Clear();
+            if (CullCache.Verifying && Time.frameCount % 600 == 0) CullCache.Report();
             // The frame's queued draws are done with the property blocks they share.
             PropertySheet.RenderEpoch++;
             itemsUsed = 0;
@@ -731,23 +789,62 @@ namespace OniMoono.Engine.Rendering
                 counts[layer] = candidates[layer].Items.Count;
             }
             culling++;
+            long visits = 0, kept = 0, made = 0;
+            bool cache = CullCache.Enabled, verify = CullCache.Verifying;
             try
             {
                 for (int layer = 0; layer < 32; layer++)
                 {
-                    var items = candidates[layer].Items;
+                    var list = candidates[layer];
+                    var items = list.Items;
+                    // Reloaded after a renderer's draws are collected: scripts (OnBecameVisible)
+                    // may add candidates, which can grow the arrays.
+                    var boundsOf = list.Bounds;
+                    var states = list.States;
                     for (int c = 0; c < counts[layer]; c++)
                     {
                         var r = items[c];
                         if (r == null) continue;
-                        CullVisits++;
-                        if (r.Destroyed || !r.Enabled || !r.GameObject.ActiveInHierarchy) continue;
-                        var bounds = r.WorldBounds;
-                        if (!frustum.Intersects(bounds)) continue;
+                        visits++;
+                        Bounds bounds;
+                        // Kept bounds are tested first, the renderer looked at only when they
+                        // are in view: both tests read nothing they change, so their order does
+                        // not matter.
+                        if (cache && states[c] == Kept && !verify)
+                        {
+                            kept++;
+                            bounds = boundsOf[c];
+                            if (!frustum.Intersects(bounds)) continue;
+                            if (r.Destroyed || !r.Enabled || !r.GameObject.ActiveInHierarchy) continue;
+                        }
+                        else
+                        {
+                            if (r.Destroyed || !r.Enabled || !r.GameObject.ActiveInHierarchy) continue;
+                            if (!cache) bounds = r.WorldBounds;
+                            else if (states[c] == Kept)
+                            {
+                                kept++;
+                                bounds = r.WorldBounds;
+                                CullCache.Verify(r, boundsOf[c], bounds);
+                            }
+                            else
+                            {
+                                made++;
+                                bounds = r.CullBounds(out bool keep);
+                                boundsOf[c] = bounds;
+                                states[c] = keep ? Kept : Volatile;
+                                if (verify) CullCache.Verify(r, bounds, r.WorldBounds);
+                            }
+                            if (!frustum.Intersects(bounds)) continue;
+                        }
                         int before = draws.Count;
-                        RendererDraws.Collect(r, camera, draws);
+                        RendererDraws.Collect(r, camera, draws, bounds);
+                        boundsOf = list.Bounds;
+                        states = list.States;
                         if (draws.Count == before) continue;
                         MarkVisible(r);
+                        boundsOf = list.Bounds;
+                        states = list.States;
                         for (int i = before; i < draws.Count; i++) draws[i].Sequence = (r.CandidateStamp << 16) + (i - before);
                     }
                 }
@@ -755,6 +852,9 @@ namespace OniMoono.Engine.Rendering
             finally
             {
                 culling--;
+                CullVisits += visits;
+                CullCache.Kept += kept;
+                CullCache.Made += made;
             }
             // Cameras rendered by scripts after the frame's pass also draw the frame's meshes
             // (captures have already put them back in the queue).
@@ -875,10 +975,17 @@ namespace OniMoono.Engine.Rendering
 
         public static void Collect(RendererNative r, Camera camera, List<DrawItem> draws)
         {
+            if (r is MeshRendererNative m) CollectMesh(m, draws, m.WorldBounds);
+            else Collect(r, camera, draws, default);
+        }
+
+        /// `bounds`: its WorldBounds as culled, which a mesh renderer's draws take.
+        public static void Collect(RendererNative r, Camera camera, List<DrawItem> draws, in Bounds bounds)
+        {
             switch (r)
             {
                 case MeshRendererNative m:
-                    CollectMesh(m, draws);
+                    CollectMesh(m, draws, bounds);
                     break;
                 case SpriteRendererNative s:
                     CollectSprite(s, draws);
@@ -896,6 +1003,9 @@ namespace OniMoono.Engine.Rendering
         }
 
         static DrawItem Item(RendererNative r, MeshNative mesh, int subMesh, Material material, PropertySheet properties)
+            => Item(r, mesh, subMesh, material, properties, r.WorldBounds);
+
+        static DrawItem Item(RendererNative r, MeshNative mesh, int subMesh, Material material, PropertySheet properties, in Bounds worldBounds)
         {
             var d = FrameRenderer.NewDrawItem();
             d.Renderer = r;
@@ -907,7 +1017,7 @@ namespace OniMoono.Engine.Rendering
             d.Queue = material.renderQueue;
             d.SortingLayerValue = SortingLayers.ValueOf(r.SortingLayerId);
             d.SortingOrder = r.SortingOrder;
-            d.WorldBounds = r.WorldBounds;
+            d.WorldBounds = worldBounds;
             return d;
         }
 
@@ -949,7 +1059,7 @@ namespace OniMoono.Engine.Rendering
 
         /// Material i draws submesh i; extra materials draw the last submesh again. Without a
         /// MeshFilter the renderer draws its TextMesh's text.
-        static void CollectMesh(MeshRendererNative r, List<DrawItem> draws)
+        static void CollectMesh(MeshRendererNative r, List<DrawItem> draws, in Bounds bounds)
         {
             Mesh mesh = null;
             foreach (var c in r.GameObject.Components)
@@ -961,7 +1071,7 @@ namespace OniMoono.Engine.Rendering
             {
                 var material = r.Materials[i];
                 if (material == null || subMeshes == 0) continue;
-                draws.Add(Item(r, m, Math.Min(i, subMeshes - 1), material, r.PropertyBlock));
+                draws.Add(Item(r, m, Math.Min(i, subMeshes - 1), material, r.PropertyBlock, bounds));
             }
         }
 

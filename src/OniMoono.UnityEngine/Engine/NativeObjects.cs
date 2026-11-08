@@ -48,7 +48,20 @@ namespace OniMoono.Engine
     {
         /// Component order as in Unity; [0] is always the Transform. Copy-on-write so that
         /// worker threads can read it while the main thread mutates.
-        public Component[] Components = System.Array.Empty<Component>();
+        public Component[] Components
+        {
+            get => components;
+            set
+            {
+                components = value;
+                if (CullBoundsWatched) Rendering.FrameRenderer.BoundsInputsChanged(this);
+            }
+        }
+        Component[] components = System.Array.Empty<Component>();
+        /// A renderer of it keeps culling bounds that depend on its components (its mesh
+        /// filter's mesh): a change of them recomputes those bounds (FrameRenderer). Never
+        /// cleared.
+        public bool CullBoundsWatched;
         public int Layer;
         public string Tag = "Untagged";
         public bool ActiveSelf = true;
@@ -146,6 +159,9 @@ namespace OniMoono.Engine
         public Quaternion LocalRotation = Quaternion.identity;
         public Vector3 LocalScale = Vector3.one;
         public bool HasChanged = true;
+        /// A renderer of its GameObject keeps culling bounds made from its world matrix: a
+        /// change of that matrix recomputes them (FrameRenderer). Never cleared.
+        internal bool CullBoundsWatched;
         /// Someone outside the engine follows this transform's moves (TransformMoveWatch): set on
         /// a few thousand game objects at most; every other transform pays the one test of it.
         internal bool MoveWatched;
@@ -355,6 +371,7 @@ namespace OniMoono.Engine
             var cache = inverse;
             if (cache != null) cache.WorldDirty = true;
             if (changed) HasChanged = true;
+            if (CullBoundsWatched) Rendering.FrameRenderer.BoundsInputsChanged(GameObject);
             if (moved)
             {
                 OnMoved();
