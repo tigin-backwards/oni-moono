@@ -171,7 +171,8 @@ def compare_images(reference, new, diff, crop=None, crop_new=None, masks=(), lev
         x, y, w, h = (int(round(v)) for v in m)
         counted[max(0, y):max(0, y + h), max(0, x):max(0, x + w)] = False
     if diff:
-        Image.fromarray(np.where(counted, differs * 255, 128).astype('uint8')).save(diff)
+        # Always a PNG, whatever the path's extension (or none, as /dev/null).
+        Image.fromarray(np.where(counted, differs * 255, 128).astype('uint8')).save(diff, format='PNG')
     total = int(counted.sum())
     fraction = float((differs & counted).sum()) / total if total else 0.0
     return {'fraction': round(fraction, 6), 'size': list(a.size), 'masked': int(counted.size - total)}
