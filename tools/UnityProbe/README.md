@@ -108,7 +108,8 @@ With `PROBE_SCENARIO=apigaps` only the API gaps probe runs (`ApiGaps.cs`, lines 
 the main menu, ending with an `ApiGapsProbeDone` canvas): Unity members Workshop mods call that ours
 lacked (`docs/research/unity-api-gaps.md`), by part: what `RenderTexture.active` binds, every loaded
 shader's property introspection, the RenderTexture constructors, UnityWebRequest upload and
-download handlers against a loopback server that logs the raw requests, AnimationCurve's
+download handlers against a loopback server that logs the raw requests, a request's async
+operation while the main thread blocks on its `isDone` (`webspin`), AnimationCurve's
 RemoveKey and SmoothTangents, Graphics.CopyTexture, a few small members (GarbageCollector,
 Camera.cullingMatrix, SpriteRenderer.drawMode, NativeArray), particle bursts and velocity over
 lifetime, collider bounds, VideoPlayer URL sources and IMGUI's SelectionGrid and PasswordField.

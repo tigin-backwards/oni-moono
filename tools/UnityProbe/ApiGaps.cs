@@ -104,7 +104,7 @@ namespace SemanticsProbe
             };
             var steps = new (string, Func<IEnumerator>)[]
             {
-                ("rt", ActiveParts), ("shader", ShaderParts), ("rtctor", CtorParts), ("web", WebParts), ("curve", CurveParts),
+                ("rt", ActiveParts), ("shader", ShaderParts), ("rtctor", CtorParts), ("web", WebParts), ("webspin", WebSpinParts), ("curve", CurveParts),
                 ("copy", CopyParts), ("misc", MiscParts), ("ps", ParticleParts), ("bounds", BoundsParts), ("video", VideoParts),
                 ("gui", GuiParts),
             };
@@ -628,6 +628,50 @@ namespace SemanticsProbe
                 foreach (var q in server.Requests) L(what + " server: " + q);
                 server.Requests.Clear();
             }
+        }
+
+        // A request's async operation while the main thread blocks (as Mod Manager's Steam Web
+        // API lookup spins on operation.isDone with Thread.Sleep(1)): when isDone, the request's
+        // isDone and result turn, when completed runs, and what a handler added once isDone is
+        // true but before the next frame gets.
+        IEnumerator WebSpinParts()
+        {
+            int mainThread = Thread.CurrentThread.ManagedThreadId;
+            var server = new LoopbackServer();
+            string url = "http://127.0.0.1:" + server.Port + "/x";
+            foreach (var kind in new[] { "buffer", "file", "404" })
+            {
+                var file = Path.Combine(Path.GetTempPath(), "apigaps-spin-" + Guid.NewGuid().ToString("N") + ".txt");
+                var r = new UnityWebRequest(kind == "404" ? "http://127.0.0.1:" + server.Port + "/404" : url, "POST");
+                r.uploadHandler = new UploadHandlerRaw(Encoding.ASCII.GetBytes("a=1"));
+                r.downloadHandler = kind == "file" ? (DownloadHandler)new DownloadHandlerFile(file) : new DownloadHandlerBuffer();
+                int frame = Time.frameCount;
+                var op = r.SendWebRequest();
+                int firstFired = -1, firstThread = -1;
+                op.completed += _ => { firstFired = Time.frameCount - frame; firstThread = Thread.CurrentThread.ManagedThreadId; };
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                long opDoneAt = -1, reqDoneAt = -1;
+                while (watch.ElapsedMilliseconds < 3000 && opDoneAt < 0)
+                {
+                    if (reqDoneAt < 0 && r.isDone) reqDoneAt = watch.ElapsedMilliseconds;
+                    if (op.isDone) opDoneAt = watch.ElapsedMilliseconds;
+                    Thread.Sleep(1);
+                }
+                if (reqDoneAt < 0 && r.isDone) reqDoneAt = watch.ElapsedMilliseconds;
+                L(kind + " spin: op.isDone " + (opDoneAt >= 0 ? "true" : "false after 3 s") + " request.isDone " + (reqDoneAt >= 0 ? "true" : "false")
+                  + " request first=" + (reqDoneAt >= 0 && opDoneAt >= 0 ? (reqDoneAt <= opDoneAt ? "yes" : "no") : "-")
+                  + " result=" + r.result + " code=" + r.responseCode + " progress=" + F(op.progress)
+                  + " data=" + Try(() => r.downloadHandler.data == null ? "null" : r.downloadHandler.data.Length.ToString())
+                  + " completed during spin=" + (firstFired >= 0) + " same frame=" + (Time.frameCount == frame));
+                int lateFired = -1;
+                op.completed += _ => lateFired = Time.frameCount - frame;
+                L(kind + " handler added after spin: ran at once=" + (lateFired >= 0) + " first ran=" + (firstFired >= 0));
+                for (int i = 0; i < 300 && (firstFired < 0 || lateFired < 0); i++) yield return null;
+                L(kind + " completed: first after " + firstFired + " frame(s) on main=" + (firstThread == mainThread) + ", late after " + lateFired + " frame(s)");
+                r.Dispose();
+                try { File.Delete(file); } catch { }
+            }
+            server.Stop();
         }
 
         IEnumerator WebParts()

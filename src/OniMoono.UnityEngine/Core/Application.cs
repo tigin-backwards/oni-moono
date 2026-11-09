@@ -144,17 +144,29 @@ namespace UnityEngine
 
         public AsyncOperation() { }
 
-        public bool isDone => m_IsDone;
-        public float progress => m_IsDone ? 1f : m_Progress;
+        /// True once the work is done, read from any thread: an operation whose work runs on
+        /// another thread (a web request) turns done when that work ends, before the main thread
+        /// completes it, so a main thread that blocks on isDone sees it turn as in Unity
+        /// (UnityProbe's apigaps "webspin": Mod Manager spins on a request's operation).
+        public bool isDone => m_IsDone || WorkDone;
+        public float progress => isDone ? 1f : m_Progress;
+
+        /// Whether the operation's work has ended though the main thread has not completed it yet.
+        internal virtual bool WorkDone => false;
+
+        /// Completed on the main thread (its callbacks have run); what a coroutine waits for.
+        internal bool IsCompleted => m_IsDone;
         public int priority { get; set; }
         public bool allowSceneActivation { get; set; } = true;
 
-        /// Subscribing to an operation that has already completed invokes the callback at once.
+        /// Subscribing to an operation that is already done invokes the callback at once, also
+        /// when its work ended but the main thread has not completed it yet (measured: UnityProbe's
+        /// apigaps "webspin"); those subscribed before run at the completion.
         public event Action<AsyncOperation> completed
         {
             add
             {
-                if (m_IsDone) value(this);
+                if (isDone) value(this);
                 else m_completeCallback += value;
             }
             remove => m_completeCallback -= value;

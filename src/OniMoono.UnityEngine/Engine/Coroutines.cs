@@ -193,7 +193,7 @@ namespace OniMoono.Engine
         public static void RunUpdatePhase() => RunPhase(ref updateWaiters, s => s.WaitFrame < Time.frameCount && s.Wait switch
         {
             CoroutineWait.Seconds => Time.time >= s.ResumeTime,
-            CoroutineWait.AsyncOperation => s.Operation.isDone,
+            CoroutineWait.AsyncOperation => s.Operation.IsCompleted,
             _ => true,
         });
 

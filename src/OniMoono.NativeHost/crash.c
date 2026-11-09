@@ -173,6 +173,7 @@ static const char *exception_name(DWORD code)
     case 0xC000013A: return "Ctrl+C";
     case 0x40010004: return "ended by Windows (log off or shut down)";
     case 0xFFFFFFFF: return "ended from outside (Task Manager or another program)";
+    case 0xCFFFFFFF: return "ended by Windows as not responding (a hang)";
     default: return NULL;
     }
 }
