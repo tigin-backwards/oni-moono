@@ -394,7 +394,8 @@ namespace OniMoono.Engine.Rendering
             Threads.AssertMainThread("Blit");
             mat ??= BlitCopy;
             BeginFullTarget(dest);
-            var props = new PropertySheet();
+            // The sheet is this draw's only (PropertySheet.RentForFrame).
+            var props = PropertySheet.RentForFrame();
             if (source != null)
             {
                 props.SetTexture(MainTex, source);

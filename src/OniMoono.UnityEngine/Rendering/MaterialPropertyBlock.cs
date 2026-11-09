@@ -11,7 +11,7 @@ namespace UnityEngine
         /// to the block before then moves the block to a copy (Writable), so the queued draw keeps
         /// the values it was given, as Unity's copy at DrawMesh does. ONI draws every animation
         /// batch through DrawMesh with a block it sets each frame before drawing.
-        internal PropertySheet Sheet { get; private set; } = new();
+        internal PropertySheet Sheet { get; private set; } = new(PropertySheet.BlockTextureCapacity);
 
         /// The sheet, made the block's own first if a queued draw still shares it. The sheet the
         /// block leaves is retired (PropertySheet.Retire): the queued draws keep reading it until

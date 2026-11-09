@@ -73,7 +73,18 @@ namespace OniMoono.Engine.Rendering
         public Dictionary<int, float> FloatsToWrite => floats ??= new();
         public Dictionary<int, int> IntsToWrite => ints ??= new();
         public Dictionary<int, Vector4> VectorsToWrite => vectors ??= new();
-        public Dictionary<int, TextureBinding> TexturesToWrite => textures ??= new();
+        public Dictionary<int, TextureBinding> TexturesToWrite => textures ??= new(textureCapacity);
+
+        /// The size the texture store is made with: a new MaterialPropertyBlock's sheet is made
+        /// for the textures of an animation batch (BlockTextureCapacity: its data textures and
+        /// one or two atlases), which grew its store from 3 to 7 while the game set them.
+        readonly int textureCapacity;
+
+        public const int BlockTextureCapacity = 7;
+
+        public PropertySheet() { }
+
+        public PropertySheet(int textureCapacity) => this.textureCapacity = textureCapacity;
 
         /// Bumped on every change, so dependents (the device, TMP's CRC checks) can tell.
         public int Version;
@@ -97,7 +108,7 @@ namespace OniMoono.Engine.Rendering
 
         public void SetTexture(int id, Texture texture)
         {
-            var store = textures ??= new();
+            var store = TexturesToWrite;
             var binding = store.TryGetValue(id, out var b) ? b : new TextureBinding { ScaleOffset = TextureBinding.IdentityScaleOffset };
             binding.Texture = texture;
             store[id] = binding;
@@ -106,7 +117,7 @@ namespace OniMoono.Engine.Rendering
 
         public void SetTextureScaleOffset(int id, Vector4 scaleOffset)
         {
-            var store = textures ??= new();
+            var store = TexturesToWrite;
             var binding = store.TryGetValue(id, out var b) ? b : default;
             binding.ScaleOffset = scaleOffset;
             store[id] = binding;
@@ -206,6 +217,9 @@ namespace OniMoono.Engine.Rendering
         public bool IsFree;
 
         static long rented, reused, retiredCount, checkedDraws, wrong;
+
+        /// Sheets rented so far.
+        public static long Rented { get { lock (pool) return rented; } }
 
         /// A cleared sheet: a free one, else a new one.
         public static PropertySheet Rent()
