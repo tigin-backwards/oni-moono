@@ -18,9 +18,11 @@ on:
       manifests:
         description: >-
           The manifests' lines, each prefixed with its platform (PLATFORM DIGEST  PATH), in the
-          manifests' order. For kind workshop: the item's SHA256SUMS lines (DIGEST  PATH).
+          manifests' order (kind release). Kind workshop leaves it empty: the item's SHA256SUMS
+          comes as the run's workshop-manifest artifact.
         type: string
-        required: true
+        required: false
+        default: ""
       kind:
         description: >-
           release (an archive and a manifest per platform) or workshop (checksums: the item's
@@ -69,7 +71,9 @@ jobs:
           if len(given) != 4: fail(f"expected an archive and a manifest for each of {', '.join(platforms)}")
           component = re.compile(r"[A-Za-z0-9._+-]+")
           entries = {p: [] for p in platforms}
-          for line in os.environ["MANIFESTS"].splitlines():
+          with open(sys.argv[2], encoding="utf-8", newline="") as f:
+              manifest = f.read()
+          for line in manifest.splitlines():
               if not line: continue
               m = re.fullmatch(r"(windows-x64|linux-x64) ([0-9a-f]{64})  ([^\x00-\x1f\x7f]{1,240})", line)
               if not m: fail(f"unexpected manifest line: {line!r}")
@@ -105,13 +109,20 @@ jobs:
           subject-checksums: ${{ runner.temp }}/linux-x64.sha256
       # The Workshop item: its SHA256SUMS (the one checksums line) and every file it lists, in
       # attestations of at most 1000 subjects each (in the workspace, where hashFiles looks).
+      # Its manifest comes as the workshop-manifest artifact (a step's environment can't hold it);
+      # its digest is the checksums line, so the check below ties it to what was given.
+      - name: Fetch the Workshop item's manifest
+        if: inputs.kind == 'workshop'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: workshop-manifest
+          path: ${{ runner.temp }}/workshop-manifest
       - name: Check the Workshop item's subjects
         if: inputs.kind == 'workshop'
         env:
           CHECKSUMS: ${{ inputs.checksums }}
-          MANIFESTS: ${{ inputs.manifests }}
         run: |
-          python3 -I - "$GITHUB_WORKSPACE" <<'PY'
+          python3 -I - "$GITHUB_WORKSPACE" "$RUNNER_TEMP/workshop-manifest/SHA256SUMS" <<'PY'
           import hashlib, os, re, sys
           def fail(msg):
               print(f"::error::{msg}"); sys.exit(1)
@@ -121,7 +132,9 @@ jobs:
           if not m: fail(f"unexpected subject line: {lines[0]!r}")
           component = re.compile(r"[A-Za-z0-9._+-]+")
           entries = []
-          for line in os.environ["MANIFESTS"].splitlines():
+          with open(sys.argv[2], encoding="utf-8", newline="") as f:
+              manifest = f.read()
+          for line in manifest.splitlines():
               if not line: continue
               e = re.fullmatch(r"([0-9a-f]{64})  ([^\x00-\x1f\x7f]{1,240})", line)
               if not e: fail(f"unexpected manifest line: {line!r}")

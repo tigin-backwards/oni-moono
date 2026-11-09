@@ -43,7 +43,6 @@ jobs:
       attestations: read
     outputs:
       checksums: ${{ steps.sums.outputs.checksums }}
-      manifest: ${{ steps.sums.outputs.manifest }}
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -91,11 +90,17 @@ jobs:
       - id: sums
         run: |
           echo "checksums=$(sha256sum workshop-item/SHA256SUMS | sed 's|workshop-item/||')" >> "$GITHUB_OUTPUT"
-          { echo "manifest<<SUMS_END"; cat workshop-item/SHA256SUMS; echo "SUMS_END"; } >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: workshop-item
           path: workshop-item
+          if-no-files-found: error
+      # The item's manifest alone, for attest.yml: over a thousand lines are too long to pass as
+      # an input (the runner hands inputs to a step's process in its environment).
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: workshop-manifest
+          path: workshop-item/SHA256SUMS
           if-no-files-found: error
 
   attest:
@@ -107,7 +112,6 @@ jobs:
     with:
       kind: workshop
       checksums: ${{ needs.package.outputs.checksums }}
-      manifests: ${{ needs.package.outputs.manifest }}
 
   check:
     name: Verify the artifact
