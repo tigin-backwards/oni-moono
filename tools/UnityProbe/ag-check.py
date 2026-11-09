@@ -19,6 +19,7 @@ def shortest(number):
 
 def lines(path, parts):
     out = {}
+    last = None
     for line in open(path, encoding='utf-8', errors='replace'):
         m = re.search(r'PROBE f\d+ AG (\S+) (.*)$', line.rstrip('\n'))
         if not m:

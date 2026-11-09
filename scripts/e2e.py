@@ -1906,7 +1906,7 @@ def clean(lock_dir=None, log=say):
                 record = read_record(f)
                 found = lane_leftovers(number, record, lock_dir)
                 if found:
-                    clean_leftovers(found, log=lambda s: log(f'lane {number}: {s}'))
+                    clean_leftovers(found, log=lambda s: log(f'lane {number}: {s}'))  # noqa: B023  # called within this iteration
                     cleaned += len(found)
                     if record:
                         record.pop('children', None)
@@ -4188,7 +4188,7 @@ class Run:
             # apart by their element keys' sibling indices; the last one is on top.
             def sibling(element):
                 parts = element.raw.get('key', '').split('/')
-                part = parts[len(dialog.split('/'))] if len(parts) > len(dialog.split('/')) else ''
+                part = parts[len(dialog.split('/'))] if len(parts) > len(dialog.split('/')) else ''  # noqa: B023  # sibling is used within this iteration, by max() below
                 return int(part.rsplit('#', 1)[1]) if '#' in part else 0
 
             top = max(range(len(ok)), key=lambda i: sibling(ok[i]))

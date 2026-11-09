@@ -374,7 +374,7 @@ CARET = (
 TEXT = (
     '/A#0/SearchBar#2/Input#0/Text Area#0/Text#1 [LocText]\n'
     '  - text="" fontSize=18 isTextOverflowing=False firstOverflowCharacterIndex=-1 textInfo=0,0,0,0,0,0,1,0\n'
-    '  + text="​" fontSize=18 isTextOverflowing=True firstOverflowCharacterIndex=0 textInfo=1,0,1,0,1,1,1,0'
+    '  + text="\u200b" fontSize=18 isTextOverflowing=True firstOverflowCharacterIndex=0 textInfo=1,0,1,0,1,1,1,0'
 )
 
 
@@ -410,7 +410,7 @@ class KnownFindings(unittest.TestCase):
         self.assertEqual(e2e.finding_for(CARET, findings), 'unused-input-caret-layout')
         self.assertIsNone(e2e.finding_for(CARET.replace('Caret#0', 'Panel#0'), findings))  # path
         self.assertEqual(e2e.finding_for(TEXT, findings), 'empty-input-zero-width-space')
-        self.assertIsNone(e2e.finding_for(TEXT.replace('​', 'Quick'), findings))  # ours: regex
+        self.assertIsNone(e2e.finding_for(TEXT.replace('\u200b', 'Quick'), findings))  # ours: regex
         self.assertIsNone(e2e.finding_for('only in second: /A#0/B#1', findings))
 
     def test_specs_and_presence(self):

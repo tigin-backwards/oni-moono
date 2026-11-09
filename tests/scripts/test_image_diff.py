@@ -1,6 +1,6 @@
 """qa-tools.py image's crop, mask and size tolerance; ui-diff.py's --tolerance and --mask-text."""
 
-import json, os, subprocess, sys, tempfile, unittest
+import os, subprocess, sys, tempfile, unittest
 
 import helpers
 import numpy as np

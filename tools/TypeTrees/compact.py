@@ -3,7 +3,7 @@
 #   python3 -I tools/TypeTrees/compact.py <dump>.json | gzip -9n > src/OniMoono.Assets/Data/typetrees-<version>.json.gz
 # Field names, types, sizes and flags of each class's release tree only. Reproduces the
 # 6000.3.5f2 file byte for byte.
-import json, sys, gzip
+import json, sys
 
 d = json.load(open(sys.argv[1]))
 

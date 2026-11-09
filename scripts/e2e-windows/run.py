@@ -23,12 +23,11 @@ layouts, physical keys) fail with "needs real input". Front-end shots come from 
 screen.capture.
 """
 
-import contextlib, json, os, re, shutil, socket, subprocess, sys, threading, time
+import contextlib, importlib.util, json, os, re, shutil, socket, subprocess, sys, threading, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))  # scripts/e2e-windows -> the checkout
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
-import importlib.util
 
 spec_ = importlib.util.spec_from_file_location('e2e', os.path.join(ROOT, 'scripts', 'e2e.py'))
 e2e = importlib.util.module_from_spec(spec_)
