@@ -22,6 +22,7 @@ scripts/e2e-warm.py does between specs, timing each load.
 
 Results go to OUT/results.jsonl (default out/e2e-bench), one line per variant.
 """
+
 import contextlib, importlib.util, json, os, shutil, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -93,8 +94,13 @@ def original_folder(executable, lane, variant, out):
             os.symlink(os.path.realpath(os.path.join(source, name)), target)
     wrapper = os.path.join(folder, 'bench-run.sh')
     with open(wrapper, 'w') as f:
-        f.write('#!/bin/sh\nunset WAYLAND_DISPLAY XDG_SESSION_TYPE\n' + ''.join(f'export {k}={v!r}\n' for k, v in variant['env'].items())
-                + f'exec "$(dirname "$0")/{exe}" "$@" ' + ' '.join(variant['args']) + '\n')
+        f.write(
+            '#!/bin/sh\nunset WAYLAND_DISPLAY XDG_SESSION_TYPE\n'
+            + ''.join(f'export {k}={v!r}\n' for k, v in variant['env'].items())
+            + f'exec "$(dirname "$0")/{exe}" "$@" '
+            + ' '.join(variant['args'])
+            + '\n'
+        )
     os.chmod(wrapper, 0o755)
     return wrapper
 
@@ -106,9 +112,12 @@ class BenchPlayer(e2e.Player):
         number = display.lstrip(':')
         if e2e.display_in_use(number):
             raise e2e.SpecFailure(f'display {display} is in use')
-        self.xvfb = subprocess.Popen(['Xvfb', display, '-screen', '0', f'{e2e.WIDTH}x{e2e.HEIGHT}x{self.depth}',
-                                      '-nolisten', 'tcp'], stdout=subprocess.DEVNULL,
-                                     stderr=open(os.path.join(self.out, 'xvfb.txt'), 'w'), start_new_session=True)
+        self.xvfb = subprocess.Popen(
+            ['Xvfb', display, '-screen', '0', f'{e2e.WIDTH}x{e2e.HEIGHT}x{self.depth}', '-nolisten', 'tcp'],
+            stdout=subprocess.DEVNULL,
+            stderr=open(os.path.join(self.out, 'xvfb.txt'), 'w'),
+            start_new_session=True,
+        )
         deadline = time.time() + 20
         while not e2e.display_ready(number):
             if self.xvfb.poll() is not None or time.time() > deadline:
@@ -122,6 +131,7 @@ class LogStamps:
 
     def __init__(self, log, out):
         import threading
+
         self.log, self.path, self.t0 = log, os.path.join(out, 'log-times.txt'), time.time()
         self.stop_event = threading.Event()
         self.thread = threading.Thread(target=self.run, daemon=True)
@@ -150,11 +160,13 @@ def perf_record(pid, seconds, out):
     """perf's view of the player's threads for SECONDS (perf_event_paranoid 2 allows a user's own
     processes): OUT/perf.txt, by thread and symbol."""
     data = os.path.join(out, 'perf.data')
-    subprocess.run(['perf', 'record', '-q', '-g', '-o', data, '-p', str(pid), '--', 'sleep', str(seconds)],
-                   capture_output=True)
+    subprocess.run(['perf', 'record', '-q', '-g', '-o', data, '-p', str(pid), '--', 'sleep', str(seconds)], capture_output=True)
     with open(os.path.join(out, 'perf.txt'), 'w') as f:
-        subprocess.run(['perf', 'report', '-i', data, '--no-children', '--sort', 'comm,dso,sym', '--stdio',
-                        '-g', 'none', '--percent-limit', '0.5'], stdout=f, stderr=subprocess.DEVNULL)
+        subprocess.run(
+            ['perf', 'report', '-i', data, '--no-children', '--sort', 'comm,dso,sym', '--stdio', '-g', 'none', '--percent-limit', '0.5'],
+            stdout=f,
+            stderr=subprocess.DEVNULL,
+        )
 
 
 def cpu_ticks(pid):
@@ -164,8 +176,8 @@ def cpu_ticks(pid):
         for tid in os.listdir(f'/proc/{pid}/task'):
             with contextlib.suppress(OSError):
                 stat = open(f'/proc/{pid}/task/{tid}/stat').read()
-                name = stat[stat.index('(') + 1:stat.rindex(')')]
-                fields = stat[stat.rindex(')') + 2:].split()
+                name = stat[stat.index('(') + 1 : stat.rindex(')')]
+                fields = stat[stat.rindex(')') + 2 :].split()
                 threads[f'{name}:{tid}'] = int(fields[11]) + int(fields[12])
     return threads
 
@@ -190,12 +202,20 @@ def frame_rate(driver, seconds):
     return (driver.frame - f0) / (time.time() - t0)
 
 
-STATE = ['UnityEngine.Application.runInBackground', 'UnityEngine.Application.isFocused',
-         'UnityEngine.Application.targetFrameRate', 'UnityEngine.QualitySettings.vSyncCount',
-         'UnityEngine.Time.maximumDeltaTime', 'UnityEngine.Screen.width', 'UnityEngine.Screen.height',
-         'UnityEngine.SystemInfo.graphicsDeviceName', 'UnityEngine.SystemInfo.graphicsDeviceType',
-         'UnityEngine.SystemInfo.renderingThreadingMode', 'UnityEngine.QualitySettings.names',
-         'UnityEngine.QualitySettings.GetQualityLevel()']
+STATE = [
+    'UnityEngine.Application.runInBackground',
+    'UnityEngine.Application.isFocused',
+    'UnityEngine.Application.targetFrameRate',
+    'UnityEngine.QualitySettings.vSyncCount',
+    'UnityEngine.Time.maximumDeltaTime',
+    'UnityEngine.Screen.width',
+    'UnityEngine.Screen.height',
+    'UnityEngine.SystemInfo.graphicsDeviceName',
+    'UnityEngine.SystemInfo.graphicsDeviceType',
+    'UnityEngine.SystemInfo.renderingThreadingMode',
+    'UnityEngine.QualitySettings.names',
+    'UnityEngine.QualitySettings.GetQualityLevel()',
+]
 
 
 def measure(player, mcp, driver, seconds, out, name, log, no_run=False):
@@ -230,8 +250,7 @@ def bench(variant, opts, env, log):
     player_kind = opts['player']
     out = os.path.join(opts['out'], variant['name'] + ('-ours' if player_kind == 'ours' else ''))
     fixture = opts['fixture']
-    record = {'variant': variant['name'], 'player': player_kind, 'fixture': os.path.basename(fixture),
-              'settings': variant}
+    record = {'variant': variant['name'], 'player': player_kind, 'fixture': os.path.basename(fixture), 'settings': variant}
     env = dict(env)
     if variant['gallium'] == 'none':
         env.pop('GALLIUM_DRIVER', None)
@@ -242,8 +261,7 @@ def bench(variant, opts, env, log):
     else:
         e2e.WIDTH, e2e.HEIGHT = 1280, 720
     budget = e2e.Budget()
-    with e2e.machine_lock(log=log), budget.hold(e2e.player_gb({'from': 'early-base', 'mods': []}, fixture),
-                                               f'e2e-bench {variant["name"]}', log=log):
+    with e2e.machine_lock(log=log), budget.hold(e2e.player_gb({'from': 'early-base', 'mods': []}, fixture), f'e2e-bench {variant["name"]}', log=log):
         lane = e2e.allocate_lane(opts['first_lane'], last=opts['last_lane'], log=log)
         saved = e2e.original_player
         try:
@@ -265,8 +283,7 @@ def bench(variant, opts, env, log):
                 t1 = time.time()
                 player.load(mcp)
                 record['load_s'] = round(time.time() - t1, 1)
-                log(f'  {variant["name"]}: OniMcp up in {record["start_s"]} s, {record["fixture"]} loaded in '
-                    f'{record["load_s"]} s')
+                log(f'  {variant["name"]}: OniMcp up in {record["start_s"]} s, {record["fixture"]} loaded in {record["load_s"]} s')
                 driver = e2e.Driver(lane.driver_port).connect(120, player.alive)
                 driver.on_reply = player.watchdog.progress
                 if opts['warm']:
@@ -330,8 +347,20 @@ def save_path(name):
 
 
 def main(argv):
-    opts = {'player': 'original', 'fixture': 'early-base', 'mods': [], 'first_lane': 12, 'last_lane': 19,
-            'seconds': 15, 'out': os.path.join(ROOT, 'out', 'e2e-bench'), 'warm': False, 'loads': 3, 'perf': False, 'no_run': False, 'saves': []}
+    opts = {
+        'player': 'original',
+        'fixture': 'early-base',
+        'mods': [],
+        'first_lane': 12,
+        'last_lane': 19,
+        'seconds': 15,
+        'out': os.path.join(ROOT, 'out', 'e2e-bench'),
+        'warm': False,
+        'loads': 3,
+        'perf': False,
+        'no_run': False,
+        'saves': [],
+    }
     variants = []
     args = list(argv)
     while args:

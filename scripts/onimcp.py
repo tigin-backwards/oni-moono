@@ -13,6 +13,7 @@ One change is made to the source before building, and only against a game whose
 ReportManager.ReportEntry has CollectNotes (U60; U59 still has IterateNotes, which the pinned
 commit calls): NotesToList collects the notes into a list instead. The built mod gets a
 MOONO-CHANGES.txt saying so, beside the author's licence (AUL-1.0-draft.1, section 3)."""
+
 import os, shutil, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -85,8 +86,20 @@ def main():
   </PropertyGroup>
 </Project>
 ''')
-    run(os.path.join(ROOT, 'scripts', 'contain.sh'), 'dotnet', 'build', 'mods/OniMcp/OniMcp.csproj', '-c', 'Release',
-        '-p:UseSharedCompilation=false', '-nodeReuse:false', '-v', 'q', '-nologo', cwd=SOURCE)
+    run(
+        os.path.join(ROOT, 'scripts', 'contain.sh'),
+        'dotnet',
+        'build',
+        'mods/OniMcp/OniMcp.csproj',
+        '-c',
+        'Release',
+        '-p:UseSharedCompilation=false',
+        '-nodeReuse:false',
+        '-v',
+        'q',
+        '-nologo',
+        cwd=SOURCE,
+    )
     built = os.path.join(SOURCE, 'dist', 'OniMcp')
     if not os.path.isfile(os.path.join(built, 'OniMcp.dll')):
         sys.exit(f'onimcp: the build left no {built}/OniMcp.dll')

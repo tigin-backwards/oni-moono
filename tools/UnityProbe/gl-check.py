@@ -4,6 +4,7 @@
   gl-check.py diff ORIG OURS    every measurement, window size, order step and mismatch case that differs
   gl-check.py show LOG [PART]   the log by part: size, ws, ord, mm
 Exit code 0 when the rules hold (rule) or nothing differs (diff)."""
+
 import math, re, struct, sys
 
 LINE = re.compile(r'PROBE f(\d+) GL (.*)$')
@@ -44,6 +45,7 @@ def kv(text):
 
 # ----- size -----
 
+
 def sizes(entries):
     """'size NAME', 'seq NAME', 'style NAME' and 'skin' -> dict of values."""
     out = {}
@@ -60,6 +62,7 @@ def sizes(entries):
 
 # ----- ws -----
 
+
 def ws_lines(entries):
     """(case, id, event) -> dict(n, in, out); ('f', case, id, event) -> dict(first, last)."""
     out = {}
@@ -73,6 +76,7 @@ def ws_lines(entries):
 
 
 # ----- mm -----
+
 
 def mm_cases(entries):
     """case -> rows: ('call', frame, who, event, raw, [(name, value)], tail) or ('log', frame, type, text)."""
@@ -104,12 +108,12 @@ def mm_summary(rows):
             out.append(f'f{r[1]} LOG {r[2]} {r[3][:200]}')
         else:
             _, frame, who, ev, raw, items, tail = r
-            out.append(f'f{frame} {who} {ev}' + (f'({raw})' if raw != ev else '') + ': '
-                       + ' '.join(f'{n}={v}' for n, v in items) + f' [{tail}]')
+            out.append(f'f{frame} {who} {ev}' + (f'({raw})' if raw != ev else '') + ': ' + ' '.join(f'{n}={v}' for n, v in items) + f' [{tail}]')
     return out
 
 
 # ----- order -----
+
 
 def order_steps(entries):
     steps = {}
@@ -144,6 +148,7 @@ def show(path, part=None):
 
 # ================= rules =================
 
+
 class Checker:
     def __init__(self):
         self.fails = []
@@ -155,7 +160,7 @@ class Checker:
             self.fails.append(what)
 
 
-WRAP = {'label', 'textArea'}           # the skin's word-wrapping styles
+WRAP = {'label', 'textArea'}  # the skin's word-wrapping styles
 HEIGHT_UNROUNDED = {'label': 19.01, 'button': 20, 'toggle': 17, 'textField': 20, 'box': 22, 'textArea': 19.01}
 
 
@@ -180,7 +185,10 @@ def rule_sizes(c, s):
         if one and two:
             p = pad('label')
             c.check(abs(rect(one['calc'])[1] - p[2] - p[3] - (fs + 0.01)) < 0.02, f'label.fs{fs}: one line {one["calc"]} is not fs+0.01 plus padding')
-            c.check(abs(rect(two['calc'])[1] - p[2] - p[3] - (fs + 0.01 + 1.1 * fs)) < 0.02, f'label.fs{fs}.2l: two lines {two["calc"]} is not fs+0.01+1.1*fs plus padding')
+            c.check(
+                abs(rect(two['calc'])[1] - p[2] - p[3] - (fs + 0.01 + 1.1 * fs)) < 0.02,
+                f'label.fs{fs}.2l: two lines {two["calc"]} is not fs+0.01+1.1*fs plus padding',
+            )
     for kind in ('label', 'button', 'textField', 'box'):
         e = s.get(f'size {kind}.empty')
         if e:
@@ -191,13 +199,33 @@ def rule_sizes(c, s):
         if e:
             c.check(rect(e['r'])[2] == math.ceil(rect(e['calc'])[0]), f'{kind}.expandW.false: width {e["r"]} != ceil(CalcSize.x)')
     # Gaps along a vertical group: the larger of the neighbours' margins.
-    margins = {'label': (4, 4, 4, 4), 'button': (4, 4, 4, 4), 'toggle': (4, 4, 4, 4), 'textField': (4, 4, 4, 4), 'box': (4, 4, 4, 4), 'textArea': (4, 4, 4, 4),
-               'mA': (0, 0, 0, 10), 'mB': (0, 0, 3, 0), 'mC': (0, 0, 20, 2), 'mD': (7, 3, 0, 0)}
-    seqs = {'seq.labels': [('a', 'label'), ('b', 'label'), ('c', 'label')],
-            'seq.buttons': [('a', 'button'), ('b', 'button'), ('c', 'button')],
-            'seq.mixed': [('label', 'label'), ('button', 'button'), ('label2', 'label'), ('toggle', 'toggle'), ('textField', 'textField'),
-                          ('box', 'box'), ('textArea', 'textArea'), ('label3', 'label')],
-            'seq.margins': [('mA', 'mA'), ('mB', 'mB'), ('mC', 'mC'), ('mD', 'mD'), ('mA2', 'mA'), ('mC2', 'mC')]}
+    margins = {
+        'label': (4, 4, 4, 4),
+        'button': (4, 4, 4, 4),
+        'toggle': (4, 4, 4, 4),
+        'textField': (4, 4, 4, 4),
+        'box': (4, 4, 4, 4),
+        'textArea': (4, 4, 4, 4),
+        'mA': (0, 0, 0, 10),
+        'mB': (0, 0, 3, 0),
+        'mC': (0, 0, 20, 2),
+        'mD': (7, 3, 0, 0),
+    }
+    seqs = {
+        'seq.labels': [('a', 'label'), ('b', 'label'), ('c', 'label')],
+        'seq.buttons': [('a', 'button'), ('b', 'button'), ('c', 'button')],
+        'seq.mixed': [
+            ('label', 'label'),
+            ('button', 'button'),
+            ('label2', 'label'),
+            ('toggle', 'toggle'),
+            ('textField', 'textField'),
+            ('box', 'box'),
+            ('textArea', 'textArea'),
+            ('label3', 'label'),
+        ],
+        'seq.margins': [('mA', 'mA'), ('mB', 'mB'), ('mC', 'mC'), ('mD', 'mD'), ('mA2', 'mA'), ('mC2', 'mC')],
+    }
     for name, entries in seqs.items():
         v = s.get('seq ' + name)
         if not v:
@@ -211,8 +239,10 @@ def rule_sizes(c, s):
                 y += max(margins[entries[i - 1][1]][3], mg[2])
             r = rect(v[n])
             c.check(r[1] == round(y), f'{name}.{n}: y {r[1]} != {round(y)} (gap = larger margin, first margin absorbed)')
-            c.check(r[0] == mg[0] - minleft and r[2] == 400 - (mg[0] - minleft) - (mg[1] - minright),
-                    f'{name}.{n}: x/width {v[n]} not inset by its margin less the smallest margin')
+            c.check(
+                r[0] == mg[0] - minleft and r[2] == 400 - (mg[0] - minleft) - (mg[1] - minright),
+                f'{name}.{n}: x/width {v[n]} not inset by its margin less the smallest margin',
+            )
             y += HEIGHT_UNROUNDED.get(k, 19.01)
     # Spaces: no gap before them; the next entry keeps its leading margin.
     v = s.get('seq seq.space')
@@ -232,8 +262,10 @@ def rule_sizes(c, s):
         c.check(rect(v['a'])[:3] == (4, 0, 392) and rect(v['b'])[:3] == (0, 27, 400), f'area.m8: {v}')
     v = s.get('seq grp.vertical.mixed')
     if v:
-        c.check(rect(v['l0'])[0] == 4 and rect(v['ev']) == (0, 23, 400, 42) and rect(v['a'])[0] == 0 and rect(v['b'])[0] == 4 and rect(v['after'])[1] == 69,
-                f'grp.vertical.mixed: {v}')
+        c.check(
+            rect(v['l0'])[0] == 4 and rect(v['ev']) == (0, 23, 400, 42) and rect(v['a'])[0] == 0 and rect(v['b'])[0] == 4 and rect(v['after'])[1] == 69,
+            f'grp.vertical.mixed: {v}',
+        )
     # Scroll views: the content keeps full margins; a vertical bar takes fixedWidth + its left margin.
     vb = style('verticalScrollbar')
     barw = float(vb['fw']) + int(vb['mar'].split(',')[0])
@@ -259,8 +291,16 @@ def rule_sizes(c, s):
             c.check(rect(v['first'])[:3] == (w[0], w[2], 300 - w[0] - w[1]), f'win{wid}: first {v["first"]} not at the window padding')
 
 
-WS_OPTS = {706: {'w': 250}, 707: {'h': 250}, 708: {'minh': 250}, 710: {'maxh': 100}, 712: {'minw': 400}, 713: {'h': 100}, 714: {'maxh': 100},
-           715: {'w': 100, 'h': 100}}
+WS_OPTS = {
+    706: {'w': 250},
+    707: {'h': 250},
+    708: {'minh': 250},
+    710: {'maxh': 100},
+    712: {'minw': 400},
+    713: {'h': 100},
+    714: {'maxh': 100},
+    715: {'w': 100, 'h': 100},
+}
 
 
 def rule_ws(c, ws):
@@ -341,9 +381,11 @@ def rule_order(c, steps):
                         want = new + [w for w in prev if w in wins]
                         for cf, call, cev in pending + [x for x in calls if x[0] == f and x[2] == 'Layout']:
                             if call.startswith('front'):
-                                i = int(call[5:8]); want = [i] + [w for w in want if w != i]
+                                i = int(call[5:8])
+                                want = [i] + [w for w in want if w != i]
                             elif call.startswith('back'):
-                                i = int(call[4:7]); want = [w for w in want if w != i] + [i]
+                                i = int(call[4:7])
+                                want = [w for w in want if w != i] + [i]
                         pending = []
                         c.check(wins == want, f'{step} f{f}: window Layout order {wins} != {want}')
                     prev = wins
@@ -409,7 +451,7 @@ def rule_mm(c, cases):
             r = alt[0]
             items = r[5]
             names = [n for n, _ in items]
-            after = dict(items[names.index('alt') + 1:])
+            after = dict(items[names.index('alt') + 1 :])
             ev = r[3]
             if target == 'Used':
                 bad = [f'{n}={v}' for n, v in after.items() if v not in (DUMMY, 'ok')]
@@ -443,7 +485,10 @@ def rule_mm(c, cases):
                     c.check(got == want, f'{case}: {n} got {got}, want {ref}\'s rect {want}')
             if mode == 'u':
                 c.check(r[6] == ('abort' if threw else 'end'), f'{case}: ended {r[6]}, threw {threw}')
-                c.check(len(logs) == (1 if threw == 'arg' else 0), f'{case}: {len(logs)} exceptions logged (an ArgumentException is logged, ExitGUIException is not)')
+                c.check(
+                    len(logs) == (1 if threw == 'arg' else 0),
+                    f'{case}: {len(logs)} exceptions logged (an ArgumentException is logged, ExitGUIException is not)',
+                )
                 # The calls after it run, and later frames are as before.
                 later = [x for x in calls if x[1] > r[1] and x[2] == who and x[3].lower() == 'repaint']
                 c.check(later and all(x[5] == later[0][5] for x in later) and dict(later[0][5]).get('L0') == steady.get('L0'), f'{case}: later frames differ')
@@ -456,7 +501,7 @@ def rule_mm(c, cases):
                 items = x[5]
                 hit = [i for i, (n, v) in enumerate(items) if v.endswith('[Used]')]
                 if hit:
-                    for n, v in items[hit[0] + 1:]:
+                    for n, v in items[hit[0] + 1 :]:
                         if v not in (DUMMY, 'ok', '') and not n.endswith('.clicked'):
                             bad.append(f'f{x[1]} {n}={v}')
                 if any(v.startswith('!') for _, v in items) or x[6] != 'end':
@@ -490,6 +535,7 @@ def rules(path):
 
 # ================= diff =================
 
+
 def diff(orig, ours):
     a, b = parse(orig), parse(ours)
     n = 0
@@ -497,11 +543,14 @@ def diff(orig, ours):
     for k in sa:
         if k.startswith('style') or k == 'skin':
             if sa[k] != sb.get(k):
-                n += 1; print('STYLE', k, '\n  orig', sa[k], '\n  ours', sb.get(k))
+                n += 1
+                print('STYLE', k, '\n  orig', sa[k], '\n  ours', sb.get(k))
             continue
         va, vb = sa[k], sb.get(k)
         if vb is None:
-            n += 1; print('SIZE', k, 'missing in ours'); continue
+            n += 1
+            print('SIZE', k, 'missing in ours')
+            continue
         da = {x: norm(y) for x, y in va.items() if x not in ('calc', 'ch', 'mm')}
         db = {x: norm(y) for x, y in vb.items() if x not in ('calc', 'ch', 'mm')}
         if da != db:
@@ -511,19 +560,28 @@ def diff(orig, ours):
                 if da[x] != db.get(x):
                     print(f'   {x}: orig {da[x]}  ours {db.get(x)}')
     wa, wb = ws_lines(a), ws_lines(b)
+
     def nv(v):
         return {x: norm(y) for x, y in v.items()} if v is not None else None
+
     for k in wa:
         if k[0] != 'f' and nv(wa[k]) != nv(wb.get(k)):
-            n += 1; print('WS', k, 'orig', wa[k].get('out'), 'ours', (wb.get(k) or {}).get('out'))
+            n += 1
+            print('WS', k, 'orig', wa[k].get('out'), 'ours', (wb.get(k) or {}).get('out'))
     oa, ob = order_steps(a), order_steps(b)
     for k in oa:
+
         def seq(rows):
             return [' '.join(p[:2]).lower() for _, p in rows if not p[0].endswith('-end')]
+
         if seq(oa[k]) != seq(ob.get(k, [])):
-            n += 1; print('ORDER', k); print('   orig', ' | '.join(seq(oa[k]))[:600]); print('   ours', ' | '.join(seq(ob.get(k, [])))[:600])
+            n += 1
+            print('ORDER', k)
+            print('   orig', ' | '.join(seq(oa[k]))[:600])
+            print('   ours', ' | '.join(seq(ob.get(k, [])))[:600])
     ma, mb = mm_cases(a), mm_cases(b)
     for k in ma:
+
         def key(rows):
             out = []
             for r in rows:
@@ -535,8 +593,10 @@ def diff(orig, ours):
             seen, res = set(), []
             for o in out:
                 if o not in seen:
-                    seen.add(o); res.append(o)
+                    seen.add(o)
+                    res.append(o)
             return res
+
         ka, kb = key(ma[k]), key(mb.get(k, []))
         if ka != kb:
             n += 1

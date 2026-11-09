@@ -1,5 +1,6 @@
 """bridge.py PORT [--probe]: (Windows Python) joins stdin/stdout to 127.0.0.1:PORT, so a WSL
 process reaches a Windows-only loopback server. --probe: exit 0 if the port answers, else 1."""
+
 import socket, sys, threading
 
 port = int(sys.argv[1])
@@ -27,6 +28,7 @@ def down():
         pass
     finally:
         import os
+
         os._exit(0)
 
 

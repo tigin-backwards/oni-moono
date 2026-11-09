@@ -28,6 +28,7 @@ Environment:
   ONI_MODGATE     the cache (default out/modgate)
   ONI_GAME_BUILD  the game build whose onimaxxing data is read (default: the build in the game
                   folder's name, ONI_GAME_DIR or scripts/env.sh's, else U59's 744825)"""
+
 import argparse, hashlib, json, os, re, sys, time, urllib.error, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -159,8 +160,10 @@ def binaries(folder):
 
 def check(mid, oni, handles, ws=WS):
     """{id, verdict ('pass' or 'skip'), reason} for the unpacked mod MID."""
+
     def verdict(ok, reason):
         return {'id': mid, 'verdict': 'pass' if ok else 'skip', 'reason': reason}
+
     folder = os.path.join(ws, mid)
     if not os.path.isdir(folder):
         return verdict(False, 'not downloaded')
@@ -178,17 +181,16 @@ def check(mid, oni, handles, ws=WS):
     versions = [v for v in (index or {}).get('versions') or [] if isinstance(v, dict)]
     version = next((v for v in versions if str(v.get('file')) == handle), None)
     if not version:
-        return verdict(False, f'not reviewed by onimaxxing yet: upload {handle} is not analysed'
-                       + (f' (its current upload is {index.get("current")})' if index else ''))
+        return verdict(
+            False, f'not reviewed by onimaxxing yet: upload {handle} is not analysed' + (f' (its current upload is {index.get("current")})' if index else '')
+        )
     if version.get('reviewed') is not True:
-        return verdict(False, f'not reviewed by onimaxxing yet: upload {handle} (version {version.get("version")}) '
-                       'is analysed, not reviewed')
+        return verdict(False, f'not reviewed by onimaxxing yet: upload {handle} (version {version.get("version")}) is analysed, not reviewed')
     facts = oni.get(f'mod/{mid}/{handle}.json') or {}
     if str(facts.get('hcontentFile')) != handle:
         return verdict(False, f'onimaxxing has no facts for upload {handle}')
     hashes = set(have.values())
-    differ = [str(m.get('path')) for m in facts.get('managed') or []
-              if isinstance(m, dict) and m.get('sha256') and m['sha256'] not in hashes]
+    differ = [str(m.get('path')) for m in facts.get('managed') or [] if isinstance(m, dict) and m.get('sha256') and m['sha256'] not in hashes]
     if differ:
         return verdict(False, f'the unpacked copy is not upload {handle}: ' + ', '.join(differ) + ' differ')
     return verdict(True, f'onimaxxing reviewed upload {handle} (version {version.get("version")})')

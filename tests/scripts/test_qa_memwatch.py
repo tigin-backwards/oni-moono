@@ -1,4 +1,5 @@
 """qa-tools.py's memwatch (qa.sh's memory stage): frames from PERF lines, the autosave, the stop."""
+
 import unittest
 
 import helpers
@@ -27,9 +28,9 @@ class MemWatch(unittest.TestCase):
             if t == 50:
                 w.line('[INFO] Saved to [/h/cloud_save_files/1/U57/auto_save/U57 Cycle 17079.sav]', now)
             if t <= 60:
-                rss += 100 * 1024     # rising through the autosave
+                rss += 100 * 1024  # rising through the autosave
             else:
-                rss += 1024           # then creeping by less than the tolerance
+                rss += 1024  # then creeping by less than the tolerance
             why = w.sample(rss, rss - GB, GB, now)
             if why:
                 stops.append((t, why))

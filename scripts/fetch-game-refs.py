@@ -14,6 +14,7 @@ A build's source is one of
   {"kind": "url", "base": "https://HOST/.../"}   BASE + NAME, from an allowed host only;
   {"kind": "local", "path": DIR}                 DIR/NAME (relative to the repository root).
 """
+
 import argparse
 import hashlib
 import json
@@ -140,8 +141,7 @@ def main(argv):
     source, files = check_manifest(manifest, build)
     names = sorted(files)
     managed = os.path.join(args.out, "OxygenNotIncluded_Data", "Managed")
-    if args.reuse and os.path.isdir(managed) and sorted(os.listdir(managed)) == names and all(
-            sha256_file(os.path.join(managed, n)) == files[n] for n in names):
+    if args.reuse and os.path.isdir(managed) and sorted(os.listdir(managed)) == names and all(sha256_file(os.path.join(managed, n)) == files[n] for n in names):
         print(f"game refs {build}: {len(names)} files already in {managed}, verified")
         return 0
     with tempfile.TemporaryDirectory() as work:
@@ -154,8 +154,7 @@ def main(argv):
             blobs = fetch_local(source, names)
         else:
             raise RefsError(f"build {build}: unknown source kind {kind!r}")
-        bad = [f"{n}: sha256 {hashlib.sha256(blobs[n]).hexdigest()}, expected {files[n]}"
-               for n in names if hashlib.sha256(blobs[n]).hexdigest() != files[n]]
+        bad = [f"{n}: sha256 {hashlib.sha256(blobs[n]).hexdigest()}, expected {files[n]}" for n in names if hashlib.sha256(blobs[n]).hexdigest() != files[n]]
         if bad:
             raise RefsError("hash mismatch, nothing written:\n  " + "\n  ".join(bad))
         if os.path.isdir(managed):

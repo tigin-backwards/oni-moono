@@ -1,5 +1,6 @@
 """check-windows-host.py's PE reading: the GPU exports' values found at their RVA's section
 offset, in a writable section, on a small PE32+ built here (no Windows needed)."""
+
 import contextlib, io, os, struct, sys, tempfile, unittest
 
 import helpers

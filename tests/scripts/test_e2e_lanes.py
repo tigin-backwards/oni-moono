@@ -1,4 +1,5 @@
 """e2e.py's lanes: ports, lane locks, the perf wait and the job queue."""
+
 import os, shutil, signal, subprocess, tempfile, threading, time, types, unittest
 
 import helpers  # noqa: F401
@@ -66,7 +67,6 @@ class XvfbDisplay(unittest.TestCase):
             os.killpg(process.pid, signal.SIGTERM)
             process.wait(10)
 
-
     @unittest.skipIf(os.path.exists('/tmp/.X89-lock'), 'display :89 is in use')
     def test_an_explicit_display(self):
         with tempfile.TemporaryDirectory() as out:
@@ -83,16 +83,22 @@ class XvfbDisplay(unittest.TestCase):
 
 class PerfWait(unittest.TestCase):
     def test_perf_jobs(self):
-        lines = ['bash scripts/qa.sh', '/bin/bash out/local-tools/sweep11c.sh', 'python3 scripts/e2e.py early-base',
-                 '/home/x/out/bin/OniMoono.Host/release/OniMoono --game g', 'perf record -g -p 12',
-                 'bash /home/x/projects/oni-brutal/scripts/qa.sh u57', 'vim scripts/qa.sh.orig',
-                 'bash out/local-tools/measure.sh 3']
+        lines = [
+            'bash scripts/qa.sh',
+            '/bin/bash out/local-tools/sweep11c.sh',
+            'python3 scripts/e2e.py early-base',
+            '/home/x/out/bin/OniMoono.Host/release/OniMoono --game g',
+            'perf record -g -p 12',
+            'bash /home/x/projects/oni-brutal/scripts/qa.sh u57',
+            'vim scripts/qa.sh.orig',
+            'bash out/local-tools/measure.sh 3',
+        ]
         # qa.sh is not a perf job: only its perf stage is, through perf.wanted and perf.lock.
-        self.assertEqual(e2e.perf_jobs(lines), ['/bin/bash out/local-tools/sweep11c.sh',
-                                                'perf record -g -p 12', 'bash out/local-tools/measure.sh 3'])
+        self.assertEqual(e2e.perf_jobs(lines), ['/bin/bash out/local-tools/sweep11c.sh', 'perf record -g -p 12', 'bash out/local-tools/measure.sh 3'])
 
     def test_exclusive_lock_holds_specs_back(self):
         import fcntl, os
+
         with tempfile.TemporaryDirectory() as locks:
             perf = open(os.path.join(locks, 'perf.lock'), 'w')
             fcntl.flock(perf, fcntl.LOCK_EX)
@@ -100,9 +106,11 @@ class PerfWait(unittest.TestCase):
             original_sleep = e2e.time.sleep
             e2e.time.sleep = lambda s: original_sleep(0.01)
             try:
+
                 def spec():
                     with e2e.machine_lock(locks, perf_wait=False, log=messages.append):
                         entered.append(True)
+
                 t = threading.Thread(target=spec)
                 t.start()
                 original_sleep(0.2)
@@ -110,8 +118,9 @@ class PerfWait(unittest.TestCase):
                 fcntl.flock(perf, fcntl.LOCK_UN)
                 t.join(5)
                 self.assertEqual(entered, [True])
-                self.assertEqual(messages, [f'waiting for a perf job to finish: a perf job holds {locks}/perf.lock exclusively',
-                                            'perf wait over after 0.0 min'])
+                self.assertEqual(
+                    messages, [f'waiting for a perf job to finish: a perf job holds {locks}/perf.lock exclusively', 'perf wait over after 0.0 min']
+                )
             finally:
                 e2e.time.sleep = original_sleep
                 perf.close()
@@ -127,8 +136,9 @@ class Queue(unittest.TestCase):
     def test_ours_waits_for_the_original(self):
         specs = [{'name': 'a'}, {'name': 'b'}]
         jobs = e2e.plan_jobs(specs, ['original', 'ours'], 2)
-        self.assertEqual([j['id'] for j in jobs], ['a/original-1', 'a/original-2', 'a/ours-1', 'a/ours-2',
-                                                   'b/original-1', 'b/original-2', 'b/ours-1', 'b/ours-2'])
+        self.assertEqual(
+            [j['id'] for j in jobs], ['a/original-1', 'a/original-2', 'a/ours-1', 'a/ours-2', 'b/original-1', 'b/original-2', 'b/ours-1', 'b/ours-2']
+        )
         self.assertEqual(jobs[2]['after'], ['a/original-1', 'a/original-2'])
         queue = e2e.JobQueue(jobs)
         order, lock = [], threading.Lock()

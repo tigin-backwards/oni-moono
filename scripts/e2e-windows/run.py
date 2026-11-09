@@ -22,35 +22,33 @@ read. `type` sets the field's text whole; steps that need real input (keyboard
 layouts, physical keys) fail with "needs real input". Front-end shots come from E2eDriver's
 screen.capture.
 """
+
 import contextlib, json, os, re, shutil, socket, subprocess, sys, threading, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))  # scripts/e2e-windows -> the checkout
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
 import importlib.util
+
 spec_ = importlib.util.spec_from_file_location('e2e', os.path.join(ROOT, 'scripts', 'e2e.py'))
 e2e = importlib.util.module_from_spec(spec_)
 sys.modules['e2e'] = e2e
 spec_.loader.exec_module(e2e)
 
 
-
 def windows_env(name):
-    return subprocess.run(['cmd.exe', '/c', f'echo %{name}%'], capture_output=True, text=True,
-                          cwd='/mnt/c').stdout.strip()
+    return subprocess.run(['cmd.exe', '/c', f'echo %{name}%'], capture_output=True, text=True, cwd='/mnt/c').stdout.strip()
 
 
 def windows_python():
-    found = subprocess.run(['powershell.exe', '-NoProfile', '-Command', '(Get-Command python).Source'],
-                           capture_output=True, text=True).stdout.strip()
+    found = subprocess.run(['powershell.exe', '-NoProfile', '-Command', '(Get-Command python).Source'], capture_output=True, text=True).stdout.strip()
     return subprocess.run(['wslpath', '-u', found], capture_output=True, text=True).stdout.strip() if found else None
 
 
 # WIN_PYTHON: the Windows Python that runs bridge.py (default: python on the Windows PATH).
 WIN_PY = os.environ.get('WIN_PYTHON') or windows_python()
 WSL_TEMP = subprocess.run(['wslpath', '-u', windows_env('TEMP')], capture_output=True, text=True).stdout.strip()
-LOCAL_LOW = subprocess.run(['wslpath', '-u', windows_env('USERPROFILE') + '\\AppData\\LocalLow'],
-                           capture_output=True, text=True).stdout.strip()
+LOCAL_LOW = subprocess.run(['wslpath', '-u', windows_env('USERPROFILE') + '\\AppData\\LocalLow'], capture_output=True, text=True).stdout.strip()
 # The original's product name (globalgamemanagers): its LocalLow folder holds OniMcp's options.
 ORIG_PRODUCT = os.environ.get('WIN_ORIG_PRODUCT', 'Brutal Not Included')
 STAGE = 'oni-brutal\\qa-win'
@@ -77,11 +75,13 @@ def stage_dir():
 
 
 def ps(script, *args, **kw):
-    return subprocess.run(['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-                           wpath(os.path.join(HERE, script)), *args], capture_output=True, text=True, **kw)
+    return subprocess.run(
+        ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', wpath(os.path.join(HERE, script)), *args], capture_output=True, text=True, **kw
+    )
 
 
 # ------------------------------------------------------------ the loopback relay
+
 
 def win_port_open(port):
     return subprocess.run([WIN_PY, wpath(os.path.join(HERE, 'bridge.py')), str(port), '--probe']).returncode == 0
@@ -105,8 +105,9 @@ class Relay(threading.Thread):
 
     def serve(self, conn):
         conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        bridge = subprocess.Popen([WIN_PY, '-u', wpath(os.path.join(HERE, 'bridge.py')), str(self.port)],
-                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0)
+        bridge = subprocess.Popen(
+            [WIN_PY, '-u', wpath(os.path.join(HERE, 'bridge.py')), str(self.port)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0
+        )
 
         def up():
             try:
@@ -120,6 +121,7 @@ class Relay(threading.Thread):
                 pass
             with contextlib.suppress(OSError):
                 bridge.stdin.close()
+
         threading.Thread(target=up, daemon=True).start()
         try:
             while True:
@@ -216,8 +218,7 @@ e2e.screenshot = screenshot
 
 # ------------------------------------------------------------ synthetic input
 
-KEY_NAMES = {'enter': 'Return', 'esc': 'Escape', 'del': 'Delete', 'space': 'Space', 'backspace': 'Backspace',
-             'tab': 'Tab'}
+KEY_NAMES = {'enter': 'Return', 'esc': 'Escape', 'del': 'Delete', 'space': 'Space', 'backspace': 'Backspace', 'tab': 'Tab'}
 MOD_NAMES = {'shift': 'Shift', 'ctrl': 'Ctrl', 'control': 'Ctrl', 'alt': 'Alt'}
 
 
@@ -282,8 +283,7 @@ class WinInput:
             # it it has the focus, as for its synthetic input.
             self.driver.request('input.focus')
             self.focused = True
-        r = ps('xbutton.ps1', '-Match', self.home, '-Button', str(X_BUTTONS[button]), '-X', str(int(x)),
-               '-Y', str(int(y)), '-Action', action)
+        r = ps('xbutton.ps1', '-Match', self.home, '-Button', str(X_BUTTONS[button]), '-X', str(int(x)), '-Y', str(int(y)), '-Action', action)
         for line in (r.stdout + r.stderr).strip().splitlines():
             log(f'  (xbutton) {line}')
         if r.returncode:
@@ -426,8 +426,7 @@ def step(self, kind, value, number):
         raise NeedsRealInput('a keyboard layout switch needs the desktop')
     if kind == 'save':
         # e2e.py's save step, with the Windows path OniMcp answers read from here.
-        saved = self.mcp.call('game_control', domain='save', action='save', name=value, overwrite=True,
-                              updateActiveSave=False, confirm=True)
+        saved = self.mcp.call('game_control', domain='save', action='save', name=value, overwrite=True, updateActiveSave=False, confirm=True)
         path = windows_path(saved.get('saved')) if isinstance(saved, dict) else None
         if not path or not os.path.exists(path):
             raise e2e.SpecFailure(f'save {value} failed: {json.dumps(saved)[:600]}')
@@ -465,15 +464,21 @@ class WinPlayer(e2e.Player):
         os.symlink(self.whome_u, self.home)  # the evidence folder still finds it
         self.whome = wpath(self.whome_u)
         prefs = os.path.join(self.profile, 'kplayerprefs.yaml')
-        text = open(prefs).read().replace('floats: {}', 'floats:\n' + ''.join(
-            f'  Volume_{n}: 0\n' for n in ('Master', 'SFX', 'Music', 'Ambience', 'UI', 'VO', 'Bus')))
+        text = (
+            open(prefs)
+            .read()
+            .replace('floats: {}', 'floats:\n' + ''.join(f'  Volume_{n}: 0\n' for n in ('Master', 'SFX', 'Music', 'Ambience', 'UI', 'VO', 'Bus')))
+        )
         assert 'Volume_Master: 0' in text
         open(prefs, 'w').write(text)
         # OniMcp reads its options from Application.persistentDataPath first: the original's is
         # its copy's own LocalLow folder (WIN_ORIG_PRODUCT), ours' the run home's.
         config = open(os.path.join(self.profile, 'OniMcpConfig.json')).read()
-        local_low = (os.path.join(LOCAL_LOW, 'Klei', ORIG_PRODUCT) if kind == 'original'
-                     else os.path.join(self.whome_u, 'AppData', 'LocalLow', 'Klei', 'Oxygen Not Included'))
+        local_low = (
+            os.path.join(LOCAL_LOW, 'Klei', ORIG_PRODUCT)
+            if kind == 'original'
+            else os.path.join(self.whome_u, 'AppData', 'LocalLow', 'Klei', 'Oxygen Not Included')
+        )
         os.makedirs(local_low, exist_ok=True)
         with open(os.path.join(local_low, 'OniMcpConfig.json'), 'w') as f:
             f.write(config)
@@ -485,37 +490,74 @@ class WinPlayer(e2e.Player):
     def start(self):
         env = dict(os.environ, E2E_DRIVER_PORT=str(self.lane.driver_port))
         env.update(self.workshop_env)
-        env['WSLENV'] = ':'.join(filter(None, [os.environ.get('WSLENV'), 'E2E_DRIVER_PORT',
-                                               *self.workshop_env.keys()]))
+        env['WSLENV'] = ':'.join(filter(None, [os.environ.get('WSLENV'), 'E2E_DRIVER_PORT', *self.workshop_env.keys()]))
         size = ['-screen-width', str(e2e.WIDTH), '-screen-height', str(e2e.HEIGHT), '-screen-fullscreen', '0']
         stdout = open(os.path.join(self.out, 'stdout.txt'), 'w')
         if self.kind == 'original':
-            env.update(ORIG_DIR=WIN_ORIG, ONI_STEAM_STUB=STUB, ONI_RUN_HOME=self.whome, ORIG_SECONDS='3600',
-                       ONI_WIN_GAME_DIR=WIN_GAME, ONI_BEPINEX_SOURCE=os.environ.get('WIN_BEPINEX_SOURCE', ''))
-            command = [os.path.join(e2e.ROOT, 'scripts', 'original-windows.sh'), *size,
-                       *os.environ.get('E2E_ORIGINAL_ARGS', '').split(), *self.game_args]
+            env.update(
+                ORIG_DIR=WIN_ORIG,
+                ONI_STEAM_STUB=STUB,
+                ONI_RUN_HOME=self.whome,
+                ORIG_SECONDS='3600',
+                ONI_WIN_GAME_DIR=WIN_GAME,
+                ONI_BEPINEX_SOURCE=os.environ.get('WIN_BEPINEX_SOURCE', ''),
+            )
+            command = [os.path.join(e2e.ROOT, 'scripts', 'original-windows.sh'), *size, *os.environ.get('E2E_ORIGINAL_ARGS', '').split(), *self.game_args]
         else:
             host = os.path.join(stage_dir(), 'host')
             shutil.rmtree(host, ignore_errors=True)
             shutil.copytree(os.path.join(e2e.ROOT, 'out', 'win', 'host'), host)
             stub = os.path.join(stage_dir(), 'steam_api64.dll')
             shutil.copy(STUB, stub)
-            command = [os.path.join(host, 'OniMoono.exe'), '--game', WIN_GAME, '--run-home', self.whome,
-                       '--audio-wav', self.whome, '--game-tweak', 'none', '--splash', 'none', '--log', wpath(self.log), '--log-paths', 'full',
-                       '--native-override', 'steam_api64=' + wpath(stub), *size, '-monitor', '2', '--no-focus',
-                       *(['--renderer', RENDERER] if RENDERER else []),
-                       *(a for t in os.environ.get('E2E_GAME_TWEAKS', 'exact').split() for a in ('--game-tweak', t)),
-                       *([] if self.tweaks_menu else ['--no-tweaks-menu']),
-                       *os.environ.get('E2E_PLAYER_ARGS', '').split(),
-                       # `game_args`: in the Steam form, after the game's executable.
-                       *(['--', WIN_GAME + '\\OxygenNotIncluded.exe', *self.game_args] if self.game_args else [])]
+            command = [
+                os.path.join(host, 'OniMoono.exe'),
+                '--game',
+                WIN_GAME,
+                '--run-home',
+                self.whome,
+                '--audio-wav',
+                self.whome,
+                '--game-tweak',
+                'none',
+                '--splash',
+                'none',
+                '--log',
+                wpath(self.log),
+                '--log-paths',
+                'full',
+                '--native-override',
+                'steam_api64=' + wpath(stub),
+                *size,
+                '-monitor',
+                '2',
+                '--no-focus',
+                *(['--renderer', RENDERER] if RENDERER else []),
+                *(a for t in os.environ.get('E2E_GAME_TWEAKS', 'exact').split() for a in ('--game-tweak', t)),
+                *([] if self.tweaks_menu else ['--no-tweaks-menu']),
+                *os.environ.get('E2E_PLAYER_ARGS', '').split(),
+                # `game_args`: in the Steam form, after the game's executable.
+                *(['--', WIN_GAME + '\\OxygenNotIncluded.exe', *self.game_args] if self.game_args else []),
+            ]
         with open(os.path.join(self.out, 'command.txt'), 'w') as f:
             f.write(' '.join(command) + '\n')
         self.process = subprocess.Popen(command, env=env, stdout=stdout, stderr=subprocess.STDOUT, start_new_session=True)
-        self.guard = subprocess.Popen(['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-                                       wpath(os.path.join(HERE, 'guard.ps1')), '-Match', self.whome,
-                                       '-Log', wpath(os.path.join(self.whome_u, 'guard.txt'))],
-                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        self.guard = subprocess.Popen(
+            [
+                'powershell.exe',
+                '-NoProfile',
+                '-ExecutionPolicy',
+                'Bypass',
+                '-File',
+                wpath(os.path.join(HERE, 'guard.ps1')),
+                '-Match',
+                self.whome,
+                '-Log',
+                wpath(os.path.join(self.whome_u, 'guard.txt')),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
         with open(os.path.join(self.out, 'lane.json'), 'w') as f:
             json.dump(self.lane_record(), f)
         self.watchdog.start()
@@ -566,6 +608,7 @@ e2e.Player = WinPlayer
 
 
 # ------------------------------------------------------------ the lane
+
 
 def allocate_lane(first, **kw):
     lane = e2e.Lane(LANE, None)

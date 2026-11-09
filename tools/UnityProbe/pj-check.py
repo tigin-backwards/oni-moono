@@ -17,6 +17,7 @@ LOG is the original's Player.log or our player's stdout. NaNs compare equal what
 (Python makes positive NaNs, x86 negative ones; the unit tests check the bits). sinf, cosf come
 from this machine's libm through ctypes, as the player's and .NET's MathF do on Linux.
 """
+
 import ctypes
 import math
 import re
@@ -83,34 +84,68 @@ def D(a, b):
     return f32(a / b)
 
 
-def M(a, b): return f32(a * b)
-def A(a, b): return f32(a + b)
-def S(a, b): return f32(a - b)
+def M(a, b):
+    return f32(a * b)
+
+
+def A(a, b):
+    return f32(a + b)
+
+
+def S(a, b):
+    return f32(a - b)
 
 
 # ---- models ----
 def mesa_ortho(l, r, b, t, n, f):
     """_math_float_ortho (Mesa 20.3.5 m_matrix.c), row-major."""
-    return [D(2.0, S(r, l)), 0.0, 0.0, D(-A(r, l), S(r, l)),
-            0.0, D(2.0, S(t, b)), 0.0, D(-A(t, b), S(t, b)),
-            0.0, 0.0, D(-2.0, S(f, n)), D(-A(f, n), S(f, n)),
-            0.0, 0.0, 0.0, 1.0]
+    return [
+        D(2.0, S(r, l)),
+        0.0,
+        0.0,
+        D(-A(r, l), S(r, l)),
+        0.0,
+        D(2.0, S(t, b)),
+        0.0,
+        D(-A(t, b), S(t, b)),
+        0.0,
+        0.0,
+        D(-2.0, S(f, n)),
+        D(-A(f, n), S(f, n)),
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+    ]
 
 
 def mesa_frustum(l, r, b, t, n, f):
     """_math_matrix_frustum (Mesa 20.3.5 m_matrix.c), row-major."""
-    return [D(M(2.0, n), S(r, l)), 0.0, D(A(r, l), S(r, l)), 0.0,
-            0.0, D(M(2.0, n), S(t, b)), D(A(t, b), S(t, b)), 0.0,
-            0.0, 0.0, D(-A(f, n), S(f, n)), D(-M(M(2.0, f), n), S(f, n)),
-            0.0, 0.0, -1.0, 0.0]
+    return [
+        D(M(2.0, n), S(r, l)),
+        0.0,
+        D(A(r, l), S(r, l)),
+        0.0,
+        0.0,
+        D(M(2.0, n), S(t, b)),
+        D(A(t, b), S(t, b)),
+        0.0,
+        0.0,
+        0.0,
+        D(-A(f, n), S(f, n)),
+        D(-M(M(2.0, f), n), S(f, n)),
+        0.0,
+        0.0,
+        -1.0,
+        0.0,
+    ]
 
 
 def perspective(fov, a, n, f):
     """Measured: float, cosf / sinf of (fov / 360) pi, the depth row over (near - far)."""
     r = M(D(fov, 360.0), PI32)
     cot = D(LM.cosf(r), LM.sinf(r))
-    return [D(cot, a), 0.0, 0.0, 0.0, 0.0, cot, 0.0, 0.0,
-            0.0, 0.0, D(A(n, f), S(n, f)), D(M(M(2.0, n), f), S(n, f)), 0.0, 0.0, -1.0, 0.0]
+    return [D(cot, a), 0.0, 0.0, 0.0, 0.0, cot, 0.0, 0.0, 0.0, 0.0, D(A(n, f), S(n, f)), D(M(M(2.0, n), f), S(n, f)), 0.0, 0.0, -1.0, 0.0]
 
 
 def glu_perspective(fov, a, n, f):
@@ -122,8 +157,7 @@ def glu_perspective(fov, a, n, f):
     if dz == 0 or s == 0 or a == 0:
         return None
     cot = math.cos(rad) / s
-    return [f32(cot / a), 0.0, 0.0, 0.0, 0.0, f32(cot), 0.0, 0.0,
-            0.0, 0.0, f32(-(f + n) / dz), f32(-2 * n * f / dz), 0.0, 0.0, -1.0, 0.0]
+    return [f32(cot / a), 0.0, 0.0, 0.0, 0.0, f32(cot), 0.0, 0.0, 0.0, 0.0, f32(-(f + n) / dz), f32(-2 * n * f / dz), 0.0, 0.0, -1.0, 0.0]
 
 
 def tan_perspective(fov, a, n, f):
@@ -177,8 +211,14 @@ def mesa_inverse_3d_general(m):
     """invert_matrix_3d_general (Mesa 20.3.5 m_matrix.c); None where it fails."""
     g = lambda r, c: m[r * 4 + c]
     pos = neg = 0.0
-    for t in (M(M(g(0, 0), g(1, 1)), g(2, 2)), M(M(g(1, 0), g(2, 1)), g(0, 2)), M(M(g(2, 0), g(0, 1)), g(1, 2)),
-              M(M(-g(2, 0), g(1, 1)), g(0, 2)), M(M(-g(1, 0), g(0, 1)), g(2, 2)), M(M(-g(0, 0), g(2, 1)), g(1, 2))):
+    for t in (
+        M(M(g(0, 0), g(1, 1)), g(2, 2)),
+        M(M(g(1, 0), g(2, 1)), g(0, 2)),
+        M(M(g(2, 0), g(0, 1)), g(1, 2)),
+        M(M(-g(2, 0), g(1, 1)), g(0, 2)),
+        M(M(-g(1, 0), g(0, 1)), g(2, 2)),
+        M(M(-g(0, 0), g(2, 1)), g(1, 2)),
+    ):
         if t >= 0:
             pos = A(pos, t)
         else:
@@ -208,11 +248,17 @@ def cofactors(m):
     """Mesa's float cofactors (as invert_matrix_3d_general), the 3 x 3 of the adjugate."""
     g = lambda r, c: m[r * 4 + c]
     c2 = lambda a, b, c, d: S(M(g(*a), g(*b)), M(g(*c), g(*d)))
-    return {0: c2((1, 1), (2, 2), (2, 1), (1, 2)), 1: -c2((0, 1), (2, 2), (2, 1), (0, 2)),
-            2: c2((0, 1), (1, 2), (1, 1), (0, 2)), 4: -c2((1, 0), (2, 2), (2, 0), (1, 2)),
-            5: c2((0, 0), (2, 2), (2, 0), (0, 2)), 6: -c2((0, 0), (1, 2), (1, 0), (0, 2)),
-            8: c2((1, 0), (2, 1), (2, 0), (1, 1)), 9: -c2((0, 0), (2, 1), (2, 0), (0, 1)),
-            10: c2((0, 0), (1, 1), (1, 0), (0, 1))}
+    return {
+        0: c2((1, 1), (2, 2), (2, 1), (1, 2)),
+        1: -c2((0, 1), (2, 2), (2, 1), (0, 2)),
+        2: c2((0, 1), (1, 2), (1, 1), (0, 2)),
+        4: -c2((1, 0), (2, 2), (2, 0), (1, 2)),
+        5: c2((0, 0), (2, 2), (2, 0), (0, 2)),
+        6: -c2((0, 0), (1, 2), (1, 0), (0, 2)),
+        8: c2((1, 0), (2, 1), (2, 0), (1, 1)),
+        9: -c2((0, 0), (2, 1), (2, 0), (0, 1)),
+        10: c2((0, 0), (1, 1), (1, 0), (0, 1)),
+    }
 
 
 def inverse3daffine(m):
@@ -244,8 +290,7 @@ def rotate(q):
     xx, yy, zz, xy, xz, yz = M(x, X), M(y, Y), M(z, Z), M(x, Y), M(x, Z), M(y, Z)
     wx, wy, wz = M(w, X), M(w, Y), M(w, Z)
     d = lambda a, b: f32(1.0 - (a + b))
-    return [d(yy, zz), S(xy, wz), A(xz, wy), 0.0, A(xy, wz), d(xx, zz), S(yz, wx), 0.0,
-            S(xz, wy), A(yz, wx), d(xx, yy), 0.0, 0.0, 0.0, 0.0, 1.0]
+    return [d(yy, zz), S(xy, wz), A(xz, wy), 0.0, A(xy, wz), d(xx, zz), S(yz, wx), 0.0, S(xz, wy), A(yz, wx), d(xx, yy), 0.0, 0.0, 0.0, 0.0, 1.0]
 
 
 def basis_columns(q):
@@ -270,13 +315,17 @@ def world_to_camera(pos, q):
         row = col + [S(0.0, A(M(col[0], pos[0]), A(M(col[1], pos[1]), M(col[2], pos[2]))))]
         if r == 2:
             row = [S(0.0, v) for v in row]
-        m[r * 4:r * 4 + 4] = row
+        m[r * 4 : r * 4 + 4] = row
     m[15] = 1.0
     return m
 
 
-def _fmin(a, b): return b if b < a else a
-def _fmax(a, b): return b if a < b else a
+def _fmin(a, b):
+    return b if b < a else a
+
+
+def _fmax(a, b):
+    return b if a < b else a
 
 
 def pixel_rect(rect, W, H):
@@ -292,7 +341,7 @@ def pixel_rect(rect, W, H):
 
 
 def _round(v):
-    return -2 ** 31 if v != v else int(math.floor(f32(v + 0.5)))
+    return -(2**31) if v != v else int(math.floor(f32(v + 0.5)))
 
 
 def pixel_viewport(pr, W, H):
@@ -301,16 +350,20 @@ def pixel_viewport(pr, W, H):
     x0, y0 = _round(pr[0]), _round(pr[1])
     x1 = min(max(_round(A(pr[0], pr[2])), 0), int(W))
     y1 = min(max(_round(A(pr[1], pr[3])), 0), int(H))
-    wrap = lambda v: (v + 2 ** 31) % 2 ** 32 - 2 ** 31
+    wrap = lambda v: (v + 2**31) % 2**32 - 2**31
     return [x0, y0, wrap(x1 - x0), wrap(y1 - y0)]
 
 
-def _dot4(row, v): return A(A(A(M(row[0], v[0]), M(row[1], v[1])), M(row[2], v[2])), M(row[3], v[3]))
-def _dot3(a, b): return A(A(M(a[0], b[0]), M(a[1], b[1])), M(a[2], b[2]))
+def _dot4(row, v):
+    return A(A(A(M(row[0], v[0]), M(row[1], v[1])), M(row[2], v[2])), M(row[3], v[3]))
+
+
+def _dot3(a, b):
+    return A(A(M(a[0], b[0]), M(a[1], b[1])), M(a[2], b[2]))
 
 
 def _mulf(a, b):
-    return [_dot4(a[r * 4:r * 4 + 4], [b[k * 4 + c] for k in range(4)]) for r in range(4) for c in range(4)]
+    return [_dot4(a[r * 4 : r * 4 + 4], [b[k * 4 + c] for k in range(4)]) for r in range(4) for c in range(4)]
 
 
 def world_to_screen(cam, w):
@@ -319,7 +372,7 @@ def world_to_screen(cam, w):
     P, V, C = cam['proj'], cam['w2c'], cam['c2w']
     vx, vy, vw, vh = [float(v) for v in pixel_viewport(cam['prect'], *cam['screen'])]
     vp = _mulf(P, V)
-    c = [_dot4(vp[r * 4:r * 4 + 4], w + [1.0]) for r in range(4)]
+    c = [_dot4(vp[r * 4 : r * 4 + 4], w + [1.0]) for r in range(4)]
     k = D(1.0, c[3])
     z = -_dot3([S(w[i], C[i * 4 + 3]) for i in range(3)], [C[2], C[6], C[10]])
     return [A(M(M(A(M(c[0], k), 1.0), 0.5), vw), vx), A(M(M(A(M(c[1], k), 1.0), 0.5), vh), vy), z]
@@ -332,7 +385,7 @@ def screen_to_world(cam, sp):
     vx, vy, vw, vh = [float(v) for v in pixel_viewport(cam['prect'], *cam['screen'])]
     inv = mesa_inverse(_mulf(P, V))
     n = [S(D(M(S(sp[0], vx), 2.0), vw), 1.0), S(D(M(S(sp[1], vy), 2.0), vh), 1.0), f32(0.95), 1.0]
-    r = [_dot4(inv[i * 4:i * 4 + 4], n) for i in range(4)]
+    r = [_dot4(inv[i * 4 : i * 4 + 4], n) for i in range(4)]
     k = D(1.0, r[3])
     pt = [M(r[i], k) for i in range(3)]
     cp, fwd = [C[3], C[7], C[11]], [-C[2], -C[6], -C[10]]
@@ -367,43 +420,65 @@ def screen_ray(cam, sp):
 
 def mesa_inverse(mm):
     """invert_matrix_general in float, a zero pivot giving zero (as mm-check.py)."""
-    r0, r1, r2, r3 = [list(mm[r * 4:r * 4 + 4]) + [1.0 if k == r else 0.0 for k in range(4)] for r in range(4)]
+    r0, r1, r2, r3 = [list(mm[r * 4 : r * 4 + 4]) + [1.0 if k == r else 0.0 for k in range(4)] for r in range(4)]
     zero = [0.0] * 16
-    if abs(r3[0]) > abs(r2[0]): r3, r2 = r2, r3
-    if abs(r2[0]) > abs(r1[0]): r2, r1 = r1, r2
-    if abs(r1[0]) > abs(r0[0]): r1, r0 = r0, r1
-    if r0[0] == 0: return zero
+    if abs(r3[0]) > abs(r2[0]):
+        r3, r2 = r2, r3
+    if abs(r2[0]) > abs(r1[0]):
+        r2, r1 = r1, r2
+    if abs(r1[0]) > abs(r0[0]):
+        r1, r0 = r0, r1
+    if r0[0] == 0:
+        return zero
     m1, m2, m3 = D(r1[0], r0[0]), D(r2[0], r0[0]), D(r3[0], r0[0])
     for k in range(1, 8):
         s = r0[k]
-        if k >= 4 and s == 0: continue
-        r1[k] = S(r1[k], M(m1, s)); r2[k] = S(r2[k], M(m2, s)); r3[k] = S(r3[k], M(m3, s))
-    if abs(r3[1]) > abs(r2[1]): r3, r2 = r2, r3
-    if abs(r2[1]) > abs(r1[1]): r2, r1 = r1, r2
-    if r1[1] == 0: return zero
+        if k >= 4 and s == 0:
+            continue
+        r1[k] = S(r1[k], M(m1, s))
+        r2[k] = S(r2[k], M(m2, s))
+        r3[k] = S(r3[k], M(m3, s))
+    if abs(r3[1]) > abs(r2[1]):
+        r3, r2 = r2, r3
+    if abs(r2[1]) > abs(r1[1]):
+        r2, r1 = r1, r2
+    if r1[1] == 0:
+        return zero
     m2, m3 = D(r2[1], r1[1]), D(r3[1], r1[1])
     for k in range(2, 8):
         s = r1[k]
-        if k >= 4 and s == 0: continue
-        r2[k] = S(r2[k], M(m2, s)); r3[k] = S(r3[k], M(m3, s))
-    if abs(r3[2]) > abs(r2[2]): r3, r2 = r2, r3
-    if r2[2] == 0: return zero
+        if k >= 4 and s == 0:
+            continue
+        r2[k] = S(r2[k], M(m2, s))
+        r3[k] = S(r3[k], M(m3, s))
+    if abs(r3[2]) > abs(r2[2]):
+        r3, r2 = r2, r3
+    if r2[2] == 0:
+        return zero
     m3 = D(r3[2], r2[2])
-    for k in range(3, 8): r3[k] = S(r3[k], M(m3, r2[k]))
-    if r3[3] == 0: return zero
+    for k in range(3, 8):
+        r3[k] = S(r3[k], M(m3, r2[k]))
+    if r3[3] == 0:
+        return zero
     s = D(1.0, r3[3])
-    for k in range(4, 8): r3[k] = M(r3[k], s)
+    for k in range(4, 8):
+        r3[k] = M(r3[k], s)
     m2, s = r2[3], D(1.0, r2[2])
-    for k in range(4, 8): r2[k] = M(s, S(r2[k], M(r3[k], m2)))
+    for k in range(4, 8):
+        r2[k] = M(s, S(r2[k], M(r3[k], m2)))
     for row in (r1, r0):
         m = row[3]
-        for k in range(4, 8): row[k] = S(row[k], M(r3[k], m))
+        for k in range(4, 8):
+            row[k] = S(row[k], M(r3[k], m))
     m1, s = r1[2], D(1.0, r1[1])
-    for k in range(4, 8): r1[k] = M(s, S(r1[k], M(r2[k], m1)))
+    for k in range(4, 8):
+        r1[k] = M(s, S(r1[k], M(r2[k], m1)))
     m0 = r0[2]
-    for k in range(4, 8): r0[k] = S(r0[k], M(r2[k], m0))
+    for k in range(4, 8):
+        r0[k] = S(r0[k], M(r2[k], m0))
     m0, s = r0[1], D(1.0, r0[0])
-    for k in range(4, 8): r0[k] = M(s, S(r0[k], M(r1[k], m0)))
+    for k in range(4, 8):
+        r0[k] = M(s, S(r0[k], M(r1[k], m0)))
     return [v for r in (r0, r1, r2, r3) for v in r[4:8]]
 
 
@@ -447,8 +522,7 @@ def rule(path):
     pa = by.get('PA', [])
     ok_agree = sum(1 for _, c in pa if (mesa_inverse_3d_general(c['m']) is not None) == (c['ok'] == '1'))
     full = sum(1 for _, c in pa if c['ok'] == '1' and (lambda g: g is not None and same(g, c['r']))(mesa_inverse_3d_general(c['m'])))
-    print(f'{"PA Inverse3DAffine = Mesa 3d_general":44} {full}/{sum(c["ok"] == "1" for _, c in pa)} invertible'
-          f'; success flag agrees {ok_agree}/{len(pa)}')
+    print(f'{"PA Inverse3DAffine = Mesa 3d_general":44} {full}/{sum(c["ok"] == "1" for _, c in pa)} invertible; success flag agrees {ok_agree}/{len(pa)}')
     ok = sum(1 for _, c in pa if (lambda g: g[0] == (c['ok'] == '1') and same(g[1], c['r']))(inverse3daffine(c['m'])))
     show('PA Inverse3DAffine = measured', (ok, len(pa)))
     pr = [c for _, c in by.get('PR', []) if 'rot' in c]
@@ -464,6 +538,7 @@ def rule(path):
             s, a = c['size'][0], c['aspect'][0]
             return mesa_ortho(-M(s, a), M(s, a), -s, s, c['near'][0], c['far'][0])
         return perspective(c['fov'][0], c['aspect'][0], c['near'][0], c['far'][0])
+
     show('PC projectionMatrix = Perspective / Ortho', count('PC', cam_proj, 'proj'))
     show('PC cameraToWorldMatrix = inverse(w2c)', count('PC', lambda c: mesa_inverse(c['w2c']), 'c2w'))
     show('PC worldToCameraMatrix = measured', count('PC', lambda c: world_to_camera(c['pos'], c['rot']), 'w2c'))
@@ -473,16 +548,27 @@ def rule(path):
     auto = [c for idx, c in by.get('PC', []) if int(idx[0]) % 7 != 3]
     show('PC aspect (reset) = pixel w / h', (sum(same([1.0 if c['prect'][3] == 0 else D(c['prect'][2], c['prect'][3])], c['aspect']) for c in auto), len(auto)))
     pk = by.get('PK', [])
-    ok = sum(1 for _, c in pk if 'texture' in c.get('what', '') or same(pixel_rect(c['rect'], *screen), c['prect'])
-             and [int(c['pw']), int(c['ph'])] == pixel_viewport(c['prect'], *screen)[2:])
+    ok = sum(
+        1
+        for _, c in pk
+        if 'texture' in c.get('what', '')
+        or same(pixel_rect(c['rect'], *screen), c['prect'])
+        and [int(c['pw']), int(c['ph'])] == pixel_viewport(c['prect'], *screen)[2:]
+    )
     show('PK pixelRect, pixelWidth/Height (rules)', (ok, len(pk)))
     show('PK worldToCameraMatrix = measured', (sum(same(world_to_camera(c['pos'], c['rot']), c['w2c']) for _, c in pk), len(pk)))
     pcp = by.get('PCP', [])
     ok = sum(1 for idx, c in pcp if (lambda g: g is not None and same(g, c['w2s']))(glu_project(cams[idx[0]], c['w'])))
     show('PCP WorldToScreenPoint = gluProject (double)', (ok, len(pcp)))
     show('PCP WorldToScreenPoint = measured', (sum(same(world_to_screen(cams[i[0]], c['w']), c['w2s']) for i, c in pcp), len(pcp)))
-    ok = sum(1 for idx, c in pcp if same([D(S(c['w2s'][0], cams[idx[0]]['prect'][0]), cams[idx[0]]['prect'][2]),
-                                          D(S(c['w2s'][1], cams[idx[0]]['prect'][1]), cams[idx[0]]['prect'][3])], c['w2v'][:2]))
+    ok = sum(
+        1
+        for idx, c in pcp
+        if same(
+            [D(S(c['w2s'][0], cams[idx[0]]['prect'][0]), cams[idx[0]]['prect'][2]), D(S(c['w2s'][1], cams[idx[0]]['prect'][1]), cams[idx[0]]['prect'][3])],
+            c['w2v'][:2],
+        )
+    )
     show('PCP WorldToViewportPoint = (screen - x) / w', (ok, len(pcp)))
     s2w = lambda cam, sp: screen_to_world(cam, sp) or [0.0, 0.0, 0.0]
     show('PCP ScreenToWorldPoint = measured', (sum(same(s2w(cams[i[0]], c['sp']), c['s2w']) for i, c in pcp), len(pcp)))
@@ -490,6 +576,7 @@ def rule(path):
     def v2s(cam, vp):
         pr = cam['prect']
         return [A(M(vp[0], pr[2]), pr[0]), A(M(vp[1], pr[3]), pr[1]), vp[2]]
+
     show('PCP ViewportToWorldPoint = s2w(v2s)', (sum(same(s2w(cams[i[0]], v2s(cams[i[0]], c['vp'])), c['v2w']) for i, c in pcp), len(pcp)))
     rays = [(screen_ray(cams[i[0]], c['sp']), c['sray']) for i, c in pcp]
     show('PCP ScreenPointToRay origin = s2w(near)', (sum(same(g[:3], o[:3]) for g, o in rays), len(rays)))
@@ -513,8 +600,11 @@ def diff(orig, ours):
                 differ[f] = differ.get(f, 0) + 1
             lines += bool(bad)
         missing = sum(1 for key in a if key[0] == kind and key not in b)
-        print(f'{kind:4} {len(keys)} lines, {lines} differ' + (f', {missing} missing in ours' if missing else '')
-              + (': ' + ', '.join(f'{f} {n}' for f, n in sorted(differ.items())) if differ else ''))
+        print(
+            f'{kind:4} {len(keys)} lines, {lines} differ'
+            + (f', {missing} missing in ours' if missing else '')
+            + (': ' + ', '.join(f'{f} {n}' for f, n in sorted(differ.items())) if differ else '')
+        )
 
 
 if __name__ == '__main__':

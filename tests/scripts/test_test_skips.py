@@ -1,4 +1,5 @@
 """test-skips.py: the skips of xunit reports by reason, and the gate on skips for want of the game."""
+
 import contextlib, io, os, tempfile, unittest
 
 import helpers
@@ -39,15 +40,18 @@ class TestSkips(unittest.TestCase):
     def test_the_report_groups_by_reason_the_games_first(self):
         status, out = self.run_main()
         self.assertEqual(0, status)
-        self.assertEqual([
-            'skipped: 4 tests',
-            '  needs game assembly: 0Harmony (a reference assembly) (1 tests, 1 classes)',
-            '    B (1)',
-            '  needs game data: /g/OxygenNotIncluded_Data (2 tests, 1 classes)',
-            '    A (2)',
-            '  DejaVu Sans is not installed. (1 tests, 1 classes)',
-            '    C (1)',
-        ], out.splitlines())
+        self.assertEqual(
+            [
+                'skipped: 4 tests',
+                '  needs game assembly: 0Harmony (a reference assembly) (1 tests, 1 classes)',
+                '    B (1)',
+                '  needs game data: /g/OxygenNotIncluded_Data (2 tests, 1 classes)',
+                '    A (2)',
+                '  DejaVu Sans is not installed. (1 tests, 1 classes)',
+                '    C (1)',
+            ],
+            out.splitlines(),
+        )
 
     def test_the_gate_names_the_tests_skipped_for_want_of_the_game(self):
         status, out = self.run_main('--fail-on-game')

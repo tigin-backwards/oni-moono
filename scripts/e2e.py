@@ -69,6 +69,7 @@ that tests/e2e/known-findings.yaml explains make a run of ours a warning, not a 
 the hold file in its run folder is removed, for a look through OniMcp and E2eDriver while
 writing a spec; a QA perf stage waiting to start ends it 10 minutes later.
 """
+
 import contextlib, ctypes, fcntl, glob, hashlib, importlib.util, itertools, json, os, re, shlex, shutil, signal, socket, subprocess, sys
 import struct, threading, time, urllib.error, urllib.request, zipfile, zlib
 
@@ -90,24 +91,26 @@ VALUETUPLE = os.path.expanduser('~/.nuget/packages/system.valuetuple/4.6.1/lib/n
 # OniMcp's Workshop item: a spec naming it plays it as the runner's OniMcp (its unpacked, gated
 # Workshop build in place of E2E_ONIMCP), since two copies would share a staticID and a port.
 ONIMCP_WORKSHOP = '3807166922'
-MAX_LANES = 6          # the memory budget's hard maximum (§6.2)
+MAX_LANES = 6  # the memory budget's hard maximum (§6.2)
 SHOT_THRESHOLD = 0.02  # fraction of pixels differing (§5.3), set per step after calibration
 WORLD_THRESHOLD = 0.05
-UI_TOLERANCE = 2       # pixels, for ui-diff.py --tolerance
+UI_TOLERANCE = 2  # pixels, for ui-diff.py --tolerance
 # ui_dump members every diff leaves out: a Graphic's depth (the order of graphics on its canvas)
 # is numbered differently in our player, whatever is drawn (tests/e2e/README.md, Verdicts).
 IGNORE_FIELDS = ('depth',)
-FRAME_FALLBACK = 0.1   # seconds a "frame" lasts without E2eDriver to count real ones
+FRAME_FALLBACK = 0.1  # seconds a "frame" lasts without E2eDriver to count real ones
 BUILD_MENU_FRAMES = 600  # the most frames a shot or ui_dump waits for the build menu to settle
 # Perf jobs a spec never starts beside (matched against `ps -eo args`): the sweep and measurement
 # scripts, profilers. QA (scripts/qa.sh) is not one: only its perf stage needs a quiet machine,
 # and it says so through perf.wanted and an exclusive hold of perf.lock (machine_lock); its other
 # stages run beside specs, counted in the players' budget as one QA_GB player (Budget).
 QA_JOBS = [r'(^|/)scripts/qa\.sh\b']
-QA_GB = 15          # E2E_QA_GB: QA's verify stage runs U57 (0: not counted)
-PERF_JOBS = [r'(^|/)scripts/flamegraph\.py\b',
-             r'out/local-tools/(sweep|measure|ft-bench|compare-queued|minnow-prof|glut-prof|queue|orig-queue|tw-run)',
-             r'^perf (record|stat)\b']
+QA_GB = 15  # E2E_QA_GB: QA's verify stage runs U57 (0: not counted)
+PERF_JOBS = [
+    r'(^|/)scripts/flamegraph\.py\b',
+    r'out/local-tools/(sweep|measure|ft-bench|compare-queued|minnow-prof|glut-prof|queue|orig-queue|tw-run)',
+    r'^perf (record|stat)\b',
+]
 
 
 class SpecFailure(Exception):
@@ -128,8 +131,7 @@ def say(*parts):
 
 def environment():
     """The settings from the environment, else from out/local-tools/qa.env (a bash file)."""
-    names = ['QA_U57_GAME', 'QA_U57_STEAM', 'E2E_ONIMCP', 'E2E_ORIGINAL', 'E2E_DRIVER', 'GALLIUM_DRIVER',
-             'MESA_D3D12_DEFAULT_ADAPTER_NAME', 'E2E_ORIGINAL_ENV']
+    names = ['QA_U57_GAME', 'QA_U57_STEAM', 'E2E_ONIMCP', 'E2E_ORIGINAL', 'E2E_DRIVER', 'GALLIUM_DRIVER', 'MESA_D3D12_DEFAULT_ADAPTER_NAME', 'E2E_ORIGINAL_ENV']
     env = {n: os.environ[n] for n in names if n in os.environ}
     qa_env = os.path.join(ROOT, 'out', 'local-tools', 'qa.env')
     if os.path.exists(qa_env):
@@ -168,11 +170,40 @@ def ws_mods():
 
 # ---------------------------------------------------------------- specs
 
-TOP_KEYS = {'name', 'from', 'mods', 'options', 'setup', 'steps', 'require_log', 'mask_text', 'tolerance',
-            'thresholds', 'ignore_fields', 'memory_gb', 'spaced_out', 'translation', 'language',
-            'keyboard', 'tweaks_menu', 'scaled_screen', 'blocked_plugins', 'stray_plugins', 'data_collection',
-            'extra_saves', 'retired_colonies', 'display_dpi', 'workshop', 'update_check', 'game_tweaks', 'env',
-            'test_mods', 'game_args', 'expect_log', 'allowed_signatures'}
+TOP_KEYS = {
+    'name',
+    'from',
+    'mods',
+    'options',
+    'setup',
+    'steps',
+    'require_log',
+    'mask_text',
+    'tolerance',
+    'thresholds',
+    'ignore_fields',
+    'memory_gb',
+    'spaced_out',
+    'translation',
+    'language',
+    'keyboard',
+    'tweaks_menu',
+    'scaled_screen',
+    'blocked_plugins',
+    'stray_plugins',
+    'data_collection',
+    'extra_saves',
+    'retired_colonies',
+    'display_dpi',
+    'workshop',
+    'update_check',
+    'game_tweaks',
+    'env',
+    'test_mods',
+    'game_args',
+    'expect_log',
+    'allowed_signatures',
+}
 # `game_args`: arguments for the game itself, after the original's own (its executable's
 # arguments) and after the game's executable in our Steam form (`-- GAME-EXECUTABLE ARGS`), which
 # passes them on to the game (#53).
@@ -190,19 +221,71 @@ MAIN_MENU = 'main-menu'
 # An XKB layout as setxkbmap takes it, a variant in parentheses: fr, de, us(dvorak).
 KEYBOARD_LAYOUT = r'[a-z]{2,8}(\([\w-]+\))?'
 # `open: {management: NAME}`: the game Action E2eDriver's ui.action delivers for each screen.
-MANAGEMENT_ACTIONS = {'vitals': 'ManageVitals', 'consumables': 'ManageConsumables', 'priorities': 'ManagePriorities',
-                      'schedule': 'ManageSchedule', 'skills': 'ManageSkills', 'research': 'ManageResearch',
-                      'starmap': 'ManageStarmap', 'report': 'ManageReport', 'database': 'ManageDatabase',
-                      'codex': 'ManageDatabase'}
+MANAGEMENT_ACTIONS = {
+    'vitals': 'ManageVitals',
+    'consumables': 'ManageConsumables',
+    'priorities': 'ManagePriorities',
+    'schedule': 'ManageSchedule',
+    'skills': 'ManageSkills',
+    'research': 'ManageResearch',
+    'starmap': 'ManageStarmap',
+    'report': 'ManageReport',
+    'database': 'ManageDatabase',
+    'codex': 'ManageDatabase',
+}
 # Steps that talk to E2eDriver (a spec with any of them needs it installed).
-DRIVER_STEPS = {'click', 'toggle', 'dropdown', 'type', 'drag', 'tool', 'expect_ui', 'expect_state', 'ui_dump',
-                'ui_wait', 'world_shot', 'driver', 'click_world', 'scroll', 'expect_hit', 'press'}
-STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_shot', 'open', 'key', 'keyboard',
-              'expect_exit', 'wait_state'} | DRIVER_STEPS
-DRIVER_COMMANDS = {'ping', 'ui.action', 'ui.find', 'ui.at', 'ui.dump', 'ui.wait', 'world.to_screen', 'screen.to_cell', 'state.get', 'state.each', 'camera.get',
-                   'camera.set', 'canvas.hide', 'canvas.show', 'setup.call', 'seed', 'count', 'stopwatch', 'keys.log', 'gc.watch', 'imgui.scrollview', 'templates.load',
-                   'buildmenu.settled', 'input.move', 'input.button', 'input.key', 'input.scroll', 'input.text', 'input.submit',
-                   'input.focus', 'screen.capture'}
+DRIVER_STEPS = {
+    'click',
+    'toggle',
+    'dropdown',
+    'type',
+    'drag',
+    'tool',
+    'expect_ui',
+    'expect_state',
+    'ui_dump',
+    'ui_wait',
+    'world_shot',
+    'driver',
+    'click_world',
+    'scroll',
+    'expect_hit',
+    'press',
+}
+STEP_KINDS = {'dig', 'build', 'run', 'expect', 'call', 'save', 'shot', 'file_shot', 'open', 'key', 'keyboard', 'expect_exit', 'wait_state'} | DRIVER_STEPS
+DRIVER_COMMANDS = {
+    'ping',
+    'ui.action',
+    'ui.find',
+    'ui.at',
+    'ui.dump',
+    'ui.wait',
+    'world.to_screen',
+    'screen.to_cell',
+    'state.get',
+    'state.each',
+    'camera.get',
+    'camera.set',
+    'canvas.hide',
+    'canvas.show',
+    'setup.call',
+    'seed',
+    'count',
+    'stopwatch',
+    'keys.log',
+    'gc.watch',
+    'imgui.scrollview',
+    'templates.load',
+    'buildmenu.settled',
+    'input.move',
+    'input.button',
+    'input.key',
+    'input.scroll',
+    'input.text',
+    'input.submit',
+    'input.focus',
+    'screen.capture',
+}
 
 
 def _cell(value):
@@ -229,8 +312,10 @@ def check_step(where, kind, value, in_setup):
     if kind == 'dig':
         need(_rect(value), 'dig takes [x1, y1, x2, y2]')
     elif kind == 'build':
-        need(isinstance(value, dict) and value.get('prefab') and (_cell(value.get('at')) or value.get('cells')),
-             'build takes {prefab, at: [x, y]} or {prefab, cells: [...]}')
+        need(
+            isinstance(value, dict) and value.get('prefab') and (_cell(value.get('at')) or value.get('cells')),
+            'build takes {prefab, at: [x, y]} or {prefab, cells: [...]}',
+        )
     elif kind == 'run':
         need(isinstance(value, dict) and isinstance(value.get('seconds'), (int, float)), 'run takes {seconds: N}')
         need(not isinstance(value, dict) or value.get('speed', 3) in (1, 2, 3), 'run speed is 1, 2 or 3')
@@ -245,13 +330,13 @@ def check_step(where, kind, value, in_setup):
                     problems.append(f'{where}: {e}')
     elif kind == 'wait_state':
         state = value.get('state') if isinstance(value, dict) else None
-        need(isinstance(state, dict) and state and set(value) <= {'state', 'seconds'}
-             and isinstance(value.get('seconds', 60), (int, float)),
-             'wait_state takes {state: {EXPR: WANTED}, seconds: N}')
+        need(
+            isinstance(state, dict) and state and set(value) <= {'state', 'seconds'} and isinstance(value.get('seconds', 60), (int, float)),
+            'wait_state takes {state: {EXPR: WANTED}, seconds: N}',
+        )
         if isinstance(state, dict):
             for expr, wanted in state.items():
-                need(not re.search(r'\boriginal\b', json.dumps(wanted)),
-                     f'wait_state {expr}: waits for a value of this run, not the original\'s')
+                need(not re.search(r'\boriginal\b', json.dumps(wanted)), f'wait_state {expr}: waits for a value of this run, not the original\'s')
                 try:
                     parse_aggregate(str(expr))
                 except SpecFailure as e:
@@ -267,32 +352,44 @@ def check_step(where, kind, value, in_setup):
             for m in value.get('mask', []):
                 need(isinstance(m, str) or _rect(m), f'mask {m!r} is neither a UI path nor [x, y, w, h]')
     elif kind == 'file_shot':
-        need(isinstance(value, dict) and value.get('name') and isinstance(value.get('path'), str) and value['path']
-             and not os.path.isabs(value['path']) and '..' not in value['path'].split('/'),
-             'file_shot takes {name, path} (an image in the run\'s profile, relative, globs allowed), and threshold')
+        need(
+            isinstance(value, dict)
+            and value.get('name')
+            and isinstance(value.get('path'), str)
+            and value['path']
+            and not os.path.isabs(value['path'])
+            and '..' not in value['path'].split('/'),
+            'file_shot takes {name, path} (an image in the run\'s profile, relative, globs allowed), and threshold',
+        )
     elif kind == 'expect_exit':
-        need(isinstance(value, dict) and isinstance(value.get('seconds', 120), (int, float))
-             and (value.get('code', 0) is None or isinstance(value.get('code', 0), int)),
-             'expect_exit takes {seconds, code} (the exit code, default 0; null for any)')
+        need(
+            isinstance(value, dict)
+            and isinstance(value.get('seconds', 120), (int, float))
+            and (value.get('code', 0) is None or isinstance(value.get('code', 0), int)),
+            'expect_exit takes {seconds, code} (the exit code, default 0; null for any)',
+        )
     elif kind == 'world_shot':
         need(isinstance(value, dict) and value.get('name'), 'world_shot takes {name, ortho, at, hide_ui, mask}')
         if isinstance(value, dict):
             if 'at' in value:
                 need(_cell(value['at']), '`at` is a cell [x, y]')
             for m in value.get('mask', []):
-                need(_rect(m) or (isinstance(m, str) and re.search(r'[/*]', m)),
-                     f'mask {m!r}: world shots mask [x, y, w, h] or UI paths (no symbolic masks yet)')
+                need(
+                    _rect(m) or (isinstance(m, str) and re.search(r'[/*]', m)), f'mask {m!r}: world shots mask [x, y, w, h] or UI paths (no symbolic masks yet)'
+                )
     elif kind == 'open':
-        need(isinstance(value, dict) and len([k for k in value if k in ('management', 'key', 'user_menu')]) == 1
-             and set(value) <= {'management', 'key', 'user_menu', 'at', 'id'},
-             'open takes {management: NAME}, {key: CODE} or {user_menu: ACTION_KEY, at: [x, y] | id: ID}')
+        need(
+            isinstance(value, dict)
+            and len([k for k in value if k in ('management', 'key', 'user_menu')]) == 1
+            and set(value) <= {'management', 'key', 'user_menu', 'at', 'id'},
+            'open takes {management: NAME}, {key: CODE} or {user_menu: ACTION_KEY, at: [x, y] | id: ID}',
+        )
         if isinstance(value, dict) and 'key' in value:
             problems += [f'{where}: {p}' for p in key_problems(value['key'])]
         if isinstance(value, dict) and 'management' in value:
             need(value['management'] in MANAGEMENT_ACTIONS, 'open management is one of ' + ', '.join(MANAGEMENT_ACTIONS))
     elif kind == 'keyboard':
-        need(isinstance(value, str) and re.fullmatch(KEYBOARD_LAYOUT, value),
-             'keyboard takes an XKB layout, as setxkbmap does: fr, de, us(dvorak)')
+        need(isinstance(value, str) and re.fullmatch(KEYBOARD_LAYOUT, value), 'keyboard takes an XKB layout, as setxkbmap does: fr, de, us(dvorak)')
     elif kind == 'key' and isinstance(value, dict) and 'keycode' in value:
         # A physical key by its X keycode, whatever the display's layout puts on it.
         need(isinstance(value['keycode'], int) and 8 <= value['keycode'] <= 255, 'key `keycode` is an X keycode, 8 to 255')
@@ -301,25 +398,26 @@ def check_step(where, kind, value, in_setup):
             problems += [f'{where}: {p}' for p in key_problems(m)]
     elif kind == 'key':
         need(isinstance(value, dict) and value.get('code'), 'key takes {code: "Shift+B"}')
-        need(not isinstance(value, dict) or 'at' not in value or _cell(value['at']),
-             'key takes `at: [x, y]`, the world cell to hold the pointer over')
-        need(not isinstance(value, dict) or not (value.get('down') and value.get('up')),
-             'key takes `down: true` or `up: true`, not both')
-        need(not isinstance(value, dict) or not (value.get('down') or value.get('up'))
-             or '+' not in str(value.get('code', '')).strip('+'),
-             'a key held down (`down`/`up`) is one key, without modifiers')
-        need(not isinstance(value, dict) or 'until' not in value
-             or (isinstance(value['until'], str) and not (value.get('down') or value.get('up'))),
-             'key `until` is a UI path to press the key until it is active (not with down/up)')
-        need(not isinstance(value, dict) or value.get('cond', 'active') in ('active', 'gone', 'inactive'),
-             'key `cond` (with `until`) is active, gone or inactive')
+        need(not isinstance(value, dict) or 'at' not in value or _cell(value['at']), 'key takes `at: [x, y]`, the world cell to hold the pointer over')
+        need(not isinstance(value, dict) or not (value.get('down') and value.get('up')), 'key takes `down: true` or `up: true`, not both')
+        need(
+            not isinstance(value, dict) or not (value.get('down') or value.get('up')) or '+' not in str(value.get('code', '')).strip('+'),
+            'a key held down (`down`/`up`) is one key, without modifiers',
+        )
+        need(
+            not isinstance(value, dict) or 'until' not in value or (isinstance(value['until'], str) and not (value.get('down') or value.get('up'))),
+            'key `until` is a UI path to press the key until it is active (not with down/up)',
+        )
+        need(
+            not isinstance(value, dict) or value.get('cond', 'active') in ('active', 'gone', 'inactive'),
+            'key `cond` (with `until`) is active, gone or inactive',
+        )
         if isinstance(value, dict) and value.get('code'):
             problems += [f'{where}: {p}' for p in key_problems(value['code'])]
     elif kind == 'click':
         if isinstance(value, dict) and 'at' in value:
             # A screen point (top-left pixels), for IMGUI controls: they have no element to find.
-            need(_cell(value['at']) and not (value.get('ui') or value.get('text')),
-                 'click `at` is a screen point [x, y], instead of `ui` or `text`')
+            need(_cell(value['at']) and not (value.get('ui') or value.get('text')), 'click `at` is a screen point [x, y], instead of `ui` or `text`')
         else:
             _ui_query(where, value, problems)
         if isinstance(value, dict):
@@ -337,29 +435,30 @@ def check_step(where, kind, value, in_setup):
         need(isinstance(value, dict) and value.get('ui'), 'type needs `ui` (the input field\'s path)')
         need(isinstance(value, dict) and isinstance(value.get('text'), str), 'type needs `text`')
     elif kind == 'drag':
-        need(isinstance(value, dict) and _cell(value.get('from')) and _cell(value.get('to')),
-             'drag takes {from: [x, y], to: [x, y]} (world cells)')
+        need(isinstance(value, dict) and _cell(value.get('from')) and _cell(value.get('to')), 'drag takes {from: [x, y], to: [x, y]} (world cells)')
         need(not isinstance(value, dict) or isinstance(value.get('hold', 0), int), 'drag `hold` is a number of frames')
-        need(not isinstance(value, dict) or (isinstance(value.get('via', []), list) and all(_cell(c) for c in value.get('via', []))),
-             'drag `via` is a list of world cells [x, y] passed through in order')
+        need(
+            not isinstance(value, dict) or (isinstance(value.get('via', []), list) and all(_cell(c) for c in value.get('via', []))),
+            'drag `via` is a list of world cells [x, y] passed through in order',
+        )
     elif kind == 'click_world':
-        need(isinstance(value, dict) and (_cell(value.get('cell')) != _cell(value.get('pos'))),
-             'click_world takes {cell: [x, y]} or {pos: [x, y]} (a world position)')
-        need(not isinstance(value, dict) or isinstance(value.get('select', ''), str),
-             'click_world `select` is the prefab ID to click until it is selected')
-        need(not isinstance(value, dict) or button_problem(value) is None,
-             (isinstance(value, dict) and button_problem(value)) or '')
+        need(
+            isinstance(value, dict) and (_cell(value.get('cell')) != _cell(value.get('pos'))),
+            'click_world takes {cell: [x, y]} or {pos: [x, y]} (a world position)',
+        )
+        need(not isinstance(value, dict) or isinstance(value.get('select', ''), str), 'click_world `select` is the prefab ID to click until it is selected')
+        need(not isinstance(value, dict) or button_problem(value) is None, (isinstance(value, dict) and button_problem(value)) or '')
     elif kind == 'scroll':
         need(isinstance(value, dict) and isinstance(value.get('notches'), int), 'scroll takes {at, notches: N}')
     elif kind == 'tool':
-        need(isinstance(value, dict) and (value.get('toolbar') or value.get('ui') or value.get('key')),
-             'tool takes {toolbar: NAME}, {ui: PATH} or {key: CODE}')
+        need(isinstance(value, dict) and (value.get('toolbar') or value.get('ui') or value.get('key')), 'tool takes {toolbar: NAME}, {ui: PATH} or {key: CODE}')
     elif kind == 'expect_hit':
-        need(isinstance(value, dict) and ('top' in value or 'not' in value),
-             'expect_hit takes {at, top: PATTERN} or {at, not: PATTERN}')
+        need(isinstance(value, dict) and ('top' in value or 'not' in value), 'expect_hit takes {at, top: PATTERN} or {at, not: PATTERN}')
     elif kind == 'expect_ui':
-        need(isinstance(value, dict) and value and all(isinstance(v, dict) for v in value.values()),
-             'expect_ui takes {PATH: {text, active, interactable, isOn, exists}}')
+        need(
+            isinstance(value, dict) and value and all(isinstance(v, dict) for v in value.values()),
+            'expect_ui takes {PATH: {text, active, interactable, isOn, exists}}',
+        )
     elif kind == 'ui_dump':
         need(isinstance(value, dict) and value.get('name') and value.get('root'), 'ui_dump takes {name, root}')
     elif kind == 'ui_wait':
@@ -367,7 +466,7 @@ def check_step(where, kind, value, in_setup):
     elif kind == 'driver':
         need(isinstance(value, dict) and len(value) == 1, 'driver takes one {command: args}')
         if isinstance(value, dict) and len(value) == 1:
-            (command, _), = value.items()
+            ((command, _),) = value.items()
             need(command in DRIVER_COMMANDS, f'unknown E2eDriver command {command!r}')
             # Reflection may prepare a test, never perform the thing under test (§1, issue #6).
             need(in_setup or command != 'setup.call', 'driver setup.call is only allowed in setup:')
@@ -412,26 +511,25 @@ def check_spec(spec):
     if 'display_dpi' in spec and not (type(spec['display_dpi']) is int and 1 <= spec['display_dpi'] <= 1000):
         problems.append('`display_dpi` is a whole number of dots per inch (1-1000)')
     blocked = spec.get('blocked_plugins', {})
-    if not isinstance(blocked, dict) or not all(isinstance(n, str) and n and '/' not in n and how in BLOCKED_HOW
-                                                for n, how in blocked.items()):
+    if not isinstance(blocked, dict) or not all(isinstance(n, str) and n and '/' not in n and how in BLOCKED_HOW for n, how in blocked.items()):
         problems.append('`blocked_plugins` maps plugin file names to ' + ' or '.join(BLOCKED_HOW))
     stray = spec.get('stray_plugins', [])
-    if not isinstance(stray, list) or not all(
-            isinstance(p, str) and re.fullmatch(r'[\w.-]+(/[\w.-]+)*/?', p) and '..' not in p.split('/') for p in stray):
+    if not isinstance(stray, list) or not all(isinstance(p, str) and re.fullmatch(r'[\w.-]+(/[\w.-]+)*/?', p) and '..' not in p.split('/') for p in stray):
         problems.append('`stray_plugins` lists paths under Plugins (`DIR/` for an empty folder)')
     extra = spec.get('extra_saves', [])
     if not isinstance(extra, list) or not all(isinstance(n, str) and re.fullmatch(r'[\w.-]+', n) for n in extra):
         problems.append('`extra_saves` is a list of fixture names')
     retired = spec.get('retired_colonies', [])
     if not isinstance(retired, list) or not all(
-            isinstance(n, str) and re.fullmatch(r'[\w.-]+', n) and os.path.exists(os.path.join(FIXTURES, n + '.json'))
-            for n in retired):
+        isinstance(n, str) and re.fullmatch(r'[\w.-]+', n) and os.path.exists(os.path.join(FIXTURES, n + '.json')) for n in retired
+    ):
         problems.append('`retired_colonies` lists fixtures/NAME.json files')
     if not isinstance(spec.get('data_collection', True), bool):
         problems.append('`data_collection` is true or false')
     update = spec.get('update_check')
-    if update is not None and not (isinstance(update, dict) and set(update) == {'releases', 'tag'}
-                                   and os.path.exists(os.path.join(FIXTURES, str(update['releases'])))):
+    if update is not None and not (
+        isinstance(update, dict) and set(update) == {'releases', 'tag'} and os.path.exists(os.path.join(FIXTURES, str(update['releases'])))
+    ):
         problems.append('`update_check` is {releases: FILE in tests/e2e/fixtures, tag: vYYYY.MM.DD.NN}')
     if not isinstance(spec.get('steps'), list):
         problems.append('`steps` is a list')
@@ -454,10 +552,13 @@ def check_spec(spec):
     elif not all(re.fullmatch(r'[^/\\]+\.json', str(v.get('$file', 'x.json'))) for v in options.values()):
         problems.append('an `options` `$file` is a file name ending in .json')
     workshop = spec.get('workshop')
-    if workshop is not None and (not isinstance(workshop, dict) or not str(workshop.get('id', '')).isdigit()
-                                 or workshop.get('layout', 'folder') not in ('folder', 'zip')
-                                 or set(workshop) - {'id', 'layout', 'corrupt'}
-                                 or (workshop.get('corrupt') and workshop.get('layout') != 'zip')):
+    if workshop is not None and (
+        not isinstance(workshop, dict)
+        or not str(workshop.get('id', '')).isdigit()
+        or workshop.get('layout', 'folder') not in ('folder', 'zip')
+        or set(workshop) - {'id', 'layout', 'corrupt'}
+        or (workshop.get('corrupt') and workshop.get('layout') != 'zip')
+    ):
         problems.append('`workshop` is {id: WORKSHOP_ID, layout: folder|zip, corrupt: true (a zip only)}')
     for key in ('require_log', 'mask_text'):
         if not isinstance(spec.get(key, []), list):
@@ -474,7 +575,7 @@ def check_spec(spec):
             if not isinstance(step, dict) or len(step) != 1:
                 problems.append(f'{where}: a step is one {{kind: value}}')
                 continue
-            (kind, value), = step.items()
+            ((kind, value),) = step.items()
             problems += check_step(where, kind, value, block == 'setup')
     return problems
 
@@ -499,8 +600,7 @@ def load_yaml(path):
                 continue  # safe_load's own error says so
             line = key_node.start_mark.line + 1
             if key in lines:
-                raise SpecError(f'{path}: key {key!r} is repeated, at lines {lines[key]} and {line} '
-                                '(YAML keeps only the last; give a list of checks instead)')
+                raise SpecError(f'{path}: key {key!r} is repeated, at lines {lines[key]} and {line} (YAML keeps only the last; give a list of checks instead)')
             lines[key] = line
         return yaml.SafeLoader.construct_mapping(loader, node, deep)
 
@@ -524,7 +624,7 @@ def load_spec(name):
 
 def needs_driver(spec):
     for step in (spec.get('setup') or []) + spec['steps']:
-        (kind, value), = step.items()
+        ((kind, value),) = step.items()
         if kind in DRIVER_STEPS and not (kind == 'expect_state' and all(k.startswith('file:') for k in value)):
             return True
         if kind == 'wait_state' and not all(k.startswith('file:') for k in value['state']):
@@ -547,6 +647,7 @@ def needs_driver(spec):
 #   xvfb.lock         serialises xvfb-run -a starts (--xvfb-run)
 #   reserved          ports and displays that others use, which no lane takes
 
+
 def shared_dir():
     """The machine-wide lock directory: E2E_LOCK_DIR, default ~/.cache/oni-brutal-e2e."""
     return os.environ.get('E2E_LOCK_DIR') or os.path.join(os.path.expanduser('~'), '.cache', 'oni-brutal-e2e')
@@ -559,6 +660,7 @@ class WaitTimeout(SpecFailure):
 class Waiter:
     """A wait that says what it waits for: when it starts, when what it waits for changes, and
     again every REPEAT seconds; it gives up after MAX_WAIT seconds (None: never)."""
+
     REPEAT = 600
 
     def __init__(self, what, log, max_wait=None, clock=time.time):
@@ -585,8 +687,7 @@ class Waiter:
 
 def owner_record():
     """Who holds a lock: written into lane locks and the players' ledger."""
-    return {'pid': os.getpid(), 'start': process_start(os.getpid()), 'root': ROOT, 'out': OUT,
-            'since': time.strftime('%Y-%m-%dT%H:%M:%S')}
+    return {'pid': os.getpid(), 'start': process_start(os.getpid()), 'root': ROOT, 'out': OUT, 'since': time.strftime('%Y-%m-%dT%H:%M:%S')}
 
 
 def process_start(pid):
@@ -750,8 +851,7 @@ def lane_problem(number, busy=port_open, display_busy=display_in_use, reserved=(
     return None
 
 
-def try_lane(number, lock_dir=None, busy=port_open, display_busy=display_in_use, reserved=(set(), set()), display=True,
-             leftovers=None, log=say):
+def try_lane(number, lock_dir=None, busy=port_open, display_busy=display_in_use, reserved=(set(), set()), display=True, leftovers=None, log=say):
     """Lane NUMBER if no runner on the machine holds it and its ports and display are free and
     not reserved, else None. What a dead runner left on it is cleaned first (lane_leftovers;
     LEFTOVERS(number, record, lock_dir) stands in for it in tests)."""
@@ -769,8 +869,7 @@ def try_lane(number, lock_dir=None, busy=port_open, display_busy=display_in_use,
     # Looked for only when the lane seems busy or its last runner recorded children (a scan of
     # every process, made for each lane while a runner waits for one).
     if previous.get('children') or lane_problem(number, busy, display_busy, reserved, display):
-        found = (leftovers or (lambda n, r, d: lane_leftovers(n, r, d, display=None if display else -1)))(
-            number, previous, lock_dir)
+        found = (leftovers or (lambda n, r, d: lane_leftovers(n, r, d, display=None if display else -1)))(number, previous, lock_dir)
         if found:
             log(f'lane {number}: its last runner (pid {previous.get("pid")}) has gone; cleaning what it left')
             clean_leftovers(found, log=lambda s: log(f'lane {number}: {s}'))
@@ -783,8 +882,9 @@ def try_lane(number, lock_dir=None, busy=port_open, display_busy=display_in_use,
     return Lane(number, f, lane_display(number) if display else None, record)
 
 
-def allocate_lane(first, lock_dir=None, busy=port_open, wait=True, log=say, last=None, display=True,
-                  display_busy=display_in_use, reserved=None, max_wait=None, give_up=None):
+def allocate_lane(
+    first, lock_dir=None, busy=port_open, wait=True, log=say, last=None, display=True, display_busy=display_in_use, reserved=None, max_wait=None, give_up=None
+):
     """The first free lane from FIRST to LAST (default LAST_LANE), waiting for one if WAIT; None
     once GIVE_UP() holds while it waits."""
     lock_dir = lock_dir or shared_dir()
@@ -799,8 +899,7 @@ def allocate_lane(first, lock_dir=None, busy=port_open, wait=True, log=say, last
         if not wait or (give_up and give_up()):
             return None
         holders = [f'{s["lane"]}: pid {s["pid"]} in {s["root"]}' for s in lane_status(lock_dir) if first <= s['lane'] <= last]
-        waiter.tick('held: ' + (', '.join(holders) or 'none; the others are busy or reserved')
-                    + ' (scripts/e2e.py --status says by what)', key=tuple(holders))
+        waiter.tick('held: ' + (', '.join(holders) or 'none; the others are busy or reserved') + ' (scripts/e2e.py --status says by what)', key=tuple(holders))
         time.sleep(5)
 
 
@@ -883,9 +982,8 @@ def read_proc(pid):
             args = [a.decode(errors='replace') for a in f.read().split(b'\0')[:-1]]
     except OSError:
         return None
-    comm, rest = stat[stat.index('(') + 1:stat.rindex(')')], stat[stat.rindex(')') + 2:].split()
-    return {'pid': int(pid), 'ppid': int(rest[1]), 'pgid': int(rest[2]), 'start': int(rest[19]), 'comm': comm,
-            'args': args, 'env': process_environ(pid)}
+    comm, rest = stat[stat.index('(') + 1 : stat.rindex(')')], stat[stat.rindex(')') + 2 :].split()
+    return {'pid': int(pid), 'ppid': int(rest[1]), 'pgid': int(rest[2]), 'start': int(rest[19]), 'comm': comm, 'args': args, 'env': process_environ(pid)}
 
 
 def snapshot():
@@ -912,8 +1010,7 @@ def has_systemd():
     """Whether a systemd user manager runs the players' scopes (scripts/contain.sh)."""
     global _systemd
     if _systemd is None:
-        _systemd = bool(shutil.which('systemctl')) and subprocess.run(
-            ['systemctl', '--user', 'show-environment'], capture_output=True).returncode == 0
+        _systemd = bool(shutil.which('systemctl')) and subprocess.run(['systemctl', '--user', 'show-environment'], capture_output=True).returncode == 0
     return _systemd
 
 
@@ -921,16 +1018,19 @@ def test_scopes():
     """The oni-test-* scopes loaded now."""
     if not has_systemd():
         return []
-    out = subprocess.run(['systemctl', '--user', 'list-units', '--type=scope', '--all', '--plain', '--no-legend',
-                          f'{SCOPE_PREFIX}-*'], capture_output=True, text=True).stdout
+    out = subprocess.run(
+        ['systemctl', '--user', 'list-units', '--type=scope', '--all', '--plain', '--no-legend', f'{SCOPE_PREFIX}-*'], capture_output=True, text=True
+    ).stdout
     return [line.split()[0] for line in out.splitlines() if line.strip()]
 
 
 def stop_scope(unit, grace=None):
     """Ends every process in a scope: SIGTERM, then SIGKILL after GRACE seconds (default
     quit_grace(): a scope holds a player)."""
+
     def active():
         return subprocess.run(['systemctl', '--user', 'is-active', '--quiet', unit]).returncode == 0
+
     if not has_systemd() or not active():
         return
     subprocess.run(['systemctl', '--user', 'kill', '--signal=SIGTERM', unit], capture_output=True)
@@ -1040,8 +1140,7 @@ def machine_dir(lock_dir):
     return os.path.realpath(lock_dir) == os.path.realpath(default)
 
 
-def lane_leftovers(number, record=None, lock_dir=None, procs=None, scopes=None, alive=tag_alive, display=None,
-                   machine=None, tmp=None):
+def lane_leftovers(number, record=None, lock_dir=None, procs=None, scopes=None, alive=tag_alive, display=None, machine=None, tmp=None):
     """What runners that died left on lane NUMBER: [(kind, target, why)], kind 'scope' (a unit
     name), 'process' (a read_proc dict) or 'file' (an X lock file or socket). RECORD is the lane
     lock's last record (nothing is a leftover while its runner lives); DISPLAY the lane's X display
@@ -1219,9 +1318,14 @@ def start_reaper(lock_dir=None):
     """This runner's watcher (reap_after), in a session of its own."""
     env = {k: v for k, v in os.environ.items() if k != OWNER_ENV}
     env['E2E_LOCK_DIR'] = lock_dir or shared_dir()
-    return subprocess.Popen([sys.executable, os.path.abspath(__file__), '--reap-after', str(os.getpid()),
-                             str(process_start(os.getpid()))], env=env, start_new_session=True,
-                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return subprocess.Popen(
+        [sys.executable, os.path.abspath(__file__), '--reap-after', str(os.getpid()), str(process_start(os.getpid()))],
+        env=env,
+        start_new_session=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 # The lanes this process holds, for the teardown on a signal or at exit.
@@ -1259,6 +1363,7 @@ def install_teardown():
             teardown_all(log=signal_say)
         finally:
             os._exit(128 + signum)
+
     for s in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
         signal.signal(s, on_signal)
     atexit.register(teardown_all)
@@ -1266,8 +1371,8 @@ def install_teardown():
 
 # The players' memory budget (§6.2): the machine has 62 GB. A player on a small save takes 4-6 GB,
 # on 2minnow about 11 GB and on U57 about 15 GB.
-MEMORY_GB = 40      # E2E_MEMORY_GB: what all players on the machine may use at once
-MAX_PLAYERS = 4     # E2E_MAX_PLAYERS: how many may run at once (more exhaust the WSL GPU)
+MEMORY_GB = 40  # E2E_MEMORY_GB: what all players on the machine may use at once
+MAX_PLAYERS = 4  # E2E_MAX_PLAYERS: how many may run at once (more exhaust the WSL GPU)
 FIXTURE_GB = {'U57': 15, '2minnow': 11}
 SMALL_GB, MID_GB, LATE_GB = 6, 11, 15
 
@@ -1319,12 +1424,12 @@ def save_written(path):
     view = memoryview(data)
     for i in range(start, len(data) - 1):
         # A zlib header: deflate (CM 8) and a check value making the pair a multiple of 31.
-        if data[i] & 0x0f != 8 or ((data[i] << 8) | data[i + 1]) % 31:
+        if data[i] & 0x0F != 8 or ((data[i] << 8) | data[i + 1]) % 31:
             continue
         z = zlib.decompressobj()
         try:
             for at in range(i, len(data), 1 << 20):
-                z.decompress(view[at:at + (1 << 20)])
+                z.decompress(view[at : at + (1 << 20)])
                 if z.eof:
                     break
         except zlib.error:
@@ -1460,16 +1565,13 @@ class Budget:
             if waiters and waiters[0]['ticket'] != ticket:
                 ahead = next((i for i, w in enumerate(waiters) if w['ticket'] == ticket), len(waiters))
                 first = waiters[0]
-                return None, (f'{ahead} waiter(s) ahead in the queue, first {first["label"]} '
-                              f'({first["gb"]:g} GB, pid {first["pid"]})')
+                return None, (f'{ahead} waiter(s) ahead in the queue, first {first["label"]} ({first["gb"]:g} GB, pid {first["pid"]})')
             entries = self._read()
             qa_gb = float(os.environ.get('E2E_QA_GB', QA_GB))
-            counted = entries + ([dict(label='qa.sh', gb=qa_gb, pid=pid) for pid, _, _ in qa_processes()]
-                                 if qa_gb > 0 else [])
+            counted = entries + ([dict(label='qa.sh', gb=qa_gb, pid=pid) for pid, _, _ in qa_processes()] if qa_gb > 0 else [])
             used = sum(e['gb'] for e in counted)
             if counted and (len(counted) >= self.players or used + gb > self.gb):
-                return None, (f'{used:g} of {self.gb:g} GB and {len(counted)} of {self.players} players in use: '
-                              + self.describe(counted))
+                return None, (f'{used:g} of {self.gb:g} GB and {len(counted)} of {self.players} players in use: ' + self.describe(counted))
             token = f'{os.getpid()}-{threading.get_ident()}-{time.time_ns()}'
             entries.append(dict(owner_record(), token=token, gb=gb, label=label))
             self._write(entries)
@@ -1504,6 +1606,7 @@ class Budget:
 # Perf jobs: a spec never starts beside one (§10 decision 7). It waits while one holds
 # perf.lock exclusively (`flock -x -o ~/.cache/oni-brutal-e2e/perf.lock CMD`) or while ps shows one.
 
+
 def perf_jobs(lines=None):
     """The ps lines (args) of running perf jobs."""
     if lines is None:
@@ -1525,8 +1628,7 @@ def perf_processes(lines=None, patterns=None):
     for line in lines:
         parts = line.strip().split(None, 2)
         args = re.sub(r'^(/usr/bin/env )?(ba)?sh ', '', parts[2].strip()) if len(parts) == 3 else ''
-        if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit() and int(parts[0]) != os.getpid() \
-                and any(re.search(p, args) for p in patterns):
+        if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit() and int(parts[0]) != os.getpid() and any(re.search(p, args) for p in patterns):
             found.append((int(parts[0]), int(parts[1]), parts[2]))
     return found
 
@@ -1593,7 +1695,7 @@ def port_listeners(procs=None):
                 if len(fields) > 9 and fields[3] == '0A':  # LISTEN
                     inodes[fields[9]] = int(fields[1].rsplit(':', 1)[1], 16)
     found = {}
-    for p in (snapshot() if procs is None else procs):
+    for p in snapshot() if procs is None else procs:
         with contextlib.suppress(OSError):
             for fd in os.listdir(f'/proc/{p["pid"]}/fd'):
                 with contextlib.suppress(OSError):
@@ -1690,19 +1792,22 @@ def status(lock_dir=None, procs=None):
         mcp, driver = lane_ports(number)
         display = lane_display(number)
         head = f'lane {number} (:{mcp}, :{driver}, {display})'
-        busy = [f'port {port}: {", ".join(who(pid) for pid in listeners.get(port, [])) or "open"}'
-                for port in (mcp, driver) if port in listeners]
+        busy = [f'port {port}: {", ".join(who(pid) for pid in listeners.get(port, [])) or "open"}' for port in (mcp, driver) if port in listeners]
         lock_pid = x_lock_pid(display[1:])
         if lock_pid or display_ready(display[1:]):
             busy.append(f'display {display}: ' + (who(lock_pid) if lock_pid else 'a server answers'))
         if number in held:
             s = held[number]
-            lines.append(f'{head}: HELD by pid {s["pid"]} ({"alive" if holder_alive(s) else "gone; a child keeps its lock"}) '
-                         f'in {s["root"]} since {s["since"]}: {s.get("state") or "?"}')
+            lines.append(
+                f'{head}: HELD by pid {s["pid"]} ({"alive" if holder_alive(s) else "gone; a child keeps its lock"}) '
+                f'in {s["root"]} since {s["since"]}: {s.get("state") or "?"}'
+            )
             for c in s.get('children') or []:
                 p = by_pid.get(c['pid'])
-                lines.append(f'    {c["role"]}: pid {c["pid"]} ({"alive" if p and p["start"] == c["start"] else "gone"})'
-                             + (f', scope {c["scope"]}' if c.get('scope') else ''))
+                lines.append(
+                    f'    {c["role"]}: pid {c["pid"]} ({"alive" if p and p["start"] == c["start"] else "gone"})'
+                    + (f', scope {c["scope"]}' if c.get('scope') else '')
+                )
             lines += [f'    {b}' for b in busy]
             continue
         record = {}
@@ -1714,23 +1819,32 @@ def status(lock_dir=None, procs=None):
         if not busy and not found:
             free.append(number)
             continue
-        last = (f'last held by pid {record["pid"]} ({"alive" if holder_alive(record) else "gone"}) since '
-                f'{record.get("since")}: {record.get("state") or "?"}') if record.get('pid') else 'never held'
+        last = (
+            (f'last held by pid {record["pid"]} ({"alive" if holder_alive(record) else "gone"}) since {record.get("since")}: {record.get("state") or "?"}')
+            if record.get('pid')
+            else 'never held'
+        )
         lines.append(f'{head}: FREE but busy; {last}')
         lines += [f'    {b}' for b in busy]
         lines += [f'    would clean: {describe_leftover(item)}' for item in found]
         cleanable += len(found)
     lines.append('free lanes: ' + (compress_numbers(free) or 'none'))
     if cleanable:
-        lines.append(f'    {cleanable} leftover(s) of dead runners: the next runner to take those lanes cleans them; '
-                     'scripts/e2e.py --clean does now')
+        lines.append(f'    {cleanable} leftover(s) of dead runners: the next runner to take those lanes cleans them; scripts/e2e.py --clean does now')
     # perf.lock, perf.wanted and who waits on them.
     holders = flock_holders(os.path.join(lock_dir, 'perf.lock'))
     exclusive = [pid for pid, mode in holders if mode == 'exclusive']
     shared = [pid for pid, mode in holders if mode == 'shared']
-    lines.append('perf.lock: ' + (f'held EXCLUSIVELY by {who(exclusive[0])}' if exclusive else
-                                  f'held shared by {len(shared)} spec run(s) (pids {", ".join(map(str, shared))})'
-                                  if shared else 'free'))
+    lines.append(
+        'perf.lock: '
+        + (
+            f'held EXCLUSIVELY by {who(exclusive[0])}'
+            if exclusive
+            else f'held shared by {len(shared)} spec run(s) (pids {", ".join(map(str, shared))})'
+            if shared
+            else 'free'
+        )
+    )
     try:
         with open(os.path.join(lock_dir, 'perf.wanted')) as f:
             wanted = int(f.read().split()[0])
@@ -1770,8 +1884,9 @@ def status(lock_dir=None, procs=None):
     for p in procs:
         parent = by_pid.get(p['ppid'])
         # Orphans go to init, the user's systemd or, under WSL, the session's /init relay.
-        if p['comm'] == 'Xvfb' and (p['ppid'] <= 1 or not parent or parent['comm'] == 'systemd'
-                                    or parent['comm'].startswith('Relay(') or parent['args'][:1] == ['/init']):
+        if p['comm'] == 'Xvfb' and (
+            p['ppid'] <= 1 or not parent or parent['comm'] == 'systemd' or parent['comm'].startswith('Relay(') or parent['args'][:1] == ['/init']
+        ):
             lines.append(f'X server without its launcher: pid {p["pid"]}, {ago(proc_age(p))} old: {" ".join(p["args"])[:100]}')
     return lines
 
@@ -1841,8 +1956,7 @@ def plan_jobs(specs, kinds, repeat):
         originals = []
         for kind in [k for k in kinds if k == 'ours'] if spec.get('ours_only') else kinds:
             for index in range(1, repeat + 1):
-                job = {'id': f'{spec["name"]}/{kind}-{index}', 'spec': spec, 'kind': kind, 'index': index,
-                       'after': list(originals) if kind == 'ours' else []}
+                job = {'id': f'{spec["name"]}/{kind}-{index}', 'spec': spec, 'kind': kind, 'index': index, 'after': list(originals) if kind == 'ours' else []}
                 if kind == 'original':
                     originals.append(job['id'])
                 jobs.append(job)
@@ -1850,6 +1964,7 @@ def plan_jobs(specs, kinds, repeat):
 
 
 # ---------------------------------------------------------------- OniMcp
+
 
 def why_failed(value):
     """The error, reason and message texts nested anywhere in an OniMcp result, JSON in strings
@@ -1862,8 +1977,7 @@ def why_failed(value):
             return
     if isinstance(value, dict):
         for key, item in value.items():
-            if key in ('error', 'reason', 'message', 'detail', 'why') and isinstance(item, str) \
-                    and not item.startswith('{'):
+            if key in ('error', 'reason', 'message', 'detail', 'why') and isinstance(item, str) and not item.startswith('{'):
                 yield item
             else:
                 yield from why_failed(item)
@@ -1903,8 +2017,14 @@ class Mcp:
 
     def connect(self):
         self.session = self.version = None
-        reply = self.post({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {
-            'protocolVersion': self.PROTOCOL, 'capabilities': {}, 'clientInfo': {'name': 'e2e', 'version': '1'}}})
+        reply = self.post(
+            {
+                'jsonrpc': '2.0',
+                'id': 1,
+                'method': 'initialize',
+                'params': {'protocolVersion': self.PROTOCOL, 'capabilities': {}, 'clientInfo': {'name': 'e2e', 'version': '1'}},
+            }
+        )
         self.version = reply.get('result', {}).get('protocolVersion') or self.PROTOCOL
         self.post({'jsonrpc': '2.0', 'method': 'notifications/initialized'})
 
@@ -1923,8 +2043,7 @@ class Mcp:
 
     def call(self, tool, **args):
         args.setdefault('task', 'e2e spec')
-        value, error = self.parse(self.post({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/call',
-                                             'params': {'name': tool, 'arguments': args}}))
+        value, error = self.parse(self.post({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/call', 'params': {'name': tool, 'arguments': args}}))
         if error:
             why = '; '.join(dict.fromkeys(why_failed(value)))[:600]
             raise SpecFailure(f'{tool} failed: {str(value)[:600]}' + (f' ... why: {why}' if why else ''))
@@ -1935,6 +2054,7 @@ class Mcp:
 
 
 # ---------------------------------------------------------------- E2eDriver
+
 
 class DriverError(SpecFailure):
     """A request E2eDriver answered with ok: false (or could not answer); RESULT is what it
@@ -2044,16 +2164,14 @@ class Driver:
         return self.request('ping')
 
     def find(self, path=None, text=None, type=None, under=None, inactive=False, limit=None, hits=None):
-        query = {k: v for k, v in (('path', path), ('text', text), ('type', type), ('under', under),
-                                   ('limit', limit), ('hits', hits)) if v is not None}
+        query = {k: v for k, v in (('path', path), ('text', text), ('type', type), ('under', under), ('limit', limit), ('hits', hits)) if v is not None}
         if inactive:
             query['inactive'] = True
         return [Element(e) for e in self.request('ui.find', **query)['elements']]
 
     def find_one(self, query, index=None):
         index = query.get('index', 0) if index is None else index
-        found = self.find(path=query.get('ui'), text=query.get('text'), type=query.get('type'),
-                          under=query.get('under'), limit=max(50, index + 1))
+        found = self.find(path=query.get('ui'), text=query.get('text'), type=query.get('type'), under=query.get('under'), limit=max(50, index + 1))
         what = query.get('ui') or f'text {query.get("text")!r}' + (f' under {query["under"]}' if query.get('under') else '')
         if not found:
             raise SpecFailure(f'no active element {what}')
@@ -2132,17 +2250,50 @@ class Driver:
 
 # KKeyCode names (the game's key enum) as X keysym names, US layout (Xvfb's default keymap).
 KKEYCODES = {
-    'Escape': 'Escape', 'Return': 'Return', 'Space': 'space', 'Tab': 'Tab', 'Backspace': 'BackSpace',
-    'Delete': 'Delete', 'Insert': 'Insert', 'Home': 'Home', 'End': 'End', 'PageUp': 'Prior', 'PageDown': 'Next',
-    'UpArrow': 'Up', 'DownArrow': 'Down', 'LeftArrow': 'Left', 'RightArrow': 'Right',
-    'LeftShift': 'Shift_L', 'RightShift': 'Shift_R', 'LeftControl': 'Control_L', 'RightControl': 'Control_R',
-    'LeftAlt': 'Alt_L', 'RightAlt': 'Alt_R', 'CapsLock': 'Caps_Lock', 'Numlock': 'Num_Lock',
-    'ScrollLock': 'Scroll_Lock', 'Pause': 'Pause', 'Print': 'Print',
-    'Comma': 'comma', 'Period': 'period', 'Slash': 'slash', 'Backslash': 'backslash', 'Semicolon': 'semicolon',
-    'Quote': 'apostrophe', 'BackQuote': 'grave', 'LeftBracket': 'bracketleft', 'RightBracket': 'bracketright',
-    'Minus': 'minus', 'Equals': 'equal',
-    'KeypadPeriod': 'KP_Decimal', 'KeypadDivide': 'KP_Divide', 'KeypadMultiply': 'KP_Multiply',
-    'KeypadMinus': 'KP_Subtract', 'KeypadPlus': 'KP_Add', 'KeypadEnter': 'KP_Enter', 'KeypadEquals': 'KP_Equal',
+    'Escape': 'Escape',
+    'Return': 'Return',
+    'Space': 'space',
+    'Tab': 'Tab',
+    'Backspace': 'BackSpace',
+    'Delete': 'Delete',
+    'Insert': 'Insert',
+    'Home': 'Home',
+    'End': 'End',
+    'PageUp': 'Prior',
+    'PageDown': 'Next',
+    'UpArrow': 'Up',
+    'DownArrow': 'Down',
+    'LeftArrow': 'Left',
+    'RightArrow': 'Right',
+    'LeftShift': 'Shift_L',
+    'RightShift': 'Shift_R',
+    'LeftControl': 'Control_L',
+    'RightControl': 'Control_R',
+    'LeftAlt': 'Alt_L',
+    'RightAlt': 'Alt_R',
+    'CapsLock': 'Caps_Lock',
+    'Numlock': 'Num_Lock',
+    'ScrollLock': 'Scroll_Lock',
+    'Pause': 'Pause',
+    'Print': 'Print',
+    'Comma': 'comma',
+    'Period': 'period',
+    'Slash': 'slash',
+    'Backslash': 'backslash',
+    'Semicolon': 'semicolon',
+    'Quote': 'apostrophe',
+    'BackQuote': 'grave',
+    'LeftBracket': 'bracketleft',
+    'RightBracket': 'bracketright',
+    'Minus': 'minus',
+    'Equals': 'equal',
+    'KeypadPeriod': 'KP_Decimal',
+    'KeypadDivide': 'KP_Divide',
+    'KeypadMultiply': 'KP_Multiply',
+    'KeypadMinus': 'KP_Subtract',
+    'KeypadPlus': 'KP_Add',
+    'KeypadEnter': 'KP_Enter',
+    'KeypadEquals': 'KP_Equal',
     **{chr(c): chr(c).lower() for c in range(ord('A'), ord('Z') + 1)},
     **{f'Alpha{d}': str(d) for d in range(10)},
     **{f'Keypad{d}': f'KP_{d}' for d in range(10)},
@@ -2156,11 +2307,25 @@ XTEST_BUTTONS = 10
 
 class XButtonEvent(ctypes.Structure):
     """Xlib's XButtonEvent, padded to an XEvent (24 longs)."""
-    _fields_ = [('type', ctypes.c_int), ('serial', ctypes.c_ulong), ('send_event', ctypes.c_int),
-                ('display', ctypes.c_void_p), ('window', ctypes.c_ulong), ('root', ctypes.c_ulong),
-                ('subwindow', ctypes.c_ulong), ('time', ctypes.c_ulong), ('x', ctypes.c_int), ('y', ctypes.c_int),
-                ('x_root', ctypes.c_int), ('y_root', ctypes.c_int), ('state', ctypes.c_uint),
-                ('button', ctypes.c_uint), ('same_screen', ctypes.c_int), ('pad', ctypes.c_long * 12)]
+
+    _fields_ = [
+        ('type', ctypes.c_int),
+        ('serial', ctypes.c_ulong),
+        ('send_event', ctypes.c_int),
+        ('display', ctypes.c_void_p),
+        ('window', ctypes.c_ulong),
+        ('root', ctypes.c_ulong),
+        ('subwindow', ctypes.c_ulong),
+        ('time', ctypes.c_ulong),
+        ('x', ctypes.c_int),
+        ('y', ctypes.c_int),
+        ('x_root', ctypes.c_int),
+        ('y_root', ctypes.c_int),
+        ('state', ctypes.c_uint),
+        ('button', ctypes.c_uint),
+        ('same_screen', ctypes.c_int),
+        ('pad', ctypes.c_long * 12),
+    ]
 
 
 # X11 button numbers; 4 to 7 are the wheel, 8 and up the side buttons (back 8, forward 9).
@@ -2188,7 +2353,7 @@ def keysym_name(name):
 
 
 def parse_key(code):
-    """"Shift+B" as ([modifier keysyms], key keysym); a lone modifier is the key itself."""
+    """ "Shift+B" as ([modifier keysyms], key keysym); a lone modifier is the key itself."""
     parts = [p for p in re.split(r'\s*\+\s*', str(code).strip()) if p]
     if not parts:
         raise SpecError(f'empty key {code!r}')
@@ -2239,9 +2404,14 @@ class Input:
         xtst.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
         xtst.XTestFakeKeyEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
         x11.XDefaultRootWindow.argtypes, x11.XDefaultRootWindow.restype = [ctypes.c_void_p], ctypes.c_ulong
-        x11.XQueryTree.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong),
-                                   ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.POINTER(ctypes.c_ulong)),
-                                   ctypes.POINTER(ctypes.c_uint)]
+        x11.XQueryTree.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_ulong,
+            ctypes.POINTER(ctypes.c_ulong),
+            ctypes.POINTER(ctypes.c_ulong),
+            ctypes.POINTER(ctypes.POINTER(ctypes.c_ulong)),
+            ctypes.POINTER(ctypes.c_uint),
+        ]
         x11.XGetWindowAttributes.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_void_p]
         x11.XSetInputFocus.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
         x11.XFree.argtypes = [ctypes.c_void_p]
@@ -2276,8 +2446,9 @@ class Input:
         x11 = self.x11
         root, parent = ctypes.c_ulong(), ctypes.c_ulong()
         children, count = ctypes.POINTER(ctypes.c_ulong)(), ctypes.c_uint()
-        if not x11.XQueryTree(self.dpy, x11.XDefaultRootWindow(self.dpy), ctypes.byref(root), ctypes.byref(parent),
-                              ctypes.byref(children), ctypes.byref(count)):
+        if not x11.XQueryTree(
+            self.dpy, x11.XDefaultRootWindow(self.dpy), ctypes.byref(root), ctypes.byref(parent), ctypes.byref(children), ctypes.byref(count)
+        ):
             return
         best, area = None, 0
         attributes = (ctypes.c_int * 64)()  # XWindowAttributes, read by offset below
@@ -2313,15 +2484,22 @@ class Input:
         """The display's whole screen as a PNG at PATH (XGetImage of the root window): what the
         player shows where OniMcp takes no screenshot (the main menu, before a colony exists)."""
         x11 = self.x11
-        x11.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int, ctypes.c_uint,
-                                  ctypes.c_uint, ctypes.c_ulong, ctypes.c_int]
+        x11.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int, ctypes.c_uint, ctypes.c_uint, ctypes.c_ulong, ctypes.c_int]
         x11.XGetImage.restype = ctypes.c_void_p
         x11.XDefaultScreen.argtypes = [ctypes.c_void_p]
         x11.XDisplayWidth.argtypes = x11.XDisplayHeight.argtypes = [ctypes.c_void_p, ctypes.c_int]
         x11.XSync(self.dpy, 0)
         screen = x11.XDefaultScreen(self.dpy)
-        image = x11.XGetImage(self.dpy, x11.XDefaultRootWindow(self.dpy), 0, 0, x11.XDisplayWidth(self.dpy, screen),
-                              x11.XDisplayHeight(self.dpy, screen), ctypes.c_ulong(-1).value, 2)  # AllPlanes, ZPixmap
+        image = x11.XGetImage(
+            self.dpy,
+            x11.XDefaultRootWindow(self.dpy),
+            0,
+            0,
+            x11.XDisplayWidth(self.dpy, screen),
+            x11.XDisplayHeight(self.dpy, screen),
+            ctypes.c_ulong(-1).value,
+            2,
+        )  # AllPlanes, ZPixmap
         if not image:
             raise SpecFailure(f'cannot read the screen of {self.display}')
         try:
@@ -2334,6 +2512,7 @@ class Input:
             if bpp != 32 or depth < 24:
                 raise SpecFailure(f'{self.display}: a {depth}-bit screen at {bpp} bits a pixel')
             from PIL import Image
+
             pixels = ctypes.string_at(data, stride * height)
             Image.frombuffer('RGB', (width, height), pixels, 'raw', 'BGRX', stride, 1).save(path)
         finally:
@@ -2373,8 +2552,13 @@ class Input:
         """A button past XTEST's ten as an event sent to the window under the pointer
         (XSendEvent: send_event set, as no real device's event has it)."""
         x11 = self.x11
-        x11.XQueryPointer.argtypes = [ctypes.c_void_p, ctypes.c_ulong, *[ctypes.POINTER(ctypes.c_ulong)] * 2,
-                                      *[ctypes.POINTER(ctypes.c_int)] * 4, ctypes.POINTER(ctypes.c_uint)]
+        x11.XQueryPointer.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_ulong,
+            *[ctypes.POINTER(ctypes.c_ulong)] * 2,
+            *[ctypes.POINTER(ctypes.c_int)] * 4,
+            ctypes.POINTER(ctypes.c_uint),
+        ]
         x11.XSendEvent.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_long, ctypes.c_void_p]
         root = x11.XDefaultRootWindow(self.dpy)
         window, x, y, rx, ry = root, 0, 0, 0, 0
@@ -2382,14 +2566,14 @@ class Input:
             r, child = ctypes.c_ulong(), ctypes.c_ulong()
             ints = [ctypes.c_int() for _ in range(4)]
             mask = ctypes.c_uint()
-            x11.XQueryPointer(self.dpy, window, ctypes.byref(r), ctypes.byref(child), *[ctypes.byref(i) for i in ints],
-                              ctypes.byref(mask))
+            x11.XQueryPointer(self.dpy, window, ctypes.byref(r), ctypes.byref(child), *[ctypes.byref(i) for i in ints], ctypes.byref(mask))
             rx, ry, x, y = (i.value for i in ints)
             if not child.value:
                 break
             window = child.value
-        event = XButtonEvent(type=4 if down else 5, send_event=1, display=self.dpy, window=window, root=root,
-                             x=x, y=y, x_root=rx, y_root=ry, button=number, same_screen=1)
+        event = XButtonEvent(
+            type=4 if down else 5, send_event=1, display=self.dpy, window=window, root=root, x=x, y=y, x_root=rx, y_root=ry, button=number, same_screen=1
+        )
         mask = (1 << 2) if down else (1 << 3)  # ButtonPressMask, ButtonReleaseMask
         x11.XSendEvent(self.dpy, window, 1, mask, ctypes.byref(event))
         self._flush()
@@ -2499,6 +2683,7 @@ class Input:
 
 # ---------------------------------------------------------------- the player
 
+
 def descendants(pid):
     children = {}
     for entry in os.listdir('/proc'):
@@ -2548,8 +2733,7 @@ _xvfb_start = threading.Lock()
 def translation_only(folder):
     """Whether a mod folder is a translation: a .po file at its root (KMod's Translation
     content, whatever the case of its name) and no assembly anywhere."""
-    if not os.path.isdir(folder) or not any(f.lower().endswith('.po') and os.path.isfile(os.path.join(folder, f))
-                                            for f in os.listdir(folder)):
+    if not os.path.isdir(folder) or not any(f.lower().endswith('.po') and os.path.isfile(os.path.join(folder, f)) for f in os.listdir(folder)):
         return False
     return not any(f.lower().endswith('.dll') for _, _, files in os.walk(folder) for f in files)
 
@@ -2644,8 +2828,7 @@ class Watchdog(threading.Thread):
             return self.hung
 
     def hang_dump(self, pid, folder):
-        result = subprocess.run([os.path.join(ROOT, 'scripts', 'hang-dump.sh'), str(pid), folder, self.player.log],
-                                capture_output=True, text=True)
+        result = subprocess.run([os.path.join(ROOT, 'scripts', 'hang-dump.sh'), str(pid), folder, self.player.log], capture_output=True, text=True)
         return (result.stdout.splitlines() or ['hang-dump.sh printed nothing'])[0]
 
 
@@ -2683,11 +2866,35 @@ class Player:
     """One player process on its own display, with a scratch profile holding OniMcp, E2eDriver,
     the spec's mods and options, and a fixture."""
 
-    def __init__(self, kind, out, env, fixture, lane, mods=(), options=None, driver=False, expansion1=True,
-                 translation=None, language=None, keyboard=None, tweaks_menu=False, blocked_plugins=None,
-                 data_collection=False, extra_saves=(), retired_colonies=(), display_dpi=None, workshop=None,
-                 update_check=None,
-                 stray_plugins=(), game_tweaks=(), extra_env=None, test_mods=(), game_args=(), player_args=()):
+    def __init__(
+        self,
+        kind,
+        out,
+        env,
+        fixture,
+        lane,
+        mods=(),
+        options=None,
+        driver=False,
+        expansion1=True,
+        translation=None,
+        language=None,
+        keyboard=None,
+        tweaks_menu=False,
+        blocked_plugins=None,
+        data_collection=False,
+        extra_saves=(),
+        retired_colonies=(),
+        display_dpi=None,
+        workshop=None,
+        update_check=None,
+        stray_plugins=(),
+        game_tweaks=(),
+        extra_env=None,
+        test_mods=(),
+        game_args=(),
+        player_args=(),
+    ):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
         self.player_args = list(player_args or ())
         self.game_args = list(game_args or ())
@@ -2746,15 +2953,25 @@ class Player:
         # OniMcp's options: the lane's port, JSON tool text, and none of its own gameplay policies
         # (it turns the global auto-disinfect off and dismisses tutorial notifications by default).
         with open(os.path.join(self.profile, 'OniMcpConfig.json'), 'w') as f:
-            json.dump({'SecurityMigrationVersion': 1, 'Host': 'localhost', 'Port': lane.mcp_port, 'AuthEnabled': False,
-                       'GlobalAutoDisinfectDisabled': False, 'AutoDismissTutorialNotifications': False,
-                       'ToolTextFormat': 'json'}, f)
+            json.dump(
+                {
+                    'SecurityMigrationVersion': 1,
+                    'Host': 'localhost',
+                    'Port': lane.mcp_port,
+                    'AuthEnabled': False,
+                    'GlobalAutoDisinfectDisabled': False,
+                    'AutoDismissTutorialNotifications': False,
+                    'ToolTextFormat': 'json',
+                },
+                f,
+            )
         with open(os.path.join(self.profile, 'kplayerprefs.yaml'), 'w') as f:
-            f.write(translation_prefs(translation, language) + f'ints:\n  ResolutionWidth: {WIDTH}\n  ResolutionHeight: {HEIGHT}\n'
-                    '  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 0\n'
-                    # DlcManager reads Spaced Out as on unless this says 0.
-                    + ('' if expansion1 else '  EXPANSION1_ID.ENABLED: 0\n')
-                    + (f'floats:\n  UIScalePref: {float(UI_SCALE)}\n' if UI_SCALE else 'floats: {}\n'))
+            f.write(
+                translation_prefs(translation, language) + f'ints:\n  ResolutionWidth: {WIDTH}\n  ResolutionHeight: {HEIGHT}\n'
+                '  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 0\n'
+                # DlcManager reads Spaced Out as on unless this says 0.
+                 + ('' if expansion1 else '  EXPANSION1_ID.ENABLED: 0\n') + (f'floats:\n  UIScalePref: {float(UI_SCALE)}\n' if UI_SCALE else 'floats: {}\n')
+            )
         if not data_collection:
             # The Data Collection option off (KPrivacyPrefs) unless the spec says
             # `data_collection: true`: no test run submits a crash report to Klei's server (a
@@ -2808,8 +3025,7 @@ class Player:
                     raise SpecFailure(f'no E2eDriver.dll in {source} (dotnet build tools/E2eDriver -c Release)')
                 shutil.copy(dll, dest)
                 for name in ('mod.yaml', 'mod_info.yaml'):
-                    shutil.copy(next(p for p in (os.path.join(DRIVER_SOURCE, name), os.path.join(source, name))
-                                     if os.path.exists(p)), dest)
+                    shutil.copy(next(p for p in (os.path.join(DRIVER_SOURCE, name), os.path.join(source, name)) if os.path.exists(p)), dest)
             elif folder in self.test_mods:
                 # The build's assembly and yaml files (dotnet build tools/NAME -c Release).
                 os.makedirs(dest)
@@ -2828,10 +3044,17 @@ class Player:
                 hash_of = ws_mods().mono_hash
             # A local mod's version is its folder name's Mono hash, which KMod recomputes.
             title = (mod_yaml_value(dest, 'title') if folder in self.test_mods else None) or folder
-            entries.append({'label': {'distribution_platform': 0, 'id': folder, 'title': title,
-                                      'version': hash_of(folder)},
-                            'status': 1, 'enabled': True, 'enabledForDlc': ['', 'EXPANSION1_ID'], 'crash_count': 0,
-                            'reinstall_path': None, 'staticID': static})
+            entries.append(
+                {
+                    'label': {'distribution_platform': 0, 'id': folder, 'title': title, 'version': hash_of(folder)},
+                    'status': 1,
+                    'enabled': True,
+                    'enabledForDlc': ['', 'EXPANSION1_ID'],
+                    'crash_count': 0,
+                    'reinstall_path': None,
+                    'staticID': static,
+                }
+            )
         if self.workshop:
             entries.append(self.install_workshop_item(self.workshop))
         with open(os.path.join(mods_dir, 'mods.json'), 'w') as f:
@@ -2872,22 +3095,31 @@ class Player:
                 with open(path, 'r+b') as f:
                     f.truncate(os.path.getsize(path) // 2)
         title = mod_yaml_value(source, 'title') or wid
-        self.workshop_env = {'ONI_STEAMSTUB_UGC_ID': wid, 'ONI_STEAMSTUB_UGC_PATH': path,
-                             'ONI_STEAMSTUB_UGC_TITLE': title, 'ONI_STEAMSTUB_UGC_DOWNLOAD': good}
+        self.workshop_env = {'ONI_STEAMSTUB_UGC_ID': wid, 'ONI_STEAMSTUB_UGC_PATH': path, 'ONI_STEAMSTUB_UGC_TITLE': title, 'ONI_STEAMSTUB_UGC_DOWNLOAD': good}
         shutil.rmtree(staging)
         # A Steam label's version is the item's lastUpdateTime, which the double's details leave 0.
-        return {'label': {'distribution_platform': 1, 'id': wid, 'title': title, 'version': 0},
-                'status': 1, 'enabled': True, 'enabledForDlc': ['', 'EXPANSION1_ID'], 'crash_count': 0,
-                'reinstall_path': None, 'staticID': mod_yaml_value(source, 'staticID') or wid}
+        return {
+            'label': {'distribution_platform': 1, 'id': wid, 'title': title, 'version': 0},
+            'status': 1,
+            'enabled': True,
+            'enabledForDlc': ['', 'EXPANSION1_ID'],
+            'crash_count': 0,
+            'reinstall_path': None,
+            'staticID': mod_yaml_value(source, 'staticID') or wid,
+        }
 
     def start(self):
         for port in (self.lane.mcp_port, self.lane.driver_port):
             if port_open(port):
                 raise SpecFailure(f'port {port} is already in use (another session?)')
         size = ['-screen-width', str(WIDTH), '-screen-height', str(HEIGHT), '-screen-fullscreen', '0']
-        env = dict(os.environ, XDG_CONFIG_HOME=os.path.join(self.home, 'config'),
-                   XDG_CACHE_HOME=os.path.join(self.home, 'cache'),
-                   E2E_DRIVER_PORT=str(self.lane.driver_port), **child_marks(self.lane))
+        env = dict(
+            os.environ,
+            XDG_CONFIG_HOME=os.path.join(self.home, 'config'),
+            XDG_CACHE_HOME=os.path.join(self.home, 'cache'),
+            E2E_DRIVER_PORT=str(self.lane.driver_port),
+            **child_marks(self.lane),
+        )
         env.update(self.workshop_env)  # the Steam double's Workshop item (install_workshop_item)
         # The player's own systemd scope (scripts/contain.sh), which a teardown stops whole.
         self.scope = scope_name(f'lane{self.lane.number}-{self.kind}-{next(_scopes)}') if has_systemd() else None
@@ -2917,8 +3149,7 @@ class Player:
             else:
                 executable = original_player(executable, self.lane.number)
             # E2E_ORIGINAL_ARGS: more Unity player arguments for the original (e.g. -force-vulkan).
-            command = [executable, *size, '-logFile', self.log, *os.environ.get('E2E_ORIGINAL_ARGS', '').split(),
-                       *self.game_args]
+            command = [executable, *size, '-logFile', self.log, *os.environ.get('E2E_ORIGINAL_ARGS', '').split(), *self.game_args]
             stdout = os.path.join(self.out, 'stdout.txt')
         else:
             game = self.env['QA_U57_GAME']
@@ -2930,8 +3161,9 @@ class Player:
             env.pop('ONI_UPDATE_RELEASES_URL', None)
             env.pop('ONI_UPDATE_TAG', None)
             if self.update_check:
-                env.update(ONI_UPDATE_RELEASES_URL='file://' + os.path.join(FIXTURES, self.update_check['releases']),
-                           ONI_UPDATE_TAG=str(self.update_check['tag']))
+                env.update(
+                    ONI_UPDATE_RELEASES_URL='file://' + os.path.join(FIXTURES, self.update_check['releases']), ONI_UPDATE_TAG=str(self.update_check['tag'])
+                )
             # OniMcp, in every spec, transpiles LoadScreen methods background-save patches: test
             # infrastructure, left out of the Moono Tweaks screen's mod overlaps.
             env['ONI_MOD_OVERLAPS_IGNORE'] = 'LIghtJUNction.OniMcp'
@@ -2940,23 +3172,26 @@ class Player:
             # the run home's settings, every tweak's row changeable), so no `--game-tweak` at all;
             # still no loading splash over the menu, and the log's paths in full.
             settings = self.extra_env.get('ONI_TWEAK_SETTINGS') == '1'
-            tweaks = [] if settings else \
-                os.environ.get('E2E_GAME_TWEAKS', 'exact path-probe-repair').split() + self.game_tweaks
-            command = [os.path.join(ROOT, 'scripts', 'run.sh'), '--native-override',
-                       'steam_api=' + self.env['QA_U57_STEAM'], *size,
-                       *(['--splash', 'none', '--log-paths', 'full'] if settings else []),
-                       # E2E_GAME_TWEAKS, then a spec's own tweaks on top (`game_tweaks`), with its
-                       # environment (`env`).
-                       *(a for t in tweaks for a in ('--game-tweak', t)),
-                       # The original's main menu has no Moono Tweaks button: the menus compare
-                       # (a spec of the Moono Tweaks screen keeps it: `tweaks_menu: true`).
-                       *([] if self.tweaks_menu else ['--no-tweaks-menu']),
-                       # E2E_PLAYER_ARGS: more host arguments for our player (e.g. --renderer vulkan).
-                       *os.environ.get('E2E_PLAYER_ARGS', '').split(),
-                       # A list file's player-args for this spec (--list).
-                       *self.player_args,
-                       # `game_args`: in the Steam form, after the game's executable.
-                       *(['--', os.path.join(game, 'OxygenNotIncluded'), *self.game_args] if self.game_args else [])]
+            tweaks = [] if settings else os.environ.get('E2E_GAME_TWEAKS', 'exact path-probe-repair').split() + self.game_tweaks
+            command = [
+                os.path.join(ROOT, 'scripts', 'run.sh'),
+                '--native-override',
+                'steam_api=' + self.env['QA_U57_STEAM'],
+                *size,
+                *(['--splash', 'none', '--log-paths', 'full'] if settings else []),
+                # E2E_GAME_TWEAKS, then a spec's own tweaks on top (`game_tweaks`), with its
+                # environment (`env`).
+                *(a for t in tweaks for a in ('--game-tweak', t)),
+                # The original's main menu has no Moono Tweaks button: the menus compare
+                # (a spec of the Moono Tweaks screen keeps it: `tweaks_menu: true`).
+                *([] if self.tweaks_menu else ['--no-tweaks-menu']),
+                # E2E_PLAYER_ARGS: more host arguments for our player (e.g. --renderer vulkan).
+                *os.environ.get('E2E_PLAYER_ARGS', '').split(),
+                # A list file's player-args for this spec (--list).
+                *self.player_args,
+                # `game_args`: in the Steam form, after the game's executable.
+                *(['--', os.path.join(game, 'OxygenNotIncluded'), *self.game_args] if self.game_args else []),
+            ]
             stdout = self.log
         # The runner's own display (a desktop's) must reach neither the player nor xvfb-run's
         # server, whose environment find_display reads: input would land on the desktop.
@@ -2972,18 +3207,20 @@ class Player:
         if self.lane.display:
             self.start_xvfb(self.lane.display)
             env['DISPLAY'] = self.display = self.lane.display
-            self.process = subprocess.Popen(command, env=env, stdout=open(stdout, 'w'), stderr=subprocess.STDOUT,
-                                            start_new_session=True)
+            self.process = subprocess.Popen(command, env=env, stdout=open(stdout, 'w'), stderr=subprocess.STDOUT, start_new_session=True)
             self.lane.track('player', self.process.pid, self.scope)
         else:
-            command = ['xvfb-run', '-a', '-s', ' '.join([f'-screen 0 {WIDTH}x{HEIGHT}x24', *keyboard_server_options(self.keyboard),
-                                                         *dpi_server_options(self.display_dpi)]),
-                       *command]
+            command = [
+                'xvfb-run',
+                '-a',
+                '-s',
+                ' '.join([f'-screen 0 {WIDTH}x{HEIGHT}x24', *keyboard_server_options(self.keyboard), *dpi_server_options(self.display_dpi)]),
+                *command,
+            ]
             os.makedirs(shared_dir(), exist_ok=True)
             with _xvfb_start, open(os.path.join(shared_dir(), 'xvfb.lock'), 'a+') as lock:
                 fcntl.flock(lock, fcntl.LOCK_EX)
-                self.process = subprocess.Popen(command, env=env, stdout=open(stdout, 'w'), stderr=subprocess.STDOUT,
-                                                start_new_session=True)
+                self.process = subprocess.Popen(command, env=env, stdout=open(stdout, 'w'), stderr=subprocess.STDOUT, start_new_session=True)
                 self.lane.track('player', self.process.pid, self.scope)
                 self.find_display()
         with open(os.path.join(self.out, 'lane.json'), 'w') as f:
@@ -2998,17 +3235,29 @@ class Player:
             time.sleep(3)
 
     def lane_record(self):
-        return {'lane': self.lane.number, 'onimcp_port': self.lane.mcp_port, 'driver_port': self.lane.driver_port,
-                'display': self.display}
+        return {'lane': self.lane.number, 'onimcp_port': self.lane.mcp_port, 'driver_port': self.lane.driver_port, 'display': self.display}
 
     def start_xvfb(self, display):
         number = display.lstrip(':')
         if display_in_use(number):
             raise SpecFailure(f'display {display} is in use')
-        self.xvfb = subprocess.Popen(['Xvfb', display, '-screen', '0', f'{WIDTH}x{HEIGHT}x24', '-nolisten', 'tcp',
-                                      *keyboard_server_options(self.keyboard), *dpi_server_options(self.display_dpi)],
-                                     stdout=subprocess.DEVNULL, stderr=open(os.path.join(self.out, 'xvfb.txt'), 'w'),
-                                     start_new_session=True, env=dict(os.environ, **child_marks(getattr(self, 'lane', None))))
+        self.xvfb = subprocess.Popen(
+            [
+                'Xvfb',
+                display,
+                '-screen',
+                '0',
+                f'{WIDTH}x{HEIGHT}x24',
+                '-nolisten',
+                'tcp',
+                *keyboard_server_options(self.keyboard),
+                *dpi_server_options(self.display_dpi),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=open(os.path.join(self.out, 'xvfb.txt'), 'w'),
+            start_new_session=True,
+            env=dict(os.environ, **child_marks(getattr(self, 'lane', None))),
+        )
         if getattr(self, 'lane', None):
             self.lane.track('xvfb', self.xvfb.pid)
         deadline = time.time() + 20
@@ -3135,8 +3384,7 @@ class Player:
     def signatures(self):
         if not os.path.exists(self.log):
             return set()
-        result = subprocess.run([sys.executable, os.path.join(ROOT, 'scripts', 'qa-tools.py'), 'signatures', self.log],
-                                capture_output=True, text=True)
+        result = subprocess.run([sys.executable, os.path.join(ROOT, 'scripts', 'qa-tools.py'), 'signatures', self.log], capture_output=True, text=True)
         return set(result.stdout.splitlines())
 
 
@@ -3183,8 +3431,7 @@ def install_mismatch(ours, original):
     a, b = install_identity(ours), install_identity(original)
     if a is None or b is None:
         return None
-    describe = lambda i: (f'{i["folder"]} (build {i["build"] or "?"}, Assembly-CSharp {i["assembly"]}, '
-                          f'DLC content: {", ".join(i["dlc"]) or "none"})')
+    describe = lambda i: f'{i["folder"]} (build {i["build"] or "?"}, Assembly-CSharp {i["assembly"]}, DLC content: {", ".join(i["dlc"]) or "none"})'
     if a['assembly'] != b['assembly']:
         return f'the game builds differ: ours {describe(a)}, the original {describe(b)}'
     if a['dlc'] != b['dlc']:
@@ -3206,8 +3453,7 @@ def original_player(executable, lane, root=OUT):
             continue
         target = os.path.join(folder, name)
         if name == os.path.basename(executable):
-            if (not os.path.exists(target) or os.path.getmtime(target) < os.path.getmtime(executable)
-                    or os.path.getsize(target) != os.path.getsize(executable)):
+            if not os.path.exists(target) or os.path.getmtime(target) < os.path.getmtime(executable) or os.path.getsize(target) != os.path.getsize(executable):
                 shutil.copy2(executable, target)
         elif not os.path.lexists(target):
             os.symlink(os.path.join(source, name), target)
@@ -3244,7 +3490,7 @@ def blocked_install(source, plugins, dest, stray=()):
     shutil.rmtree(dest, ignore_errors=True)
     real = {os.curdir}  # the folders on the way to a blocked plugin, relative to the install
     for path in [*found.values(), *strays]:
-        parts = path.rstrip('/').split(os.sep)[:None if path.endswith('/') else -1]
+        parts = path.rstrip('/').split(os.sep)[: None if path.endswith('/') else -1]
         real.update(os.path.join(*parts[:i]) for i in range(1, len(parts) + 1))
 
     def mirror(rel):
@@ -3260,6 +3506,7 @@ def blocked_install(source, plugins, dest, stray=()):
                     os.chmod(os.path.join(dest, child), 0)
             else:
                 os.symlink(target, os.path.join(dest, child))
+
     mirror(os.curdir)
     for path in strays:
         added = os.path.join(dest, path.rstrip('/'))
@@ -3288,15 +3535,16 @@ def module_name(path):
     assembly, which a Workshop download's file name may misspell (a zip's names decoded in the
     wrong code page)."""
     import struct
+
     try:
         with open(path, 'rb') as f:
             data = f.read()
-        pe = struct.unpack_from('<I', data, 0x3c)[0]
-        if data[pe:pe + 4] != b'PE\0\0':
+        pe = struct.unpack_from('<I', data, 0x3C)[0]
+        if data[pe : pe + 4] != b'PE\0\0':
             return None
         sections, opt_size = struct.unpack_from('<H', data, pe + 6)[0], struct.unpack_from('<H', data, pe + 20)[0]
         opt = pe + 24
-        dirs = opt + (96 if struct.unpack_from('<H', data, opt)[0] == 0x10b else 112)
+        dirs = opt + (96 if struct.unpack_from('<H', data, opt)[0] == 0x10B else 112)
         cli_rva = struct.unpack_from('<I', data, dirs + 14 * 8)[0]
         table = [struct.unpack_from('<IIII', data, opt + opt_size + 40 * i + 8) for i in range(sections)]
 
@@ -3305,6 +3553,7 @@ def module_name(path):
                 if vaddr <= rva < vaddr + max(vsize, raw_size):
                     return rva - vaddr + raw_ptr
             raise ValueError(rva)
+
         root = offset(struct.unpack_from('<I', data, offset(cli_rva) + 8)[0])
         version_len = struct.unpack_from('<I', data, root + 12)[0]
         pos = root + 16 + version_len
@@ -3313,15 +3562,15 @@ def module_name(path):
         for _ in range(struct.unpack_from('<H', data, pos + 2)[0]):
             start = struct.unpack_from('<I', data, header)[0]
             end = data.index(b'\0', header + 8)
-            streams[data[header + 8:end].decode('ascii')] = root + start
+            streams[data[header + 8 : end].decode('ascii')] = root + start
             header = (end + 4) & ~3
         tables = streams.get('#~', streams.get('#-'))
         heap_sizes = data[tables + 6]
         valid = struct.unpack_from('<Q', data, tables + 8)[0]
-        rows = tables + 24 + 4 * bin(valid).count('1')   # the Module table's first row
+        rows = tables + 24 + 4 * bin(valid).count('1')  # the Module table's first row
         index = struct.unpack_from('<I' if heap_sizes & 1 else '<H', data, rows + 2)[0]
         strings = streams['#Strings'] + index
-        return data[strings:data.index(b'\0', strings)].decode('utf-8')
+        return data[strings : data.index(b'\0', strings)].decode('utf-8')
     except (OSError, ValueError, KeyError, IndexError, struct.error, UnicodeDecodeError):
         return None
 
@@ -3349,8 +3598,7 @@ def write_options(profile, mods, options):
                 targets.add(os.path.join(directory, name))
                 # PLib's [ConfigFile] may spell it otherwise ("Config.json"): a mod that ships
                 # its file reads that one, on a case-sensitive file system too.
-                targets.update(os.path.join(directory, f) for f in files
-                               if f.lower() == name.lower() and f != name)
+                targets.update(os.path.join(directory, f) for f in files if f.lower() == name.lower() and f != name)
                 for dll in dlls:
                     targets.add(os.path.join(mods_dir, 'config', os.path.splitext(dll)[0], name))
                     module = module_name(os.path.join(directory, dll))
@@ -3372,6 +3620,7 @@ def write_options(profile, mods, options):
 
 # ---------------------------------------------------------------- orders and expectations (OniMcp)
 
+
 def compare(actual, wanted):
     if isinstance(wanted, bool) or isinstance(actual, bool):
         return actual == wanted
@@ -3387,8 +3636,7 @@ def compare(actual, wanted):
 def apply_op(op, actual, number):
     if not isinstance(actual, (int, float)) or isinstance(actual, bool):
         return {'==': actual == number, '!=': actual != number}.get(op, False)
-    return {'>=': actual >= number, '<=': actual <= number, '>': actual > number,
-            '<': actual < number, '==': actual == number, '!=': actual != number}[op]
+    return {'>=': actual >= number, '<=': actual <= number, '>': actual > number, '<': actual < number, '==': actual == number, '!=': actual != number}[op]
 
 
 def facts(mcp, keys):
@@ -3406,8 +3654,9 @@ def facts(mcp, keys):
         counts, offset = {}, 0
         while True:
             # OniMcp lists at most 100 rows a read.
-            index = mcp.call('world_editor', command='read', path='/active/index.md', format='progress',
-                             limit=100 if 'blueprints' in keys else 1, offset=offset)
+            index = mcp.call(
+                'world_editor', command='read', path='/active/index.md', format='progress', limit=100 if 'blueprints' in keys else 1, offset=offset
+            )
             text = index.get('content', '') if isinstance(index, dict) else str(index)
             match = re.search(r'pending=(\d+)', text)
             if not match:
@@ -3453,8 +3702,9 @@ def unmet(mcp, expect):
 
 def edit(mcp, path, search, replace, **payload):
     extra = {'payload': payload} if payload else {}
-    result = mcp.call('world_editor', command='edit', path=path, confirm=True,
-                      content=f'<<<<<<< SEARCH\n{search}\n=======\n{replace}\n>>>>>>> REPLACE', **extra)
+    result = mcp.call(
+        'world_editor', command='edit', path=path, confirm=True, content=f'<<<<<<< SEARCH\n{search}\n=======\n{replace}\n>>>>>>> REPLACE', **extra
+    )
     if not (isinstance(result, dict) and result.get('ok') and not result.get('failed')):
         raise SpecFailure(f'edit of {path} failed: {json.dumps(result)[:1500]}')
     return result
@@ -3476,8 +3726,7 @@ def build(mcp, prefab, cells, priority=5, material=None, wire=False):
         rows.setdefault(y, []).append(x)
     for y, xs in sorted(rows.items()):
         mcp.call('navigation_control', action='focus_cell', x=min(xs), y=y, snap=True)
-        page = mcp.call('world_editor', command='read', path='/active/map/viewport.md', format='edit',
-                        compact=False, view='default')
+        page = mcp.call('world_editor', command='read', path='/active/map/viewport.md', format='edit', compact=False, view='default')
         text = page.get('content', '') if isinstance(page, dict) else str(page)
         bounds = re.search(r'X=(\d+)~(\d+)', text)
         # The map pads rows to three digits (Y=014: in a rocket's cabin).
@@ -3497,9 +3746,11 @@ def build(mcp, prefab, cells, priority=5, material=None, wire=False):
             if not placed.get('blueprintsPlaced') and not placed.get('blueprintsAlreadyPresent'):
                 if placed.get('pendingBuildAfterDig'):
                     # OniMcp digs the cells in the way first, and places the blueprint after.
-                    raise SpecFailure(f'{prefab} at row {y}: cells in the way must be dug first '
-                                      f'({placed.get("autoDigMarked", 0) + placed.get("autoDigAlreadyMarked", 0)} '
-                                      'marked); dig them in an earlier step')
+                    raise SpecFailure(
+                        f'{prefab} at row {y}: cells in the way must be dug first '
+                        f'({placed.get("autoDigMarked", 0) + placed.get("autoDigAlreadyMarked", 0)} '
+                        'marked); dig them in an earlier step'
+                    )
                 raise SpecFailure(f'{prefab} at row {y}: no blueprint placed: {json.dumps(placed)[:600]}')
 
 
@@ -3530,8 +3781,16 @@ def run_steps(mcp, seconds, until, log, resumed, speed=3):
     while spent < seconds:
         if until and not unmet(mcp, until):
             return spent
-        step = mcp.call('game_control', domain='speed', action='step_until', until={'fact': 'cycle_end'},
-                        speed=speed, maxGameSeconds=min(60, seconds - spent), maxWallSeconds=30, confirm=True)
+        step = mcp.call(
+            'game_control',
+            domain='speed',
+            action='step_until',
+            until={'fact': 'cycle_end'},
+            speed=speed,
+            maxGameSeconds=min(60, seconds - spent),
+            maxWallSeconds=30,
+            confirm=True,
+        )
         elapsed = step.get('elapsedGameSeconds', 0) if isinstance(step, dict) else 0
         if log:
             log(f'  ran {elapsed:.0f} s ({step.get("reason") or step.get("status")})')
@@ -3584,6 +3843,7 @@ def screenshot(mcp, out, name):
 
 # ---------------------------------------------------------------- UI and state expectations
 
+
 def ui_mismatches(element, wanted):
     """How a found element (or None) differs from {text, active, interactable, isOn, exists}."""
     misses = []
@@ -3616,6 +3876,7 @@ RELATION = re.compile(r'\s*(>=|<=|>|<|==|!=)\s*([-+*/().\w\s]+?)\s*')
 def arithmetic(text, names):
     """TEXT, an expression of numbers, NAMES, + - * / and parentheses, evaluated."""
     import ast
+
     def value(node):
         if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
             return node.value
@@ -3632,6 +3893,7 @@ def arithmetic(text, names):
             a, b = value(node.left), value(node.right)
             return {ast.Add: a + b, ast.Sub: a - b, ast.Mult: a * b}.get(type(node.op)) if not isinstance(node.op, ast.Div) else a / b
         raise SpecFailure(f'{text!r}: only numbers, saved names, + - * / and parentheses')
+
     try:
         tree = ast.parse(text.strip(), mode='eval')
     except SyntaxError:
@@ -3666,13 +3928,11 @@ def parse_condition(text):
     text = text.strip()
     top = mask_quoted(text)
     ops = list(re.finditer(r'==|!=', top))
-    member = text[:ops[0].start()].strip() if len(ops) == 1 else ''
-    want = text[ops[0].end():].strip() if len(ops) == 1 else ''
+    member = text[: ops[0].start()].strip() if len(ops) == 1 else ''
+    want = text[ops[0].end() :].strip() if len(ops) == 1 else ''
     quoted = len(want) >= 2 and want[0] in '\'"' and want[-1] == want[0] and want[0] not in want[1:-1]
-    if not (member.startswith('.') and not re.search(r'\s', mask_quoted(member)) and want
-            and (quoted or not re.search(r'[\s\'"]', want))):
-        raise SpecFailure(f'{text!r}: a condition is .MEMBER == VALUE or .MEMBER != VALUE '
-                          "(VALUE in quotes if it holds spaces)")
+    if not (member.startswith('.') and not re.search(r'\s', mask_quoted(member)) and want and (quoted or not re.search(r'[\s\'"]', want))):
+        raise SpecFailure(f'{text!r}: a condition is .MEMBER == VALUE or .MEMBER != VALUE (VALUE in quotes if it holds spaces)')
     return member, ops[0].group(), want[1:-1] if quoted else want
 
 
@@ -3686,17 +3946,17 @@ def parse_aggregate(expr):
     star = mask_quoted(expr, False).find('[*]')
     if star < 0:
         raise SpecFailure(f'{expr!r}: {how.group(1)}: reads HEAD[*]')
-    head, rest = expr[how.end():star], expr[star + 3:]
+    head, rest = expr[how.end() : star], expr[star + 3 :]
     top = mask_quoted(rest)
     split = re.search(r'\s+if\s+', top)
-    suffix, conditions = (rest[:split.start()], rest[split.end():]) if split else (rest, None)
+    suffix, conditions = (rest[: split.start()], rest[split.end() :]) if split else (rest, None)
     if not head.strip() or re.search(r'\s', mask_quoted(suffix)) or (conditions is not None and not conditions.strip()):
         raise SpecFailure(f'{expr!r}: {how.group(1)}:HEAD[*]{".SUFFIX" if how.group(1) == "sum" else ""} [if .MEMBER == VALUE and ...]')
     tests = []
     if conditions is not None:
         top, start = mask_quoted(conditions), 0
         for match in list(re.finditer(r'\s+and\s+', top)) + [None]:
-            tests.append(parse_condition(conditions[start:match.start() if match else None]))
+            tests.append(parse_condition(conditions[start : match.start() if match else None]))
             start = match and match.end()
     return how.group(1), head, suffix, tests
 
@@ -3765,6 +4025,7 @@ def state_check(have, wanted, saved, original=None):
 
 # ---------------------------------------------------------------- one spec run
 
+
 def new_run_id():
     """An invocation's id, unique among a worktree's runs: its start time and a random part.
     Its runs are in out/e2e/SPEC/RUN_ID/PLAYER-N, and out/e2e/SPEC/latest points at the newest."""
@@ -3812,8 +4073,7 @@ class Run:
         if not self.input:
             if not self.player.display or self.player.display == os.environ.get('DISPLAY'):
                 raise SpecFailure(f'no lane display for input (got {self.player.display}; never the runner\'s own)')
-            self.input = Input(self.player.display, self.player.xauthority,
-                               frames=self.driver.frames if self.driver else None)
+            self.input = Input(self.player.display, self.player.xauthority, frames=self.driver.frames if self.driver else None)
         return self.input
 
     def update_scale(self):
@@ -3828,8 +4088,10 @@ class Run:
         else:
             scale = (1.0, 1.0)
         if scale != inp.scale:
-            self.log(f'  the game renders at {WIDTH / scale[0]:.0f}x{HEIGHT / scale[1]:.0f}, stretched over the '
-                     f'{WIDTH}x{HEIGHT} display: pointer positions scaled by {scale[0]:.4g}, {scale[1]:.4g}')
+            self.log(
+                f'  the game renders at {WIDTH / scale[0]:.0f}x{HEIGHT / scale[1]:.0f}, stretched over the '
+                f'{WIDTH}x{HEIGHT} display: pointer positions scaled by {scale[0]:.4g}, {scale[1]:.4g}'
+            )
             inp.scale = scale
 
     def frames(self, n):
@@ -3882,12 +4144,10 @@ class Run:
         except DriverError as e:
             last = e.result if isinstance(e.result, dict) else {}
             if last.get('reasons'):
-                raise SpecFailure(f'{what}: the build menu did not settle within {BUILD_MENU_FRAMES} frames: '
-                                  + '; '.join(last['reasons'][:6])) from None
+                raise SpecFailure(f'{what}: the build menu did not settle within {BUILD_MENU_FRAMES} frames: ' + '; '.join(last['reasons'][:6])) from None
             raise SpecFailure(f'{what}: {e}') from None
         if result and (result.get('open') or result.get('frames')):
-            self.log(f'  {what}: the build menu settled in {result.get("frames", 0)} frames '
-                     f'(checks took up to {result.get("maxMs")} ms)')
+            self.log(f'  {what}: the build menu settled in {result.get("frames", 0)} frames (checks took up to {result.get("maxMs")} ms)')
         return value
 
     def pointer_away(self):
@@ -3917,11 +4177,12 @@ class Run:
             if not headers:
                 return
             segments = headers[0].path.split('/')
-            dialog = '/'.join(segments[:next((i + 1 for i, s in enumerate(segments) if 'Dialog' in s), 2)])
+            dialog = '/'.join(segments[: next((i + 1 for i, s in enumerate(segments) if 'Dialog' in s), 2)])
             self.log(f'  dismissing {headers[0].text!r} ({dialog})')
             ok = self.driver.find(path=dialog + '/**/OKButton') or self.driver.find(text='OK', under=dialog)
             if not ok:
                 raise SpecFailure(f'{dialog}: no OK button to dismiss it')
+
             # A mod's notice at load may be another dialog on the same path, shown above this one
             # (Project Expedition's): a player closes the topmost first. The dialogs are told
             # apart by their element keys' sibling indices; the last one is on top.
@@ -3929,6 +4190,7 @@ class Run:
                 parts = element.raw.get('key', '').split('/')
                 part = parts[len(dialog.split('/'))] if len(parts) > len(dialog.split('/')) else ''
                 return int(part.rsplit('#', 1)[1]) if '#' in part else 0
+
             top = max(range(len(ok)), key=lambda i: sibling(ok[i]))
             if sibling(ok[top]) != sibling(headers[0]):
                 self.log(f'  dismissing the dialog above it ({ok[top].path})')
@@ -3964,16 +4226,14 @@ class Run:
             mcp.call(value['tool'], **value.get('args', {}))
         elif kind == 'save':
             offset = os.path.getsize(self.player.log) if os.path.exists(self.player.log) else 0
-            saved = mcp.call('game_control', domain='save', action='save', name=value, overwrite=True,
-                             updateActiveSave=False, confirm=True)
+            saved = mcp.call('game_control', domain='save', action='save', name=value, overwrite=True, updateActiveSave=False, confirm=True)
             path = saved.get('saved') if isinstance(saved, dict) else None
             if not path or not os.path.exists(path):
                 raise SpecFailure(f'save {value} failed: {json.dumps(saved)[:600]}')
             # OniMcp answers once SaveLoader.Save returns; with background-save the file is still
             # being written then (its header only).
             if not wait_save_written(path, self.player.log, offset):
-                raise SpecFailure(f'save {value}: {path} not written whole after 300 s '
-                                  f'({os.path.getsize(path)} bytes)')
+                raise SpecFailure(f'save {value}: {path} not written whole after 300 s ({os.path.getsize(path)} bytes)')
             shutil.copy(path, os.path.join(self.out, value + '.sav'))
             self.saves.append(value)
         elif kind == 'shot':
@@ -4016,8 +4276,7 @@ class Run:
             else:
                 self.need_input().key(value['code'])
         elif kind == 'click' and 'at' in value:
-            self.need_input().click(*value['at'], button=value.get('button', 'left'), mods=value.get('mods', ()),
-                                    double=bool(value.get('double')))
+            self.need_input().click(*value['at'], button=value.get('button', 'left'), mods=value.get('mods', ()), double=bool(value.get('double')))
         elif kind == 'click' and value.get('quits'):
             # A click that ends the game (Save and Quit to the desktop): E2eDriver goes with it
             # while the click waits its last frames; an expect_exit step checks the exit.
@@ -4059,8 +4318,7 @@ class Run:
                     if selected == value['select']:
                         break
                     if clicks == 5:
-                        raise SpecFailure(f'no {value["select"]} selected at {where} after 5 clicks '
-                                          f'(last: {selected})')
+                        raise SpecFailure(f'no {value["select"]} selected at {where} after 5 clicks (last: {selected})')
                     self.input.click(x, y)
         elif kind == 'toggle':
             element = self.element(value)
@@ -4087,8 +4345,9 @@ class Run:
             driver = self.need_driver()
             start, end = driver.to_screen(value['from']), driver.to_screen(value['to'])
             more = {'via': [driver.to_screen(c) for c in value['via']]} if value.get('via') else {}
-            self.need_input().drag(start, end, button=value.get('button', 'left'), mods=value.get('mods', ()),
-                                   steps=value.get('steps', 8), hold=value.get('hold', 0), **more)
+            self.need_input().drag(
+                start, end, button=value.get('button', 'left'), mods=value.get('mods', ()), steps=value.get('steps', 8), hold=value.get('hold', 0), **more
+            )
         elif kind == 'scroll':
             x, y = self.screen_point(value.get('at', 'center'))
             self.need_input().scroll(x, y, value['notches'])
@@ -4109,17 +4368,21 @@ class Run:
             # In the frame the menu is found settled: a menu already settled is dumped in the
             # same frame as without the wait.
             self.need_driver()
-            text = self.settle_build_menu(f'ui_dump {value["name"]}',
-                                          lambda: self.driver.dump_settled(value['root']))
+            text = self.settle_build_menu(f'ui_dump {value["name"]}', lambda: self.driver.dump_settled(value['root']))
             path = os.path.join(self.out, value['name'] + '.ui.txt')
             with open(path, 'w') as f:
                 f.write(text)
-            self.evidence['ui_dump'].append({'name': value['name'], 'root': value['root'],
-                                             'mask_text': value.get('mask_text', []),
-                                             'mask_path': value.get('mask_path', []),
-                                             'ignore_fields': value.get('ignore_fields', [])})
+            self.evidence['ui_dump'].append(
+                {
+                    'name': value['name'],
+                    'root': value['root'],
+                    'mask_text': value.get('mask_text', []),
+                    'mask_path': value.get('mask_path', []),
+                    'ignore_fields': value.get('ignore_fields', []),
+                }
+            )
         elif kind == 'driver':
-            (command, args), = value.items()
+            ((command, args),) = value.items()
             args = args if isinstance(args, dict) else {'n': args}
             if command == 'buildmenu.settled':
                 # Waits for the build menu to catch up, as before a shot, and fails when it does not.
@@ -4141,10 +4404,8 @@ class Run:
         else:
             # A user-menu button by its OniMcp action key (… surface=user_menu action=list), on the
             # object at a cell or with an ID.
-            target = {'x': value['at'][0], 'y': value['at'][1]} if 'at' in value else \
-                ({'id': value['id']} if 'id' in value else {})
-            self.mcp.call('building_control', domain='side_surface', surface='user_menu', action='press',
-                          actionKey=value['user_menu'], confirm=True, **target)
+            target = {'x': value['at'][0], 'y': value['at'][1]} if 'at' in value else ({'id': value['id']} if 'id' in value else {})
+            self.mcp.call('building_control', domain='side_surface', surface='user_menu', action='press', actionKey=value['user_menu'], confirm=True, **target)
         self.frames(5)
 
     def tool(self, value):
@@ -4232,8 +4493,7 @@ class Run:
             for path, wanted in value.items():
                 # `active: false` asks about an inactive element, which only inactive: true finds.
                 # any_text looks at every match, not only ui.find's default 50.
-                found = self.need_driver().find(path=path, inactive='active' in wanted,
-                                                limit=1000 if 'any_text' in wanted else None)
+                found = self.need_driver().find(path=path, inactive='active' in wanted, limit=1000 if 'any_text' in wanted else None)
                 active = [e for e in found if e.active is not False]
                 element = (active or found or [None])[0]
                 fields = {k: v for k, v in wanted.items() if k not in ('count', 'any_text')}
@@ -4359,8 +4619,7 @@ class Run:
         if camera:
             driver.camera_set(**camera)
         self.pointer_away()
-        masks = self.rects([m for m in value.get('mask', []) if not _rect(m)]) + \
-            [[float(v) for v in m] for m in value.get('mask', []) if _rect(m)]
+        masks = self.rects([m for m in value.get('mask', []) if not _rect(m)]) + [[float(v) for v in m] for m in value.get('mask', []) if _rect(m)]
         hide = value.get('hide_ui', True)
         if hide:
             driver.canvas(True)
@@ -4372,8 +4631,7 @@ class Run:
                 driver.canvas(False)
         if not path:
             raise SpecFailure(f'world_shot {name}: OniMcp made no screenshot')
-        meta = {'name': name, 'crop': None, 'masks': masks, 'threshold': value.get('threshold'),
-                'file': os.path.basename(path), 'world': True}
+        meta = {'name': name, 'crop': None, 'masks': masks, 'threshold': value.get('threshold'), 'file': os.path.basename(path), 'world': True}
         with open(os.path.join(self.out, name + '.shot.json'), 'w') as f:
             json.dump(meta, f)
         self.evidence['world_shot'].append(meta)
@@ -4416,9 +4674,15 @@ class Run:
             time.sleep(1)
         target = os.path.join(self.out, name + '.png')
         shutil.copyfile(source, target)
-        meta = {'name': name, 'crop': None, 'masks': [], 'threshold': value.get('threshold'),
-                'file': os.path.basename(target), 'world': True,
-                'source': os.path.relpath(source, self.player.profile)}
+        meta = {
+            'name': name,
+            'crop': None,
+            'masks': [],
+            'threshold': value.get('threshold'),
+            'file': os.path.basename(target),
+            'world': True,
+            'source': os.path.relpath(source, self.player.profile),
+        }
         with open(os.path.join(self.out, name + '.shot.json'), 'w') as f:
             json.dump(meta, f)
         self.evidence['world_shot'].append(meta)
@@ -4438,34 +4702,48 @@ class Run:
                 raise SpecFailure('the spec needs E2eDriver, and E2E_DRIVER names no build of it')
             if fixture and not os.path.exists(fixture):
                 raise SpecFailure(f'no fixture {fixture}')
-            self.player = Player(self.kind, self.out, self.env, fixture, self.lane, spec['mods'], spec.get('options'),
-                                 driver=uses_driver, expansion1=spaced_out(spec), translation=spec.get('translation'),
-                                 language=spec.get('language'), keyboard=spec.get('keyboard'),
-                                 tweaks_menu=spec.get('tweaks_menu', False),
-                                 blocked_plugins=spec.get('blocked_plugins'), stray_plugins=spec.get('stray_plugins'),
-                                 data_collection=spec.get("data_collection", False),
-                                 extra_saves=spec.get('extra_saves', ()),
-                                 retired_colonies=spec.get('retired_colonies', ()),
-                                 display_dpi=spec.get('display_dpi'), workshop=spec.get('workshop'),
-                                 update_check=spec.get('update_check'), player_args=spec.get('player_args', ()),
-                                 game_tweaks=spec.get('game_tweaks', ()), extra_env=spec.get('env'),
-                                 test_mods=spec.get('test_mods', ()), game_args=spec.get('game_args', ()))
+            self.player = Player(
+                self.kind,
+                self.out,
+                self.env,
+                fixture,
+                self.lane,
+                spec['mods'],
+                spec.get('options'),
+                driver=uses_driver,
+                expansion1=spaced_out(spec),
+                translation=spec.get('translation'),
+                language=spec.get('language'),
+                keyboard=spec.get('keyboard'),
+                tweaks_menu=spec.get('tweaks_menu', False),
+                blocked_plugins=spec.get('blocked_plugins'),
+                stray_plugins=spec.get('stray_plugins'),
+                data_collection=spec.get("data_collection", False),
+                extra_saves=spec.get('extra_saves', ()),
+                retired_colonies=spec.get('retired_colonies', ()),
+                display_dpi=spec.get('display_dpi'),
+                workshop=spec.get('workshop'),
+                update_check=spec.get('update_check'),
+                player_args=spec.get('player_args', ()),
+                game_tweaks=spec.get('game_tweaks', ()),
+                extra_env=spec.get('env'),
+                test_mods=spec.get('test_mods', ()),
+                game_args=spec.get('game_args', ()),
+            )
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
             started = time.time()
             self.player.start()
-            self.log(f'  lane {self.lane.number}: OniMcp :{self.lane.mcp_port}, E2eDriver :{self.lane.driver_port}, '
-                     f'display {self.player.display}')
+            self.log(f'  lane {self.lane.number}: OniMcp :{self.lane.mcp_port}, E2eDriver :{self.lane.driver_port}, display {self.player.display}')
             self.player.load(self.mcp)
             self.log(f'  loaded {spec["from"]} in {time.time() - started:.0f} s')
             if uses_driver:
                 self.driver = Driver(self.lane.driver_port).connect(120, self.player.alive)
                 self.driver.on_reply = self.player.watchdog.progress
                 self.dismiss_load_dialogs()
-            steps = [('setup', i, s) for i, s in enumerate(spec['setup'], 1)] + \
-                    [('steps', i, s) for i, s in enumerate(spec['steps'], 1)]
+            steps = [('setup', i, s) for i, s in enumerate(spec['setup'], 1)] + [('steps', i, s) for i, s in enumerate(spec['steps'], 1)]
             for block, number, step in steps:
-                (kind_of_step, value), = step.items()
+                ((kind_of_step, value),) = step.items()
                 failed_kind = kind_of_step
                 label = number if block == 'steps' else f'setup {number}'
                 began = time.time()
@@ -4490,8 +4768,7 @@ class Run:
             outcome = f'step {label}: {e}'
             watchdog = self.player and self.player.watchdog
             if watchdog and self.player.alive() and watchdog.stalled() >= watchdog.HANG_ON_FAIL:
-                watchdog.capture(f'no log output or OniMcp/E2eDriver reply for {watchdog.stalled():.0f} s '
-                                 'when the step failed')
+                watchdog.capture(f'no log output or OniMcp/E2eDriver reply for {watchdog.stalled():.0f} s when the step failed')
             if not (watchdog and watchdog.hung):  # a hung player takes no screenshot
                 with contextlib.suppress(Exception):
                     screenshot(self.mcp, self.out, 'failure')
@@ -4513,13 +4790,19 @@ class Run:
         if os.path.isdir(self.out):
             with open(os.path.join(self.out, 'values.json'), 'w') as f:
                 json.dump(self.values, f, indent=1, default=str)
-        return {'outcome': outcome, 'failed_step_kind': failed_kind, 'run': self.run_id,
-                'signatures': self.player.signatures() if self.player else set(),
-                'saves': self.saves, 'out': self.out, 'values': self.values, 'evidence': self.evidence,
-                'lane': self.player.lane_record() if self.player else {'lane': self.lane.number},
-                'options_written': self.player.option_files if self.player else [],
-                'log': self.player.log if self.player else None}
-
+        return {
+            'outcome': outcome,
+            'failed_step_kind': failed_kind,
+            'run': self.run_id,
+            'signatures': self.player.signatures() if self.player else set(),
+            'saves': self.saves,
+            'out': self.out,
+            'values': self.values,
+            'evidence': self.evidence,
+            'lane': self.player.lane_record() if self.player else {'lane': self.lane.number},
+            'options_written': self.player.option_files if self.player else [],
+            'log': self.player.log if self.player else None,
+        }
 
     HOLD_SECONDS = 3600
     HOLD_YIELD_SECONDS = 600
@@ -4531,8 +4814,7 @@ class Run:
         shared, and QA's perf stage waits for it."""
         flag = os.path.join(self.out, 'hold')
         open(flag, 'w').close()
-        self.log(f'  holding: OniMcp :{self.lane.mcp_port}, E2eDriver :{self.lane.driver_port}, display '
-                 f'{self.player.display}; rm {flag} to go on')
+        self.log(f'  holding: OniMcp :{self.lane.mcp_port}, E2eDriver :{self.lane.driver_port}, display {self.player.display}; rm {flag} to go on')
         if self.driver:
             self.driver.close()  # others may connect meanwhile; reconnected below
         self.player.watchdog.paused = True  # a held player waits for a person, not hung
@@ -4698,10 +4980,12 @@ def finding_for(line, findings, spec_name=None):
 
 def fnmatch_name(name, pattern):
     import fnmatch
+
     return fnmatch.fnmatchcase(name, pattern)
 
 
 # ---------------------------------------------------------------- differential checks (§5.3)
+
 
 def log_matches(log, patterns):
     if not patterns:
@@ -4725,8 +5009,9 @@ class Reference:
             return None
         first = passed[0]
         signatures = set().union(*(r['signatures'] for r in results))
-        return Reference(first['out'], signatures, log_matches(first['log'], spec.get('require_log', [])),
-                         values_by_step(first['values']), 'original run', first.get('run'))
+        return Reference(
+            first['out'], signatures, log_matches(first['log'], spec.get('require_log', [])), values_by_step(first['values']), 'original run', first.get('run')
+        )
 
     @staticmethod
     def blessed(spec):
@@ -4734,8 +5019,9 @@ class Reference:
         if not os.path.isdir(folder):
             return None
         read = lambda name, default: json.load(open(os.path.join(folder, name))) if os.path.exists(os.path.join(folder, name)) else default
-        return Reference(folder, set(read('signatures.json', [])), read('log.json', {}),
-                         values_by_step(read('values.json', [])), folder, read('source.json', {}).get('run'))
+        return Reference(
+            folder, set(read('signatures.json', [])), read('log.json', {}), values_by_step(read('values.json', [])), folder, read('source.json', {}).get('run')
+        )
 
 
 def values_by_step(values):
@@ -4756,8 +5042,9 @@ def bless(spec, result):
     json.dump(sorted(result['signatures']), open(os.path.join(temp, 'signatures.json'), 'w'), indent=1)
     json.dump(log_matches(result['log'], spec.get('require_log', [])), open(os.path.join(temp, 'log.json'), 'w'), indent=1)
     json.dump(result['values'], open(os.path.join(temp, 'values.json'), 'w'), indent=1, default=str)
-    json.dump({'run': result.get('run'), 'out': result['out'], 'date': time.strftime('%Y-%m-%dT%H:%M:%S')},
-              open(os.path.join(temp, 'source.json'), 'w'), indent=1)
+    json.dump(
+        {'run': result.get('run'), 'out': result['out'], 'date': time.strftime('%Y-%m-%dT%H:%M:%S')}, open(os.path.join(temp, 'source.json'), 'w'), indent=1
+    )
     old = f'{folder}.old-{os.getpid()}'
     if os.path.isdir(folder):
         os.rename(folder, old)
@@ -4779,6 +5066,7 @@ def varied_problem(path):
     """Why a shot looks blank (one colour over 90 % of it, or under 32 colours at 4 bits a
     channel), or None. For ours-only specs, which have no original's shot to compare with."""
     from PIL import Image
+
     image = Image.open(path).convert('RGB')
     image.thumbnail((320, 320))
     colours = image.point(lambda v: v >> 4).getcolors(4096) or []
@@ -4819,9 +5107,12 @@ def differential(spec, result, reference, findings=None):
         masks = list(spec.get('mask_text', [])) + list(dump.get('mask_text', []))
         fields = list(IGNORE_FIELDS) + list(spec.get('ignore_fields', [])) + list(dump.get('ignore_fields', []))
         paths = dump.get('mask_path', [])
-        lines = ui_diff.diff(masked_paths(without_fields(ui_diff.parse(a), fields), paths),
-                             masked_paths(without_fields(ui_diff.parse(b), fields), paths),
-                             tolerance=tolerance, mask_text=masks)
+        lines = ui_diff.diff(
+            masked_paths(without_fields(ui_diff.parse(a), fields), paths),
+            masked_paths(without_fields(ui_diff.parse(b), fields), paths),
+            tolerance=tolerance,
+            mask_text=masks,
+        )
         differences, known = [], {}
         for line in lines:
             ident = finding_for(line, findings, spec.get('name'))
@@ -4830,9 +5121,13 @@ def differential(spec, result, reference, findings=None):
             else:
                 differences.append(line)
         cited |= set(known)
-        checks['ui_dump'][name] = {'ok': not differences, 'differences': len(differences), 'first': differences[:20],
-                                   'known': {i: len(v) for i, v in sorted(known.items())},
-                                   'known_first': {i: v[:3] for i, v in sorted(known.items())}}
+        checks['ui_dump'][name] = {
+            'ok': not differences,
+            'differences': len(differences),
+            'first': differences[:20],
+            'known': {i: len(v) for i, v in sorted(known.items())},
+            'known_first': {i: v[:3] for i, v in sorted(known.items())},
+        }
         if differences:
             reasons.append(f'ui_dump {name}: {len(differences)} difference(s)')
     qa_tools = load_script('qa-tools.py')
@@ -4849,9 +5144,9 @@ def differential(spec, result, reference, findings=None):
             crop_a, crop_b = ref_meta.get('crop'), meta.get('crop')
             masks = relative_masks(ref_meta.get('masks', []), crop_a) + relative_masks(meta.get('masks', []), crop_b)
             diff_png = os.path.join(result['out'], name + '.diff.png')
-            compared = qa_tools.compare_images(os.path.join(reference.folder, ref_meta['file']),
-                                               os.path.join(result['out'], meta['file']), diff_png,
-                                               crop=crop_a, crop_new=crop_b, masks=masks)
+            compared = qa_tools.compare_images(
+                os.path.join(reference.folder, ref_meta['file']), os.path.join(result['out'], meta['file']), diff_png, crop=crop_a, crop_new=crop_b, masks=masks
+            )
             threshold = meta.get('threshold') or thresholds.get(kind) or default
             ok = compared['fraction'] <= threshold
             checks[kind][name] = dict(compared, threshold=threshold, ok=ok, diff=diff_png)
@@ -4912,8 +5207,7 @@ VERDICTS = ('played', 'warning', 'failed', 'pending')
 def run_summary(record):
     """What a results record keeps of one run: its verdict and the numbers behind it."""
     checks = record.get('checks') or {}
-    summary = {'run': record.get('run'), 'index': record['index'], 'verdict': record['verdict'],
-               'date': record.get('started'), 'lane': record.get('lane')}
+    summary = {'run': record.get('run'), 'index': record['index'], 'verdict': record['verdict'], 'date': record.get('started'), 'lane': record.get('lane')}
     if record.get('reasons'):
         summary['reasons'] = [r[:300] for r in record['reasons'][:5]]
     if record['player'] == 'original':
@@ -4922,8 +5216,9 @@ def run_summary(record):
     summary['reference_run'] = record.get('reference_run')
     summary['new_signatures'] = len(checks.get('signatures', {}).get('new', []))
     summary['findings'] = checks.get('findings', [])
-    summary['ui_dump'] = {n: {'differences': c.get('differences'), **({'known': c['known']} if c.get('known') else {})}
-                          for n, c in checks.get('ui_dump', {}).items()}
+    summary['ui_dump'] = {
+        n: {'differences': c.get('differences'), **({'known': c['known']} if c.get('known') else {})} for n, c in checks.get('ui_dump', {}).items()
+    }
     summary['shots'] = {n: c.get('fraction') for kind in ('shot', 'world_shot') for n, c in checks.get(kind, {}).items()}
     return summary
 
@@ -4941,8 +5236,7 @@ def record_verdict(runs):
     current = {r['run'] for r in passed}
     ours = [r for r in runs.get('ours', []) if r.get('reference_run') in current]
     if len(ours) < OURS_RUNS_NEEDED:
-        return 'pending', (f'{len(ours)} run(s) of ours against original run {", ".join(sorted(current))}; '
-                           f'{OURS_RUNS_NEEDED} needed')
+        return 'pending', (f'{len(ours)} run(s) of ours against original run {", ".join(sorted(current))}; {OURS_RUNS_NEEDED} needed')
     if any(r['verdict'] == 'fail' for r in ours):
         return 'failed', 'a run of ours failed'
     if any(r['verdict'] == 'warn' for r in ours):
@@ -4978,8 +5272,7 @@ def update_record(spec, records, note=None, folder=None, commit=None, date=None,
             old = json.load(f)
     runs = {k: list(v) for k, v in old.get('runs', {}).items()}
     for kind in ('original', 'ours'):
-        mine = [run_summary(r) for r in records if r['spec'] == spec['name'] and r['player'] == kind
-                and r['verdict'] != 'skipped']
+        mine = [run_summary(r) for r in records if r['spec'] == spec['name'] and r['player'] == kind and r['verdict'] != 'skipped']
         if mine:
             runs[kind] = mine
     runs = {'original': runs.get('original', []), 'ours': runs.get('ours', [])}
@@ -5007,6 +5300,7 @@ def update_record(spec, records, note=None, folder=None, commit=None, date=None,
 
 # ---------------------------------------------------------------- main
 
+
 def usage():
     sys.exit(__doc__)
 
@@ -5033,21 +5327,48 @@ def read_list(path):
             if word == 'ours':
                 mine['ours_only'] = True
             elif word.startswith('player-args='):
-                mine['player_args'] = word[len('player-args='):].split()
+                mine['player_args'] = word[len('player-args=') :].split()
             else:
                 raise SpecError(f"{path}:{number}: a line is `SPEC [ours] [player-args='ARGS']  # comment`")
     return names, settings
 
 
 def parse_args(argv):
-    opts = {'players': 'ours', 'repeat': 1, 'bless': False, 'hold': None, 'lanes': 1, 'first_lane': FIRST_LANE,
-            'last_lane': None, 'displays': None, 'xvfb_run': False, 'perf_wait': True, 'results': None, 'check': False,
-            'status': False, 'clean': False, 'record': False, 'note': None, 'max_wait': None, 'run_id': None, 'names': [],
-            'list_settings': {}}
+    opts = {
+        'players': 'ours',
+        'repeat': 1,
+        'bless': False,
+        'hold': None,
+        'lanes': 1,
+        'first_lane': FIRST_LANE,
+        'last_lane': None,
+        'displays': None,
+        'xvfb_run': False,
+        'perf_wait': True,
+        'results': None,
+        'check': False,
+        'status': False,
+        'clean': False,
+        'record': False,
+        'note': None,
+        'max_wait': None,
+        'run_id': None,
+        'names': [],
+        'list_settings': {},
+    }
     i = 0
-    takes = {'--player': 'players', '--repeat': 'repeat', '--lanes': 'lanes', '--first-lane': 'first_lane',
-             '--last-lane': 'last_lane', '--displays': 'displays', '--results': 'results', '--note': 'note',
-             '--max-wait': 'max_wait', '--run-id': 'run_id'}
+    takes = {
+        '--player': 'players',
+        '--repeat': 'repeat',
+        '--lanes': 'lanes',
+        '--first-lane': 'first_lane',
+        '--last-lane': 'last_lane',
+        '--displays': 'displays',
+        '--results': 'results',
+        '--note': 'note',
+        '--max-wait': 'max_wait',
+        '--run-id': 'run_id',
+    }
     while i < len(argv):
         a = argv[i]
         if a in takes:
@@ -5167,8 +5488,7 @@ def main(argv):
             return 0
     if opts['check']:
         for spec in specs:
-            print(f'ok   {spec["name"]}: {len(spec["setup"])} setup and {len(spec["steps"])} steps'
-                  + (', needs E2eDriver' if needs_driver(spec) else ''))
+            print(f'ok   {spec["name"]}: {len(spec["setup"])} setup and {len(spec["steps"])} steps' + (', needs E2eDriver' if needs_driver(spec) else ''))
         print(f'ok   {len(findings)} known finding(s)')
         return 0
     env = environment()
@@ -5181,8 +5501,10 @@ def main(argv):
     if 'original' in kinds and 'ours' in kinds:
         mismatch = install_mismatch(env['QA_U57_GAME'], os.path.dirname(os.path.abspath(env['E2E_ORIGINAL'])))
         if mismatch:
-            print(f'e2e: refusing to compare the players, {mismatch}. Point QA_U57_GAME and E2E_ORIGINAL '
-                  'at installs of one build with the same DLC content (out/local-tools/qa.env).')
+            print(
+                f'e2e: refusing to compare the players, {mismatch}. Point QA_U57_GAME and E2E_ORIGINAL '
+                'at installs of one build with the same DLC content (out/local-tools/qa.env).'
+            )
             return 2
     # Its players and Xvfbs end with it, however it ends (see "leftovers").
     install_teardown()
@@ -5196,8 +5518,7 @@ def main(argv):
 
     def process(job, lane, log):
         spec, kind, index = job['spec'], job['kind'], job['index']
-        record = {'spec': spec['name'], 'player': kind, 'index': index, 'mods': spec['mods'], 'run': run_id,
-                  'started': time.strftime('%Y-%m-%dT%H:%M:%S')}
+        record = {'spec': spec['name'], 'player': kind, 'index': index, 'mods': spec['mods'], 'run': run_id, 'started': time.strftime('%Y-%m-%dT%H:%M:%S')}
         with state:
             originals = [results[d] for d in job['after'] if d in results]
         reference = None
@@ -5222,22 +5543,30 @@ def main(argv):
             log(line)
             if line.startswith('waiting for'):
                 lane.update(state=line)
+
         try:
-            with machine_lock(perf_wait=opts['perf_wait'], log=waits, max_wait=opts['max_wait']), \
-                    budget.hold(gb, f'{spec["name"]}/{kind}-{index} lane {lane.number}', waits, opts['max_wait']):
+            with (
+                machine_lock(perf_wait=opts['perf_wait'], log=waits, max_wait=opts['max_wait']),
+                budget.hold(gb, f'{spec["name"]}/{kind}-{index} lane {lane.number}', waits, opts['max_wait']),
+            ):
                 lane.update(state=f'running {job_name}')
                 point_latest(os.path.join(OUT, spec['name']), run_id)
-                result = Run(spec, kind, index, env, lane, log, opts['perf_wait'],
-                             reference.values if reference else None, opts['hold'], run_id).execute()
+                result = Run(spec, kind, index, env, lane, log, opts['perf_wait'], reference.values if reference else None, opts['hold'], run_id).execute()
         except WaitTimeout as e:
             return dict(record, lane=lane.number, verdict='fail', reasons=[str(e)], out=None)
         finally:
             lane.update(state='idle', job=None)
         with state:
             results[job['id']] = result
-        record.update(result['lane'], out=result['out'], outcome=result['outcome'], saves=result['saves'],
-                      options_written=result['options_written'], signature_count=len(result['signatures']),
-                      memory_gb=gb)
+        record.update(
+            result['lane'],
+            out=result['out'],
+            outcome=result['outcome'],
+            saves=result['saves'],
+            options_written=result['options_written'],
+            signature_count=len(result['signatures']),
+            memory_gb=gb,
+        )
         reasons = [result['outcome']] if result['outcome'] else []
         if reasons and reference and result['failed_step_kind'] in ('expect_ui', 'expect_state'):
             reasons[0] += ' (it held in the original: the interaction has no effect in ours)'
@@ -5273,9 +5602,14 @@ def main(argv):
         try:
             # A slot still waiting for a lane once the other slots have taken every job gives up,
             # or the invocation would wait for that lane before writing its records.
-            lane = allocate_lane(opts['first_lane'], last=opts['last_lane'], log=log, max_wait=opts['max_wait'],
-                                 display=not opts['xvfb_run'] and not opts['displays'],
-                                 give_up=lambda: not queue.untaken())
+            lane = allocate_lane(
+                opts['first_lane'],
+                last=opts['last_lane'],
+                log=log,
+                max_wait=opts['max_wait'],
+                display=not opts['xvfb_run'] and not opts['displays'],
+                give_up=lambda: not queue.untaken(),
+            )
         except WaitTimeout as e:
             say(f'FAIL slot {slot}: {e}')
             with state:
@@ -5286,8 +5620,7 @@ def main(argv):
         if opts['displays']:
             lane.display = opts['displays'][slot]
         log = lambda s: say(f'[lane {lane.number}] {s}')
-        log(f'lane {lane.number}: OniMcp :{lane.mcp_port}, E2eDriver :{lane.driver_port}, display '
-            f'{lane.display or "from xvfb-run -a"}')
+        log(f'lane {lane.number}: OniMcp :{lane.mcp_port}, E2eDriver :{lane.driver_port}, display {lane.display or "from xvfb-run -a"}')
         try:
             while True:
                 job = queue.next()
@@ -5297,9 +5630,17 @@ def main(argv):
                     record = process(job, lane, log)
                 except Exception as e:  # a runner bug fails this run, not the queue
                     import traceback
+
                     traceback.print_exc()
-                    record = {'spec': job['spec']['name'], 'player': job['kind'], 'index': job['index'], 'run': run_id,
-                              'verdict': 'fail', 'reasons': [f'runner error: {e!r}'], 'out': None}
+                    record = {
+                        'spec': job['spec']['name'],
+                        'player': job['kind'],
+                        'index': job['index'],
+                        'run': run_id,
+                        'verdict': 'fail',
+                        'reasons': [f'runner error: {e!r}'],
+                        'out': None,
+                    }
                 with state:
                     records.append(record)
                 say(report(record))
@@ -5321,8 +5662,7 @@ def main(argv):
     if opts['record']:
         for spec in specs:
             saved = update_record(spec, records, opts['note'])
-            say(f'== {spec["name"]}: {saved["verdict"]} ({saved["why"]}), in '
-                f'{os.path.relpath(os.path.join(RESULTS, spec["name"] + ".json"), ROOT)}')
+            say(f'== {spec["name"]}: {saved["verdict"]} ({saved["why"]}), in {os.path.relpath(os.path.join(RESULTS, spec["name"] + ".json"), ROOT)}')
     failures = sum(1 for r in records if r['verdict'] == 'fail')
     say(f'== {failures} failure(s); results in {results_path}')
     return 1 if failures else 0

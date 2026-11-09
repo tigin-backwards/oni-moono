@@ -8,6 +8,7 @@
 
 The original's PNG is lossless, so its texels are the reference; both JPEGs carry JPEG error
 against it, of about the same size when the encoders agree on orientation, channels and alpha."""
+
 import os, sys
 from PIL import Image
 

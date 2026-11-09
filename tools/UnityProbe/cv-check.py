@@ -3,6 +3,7 @@
   cv-check.py rule LOG          the unchecked conversions against x86 truncation (cvttsd2si) rules
   cv-check.py diff ORIG OURS    the lines whose results differ between two players, by operation
 Inputs are matched by their bits, since the players format "R" differently (ARCHITECTURE D2)."""
+
 import collections, math, re, struct, sys
 
 
@@ -26,9 +27,9 @@ def wrap(v, n, signed):
 
 
 def u8(x):
-    if x < 2.0 ** 63:
-        return cvt(x, 64) & (2 ** 64 - 1)
-    return (cvt(x - 2.0 ** 63, 64) & (2 ** 64 - 1)) ^ (1 << 63)
+    if x < 2.0**63:
+        return cvt(x, 64) & (2**64 - 1)
+    return (cvt(x - 2.0**63, 64) & (2**64 - 1)) ^ (1 << 63)
 
 
 def whole(f, x):
@@ -36,10 +37,15 @@ def whole(f, x):
 
 
 RULES = {
-    'conv.i1': lambda x: wrap(cvt(x, 32), 8, True), 'conv.i2': lambda x: wrap(cvt(x, 32), 16, True),
-    'conv.i4': lambda x: cvt(x, 32), 'conv.i8': lambda x: cvt(x, 64),
-    'conv.u1': lambda x: wrap(cvt(x, 32), 8, False), 'conv.u2': lambda x: wrap(cvt(x, 32), 16, False),
-    'conv.u4': lambda x: wrap(cvt(x, 64), 32, False), 'conv.u8': u8, 'conv.u': u8,
+    'conv.i1': lambda x: wrap(cvt(x, 32), 8, True),
+    'conv.i2': lambda x: wrap(cvt(x, 32), 16, True),
+    'conv.i4': lambda x: cvt(x, 32),
+    'conv.i8': lambda x: cvt(x, 64),
+    'conv.u1': lambda x: wrap(cvt(x, 32), 8, False),
+    'conv.u2': lambda x: wrap(cvt(x, 32), 16, False),
+    'conv.u4': lambda x: wrap(cvt(x, 64), 32, False),
+    'conv.u8': u8,
+    'conv.u': u8,
     'conv.i': lambda x: wrap(cvt(x, 32), 32, False),
     'Mathf.RoundToInt': lambda x: cvt(whole(lambda v: float(round(v)), x), 32),
     'Math.Round>conv.i4': lambda x: cvt(whole(lambda v: float(round(v)), x), 32),

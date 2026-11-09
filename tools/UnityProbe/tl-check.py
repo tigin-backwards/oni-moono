@@ -13,6 +13,7 @@ from the text's `metrics` line, laid out in a rect 400 x 1000 (each line's chara
 baseline); a later line's baseline there is its whole line's, so the line so far sits higher by
 the difference between the whole line's ascender and its ascender so far.
 """
+
 import re
 import sys
 
@@ -122,6 +123,7 @@ def diff(orig, ours):
                 if hh <= h + 1e-6:
                     r = rest
             return r
+
         first = True
         for h in heights:
             x, y = at(ta[k], h), at(tb[k], h)

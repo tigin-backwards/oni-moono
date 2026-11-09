@@ -4,6 +4,7 @@
   tt-check.py diff ORIG OURS    every step whose calls set or read GUI.tooltip differently
   tt-check.py show LOG          per step: what each call read and which controls set the tooltip
 Exit code 0 when the rules hold (rule) or nothing differs (diff)."""
+
 import re, sys
 
 LINE = re.compile(r'PROBE f(\d+) TT (.*)$')
@@ -43,7 +44,7 @@ def parse(path):
                 tokens = TOKEN.findall(text)
                 keys = [k for k, _ in tokens]
                 at = keys.index('start') if 'start' in keys else 0
-                info = dict(tokens[:at + 1])
+                info = dict(tokens[: at + 1])
                 points = [(k, v) for k, v in tokens[at:] if k != 'rect']
                 out.append(('call', frame, parts[0], parts[1], parts[2], parts[3], info.get('raw'), dict(tokens), points))
             elif len(parts) >= 4 and parts[2] in OUTSIDE:

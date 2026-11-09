@@ -1,4 +1,5 @@
 """e2e.py's `save` step: waiting until a save is on disk whole before it is copied."""
+
 import json, os, struct, tempfile, unittest, zlib
 
 import helpers  # noqa: F401  (puts scripts/ on the path)
@@ -39,7 +40,7 @@ class SaveWritten(unittest.TestCase):
 
     def test_truncated_or_trailing_body(self):
         head, body = save_bytes()
-        self.write(head + body[:len(body) // 2])
+        self.write(head + body[: len(body) // 2])
         self.assertFalse(e2e.save_written(self.path))
         self.write(head + body[:-1])
         self.assertFalse(e2e.save_written(self.path))
@@ -62,8 +63,7 @@ class SaveWritten(unittest.TestCase):
             polls[0] += 1
             now[0] += seconds
 
-        result = e2e.wait_save_written(self.path, self.log, offset, timeout=timeout, poll=1.0,
-                                       clock=lambda: now[0], sleep=sleep)
+        result = e2e.wait_save_written(self.path, self.log, offset, timeout=timeout, poll=1.0, clock=lambda: now[0], sleep=sleep)
         return result, polls[0]
 
     def test_waits_for_the_background_write(self):
@@ -84,6 +84,7 @@ class SaveWritten(unittest.TestCase):
             if n == 1:
                 with open(self.log, 'a') as f:
                     f.write(e2e.BACKGROUND_SAVE_WRITTEN + self.path + '\n')
+
         result, polls = self.wait(ticks, offset)
         self.assertEqual((result, polls), (True, 2))
 

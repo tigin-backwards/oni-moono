@@ -5,6 +5,7 @@
   mo-check.py ORIG OURS CALL [N]      and N examples of each for that call (default 5)
 Members are Declaring.Name, so a reorder within a class and one across classes tell apart: "within"
 counts the types where one class's own members come in another order."""
+
 import collections, sys
 
 

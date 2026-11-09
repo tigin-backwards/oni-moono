@@ -10,6 +10,7 @@
 
 ORIG is the original's Player.log, OURS our player's stdout (PROBE_SCENARIO=inputtext).
 """
+
 import re
 import sys
 from collections import Counter, OrderedDict

@@ -1,26 +1,35 @@
 #!/usr/bin/env python3
 """Reads the empty-text probe's lines (PROBE_SCENARIO=emptytext, `ET ...`).
 
-  et-check.py rule LOG          predicts every case from the rule in textmeshpro.md
-                                ("Texts with nothing to lay out") and prints those it misses
-  et-check.py diff ORIG OURS    the cases where the two players differ
-  et-check.py dump LOG          the sequences after another text, condensed
+et-check.py rule LOG          predicts every case from the rule in textmeshpro.md
+                              ("Texts with nothing to lay out") and prints those it misses
+et-check.py diff ORIG OURS    the cases where the two players differ
+et-check.py dump LOG          the sequences after another text, condensed
 """
+
 import collections
 import re
 import sys
 
 FRESH = re.compile(r'ET fresh (.+?) (\S+) (\w+) wrap=(\d) auto=(\d) rect=95\.7x(\S+) (".*?"|null) (ov=.*)$')
-AFTER = re.compile(r'ET after (.+?) (\S+) (\w+) auto=(\d) prior=(".*?") rect=95\.7x(\S+) then=(".*?"|null) (force|frame) '
-                   r'(prior|set|resize=\S+) (ov=.*)$')
+AFTER = re.compile(
+    r'ET after (.+?) (\S+) (\w+) auto=(\d) prior=(".*?") rect=95\.7x(\S+) then=(".*?"|null) (force|frame) '
+    r'(prior|set|resize=\S+) (ov=.*)$'
+)
 AUTOMAX = re.compile(r'ET automax (.+?) (\S+) max=(\S+) prior=(".*?"|null) rect=95\.7x(\S+) then=(".*?"|null) (prior|set) (ov=.*)$')
 STATE = re.compile(r'ov=(\d) first=(-?\d+) trunc=(\d) cc=(\d+) lc=(\d+) sc=(\d+) wc=(\d+) pc=(\d+) fs=(\S+) pw=(\S+) ph=(\S+) after=(\d)/(-?\d+)')
 # What each text lays out to: characters, lines, spaces, words, pages (the counts the probe logs).
 COUNTS = {
-    '""': (0, 0, 0, 0, 0), 'null': (0, 0, 0, 0, 0),
-    '"<b></b>"': (0, 0, 0, 0, 0), '"<color=#FF0000></color>"': (0, 0, 0, 0, 0), '"<size=150%></size>"': (0, 0, 0, 0, 0),
+    '""': (0, 0, 0, 0, 0),
+    'null': (0, 0, 0, 0, 0),
+    '"<b></b>"': (0, 0, 0, 0, 0),
+    '"<color=#FF0000></color>"': (0, 0, 0, 0, 0),
+    '"<size=150%></size>"': (0, 0, 0, 0, 0),
     '"<i></i><u></u>"': (0, 0, 0, 0, 0),
-    '"\\u0020"': (1, 1, 1, 1, 1), '"<b>\\u0020</b>"': (1, 1, 1, 1, 1), '"<br>"': (1, 1, 1, 1, 1), '"\\u200B"': (1, 1, 0, 1, 1),
+    '"\\u0020"': (1, 1, 1, 1, 1),
+    '"<b>\\u0020</b>"': (1, 1, 1, 1, 1),
+    '"<br>"': (1, 1, 1, 1, 1),
+    '"\\u200B"': (1, 1, 0, 1, 1),
 }
 EMPTY = ('""', 'null')
 

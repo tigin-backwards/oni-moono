@@ -14,6 +14,7 @@ libraries itself, in the watcher).
 SDK apphost's OniMoono.exe, or the original game's exports with --exports-only). Exits 1 on a
 failed check. Building the exe needs Windows (scripts/build-native-host.sh); this does not.
 """
+
 import argparse
 import re
 import struct
@@ -22,7 +23,7 @@ import sys
 EXPORTS = ("NvOptimusEnablement", "AmdPowerXpressRequestHighPerformance")
 CRASH_EXPORTS = ("moono_crash_install", "moono_crash_exiting", "moono_crash_test", "moono_crash_describe")
 RT_ICON, RT_RCDATA, RT_GROUP_ICON, RT_VERSION, RT_MANIFEST = 3, 10, 14, 16, 24
-CRASH_FONTS = (101, 102, 103, 104)   # host.rc: Gabarito 400, 500, 600 and Red Hat Mono 400
+CRASH_FONTS = (101, 102, 103, 104)  # host.rc: Gabarito 400, 500, 600 and Red Hat Mono 400
 # Libraries the crash window must load itself (in the watcher), never through the import table.
 LOADED_LATER = ("d2d1.dll", "dwrite.dll", "dxgi.dll", "dwmapi.dll", "comctl32.dll", "windowscodecs.dll", "uxtheme.dll", "oleacc.dll")
 IMAGE_SCN_MEM_WRITE = 0x80000000
@@ -36,23 +37,23 @@ class Pe:
         if d[:2] != b"MZ":
             raise ValueError(f"{path}: not a PE file")
         pe = struct.unpack_from("<I", d, 0x3C)[0]
-        if d[pe:pe + 4] != b"PE\0\0":
+        if d[pe : pe + 4] != b"PE\0\0":
             raise ValueError(f"{path}: not a PE file")
-        nsections, = struct.unpack_from("<H", d, pe + 6)
-        optsize, = struct.unpack_from("<H", d, pe + 20)
+        (nsections,) = struct.unpack_from("<H", d, pe + 6)
+        (optsize,) = struct.unpack_from("<H", d, pe + 20)
         opt = pe + 24
-        magic, = struct.unpack_from("<H", d, opt)
+        (magic,) = struct.unpack_from("<H", d, opt)
         if magic != 0x20B:
             raise ValueError(f"{path}: not a PE32+ (x64) file")
         self.subsystem, self.dll_characteristics = struct.unpack_from("<HH", d, opt + 68)
-        ndirs, = struct.unpack_from("<I", d, opt + 108)
+        (ndirs,) = struct.unpack_from("<I", d, opt + 108)
         self.dirs = [struct.unpack_from("<II", d, opt + 112 + 8 * i) for i in range(ndirs)]
         self.sections = []
         for i in range(nsections):
             s = opt + optsize + 40 * i
-            name = d[s:s + 8].rstrip(b"\0").decode()
+            name = d[s : s + 8].rstrip(b"\0").decode()
             vsize, va, rawsize, rawptr = struct.unpack_from("<IIII", d, s + 8)
-            flags, = struct.unpack_from("<I", d, s + 36)
+            (flags,) = struct.unpack_from("<I", d, s + 36)
             self.sections.append((name, va, max(vsize, rawsize), rawptr, flags))
 
     def section(self, rva):
@@ -67,7 +68,7 @@ class Pe:
 
     def cstr(self, rva):
         o = self.offset(rva)
-        return self.data[o:self.data.index(b"\0", o)].decode()
+        return self.data[o : self.data.index(b"\0", o)].decode()
 
     def exports(self):
         """{name: rva}"""
@@ -78,9 +79,9 @@ class Pe:
         _, _, _, nnames, funcs, names, ords = struct.unpack_from("<IIIIIII", self.data, o + 12)
         result = {}
         for i in range(nnames):
-            name_rva, = struct.unpack_from("<I", self.data, self.offset(names) + 4 * i)
-            ordinal, = struct.unpack_from("<H", self.data, self.offset(ords) + 2 * i)
-            func, = struct.unpack_from("<I", self.data, self.offset(funcs) + 4 * ordinal)
+            (name_rva,) = struct.unpack_from("<I", self.data, self.offset(names) + 4 * i)
+            (ordinal,) = struct.unpack_from("<H", self.data, self.offset(ords) + 2 * i)
+            (func,) = struct.unpack_from("<I", self.data, self.offset(funcs) + 4 * ordinal)
             result[self.cstr(name_rva)] = func
         return result
 
@@ -90,7 +91,7 @@ class Pe:
         result = []
         o = self.offset(rva) if size else 0
         while size:
-            name_rva, = struct.unpack_from("<I", self.data, o + 12)
+            (name_rva,) = struct.unpack_from("<I", self.data, o + 12)
             if not name_rva:
                 break
             result.append(self.cstr(name_rva).lower())
@@ -110,8 +111,8 @@ class Pe:
                 key, target = struct.unpack_from("<II", self.data, o + 16 + 8 * i)
                 if key & 0x80000000:
                     so = root + (key & 0x7FFFFFFF)
-                    n, = struct.unpack_from("<H", self.data, so)
-                    key = self.data[so + 2:so + 2 + 2 * n].decode("utf-16-le")
+                    (n,) = struct.unpack_from("<H", self.data, so)
+                    key = self.data[so + 2 : so + 2 + 2 * n].decode("utf-16-le")
                 yield key, target
 
         result = {}
@@ -120,15 +121,14 @@ class Pe:
                 for _, leaf in entries(root + (n & 0x7FFFFFFF)):
                     data_rva, data_size = struct.unpack_from("<II", self.data, root + leaf)
                     o = self.offset(data_rva)
-                    result.setdefault((rtype, name), []).append(self.data[o:o + data_size])
+                    result.setdefault((rtype, name), []).append(self.data[o : o + data_size])
         return result
 
 
 def version_strings(blob):
     """The StringFileInfo values of a VS_VERSIONINFO resource."""
     text = blob.decode("utf-16-le", errors="replace")
-    keys = ("CompanyName", "FileDescription", "FileVersion", "InternalName", "LegalCopyright",
-            "OriginalFilename", "ProductName", "ProductVersion")
+    keys = ("CompanyName", "FileDescription", "FileVersion", "InternalName", "LegalCopyright", "OriginalFilename", "ProductName", "ProductVersion")
     result = {}
     for key in keys:
         m = re.search(re.escape(key) + "\0+([^\0]*)", text)
@@ -174,15 +174,19 @@ def main():
         rva = exports[name]
         sname, va, _, rawptr, flags = pe.section(rva)
         offset = rawptr + rva - va
-        value, = struct.unpack_from("<I", pe.data, offset)
-        check(value == 1 and flags & IMAGE_SCN_MEM_WRITE,
-              f"export {name}: RVA {rva:#x} in {sname} (file offset {offset:#x}, {'writable' if flags & IMAGE_SCN_MEM_WRITE else 'read-only'}), value {value}")
+        (value,) = struct.unpack_from("<I", pe.data, offset)
+        check(
+            value == 1 and flags & IMAGE_SCN_MEM_WRITE,
+            f"export {name}: RVA {rva:#x} in {sname} (file offset {offset:#x}, {'writable' if flags & IMAGE_SCN_MEM_WRITE else 'read-only'}), value {value}",
+        )
     if a.exports_only:
         return 1 if failed else 0
 
     crash = [name for name in CRASH_EXPORTS if name not in exports]
     check(not crash, f"crash record exports (NativeCrashes.cs): {'missing ' + ', '.join(crash) if crash else ', '.join(CRASH_EXPORTS)}")
-    check(pe.subsystem == 2, f"subsystem {pe.subsystem} ({'Windows GUI' if pe.subsystem == 2 else 'not GUI'}), DllCharacteristics {pe.dll_characteristics:#06x}")
+    check(
+        pe.subsystem == 2, f"subsystem {pe.subsystem} ({'Windows GUI' if pe.subsystem == 2 else 'not GUI'}), DllCharacteristics {pe.dll_characteristics:#06x}"
+    )
     groups, icons, manifest, version = describe(pe)
     check("32512" in groups, f"icon group(s) {', '.join(groups) or 'none'} ({icons} images); 32512 for SetClassIcon")
     check(len(manifest) == 1, f"manifest: {manifest[0] if manifest else 'none'}")

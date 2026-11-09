@@ -4,6 +4,7 @@
 Prints, per part, the lines that differ once what differs between runs is masked: frame numbers,
 shader property ids (idOk says whether each matches PropertyToID), the loopback server's port,
 temporary file names and the player's install path."""
+
 import difflib, re, struct, sys
 
 

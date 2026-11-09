@@ -14,6 +14,7 @@
 A log is a Player.log (original) or our player's stdout. Rect sizes are compared as float32:
 the "R" format differs between Mono and .NET.
 """
+
 import re
 import sys
 from collections import Counter, defaultdict
@@ -24,8 +25,10 @@ EPS = 1e-4
 # White space as the texts here use it; a tab is not counted (it is checked, but not visible).
 WHITE = {32, 160, 10}
 FIELDS = ('ovf', 'idx', 'trunc', 'cc', 'lc', 'chars')
-CASE = re.compile(r'PROBE f\d+ OV (.*?) "(.*)" (\w+) (\w+) (nowrap|wrap) rect=(\S+)x(\S+) ovf=(\w+) idx=(-?\d+) '
-                  r'trunc=(\w+) cc=(\d+) sc=\d+ wc=\d+ lc=(\d+) pc=\d+ chars(.*)$')
+CASE = re.compile(
+    r'PROBE f\d+ OV (.*?) "(.*)" (\w+) (\w+) (nowrap|wrap) rect=(\S+)x(\S+) ovf=(\w+) idx=(-?\d+) '
+    r'trunc=(\w+) cc=(\d+) sc=\d+ wc=\d+ lc=(\d+) pc=\d+ chars(.*)$'
+)
 
 
 def f32(s):
@@ -39,7 +42,8 @@ def load(path):
         if m:
             g = m.groups()
             cases[g[:5] + (f32(g[5]), f32(g[6]))] = dict(
-                ovf=g[7] == 'True', idx=int(g[8]), trunc=g[9] == 'True', cc=int(g[10]), lc=int(g[11]), chars=g[12].strip())
+                ovf=g[7] == 'True', idx=int(g[8]), trunc=g[9] == 'True', cc=int(g[10]), lc=int(g[11]), chars=g[12].strip()
+            )
             continue
         m = re.search(r'PROBE f\d+ OV (.*?) "(.*)" preferred=(\S+)x(\S+)', line)
         if m:
@@ -136,8 +140,10 @@ def rule(path, show):
         by[key[3]][ok] += 1
         if not ok:
             misses.append((key, v, p))
-    print(f'{sum(c[True] for c in by.values())} of {sum(sum(c.values()) for c in by.values())} cases reproduced: '
-          + ', '.join(f'{m} {c[True]}/{sum(c.values())}' for m, c in by.items()))
+    print(
+        f'{sum(c[True] for c in by.values())} of {sum(sum(c.values()) for c in by.values())} cases reproduced: '
+        + ', '.join(f'{m} {c[True]}/{sum(c.values())}' for m, c in by.items())
+    )
     for key, v, p in misses[:show]:
         d = [f for f in FIELDS if p[f] != v[f]]
         print(' | '.join(key), {f: v[f] for f in d}, 'rule', {f: p[f] for f in d})

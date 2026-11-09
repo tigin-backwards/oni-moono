@@ -13,13 +13,16 @@ the probe's IC lines (PROBE_SCENARIO=inputcaret).
 
 ORIG is the original's Player.log, OURS our player's stdout.
 """
+
 import re
 import sys
 from collections import Counter, OrderedDict
 
 LINE = re.compile(r'PROBE f\d+ IC (end|cull) (.*)$')
 END = re.compile(r'^(.*) (focused|ctrl-a|input|input\+1|end|end\+1|enabled|end\+2|again|nine) (text=.*)$')
-CULL = re.compile(r'^(.*) (made|frame1|frame2|focused|ended|mask-moved|mask-back|field-moved|caret-cycled|caret-reenabled|caret-moved|field-cycled|Cull\(far,true\)|Cull\(all,true\)|Cull\(far,false\)|after-calls\+1) (caret: .*)$')
+CULL = re.compile(
+    r'^(.*) (made|frame1|frame2|focused|ended|mask-moved|mask-back|field-moved|caret-cycled|caret-reenabled|caret-moved|field-cycled|Cull\(far,true\)|Cull\(all,true\)|Cull\(far,false\)|after-calls\+1) (caret: .*)$'
+)
 KV = re.compile(r'(\w+)=((?:[^\s"]|"(?:[^"\\]|\\.)*")+)')
 
 

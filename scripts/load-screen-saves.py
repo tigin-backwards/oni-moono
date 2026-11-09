@@ -11,6 +11,7 @@ real shapes (528x1842 for files over 500 KB, else 528x306; the game reads only t
 naming it, so that no two previews have the same bytes (as in a real folder; a cache keyed by
 the files' bytes then works as it would there).
 Run the e2e spec with E2E_CLOUD_SAVES=OUT; never point a player at REAL."""
+
 import json, os, random, struct, sys, uuid, zlib
 
 
@@ -26,10 +27,15 @@ def png(path, w, h, noise=0.12):
             rows += bytes((v, (v * 7) & 255, (v * 13) & 255, 255))
 
     def chunk(kind, data):
-        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data) & 0xffffffff)
+        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data) & 0xFFFFFFFF)
+
     with open(path, 'wb') as f:
-        f.write(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 6, 0, 0, 0))
-                + chunk(b'IDAT', zlib.compress(bytes(rows), 6)) + chunk(b'IEND', b''))
+        f.write(
+            b'\x89PNG\r\n\x1a\n'
+            + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 6, 0, 0, 0))
+            + chunk(b'IDAT', zlib.compress(bytes(rows), 6))
+            + chunk(b'IEND', b'')
+        )
 
 
 def distinct_copy(source, path, name):
@@ -37,7 +43,7 @@ def distinct_copy(source, path, name):
     with open(source, 'rb') as f:
         data = f.read()
     text = b'Comment\0' + name.encode('utf-8', 'replace')
-    chunk = struct.pack('>I', len(text)) + b'tEXt' + text + struct.pack('>I', zlib.crc32(b'tEXt' + text) & 0xffffffff)
+    chunk = struct.pack('>I', len(text)) + b'tEXt' + text + struct.pack('>I', zlib.crc32(b'tEXt' + text) & 0xFFFFFFFF)
     with open(path, 'wb') as f:
         f.write(data[:-12] + chunk + data[-12:])
 
@@ -65,9 +71,13 @@ def main(real, template, out, distinct=False):
             if name.endswith('.sav'):
                 with open(path, 'wb') as f:
                     if st.st_size >= 1024:
-                        header = dict(info, baseName=parts[0], originalSaveName=name,
-                                      colonyGuid=str(uuid.uuid5(uuid.NAMESPACE_URL, parts[0])),
-                                      isAutoSave='auto_save' in parts)
+                        header = dict(
+                            info,
+                            baseName=parts[0],
+                            originalSaveName=name,
+                            colonyGuid=str(uuid.uuid5(uuid.NAMESPACE_URL, parts[0])),
+                            isAutoSave='auto_save' in parts,
+                        )
                         body = json.dumps(header, separators=(',', ':')).encode('utf-8')
                         f.write(struct.pack('<IiIi', build, len(body), version, compression) + body)
                     f.truncate(st.st_size)

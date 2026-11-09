@@ -14,6 +14,7 @@ budget, the perf lock and the settings (E2E_ORIGINAL_ENV among them) are scripts
 
 Prints one line per spec run and writes out/e2e/runs/RUN_ID.json like scripts/e2e.py.
 """
+
 import contextlib, importlib.util, json, os, shutil, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -61,8 +62,7 @@ def warm_load(player, mcp, fixture, timeout=900):
         before = game_id(driver)
         started = time.time()
         mcp.connect()
-        mcp.call('game_control', domain='launch', action='start', path=target, confirm=True, forceLoad=True,
-                 resume=False)
+        mcp.call('game_control', domain='launch', action='start', path=target, confirm=True, forceLoad=True, resume=False)
         deadline = started + timeout
         while True:
             time.sleep(0.5)
@@ -113,11 +113,10 @@ class WarmRun(e2e.Run):
             self.driver.on_reply = self.player.watchdog.progress
             self.mcp.on_reply = self.player.watchdog.progress
             self.dismiss_load_dialogs()
-            steps = [('setup', i, s) for i, s in enumerate(spec['setup'], 1)] + \
-                    [('steps', i, s) for i, s in enumerate(spec['steps'], 1)]
+            steps = [('setup', i, s) for i, s in enumerate(spec['setup'], 1)] + [('steps', i, s) for i, s in enumerate(spec['steps'], 1)]
             began_steps = time.time()
             for block, number, step in steps:
-                (kind_of_step, value), = step.items()
+                ((kind_of_step, value),) = step.items()
                 failed_kind = kind_of_step
                 label = number if block == 'steps' else f'setup {number}'
                 began = time.time()
@@ -154,10 +153,20 @@ class WarmRun(e2e.Run):
         with open(os.path.join(self.out, 'values.json'), 'w') as f:
             json.dump(self.values, f, indent=1, default=str)
         signatures = e2e.Player.signatures(type('P', (), {'log': log})())
-        return {'outcome': outcome, 'failed_step_kind': failed_kind, 'run': self.run_id, 'signatures': signatures,
-                'saves': self.saves, 'out': self.out, 'values': self.values, 'evidence': self.evidence,
-                'lane': self.player.lane_record(), 'options_written': self.player.option_files, 'log': log,
-                'timings': timings}
+        return {
+            'outcome': outcome,
+            'failed_step_kind': failed_kind,
+            'run': self.run_id,
+            'signatures': signatures,
+            'saves': self.saves,
+            'out': self.out,
+            'values': self.values,
+            'evidence': self.evidence,
+            'lane': self.player.lane_record(),
+            'options_written': self.player.option_files,
+            'log': log,
+            'timings': timings,
+        }
 
 
 def run_kind(kind, specs, env, opts, run_id, originals, findings, log):
@@ -171,10 +180,21 @@ def run_kind(kind, specs, env, opts, run_id, originals, findings, log):
         player = None
         try:
             folder = os.path.join(e2e.OUT, 'warm', run_id, kind)
-            player = e2e.Player(kind, folder, env, fixture, lane, spec0['mods'], spec0.get('options'), driver=True,
-                                expansion1=e2e.spaced_out(spec0), translation=spec0.get('translation'),
-                                language=spec0.get('language'), keyboard=spec0.get('keyboard'),
-                                display_dpi=spec0.get('display_dpi'))
+            player = e2e.Player(
+                kind,
+                folder,
+                env,
+                fixture,
+                lane,
+                spec0['mods'],
+                spec0.get('options'),
+                driver=True,
+                expansion1=e2e.spaced_out(spec0),
+                translation=spec0.get('translation'),
+                language=spec0.get('language'),
+                keyboard=spec0.get('keyboard'),
+                display_dpi=spec0.get('display_dpi'),
+            )
             t0 = time.time()
             player.start()
             started = round(time.time() - t0, 1)
@@ -185,18 +205,25 @@ def run_kind(kind, specs, env, opts, run_id, originals, findings, log):
             log(f'== {kind}: lane {lane.number}, OniMcp up in {started} s, first load {first_load} s')
             for i, spec in enumerate(specs):
                 index = sum(1 for s in specs[:i] if s['name'] == spec['name']) + 1
-                reference = e2e.Reference.from_runs(spec, [originals[spec['name']]]) \
-                    if kind == 'ours' and spec['name'] in originals else None
+                reference = e2e.Reference.from_runs(spec, [originals[spec['name']]]) if kind == 'ours' and spec['name'] in originals else None
                 t = time.time()
-                run = WarmRun(spec, kind, index, env, lane, log, player, i == 0, run_id,
-                              reference.values if reference else None)
+                run = WarmRun(spec, kind, index, env, lane, log, player, i == 0, run_id, reference.values if reference else None)
                 result = run.execute()
                 wall = round(time.time() - t, 1)
                 if i == 0:
                     result['timings']['start'], result['timings']['load'] = started, first_load
-                record = {'spec': spec['name'], 'player': kind, 'index': index, 'run': run_id, 'warm': i > 0,
-                          'wall': wall, 'timings': result['timings'], 'outcome': result['outcome'],
-                          'out': result['out'], 'rss_gb': rss_gb(player.game_pid())}
+                record = {
+                    'spec': spec['name'],
+                    'player': kind,
+                    'index': index,
+                    'run': run_id,
+                    'warm': i > 0,
+                    'wall': wall,
+                    'timings': result['timings'],
+                    'outcome': result['outcome'],
+                    'out': result['out'],
+                    'rss_gb': rss_gb(player.game_pid()),
+                }
                 reasons = [result['outcome']] if result['outcome'] else []
                 if kind == 'original' and not reasons:
                     originals.setdefault(spec['name'], result)
@@ -207,8 +234,10 @@ def run_kind(kind, specs, env, opts, run_id, originals, findings, log):
                 record.update(verdict='fail' if reasons else 'pass', reasons=reasons)
                 with open(os.path.join(result['out'], 'result.json'), 'w') as f:
                     json.dump(record, f, indent=1, default=sorted)
-                log(f'{record["verdict"].upper():4} {spec["name"]} in {kind}: {wall} s {result["timings"]}'
-                    + (f' ({"; ".join(reasons)[:300]})' if reasons else ''))
+                log(
+                    f'{record["verdict"].upper():4} {spec["name"]} in {kind}: {wall} s {result["timings"]}'
+                    + (f' ({"; ".join(reasons)[:300]})' if reasons else '')
+                )
                 records.append(record)
                 if not player.alive():
                     break

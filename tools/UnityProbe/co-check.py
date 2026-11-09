@@ -7,6 +7,7 @@
 Canvas i draws row i and column i in its own colour (CanvasOrder.cs); at the crossing of row i
 and column j the pixel shows whichever of canvases i and j is on top. The order is built from
 those pairs; '?' marks a pair that shows neither colour (a canvas not drawn)."""
+
 import glob, os, sys
 from PIL import Image
 
@@ -26,9 +27,8 @@ def order(path):
     img = Image.open(path).convert('RGB')
     h = img.height
     # Which canvases draw at all: the middle of each one's row, left of every column.
-    present = [i for i in range(len(COLOURS))
-               if which(img.getpixel((ORIGIN - 10, h - 1 - (ORIGIN + PITCH * i + WIDTH // 2)))) == i]
-    above = {i: set() for i in present}   # above[i]: the canvases i is drawn over
+    present = [i for i in range(len(COLOURS)) if which(img.getpixel((ORIGIN - 10, h - 1 - (ORIGIN + PITCH * i + WIDTH // 2)))) == i]
+    above = {i: set() for i in present}  # above[i]: the canvases i is drawn over
     odd = []
     for i in present:
         for j in present:

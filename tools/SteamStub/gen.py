@@ -20,6 +20,7 @@ all-DLC double does; --dlc-except APP_ID the same, but for that one app (U60 QA 
 COSMETIC2_ID, app 5315880, whose bundle the data does not ship). --ugc leaves out the
 functions tools/SteamStub/ugc.s defines (one Workshop subscription and its call results, for
 U60 QA spec M1 and M2; Linux only), which build.sh assembles and links beside them."""
+
 import re, sys
 
 STEAM_ID = 0x0110000100000001  # individual account 1, public universe
@@ -61,28 +62,35 @@ VALUES = {
     "SteamAPI_ISteamUGC_CreateQueryUGCDetailsRequest": ("int", 0xFFFFFFFFFFFFFFFF),
 }
 # Interface accessors: a non-null dummy object (calls only pass it back).
-POINTER_PATTERNS = [re.compile(r"^SteamAPI_ISteamClient_GetISteam"), re.compile(r"^SteamAPI_Steam[A-Za-z]+_v\d+$"),
-                    re.compile(r"^SteamInternal_FindOrCreate")]
+POINTER_PATTERNS = [re.compile(r"^SteamAPI_ISteamClient_GetISteam"), re.compile(r"^SteamAPI_Steam[A-Za-z]+_v\d+$"), re.compile(r"^SteamInternal_FindOrCreate")]
+
 
 def entry_points(path):
     names = re.findall(r'EntryPoint\s*=\s*"([A-Za-z0-9_]+)"', open(path, encoding="utf-8").read())
     return sorted(set(names))
 
+
 def value_of(name):
     v = VALUES.get(name)
-    if v is None and any(p.match(name) for p in POINTER_PATTERNS): v = ("ptr",)
+    if v is None and any(p.match(name) for p in POINTER_PATTERNS):
+        v = ("ptr",)
     return v
 
+
 SYSV_ARGS = {2: "esi", 3: "edx"}
+
 
 def write_elf_assembly(names, out):
     lines = [".intel_syntax noprefix", ".text"]
     strings = {}
     for name in names:
         v = value_of(name)
-        if v is None: body = "xor eax, eax"
-        elif v[0] == "int": body = f"mov rax, {v[1]:#x}"
-        elif v[0] == "ptr": body = "lea rax, [rip + stub_object]"
+        if v is None:
+            body = "xor eax, eax"
+        elif v[0] == "int":
+            body = f"mov rax, {v[1]:#x}"
+        elif v[0] == "ptr":
+            body = "lea rax, [rip + stub_object]"
         elif v[0] == "str":
             label = strings.setdefault(v[1], f"stub_str{len(strings)}")
             body = f"lea rax, [rip + {label}]"
@@ -96,10 +104,12 @@ def write_elf_assembly(names, out):
     lines += [".bss", ".balign 64", "stub_object:", "  .zero 4096", '.section .note.GNU-stack,"",@progbits']
     open(out, "w").write("\n".join(lines) + "\n")
 
+
 # Win64: the 32-bit argument registers (ecx, edx, r8d) as `cmp reg, imm32` encodings.
 WIN64_CMP = {2: bytes([0x81, 0xFA]), 3: bytes([0x41, 0x81, 0xF8])}
 PXOR_XMM0 = bytes([0x66, 0x0F, 0xEF, 0xC0])
 RET = bytes([0xC3])
+
 
 def write_pe(names, out):
     """steam_api64.dll: a PE32+ DLL with no entry point and no imports. Sections: .text (the
@@ -107,23 +117,29 @@ def write_pe(names, out):
     zeroed dummy object). Code addresses data only RIP-relatively, so the image needs no base
     relocations."""
     import struct
+
     FILE_ALIGN, SECT_ALIGN, HEADERS = 0x200, 0x1000, 0x400
     TEXT, RDATA, DATA = 0x1000, None, None
     align = lambda n, a: (n + a - 1) // a * a
     # Lay out code first with placeholder displacements, then patch them once rdata is placed.
-    code = bytearray(); fixups = []  # (offset of disp32, end of instruction, target kind, key)
+    code = bytearray()
+    fixups = []  # (offset of disp32, end of instruction, target kind, key)
     starts = {}
     strings = {}
     for name in names:
-        while len(code) % 16: code.append(0xCC)
+        while len(code) % 16:
+            code.append(0xCC)
         starts[name] = len(code)
         v = value_of(name)
-        if v is None: code += bytes([0x31, 0xC0])
-        elif v[0] == "int": code += bytes([0x48, 0xB8]) + struct.pack("<Q", v[1] & 0xFFFFFFFFFFFFFFFF)
+        if v is None:
+            code += bytes([0x31, 0xC0])
+        elif v[0] == "int":
+            code += bytes([0x48, 0xB8]) + struct.pack("<Q", v[1] & 0xFFFFFFFFFFFFFFFF)
         elif v[0] in ("ptr", "str"):
             code += bytes([0x48, 0x8D, 0x05]) + b"\0\0\0\0"
             key = None
-            if v[0] == "str": key = strings.setdefault(v[1], len(strings))
+            if v[0] == "str":
+                key = strings.setdefault(v[1], len(strings))
             fixups.append((len(code) - 4, len(code), v[0], key))
         else:
             _, arg, value, test = v
@@ -131,19 +147,28 @@ def write_pe(names, out):
         code += PXOR_XMM0 + RET
     RDATA = TEXT + align(len(code), SECT_ALIGN)
     # .rdata: strings, then the export directory and its tables.
-    rdata = bytearray(); string_rva = {}
+    rdata = bytearray()
+    string_rva = {}
     for text, key in strings.items():
-        string_rva[key] = RDATA + len(rdata); rdata += text.encode() + b"\0"
+        string_rva[key] = RDATA + len(rdata)
+        rdata += text.encode() + b"\0"
     dll_name = b"steam_api64.dll\0"
-    name_rva = RDATA + len(rdata); rdata += dll_name
+    name_rva = RDATA + len(rdata)
+    rdata += dll_name
     name_rvas = []
     for name in names:
-        name_rvas.append(RDATA + len(rdata)); rdata += name.encode() + b"\0"
-    while len(rdata) % 4: rdata.append(0)
-    functions_rva = RDATA + len(rdata); rdata += b"".join(struct.pack("<I", TEXT + starts[n]) for n in names)
-    names_rva = RDATA + len(rdata); rdata += b"".join(struct.pack("<I", r) for r in name_rvas)
-    ordinals_rva = RDATA + len(rdata); rdata += b"".join(struct.pack("<H", i) for i in range(len(names)))
-    while len(rdata) % 4: rdata.append(0)
+        name_rvas.append(RDATA + len(rdata))
+        rdata += name.encode() + b"\0"
+    while len(rdata) % 4:
+        rdata.append(0)
+    functions_rva = RDATA + len(rdata)
+    rdata += b"".join(struct.pack("<I", TEXT + starts[n]) for n in names)
+    names_rva = RDATA + len(rdata)
+    rdata += b"".join(struct.pack("<I", r) for r in name_rvas)
+    ordinals_rva = RDATA + len(rdata)
+    rdata += b"".join(struct.pack("<H", i) for i in range(len(names)))
+    while len(rdata) % 4:
+        rdata.append(0)
     export_rva = RDATA + len(rdata)
     rdata += struct.pack("<IIHHIIIIIII", 0, 0, 0, 0, name_rva, 1, len(names), len(names), functions_rva, names_rva, ordinals_rva)
     export_size = 40
@@ -153,25 +178,58 @@ def write_pe(names, out):
         target = DATA if kind == "ptr" else string_rva[key]
         struct.pack_into("<i", code, at, target - (TEXT + end))
     size_of_image = DATA + align(object_size, SECT_ALIGN)
-    text_raw = align(len(code), FILE_ALIGN); rdata_raw = align(len(rdata), FILE_ALIGN)
+    text_raw = align(len(code), FILE_ALIGN)
+    rdata_raw = align(len(rdata), FILE_ALIGN)
     # Headers.
-    dos = bytearray(64); dos[0:2] = b"MZ"; struct.pack_into("<I", dos, 0x3C, 64)
+    dos = bytearray(64)
+    dos[0:2] = b"MZ"
+    struct.pack_into("<I", dos, 0x3C, 64)
     coff = struct.pack("<HHIIIHH", 0x8664, 3, 0, 0, 0, 0xF0, 0x2022)  # AMD64; executable, large address aware, DLL
     data_dirs = [(export_rva, export_size)] + [(0, 0)] * 15
-    opt = struct.pack("<HBBIIIIIQIIHHHHHHIIIIHHQQQQII",
-        0x20B, 14, 0, text_raw, rdata_raw, 0, 0, TEXT,
-        0x180000000, SECT_ALIGN, FILE_ALIGN, 6, 0, 0, 0, 6, 0, 0,
-        size_of_image, HEADERS, 0, 3, 0x0160,  # console subsystem; high-entropy VA, dynamic base, NX
-        0x100000, 0x1000, 0x100000, 0x1000, 0, 16)
+    opt = struct.pack(
+        "<HBBIIIIIQIIHHHHHHIIIIHHQQQQII",
+        0x20B,
+        14,
+        0,
+        text_raw,
+        rdata_raw,
+        0,
+        0,
+        TEXT,
+        0x180000000,
+        SECT_ALIGN,
+        FILE_ALIGN,
+        6,
+        0,
+        0,
+        0,
+        6,
+        0,
+        0,
+        size_of_image,
+        HEADERS,
+        0,
+        3,
+        0x0160,  # console subsystem; high-entropy VA, dynamic base, NX
+        0x100000,
+        0x1000,
+        0x100000,
+        0x1000,
+        0,
+        16,
+    )
     opt += b"".join(struct.pack("<II", r, s) for r, s in data_dirs)
+
     def section(name, vsize, vaddr, rawsize, rawptr, flags):
         return name.ljust(8, b"\0") + struct.pack("<IIIIIIHHI", vsize, vaddr, rawsize, rawptr, 0, 0, 0, 0, flags)
+
     sections = section(b".text", len(code), TEXT, text_raw, HEADERS, 0x60000020)  # code, execute, read
     sections += section(b".rdata", len(rdata), RDATA, rdata_raw, HEADERS + text_raw, 0x40000040)  # initialized data, read
     sections += section(b".data", object_size, DATA, 0, 0, 0xC0000080)  # uninitialized data, read, write
     headers = bytes(dos) + b"PE\0\0" + coff + opt + sections
     image = headers.ljust(HEADERS, b"\0") + bytes(code).ljust(text_raw, b"\0") + bytes(rdata).ljust(rdata_raw, b"\0")
     open(out, "wb").write(image)
+
 
 def own_dlc(except_app=None):
     """VALUES for a user who owns every DLC, or every DLC but EXCEPT_APP."""
@@ -184,24 +242,34 @@ def own_dlc(except_app=None):
         VALUES["SteamAPI_ISteamApps_BIsDlcInstalled"] = ("cmp", 2, except_app, "ne")
         VALUES["SteamAPI_ISteamUser_UserHasLicenseForApp"] = ("cmp", 3, except_app, "eq")
 
+
 def ugc_names():
     """The functions ugc.s defines."""
     path = __file__.rsplit("/", 1)[0] + "/ugc.s"
     return set(re.findall(r"^\.globl (\w+)", open(path, encoding="utf-8").read(), re.M))
 
+
 def main(native_methods, out, options=()):
     options = list(options)
     ugc = "--ugc" in options
-    if ugc: options.remove("--ugc")
-    if options[:1] == ["--dlc"] and len(options) == 1: own_dlc()
-    elif options[:1] == ["--dlc-except"] and len(options) == 2: own_dlc(int(options[1]))
-    elif options: sys.exit("usage: gen.py NATIVE_METHODS OUT [--dlc | --dlc-except APP_ID] [--ugc]")
+    if ugc:
+        options.remove("--ugc")
+    if options[:1] == ["--dlc"] and len(options) == 1:
+        own_dlc()
+    elif options[:1] == ["--dlc-except"] and len(options) == 2:
+        own_dlc(int(options[1]))
+    elif options:
+        sys.exit("usage: gen.py NATIVE_METHODS OUT [--dlc | --dlc-except APP_ID] [--ugc]")
     names = entry_points(native_methods)
     if ugc:
-        if out.endswith(".dll"): sys.exit("--ugc: Linux only")
+        if out.endswith(".dll"):
+            sys.exit("--ugc: Linux only")
         names = [n for n in names if n not in ugc_names()]
-    if out.endswith(".dll"): write_pe(names, out)
-    else: write_elf_assembly(names, out)
+    if out.endswith(".dll"):
+        write_pe(names, out)
+    else:
+        write_elf_assembly(names, out)
+
 
 if __name__ == "__main__":
     main(sys.argv[1], sys.argv[2], sys.argv[3:])

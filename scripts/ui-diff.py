@@ -49,11 +49,13 @@ def parse(path):
 def mask(value, patterns):
     if value is None or not patterns:
         return value
+
     def masked(m):
         text = m.group(0)
         for p in patterns:
             text = re.sub(p, '#', text)
         return text
+
     out = QUOTED.sub(masked, value)
     if out != value:  # textInfo counts the text's characters, lines and words
         out = re.sub(r'\btextInfo=\S+', 'textInfo=#', out)
@@ -117,12 +119,14 @@ def main(argv):
     while i < len(argv):
         a = argv[i]
         if a == '--ignore':
-            ignore |= set(argv[i + 1:])
+            ignore |= set(argv[i + 1 :])
             break
         elif a == '--tolerance':
-            tolerance = float(argv[i + 1]); i += 1
+            tolerance = float(argv[i + 1])
+            i += 1
         elif a == '--mask-text':
-            masks.append(argv[i + 1]); i += 1
+            masks.append(argv[i + 1])
+            i += 1
         else:
             args.append(a)
         i += 1

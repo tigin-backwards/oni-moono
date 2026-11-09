@@ -1,6 +1,7 @@
 """scripts/mod-gate.py: a mod passes only when onimaxxing reviewed the exact upload SteamCMD
 fetched and the unpacked copy is that upload; and ws-mods.py profile installs nothing it
 skips. onimaxxing's CDN is a fake here; nothing is fetched."""
+
 import hashlib, json, os, tempfile, time, unittest
 from unittest import mock
 
@@ -10,15 +11,17 @@ gate = helpers.script('mod-gate.py')
 ws_mods = helpers.script('ws-mods.py')
 
 MID = '3823197258'
-HANDLE = 16165179261256059114          # as onimaxxing gives it
-SIGNED = HANDLE - (1 << 64)            # as SteamCMD's acf records it
+HANDLE = 16165179261256059114  # as onimaxxing gives it
+SIGNED = HANDLE - (1 << 64)  # as SteamCMD's acf records it
 DLL = b'MZ' + b'\0' * 62 + b'mod code'
 SHA = hashlib.sha256(DLL).hexdigest()
 
 
 def acf(handles):
-    items = ''.join(f'\t\t"{mid}"\n\t\t{{\n\t\t\t"size"\t\t"1"\n\t\t\t"timeupdated"\t\t"1"\n\t\t\t"manifest"\t\t"-1"\n'
-                    f'\t\t\t"ugchandle"\t\t"{h}"\n\t\t}}\n' for mid, h in handles.items())
+    items = ''.join(
+        f'\t\t"{mid}"\n\t\t{{\n\t\t\t"size"\t\t"1"\n\t\t\t"timeupdated"\t\t"1"\n\t\t\t"manifest"\t\t"-1"\n\t\t\t"ugchandle"\t\t"{h}"\n\t\t}}\n'
+        for mid, h in handles.items()
+    )
     return f'"AppWorkshop"\n{{\n\t"WorkshopItemsInstalled"\n\t{{\n{items}\t}}\n}}\n'
 
 
@@ -36,12 +39,17 @@ class Fake:
 
 def onimaxxing(analysis=None, versions=None, facts=None):
     analysis = {'malware': False, 'credentials': False, 'chatWebhook': False, 'obfuscated': False, **(analysis or {})}
-    files = {'catalog.json': {'format': 2, 'count': 1, 'cols': {'id': [MID], 'analysis': [analysis]}},
-             f'mod/{MID}/index.json': {'id': MID, 'current': str(HANDLE),
-                                       'versions': versions if versions is not None else
-                                       [{'file': str(HANDLE), 'version': '1.1.1', 'reviewed': True}]}}
-    files[f'mod/{MID}/{HANDLE}.json'] = facts if facts is not None else \
-        {'id': MID, 'hcontentFile': str(HANDLE), 'managed': [{'path': 'DirectOrders.dll', 'sha256': SHA}]}
+    files = {
+        'catalog.json': {'format': 2, 'count': 1, 'cols': {'id': [MID], 'analysis': [analysis]}},
+        f'mod/{MID}/index.json': {
+            'id': MID,
+            'current': str(HANDLE),
+            'versions': versions if versions is not None else [{'file': str(HANDLE), 'version': '1.1.1', 'reviewed': True}],
+        },
+    }
+    files[f'mod/{MID}/{HANDLE}.json'] = (
+        facts if facts is not None else {'id': MID, 'hcontentFile': str(HANDLE), 'managed': [{'path': 'DirectOrders.dll', 'sha256': SHA}]}
+    )
     return files
 
 
@@ -100,8 +108,7 @@ class Gate(unittest.TestCase):
         # A non-ASCII name the zip gave in another encoding, and a library onimaxxing lists without a hash.
         os.remove(os.path.join(self.ws, MID, 'DirectOrders.dll'))
         self.mod(MID, {'╦╖╧.dll': DLL, 'PLib.dll': b'MZ library'})
-        facts = {'id': MID, 'hcontentFile': str(HANDLE),
-                 'managed': [{'path': '大一统.dll', 'sha256': SHA}, {'path': 'PLib.dll'}]}
+        facts = {'id': MID, 'hcontentFile': str(HANDLE), 'managed': [{'path': '大一统.dll', 'sha256': SHA}, {'path': 'PLib.dll'}]}
         self.assertEqual(self.run_gate(onimaxxing(facts=facts))[MID]['verdict'], 'pass')
 
     def test_catalog_flags_skip(self):
@@ -142,6 +149,7 @@ class Gate(unittest.TestCase):
     def test_unreachable_onimaxxing_skips(self):
         def down(url):
             raise ConnectionError('down')
+
         oni = gate.Onimaxxing(761015, cache=os.path.join(self.temp.name, 'cache2'), fetch=down)
         result = gate.gate([MID], ws=self.ws, acf=self.acf, oni=oni)[MID]
         self.assertEqual(result['verdict'], 'skip')
@@ -156,10 +164,11 @@ class Gate(unittest.TestCase):
 class Profile(unittest.TestCase):
     def test_profile_installs_nothing_the_gate_skips(self):
         with tempfile.TemporaryDirectory() as temp:
-            with mock.patch.object(ws_mods, 'WS', os.path.join(temp, 'ws')), \
-                    mock.patch.object(ws_mods, 'unpack', lambda i: None), \
-                    mock.patch.object(ws_mods, 'gate', lambda ids: {i: {'id': i, 'verdict': 'skip', 'reason': 'not reviewed'}
-                                                                    for i in ids}):
+            with (
+                mock.patch.object(ws_mods, 'WS', os.path.join(temp, 'ws')),
+                mock.patch.object(ws_mods, 'unpack', lambda i: None),
+                mock.patch.object(ws_mods, 'gate', lambda ids: {i: {'id': i, 'verdict': 'skip', 'reason': 'not reviewed'} for i in ids}),
+            ):
                 with self.assertRaises(ws_mods.GateSkipped) as caught:
                     ws_mods.profile(os.path.join(temp, 'mods'), ['3823197258'])
             self.assertIn('3823197258: not reviewed', str(caught.exception))

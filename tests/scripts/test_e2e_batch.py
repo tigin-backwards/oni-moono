@@ -1,6 +1,7 @@
 """e2e.py for batch agents: machine-wide lanes and players' budget shared by runners in several
 worktrees, the perf wait's visibility and limit, unique run ids, known findings, the committed
 results record, and modtable.py reading it."""
+
 import json, os, signal, subprocess, sys, tempfile, textwrap, threading, time, unittest
 
 import helpers
@@ -29,8 +30,7 @@ class SharedLocks(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.locks = os.path.join(self.temp.name, 'locks')
-        self.saved = {k: os.environ.get(k) for k in ('E2E_LOCK_DIR', 'E2E_RESERVED', 'E2E_MEMORY_GB', 'E2E_MAX_PLAYERS',
-                                                       'E2E_QA_GB')}
+        self.saved = {k: os.environ.get(k) for k in ('E2E_LOCK_DIR', 'E2E_RESERVED', 'E2E_MEMORY_GB', 'E2E_MAX_PLAYERS', 'E2E_QA_GB')}
         os.environ['E2E_LOCK_DIR'] = self.locks
         os.environ.pop('E2E_RESERVED', None)
         os.environ['E2E_QA_GB'] = '0'  # a qa.sh running on the machine must not change these budgets
@@ -52,8 +52,7 @@ class SharedLocks(unittest.TestCase):
     def worktree(self, name, gb=None):
         root = os.path.join(self.temp.name, name)
         os.makedirs(os.path.join(root, 'out', 'e2e'))
-        child = subprocess.Popen([sys.executable, '-c', CHILD, root] + ([str(gb)] if gb else []),
-                                 stdout=subprocess.PIPE, text=True, env=dict(os.environ))
+        child = subprocess.Popen([sys.executable, '-c', CHILD, root] + ([str(gb)] if gb else []), stdout=subprocess.PIPE, text=True, env=dict(os.environ))
         self.children.append(child)
         return child, json.loads(child.stdout.readline())
 
@@ -84,19 +83,17 @@ class SharedLocks(unittest.TestCase):
         os.environ['E2E_RESERVED'] = f'displays {e2e.lane_display(2)}'
         self.assertEqual(e2e.reservations(), ({8788, 8810, 8811}, {e2e.DISPLAY_BASE + 2}))
         _, got = self.worktree('wt-a')
-        self.assertEqual(got['lane'], 3)   # 1's ports and 2's display are reserved
+        self.assertEqual(got['lane'], 3)  # 1's ports and 2's display are reserved
         self.assertEqual(e2e.lane_problem(1, reserved=e2e.reservations()), 'port 8810 is reserved')
         with self.assertRaises(ValueError):
             e2e.reservations(text='sockets 3')
 
     def test_a_lane_whose_display_runs_is_skipped(self):
-        lane = e2e.allocate_lane(1, self.locks, busy=lambda p: False, reserved=(set(), set()), last=4,
-                                 display_busy=lambda d: d == str(e2e.DISPLAY_BASE + 1))
+        lane = e2e.allocate_lane(1, self.locks, busy=lambda p: False, reserved=(set(), set()), last=4, display_busy=lambda d: d == str(e2e.DISPLAY_BASE + 1))
         self.assertEqual(lane.number, 2)
         lane.release()
-        lane = e2e.allocate_lane(1, self.locks, busy=lambda p: False, reserved=(set(), set()), last=4, display=False,
-                                 display_busy=lambda d: True)
-        self.assertEqual((lane.number, lane.display), (1, None))   # --xvfb-run: no lane display
+        lane = e2e.allocate_lane(1, self.locks, busy=lambda p: False, reserved=(set(), set()), last=4, display=False, display_busy=lambda d: True)
+        self.assertEqual((lane.number, lane.display), (1, None))  # --xvfb-run: no lane display
         lane.release()
 
     def test_the_players_budget_is_machine_wide(self):
@@ -124,7 +121,7 @@ class SharedLocks(unittest.TestCase):
     def test_player_count_and_a_player_bigger_than_the_budget(self):
         budget = e2e.Budget(self.locks, gb=10, players=2)
         big, _ = budget.try_acquire(15, 'U57')
-        self.assertTrue(big)                                  # alone it may start
+        self.assertTrue(big)  # alone it may start
         self.assertIsNone(budget.try_acquire(1, 'small')[0])
         budget.release(big)
         one, two = budget.try_acquire(1, 'a')[0], budget.try_acquire(1, 'b')[0]
@@ -166,6 +163,7 @@ class SharedLocks(unittest.TestCase):
             with budget.hold(6, label, lambda s: None):
                 order.append(label)
                 got[label].wait(5)
+
         threads = {}
         for label in ('a', 'b'):
             got[label] = threading.Event()
@@ -233,12 +231,13 @@ class SharedLocks(unittest.TestCase):
             with budget.hold(6, 'waiter', lambda s: None):
                 held.set()
                 done.wait(5)
+
         thread = threading.Thread(target=wait)
         thread.start()
         time.sleep(0.2)
-        self.assertFalse(held.is_set())              # 15 + 6 > 20
-        self.assertIsNone(budget.try_acquire(1, 'small')[0])   # it fits, but the waiter is first
-        running[0] = []                              # qa.sh ends
+        self.assertFalse(held.is_set())  # 15 + 6 > 20
+        self.assertIsNone(budget.try_acquire(1, 'small')[0])  # it fits, but the waiter is first
+        running[0] = []  # qa.sh ends
         self.assertTrue(held.wait(5))
         self.assertEqual([e['label'] for e in budget.entries()], ['waiter'])
         done.set()
@@ -259,18 +258,22 @@ class PerfWaitVisible(unittest.TestCase):
         waiter = e2e.Waiter('a perf job to finish', messages.append, max_wait=3600, clock=lambda: now[0])
         waiter.tick('pid 7, running 3 min: scripts/qa.sh', key=7)
         now[0] += 120
-        waiter.tick('pid 7, running 5 min: scripts/qa.sh', key=7)      # the same job: quiet
+        waiter.tick('pid 7, running 5 min: scripts/qa.sh', key=7)  # the same job: quiet
         now[0] += 600
-        waiter.tick('pid 7, running 15 min: scripts/qa.sh', key=7)     # ten minutes on: again
-        waiter.tick('pid 9, running 1 min: perf record', key=9)        # another job: at once
-        self.assertEqual(messages, ['waiting for a perf job to finish: pid 7, running 3 min: scripts/qa.sh',
-                                    'waiting for a perf job to finish (12 min so far): pid 7, running 15 min: scripts/qa.sh',
-                                    'waiting for a perf job to finish (12 min so far): pid 9, running 1 min: perf record'])
+        waiter.tick('pid 7, running 15 min: scripts/qa.sh', key=7)  # ten minutes on: again
+        waiter.tick('pid 9, running 1 min: perf record', key=9)  # another job: at once
+        self.assertEqual(
+            messages,
+            [
+                'waiting for a perf job to finish: pid 7, running 3 min: scripts/qa.sh',
+                'waiting for a perf job to finish (12 min so far): pid 7, running 15 min: scripts/qa.sh',
+                'waiting for a perf job to finish (12 min so far): pid 9, running 1 min: perf record',
+            ],
+        )
         now[0] += 3000
         with self.assertRaises(e2e.WaitTimeout) as caught:
             waiter.tick('pid 9, running 51 min: perf record', key=9)
-        self.assertEqual(caught.exception.args[0], 'gave up after 62.0 min (--max-wait) waiting for a perf job to finish: '
-                                                   'pid 9, running 51 min: perf record')
+        self.assertEqual(caught.exception.args[0], 'gave up after 62.0 min (--max-wait) waiting for a perf job to finish: pid 9, running 51 min: perf record')
 
     def test_machine_lock_names_the_job_and_fails_after_max_wait(self):
         processes, sleep = e2e.perf_processes, e2e.time.sleep
@@ -288,8 +291,12 @@ class PerfWaitVisible(unittest.TestCase):
         self.assertIn('--max-wait', caught.exception.args[0])
 
     def test_perf_processes_parse_ps(self):
-        lines = ['  311   4000 bash out/local-tools/measure.sh', f'{os.getpid()} 5 bash out/local-tools/measure.sh',
-                 '  12 9 vim notes', '  40 70 bash scripts/qa.sh']
+        lines = [
+            '  311   4000 bash out/local-tools/measure.sh',
+            f'{os.getpid()} 5 bash out/local-tools/measure.sh',
+            '  12 9 vim notes',
+            '  40 70 bash scripts/qa.sh',
+        ]
         self.assertEqual(e2e.perf_processes(lines), [(311, 4000, 'bash out/local-tools/measure.sh')])
         self.assertEqual(e2e.qa_processes(lines), [(40, 70, 'bash scripts/qa.sh')])
 
@@ -353,17 +360,22 @@ class RunIds(unittest.TestCase):
 
 
 # ui-diff lines as the pilot's specs reported them.
-SCALE = ('/GameScreenManager#0/ScreenSpaceOverlayCanvas#2/BottomPanelRight#11/ToolMenu#1/TypeSelect#0 [Canvas]\n'
-         '  - renderMode=ScreenSpaceOverlay scaleFactor=0.86 sortingOrder=0 overrideSorting=False pixelPerfect=False\n'
-         '  + renderMode=ScreenSpaceOverlay scaleFactor=1 sortingOrder=0 overrideSorting=False pixelPerfect=False')
-SCALE_AND_SORT = SCALE.replace('+ renderMode=ScreenSpaceOverlay scaleFactor=1 sortingOrder=0',
-                               '+ renderMode=ScreenSpaceOverlay scaleFactor=1 sortingOrder=3')
-CARET = ('/A#0/TypeSelect#0/Border#0/TextFilter#2/Text Area#0/Caret#0 [rect]\n'
-         '  - rect -50,-50,100,100 world 1099.4,343.81,1185.4,429.81 screen 1099.4,290.19,86,86\n'
-         '  + rect -137,-9.52,274,19.04 world 1024.58,378.62,1260.22,395 screen 1024.58,325,235.64,16.37')
-TEXT = ('/A#0/SearchBar#2/Input#0/Text Area#0/Text#1 [LocText]\n'
-        '  - text="" fontSize=18 isTextOverflowing=False firstOverflowCharacterIndex=-1 textInfo=0,0,0,0,0,0,1,0\n'
-        '  + text="​" fontSize=18 isTextOverflowing=True firstOverflowCharacterIndex=0 textInfo=1,0,1,0,1,1,1,0')
+SCALE = (
+    '/GameScreenManager#0/ScreenSpaceOverlayCanvas#2/BottomPanelRight#11/ToolMenu#1/TypeSelect#0 [Canvas]\n'
+    '  - renderMode=ScreenSpaceOverlay scaleFactor=0.86 sortingOrder=0 overrideSorting=False pixelPerfect=False\n'
+    '  + renderMode=ScreenSpaceOverlay scaleFactor=1 sortingOrder=0 overrideSorting=False pixelPerfect=False'
+)
+SCALE_AND_SORT = SCALE.replace('+ renderMode=ScreenSpaceOverlay scaleFactor=1 sortingOrder=0', '+ renderMode=ScreenSpaceOverlay scaleFactor=1 sortingOrder=3')
+CARET = (
+    '/A#0/TypeSelect#0/Border#0/TextFilter#2/Text Area#0/Caret#0 [rect]\n'
+    '  - rect -50,-50,100,100 world 1099.4,343.81,1185.4,429.81 screen 1099.4,290.19,86,86\n'
+    '  + rect -137,-9.52,274,19.04 world 1024.58,378.62,1260.22,395 screen 1024.58,325,235.64,16.37'
+)
+TEXT = (
+    '/A#0/SearchBar#2/Input#0/Text Area#0/Text#1 [LocText]\n'
+    '  - text="" fontSize=18 isTextOverflowing=False firstOverflowCharacterIndex=-1 textInfo=0,0,0,0,0,0,1,0\n'
+    '  + text="​" fontSize=18 isTextOverflowing=True firstOverflowCharacterIndex=0 textInfo=1,0,1,0,1,1,1,0'
+)
 
 
 class KnownFindings(unittest.TestCase):
@@ -373,29 +385,39 @@ class KnownFindings(unittest.TestCase):
         self.assertEqual(e2e.check_findings(findings), [])
 
     def test_problems(self):
-        problems = e2e.check_findings([{'id': 'Bad Id', 'description': 'x', 'link': 'y'},
-                                       {'id': 'ok', 'description': 'x', 'link': 'y', 'component': 'C', 'fields': ['f'], 'colour': 1},
-                                       {'id': 'ok', 'description': 'x', 'link': 'y', 'presence': True}])
-        self.assertEqual(problems, ['finding 1 (Bad Id): `id` is lowercase words joined by dashes',
-                                    'finding 1 (Bad Id): needs `component` and `fields` (or `presence: true` and `path`)',
-                                    "finding 2 (ok): unknown key 'colour'",
-                                    'finding 3 (ok): `id` is used twice',
-                                    'finding 3 (ok): a presence finding needs `path`'])
+        problems = e2e.check_findings(
+            [
+                {'id': 'Bad Id', 'description': 'x', 'link': 'y'},
+                {'id': 'ok', 'description': 'x', 'link': 'y', 'component': 'C', 'fields': ['f'], 'colour': 1},
+                {'id': 'ok', 'description': 'x', 'link': 'y', 'presence': True},
+            ]
+        )
+        self.assertEqual(
+            problems,
+            [
+                'finding 1 (Bad Id): `id` is lowercase words joined by dashes',
+                'finding 1 (Bad Id): needs `component` and `fields` (or `presence: true` and `path`)',
+                "finding 2 (ok): unknown key 'colour'",
+                'finding 3 (ok): `id` is used twice',
+                'finding 3 (ok): a presence finding needs `path`',
+            ],
+        )
 
     def test_pilot_differences(self):
         findings = e2e.load_findings()
         self.assertEqual(e2e.finding_for(SCALE, findings), 'nested-canvas-scale-factor')
-        self.assertIsNone(e2e.finding_for(SCALE_AND_SORT, findings))     # sortingOrder is not explained
+        self.assertIsNone(e2e.finding_for(SCALE_AND_SORT, findings))  # sortingOrder is not explained
         self.assertEqual(e2e.finding_for(CARET, findings), 'unused-input-caret-layout')
-        self.assertIsNone(e2e.finding_for(CARET.replace('Caret#0', 'Panel#0'), findings))   # path
+        self.assertIsNone(e2e.finding_for(CARET.replace('Caret#0', 'Panel#0'), findings))  # path
         self.assertEqual(e2e.finding_for(TEXT, findings), 'empty-input-zero-width-space')
-        self.assertIsNone(e2e.finding_for(TEXT.replace('​', 'Quick'), findings))      # ours: regex
+        self.assertIsNone(e2e.finding_for(TEXT.replace('​', 'Quick'), findings))  # ours: regex
         self.assertIsNone(e2e.finding_for('only in second: /A#0/B#1', findings))
 
     def test_specs_and_presence(self):
-        findings = [{'id': 'extra-item', 'description': 'd', 'link': 'l', 'presence': 'only-ours', 'path': '**/List/Item'},
-                    {'id': 'scale', 'description': 'd', 'link': 'l', 'component': 'Can*', 'fields': ['scaleFactor'],
-                     'specs': ['sweep']}]
+        findings = [
+            {'id': 'extra-item', 'description': 'd', 'link': 'l', 'presence': 'only-ours', 'path': '**/List/Item'},
+            {'id': 'scale', 'description': 'd', 'link': 'l', 'component': 'Can*', 'fields': ['scaleFactor'], 'specs': ['sweep']},
+        ]
         self.assertEqual(e2e.finding_for('only in second: /Root#0/List#1/Item#7', findings), 'extra-item')
         self.assertIsNone(e2e.finding_for('only in first: /Root#0/List#1/Item#7', findings))
         self.assertEqual(e2e.finding_for(SCALE, findings, 'sweep'), 'scale')
@@ -407,10 +429,8 @@ class KnownFindings(unittest.TestCase):
             for folder, scale, sort in ((orig, '0.86', 0), (ours, '1', 0)):
                 os.makedirs(folder)
                 with open(os.path.join(folder, 'types.ui.txt'), 'w') as f:
-                    f.write(f'/Root#0/Types#0\trect 0,0,10,10 | Canvas renderMode=ScreenSpaceOverlay scaleFactor={scale} '
-                            f'sortingOrder={sort}\n')
-            result = {'signatures': set(), 'log': None, 'out': ours, 'values': [],
-                      'evidence': {'ui_dump': [{'name': 'types'}], 'shot': [], 'world_shot': []}}
+                    f.write(f'/Root#0/Types#0\trect 0,0,10,10 | Canvas renderMode=ScreenSpaceOverlay scaleFactor={scale} sortingOrder={sort}\n')
+            result = {'signatures': set(), 'log': None, 'out': ours, 'values': [], 'evidence': {'ui_dump': [{'name': 'types'}], 'shot': [], 'world_shot': []}}
             reference = e2e.Reference(orig, set(), {}, {}, 'test')
             checks, reasons = e2e.differential({'name': 'sweep'}, result, reference, e2e.load_findings())
             self.assertEqual(reasons, [])
@@ -421,13 +441,27 @@ class KnownFindings(unittest.TestCase):
 
 
 def run_record(player, index, verdict, run='r1', reference_run=None, findings=()):
-    record = {'spec': 'unit-mod', 'player': player, 'index': index, 'verdict': verdict, 'run': run,
-              'started': '2026-10-22T12:00:00', 'lane': 7, 'reasons': [] if verdict in ('pass', 'warn') else ['step 3: no']}
+    record = {
+        'spec': 'unit-mod',
+        'player': player,
+        'index': index,
+        'verdict': verdict,
+        'run': run,
+        'started': '2026-10-22T12:00:00',
+        'lane': 7,
+        'reasons': [] if verdict in ('pass', 'warn') else ['step 3: no'],
+    }
     if player == 'ours':
-        record.update(reference_run=reference_run or run, checks={
-            'signatures': {'new': []}, 'findings': list(findings),
-            'ui_dump': {'types': {'differences': 0, 'known': {f: 1 for f in findings}}},
-            'shot': {'types': {'fraction': 0.001}}, 'world_shot': {}})
+        record.update(
+            reference_run=reference_run or run,
+            checks={
+                'signatures': {'new': []},
+                'findings': list(findings),
+                'ui_dump': {'types': {'differences': 0, 'known': {f: 1 for f in findings}}},
+                'shot': {'types': {'fraction': 0.001}},
+                'world_shot': {},
+            },
+        )
     else:
         record['signature_count'] = 4
     return record
@@ -444,15 +478,14 @@ class ResultsRecord(unittest.TestCase):
         self.temp.cleanup()
 
     def update(self, records, note=None):
-        return e2e.update_record(self.spec, records, note, self.folder, commit='abc1234', date='2026-10-22',
-                                 hashes={'123': {'Unit.dll': '00'}})
+        return e2e.update_record(self.spec, records, note, self.folder, commit='abc1234', date='2026-10-22', hashes={'123': {'Unit.dll': '00'}})
 
     def test_original_then_ours_twice(self):
         record = self.update([run_record('original', 1, 'pass', 'r1')], note='the dig drops all its mass')
         self.assertEqual((record['verdict'], record['why']), ('pending', '0 run(s) of ours against original run r1; 2 needed'))
         record = self.update([run_record('ours', 1, 'pass', 'r2', 'r1'), run_record('ours', 2, 'pass', 'r2', 'r1')])
         self.assertEqual(record['verdict'], 'played')
-        self.assertEqual(record['note'], 'the dig drops all its mass')     # kept
+        self.assertEqual(record['note'], 'the dig drops all its mass')  # kept
         self.assertEqual(record['spec'], 'mods/123-unit-mod.yaml')
         self.assertEqual(record['mods'], ['123'])
         self.assertEqual([r['index'] for r in record['runs']['original']], [1])
@@ -461,8 +494,9 @@ class ResultsRecord(unittest.TestCase):
             self.assertEqual(json.load(f), record)
 
     def test_warning_cites_findings(self):
-        record = self.update([run_record('original', 1, 'pass'), run_record('ours', 1, 'pass'),
-                              run_record('ours', 2, 'warn', findings=['scroll-normalized-position'])])
+        record = self.update(
+            [run_record('original', 1, 'pass'), run_record('ours', 1, 'pass'), run_record('ours', 2, 'warn', findings=['scroll-normalized-position'])]
+        )
         self.assertEqual((record['verdict'], record['findings']), ('warning', ['scroll-normalized-position']))
         self.assertEqual(record['runs']['ours'][1]['ui_dump'], {'types': {'differences': 0, 'known': {'scroll-normalized-position': 1}}})
 
@@ -496,9 +530,11 @@ class ModTable(unittest.TestCase):
             catalog = os.path.join(temp, 'catalog.tsv')
             with open(catalog, 'w') as f:
                 # 1717463209 is in modtable's hand-written `played`, 2363561445 in `broken`.
-                f.write('1\t1717463209\t900\t\tBigger Camera Zoom Out\n2\t9990001\t800\t\tPlayed Mod\n'
-                        '3\t9990002\t700\t\tWarned Mod\n4\t9990003\t600\t\tFailing Mod\n5\t9990004\t500\t\tPending Mod\n'
-                        '6\t2363561445\t400\t\tUpstream Mod\n')
+                f.write(
+                    '1\t1717463209\t900\t\tBigger Camera Zoom Out\n2\t9990001\t800\t\tPlayed Mod\n'
+                    '3\t9990002\t700\t\tWarned Mod\n4\t9990003\t600\t\tFailing Mod\n5\t9990004\t500\t\tPending Mod\n'
+                    '6\t2363561445\t400\t\tUpstream Mod\n'
+                )
             results = os.path.join(temp, 'results')
             os.makedirs(results)
             for name, record in records.items():
@@ -513,60 +549,90 @@ class ModTable(unittest.TestCase):
             os.makedirs(sweeps)
             with open(os.path.join(sweeps, 'sweep-b0.txt'), 'w') as f:
                 f.write('9990003\n9990004\n')
-            out = subprocess.run([sys.executable, MODTABLE, catalog], capture_output=True, text=True, check=True,
-                                 env=dict(os.environ, ONI_RESULTS_DIR=results, ONI_RESULTS_U60_DIR=results_u60, ONI_SWEEP_DIR=sweeps,
-                                          ONI_SWEEP_RESULTS=load_sweeps)).stdout
-        return {line.split(' | ')[1].split(']')[0].lstrip('['): line for line in out.splitlines()
-                if line.startswith('| ') and '](https://steam' in line}
+            out = subprocess.run(
+                [sys.executable, MODTABLE, catalog],
+                capture_output=True,
+                text=True,
+                check=True,
+                env=dict(os.environ, ONI_RESULTS_DIR=results, ONI_RESULTS_U60_DIR=results_u60, ONI_SWEEP_DIR=sweeps, ONI_SWEEP_RESULTS=load_sweeps),
+            ).stdout
+        return {line.split(' | ')[1].split(']')[0].lstrip('['): line for line in out.splitlines() if line.startswith('| ') and '](https://steam' in line}
 
     def record(self, mid, verdict, note, findings=()):
-        return {'spec': f'mods/{mid}-x.yaml', 'mods': [mid], 'verdict': verdict, 'why': 'a run of ours failed',
-                'findings': list(findings), 'note': note, 'runs': {}}
+        return {
+            'spec': f'mods/{mid}-x.yaml',
+            'mods': [mid],
+            'verdict': verdict,
+            'why': 'a run of ours failed',
+            'findings': list(findings),
+            'note': note,
+            'runs': {},
+        }
 
     def test_u60_records_win_and_say_so(self):
-        rows = self.table({'a': self.record('9990001', 'failed', 'the button does nothing')},
-                          u60_records={'a': self.record('9990001', 'played', 'its tool marks only sandstone'),
-                                       'c': self.record('9990003', 'failed', 'the button does nothing')})
-        self.assertTrue(rows['Played Mod'].endswith('| ✅ | ✅ | ✅ | on U60: spec tests/e2e/mods/9990001-x.yaml: '
-                                                    'its tool marks only sandstone |'))
-        self.assertTrue(rows['Failing Mod'].endswith('| ✅ | ✅ | ⬜ | on U60: spec fails in ours: '
-                                                     'tests/e2e/mods/9990003-x.yaml: the button does nothing '
-                                                     '(a run of ours failed) |'))
+        rows = self.table(
+            {'a': self.record('9990001', 'failed', 'the button does nothing')},
+            u60_records={
+                'a': self.record('9990001', 'played', 'its tool marks only sandstone'),
+                'c': self.record('9990003', 'failed', 'the button does nothing'),
+            },
+        )
+        self.assertTrue(rows['Played Mod'].endswith('| ✅ | ✅ | ✅ | on U60: spec tests/e2e/mods/9990001-x.yaml: its tool marks only sandstone |'))
+        self.assertTrue(
+            rows['Failing Mod'].endswith(
+                '| ✅ | ✅ | ⬜ | on U60: spec fails in ours: tests/e2e/mods/9990003-x.yaml: the button does nothing (a run of ours failed) |'
+            )
+        )
 
     def test_records_decide_the_played_column(self):
-        rows = self.table({'a': self.record('9990001', 'played', 'its tool marks only sandstone'),
-                           'b': self.record('9990002', 'warning', 'its list looks the same',
-                                            ['scroll-normalized-position']),
-                           'c': self.record('9990003', 'failed', 'the button does nothing'),
-                           'd': self.record('9990004', 'pending', 'not yet')})
-        self.assertEqual(rows['Played Mod'], '| 2 | [Played Mod](https://steamcommunity.com/sharedfiles/filedetails/?id=9990001)'
-                                             ' | ✅ | ✅ | ✅ | spec tests/e2e/mods/9990001-x.yaml: its tool marks only sandstone |')
-        self.assertTrue(rows['Warned Mod'].endswith('| ✅ | ✅ | ⚠️ | spec tests/e2e/mods/9990002-x.yaml: its list looks the '
-                                                    'same; known findings: `scroll-normalized-position` |'))
-        self.assertTrue(rows['Failing Mod'].endswith('| ✅ | ✅ | ⬜ | spec fails in ours: tests/e2e/mods/9990003-x.yaml: '
-                                                     'the button does nothing (a run of ours failed) |'))
+        rows = self.table(
+            {
+                'a': self.record('9990001', 'played', 'its tool marks only sandstone'),
+                'b': self.record('9990002', 'warning', 'its list looks the same', ['scroll-normalized-position']),
+                'c': self.record('9990003', 'failed', 'the button does nothing'),
+                'd': self.record('9990004', 'pending', 'not yet'),
+            }
+        )
+        self.assertEqual(
+            rows['Played Mod'],
+            '| 2 | [Played Mod](https://steamcommunity.com/sharedfiles/filedetails/?id=9990001)'
+            ' | ✅ | ✅ | ✅ | spec tests/e2e/mods/9990001-x.yaml: its tool marks only sandstone |',
+        )
+        self.assertTrue(
+            rows['Warned Mod'].endswith(
+                '| ✅ | ✅ | ⚠️ | spec tests/e2e/mods/9990002-x.yaml: its list looks the same; known findings: `scroll-normalized-position` |'
+            )
+        )
+        self.assertTrue(
+            rows['Failing Mod'].endswith('| ✅ | ✅ | ⬜ | spec fails in ours: tests/e2e/mods/9990003-x.yaml: the button does nothing (a run of ours failed) |')
+        )
         self.assertTrue(rows['Pending Mod'].endswith('| ✅ | ✅ | ⬜ | swept, not played |'))  # no record yet
         # The hand-written entries still work where no record is.
         self.assertIn('| ✅ | ✅ | ✅ | spec tests/e2e/mods/1717463209-bigger-camera-zoom-out.yaml', rows['Bigger Camera Zoom Out'])
         self.assertIn('| ❌ | ❌ | ⬜ | broken upstream', rows['Upstream Mod'])
 
     def test_load_sweep_results_decide_loads_and_colony(self):
-        rows = self.table({'a': self.record('9990001', 'played', 'its tool marks only sandstone')},
-                          '9990001\t2\tok\tok\t\n9990002\t3\tmenu\t-\tthe original disables it\n'
-                          '9990003\t4\tok\tcolony\tNullReferenceException @ Foo.Bar\n9990004\t5\tok\tok\t\n'
-                          '2363561445\t6\tok\tok\t\n')
-        self.assertIn('| ✅ | ✅ | ✅ | spec tests/e2e/mods/9990001-x.yaml', rows['Played Mod'])   # a record comes first
-        self.assertTrue(rows['Warned Mod'].endswith('| ❌ | ❌ | ⬜ | fails to load in the original as well, at the main '
-                                                    'menu, in its sweep batch: the original disables it |'))
-        self.assertTrue(rows['Failing Mod'].endswith('| ✅ | ⬜ | ⬜ | its colony fails in ours, in its sweep batch: '
-                                                     'NullReferenceException @ Foo.Bar |'))
+        rows = self.table(
+            {'a': self.record('9990001', 'played', 'its tool marks only sandstone')},
+            '9990001\t2\tok\tok\t\n9990002\t3\tmenu\t-\tthe original disables it\n'
+            '9990003\t4\tok\tcolony\tNullReferenceException @ Foo.Bar\n9990004\t5\tok\tok\t\n'
+            '2363561445\t6\tok\tok\t\n',
+        )
+        self.assertIn('| ✅ | ✅ | ✅ | spec tests/e2e/mods/9990001-x.yaml', rows['Played Mod'])  # a record comes first
+        self.assertTrue(
+            rows['Warned Mod'].endswith(
+                '| ❌ | ❌ | ⬜ | fails to load in the original as well, at the main menu, in its sweep batch: the original disables it |'
+            )
+        )
+        self.assertTrue(rows['Failing Mod'].endswith('| ✅ | ⬜ | ⬜ | its colony fails in ours, in its sweep batch: NullReferenceException @ Foo.Bar |'))
         self.assertTrue(rows['Pending Mod'].endswith('| ✅ | ✅ | ⬜ | swept on U59, not played |'))
-        self.assertIn('| ❌ | ❌ | ⬜ | broken upstream', rows['Upstream Mod'])   # the hand-written set still decides
+        self.assertIn('| ❌ | ❌ | ⬜ | broken upstream', rows['Upstream Mod'])  # the hand-written set still decides
 
     def test_a_record_replaces_a_hand_written_entry(self):
         rows = self.table({'z': self.record('1717463209', 'warning', 'zooms out', ['nested-canvas-scale-factor'])})
-        self.assertTrue(rows['Bigger Camera Zoom Out'].endswith(
-            '| ⚠️ | spec tests/e2e/mods/1717463209-x.yaml: zooms out; known findings: `nested-canvas-scale-factor` |'))
+        self.assertTrue(
+            rows['Bigger Camera Zoom Out'].endswith('| ⚠️ | spec tests/e2e/mods/1717463209-x.yaml: zooms out; known findings: `nested-canvas-scale-factor` |')
+        )
 
 
 if __name__ == '__main__':

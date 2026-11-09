@@ -13,6 +13,7 @@
 A log is a Player.log (original) or our player's stdout. Values are compared as float32: the
 "R" format differs between Mono and .NET.
 """
+
 import math
 import re
 import sys
@@ -43,8 +44,7 @@ def parse(path):
             continue
         m = re.match(r'(.*?") chars(.*)$', body)
         if m:
-            chars[m.group(1)] = [(int(c), *(f32(float(v)) for v in rest.split('/')))
-                                 for c, rest in (x.split(':', 1) for x in m.group(2).split())]
+            chars[m.group(1)] = [(int(c), *(f32(float(v)) for v in rest.split('/'))) for c, rest in (x.split(':', 1) for x in m.group(2).split())]
     return alone, row, chars
 
 
