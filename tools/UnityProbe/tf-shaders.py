@@ -9,6 +9,7 @@ TYPETREES is the engine's type trees for the game's Unity version
 (src/OniMoono.Assets/Data/typetrees-*.json.gz); the player's files carry none. Needs UnityPy.
 Put the copy in a scratch install (links to the game's files but this one), never the game's own.
 """
+
 import copy
 import gzip
 import json
@@ -19,9 +20,14 @@ from UnityPy.helpers.TypeTreeNode import TypeTreeNode
 
 # Shader name -> _MainTex's declared default (None: not declared).
 PLAN = {
-    'Hidden/VideoDecode': 'white', 'Hidden/VideoComposite': 'black', 'Hidden/Compositing': 'grey',
-    'Hidden/BlitToDepth': 'gray', 'Hidden/BlitToDepth_MSAA': 'bump', 'Hidden/BlitCopyHDRTonemap': 'red',
-    'Hidden/VR/BlitTexArraySlice': 'nonsense', 'Hidden/VR/BlitFromTex2DToTexArraySlice': None,
+    'Hidden/VideoDecode': 'white',
+    'Hidden/VideoComposite': 'black',
+    'Hidden/Compositing': 'grey',
+    'Hidden/BlitToDepth': 'gray',
+    'Hidden/BlitToDepth_MSAA': 'bump',
+    'Hidden/BlitCopyHDRTonemap': 'red',
+    'Hidden/VR/BlitTexArraySlice': 'nonsense',
+    'Hidden/VR/BlitFromTex2DToTexArraySlice': None,
 }
 
 
@@ -30,8 +36,17 @@ def shader_tree(path):
     tree = next(c for c in db['Classes'] if c['Name'] == 'Shader')['Tree']
 
     def build(e, level):
-        return TypeTreeNode(m_Level=level, m_Type=e['T'], m_Name=e['N'], m_ByteSize=e['S'], m_Version=e['V'],
-                            m_Children=[build(c, level + 1) for c in e['C']], m_TypeFlags=e['F'], m_MetaFlag=e['M'])
+        return TypeTreeNode(
+            m_Level=level,
+            m_Type=e['T'],
+            m_Name=e['N'],
+            m_ByteSize=e['S'],
+            m_Version=e['V'],
+            m_Children=[build(c, level + 1) for c in e['C']],
+            m_TypeFlags=e['F'],
+            m_MetaFlag=e['M'],
+        )
+
     return build(tree, 0)
 
 

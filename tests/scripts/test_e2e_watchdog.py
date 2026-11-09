@@ -1,4 +1,5 @@
 """The e2e player's hang watchdog (e2e.Watchdog), with a fake player and clock."""
+
 import os, tempfile, unittest
 
 import helpers  # noqa: F401
@@ -26,8 +27,7 @@ class WatchdogTests(unittest.TestCase):
         self.player = FakePlayer(self.dir.name)
         self.now = 1000.0
         self.dumps = []
-        self.dog = e2e.Watchdog(self.player, minutes=5, clock=lambda: self.now,
-                                dump=lambda pid, folder: self.dumps.append((pid, folder)) or 'main thread busy')
+        self.dog = e2e.Watchdog(self.player, minutes=5, clock=lambda: self.now, dump=lambda pid, folder: self.dumps.append((pid, folder)) or 'main thread busy')
 
     def tearDown(self):
         self.dir.cleanup()

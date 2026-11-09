@@ -51,6 +51,7 @@ main menu is fine; loading or playing the colony fails) or - (not run: a transla
 cannot be downloaded, one the mod gate skips, or ours after the original failed). The note
 gives the error.
 """
+
 import argparse, concurrent.futures, contextlib, io, json, os, re, shutil, sys, tempfile, threading, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -59,8 +60,7 @@ os.environ.setdefault('E2E_OUT', SWEEP_OUT)  # e2e.py's run folders, set before 
 RESULTS = os.path.join(ROOT, 'tests', 'e2e', 'sweeps')
 CATALOG = os.path.join(ROOT, 'scripts', 'mod-catalog.tsv')
 CATALOG_U60 = os.path.join(ROOT, 'scripts', 'mod-catalog-u60.tsv')
-CATALOG_JSON = os.environ.get('ONI_CATALOG_JSON') or os.path.expanduser(
-    '~/projects/onimaxxing/apps/onimaxxing/.mods-data/public/catalog.json')
+CATALOG_JSON = os.environ.get('ONI_CATALOG_JSON') or os.path.expanduser('~/projects/onimaxxing/apps/onimaxxing/.mods-data/public/catalog.json')
 SKIPPED_FLAGS = ('notLoading', 'crashesAtStartup', 'brokenByUpdate', 'unanalysed')
 LOAD_MARK = 'Loading save file:'
 GL_REFUSED = re.compile(r'failed to create drisw screen|X_GLXCreateContext|VersionUnavailable')
@@ -69,6 +69,7 @@ DISABLED = re.compile(r'Failed to load mod (.*?)\.\.\.disabling')
 
 def load_e2e():
     import importlib.util
+
     spec = importlib.util.spec_from_file_location('e2e', os.path.join(ROOT, 'scripts', 'e2e.py'))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -88,6 +89,7 @@ def say(text):
 
 
 # ---------------------------------------------------------------- the mods
+
 
 def read_catalog(paths=(CATALOG, CATALOG_U60)):
     """The catalog's rows, then those of the U60 catalog it lacks (scripts/mod-catalog-u60.tsv:
@@ -110,9 +112,9 @@ def read_catalog_json(path=CATALOG_JSON):
         return {}
     data = json.load(open(path, encoding='utf-8'))
     cols = data['cols']
-    return {cols['id'][i]: {'requires': list(cols['requires'][i] or []),
-                            'malware': bool((cols['analysis'][i] or {}).get('malware'))}
-            for i in range(data['count'])}
+    return {
+        cols['id'][i]: {'requires': list(cols['requires'][i] or []), 'malware': bool((cols['analysis'][i] or {}).get('malware'))} for i in range(data['count'])
+    }
 
 
 def downloaded(mid):
@@ -132,6 +134,7 @@ def titles(folder, mid):
 
 
 # ---------------------------------------------------------------- runs
+
 
 class Runner:
     """Runs of e2e.py's Run, at most PLAYERS at once, each on a lane of its own."""
@@ -158,19 +161,27 @@ class Runner:
         with self.lock:
             self.count += 1
             label = f'{tag}-{self.count:04d}'
-        spec = {'name': f'{self.name}-{label}', 'from': self.save, 'mods': self.install_set(mods), 'setup': [],
-                'steps': [{'run': {'seconds': self.seconds}}], 'path': f'sweep/{self.name}'}
+        spec = {
+            'name': f'{self.name}-{label}',
+            'from': self.save,
+            'mods': self.install_set(mods),
+            'setup': [],
+            'steps': [{'run': {'seconds': self.seconds}}],
+            'path': f'sweep/{self.name}',
+        }
         log = lambda s: say(f'[{label} {kind}] {s}')
         lane = e2e.allocate_lane(self.first, last=self.last, log=log)
         try:
             log(f'{len(mods)} mod(s) on lane {lane.number}')
-            with e2e.machine_lock(log=log), \
-                    self.budget.hold(e2e.player_gb(spec, e2e.fixture_of(spec)), f'sweep {label} {kind} lane {lane.number}', log):
+            with e2e.machine_lock(log=log), self.budget.hold(e2e.player_gb(spec, e2e.fixture_of(spec)), f'sweep {label} {kind} lane {lane.number}', log):
                 result = e2e.Run(spec, kind, 1, self.env, lane, log, run_id=self.run_id).execute()
         finally:
             lane.release()
-        if result['outcome'] and re.search(r'is off screen|is occluded by|no OK button', result['outcome']) \
-                and not re.search(r'CrashReportScreen|ErrorCanvas', result['outcome']):
+        if (
+            result['outcome']
+            and re.search(r'is off screen|is occluded by|no OK button', result['outcome'])
+            and not re.search(r'CrashReportScreen|ErrorCanvas', result['outcome'])
+        ):
             # The runner could not get past a dialog: no verdict on the mods; the sweep stops. A
             # crash screen over the dialog is the game's failure, which counts.
             raise RuntimeError(f'{label} {kind}: the runner failed, not the mods: {result["outcome"]}')
@@ -183,12 +194,21 @@ class Runner:
             # no verdict on the mods; the sweep stops, and the batch runs again when resumed.
             raise RuntimeError(f'{label} {kind}: the GL driver refused a context, not the mods: {result["outcome"]}')
         mark = text.find(LOAD_MARK)
-        found = {'kind': kind, 'mods': list(mods), 'outcome': result['outcome'], 'out': result['out'],
-                 'signatures': sorted(result['signatures']), 'loading': mark >= 0,
-                 'menu_signatures': sorted(signatures_of(text[:mark] if mark >= 0 else text)),
-                 'disabled': sorted(set(DISABLED.findall(text))), 'errors': error_text(text)}
-        log(f'{"ok" if not found["outcome"] else found["outcome"][:200]}; {len(found["signatures"])} signature(s)'
-            + (f', disabled: {", ".join(found["disabled"])}' if found['disabled'] else ''))
+        found = {
+            'kind': kind,
+            'mods': list(mods),
+            'outcome': result['outcome'],
+            'out': result['out'],
+            'signatures': sorted(result['signatures']),
+            'loading': mark >= 0,
+            'menu_signatures': sorted(signatures_of(text[:mark] if mark >= 0 else text)),
+            'disabled': sorted(set(DISABLED.findall(text))),
+            'errors': error_text(text),
+        }
+        log(
+            f'{"ok" if not found["outcome"] else found["outcome"][:200]}; {len(found["signatures"])} signature(s)'
+            + (f', disabled: {", ".join(found["disabled"])}' if found['disabled'] else '')
+        )
         return found
 
     def many(self, jobs):
@@ -215,6 +235,7 @@ def stage(run):
 
 
 # ---------------------------------------------------------------- judging
+
 
 class Judge:
     """Whether a run of ours fails against the original's run of a batch and the baseline."""
@@ -268,7 +289,7 @@ def error_text(text):
     keep = []
     for i, line in enumerate(lines):
         if re.search(r'\b\w+(Exception|Error)\b|\[ERROR\]|Failed to patch', line):
-            keep += lines[i:i + 9]
+            keep += lines[i : i + 9]
     return '\n'.join(keep)
 
 
@@ -300,6 +321,7 @@ def bisect(runner, kind, mods, fails, tag, first=None):
 
 # ---------------------------------------------------------------- a batch
 
+
 def original_why(run, baseline):
     """A failing original run's outcome and the first signatures the baseline lacks."""
     new = qa_tools.unknown(run['signatures'], baseline)
@@ -316,8 +338,7 @@ def sweep_batch(runner, number, batch, baseline, names):
         # Mods KMod disables in the original fail there, whatever else happens.
         disabled = [m for m in mods if names[m] & set(original['disabled'])]
         for m in disabled:
-            verdicts[m] = ('menu', '-', 'the original disables it ("Failed to load mod ...disabling"): '
-                           + original_why(original, baseline['original']))
+            verdicts[m] = ('menu', '-', 'the original disables it ("Failed to load mod ...disabling"): ' + original_why(original, baseline['original']))
         if not original_fails(original):
             break
         if disabled:
@@ -369,13 +390,17 @@ def sweep_batch(runner, number, batch, baseline, names):
         for part, run in found:
             if run is None:
                 for m in part:
-                    verdicts.setdefault(m, ('ok', stage(ours), 'fails in ours only together with '
-                                            + ', '.join(x for x in part if x != m) + ': ' + judge.why(ours)[:400]))
+                    verdicts.setdefault(
+                        m, ('ok', stage(ours), 'fails in ours only together with ' + ', '.join(x for x in part if x != m) + ': ' + judge.why(ours)[:400])
+                    )
                 continue
             original_alone = alone[part[0]]
             if original_fails(original_alone) or names[part[0]] & set(original_alone['disabled']):
-                verdicts[part[0]] = (stage(original_alone), '-', 'fails alone in the original too (it loads only with '
-                                     'another mod of its batch): ' + original_why(original_alone, baseline['original']))
+                verdicts[part[0]] = (
+                    stage(original_alone),
+                    '-',
+                    'fails alone in the original too (it loads only with another mod of its batch): ' + original_why(original_alone, baseline['original']),
+                )
             else:
                 verdicts[part[0]] = ('ok', stage(run), judge.why(run)[:600])
         break
@@ -385,6 +410,7 @@ def sweep_batch(runner, number, batch, baseline, names):
 
 
 # ---------------------------------------------------------------- the sweep
+
 
 def parse_args(argv):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -397,11 +423,9 @@ def parse_args(argv):
     p.add_argument('--first-lane', type=int, default=22)
     p.add_argument('--last-lane', type=int, default=25)
     p.add_argument('--players', type=int, default=2)
-    p.add_argument('--screen', default='1280x1024',
-                   help="the players' screen: tall enough for the MOD DIFFERENCES dialog of a whole batch")
+    p.add_argument('--screen', default='1280x1024', help="the players' screen: tall enough for the MOD DIFFERENCES dialog of a whole batch")
     p.add_argument('--download', action='store_true')
-    p.add_argument('--flagged', action='store_true',
-                   help='sweep the mods flagged notLoading, crashesAtStartup or unanalysed too (never malware)')
+    p.add_argument('--flagged', action='store_true', help='sweep the mods flagged notLoading, crashesAtStartup or unanalysed too (never malware)')
     p.add_argument('--batches', help='only these batch numbers: 0,3,5-7')
     p.add_argument('--dry-run', action='store_true', help='print the batches and stop')
     return p.parse_args(argv)
@@ -418,8 +442,7 @@ def numbers(text):
 def plain(note):
     """A note in a player's terms: the crash screen covering the load's dialog, as e2e.py words
     it for a click, is the crash screen opening."""
-    note = re.sub(r'step start: \S+ is occluded by ErrorCanvas/CrashReportScreen[^;]*\)',
-                  'the crash screen opens while the save loads', note)
+    note = re.sub(r'step start: \S+ is occluded by ErrorCanvas/CrashReportScreen[^;]*\)', 'the crash screen opens while the save loads', note)
     note = re.sub(r'(^|; )\S+ ~~~!', r'\1', note)  # KCrashReporter's "OBJECT ~~~!" prefix
     return re.sub(r'^step start: the player exited \((-?\d+)\) while loading', r'the player exits (\1) while loading', note)
 
@@ -432,8 +455,10 @@ def write_results(path, name, opts, ranks, state_dir):
     rows.sort(key=lambda r: (ranks.get(r['id'], 1 << 30), r['id']))
     commit = e2e.head_commit()
     with open(path, 'w', encoding='utf-8') as f:
-        f.write(f'# scripts/mod-sweep.py {name}: {len(rows)} mods, batches of {opts.batch}, the save {opts.save}, '
-                f'{opts.seconds} s of play; commit {commit}, {time.strftime("%Y-%m-%d")}\n')
+        f.write(
+            f'# scripts/mod-sweep.py {name}: {len(rows)} mods, batches of {opts.batch}, the save {opts.save}, '
+            f'{opts.seconds} s of play; commit {commit}, {time.strftime("%Y-%m-%d")}\n'
+        )
         f.write('id\trank\toriginal\tours\tnote\n')
         for r in rows:
             note = re.sub(r'\s+', ' ', plain(r['note'])).strip()
@@ -446,8 +471,7 @@ def main(argv):
     ranks = {r['id']: r['rank'] for r in catalog}
     info = read_catalog_json()
     if opts.ids:
-        chosen = [r for r in catalog if r['id'] in set(opts.ids)] + \
-                 [{'rank': 0, 'id': i, 'flags': '', 'title': i} for i in opts.ids if i not in ranks]
+        chosen = [r for r in catalog if r['id'] in set(opts.ids)] + [{'rank': 0, 'id': i, 'flags': '', 'title': i} for i in opts.ids if i not in ranks]
     else:
         a, _, b = (opts.ranks or '1-999999').partition('-')
         chosen = [r for r in catalog if int(a) <= r['rank'] <= int(b or a)]
@@ -459,12 +483,11 @@ def main(argv):
         say(f'left out as malware: {" ".join(malware)}')
     if opts.download:
         need = [r['id'] for r in chosen if not downloaded(r['id'])]
-        need += [q for r in chosen for q in info.get(r['id'], {}).get('requires', [])
-                 if q in info and not info[q]['malware'] and not downloaded(q)]
+        need += [q for r in chosen for q in info.get(r['id'], {}).get('requires', []) if q in info and not info[q]['malware'] and not downloaded(q)]
         need = list(dict.fromkeys(need))
         for i in range(0, len(need), 40):
-            say(f'downloading {len(need[i:i + 40])} item(s) ({i + 1}-{i + len(need[i:i + 40])} of {len(need)})')
-            ws.download(need[i:i + 40])
+            say(f'downloading {len(need[i : i + 40])} item(s) ({i + 1}-{i + len(need[i : i + 40])} of {len(need)})')
+            ws.download(need[i : i + 40])
     state_dir = os.path.join(SWEEP_OUT, opts.name)
     os.makedirs(state_dir, exist_ok=True)
     skipped, batchable, names = [], [], {}
@@ -473,8 +496,7 @@ def main(argv):
         if folder is None:
             skipped.append({'id': r['id'], 'original': '-', 'ours': '-', 'note': 'not downloadable with SteamCMD'})
         elif e2e.translation_only(folder):
-            skipped.append({'id': r['id'], 'original': '-', 'ours': '-',
-                            'note': 'a translation: installed disabled, as a subscription leaves it; not swept'})
+            skipped.append({'id': r['id'], 'original': '-', 'ours': '-', 'note': 'a translation: installed disabled, as a subscription leaves it; not swept'})
         else:
             batchable.append(r['id'])
             names[r['id']] = titles(folder, r['id'])
@@ -492,7 +514,7 @@ def main(argv):
             skipped.append({'id': m, 'original': '-', 'ours': '-', 'note': 'skipped by the mod gate: ' + '; '.join(why)})
             say(f'{m}: skipped by the mod gate: {"; ".join(why)}')
     json.dump({'mods': skipped}, open(os.path.join(state_dir, 'skipped.json'), 'w'), indent=1)
-    batches = [batchable[i:i + opts.batch] for i in range(0, len(batchable), opts.batch)]
+    batches = [batchable[i : i + opts.batch] for i in range(0, len(batchable), opts.batch)]
     say(f'{opts.name}: {len(batchable)} mods in {len(batches)} batches; {len(skipped)} not batched')
     if opts.dry_run:
         for n, b in enumerate(batches):
@@ -512,8 +534,7 @@ def main(argv):
     e2e.install_teardown()
     e2e.start_reaper()
     runner = Runner(opts.name, env, opts.save, opts.seconds, opts.first_lane, opts.last_lane, opts.players)
-    runner.requires = {r['id']: [q for q in info.get(r['id'], {}).get('requires', [])
-                                 if q in info and not info[q]['malware']] for r in chosen}
+    runner.requires = {r['id']: [q for q in info.get(r['id'], {}).get('requires', []) if q in info and not info[q]['malware']] for r in chosen}
     baseline_path = os.path.join(state_dir, 'baseline.json')
     if os.path.exists(baseline_path):
         baseline = json.load(open(baseline_path))
@@ -521,8 +542,7 @@ def main(argv):
         original, ours = runner.many([('original', [], 'base'), ('ours', [], 'base')])
         if original['outcome'] or ours['outcome']:
             sys.exit(f'mod-sweep: the save does not play without mods: {original["outcome"] or ours["outcome"]}')
-        baseline = {'original': original['signatures'], 'ours': ours['signatures'],
-                    'engine': qa_tools.unknown(ours['signatures'], original['signatures'])}
+        baseline = {'original': original['signatures'], 'ours': ours['signatures'], 'engine': qa_tools.unknown(ours['signatures'], original['signatures'])}
         json.dump(baseline, open(baseline_path, 'w'), indent=1)
         say(f'baseline: {len(baseline["engine"])} signature(s) ours logs without mods and the original does not')
     results = os.path.join(RESULTS, opts.name + '.tsv')
@@ -535,13 +555,14 @@ def main(argv):
         say(f'== batch {n:02d} of {len(batches)}: ranks {ranks.get(batch[0])}-{ranks.get(batch[-1])}')
         started = time.time()
         verdicts = sweep_batch(runner, n, batch, baseline, names)
-        rows = [{'id': m, 'original': v[0], 'ours': v[1], 'note': v[2]} for m, v in
-                ((m, verdicts[m]) for m in batch)]
-        json.dump({'batch': batch, 'mods': rows, 'minutes': round((time.time() - started) / 60, 1)},
-                  open(path, 'w'), indent=1)
+        rows = [{'id': m, 'original': v[0], 'ours': v[1], 'note': v[2]} for m, v in ((m, verdicts[m]) for m in batch)]
+        json.dump({'batch': batch, 'mods': rows, 'minutes': round((time.time() - started) / 60, 1)}, open(path, 'w'), indent=1)
         bad = [r for r in rows if r['original'] != 'ok' or r['ours'] != 'ok']
-        say(f'== batch {n:02d}: {len(rows) - len(bad)} ok, ' + ', '.join(f'{r["id"]} {r["original"]}/{r["ours"]}' for r in bad)
-            + f' ({(time.time() - started) / 60:.0f} min)')
+        say(
+            f'== batch {n:02d}: {len(rows) - len(bad)} ok, '
+            + ', '.join(f'{r["id"]} {r["original"]}/{r["ours"]}' for r in bad)
+            + f' ({(time.time() - started) / 60:.0f} min)'
+        )
         write_results(results, opts.name, opts, ranks, state_dir)
     write_results(results, opts.name, opts, ranks, state_dir)
     say(f'results in {os.path.relpath(results, ROOT)}')

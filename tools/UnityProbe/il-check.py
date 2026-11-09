@@ -8,6 +8,7 @@
 
 ORIG is the original's Player.log, OURS our player's stdout (PROBE_SCENARIO=inputlayout).
 """
+
 import re
 import sys
 
@@ -25,7 +26,7 @@ def load(path):
         if not p:
             continue
         phase = p.group(2).split(' ')[0]
-        rest = p.group(2)[len(phase):].strip()
+        rest = p.group(2)[len(phase) :].strip()
         vals = dict(kv.split('=', 1) for kv in re.findall(r'\S+=(?:"[^"]*"|\S+)', rest + ' ' + p.group(3)))
         cases[(p.group(1), phase)] = vals
     return cases
@@ -68,8 +69,7 @@ def rule(path):
                 px, py = mnx - mxx, mny - mxy
             exp_pref = (tx + px, ty + py)
         got = tuple(map(float, v['pref'].split(',')))
-        good = (all(abs(float(e) - g) < 1e-3 for e, g in zip(exp_pref, got))
-                and v['min'] == '0,0' and v['flex'] == '-1,-1' and v['prio'] == '1')
+        good = all(abs(float(e) - g) < 1e-3 for e, g in zip(exp_pref, got)) and v['min'] == '0,0' and v['flex'] == '-1,-1' and v['prio'] == '1'
         if good:
             ok += 1
         else:

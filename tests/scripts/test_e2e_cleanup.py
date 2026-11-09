@@ -1,6 +1,7 @@
 """e2e.py's cleanup: what a runner that died left on its lane (lane_leftovers), the teardown of a
 runner's own processes, and the watcher. Fake process tables for the rules; real child processes
 (sleeping Pythons, one named Xvfb) in a temporary lock directory and X folder for the kills."""
+
 import json, os, socket, subprocess, sys, tempfile, time, unittest
 
 import helpers  # noqa: F401
@@ -11,8 +12,7 @@ alive = lambda tag: tag == LIVE
 
 
 def proc(pid, comm='OniMoono', env=None, args=None, ppid=1, start=None):
-    return {'pid': pid, 'ppid': ppid, 'pgid': pid, 'start': start or pid * 10, 'comm': comm,
-            'args': args or [comm], 'env': env or {}}
+    return {'pid': pid, 'ppid': ppid, 'pgid': pid, 'start': start or pid * 10, 'comm': comm, 'args': args or [comm], 'env': env or {}}
 
 
 class Rules(unittest.TestCase):
@@ -26,19 +26,20 @@ class Rules(unittest.TestCase):
         self.temp.cleanup()
 
     def leftovers(self, procs, record=None, scopes=(), machine=False, display=-1):
-        return e2e.lane_leftovers(14, record, self.locks, procs=procs, scopes=list(scopes), alive=alive,
-                                  display=display, machine=machine, tmp=self.tmp)
+        return e2e.lane_leftovers(14, record, self.locks, procs=procs, scopes=list(scopes), alive=alive, display=display, machine=machine, tmp=self.tmp)
 
     def pids(self, found):
         return sorted(t['pid'] for k, t, _ in found if k == 'process')
 
     def test_a_dead_runners_processes_on_the_lane(self):
         lane = dict(E2E_LANE='14', E2E_LOCK_DIR=self.locks)
-        procs = [proc(1, env=dict(lane, E2E_OWNER=DEAD)),
-                 proc(2, env=dict(lane, E2E_OWNER=LIVE)),                     # its runner lives
-                 proc(3, env=dict(lane, E2E_OWNER=DEAD, E2E_LANE='4')),       # another lane
-                 proc(4, env=dict(lane, E2E_OWNER=DEAD, E2E_LOCK_DIR='/x')),  # another lock directory
-                 proc(5, comm='bash', env=dict(lane, E2E_OWNER=DEAD))]        # a wrapper: any process it started
+        procs = [
+            proc(1, env=dict(lane, E2E_OWNER=DEAD)),
+            proc(2, env=dict(lane, E2E_OWNER=LIVE)),  # its runner lives
+            proc(3, env=dict(lane, E2E_OWNER=DEAD, E2E_LANE='4')),  # another lane
+            proc(4, env=dict(lane, E2E_OWNER=DEAD, E2E_LOCK_DIR='/x')),  # another lock directory
+            proc(5, comm='bash', env=dict(lane, E2E_OWNER=DEAD)),
+        ]  # a wrapper: any process it started
         self.assertEqual(self.pids(self.leftovers(procs)), [1, 5])
 
     def test_nothing_while_the_lanes_last_runner_lives(self):
@@ -48,21 +49,22 @@ class Rules(unittest.TestCase):
 
     def test_recorded_children_by_start_time(self):
         procs = [proc(7, comm='Xvfb', start=70), proc(8, start=80)]
-        record = {'pid': 111, 'start': 1000, 'children': [{'role': 'xvfb', 'pid': 7, 'start': 70},
-                                                          {'role': 'player', 'pid': 8, 'start': 81}]}  # pid reused
+        record = {'pid': 111, 'start': 1000, 'children': [{'role': 'xvfb', 'pid': 7, 'start': 70}, {'role': 'player', 'pid': 8, 'start': 81}]}  # pid reused
         self.assertEqual(self.pids(self.leftovers(procs, record)), [7])
 
     def test_runners_from_before_owner_marks_only_in_the_machines_directory(self):
         runner = proc(50, comm='python3', args=['python3', 'scripts/e2e.py', 'x'])
-        procs = [runner, proc(51, env={'E2E_LANE': '14'}),                        # orphaned
-                 proc(52, env={'E2E_LANE': '14'}, ppid=50),                       # its runner lives
-                 proc(53, comm='bash', env={'E2E_LANE': '14'})]                   # not a player
+        procs = [
+            runner,
+            proc(51, env={'E2E_LANE': '14'}),  # orphaned
+            proc(52, env={'E2E_LANE': '14'}, ppid=50),  # its runner lives
+            proc(53, comm='bash', env={'E2E_LANE': '14'}),
+        ]  # not a player
         self.assertEqual(self.pids(self.leftovers(procs, machine=True)), [51])
         self.assertEqual(self.leftovers(procs, machine=False), [])
 
     def test_scopes_of_dead_runners_on_the_lane(self):
-        scopes = ['oni-test-111-1000-lane14-ours-1.scope', 'oni-test-111-1000-lane1-ours-2.scope',
-                  'oni-test-222-2000-lane14-ours-1.scope', 'run-r1234.scope']
+        scopes = ['oni-test-111-1000-lane14-ours-1.scope', 'oni-test-111-1000-lane1-ours-2.scope', 'oni-test-222-2000-lane14-ours-1.scope', 'run-r1234.scope']
         found = self.leftovers([], scopes=scopes)
         self.assertEqual([t for k, t, _ in found], ['oni-test-111-1000-lane14-ours-1.scope'])
 
@@ -71,6 +73,7 @@ class Rules(unittest.TestCase):
             with open(os.path.join(self.tmp, '.X314-lock'), 'w') as f:
                 f.write(f'{pid:10d}\n')
             open(os.path.join(self.tmp, '.X11-unix', 'X314'), 'w').close()
+
         files = lambda found: sorted(os.path.basename(t) for k, t, _ in found if k == 'file')
         # A dead runner's Xvfb, then its lock file and socket.
         lock(9)
@@ -190,6 +193,7 @@ time.sleep(120)
 
     def test_a_player_that_does_not_quit_is_killed_after_its_grace(self):
         from unittest import mock
+
         report = os.path.join(self.temp.name, 'quit.txt')
         player = self.spawn_player(e2e.owner_tag(), report, quits=False)
         with mock.patch.dict(os.environ, E2E_QUIT_GRACE='0.5'):
@@ -200,6 +204,7 @@ time.sleep(120)
 
     def test_quit_grace(self):
         from unittest import mock
+
         for value, grace in ((None, e2e.QUIT_GRACE), ('soon', e2e.QUIT_GRACE), ('2.5', 2.5), ('0', 0)):
             with mock.patch.dict(os.environ, {} if value is None else {'E2E_QUIT_GRACE': value}):
                 if value is None:
@@ -217,21 +222,29 @@ time.sleep(120)
         dead = start_time_of_a_dead_process()
         player = self.spawn(dead)
         xvfb = self.spawn(dead, xvfb=':1914')
-        mine = self.spawn(e2e.owner_tag())             # a live runner's (this test's) on the same lane
-        other = self.spawn(dead, lane='915')           # the dead runner's on another lane
+        mine = self.spawn(e2e.owner_tag())  # a live runner's (this test's) on the same lane
+        other = self.spawn(dead, lane='915')  # the dead runner's on another lane
         with open(os.path.join(self.tmp, '.X1914-lock'), 'w') as f:
             f.write(f'{xvfb.pid:10d}\n')
         open(os.path.join(self.tmp, '.X11-unix', 'X1914'), 'w').close()
         pid, start = dead.split(':')
         with open(os.path.join(self.locks, 'lane-914.lock'), 'w') as f:
-            json.dump({'pid': int(pid), 'start': int(start), 'lane': 914, 'state': 'running x',
-                       'children': [{'role': 'player', 'pid': player.pid, 'start': e2e.process_start(player.pid)}]}, f)
-        self.assertEqual(sorted(p['pid'] for k, p, _ in e2e.lane_leftovers(914, {'pid': int(pid), 'start': int(start)},
-                                                                          self.locks, scopes=[]) if k == 'process'),
-                         sorted([player.pid, xvfb.pid]))
+            json.dump(
+                {
+                    'pid': int(pid),
+                    'start': int(start),
+                    'lane': 914,
+                    'state': 'running x',
+                    'children': [{'role': 'player', 'pid': player.pid, 'start': e2e.process_start(player.pid)}],
+                },
+                f,
+            )
+        self.assertEqual(
+            sorted(p['pid'] for k, p, _ in e2e.lane_leftovers(914, {'pid': int(pid), 'start': int(start)}, self.locks, scopes=[]) if k == 'process'),
+            sorted([player.pid, xvfb.pid]),
+        )
         logged = []
-        lane = e2e.try_lane(914, self.locks, busy=lambda p: False, display_busy=lambda d: False,
-                            reserved=(set(), set()), log=logged.append)
+        lane = e2e.try_lane(914, self.locks, busy=lambda p: False, display_busy=lambda d: False, reserved=(set(), set()), log=logged.append)
         try:
             self.assertIsNotNone(lane)
             self.assertTrue(self.gone(player) and self.gone(xvfb))
@@ -335,6 +348,7 @@ class SignalTeardown(unittest.TestCase):
         # still tear down and exit 128 + signum: here every print raises, as it would then.
         import builtins, signal as sig
         from unittest import mock
+
         saved = {s: sig.getsignal(s) for s in (sig.SIGTERM, sig.SIGINT, sig.SIGHUP)}
         try:
             e2e.install_teardown()
@@ -343,9 +357,12 @@ class SignalTeardown(unittest.TestCase):
 
             def reentrant(*a, **k):
                 raise RuntimeError("reentrant call inside <_io.BufferedWriter name='<stdout>'>")
-            with mock.patch.object(builtins, 'print', reentrant), \
-                 mock.patch.object(e2e, 'teardown_all', lambda log=None: torn.append(log)), \
-                 mock.patch.object(e2e.os, '_exit', exits.append):
+
+            with (
+                mock.patch.object(builtins, 'print', reentrant),
+                mock.patch.object(e2e, 'teardown_all', lambda log=None: torn.append(log)),
+                mock.patch.object(e2e.os, '_exit', exits.append),
+            ):
                 handler(sig.SIGTERM, None)
             self.assertEqual((len(torn), exits), (1, [128 + sig.SIGTERM]))
         finally:

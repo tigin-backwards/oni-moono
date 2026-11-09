@@ -1,6 +1,7 @@
 """The Steam test double (tools/SteamStub): gen.py's DLC options, and the Workshop part (ugc.s,
 --ugc) loaded with ctypes and called as Steamworks.NET calls it, in a subprocess so that its
 environment is the one under test."""
+
 import ctypes, os, subprocess, sys, tempfile, textwrap, unittest
 
 import helpers
@@ -14,7 +15,7 @@ def body(asm, name):
     lines = asm.splitlines()
     i = lines.index(name + ':')
     out = []
-    for line in lines[i + 1:]:
+    for line in lines[i + 1 :]:
         if line.startswith('.globl') or line.endswith(':'):
             break
         out.append(line.strip())
@@ -123,8 +124,7 @@ class UgcTests(unittest.TestCase):
         subprocess.run(['as', '--64', '-o', os.path.join(out, 's.o'), os.path.join(out, 's.s')], check=True)
         subprocess.run(['as', '--64', '-o', os.path.join(out, 'u.o'), os.path.join(STUB, 'ugc.s')], check=True)
         cls.lib = os.path.join(out, 'libsteam_api.so')
-        subprocess.run(['ld', '-shared', '-o', cls.lib, os.path.join(out, 's.o'), os.path.join(out, 'u.o'),
-                        '/lib/x86_64-linux-gnu/libc.so.6'], check=True)
+        subprocess.run(['ld', '-shared', '-o', cls.lib, os.path.join(out, 's.o'), os.path.join(out, 'u.o'), '/lib/x86_64-linux-gnu/libc.so.6'], check=True)
         cls.source = os.path.join(root, 'fresh.zip')
         with open(cls.source, 'wb') as f:
             f.write(b'fresh content')
@@ -141,12 +141,19 @@ class UgcTests(unittest.TestCase):
         full = {k: v for k, v in os.environ.items() if not k.startswith('ONI_STEAMSTUB_')}
         full.update(env)
         import json
+
         done = subprocess.run([sys.executable, '-I', script, self.lib, target], env=full, capture_output=True, text=True, check=True)
         return json.loads(done.stdout)
 
     def test_a_subscription_installed_at_a_folder(self):
-        out = self.run_child({'ONI_STEAMSTUB_UGC_ID': '123456789012', 'ONI_STEAMSTUB_UGC_PATH': '/ws/content/457140/123456789012',
-                              'ONI_STEAMSTUB_UGC_TITLE': 'Loose Mod', 'ONI_STEAMSTUB_UGC_DOWNLOAD': self.source})
+        out = self.run_child(
+            {
+                'ONI_STEAMSTUB_UGC_ID': '123456789012',
+                'ONI_STEAMSTUB_UGC_PATH': '/ws/content/457140/123456789012',
+                'ONI_STEAMSTUB_UGC_TITLE': 'Loose Mod',
+                'ONI_STEAMSTUB_UGC_DOWNLOAD': self.source,
+            }
+        )
         self.assertEqual(out['count'], 1)
         self.assertEqual(out['items'], [1, 123456789012])
         self.assertEqual(out['state'], [5, 0])  # subscribed | installed; another item: nothing

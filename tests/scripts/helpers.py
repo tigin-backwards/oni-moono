@@ -1,4 +1,5 @@
 """Shared helpers of the scripts' unit tests (python3 -m unittest discover -s tests/scripts)."""
+
 import importlib.util, os, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

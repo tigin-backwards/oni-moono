@@ -15,6 +15,7 @@ and is left alone, as are the ONI_* environment variables (except the host's ONI
 for the Restarter, which ship together) and the machine-wide lock folder ~/.cache/oni-brutal-e2e
 that every checkout's e2e and QA runs share.
 """
+
 import os, re, subprocess, sys
 
 OLD, NEW = 'OniBrutal', 'OniMoono'
@@ -36,32 +37,37 @@ EXPLICIT = [
 # (path regex, span regex, reason): spans the replacements leave alone, and that the audit
 # accepts. A path regex of None applies everywhere.
 KEEP = [
-    (None, r'"OniBrutal", "(?:conversions|startup-checkpoints\.json)"',
-     'the cache folder of players from before the rename, read once or removed (FIXUPS)'),
-    (r'\.Host\.csproj$', r'\$\(OutDir\)OniBrutal(?:\.(?:exe|dll|pdb|deps\.json|runtimeconfig\.json))?(?=[;"])|\(OniBrutal, OniBrutal\.exe, OniBrutal\.dll …\)',
-     'removes the pre-Moono host from old output folders'),
-    (r'^scripts/build-windows\.sh$', r'\(OniBrutal\.exe\)|"\$out/host/OniBrutal\."\{[^}]*\}',
-     'removes the pre-Moono host from old output folders'),
+    (None, r'"OniBrutal", "(?:conversions|startup-checkpoints\.json)"', 'the cache folder of players from before the rename, read once or removed (FIXUPS)'),
+    (
+        r'\.Host\.csproj$',
+        r'\$\(OutDir\)OniBrutal(?:\.(?:exe|dll|pdb|deps\.json|runtimeconfig\.json))?(?=[;"])|\(OniBrutal, OniBrutal\.exe, OniBrutal\.dll …\)',
+        'removes the pre-Moono host from old output folders',
+    ),
+    (r'^scripts/build-windows\.sh$', r'\(OniBrutal\.exe\)|"\$out/host/OniBrutal\."\{[^}]*\}', 'removes the pre-Moono host from old output folders'),
     (r'^scripts/release\.sh$', r'OniBrutal\.exe and its OniBrutal\.dll', 'history: the pre-Moono host'),
     (r'^setup\.sh$', r"oni-brutal's OniBrutal\)|^old_player\(\).*$", 'finds launch options naming the pre-Moono player'),
-    (r'^setup\.ps1$', r"-Name OniMoono, OniBrutal\b|oni-brutal's OniBrutal\.exe|^function Is-Old.*$",
-     'finds the pre-Moono player (process, launch options)'),
-    (r'^setup\.sh$', r'\(OniBrutal and its OniBrutal\.\* assemblies\)|^\s*rm -f "\$player/OniBrutal" "\$player"/OniBrutal\.\*$',
-     "deletes a pre-Moono player's files from a release's player/"),
-    (r'^setup\.ps1$', r"\(OniBrutal\.exe and its OniBrutal\.\* assemblies\)|-Filter 'OniBrutal\.\*' \| Where-Object Name -like 'OniBrutal\.\*'",
-     "deletes a pre-Moono player's files from a release's player/"),
-    (r'^docs/DEVELOPMENT\.md$', r'deleting the `OniBrutal`$|^and `OniBrutal\.\*` files|renamed from OniBrutal to OniMoono',
-     'documents the cleanup and the rename'),
+    (r'^setup\.ps1$', r"-Name OniMoono, OniBrutal\b|oni-brutal's OniBrutal\.exe|^function Is-Old.*$", 'finds the pre-Moono player (process, launch options)'),
+    (
+        r'^setup\.sh$',
+        r'\(OniBrutal and its OniBrutal\.\* assemblies\)|^\s*rm -f "\$player/OniBrutal" "\$player"/OniBrutal\.\*$',
+        "deletes a pre-Moono player's files from a release's player/",
+    ),
+    (
+        r'^setup\.ps1$',
+        r"\(OniBrutal\.exe and its OniBrutal\.\* assemblies\)|-Filter 'OniBrutal\.\*' \| Where-Object Name -like 'OniBrutal\.\*'",
+        "deletes a pre-Moono player's files from a release's player/",
+    ),
+    (
+        r'^docs/DEVELOPMENT\.md$',
+        r'deleting the `OniBrutal`$|^and `OniBrutal\.\*` files|renamed from OniBrutal to OniMoono',
+        'documents the cleanup and the rename',
+    ),
     (r'^README\.md$', r'player \(`OniBrutal`\)', 'tells users of pre-Moono releases what changed'),
-    (r'PerfProbe/Probe\.cs$', r'"OniBrutal\.Host\.GameTweaks\.FastSerialization, Oni(?:Brutal|Moono)"',
-     'the probe also measures older players'),
-    (r'E2eDriver/Commands\.cs$', r'\|\| x\.GetName\(\)\.Name\.StartsWith\("OniBrutal", StringComparison\.Ordinal\)',
-     'the driver also runs in older players'),
+    (r'PerfProbe/Probe\.cs$', r'"OniBrutal\.Host\.GameTweaks\.FastSerialization, Oni(?:Brutal|Moono)"', 'the probe also measures older players'),
+    (r'E2eDriver/Commands\.cs$', r'\|\| x\.GetName\(\)\.Name\.StartsWith\("OniBrutal", StringComparison\.Ordinal\)', 'the driver also runs in older players'),
     (r'E2eDriver/README\.md$', r'older `OniBrutal\*`', 'the driver also runs in older players'),
-    (r'^scripts/qa-tools\.py$', r"\(\?:OniMoono\|OniBrutal\)|replace\('OniBrutal\.', 'OniMoono\.'\)",
-     'signatures stored by runs from before the rename'),
-    (r'^tests/scripts/test_log_signatures\.py$', r"OniBrutal\.Engine\.|were OniBrutal\.\*",
-     'tests reading signatures stored before the rename'),
+    (r'^scripts/qa-tools\.py$', r"\(\?:OniMoono\|OniBrutal\)|replace\('OniBrutal\.', 'OniMoono\.'\)", 'signatures stored by runs from before the rename'),
+    (r'^tests/scripts/test_log_signatures\.py$', r"OniBrutal\.Engine\.|were OniBrutal\.\*", 'tests reading signatures stored before the rename'),
 ]
 # What the audit accepts besides KEEP: names that are not ours, or that stay on purpose.
 ALLOWED = [
@@ -87,68 +93,86 @@ ALLOWED_FILES = {  # whole files whose oni-brutal mentions record the pre-Moono 
 FIXUPS = [
     # The cache folder, beside the settings' oni-moono: start-up checkpoints are read from the
     # old folder until the first start-up writes them.
-    ('src/OniMoono.UnityEngine/Engine/StartupProgress.cs',
-     '        static string FilePath => Path.Combine(EngineConfig.TemporaryCachePath, "OniBrutal", "startup-checkpoints.json");\n',
-     '        static string FilePath => Path.Combine(EngineConfig.TemporaryCachePath, "oni-moono", "startup-checkpoints.json");\n'
-     '        /// Where players from before the Moono name kept them: read until a start-up writes FilePath.\n'
-     '        static string OldFilePath => Path.Combine(EngineConfig.TemporaryCachePath, "OniBrutal", "startup-checkpoints.json");\n'),
-    ('src/OniMoono.UnityEngine/Engine/StartupProgress.cs',
-     'JsonDocument.Parse(File.ReadAllText(FilePath))',
-     'JsonDocument.Parse(File.ReadAllText(File.Exists(FilePath) ? FilePath : OldFilePath))'),
+    (
+        'src/OniMoono.UnityEngine/Engine/StartupProgress.cs',
+        '        static string FilePath => Path.Combine(EngineConfig.TemporaryCachePath, "OniBrutal", "startup-checkpoints.json");\n',
+        '        static string FilePath => Path.Combine(EngineConfig.TemporaryCachePath, "oni-moono", "startup-checkpoints.json");\n'
+        '        /// Where players from before the Moono name kept them: read until a start-up writes FilePath.\n'
+        '        static string OldFilePath => Path.Combine(EngineConfig.TemporaryCachePath, "OniBrutal", "startup-checkpoints.json");\n',
+    ),
+    (
+        'src/OniMoono.UnityEngine/Engine/StartupProgress.cs',
+        'JsonDocument.Parse(File.ReadAllText(FilePath))',
+        'JsonDocument.Parse(File.ReadAllText(File.Exists(FilePath) ? FilePath : OldFilePath))',
+    ),
     # Converted images name the host build that made them, so the old folder's are never read
     # again: it is removed once a new image is kept.
-    ('src/OniMoono.Host/MonoConversions.cs',
-     'cached = Path.Combine(EngineConfig.TemporaryCachePath, "OniBrutal", "conversions"',
-     'cached = Path.Combine(EngineConfig.TemporaryCachePath, "oni-moono", "conversions"'),
-    ('src/OniMoono.Host/MonoConversions.cs',
-     '                    File.Move(temporary, cached, overwrite: true);\n',
-     '                    File.Move(temporary, cached, overwrite: true);\n'
-     '                    DeleteOldCache();\n'),
-    ('src/OniMoono.Host/MonoConversions.cs',
-     '        static byte[]? Rewrite(byte[] image, ref byte[]? symbols, string path, string what = "mod conversions")\n',
-     '        static bool oldCacheDeleted;\n'
-     '\n'
-     '        /// The cache folder of players from before the Moono name: its images name an older\n'
-     '        /// host build, so none of them is read again.\n'
-     '        static void DeleteOldCache()\n'
-     '        {\n'
-     '            if (oldCacheDeleted) return;\n'
-     '            oldCacheDeleted = true;\n'
-     '            try { Directory.Delete(Path.Combine(EngineConfig.TemporaryCachePath, "OniBrutal", "conversions"), recursive: true); }\n'
-     '            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }\n'
-     '        }\n'
-     '\n'
-     '        static byte[]? Rewrite(byte[] image, ref byte[]? symbols, string path, string what = "mod conversions")\n'),
+    (
+        'src/OniMoono.Host/MonoConversions.cs',
+        'cached = Path.Combine(EngineConfig.TemporaryCachePath, "OniBrutal", "conversions"',
+        'cached = Path.Combine(EngineConfig.TemporaryCachePath, "oni-moono", "conversions"',
+    ),
+    (
+        'src/OniMoono.Host/MonoConversions.cs',
+        '                    File.Move(temporary, cached, overwrite: true);\n',
+        '                    File.Move(temporary, cached, overwrite: true);\n                    DeleteOldCache();\n',
+    ),
+    (
+        'src/OniMoono.Host/MonoConversions.cs',
+        '        static byte[]? Rewrite(byte[] image, ref byte[]? symbols, string path, string what = "mod conversions")\n',
+        '        static bool oldCacheDeleted;\n'
+        '\n'
+        '        /// The cache folder of players from before the Moono name: its images name an older\n'
+        '        /// host build, so none of them is read again.\n'
+        '        static void DeleteOldCache()\n'
+        '        {\n'
+        '            if (oldCacheDeleted) return;\n'
+        '            oldCacheDeleted = true;\n'
+        '            try { Directory.Delete(Path.Combine(EngineConfig.TemporaryCachePath, "OniBrutal", "conversions"), recursive: true); }\n'
+        '            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }\n'
+        '        }\n'
+        '\n'
+        '        static byte[]? Rewrite(byte[] image, ref byte[]? symbols, string path, string what = "mod conversions")\n',
+    ),
     ('docs/ARCHITECTURE.md', '(`OniMoono/conversions`', '(`oni-moono/conversions`'),
     # Ours: the host and the engine now share the prefix.
-    ('src/OniMoono.Host/PatchFrames.cs',
-     'name == "OniMoono" || name?.StartsWith("OniMoono", StringComparison.Ordinal) == true',
-     'name?.StartsWith("OniMoono", StringComparison.Ordinal) == true'),
+    (
+        'src/OniMoono.Host/PatchFrames.cs',
+        'name == "OniMoono" || name?.StartsWith("OniMoono", StringComparison.Ordinal) == true',
+        'name?.StartsWith("OniMoono", StringComparison.Ordinal) == true',
+    ),
     # Tools that also run in, or read the output of, players from before the rename.
-    ('tools/PerfProbe/Probe.cs',
-     '(System.Type.GetType("OniBrutal.Host.GameTweaks.FastSerialization, OniMoono") ?? System.Type.GetType("OniBrutal.Host.GameTweaks.FastSerialization, OniBrutal"))',
-     '(System.Type.GetType("OniMoono.Host.GameTweaks.FastSerialization, OniMoono")'
-     ' ?? System.Type.GetType("OniBrutal.Host.GameTweaks.FastSerialization, OniMoono")'
-     ' ?? System.Type.GetType("OniBrutal.Host.GameTweaks.FastSerialization, OniBrutal"))'),
-    ('tools/E2eDriver/Commands.cs',
-     'x.GetName().Name.StartsWith("OniMoono", StringComparison.Ordinal));',
-     'x.GetName().Name.StartsWith("OniMoono", StringComparison.Ordinal) || x.GetName().Name.StartsWith("OniBrutal", StringComparison.Ordinal));'),
+    (
+        'tools/PerfProbe/Probe.cs',
+        '(System.Type.GetType("OniBrutal.Host.GameTweaks.FastSerialization, OniMoono") ?? System.Type.GetType("OniBrutal.Host.GameTweaks.FastSerialization, OniBrutal"))',
+        '(System.Type.GetType("OniMoono.Host.GameTweaks.FastSerialization, OniMoono")'
+        ' ?? System.Type.GetType("OniBrutal.Host.GameTweaks.FastSerialization, OniMoono")'
+        ' ?? System.Type.GetType("OniBrutal.Host.GameTweaks.FastSerialization, OniBrutal"))',
+    ),
+    (
+        'tools/E2eDriver/Commands.cs',
+        'x.GetName().Name.StartsWith("OniMoono", StringComparison.Ordinal));',
+        'x.GetName().Name.StartsWith("OniMoono", StringComparison.Ordinal) || x.GetName().Name.StartsWith("OniBrutal", StringComparison.Ordinal));',
+    ),
     ('tools/E2eDriver/README.md', 'when an `OniMoono*` assembly', 'when an `OniMoono*` (or older `OniBrutal*`) assembly'),
     ('scripts/qa-tools.py', r"r'|^OniMoono\.')", r"r'|^(?:OniMoono|OniBrutal)\.')"),
-    ('scripts/qa-tools.py',
-     "    message, _, frame = signature.partition(' @ ')\n",
-     "    signature = signature.replace('OniBrutal.', 'OniMoono.')  # stored before the rename\n"
-     "    message, _, frame = signature.partition(' @ ')\n"),
-    ('tests/scripts/test_log_signatures.py',
-     '    def test_run_folder_is_masked(self):\n',
-     '    def test_references_from_before_the_rename(self):\n'
-     '        # A reference stored when the engine\'s namespaces were OniBrutal.* still matches.\n'
-     "        self.assertEqual(qa_tools.unknown(['InvalidCastException: to OniMoono.Engine.X'],\n"
-     "                                          ['InvalidCastException: to OniBrutal.Engine.X']), [])\n"
-     "        self.assertEqual(signatures('NullReferenceException: x\\n  at OniBrutal.Engine.EngineLog.Log ()\\n'),\n"
-     "                         signatures('NullReferenceException: x\\n  at OniMoono.Engine.EngineLog.Log ()\\n'))\n"
-     '\n'
-     '    def test_run_folder_is_masked(self):\n'),
+    (
+        'scripts/qa-tools.py',
+        "    message, _, frame = signature.partition(' @ ')\n",
+        "    signature = signature.replace('OniBrutal.', 'OniMoono.')  # stored before the rename\n    message, _, frame = signature.partition(' @ ')\n",
+    ),
+    (
+        'tests/scripts/test_log_signatures.py',
+        '    def test_run_folder_is_masked(self):\n',
+        '    def test_references_from_before_the_rename(self):\n'
+        '        # A reference stored when the engine\'s namespaces were OniBrutal.* still matches.\n'
+        "        self.assertEqual(qa_tools.unknown(['InvalidCastException: to OniMoono.Engine.X'],\n"
+        "                                          ['InvalidCastException: to OniBrutal.Engine.X']), [])\n"
+        "        self.assertEqual(signatures('NullReferenceException: x\\n  at OniBrutal.Engine.EngineLog.Log ()\\n'),\n"
+        "                         signatures('NullReferenceException: x\\n  at OniMoono.Engine.EngineLog.Log ()\\n'))\n"
+        '\n'
+        '    def test_run_folder_is_masked(self):\n',
+    ),
 ]
 
 AUDIT = re.compile(r'OniBrutal|oni-brutal|onibrutal|oni_brutal|BrutalTweaks|Brutal Tweaks', re.I)
@@ -222,7 +246,7 @@ def replace_line(path, line):
         for m in regex.finditer(text):
             if any(s <= m.start() < e for s, e in spans):
                 continue
-            out.append(text[at:m.start()])
+            out.append(text[at : m.start()])
             out.append(m.expand(repl))
             at = m.end()
         out.append(text[at:])

@@ -1,4 +1,5 @@
 """e2e.py's spec parsing and validation, options, keys and expectations."""
+
 import json, os, tempfile, unittest
 
 import helpers  # noqa: F401  (puts scripts/ on the path)
@@ -78,15 +79,25 @@ steps:
 ''')
         problems = e2e.check_spec(s)
         joined = '\n'.join(problems)
-        for text in ("unknown key 'colour'", '`mods` is a list of Workshop IDs', "steps 1: unknown step 'frobnicate'",
-                     'steps 2: needs `ui`', 'steps 3: toggle needs `to', "unknown key 'Hyper'",
-                     "'B' in 'B+Shift' is not a modifier", 'steps 6: drag takes', 'no symbolic masks',
-                     "unknown E2eDriver command 'teleport'", 'steps 9: a step is one'):
+        for text in (
+            "unknown key 'colour'",
+            '`mods` is a list of Workshop IDs',
+            "steps 1: unknown step 'frobnicate'",
+            'steps 2: needs `ui`',
+            'steps 3: toggle needs `to',
+            "unknown key 'Hyper'",
+            "'B' in 'B+Shift' is not a modifier",
+            'steps 6: drag takes',
+            'no symbolic masks',
+            "unknown E2eDriver command 'teleport'",
+            'steps 9: a step is one',
+        ):
             self.assertIn(text, joined)
 
     def test_side_buttons(self):
-        ok = spec('from: main-menu\nsteps:\n  - click: {at: [1, 2], button: 8}\n  - click: {at: [1, 2], button: back}\n'
-                  '  - click_world: {cell: [1, 2], button: 11}\n')
+        ok = spec(
+            'from: main-menu\nsteps:\n  - click: {at: [1, 2], button: 8}\n  - click: {at: [1, 2], button: back}\n  - click_world: {cell: [1, 2], button: 11}\n'
+        )
         self.assertEqual(e2e.check_spec(ok), [])
         for b in ('5', 'true', '12', 'side'):
             problems = e2e.check_spec(spec(f'from: main-menu\nsteps:\n  - click: {{at: [1, 2], button: {b}}}\n'))
@@ -95,8 +106,7 @@ steps:
     def test_workshop(self):
         good = spec('from: main-menu\nworkshop: {id: 1960996649, layout: zip, corrupt: true}\nsteps: []\n')
         self.assertEqual(e2e.check_spec(good), [])
-        for text in ('workshop: {id: abc}', 'workshop: {id: 1, layout: tar}',
-                     'workshop: {id: 1, corrupt: true}', 'workshop: {id: 1, colour: blue}'):
+        for text in ('workshop: {id: abc}', 'workshop: {id: 1, layout: tar}', 'workshop: {id: 1, corrupt: true}', 'workshop: {id: 1, colour: blue}'):
             problems = e2e.check_spec(spec(f'from: main-menu\n{text}\nsteps: []\n'))
             self.assertEqual(len(problems), 1, text)
 
@@ -179,10 +189,8 @@ steps:
         finally:
             os.remove(f.name)
 
-
     def test_load_spec_rejects_a_repeated_key(self):
-        text = ('from: early-base\nsteps:\n  - expect_state:\n      "A.B": "> 1"\n      "C": 2\n'
-                '      "A.B": "== original"\n')
+        text = 'from: early-base\nsteps:\n  - expect_state:\n      "A.B": "> 1"\n      "C": 2\n      "A.B": "== original"\n'
         with tempfile.NamedTemporaryFile('w', suffix='.yaml', delete=False) as f:
             f.write(text)
         try:
@@ -210,6 +218,7 @@ steps:
     def test_driver_commands_are_e2edrivers(self):
         # The commands a spec may name are the ones E2eDriver's dispatcher answers.
         import re
+
         source = open(os.path.join(e2e.ROOT, 'tools', 'E2eDriver', 'Commands.cs'), encoding='utf-8').read()
         driver = set(re.findall(r'case "([a-z._]+)":', source.split('static void Later')[0]))
         self.assertEqual(set(e2e.DRIVER_COMMANDS), driver)
@@ -228,33 +237,44 @@ class Aggregates(unittest.TestCase):
 
     def test_plain_forms(self):
         self.assertIsNone(self.parse('Research.Instance.queuedTech.Count'))
-        self.assertEqual(self.parse('count:all:Clearable::[*] if .isMarkedForClear == true'),
-                         ('count', 'all:Clearable::', '', [('.isMarkedForClear', '==', 'true')]))
+        self.assertEqual(
+            self.parse('count:all:Clearable::[*] if .isMarkedForClear == true'), ('count', 'all:Clearable::', '', [('.isMarkedForClear', '==', 'true')])
+        )
         self.assertEqual(self.parse('count:all:X::[*]'), ('count', 'all:X::', '', []))
         self.assertEqual(
-            self.parse('sum:all:Clearable::[*].GetComponent<PrimaryElement>.Mass if '
-                       '.GetComponent<PrimaryElement>.ElementID == SandStone and .a != 1'),
-            ('sum', 'all:Clearable::', '.GetComponent<PrimaryElement>.Mass',
-             [('.GetComponent<PrimaryElement>.ElementID', '==', 'SandStone'), ('.a', '!=', '1')]))
+            self.parse('sum:all:Clearable::[*].GetComponent<PrimaryElement>.Mass if .GetComponent<PrimaryElement>.ElementID == SandStone and .a != 1'),
+            (
+                'sum',
+                'all:Clearable::',
+                '.GetComponent<PrimaryElement>.Mass',
+                [('.GetComponent<PrimaryElement>.ElementID', '==', 'SandStone'), ('.a', '!=', '1')],
+            ),
+        )
 
     def test_quoted_text_is_kept_whole(self):
         tests = lambda expr: self.parse(expr)[3]
-        self.assertEqual(tests("count:X[*] if .name == 'Maximum size: 200 tiles'"),
-                         [('.name', '==', 'Maximum size: 200 tiles')])
-        self.assertEqual(tests("count:X[*] if .name == 'Salt and Pepper' and .b == 1"),
-                         [('.name', '==', 'Salt and Pepper'), ('.b', '==', '1')])
+        self.assertEqual(tests("count:X[*] if .name == 'Maximum size: 200 tiles'"), [('.name', '==', 'Maximum size: 200 tiles')])
+        self.assertEqual(tests("count:X[*] if .name == 'Salt and Pepper' and .b == 1"), [('.name', '==', 'Salt and Pepper'), ('.b', '==', '1')])
         self.assertEqual(tests("count:X[*] if .name != 'a == b'"), [('.name', '!=', 'a == b')])
         self.assertEqual(tests('count:X[*] if .name == "it\'s here"'), [('.name', '==', "it's here")])
-        self.assertEqual(tests('count:X[*] if .id.StartsWith("Geyser and Vent") == true'),
-                         [('.id.StartsWith("Geyser and Vent")', '==', 'true')])
+        self.assertEqual(tests('count:X[*] if .id.StartsWith("Geyser and Vent") == true'), [('.id.StartsWith("Geyser and Vent")', '==', 'true')])
         self.assertEqual(tests('count:X[*] if .Get(a, b) == 2'), [('.Get(a, b)', '==', '2')])
         self.assertEqual(self.parse('sum:X[*].Get("a b").Mass if .c == 1')[2], '.Get("a b").Mass')
         self.assertEqual(self.parse('count:Db.Get("x [*] y").List[*]')[1], 'Db.Get("x [*] y").List')
 
     def test_bad_forms(self):
-        for expr in ('count:X[*] if .name == two words', "count:X[*] if .name == 'open", 'count:X[*] if name == 1',
-                     'count:X[*] if .a == 1 == 2', 'count:X[*] if ', 'count:X', 'count:[*]', 'sum:X[*].a b',
-                     'count:X[*] if .a == 1 and', "count:X[*] if .a == 'x'y'"):
+        for expr in (
+            'count:X[*] if .name == two words',
+            "count:X[*] if .name == 'open",
+            'count:X[*] if name == 1',
+            'count:X[*] if .a == 1 == 2',
+            'count:X[*] if ',
+            'count:X',
+            'count:[*]',
+            'sum:X[*].a b',
+            'count:X[*] if .a == 1 and',
+            "count:X[*] if .a == 'x'y'",
+        ):
             with self.assertRaises(e2e.SpecFailure, msg=expr):
                 self.parse(expr)
 
@@ -262,23 +282,19 @@ class Aggregates(unittest.TestCase):
 class Arguments(unittest.TestCase):
     def test_defaults(self):
         o = e2e.parse_args(['early-base'])
-        self.assertEqual((o['players'], o['lanes'], o['first_lane'], o['displays'], o['perf_wait']),
-                         ('ours', 1, 1, None, True))
+        self.assertEqual((o['players'], o['lanes'], o['first_lane'], o['displays'], o['perf_wait']), ('ours', 1, 1, None, True))
 
     def test_lanes_and_displays(self):
         o = e2e.parse_args(['--lanes', '2', '--first-lane', '2', '--displays', ':88,89', '--no-perf-wait', 'a', 'b'])
-        self.assertEqual((o['lanes'], o['first_lane'], o['displays'], o['perf_wait'], o['names']),
-                         (2, 2, [':88', ':89'], False, ['a', 'b']))
+        self.assertEqual((o['lanes'], o['first_lane'], o['displays'], o['perf_wait'], o['names']), (2, 2, [':88', ':89'], False, ['a', 'b']))
 
     def test_list(self):
         with tempfile.NamedTemporaryFile('w', suffix='.txt') as f:
-            f.write("# a comment\n\nearly-base  # play\nupdate-badge ours  # ours only\n"
-                    "vk-smoke player-args='--renderer vulkan'  # a # in the comment\n")
+            f.write("# a comment\n\nearly-base  # play\nupdate-badge ours  # ours only\nvk-smoke player-args='--renderer vulkan'  # a # in the comment\n")
             f.flush()
             o = e2e.parse_args(['--list', f.name, 'census'])
             self.assertEqual(o['names'], ['early-base', 'update-badge', 'vk-smoke', 'census'])
-            self.assertEqual(o['list_settings'], {'early-base': {}, 'update-badge': {'ours_only': True},
-                                                  'vk-smoke': {'player_args': ['--renderer', 'vulkan']}})
+            self.assertEqual(o['list_settings'], {'early-base': {}, 'update-badge': {'ours_only': True}, 'vk-smoke': {'player_args': ['--renderer', 'vulkan']}})
             f.write('census both\n')
             f.flush()
             with self.assertRaises(e2e.SpecError):
@@ -294,8 +310,15 @@ class Arguments(unittest.TestCase):
                 e2e.load_spec(n)
 
     def test_bad(self):
-        for argv in (['--lanes', '7', 'a'], ['--lanes', '2', '--displays', ':88', 'a'], ['--player', 'x', 'a'],
-                     ['--displays', ':88,:88', 'a'], ['--frob', 'a'], [], ['--lanes']):
+        for argv in (
+            ['--lanes', '7', 'a'],
+            ['--lanes', '2', '--displays', ':88', 'a'],
+            ['--player', 'x', 'a'],
+            ['--displays', ':88,:88', 'a'],
+            ['--frob', 'a'],
+            [],
+            ['--lanes'],
+        ):
             with self.assertRaises(e2e.SpecError, msg=argv):
                 e2e.parse_args(argv)
 
@@ -313,8 +336,23 @@ class Keys(unittest.TestCase):
         self.assertEqual(e2e.parse_key('return'), ([], 'Return'))
 
     def test_table_covers_the_plan(self):
-        for name in ['A', 'Z', 'Alpha0', 'Alpha9', 'F1', 'F12', 'LeftShift', 'LeftControl', 'LeftAlt', 'Escape',
-                     'Return', 'UpArrow', 'DownArrow', 'LeftArrow', 'RightArrow']:
+        for name in [
+            'A',
+            'Z',
+            'Alpha0',
+            'Alpha9',
+            'F1',
+            'F12',
+            'LeftShift',
+            'LeftControl',
+            'LeftAlt',
+            'Escape',
+            'Return',
+            'UpArrow',
+            'DownArrow',
+            'LeftArrow',
+            'RightArrow',
+        ]:
             self.assertIsNotNone(e2e.keysym_name(name), name)
 
     def test_unknown(self):
@@ -371,8 +409,9 @@ class Expectations(unittest.TestCase):
         self.assertEqual(self.check(3, ['> 1', '== original'], original=4), (False, False))
 
     def test_ui(self):
-        element = e2e.Element({'path': 'a/b', 'rect': {'x': 0, 'y': 0, 'w': 10, 'h': 10}, 'active': True, 'isOn': False,
-                               'interactable': True, 'text': 'Quick Learner (+2)'})
+        element = e2e.Element(
+            {'path': 'a/b', 'rect': {'x': 0, 'y': 0, 'w': 10, 'h': 10}, 'active': True, 'isOn': False, 'interactable': True, 'text': 'Quick Learner (+2)'}
+        )
         self.assertEqual(e2e.ui_mismatches(element, {'active': True, 'text': '~Quick Learner'}), [])
         self.assertEqual(e2e.ui_mismatches(element, {'text': '/^Quick .*\\(\\+\\d\\)$/'}), [])
         self.assertEqual(e2e.ui_mismatches(element, {'isOn': True}), ['isOn is False, wanted True'])
@@ -391,14 +430,19 @@ class Expectations(unittest.TestCase):
 class RunStep(unittest.TestCase):
     def test_a_paused_game_is_resumed_and_paused_again(self):
         calls = []
-        steps = iter([{'elapsedGameSeconds': 0.0, 'status': 'completed', 'isPaused': True},
-                      {'elapsedGameSeconds': 60.0, 'status': 'completed'},
-                      {'elapsedGameSeconds': 60.0, 'status': 'completed'}])
+        steps = iter(
+            [
+                {'elapsedGameSeconds': 0.0, 'status': 'completed', 'isPaused': True},
+                {'elapsedGameSeconds': 60.0, 'status': 'completed'},
+                {'elapsedGameSeconds': 60.0, 'status': 'completed'},
+            ]
+        )
 
         class Mcp:
             def call(self, tool, **args):
                 calls.append(args['action'])
                 return next(steps) if args['action'] == 'step_until' else {}
+
         sleep, e2e.time.sleep = e2e.time.sleep, lambda s: None
         try:
             self.assertEqual(e2e.run(Mcp(), 120), 120.0)
@@ -413,6 +457,7 @@ class RunStep(unittest.TestCase):
             def call(self, tool, **args):
                 speeds.append(args.get('speed'))
                 return {'elapsedGameSeconds': 8.0, 'status': 'completed'}
+
         self.assertEqual(e2e.run(Mcp(), 8, speed=1), 8.0)
         self.assertEqual(speeds, [1])
 
@@ -436,10 +481,10 @@ class Options(unittest.TestCase):
             with open(os.path.join(mod, 'config.json'), 'w') as f:
                 json.dump({'Kept': 1, 'DisableIcons': False}, f)
             written = e2e.write_options(profile, {'1863428350': 'SweepByType'}, {'SweepByType': {'DisableIcons': True}})
-            self.assertEqual(sorted(os.path.relpath(w, profile) for w in written), [
-                'mods/Local/1863428350/archived_versions/old/config.json',
-                'mods/Local/1863428350/config.json',
-                'mods/config/SweepByType/config.json'])
+            self.assertEqual(
+                sorted(os.path.relpath(w, profile) for w in written),
+                ['mods/Local/1863428350/archived_versions/old/config.json', 'mods/Local/1863428350/config.json', 'mods/config/SweepByType/config.json'],
+            )
             self.assertEqual(json.load(open(os.path.join(mod, 'config.json'))), {'Kept': 1, 'DisableIcons': True})
             # By Workshop ID too.
             e2e.write_options(profile, {'1863428350': 'SweepByType'}, {'1863428350': {'X': 2}})
@@ -452,6 +497,7 @@ class Options(unittest.TestCase):
         """The least of a PE file e2e.module_name reads: one section holding a CLI header and
         metadata with a #~ stream (its Module table only) and a #Strings heap."""
         import struct
+
         strings = b'\0' + module.encode('utf-8') + b'\0'
         strings += b'\0' * (-len(strings) % 4)
         tables = struct.pack('<IBBBBQQI', 0, 2, 0, 0, 1, 1, 0, 1) + struct.pack('<HHHHH', 0, 1, 1, 0, 0)
@@ -467,8 +513,8 @@ class Options(unittest.TestCase):
         cli = struct.pack('<IHHII', 72, 2, 5, section_rva + 72, len(metadata)) + b'\0' * 56
         body = cli + metadata
         pe = 0x80
-        coff = struct.pack('<HHIIIHH', 0x14c, 1, 0, 0, 0, 224, 0x2102)
-        optional = struct.pack('<H', 0x10b) + b'\0' * 94 + b'\0' * (14 * 8) + struct.pack('<II', section_rva, 72) + b'\0' * 8
+        coff = struct.pack('<HHIIIHH', 0x14C, 1, 0, 0, 0, 224, 0x2102)
+        optional = struct.pack('<H', 0x10B) + b'\0' * 94 + b'\0' * (14 * 8) + struct.pack('<II', section_rva, 72) + b'\0' * 8
         section = b'.text\0\0\0' + struct.pack('<IIII', len(body), section_rva, len(body), raw) + b'\0' * 16
         head = b'MZ' + b'\0' * 58 + struct.pack('<I', pe)
         head += b'\0' * (pe - len(head)) + b'PE\0\0' + coff + optional + section
@@ -491,11 +537,8 @@ class Options(unittest.TestCase):
             mod = os.path.join(profile, 'mods', 'Local', '2890083659')
             os.makedirs(mod)
             open(os.path.join(mod, 'MiniBox.dll'), 'w').close()
-            written = e2e.write_options(profile, {'2890083659': '2890083659'},
-                                        {'2890083659': {'$file': 'MiniBox.json', 'WireLoadKw': 3.0}})
-            self.assertEqual(sorted(os.path.relpath(w, profile) for w in written), [
-                'mods/Local/2890083659/MiniBox.json',
-                'mods/config/MiniBox/MiniBox.json'])
+            written = e2e.write_options(profile, {'2890083659': '2890083659'}, {'2890083659': {'$file': 'MiniBox.json', 'WireLoadKw': 3.0}})
+            self.assertEqual(sorted(os.path.relpath(w, profile) for w in written), ['mods/Local/2890083659/MiniBox.json', 'mods/config/MiniBox/MiniBox.json'])
             self.assertEqual(json.load(open(os.path.join(mod, 'MiniBox.json'))), {'WireLoadKw': 3.0})
         problems = e2e.check_spec({'steps': [], 'options': {'X': {'$file': '../x.json'}}})
         self.assertTrue(any('$file' in p for p in problems), problems)
@@ -515,12 +558,12 @@ class Install(unittest.TestCase):
             fixture = os.path.join(root, 'landing.sav')
             open(fixture, 'w').close()
             lane = e2e.Lane(3, None)
-            player = e2e.Player('ours', os.path.join(root, 'run'), {'E2E_ONIMCP': onimcp, 'E2E_DRIVER': driver},
-                                fixture, lane, driver=True)
+            player = e2e.Player('ours', os.path.join(root, 'run'), {'E2E_ONIMCP': onimcp, 'E2E_DRIVER': driver}, fixture, lane, driver=True)
             mods = json.load(open(os.path.join(player.profile, 'mods', 'mods.json')))['mods']
-            self.assertEqual([(m['label']['id'], m['staticID'], m['label']['version']) for m in mods],
-                             [('OniMcp', 'LIghtJUNction.OniMcp', 312605614),
-                              ('E2eDriver', 'E2eDriver', 1399985550)])
+            self.assertEqual(
+                [(m['label']['id'], m['staticID'], m['label']['version']) for m in mods],
+                [('OniMcp', 'LIghtJUNction.OniMcp', 312605614), ('E2eDriver', 'E2eDriver', 1399985550)],
+            )
             installed = os.path.join(player.profile, 'mods', 'Local', 'E2eDriver')
             self.assertEqual(sorted(os.listdir(installed)), ['E2eDriver.dll', 'mod.yaml', 'mod_info.yaml'])
             config = json.load(open(os.path.join(player.profile, 'OniMcpConfig.json')))
@@ -539,8 +582,16 @@ class Translation(unittest.TestCase):
                 os.makedirs(os.path.join(mods_dir, 'Local', i))
                 for name in files:
                     open(os.path.join(mods_dir, 'Local', i, name), 'w').close()
-            entries = [{'label': {'distribution_platform': 0, 'id': i, 'title': i, 'version': 1}, 'status': 1,
-                        'enabled': True, 'enabledForDlc': ['', 'EXPANSION1_ID'], 'staticID': i} for i in ids]
+            entries = [
+                {
+                    'label': {'distribution_platform': 0, 'id': i, 'title': i, 'version': 1},
+                    'status': 1,
+                    'enabled': True,
+                    'enabledForDlc': ['', 'EXPANSION1_ID'],
+                    'staticID': i,
+                }
+                for i in ids
+            ]
             with open(os.path.join(mods_dir, 'mods.json'), 'w') as f:
                 json.dump({'version': 1, 'mods': entries}, f)
 
@@ -553,8 +604,16 @@ class Translation(unittest.TestCase):
         os.makedirs(onimcp, exist_ok=True)
         old, e2e.ws_mods = e2e.ws_mods, lambda: self.FakeWs
         try:
-            player = e2e.Player('ours', os.path.join(root, 'run'), {'E2E_ONIMCP': onimcp}, None, e2e.Lane(3, None),
-                                ['929139073', '1863428350'], translation=translation, language=language)
+            player = e2e.Player(
+                'ours',
+                os.path.join(root, 'run'),
+                {'E2E_ONIMCP': onimcp},
+                None,
+                e2e.Lane(3, None),
+                ['929139073', '1863428350'],
+                translation=translation,
+                language=language,
+            )
         finally:
             e2e.ws_mods = old
         with open(os.path.join(player.profile, 'mods', 'mods.json')) as f:
@@ -588,8 +647,7 @@ class Translation(unittest.TestCase):
             with tempfile.TemporaryDirectory() as root:
                 onimcp = os.path.join(root, 'onimcp')
                 os.makedirs(onimcp)
-                player = e2e.Player('original', os.path.join(root, 'run'), {'E2E_ONIMCP': onimcp}, None,
-                                    e2e.Lane(3, None), **kwargs)
+                player = e2e.Player('original', os.path.join(root, 'run'), {'E2E_ONIMCP': onimcp}, None, e2e.Lane(3, None), **kwargs)
                 path = os.path.join(player.profile, prefs)
                 self.assertEqual(os.path.exists(path), off, kwargs)
                 if off:
@@ -606,23 +664,24 @@ class Translation(unittest.TestCase):
 
     def test_tweaks_menu_is_a_flag(self):
         self.assertEqual(e2e.check_spec({'from': 'main-menu', 'mods': [], 'tweaks_menu': True, 'steps': []}), [])
-        self.assertIn('`tweaks_menu` is true or false',
-                      e2e.check_spec({'from': 'main-menu', 'mods': [], 'tweaks_menu': 'yes', 'steps': []}))
+        self.assertIn('`tweaks_menu` is true or false', e2e.check_spec({'from': 'main-menu', 'mods': [], 'tweaks_menu': 'yes', 'steps': []}))
 
     def test_blocked_plugins_are_file_names(self):
         for how in ('unreadable', 'missing'):
             self.assertEqual(e2e.check_spec({'from': 'main-menu', 'blocked_plugins': {'libSimDLL.so': how}, 'steps': []}), [])
         for bad in ('libSimDLL.so', ['libSimDLL.so'], {'x86_64/libSimDLL.so': 'missing'}, {'libSimDLL.so': 'gone'}):
-            self.assertIn('`blocked_plugins` maps plugin file names to unreadable or missing',
-                          e2e.check_spec({'from': 'main-menu', 'blocked_plugins': bad, 'steps': []}))
-        self.assertIn('`data_collection` is true or false',
-                      e2e.check_spec({'from': 'main-menu', 'data_collection': 'no', 'steps': []}))
+            self.assertIn(
+                '`blocked_plugins` maps plugin file names to unreadable or missing', e2e.check_spec({'from': 'main-menu', 'blocked_plugins': bad, 'steps': []})
+            )
+        self.assertIn('`data_collection` is true or false', e2e.check_spec({'from': 'main-menu', 'data_collection': 'no', 'steps': []}))
 
     def test_stray_plugins_are_paths_under_plugins(self):
         self.assertEqual(e2e.check_spec({'from': 'main-menu', 'stray_plugins': ['x86_64/', 'x86_64/SimDLL.dll'], 'steps': []}), [])
         for bad in ('x86_64/', [''], ['/abs'], ['../up'], ['a/../b'], [1]):
-            self.assertIn('`stray_plugins` lists paths under Plugins (`DIR/` for an empty folder)',
-                          e2e.check_spec({'from': 'main-menu', 'stray_plugins': bad, 'steps': []}))
+            self.assertIn(
+                '`stray_plugins` lists paths under Plugins (`DIR/` for an empty folder)',
+                e2e.check_spec({'from': 'main-menu', 'stray_plugins': bad, 'steps': []}),
+            )
 
     def test_stray_plugins_are_added_to_a_copy_of_the_install(self):
         """#49: a Linux install with a Plugins/x86_64 Steam left behind."""
@@ -632,8 +691,7 @@ class Translation(unittest.TestCase):
             for path in ('Game', 'Game_Data/Plugins/libSimDLL.so', 'Game_Data/Plugins/AnyCPU/libsteam_api.so'):
                 with open(os.path.join(game, path), 'w') as f:
                     f.write(path)
-            dest = e2e.blocked_install(game, {}, os.path.join(root, 'copy'),
-                                       ['x86_64/', 'Other/fmodstudio.dll', 'AnyCPU/libsteam_api.so'])
+            dest = e2e.blocked_install(game, {}, os.path.join(root, 'copy'), ['x86_64/', 'Other/fmodstudio.dll', 'AnyCPU/libsteam_api.so'])
             plugins = os.path.join(dest, 'Game_Data', 'Plugins')
             self.assertEqual(os.listdir(os.path.join(plugins, 'x86_64')), [])
             self.assertEqual(os.path.getsize(os.path.join(plugins, 'Other', 'fmodstudio.dll')), 0)
@@ -650,14 +708,12 @@ class Translation(unittest.TestCase):
     def test_extra_saves_are_fixture_names(self):
         self.assertEqual(e2e.check_spec({'from': 'main-menu', 'extra_saves': ['terra-wide'], 'steps': []}), [])
         for bad in ('terra-wide', ['../x'], [1]):
-            self.assertIn('`extra_saves` is a list of fixture names',
-                          e2e.check_spec({'from': 'main-menu', 'extra_saves': bad, 'steps': []}))
+            self.assertIn('`extra_saves` is a list of fixture names', e2e.check_spec({'from': 'main-menu', 'extra_saves': bad, 'steps': []}))
 
     def test_retired_colonies_are_json_fixtures(self):
         self.assertEqual(e2e.check_spec({'from': 'main-menu', 'retired_colonies': ['retired-chart-colony'], 'steps': []}), [])
         for bad in ('retired-chart-colony', ['../x'], [1], ['no-such-colony']):
-            self.assertIn('`retired_colonies` lists fixtures/NAME.json files',
-                          e2e.check_spec({'from': 'main-menu', 'retired_colonies': bad, 'steps': []}))
+            self.assertIn('`retired_colonies` lists fixtures/NAME.json files', e2e.check_spec({'from': 'main-menu', 'retired_colonies': bad, 'steps': []}))
 
     def test_blocked_install_links_all_but_the_blocked_plugin(self):
         with tempfile.TemporaryDirectory() as root:
@@ -691,17 +747,15 @@ class Translation(unittest.TestCase):
 
     def test_language_is_one_of_the_games_own(self):
         self.assertEqual(e2e.check_spec({'from': 'main-menu', 'mods': [], 'language': 'zh_klei', 'steps': []}), [])
-        self.assertTrue(any('`language` is one of' in p for p in
-                            e2e.check_spec({'from': 'main-menu', 'mods': [], 'language': 'de', 'steps': []})))
-        self.assertIn('`language` and `translation` both pick the language',
-                      e2e.check_spec({'from': 'main-menu', 'mods': [929139073], 'translation': 929139073,
-                                      'language': 'zh_klei', 'steps': []}))
+        self.assertTrue(any('`language` is one of' in p for p in e2e.check_spec({'from': 'main-menu', 'mods': [], 'language': 'de', 'steps': []})))
+        self.assertIn(
+            '`language` and `translation` both pick the language',
+            e2e.check_spec({'from': 'main-menu', 'mods': [929139073], 'translation': 929139073, 'language': 'zh_klei', 'steps': []}),
+        )
 
     def test_translation_names_one_of_the_mods(self):
-        self.assertIn('`translation` names one of `mods`',
-                      e2e.check_spec({'from': 'main-menu', 'mods': [1], 'translation': 2, 'steps': []}))
-        self.assertEqual(e2e.check_spec({'from': 'main-menu', 'mods': [929139073], 'translation': 929139073,
-                                         'steps': []}), [])
+        self.assertIn('`translation` names one of `mods`', e2e.check_spec({'from': 'main-menu', 'mods': [1], 'translation': 2, 'steps': []}))
+        self.assertEqual(e2e.check_spec({'from': 'main-menu', 'mods': [929139073], 'translation': 929139073, 'steps': []}), [])
 
 
 class SpacedOut(unittest.TestCase):
@@ -728,8 +782,7 @@ class SpacedOut(unittest.TestCase):
                 e2e.FIXTURES = old_fixtures
 
     def test_spaced_out_is_a_boolean(self):
-        self.assertIn('`spaced_out` is true or false',
-                      e2e.check_spec({'from': 'main-menu', 'spaced_out': 'no', 'steps': []}))
+        self.assertIn('`spaced_out` is true or false', e2e.check_spec({'from': 'main-menu', 'spaced_out': 'no', 'steps': []}))
         self.assertEqual(e2e.check_spec({'from': 'main-menu', 'spaced_out': False, 'steps': []}), [])
 
 

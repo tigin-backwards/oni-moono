@@ -12,6 +12,7 @@
 
 LOG is the original's Player.log or our player's stdout. Plain Python (struct), no numpy.
 """
+
 import math
 import re
 import struct
@@ -60,7 +61,7 @@ def dot(row, vec, mode):
 
 
 def rows(m):
-    return [m[r * 4:r * 4 + 4] for r in range(4)]
+    return [m[r * 4 : r * 4 + 4] for r in range(4)]
 
 
 def p3x4(m, p, mode):
@@ -90,45 +91,65 @@ def mesa_inverse(mm, mode):
     """Mesa's invert_matrix_general (m_matrix.c, Mesa 20.3.5) of a row-major matrix: Gauss-Jordan
     with partial pivoting; f32 rounds every operation, f64 none. A zero pivot gives zero."""
     R = f32 if mode == 'f32' else (lambda x: x)
-    r0, r1, r2, r3 = [list(mm[r * 4:r * 4 + 4]) + [1.0 if k == r else 0.0 for k in range(4)]
-                      for r in range(4)]
+    r0, r1, r2, r3 = [list(mm[r * 4 : r * 4 + 4]) + [1.0 if k == r else 0.0 for k in range(4)] for r in range(4)]
     zero = [0.0] * 16
-    if abs(r3[0]) > abs(r2[0]): r3, r2 = r2, r3
-    if abs(r2[0]) > abs(r1[0]): r2, r1 = r1, r2
-    if abs(r1[0]) > abs(r0[0]): r1, r0 = r0, r1
-    if r0[0] == 0: return zero
+    if abs(r3[0]) > abs(r2[0]):
+        r3, r2 = r2, r3
+    if abs(r2[0]) > abs(r1[0]):
+        r2, r1 = r1, r2
+    if abs(r1[0]) > abs(r0[0]):
+        r1, r0 = r0, r1
+    if r0[0] == 0:
+        return zero
     m1, m2, m3 = R(r1[0] / r0[0]), R(r2[0] / r0[0]), R(r3[0] / r0[0])
     for k in range(1, 8):
         s = r0[k]
-        if k >= 4 and s == 0: continue
-        r1[k] = R(r1[k] - R(m1 * s)); r2[k] = R(r2[k] - R(m2 * s)); r3[k] = R(r3[k] - R(m3 * s))
-    if abs(r3[1]) > abs(r2[1]): r3, r2 = r2, r3
-    if abs(r2[1]) > abs(r1[1]): r2, r1 = r1, r2
-    if r1[1] == 0: return zero
+        if k >= 4 and s == 0:
+            continue
+        r1[k] = R(r1[k] - R(m1 * s))
+        r2[k] = R(r2[k] - R(m2 * s))
+        r3[k] = R(r3[k] - R(m3 * s))
+    if abs(r3[1]) > abs(r2[1]):
+        r3, r2 = r2, r3
+    if abs(r2[1]) > abs(r1[1]):
+        r2, r1 = r1, r2
+    if r1[1] == 0:
+        return zero
     m2, m3 = R(r2[1] / r1[1]), R(r3[1] / r1[1])
     for k in range(2, 8):
         s = r1[k]
-        if k >= 4 and s == 0: continue
-        r2[k] = R(r2[k] - R(m2 * s)); r3[k] = R(r3[k] - R(m3 * s))
-    if abs(r3[2]) > abs(r2[2]): r3, r2 = r2, r3
-    if r2[2] == 0: return zero
+        if k >= 4 and s == 0:
+            continue
+        r2[k] = R(r2[k] - R(m2 * s))
+        r3[k] = R(r3[k] - R(m3 * s))
+    if abs(r3[2]) > abs(r2[2]):
+        r3, r2 = r2, r3
+    if r2[2] == 0:
+        return zero
     m3 = R(r3[2] / r2[2])
     for k in range(3, 8):
         r3[k] = R(r3[k] - R(m3 * r2[k]))
-    if r3[3] == 0: return zero
+    if r3[3] == 0:
+        return zero
     s = R(1.0 / r3[3])
-    for k in range(4, 8): r3[k] = R(r3[k] * s)
+    for k in range(4, 8):
+        r3[k] = R(r3[k] * s)
     m2, s = r2[3], R(1.0 / r2[2])
-    for k in range(4, 8): r2[k] = R(s * R(r2[k] - R(r3[k] * m2)))
+    for k in range(4, 8):
+        r2[k] = R(s * R(r2[k] - R(r3[k] * m2)))
     for row in (r1, r0):
         m = row[3]
-        for k in range(4, 8): row[k] = R(row[k] - R(r3[k] * m))
+        for k in range(4, 8):
+            row[k] = R(row[k] - R(r3[k] * m))
     m1, s = r1[2], R(1.0 / r1[1])
-    for k in range(4, 8): r1[k] = R(s * R(r1[k] - R(r2[k] * m1)))
+    for k in range(4, 8):
+        r1[k] = R(s * R(r1[k] - R(r2[k] * m1)))
     m0 = r0[2]
-    for k in range(4, 8): r0[k] = R(r0[k] - R(r2[k] * m0))
+    for k in range(4, 8):
+        r0[k] = R(r0[k] - R(r2[k] * m0))
     m0, s = r0[1], R(1.0 / r0[0])
-    for k in range(4, 8): r0[k] = R(s * R(r0[k] - R(r1[k] * m0)))
+    for k in range(4, 8):
+        r0[k] = R(s * R(r0[k] - R(r1[k] * m0)))
     return [f32(v) for r in (r0, r1, r2, r3) for v in r[4:8]]
 
 
@@ -158,10 +179,8 @@ def rule(path):
         print(f'{k:5} f32 {hits[(k, "f32")]}/{total}  f64 {hits[(k, "f64")]}/{total}')
     singular = list(cases(path, SINGULAR))
     if singular:
-        ok = {mode: sum(same(mesa_inverse(c['m'], mode), c['inv']) and same(c['sinv'], c['inv'])
-                        for _, c in singular) for mode in ('f32', 'f64')}
-        print(f'MMS   f32 {ok["f32"]}/{len(singular)}  f64 {ok["f64"]}/{len(singular)}'
-              ' (inv, with Inverse(m) the same)')
+        ok = {mode: sum(same(mesa_inverse(c['m'], mode), c['inv']) and same(c['sinv'], c['inv']) for _, c in singular) for mode in ('f32', 'f64')}
+        print(f'MMS   f32 {ok["f32"]}/{len(singular)}  f64 {ok["f64"]}/{len(singular)} (inv, with Inverse(m) the same)')
 
 
 def diff(orig, ours):
@@ -177,10 +196,8 @@ def diff(orig, ours):
     common = sorted(set(a) & set(b))
     if common:
         inputs = [i for i in common if not same(a[i]['m'], b[i]['m'])]
-        outputs = [i for i in common if i not in inputs
-                   and not (same(a[i]['inv'], b[i]['inv']) and same(a[i]['sinv'], b[i]['sinv']))]
-        print(f'{len(common)} MMS cases; differing inverses: {outputs or 0};'
-              f' inputs that differ: {inputs or 0}')
+        outputs = [i for i in common if i not in inputs and not (same(a[i]['inv'], b[i]['inv']) and same(a[i]['sinv'], b[i]['sinv']))]
+        print(f'{len(common)} MMS cases; differing inverses: {outputs or 0}; inputs that differ: {inputs or 0}')
 
 
 if __name__ == '__main__':

@@ -14,6 +14,7 @@ Candidates (products as Matrix4x4's: each element's sum in double, rounded once)
   pos/tp/itp   through the matrices above (MultiplyPoint3x4), or level by level:
                tp up = for each level from the leaf: p = lp + R(q) (s * p), each in float
 """
+
 import re
 import struct
 import sys
@@ -74,14 +75,18 @@ def rot(q, variant):
         xx, yy, zz = f32(x * x2), f32(y * y2), f32(z * z2)
         xy, xz, yz = f32(x * y2), f32(x * z2), f32(y * z2)
         wx, wy, wz = f32(w * x2), f32(w * y2), f32(w * z2)
-        return [[f32(1 - f32(yy + zz)), f32(xy - wz), f32(xz + wy)],
-                [f32(xy + wz), f32(1 - f32(xx + zz)), f32(yz - wx)],
-                [f32(xz - wy), f32(yz + wx), f32(1 - f32(xx + yy))]]
+        return [
+            [f32(1 - f32(yy + zz)), f32(xy - wz), f32(xz + wy)],
+            [f32(xy + wz), f32(1 - f32(xx + zz)), f32(yz - wx)],
+            [f32(xz - wy), f32(yz + wx), f32(1 - f32(xx + yy))],
+        ]
     # 'b': the same in double, each element rounded once
     x2, y2, z2 = x * 2, y * 2, z * 2
-    return [[f32(1 - (y * y2 + z * z2)), f32(x * y2 - w * z2), f32(x * z2 + w * y2)],
-            [f32(x * y2 + w * z2), f32(1 - (x * x2 + z * z2)), f32(y * z2 - w * x2)],
-            [f32(x * z2 - w * y2), f32(y * z2 + w * x2), f32(1 - (x * x2 + y * y2))]]
+    return [
+        [f32(1 - (y * y2 + z * z2)), f32(x * y2 - w * z2), f32(x * z2 + w * y2)],
+        [f32(x * y2 + w * z2), f32(1 - (x * x2 + z * z2)), f32(y * z2 - w * x2)],
+        [f32(x * z2 - w * y2), f32(y * z2 + w * x2), f32(1 - (x * x2 + y * y2))],
+    ]
 
 
 def trs(p, q, s, variant):

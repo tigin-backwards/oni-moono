@@ -7,13 +7,13 @@
                                         PROBE_MX_PART=pref PROBE_MX_PREF=2
 Numbers are compared as float32 values, since Mono's and .NET's "R" formats print the same float
 with different digits (482.328125 and 482.32812)."""
+
 import math, re, struct, sys
 
 NUM = re.compile(r'-?\d+(?:\.\d+)?(?:E[-+]?\d+)?')
 # pointSize, lineHeight, ascentLine, descentLine of the primary fonts the pref cases use (the
 # probe's "face" lines).
-FACES = {'GRAYSTROKE REGULAR SDF': (124, 130.0625, 117.6875, -12.4375),
-         'LiberationSans SDF': (86, 98.8916, 77.8535156, -18.22461)}
+FACES = {'GRAYSTROKE REGULAR SDF': (124, 130.0625, 117.6875, -12.4375), 'LiberationSans SDF': (86, 98.8916, 77.8535156, -18.22461)}
 WHITE = ('20', 'A', 'D', 'A0')
 
 

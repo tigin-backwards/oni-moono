@@ -1,6 +1,7 @@
 """e2e.py's E2eDriver client against a small fake server speaking its protocol (JSON lines over TCP,
 replies and element descriptions as tools/E2eDriver/README.md gives them), and the UI steps built
 on it, with a fake XTEST input standing in for the X server."""
+
 import json, os, socket, socketserver, tempfile, threading, time, unittest
 
 import helpers  # noqa: F401
@@ -26,9 +27,16 @@ class FakeGame:
         centre (default the element itself)."""
         x, y, w, h = rect
         fields.setdefault('key', '/' + path)
-        self.elements[as_name or path] = dict(path=path, name=path.rsplit('/', 1)[-1], active=True,
-                                   rect={'x': x, 'y': y, 'w': w, 'h': h}, center={'x': x + w / 2, 'y': y + h / 2},
-                                   onscreen=True, hit=hit or path, **fields)
+        self.elements[as_name or path] = dict(
+            path=path,
+            name=path.rsplit('/', 1)[-1],
+            active=True,
+            rect={'x': x, 'y': y, 'w': w, 'h': h},
+            center={'x': x + w / 2, 'y': y + h / 2},
+            onscreen=True,
+            hit=hit or path,
+            **fields,
+        )
 
     @staticmethod
     def relation(element, hit):
@@ -43,8 +51,16 @@ class FakeGame:
     def describe(self, e, hits=0):
         e = dict(e)
         hit = e.pop('hit')
-        e['hit'] = {'path': hit, 'relation': self.relation(e['path'], hit), 'raycaster': 'GraphicRaycaster',
-                    'sortingLayer': 0, 'sortingOrder': 0, 'depth': 3, 'distance': 0.0, 'count': 1}
+        e['hit'] = {
+            'path': hit,
+            'relation': self.relation(e['path'], hit),
+            'raycaster': 'GraphicRaycaster',
+            'sortingLayer': 0,
+            'sortingOrder': 0,
+            'depth': 3,
+            'distance': 0.0,
+            'count': 1,
+        }
         if hits:
             e['hit']['all'] = [{'path': hit, 'relation': e['hit']['relation']}]
         return e
@@ -53,6 +69,7 @@ class FakeGame:
     def glob(pattern, path):
         """A path pattern: `**/` any number of levels (none too), `*` within one name."""
         import re
+
         regex = re.escape(pattern).replace(r'\*\*/', '(?:.*/)?').replace(r'\*', '[^/]*')
         return re.fullmatch(regex, path) is not None
 
@@ -73,16 +90,17 @@ class FakeGame:
         with self.lock:
             self.requests.append((cmd, args))
         if cmd == 'ping':
-            return {'driver': '1', 'player': 'ours', 'scene': 'backend', 'screen': {'w': 1280, 'h': 720},
-                    'paused': True, 'world': True}
+            return {'driver': '1', 'player': 'ours', 'scene': 'backend', 'screen': {'w': 1280, 'h': 720}, 'paused': True, 'world': True}
         if cmd == 'ui.find':
             found = self.matches(args)
             limit = args.get('limit', 50)
             return {'count': len(found), 'elements': [self.describe(e, args.get('hits', 0)) for e in found[:limit]]}
         if cmd == 'ui.at':
-            on_top = [e for e in self.elements.values()
-                      if e['rect']['x'] <= args['x'] < e['rect']['x'] + e['rect']['w']
-                      and e['rect']['y'] <= args['y'] < e['rect']['y'] + e['rect']['h']]
+            on_top = [
+                e
+                for e in self.elements.values()
+                if e['rect']['x'] <= args['x'] < e['rect']['x'] + e['rect']['w'] and e['rect']['y'] <= args['y'] < e['rect']['y'] + e['rect']['h']
+            ]
             if not on_top:
                 return {'path': None, 'relation': 'none', 'count': 0}
             hit = on_top[-1]['hit']
@@ -92,24 +110,25 @@ class FakeGame:
             return dict(self.handle('ui.dump', {k: v for k, v in args.items() if k != 'settle'}), settle=check)
         if cmd == 'ui.dump':
             # Every element's ancestors are GameObjects too.
-            objects = {'/'.join(p.split('/')[:i + 1]) for p in self.elements for i in range(p.count('/') + 1)}
+            objects = {'/'.join(p.split('/')[: i + 1]) for p in self.elements for i in range(p.count('/') + 1)}
             roots = [p for p in sorted(objects) if self.glob(args['root'], p)]
             if not roots:
                 raise Failure(f'no element matches {args["root"]}')
-            lines = [f'/{p}\trect {e["rect"]["x"]},{e["rect"]["y"]},{e["rect"]["w"]},{e["rect"]["h"]}'
-                     for p, e in sorted(self.elements.items()) if any(p == r or p.startswith(r + '/') for r in roots)]
+            lines = [
+                f'/{p}\trect {e["rect"]["x"]},{e["rect"]["y"]},{e["rect"]["w"]},{e["rect"]["h"]}'
+                for p, e in sorted(self.elements.items())
+                if any(p == r or p.startswith(r + '/') for r in roots)
+            ]
             return {'roots': roots, 'count': len(lines), 'lines': lines}
         if cmd == 'ui.wait':
             found = self.matches({'path': args['path']})
-            state = {'frames': 1 if found else args.get('frames', 300), 'count': len(found),
-                     'element': self.describe(found[0]) if found else None}
+            state = {'frames': 1 if found else args.get('frames', 300), 'count': len(found), 'element': self.describe(found[0]) if found else None}
             if not found:
                 raise Failure(f'timeout: {args.get("cond", "exists")} not met within {args.get("frames", 300)} frames', state)
             return state
         if cmd == 'world.to_screen':
             x, y = args['cell']
-            return {'x': x * 10, 'y': 720 - y * 3, 'onscreen': 0 <= x * 10 < 1280,
-                    'world': {'x': x + 0.5, 'y': y + 0.5, 'z': -25.5}}
+            return {'x': x * 10, 'y': 720 - y * 3, 'onscreen': 0 <= x * 10 < 1280, 'world': {'x': x + 0.5, 'y': y + 0.5, 'z': -25.5}}
         if cmd == 'screen.to_cell':
             x, y = args['x'] // 10, (720 - args['y']) // 3
             return {'cell': y * 256 + x, 'valid': True, 'world': {'x': x + 0.5, 'y': y + 0.5}, 'xy': [x, y], 'worldId': 0}
@@ -166,8 +185,7 @@ class Handler(socketserver.StreamRequestHandler):
             if request.get('cmd') == 'noise':  # an unrelated line first, then the reply
                 self.wfile.write(b'{"id": -1, "ok": true, "frame": 1, "result": "ignored"}\n')
             try:
-                reply = {'id': request['id'], 'ok': True, 'frame': frame,
-                         'result': self.server.game.handle(request['cmd'], request.get('args', {}))}
+                reply = {'id': request['id'], 'ok': True, 'frame': frame, 'result': self.server.game.handle(request['cmd'], request.get('args', {}))}
             except Failure as e:
                 reply = {'id': request['id'], 'ok': False, 'frame': frame, 'error': e.error}
                 if e.result is not None:
@@ -215,6 +233,7 @@ class FakeMcp:
         if tool == 'navigation_control' and args.get('action') == 'screenshot':
             path = os.path.join(self.folder, args['filename'] + '.png')
             from PIL import Image
+
             Image.new('RGB', (1280, 720)).save(path)
             return {'path': path}
         return {}
@@ -245,6 +264,7 @@ class DriverTests(unittest.TestCase):
 
         class StubPlayer:
             display, xauthority, profile = ':88', None, self.temp.name
+
         run.player = StubPlayer()
         return run
 
@@ -259,9 +279,9 @@ class DriverTests(unittest.TestCase):
             conn, _ = server.accept()
             with conn, conn.makefile('rw') as f:
                 received.append(json.loads(f.readline()))
-                f.write('{"id": 1, "ok": true, "frame": 9, "result": {"x": 3, "y": 4, "onscreen": true, '
-                        '"world": {"x": 10.5, "y": 20.5, "z": -25.5}}}\n')
+                f.write('{"id": 1, "ok": true, "frame": 9, "result": {"x": 3, "y": 4, "onscreen": true, "world": {"x": 10.5, "y": 20.5, "z": -25.5}}}\n')
                 f.flush()
+
         t = threading.Thread(target=serve)
         t.start()
         driver = e2e.Driver(server.getsockname()[1]).connect(5)
@@ -294,16 +314,16 @@ class DriverTests(unittest.TestCase):
         self.game.add('Canvas/B', [1, 2, 3, 4], hit='Canvas/B/Label', interactable=True, groupInteractable=False)
         self.game.add('Canvas/C', [0, 0, 20, 10], hit='Popup/Blocker')
         self.game.add('Canvas/C/Inner', [0, 0, 5, 5], hit='Canvas/C')
-        a, = self.driver.find(path='Canvas/A')
-        self.assertEqual((a.rect, a.center, a.text, a.is_on, a.interactable, a.relation, a.hit_is_self()),
-                         ((10, 20, 100, 40), (60, 40), 'Hello', True, True, 'self', True))
-        b, = self.driver.find(path='Canvas/B')
+        (a,) = self.driver.find(path='Canvas/A')
+        self.assertEqual(
+            (a.rect, a.center, a.text, a.is_on, a.interactable, a.relation, a.hit_is_self()), ((10, 20, 100, 40), (60, 40), 'Hello', True, True, 'self', True)
+        )
+        (b,) = self.driver.find(path='Canvas/B')
         # A non-interactable CanvasGroup above it: no clicks.
-        self.assertEqual((b.rect, b.hit, b.relation, b.hit_is_self(), b.interactable),
-                         ((1, 2, 3, 4), 'Canvas/B/Label', 'child', True, False))
-        c, = self.driver.find(path='Canvas/C')
+        self.assertEqual((b.rect, b.hit, b.relation, b.hit_is_self(), b.interactable), ((1, 2, 3, 4), 'Canvas/B/Label', 'child', True, False))
+        (c,) = self.driver.find(path='Canvas/C')
         self.assertEqual((c.relation, c.hit_is_self()), ('other', False))
-        inner, = self.driver.find(path='Canvas/C/Inner')
+        (inner,) = self.driver.find(path='Canvas/C/Inner')
         self.assertEqual((inner.relation, inner.hit_is_self()), ('ancestor', False))
         self.assertEqual(len(self.driver.find(path='Canvas/*', limit=1)), 1)
         self.assertEqual(self.game.requests[-1], ('ui.find', {'path': 'Canvas/*', 'limit': 1}))
@@ -321,8 +341,7 @@ class DriverTests(unittest.TestCase):
         self.assertEqual(caught.exception.result, {'frames': 10, 'count': 0, 'element': None})
         self.game.add('Screen/Ready', [0, 0, 1, 1])
         self.assertEqual(self.driver.wait('Screen/Ready', 'stable', stable=5)['element']['path'], 'Screen/Ready')
-        self.assertEqual(self.game.requests[-1], ('ui.wait', {'path': 'Screen/Ready', 'cond': 'stable', 'frames': 300,
-                                                              'stable': 5}))
+        self.assertEqual(self.game.requests[-1], ('ui.wait', {'path': 'Screen/Ready', 'cond': 'stable', 'frames': 300, 'stable': 5}))
 
     def test_frames_are_round_trips(self):
         before = len(self.game.requests)
@@ -388,6 +407,7 @@ class DriverTests(unittest.TestCase):
             elif (x, y) == (50, 30):
                 del self.game.elements['Screen/Dropdown/Dropdown List/Item 1']
                 self.game.elements['Screen/Dropdown']['text'] = 'Sandstone'
+
         run = self.run_for(FakeInput(clicked))
         run.step('dropdown', {'ui': 'Screen/Dropdown', 'option': 'Sandstone'}, 1)
         self.assertEqual([e[1:3] for e in run.input.events], [(50, 10), (50, 30)])
@@ -404,10 +424,19 @@ class DriverTests(unittest.TestCase):
             run.step('click_world', {'cell': [150, 212]}, 5)  # x 1500: off the 1280-pixel screen
         self.assertIn('cell [150, 212] is off screen', str(caught.exception))
         run.step('scroll', {'at': [100, 200], 'notches': -3}, 5)
-        self.assertEqual(run.input.events, [('click', 60, 20, 'left', ()), ('type', 'e2e'), ('key', 'Return'),
-                                            ('key', 'Shift+B'), ('drag', (1100, 99), (1180, 93)),
-                                            ('drag', (1100, 99), (1100, 96), (1180, 93)),
-                                            ('click', 1000, 84, 'left', ()), ('scroll', 1000, 120, -3)])
+        self.assertEqual(
+            run.input.events,
+            [
+                ('click', 60, 20, 'left', ()),
+                ('type', 'e2e'),
+                ('key', 'Return'),
+                ('key', 'Shift+B'),
+                ('drag', (1100, 99), (1180, 93)),
+                ('drag', (1100, 99), (1100, 96), (1180, 93)),
+                ('click', 1000, 84, 'left', ()),
+                ('scroll', 1000, 120, -3),
+            ],
+        )
 
     def test_tool_by_toolbar_name(self):
         # Every toolbar button is an ActionIconToggle: the collection's sibling index tells them apart.
@@ -416,7 +445,8 @@ class DriverTests(unittest.TestCase):
         self.game.add(row, [50, 600, 40, 40], key='/ToolMenu#0/Row#0/ActionIconToggle#1', as_name='second')
         self.game.state['ToolMenu.Instance.basicTools'] = [
             {'text': 'Dig', 'icon': 'icon_action_dig', 'toggle': {'path': row}},
-            {'text': 'Sweep', 'icon': 'filtered_clear', 'toggle': {'path': row}}]
+            {'text': 'Sweep', 'icon': 'filtered_clear', 'toggle': {'path': row}},
+        ]
         self.game.state['ToolMenu.Instance.basicTools[1].toggle.transform.GetSiblingIndex()'] = 1
         run = self.run_for()
         run.step('tool', {'toolbar': 'filtered_clear'}, 1)
@@ -435,8 +465,7 @@ class DriverTests(unittest.TestCase):
         self.assertIn("text is 'Quick Learner, Uncultured', wanted 'Other'", str(caught.exception))
         run.step('expect_state', {'Research.Instance.queuedTech.Count': '>=4'}, 2)
         run.step('expect_state', {'Research.Instance.queuedTech.Count': '== original'}, 3)
-        self.assertEqual(run.values[-1], {'step': 3, 'expr': 'Research.Instance.queuedTech.Count', 'value': 4,
-                                          'wanted': '== original', 'deferred': True})
+        self.assertEqual(run.values[-1], {'step': 3, 'expr': 'Research.Instance.queuedTech.Count', 'value': 4, 'wanted': '== original', 'deferred': True})
         with self.assertRaises(e2e.SpecFailure):
             run.step('expect_state', {'Research.Instance.queuedTech.Count': '>4'}, 4)
         os.makedirs(os.path.join(self.temp.name, 'blueprints'))
@@ -449,8 +478,7 @@ class DriverTests(unittest.TestCase):
             self.game.state[f'Grid.Mass.get_Item({cell})'] = mass
         self.game.state['inventory'] = 10.0
         run = self.run_for()
-        run.step('expect_state', {'cells:1,2..2,3::Grid.Mass.get_Item({cell})': {'save_as': 'dug'},
-                                  'inventory': {'save_as': 'before'}}, 1)
+        run.step('expect_state', {'cells:1,2..2,3::Grid.Mass.get_Item({cell})': {'save_as': 'dug'}, 'inventory': {'save_as': 'before'}}, 1)
         self.assertEqual(run.saved, {'dug': 153.5, 'before': 10.0})
         self.game.state['inventory'] = 160.0
         run.step('expect_state', {'inventory': '>= before + 0.95 * dug'}, 2)
@@ -463,27 +491,33 @@ class DriverTests(unittest.TestCase):
         run.step('expect_state', {'inventory': '>= 0.9 * original'}, 5)
 
     def test_count_and_sum_read_every_item_in_one_request(self):
-        spawnables = [{'.spawnInfo.id': 'GeyserGeneric_steam', '.isSpawned': False, '.spawnInfo.units': 2.0},
-                      {'.spawnInfo.id': 'Tile', '.isSpawned': True, '.spawnInfo.units': 0.0},
-                      {'.spawnInfo.id': 'GeyserGeneric_steam', '.isSpawned': True, '.spawnInfo.units': 180.0},
-                      {'.spawnInfo.id': 'Hatch Baby', '.isSpawned': False, '.spawnInfo.units': True}]
+        spawnables = [
+            {'.spawnInfo.id': 'GeyserGeneric_steam', '.isSpawned': False, '.spawnInfo.units': 2.0},
+            {'.spawnInfo.id': 'Tile', '.isSpawned': True, '.spawnInfo.units': 0.0},
+            {'.spawnInfo.id': 'GeyserGeneric_steam', '.isSpawned': True, '.spawnInfo.units': 180.0},
+            {'.spawnInfo.id': 'Hatch Baby', '.isSpawned': False, '.spawnInfo.units': True},
+        ]
         self.game.lists['SaveGame.Instance.worldGenSpawner.spawnables'] = spawnables
         self.game.lists['all:Clearable::'] = []
         run = self.run_for()
-        run.step('expect_state', {
-            'count:SaveGame.Instance.worldGenSpawner.spawnables[*] if .spawnInfo.id == GeyserGeneric_steam': 2,
-            "count:SaveGame.Instance.worldGenSpawner.spawnables[*] if .spawnInfo.id == 'Hatch Baby'": 1,
-            'count:SaveGame.Instance.worldGenSpawner.spawnables[*] if .isSpawned == true and .spawnInfo.id != Tile': 1,
-            'count:SaveGame.Instance.worldGenSpawner.spawnables[*]': 4,
-            'count:all:Clearable::[*] if .isMarkedForClear == true': 0,
-            # Floats compare as Python prints them; a sum adds numbers only (not booleans).
-            'count:SaveGame.Instance.worldGenSpawner.spawnables[*] if .spawnInfo.units == 180.0': 1,
-            'sum:SaveGame.Instance.worldGenSpawner.spawnables[*].spawnInfo.units': 182.0,
-            'sum:SaveGame.Instance.worldGenSpawner.spawnables[*].spawnInfo.units if .isSpawned == false': 2.0}, 1)
+        run.step(
+            'expect_state',
+            {
+                'count:SaveGame.Instance.worldGenSpawner.spawnables[*] if .spawnInfo.id == GeyserGeneric_steam': 2,
+                "count:SaveGame.Instance.worldGenSpawner.spawnables[*] if .spawnInfo.id == 'Hatch Baby'": 1,
+                'count:SaveGame.Instance.worldGenSpawner.spawnables[*] if .isSpawned == true and .spawnInfo.id != Tile': 1,
+                'count:SaveGame.Instance.worldGenSpawner.spawnables[*]': 4,
+                'count:all:Clearable::[*] if .isMarkedForClear == true': 0,
+                # Floats compare as Python prints them; a sum adds numbers only (not booleans).
+                'count:SaveGame.Instance.worldGenSpawner.spawnables[*] if .spawnInfo.units == 180.0': 1,
+                'sum:SaveGame.Instance.worldGenSpawner.spawnables[*].spawnInfo.units': 182.0,
+                'sum:SaveGame.Instance.worldGenSpawner.spawnables[*].spawnInfo.units if .isSpawned == false': 2.0,
+            },
+            1,
+        )
         each = [args for cmd, args in self.game.requests if cmd == 'state.each']
         self.assertEqual(len(each), 8)
-        self.assertEqual(each[-1], {'expr': 'SaveGame.Instance.worldGenSpawner.spawnables',
-                                    'members': ['.isSpawned', '.spawnInfo.units']})
+        self.assertEqual(each[-1], {'expr': 'SaveGame.Instance.worldGenSpawner.spawnables', 'members': ['.isSpawned', '.spawnInfo.units']})
         self.assertFalse([cmd for cmd, _ in self.game.requests if cmd == 'state.get'])
 
     def test_original_value_is_compared_when_known(self):
@@ -501,8 +535,7 @@ class DriverTests(unittest.TestCase):
         self.assertTrue(open(os.path.join(self.temp.name, 'selector.ui.txt')).read().startswith('/Screen/Selector\t'))
         run.step('shot', {'name': 'selector', 'crop': 'Screen/Selector', 'mask': ['Screen/Selector/Date', [0, 0, 5, 5]]}, 2)
         meta = json.load(open(os.path.join(self.temp.name, 'selector.shot.json')))
-        self.assertEqual((meta['crop'], meta['masks'], meta['file']),
-                         ([100, 50, 400, 300], [[110, 60, 50, 10], [0, 0, 5, 5]], 'selector.png'))
+        self.assertEqual((meta['crop'], meta['masks'], meta['file']), ([100, 50, 400, 300], [[110, 60, 50, 10], [0, 0, 5, 5]], 'selector.png'))
         self.assertEqual(run.input.events[0], ('move', 1279, 719))  # the pointer off the UI first
         run.step('world_shot', {'name': 'zoomed', 'ortho': 45, 'at': [128, 210]}, 3)
         commands = [c for c, _ in self.game.requests]
@@ -530,12 +563,15 @@ class DriverTests(unittest.TestCase):
         self.assertEqual([e['name'] for e in run.evidence['world_shot']], ['preview'])
         with self.assertRaises(e2e.SpecFailure):
             run.step('file_shot', {'name': 'none', 'path': 'Timelapse/*.png', 'wait': 0}, 2)
-        self.assertEqual(e2e.check_step('s', 'file_shot', {'name': 'x', 'path': '/etc/passwd'}, False),
-                         ["s: file_shot takes {name, path} (an image in the run's profile, relative, globs allowed), and threshold"])
+        self.assertEqual(
+            e2e.check_step('s', 'file_shot', {'name': 'x', 'path': '/etc/passwd'}, False),
+            ["s: file_shot takes {name, path} (an image in the run's profile, relative, globs allowed), and threshold"],
+        )
         self.assertEqual(e2e.check_step('s', 'file_shot', {'name': 'x', 'path': 'save_files/*.png'}, False), [])
 
     def test_expect_exit_waits_for_the_player_to_quit(self):
         import subprocess
+
         run = self.run_for()
         run.player.process = subprocess.Popen(['sleep', '0.3'])
         run.player.alive = lambda: run.player.process.poll() is None
@@ -543,6 +579,7 @@ class DriverTests(unittest.TestCase):
         class Watchdog:
             def progress(self):
                 pass
+
         run.player.watchdog = Watchdog()
         run.step('expect_exit', {'seconds': 10}, 1)
         self.assertTrue(run.exited)

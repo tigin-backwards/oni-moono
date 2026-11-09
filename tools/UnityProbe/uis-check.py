@@ -13,6 +13,7 @@
 
 A log is a Player.log (original) or our player's stdout.
 """
+
 import re
 import sys
 from collections import Counter
@@ -57,8 +58,9 @@ def raw(path):
         if not m:
             continue
         points = lambda s: [tuple(f32(c) for c in p.split(',')) for p in s.split(';')]
-        out.setdefault(m.group(1), (tuple(f32(v) for v in m.group(2).split(',')), points(m.group(3)),
-                                    points(m.group(4)), tuple(f32(v) for v in m.group(5).split(','))))
+        out.setdefault(
+            m.group(1), (tuple(f32(v) for v in m.group(2).split(',')), points(m.group(3)), points(m.group(4)), tuple(f32(v) for v in m.group(5).split(',')))
+        )
     return out
 
 

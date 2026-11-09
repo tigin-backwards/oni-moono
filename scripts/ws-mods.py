@@ -15,6 +15,7 @@ Environment:
   ONI_STEAMCMD_SNAP  the snap whose shell runs SteamCMD (default steam, where its 32-bit
                      libraries are); empty runs steamcmd.sh directly
   ONI_WS             where items are unpacked (default out/ws)"""
+
 import json, os, re, subprocess, sys, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,12 +32,14 @@ def download(ids):
     out = subprocess.run(cmd, capture_output=True, text=True).stdout
     for line in out.splitlines():
         line = re.sub(r'\x1b\[[0-9;]*m', '', line)
-        if 'Success' in line or 'ERROR' in line or 'ailed' in line: print(line[:140])
+        if 'Success' in line or 'ERROR' in line or 'ailed' in line:
+            print(line[:140])
 
 
 def unpack(i):
     dest = os.path.join(WS, i)
-    if os.path.isdir(dest): return dest
+    if os.path.isdir(dest):
+        return dest
     src = os.path.join(CONTENT, i)
     files = os.listdir(src) if os.path.isdir(src) else []
     bins = [f for f in files if f.endswith('.bin')]
@@ -52,7 +55,8 @@ def unpack(i):
                 os.makedirs(path, exist_ok=True)
                 continue
             os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, 'wb') as f: f.write(z.read(info))
+            with open(path, 'wb') as f:
+                f.write(z.read(info))
     else:  # a plain folder (newer uploads)
         subprocess.run(['cp', '-r', src + '/.', dest], check=True)
     return dest
@@ -61,13 +65,16 @@ def unpack(i):
 def mono_hash(s):
     """string.GetHashCode as Unity's 64-bit Mono computes it: the .NET Framework 64-bit algorithm,
     as OniMoono.Engine.MonoStringHash (checked against the original player)."""
+
     def i32(x):
-        x &= 0xffffffff
+        x &= 0xFFFFFFFF
         return x - (1 << 32) if x & 0x80000000 else x
+
     h1 = h2 = 5381
     for i in range(0, len(s), 2):
         h1 = i32(((h1 << 5) + h1) ^ ord(s[i]))
-        if i + 1 < len(s): h2 = i32(((h2 << 5) + h2) ^ ord(s[i + 1]))
+        if i + 1 < len(s):
+            h2 = i32(((h2 << 5) + h2) ^ ord(s[i + 1]))
     return i32(h1 + h2 * 1566083941)
 
 
@@ -89,8 +96,12 @@ def gate(ids):
     files) for the unpacked mods IDS."""
     if not ids:
         return {}
-    done = subprocess.run([sys.executable, '-I', os.path.join(ROOT, 'scripts', 'mod-gate.py'), '--json', *ids],
-                          capture_output=True, text=True, env=dict(os.environ, ONI_WS=WS, ONI_STEAMCMD=STEAMCMD))
+    done = subprocess.run(
+        [sys.executable, '-I', os.path.join(ROOT, 'scripts', 'mod-gate.py'), '--json', *ids],
+        capture_output=True,
+        text=True,
+        env=dict(os.environ, ONI_WS=WS, ONI_STEAMCMD=STEAMCMD),
+    )
     try:
         verdicts = json.loads(done.stdout.strip().splitlines()[-1])
     except (IndexError, ValueError):
@@ -111,20 +122,32 @@ def profile(out, ids):
     for i in ids:
         src = unpack(i)
         dest = os.path.join(out, 'Local', i)
-        if not os.path.exists(dest): subprocess.run(['cp', '-r', src, dest], check=True)
+        if not os.path.exists(dest):
+            subprocess.run(['cp', '-r', src, dest], check=True)
         yaml = os.path.join(dest, 'mod.yaml')
         text = open(yaml, encoding='utf-8-sig', errors='replace').read() if os.path.exists(yaml) else ''
         static = yaml_value(text, 'staticID') or i
         title = yaml_value(text, 'title') or i
-        mods.append({'label': {'distribution_platform': 0, 'id': i, 'title': title, 'version': mono_hash(i)}, 'status': 1, 'enabled': True,
-                     'enabledForDlc': ['', 'EXPANSION1_ID'], 'crash_count': 0, 'reinstall_path': None, 'staticID': static})
+        mods.append(
+            {
+                'label': {'distribution_platform': 0, 'id': i, 'title': title, 'version': mono_hash(i)},
+                'status': 1,
+                'enabled': True,
+                'enabledForDlc': ['', 'EXPANSION1_ID'],
+                'crash_count': 0,
+                'reinstall_path': None,
+                'staticID': static,
+            }
+        )
         print(i, static, '|', title)
     json.dump({'version': 1, 'mods': mods, 'mod_load_in_progress': False}, open(os.path.join(out, 'mods.json'), 'w'))
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3 or sys.argv[1] not in ('download', 'profile'): sys.exit(__doc__)
-    if sys.argv[1] == 'download': download(sys.argv[2:])
+    if len(sys.argv) < 3 or sys.argv[1] not in ('download', 'profile'):
+        sys.exit(__doc__)
+    if sys.argv[1] == 'download':
+        download(sys.argv[2:])
     else:
         try:
             profile(sys.argv[2], sys.argv[3:])

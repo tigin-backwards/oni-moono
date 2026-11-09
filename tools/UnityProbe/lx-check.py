@@ -21,6 +21,7 @@
 A log is a Player.log (original) or our player's stdout. Advances and positions are compared
 as numbers: the "R" format differs between Mono and .NET.
 """
+
 import collections
 import math
 import re
@@ -34,8 +35,10 @@ def lines(path):
             yield m.group(1)
 
 
-CI = re.compile(r'ci size=(\d+) style=(\w+) c=(\d+) ok=(\w+) adv=(-?\d+) width=(\S+) minX=(-?\d+) maxX=(-?\d+) '
-                r'minY=(-?\d+) maxY=(-?\d+) gw=(\d+) gh=(\d+)')
+CI = re.compile(
+    r'ci size=(\d+) style=(\w+) c=(\d+) ok=(\w+) adv=(-?\d+) width=(\S+) minX=(-?\d+) maxX=(-?\d+) '
+    r'minY=(-?\d+) maxY=(-?\d+) gw=(\d+) gh=(\d+)'
+)
 
 
 def char_infos(path):
@@ -44,9 +47,15 @@ def char_infos(path):
         m = CI.match(body)
         if m:
             size, style, c = int(m.group(1)), m.group(2), int(m.group(3))
-            table[(size, style, c)] = dict(ok=m.group(4) == 'True', adv=int(m.group(5)), width=float(m.group(6)),
-                                           minX=int(m.group(7)), maxX=int(m.group(8)), minY=int(m.group(9)),
-                                           maxY=int(m.group(10)))
+            table[(size, style, c)] = dict(
+                ok=m.group(4) == 'True',
+                adv=int(m.group(5)),
+                width=float(m.group(6)),
+                minX=int(m.group(7)),
+                maxX=int(m.group(8)),
+                minY=int(m.group(9)),
+                maxY=int(m.group(10)),
+            )
     return table
 
 
@@ -62,8 +71,10 @@ def unquote(s):
     return ''.join(out)
 
 
-GEN = re.compile(r'gen (fontSize=(\d+) scale=(\S+) style=(\w+) anchor=(\w+) wrap=(\w+)(?: bestFit=(\S+))?(?: width=(\S+))? str="(.*)") '
-                 r'(pref=.*|cx=.*|cw=.*|lines=.*|quads=.*)$')
+GEN = re.compile(
+    r'gen (fontSize=(\d+) scale=(\S+) style=(\w+) anchor=(\w+) wrap=(\w+)(?: bestFit=(\S+))?(?: width=(\S+))? str="(.*)") '
+    r'(pref=.*|cx=.*|cw=.*|lines=.*|quads=.*)$'
+)
 
 
 def generations(path):
@@ -73,8 +84,19 @@ def generations(path):
         if not m:
             continue
         key = m.group(1)
-        g = gens.setdefault(key, dict(size=int(m.group(2)), scale=float(m.group(3)), style=m.group(4), anchor=m.group(5),
-                                      wrap=m.group(6), bestFit=m.group(7), width=m.group(8), str=unquote(m.group(9))))
+        g = gens.setdefault(
+            key,
+            dict(
+                size=int(m.group(2)),
+                scale=float(m.group(3)),
+                style=m.group(4),
+                anchor=m.group(5),
+                wrap=m.group(6),
+                bestFit=m.group(7),
+                width=m.group(8),
+                str=unquote(m.group(9)),
+            ),
+        )
         rest = m.group(10)
         if rest.startswith('pref='):
             for k, v in re.findall(r'(\w+)=(\S+)', rest):
@@ -92,6 +114,7 @@ def generations(path):
 
 def f32_floor_product(size, scale):
     import struct
+
     s = struct.unpack('f', struct.pack('f', scale))[0]
     p = struct.unpack('f', struct.pack('f', size * s))[0]
     return math.floor(p)
@@ -99,8 +122,9 @@ def f32_floor_product(size, scale):
 
 # LegacyRuntime's serialized kerning (m_KerningValues of "unity default resources", read from the
 # game's files): 21 pairs, each -1 pixel at the font's own size (m_FontSize 13).
-LEGACY_KERNING = {p: -1.0 for p in ('F,', 'F.', 'P,', 'P.', 'T,', 'T.', 'T:', 'T;', 'Ta', 'Tc', 'Te', 'To', 'Ts', 'V,', 'V.',
-                                    'Y,', 'Y-', 'Y.', 'Ye', 'Yo', 'Yq')}
+LEGACY_KERNING = {
+    p: -1.0 for p in ('F,', 'F.', 'P,', 'P.', 'T,', 'T.', 'T:', 'T;', 'Ta', 'Tc', 'Te', 'To', 'Ts', 'V,', 'V.', 'Y,', 'Y-', 'Y.', 'Ye', 'Yo', 'Yq')
+}
 LEGACY_FONT_SIZE = 13
 # Its serialized m_Ascent, m_Descent and m_LineSpacing (at m_FontSize).
 ASCENT, DESCENT, LINE_SPACING = 11.7685546875, -2.7548828125, 14.94873046875
@@ -121,7 +145,7 @@ def layout(s, px, style, ci):
     for i, c in enumerate(s):
         cursors.append(pen)
         if i > 0:
-            pen += kerning(s[i - 1:i + 1], px)
+            pen += kerning(s[i - 1 : i + 1], px)
         info = ci[(px, style, ord(c))]
         if c != ' ':
             quads.append((pen + info['minX'], pen + info['maxX']))
@@ -151,7 +175,7 @@ def rule(path):
         if None in widths:
             continue
         cw = g.get('cw', [])
-        check('charWidth = CharacterInfo.advance', cw[:len(s)] == widths, (key, cw, widths))
+        check('charWidth = CharacterInfo.advance', cw[: len(s)] == widths, (key, cw, widths))
         if g['wrap'] == 'Overflow' and '\n' not in s:
             cx = g.get('cx', [])
             start = cx[0] if cx else 0.0
@@ -165,7 +189,11 @@ def rule(path):
             check('quad x = kerned pen + minX .. maxX, no quad for a space', got == expect, (key, got, expect))
             if g['anchor'] == 'UpperLeft' and g.get('lines', '').count(';') == 0 and 'lines' in g:
                 # LegacyRuntime's serialized line metrics at its m_FontSize, scaled.
-                asc, desc, spacing = round_half_up(ASCENT * px / LEGACY_FONT_SIZE), round_half_up(-DESCENT * px / LEGACY_FONT_SIZE), LINE_SPACING * px / LEGACY_FONT_SIZE
+                asc, desc, spacing = (
+                    round_half_up(ASCENT * px / LEGACY_FONT_SIZE),
+                    round_half_up(-DESCENT * px / LEGACY_FONT_SIZE),
+                    LINE_SPACING * px / LEGACY_FONT_SIZE,
+                )
                 start, height, top, leading = g['lines'].split(':')
                 check('preferred height = round(ascent) + round(descent)', float(g['prefH']) == asc + desc, (key, g['prefH'], asc + desc))
                 check('UILineInfo.height = floor(line spacing)', int(height) == math.floor(spacing), (key, height, spacing))
@@ -182,9 +210,17 @@ def rule(path):
                     counts['baseline', px, off] += 1
     # Alignment ("align" lines, 13 pixels, updateBounds off): the line's width L and the block's
     # height B come from the same string's UpperLeft generation at 13 pixels.
-    widths = {g['str']: (float(g['pref']), float(g['prefH'])) for g in gens.values()
-              if g['size'] == 13 and g['scale'] == 1.0 and g['anchor'] == 'UpperLeft' and g['wrap'] == 'Overflow'
-              and g['style'] == 'Normal' and not g['width'] and 'pref' in g}
+    widths = {
+        g['str']: (float(g['pref']), float(g['prefH']))
+        for g in gens.values()
+        if g['size'] == 13
+        and g['scale'] == 1.0
+        and g['anchor'] == 'UpperLeft'
+        and g['wrap'] == 'Overflow'
+        and g['style'] == 'Normal'
+        and not g['width']
+        and 'pref' in g
+    }
     rx = lambda v: math.floor(v + 0.5)
     ry = lambda v: math.ceil(v - 0.5)
     for body in lines(path):
@@ -211,12 +247,15 @@ def rule(path):
     for (name, *rest), n in counts.items():
         if name == 'baseline':
             base[rest[0]].add(rest[1])
-    print('baseline below the line top (UpperLeft, pivot top-left), by pixel size:',
-          ' '.join(f'{px}:{",".join(str(-b) for b in sorted(v))}' for px, v in sorted(base.items())))
+    print(
+        'baseline below the line top (UpperLeft, pivot top-left), by pixel size:',
+        ' '.join(f'{px}:{",".join(str(-b) for b in sorted(v))}' for px, v in sorted(base.items())),
+    )
 
 
 def face(path, font, style='Normal'):
     import ctypes as C
+
     ft = C.CDLL('libfreetype.so.6')
 
     class Vec(C.Structure):
@@ -226,21 +265,57 @@ def face(path, font, style='Normal'):
         _fields_ = [(n, C.c_long) for n in ('w', 'h', 'bx', 'by', 'adv', 'vbx', 'vby', 'vadv')]
 
     class Bitmap(C.Structure):
-        _fields_ = [('rows', C.c_uint), ('width', C.c_uint), ('pitch', C.c_int), ('buffer', C.c_void_p),
-                    ('num_grays', C.c_ushort), ('pixel_mode', C.c_ubyte), ('palette_mode', C.c_ubyte), ('palette', C.c_void_p)]
+        _fields_ = [
+            ('rows', C.c_uint),
+            ('width', C.c_uint),
+            ('pitch', C.c_int),
+            ('buffer', C.c_void_p),
+            ('num_grays', C.c_ushort),
+            ('pixel_mode', C.c_ubyte),
+            ('palette_mode', C.c_ubyte),
+            ('palette', C.c_void_p),
+        ]
 
     class Slot(C.Structure):
-        _fields_ = [('library', C.c_void_p), ('face', C.c_void_p), ('next', C.c_void_p), ('glyph_index', C.c_uint),
-                    ('gdata', C.c_void_p), ('gfin', C.c_void_p), ('metrics', Metrics), ('linearHoriAdvance', C.c_long),
-                    ('linearVertAdvance', C.c_long), ('advance', Vec), ('format', C.c_uint), ('bitmap', Bitmap),
-                    ('bitmap_left', C.c_int), ('bitmap_top', C.c_int)]
+        _fields_ = [
+            ('library', C.c_void_p),
+            ('face', C.c_void_p),
+            ('next', C.c_void_p),
+            ('glyph_index', C.c_uint),
+            ('gdata', C.c_void_p),
+            ('gfin', C.c_void_p),
+            ('metrics', Metrics),
+            ('linearHoriAdvance', C.c_long),
+            ('linearVertAdvance', C.c_long),
+            ('advance', Vec),
+            ('format', C.c_uint),
+            ('bitmap', Bitmap),
+            ('bitmap_left', C.c_int),
+            ('bitmap_top', C.c_int),
+        ]
 
     class Face(C.Structure):
-        _fields_ = [('counts', C.c_long * 5), ('family', C.c_char_p), ('style', C.c_char_p),
-                    ('nfixed', C.c_int), ('sizes', C.c_void_p), ('ncharmaps', C.c_int), ('charmaps', C.c_void_p),
-                    ('gdata', C.c_void_p), ('gfin', C.c_void_p), ('bbox', C.c_long * 4), ('upem', C.c_ushort),
-                    ('asc', C.c_short), ('desc', C.c_short), ('height', C.c_short), ('maw', C.c_short), ('mah', C.c_short),
-                    ('up', C.c_short), ('ut', C.c_short), ('glyph', C.POINTER(Slot))]
+        _fields_ = [
+            ('counts', C.c_long * 5),
+            ('family', C.c_char_p),
+            ('style', C.c_char_p),
+            ('nfixed', C.c_int),
+            ('sizes', C.c_void_p),
+            ('ncharmaps', C.c_int),
+            ('charmaps', C.c_void_p),
+            ('gdata', C.c_void_p),
+            ('gfin', C.c_void_p),
+            ('bbox', C.c_long * 4),
+            ('upem', C.c_ushort),
+            ('asc', C.c_short),
+            ('desc', C.c_short),
+            ('height', C.c_short),
+            ('maw', C.c_short),
+            ('mah', C.c_short),
+            ('up', C.c_short),
+            ('ut', C.c_short),
+            ('glyph', C.POINTER(Slot)),
+        ]
 
     lib = C.c_void_p()
     ft.FT_Init_FreeType(C.byref(lib))
@@ -270,13 +345,16 @@ def face(path, font, style='Normal'):
 def diff(orig, ours, kinds=None, uv=True):
     """Lines keyed by their inputs (everything up to the string, or the character, plus the
     field name that follows); the values are compared as numbers."""
+
     def keyed(path):
         d = collections.OrderedDict()
         for body in lines(path):
-            m = (re.match(r'((?:gen|text) .*?str="(?:[^"\\]|\\.)*"(?: mesh| gen)?) (\w+=.*)$', body)
-                 or re.match(r'((?:ci|osglyph) .*? c=\S+) (.*)$', body)
-                 or re.match(r'(raster .*? style=\w+) (.*)$', body)
-                 or re.match(r'(align .*? h=\S+) (.*)$', body))
+            m = (
+                re.match(r'((?:gen|text) .*?str="(?:[^"\\]|\\.)*"(?: mesh| gen)?) (\w+=.*)$', body)
+                or re.match(r'((?:ci|osglyph) .*? c=\S+) (.*)$', body)
+                or re.match(r'(raster .*? style=\w+) (.*)$', body)
+                or re.match(r'(align .*? h=\S+) (.*)$', body)
+            )
             if not m:
                 continue
             key, rest = m.group(1), m.group(2)

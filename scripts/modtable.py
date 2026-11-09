@@ -28,6 +28,7 @@ What our runs recorded:
   hand-written status sets below, which stay for mods no spec has played yet;
 - then those played on U60, tests/e2e/results-u60/*.json (or ONI_RESULTS_U60_DIR): a mod's U60
   record wins over its main one, and its note starts "on U60:"."""
+
 import glob, json, os, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -35,8 +36,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def main_checkout_out():
     """The main checkout's out/ when this is a worktree (git's common dir is the main .git)."""
-    common = subprocess.run(['git', '-C', ROOT, 'rev-parse', '--path-format=absolute', '--git-common-dir'],
-                            capture_output=True, text=True).stdout.strip()
+    common = subprocess.run(['git', '-C', ROOT, 'rev-parse', '--path-format=absolute', '--git-common-dir'], capture_output=True, text=True).stdout.strip()
     return os.path.join(os.path.dirname(common), 'out') if common else None
 
 
@@ -67,7 +67,7 @@ def read_results(folder):
         # installs (a base mod an addon needs) are not played by it.
         named = os.path.basename(record.get('spec', '')).split('-')[0]
         mods = [str(m) for m in record.get('mods', [])]
-        for mid in ([named] if named in mods else mods):
+        for mid in [named] if named in mods else mods:
             by_mod[mid] = record
     return by_mod
 
@@ -107,6 +107,7 @@ def read_findings(path):
     if not os.path.exists(path):
         return {}
     import yaml
+
     with open(path, encoding='utf-8') as f:
         return {x['id']: x for x in yaml.safe_load(f) or []}
 
@@ -133,13 +134,13 @@ RESULTS = os.environ.get('ONI_RESULTS_DIR') or os.path.join(ROOT, 'tests', 'e2e'
 RESULTS_U60 = os.environ.get('ONI_RESULTS_U60_DIR') or os.path.join(ROOT, 'tests', 'e2e', 'results-u60')
 SWEPT = read_sweeps(os.environ.get('ONI_SWEEP_RESULTS') or os.path.join(ROOT, 'tests', 'e2e', 'sweeps'))
 FINDINGS = read_findings(os.path.join(ROOT, 'tests', 'e2e', 'known-findings.yaml'))
-if len(sys.argv) > 2: sys.exit(__doc__)
+if len(sys.argv) > 2:
+    sys.exit(__doc__)
 catalog = sys.argv[1] if len(sys.argv) == 2 else os.path.join(ROOT, 'scripts', 'mod-catalog.tsv')
 cat = [l.rstrip('\n').split('\t') for l in open(catalog, encoding='utf-8')]
 LAST_RANK = max(int(r[0]) for r in cat)
 U60_IDS = set()
-CATALOG_U60 = os.environ.get('ONI_CATALOG_U60') or (
-    None if len(sys.argv) == 2 else os.path.join(ROOT, 'scripts', 'mod-catalog-u60.tsv'))
+CATALOG_U60 = os.environ.get('ONI_CATALOG_U60') or (None if len(sys.argv) == 2 else os.path.join(ROOT, 'scripts', 'mod-catalog-u60.tsv'))
 if CATALOG_U60 and os.path.exists(CATALOG_U60):
     known = {r[1] for r in cat}
     u60 = [r for r in (l.rstrip('\n').split('\t') for l in open(CATALOG_U60, encoding='utf-8')) if r[1] not in known]
@@ -152,11 +153,13 @@ results = read_results(RESULTS)
 for mid, record in read_results(RESULTS_U60).items():
     results[mid] = dict(record, u60=True)
 
+
 def ids(pattern):
     s = set()
     for f in glob.glob(os.path.join(SWEEPS, pattern)):
         s.update(open(f).read().split())
     return s
+
 
 swept = ids('sweep-b*.txt') | ids('sweep-d*.txt') | ids('sweep-e*.txt') | ids('sweep-f*.txt')
 third = ids('sweep-g*.txt')
@@ -228,241 +231,368 @@ broken = {
     '1823182964': 'broken upstream: CaiLib calls `EntityTemplates.ExtendEntityToBasicPlant` with arguments the game no longer takes, and the save fails to load',
 }
 # Ranks 501-750 that fail as they do in the original (out of the sweep's colony runs).
-broken.update({
-    '2778263368': 'broken upstream: a Harmony transpiler whose target method is gone, and the error dialog quits the game',
-    '2646067420': 'broken upstream: calls `ConsumedElement(Tag, float)`, which the game no longer has, and the error dialog quits the game',
-    '2043689746': 'broken upstream: calls a `SettingLevel` constructor the game no longer has, and the error dialog quits the game',
-})
+broken.update(
+    {
+        '2778263368': 'broken upstream: a Harmony transpiler whose target method is gone, and the error dialog quits the game',
+        '2646067420': 'broken upstream: calls `ConsumedElement(Tag, float)`, which the game no longer has, and the error dialog quits the game',
+        '2043689746': 'broken upstream: calls a `SettingLevel` constructor the game no longer has, and the error dialog quits the game',
+    }
+)
 # Found by the e2e specs of batch 05: the spec fails the same way in the original.
-broken.update({
-    '2584828134': 'broken upstream (its title says so): its sleeping spots still name the game\'s former `Worker` class, so a Duplicant who lies down in one gets a TypeLoadException and none of the bed\'s effects',
-    '1820638089': 'broken upstream: its LIQUIDBOTTLER building\'s codex entry collides with the game\'s own Bottle Filler (LiquidBottler), and loading a colony stops at the crash screen',
-})
+broken.update(
+    {
+        '2584828134': 'broken upstream (its title says so): its sleeping spots still name the game\'s former `Worker` class, so a Duplicant who lies down in one gets a TypeLoadException and none of the bed\'s effects',
+        '1820638089': 'broken upstream: its LIQUIDBOTTLER building\'s codex entry collides with the game\'s own Bottle Filler (LiquidBottler), and loading a colony stops at the crash screen',
+    }
+)
 # Found by the e2e specs of batch 07: the spec fails the same way in the original.
-broken.update({
-    '2869608898': 'broken upstream: its printing pod side screen calls `Dropdown.OptionData(string, Sprite)`, which the game\'s UI library no longer has, so the selected pod (with the mod\'s BioPrinter) shows no Bio-Ink screen and the crash report screen opens (spec tests/e2e/mods/2869608898-bio-inks.yaml)',
-})
+broken.update(
+    {
+        '2869608898': 'broken upstream: its printing pod side screen calls `Dropdown.OptionData(string, Sprite)`, which the game\'s UI library no longer has, so the selected pod (with the mod\'s BioPrinter) shows no Bio-Ink screen and the crash report screen opens (spec tests/e2e/mods/2869608898-bio-inks.yaml)',
+    }
+)
 # Found by the e2e specs of batch 06: the spec fails the same way in the original.
-broken.update({
-    '2629866529': 'broken upstream: its PliersWorkable overrides `OnCompleteWork(Worker)`, and the game no longer has a `Worker` type: the type fails to load while the game creates its prefabs, and the player aborts loading a colony; spec tests/e2e/mods/2629866529-pliers-2021.yaml',
-    '2539984678': 'broken upstream: its Constructable.OnSpawn transpiler multiplies the AETN\'s 2 cores by a core\'s 25 kg, but the game counts cores by the unit, so a blueprint asks for 50 Neutronium Cores and is never built; spec tests/e2e/mods/2539984678-rebuildable-aetn.yaml',
-})
+broken.update(
+    {
+        '2629866529': 'broken upstream: its PliersWorkable overrides `OnCompleteWork(Worker)`, and the game no longer has a `Worker` type: the type fails to load while the game creates its prefabs, and the player aborts loading a colony; spec tests/e2e/mods/2629866529-pliers-2021.yaml',
+        '2539984678': 'broken upstream: its Constructable.OnSpawn transpiler multiplies the AETN\'s 2 cores by a core\'s 25 kg, but the game counts cores by the unit, so a blueprint asks for 50 Neutronium Cores and is never built; spec tests/e2e/mods/2539984678-rebuildable-aetn.yaml',
+    }
+)
 # Found by the e2e specs of batch 08: the spec fails the same way in the original.
-broken.update({
-    '1718226085': 'broken upstream: Mono cannot set up its emitter and receiver types (`ISliderControl` changed: "VTable setup of type WirelessAutomation.WirelessSignalEmitter failed"), which stops the game\'s prefab creation in `Assets.OnPrefabInit`, so loading a colony leaves prefabs missing and the game crashes (SIGSEGV) twice in two runs (spec tests/e2e/mods/1718226085-wireless-automation.yaml)',
-    '1972768699': 'broken upstream: its 0 button and tool work, and a dig errand set to 0 carries the mod\'s precondition and priority class, yet a Duplicant digs it within 300 s, so priority 0 no longer holds errands back (spec tests/e2e/mods/1972768699-priority-zero.yaml)',
-    '2356326908': 'broken upstream: its PLib side screens look for `DetailsScreen.sideScreenContentBody`, which the game no longer has, so loading a colony opens the crash screen (spec tests/e2e/mods/2356326908-wireless-power.yaml)',
-    '2037089892': 'broken upstream: Mono cannot set up its `Trashcan` type (`ISidescreenButtonControl` gained `SetButtonTextOverride` and `HorizontalGroupID`: "VTable setup of type Trashcans.Trashcan failed"), which stops the game\'s prefab creation in `Assets.OnPrefabInit`, so loading a colony crashes (SIGSEGV) (spec tests/e2e/mods/2037089892-trashcans.yaml)',
-    '2053191586': 'broken upstream: Mono cannot set up its `InfiniteSource` type (`ISliderControl.GetSliderTooltip` now takes an index: "VTable setup of type InfiniteSourceSink.InfiniteSource failed"), its buildings fail to register, and loading a colony quits the game (spec tests/e2e/mods/2053191586-new-infinite-sources.yaml)',
-    '2524767809': 'broken upstream: its emptier\'s state machine calls `StateMachine.Instance.Subscribe(int, Action<object>)`, which the game no longer has, so the finished building throws a MissingMethodException in `BottleUserEmptier.OnSpawn` and the crash screen opens (spec tests/e2e/mods/2524767809-bottle-emptier-variable-size.yaml)',
-})
+broken.update(
+    {
+        '1718226085': 'broken upstream: Mono cannot set up its emitter and receiver types (`ISliderControl` changed: "VTable setup of type WirelessAutomation.WirelessSignalEmitter failed"), which stops the game\'s prefab creation in `Assets.OnPrefabInit`, so loading a colony leaves prefabs missing and the game crashes (SIGSEGV) twice in two runs (spec tests/e2e/mods/1718226085-wireless-automation.yaml)',
+        '1972768699': 'broken upstream: its 0 button and tool work, and a dig errand set to 0 carries the mod\'s precondition and priority class, yet a Duplicant digs it within 300 s, so priority 0 no longer holds errands back (spec tests/e2e/mods/1972768699-priority-zero.yaml)',
+        '2356326908': 'broken upstream: its PLib side screens look for `DetailsScreen.sideScreenContentBody`, which the game no longer has, so loading a colony opens the crash screen (spec tests/e2e/mods/2356326908-wireless-power.yaml)',
+        '2037089892': 'broken upstream: Mono cannot set up its `Trashcan` type (`ISidescreenButtonControl` gained `SetButtonTextOverride` and `HorizontalGroupID`: "VTable setup of type Trashcans.Trashcan failed"), which stops the game\'s prefab creation in `Assets.OnPrefabInit`, so loading a colony crashes (SIGSEGV) (spec tests/e2e/mods/2037089892-trashcans.yaml)',
+        '2053191586': 'broken upstream: Mono cannot set up its `InfiniteSource` type (`ISliderControl.GetSliderTooltip` now takes an index: "VTable setup of type InfiniteSourceSink.InfiniteSource failed"), its buildings fail to register, and loading a colony quits the game (spec tests/e2e/mods/2053191586-new-infinite-sources.yaml)',
+        '2524767809': 'broken upstream: its emptier\'s state machine calls `StateMachine.Instance.Subscribe(int, Action<object>)`, which the game no longer has, so the finished building throws a MissingMethodException in `BottleUserEmptier.OnSpawn` and the crash screen opens (spec tests/e2e/mods/2524767809-bottle-emptier-variable-size.yaml)',
+    }
+)
 # Found by the e2e specs of batch 12: the spec fails the same way in the original.
-broken.update({
-    '2897886291': 'broken upstream: its overlay overrides `OverlayModes.Mode.CreateDefaultFilters`, which returns another type now, so its `OverlayScreen.RegisterModes` postfix throws a MissingMethodException while the colony loads, the overlay screen has no modes and the crash screen opens (spec tests/e2e/mods/2897886291-sweep-zones.yaml)',
-})
+broken.update(
+    {
+        '2897886291': 'broken upstream: its overlay overrides `OverlayModes.Mode.CreateDefaultFilters`, which returns another type now, so its `OverlayScreen.RegisterModes` postfix throws a MissingMethodException while the colony loads, the overlay screen has no modes and the crash screen opens (spec tests/e2e/mods/2897886291-sweep-zones.yaml)',
+    }
+)
 # Found by the e2e specs of batch 13: the spec fails the same way in the original.
-broken.update({
-    '1703400426': 'broken upstream: its DebugHandler.OnKeyDown prefix consumes Action 173, which the game\'s Action enum now gives to SreenShot32x (the debug toggle is 174), so with debug mode on Backspace still runs the game\'s debug toggle (its paint screen opens) and reveals the map (spec tests/e2e/mods/1703400426-debug-does-not-discover-map.yaml)',
-})
+broken.update(
+    {
+        '1703400426': 'broken upstream: its DebugHandler.OnKeyDown prefix consumes Action 173, which the game\'s Action enum now gives to SreenShot32x (the debug toggle is 174), so with debug mode on Backspace still runs the game\'s debug toggle (its paint screen opens) and reveals the map (spec tests/e2e/mods/1703400426-debug-does-not-discover-map.yaml)',
+    }
+)
 # Found by the e2e specs of batch 17: the spec fails the same way in the original.
-broken.update({
-    '2872099618': 'broken upstream: its SpaceBomb\'s BuildingComplete.OnSpawn postfix calls `SimMessages.Dig(int, int, bool)`, which the game no longer has, so a finished bomb deletes itself and marks its background as space but digs nothing (spec tests/e2e/mods/2872099618-bomb-space.yaml)',
-    '2367992483': 'broken upstream: its prefix names the 19-parameter `EntityTemplates.ExtendEntityToBasicPlant` of 2021 (the game\'s has 20); Harmony lists the method as patched and the game builds its plants through it, yet the prefix never runs, so no plant data or drop times are written or read (spec tests/e2e/mods/2367992483-automatic-harvesting.yaml)',
-})
+broken.update(
+    {
+        '2872099618': 'broken upstream: its SpaceBomb\'s BuildingComplete.OnSpawn postfix calls `SimMessages.Dig(int, int, bool)`, which the game no longer has, so a finished bomb deletes itself and marks its background as space but digs nothing (spec tests/e2e/mods/2872099618-bomb-space.yaml)',
+        '2367992483': 'broken upstream: its prefix names the 19-parameter `EntityTemplates.ExtendEntityToBasicPlant` of 2021 (the game\'s has 20); Harmony lists the method as patched and the game builds its plants through it, yet the prefix never runs, so no plant data or drop times are written or read (spec tests/e2e/mods/2367992483-automatic-harvesting.yaml)',
+    }
+)
 # Found by the e2e specs of batch 20: the spec fails the same way in the original.
-broken.update({
-    '3036286512': 'broken upstream: its DLL references PLib 4.8.1 but ships without it, so its `OnLoad` (`PUtil.InitLibrary`) throws a FileNotFoundException, its building fails to register (NullReferenceException, its anim missing), and the error dialog quits the game before the colony loads (spec tests/e2e/mods/3036286512-gas-liquefaction-machine.yaml)',
-    '3425252325': 'broken upstream: its DLL references PLib 4.16 but ships without it, so its types fail to load (FileNotFoundException), `Assets.OnPrefabInit` stops on a ReflectionTypeLoadException and the game quits before OniMcp starts; it loads only beside another mod that ships PLib (spec tests/e2e/mods/3425252325-auto-drop-gas-bottler.yaml)',
-    '1869090131': 'broken upstream: Mono cannot set up its `DestructibleWorkable` type ("VTable setup of type DestructibleFeatures.DestructibleWorkable failed": `ISidescreenButtonControl` gained members, and it overrides `OnCompleteWork(Worker)`), so a spawned geyser gets no workable and no DESTROY button (spec tests/e2e/mods/1869090131-destructible-features.yaml)',
-})
+broken.update(
+    {
+        '3036286512': 'broken upstream: its DLL references PLib 4.8.1 but ships without it, so its `OnLoad` (`PUtil.InitLibrary`) throws a FileNotFoundException, its building fails to register (NullReferenceException, its anim missing), and the error dialog quits the game before the colony loads (spec tests/e2e/mods/3036286512-gas-liquefaction-machine.yaml)',
+        '3425252325': 'broken upstream: its DLL references PLib 4.16 but ships without it, so its types fail to load (FileNotFoundException), `Assets.OnPrefabInit` stops on a ReflectionTypeLoadException and the game quits before OniMcp starts; it loads only beside another mod that ships PLib (spec tests/e2e/mods/3425252325-auto-drop-gas-bottler.yaml)',
+        '1869090131': 'broken upstream: Mono cannot set up its `DestructibleWorkable` type ("VTable setup of type DestructibleFeatures.DestructibleWorkable failed": `ISidescreenButtonControl` gained members, and it overrides `OnCompleteWork(Worker)`), so a spawned geyser gets no workable and no DESTROY button (spec tests/e2e/mods/1869090131-destructible-features.yaml)',
+    }
+)
 # Found by the e2e specs of batch 21: the spec fails the same way in the original.
-broken.update({
-    '1873884303': 'broken upstream: on the base-game fixture its `OnLoad` stops on a HarmonyException (its `DetailsScreen.OnPrefabInit` patch takes `___sideScreenContentBody`, a field the game no longer has), its scanner then fails to register ("First anim file needs to be non-null", a NullReferenceException in RegisterBuilding), and the game disables it ("Failed to load mod ...disabling") and closes before the save loads',
-    '2215696830': 'broken upstream: its tile\'s `ItemPermeableTile.OnSpawn` calls `SimMessages.ClearCellProperties(int, byte)`, which the game no longer has, so every finished Item Permeable Tile throws a MissingMethodException and opens the crash report screen (spec tests/e2e/mods/2215696830-item-permeable-tiles.yaml)',
-})
+broken.update(
+    {
+        '1873884303': 'broken upstream: on the base-game fixture its `OnLoad` stops on a HarmonyException (its `DetailsScreen.OnPrefabInit` patch takes `___sideScreenContentBody`, a field the game no longer has), its scanner then fails to register ("First anim file needs to be non-null", a NullReferenceException in RegisterBuilding), and the game disables it ("Failed to load mod ...disabling") and closes before the save loads',
+        '2215696830': 'broken upstream: its tile\'s `ItemPermeableTile.OnSpawn` calls `SimMessages.ClearCellProperties(int, byte)`, which the game no longer has, so every finished Item Permeable Tile throws a MissingMethodException and opens the crash report screen (spec tests/e2e/mods/2215696830-item-permeable-tiles.yaml)',
+    }
+)
 # Found by the e2e specs of batch 24: the spec fails the same way in the original.
-broken.update({
-    '2029450933': 'broken upstream: its plants call the 19-parameter `EntityTemplates.ExtendEntityToBasicPlant` the game no longer has, so their prefabs fail in `Assets.OnPrefabInit` (MissingMethodException), its care package postfix throws an InvalidCastException, and loading a colony stops at "Error deserializing prefabs" and quits (spec tests/e2e/mods/2029450933-omni-flora.yaml)',
-})
+broken.update(
+    {
+        '2029450933': 'broken upstream: its plants call the 19-parameter `EntityTemplates.ExtendEntityToBasicPlant` the game no longer has, so their prefabs fail in `Assets.OnPrefabInit` (MissingMethodException), its care package postfix throws an InvalidCastException, and loading a colony stops at "Error deserializing prefabs" and quits (spec tests/e2e/mods/2029450933-omni-flora.yaml)',
+    }
+)
 # Found by the e2e specs of ranks 1046 to 1130: the spec fails the same way in the original.
-broken.update({
-    '3456696039': 'broken upstream: its DLL references PLib 4.8.1 but ships without it, so loading it throws a FileNotFoundException while Harmony reads its patch attributes, the game disables it and restarts before the colony loads; it loads only beside another mod that ships PLib (spec tests/e2e/mods/3456696039-dupes-speed-custom.yaml)',
-})
+broken.update(
+    {
+        '3456696039': 'broken upstream: its DLL references PLib 4.8.1 but ships without it, so loading it throws a FileNotFoundException while Harmony reads its patch attributes, the game disables it and restarts before the colony loads; it loads only beside another mod that ships PLib (spec tests/e2e/mods/3456696039-dupes-speed-custom.yaml)',
+    }
+)
 # Found by the e2e specs of ranks 1131-1215: the spec fails the same way in the original.
-broken.update({
-    '1863180631': 'broken upstream: its `ToolParameterMenu.PopulateMenu` postfix calls `ChangeToSetting` with the layer\'s name through Traverse, but the game\'s method now takes a widget, so the call finds nothing and the Deconstruct tool\'s filter stays on All (spec tests/e2e/mods/1863180631-set-default-deconstruct-layer.yaml)',
-    '2627892585': 'broken upstream: its builder\'s state machine subscribes to `TreeFilterable.OnFilterChanged` as an `Action<Tag[]>`, a field the game now types differently, so the finished building throws a MissingFieldException in `LiquidLockBuilder.OnSpawn` and the crash screen opens (spec tests/e2e/mods/2627892585-liquid-lock-builder.yaml)',
-    '3635077282': 'broken upstream: a Multi-Selection Gas Sensor standing in oxygen, with oxygen in its filter, never switches on (spec tests/e2e/mods/3635077282-multi-selection-sensors.yaml)',
-    '2848571032': 'broken upstream: a middle click on a reachable cell, with a Duplicant selected, does not send it there; the Duplicant stays where it stood (spec tests/e2e/mods/2848571032-move-duplicant-middle-click.yaml)',
-})
+broken.update(
+    {
+        '1863180631': 'broken upstream: its `ToolParameterMenu.PopulateMenu` postfix calls `ChangeToSetting` with the layer\'s name through Traverse, but the game\'s method now takes a widget, so the call finds nothing and the Deconstruct tool\'s filter stays on All (spec tests/e2e/mods/1863180631-set-default-deconstruct-layer.yaml)',
+        '2627892585': 'broken upstream: its builder\'s state machine subscribes to `TreeFilterable.OnFilterChanged` as an `Action<Tag[]>`, a field the game now types differently, so the finished building throws a MissingFieldException in `LiquidLockBuilder.OnSpawn` and the crash screen opens (spec tests/e2e/mods/2627892585-liquid-lock-builder.yaml)',
+        '3635077282': 'broken upstream: a Multi-Selection Gas Sensor standing in oxygen, with oxygen in its filter, never switches on (spec tests/e2e/mods/3635077282-multi-selection-sensors.yaml)',
+        '2848571032': 'broken upstream: a middle click on a reachable cell, with a Duplicant selected, does not send it there; the Duplicant stays where it stood (spec tests/e2e/mods/2848571032-move-duplicant-middle-click.yaml)',
+    }
+)
 # Found by the e2e specs of ranks 1301-1385: the spec fails the same way in the original.
-broken.update({
-    '2021224960': 'broken upstream: its Empty Storage button names action 273, which is now `BuildMenuLeft` and bound to no key, so building the button\'s tooltip throws an ArgumentException and selecting any storage building opens the crash screen (spec tests/e2e/mods/2021224960-empty-the-storage.yaml)',
-})
+broken.update(
+    {
+        '2021224960': 'broken upstream: its Empty Storage button names action 273, which is now `BuildMenuLeft` and bound to no key, so building the button\'s tooltip throws an ArgumentException and selecting any storage building opens the crash screen (spec tests/e2e/mods/2021224960-empty-the-storage.yaml)',
+    }
+)
 # Found by the e2e specs of ranks 1386-1470: the spec fails the same way in the original.
-broken.update({
-    '2883456864': 'broken upstream: its side screen is never added (it looks for DetailsScreen.sideScreenContentBody, which the game no longer has), so the sign\'s picture cannot be chosen (spec tests/e2e/mods/2883456864-flying-fantasy.yaml)',
-    '3479021027': 'broken upstream: its merged PLib asks for TMPro.FaceInfo, which the game\'s TextMeshPro no longer has, so selecting a storage bin or any other building it covers throws a TypeLoadException and opens the crash screen (spec tests/e2e/mods/3479021027-delivery-temperature-limit-fixed.yaml)',
-    '2877166424': 'broken upstream: a completed Nuclear Waste Reactor throws a NullReferenceException in Polymerizer.UpdateOilMeter (its kanim has no oil meter) and the crash screen opens (spec tests/e2e/mods/2877166424-nuclear-waste-disposal.yaml)',
-})
+broken.update(
+    {
+        '2883456864': 'broken upstream: its side screen is never added (it looks for DetailsScreen.sideScreenContentBody, which the game no longer has), so the sign\'s picture cannot be chosen (spec tests/e2e/mods/2883456864-flying-fantasy.yaml)',
+        '3479021027': 'broken upstream: its merged PLib asks for TMPro.FaceInfo, which the game\'s TextMeshPro no longer has, so selecting a storage bin or any other building it covers throws a TypeLoadException and opens the crash screen (spec tests/e2e/mods/3479021027-delivery-temperature-limit-fixed.yaml)',
+        '2877166424': 'broken upstream: a completed Nuclear Waste Reactor throws a NullReferenceException in Polymerizer.UpdateOilMeter (its kanim has no oil meter) and the crash screen opens (spec tests/e2e/mods/2877166424-nuclear-waste-disposal.yaml)',
+    }
+)
 # Found by the e2e specs of ranks 1471-1555: the spec fails the same way in the original.
-broken.update({
-    '2368685352': 'broken upstream: its compressors\' and ports\' operational-changed handler casts the event\'s data to a type the game no longer sends, so every finished Quantum Compressor or port throws an InvalidCastException in EnergyConsumer.OnPrefabInit and the crash screen opens (spec tests/e2e/mods/2368685352-quantum-compressors.yaml)',
-})
+broken.update(
+    {
+        '2368685352': 'broken upstream: its compressors\' and ports\' operational-changed handler casts the event\'s data to a type the game no longer sends, so every finished Quantum Compressor or port throws an InvalidCastException in EnergyConsumer.OnPrefabInit and the crash screen opens (spec tests/e2e/mods/2368685352-quantum-compressors.yaml)',
+    }
+)
 # Found by the e2e specs of ranks 1641-1725: the spec fails the same way in the original.
-broken.update({
-    '3466461752': 'broken upstream: its builder\'s state machine calls `StateMachine.Instance.Subscribe(int, Action<object>)`, which the game no longer has, so the finished building throws a MissingMethodException in `LiquidLockBuilder.OnSpawn` and cannot be selected (spec tests/e2e/mods/3466461752-uf-liquid-lock-builder.yaml)',
-    '3332098282': 'broken upstream: its postfix on `SimpleInfoScreen.RefreshStoragePanel` calls `CollapsibleDetailContentPanel.SetLabelWithButton`, which the game no longer has, so selecting a building with storage throws a MissingMethodException and the crash screen opens (spec tests/e2e/mods/3332098282-advanced-storage-v4.yaml)',
-})
+broken.update(
+    {
+        '3466461752': 'broken upstream: its builder\'s state machine calls `StateMachine.Instance.Subscribe(int, Action<object>)`, which the game no longer has, so the finished building throws a MissingMethodException in `LiquidLockBuilder.OnSpawn` and cannot be selected (spec tests/e2e/mods/3466461752-uf-liquid-lock-builder.yaml)',
+        '3332098282': 'broken upstream: its postfix on `SimpleInfoScreen.RefreshStoragePanel` calls `CollapsibleDetailContentPanel.SetLabelWithButton`, which the game no longer has, so selecting a building with storage throws a MissingMethodException and the crash screen opens (spec tests/e2e/mods/3332098282-advanced-storage-v4.yaml)',
+    }
+)
 # Flagged by onimaxxing as not loading, played by spec tests/e2e/mods/flagged-no-mod-info.yaml on
 # the base-game colony (game build U59-744825): KMod skips them in both players.
-NO_MOD_INFO = ('broken upstream: ships no mod_info.yaml, which KMod requires since 2021: it logs "Is '
-               'missing a mod_info.yaml file and will not be loaded" and leaves the mod disabled '
-               '(spec tests/e2e/mods/flagged-no-mod-info.yaml)')
-OLD_API = ('broken upstream: its mod_info.yaml does not declare `APIVersion: 2` (a Harmony 1 mod): KMod '
-           'logs "DLLs found but not using the correct API version" and loads none of it (spec '
-           'tests/e2e/mods/flagged-no-mod-info.yaml)')
-broken.update({i: NO_MOD_INFO for i in (
-    '1733560461', '1875446986', '1840237194', '1735543242', '1737690640', '1797345263', '1715802131',
-    '1810563583', '2191194318', '1810801031', '1852077143', '1796171773', '1728703506', '1842684413',
-    '1808602247', '1823287206', '1763024961', '1713687582', '2100888351', '1732806087', '1824440419',
-    '2016657763', '1855385913', '1934095066', '1984954968', '1413765966', '1864152914', '1940755077',
-    '1883889432', '1860778068', '1869114764', '2019457228', '1737026266', '1836181316', '2017868782',
-    '1841466183', '1995546475', '1963899596')})
+NO_MOD_INFO = (
+    'broken upstream: ships no mod_info.yaml, which KMod requires since 2021: it logs "Is '
+    'missing a mod_info.yaml file and will not be loaded" and leaves the mod disabled '
+    '(spec tests/e2e/mods/flagged-no-mod-info.yaml)'
+)
+OLD_API = (
+    'broken upstream: its mod_info.yaml does not declare `APIVersion: 2` (a Harmony 1 mod): KMod '
+    'logs "DLLs found but not using the correct API version" and loads none of it (spec '
+    'tests/e2e/mods/flagged-no-mod-info.yaml)'
+)
+broken.update(
+    {
+        i: NO_MOD_INFO
+        for i in (
+            '1733560461',
+            '1875446986',
+            '1840237194',
+            '1735543242',
+            '1737690640',
+            '1797345263',
+            '1715802131',
+            '1810563583',
+            '2191194318',
+            '1810801031',
+            '1852077143',
+            '1796171773',
+            '1728703506',
+            '1842684413',
+            '1808602247',
+            '1823287206',
+            '1763024961',
+            '1713687582',
+            '2100888351',
+            '1732806087',
+            '1824440419',
+            '2016657763',
+            '1855385913',
+            '1934095066',
+            '1984954968',
+            '1413765966',
+            '1864152914',
+            '1940755077',
+            '1883889432',
+            '1860778068',
+            '1869114764',
+            '2019457228',
+            '1737026266',
+            '1836181316',
+            '2017868782',
+            '1841466183',
+            '1995546475',
+            '1963899596',
+        )
+    }
+)
 broken.update({i: OLD_API for i in ('1874426480', '2276953041')})
-broken.update({
-    '1946209956': 'broken upstream: each of its outfits throws a NullReferenceException in `EquipmentConfigManager.RegisterEquipment` (its `LoadGeneratedEquipment` postfix), so `Assets.OnPrefabInit` fails, and its care package postfix throws an InvalidCastException in `Immigration.OnPrefabInit` (CaiLib reads the game\'s care packages as a `CarePackageInfo[]`, now a list), and the game quits while loading the colony (spec tests/e2e/mods/1946209956-fashionistic.yaml)',
-    '2360425208': 'broken upstream: its 600 s printing interval is set, but opening the printing pod\'s screen runs its `MinionStartingStats.GenerateTraits` prefix, which looks up each Duplicant\'s congenital trait, empty today ("Could not find Klei.AI.Trait: "), throws a NullReferenceException and opens the crash screen (spec tests/e2e/mods/2360425208-printing-pod.yaml)',
-    '2042663291': 'broken upstream: its PLib side screen looks for `DetailsScreen.sideScreenContentBody`, which the game no longer has (a DetourException in `DetailsScreen.OnPrefabInit`), so loading a colony opens the crash screen (spec tests/e2e/mods/2042663291-configurable-sweepy.yaml)',
-})
+broken.update(
+    {
+        '1946209956': 'broken upstream: each of its outfits throws a NullReferenceException in `EquipmentConfigManager.RegisterEquipment` (its `LoadGeneratedEquipment` postfix), so `Assets.OnPrefabInit` fails, and its care package postfix throws an InvalidCastException in `Immigration.OnPrefabInit` (CaiLib reads the game\'s care packages as a `CarePackageInfo[]`, now a list), and the game quits while loading the colony (spec tests/e2e/mods/1946209956-fashionistic.yaml)',
+        '2360425208': 'broken upstream: its 600 s printing interval is set, but opening the printing pod\'s screen runs its `MinionStartingStats.GenerateTraits` prefix, which looks up each Duplicant\'s congenital trait, empty today ("Could not find Klei.AI.Trait: "), throws a NullReferenceException and opens the crash screen (spec tests/e2e/mods/2360425208-printing-pod.yaml)',
+        '2042663291': 'broken upstream: its PLib side screen looks for `DetailsScreen.sideScreenContentBody`, which the game no longer has (a DetourException in `DetailsScreen.OnPrefabInit`), so loading a colony opens the crash screen (spec tests/e2e/mods/2042663291-configurable-sweepy.yaml)',
+    }
+)
 
 # Flagged by onimaxxing and found by their e2e specs: the game (U59-744825) does not load them,
 # in the original as in ours.
-broken.update({
-    '1713359495': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1713359495-speed-control.yaml)',
-    '1724518038': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1724518038-refresh-selection.yaml)',
-    '1735550356': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1735550356-self-sealing-airlocks.yaml)',
-    '1728728517': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1728728517-super-miner.yaml)',
-    '1830443217': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1830443217-travel-tube-crossing.yaml)',
-    '1742045344': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1742045344-player-controlled-switch.yaml)',
-    '1285243247': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1285243247-extra-large-map.yaml)',
-    '1748601256': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1748601256-longer-bridges.yaml)',
-    '1852314427': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1852314427-compact-info-cards.yaml)',
-    '1711115962': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1711115962-infinite-sources.yaml)',
-    '1714094338': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1714094338-buildable-aetn.yaml)',
-    '1888643088': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1888643088-telescope-auto-research.yaml)',
-    '1981435171': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1981435171-fan-tiles.yaml)',
-    '1885140949': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1885140949-carbon-revolution.yaml)',
-    '2193798307': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/2193798307-autoharvest.yaml)',
-    '1814341183': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1814341183-blueprints.yaml)',
-    '1848884654': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1848884654-pliers.yaml)',
-    '1835851890': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it, on the base-game fixture as it supports the base game only (spec tests/e2e/mods/1835851890-drag-tool-area.yaml)',
-    '1766168866': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1766168866-half-door.yaml)',
-    '1820866530': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1820866530-piped-output.yaml)',
-    '1836997281': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it, on the base-game fixture as it supports the base game only (spec tests/e2e/mods/1836997281-claustrophobia.yaml)',
-    '1730126196': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1730126196-pipe-pressure-valve.yaml)',
-})
+broken.update(
+    {
+        '1713359495': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1713359495-speed-control.yaml)',
+        '1724518038': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1724518038-refresh-selection.yaml)',
+        '1735550356': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1735550356-self-sealing-airlocks.yaml)',
+        '1728728517': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1728728517-super-miner.yaml)',
+        '1830443217': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1830443217-travel-tube-crossing.yaml)',
+        '1742045344': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1742045344-player-controlled-switch.yaml)',
+        '1285243247': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1285243247-extra-large-map.yaml)',
+        '1748601256': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1748601256-longer-bridges.yaml)',
+        '1852314427': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1852314427-compact-info-cards.yaml)',
+        '1711115962': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1711115962-infinite-sources.yaml)',
+        '1714094338': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1714094338-buildable-aetn.yaml)',
+        '1888643088': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1888643088-telescope-auto-research.yaml)',
+        '1981435171': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1981435171-fan-tiles.yaml)',
+        '1885140949': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/1885140949-carbon-revolution.yaml)',
+        '2193798307': 'broken upstream: its Workshop build has no mod_info.yaml, so the game skips it ("Is missing a mod_info.yaml file and will not be loaded") and the colony loads without it (spec tests/e2e/mods/2193798307-autoharvest.yaml)',
+        '1814341183': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1814341183-blueprints.yaml)',
+        '1848884654': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1848884654-pliers.yaml)',
+        '1835851890': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it, on the base-game fixture as it supports the base game only (spec tests/e2e/mods/1835851890-drag-tool-area.yaml)',
+        '1766168866': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1766168866-half-door.yaml)',
+        '1820866530': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1820866530-piped-output.yaml)',
+        '1836997281': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it, on the base-game fixture as it supports the base game only (spec tests/e2e/mods/1836997281-claustrophobia.yaml)',
+        '1730126196': 'broken upstream: built for Harmony 1 (its mod_info.yaml names no APIVersion), so the game disables it ("DLLs found but not using the correct API version") and the colony loads without it (spec tests/e2e/mods/1730126196-pipe-pressure-valve.yaml)',
+    }
+)
 # Flagged by onimaxxing; they load, and their e2e specs fail the same way in the original.
-broken.update({
-    '1918000273': 'broken upstream: its Resculpt button shows on a finished sculpture, but a click throws a MissingFieldException (it reads `Db.ArtableStages`, which the game now reaches through `Db.GetArtableStages()`), so the design never changes (spec tests/e2e/mods/1918000273-resculpt.yaml)',
-    '3105273056': 'broken upstream: in Simplified Chinese its room constraint copies call a `RoomConstraints.Constraint` constructor the game no longer has, so the Pressure Door fails to register (TypeInitializationException) and the game quits before the colony loads; in English it does nothing (spec tests/e2e/mods/3105273056-translate-fix.yaml)',
-    '2070840646': 'broken upstream: one of its patches names `MotdServerClient`, a type the game no longer has, so it fails to load (TypeLoadException), the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2070840646-taiwanese-language-patch.yaml)',
-    '2997749628': 'broken upstream: its ChoreConsumerPatch names a ChoreConsumer method the game no longer has, so Harmony throws ("Undefined target method") while the game creates its prefabs and the game quits before the colony loads; a multiplayer session (two Steam accounts) was not tried (spec tests/e2e/mods/2997749628-multiplayer-mod.yaml)',
-    '1932765859': 'broken upstream: its ScheduleScreenEntry.Setup prefix takes `___optionsPanel` and `___optionsButton`, fields the game no longer has, so Harmony throws ("No such field defined in class ScheduleScreenEntry"), the game disables it ("Failed to load mod ...disabling") and the game quits before the colony loads (spec tests/e2e/mods/1932765859-schedule-shift.yaml)',
-    '1732501619': 'broken upstream: its lamps are built of `TUNING.MATERIALS.TRANSPARENTS`, which the game no longer has, so each fails in RegisterBuilding (MissingFieldException) and the game quits before the colony loads (spec tests/e2e/mods/1732501619-decor-lights.yaml)',
-    '1704376369': 'broken upstream: its Window is built of `TUNING.MATERIALS.TRANSPARENTS`, which the game no longer has, so it fails in RegisterBuilding (MissingFieldException) and the game quits before the colony loads (spec tests/e2e/mods/1704376369-buildable-poi-props.yaml)',
-    '2059584551': 'broken upstream: its bridges name `DUPLICANTSTATS.MOVEMENT` (the game\'s `MOVEMENT_MODIFIERS` now), so they fail in RegisterBuilding (TypeLoadException) and the game quits before the colony loads (spec tests/e2e/mods/2059584551-insulated-joint-plate.yaml)',
-    '2263043737': 'broken upstream: it patches `Deconstructable.QueueDeconstruction`, which now has overloads, so Harmony throws ("Ambiguous match"), the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2263043737-instant-sandbox.yaml)',
-    '1706142008': 'broken upstream: its tile names `DUPLICANTSTATS.MOVEMENT` (the game\'s `MOVEMENT_MODIFIERS` now), so it fails in RegisterBuilding (TypeLoadException) and the game quits before the colony loads (spec tests/e2e/mods/1706142008-mosaic-tile.yaml)',
-    '1706061612': 'broken upstream: its tile names `DUPLICANTSTATS.MOVEMENT` (the game\'s `MOVEMENT_MODIFIERS` now), so it fails in RegisterBuilding (TypeLoadException) and the game quits before the colony loads (spec tests/e2e/mods/1706061612-marble-tile.yaml)',
-    '2554708805': 'broken upstream: it names the game\'s former `Worker` class (now `WorkerBase`), so its patch fails to load, the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2554708805-choose-neural-vacillator.yaml)',
-    '1729316811': 'broken upstream: it names the game\'s former `Worker` class (now `WorkerBase`), so its types fail to load, the game disables it and the game quits before the colony loads (spec tests/e2e/mods/1729316811-happy-digging.yaml)',
-    '1706080287': 'broken upstream: it patches `SimpleInfoScreen.SetPanels`, which the game no longer has, so Harmony throws ("Undefined target method"), the game disables it and the game quits before the colony loads (spec tests/e2e/mods/1706080287-show-industrial-machinery-tag.yaml)',
-    '3636360749': 'broken upstream: its Localization.Initialize postfix reads `RoomConstraints.REFRIGERATOR`, a field the game no longer has (MissingFieldException at start-up), and the game quits before the colony loads (spec tests/e2e/mods/3636360749-auto-connect-power.yaml)',
-    '2047364442': 'broken upstream: it names the game\'s former `Worker` class (now `WorkerBase`), so its patches fail to load, the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2047364442-clean-drop.yaml)',
-    '2692663069': 'broken upstream: it patches `EntityTemplates.CreatePlacedEntity`, which now has overloads, so Harmony throws ("Ambiguous match"), the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2692663069-mod-translation.yaml)',
-    '2073611052': 'broken upstream: its `WorldGen.RenderOffline` patch fails (HarmonyException), the game disables it and the game quits before the colony loads, on the base-game fixture as it supports the base game only (spec tests/e2e/mods/2073611052-minibase.yaml)',
-    '2797484988': 'broken upstream: it names the game\'s former `Worker` class (now `WorkerBase`), so its types fail to load, the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2797484988-portal-cube.yaml)',
-    '1751123054': 'broken upstream: its GravityComponents.FixedUpdate prefix reads `GameTags.Minion`, a field the game no longer has, so it throws a MissingFieldException on every tick and the game does not advance (spec tests/e2e/mods/1751123054-floatation.yaml)',
-    '3119833849': 'broken upstream: its two Harmony patches are attributes on methods of classes without a class-level `[HarmonyPatch]`, which `PatchAll` skips (one also names `CrealtBuildingDef`, a method the config lacks), so the Oxygen Diffuser keeps the game\'s 0.5 kg/s (spec tests/e2e/mods/3119833849-super-oxygen-diffuser.yaml)',
-    '1870621007': 'broken upstream: the Trapdoor Ladder\'s OnSpawn calls `SimMessages.SetCellProperties(int, byte)`, which the game no longer has (MissingMethodException), so its cell is a ladder but no door or fake floor (spec tests/e2e/mods/1870621007-trapdoors-floor-hatches.yaml)',
-})
+broken.update(
+    {
+        '1918000273': 'broken upstream: its Resculpt button shows on a finished sculpture, but a click throws a MissingFieldException (it reads `Db.ArtableStages`, which the game now reaches through `Db.GetArtableStages()`), so the design never changes (spec tests/e2e/mods/1918000273-resculpt.yaml)',
+        '3105273056': 'broken upstream: in Simplified Chinese its room constraint copies call a `RoomConstraints.Constraint` constructor the game no longer has, so the Pressure Door fails to register (TypeInitializationException) and the game quits before the colony loads; in English it does nothing (spec tests/e2e/mods/3105273056-translate-fix.yaml)',
+        '2070840646': 'broken upstream: one of its patches names `MotdServerClient`, a type the game no longer has, so it fails to load (TypeLoadException), the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2070840646-taiwanese-language-patch.yaml)',
+        '2997749628': 'broken upstream: its ChoreConsumerPatch names a ChoreConsumer method the game no longer has, so Harmony throws ("Undefined target method") while the game creates its prefabs and the game quits before the colony loads; a multiplayer session (two Steam accounts) was not tried (spec tests/e2e/mods/2997749628-multiplayer-mod.yaml)',
+        '1932765859': 'broken upstream: its ScheduleScreenEntry.Setup prefix takes `___optionsPanel` and `___optionsButton`, fields the game no longer has, so Harmony throws ("No such field defined in class ScheduleScreenEntry"), the game disables it ("Failed to load mod ...disabling") and the game quits before the colony loads (spec tests/e2e/mods/1932765859-schedule-shift.yaml)',
+        '1732501619': 'broken upstream: its lamps are built of `TUNING.MATERIALS.TRANSPARENTS`, which the game no longer has, so each fails in RegisterBuilding (MissingFieldException) and the game quits before the colony loads (spec tests/e2e/mods/1732501619-decor-lights.yaml)',
+        '1704376369': 'broken upstream: its Window is built of `TUNING.MATERIALS.TRANSPARENTS`, which the game no longer has, so it fails in RegisterBuilding (MissingFieldException) and the game quits before the colony loads (spec tests/e2e/mods/1704376369-buildable-poi-props.yaml)',
+        '2059584551': 'broken upstream: its bridges name `DUPLICANTSTATS.MOVEMENT` (the game\'s `MOVEMENT_MODIFIERS` now), so they fail in RegisterBuilding (TypeLoadException) and the game quits before the colony loads (spec tests/e2e/mods/2059584551-insulated-joint-plate.yaml)',
+        '2263043737': 'broken upstream: it patches `Deconstructable.QueueDeconstruction`, which now has overloads, so Harmony throws ("Ambiguous match"), the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2263043737-instant-sandbox.yaml)',
+        '1706142008': 'broken upstream: its tile names `DUPLICANTSTATS.MOVEMENT` (the game\'s `MOVEMENT_MODIFIERS` now), so it fails in RegisterBuilding (TypeLoadException) and the game quits before the colony loads (spec tests/e2e/mods/1706142008-mosaic-tile.yaml)',
+        '1706061612': 'broken upstream: its tile names `DUPLICANTSTATS.MOVEMENT` (the game\'s `MOVEMENT_MODIFIERS` now), so it fails in RegisterBuilding (TypeLoadException) and the game quits before the colony loads (spec tests/e2e/mods/1706061612-marble-tile.yaml)',
+        '2554708805': 'broken upstream: it names the game\'s former `Worker` class (now `WorkerBase`), so its patch fails to load, the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2554708805-choose-neural-vacillator.yaml)',
+        '1729316811': 'broken upstream: it names the game\'s former `Worker` class (now `WorkerBase`), so its types fail to load, the game disables it and the game quits before the colony loads (spec tests/e2e/mods/1729316811-happy-digging.yaml)',
+        '1706080287': 'broken upstream: it patches `SimpleInfoScreen.SetPanels`, which the game no longer has, so Harmony throws ("Undefined target method"), the game disables it and the game quits before the colony loads (spec tests/e2e/mods/1706080287-show-industrial-machinery-tag.yaml)',
+        '3636360749': 'broken upstream: its Localization.Initialize postfix reads `RoomConstraints.REFRIGERATOR`, a field the game no longer has (MissingFieldException at start-up), and the game quits before the colony loads (spec tests/e2e/mods/3636360749-auto-connect-power.yaml)',
+        '2047364442': 'broken upstream: it names the game\'s former `Worker` class (now `WorkerBase`), so its patches fail to load, the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2047364442-clean-drop.yaml)',
+        '2692663069': 'broken upstream: it patches `EntityTemplates.CreatePlacedEntity`, which now has overloads, so Harmony throws ("Ambiguous match"), the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2692663069-mod-translation.yaml)',
+        '2073611052': 'broken upstream: its `WorldGen.RenderOffline` patch fails (HarmonyException), the game disables it and the game quits before the colony loads, on the base-game fixture as it supports the base game only (spec tests/e2e/mods/2073611052-minibase.yaml)',
+        '2797484988': 'broken upstream: it names the game\'s former `Worker` class (now `WorkerBase`), so its types fail to load, the game disables it and the game quits before the colony loads (spec tests/e2e/mods/2797484988-portal-cube.yaml)',
+        '1751123054': 'broken upstream: its GravityComponents.FixedUpdate prefix reads `GameTags.Minion`, a field the game no longer has, so it throws a MissingFieldException on every tick and the game does not advance (spec tests/e2e/mods/1751123054-floatation.yaml)',
+        '3119833849': 'broken upstream: its two Harmony patches are attributes on methods of classes without a class-level `[HarmonyPatch]`, which `PatchAll` skips (one also names `CrealtBuildingDef`, a method the config lacks), so the Oxygen Diffuser keeps the game\'s 0.5 kg/s (spec tests/e2e/mods/3119833849-super-oxygen-diffuser.yaml)',
+        '1870621007': 'broken upstream: the Trapdoor Ladder\'s OnSpawn calls `SimMessages.SetCellProperties(int, byte)`, which the game no longer has (MissingMethodException), so its cell is a ladder but no door or fake floor (spec tests/e2e/mods/1870621007-trapdoors-floor-hatches.yaml)',
+    }
+)
 # Translations whose file is named Strings.po: on Linux both players look for strings.po and miss
 # it (their specs fail the same way in the original).
-broken.update({
-    '928441385': 'broken on Linux (a case-sensitive file system): its translation is Strings.po, the game opens strings.po, misses it (GetLanguageFile: ... missing, then a NullReferenceException in `LanguageOptionsScreen.GetLanguageFilename` opens the error dialog), keeps English, and loading a colony quits the game; Windows finds the file (spec tests/e2e/mods/928441385-korean-language.yaml)',
-    '3669382915': 'broken on Linux (a case-sensitive file system): its translation is Strings.po, the game opens strings.po, misses it (GetLanguageFile: ... missing, then a NullReferenceException in `LanguageOptionsScreen.GetLanguageFilename` opens the error dialog), keeps English, and loading a colony quits the game; Windows finds the file (spec tests/e2e/mods/3669382915-thai-mary.yaml)',
-})
+broken.update(
+    {
+        '928441385': 'broken on Linux (a case-sensitive file system): its translation is Strings.po, the game opens strings.po, misses it (GetLanguageFile: ... missing, then a NullReferenceException in `LanguageOptionsScreen.GetLanguageFilename` opens the error dialog), keeps English, and loading a colony quits the game; Windows finds the file (spec tests/e2e/mods/928441385-korean-language.yaml)',
+        '3669382915': 'broken on Linux (a case-sensitive file system): its translation is Strings.po, the game opens strings.po, misses it (GetLanguageFile: ... missing, then a NullReferenceException in `LanguageOptionsScreen.GetLanguageFilename` opens the error dialog), keeps English, and loading a colony quits the game; Windows finds the file (spec tests/e2e/mods/3669382915-thai-mary.yaml)',
+    }
+)
 # Found by the e2e specs of ranks 1216 to 1300: the spec fails the same way in the original.
-broken.update({
-    '3608466042': 'broken upstream: its door\'s OnSpawn and Sim200ms call `SimMessages.SetCellProperties(int, byte)`, which the game no longer has (MissingMethodException), so a built Insulated Pressure Door opens the crash screen (spec tests/e2e/mods/3608466042-insulated-pressure-door.yaml)',
-})
+broken.update(
+    {
+        '3608466042': 'broken upstream: its door\'s OnSpawn and Sim200ms call `SimMessages.SetCellProperties(int, byte)`, which the game no longer has (MissingMethodException), so a built Insulated Pressure Door opens the crash screen (spec tests/e2e/mods/3608466042-insulated-pressure-door.yaml)',
+    }
+)
 # Found by the e2e specs of ranks 1556 to 1640: the spec fails the same way in the original.
-broken.update({
-    '3038061222': 'broken upstream: its Mars start world guarantees eight oil pocket templates that worldgen cannot place ("Guaranteed placement failure on expansion1::worlds/Mars"), so a new game of the Mars cluster fails to generate (seeds 12345 and 1); spec tests/e2e/mods/3038061222-mars.yaml',
-})
+broken.update(
+    {
+        '3038061222': 'broken upstream: its Mars start world guarantees eight oil pocket templates that worldgen cannot place ("Guaranteed placement failure on expansion1::worlds/Mars"), so a new game of the Mars cluster fails to generate (seeds 12345 and 1); spec tests/e2e/mods/3038061222-mars.yaml',
+    }
+)
 # Found by the e2e specs of ranks 1966 to 2063: the spec fails the same way in the original.
-broken.update({
-    '2996735249': 'broken upstream: its side screen is never added (it looks for DetailsScreen.sideScreenContentBody, which the game no longer has), so the sign\'s picture cannot be chosen (spec tests/e2e/mods/2996735249-meow-meow-egg.yaml)',
-    '2936219269': 'broken upstream: its side screen is never added (it looks for DetailsScreen.sideScreenContentBody, which the game no longer has), so the wallpaper\'s picture cannot be chosen (spec tests/e2e/mods/2936219269-customize-your-wallpaper.yaml)',
-    '2981889053': 'broken upstream: its side screen is never added (it looks for DetailsScreen.sideScreenContentBody, which the game no longer has), so the weapon\'s picture cannot be chosen (spec tests/e2e/mods/2981889053-xia-weapons.yaml)',
-})
+broken.update(
+    {
+        '2996735249': 'broken upstream: its side screen is never added (it looks for DetailsScreen.sideScreenContentBody, which the game no longer has), so the sign\'s picture cannot be chosen (spec tests/e2e/mods/2996735249-meow-meow-egg.yaml)',
+        '2936219269': 'broken upstream: its side screen is never added (it looks for DetailsScreen.sideScreenContentBody, which the game no longer has), so the wallpaper\'s picture cannot be chosen (spec tests/e2e/mods/2936219269-customize-your-wallpaper.yaml)',
+        '2981889053': 'broken upstream: its side screen is never added (it looks for DetailsScreen.sideScreenContentBody, which the game no longer has), so the weapon\'s picture cannot be chosen (spec tests/e2e/mods/2981889053-xia-weapons.yaml)',
+    }
+)
 # Found by the e2e specs of ranks 1884 to 1965: the spec fails the same way in the original.
-broken.update({
-    '3590596912': 'broken upstream: it calls `PUtil.InitLibrary` but ships no PLib, so alone it fails to load (FileNotFoundException for PLib 4.8.1.0) and the game exits while loading; the load sweep passed only because another mod of its batch shipped PLib (spec tests/e2e/mods/3590596912-vine-branch-accelerate-growth.yaml)',
-    '2865091697': 'broken upstream: its sign\'s design side screen (a clone of the Monument\'s, added to the details screen\'s side screen list) never shows: a built sign selected says no configuration is available, so its six designs cannot be picked (spec tests/e2e/mods/2865091697-warning-signs.yaml)',
-    '2844428595': 'broken upstream: its prefix on `CameraController.OnPrefabInit` sets the keyboard panning speed to 0.25, which the method then overwrites from the CameraSpeed pref (`SetSpeedFromPrefs`), so the speed stays 1 (spec tests/e2e/mods/2844428595-camera-scroll-pan-speed.yaml)',
-})
+broken.update(
+    {
+        '3590596912': 'broken upstream: it calls `PUtil.InitLibrary` but ships no PLib, so alone it fails to load (FileNotFoundException for PLib 4.8.1.0) and the game exits while loading; the load sweep passed only because another mod of its batch shipped PLib (spec tests/e2e/mods/3590596912-vine-branch-accelerate-growth.yaml)',
+        '2865091697': 'broken upstream: its sign\'s design side screen (a clone of the Monument\'s, added to the details screen\'s side screen list) never shows: a built sign selected says no configuration is available, so its six designs cannot be picked (spec tests/e2e/mods/2865091697-warning-signs.yaml)',
+        '2844428595': 'broken upstream: its prefix on `CameraController.OnPrefabInit` sets the keyboard panning speed to 0.25, which the method then overwrites from the CameraSpeed pref (`SetSpeedFromPrefs`), so the speed stays 1 (spec tests/e2e/mods/2844428595-camera-scroll-pan-speed.yaml)',
+    }
+)
 # Broken in the original only: ours happens to load it, so its note says how the original fails
 # and why ours does not (no "same in the original").
-broken.update({
-    '1729794261': 'broken upstream: its light class `PixelPack2` lacks three methods the game\'s interfaces now have (`ISliderControl.GetSliderTooltip(int)`, `ISidescreenButtonControl.SetButtonTextOverride` and `HorizontalGroupID`), so the original fails its Color Ceiling Light in RegisterBuilding and the game\'s prefab setup in `Assets.OnPrefabInit` ("VTable setup of type OniLight.PixelPack2 failed"), and the error dialog opens as the game starts; ours happens to load it: Mono checks a class\'s interface methods when it sets up the class\'s vtable at first use, where ours gives the class the methods it lacks, which throw only when called (ARCHITECTURE D22)',
-})
+broken.update(
+    {
+        '1729794261': 'broken upstream: its light class `PixelPack2` lacks three methods the game\'s interfaces now have (`ISliderControl.GetSliderTooltip(int)`, `ISidescreenButtonControl.SetButtonTextOverride` and `HorizontalGroupID`), so the original fails its Color Ceiling Light in RegisterBuilding and the game\'s prefab setup in `Assets.OnPrefabInit` ("VTable setup of type OniLight.PixelPack2 failed"), and the error dialog opens as the game starts; ours happens to load it: Mono checks a class\'s interface methods when it sets up the class\'s vtable at first use, where ours gives the class the methods it lacks, which throw only when called (ARCHITECTURE D22)',
+    }
+)
 loads_in_ours = {'1729794261'}
 # Found on U60 (build 761015), in the original only: its colony does not load there, so ours did
 # not run it.
-broken.update({
-    '3823893994': 'broken on U60 (build 761015), version 1.0.1: its Temperature overlay patch reads the field `TemperatureOverlayInfraredVisualizerBase.updateCBHandle`, which U60 no longer has; the TypeInitializationException in Game.OnPrefabInit leaves Immigration and GlobalChoreProvider null, and the original exits (1) while loading a colony; not run in ours',
-    '3771895170': 'broken on U60 (build 761015): mastering every skill on load (MinionResume.MasterSkill in its OnSpawn postfix) throws a NullReferenceException in a SkillAttributePerk, and loading a colony stops at the crash screen (spec tests/e2e/mods/3771895170-stronger-duplicants.yaml); not run in ours',
-    '3313952440': 'broken on U60 (build 761015): U60 sends building damage as a `Boxed<BuildingHP.DamageSourceInfo>`, and its prefix on BuildingHP.OnDoBuildingDamage casts the event data to `DamageSourceInfo`, so it throws an InvalidCastException at every hit (found in the U60 sweep)',
-    '3047352164': 'broken upstream: a translation whose .po is named strings_installed_ge_alien.po, and the game reads a translation mod\'s strings.po only, so it finds no translation in it; with it chosen in the prefs (as a subscriber choosing it before would have) the original exits at the main menu on a NullReferenceException in LanguageOptionsScreen.GetLanguageFilename (it finds no such mod); not run in ours',
-    '3786286342': 'broken on U60 (build 761015): Mono rejects its plant patch\'s prefix, run from Db.Initialize, as invalid IL at a callvirt (InvalidProgramException), and the original exits while loading assets, before the main menu (spec run in the original only); not run in ours',
-    '3735115168': 'broken on U60 (build 761015): its replacement of ClusterGrid.GetPath calls `Cmps<T>.GetEnumerator()`, which U60 no longer has, so the MissingMethodException at a meteor shower\'s path stops the colony at the crash screen while loading (spec run in the original only); not run in ours',
-    '2608487669': 'broken on U60 (build 761015): its transpiler targets AutoMiner.DigBlockingCB, which U60 no longer has, so loading the mod throws a HarmonyException and the original exits at start (spec tests/e2e/mods/2608487669-megaminer.yaml); not run in ours',
-})
+broken.update(
+    {
+        '3823893994': 'broken on U60 (build 761015), version 1.0.1: its Temperature overlay patch reads the field `TemperatureOverlayInfraredVisualizerBase.updateCBHandle`, which U60 no longer has; the TypeInitializationException in Game.OnPrefabInit leaves Immigration and GlobalChoreProvider null, and the original exits (1) while loading a colony; not run in ours',
+        '3771895170': 'broken on U60 (build 761015): mastering every skill on load (MinionResume.MasterSkill in its OnSpawn postfix) throws a NullReferenceException in a SkillAttributePerk, and loading a colony stops at the crash screen (spec tests/e2e/mods/3771895170-stronger-duplicants.yaml); not run in ours',
+        '3313952440': 'broken on U60 (build 761015): U60 sends building damage as a `Boxed<BuildingHP.DamageSourceInfo>`, and its prefix on BuildingHP.OnDoBuildingDamage casts the event data to `DamageSourceInfo`, so it throws an InvalidCastException at every hit (found in the U60 sweep)',
+        '3047352164': 'broken upstream: a translation whose .po is named strings_installed_ge_alien.po, and the game reads a translation mod\'s strings.po only, so it finds no translation in it; with it chosen in the prefs (as a subscriber choosing it before would have) the original exits at the main menu on a NullReferenceException in LanguageOptionsScreen.GetLanguageFilename (it finds no such mod); not run in ours',
+        '3786286342': 'broken on U60 (build 761015): Mono rejects its plant patch\'s prefix, run from Db.Initialize, as invalid IL at a callvirt (InvalidProgramException), and the original exits while loading assets, before the main menu (spec run in the original only); not run in ours',
+        '3735115168': 'broken on U60 (build 761015): its replacement of ClusterGrid.GetPath calls `Cmps<T>.GetEnumerator()`, which U60 no longer has, so the MissingMethodException at a meteor shower\'s path stops the colony at the crash screen while loading (spec run in the original only); not run in ours',
+        '2608487669': 'broken on U60 (build 761015): its transpiler targets AutoMiner.DigBlockingCB, which U60 no longer has, so loading the mod throws a HarmonyException and the original exits at start (spec tests/e2e/mods/2608487669-megaminer.yaml); not run in ours',
+    }
+)
 not_run_in_ours = {'3823893994', '3771895170', '2608487669', '3047352164', '3786286342', '3735115168'}
 # Found on U60 in ranks 2501-2775, in the original only.
-broken.update({
-    '1353979712': 'broken upstream: its translation is sv_SE.po (with two .po files for the Korean and Chinese fonts) and no strings.po, which the game reads for a translation mod; picked as the language, the original logs "strings.po missing for mod 1353979712", throws a NullReferenceException in LanguageOptionsScreen.GetLanguageFilename and exits (1) while loading a colony; not run in ours',
-    '2590563970': 'broken upstream: its `VariablePowerTransformer` implements `GetSliderTooltip()`, not the `ISliderControl.GetSliderTooltip(int)` the game\'s interface now has, so the original fails its prefab setup in `Assets.OnPrefabInit` ("VTable setup of type VariablePowerTransformer failed"), the colony\'s load then throws NullReferenceExceptions, and the player aborts (-6); not run in ours',
-    '3088988489': 'broken upstream: its transpiler on `SelectToolHoverTextCard.UpdateHoverElements` emits a branch the IL generator rejects (ArgumentException: opcode), so the original fails to load it, and the player then exits before its colony starts; not run in ours',
-    '3213620129': 'broken upstream: its Sulfur Bath sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player aborts (-6) while loading a colony; not run in ours',
-    '3465430183': 'broken on U60 (build 761015): its prefix on `Light2D.GetDescriptors` finds no such method, so the original fails to load it (HarmonyException), its Torch has no anim, and the player exits (1) while loading a colony; not run in ours',
-    '3700898401': 'broken on U60 (build 761015) through More Plants (2819853217), which it patches and needs: More Plants reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException in its prefabs), and the original aborts (-6) while loading a colony; not run in ours',
-    '3290446954': 'broken on U60 (build 761015): it calls `InputField.onEndEdit` with the old `SubmitEvent` signature, which U60\'s Unity UI no longer has, so the original\'s Mods screen throws (MissingMethodException) and does not open; the colony itself loads; not run in ours',
-    '3502415157': 'broken on U60 (build 761015): at Db.PostProcess it patches `BionicOilMonitor.WantsOilChange` by name, which U60 overloads, so Harmony throws (AmbiguousMatchException) and the original exits (1) while loading a colony; not run in ours',
-    '2774609489': 'broken on U60 (build 761015): its postfix on the `KMod.Mod` constructor finds no constructor of that signature, so the original fails to load it (HarmonyException), its main menu patch then throws, and the player exits (1) while loading a colony; not run in ours',
-    '3264249301': 'broken upstream: it patches `ConduitTemperatureManager.ConduitTemperatureManager_Add` and the other native (DllImport) entry points, which Harmony cannot patch, so the original fails to load it (HarmonyException) and exits (1) while loading a colony; not run in ours',
-    '3447471118': 'broken on U60 (build 761015): it reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has, so the original fails to load it (MissingFieldException) and exits (1) before its main menu; not run in ours',
-    '3818353735': 'broken on U60 (build 761015): its patch on `PathFinder.AddPotentials` fails, it logs an error ("Disabled; vanilla navigation retained"), and the original exits (1) at the main menu before a colony loads; not run in ours',
-    '3816726470': 'broken on U60 (build 761015): its patch on `MechanicalSurfboard` descriptors finds no target method (TargetMethod returns null), so the original fails to load it (HarmonyException) and exits (1) before its main menu; not run in ours',
-    '3785981861': 'broken upstream: it references PLib (4.24) but does not ship PLib.dll, so the original fails to load it (FileNotFoundException for PLib) and exits (1) before its main menu; not run in ours',
-    '3789616217': 'broken on U60 (build 761015): it checks the game assembly\'s hash, finds U60\'s unknown, and turns its dig patch off ("[OtherHalf/DigComplete.disabled] assembly_hash_mismatch"), so in the original a dug cell still drops half its mass at 100 % recovery; the colony runs; not run in ours',
-    '3457870408': 'broken upstream: its Neutronium Generator sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player exits (1) while loading a colony; not run in ours',
-    '3775497869': 'broken on U60 (build 761015): it patches a game method by name through PLib\'s `Patch` extension, which U60 overloads, so the lookup throws (AmbiguousMatchException) and the original exits (1) at the main menu before a colony loads; not run in ours',
-    '3746629588': 'broken upstream: it references PLib (4.8.1) but does not ship PLib.dll, so the original fails to load it (FileNotFoundException for PLib) and exits (1) at the main menu before a colony loads; not run in ours',
-    '3564852497': 'broken upstream: its Insect Trap sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player exits (1) while loading a colony; not run in ours',
-    '3734918401': 'broken upstream: the upload is its source project, with its DLL under bin/ rather than beside mod_info.yaml, so the game finds no content to load ("No supported content for mod, skipping content"); the original runs the colony without it; not run in ours',
-    '3741456698': 'broken on U60 (build 761015): its prefix on `PropertyTextures.UpdateFogOfWar` finds no method of that signature, so the original fails to load it (HarmonyException) and exits (1) at the main menu before a colony loads; not run in ours',
-    '3619073345': 'broken upstream: its wires use anims (3x1_5wire_kanim and others) the upload does not ship (no anim folder), so the original logs "Missing Anim", fails its Wire_3x1_5 in RegisterBuilding (NullReferenceException) and exits (1) while loading a colony; not run in ours',
-    '3779615427': 'broken on U60 (build 761015): its backwalls use `natural_tile_kanim`, which it does not ship and the game does not load on this build, so the original logs "Missing Anim", fails NaturalBackwall in RegisterBuilding (NullReferenceException) and exits (1) while loading a colony; not run in ours',
-    '3764098079': 'broken on U60 (build 761015): its postfix on `Db.Initialize` adds PlasmaDoor to the build menu without a guard, and the original then throws on a duplicate key ("An item with the same key has already been added. Key: PlasmaDoor", also in the codex) and opens its crash screen while loading a colony; not run in ours',
-    '3754121151': 'broken on U60 (build 761015): with its power transmitter built, the original throws a NullReferenceException in `CellChangeMonitor.RenderEveryTick` under its `Game.Update` patch a few seconds into play and opens its crash screen; not run in ours',
-    '3801593061': 'broken on U60 (build 761015): it reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException), and the original exits (1) while loading a colony; not run in ours',
-    '3807856018': 'broken on U60 (build 761015): its postfix on `GameScenePartitioner.OnPrefabInit` adds a scene partitioner layer, and `ScenePartitioner.CreateMask` fails its assert ("Assert failed") on this build, so the original opens its crash screen while loading a colony; not run in ours',
-    '3180371600': 'broken on U60 (build 761015): the original crashes (SIGSEGV) as the colony finishes loading, right after `InterfaceTool` pushes its tool config ("Pushing config with key: Invalid"), in two runs out of two; not run in ours',
-})
-not_run_in_ours |= {'1353979712', '2590563970', '3088988489', '3213620129', '3465430183', '3700898401', '3290446954', '3502415157', '2774609489', '3264249301', '3447471118', '3818353735', '3816726470', '3785981861', '3789616217', '3457870408', '3775497869', '3746629588', '3564852497', '3734918401', '3741456698', '3619073345', '3779615427', '3764098079', '3754121151', '3801593061', '3807856018', '3180371600'}
+broken.update(
+    {
+        '1353979712': 'broken upstream: its translation is sv_SE.po (with two .po files for the Korean and Chinese fonts) and no strings.po, which the game reads for a translation mod; picked as the language, the original logs "strings.po missing for mod 1353979712", throws a NullReferenceException in LanguageOptionsScreen.GetLanguageFilename and exits (1) while loading a colony; not run in ours',
+        '2590563970': 'broken upstream: its `VariablePowerTransformer` implements `GetSliderTooltip()`, not the `ISliderControl.GetSliderTooltip(int)` the game\'s interface now has, so the original fails its prefab setup in `Assets.OnPrefabInit` ("VTable setup of type VariablePowerTransformer failed"), the colony\'s load then throws NullReferenceExceptions, and the player aborts (-6); not run in ours',
+        '3088988489': 'broken upstream: its transpiler on `SelectToolHoverTextCard.UpdateHoverElements` emits a branch the IL generator rejects (ArgumentException: opcode), so the original fails to load it, and the player then exits before its colony starts; not run in ours',
+        '3213620129': 'broken upstream: its Sulfur Bath sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player aborts (-6) while loading a colony; not run in ours',
+        '3465430183': 'broken on U60 (build 761015): its prefix on `Light2D.GetDescriptors` finds no such method, so the original fails to load it (HarmonyException), its Torch has no anim, and the player exits (1) while loading a colony; not run in ours',
+        '3700898401': 'broken on U60 (build 761015) through More Plants (2819853217), which it patches and needs: More Plants reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException in its prefabs), and the original aborts (-6) while loading a colony; not run in ours',
+        '3290446954': 'broken on U60 (build 761015): it calls `InputField.onEndEdit` with the old `SubmitEvent` signature, which U60\'s Unity UI no longer has, so the original\'s Mods screen throws (MissingMethodException) and does not open; the colony itself loads; not run in ours',
+        '3502415157': 'broken on U60 (build 761015): at Db.PostProcess it patches `BionicOilMonitor.WantsOilChange` by name, which U60 overloads, so Harmony throws (AmbiguousMatchException) and the original exits (1) while loading a colony; not run in ours',
+        '2774609489': 'broken on U60 (build 761015): its postfix on the `KMod.Mod` constructor finds no constructor of that signature, so the original fails to load it (HarmonyException), its main menu patch then throws, and the player exits (1) while loading a colony; not run in ours',
+        '3264249301': 'broken upstream: it patches `ConduitTemperatureManager.ConduitTemperatureManager_Add` and the other native (DllImport) entry points, which Harmony cannot patch, so the original fails to load it (HarmonyException) and exits (1) while loading a colony; not run in ours',
+        '3447471118': 'broken on U60 (build 761015): it reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has, so the original fails to load it (MissingFieldException) and exits (1) before its main menu; not run in ours',
+        '3818353735': 'broken on U60 (build 761015): its patch on `PathFinder.AddPotentials` fails, it logs an error ("Disabled; vanilla navigation retained"), and the original exits (1) at the main menu before a colony loads; not run in ours',
+        '3816726470': 'broken on U60 (build 761015): its patch on `MechanicalSurfboard` descriptors finds no target method (TargetMethod returns null), so the original fails to load it (HarmonyException) and exits (1) before its main menu; not run in ours',
+        '3785981861': 'broken upstream: it references PLib (4.24) but does not ship PLib.dll, so the original fails to load it (FileNotFoundException for PLib) and exits (1) before its main menu; not run in ours',
+        '3789616217': 'broken on U60 (build 761015): it checks the game assembly\'s hash, finds U60\'s unknown, and turns its dig patch off ("[OtherHalf/DigComplete.disabled] assembly_hash_mismatch"), so in the original a dug cell still drops half its mass at 100 % recovery; the colony runs; not run in ours',
+        '3457870408': 'broken upstream: its Neutronium Generator sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player exits (1) while loading a colony; not run in ours',
+        '3775497869': 'broken on U60 (build 761015): it patches a game method by name through PLib\'s `Patch` extension, which U60 overloads, so the lookup throws (AmbiguousMatchException) and the original exits (1) at the main menu before a colony loads; not run in ours',
+        '3746629588': 'broken upstream: it references PLib (4.8.1) but does not ship PLib.dll, so the original fails to load it (FileNotFoundException for PLib) and exits (1) at the main menu before a colony loads; not run in ours',
+        '3564852497': 'broken upstream: its Insect Trap sets `ManualDeliveryKG.requestedItemTag`, which the game has made private, so the original fails it in RegisterBuilding (FieldAccessException) and the player exits (1) while loading a colony; not run in ours',
+        '3734918401': 'broken upstream: the upload is its source project, with its DLL under bin/ rather than beside mod_info.yaml, so the game finds no content to load ("No supported content for mod, skipping content"); the original runs the colony without it; not run in ours',
+        '3741456698': 'broken on U60 (build 761015): its prefix on `PropertyTextures.UpdateFogOfWar` finds no method of that signature, so the original fails to load it (HarmonyException) and exits (1) at the main menu before a colony loads; not run in ours',
+        '3619073345': 'broken upstream: its wires use anims (3x1_5wire_kanim and others) the upload does not ship (no anim folder), so the original logs "Missing Anim", fails its Wire_3x1_5 in RegisterBuilding (NullReferenceException) and exits (1) while loading a colony; not run in ours',
+        '3779615427': 'broken on U60 (build 761015): its backwalls use `natural_tile_kanim`, which it does not ship and the game does not load on this build, so the original logs "Missing Anim", fails NaturalBackwall in RegisterBuilding (NullReferenceException) and exits (1) while loading a colony; not run in ours',
+        '3764098079': 'broken on U60 (build 761015): its postfix on `Db.Initialize` adds PlasmaDoor to the build menu without a guard, and the original then throws on a duplicate key ("An item with the same key has already been added. Key: PlasmaDoor", also in the codex) and opens its crash screen while loading a colony; not run in ours',
+        '3754121151': 'broken on U60 (build 761015): with its power transmitter built, the original throws a NullReferenceException in `CellChangeMonitor.RenderEveryTick` under its `Game.Update` patch a few seconds into play and opens its crash screen; not run in ours',
+        '3801593061': 'broken on U60 (build 761015): it reads `TUNING.CROPS.CROP_TYPES`, which U60 no longer has (MissingFieldException), and the original exits (1) while loading a colony; not run in ours',
+        '3807856018': 'broken on U60 (build 761015): its postfix on `GameScenePartitioner.OnPrefabInit` adds a scene partitioner layer, and `ScenePartitioner.CreateMask` fails its assert ("Assert failed") on this build, so the original opens its crash screen while loading a colony; not run in ours',
+        '3180371600': 'broken on U60 (build 761015): the original crashes (SIGSEGV) as the colony finishes loading, right after `InterfaceTool` pushes its tool config ("Pushing config with key: Invalid"), in two runs out of two; not run in ours',
+    }
+)
+not_run_in_ours |= {
+    '1353979712',
+    '2590563970',
+    '3088988489',
+    '3213620129',
+    '3465430183',
+    '3700898401',
+    '3290446954',
+    '3502415157',
+    '2774609489',
+    '3264249301',
+    '3447471118',
+    '3818353735',
+    '3816726470',
+    '3785981861',
+    '3789616217',
+    '3457870408',
+    '3775497869',
+    '3746629588',
+    '3564852497',
+    '3734918401',
+    '3741456698',
+    '3619073345',
+    '3779615427',
+    '3764098079',
+    '3754121151',
+    '3801593061',
+    '3807856018',
+    '3180371600',
+}
 # Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
@@ -473,25 +603,44 @@ skipped = {
 }
 # Found by the e2e specs of the U60 catalog's ranks 2776 to 3047: each fails, or does nothing
 # it should, in the original on U60 (build 761015) as well, so ours did not run it.
-broken.update({
-    '3571343650': "broken on U60 (build 761015): it loads without errors, but its patches on the Sleet Wheat's and Nosh Sprout's prefabs no longer take: in the original, both crops keep the game's yields (18 and 12 seeds) and temperature range (spec tests/e2e/mods/3571343650-sleet-wheat-nosh-bean-tweaks.yaml)",
-    '3826451400': 'broken on U60 (build 761015), in the original too: once the colony runs, CellChangeMonitor.RenderEveryTick throws InvalidCastException in a cell-change handler and the crash screen opens (spec tests/e2e/mods/3826451400-true-smart-mopping.yaml)',
-    '2644972743': 'broken on U60 (build 761015): its transpiler on WorldDamage.OnDigComplete no longer finds the code it hooks (it logs "*Regolith Reducer* could not be applied!"), so a dig of 1000 kg of regolith still leaves 500 kg of debris, in the original too (spec tests/e2e/mods/2644972743-less-regolith.yaml)',
-    '2564623737': "broken on U60 (build 761015), in the original too: one of its PLib patches fails at load (AmbiguousMatchException in PLib's Patch), its three pumps are not added to the build menu, and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/2564623737-smart-pump.yaml)",
-    '2787783943': "broken on U60 (build 761015), in the original too: its generators' ConfigureBuildingTemplate writes ManualDeliveryKG.requestedItemTag, which U60 no longer exposes (FieldAccessException in RegisterBuilding), and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/2787783943-adv-test.yaml)",
-    '3299743963': 'broken on U60 (build 761015), in the original too: its patch on HydrogenGeneratorConfig.DoPostConfigureComplete asks for a parameter "def" the method does not have (HarmonyException), KMod reports the mod failed to load, and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3299743963-test-mod-3299743963.yaml)',
-    '3375426994': 'broken on U60 (build 761015), in the original too: its prefix Patch_b fails with InvalidProgramException (invalid IL, a call into an API U60 changed), CustomGameSettings then throws NullReferenceException, and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3375426994-test-mod-dont-subscribe.yaml)',
-    '3546097878': 'broken on U60 (build 761015), in the original too: KMod skips its content ("No supported content for mod": its mod_info.yaml lists EXPANSION1_ID, DLC2_ID and DLC4_ID as supported content), so its cluster (coordinate V-CSTCLST-C) is never offered and the coordinate picks Terra (spec tests/e2e/mods/3546097878-custom-cluster.yaml)',
-    '3731259018': "broken on U60 (build 761015), in the original too: with its asteroids added, CodexEntryGenerator.GenerateBiomeEntries throws NullReferenceException when the colony's management menu builds the codex, and the crash screen opens while the colony loads (spec tests/e2e/mods/3731259018-new-star-region.yaml)",
-    '3772683214': 'broken upstream: it uses PLib (4.17) but ships none, so alone it fails to load (FileNotFoundException for PLib), KMod disables it and the original exits (1) before its colony loads; not run in ours (spec tests/e2e/mods/3772683214-custom-lead-suit-temperature.yaml)',
-    '3792181624': 'broken on U60 (build 761015), in the original too: its Techs.Init postfix formats a string from its own string manager, which throws NullReferenceException (AsStringManager.Get), and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3792181624-asteroid-belt-0200.yaml)',
-    '3799362960': 'broken upstream: its strings.po sits in strings/, not at the mod\'s root, so the game finds no translation to load ("Failed to load language from mod: 3799362960"), clears the language and exits (1) while loading a colony, in the original too; not run in ours (spec tests/e2e/mods/3799362960-bahasa-indonesia-translation.yaml)',
-    '3820112013': 'broken on U60 (build 761015), in the original too: its patch on the VomitChore constructor matches no U60 method (HarmonyException: undefined target method), KMod reports the mod failed to load and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3820112013-dont-puke-yourself-to-death.yaml)',
-    '3820168351': 'broken on U60 (build 761015), in the original too: its patch on a Research Reactor state lambda fails (HarmonyException, its InvalidOperationException), KMod reports the mod failed to load and the original exits (1) before its colony loads; not run in ours (spec tests/e2e/mods/3820168351-reactor-meltdown-choice.yaml)',
-    '3821447025': 'broken on U60 (build 761015), in the original too: its transpiler on GameScenePartitioner.OnPrefabInit refuses U60\'s code ("Unsupported GameScenePartitioner layout: 2"), KMod reports the mod failed to load and the original exits (1) before its colony loads; not run in ours (spec tests/e2e/mods/3821447025-multi-channel-utilities.yaml)',
-    '3828163036': 'broken on U60 (build 761015), in the original too: its prefix on KIconToggleMenu.Setup matches no U60 method (HarmonyException: undefined target method), KMod reports the mod failed to load and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3828163036-ai-advisor.yaml)',
-})
-not_run_in_ours |= {'3571343650', '3826451400', '2644972743', '2564623737', '2787783943', '3299743963', '3375426994', '3546097878', '3731259018', '3772683214', '3792181624', '3799362960', '3820112013', '3820168351', '3821447025', '3828163036'}
+broken.update(
+    {
+        '3571343650': "broken on U60 (build 761015): it loads without errors, but its patches on the Sleet Wheat's and Nosh Sprout's prefabs no longer take: in the original, both crops keep the game's yields (18 and 12 seeds) and temperature range (spec tests/e2e/mods/3571343650-sleet-wheat-nosh-bean-tweaks.yaml)",
+        '3826451400': 'broken on U60 (build 761015), in the original too: once the colony runs, CellChangeMonitor.RenderEveryTick throws InvalidCastException in a cell-change handler and the crash screen opens (spec tests/e2e/mods/3826451400-true-smart-mopping.yaml)',
+        '2644972743': 'broken on U60 (build 761015): its transpiler on WorldDamage.OnDigComplete no longer finds the code it hooks (it logs "*Regolith Reducer* could not be applied!"), so a dig of 1000 kg of regolith still leaves 500 kg of debris, in the original too (spec tests/e2e/mods/2644972743-less-regolith.yaml)',
+        '2564623737': "broken on U60 (build 761015), in the original too: one of its PLib patches fails at load (AmbiguousMatchException in PLib's Patch), its three pumps are not added to the build menu, and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/2564623737-smart-pump.yaml)",
+        '2787783943': "broken on U60 (build 761015), in the original too: its generators' ConfigureBuildingTemplate writes ManualDeliveryKG.requestedItemTag, which U60 no longer exposes (FieldAccessException in RegisterBuilding), and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/2787783943-adv-test.yaml)",
+        '3299743963': 'broken on U60 (build 761015), in the original too: its patch on HydrogenGeneratorConfig.DoPostConfigureComplete asks for a parameter "def" the method does not have (HarmonyException), KMod reports the mod failed to load, and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3299743963-test-mod-3299743963.yaml)',
+        '3375426994': 'broken on U60 (build 761015), in the original too: its prefix Patch_b fails with InvalidProgramException (invalid IL, a call into an API U60 changed), CustomGameSettings then throws NullReferenceException, and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3375426994-test-mod-dont-subscribe.yaml)',
+        '3546097878': 'broken on U60 (build 761015), in the original too: KMod skips its content ("No supported content for mod": its mod_info.yaml lists EXPANSION1_ID, DLC2_ID and DLC4_ID as supported content), so its cluster (coordinate V-CSTCLST-C) is never offered and the coordinate picks Terra (spec tests/e2e/mods/3546097878-custom-cluster.yaml)',
+        '3731259018': "broken on U60 (build 761015), in the original too: with its asteroids added, CodexEntryGenerator.GenerateBiomeEntries throws NullReferenceException when the colony's management menu builds the codex, and the crash screen opens while the colony loads (spec tests/e2e/mods/3731259018-new-star-region.yaml)",
+        '3772683214': 'broken upstream: it uses PLib (4.17) but ships none, so alone it fails to load (FileNotFoundException for PLib), KMod disables it and the original exits (1) before its colony loads; not run in ours (spec tests/e2e/mods/3772683214-custom-lead-suit-temperature.yaml)',
+        '3792181624': 'broken on U60 (build 761015), in the original too: its Techs.Init postfix formats a string from its own string manager, which throws NullReferenceException (AsStringManager.Get), and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3792181624-asteroid-belt-0200.yaml)',
+        '3799362960': 'broken upstream: its strings.po sits in strings/, not at the mod\'s root, so the game finds no translation to load ("Failed to load language from mod: 3799362960"), clears the language and exits (1) while loading a colony, in the original too; not run in ours (spec tests/e2e/mods/3799362960-bahasa-indonesia-translation.yaml)',
+        '3820112013': 'broken on U60 (build 761015), in the original too: its patch on the VomitChore constructor matches no U60 method (HarmonyException: undefined target method), KMod reports the mod failed to load and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3820112013-dont-puke-yourself-to-death.yaml)',
+        '3820168351': 'broken on U60 (build 761015), in the original too: its patch on a Research Reactor state lambda fails (HarmonyException, its InvalidOperationException), KMod reports the mod failed to load and the original exits (1) before its colony loads; not run in ours (spec tests/e2e/mods/3820168351-reactor-meltdown-choice.yaml)',
+        '3821447025': 'broken on U60 (build 761015), in the original too: its transpiler on GameScenePartitioner.OnPrefabInit refuses U60\'s code ("Unsupported GameScenePartitioner layout: 2"), KMod reports the mod failed to load and the original exits (1) before its colony loads; not run in ours (spec tests/e2e/mods/3821447025-multi-channel-utilities.yaml)',
+        '3828163036': 'broken on U60 (build 761015), in the original too: its prefix on KIconToggleMenu.Setup matches no U60 method (HarmonyException: undefined target method), KMod reports the mod failed to load and the original exits (1) while loading a colony; not run in ours (spec tests/e2e/mods/3828163036-ai-advisor.yaml)',
+    }
+)
+not_run_in_ours |= {
+    '3571343650',
+    '3826451400',
+    '2644972743',
+    '2564623737',
+    '2787783943',
+    '3299743963',
+    '3375426994',
+    '3546097878',
+    '3731259018',
+    '3772683214',
+    '3792181624',
+    '3799362960',
+    '3820112013',
+    '3820168351',
+    '3821447025',
+    '3828163036',
+}
 # Titles of played mods the catalog TSV does not rank (none since it reaches rank 2274).
 unranked = {}
 # Worldgen mods no sweep ran, as their specs' runs of ours found them (id -> (loads, colony)): a
@@ -516,8 +665,12 @@ ONIMAXXING_BROKEN = {
 }
 
 # Test saves named in notes (from spec records), as a player would put them.
-SAVE_NAMES = [('the early-base colony', 'the early-game colony'), ('no early-base room', 'no room of the early-game colony'),
-              ('on early-base niobium', 'in the early-game colony, niobium'), ('early-base', 'the early-game colony')]
+SAVE_NAMES = [
+    ('the early-base colony', 'the early-game colony'),
+    ('no early-base room', 'no room of the early-game colony'),
+    ('on early-base niobium', 'in the early-game colony, niobium'),
+    ('early-base', 'the early-game colony'),
+]
 
 
 def row(rank, mid, title, loads, colony, play, note):
@@ -525,6 +678,7 @@ def row(rank, mid, title, loads, colony, play, note):
         note = note.replace(name, plain)
     link = f'[{title.replace("|", "/")}](https://steamcommunity.com/sharedfiles/filedetails/?id={mid})' if mid else title
     return f'| {rank} | {link} | {loads} | {colony} | {play} | {note} |'
+
 
 # Mods not played because onimaxxing has not reviewed the upload we have (or flags it): id, reason,
 # from the interim hash check (scripts/mod-skipped-u60.tsv). Revisit them when it does.
@@ -589,7 +743,8 @@ rows = [row('–', None, 'Fast Track (GitHub)', Y, Y, Y, 'about 30 fps on a late
 listed = set()
 for r in cat:
     rank, mid, _, flags, title = int(r[0]), r[1], r[2], r[3], r[4]
-    if rank > LAST_RANK and mid not in U60_IDS and mid not in played and mid not in results: continue
+    if rank > LAST_RANK and mid not in U60_IDS and mid not in played and mid not in results:
+        continue
     listed.add(mid)
     rows.append(row(rank, mid, title, *with_record(mid, flags)))
 for mid in list(played) + [m for m in results if m not in played]:
@@ -599,7 +754,8 @@ for mid in list(played) + [m for m in results if m not in played]:
     elif mid not in listed:
         rows.append(row('–', mid, unranked.get(mid, mid), *with_record(mid, '')))
 
-print(f'''# Mod compatibility
+print(
+    f'''# Mod compatibility
 
 Which Workshop mods have been tried in this player, by popularity in
 [onimaxxing's catalog](https://onimaxxing.com/mods): the {FULL_RANKS} most-subscribed, then down to
@@ -626,7 +782,9 @@ installs get developer checks subscribers never see).
 
 | Rank | Mod | Loads | Colony | Played | Notes |
 |---|---|---|---|---|---|
-''' + '\n'.join(rows) + '''
+'''
+    + '\n'.join(rows)
+    + '''
 
 ## Known differences
 
@@ -678,4 +836,5 @@ full audit, per tweak and per patched method, is in
   run instead. Leave the tweak off with Fast Track.
 - **Cooperative Colonies** with *Critter and dupe brain updates capped* or *Lazy unseen conveyor
   items* (both off by default): the mod's lockstep timing of brain updates and of conveyor items
-  is skipped, so a session can fall out of step. Leave both tweaks off in a session.''')
+  is skipped, so a session can fall out of step. Leave both tweaks off in a session.'''
+)

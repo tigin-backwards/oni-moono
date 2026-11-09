@@ -8,6 +8,7 @@ of pixels (the white title and the button text of the main menu), in nits. With 
 shows SDR white at the "SDR content brightness" setting; a player that Auto HDR or RTX HDR takes
 for HDR content shows its white UI much brighter than the others.
 """
+
 import sys
 import numpy as np
 
@@ -25,5 +26,5 @@ for path in sys.argv[1:]:
     rgb = read_pfm(path)
     nits = 80.0 * (0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2])
     flat = np.sort(nits.ravel())
-    top = flat[int(len(flat) * 0.995):]
+    top = flat[int(len(flat) * 0.995) :]
     print(f'{path.rsplit("/", 1)[-1]}: median {np.median(flat):.1f} nits, brightest 0.5% {top.mean():.1f} nits, max {flat[-1]:.1f} nits')

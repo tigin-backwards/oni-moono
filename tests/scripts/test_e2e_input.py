@@ -3,6 +3,7 @@ sends real input, so it runs only on a display named in E2E_XTEST_DISPLAY (never
 DISPLAY):
   xvfb-run -a sh -c 'E2E_XTEST_DISPLAY=$DISPLAY python3 -m unittest discover -s tests/scripts -p test_e2e_input.py'
 """
+
 import ctypes, os, unittest
 
 import helpers  # noqa: F401
@@ -24,9 +25,17 @@ class Xtest(unittest.TestCase):
     def pointer(self):
         root, child = ctypes.c_ulong(), ctypes.c_ulong()
         rx, ry, wx, wy, mask = ctypes.c_int(), ctypes.c_int(), ctypes.c_int(), ctypes.c_int(), ctypes.c_uint()
-        self.x11.XQueryPointer(self.input.dpy, self.x11.XDefaultRootWindow(self.input.dpy), ctypes.byref(root),
-                               ctypes.byref(child), ctypes.byref(rx), ctypes.byref(ry), ctypes.byref(wx),
-                               ctypes.byref(wy), ctypes.byref(mask))
+        self.x11.XQueryPointer(
+            self.input.dpy,
+            self.x11.XDefaultRootWindow(self.input.dpy),
+            ctypes.byref(root),
+            ctypes.byref(child),
+            ctypes.byref(rx),
+            ctypes.byref(ry),
+            ctypes.byref(wx),
+            ctypes.byref(wy),
+            ctypes.byref(mask),
+        )
         return rx.value, ry.value, mask.value
 
     def pressed(self, name):
@@ -74,6 +83,7 @@ class Xtest(unittest.TestCase):
         (a 24-bit screen: xvfb-run -a -s '-screen 0 320x200x24')."""
         import tempfile
         from PIL import Image
+
         x11, dpy = self.x11, self.input.dpy
         x11.XSetWindowBackground.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_ulong]
         x11.XClearWindow.argtypes = [ctypes.c_void_p, ctypes.c_ulong]

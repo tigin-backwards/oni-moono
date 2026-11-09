@@ -10,6 +10,7 @@ The rule is stateful: a text ending in an apostrophe reads the character slot af
 text without words keeps the previous layout's first word record, so the lines are replayed in
 order, per component (one per font).
 """
+
 import re
 import sys
 import unicodedata
@@ -68,17 +69,20 @@ def predict(chars, slots, previous):
             if not in_word:
                 in_word, first = True, i
             if i == n - 1:
-                words.append((first, i)); at.append(i)
+                words.append((first, i))
+                at.append(i)
             continue
         if c in APOSTROPHES and i > 0 and letter_or_digit(chars[i - 1]):
             nxt = chars[i + 1] if i + 1 < n else (slots[i + 1] if i + 1 < len(slots) else '\0')
             if letter_or_digit(nxt):
                 continue
         if in_word:
-            words.append((first, i - 1)); at.append(i)
+            words.append((first, i - 1))
+            at.append(i)
             in_word = False
         elif i == 0 and (not punctuation(c) or n == 1):
-            words.append((0, -1)); at.append(0)
+            words.append((0, -1))
+            at.append(0)
     if not words and n > 0:
         return [previous], []
     return words, at
@@ -102,7 +106,7 @@ def rule(path):
         # The line ranges are logged for W lines only; other texts are checked when on one line.
         if 'lines' in f or (kind != 'W' and f['lc'] in ('0', '1')):
             ends, end = [], -1
-            for seg in (f['lines'].split('|') if 'lines' in f else ['x' * len(chars)] if chars else []):
+            for seg in f['lines'].split('|') if 'lines' in f else ['x' * len(chars)] if chars else []:
                 end += len(re.findall(r'\\u[0-9A-F]{4}|.', seg))
                 ends.append(end)
             counts = [0] * len(ends)

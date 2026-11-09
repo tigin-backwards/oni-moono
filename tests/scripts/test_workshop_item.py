@@ -3,6 +3,7 @@ them) become the Workshop item's folder: the U60 build at the root, U59 in
 archived_versions/u59, each with its mod_info.yaml, moono.json, manifests and players, nothing
 at a version's top the game would load, and SHA256SUMS over every file. A tampered archive or
 one with a path outside its folder is refused."""
+
 import hashlib, io, json, os, subprocess, sys, tarfile, tempfile, unittest, zipfile
 
 import helpers
@@ -14,8 +15,15 @@ def read(path, mode='r'):
     with open(path, mode) as f:
         return f.read()
 
-FILES = {'player/OniMoono.exe': b'MZ exe', 'player/OniMoono.dll': b'MZ dll', 'player/OniMoono': b'\x7fELF',
-         'player/translations/zh.po': b'po', 'setup.ps1': b'setup', 'README.md': b'readme'}
+
+FILES = {
+    'player/OniMoono.exe': b'MZ exe',
+    'player/OniMoono.dll': b'MZ dll',
+    'player/OniMoono': b'\x7fELF',
+    'player/translations/zh.po': b'po',
+    'setup.ps1': b'setup',
+    'README.md': b'readme',
+}
 
 
 def release(folder, version, tamper=None, extra=None):
@@ -53,9 +61,24 @@ class WorkshopItemTests(unittest.TestCase):
 
     def run_script(self, u60='u60', master='master'):
         out = os.path.join(self.dir, 'item')
-        p = subprocess.run([sys.executable, '-I', SCRIPT, '--u60', os.path.join(self.dir, u60), '--u60-tag', 'v2026.11.08.02',
-                            '--master', os.path.join(self.dir, master), '--master-tag', 'v2026.11.08.01', out],
-                           capture_output=True, text=True)
+        p = subprocess.run(
+            [
+                sys.executable,
+                '-I',
+                SCRIPT,
+                '--u60',
+                os.path.join(self.dir, u60),
+                '--u60-tag',
+                'v2026.11.08.02',
+                '--master',
+                os.path.join(self.dir, master),
+                '--master-tag',
+                'v2026.11.08.01',
+                out,
+            ],
+            capture_output=True,
+            text=True,
+        )
         return p, out
 
     def test_layout(self):
@@ -81,8 +104,11 @@ class WorkshopItemTests(unittest.TestCase):
         for p_, h in listed.items():
             self.assertEqual(hashlib.sha256(read(os.path.join(out, p_), 'rb')).hexdigest(), h)
         # The release manifests check the players as verify.sh checks them.
-        subprocess.run(['sha256sum', '--quiet', '--strict', '-c', os.path.join(out, 'oni-moono-2026.11.08-u60-linux-x64.SHA256SUMS')],
-                       cwd=os.path.join(out, 'linux-x64'), check=True)
+        subprocess.run(
+            ['sha256sum', '--quiet', '--strict', '-c', os.path.join(out, 'oni-moono-2026.11.08-u60-linux-x64.SHA256SUMS')],
+            cwd=os.path.join(out, 'linux-x64'),
+            check=True,
+        )
 
     def test_tampered_archive_is_refused(self):
         release(os.path.join(self.dir, 'u60'), '2026.11.08-u60', tamper='player/OniMoono.dll')

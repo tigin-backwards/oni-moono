@@ -11,6 +11,7 @@ with the game (scripts/check.sh): such a skip means a test did not run that shou
 the script names the tests and exits 1. Other skips (a font or library not installed, a bench
 that runs on request) are listed either way.
 """
+
 import argparse
 import collections
 import sys

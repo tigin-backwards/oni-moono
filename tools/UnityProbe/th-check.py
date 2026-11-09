@@ -13,6 +13,7 @@
 A log is a Player.log (original) or our player's stdout. Values are compared as float32: the
 "R" format differs between Mono and .NET.
 """
+
 import math
 import re
 import sys
@@ -65,8 +66,10 @@ def diff(orig, ours):
             bad += 1
             asc = [round(value(v), 6) for v in al.get(key, ('0', '0'))[:2]]
             bsc = [round(value(v), 6) for v in bl.get(key, ('0', '0'))[:2]]
-            print(f'{key}: height {a[key][1]} / {b[key][1]} ({value(a[key][0])!r} / {value(b[key][0])!r}), '
-                  f'width {a[key][3]} / {b[key][3]}; line ascender, descender {asc} / {bsc}')
+            print(
+                f'{key}: height {a[key][1]} / {b[key][1]} ({value(a[key][0])!r} / {value(b[key][0])!r}), '
+                f'width {a[key][3]} / {b[key][3]}; line ascender, descender {asc} / {bsc}'
+            )
     print(f'{bad} of {n} texts differ')
 
 

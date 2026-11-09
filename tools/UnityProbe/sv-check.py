@@ -3,6 +3,7 @@
   sv-check.py diff ORIG_LOG OURS_LOG   every value that differs, or is in one player only
   sv-check.py cs LOG                   the C# for Color's static properties, from a log
 Exit code 0 when diff finds no difference."""
+
 import re, struct, sys
 
 LINE = re.compile(r'PROBE f\d+ SV (.*)$')

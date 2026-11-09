@@ -1,4 +1,5 @@
 """qa-tools.py image's crop, mask and size tolerance; ui-diff.py's --tolerance and --mask-text."""
+
 import json, os, subprocess, sys, tempfile, unittest
 
 import helpers
@@ -13,7 +14,7 @@ def png(path, size=(100, 50), fill=(0, 0, 0), boxes=()):
     a = np.zeros((size[1], size[0], 3), dtype='uint8')
     a[:, :] = fill
     for x, y, w, h, colour in boxes:
-        a[y:y + h, x:x + w] = colour
+        a[y : y + h, x : x + w] = colour
     Image.fromarray(a).save(path)
     return path
 
@@ -60,8 +61,7 @@ class Images(unittest.TestCase):
         a = png(self.path('a.png'), boxes=[(0, 0, 10, 10, (255, 255, 255))])
         b = png(self.path('b.png'))
         tool = os.path.join(helpers.SCRIPTS, 'qa-tools.py')
-        run = lambda *args: subprocess.run([sys.executable, tool, 'image', a, b, self.path('d.png'), *args],
-                                           capture_output=True, text=True).stdout.strip()
+        run = lambda *args: subprocess.run([sys.executable, tool, 'image', a, b, self.path('d.png'), *args], capture_output=True, text=True).stdout.strip()
         self.assertEqual(run(), '0.0200')
         self.assertEqual(run('--mask', '0,0,10,10'), '0.0000')
         self.assertEqual(run('--crop', '0,0,20,10'), '0.5000')
@@ -99,9 +99,10 @@ class UiDiff(unittest.TestCase):
 
     def test_tolerance_and_masks(self):
         lines = self.differences(tolerance=2, mask_text=[r'\d+'])
-        self.assertEqual([l.split('\n')[0] for l in lines], ['only in first: /Canvas#0/Panel#1/Gone#2',
-                                                             'only in second: /Canvas#0/Panel#1/New#3',
-                                                             '/Canvas#0/Panel#1/Button#1 [KButton]'])
+        self.assertEqual(
+            [l.split('\n')[0] for l in lines],
+            ['only in first: /Canvas#0/Panel#1/Gone#2', 'only in second: /Canvas#0/Panel#1/New#3', '/Canvas#0/Panel#1/Button#1 [KButton]'],
+        )
         # Masks touch text only: interactable and the rect stay compared.
         self.assertEqual(len(self.differences(mask_text=[r'\d+'])), 4)
 
@@ -115,8 +116,9 @@ class UiDiff(unittest.TestCase):
 
     def test_command_line(self):
         tool = os.path.join(helpers.SCRIPTS, 'ui-diff.py')
-        out = subprocess.run([sys.executable, tool, self.a, self.b, '--tolerance', '2', '--mask-text', r'\d+',
-                              '--ignore', 'KButton'], capture_output=True, text=True)
+        out = subprocess.run(
+            [sys.executable, tool, self.a, self.b, '--tolerance', '2', '--mask-text', r'\d+', '--ignore', 'KButton'], capture_output=True, text=True
+        )
         self.assertEqual(out.returncode, 1)
         self.assertTrue(out.stdout.endswith('4 vs 4 elements, 2 differences\n'))
         open(self.b, 'w').write(DUMP_A)

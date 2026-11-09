@@ -19,6 +19,7 @@ version of a mod in the game's archived_versions convention (KMod.Mod.GetMostSui
 No DLL, .po or content folder is at a version's top, so the original game finds no supported
 content and loads nothing. Nothing is run from the archives.
 """
+
 import argparse
 import hashlib
 import json
@@ -90,7 +91,7 @@ def extract(archive, manifest, dest):
         name, data = item[0], item[1]
         if not name.startswith("oni-moono/") or not plain(name):
             fail(f"{archive}: {name} is outside its oni-moono folder")
-        path = name[len("oni-moono/"):]
+        path = name[len("oni-moono/") :]
         if expected.get(path) != sha256(data):
             fail(f"{archive}: {path} is not as {os.path.basename(manifest)} lists it")
         target = os.path.join(dest, *path.split("/"))
@@ -126,8 +127,7 @@ def version_folder(assets, tag, branch, out):
     with open(os.path.join(out, "mod_info.yaml"), "w", newline="\n") as f:
         f.write(f"# Moono {version}, for the game's {'U60' if branch == 'u60' else 'U59'} update. Not a mod: the game loads nothing from here.\n")
         f.write(f"minimumSupportedBuild: {BRANCHES[branch]}\nAPIVersion: 2\nrequiredDlcIds: []\nforbiddenDlcIds: []\nversion: \"{version}\"\n")
-    info = {"workshopItem": "oni-moono", "version": version, "tag": tag, "branch": branch,
-            "repository": "tigin-backwards/oni-moono", "platforms": platforms}
+    info = {"workshopItem": "oni-moono", "version": version, "tag": tag, "branch": branch, "repository": "tigin-backwards/oni-moono", "platforms": platforms}
     with open(os.path.join(out, "moono.json"), "w", newline="\n") as f:
         json.dump(info, f, indent=2)
         f.write("\n")
@@ -157,11 +157,11 @@ def main():
     for version in (args.out, os.path.join(args.out, "archived_versions", "u59")):
         for name in os.listdir(version):
             lower = name.lower()
-            if lower.endswith((".dll", ".po")) or (os.path.isdir(os.path.join(version, name)) and lower in
-                                                   ("strings", "codex", "elements", "templates", "worldgen", "buildingfacades", "anim")):
+            if lower.endswith((".dll", ".po")) or (
+                os.path.isdir(os.path.join(version, name)) and lower in ("strings", "codex", "elements", "templates", "worldgen", "buildingfacades", "anim")
+            ):
                 fail(f"{version}/{name} would be content the game loads")
-    paths = sorted(os.path.relpath(os.path.join(d, f), args.out).replace(os.sep, "/")
-                   for d, _, files in os.walk(args.out) for f in files)
+    paths = sorted(os.path.relpath(os.path.join(d, f), args.out).replace(os.sep, "/") for d, _, files in os.walk(args.out) for f in files)
     with open(os.path.join(args.out, "SHA256SUMS"), "wb") as out:
         for p in paths:
             with open(os.path.join(args.out, p), "rb") as f:

@@ -6,6 +6,7 @@
 
 The case lines in the log give the overlap's pixel (from the bottom left); DIR holds
 do-cases.png."""
+
 import os, re, sys
 from PIL import Image
 

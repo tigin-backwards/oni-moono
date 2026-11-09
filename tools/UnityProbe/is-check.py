@@ -15,6 +15,7 @@
 
 LOG is the original's Player.log or our player's stdout. Plain Python.
 """
+
 import os
 import re
 import struct
@@ -82,15 +83,15 @@ class InverseScale:
 
     def of(self, s):
         bits = to_bits(s)
-        magnitude = bits & 0x7fffffff
-        if magnitude >= 0x7e800000:
-            return s if magnitude > 0x7f800000 else (-0.0 if bits >> 31 else 0.0)
-        if magnitude < 0x3089705f:
+        magnitude = bits & 0x7FFFFFFF
+        if magnitude >= 0x7E800000:
+            return s if magnitude > 0x7F800000 else (-0.0 if bits >> 31 else 0.0)
+        if magnitude < 0x3089705F:
             return 0.0
         rb = to_bits(f32(1.0 / s))
-        k = bits & 0x7fffff
+        k = bits & 0x7FFFFF
         d = (self.table[k >> 2] >> (6 - 2 * (k & 3))) & 3
-        return from_bits((rb + d - 1) & 0xffffffff)
+        return from_bits((rb + d - 1) & 0xFFFFFFFF)
 
 
 def position(log):
