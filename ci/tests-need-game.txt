@@ -63,6 +63,7 @@ OniMoono.UnityEngine.Tests OniMoono.Tests.TmpTallLineTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.TmpTranslationHeightTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.TmpWordTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.TweakChecksTests
+OniMoono.UnityEngine.Tests OniMoono.Tests.UGui.CullTransparentMeshTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.UGui.DefaultControlsTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.UGui.MaskingTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.UGui.RectMaskCullTests
