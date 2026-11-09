@@ -211,6 +211,7 @@ namespace OniMoono.Tests
 
         Game NewGame() => new Game { List = () => Directory.GetFiles(dir, "*.sav").OrderBy(f => f, StringComparer.Ordinal).ToArray() };
 
+        [NeedsGameAssembly("Newtonsoft.Json")]
         [Fact]
         public void ARefreshIsTheGamesWithOneReadAFile()
         {
@@ -234,6 +235,7 @@ namespace OniMoono.Tests
             Assert.True(tweaked.Opens <= 50 + 6, $"{tweaked.Opens} game reads");
         }
 
+        [NeedsGameAssembly("Newtonsoft.Json")]
         [Fact]
         public void EachCallerGetsItsOwnCopy()
         {
@@ -256,6 +258,7 @@ namespace OniMoono.Tests
             Assert.NotSame(first.dlcIds, second.dlcIds);
         }
 
+        [NeedsGameAssembly("Newtonsoft.Json")]
         [Fact]
         public void TheMemoServesOnlyTheListingAndItsTimes()
         {
@@ -282,6 +285,7 @@ namespace OniMoono.Tests
             Assert.False(reads.TryGet(a, out _, out _));
         }
 
+        [NeedsGameAssembly("Newtonsoft.Json")]
         [Fact]
         public void AFileWrittenBetweenPassesOrRefreshesIsReadAgain()
         {
@@ -310,6 +314,7 @@ namespace OniMoono.Tests
             Assert.Equal(new[] { "Alpha", "Alpha rewritten", "Alpha again", "Alpha again" }, expected.Where(n => n.StartsWith("Alpha")));
         }
 
+        [NeedsGameAssembly("Newtonsoft.Json")]
         [Fact]
         public void ReadAheadGivesTheGamesBytesInAnyOrder()
         {
@@ -347,6 +352,7 @@ namespace OniMoono.Tests
             Assert.ThrowsAny<Exception>(() => HeaderReads<Header, Info>.ReadRaw(paths[302]));
         }
 
+        [NeedsGameAssembly("Newtonsoft.Json")]
         [Fact]
         public void TheModelReadsAsTheGameWithManyFiles()
         {

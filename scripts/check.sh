@@ -7,13 +7,17 @@ source "$(dirname "$0")/env.sh"
 # Its builds and tests run in the memory-capped test slice (scripts/contain.sh).
 [ -n "${ONI_CONTAINED:-}" ] || exec "$root/scripts/contain.sh" "$root/scripts/check.sh" "$@"
 dotnet build "$root/OniMoono.slnx" -v q -nologo
-# Every suite runs and reports; the gate fails at the end if any of them failed.
+# Every suite runs and reports; the gate fails at the end if any of them failed, or skipped a
+# test for want of the game (scripts/test-skips.py): this machine has it, as CI does not.
 failed=()
+reports=$(mktemp -d)
+trap 'rm -rf "$reports"' EXIT
 tests() { # tests NAME: run a test binary, print its totals and failures
     local out status=0
-    out=$("$root/out/bin/$1/debug/$1" 2>&1) || status=$?
+    out=$("$root/out/bin/$1/debug/$1" -result-xml "$reports/$1.xml" 2>&1) || status=$?
     grep -E 'Total:|\[FAIL\]' <<< "$out" || true
     [ $status -eq 0 ] || failed+=("$1")
+    [ ! -f "$reports/$1.xml" ] || python3 -I "$root/scripts/test-skips.py" --fail-on-game "$reports/$1.xml" || failed+=("$1 (game skips)")
 }
 tests OniMoono.UnityEngine.Tests
 tests OniMoono.Assets.Tests

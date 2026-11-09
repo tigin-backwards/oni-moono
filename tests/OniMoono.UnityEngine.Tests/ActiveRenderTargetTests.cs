@@ -9,6 +9,9 @@ namespace OniMoono.Tests
     /// whole (also when it was active already), it is created, and null is the back buffer.
     public class ActiveRenderTargetTests : EngineTest
     {
+        // A render texture's colour space is the project's (its player settings).
+        public ActiveRenderTargetTests() => TmpTestSupport.LoadGameData();
+
         static RecordingDevice Install(out RenderDevice previous)
         {
             var device = new RecordingDevice();

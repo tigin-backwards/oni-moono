@@ -279,6 +279,7 @@ namespace OniMoono.Tests
                 Assert.Skip($"no game at {variable} or ~/projects/{folder}");
                 return;
             }
+            if (GameInstall.IsReferenceAssembly(path)) Assert.Skip(GameInstall.NeedsAssembly + "Assembly-CSharp (a reference assembly)");
             var resolver = new Cecil.DefaultAssemblyResolver();
             resolver.AddSearchDirectory(Path.GetDirectoryName(path));
             using var original = Cecil.ModuleDefinition.ReadModule(path, new Cecil.ReaderParameters { AssemblyResolver = resolver });

@@ -22,7 +22,7 @@ namespace OniMoono.Tests
         /// test that loaded them is not to be relied on.
         public RenderTextureConstructorTests()
         {
-            OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data"));
+            OniMoono.Engine.Assets.AssetSystem.Initialize(GameInstall.DataDir);
             OniMoono.Engine.Assets.ProjectSettings.Load();
             Application.logMessageReceived += OnLog;
         }

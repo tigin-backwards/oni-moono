@@ -52,8 +52,10 @@ namespace OniMoono.Tests
         const string Me = "OniMoono.Tests.MonoDelegateSerializationTests";
         const string Mscorlib = "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089";
 
-        static MonoDelegateSerializationTests()
+        public MonoDelegateSerializationTests()
         {
+            GameInstall.RequireAssembly("0Harmony");
+            GameInstall.RequireAssembly("Newtonsoft.Json");
             // As the host installs it, with D1's names for the class libraries' types.
             static string AssemblyOf(Type t) => t.Assembly == typeof(object).Assembly ? Mscorlib : t.Assembly.FullName;
             MonoDelegateSerialization.Install(t => OniMoono.Engine.MonoTypeNames.FullName(t, AssemblyOf), AssemblyOf);

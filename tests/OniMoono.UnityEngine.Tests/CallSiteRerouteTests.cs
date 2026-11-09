@@ -55,6 +55,7 @@ namespace OniMoono.Tests
 
         static readonly MethodInfo helper = AccessTools.Method(typeof(Mode), nameof(Mode.AddTarget));
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void ModsTranspilerFindsTheCallTheTweakReroutes()
         {
@@ -81,6 +82,7 @@ namespace OniMoono.Tests
             }
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void TweaksTranspilersRunLast() => Assert.Equal(Priority.Last, CallSiteReroute.Transpiler(typeof(Tweak), nameof(Tweak.Reroute)).priority);
     }

@@ -11,9 +11,7 @@ namespace OniMoono.Tests
         [Fact]
         public void TheFirstOffsetIsGivenAsBlurOffsets()
         {
-            var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
-            OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            OniMoono.Engine.Assets.AssetSystem.Initialize(GameInstall.DataDir);
             OniMoono.Engine.Assets.ProjectSettings.Load();
             var source = new RenderTexture(32, 32, 0);
             var dest = new RenderTexture(32, 32, 0);

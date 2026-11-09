@@ -32,6 +32,7 @@ namespace OniMoono.Tests
             public static void ModPostfix() => Loop.Calls.Add("mod postfix");
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void FalsePrefixSkipsLaterPrefixesThatCanAffectTheOriginal()
         {

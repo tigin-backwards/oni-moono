@@ -348,9 +348,7 @@ namespace OniMoono.Tests
         {
             // The game's video screen, ending on its own, destroys its elements at once after the
             // canvases were built for the frame (both in PostLateUpdate); the frame still renders.
-            var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
-            AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
             FrameRenderer.Install();
             OniMoono.Engine.UI.CanvasSystem.Install();
@@ -411,9 +409,7 @@ namespace OniMoono.Tests
         [Fact]
         public void ANestedCanvasMovedOrScaledKeepsItsElementsGeometry()
         {
-            var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
-            AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
             FrameRenderer.Install();
             OniMoono.Engine.UI.CanvasSystem.Install();
@@ -488,9 +484,7 @@ namespace OniMoono.Tests
         [Fact]
         public void AnElementWhoseShaderReadsNoPositionIsDrawnInTheRootCanvassSpace()
         {
-            var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
-            AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
             FrameRenderer.Install();
             OniMoono.Engine.UI.CanvasSystem.Install();
@@ -835,9 +829,7 @@ namespace OniMoono.Tests
         [Fact]
         public void OverlayCanvasesDrawAfterOneDepthClear()
         {
-            var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
-            AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
             FrameRenderer.Install();
             OniMoono.Engine.UI.CanvasSystem.Install();

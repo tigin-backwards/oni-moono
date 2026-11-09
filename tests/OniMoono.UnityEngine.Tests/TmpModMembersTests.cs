@@ -84,6 +84,7 @@ namespace OniMoono.Tests
             Assert.Equal(typeof(void), AssignPositioning.ReturnType);
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void ScrollingASingleLineToTheCaretRealignsTheCaret()
         {
@@ -108,6 +109,7 @@ namespace OniMoono.Tests
             });
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void EditsThatLeaveTheTextWhereItIsDoNotRealignTheCaret()
         {
@@ -134,6 +136,7 @@ namespace OniMoono.Tests
             });
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void AMultiLineTextScrolledToTheCaretRealignsTheCaret()
         {
@@ -158,6 +161,7 @@ namespace OniMoono.Tests
             });
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void TheVerticalScrollbarsChangeRealignsTheCaret()
         {
@@ -195,6 +199,7 @@ namespace OniMoono.Tests
             });
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void ACaretDriftsFromATextMovedFromCode()
         {

@@ -13,17 +13,7 @@ namespace OniMoono.Tests
 {
     public class TextTests : EngineTest
     {
-        static string DataDir
-        {
-            get
-            {
-                var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                           ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
-                var dir = Path.Combine(game, "OxygenNotIncluded_Data");
-                if (!Directory.Exists(dir)) throw new InvalidOperationException($"Game data not found at {dir}; set ONI_GAME_DIR.");
-                return dir;
-            }
-        }
+        static string DataDir => GameInstall.DataDir;
 
         static T Load<T>(string file, long pathId) where T : Object
         {

@@ -228,9 +228,7 @@ namespace OniMoono.Tests
 
             public RenderScope()
             {
-                var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                           ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
-                AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+                AssetSystem.Initialize(GameInstall.DataDir);
                 ProjectSettings.Load();
                 FrameRenderer.Install();
                 GraphicsDevice.Install(Device);

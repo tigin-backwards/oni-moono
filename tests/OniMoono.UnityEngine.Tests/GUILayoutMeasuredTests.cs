@@ -13,15 +13,7 @@ namespace OniMoono.Tests
     /// (part 4), with the game's skin.
     public partial class GUILayoutMeasuredTests : EngineTest, IDisposable
     {
-        static string DataDir
-        {
-            get
-            {
-                var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                           ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
-                return Path.Combine(game, "OxygenNotIncluded_Data");
-            }
-        }
+        static string DataDir => GameInstall.DataDir;
 
         readonly List<(LogType Type, string Message)> logged = new();
 

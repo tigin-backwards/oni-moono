@@ -81,10 +81,19 @@ nothing another run wrote reaches a release.
 
 ### Unit tests in CI
 
-`scripts/ci-unit-tests.sh` runs the unit test suites against the reference assemblies, without
-the classes `ci/tests-need-game.txt` lists: those need the game's data, its runnable Harmony,
-Ionic.Zip or Newtonsoft.Json, or a display. `scripts/check.sh` still runs every test locally. A
-new test class that needs the game goes into that list.
+`scripts/ci-unit-tests.sh` runs every unit test suite against the reference assemblies, with
+`ONI_TESTS_NO_GAME=1`. A test that needs the game's data, or its runnable Harmony, Ionic.Zip or
+Newtonsoft.Json, skips itself without them, with a reason that starts `needs game data:` or
+`needs game assembly:`, and the run ends with the skips listed by reason
+(`scripts/test-skips.py`). `scripts/check.sh` runs the same suites with the game and fails on any
+such skip, naming the tests.
+
+A new test gets the skip by reaching the game through `tests/Shared/GameInstall.cs`:
+`GameInstall.DataDir` (or the helpers built on it, such as `TmpTestSupport.LoadGameData`) for
+the data, and `[NeedsGameAssembly("0Harmony")]` on a test that uses one of the game's
+assemblies. In a run without the game, a test that misses them still skips: a failure on a
+missing file under the game folder, or on loading a reference assembly, is reported as one of
+those skips (`NoGameSkips`, `ONI_TESTS_NO_GAME=1` only). Any other failure fails the build.
 
 ## Verifying a release
 

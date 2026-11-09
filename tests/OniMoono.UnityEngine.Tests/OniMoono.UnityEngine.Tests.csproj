@@ -18,6 +18,10 @@
     <PackageReference Include="Mono.Cecil" />
   </ItemGroup>
   <ItemGroup>
+    <!-- What the tests need of the game install, and the skips without it (GameInstall). -->
+    <Compile Include="../Shared/*.cs" Link="Shared/%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- The engine is process-global, like Unity's: tests run one at a time. -->
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="TestData/**" CopyToOutputDirectory="PreserveNewest" />

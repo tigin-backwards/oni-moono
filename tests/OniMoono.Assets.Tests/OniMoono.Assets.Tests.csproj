@@ -10,6 +10,10 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
   </ItemGroup>
   <ItemGroup>
+    <!-- What the tests need of the game install, and the skips without it (GameInstall). -->
+    <Compile Include="../Shared/*.cs" Link="Shared/%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../src/OniMoono.Assets/OniMoono.Assets.csproj" />
     <Content Include="Data/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

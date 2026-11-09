@@ -174,6 +174,7 @@ namespace OniMoono.Tests
             return harmony;
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void AssignPositioningRunsOncePerCaretMade()
         {
@@ -210,6 +211,7 @@ namespace OniMoono.Tests
             return (RectTransform)go.transform;
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void ACaretWhosePositioningIsSkippedKeepsTheDefaults()
         {

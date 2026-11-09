@@ -11,15 +11,7 @@ namespace OniMoono.Tests
 {
     public class AssetUnloadTests : EngineTest
     {
-        static string DataDir
-        {
-            get
-            {
-                var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                           ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
-                return Path.Combine(game, "OxygenNotIncluded_Data");
-            }
-        }
+        static string DataDir => GameInstall.DataDir;
 
         // sharedassets0.assets: the Droid Sans font, which nothing else in the tests' data keeps
         // loaded (Liberation Sans is held from TextMeshPro's settings: their default font asset's
