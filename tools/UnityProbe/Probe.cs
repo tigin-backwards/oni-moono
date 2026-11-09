@@ -239,6 +239,11 @@ namespace SemanticsProbe
                 go.AddComponent<SubMesh>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "renderedsize")
+            {
+                go.AddComponent<RenderedSize>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "modtext")
             {
                 go.AddComponent<ModText>();

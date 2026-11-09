@@ -1,0 +1,7 @@
+# UnityProbe's rendered-size probe (tools/UnityProbe/RenderedSize.cs): what a LocText reports
+# right after its text changes, as Thermal Tooltips Reworked and HoverTextDrawer read it. Run with
+# E2E_ONIMCP pointing at a copy of OniMcp's mod folder with SemanticsProbe.dll added and
+# PROBE_SCENARIO=renderedsize (tools/UnityProbe/README.md, "renderedsize").
+from: main-menu
+steps:
+  - ui_wait: {path: "**/RsProbeDone", cond: exists, frames: 20000}

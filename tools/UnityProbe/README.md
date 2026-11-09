@@ -787,6 +787,15 @@ run the player under `unshare --user --map-root-user --mount` after bind-mountin
 folder over the directory. `docs/cleanroom/ugui.md` ("Legacy Text glyph placement") records
 what it measured.
 
+With `PROBE_SCENARIO=renderedsize` only the rendered-size probe runs (`RenderedSize.cs`, lines `RS
+…`, 10 s into the main menu, a few seconds). It reads a LocText's rendered values, preferred
+width, character count, bounds and `havePropertiesChanged` right after its text changes: on an
+instance of a LocText prefab, activated and styled with `SetTextStyleSetting.ApplyStyle`, as
+Thermal Tooltips Reworked measures strings, and on a laid-out text given a new string, as
+`HoverTextDrawer.DrawText` does, each with and without `KForceUpdateDirty()`, at once and a
+frame later. Run it with `tests/e2e/probe-renderedsize.yaml` as the canvas probes run and diff
+the players' `RS` lines; `TmpForceUpdateDirtyTests` encodes the results.
+
 With `PROBE_SCENARIO=modtext` only the mod-text probe runs (`ModText.cs`, lines `MX …`, 10 s into
 the main menu, a few seconds; `PROBE_MX_PART` takes a comma list of `font`, `ellipsis`, `bold`,
 `lines` and `pref`). It builds texts as three Workshop mods do. `font`: `font = null` on texts

@@ -142,7 +142,10 @@ namespace TMPro
             m_CanvasCache = null;
         }
 
-        // Klei's addition: marks the text changed so that it regenerates in the next rebuild.
+        // Klei's addition: marks the text changed and, when it is active, lays it out and
+        // regenerates its mesh at once, so that its rendered size, text info and bounds are
+        // current when it returns (measured: HoverTextDrawer reads renderedWidth right after
+        // it). An inactive text stays changed until it is next laid out.
         public void KForceUpdateDirty()
         {
             m_havePropertiesChanged = true;
@@ -150,6 +153,7 @@ namespace TMPro
             InvalidateLayoutCache();
             SetVerticesDirty();
             SetLayoutDirty();
+            ForceMeshUpdate();
         }
 
         // ----- Canvas rebuild -----
