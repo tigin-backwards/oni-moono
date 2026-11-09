@@ -465,6 +465,47 @@ commit 9,901-10,044 → 5,366-5,870 MB; soggy lab 2's heap 4,267 → 3,276 MB an
 0.18 → 0.21 ms), its grids' 1,044-1,129 MB of arrays held in 46-52 MB (more grids than §3.1
 counted: the critters' grids are paged too).
 
+## 4. Duplicate objects (2026-11-09)
+
+Minecraft's FerriteCore saves memory by sharing identical immutable objects. The same question
+here: how much of the heap is copies, and which copies could be shared exactly. Two heap dumps
+of a late-game colony (cycle 17,000; Linux, release, default tweaks, speed 3): after load and
+10 minutes later. A ClrMD analyser read the reachable objects only (48.9 M, 6.5 GiB at steady
+play, 99% of them in gen2/LOH/POH). It computed retained sizes from a dominator tree, grouped
+strings by value and other objects by content in three rounds: arrays without references, then
+all objects with references to found duplicates mapped to one copy.
+
+**Biggest owner: the report history.** `ReportManager` retains 1.69 GiB, 26% of the heap: one
+note dictionary for each of 3.9 M report entries (1.15 GiB) and 17,000 daily reports with
+4.1 M entries (0.54 GiB). The game keeps and loads every day's report for the life of the
+colony.
+
+**Duplicates.** Strings: 227 MiB of extra copies, 207 MiB of them `ReportEntry.context` (the
+Duplicants' and critters' names and note contexts, about 100,000 copies of each name). All
+objects: 1.48 GiB of extra copies, 23% of the old heap:
+
+| Copies | MiB | Shareable exactly? |
+|---|---:|---|
+| Report note dictionaries (2.4 M identical dictionaries, entries and buckets) | ~515 | for past days: only today's entries are ever added to |
+| GPU staging bytes per anim controller (symbol overrides, instances) | 126 | no: written when overrides change |
+| Reachability offset tables (`CellOffset[]`), cached by array reference, so per building | 47 | yes while read-only |
+| Default `Workable.workAnims` arrays, one per instance | 34 | yes for the game (never written) |
+| `KAnimFile[]` override arrays | 16 | probably (needs an audit) |
+| Tag sets, event tables, anim lookups, empty state machine stacks and scheduler groups | ~330 | no: mutable per object |
+
+The game's code makes nearly all of it. The engine's share is small: uploaded texel copies
+(14 MiB), shader sources, GameObject names.
+
+**Exact and cheap**: pooling the strings the save loader reads (`ReadKleiString` builds a new
+string per read; contexts are compared by value), −0.2 GiB; sharing default `workAnims` and
+offset tables by content, −80 MiB. **The real target** is report storage: sharing past days'
+identical note dictionaries saves ~0.5 GiB, and compact storage for past days ~1 GiB. Neither
+is a FerriteCore-style dedup.
+
+**Young collections** pay for the old heap through cards (old objects that point at young ones).
+Strings, primitive arrays and the note dictionaries hold no references, so removing them barely
+changes gen0/gen1 cost. It shrinks gen2 marking, committed memory and the load.
+
 ## Files
 
 Not committed (the worktree's `out/heapdesign`): BundleCensus (bundle nodes and class sizes;
