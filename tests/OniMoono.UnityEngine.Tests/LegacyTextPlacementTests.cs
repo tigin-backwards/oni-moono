@@ -47,11 +47,11 @@ namespace OniMoono.Tests
 
         static TextGenerationSettings Settings(Font font, int size, float scale, TextAnchor anchor = TextAnchor.UpperLeft, float width = 4000f, float height = 400f,
             HorizontalWrapMode wrap = HorizontalWrapMode.Overflow, bool updateBounds = true, Vector2? pivot = null) => new()
-        {
-            font = font, color = Color.white, fontSize = size, lineSpacing = 1f, richText = true, scaleFactor = scale, fontStyle = FontStyle.Normal,
-            textAnchor = anchor, updateBounds = updateBounds, verticalOverflow = VerticalWrapMode.Overflow, horizontalOverflow = wrap,
-            generationExtents = new Vector2(width, height), pivot = pivot ?? new Vector2(0f, 1f), generateOutOfBounds = true,
-        };
+            {
+                font = font, color = Color.white, fontSize = size, lineSpacing = 1f, richText = true, scaleFactor = scale, fontStyle = FontStyle.Normal,
+                textAnchor = anchor, updateBounds = updateBounds, verticalOverflow = VerticalWrapMode.Overflow, horizontalOverflow = wrap,
+                generationExtents = new Vector2(width, height), pivot = pivot ?? new Vector2(0f, 1f), generateOutOfBounds = true,
+            };
 
         static TextGenerator Generate(string text, TextGenerationSettings settings)
         {

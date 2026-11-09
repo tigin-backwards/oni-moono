@@ -90,11 +90,16 @@ namespace OniMoono.Tests
         {
             switch (rng.Next(10))
             {
-                case 0: case 1: case 2: case 3:
+                case 0:
+                case 1:
+                case 2:
+                case 3:
                     return (float)((rng.NextDouble() * 2 - 1) * Math.Pow(10, rng.Next(-2, 4)));
-                case 4: case 5:
+                case 4:
+                case 5:
                     return BitConverter.Int32BitsToSingle(rng.Next() ^ (rng.Next(2) << 31));
-                case 6: case 7:
+                case 6:
+                case 7:
                     return Specials[rng.Next(Specials.Length)];
                 case 8:
                     return (float)((rng.NextDouble() * 2 - 1) * Math.Pow(10, rng.Next(-45, 39)));

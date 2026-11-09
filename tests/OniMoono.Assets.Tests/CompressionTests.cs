@@ -29,7 +29,7 @@ namespace OniMoono.Assets.Tests
             Lzma.Decode(Data("sample.lzma"), output);
             Assert.Equal(expected, output);
         }
-    
+
         // Corrupt or truncated blocks (a damaged download) are invalid data, which the bundle
         // loader reports as an archive it cannot open, not another exception.
         [Theory]
@@ -59,7 +59,7 @@ namespace OniMoono.Assets.Tests
                 catch (InvalidDataException) { }
             }
         }
-}
+    }
 }
 
 namespace OniMoono.Assets.Tests

@@ -46,7 +46,7 @@ public static class Classifier
     {
         "OnPrefabInit", "OnSpawn", "OnActivate", "OnDeactivate", "OnCleanUp", "OnCmpEnable", "OnCmpDisable", "OnForcedCleanUp",
     };
-    static readonly HashSet<string> ToolTypes =new(StringComparer.Ordinal) { "ToolMenu", "PlayerController", "ToolParameterMenu" };
+    static readonly HashSet<string> ToolTypes = new(StringComparer.Ordinal) { "ToolMenu", "PlayerController", "ToolParameterMenu" };
 
     /// The class a patch target's declaring type maps to (§3.2), by its outermost type's name, or
     /// for a type that derives from KScreen or SideScreenContent in the game, S.
@@ -187,20 +187,20 @@ public static class Classifier
 
         // ---- patch targets
         foreach (var a in own)
-        foreach (var p in a.Patches)
-        {
-            var mapped = OfTarget(p.Type, game);
-            var counted = mapped;
-            // A screen's key handler is input; a screen's lifecycle method, patched by a mod with
-            // no UI of its own, is only a hook (Bigger Camera Zoom Out's
-            // WattsonMessage.OnDeactivate), not a screen to verify.
-            if (mapped == "S" && p.Method is "OnKeyDown" or "OnKeyUp") counted = "K";
-            else if (mapped == "S" && !touchesUi && p.Method is { } m && LifecycleMethods.Contains(m)) counted = "P";
-            t.Patches.Add(new ClassifiedPatch(p.Type, p.Method, counted, counted == mapped ? null : mapped, p.Source, p.By, p.Helper));
-            if (!p.Helper && counted != "P") t.Class(counted, "patches " + p.Display);
-            // Changing a game screen's behaviour or layout is UI to verify too.
-            if (!p.Helper && counted == "S") t.Flag("touches_ui", "patches a game screen: " + p.Display);
-        }
+            foreach (var p in a.Patches)
+            {
+                var mapped = OfTarget(p.Type, game);
+                var counted = mapped;
+                // A screen's key handler is input; a screen's lifecycle method, patched by a mod with
+                // no UI of its own, is only a hook (Bigger Camera Zoom Out's
+                // WattsonMessage.OnDeactivate), not a screen to verify.
+                if (mapped == "S" && p.Method is "OnKeyDown" or "OnKeyUp") counted = "K";
+                else if (mapped == "S" && !touchesUi && p.Method is { } m && LifecycleMethods.Contains(m)) counted = "P";
+                t.Patches.Add(new ClassifiedPatch(p.Type, p.Method, counted, counted == mapped ? null : mapped, p.Source, p.By, p.Helper));
+                if (!p.Helper && counted != "P") t.Class(counted, "patches " + p.Display);
+                // Changing a game screen's behaviour or layout is UI to verify too.
+                if (!p.Helper && counted == "S") t.Flag("touches_ui", "patches a game screen: " + p.Display);
+            }
 
         // ---- P: own code, and nothing a player drives
         if (!t.Classes.Keys.Any(k => k is "B" or "T" or "S" or "K" or "V" or "M"))

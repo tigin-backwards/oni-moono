@@ -261,7 +261,7 @@ namespace OniMoono.Tests
             block.SetInt("_Count", 3);
             Assert.Equal(3f, block.GetFloat("_Count"));
         }
-    
+
 
         [Fact]
         public void PngRoundTripsThroughLoadImage()

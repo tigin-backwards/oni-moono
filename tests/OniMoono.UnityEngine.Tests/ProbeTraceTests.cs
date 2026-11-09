@@ -145,24 +145,24 @@ namespace OniMoono.Tests
                     case 'N': r.ReadBytes(4 + 4 + 1 + 1 + 4 + 4 + 4 + 1); break;
                     case 'U': case 'X': r.ReadInt32(); break;
                     case 'P':
+                    {
+                        var p = new Probe { Nav = r.ReadInt32() };
+                        r.ReadUInt16();
+                        p.Start = r.ReadInt32(); p.End = r.ReadInt32();
+                        p.Origin = r.ReadInt32(); p.NavType = r.ReadByte(); p.Flags = r.ReadByte();
+                        bool abil = r.ReadBoolean();
+                        if (abil) { p.Prefab = r.ReadInt32(); p.Proxy = r.ReadInt32(); p.Key = r.ReadInt32(); p.Bits = r.ReadByte(); }
+                        bool minion = r.ReadBoolean();
+                        p.Found = r.ReadInt32();
+                        r.ReadBytes(8 + 8);
+                        p.Set = r.ReadUInt64(); p.Costs = r.ReadUInt64();
+                        if (abil && minion)
                         {
-                            var p = new Probe { Nav = r.ReadInt32() };
-                            r.ReadUInt16();
-                            p.Start = r.ReadInt32(); p.End = r.ReadInt32();
-                            p.Origin = r.ReadInt32(); p.NavType = r.ReadByte(); p.Flags = r.ReadByte();
-                            bool abil = r.ReadBoolean();
-                            if (abil) { p.Prefab = r.ReadInt32(); p.Proxy = r.ReadInt32(); p.Key = r.ReadInt32(); p.Bits = r.ReadByte(); }
-                            bool minion = r.ReadBoolean();
-                            p.Found = r.ReadInt32();
-                            r.ReadBytes(8 + 8);
-                            p.Set = r.ReadUInt64(); p.Costs = r.ReadUInt64();
-                            if (abil && minion)
-                            {
-                                if (!byStart.TryGetValue(p.Start, out var l)) byStart[p.Start] = l = new List<Probe>();
-                                l.Add(p);
-                            }
-                            break;
+                            if (!byStart.TryGetValue(p.Start, out var l)) byStart[p.Start] = l = new List<Probe>();
+                            l.Add(p);
                         }
+                        break;
+                    }
                     default: throw new InvalidDataException($"bad event tag {tag}");
                 }
             }
@@ -507,23 +507,23 @@ namespace OniMoono.Tests
                         batch.Add(new ProbeEvent { Kind = ProbeChange.Row, Cell = e.Cell, Row = e.Row, Old = graph.SetRow(e.Cell, e.Row) });
                         break;
                     case 'M':
-                        {
-                            int x = mask[e.Cell] ^ e.V;
-                            if ((x & 5) != 0) Add(ProbeChange.Dst, e.Cell);
-                            if ((x & 1) != 0) Add(ProbeChange.Void, e.Cell);
-                            if ((x & 0x16) != 0) Add(ProbeChange.Src, e.Cell);
-                            mask[e.Cell] = e.V;
-                            break;
-                        }
+                    {
+                        int x = mask[e.Cell] ^ e.V;
+                        if ((x & 5) != 0) Add(ProbeChange.Dst, e.Cell);
+                        if ((x & 1) != 0) Add(ProbeChange.Void, e.Cell);
+                        if ((x & 0x16) != 0) Add(ProbeChange.Src, e.Cell);
+                        mask[e.Cell] = e.V;
+                        break;
+                    }
                     case 'Q':
-                        {
-                            int below = e.Cell - w;
-                            bool a0 = Submerged(e.Cell), b0 = Submerged(below);
-                            liq[e.Cell] = e.V;
-                            if (Submerged(e.Cell) != a0) Add(ProbeChange.Dst, e.Cell);
-                            if (below >= 0 && Submerged(below) != b0) Add(ProbeChange.Dst, below);
-                            break;
-                        }
+                    {
+                        int below = e.Cell - w;
+                        bool a0 = Submerged(e.Cell), b0 = Submerged(below);
+                        liq[e.Cell] = e.V;
+                        if (Submerged(e.Cell) != a0) Add(ProbeChange.Dst, e.Cell);
+                        if (below >= 0 && Submerged(below) != b0) Add(ProbeChange.Dst, below);
+                        break;
+                    }
                     case 'R':
                         foreach (int c in TableDiff(restrB, e.Table, 'R')) { Add(ProbeChange.Dst, c); Add(ProbeChange.Void, c); }
                         restrB = e.Table; restr = ParseRestr(restrB);

@@ -168,8 +168,12 @@ namespace OniMoono.Host
             switch (opcode.StackBehaviourPush)
             {
                 case StackBehaviour.Push0: return 0;
-                case StackBehaviour.Push1: case StackBehaviour.Pushi: case StackBehaviour.Pushi8:
-                case StackBehaviour.Pushr4: case StackBehaviour.Pushr8: case StackBehaviour.Pushref: return 1;
+                case StackBehaviour.Push1:
+                case StackBehaviour.Pushi:
+                case StackBehaviour.Pushi8:
+                case StackBehaviour.Pushr4:
+                case StackBehaviour.Pushr8:
+                case StackBehaviour.Pushref: return 1;
                 case StackBehaviour.Push1_push1: return 2;
                 case StackBehaviour.Varpush:
                     if (opcode == OpCodes.Calli) return -1;

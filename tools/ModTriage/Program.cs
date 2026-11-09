@@ -133,13 +133,13 @@ static object Record(CompatRow row, ModFolder mod, Triage t, string ws, int? bui
         "IBuildingConfig", "IMultiBuildingConfig", "IEntityConfig", "IMultiEntityConfig", "KMod.UserMod2", "OverlayModes+Mode"];
     var bases = new SortedDictionary<string, List<string>>(StringComparer.Ordinal);
     foreach (var o in own.SelectMany(a => a.Types).Where(o => !o.Helper))
-    foreach (var b in o.Bases.Concat(o.Interfaces).Distinct())
-    {
-        var key = notable.Contains(b) ? b : Names.Simple(b) == "FScreen" ? "FScreen" : null;
-        if (key == null) continue;
-        if (!bases.TryGetValue(key, out var list)) bases[key] = list = [];
-        if (list.Count < 20) list.Add(o.Name);
-    }
+        foreach (var b in o.Bases.Concat(o.Interfaces).Distinct())
+        {
+            var key = notable.Contains(b) ? b : Names.Simple(b) == "FScreen" ? "FScreen" : null;
+            if (key == null) continue;
+            if (!bases.TryGetValue(key, out var list)) bases[key] = list = [];
+            if (list.Count < 20) list.Add(o.Name);
+        }
     return new
     {
         Id = mod.Id,
@@ -223,8 +223,8 @@ static int SharedNamespaces(string ws, int? build, GameIndex game)
         var mod = ModFolder.Scan(Path.GetFileName(dir), dir, build, plibOnly, game);
         var perMod = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var a in mod.Assemblies.Where(a => a.WholeLibrary == Library.None))
-        foreach (var (ns, n) in a.OwnTopLevel)
-            if (n > 0 && !Fingerprints.NeverShared(ns) && !a.EntryNamespaces.Contains(ns)) perMod[ns] = perMod.GetValueOrDefault(ns) + n;
+            foreach (var (ns, n) in a.OwnTopLevel)
+                if (n > 0 && !Fingerprints.NeverShared(ns) && !a.EntryNamespaces.Contains(ns)) perMod[ns] = perMod.GetValueOrDefault(ns) + n;
         foreach (var (ns, n) in perMod)
         {
             if (!counts.TryGetValue(ns, out var list)) counts[ns] = list = [];

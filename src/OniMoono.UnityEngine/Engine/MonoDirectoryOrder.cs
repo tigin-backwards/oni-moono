@@ -86,7 +86,7 @@ namespace OniMoono.Engine
             var subfolders = new List<string>();
             FileSystemEnumerable<T>.FindPredicate report = infos
                 ? (ref FileSystemEntry entry) => { subfolders.Add(entry.ToFullPath()); return false; }
-                : (ref FileSystemEntry entry) => { subfolders.Add(entry.ToSpecifiedFullPath()); return false; };
+            : (ref FileSystemEntry entry) => { subfolders.Add(entry.ToSpecifiedFullPath()); return false; };
             var level = root;
             while (true)
             {

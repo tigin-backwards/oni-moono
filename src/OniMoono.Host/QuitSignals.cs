@@ -74,7 +74,8 @@ namespace OniMoono.Host
                 Thread.Sleep(deadline);
                 log($"{name}: the quit did not end the process within {deadline.TotalSeconds:0.#} s; exiting now");
                 exit(status);
-            }) { IsBackground = true, Name = "Quit deadline" }.Start();
+            })
+            { IsBackground = true, Name = "Quit deadline" }.Start();
         }
 
         /// The log flushed (for up to a second: a thread hung inside it holds its lock), then
@@ -85,7 +86,8 @@ namespace OniMoono.Host
             {
                 try { OniMoono.Engine.EngineLog.Close(); Console.Out.Flush(); }
                 catch (Exception) { }
-            }) { IsBackground = true };
+            })
+            { IsBackground = true };
             flush.Start();
             flush.Join(TimeSpan.FromSeconds(1));
             LinuxExit(status);

@@ -836,7 +836,7 @@ namespace OniMoono.Tests
             Assert.Equal(Event.KeyboardEvent("^a"), Event.KeyboardEvent("^a"));
             Assert.NotEqual(Event.KeyboardEvent("^a"), Event.KeyboardEvent("a"));
         }
-    
+
         [Fact]
         public void LayoutToolbarTakesTheAvailableWidthAndOneButtonRow()
         {

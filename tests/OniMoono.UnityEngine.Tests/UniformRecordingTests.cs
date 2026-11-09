@@ -72,7 +72,7 @@ namespace OniMoono.Tests
             Assert.Equal(9f, v[5]);
             Assert.Equal(5f, v[9 + 12]);
         }
-    
+
         static readonly int MainTexId = Shader.PropertyToID("_RecordingTestTex");
         static readonly int CountId = Shader.PropertyToID("_RecordingTestCount");
 
@@ -110,5 +110,5 @@ namespace OniMoono.Tests
             Assert.Equal(5f, Record(p, new DrawInputs { Material = material, Block = block })[0]);
             Assert.Equal(1f, Record(p, new DrawInputs { Material = material })[0]);
         }
-}
+    }
 }

@@ -231,7 +231,8 @@ namespace SemanticsProbe
                 switch (m)
                 {
                     case MethodInfo mi: L("meta " + t.Name + " method " + Vis(mi) + Mods(mi) + " " + Sig(mi)); break;
-                    case FieldInfo fi: L("meta " + t.Name + " field " + Vis(fi) + (fi.IsStatic ? " static" : "") + (fi.IsInitOnly ? " readonly" : "") + " " + TypeName(fi.FieldType) + " " + fi.Name
+                    case FieldInfo fi:
+                        L("meta " + t.Name + " field " + Vis(fi) + (fi.IsStatic ? " static" : "") + (fi.IsInitOnly ? " readonly" : "") + " " + TypeName(fi.FieldType) + " " + fi.Name
                         + (fi.GetCustomAttributes(typeof(SerializeField), false).Length > 0 ? " [SerializeField]" : "")); break;
                     case PropertyInfo pi:
                         L("meta " + t.Name + " property " + TypeName(pi.PropertyType) + " " + pi.Name + " get=" + Vis(pi.GetGetMethod(true)) + (pi.GetGetMethod(true) == null ? "" : Mods(pi.GetGetMethod(true)))

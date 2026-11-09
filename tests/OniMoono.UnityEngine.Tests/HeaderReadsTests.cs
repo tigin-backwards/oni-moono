@@ -191,8 +191,11 @@ namespace OniMoono.Tests
         }
 
         static object Sav(string name, int minor = 39, string[] traits = null, string[] dlcs = null)
-            => new { baseName = name, saveMajorVersion = 7, saveMinorVersion = minor, numberOfCycles = 12, worldTraits = traits ?? new[] { "traits/A" },
-                     colonyGuid = Guid.NewGuid(), dlcId = "", dlcIds = dlcs ?? new[] { "EXPANSION1_ID" } };
+            => new
+            {
+                baseName = name, saveMajorVersion = 7, saveMinorVersion = minor, numberOfCycles = 12, worldTraits = traits ?? new[] { "traits/A" },
+                colonyGuid = Guid.NewGuid(), dlcId = "", dlcIds = dlcs ?? new[] { "EXPANSION1_ID" }
+            };
 
         void Tree()
         {

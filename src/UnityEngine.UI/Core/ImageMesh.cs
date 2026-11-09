@@ -360,23 +360,23 @@ namespace UnityEngine.UI
             {
                 case 0: // bottom edge: left half, then right half
                 case 2: // top edge: right half, then left half
-                    {
-                        bool left = (origin == 0) == (half == 0);
-                        var mb = Mid(f.P0, f.P3); var mt = Mid(f.P1, f.P2);
-                        var tb = Mid(f.T0, f.T3); var tt = Mid(f.T1, f.T2);
-                        if (left) { r.Set(3, mb, tb); r.Set(2, mt, tt); }
-                        else { r.Set(0, mb, tb); r.Set(1, mt, tt); }
-                        break;
-                    }
+                {
+                    bool left = (origin == 0) == (half == 0);
+                    var mb = Mid(f.P0, f.P3); var mt = Mid(f.P1, f.P2);
+                    var tb = Mid(f.T0, f.T3); var tt = Mid(f.T1, f.T2);
+                    if (left) { r.Set(3, mb, tb); r.Set(2, mt, tt); }
+                    else { r.Set(0, mb, tb); r.Set(1, mt, tt); }
+                    break;
+                }
                 default: // left edge: top half, then bottom; right edge: bottom half, then top
-                    {
-                        bool top = (origin == 1) == (half == 0);
-                        var ml = Mid(f.P0, f.P1); var mr = Mid(f.P3, f.P2);
-                        var tl = Mid(f.T0, f.T1); var tr = Mid(f.T3, f.T2);
-                        if (top) { r.Set(0, ml, tl); r.Set(3, mr, tr); }
-                        else { r.Set(1, ml, tl); r.Set(2, mr, tr); }
-                        break;
-                    }
+                {
+                    bool top = (origin == 1) == (half == 0);
+                    var ml = Mid(f.P0, f.P1); var mr = Mid(f.P3, f.P2);
+                    var tl = Mid(f.T0, f.T1); var tr = Mid(f.T3, f.T2);
+                    if (top) { r.Set(0, ml, tl); r.Set(3, mr, tr); }
+                    else { r.Set(1, ml, tl); r.Set(2, mr, tr); }
+                    break;
+                }
             }
             return r;
         }

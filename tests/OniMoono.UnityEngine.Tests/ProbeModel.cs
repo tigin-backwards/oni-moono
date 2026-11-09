@@ -285,51 +285,51 @@ namespace OniMoono.Tests
                         Rebuild(b, c, 3);
                         break;
                     case 4: // a door's access for one Duplicant or a model
+                    {
+                        if (!restrictions.TryGetValue(c, out var r))
                         {
-                            if (!restrictions.TryGetValue(c, out var r))
-                            {
-                                restrictions[c] = r = ((byte)rng.Next(3), new Dictionary<int, byte>());
-                                mask[c] |= DoorBit;
-                            }
-                            int id = rng.Next(2) == 0 ? navigators[rng.Next(navigators.Length)].Proxy : 300 + rng.Next(2);
-                            if (rng.Next(3) == 0) r.Masks.Remove(id); else r.Masks[id] = (byte)rng.Next(1, 8);
-                            Add(b, ProbeChange.Dst, c);
-                            Add(b, ProbeChange.Void, c);
-                            break;
+                            restrictions[c] = r = ((byte)rng.Next(3), new Dictionary<int, byte>());
+                            mask[c] |= DoorBit;
                         }
+                        int id = rng.Next(2) == 0 ? navigators[rng.Next(navigators.Length)].Proxy : 300 + rng.Next(2);
+                        if (rng.Next(3) == 0) r.Masks.Remove(id); else r.Masks[id] = (byte)rng.Next(1, 8);
+                        Add(b, ProbeChange.Dst, c);
+                        Add(b, ProbeChange.Void, c);
+                        break;
+                    }
                     case 5: // a tube entrance: power, capacity, a reservation
+                    {
+                        if (!tubes.TryGetValue(c, out var t)) { t = (true, 1, new HashSet<int>()); mask[c] |= TubeBit; }
+                        switch (rng.Next(3))
                         {
-                            if (!tubes.TryGetValue(c, out var t)) { t = (true, 1, new HashSet<int>()); mask[c] |= TubeBit; }
-                            switch (rng.Next(3))
-                            {
-                                case 0: t.Operational = !t.Operational; break;
-                                case 1: t.Capacity = rng.Next(3); break;
-                                default:
-                                    int p = navigators[rng.Next(navigators.Length)].Prefab;
-                                    if (!t.Reserved.Remove(p)) t.Reserved.Add(p);
-                                    break;
-                            }
-                            tubes[c] = t;
-                            Add(b, ProbeChange.Src, c);
-                            break;
+                            case 0: t.Operational = !t.Operational; break;
+                            case 1: t.Capacity = rng.Next(3); break;
+                            default:
+                                int p = navigators[rng.Next(navigators.Length)].Prefab;
+                                if (!t.Reserved.Remove(p)) t.Reserved.Add(p);
+                                break;
                         }
+                        tubes[c] = t;
+                        Add(b, ProbeChange.Src, c);
+                        break;
+                    }
                     case 6 when suitMarkers: // a suit checkpoint: its flags, suits in its docks, reservations
+                    {
+                        if (!suits.TryGetValue(c, out var s)) { s = (2, FAtmo, 1, 2, new HashSet<int>(), new HashSet<int>()); mask[c] |= SuitBit; }
+                        switch (rng.Next(3))
                         {
-                            if (!suits.TryGetValue(c, out var s)) { s = (2, FAtmo, 1, 2, new HashSet<int>(), new HashSet<int>()); mask[c] |= SuitBit; }
-                            switch (rng.Next(3))
-                            {
-                                case 0: s.Flags = (byte)rng.Next(8); break;
-                                case 1: s.Suits = rng.Next(s.Lockers + 1); break;
-                                default:
-                                    int p = navigators[rng.Next(navigators.Length)].Prefab;
-                                    var set = rng.Next(2) == 0 ? s.SuitRes : s.LockerRes;
-                                    if (!set.Remove(p)) set.Add(p);
-                                    break;
-                            }
-                            suits[c] = s;
-                            Add(b, ProbeChange.Src, c);
-                            break;
+                            case 0: s.Flags = (byte)rng.Next(8); break;
+                            case 1: s.Suits = rng.Next(s.Lockers + 1); break;
+                            default:
+                                int p = navigators[rng.Next(navigators.Length)].Prefab;
+                                var set = rng.Next(2) == 0 ? s.SuitRes : s.LockerRes;
+                                if (!set.Remove(p)) set.Add(p);
+                                break;
                         }
+                        suits[c] = s;
+                        Add(b, ProbeChange.Src, c);
+                        break;
+                    }
                     case 7: // idle traversal blocked or not (a nav mask bit read at both ends)
                         mask[c] ^= IdleBit;
                         Add(b, ProbeChange.Dst, c);

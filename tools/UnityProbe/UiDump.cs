@@ -227,21 +227,21 @@ namespace SemanticsProbe
                 var sb = new StringBuilder("UI ");
                 try
                 {
-                rt.GetWorldCorners(corners);
-                sb.Append(Path(rt));
-                if (rt.parent != null) sb.Append(" #").Append(rt.GetSiblingIndex());
-                var r = rt.rect;
-                sb.Append(" rect ").Append(F(r.x)).Append(',').Append(F(r.y)).Append(' ').Append(F(r.width)).Append('x').Append(F(r.height));
-                sb.Append(" world ").Append(F(corners[0].x)).Append(',').Append(F(corners[0].y)).Append(" to ").Append(F(corners[2].x)).Append(',').Append(F(corners[2].y));
-                if (layout) AppendLayout(sb, rt);
-                var text = rt.GetComponent<TMP_Text>();
-                if (text != null && text.enabled)
-                {
-                    sb.Append(" text ").Append(text.text == null ? "null" : "\"" + text.text.Replace("\n", "\\n") + "\"");
-                    sb.Append(" size ").Append(F(text.fontSize));
-                    sb.Append(" pref ").Append(F(text.preferredWidth)).Append('x').Append(F(text.preferredHeight));
-                    sb.Append(" lines ").Append(text.textInfo != null ? text.textInfo.lineCount : -1);
-                }
+                    rt.GetWorldCorners(corners);
+                    sb.Append(Path(rt));
+                    if (rt.parent != null) sb.Append(" #").Append(rt.GetSiblingIndex());
+                    var r = rt.rect;
+                    sb.Append(" rect ").Append(F(r.x)).Append(',').Append(F(r.y)).Append(' ').Append(F(r.width)).Append('x').Append(F(r.height));
+                    sb.Append(" world ").Append(F(corners[0].x)).Append(',').Append(F(corners[0].y)).Append(" to ").Append(F(corners[2].x)).Append(',').Append(F(corners[2].y));
+                    if (layout) AppendLayout(sb, rt);
+                    var text = rt.GetComponent<TMP_Text>();
+                    if (text != null && text.enabled)
+                    {
+                        sb.Append(" text ").Append(text.text == null ? "null" : "\"" + text.text.Replace("\n", "\\n") + "\"");
+                        sb.Append(" size ").Append(F(text.fontSize));
+                        sb.Append(" pref ").Append(F(text.preferredWidth)).Append('x').Append(F(text.preferredHeight));
+                        sb.Append(" lines ").Append(text.textInfo != null ? text.textInfo.lineCount : -1);
+                    }
                 }
                 catch (System.Exception e)
                 {

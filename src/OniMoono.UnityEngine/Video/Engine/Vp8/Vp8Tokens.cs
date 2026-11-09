@@ -179,7 +179,7 @@ namespace OniMoono.Engine.Video.Vp8
             val = 2;
             goto SIGN_WRITE_COEFF_AND_CHECK_EXIT;
 
-        // DECODE_SIGN_WRITE_COEFF_AND_CHECK_EXIT(val), shared by every token of value 2 or more.
+            // DECODE_SIGN_WRITE_COEFF_AND_CHECK_EXIT(val), shared by every token of value 2 or more.
         SIGN_WRITE_COEFF_AND_CHECK_EXIT:
             // DECODE_AND_APPLYSIGN(val)
             v = (BoolDecoder.GetBit(bd) != 0 ? -val : val) * dqf[c != 0 ? 1 : 0];

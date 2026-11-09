@@ -882,12 +882,12 @@ namespace OniMoono.Desktop.Gl
                         }
                     }
                     else switch (Components(u.Type))
-                    {
-                        case 1: N.glUniform1fv(u.Location, 1, f); break;
-                        case 2: N.glUniform2fv(u.Location, 1, f); break;
-                        case 3: N.glUniform3fv(u.Location, 1, f); break;
-                        default: N.glUniform4fv(u.Location, 1, f); break;
-                    }
+                        {
+                            case 1: N.glUniform1fv(u.Location, 1, f); break;
+                            case 2: N.glUniform2fv(u.Location, 1, f); break;
+                            case 3: N.glUniform3fv(u.Location, 1, f); break;
+                            default: N.glUniform4fv(u.Location, 1, f); break;
+                        }
                 }
             }
         }

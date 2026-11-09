@@ -266,8 +266,11 @@ namespace OniMoono.Host
             IReadOnlyDictionary<string, bool> tweaks, bool? splashMoo, bool? frameStats, bool? hideLogPaths = null, string? gpu = null,
             bool? dxgi = null, bool? updateCheck = null, string? gc = null, bool? stallRepeats = null)
         {
-            var result = new PlayerSettings { Splash = file.Splash, FrameStats = file.FrameStats, LogPaths = file.LogPaths, Gpu = file.Gpu, Dxgi = file.Dxgi,
-                StallRepeats = file.StallRepeats, UpdateCheck = file.UpdateCheck, Gc = file.Gc };
+            var result = new PlayerSettings
+            {
+                Splash = file.Splash, FrameStats = file.FrameStats, LogPaths = file.LogPaths, Gpu = file.Gpu, Dxgi = file.Dxgi,
+                StallRepeats = file.StallRepeats, UpdateCheck = file.UpdateCheck, Gc = file.Gc
+            };
             foreach (var (name, on) in file.GameTweaks) result.GameTweaks[name] = on;
             foreach (var (name, on) in tweaks)
             {

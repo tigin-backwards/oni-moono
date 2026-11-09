@@ -298,27 +298,27 @@ namespace OniMoono.Host
                         }
                         break;
                     case "--dxgi":
+                    {
+                        var value = args[++i];
+                        if (value is not ("on" or "off"))
                         {
-                            var value = args[++i];
-                            if (value is not ("on" or "off"))
-                            {
-                                Console.Error.WriteLine($"Unknown dxgi {value}; known: on, off");
-                                return false;
-                            }
-                            o.Dxgi = value == "on";
-                            break;
+                            Console.Error.WriteLine($"Unknown dxgi {value}; known: on, off");
+                            return false;
                         }
+                        o.Dxgi = value == "on";
+                        break;
+                    }
                     case "--stall-repeats":
+                    {
+                        var value = args[++i];
+                        if (value is not ("on" or "off"))
                         {
-                            var value = args[++i];
-                            if (value is not ("on" or "off"))
-                            {
-                                Console.Error.WriteLine($"Unknown stall-repeats {value}; known: on, off");
-                                return false;
-                            }
-                            o.StallRepeats = value == "on";
-                            break;
+                            Console.Error.WriteLine($"Unknown stall-repeats {value}; known: on, off");
+                            return false;
                         }
+                        o.StallRepeats = value == "on";
+                        break;
+                    }
                     case "--gc":
                         o.Gc = args[++i];
                         if (!GcMode.IsChoice(o.Gc))
@@ -336,27 +336,27 @@ namespace OniMoono.Host
                         }
                         break;
                     case "--crash-dumps":
+                    {
+                        var value = args[++i];
+                        if (value is not ("on" or "off" or "full"))
                         {
-                            var value = args[++i];
-                            if (value is not ("on" or "off" or "full"))
-                            {
-                                Console.Error.WriteLine($"Unknown crash dumps {value}; known: on, off, full");
-                                return false;
-                            }
-                            o.CrashDumps = value;
-                            break;
+                            Console.Error.WriteLine($"Unknown crash dumps {value}; known: on, off, full");
+                            return false;
                         }
+                        o.CrashDumps = value;
+                        break;
+                    }
                     case "--crash-dialog":
+                    {
+                        var value = args[++i];
+                        if (value is not ("on" or "off"))
                         {
-                            var value = args[++i];
-                            if (value is not ("on" or "off"))
-                            {
-                                Console.Error.WriteLine($"Unknown crash dialog {value}; known: on, off");
-                                return false;
-                            }
-                            o.CrashDialog = value;
-                            break;
+                            Console.Error.WriteLine($"Unknown crash dialog {value}; known: on, off");
+                            return false;
                         }
+                        o.CrashDialog = value;
+                        break;
+                    }
                     case "--test-native-crash":
                         o.TestNativeCrash = args[++i];
                         if (o.TestNativeCrash.IndexOf(':') is int frameAt and > 0)
@@ -372,28 +372,28 @@ namespace OniMoono.Host
                         break;
                     case "--no-tweaks-menu": o.NoTweaksMenu = true; break;
                     case "--max-frame-rate":
-                        {
-                            var spec = args[++i].Split(':');
-                            o.MaxFrameRate = int.Parse(spec[0]);
-                            if (spec.Length > 1) o.MaxFrameRateFrames = int.Parse(spec[1]);
-                            break;
-                        }
+                    {
+                        var spec = args[++i].Split(':');
+                        o.MaxFrameRate = int.Parse(spec[0]);
+                        if (spec.Length > 1) o.MaxFrameRateFrames = int.Parse(spec[1]);
+                        break;
+                    }
                     case "--dump-render-textures":
-                        {
-                            var spec = args[++i];
-                            int colon = spec.IndexOf(':');
-                            OniMoono.Engine.Rendering.FrameRenderer.DumpFrame = int.Parse(spec[..colon]);
-                            OniMoono.Engine.Rendering.FrameRenderer.DumpDirectory = Path.GetFullPath(spec[(colon + 1)..]);
-                            break;
-                        }
+                    {
+                        var spec = args[++i];
+                        int colon = spec.IndexOf(':');
+                        OniMoono.Engine.Rendering.FrameRenderer.DumpFrame = int.Parse(spec[..colon]);
+                        OniMoono.Engine.Rendering.FrameRenderer.DumpDirectory = Path.GetFullPath(spec[(colon + 1)..]);
+                        break;
+                    }
                     case "--native-override":
-                        {
-                            var spec = args[++i];
-                            int eq = spec.IndexOf('=');
-                            if (eq <= 0) throw new ArgumentException("--native-override expects NAME=PATH");
-                            o.NativeOverrides[spec[..eq]] = Path.GetFullPath(spec[(eq + 1)..]);
-                            break;
-                        }
+                    {
+                        var spec = args[++i];
+                        int eq = spec.IndexOf('=');
+                        if (eq <= 0) throw new ArgumentException("--native-override expects NAME=PATH");
+                        o.NativeOverrides[spec[..eq]] = Path.GetFullPath(spec[(eq + 1)..]);
+                        break;
+                    }
                     // Unity's player arguments (UnityArguments): what is wrong with one is noted in
                     // the log, and the setting keeps its default.
                     case "-screen-width": o.ScreenWidth = UnityArguments.Int(args, ref i, o.ArgumentNotes, min: 1) ?? o.ScreenWidth; break;

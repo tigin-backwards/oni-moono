@@ -353,7 +353,7 @@ namespace PerfProbe
             foreach (var g in new[] { empty, hidden, shown })
             {
                 var data = new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
-                    { position = RectTransformUtility.WorldToScreenPoint(null, g.rectTransform.position) };
+                { position = RectTransformUtility.WorldToScreenPoint(null, g.rectTransform.position) };
                 hits.Clear();
                 UnityEngine.EventSystems.EventSystem.current.RaycastAll(data, hits);
                 Debug.Log($"PERF measure raycast at {g.name}: first {(hits.Count > 0 ? hits[0].gameObject.name : "none")}, hits {string.Join(",", hits.ConvertAll(h => h.gameObject.name))}");
