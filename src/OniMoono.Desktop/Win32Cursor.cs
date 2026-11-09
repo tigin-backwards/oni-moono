@@ -19,9 +19,16 @@ namespace OniMoono.Desktop
     /// is subclassed to answer WM_SETCURSOR over the client area with it while the cursor is
     /// shown (GLFW's Normal and Captured modes, where GLFW would show its own); everything else,
     /// hidden and disabled modes, the borders and the default arrow, stays GLFW's.
+    ///
+    /// The load is the original's call (traced on its player): LoadImageW(NULL, file,
+    /// IMAGE_CURSOR, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE). LR_DEFAULTSIZE loads the image at
+    /// the system's cursor size, SM_CXCURSOR at the system DPI (the main monitor's at sign-in):
+    /// 32 at 100%, 48 at 150%, 64 at 200%. So on a high-DPI main monitor the original's 32x32
+    /// cursor is a 48x48 or 64x64 one, which the pointer size then scales as before (issue #62).
     internal sealed unsafe class Win32Cursor : IDisposable
     {
-        const uint IMAGE_CURSOR = 2, LR_LOADFROMFILE = 0x10, WM_SETCURSOR = 0x20, WM_NCHITTEST = 0x84;
+        internal const uint IMAGE_CURSOR = 2, LR_LOADFROMFILE = 0x10, LR_DEFAULTSIZE = 0x40;
+        const uint WM_SETCURSOR = 0x20, WM_NCHITTEST = 0x84;
         const int GWLP_WNDPROC = -4, HTCLIENT = 1;
 
         delegate nint WndProc(nint hwnd, uint message, nint wParam, nint lParam);
@@ -43,17 +50,7 @@ namespace OniMoono.Desktop
         /// when Windows does not load it.
         public bool Set(byte[] rgba, int width, int height, int hotX, int hotY)
         {
-            if (width > 256 || height > 256) return false;
-            string path = Path.Combine(Path.GetTempPath(), $"oni-moono-cursor-{Environment.ProcessId}.cur");
-            nint loaded;
-            try
-            {
-                File.WriteAllBytes(path, CurFile(rgba, width, height, hotX, hotY));
-                loaded = LoadImageW(0, path, IMAGE_CURSOR, 0, 0, LR_LOADFROMFILE);
-            }
-            catch (IOException) { return false; }
-            catch (UnauthorizedAccessException) { return false; }
-            finally { try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
+            nint loaded = Load(rgba, width, height, hotX, hotY, LoadImageW);
             if (loaded == 0) return false;
             var previous = cursor;
             cursor = loaded;
@@ -104,9 +101,28 @@ namespace OniMoono.Desktop
             Clear();
         }
 
+        internal delegate nint LoadImage(nint module, string name, uint type, int width, int height, uint flags);
+
+        /// The cursor loaded from a temporary .cur file of the image, as the original loads its
+        /// own; 0 when it is too large for a .cur file, the file cannot be written or Windows
+        /// does not load it.
+        internal static nint Load(byte[] rgba, int width, int height, int hotX, int hotY, LoadImage load)
+        {
+            if (width > 256 || height > 256) return 0;
+            string path = Path.Combine(Path.GetTempPath(), $"oni-moono-cursor-{Environment.ProcessId}.cur");
+            try
+            {
+                File.WriteAllBytes(path, CurFile(rgba, width, height, hotX, hotY));
+                return load(0, path, IMAGE_CURSOR, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+            }
+            catch (IOException) { return 0; }
+            catch (UnauthorizedAccessException) { return 0; }
+            finally { try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
+        }
+
         /// A .cur file with one 32 bpp image: the bottom-up BGRA rows, then the AND mask (set
         /// where alpha is 0).
-        static byte[] CurFile(byte[] rgba, int width, int height, int hotX, int hotY)
+        internal static byte[] CurFile(byte[] rgba, int width, int height, int hotX, int hotY)
         {
             int maskStride = (width + 31) / 32 * 4;
             int image = 40 + width * height * 4 + maskStride * height;
@@ -134,7 +150,7 @@ namespace OniMoono.Desktop
         struct POINT { public int x, y; }
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        static extern nint LoadImageW(nint module, string name, uint type, int width, int height, uint flags);
+        internal static extern nint LoadImageW(nint module, string name, uint type, int width, int height, uint flags);
 
         [DllImport("user32.dll")]
         static extern bool DestroyCursor(nint cursor);
