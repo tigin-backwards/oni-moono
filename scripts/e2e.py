@@ -1362,6 +1362,36 @@ def fixture_of(spec):
     return None if spec['from'] == MAIN_MENU else os.path.join(FIXTURES, spec['from'] + '.sav')
 
 
+# Why a fixture ensure_fixtures could not place is missing, and how to get it, by file name.
+FIXTURE_PROBLEMS = {}
+
+
+def ensure_fixtures(specs, log=print):
+    """Puts the fixtures SPECS load (`from`, `extra_saves`) into tests/e2e/fixtures with the
+    hashes of tests/e2e/fixtures.json, from the shared cache or the private refs repository's
+    releases (scripts/fixtures.py). One it cannot place fails its specs when they run, saying
+    how to get it, unless a spec of this run has blessed it by then."""
+    names = sorted(
+        {os.path.basename(p) for spec in specs for p in [fixture_of(spec)] if p} | {n + '.sav' for spec in specs for n in spec.get('extra_saves', [])}
+    )
+    if not names:
+        return {}
+    fixtures = load_script('fixtures.py')
+    try:
+        problems = fixtures.ensure(names, fixtures=FIXTURES, log=log)
+    except (fixtures.FixtureError, OSError, ValueError) as e:
+        problems = {n: f'no fixture {n}: tests/e2e/fixtures.json: {e}' for n in names if not os.path.exists(os.path.join(FIXTURES, n))}
+    for problem in problems.values():
+        log(f'e2e: {problem}')
+    FIXTURE_PROBLEMS.update(problems)
+    return problems
+
+
+def missing_fixture(path, what=''):
+    """The failure for a fixture not there when its spec runs."""
+    return SpecFailure(FIXTURE_PROBLEMS.get(os.path.basename(path)) or f'no fixture {path}{what}')
+
+
 def save_is_spaced_out(path):
     """Whether a save is a Spaced Out one, from its header's dlcIds (scripts/windows-run-home.sh);
     older saves list none, and their cluster names the expansion."""
@@ -2902,7 +2932,7 @@ class Player:
                 if os.path.exists(source):
                     shutil.copy(source, os.path.join(folder, name + ext))
                 elif ext == '.sav':
-                    raise SpecFailure(f'no fixture {source} (extra_saves)')
+                    raise missing_fixture(source, ' (extra_saves)')
         # `retired_colonies`: Colony Summary entries, each fixtures/NAME.json in a folder named
         # for its colony (RetiredColonies/COLONY/COLONY.json), as the game writes them on a save.
         for name in retired_colonies:
@@ -4657,7 +4687,7 @@ class Run:
             if uses_driver and not self.env.get('E2E_DRIVER'):
                 raise SpecFailure('the spec needs E2eDriver, and E2E_DRIVER names no build of it')
             if fixture and not os.path.exists(fixture):
-                raise SpecFailure(f'no fixture {fixture}')
+                raise missing_fixture(fixture)
             self.player = Player(
                 self.kind,
                 self.out,
@@ -4982,6 +5012,16 @@ class Reference:
 
 def values_by_step(values):
     return {f'{v["step"]}:{v["expr"]}': v['value'] for v in values}
+
+
+def bless_fixture(source, target):
+    """Copies a blessed save over TARGET, which may be hard-linked to the fixture's alias: a new
+    file is swapped in, so the alias keeps the old one. fixtures/.blessed-local notes its hash,
+    so that scripts/fixtures.py keeps it until `fixtures.py bless` uploads it."""
+    temp = f'{target}.bless-{os.getpid()}'
+    shutil.copyfile(source, temp)
+    os.replace(temp, target)
+    load_script('fixtures.py').record_local_bless(os.path.basename(target), target, FIXTURES)
 
 
 def bless(spec, result):
@@ -5435,6 +5475,7 @@ def main(argv):
                 'at installs of one build with the same DLC content (out/local-tools/qa.env).'
             )
             return 2
+    ensure_fixtures(specs, log=say)
     # Its players and Xvfbs end with it, however it ends (see "leftovers").
     install_teardown()
     start_reaper()
@@ -5511,8 +5552,8 @@ def main(argv):
         record.update(verdict='fail' if reasons else 'warn' if record['findings'] else 'pass', reasons=reasons)
         if opts['bless'] and kind == 'original' and not result['outcome'] and index == 1:
             for save in result['saves']:
-                shutil.copy(os.path.join(result['out'], save + '.sav'), os.path.join(FIXTURES, save + '.sav'))
-                log(f'     blessed fixture {save}')
+                bless_fixture(os.path.join(result['out'], save + '.sav'), os.path.join(FIXTURES, save + '.sav'))
+                log(f'     blessed fixture {save} (upload it with scripts/fixtures.py bless tests/e2e/fixtures/{save}.sav)')
             log(f'     blessed references into {bless(spec, result)}')
         if os.path.isdir(result['out']):
             with open(os.path.join(result['out'], 'result.json'), 'w') as f:

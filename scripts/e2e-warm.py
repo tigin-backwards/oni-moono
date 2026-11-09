@@ -278,6 +278,7 @@ def main(argv):
         raise SystemExit('e2e-warm: the specs differ in what is fixed at launch (mods, options, language, ...)')
     if any(e2e.fixture_of(s) is None for s in specs):
         raise SystemExit('e2e-warm: a spec from the main menu needs a fresh player')
+    e2e.ensure_fixtures(specs, log=e2e.say)
     env = e2e.environment()
     findings = e2e.load_findings()
     run_id = e2e.new_run_id()

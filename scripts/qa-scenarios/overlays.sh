@@ -1,7 +1,7 @@
 # Every overlay of a base-game colony (DeCrew), by its hotkey, each captured: oxygen, power,
 # temperature, materials, light, plumbing, ventilation, decor, germs, farming, rooms, exosuits,
 # automation, conveyors; then the overlay closed (F1 again on the last open one).
-SAVE="${ONI_M9_SAVE:-$HOME/projects/onimaxxing/saves/DeCrew.sav}"
+SAVE="${ONI_M9_SAVE:-$root/tests/e2e/fixtures/decrew.sav}"
 FRAMES=2420
 DUMPS="1640 1700 1760 1820 1880 1940 2000 2060 2120 2180 2240 2300 2360 2410"
 TOLERANCE=0.08

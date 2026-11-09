@@ -524,6 +524,7 @@ def main(argv):
     missing = [n for n in ('QA_U57_GAME', 'QA_U57_STEAM', 'E2E_ONIMCP', 'E2E_ORIGINAL') if not env.get(n)]
     if missing:
         sys.exit('mod-sweep: needs ' + ', '.join(missing) + ' (out/local-tools/qa.env)')
+    e2e.ensure_fixtures([{'from': opts.save}])
     if not os.path.exists(os.path.join(e2e.FIXTURES, opts.save + '.sav')):
         sys.exit(f'mod-sweep: no tests/e2e/fixtures/{opts.save}.sav')
     # A save loaded with other mods than it was saved with opens MOD DIFFERENCES, listing them;

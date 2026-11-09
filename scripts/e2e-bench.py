@@ -342,8 +342,11 @@ def warm_loads(player, mcp, driver, opts, log):
 
 
 def save_path(name):
-    """A fixture's name (tests/e2e/fixtures/NAME.sav), or a path."""
-    return os.path.abspath(name if os.path.exists(name) else os.path.join(e2e.FIXTURES, name + '.sav'))
+    """A fixture's name (tests/e2e/fixtures/NAME.sav, fetched if need be), or a path."""
+    if os.path.exists(name):
+        return os.path.abspath(name)
+    e2e.ensure_fixtures([{'from': name}])
+    return os.path.join(e2e.FIXTURES, name + '.sav')
 
 
 def main(argv):
