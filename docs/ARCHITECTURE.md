@@ -2068,7 +2068,8 @@ otherwise none. Without a display (`--headless`, `--batchmode`) frames are paced
 `targetFrameRate` or 60 Hz.
 
 The CPU's fence waits (the presenter's for a frame, the one after a vsynced swap, the stream
-buffer's for a ring region) wait 100 ms at a time until the fence signals. A wait still going
+buffer's for a ring region; on Vulkan, `VkFenceWait`'s for a frame slot, a presenter slot and the
+splash's upload) wait 100 ms at a time until the fence signals. A wait still going
 after 10 s is logged, and again each minute, as one `[engine] long wait:` line naming the site,
 the sync object, the frame where known, the thread and its kernel ID (`LongWaits`); the wait
 itself does not change, and one that ends at its first slice costs nothing more. A player once

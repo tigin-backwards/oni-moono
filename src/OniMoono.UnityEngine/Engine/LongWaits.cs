@@ -37,8 +37,9 @@ namespace OniMoono.Engine
         /// Where the lines go (a test's recorder in place of the engine log).
         internal static Action<string> Log = EngineLog.Engine;
 
-        /// ONI_TEST_STALL_FENCE=1: the presenter's frame fence wait never ends, its slices told
-        /// as a real wait's are (a manual check of the reports and the quit's thread dump).
+        /// ONI_TEST_STALL_FENCE=1: the presenter's fence wait (GL: the frame's; Vulkan: a slot's
+        /// last copy) never ends, its slices told as a real wait's are (a manual check of the
+        /// reports and the quit's thread dump).
         public static readonly bool StallFence = Environment.GetEnvironmentVariable("ONI_TEST_STALL_FENCE") == "1";
 
         static readonly ConcurrentDictionary<Tag, byte> current = new();

@@ -442,7 +442,7 @@ namespace OniMoono.Desktop.Vulkan
             if (submitted[s])
             {
                 var fence = fences[s];
-                VkCheck.Ok(vk.Device.PInvoke.vkWaitForFences.Invoke(vk.Device.Handle, 1, &fence, true, -1), "vkWaitForFences (presenter)");
+                VkCheck.Ok(VkFenceWait.Wait(vk, fence, "presenter: a slot's last copy", s, stallable: true), "vkWaitForFences (presenter)");
                 vk.Device.PInvoke.vkResetFences.Invoke(vk.Device.Handle, 1, &fence);
                 submitted[s] = false;
             }
@@ -584,7 +584,7 @@ namespace OniMoono.Desktop.Vulkan
                 // With vsync a frame counts as queued until its copy is done (GlPresenter).
                 long t = GlTimings.Now;
                 var fence = fences[s];
-                VkCheck.Ok(vk.Device.PInvoke.vkWaitForFences.Invoke(vk.Device.Handle, 1, &fence, true, -1), "vkWaitForFences (presenter)");
+                VkCheck.Ok(VkFenceWait.Wait(vk, fence, "presenter: the copy before a vsynced present", s), "vkWaitForFences (presenter)");
                 lastWait = GlTimings.Now - t;
             }
         }

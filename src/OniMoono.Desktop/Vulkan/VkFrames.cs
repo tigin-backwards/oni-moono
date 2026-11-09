@@ -268,7 +268,7 @@ namespace OniMoono.Desktop.Vulkan
             if (s.Pending)
             {
                 var fence = s.Fence;
-                VkCheck.Ok(vk.Device.PInvoke.vkWaitForFences.Invoke(vk.Device.Handle, 1, &fence, true, -1), "vkWaitForFences");
+                VkCheck.Ok(VkFenceWait.Wait(vk, fence, "frames: a frame slot's fence", current), "vkWaitForFences");
                 vk.Device.PInvoke.vkResetFences.Invoke(vk.Device.Handle, 1, &fence);
                 s.Pending = false;
                 if (s.TimestampsWritten) CollectTimestamps(s);
@@ -475,7 +475,7 @@ namespace OniMoono.Desktop.Vulkan
                 if (s.Pending)
                 {
                     var fence = s.Fence;
-                    vk.Device.PInvoke.vkWaitForFences.Invoke(vk.Device.Handle, 1, &fence, true, -1);
+                    VkFenceWait.Wait(vk, fence, "frames: a frame slot's fence at disposal");
                     s.Pending = false;
                 }
                 foreach (var release in s.Retired) release();

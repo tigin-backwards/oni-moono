@@ -105,7 +105,7 @@ namespace OniMoono.Desktop.Vulkan
                 var info = new VkCommandBufferSubmitInfo { CommandBuffer = cb.Handle };
                 var submit = new VkSubmitInfo2 { CommandBufferInfoCount = 1, CommandBufferInfos = &info };
                 vk.Queue.Submit2(new Span<VkSubmitInfo2>(&submit, 1), fence);
-                VkCheck.Ok(vk.Device.PInvoke.vkWaitForFences.Invoke(vk.Device.Handle, 1, &fence, true, -1), "vkWaitForFences (splash)");
+                VkCheck.Ok(VkFenceWait.Wait(vk, fence, "splash: the atlas upload"), "vkWaitForFences (splash)");
             }
             finally
             {
