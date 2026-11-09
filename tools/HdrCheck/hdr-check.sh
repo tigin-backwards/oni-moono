@@ -40,7 +40,7 @@ echo "before: $(cd "$work" && ./dupcap.exe $((mx + 10)) $((my + 10)) sdr before.
 
 home() { # home NAME: an empty run home whose game settings ask for fullscreen at the monitor's size
     local d="$work/$1/Documents/Klei/OxygenNotIncluded"
-    rm -rf "$work/$1"; mkdir -p "$d"
+    rm -rf "${work:?}/$1"; mkdir -p "$d"
     printf 'strings: {}\nints:\n  ResolutionWidth: %s\n  ResolutionHeight: %s\n  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 1\nfloats: {}\n' "$mw" "$mh" > "$d/kplayerprefs.yaml"
 }
 

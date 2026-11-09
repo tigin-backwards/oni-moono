@@ -12,6 +12,7 @@
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 # As e2e.py: the environment's values first, else qa.env's.
+# shellcheck source=/dev/null  # local and optional
 if [ -f "$root/out/local-tools/qa.env" ]; then
     QA_U57_STEAM="${QA_U57_STEAM:-$(source "$root/out/local-tools/qa.env"; echo "${QA_U57_STEAM:-}")}"
     E2E_ORIGINAL="${E2E_ORIGINAL:-$(source "$root/out/local-tools/qa.env"; echo "${E2E_ORIGINAL:-}")}"
@@ -60,7 +61,8 @@ for f in "$source_dir"/OxygenNotIncluded_Data/Plugins/*; do
 done
 cp "$work/steam/libsteam_api.so" "$original/OxygenNotIncluded_Data/Plugins/libsteam_api.so"
 
-export QA_U57_STEAM="$work/steam/libsteam_api.so" E2E_ORIGINAL="$original/$(basename "$E2E_ORIGINAL")" E2E_OUT="$work/e2e"
+E2E_ORIGINAL="$original/$(basename "$E2E_ORIGINAL")"
+export QA_U57_STEAM="$work/steam/libsteam_api.so" E2E_ORIGINAL E2E_OUT="$work/e2e"
 dead=http://127.0.0.1:9
 export http_proxy=$dead https_proxy=$dead HTTP_PROXY=$dead HTTPS_PROXY=$dead ALL_PROXY=$dead all_proxy=$dead
 export no_proxy=localhost,127.0.0.1 NO_PROXY=localhost,127.0.0.1

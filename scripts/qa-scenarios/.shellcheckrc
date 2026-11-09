@@ -1,7 +1,8 @@
-# Scenario files are sourced by scripts/qa.sh (dogfood), which reads their variables:
-# SC2034 (assigned but unused) does not apply. SC2054: the commas in --input values
-# (620:click:891,176) are click coordinates, not array separators.
+# Scenario files are sourced by scripts/qa.sh (dogfood), which sets root and reads their
+# variables: SC2034 (assigned but unused) and SC2154 (referenced but not assigned) do not
+# apply. SC2054: the commas in --input values (620:click:891,176) are click coordinates, not
+# array separators.
 shell=bash
-disable=SC2034,SC2054
+disable=SC2034,SC2054,SC2154
 external-sources=true
 source-path=SCRIPTDIR
