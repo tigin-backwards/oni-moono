@@ -1,0 +1,7 @@
+# shellcheck settings for scripts/lint.sh (and editors). Sourced files are followed from each
+# script's own folder (env.sh and the like).
+external-sources=true
+source-path=SCRIPTDIR
+# SC2012 (ls instead of find): the scripts list folders of this project's own output, whose
+# file names it chooses, and use ls for its sorting (ls -t: the newest dump).
+disable=SC2012

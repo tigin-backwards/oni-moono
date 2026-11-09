@@ -19,6 +19,8 @@ tests() { # tests NAME: run a test binary, print its totals and failures
     [ $status -eq 0 ] || failed+=("$1")
     [ ! -f "$reports/$1.xml" ] || python3 -I "$root/scripts/test-skips.py" --fail-on-game "$reports/$1.xml" || failed+=("$1 (game skips)")
 }
+# The linters (scripts/lint.sh), whose binaries scripts/fetch-lint-tools.sh fetches.
+"$root/scripts/lint.sh" || failed+=(lint)
 tests OniMoono.UnityEngine.Tests
 tests OniMoono.Assets.Tests
 tests ModTriage.Tests
