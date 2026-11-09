@@ -1,25 +1,28 @@
 # Research screen panning: where the tree ends up after a mouse drag and a held pan key.
 #
 # Players reported that the tree pans back on its own in ours. ResearchScreen.Update moves the
-# tree itself: a drag leaves inertia (dragInteria, decaying by 1 - 4 dt a frame) that carries
-# it on after the release, a position past the tree's edges springs back at edgeClampFactor
-# (5 in the prefab) times dt a frame, and a held pan key (WASD) builds keyPanDelta. Every term
-# scales with Time.unscaledDeltaTime, so how far it glides and how fast it springs back depend
-# on the frame rate: on Xvfb the original draws about 6 frames a second and ours about 40, and
-# ours glided 180 units further after the same drag. Held to the same 6 fps
-# (Application.targetFrameRate), both end within a unit of each other at every sample.
+# tree itself, every term scaled by Time.unscaledDeltaTime (dt): a drag leaves inertia
+# (dragInteria, times max(0, 1 - 4 dt) a frame) that carries it on after the release, and a
+# position past the tree's edges springs back by edgeClampFactor (5 in the prefab) times dt of
+# the distance a frame. On Xvfb the original draws about 6 frames a second and ours about 40,
+# and there ours glided 180 units further after the same drag. Both are held to 6 fps here
+# (Application.targetFrameRate).
 #
-# The drag goes left and down from the starting view, which sits at the top edge: the tree
-# follows the pointer, then springs back up to the edge after the release; the held D key
-# sets panRight in both.
-#
-# The y checks after the drag are fixed bounds, not the original's value in the same run. At a
-# steady 6 fps (every unscaledDeltaTime 0.1667 s) the original reads -151.02 to -151.03 at step
-# 5 and -150.0 at steps 7 and 13 (nine runs); ours reads -151.04 to -151.09. Under
-# llvmpipe the original now and then draws a frame of 0.18-0.27 s, and a frame of 0.25 s or more
-# zeroes the inertia (max(0, 1 - 4 dt)): the tree stops where it is, at -127.5 to -150.45 at step
-# 5 and as high as -148.9 after it. A run like that is the wrong reference. The x checks stay
-# relative: x drifts by at most 0.3 there.
+# Even at 6 fps the original's frames are not steady (dt 0.167 to 0.27 under llvmpipe), and
+# a frame over 0.2 s makes the spring overshoot (5 dt > 1): the tree lands inside its edges
+# and stays there. Opening the screen (zoom 1 to 0.6 from (250, -250)) it rests at (150, -150)
+# in ours and anywhere from there to (127, -119) in the original; after the drag's release its
+# y has rested at -150 in ours and at -150 to -99.7 in the original (3 of 10 runs above -150).
+# So the checks hold for any frame times:
+# - before the drag, wait until the zoom has eased to 0.6, the tree is laid out (2977 wide) and
+#   sits inside its top right corner, and take its position from there;
+# - the drag moves it by the pointer's 10 cells: x by -360.00 to -360.36 in 30 runs of both
+#   players (the glide is what is past -360); a glide like the 180 units at 40 fps fails;
+# - after the release y springs back to the top edge (-150) and no lower; it may overshoot
+#   into the tree, by (5 dt - 1) of the 216 units below the edge: under 108 (y <= -42) for
+#   any dt under 0.3 s;
+# - a held D key sets panRight, but moves nothing at this frame rate in either player: the
+#   key pan adds 800 dt a frame and eases it out by min(1, 10 dt), all of it when dt >= 0.1.
 from: early-base
 setup:
   - driver: {camera.set: {pos: [128.5, 210.5], ortho: 10}}
@@ -27,19 +30,26 @@ setup:
   - driver: {setup.call: {type: Application, method: set_targetFrameRate, args: [6]}}
 steps:
   - open: {management: research}
-  - run: {seconds: 3, speed: 1}
-  - expect_state:
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": [">= original - 1", "<= original + 1"]
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= original - 1", "<= original + 1"]
-  - drag: {from: [134, 213], to: [124, 207], hold: 2}
-  - expect_state:
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": [">= original - 1", "<= original + 1"]
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= -152.03", "<= -150.03"]
-  - run: {seconds: 3, speed: 1}
+  - wait_state:
+      state:
+        "all:ResearchScreen::[0].currentZoom": [">= 0.5999", "<= 0.6001"]
+        "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.rect.width": "> 2000"
+        "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": "<= 150.01"
+        "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": ">= -150.01"
+      seconds: 60
   - expect_state:
       "all:ResearchScreen::[0].isDragging": false
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": ["< -200", ">= original - 1", "<= original + 1"]
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= -151", "<= -149"]
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": {save_as: x0}
+  - drag: {from: [134, 213], to: [124, 207], hold: 2}
+  - wait_state:
+      state:
+        "all:ResearchScreen::[0].isDragging": false
+        "all:ResearchScreen::[0].dragInteria.x": [">= -0.01", "<= 0.01"]
+        "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": ">= -150.01"
+      seconds: 60
+  - expect_state:
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": [">= x0 - 361.35", "<= x0 - 359.35", {save_as: x1}]
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= -150.01", "<= -42", {save_as: y1}]
   - key: {code: D, down: true}
   - run: {seconds: 1, speed: 1}
   - expect_state:
@@ -48,5 +58,5 @@ steps:
   - run: {seconds: 2, speed: 1}
   - expect_state:
       "all:ResearchScreen::[0].panRight": false
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": [">= original - 1", "<= original + 1"]
-      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= -151", "<= -149"]
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.x": [">= x1 - 1", "<= x1 + 1"]
+      "all:ResearchScreen::[0].scrollContent.GetComponent<RectTransform>.anchoredPosition.y": [">= y1 - 1", "<= y1 + 1"]
