@@ -32,8 +32,6 @@ namespace OniMoono.GameTweaks
         public const string Name = "fast-smi-lookups";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        static readonly AccessTools.FieldRef<StateMachineController, List<StateMachine.Instance>> machines =
-            AccessTools.FieldRefAccess<StateMachineController, List<StateMachine.Instance>>("stateMachines");
         static readonly Func<List<StateMachine.Instance>, int> version = CompileVersion();
         static System.Reflection.MethodBase target;
 
@@ -96,7 +94,7 @@ namespace OniMoono.GameTweaks
                 if (off = Foreign()) return true;
                 if (verify && Lookups > 1) global::Debug.Log($"{Name}: {Lookups} lookups, {Hits} from the cache, {Wrong} wrong");
             }
-            var list = machines(__instance);
+            var list = __instance.stateMachines;
             if (list == null || type == null) return true;
             var answers = kept.GetValue(__instance, newKept);
             int now = version(list);

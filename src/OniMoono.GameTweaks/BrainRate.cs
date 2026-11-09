@@ -46,8 +46,6 @@ namespace OniMoono.GameTweaks
         /// Updates a second of real time: the game's per-frame counts at its stated 30 fps.
         public const double DuplicantRate = 30, CritterRate = 150;
 
-        static readonly AccessTools.FieldRef<BrainScheduler, List<BrainGroup>> groups =
-            AccessTools.FieldRefAccess<BrainScheduler, List<BrainGroup>>("brainGroups");
         static Func<BrainGroup, int> probeCount;
         static Type dupeGroup, critterGroup;
         static readonly Dictionary<BrainGroup, BrainRateAllowance> allowances = new Dictionary<BrainGroup, BrainRateAllowance>();
@@ -57,8 +55,8 @@ namespace OniMoono.GameTweaks
 
         public static void Install(Harmony harmony)
         {
-            dupeGroup = AccessTools.Inner(typeof(BrainScheduler), "DupeBrainGroup");
-            critterGroup = AccessTools.Inner(typeof(BrainScheduler), "CreatureBrainGroup");
+            dupeGroup = typeof(BrainScheduler.DupeBrainGroup);
+            critterGroup = typeof(BrainScheduler.CreatureBrainGroup);
             probeCount = AccessTools.MethodDelegate<Func<BrainGroup, int>>(AccessTools.Method(typeof(BrainGroup), "InitialProbeCount"));
             harmony.Patch(AccessTools.Method(typeof(BrainScheduler), nameof(BrainScheduler.RenderEveryTick)), prefix: new HarmonyMethod(typeof(BrainRate), nameof(RenderEveryTick)));
             var cap = new HarmonyMethod(typeof(BrainRate), nameof(InitialProbeCount));
@@ -73,7 +71,7 @@ namespace OniMoono.GameTweaks
             if (Game.IsQuitting() || KMonoBehaviour.isLoadingScene) return false;
             if (!ReferenceEquals(scheduler, __instance)) { scheduler = __instance; allowances.Clear(); }
             float real = Time.unscaledDeltaTime;
-            foreach (var group in groups(__instance))
+            foreach (var group in __instance.brainGroups)
             {
                 int allowed = -1;
                 var type = group.GetType();

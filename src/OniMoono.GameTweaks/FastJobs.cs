@@ -30,8 +30,6 @@ namespace OniMoono.GameTweaks
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
         static readonly ConditionalWeakTable<JobManager, Scheduler> schedulers = new ConditionalWeakTable<JobManager, Scheduler>();
-        static readonly AccessTools.FieldRef<JobManager, System.Collections.IList> workerThreads =
-            AccessTools.FieldRefAccess<JobManager, System.Collections.IList>("threads");
         static long runs, wrong;
 
         public static void Install(Harmony harmony)
@@ -127,10 +125,10 @@ namespace OniMoono.GameTweaks
         /// JobManager.Run(work_items).
         static bool Run(JobManager __instance, IWorkItemCollection work_items)
         {
-            var threads = workerThreads(__instance);
+            var threads = __instance.threads;
             // Single-threaded managers (one core) run as the game does.
             if (threads == null || threads.Count == 0) return true;
-            schedulers.GetValue(__instance, m => new Scheduler(workerThreads(m).Count)).Run(work_items);
+            schedulers.GetValue(__instance, m => new Scheduler(m.threads.Count)).Run(work_items);
             return false;
         }
     }
