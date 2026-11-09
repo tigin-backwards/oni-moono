@@ -35,8 +35,6 @@ namespace OniMoono.GameTweaks
         public const string Name = "fast-partitioner-cleanup";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        static readonly AccessTools.FieldRef<HybridListHashSet<Handle>, Dictionary<Handle, int>> places =
-            AccessTools.FieldRefAccess<HybridListHashSet<Handle>, Dictionary<Handle, int>>("dict");
         static Func<ScenePartitioner, ScenePartitionerEntry, Extents> nodeExtents = null!;
 
         /// The handles removed since the last scan, by node (layer, y, x), for one partitioner.
@@ -118,7 +116,7 @@ namespace OniMoono.GameTweaks
             var lookup = GameScenePartitioner.Instance;
             if (removed.TryGetValue((layer, y, x), out var handles))
             {
-                var place = places(entries);
+                var place = entries.dict;
                 dropping.Clear();
                 foreach (var handle in handles)
                     if (place.TryGetValue(handle, out int at) && !lookup.Lookup(handle, out _) && !dropping.Contains((at, handle))) dropping.Add((at, handle));

@@ -19,10 +19,6 @@ namespace OniMoono.GameTweaks
     {
         public static bool Enabled { get; private set; }
 
-        static readonly AccessTools.FieldRef<StateMachineUpdater.BucketGroup, List<List<StateMachineUpdater.BaseUpdateBucket>>> frames =
-            AccessTools.FieldRefAccess<StateMachineUpdater.BucketGroup, List<List<StateMachineUpdater.BaseUpdateBucket>>>("bucketFrames");
-        static readonly AccessTools.FieldRef<StateMachineUpdater.BucketGroup, int> next =
-            AccessTools.FieldRefAccess<StateMachineUpdater.BucketGroup, int>("nextUpdateIndex");
 
         sealed class Kind
         {
@@ -36,7 +32,7 @@ namespace OniMoono.GameTweaks
         /// The timed loop.
         static void Timed(StateMachineUpdater.BucketGroup group, float dt)
         {
-            var list = frames(group)[next(group)];
+            var list = group.bucketFrames[group.nextUpdateIndex];
             int count = list.Count;
             string rate = group.updateRate.ToString();
             for (int i = 0; i < count; i++)
@@ -57,7 +53,7 @@ namespace OniMoono.GameTweaks
                 kind.Calls++;
                 kind.Entries += entries;
             }
-            next(group) = (next(group) + 1) % frames(group).Count;
+            group.nextUpdateIndex = (group.nextUpdateIndex + 1) % group.bucketFrames.Count;
         }
 
         /// The prefix proper: replaces the loop with the timed one (the same calls, in order).
