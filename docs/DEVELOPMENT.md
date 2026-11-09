@@ -201,8 +201,9 @@ does not depend on the load), and stops once the first autosave has passed and m
 risen for `QA_MEMORY_SETTLE_FRAMES` frames, reporting the peak, its frame and the RssAnon/RssFile
 split. A player of `qa.sh` or `e2e.py` ends with its run, however that ends, and so does its Xvfb.
 A player is stopped with SIGTERM, which quits ours at the next frame boundary with its GPU work
-done (within `ONI_QUIT_DEADLINE` seconds, default 8), and killed only when it still runs
-`E2E_QUIT_GRACE` seconds (default 10) later.
+done (within `ONI_QUIT_DEADLINE` seconds, default 8; a quit that misses it logs each thread's
+state and wait channel first), and killed only when it still runs `E2E_QUIT_GRACE` seconds
+(default 10) later.
 
 `e2e.py` plays a spec (a fixture save, Workshop mods, orders and UI input) in our player, the
 original or both, and checks what came of it. Runners in every worktree share lanes (ports and
