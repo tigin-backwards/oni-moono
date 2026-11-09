@@ -67,7 +67,10 @@ namespace OniMoono.Desktop.Gl
             while (pending.Count > 0 && pending.Peek().Start < reused)
             {
                 var (fence, _, _) = pending.Dequeue();
-                while (N.glClientWaitSync(fence, SyncFlushCommands, WaitSliceNanoseconds) == TimeoutExpired) { }
+                var wait = new OniMoono.Engine.LongWait();
+                while (N.glClientWaitSync(fence, SyncFlushCommands, WaitSliceNanoseconds) == TimeoutExpired)
+                    wait.Slice("stream buffer: a ring region's fence", $"sync 0x{System.Runtime.CompilerServices.Unsafe.As<GlSync, nint>(ref fence):x}, buffer {Id}, bytes to {reused}");
+                wait.End();
                 N.glDeleteSync(fence);
             }
             Buffer.MemoryCopy(data, mapping + start % size, length, length);
