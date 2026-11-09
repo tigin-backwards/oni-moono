@@ -41,7 +41,7 @@ namespace OniMoono.GameTweaks
 
         public static void Install(Harmony harmony)
         {
-            itemLanding = (Action<Transform>)AccessTools.Field(typeof(FallerComponents), "OnLandedAction").GetValue(null);
+            itemLanding = FallerComponents.OnLandedAction;
             var fixedUpdate = AccessTools.Method(typeof(GravityComponents), nameof(GravityComponents.FixedUpdate));
             harmony.Patch(fixedUpdate, transpiler: new HarmonyMethod(typeof(OffWorldFallers), nameof(Transpiler)),
                 postfix: new HarmonyMethod(typeof(OffWorldFallers), nameof(Land)));
