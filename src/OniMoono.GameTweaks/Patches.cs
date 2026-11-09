@@ -33,6 +33,7 @@ namespace OniMoono.GameTweaks
                 case OneShotPiles.Name: OneShotPiles.Install(harmony); return true;
                 case FetchByCell.Name: FetchByCell.Install(harmony); return true;
                 case GeothermalVentMass.Name: GeothermalVentMass.Install(harmony); return true;
+                case OwnWorkshopItem.Name: OwnWorkshopItem.Install(harmony); return true;
                 default: return false;
             }
         }

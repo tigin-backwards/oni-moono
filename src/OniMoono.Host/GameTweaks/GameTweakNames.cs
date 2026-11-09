@@ -208,6 +208,10 @@ namespace OniMoono.Host.GameTweaks
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
         public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents];
 
+        /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
+        /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem).
+        public static readonly string[] AlwaysOn = ["skip-own-workshop-item"];
+
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
 
@@ -216,8 +220,8 @@ namespace OniMoono.Host.GameTweaks
         /// `--game-tweak` name. Off, the game and the tweaks run without it.
         public const string Menu = "moono-tweaks-menu";
 
-        /// What TweakInstall checks against the game: every tweak, and the menu.
-        public static readonly string[] Checked = [.. All, Menu];
+        /// What TweakInstall checks against the game: every tweak, the menu and AlwaysOn.
+        public static readonly string[] Checked = [.. All, Menu, .. AlwaysOn];
 
         /// The tweaks that change what the game does (each documented in its class); `exact` turns
         /// on every tweak but these.

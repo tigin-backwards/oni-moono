@@ -32,11 +32,11 @@ namespace OniMoono.Host.GameTweaks
         public static void Check(string managed) =>
             TweakInstall.Start(managed, System.IO.Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"), typeof(GameTweaks).Assembly, GameTweakNames.Checked);
 
+        /// The tweaks `enabled` names, and the always-on patches (GameTweakNames.AlwaysOn) whatever it names.
         public static void Install(IReadOnlySet<string> enabled)
         {
-            if (enabled.Count == 0) return;
             backgroundSave = enabled.Contains(BackgroundSave.Name) && Available(BackgroundSave.Name);
-            foreach (var (name, install, log) in Installers(n => enabled.Contains(n) && Available(n)))
+            foreach (var (name, install, log) in Installers(n => (enabled.Contains(n) || GameTweakNames.AlwaysOn.Contains(n)) && Available(n)))
             {
                 bool on = TweakInstall.Guarded(name, install, () => typed, log);
                 if (name == BackgroundSave.Name) backgroundSave = on;
@@ -70,7 +70,7 @@ namespace OniMoono.Host.GameTweaks
             if (on(LoadScreenPreviews.Name)) yield return (LoadScreenPreviews.Name, LoadScreenPreviews.Install, false);
             // The tweaks built against the game's own types (src/OniMoono.GameTweaks).
             System.Reflection.MethodInfo? install = null;
-            foreach (var name in GameTweakNames.Typed)
+            foreach (var name in GameTweakNames.Typed.Concat(GameTweakNames.AlwaysOn))
             {
                 if (!on(name)) continue;
                 install ??= TypedAssembly.GetType("OniMoono.GameTweaks.Patches")!.GetMethod("Install")!;
