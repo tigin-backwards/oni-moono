@@ -51,13 +51,14 @@ attestation list and in the public Sigstore log; keep them few.
 
 ### The game's assemblies
 
-The build compiles against the game's assemblies (`OniMoono.GameTweaks` against Assembly-CSharp
-and the Unity modules it uses, the host against 0Harmony, Ionic.Zip and FMODUnity), but nothing
-of the game goes into the archives. CI gets them as **reference assemblies**: metadata only,
-every method body removed, made with JetBrains Refasmer by `scripts/make-refs.sh` and kept in the
-private repository `tigin-backwards/oni-moono-refs`, one folder per game build with a
-`SHA256SUMS`, and a LICENSE.txt naming each library's licence (the game's own code is used under
-Klei's mod guidelines).
+The build compiles against the game's assemblies (`OniMoono.GameTweaks` against Assembly-CSharp and
+the Unity modules it uses, the host against 0Harmony, Ionic.Zip and FMODUnity), but nothing of the
+game goes into the archives. CI gets them as **reference assemblies**: metadata only, every method
+body removed (private members kept: `OniMoono.GameTweaks` compiles against publicized copies and
+uses them directly), made with JetBrains Refasmer by `scripts/make-refs.sh` and kept in the private
+repository `tigin-backwards/oni-moono-refs`, one folder per game build with a `SHA256SUMS`, and a
+LICENSE.txt naming each library's licence (the game's own code is used under Klei's mod
+guidelines).
 
 `ci/game-refs.json` lists each game build the branch supports, where its files come from and
 the SHA-256 of every file; `default_build` is the one the release builds against (U59 744825 on

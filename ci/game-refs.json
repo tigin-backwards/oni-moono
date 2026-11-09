@@ -9,13 +9,13 @@
         "kind": "git",
         "host": "github.com",
         "repository": "tigin-backwards/oni-moono-refs",
-        "commit": "2c479c1636e99391cc2f628f55a74880ce34878f",
+        "commit": "807be12abccc297ee3b6526815dd8083a8ea2c74",
         "path": "744825"
       },
       "files": {
         "0Harmony.dll": "3cf41290880d072dd87dd29ba0c9738376ad4548c817109eee4da2b03c631ded",
-        "Assembly-CSharp-firstpass.dll": "37f3b1fdedf3c8adf892967bed6fab9a34dd4796d002abce74c0ec022f84e6db",
-        "Assembly-CSharp.dll": "3cdf2034cbc56558fd62b60d9785538e1e816e2235a52980419e5f36c5de79ee",
+        "Assembly-CSharp-firstpass.dll": "d937639e97b4cf1d249568b536c610264702717c35fa679bd40964384677916c",
+        "Assembly-CSharp.dll": "c600649c576a9c68fec235daa271c169df0c181bb422f547be6944fcd096b328",
         "FMODUnity.dll": "e8239108c63fd1c6ad5f16a4052762629b57e7183b497d8ba0a285035cd99289",
         "Ionic.Zip.dll": "aa0b1f62928f3642c10a41da52857a2d0931d82684f702cf477ca7bc956bf6c1",
         "Newtonsoft.Json.dll": "badc360b7eccbd9821d18842f58cd9ada8df3d6ec2f54535329f821374c9c7fd",
