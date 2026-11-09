@@ -163,7 +163,7 @@ namespace OniMoono.GameTweaks
         static bool offThread;
         static readonly Stopwatch clock = Stopwatch.StartNew();
         static double lastResync, boundAt;
-        
+
         // ---- The world view ----
         static int radius;
         static readonly Dictionary<CellOffset[][], int> tableRadius = new Dictionary<CellOffset[][], int>();

@@ -23,7 +23,7 @@ namespace OniMoono.Tests
             camera.targetTexture = new RenderTexture(30, 20, 0);
             Assert.Equal(30, camera.pixelWidth);
         }
-    
+
         [Fact]
         public void ADestroyedRenderTextureReleasesItsDeviceResource()
         {
@@ -50,5 +50,5 @@ namespace OniMoono.Tests
                 OniMoono.Engine.Rendering.GraphicsDevice.Install(previous);
             }
         }
-}
+    }
 }

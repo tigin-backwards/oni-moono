@@ -233,7 +233,8 @@ public static class IL
         >= 0x2B and <= 0x37 => 1,             // short branches
         >= 0x38 and <= 0x44 => 4,             // long branches
         0x45 => -1,                           // switch
-        0xDD => 4, 0xDE => 1,                 // leave, leave.s
+        0xDD => 4,
+        0xDE => 1,                 // leave, leave.s
         0xFE09 or 0xFE0A or 0xFE0B or 0xFE0C or 0xFE0D or 0xFE0E => 2,
         0xFE12 or 0xFE19 => 1,                // unaligned., no.
         _ => IsToken(op) ? 4 : 0,

@@ -404,7 +404,7 @@ namespace SemanticsProbe
         static string FontMetrics(Font f) =>
             f == null ? "null" : f.name + " fs=" + f.fontSize + " lh=" + F(f.lineHeight) + " asc=" + F(f.ascent) + " dyn=" + f.dynamic;
 
-        static GUIStyle Copy(GUIStyle s,System.Action<GUIStyle> f) { var c = new GUIStyle(s); f(c); return c; }
+        static GUIStyle Copy(GUIStyle s, System.Action<GUIStyle> f) { var c = new GUIStyle(s); f(c); return c; }
 
         static Vector2 sv;
 

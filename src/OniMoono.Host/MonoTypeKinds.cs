@@ -523,7 +523,7 @@ namespace OniMoono.Host
 
             /// The outcome: the failure Mono's compilation reports (its message and exception), or
             /// the uses of each address of a mismatched type's location.
-            public (( string Message, Type Exception)? Failure, Dictionary<Cil.Instruction, (Use, Cil.Instruction?)> Uses) Compile(Cecil.MethodDefinition method)
+            public ((string Message, Type Exception)? Failure, Dictionary<Cil.Instruction, (Use, Cil.Instruction?)> Uses) Compile(Cecil.MethodDefinition method)
             {
                 var run = new Run(this, method);
                 var failure = run.Walk();

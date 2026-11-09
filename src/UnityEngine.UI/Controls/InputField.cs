@@ -695,44 +695,44 @@ namespace UnityEngine.UI
             {
                 case CharacterValidation.Integer:
                 case CharacterValidation.Decimal:
-                    {
-                        bool signAllowed = pos == 0 && (text.Length == 0 || text[0] != '-');
-                        bool selectionIncludesStart = caretPositionInternal == 0 || caretSelectPositionInternal == 0;
-                        if (ch >= '0' && ch <= '9' && (pos != 0 || text.Length == 0 || text[0] != '-' || selectionIncludesStart)) return ch;
-                        if (ch == '-' && (signAllowed || selectionIncludesStart)) return ch;
-                        if (characterValidation == CharacterValidation.Decimal && (ch == '.' || ch == ',') && !text.Contains('.') && !text.Contains(',')) return ch;
-                        return (char)0;
-                    }
+                {
+                    bool signAllowed = pos == 0 && (text.Length == 0 || text[0] != '-');
+                    bool selectionIncludesStart = caretPositionInternal == 0 || caretSelectPositionInternal == 0;
+                    if (ch >= '0' && ch <= '9' && (pos != 0 || text.Length == 0 || text[0] != '-' || selectionIncludesStart)) return ch;
+                    if (ch == '-' && (signAllowed || selectionIncludesStart)) return ch;
+                    if (characterValidation == CharacterValidation.Decimal && (ch == '.' || ch == ',') && !text.Contains('.') && !text.Contains(',')) return ch;
+                    return (char)0;
+                }
                 case CharacterValidation.Alphanumeric:
                     return ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9' ? ch : (char)0;
                 case CharacterValidation.Name:
+                {
+                    // Letters, with each word capitalized; single spaces and apostrophes between.
+                    if (char.IsLetter(ch))
                     {
-                        // Letters, with each word capitalized; single spaces and apostrophes between.
-                        if (char.IsLetter(ch))
-                        {
-                            bool wordStart = pos == 0 || text[pos - 1] == ' ';
-                            if (wordStart) return char.ToUpper(ch);
-                            return char.IsLower(ch) || pos > 0 && text[pos - 1] == '\'' ? ch : char.ToLower(ch);
-                        }
-                        if (ch == '\'')
-                            return !text.Contains('\'') && !(pos > 0 && (text[pos - 1] == ' ' || text[pos - 1] == '\'')) && !(pos < text.Length && (text[pos] == ' ' || text[pos] == '\'')) ? ch : (char)0;
-                        if (ch == ' ' && pos != 0)
-                            return !(pos > 0 && (text[pos - 1] == ' ' || text[pos - 1] == '\'')) && !(pos < text.Length && (text[pos] == ' ' || text[pos] == '\'')) ? ch : (char)0;
-                        return (char)0;
+                        bool wordStart = pos == 0 || text[pos - 1] == ' ';
+                        if (wordStart) return char.ToUpper(ch);
+                        return char.IsLower(ch) || pos > 0 && text[pos - 1] == '\'' ? ch : char.ToLower(ch);
                     }
+                    if (ch == '\'')
+                        return !text.Contains('\'') && !(pos > 0 && (text[pos - 1] == ' ' || text[pos - 1] == '\'')) && !(pos < text.Length && (text[pos] == ' ' || text[pos] == '\'')) ? ch : (char)0;
+                    if (ch == ' ' && pos != 0)
+                        return !(pos > 0 && (text[pos - 1] == ' ' || text[pos - 1] == '\'')) && !(pos < text.Length && (text[pos] == ' ' || text[pos] == '\'')) ? ch : (char)0;
+                    return (char)0;
+                }
                 case CharacterValidation.EmailAddress:
+                {
+                    if (ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9') return ch;
+                    if (ch == '@' && text.IndexOf('@') == -1) return ch;
+                    if (EmailSpecials.IndexOf(ch) != -1) return ch;
+                    if (ch == '.')
                     {
-                        if (ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9') return ch;
-                        if (ch == '@' && text.IndexOf('@') == -1) return ch;
-                        if (EmailSpecials.IndexOf(ch) != -1) return ch;
-                        if (ch == '.')
-                        {
-                            char before = pos > 0 ? text[Math.Clamp(pos, 0, text.Length) - 1] : ' ';
-                            char after = text.Length > 0 && pos < text.Length ? text[Math.Clamp(pos, 0, text.Length - 1)] : '\n';
-                            if (before != '.' && after != '.') return ch;
-                        }
-                        return (char)0;
+                        char before = pos > 0 ? text[Math.Clamp(pos, 0, text.Length) - 1] : ' ';
+                        char after = text.Length > 0 && pos < text.Length ? text[Math.Clamp(pos, 0, text.Length - 1)] : '\n';
+                        if (before != '.' && after != '.') return ch;
                     }
+                    return (char)0;
+                }
             }
             return ch;
         }

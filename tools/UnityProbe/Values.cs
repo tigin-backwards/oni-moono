@@ -165,7 +165,7 @@ namespace SemanticsProbe
                 Application.logMessageReceivedThreaded -= onThreaded;
             }
             Rec.Log("VAL addcomp end " + label);
-            string result = (object)got == null ? "C# null" : got == null ? "fake null" : before.Contains(got) ?"the existing " + got.GetType().Name : "new " + got.GetType().Name;
+            string result = (object)got == null ? "C# null" : got == null ? "fake null" : before.Contains(got) ? "the existing " + got.GetType().Name : "new " + got.GetType().Name;
             V("addcomp " + label + " returns", result);
             V("addcomp " + label + " components", string.Join(",", Array.ConvertAll(go.GetComponents<Component>(), c => c.GetType().Name)));
             V("addcomp " + label + " logMessageReceived", main.Count + (main.Count > 0 ? " " + string.Join(" | ", main) : ""));

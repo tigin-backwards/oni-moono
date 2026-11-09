@@ -1096,7 +1096,7 @@ namespace OniMoono.Tests
             Assert.Equal(parent.transform, clone.transform.parent);
             Assert.Equal(new Vector3(1, 2, 3), clone.transform.localPosition);
         }
-    
+
         [Fact]
         public void ADestroyedComponentThrowsNullReferenceAsInAPlayer()
         {
@@ -1291,5 +1291,5 @@ namespace OniMoono.Tests
             Object.DestroyImmediate(DeactivationTree());
             Assert.Equal(DeactivationLog, Recorder.Log);
         }
-}
+    }
 }

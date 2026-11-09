@@ -63,7 +63,8 @@ namespace OniMoono.Tests
                         wakes.Wait(index);
                         Interlocked.Increment(ref counts[index]);
                     }
-                }) { IsBackground = true };
+                })
+                { IsBackground = true };
                 threads[w].Start();
             }
             for (int r = 0; r < rounds; r++) wakes.Wake(workers);

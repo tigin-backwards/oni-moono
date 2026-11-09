@@ -140,9 +140,9 @@ namespace OniMoono.Host
             // game version is off (TweakInstall).
             if (options.CheckTweaks == null) GameTweaks.GameTweaks.Check(Path.Combine(dataDir, "Managed"));
             // compact-nav-links rewrites the game's assemblies and mods as they load.
-            if (effective.EnabledTweaks.Contains(GameTweaks.CompactNavLinks.Name) ) GameTweaks.CompactNavLinks.Enable();
+            if (effective.EnabledTweaks.Contains(GameTweaks.CompactNavLinks.Name)) GameTweaks.CompactNavLinks.Enable();
             // paged-path-grids too.
-            if (effective.EnabledTweaks.Contains(GameTweaks.PagedPathGrids.Name) ) GameTweaks.PagedPathGrids.Enable();
+            if (effective.EnabledTweaks.Contains(GameTweaks.PagedPathGrids.Name)) GameTweaks.PagedPathGrids.Enable();
             AssemblyPolicy.Install(layout, AppContext.BaseDirectory);
             if (options.CheckNatives) return NativeCheck.Run(layout, AssemblyPolicy.RuntimeAssemblyPaths(), options.NativeArch ?? AssemblyPolicy.ProcessCpu, options.NativeDir);
             var assemblies = AssemblyPolicy.PreloadScriptingAssemblies(dataDir);
@@ -200,7 +200,8 @@ namespace OniMoono.Host
                 {
                     patchFailure = e;
                 }
-            }) { Name = "Host patches" };
+            })
+            { Name = "Host patches" };
             gamePatches.Start();
             return Player.Run(options, dataDir, () =>
             {
@@ -1229,7 +1230,8 @@ namespace OniMoono.Host
                     {
                         try { read = client.Receive(new byte[16]); }
                         catch (System.Net.Sockets.SocketException) { read = -2; }
-                    }) { IsBackground = true };
+                    })
+                    { IsBackground = true };
                     reader.Start();
                     Blocked(reader);
                     MonoThreadAbort.Abort(reader);

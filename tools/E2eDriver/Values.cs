@@ -60,7 +60,13 @@ namespace E2eDriver
                 case float f: return Num(f);
                 case double d: return Num(d);
                 case decimal m: return Num((double)m);
-                case byte _: case sbyte _: case short _: case ushort _: case int _: case uint _: case long _:
+                case byte _:
+                case sbyte _:
+                case short _:
+                case ushort _:
+                case int _:
+                case uint _:
+                case long _:
                     return System.Convert.ToInt64(v, CultureInfo.InvariantCulture);
                 case ulong u: return u;
                 case Enum e: return e.ToString();
