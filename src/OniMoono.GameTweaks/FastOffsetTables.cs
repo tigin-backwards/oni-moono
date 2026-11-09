@@ -46,9 +46,6 @@ namespace OniMoono.GameTweaks
         public const string Name = "fast-offset-tables";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        static readonly AccessTools.FieldRef<Workable, OffsetTracker> offsetTracker = AccessTools.FieldRefAccess<Workable, OffsetTracker>("offsetTracker");
-        static readonly AccessTools.FieldRef<OffsetTableTracker, KMonoBehaviour> tableOwner = AccessTools.FieldRefAccess<OffsetTableTracker, KMonoBehaviour>("cmp");
-        static readonly AccessTools.FieldRef<KCompactedVectorBase, HandleVector<int>> handles = AccessTools.FieldRefAccess<KCompactedVectorBase, HandleVector<int>>("handles");
 
         /// Items whose offsets may be stale. Locked: a tracker could change cell on a worker.
         static readonly HashSet<Pickupable> marked = new HashSet<Pickupable>();
@@ -126,7 +123,7 @@ namespace OniMoono.GameTweaks
         static void TrackerAssigned(Workable workable)
         {
             if (!(workable is Pickupable item)) return;
-            var tracker = offsetTracker(workable);
+            var tracker = workable.offsetTracker;
             if (tracker != null && !(tracker is OffsetTableTracker))
             {
                 lock (owners)
@@ -151,7 +148,7 @@ namespace OniMoono.GameTweaks
         /// OffsetTableTracker.UpdateCell and OnCellChanged.
         static void TableChanged(OffsetTableTracker __instance)
         {
-            if (tableOwner(__instance) is Pickupable item) Mark(item);
+            if (__instance.cmp is Pickupable item) Mark(item);
         }
 
         static void Added(FetchManager __instance, Pickupable pickupable, HandleVector<int>.Handle __result)
@@ -223,8 +220,8 @@ namespace OniMoono.GameTweaks
             foreach (var group in manager.prefabIdToFetchables.Values)
             {
                 var data = group.fetchables.GetDataList();
-                var hv = handles(group.fetchables);
-                var slots = dataHandleIndices(group.fetchables); // each entry's handle slot
+                var hv = group.fetchables.handles;
+                var slots = group.fetchables.dataHandleIndices; // each entry's handle slot
                 for (int i = 0; i < data.Count; i++)
                 {
                     var item = data[i].pickupable;
@@ -235,20 +232,18 @@ namespace OniMoono.GameTweaks
             }
         }
 
-        static readonly AccessTools.FieldRef<KCompactedVectorBase, List<int>> dataHandleIndices = AccessTools.FieldRefAccess<KCompactedVectorBase, List<int>>("dataHandleIndices");
-        static readonly AccessTools.FieldRef<HandleVector<int>, List<byte>> versions = AccessTools.FieldRefAccess<HandleVector<int>, List<byte>>("versions");
 
         /// The current handle of a slot of a handle vector (version in the top byte, as PackHandle).
         static HandleVector<int>.Handle HandleFor(HandleVector<int> hv, int slot)
         {
             var handle = HandleVector<int>.InvalidHandle;
-            handle.index = (versions(hv)[slot] << 24) | slot;
+            handle.index = (hv.versions[slot] << 24) | slot;
             return handle;
         }
 
         static int ListIndex(FetchManager.FetchablesByPrefabId group, HandleVector<int>.Handle handle)
         {
-            var hv = handles(group.fetchables);
+            var hv = group.fetchables.handles;
             hv.UnpackHandleUnchecked(handle, out _, out int slot);
             return hv.Items[slot];
         }

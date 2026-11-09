@@ -106,12 +106,6 @@ namespace OniMoono.GameTweaks
         static readonly string digestPath = Environment.GetEnvironmentVariable("ONI_PROBE_DIGEST");
         static readonly bool observeOnly = Environment.GetEnvironmentVariable("ONI_PROBE_REPAIR_OFF") == "1";
 
-        static readonly AccessTools.FieldRef<PathFinderAbilities, int> prefabId = AccessTools.FieldRefAccess<PathFinderAbilities, int>("prefabInstanceID");
-        static readonly AccessTools.FieldRef<MinionPathFinderAbilities, int> proxyId = AccessTools.FieldRefAccess<MinionPathFinderAbilities, int>("proxyID");
-        static readonly AccessTools.FieldRef<MinionPathFinderAbilities, int> defaultKey = AccessTools.FieldRefAccess<MinionPathFinderAbilities, int>("accessControlDefaultKey");
-        static readonly AccessTools.FieldRef<MinionPathFinderAbilities, bool> outOfFuel = AccessTools.FieldRefAccess<MinionPathFinderAbilities, bool>("out_of_fuel");
-        static readonly AccessTools.FieldRef<MinionPathFinderAbilities, bool> idleMask = AccessTools.FieldRefAccess<MinionPathFinderAbilities, bool>("idleNavMaskEnabled");
-        static readonly AccessTools.FieldRef<MinionPathFinderAbilities, bool> swimSkill = AccessTools.FieldRefAccess<MinionPathFinderAbilities, bool>("hasSwimSkill");
 
         // The game's arrays as this tweak's structs (the same layouts, checked by SelfTest): the
         // arrays, or with paged-path-grids the page tables behind them (ViewOf).
@@ -384,9 +378,9 @@ namespace OniMoono.GameTweaks
             public long Missed;
             readonly HashSet<int> rowsMissed = new HashSet<int>();
 
-            static readonly System.Collections.IEnumerable restrictions = (System.Collections.IEnumerable)AccessTools.Field(typeof(Grid), "restrictions").GetValue(null);
-            static readonly System.Collections.IEnumerable tubeEntrances = (System.Collections.IEnumerable)AccessTools.Field(typeof(Grid), "tubeEntrances").GetValue(null);
-            static readonly System.Collections.IEnumerable suitMarkers = (System.Collections.IEnumerable)AccessTools.Field(typeof(Grid), "suitMarkers").GetValue(null);
+            static readonly System.Collections.IEnumerable restrictions = Grid.restrictions;
+            static readonly System.Collections.IEnumerable tubeEntrances = Grid.tubeEntrances;
+            static readonly System.Collections.IEnumerable suitMarkers = Grid.suitMarkers;
 
             public FeedAudit(Feed f)
             {
@@ -802,11 +796,11 @@ namespace OniMoono.GameTweaks
                     Drain();
                     var f = fields.GetOrAdd(nav, _ => new Field());
                     rules.A = a;
-                    rules.SwimSkill = swimSkill(a);
-                    rules.OutOfFuel = outOfFuel(a);
-                    byte bits = (byte)((outOfFuel(a) ? 1 : 0) | (idleMask(a) ? 2 : 0) | (swimSkill(a) ? 4 : 0));
+                    rules.SwimSkill = a.hasSwimSkill;
+                    rules.OutOfFuel = a.out_of_fuel;
+                    byte bits = (byte)((a.out_of_fuel ? 1 : 0) | (a.idleNavMaskEnabled ? 2 : 0) | (a.hasSwimSkill ? 4 : 0));
                     bool sameKey = f.Valid && f.Root == order.originCell && f.Nav == (byte)order.startingNavType && f.Flags == (byte)order.startingFlags
-                        && f.Prefab == prefabId(a) && f.Proxy == proxyId(a) && f.Key == defaultKey(a) && f.Bits == bits;
+                        && f.Prefab == a.prefabInstanceID && f.Proxy == a.proxyID && f.Key == a.accessControlDefaultKey && f.Bits == bits;
                     bool repair = false;
                     if (!f.Valid) floodNew++;
                     else if (!sameKey) floodKey++;
@@ -857,7 +851,7 @@ namespace OniMoono.GameTweaks
                 engine.Flood(cells, probersOf(grid), f.StateFlags, serial, order.originCell, (byte)order.startingNavType, (byte)order.startingFlags, rules, found);
                 grid.EndUpdate();
                 f.Root = order.originCell; f.Nav = (byte)order.startingNavType; f.Flags = (byte)order.startingFlags;
-                f.Prefab = prefabId(a); f.Proxy = proxyId(a); f.Key = defaultKey(a); f.Bits = bits;
+                f.Prefab = a.prefabInstanceID; f.Proxy = a.proxyID; f.Key = a.accessControlDefaultKey; f.Bits = bits;
                 f.Grid = grid; f.Serial = serial; f.Seq = seq;
                 f.Pending = null; f.PendingFor = null; f.Broken = false;
                 f.Reach.Clear();

@@ -99,17 +99,6 @@ namespace OniMoono.GameTweaks
         static State state, worldState;
 
         // ---- Game internals ----
-        static readonly AccessTools.FieldRef<Group, Dictionary<HandleVector<int>.Handle, Rottable.Instance>> rotUpdaters =
-            AccessTools.FieldRefAccess<Group, Dictionary<HandleVector<int>.Handle, Rottable.Instance>>("rotUpdaters");
-        static readonly AccessTools.FieldRef<Pickupable, List<Pickupable.Reservation>> reservations =
-            AccessTools.FieldRefAccess<Pickupable, List<Pickupable.Reservation>>("reservations");
-        static readonly AccessTools.FieldRef<FetchManager, List<Pickup>> managerPickups = AccessTools.FieldRefAccess<FetchManager, List<Pickup>>("pickups");
-        static readonly AccessTools.FieldRef<Workable, OffsetTracker> offsetTracker = AccessTools.FieldRefAccess<Workable, OffsetTracker>("offsetTracker");
-        static readonly AccessTools.FieldRef<OffsetTracker, List<CellOffset>> trackerOffsets = AccessTools.FieldRefAccess<OffsetTracker, List<CellOffset>>("offsets");
-        static readonly AccessTools.FieldRef<OffsetTableTracker, CellOffset[][]> trackerTable = AccessTools.FieldRefAccess<OffsetTableTracker, CellOffset[][]>("table");
-        static readonly AccessTools.FieldRef<KCompactedVectorBase, HandleVector<int>> handles = AccessTools.FieldRefAccess<KCompactedVectorBase, HandleVector<int>>("handles");
-        static readonly AccessTools.FieldRef<KCompactedVectorBase, List<int>> dataHandleIndices = AccessTools.FieldRefAccess<KCompactedVectorBase, List<int>>("dataHandleIndices");
-        static readonly AccessTools.FieldRef<HandleVector<int>, List<byte>> versions = AccessTools.FieldRefAccess<HandleVector<int>, List<byte>>("versions");
         static Comparison<Pickup> compareWithPriority, compareNoPriority;
 
         // ---- The mirror ----
@@ -343,7 +332,7 @@ namespace OniMoono.GameTweaks
                 if (groups.TryGetValue(kv.Value, out var gm) && !gm.Unsafe) ours.AddRange(gm.Shadow);
                 else ours.AddRange(kv.Value.finalPickups);
             ours.Sort(compareNoPriority);
-            switch (Classify(managerPickups(__instance), ours, null))
+            switch (Classify(__instance.pickups, ours, null))
             {
                 case 0: lIdentical++; break;
                 case 1: lTie++; break;
@@ -627,11 +616,11 @@ namespace OniMoono.GameTweaks
                 overridesOffsets[type] = overrides;
             }
             if (overrides) return UnknownRadius;
-            var tracker = offsetTracker(p);
+            var tracker = p.offsetTracker;
             if (tracker == null) return 0; // GetOffsets makes a one-offset (0, 0) tracker
             if (tracker.GetType() == typeof(OffsetTableTracker))
             {
-                var table = trackerTable((OffsetTableTracker)tracker);
+                var table = ((OffsetTableTracker)tracker).table;
                 if (!tableRadius.TryGetValue(table, out int tr))
                 {
                     tr = 0;
@@ -644,7 +633,7 @@ namespace OniMoono.GameTweaks
             if (tracker.GetType() == typeof(StandardOffsetTracker))
             {
                 int sr = 0;
-                var offsets = trackerOffsets(tracker);
+                var offsets = tracker.offsets;
                 if (offsets != null) foreach (var o in offsets) sr = Math.Max(sr, Math.Max(Math.Abs(o.x), Math.Abs(o.y)));
                 return sr;
             }
@@ -663,11 +652,11 @@ namespace OniMoono.GameTweaks
                 overridesOffsets[type] = overrides;
             }
             if (overrides) return item;
-            var tracker = offsetTracker(p);
+            var tracker = p.offsetTracker;
             if (tracker == null) return "0,0"; // GetOffsets makes a one-offset (0, 0) tracker
-            if (tracker.GetType() == typeof(OffsetTableTracker)) return trackerTable((OffsetTableTracker)tracker);
+            if (tracker.GetType() == typeof(OffsetTableTracker)) return ((OffsetTableTracker)tracker).table;
             if (tracker.GetType() != typeof(StandardOffsetTracker)) return item;
-            var offsets = trackerOffsets(tracker);
+            var offsets = tracker.offsets;
             if (offsets == null) return item;
             var keys = new List<long>();
             foreach (var o in offsets) keys.Add(((long)o.x << 32) | (uint)o.y);
@@ -759,15 +748,15 @@ namespace OniMoono.GameTweaks
             gm.Unsafe = false;
             var group = gm.Group;
             var data = group.fetchables.GetDataList();
-            var hv = handles(group.fetchables);
-            var slots = dataHandleIndices(group.fetchables);
+            var hv = group.fetchables.handles;
+            var slots = group.fetchables.dataHandleIndices;
             for (int i = 0; i < data.Count; i++) Insert(gm, data[i], HandleFor(hv, slots[i]));
         }
 
         static HandleVector<int>.Handle HandleFor(HandleVector<int> hv, int slot)
         {
             var handle = HandleVector<int>.InvalidHandle;
-            handle.index = (versions(hv)[slot] << 24) | slot;
+            handle.index = (hv.versions[slot] << 24) | slot;
             return handle;
         }
 
@@ -775,7 +764,7 @@ namespace OniMoono.GameTweaks
         {
             var p = data.pickupable;
             var item = new Item { P = p, G = gm, Handle = handle, Cell = p.cachedCell, Tag = data.tagBitsHash, Prio = data.masterPriority, Fresh = data.freshness, Qual = data.foodQuality };
-            item.Rot = rotUpdaters(gm.Group).ContainsKey(handle);
+            item.Rot = gm.Group.rotUpdaters.ContainsKey(handle);
             item.Special = IsSpecial(p);
             if (gm.ByHandle.ContainsKey(handle.index)) gm.Unsafe = true;
             gm.ByHandle[handle.index] = item;
@@ -798,7 +787,7 @@ namespace OniMoono.GameTweaks
 
         static bool IsSpecial(Pickupable p)
         {
-            var list = reservations(p);
+            var list = p.reservations;
             if (list != null && list.Count > 0) return true;
             var storage = p.storage;
             return storage != null && storage.automatable != null;
@@ -1016,8 +1005,8 @@ namespace OniMoono.GameTweaks
                 seen.Add(group);
                 var gm = Mirror(group);
                 var data = group.fetchables.GetDataList();
-                var hv = handles(group.fetchables);
-                var slots = dataHandleIndices(group.fetchables);
+                var hv = group.fetchables.handles;
+                var slots = group.fetchables.dataHandleIndices;
                 bool drift = gm.Unsafe || gm.ByHandle.Count != data.Count;
                 if (gm.ByHandle.Count > data.Count) extra += gm.ByHandle.Count - data.Count;
                 for (int i = 0; i < data.Count; i++)
