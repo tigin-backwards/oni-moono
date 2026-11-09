@@ -33,11 +33,13 @@ namespace OniMoono.Host
 
         static Cil.OpCode LongForm(Cil.OpCode op) => op.Code switch
         {
+            #pragma warning disable format // a hand-laid table
             Cil.Code.Br_S => Cil.OpCodes.Br, Cil.Code.Brfalse_S => Cil.OpCodes.Brfalse, Cil.Code.Brtrue_S => Cil.OpCodes.Brtrue,
             Cil.Code.Beq_S => Cil.OpCodes.Beq, Cil.Code.Bge_S => Cil.OpCodes.Bge, Cil.Code.Bgt_S => Cil.OpCodes.Bgt,
             Cil.Code.Ble_S => Cil.OpCodes.Ble, Cil.Code.Blt_S => Cil.OpCodes.Blt, Cil.Code.Bne_Un_S => Cil.OpCodes.Bne_Un,
             Cil.Code.Bge_Un_S => Cil.OpCodes.Bge_Un, Cil.Code.Bgt_Un_S => Cil.OpCodes.Bgt_Un, Cil.Code.Ble_Un_S => Cil.OpCodes.Ble_Un,
             Cil.Code.Blt_Un_S => Cil.OpCodes.Blt_Un, Cil.Code.Leave_S => Cil.OpCodes.Leave,
+            #pragma warning restore format
             _ => throw new InvalidOperationException($"no long form of {op}"),
         };
     }

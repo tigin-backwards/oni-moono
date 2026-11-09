@@ -225,9 +225,11 @@ namespace OniMoono.Tests
         /// GL reflection's type for a GLSL type.
         static uint GlType(string type) => type switch
         {
+            #pragma warning disable format // a hand-laid table
             "float" => FloatType, "vec2" => FloatVec2, "vec3" => FloatVec3, "vec4" => FloatVec4,
             "int" => IntType, "ivec2" => IntVec2, "ivec3" => IntVec3, "ivec4" => IntVec4,
             "uint" => UnsignedIntType, "uvec2" => UintVec2, "uvec3" => UintVec3, "uvec4" => UintVec4,
+            #pragma warning restore format
             "mat4" => FloatMat4,
             _ => throw new NotSupportedException(type),
         };

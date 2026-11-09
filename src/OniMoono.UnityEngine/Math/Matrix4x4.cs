@@ -32,20 +32,24 @@ namespace UnityEngine
         {
             get => index switch
             {
+                #pragma warning disable format // a hand-laid table
                 0 => m00, 1 => m10, 2 => m20, 3 => m30,
                 4 => m01, 5 => m11, 6 => m21, 7 => m31,
                 8 => m02, 9 => m12, 10 => m22, 11 => m32,
                 12 => m03, 13 => m13, 14 => m23, 15 => m33,
+                #pragma warning restore format
                 _ => throw new IndexOutOfRangeException("Invalid matrix index!"),
             };
             set
             {
                 switch (index)
                 {
+                    #pragma warning disable format // a hand-laid table
                     case 0: m00 = value; break; case 1: m10 = value; break; case 2: m20 = value; break; case 3: m30 = value; break;
                     case 4: m01 = value; break; case 5: m11 = value; break; case 6: m21 = value; break; case 7: m31 = value; break;
                     case 8: m02 = value; break; case 9: m12 = value; break; case 10: m22 = value; break; case 11: m32 = value; break;
                     case 12: m03 = value; break; case 13: m13 = value; break; case 14: m23 = value; break; case 15: m33 = value; break;
+                    #pragma warning restore format
                     default: throw new IndexOutOfRangeException("Invalid matrix index!");
                 }
             }

@@ -10,6 +10,7 @@ namespace OniMoono.Tests
         /// The 40 sampler types of GLSL 4.50 (section 4.1.7) by their GL type tokens
         /// (glcorearb.h), with the texture target each reads.
         [Theory]
+        #pragma warning disable format // a hand-laid table
         [InlineData(0x8B5D, 0x0DE0)] [InlineData(0x8B5E, 0x0DE1)] [InlineData(0x8B5F, 0x806F)] [InlineData(0x8B60, 0x8513)]
         [InlineData(0x8B61, 0x0DE0)] [InlineData(0x8B62, 0x0DE1)] [InlineData(0x8B63, 0x84F5)] [InlineData(0x8B64, 0x84F5)]
         [InlineData(0x8DC0, 0x8C18)] [InlineData(0x8DC1, 0x8C1A)] [InlineData(0x8DC2, 0x8C2A)] [InlineData(0x8DC3, 0x8C18)]
@@ -21,6 +22,7 @@ namespace OniMoono.Tests
         [InlineData(0x900C, 0x9009)] [InlineData(0x900D, 0x9009)] [InlineData(0x900E, 0x9009)] [InlineData(0x900F, 0x9009)]
         [InlineData(0x9108, 0x9100)] [InlineData(0x9109, 0x9100)] [InlineData(0x910A, 0x9100)]
         [InlineData(0x910B, 0x9102)] [InlineData(0x910C, 0x9102)] [InlineData(0x910D, 0x9102)]
+        #pragma warning restore format
         public void EverySamplerTypeIsOne(uint type, uint target)
         {
             Assert.True(GlPrograms.IsSampler(type));
