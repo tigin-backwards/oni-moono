@@ -68,6 +68,23 @@ namespace OniMoono.Desktop.Gl
 
         /// Draws the comets into the window's framebuffer (bound), `width`×`height` pixels.
         /// `flip`: its rows run top-down (the DXGI target's).
+        /// The presenter now draws with another context: the vertex array (not shared between
+        /// contexts) is made anew in it; the program, texture and buffer are shared.
+        public void ContextReplaced()
+        {
+            if (vertexArray == 0) return;
+            GlVertexArray vao = default;
+            N.glGenVertexArrays(1, &vao);
+            vertexArray = vao.Id;
+            N.glBindVertexArray(vao);
+            GlApi.BindBuffer(ArrayBuffer, buffer);
+            N.glEnableVertexAttribArray(0);
+            N.glVertexAttribPointer(0, 2, Float, false, 20, (void*)0);
+            N.glEnableVertexAttribArray(1);
+            N.glVertexAttribPointer(1, 3, Float, false, 20, (void*)8);
+            N.glBindVertexArray(default);
+        }
+
         public void Draw(int width, int height, bool flip = false)
         {
             if (!Ready() || !Active || width <= 0 || height <= 0) return;

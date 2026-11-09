@@ -2187,10 +2187,20 @@ U59, 2026-11-05). Vulkan's window never has a context (`GLFW_NO_API`), and Vulka
 through DXGI under that profile. So on Windows with DXGI on, OpenGL's visible window is made
 without a context or pixel format too and only DXGI presents to it; the presenter thread's
 context lives on a hidden 1x1 window instead, shared with the device thread's as before (the
-interop registers textures with a context and a D3D11 device, never with a window). With that
-setting DXGI then started and presented. The window gets a pixel format, the hidden window's,
-with the presenter's context made current on it (WGL takes any window with the context's pixel
-format, `Win32GlWindow`), only once DXGI is given up: it could not start, or no restart is left.
+interop registers textures with a context and a D3D11 device, never with a window). The hidden
+windows are single-buffered (double-buffered only when the driver has no such pixel format;
+nothing presents from them, and OpenGL's SwapBuffers on the visible window stays double-buffered,
+the log's `present:` line saying so), and d3d11.dll and dxgi.dll are loaded before them: GLFW
+clears and swaps a double-buffered window once as it makes its context, and RivaTuner Statistics
+Server takes a process that has called SwapBuffers for an OpenGL one, skips its DXGI presents (its
+`IgnoreDXGIInterop` default) and hooks only the Direct3D runtimes loaded when it injects, as
+windows are made (measured with RTSS 7.3.7 through its shared memory: before, it attached to
+OpenGL on a 120x1 hidden window and showed no overlay, #64; after, to our swap chain at the
+window's size; Vulkan, whose window has no context and which loads no OpenGL, was attached to
+DXGI before). With that setting DXGI then started and presented. The window gets a pixel format,
+double-buffered, and a context of its own sharing the presenter's (with the hidden window's pixel
+format and the presenter's context itself when that window is double-buffered: WGL takes any
+window with the context's pixel format, `Win32GlWindow`), only once DXGI is given up: it could not start, or no restart is left.
 Not sooner: a window's pixel format cannot be changed once set, and with that setting a
 SwapBuffers on the window gave it the driver's swap chain, after which every restart was refused
 with `E_ACCESSDENIED` (measured). While restarts are pending OpenGL's pictures go nowhere (paced
