@@ -1908,6 +1908,25 @@ renderer, restricted to what the game uses (*usage §1*):
   alone and looks at a renderer (its flags, then its draws) only when its box is in view; the
   same renderers are drawn in the same order. `ONI_CULL_CACHE=0` makes every visit make them;
   `ONI_VERIFY_CULL_CACHE=1` makes them afresh at each visit too and logs any difference.
+- Per-frame buffers are reused only under an owner's rule, each with a verify mode (qa.sh's
+  verify stage runs them):
+  - A mesh's channel and index arrays are the mesh's own; one it has published is never written
+    until the device has run every upload that could hold it, and only then reused. A setter's
+    array can be longer than the data (a mesh rebuilt each frame with another vertex count keeps
+    its larger arrays, new ones at a size class): `VertexCount` and each submesh's `IndexCount`
+    say how much is the mesh's, every reader goes by them, and the getters copy exactly that
+    many. `ONI_VERIFY_MESH_REUSE=1` checksums each upload's data when it is recorded and again on
+    the GL thread before it is copied.
+  - Upload records (mesh and texture), immediate draws' vertex data and the arena's other
+    command data belong to the frame they were recorded in and are reused once the GL thread
+    has run it; a record carries a generation its command checks.
+  - A property block's sheet that a queued draw shares is retired with its render epoch when
+    the block moves to another, and a sprite's per-frame sheet at once; a sheet retired in epoch
+    E is free once epoch E + 2 begins (queued draws are drawn by the end of the next epoch, and
+    only draw recording reads sheets). `ONI_VERIFY_PROPERTY_SHEETS=1` holds free sheets back
+    longer, marked, and reports a draw recorded with one.
+  - A material's values keep a pass state per pass, kept across value changes that resolve it
+    to the same bits; `ONI_VERIFY_PASS_STATES=1` resolves each kept one afresh and compares.
 - Draw sources: `MeshRenderer`+`MeshFilter`, `SpriteRenderer`, `ParticleSystemRenderer`,
   `LineRenderer` (mods' lines: its strip as Unity's BakeMesh measures it, corners mitered; rounded
   corners and caps are drawn square), `CanvasRenderer` (world-space and screen-space-camera canvases), and the per-frame
