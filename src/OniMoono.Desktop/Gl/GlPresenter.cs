@@ -468,6 +468,44 @@ namespace OniMoono.Desktop.Gl
 
         static string MadeUp => DxgiSwapChain.Fault != null ? $" (a made-up fault: --dxgi-fault {DxgiSwapChain.Fault})" : "";
 
+        /// Binds buffer `b`'s colour for reading, through this thread's framebuffer for it, made
+        /// (or attached anew) when missing or out of date.
+        void BindForReading(Buffer b)
+        {
+            if (b.PresentGeneration != b.Generation || b.PresentFramebuffer == 0)
+            {
+                if (b.PresentFramebuffer == 0) b.PresentFramebuffer = GlApi.GenFramebuffer();
+                GlApi.BindFramebuffer(ReadFramebuffer, b.PresentFramebuffer);
+                N.glFramebufferTexture2D(ReadFramebuffer, ColorAttachment0, TexTarget2D, b.Color, 0);
+                b.PresentGeneration = b.Generation;
+            }
+            else GlApi.BindFramebuffer(ReadFramebuffer, b.PresentFramebuffer);
+        }
+
+        // The context the presenter's objects were made in (Windows).
+        IntPtr presentingContext;
+
+        /// Windows: when the window target changed the current context (OpenGL's fallback on a
+        /// context-free window has a double-buffered context of its own, Win32GlWindow), the
+        /// objects contexts do not share are made anew in it: the framebuffers that read the
+        /// frames, the probe's and the splash's vertex array. Textures, buffers and programs are
+        /// shared.
+        void NoteContext()
+        {
+            IntPtr now = Win32GlWindow.CurrentContext;
+            if (now == presentingContext) return;
+            bool changed = presentingContext != IntPtr.Zero;
+            presentingContext = now;
+            if (!changed) return;
+            foreach (var b in buffers)
+            {
+                b.PresentFramebuffer = 0;
+                b.PresentGeneration = -1;
+            }
+            probeFramebuffer = 0;
+            splash?.ContextReplaced();
+        }
+
         /// Makes the target ready for a `width` x `height` picture, its framebuffer bound for
         /// drawing; falls back to OpenGL's when it fails. Returns whether rows are flipped.
         bool BeginTarget(int width, int height)
@@ -483,6 +521,7 @@ namespace OniMoono.Desktop.Gl
             }
             // Ends: restarts are at least a second apart, and OpenGL's Begin never fails.
             while (!target.Begin(width, height)) FallBack();
+            if (OperatingSystem.IsWindows()) NoteContext();
             PresenterTimings.Add(ref PresenterTimings.Begin, GlTimings.Now - t);
             return target.FlipY;
         }
@@ -525,16 +564,9 @@ namespace OniMoono.Desktop.Gl
             N.glDeleteSync(fence);
             PresenterTimings.Add(ref PresenterTimings.FrameWait, GlTimings.Now - t);
             lastInterval = interval;
-            if (b.PresentGeneration != b.Generation)
-            {
-                if (b.PresentFramebuffer == 0) b.PresentFramebuffer = GlApi.GenFramebuffer();
-                GlApi.BindFramebuffer(ReadFramebuffer, b.PresentFramebuffer);
-                N.glFramebufferTexture2D(ReadFramebuffer, ColorAttachment0, TexTarget2D, b.Color, 0);
-                b.PresentGeneration = b.Generation;
-            }
             bool flip = BeginTarget(width, height);
             long copyStart = GlTimings.Now;
-            GlApi.BindFramebuffer(ReadFramebuffer, b.PresentFramebuffer);
+            BindForReading(b);
             // A frame drawn before the window changed size fills the window scaled, rather than
             // leaving part of it undefined. A target whose rows run top-down (DXGI) gets the frame
             // flipped by the same copy.
@@ -597,7 +629,7 @@ namespace OniMoono.Desktop.Gl
             }
             int width = windowWidth, height = windowHeight;
             bool flip = BeginTarget(width, height);
-            GlApi.BindFramebuffer(ReadFramebuffer, shown.PresentFramebuffer);
+            BindForReading(shown);
             bool scaled = shown.Width != width || shown.Height != height;
             N.glBlitFramebuffer(0, 0, shown.Width, shown.Height, 0, flip ? height : 0, width, flip ? 0 : height, ColorBufferBit, scaled ? Linear : Nearest);
             // The GL thread draws into the buffer again only after this copy too has read it.
@@ -631,7 +663,7 @@ namespace OniMoono.Desktop.Gl
             bool flip = BeginTarget(width, height);
             if (shown != null)
             {
-                GlApi.BindFramebuffer(ReadFramebuffer, shown.PresentFramebuffer);
+                BindForReading(shown);
                 bool scaled = shown.Width != width || shown.Height != height;
                 N.glBlitFramebuffer(0, 0, shown.Width, shown.Height, 0, flip ? height : 0, width, flip ? 0 : height, ColorBufferBit, scaled ? Linear : Nearest);
             }
@@ -661,9 +693,12 @@ namespace OniMoono.Desktop.Gl
         {
             if (probeFramebuffer == 0)
             {
-                probeTexture = GlApi.GenTexture();
-                GlApi.BindTexture(TexTarget2D, probeTexture);
-                N.glTexImage2D(TexTarget2D, 0, (int)Rgba8, ProbeSize, ProbeSize, 0, Rgba, UnsignedByte, null);
+                if (probeTexture == 0)
+                {
+                    probeTexture = GlApi.GenTexture();
+                    GlApi.BindTexture(TexTarget2D, probeTexture);
+                    N.glTexImage2D(TexTarget2D, 0, (int)Rgba8, ProbeSize, ProbeSize, 0, Rgba, UnsignedByte, null);
+                }
                 probeFramebuffer = GlApi.GenFramebuffer();
                 GlApi.BindFramebuffer(DrawFramebuffer, probeFramebuffer);
                 N.glFramebufferTexture2D(DrawFramebuffer, ColorAttachment0, TexTarget2D, probeTexture, 0);

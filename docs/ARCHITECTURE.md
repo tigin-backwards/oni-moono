@@ -2088,8 +2088,17 @@ machine's RTX 3090 too (measured, 2026-11-05). So on Windows with DXGI on, the v
 made without an OpenGL context or pixel format (`GLFW_NO_API`) and only DXGI presents to it; the
 presenter thread's context lives on a hidden 1x1 window instead, shared with the GL thread's as
 before (the interop registers textures with a context and a D3D11 device, never with a window).
-With that setting DXGI then started and presented. The window gets a pixel format, the hidden
-window's, with the presenter's context made current on it (WGL takes any window with the
+The hidden windows are single-buffered (double-buffered only when the driver has no such pixel
+format; nothing presents from them, and OpenGL's SwapBuffers on the visible window stays
+double-buffered, the log's `present:` line saying so), and d3d11.dll and dxgi.dll are loaded before them: GLFW clears and swaps a double-buffered
+window once as it makes its context, and RivaTuner Statistics Server takes a process that has
+called SwapBuffers for an OpenGL one, skips its DXGI presents (its `IgnoreDXGIInterop` default)
+and hooks only the Direct3D runtimes loaded when it injects, as windows are made (measured with
+RTSS 7.3.7 through its shared memory: before, it attached to OpenGL on a 120x1 hidden window and
+showed no overlay, #64; after, to our swap chain at the window's size).
+With that setting DXGI then started and presented. The window gets a pixel format, double-buffered,
+and a context of its own sharing the presenter's (with the hidden window's pixel format and the
+presenter's context itself when that window is double-buffered: WGL takes any window with the
 context's pixel format, `Win32GlWindow`), only once DXGI is given up: it could not start, or no
 restart is left. Not sooner: a window's pixel format cannot be changed once set, and with that
 setting a SwapBuffers on the window gave it the driver's swap chain, after which every restart was

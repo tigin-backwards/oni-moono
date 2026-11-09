@@ -51,7 +51,17 @@ namespace OniMoono.Desktop.Gl
         readonly Win32GlWindow win32;
         int swapInterval = -1;
 
-        public GlSwapTarget(GlfwWindow window) => this.window = window;
+        public GlSwapTarget(GlfwWindow window)
+        {
+            this.window = window;
+            if (OperatingSystem.IsWindows() && !loggedFormat)
+            {
+                loggedFormat = true;
+                OniMoono.Engine.EngineLog.Engine($"present: SwapBuffers on the window: {Win32GlWindow.DescribeWindow((IntPtr)Brutal.GlfwApi.Win32.Win32Extensions.GetWin32Window(window))}");
+            }
+        }
+
+        static bool loggedFormat;
 
         /// SwapBuffers on `hwnd`, a window without a context of its own, with the presenter's
         /// context (current on its hidden window) made current on it; or, not `onWindow`, on the

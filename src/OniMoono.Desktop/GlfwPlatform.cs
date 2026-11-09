@@ -178,21 +178,29 @@ namespace OniMoono.Desktop
             // hidden stand-in.
             if (contextFree)
             {
+                // Overlays that hook the APIs a process presents with see only DXGI: RivaTuner
+                // Statistics Server takes a process that has called SwapBuffers once for an
+                // OpenGL one and skips its DXGI presents for good (IgnoreDXGIInterop, its default),
+                // and it hooks only the Direct3D runtimes loaded by the time it injects, as windows
+                // are made (measured with RTSS 7.3.7). GLFW clears and swaps every double-buffered
+                // window once as it makes its context, so the hidden windows are single-buffered
+                // (never presented: the presenter draws into a framebuffer of its own), and
+                // d3d11.dll and dxgi.dll are loaded first. A driver with no single-buffered pixel
+                // format gets double-buffered ones, as before.
+                System.Runtime.InteropServices.NativeLibrary.TryLoad("d3d11.dll", typeof(Gl.Dxgi).Assembly, null, out _);
+                System.Runtime.InteropServices.NativeLibrary.TryLoad("dxgi.dll", typeof(Gl.Dxgi).Assembly, null, out _);
                 Glfw.WindowHint(GlfwWindowHint.ClientApi, GLFW_OPENGL_API);
-                presentWindow = Glfw.CreateWindow(new GlfwWindow.CreateInfo
+                presentWindow = HiddenGlWindow(settings.Title, default);
+                renderWindow = HiddenGlWindow(settings.Title, presentWindow);
+            }
+            else
+                renderWindow = Glfw.CreateWindow(new GlfwWindow.CreateInfo
                 {
                     Title = settings.Title,
                     Size = new int2(1, 1),
                     Monitor = GlfwMonitor.Null,
+                    Share = PresentWindow,
                 });
-            }
-            renderWindow = Glfw.CreateWindow(new GlfwWindow.CreateInfo
-            {
-                Title = settings.Title,
-                Size = new int2(1, 1),
-                Monitor = GlfwMonitor.Null,
-                Share = PresentWindow,
-            });
             renderWindow.MakeContextCurrent();
             // Before the window is shown, so that the focus it takes as it shows applies the mode.
             if (OperatingSystem.IsWindows()) ime = new Win32Ime((IntPtr)window.GetWin32Window(), e => callbackFailure ??= e);
@@ -356,6 +364,19 @@ namespace OniMoono.Desktop
                 catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException) { }
             }
             return MonitorDpi(CurrentMonitor);
+        }
+
+        /// A hidden 1x1 OpenGL window sharing `share`'s objects, single-buffered (no swap from GLFW,
+        /// see the caller), else double-buffered when the driver has no such pixel format.
+        static GlfwWindow HiddenGlWindow(string title, GlfwWindow share)
+        {
+            var info = new GlfwWindow.CreateInfo { Title = title, Size = new int2(1, 1), Monitor = GlfwMonitor.Null, Share = share };
+            Glfw.WindowHint(GlfwWindowHint.Doublebuffer, GLFW_FALSE);
+            var made = Glfw.CreateWindow(info);
+            Glfw.WindowHint(GlfwWindowHint.Doublebuffer, GLFW_TRUE);
+            if (made is not null && !made.IsNull()) return made;
+            OniMoono.Engine.EngineLog.Engine("window: no single-buffered OpenGL context for a hidden window; a double-buffered one instead");
+            return Glfw.CreateWindow(info);
         }
 
         /// The window and taskbar icon (the falling Gassy Moo, embedded). Wayland has no window icons: the
