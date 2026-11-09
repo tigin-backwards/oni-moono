@@ -127,6 +127,9 @@ namespace OniMoono.Engine.Rendering
             }
         }
 
+        /// Colours held as Color values (given so, or expanded from bytes when read).
+        internal bool HasFloatColors => colors != null;
+
         /// The colours as given in bytes, or null when they were given otherwise.
         public Color32[] Colors32
         {
@@ -413,7 +416,19 @@ namespace OniMoono.Engine.Rendering
             foreach (var s in SubMeshes) RetireIndices(s);
         }
 
-        void AddSpare(Array array)
+        /// An array no longer anyone's but this mesh's uploads (an element's released canvas
+        /// geometry): kept as a spare, reused once those uploads have run; with `inUploads`
+        /// false (an array no upload was given), as soon as it is wanted.
+        internal void Spare(Array array, bool inUploads = true)
+        {
+            if (array == null || ReuseOff) return;
+            if (inUploads) AddSpare(array);
+            else AddSpare(array, System.Threading.Volatile.Read(ref UploadsRan));
+        }
+
+        void AddSpare(Array array) => AddSpare(array, UploadsPosted);
+
+        void AddSpare(Array array, int posted)
         {
             if (array.Length == 0) return;
             spares ??= new();
@@ -423,7 +438,7 @@ namespace OniMoono.Engine.Rendering
                 withSpares.Add(this);
             }
             if (spares.Count >= MaxSpares) spares.RemoveAt(0);
-            spares.Add((array, UploadsPosted, Time.frameCount));
+            spares.Add((array, posted, Time.frameCount));
             if (Stats) Retired++;
         }
 
