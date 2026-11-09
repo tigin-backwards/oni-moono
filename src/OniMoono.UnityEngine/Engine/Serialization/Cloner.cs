@@ -43,17 +43,64 @@ namespace OniMoono.Engine.Serialization
         {
             var native = new NativeObject { Name = original.name + "(Clone)", HideFlags = original.hideFlags };
             var clone = Object.ConstructBound<ScriptableObject>(original.GetType(), native);
-            var remap = new Dictionary<Object, Object>(ReferenceEqualityComparer.Instance) { [original] = clone };
-            CopyScript(original, clone, remap);
+            var context = CloneContext.Rent();
+            try
+            {
+                context.Remap[original] = clone;
+                CopyScript(original, clone, context.Remap);
+            }
+            finally
+            {
+                context.Return();
+            }
             ScriptableObjectLifecycle.Created(clone);
             return clone;
         }
 
         static Object InstantiateHierarchy(Object original, Transform parent, bool worldPositionStays, Vector3? position, Quaternion? rotation)
         {
+            var context = CloneContext.Rent();
+            try
+            {
+                return InstantiateHierarchy(original, parent, worldPositionStays, position, rotation, context);
+            }
+            finally
+            {
+                context.Return();
+            }
+        }
+
+        /// The clone map of one Instantiate, with its remapping function made once, kept for the
+        /// next Instantiate (each nested one, from a callback or Awake, takes another): the game
+        /// instantiates continuously, and each call made a dictionary, its entries and a
+        /// delegate for every engine component.
+        sealed class CloneContext
+        {
+            public readonly Dictionary<Object, Object> Remap = new(ReferenceEqualityComparer.Instance);
+            public readonly Func<Object, Object> Map;
+
+            CloneContext() => Map = o => o is not null && Remap.TryGetValue(o, out var mapped) ? mapped : o;
+
+            static readonly Stack<CloneContext> free = new();
+
+            /// Main thread (Instantiate asserts it).
+            public static CloneContext Rent() => free.Count > 0 ? free.Pop() : new CloneContext();
+
+            /// Empty again (Clear keeps insertion order for the next use, as a new dictionary has);
+            /// one grown large by a big hierarchy is dropped rather than cleared each time.
+            public void Return()
+            {
+                if (Remap.Count > 4096 || free.Count >= 8) return;
+                Remap.Clear();
+                free.Push(this);
+            }
+        }
+
+        static Object InstantiateHierarchy(Object original, Transform parent, bool worldPositionStays, Vector3? position, Quaternion? rotation, CloneContext context)
+        {
             var rootOriginal = original as GameObject ?? ((Component)original).gameObject;
             var rootNative = (GameObjectNative)rootOriginal.NativeOrThrow;
-            var remap = new Dictionary<Object, Object>(ReferenceEqualityComparer.Instance);
+            var remap = context.Remap;
 
             // 1. Structure: GameObjects, transforms and components, without lifecycle calls.
             var rootClone = CloneStructure(rootNative, null, remap);
@@ -63,9 +110,8 @@ namespace OniMoono.Engine.Serialization
             //    held by engine components are remapped the same way.
             foreach (var (src, dst) in remap)
                 if (src is MonoBehaviour && dst is MonoBehaviour) CopyScript(src, dst, remap);
-            Object Map(Object o) => o is not null && remap.TryGetValue(o, out var mapped) ? mapped : o;
             foreach (var dst in remap.Values)
-                if (dst is Component && dst is not MonoBehaviour) dst.NativeOrThrow.RemapReferences(Map);
+                if (dst is Component && dst is not MonoBehaviour) dst.NativeOrThrow.RemapReferences(context.Map);
 
             // 3. Placement.
             var t = rootClone.Transform;
@@ -172,9 +218,17 @@ namespace OniMoono.Engine.Serialization
         /// Copies the serialized fields of a MonoBehaviour or ScriptableObject.
         static void CopyScript(Object src, Object dst, Dictionary<Object, Object> remap)
         {
-            if (src is ISerializationCallbackReceiver before) Invoke(() => before.OnBeforeSerialize(), src);
+            if (src is ISerializationCallbackReceiver before)
+            {
+                try { before.OnBeforeSerialize(); }
+                catch (Exception e) { Debug.LogException(e, src); }
+            }
             ScriptCopier(src.GetType())(src, dst, remap);
-            if (dst is ISerializationCallbackReceiver after) Invoke(() => after.OnAfterDeserialize(), dst);
+            if (dst is ISerializationCallbackReceiver after)
+            {
+                try { after.OnAfterDeserialize(); }
+                catch (Exception e) { Debug.LogException(e, dst); }
+            }
         }
 
         static readonly ConcurrentDictionary<Type, Action<object, object, Dictionary<Object, Object>>> scriptCopiers = new();
@@ -252,18 +306,6 @@ namespace OniMoono.Engine.Serialization
             var dst = new List<string>(src.Count);
             foreach (var s in src) dst.Add(s ?? "");
             return dst;
-        }
-
-        static void Invoke(Action a, Object context)
-        {
-            try
-            {
-                a();
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e, context);
-            }
         }
 
         static object CopyValue(object value, ValueShape shape, Dictionary<Object, Object> remap, int depth)

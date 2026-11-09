@@ -212,7 +212,19 @@ namespace OniMoono.Engine
         static void ApplyActive(GameObjectNative go, bool now)
         {
             if (now == go.ActiveInHierarchy) return;
-            var changed = new List<GameObjectNative>();
+            var changed = ScratchList<GameObjectNative>.Rent();
+            try
+            {
+                ApplyActive(go, now, changed);
+            }
+            finally
+            {
+                ScratchList<GameObjectNative>.Return(changed);
+            }
+        }
+
+        static void ApplyActive(GameObjectNative go, bool now, List<GameObjectNative> changed)
+        {
             if (now)
             {
                 SetFlags(go, true, changed);
@@ -282,7 +294,19 @@ namespace OniMoono.Engine
         /// is skipped.
         public static void AwakeAndEnableAll(List<GameObjectNative> activated)
         {
-            var scripts = new List<(Component c, int order, int seq)>();
+            var scripts = ScratchList<(Component c, int order, int seq)>.Rent();
+            try
+            {
+                AwakeAndEnableAll(activated, scripts);
+            }
+            finally
+            {
+                ScratchList<(Component c, int order, int seq)>.Return(scripts);
+            }
+        }
+
+        static void AwakeAndEnableAll(List<GameObjectNative> activated, List<(Component c, int order, int seq)> scripts)
+        {
             int seq = 0;
             foreach (var g in activated)
                 foreach (var c in g.Components)
@@ -610,7 +634,7 @@ namespace OniMoono.Engine
         /// looks up sibling components, as in Unity).
         static void DestroySubtree(GameObjectNative root)
         {
-            var released = new List<Object>();
+            var released = ScratchList<Object>.Rent();
             void Callbacks(GameObjectNative go)
             {
                 if (go.Destroyed) return;
@@ -626,6 +650,7 @@ namespace OniMoono.Engine
             }
             Callbacks(root);
             foreach (var o in released) o.Unbind();
+            ScratchList<Object>.Return(released);
         }
 
         static void DestroyComponent(Component c, ComponentNative native, bool detach, bool unbind = true)
@@ -657,6 +682,27 @@ namespace OniMoono.Engine
                 }
             }
             if (unbind) c.Unbind();
+        }
+    }
+
+    /// Lists for one lifecycle walk, kept for the next one: activation and
+    /// destruction run continuously as the game spawns and removes objects, and each walk made
+    /// its lists anew. A walk that runs game code (Awake, OnEnable, OnDestroy) can start another
+    /// walk, which takes another list. Lists grown large are dropped rather than kept.
+    internal static class ScratchList<T>
+    {
+        // Per thread: the lifecycle is the main thread's, but a mod that breaks that rule gets
+        // lists of its own thread rather than a corrupted pool.
+        [System.ThreadStatic] static Stack<List<T>> free;
+
+        public static List<T> Rent() => free is { Count: > 0 } f ? f.Pop() : new List<T>();
+
+        public static void Return(List<T> list)
+        {
+            free ??= new Stack<List<T>>();
+            if (list.Capacity > 4096 || free.Count >= 8) return;
+            list.Clear();
+            free.Push(list);
         }
     }
 }
