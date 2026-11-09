@@ -15,6 +15,9 @@ namespace OniMoono.Host
         /// The game folder came from the command line (`--game`, or Steam's `-- %command%`); else
         /// the start is standalone (Launch.StandaloneLaunch finds the game).
         public bool GameDirGiven;
+        /// `--use-version VERSION|latest`: a versioned install's version pinned by hand, or the
+        /// pin cleared (Install.VersionedStart).
+        public string? UseVersion;
         /// Test runs (`--run-home DIR`): the player's per-user data (Unity's persistent and cache
         /// paths, and on Windows the Documents and local application data folders the game reads)
         /// under DIR instead of the user's (RunHome).
@@ -187,6 +190,7 @@ namespace OniMoono.Host
                 switch (args[i])
                 {
                     case "--game": o.GameDir = args[++i]; o.GameDirGiven = true; break;
+                    case "--use-version" when at < gameFrom: o.UseVersion = args[++i]; break;
                     case "--" when at < gameFrom:
                     {
                         // Steam launch options `OniMoono [options] -- %command%`: Steam's command

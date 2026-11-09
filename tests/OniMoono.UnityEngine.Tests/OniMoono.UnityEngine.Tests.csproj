@@ -44,8 +44,10 @@
     <Compile Include="../../src/OniMoono.Host/UpdateCheck.cs" Link="Host/UpdateCheck.cs" />
     <!-- Unity's player arguments, read or ignored (UnityArgumentsTests). -->
     <Compile Include="../../src/OniMoono.Host/UnityArguments.cs" Link="Host/UnityArguments.cs" />
-    <!-- The standalone launch (LaunchTests). -->
+    <!-- The standalone launch and the versioned install (LaunchTests, InstallTests). -->
     <Compile Include="../../src/OniMoono.Host/Launch/*.cs" Link="Host/Launch/%(Filename)%(Extension)" />
+    <Compile Include="../../src/OniMoono.Host/Install/*.cs" Link="Host/Install/%(Filename)%(Extension)" />
+    <Compile Include="../../src/OniMoono.GameTweaks/MoonoItemMarker.cs" Link="GameTweaks/MoonoItemMarker.cs" />
     <!-- The player's options and the game's command line (GameCommandLineTests). -->
     <Compile Include="../../src/OniMoono.Host/Options.cs" Link="Host/Options.cs" />
     <Compile Include="../../src/OniMoono.Host/GameCommandLine.cs" Link="Host/GameCommandLine.cs" />
