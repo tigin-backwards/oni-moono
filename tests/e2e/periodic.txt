@@ -130,5 +130,6 @@ u60/u9-sandbox-tools                # -
 # vram-probe                        # 466 (failed in the original): PROBE_SCENARIO=vram
 # probe-uiztest                     # 36+41: PROBE_SCENARIO=uiztest
 # probe-apigaps                     # 38+37: PROBE_SCENARIO=apigaps
+# probe-cotraces                    # 60+50: PROBE_SCENARIO=cotraces, Gone/v2 (tools/UnityProbe/ct-check.py)
 # probe-texfallback                 # 36+42: PROBE_SCENARIO=texfallback, patched installs
 # load-screen-many-saves            # 415+108: E2E_CLOUD_SAVES with a synthetic saves tree

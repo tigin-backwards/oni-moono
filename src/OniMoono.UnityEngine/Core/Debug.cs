@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using OniMoono.Engine.Logging;
 
 namespace UnityEngine
@@ -30,7 +31,10 @@ namespace UnityEngine
         public static void LogErrorFormat(string format, params object[] args) => s_Logger.LogFormat(LogType.Error, format, args);
         public static void LogErrorFormat(Object context, string format, params object[] args) => s_Logger.LogFormat(LogType.Error, context, format, args);
 
+        // Not inlined: their frames are in the logged traces (LogTraces), as the original's are.
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void LogException(Exception exception) => s_Logger.LogException(exception, null);
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static void LogException(Exception exception, Object context) => s_Logger.LogException(exception, context);
 
         public static void LogAssertion(object message) => s_Logger.Log(LogType.Assert, message);

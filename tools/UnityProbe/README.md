@@ -662,6 +662,26 @@ handlers registered before its own and each event it sees with its frames. It ru
 `scripts/e2e.py` with a spec `from: main-menu`, as the canvas order probe does. ARCHITECTURE D45
 records what it measured; `--check-types` ("Strong-named copies, …") encodes it.
 
+With `PROBE_SCENARIO=cotraces` only the coroutine traces probe runs (`CoroutineTraces.cs`, lines
+`CT …`, 10 s into the main menu; a `CoroutineTracesProbeDone` canvas appears at the end), with
+`Gone/v2`'s build in the mod folder as for missingmembers. Each case lies between `CT case NAME
+begin` and `end` lines, which hold the log's text for it, and lists the full strings both log
+callbacks got: an exception left uncaught in a coroutine on its first step (inside StartCoroutine,
+from Update and from another coroutine's step) and on a later one, a MissingMethodException from a
+step that cannot compile, nested coroutines (`yield return StartCoroutine`, a yielded
+IEnumerator), StartCoroutine by name, an exception from Update, Debug.LogException in a step,
+`Debug.unityLogger.LogException`, the handler's LogException and LogException from a UnityEvent
+listener; then several of them again behind a pass-through handler, as the game's LogCatcher is.
+Run it through `scripts/e2e.py` with `tests/e2e/probe-cotraces.yaml`; `ct-check.py diff ORIG OURS`
+compares two players' logs. Measured 2026-11-09 (U57): the log has the exception's frames, ending
+for a step at `UnityEngine.SetupCoroutine.InvokeMoveNext (…) [0x00026]`, then every managed frame
+of the call in Unity's format: `DebugLogHandler`'s and the handler's, `Logger:LogException`, and
+for an exception the player caught `Debug:CallOverridenDebugHandler` (only when the handler was
+replaced; with the default one the player logs it with no logging frames), then for a first step
+`StartCoroutineManaged2_Injected`, `StartCoroutineManaged2`, `StartCoroutine` and its callers. The
+callbacks get the same frames without each UnityEngine frame whose caller is a UnityEngine frame
+too. `CoroutineTracesTests` encodes it.
+
 With `PROBE_SCENARIO=logthreads` only the log-threads probe runs (`LogThreads.cs`, lines `LT …`,
 10 s into the main menu): a managed `Thread`, a thread-pool item, a `Task` and the main thread
 log each type through `UnityEngine.Debug`, `Debug.unityLogger` and Klei's `Debug`, and handlers
