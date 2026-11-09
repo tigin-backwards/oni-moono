@@ -7,7 +7,8 @@
 
 LOG, ORIG and OURS are Player.log files (the original's, or ours from scripts/e2e.py). Module ids
 ("<mvid>:0"), our frames' source locations ("(at FILE:LINE)", "in FILE:LINE") and the log's IL
-offsets ("[0x0001f]") are compared as equal; everything else, separators and line ends included,
+offsets ("[0x0001f]") are compared as equal, as are the compiler's numbers in the probe's lambda and
+iterator names (a probe built from other code numbers them otherwise); everything else, separators and line ends included,
 must match.
 """
 
@@ -24,7 +25,10 @@ def norm(s):
     s = re.sub(r' in /\S+:\d+ ', ' in <mvid>:0 ', s)
     # CoreCLR's IL offsets of the throwing instruction differ from Mono's (a known difference of
     # the log's text that log signatures ignore).
-    return re.sub(r' \[0x[0-9a-f]{5}\] in ', ' [0x?????] in ', s)
+    s = re.sub(r' \[0x[0-9a-f]{5}\] in ', ' [0x?????] in ', s)
+    # The compiler numbers the probe's lambdas and iterators: a build with other code numbers
+    # them otherwise.
+    return re.sub(r'(__DisplayClass|b__|d__)\d+(_\d+)?', r'\1N', s)
 
 
 def cases(path):
@@ -44,7 +48,7 @@ def cases(path):
                 case['got'].append(norm(what[4:]))
             continue
         # The log's text for the case: its exception lines, not other components' messages.
-        if current and not STAMP.match(line) and not line.startswith('[OniMcp]') and not line.startswith('[E2eDriver]'):
+        if current and not STAMP.match(line) and not line.startswith(('[OniMcp]', '[E2eDriver]', '[engine]')):
             out[current]['log'].append(norm(line))
     for case in out.values():
         while case['log'] and case['log'][-1] == '':

@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace OniMoono.Engine
@@ -137,6 +138,9 @@ namespace OniMoono.Engine
             return (TDelegate)factory.Invoke(null, [method])!;
         }
 
+        // The thunks are compiled without profile-guided optimization (AggressiveOptimization), so
+        // the JIT never inlines a script's message into them: its frame stays in the stack traces
+        // of its exceptions (LogTraces), as on Mono.
         static class Thunks
         {
             public static Action<MonoBehaviour> Action0<T>(MethodInfo m) where T : MonoBehaviour
@@ -144,7 +148,7 @@ namespace OniMoono.Engine
                 if (m.ReturnType == typeof(void))
                 {
                     var d = m.CreateDelegate<Action<T>>();
-                    return b => d((T)b);
+                    return [MethodImpl(MethodImplOptions.AggressiveOptimization)] (MonoBehaviour b) => d((T)b);
                 }
                 // Messages with a non-void return (e.g. bool Awake()) still run; the result is ignored.
                 return b => m.Invoke(b, null);
@@ -155,7 +159,7 @@ namespace OniMoono.Engine
                 if (m.ReturnType == typeof(void))
                 {
                     var d = m.CreateDelegate<Action<T, bool>>();
-                    return (b, v) => d((T)b, v);
+                    return [MethodImpl(MethodImplOptions.AggressiveOptimization)] (MonoBehaviour b, bool v) => d((T)b, v);
                 }
                 return (b, v) => m.Invoke(b, [v]);
             }
@@ -163,7 +167,7 @@ namespace OniMoono.Engine
             public static Action<MonoBehaviour, RenderTexture, RenderTexture> Action2<T>(MethodInfo m) where T : MonoBehaviour
             {
                 var d = m.CreateDelegate<Action<T, RenderTexture, RenderTexture>>();
-                return (b, s, t) => d((T)b, s, t);
+                return [MethodImpl(MethodImplOptions.AggressiveOptimization)] (MonoBehaviour b, RenderTexture s, RenderTexture t) => d((T)b, s, t);
             }
 
             public static Func<MonoBehaviour, IEnumerator> Func<T>(MethodInfo m) where T : MonoBehaviour

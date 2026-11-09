@@ -23,7 +23,7 @@ namespace OniMoono.Engine
     /// step) is reported from the original's native code: through
     /// Debug.CallOverridenDebugHandler and the handler when the handler was replaced, else with no
     /// logging frames at all. The engine's frames stand for native code and are left out, but for
-    /// those that stand for Unity's managed ones: the coroutine stepper (Coroutines.Advance, Unity's
+    /// those that stand for Unity's managed ones: the coroutine stepper (Coroutines.Step, Unity's
     /// SetupCoroutine.InvokeMoveNext, also at the bottom of a step's exception frames) and the
     /// start of a coroutine from StartCoroutine (Coroutines.Start, StartCoroutineManaged2 and its
     /// injected binding).
@@ -108,9 +108,9 @@ namespace OniMoono.Engine
             // Reported by the engine (its catch of a script's exception): the original's native code
             // reports it, through the handler only when the game replaced it.
             bool engine = logger >= 0 && (next == null || IsEngine(next) || (next.DeclaringType == typeof(UnityEngine.Debug) && CalledByEngine(frames, after)));
-            bool replaced = false;
-            for (int i = 0; i < Math.Max(logger, 0); i++)
-                if (frames[i].GetMethod() is { } h && !IsLogging(h) && !IsEngine(h)) replaced = true;
+            // The handler was replaced: as the original decides it, by the logger's handler, not by
+            // its frames (a tier-1 handler's tail call to the default one leaves no frame of it).
+            bool replaced = UnityEngine.Debug.unityLogger.logHandler is not Logging.DefaultLogHandler;
             if (!engine || replaced)
             {
                 lines.AddRange(HandlerTop);
@@ -173,7 +173,7 @@ namespace OniMoono.Engine
 
         static bool IsUnity(string frame) => frame.StartsWith("UnityEngine.", StringComparison.Ordinal);
 
-        static bool IsStepper(MethodBase m) => m?.DeclaringType == typeof(Coroutines) && m.Name == "Advance";
+        static bool IsStepper(MethodBase m) => m?.DeclaringType == typeof(Coroutines) && m.Name == nameof(Coroutines.Step);
 
         // The method frame I calls (the previous frame with a method).
         static MethodBase Callee(StackFrame[] frames, int i)
