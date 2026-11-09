@@ -71,9 +71,7 @@ jobs:
           if len(given) != 4: fail(f"expected an archive and a manifest for each of {', '.join(platforms)}")
           component = re.compile(r"[A-Za-z0-9._+-]+")
           entries = {p: [] for p in platforms}
-          with open(sys.argv[2], encoding="utf-8", newline="") as f:
-              manifest = f.read()
-          for line in manifest.splitlines():
+          for line in os.environ["MANIFESTS"].splitlines():
               if not line: continue
               m = re.fullmatch(r"(windows-x64|linux-x64) ([0-9a-f]{64})  ([^\x00-\x1f\x7f]{1,240})", line)
               if not m: fail(f"unexpected manifest line: {line!r}")
