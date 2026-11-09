@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace OniMoono.Engine
@@ -40,6 +41,8 @@ namespace OniMoono.Engine
         static List<CoroutineState> fixedWaiters = new();
         static List<CoroutineState> endOfFrameWaiters = new();
 
+        // Not inlined: LogTraces reads its frame (Unity's StartCoroutineManaged2).
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public static Coroutine Start(MonoBehaviour owner, IEnumerator routine, string methodName = null)
         {
             if (routine == null) throw new NullReferenceException("routine is null");
@@ -67,7 +70,7 @@ namespace OniMoono.Engine
                 bool moved;
                 try
                 {
-                    moved = top.MoveNext();
+                    moved = Step(top);
                 }
                 catch (Exception e)
                 {
@@ -116,6 +119,12 @@ namespace OniMoono.Engine
                 }
             }
         }
+
+        /// A step: Unity's SetupCoroutine.InvokeMoveNext in logged stack traces (LogTraces). Without
+        /// profile-guided optimization (AggressiveOptimization) the JIT never inlines a hot
+        /// MoveNext here, so the step keeps its frame in its exceptions' traces, as on Mono.
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+        internal static bool Step(IEnumerator routine) => routine.MoveNext();
 
         static void WaitIn(List<CoroutineState> list, CoroutineState state, CoroutineWait wait)
         {

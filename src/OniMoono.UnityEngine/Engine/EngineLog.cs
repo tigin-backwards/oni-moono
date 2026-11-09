@@ -368,7 +368,9 @@ namespace OniMoono.Engine.Logging
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void LogException(Exception exception) => LogException(exception, null);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        // Nor is the handler inlined here (no profile-guided optimization): the game's handler keeps
+        // its frame, as on Mono.
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
         public void LogException(Exception exception, UnityEngine.Object context)
         {
             if (logEnabled) logHandler.LogException(exception, context);

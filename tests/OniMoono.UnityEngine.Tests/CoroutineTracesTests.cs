@@ -349,6 +349,41 @@ namespace OniMoono.Tests
                 "UnityEngine.Debug:CallOverridenDebugHandler(Exception, Object)"), log);
         }
 
+        // A handler whose frame the trace lacks: in the engine's namespace here, as a tier-1 handler
+        // whose call to the default one became a tail call has none.
+        sealed class FramelessHandler : ILogHandler
+        {
+            public ILogHandler Next;
+            public void LogException(Exception exception, UnityEngine.Object context) => Next.LogException(exception, context);
+            public void LogFormat(LogType logType, UnityEngine.Object context, string format, params object[] args) => Next.LogFormat(logType, context, format, args);
+        }
+
+        [Fact]
+        public void AReplacedHandlerWithoutAFrameStillGoesThroughCallOverridenDebugHandler()
+        {
+            var handler = UnityEngine.Debug.unityLogger.logHandler;
+            var go = new GameObject("ct");
+            var subject = go.AddComponent<Subject>();
+            Frame();
+            var got = new List<string>();
+            Application.LogCallback on = (c, st, t) => { if (t == LogType.Exception) got.Add(st); };
+            Application.logMessageReceived += on;
+            try
+            {
+                UnityEngine.Debug.unityLogger.logHandler = new FramelessHandler { Next = handler };
+                subject.Case = "later-step";
+                for (int i = 0; i < 3; i++) Frame();
+            }
+            finally
+            {
+                UnityEngine.Debug.unityLogger.logHandler = handler;
+                Application.logMessageReceived -= on;
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+            // DebugLogHandler's frame then goes as one called by Logger's.
+            Assert.EndsWith(Lines(Stepper, "UnityEngine.Debug:CallOverridenDebugHandler(Exception, Object)"), Assert.Single(got));
+        }
+
         [Fact]
         public void AnUpdatesExceptionHasItsOwnFramesAloneOrTheReplacedHandlers()
         {

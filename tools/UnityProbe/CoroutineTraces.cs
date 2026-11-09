@@ -13,7 +13,8 @@
 // visibility) are listed once for a Debug.LogException and once for a coroutine's exception,
 // through a pass-through handler put in front of the game's.
 //
-// Run alone with PROBE_SCENARIO=cotraces (10 s into the main menu); a CoroutineTracesProbeDone
+// Run alone with PROBE_SCENARIO=cotraces (10 s into the main menu); PROBE_CT_WARMUP=ROUNDS runs
+// the cases' paths many times first, for a tiering JIT; a CoroutineTracesProbeDone
 // canvas appears at the end.
 using System;
 using System.Collections;
@@ -87,6 +88,11 @@ namespace SemanticsProbe
         {
             Nested();
             yield return null;
+        }
+
+        IEnumerator Empty()
+        {
+            yield break;
         }
 
         IEnumerator ThrowLater()
@@ -195,6 +201,30 @@ namespace SemanticsProbe
             yield return new WaitForSecondsRealtime(10f);
             L("begin");
             L("handler " + (UnityEngine.Debug.unityLogger.logHandler?.GetType().FullName ?? "null"));
+            // PROBE_CT_WARMUP=ROUNDS: the paths the cases take run many times first, ROUNDS times
+            // 2 s apart, so a tiering JIT (ours) has compiled them with its optimizations (inlining,
+            // profile-guided) before the cases are measured.
+            int.TryParse(Environment.GetEnvironmentVariable("PROBE_CT_WARMUP"), out int rounds);
+            for (int round = 0; round < rounds; round++)
+            {
+                L("warmup round " + round);
+                var warmLister = new Lister { Next = UnityEngine.Debug.unityLogger.logHandler };
+                for (int i = 0; i < 2000; i++) Kick(Empty());
+                for (int i = 0; i < 150; i++)
+                {
+                    Kick(ThrowFirst());
+                    Kick(ParentFirst());
+                    Kick(MissingFirst());
+                    StartCoroutine(nameof(ThrowFirstByName));
+                    UnityEngine.Debug.LogException(Thrown());
+                    UnityEngine.Debug.unityLogger.LogException(Thrown());
+                    UnityEngine.Debug.unityLogger.logHandler = warmLister;
+                    Kick(ThrowFirst());
+                    UnityEngine.Debug.LogException(Thrown());
+                    UnityEngine.Debug.unityLogger.logHandler = warmLister.Next;
+                }
+                yield return new WaitForSecondsRealtime(2f);
+            }
             yield return Case("update", () => throwInUpdate = true);
             yield return Case("first-step", () => Kick(ThrowFirst()));
             yield return Case("first-step-from-step", () => Kick(ThrowFirst()), fromStep: true);

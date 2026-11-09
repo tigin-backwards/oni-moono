@@ -680,7 +680,12 @@ for an exception the player caught `Debug:CallOverridenDebugHandler` (only when 
 replaced; with the default one the player logs it with no logging frames), then for a first step
 `StartCoroutineManaged2_Injected`, `StartCoroutineManaged2`, `StartCoroutine` and its callers. The
 callbacks get the same frames without each UnityEngine frame whose caller is a UnityEngine frame
-too. `CoroutineTracesTests` encodes it.
+too. `CoroutineTracesTests` encodes it. `PROBE_CT_WARMUP=ROUNDS` first runs the cases' paths a few
+hundred times per round, 2 s apart, so our release player's tiering JIT (Dynamic PGO) has
+optimized them. Measured 2026-11-09 after 3 rounds: the engine's frames hold (the script thunks,
+the coroutine stepper and the logger are compiled without PGO, so no script method is inlined into
+them); what differs is the probe's own code, where tier-1 code makes a call in tail position a tail
+call and loses the caller's frame (its Update's, its pass-through handler's), as Mono does not.
 
 With `PROBE_SCENARIO=logthreads` only the log-threads probe runs (`LogThreads.cs`, lines `LT …`,
 10 s into the main menu): a managed `Thread`, a thread-pool item, a `Task` and the main thread
