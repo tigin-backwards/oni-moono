@@ -598,6 +598,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.DETAIL"
 msgid "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same."
 msgstr "每次刷新时每个存档的信息只从文件读取一次而不是四次，并且同时读取多个文件；已显示页面的预览图不再重新生成。殖民地、顺序、预览图和日志都不变。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
+msgid "Worldgen as in the original"
+msgstr "与原版一致的世界生成"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.EFFECT"
+msgid "A seed makes the same map as in the original game, so shared seeds match."
+msgstr "同一种子生成与原版游戏相同的地图，分享的种子可以对得上。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.DETAIL"
+msgid "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."
+msgstr "世界生成的小数运算采用原版游戏的精度，只在保存数值时取整。关闭时：新地图的生态区边界可能略有不同。已生成的地图和存档不受影响。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.LOAD_SCREEN"
 msgid "Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s)"
 msgstr "4,637 个存档时加载游戏界面约 0.6 秒打开（原本约 1.4 秒）"

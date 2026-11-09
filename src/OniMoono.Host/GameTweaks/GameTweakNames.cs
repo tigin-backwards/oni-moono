@@ -56,7 +56,8 @@ namespace OniMoono.Host.GameTweaks
         public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", StallRepeatsRow = "stall-repeats", UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
-            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles", GeothermalVents = "fix-geothermal-vents";
+            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles", GeothermalVents = "fix-geothermal-vents",
+            ExactWorldgen = "exact-worldgen";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -125,6 +126,9 @@ namespace OniMoono.Host.GameTweaks
             new("fast-load-screen", General, "Faster Load screen", "With many saves, the Load screen opens and loads more colonies sooner.",
                 "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. "
                 + "The colonies, their order, the previews and the log are the same.", LoadScreenGain),
+            new(ExactWorldgen, General, "Worldgen as in the original", "A seed makes the same map as in the original game, so shared seeds match.",
+                "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. "
+                + "Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."),
 
             new(FastSerialization, Saving, "Faster save writing", "Autosaves take less time; the save file is the same.",
                 "Writes the colony's numbers without boxing each one in an object."),

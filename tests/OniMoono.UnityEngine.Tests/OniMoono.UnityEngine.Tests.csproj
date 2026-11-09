@@ -70,6 +70,8 @@
     <Compile Include="../../src/OniMoono.Host/PathGridPages.cs" Link="Host/PathGridPages.cs" />
     <Compile Include="../../src/OniMoono.Host/PathGridPagesRewrite.cs" Link="Host/PathGridPagesRewrite.cs" />
     <Compile Include="../../src/OniMoono.Host/CilBranches.cs" Link="Host/CilBranches.cs" />
+    <!-- exact-worldgen's widening of float arithmetic (MonoFloatWideningTests). -->
+    <Compile Include="../../src/OniMoono.Host/MonoFloatWidening.cs" Link="Host/MonoFloatWidening.cs" />
     <!-- The brain-rate game tweak's allowance (BrainRateAllowanceTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/BrainRateAllowance.cs" Link="GameTweaks/BrainRateAllowance.cs" />
     <!-- A tweak written for another game version is off; the checks and the install (TweakChecksTests). -->

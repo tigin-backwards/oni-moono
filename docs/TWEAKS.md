@@ -191,6 +191,7 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 ### General (on by default)
 
 - **Faster Load screen** (`fast-load-screen`): With many saves, the Load screen opens and loads more colonies sooner. Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same. *Measured: Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s); U60, 4,637 saves, Linux under WSL2, 2026-11-03.*
+- **Worldgen as in the original** (`exact-worldgen`): A seed makes the same map as in the original game, so shared seeds match. Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected.
 
 ### Saving (on by default)
 

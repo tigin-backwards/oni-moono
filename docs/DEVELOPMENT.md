@@ -251,8 +251,9 @@ loads where it depends on Mono (D29–D31 and D47 for both; mods' alone in D22, 
 D40, D42, D50, D51, D56 and D57), and adjusts the game's Harmony where patches would run differently
 (D12–D14, D17–D21, D33, D34, D43).
 
-Float arithmetic in game code rounds as .NET does, not as Unity's Mono (D25); the engine's own
-math follows the original bit for bit where that was measured.
+Float arithmetic in game code rounds as .NET does, not as Unity's Mono (D25), except in
+worldgen under the `exact-worldgen` tweak; the engine's own math follows the original bit for bit
+where that was measured.
 
 ## Documents
 

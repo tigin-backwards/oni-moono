@@ -81,7 +81,8 @@ namespace OniMoono.Host
         {
             if (!MayConvertFloats(image) && !MonoDirectoryListing.MayList(image) && !MonoModHelperDrop.MayDrop(image) && !MonoThreadAbort.MayAbort(image)
                 && !(NavGridLinksRewrite.Enabled && NavGridLinksRewrite.MayTouch(image))
-                && !(PathGridPagesRewrite.Enabled && PathGridPagesRewrite.MayTouch(image))) return null;
+                && !(PathGridPagesRewrite.Enabled && PathGridPagesRewrite.MayTouch(image))
+                && !(MonoFloatWidening.Enabled && MonoFloatWidening.MayTouch(path))) return null;
             string? cached = null;
             try
             {
@@ -90,7 +91,9 @@ namespace OniMoono.Host
                           // compact-nav-links rewrites the image too.
                           + (NavGridLinksRewrite.Enabled ? "-links" : "")
                           // paged-path-grids too.
-                          + (PathGridPagesRewrite.Enabled ? "-pages" : "");
+                          + (PathGridPagesRewrite.Enabled ? "-pages" : "")
+                          // exact-worldgen widens worldgen's floats.
+                          + (MonoFloatWidening.Enabled && MonoFloatWidening.MayTouch(path) ? "-wide" : "");
                 cached = Path.Combine(EngineConfig.TemporaryCachePath, "oni-moono", "conversions", Path.GetFileNameWithoutExtension(path) + "-" + key + ".dll");
                 if (File.Exists(cached))
                 {
@@ -171,6 +174,11 @@ namespace OniMoono.Host
             int pages = PathGridPagesRewrite.Enabled
                 ? PathGridPagesRewrite.RewriteModule(module, what == "game conversions", Path.GetFileName(path), linkLog) : 0;
             foreach (var line in linkLog) EngineLog.Engine(line);
+            // exact-worldgen: worldgen's float arithmetic in double, as on Unity's Mono (D25),
+            // before the conversions are found (their operands are then doubles).
+            int widened = 0, widenedMethods = 0;
+            if (MonoFloatWidening.Enabled && what == "game conversions")
+                widened = MonoFloatWidening.RewriteModule(module, Path.GetFileName(path), out widenedMethods);
             int converted = RewriteModule(module, out int methods, out int unsure);
             // The same pass sends its directory listings to MonoDirectoryListing (D30).
             int listings = MonoDirectoryListing.RewriteModule(module);
@@ -178,13 +186,15 @@ namespace OniMoono.Host
             int drops = MonoModHelperDrop.RewriteModule(module);
             // And its calls of Thread.Abort abort as Mono's do (D47).
             int aborts = MonoThreadAbort.RewriteModule(module, out int catchEnds);
-            if (converted == 0 && listings == 0 && drops == 0 && aborts == 0 && links == 0 && pages == 0) return null;
+            if (converted == 0 && listings == 0 && drops == 0 && aborts == 0 && links == 0 && pages == 0 && widened == 0) return null;
             using var output = new MemoryStream();
             using var symbolOutput = new MemoryStream();
             module.Write(output, new Cecil.WriterParameters { WriteSymbols = withSymbols, SymbolStream = withSymbols ? symbolOutput : null, SymbolWriterProvider = withSymbols ? new Cil.PortablePdbWriterProvider() : null });
             symbols = withSymbols ? symbolOutput.ToArray() : null;
             if (converted > 0)
                 EngineLog.Engine($"{what}: {Path.GetFileName(path)}: {converted} conversion(s) of floats in {methods} method(s) convert as on Mono" + (unsure > 0 ? $"; {unsure} left as they were (stack types not followed)" : ""));
+            if (widened > 0)
+                EngineLog.Engine($"game tweak exact-worldgen: {Path.GetFileName(path)}: {widened} float load(s) in {widenedMethods} worldgen method(s) widened to double, as on Mono");
             if (listings > 0)
                 EngineLog.Engine($"{what.Replace("conversions", "listings")}: {Path.GetFileName(path)}: {listings} directory listing(s) in Mono's order");
             if (drops > 0)

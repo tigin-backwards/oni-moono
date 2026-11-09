@@ -140,6 +140,8 @@ namespace OniMoono.Host
             if (effective.EnabledTweaks.Contains(GameTweaks.CompactNavLinks.Name)) GameTweaks.CompactNavLinks.Enable();
             // paged-path-grids too.
             if (effective.EnabledTweaks.Contains(GameTweaks.PagedPathGrids.Name)) GameTweaks.PagedPathGrids.Enable();
+            // exact-worldgen too: worldgen's floats as on Mono.
+            if (effective.EnabledTweaks.Contains(GameTweaks.ExactWorldgen.Name)) GameTweaks.ExactWorldgen.Enable();
             AssemblyPolicy.Install(layout, AppContext.BaseDirectory);
             if (options.CheckNatives) return NativeCheck.Run(layout, AssemblyPolicy.RuntimeAssemblyPaths(), options.NativeArch ?? AssemblyPolicy.ProcessCpu, options.NativeDir);
             var assemblies = AssemblyPolicy.PreloadScriptingAssemblies(dataDir);
@@ -2734,6 +2736,7 @@ namespace OniMoono.Host
             });
             Check("compact-nav-links: the hot walks' IL and the reviewed transpilers (CompactNavLinks)", GameTweaks.CompactNavLinks.SelfCheck);
             Check("paged-path-grids: the rewritten PathGrid against a model of its arrays (PagedPathGrids)", GameTweaks.PagedPathGrids.SelfCheck);
+            Check("exact-worldgen: float arithmetic widened as Mono evaluates it (MonoFloatWidening)", GameTweaks.ExactWorldgen.SelfCheck);
             return failures;
         }
 

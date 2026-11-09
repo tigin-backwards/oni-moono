@@ -493,34 +493,58 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   `Directory.CreateDirectory("")` throws. **Resolved in** `MonoFolderPaths`: the default option
   is answered without the existence check, as Mono answers it; Windows is unchanged.
   `--check-types` asks for the Desktop of a home that has none.
-- **D25 Float intermediate precision.** Unity starts Mono with `-O=-float32`
-  (`UnityPlayer.so`; Mono's own default is float32 on): float arithmetic is evaluated in double
-  and rounded to float32 only where the value is stored (a local, field, array element,
-  parameter or return value) or cast. CoreCLR rounds every float operation to float32. So a
-  float expression used without being stored first can differ in the last bit:
-  `(int)(0.7f * 10f)` is 6 on Mono and 7 here, `Math.Round(0.9f * 255)` 229 and 230. In the game
-  this shows as rare off-by-one results where a product lands on an integer, such as the germs
-  a ladder passes on (`(int)(count * 0.005f)`, one fewer on Mono at multiples of 200), and in
-  some UI roundings at a half. Kept: .NET's results are those the code as written asks for, and
-  emulating Mono (widening every float load and call result in all game and mod IL) would
-  break mods' transpilers that match IL patterns. Measured by `tools/UnityProbe`
-  (FloatPrecision.cs, `PROBE_SCENARIO=floatprec`); test tools that compare players compute in
-  double, where both runtimes agree. The engine's own versions of Unity's managed math follow
-  Mono where it was measured: `Matrix4x4`'s products (`MultiplyPoint3x4`, `MultiplyPoint`,
-  `MultiplyVector`, matrix × vector and matrix × matrix) sum each element in double and round
-  once, as in the original bit for bit (`PROBE_SCENARIO=matmul`, `mm-check.py`; ScrollRect's
-  change detection depends on it, `docs/cleanroom/ugui.md` "ScrollRect: bounds to the bit").
-  `Matrix4x4.inverse` is native float code in the original, Mesa's Gauss–Jordan inversion; the
-  engine ports it (`MesaInverse`, MIT), bit for bit with the original. So are the
-  projection builders (`PROBE_SCENARIO=projection`, `pj-check.py`): `Ortho` and `Frustum` are
-  Mesa's (`MesaFrustum`, MIT), `LookAt` is `gluLookAt`'s basis arithmetic in Unity's layout
-  (`GluLookAt`, SGI Free Software License B), and `Perspective` and `Quaternion.AngleAxis`
-  are float code with the C library's sinf and cosf, which MathF calls too; the engine follows
-  all five bit for bit. Neither Mesa's nor GLU's, but measured and followed bit for bit too:
-  `Inverse3DAffine` (native float cofactors over a SIMD-shaped determinant), `Rotate` (managed:
-  its diagonal is evaluated in double under the Mono, as above, where `TRS` is native float), and
-  the camera's rects, `worldToCameraMatrix` and screen conversions (float P·V, a whole-pixel
-  viewport, an unprojection at depth 0.95), all but the perspective rays' direction
+- **D25 Float intermediate precision.** Unity starts Mono with `-O=-float32` (`UnityPlayer.so`;
+  Mono's own default is float32 on): float arithmetic is evaluated in double and rounded to
+  float32 only where the value is stored (a local, field, array element, parameter or return
+  value) or cast. CoreCLR rounds every float operation to float32. So a float expression used
+  without being stored first can differ in the last bit: `(int)(0.7f * 10f)` is 6 on Mono and 7
+  here, `Math.Round(0.9f * 255)` 229 and 230. In the game this shows as rare off-by-one results
+  where a product lands on an integer, such as the germs a ladder passes on (`(int)(count *
+  0.005f)`, one fewer on Mono at multiples of 200), and in some UI roundings at a half. Kept in
+  play: .NET's results are those the code as written asks for, and emulating Mono everywhere
+  (widening every float load and call result in all game and mod IL) would break mods' transpilers
+  that match IL patterns. Measured by `tools/UnityProbe` (FloatPrecision.cs,
+  `PROBE_SCENARIO=floatprec`); test tools that compare players compute in double, where both
+  runtimes agree. **Resolved for worldgen** by the `exact-worldgen` game tweak (on by default;
+  `MonoFloatWidening`, in D29's load-time pass): a seed's map depends on the last bit of millions
+  of float operations (noise, Poisson-disk sites, the Voronoi relaxation, border widths), so the
+  same coordinate drew slightly different biome borders than the original (issue #66). In
+  worldgen's code alone (LibNoiseDotNet; firstpass's `ProcGen`, `Delaunay`, `VoronoiTree`,
+  `Geometry` and `LibNoiseDotNet` namespaces and the global helpers they call; Assembly-CSharp's
+  `ProcGenGame`) every float32 load, constant and call result is followed by `conv.r8`, so the
+  arithmetic runs in double and is rounded back where the value is stored, as on Mono. Worldgen
+  runs before a game starts, so the doubles cost nothing in play, and worldgen takes no longer (a
+  classic-style cluster of eight worlds: 10.5 and 13.0 s with it, 10.6 and 13.7 s without, on
+  Linux). Of the mods in the burndown, only Heliconia transpiles a widened method
+  (`TerrainCell.ApplyBackground`): it swaps a load of `Element.lowTemp` for a call, which the
+  widening's `conv.r8` then follows, so its patch still applies. Checked by the `exact-worldgen`
+  spec (a classic-style cluster's eight worlds against the original's) and, while it was built, on
+  five coordinates across the base game, classic-style and Spaced Out clusters and Ceres: every
+  world's overworld polygons and its cells as they go into the settling simulation are the
+  original's bit for bit (without the tweak, nearly every polygon and some 16,000 cells of the
+  start world differ). The settling itself does not repeat from run to run in either player (a few
+  liquid cells, at times a pocket of frozen gas, differ between two runs of one player), so the
+  settled cells are not compared.
+  The engine's own versions of Unity's managed math follow Mono where it was measured. `Vector2`,
+  `Vector3` and `Mathf` members that round more than once (`magnitude`, `sqrMagnitude`,
+  `Distance`, `Dot`, `Lerp`, `LerpUnclamped`, `MoveTowards`, `ClampMagnitude`, `Reflect`, `Cross`,
+  `Project`, `Angle`, `InverseLerp` and `==`) are evaluated in double and rounded where Unity's
+  would store a value, bit for bit with the original on 2,000 cases each
+  (`PROBE_SCENARIO=vecmath`, `vm-check.py`), at no measurable cost. `Matrix4x4`'s products
+  (`MultiplyPoint3x4`, `MultiplyPoint`, `MultiplyVector`, matrix × vector and matrix × matrix) sum
+  each element in double and round once, as in the original bit for bit (`PROBE_SCENARIO=matmul`,
+  `mm-check.py`; ScrollRect's change detection depends on it, `docs/cleanroom/ugui.md`
+  "ScrollRect: bounds to the bit"). `Matrix4x4.inverse` is native float code in the original,
+  Mesa's Gauss–Jordan inversion; the engine ports it (`MesaInverse`, MIT), bit for bit with the
+  original. So are the projection builders (`PROBE_SCENARIO=projection`, `pj-check.py`): `Ortho`
+  and `Frustum` are Mesa's (`MesaFrustum`, MIT), `LookAt` is `gluLookAt`'s basis arithmetic in
+  Unity's layout (`GluLookAt`, SGI Free Software License B), and `Perspective` and
+  `Quaternion.AngleAxis` are float code with the C library's sinf and cosf, which MathF calls too;
+  the engine follows all five bit for bit. Neither Mesa's nor GLU's, but measured and followed bit
+  for bit too: `Inverse3DAffine` (native float cofactors over a SIMD-shaped determinant), `Rotate`
+  (managed: its diagonal is evaluated in double under the Mono, as above, where `TRS` is native
+  float), and the camera's rects, `worldToCameraMatrix` and screen conversions (float P·V, a
+  whole-pixel viewport, an unprojection at depth 0.95), all but the perspective rays' direction
   (`docs/cleanroom/ugui.md`, "Camera and projection math").
   The transform hierarchy's world matrix, rotation and lossy scale are native float code in the
   original, composed from the leaf up; the engine follows it bit for bit (`HierarchyMath`,
