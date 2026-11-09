@@ -156,7 +156,19 @@ jobs:
       - name: Write the notes
         run: |
           tag_note="\`gh release verify-asset $DRAFT_TAG FILE -R $GH_REPO\` (once published) or"
-          cat > notes.md <<EOF
+          : > notes.md
+          if [ "$PRERELEASE" != false ]; then
+            # A U60 pre-release opens as the earlier ones did: which game build it is for.
+            build=$(gh api "repos/$GH_REPO/contents/ci/game-refs.json?ref=$GITHUB_SHA" --jq .content | base64 -d | python3 -c 'import json, sys; print(json.load(sys.stdin).get("default_build") or "")')
+            [ -n "$build" ] && [ "$build" != null ] || { echo "::error::no default_build in ci/game-refs.json"; exit 1; }
+            cat >> notes.md <<EOF
+          **Only for Oxygen Not Included's U60 public test** (game build $build, Steam beta \`public_testing\`). On the normal game, use [the latest normal release]($GITHUB_SERVER_URL/$GH_REPO/releases/latest). If this build is started on the wrong game version, it says which build to get instead of crashing.
+
+          An update to the U60 beta, built from the [\`u60\`]($GITHUB_SERVER_URL/$GH_REPO/tree/u60) branch.
+
+          EOF
+          fi
+          cat >> notes.md <<EOF
           Built by GitHub Actions from commit $GITHUB_SHA ([build]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)). Verify a download with $tag_note \`gh attestation verify FILE -R $GH_REPO --signer-workflow $SIGNER\`. The second also verifies any single file from an archive, extracted or installed; each archive's \`.SHA256SUMS\` lists its files.
 
           Install or update: download the archive for your system, extract it, and run the setup in the \`oni-moono\` folder (Windows: double-click \`setup.cmd\`; Linux: \`./setup.sh\`). If you already set it up, running the new setup is enough.
