@@ -512,7 +512,16 @@ namespace OniMoono.Desktop.Gl
             // thread rather than on the window context's GPU queue, so neither context's queue
             // ever waits on the other's.
             long t = GlTimings.Now;
-            while (N.glClientWaitSync(fence, default, WaitSliceNanoseconds) == TimeoutExpired) { }
+            var wait = new OniMoono.Engine.LongWait();
+            if (OniMoono.Engine.LongWaits.StallFence)
+                while (true)
+                {
+                    System.Threading.Thread.Sleep(100);
+                    wait.Slice("presenter: the frame's fence", $"sync 0x{System.Runtime.CompilerServices.Unsafe.As<GlSync, nint>(ref fence):x}, frame {b.DrawnFrame}, stalled by ONI_TEST_STALL_FENCE");
+                }
+            while (N.glClientWaitSync(fence, default, WaitSliceNanoseconds) == TimeoutExpired)
+                wait.Slice("presenter: the frame's fence", $"sync 0x{System.Runtime.CompilerServices.Unsafe.As<GlSync, nint>(ref fence):x}, frame {b.DrawnFrame}");
+            wait.End();
             N.glDeleteSync(fence);
             PresenterTimings.Add(ref PresenterTimings.FrameWait, GlTimings.Now - t);
             lastInterval = interval;

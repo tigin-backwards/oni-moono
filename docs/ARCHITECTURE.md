@@ -2067,6 +2067,14 @@ player: with vSync the swap paces frames; otherwise `Application.targetFrameRate
 otherwise none. Without a display (`--headless`, `--batchmode`) frames are paced at
 `targetFrameRate` or 60 Hz.
 
+The CPU's fence waits (the presenter's for a frame, the one after a vsynced swap, the stream
+buffer's for a ring region) wait 100 ms at a time until the fence signals. A wait still going
+after 10 s is logged, and again each minute, as one `[engine] long wait:` line naming the site,
+the sync object, the frame where known, the thread and its kernel ID (`LongWaits`); the wait
+itself does not change, and one that ends at its first slice costs nothing more. A player once
+stopped in a fence wait on WSL's `/dev/dxg` with no word of which. `ONI_TEST_STALL_FENCE=1` makes
+the presenter's wait never end, to see the lines.
+
 **Frame deltas with vsync.** Unity (2020.2 on) times a vsynced frame by its presentation, so its
 `Time.unscaledDeltaTime` is a whole number of refreshes: in the original on Windows (U59 and U60,
 windowed at 59.95 Hz, panning a small colony with the keyboard) 98.7% and 99.3% of 1,199 frames read

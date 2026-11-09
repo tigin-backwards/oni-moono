@@ -94,7 +94,10 @@ namespace OniMoono.Desktop.Gl
                 long t = GlTimings.Now;
                 var swapped = N.glFenceSync(SyncGpuCommandsComplete, default);
                 N.glFlush();
-                while (N.glClientWaitSync(swapped, default, WaitSliceNanoseconds) == TimeoutExpired) { }
+                var wait = new OniMoono.Engine.LongWait();
+                while (N.glClientWaitSync(swapped, default, WaitSliceNanoseconds) == TimeoutExpired)
+                    wait.Slice("window: the fence after the swap", $"sync 0x{System.Runtime.CompilerServices.Unsafe.As<Brutal.OpenGlApi.GlSync, nint>(ref swapped):x}, interval {interval}");
+                wait.End();
                 N.glDeleteSync(swapped);
                 LastWait = GlTimings.Now - t;
             }
