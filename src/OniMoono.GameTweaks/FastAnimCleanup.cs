@@ -25,9 +25,6 @@ namespace OniMoono.GameTweaks
         public const string Name = "fast-anim-cleanup";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        static readonly AccessTools.FieldRef<KBatchedAnimUpdater, Dictionary<int, KBatchedAnimController>[,]> grid =
-            AccessTools.FieldRefAccess<KBatchedAnimUpdater, Dictionary<int, KBatchedAnimController>[,]>("controllerGrid");
-        static readonly AccessTools.FieldRef<KBatchedAnimUpdater, int> chunkIndex = AccessTools.FieldRefAccess<KBatchedAnimUpdater, int>("cleanUpChunkIndex");
 
         /// Controllers destroyed recently, with the chunk sweeps left before they are forgotten.
         static readonly List<(int Id, int SweepsLeft)> destroyed = new List<(int, int)>();
@@ -46,7 +43,7 @@ namespace OniMoono.GameTweaks
         /// recently destroyed controller's entry may remain.
         static bool CleanUp(KBatchedAnimUpdater __instance)
         {
-            var controllers = grid(__instance);
+            var controllers = __instance.controllerGrid;
             if (controllers == null)
             {
                 destroyed.Clear(); // no world: nothing to sweep, ever
@@ -56,7 +53,7 @@ namespace OniMoono.GameTweaks
             // Bounded: past this many pending ids every chunk is swept, as the game does.
             bool sweepAll = destroyed.Count > 50000;
             int width = controllers.GetLength(0), count = controllers.Length;
-            ref int index = ref chunkIndex(__instance);
+            ref int index = ref __instance.cleanUpChunkIndex;
             for (int k = 0; k < destroyed.Count; k++)
                 if (destroyed[k].SweepsLeft == int.MaxValue) destroyed[k] = (destroyed[k].Id, count);
             for (int i = 0; i < 16; i++)

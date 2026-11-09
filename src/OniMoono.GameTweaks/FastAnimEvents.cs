@@ -52,9 +52,6 @@ namespace OniMoono.GameTweaks
         public static long Mismatches => wrong;
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        static readonly AccessTools.FieldRef<AnimEventManager, List<KBatchedAnimController>> finishedCalls =
-            AccessTools.FieldRefAccess<AnimEventManager, List<KBatchedAnimController>>("finishedCalls");
-        static readonly AccessTools.FieldRef<KAnimControllerBase, KAnim.PlayMode> controllerMode = AccessTools.FieldRefAccess<KAnimControllerBase, KAnim.PlayMode>("mode");
 
         /// Each watched controller's index into `stale`. Indices are never reused: a row may still
         /// hold a destroyed controller, whose index stays stale.
@@ -206,7 +203,7 @@ namespace OniMoono.GameTweaks
             }
             if (dt <= 0f) return false;
             mirrors.TryGetValue(event_data, out var rows);
-            var finished = finishedCalls(__instance);
+            var finished = __instance.finishedCalls;
             int i = 0, startCount = event_data.Count;
             // The count is read on every pass, as the game's loop does: an event can start an
             // animation (a speech event its Duplicant's mouth), which appends an entry to visit
@@ -278,7 +275,7 @@ namespace OniMoono.GameTweaks
             if (row.Destroyed) return;
             var anim = controller.CurrentAnim;
             row.HasAnim = anim != null;
-            row.Mode = controllerMode(controller);
+            row.Mode = controller.mode;
             row.NumFrames = anim?.numFrames ?? 0;
             row.TotalTime = anim?.totalTime ?? 0f;
             row.FrameRate = anim?.frameRate ?? 0f;
@@ -307,7 +304,7 @@ namespace OniMoono.GameTweaks
             bool destroyed = controller == null;
             var anim = destroyed ? null : controller.CurrentAnim;
             bool same = row.Destroyed == destroyed
-                        && (destroyed || (row.HasAnim == (anim != null) && row.Mode == controllerMode(controller) && row.PlaySpeed == controller.GetPlaySpeed()
+                        && (destroyed || (row.HasAnim == (anim != null) && row.Mode == controller.mode && row.PlaySpeed == controller.GetPlaySpeed()
                                           && row.NumFrames == (anim?.numFrames ?? 0) && row.TotalTime == (anim?.totalTime ?? 0f) && row.FrameRate == (anim?.frameRate ?? 0f)));
             if (!same)
             {

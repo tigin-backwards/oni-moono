@@ -28,11 +28,9 @@ namespace OniMoono.GameTweaks
         public const string Name = "trim-anim-lists";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        static AccessTools.FieldRef<KAnimBatchManager, Dictionary<HashedString, KBatchGroupData>> groups;
 
         public static void Install(Harmony harmony)
         {
-            groups = AccessTools.FieldRefAccess<KAnimBatchManager, Dictionary<HashedString, KBatchGroupData>>("batchGroupData");
             // Last, after mods' own postfixes on it (which may still add elements).
             harmony.Patch(AccessTools.Method(typeof(Assets), "OnPrefabInit"),
                 postfix: new HarmonyMethod(typeof(TrimAnimLists), nameof(Loaded)) { priority = Priority.Last });
@@ -44,7 +42,7 @@ namespace OniMoono.GameTweaks
             if (manager == null) return;
             long freed = 0, mismatched = 0;
             int lists = 0;
-            foreach (var data in groups(manager).Values)
+            foreach (var data in manager.batchGroupData.Values)
             {
                 if (data == null) continue;
                 freed += Trim(data.frameElements, ref lists, ref mismatched);

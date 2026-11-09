@@ -68,18 +68,10 @@ namespace OniMoono.GameTweaks
         static readonly bool timing = Environment.GetEnvironmentVariable("ONI_TWEAK_TIMING") == "1";
         static readonly bool serialOnly = Environment.GetEnvironmentVariable("ONI_FAST_ANIM_BATCHES_SERIAL") == "1";
 
-        static readonly AccessTools.FieldRef<KAnimBatchManager, List<BatchSet>> activeBatchSets =
-            AccessTools.FieldRefAccess<KAnimBatchManager, List<BatchSet>>("activeBatchSets");
-        static readonly AccessTools.FieldRef<KAnimBatch, bool> needsWrite = AccessTools.FieldRefAccess<KAnimBatch, bool>("needsWrite");
-        static readonly AccessTools.FieldRef<KAnimBatch, List<int>> dirtySet = AccessTools.FieldRefAccess<KAnimBatch, List<int>>("dirtySet");
-        static readonly AccessTools.FieldRef<KAnimBatch, KAnimBatch.SymbolInstanceSlot[]> symbolSlots =
-            AccessTools.FieldRefAccess<KAnimBatch, KAnimBatch.SymbolInstanceSlot[]>("symbolInstanceSlots");
 
         static readonly MethodInfo writeInstanceMethod = AccessTools.Method(typeof(KAnimBatch), "WriteBatchedAnimInstanceData");
         static readonly MethodInfo writeSymbolsMethod = AccessTools.Method(typeof(KAnimBatch), "WriteSymbolInstanceData");
         static readonly MethodInfo writeOverridesMethod = AccessTools.Method(typeof(KAnimBatch), "WriteSymbolOverrideInfoTex");
-        static readonly AccessTools.FieldRef<KAnimBatch, KAnimBatch.SymbolOverrideInfoSlot[]> overrideSlots =
-            AccessTools.FieldRefAccess<KAnimBatch, KAnimBatch.SymbolOverrideInfoSlot[]>("symbolOverrideInfoSlots");
         static readonly Action<KAnimBatch, int, KAnimConverter.IAnimConverter, NativeArray<byte>> writeInstance =
             AccessTools.MethodDelegate<Action<KAnimBatch, int, KAnimConverter.IAnimConverter, NativeArray<byte>>>(writeInstanceMethod);
         static readonly Func<KAnimBatch, int, KAnimConverter.IAnimConverter, NativeArray<byte>, bool> writeSymbols =
@@ -225,15 +217,15 @@ namespace OniMoono.GameTweaks
             pass++;
             pending.Clear();
             int dirty = 0;
-            foreach (var set in activeBatchSets(__instance))
+            foreach (var set in __instance.activeBatchSets)
             {
                 if (!set.dirty) continue;
                 for (int i = 0; i < set.batchCount; i++)
                 {
                     var batch = set.GetBatch(i);
-                    if (!needsWrite(batch) || batch.dataTex == null || !batch.isSetup || batch.symbolInstanceTex == null
+                    if (!batch.needsWrite || batch.dataTex == null || !batch.isSetup || batch.symbolInstanceTex == null
                         || batch.materialType == KAnimBatchGroup.MaterialType.UI) continue;
-                    var ds = dirtySet(batch);
+                    var ds = batch.dirtySet;
                     if (ds.Count == 0) continue;
                     var work = WorkOf(batch);
                     if (work.Pass == pass) continue; // a set listed twice: its second walk finds it clean
@@ -302,7 +294,7 @@ namespace OniMoono.GameTweaks
         static bool WriteOverrides(KAnimBatch batch, int index, KAnimConverter.IAnimConverter controller, NativeArray<byte> data)
         {
             if (pending.Count == 0) return writeOverrides(batch, index, controller, data);
-            var slot = overrideSlots(batch)[index];
+            var slot = batch.symbolOverrideInfoSlots[index];
             var gpu = controller.symbolOverrideInfoGpuData;
             if (slot.symbolOverrideInfo == gpu && slot.dataVersion == gpu.version) return false;
             var work = WorkOf(batch);
@@ -330,7 +322,7 @@ namespace OniMoono.GameTweaks
         {
             foreach (var work in deferring)
             {
-                var slots = overrideSlots(work.Batch);
+                var slots = work.Batch.symbolOverrideInfoSlots;
                 foreach (var (i, controller, version) in work.Deferred)
                 {
                     checks++;
@@ -362,7 +354,7 @@ namespace OniMoono.GameTweaks
             var symbols = batch.symbolInstanceTex.GetDataPointer();
             var controllers = batch.Controllers;
             int count = 0;
-            foreach (int i in dirtySet(batch))
+            foreach (int i in batch.dirtySet)
             {
                 var c = controllers[i];
                 // The game's loop skips these itself (null or destroyed).
@@ -440,7 +432,7 @@ namespace OniMoono.GameTweaks
             if (verify)
             {
                 // The game would find the slot current now, and the texture holds the block.
-                var slot = symbolSlots(batch)[index];
+                var slot = batch.symbolInstanceSlots[index];
                 var gpu = controller.symbolInstanceGpuData;
                 checks++;
                 if (slot.symbolInstanceData != gpu || slot.dataVersion != gpu.version)
