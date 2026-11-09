@@ -25,6 +25,8 @@ namespace E2eDriver
         public override void OnLoad(HarmonyLib.Harmony harmony)
         {
             Harmony = harmony;
+            // Each world worldgen renders, for comparing a seed's map (Worldgen).
+            Worldgen.Install(harmony);
             int port = 8790;
             var text = Environment.GetEnvironmentVariable("E2E_DRIVER_PORT");
             if (!string.IsNullOrEmpty(text) && !int.TryParse(text, out port))

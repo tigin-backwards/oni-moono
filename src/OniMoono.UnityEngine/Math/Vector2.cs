@@ -3,6 +3,11 @@ using System.Globalization;
 
 namespace UnityEngine
 {
+    /// Members whose result rounds more than once are evaluated as the original's Mono runs them
+    /// (float32 off, D25): in double, rounded to float only where a value is stored (a local, a
+    /// component, an argument or a return). Each one matches the original bit for bit on
+    /// UnityProbe's vecmath cases (tools/UnityProbe/vm-check.py). A single operation rounds the
+    /// same either way, so the operators stay plain float.
     public partial struct Vector2
     {
         public const float kEpsilon = 1E-05f;
@@ -29,8 +34,8 @@ namespace UnityEngine
 
         public void Set(float newX, float newY) { x = newX; y = newY; }
 
-        public float magnitude => (float)Math.Sqrt(x * x + y * y);
-        public float sqrMagnitude => x * x + y * y;
+        public float magnitude => (float)Math.Sqrt((double)x * x + (double)y * y);
+        public float sqrMagnitude => (float)((double)x * x + (double)y * y);
 
         public Vector2 normalized
         {
@@ -60,18 +65,19 @@ namespace UnityEngine
         public static Vector2 Lerp(Vector2 a, Vector2 b, float t)
         {
             t = Mathf.Clamp01(t);
-            return new Vector2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+            return new Vector2((float)(a.x + ((double)b.x - a.x) * t), (float)(a.y + ((double)b.y - a.y) * t));
         }
 
-        public static Vector2 LerpUnclamped(Vector2 a, Vector2 b, float t) => new Vector2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+        public static Vector2 LerpUnclamped(Vector2 a, Vector2 b, float t)
+            => new Vector2((float)(a.x + ((double)b.x - a.x) * t), (float)(a.y + ((double)b.y - a.y) * t));
 
         public static Vector2 MoveTowards(Vector2 current, Vector2 target, float maxDistanceDelta)
         {
             float dx = target.x - current.x, dy = target.y - current.y;
-            float sq = dx * dx + dy * dy;
-            if (sq == 0f || (maxDistanceDelta >= 0f && sq <= maxDistanceDelta * maxDistanceDelta)) return target;
+            float sq = (float)((double)dx * dx + (double)dy * dy);
+            if (sq == 0f || (maxDistanceDelta >= 0f && sq <= (double)maxDistanceDelta * maxDistanceDelta)) return target;
             float dist = (float)Math.Sqrt(sq);
-            return new Vector2(current.x + dx / dist * maxDistanceDelta, current.y + dy / dist * maxDistanceDelta);
+            return new Vector2((float)(current.x + (double)dx / dist * maxDistanceDelta), (float)(current.y + (double)dy / dist * maxDistanceDelta));
         }
 
         public static Vector2 Scale(Vector2 a, Vector2 b) => new Vector2(a.x * b.x, a.y * b.y);
@@ -80,11 +86,11 @@ namespace UnityEngine
         public static Vector2 Reflect(Vector2 inDirection, Vector2 inNormal)
         {
             float f = -2f * Dot(inNormal, inDirection);
-            return new Vector2(f * inNormal.x + inDirection.x, f * inNormal.y + inDirection.y);
+            return new Vector2((float)((double)f * inNormal.x + inDirection.x), (float)((double)f * inNormal.y + inDirection.y));
         }
 
         public static Vector2 Perpendicular(Vector2 inDirection) => new Vector2(-inDirection.y, inDirection.x);
-        public static float Dot(Vector2 lhs, Vector2 rhs) => lhs.x * rhs.x + lhs.y * rhs.y;
+        public static float Dot(Vector2 lhs, Vector2 rhs) => (float)((double)lhs.x * rhs.x + (double)lhs.y * rhs.y);
 
         public static float Angle(Vector2 from, Vector2 to)
         {
@@ -104,22 +110,22 @@ namespace UnityEngine
         public static float Distance(Vector2 a, Vector2 b)
         {
             float dx = a.x - b.x, dy = a.y - b.y;
-            return (float)Math.Sqrt(dx * dx + dy * dy);
+            return (float)Math.Sqrt((double)dx * dx + (double)dy * dy);
         }
 
         public static Vector2 ClampMagnitude(Vector2 vector, float maxLength)
         {
             float sq = vector.sqrMagnitude;
-            if (sq > maxLength * maxLength)
+            if (sq > (double)maxLength * maxLength)
             {
                 float mag = (float)Math.Sqrt(sq);
-                return new Vector2(vector.x / mag * maxLength, vector.y / mag * maxLength);
+                return new Vector2(vector.x / mag, vector.y / mag) * maxLength;
             }
             return vector;
         }
 
-        public static float SqrMagnitude(Vector2 a) => a.x * a.x + a.y * a.y;
-        public float SqrMagnitude() => x * x + y * y;
+        public static float SqrMagnitude(Vector2 a) => a.sqrMagnitude;
+        public float SqrMagnitude() => sqrMagnitude;
         public static Vector2 Min(Vector2 lhs, Vector2 rhs) => new Vector2(Mathf.Min(lhs.x, rhs.x), Mathf.Min(lhs.y, rhs.y));
         public static Vector2 Max(Vector2 lhs, Vector2 rhs) => new Vector2(Mathf.Max(lhs.x, rhs.x), Mathf.Max(lhs.y, rhs.y));
 
@@ -161,7 +167,7 @@ namespace UnityEngine
         public static bool operator ==(Vector2 lhs, Vector2 rhs)
         {
             float dx = lhs.x - rhs.x, dy = lhs.y - rhs.y;
-            return dx * dx + dy * dy < kEpsilon * kEpsilon;
+            return (double)dx * dx + (double)dy * dy < kEpsilon * kEpsilon;
         }
 
         public static bool operator !=(Vector2 lhs, Vector2 rhs) => !(lhs == rhs);

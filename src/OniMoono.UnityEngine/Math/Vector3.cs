@@ -3,6 +3,7 @@ using System.Globalization;
 
 namespace UnityEngine
 {
+    /// Evaluated as the original's Mono runs it, like Vector2 (see there).
     public partial struct Vector3
     {
         public const float kEpsilon = 1E-05f;
@@ -32,8 +33,8 @@ namespace UnityEngine
 
         public void Set(float newX, float newY, float newZ) { x = newX; y = newY; z = newZ; }
 
-        public float magnitude => (float)Math.Sqrt(x * x + y * y + z * z);
-        public float sqrMagnitude => x * x + y * y + z * z;
+        public float magnitude => (float)Math.Sqrt((double)x * x + (double)y * y + (double)z * z);
+        public float sqrMagnitude => (float)((double)x * x + (double)y * y + (double)z * z);
         public Vector3 normalized => Normalize(this);
 
         public void Normalize() => this = Normalize(this);
@@ -57,12 +58,11 @@ namespace UnityEngine
 
         public static Vector3 Lerp(Vector3 a, Vector3 b, float t)
         {
-            t = Mathf.Clamp01(t);
-            return new Vector3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
+            return LerpUnclamped(a, b, Mathf.Clamp01(t));
         }
 
         public static Vector3 LerpUnclamped(Vector3 a, Vector3 b, float t)
-            => new Vector3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
+            => new Vector3((float)(a.x + ((double)b.x - a.x) * t), (float)(a.y + ((double)b.y - a.y) * t), (float)(a.z + ((double)b.z - a.z) * t));
 
         /// Spherical interpolation of direction with linear interpolation of length; t is clamped.
         public static Vector3 Slerp(Vector3 a, Vector3 b, float t) => SlerpUnclamped(a, b, Mathf.Clamp01(t));
@@ -92,10 +92,11 @@ namespace UnityEngine
         public static Vector3 MoveTowards(Vector3 current, Vector3 target, float maxDistanceDelta)
         {
             float dx = target.x - current.x, dy = target.y - current.y, dz = target.z - current.z;
-            float sq = dx * dx + dy * dy + dz * dz;
-            if (sq == 0f || (maxDistanceDelta >= 0f && sq <= maxDistanceDelta * maxDistanceDelta)) return target;
+            float sq = (float)((double)dx * dx + (double)dy * dy + (double)dz * dz);
+            if (sq == 0f || (maxDistanceDelta >= 0f && sq <= (double)maxDistanceDelta * maxDistanceDelta)) return target;
             float dist = (float)Math.Sqrt(sq);
-            return new Vector3(current.x + dx / dist * maxDistanceDelta, current.y + dy / dist * maxDistanceDelta, current.z + dz / dist * maxDistanceDelta);
+            return new Vector3((float)(current.x + (double)dx / dist * maxDistanceDelta), (float)(current.y + (double)dy / dist * maxDistanceDelta),
+                (float)(current.z + (double)dz / dist * maxDistanceDelta));
         }
 
 
@@ -105,22 +106,24 @@ namespace UnityEngine
         public void Scale(Vector3 scale) { x *= scale.x; y *= scale.y; z *= scale.z; }
 
         public static Vector3 Cross(Vector3 lhs, Vector3 rhs)
-            => new Vector3(lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x);
+            => new Vector3((float)((double)lhs.y * rhs.z - (double)lhs.z * rhs.y), (float)((double)lhs.z * rhs.x - (double)lhs.x * rhs.z),
+                (float)((double)lhs.x * rhs.y - (double)lhs.y * rhs.x));
 
         public static Vector3 Reflect(Vector3 inDirection, Vector3 inNormal)
         {
             float f = -2f * Dot(inNormal, inDirection);
-            return new Vector3(f * inNormal.x + inDirection.x, f * inNormal.y + inDirection.y, f * inNormal.z + inDirection.z);
+            return new Vector3((float)((double)f * inNormal.x + inDirection.x), (float)((double)f * inNormal.y + inDirection.y),
+                (float)((double)f * inNormal.z + inDirection.z));
         }
 
-        public static float Dot(Vector3 lhs, Vector3 rhs) => lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+        public static float Dot(Vector3 lhs, Vector3 rhs) => (float)((double)lhs.x * rhs.x + (double)lhs.y * rhs.y + (double)lhs.z * rhs.z);
 
         public static Vector3 Project(Vector3 vector, Vector3 onNormal)
         {
             float sqrMag = Dot(onNormal, onNormal);
             if (sqrMag < Mathf.Epsilon) return zero;
             float dot = Dot(vector, onNormal);
-            return new Vector3(onNormal.x * dot / sqrMag, onNormal.y * dot / sqrMag, onNormal.z * dot / sqrMag);
+            return onNormal * (dot / sqrMag);
         }
 
         public static Vector3 ProjectOnPlane(Vector3 vector, Vector3 planeNormal)
@@ -152,22 +155,22 @@ namespace UnityEngine
         public static float Distance(Vector3 a, Vector3 b)
         {
             float dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
-            return (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            return (float)Math.Sqrt((double)dx * dx + (double)dy * dy + (double)dz * dz);
         }
 
         public static Vector3 ClampMagnitude(Vector3 vector, float maxLength)
         {
             float sq = vector.sqrMagnitude;
-            if (sq > maxLength * maxLength)
+            if (sq > (double)maxLength * maxLength)
             {
                 float mag = (float)Math.Sqrt(sq);
-                return new Vector3(vector.x / mag * maxLength, vector.y / mag * maxLength, vector.z / mag * maxLength);
+                return new Vector3(vector.x / mag, vector.y / mag, vector.z / mag) * maxLength;
             }
             return vector;
         }
 
-        public static float Magnitude(Vector3 vector) => (float)Math.Sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
-        public static float SqrMagnitude(Vector3 vector) => vector.x * vector.x + vector.y * vector.y + vector.z * vector.z;
+        public static float Magnitude(Vector3 vector) => vector.magnitude;
+        public static float SqrMagnitude(Vector3 vector) => vector.sqrMagnitude;
         public static Vector3 Min(Vector3 lhs, Vector3 rhs) => new Vector3(Mathf.Min(lhs.x, rhs.x), Mathf.Min(lhs.y, rhs.y), Mathf.Min(lhs.z, rhs.z));
         public static Vector3 Max(Vector3 lhs, Vector3 rhs) => new Vector3(Mathf.Max(lhs.x, rhs.x), Mathf.Max(lhs.y, rhs.y), Mathf.Max(lhs.z, rhs.z));
 
@@ -207,7 +210,7 @@ namespace UnityEngine
         public static bool operator ==(Vector3 lhs, Vector3 rhs)
         {
             float dx = lhs.x - rhs.x, dy = lhs.y - rhs.y, dz = lhs.z - rhs.z;
-            return dx * dx + dy * dy + dz * dz < kEpsilon * kEpsilon;
+            return (double)dx * dx + (double)dy * dy + (double)dz * dz < kEpsilon * kEpsilon;
         }
 
         public static bool operator !=(Vector3 lhs, Vector3 rhs) => !(lhs == rhs);

@@ -1,0 +1,43 @@
+# Issue #66: a coordinate generated a slightly different map than in the original game. Worldgen's
+# float arithmetic is evaluated in double on Unity's Mono and rounded only where a value is stored
+# (ARCHITECTURE D25), and a map hangs on the last bit of millions of such operations; the
+# `exact-worldgen` tweak (on with `exact`) widens worldgen's arithmetic the same way.
+#
+# A new classic-style Spaced Out game at V-SNDST-C-12345-0-0-0, generated up to the Duplicant
+# selection: each of the cluster's eight worlds has the original's overworld polygons and cells,
+# to the bit (E2eDriver's Worldgen::Lines: hashes of the polygons' vertices and of the cells'
+# elements, masses and temperatures as the settling simulation receives them; the settled cells
+# are left out, as the settling differs from run to run in either player). The lines below are
+# the original's.
+from: main-menu
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "NEW GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame", cond: stable}
+  - click: {ui: "**/ModeSelectScreen/Panel/Content/RootToggles/StandardGame"}
+  - ui_wait: {path: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame", cond: stable}
+  - click: {ui: "**/ClusterCategorySelectionScreen/Panel/Content/RootToggles/ClassicStyleGame"}
+  - ui_wait: {path: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton", cond: stable, frames: 3000}
+  - click: {ui: "**/CoordinateContainer/SeedInput"}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput", cond: stable}
+  - type: {ui: "**/CoordinateContainer/SeedInput", text: "V-SNDST-C-12345-0-0-0", clear: true, enter: true}
+  - ui_wait: {path: "**/CoordinateContainer/SeedInput/Text Area/Text", cond: text, value: "~V-SNDST-C-12345-0-0-0"}
+  - expect_state:
+      "CustomGameSettings.Instance.GetCurrentQualitySetting(\"ClusterLayout\").id": expansion1::clusters/VanillaSandstoneCluster
+  - click: {ui: "**/ColonyDestinationScreen2/Layout/Buttons/LaunchButton"}
+  - ui_wait: {path: "**/MinionSelectScreen/Content/BottomContent/Buttons/ProceedButton", cond: stable, frames: 60000}
+  - expect_state:
+      "type:E2eDriver.Worldgen::Count": 8
+      "type:E2eDriver.Worldgen::Lines":
+        equals: |-
+          expansion1::worlds/MarshyMoonlet 64x96 polys=19 verts=db68355fd0702f88 cells=fa34d858efc3b223 mass=160bee8d2d9ec242 temp=e6a8ba9710632058
+          expansion1::worlds/MediumRadioactiveVanillaWarpPlanet 160x176 polys=61 verts=77fc1fe988c4ff15 cells=5e03182fdb6afde0 mass=fea31aef8fc76879 temp=8f88012856c26cd1
+          expansion1::worlds/MiniRegolithMoonlet 96x96 polys=30 verts=6a289d10ab5e0aa0 cells=81b0ef8ce9387e2c mass=20e642b6269a8453 temp=37702c3e972d8a4f
+          expansion1::worlds/MooMoonlet 96x80 polys=24 verts=11cf10d7a6979c44 cells=a08bcfa7febca387 mass=3d17b5fddd66aff5 temp=f0769e0fa44b3bca
+          expansion1::worlds/NiobiumMoonlet 64x96 polys=21 verts=5e39cc039cfcd88f cells=ebcad1ca3832973f mass=90c3eac1f75352c5 temp=9c03d11261d28f1e
+          expansion1::worlds/TundraMoonlet 64x128 polys=27 verts=339150e28316178d cells=cdc7389d86d2b231 mass=1e9e0e637a0c6249 temp=d530c907779509f8
+          expansion1::worlds/VanillaSandstoneDefault 240x380 polys=130 verts=754f7db1f9eb99c9 cells=9597076a7931955f mass=f1079b80406bf05b temp=6cd19d6c73fa87bf
+          expansion1::worlds/WaterMoonlet 80x174 polys=41 verts=83970e1af90a996f cells=2206b9b2ed0859ac mass=62fdf4fd25bc3d15 temp=af58a21776b650f6

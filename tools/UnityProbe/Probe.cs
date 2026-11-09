@@ -364,6 +364,11 @@ namespace SemanticsProbe
                 MatrixMath.Run();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "vecmath")
+            {
+                VectorMath.Run();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "projection")
             {
                 ProjectionMath.Run();

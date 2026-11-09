@@ -610,6 +610,23 @@ State reads that sum up a colony's world in one value, for comparing two players
 - `type:E2eDriver.Census::StartGrid`: the start world's cells as `elements=HEX solid=N
   mass=HEX` (FNV-1a 64 over each cell's element index and mass bits).
 
+### Worldgen reads
+
+What worldgen made, captured as each world goes into its settling simulation (a prefix on
+`WorldGenSimUtil.DoSettleSim`) and as it finishes rendering (a postfix on
+`WorldGen.RenderOffline`), on worldgen's thread: for comparing a seed's map between players
+(`tests/e2e/exact-worldgen.yaml`).
+- `type:E2eDriver.Worldgen::Lines`: a line a world, in ordinal order of its path,
+  `PATH WxH polys=N verts=HEX cells=HEX mass=HEX temp=HEX`: FNV-1a 64s of the overworld
+  polygons' vertex bits (in the layout's order) and of the cells' element indices, mass bits and
+  temperature bits before settling. The settled cells are left out: the settling does not repeat
+  itself even in one player (a few liquid cells, at times a pocket of frozen gas, differ from run
+  to run). `::Count` is the worlds captured, `::Digest` the hash of the lines.
+- `type:E2eDriver.Worldgen::Save("DIR")`: writes every world in full under DIR and answers how
+  many: `WORLD.unsettled.tsv` and `WORLD.cells.tsv` (before and after settling, `i elem
+  mass_bits temp_bits`), `WORLD.polys.tsv` (a polygon a line, `x_bits,y_bits` per vertex) and
+  `elements.txt` (the game's element ids by index), for finding where two players differ.
+
 ## Errors
 
 | error | when |

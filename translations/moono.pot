@@ -350,6 +350,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.LOAD_SCREEN"
 msgid "Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s)"
 msgstr ""
 
+#. Row title (exact-worldgen)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
+msgid "Worldgen as in the original"
+msgstr ""
+
+#. The line under the title (exact-worldgen)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.EFFECT"
+msgid "A seed makes the same map as in the original game, so shared seeds match."
+msgstr ""
+
+#. Tooltip: how it works (exact-worldgen)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.DETAIL"
+msgid "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.SAVING"
 msgid "Saving"

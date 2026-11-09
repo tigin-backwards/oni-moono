@@ -872,6 +872,11 @@ what it logs:
 - `matmul` (`MatrixMath.cs`, `MM` and `MMS`, at mod load): Matrix4x4's products and inverse to
   the bit, and the inverse of singular and near-singular matrices;
   `mm-check.py rule LOG` tests candidate formulas, `mm-check.py diff ORIG OURS` compares players.
+- `vecmath` (`VectorMath.cs`, `VM2`, `VM3` and `VMF`, at mod load): Vector2's, Vector3's,
+  Mathf's, Rect's and Bounds' arithmetic members to the bit, near-equal pairs for the epsilon
+  comparisons included (worldgen's geometry calls them, issue #66); `vm-check.py diff ORIG OURS`
+  compares players, `vm-check.py rule LOG` tests float32 and Mono candidates. Run through
+  `scripts/e2e.py` with OniMcp's mod folder as above and a spec `from: main-menu`.
 - `projection` (`ProjectionMath.cs`, `PJ`, at mod load): `Matrix4x4.Perspective`, `Ortho`,
   `Frustum`, `LookAt`, `Inverse3DAffine`, `Rotate`, `TRS` and `Quaternion.AngleAxis` to the bit,
   degenerate inputs and the look-at and axis fallbacks' boundaries included, and cameras'

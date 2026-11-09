@@ -81,8 +81,9 @@ namespace UnityEngine
         public static int Clamp(int value, int min, int max) => value < min ? min : value > max ? max : value;
         public static float Clamp01(float value) => value < 0f ? 0f : value > 1f ? 1f : value;
 
-        public static float Lerp(float a, float b, float t) => a + (b - a) * Clamp01(t);
-        public static float LerpUnclamped(float a, float b, float t) => a + (b - a) * t;
+        // In double, rounded once, as the original's Mono evaluates them (D25; see Vector2).
+        public static float Lerp(float a, float b, float t) => (float)(a + ((double)b - a) * Clamp01(t));
+        public static float LerpUnclamped(float a, float b, float t) => (float)(a + ((double)b - a) * t);
 
         public static float LerpAngle(float a, float b, float t)
         {
@@ -91,7 +92,7 @@ namespace UnityEngine
             return a + delta * Clamp01(t);
         }
 
-        public static float InverseLerp(float a, float b, float value) => a != b ? Clamp01((value - a) / (b - a)) : 0f;
+        public static float InverseLerp(float a, float b, float value) => a != b ? Clamp01((float)(((double)value - a) / ((double)b - a))) : 0f;
 
         public static float MoveTowards(float current, float target, float maxDelta)
             => Abs(target - current) <= maxDelta ? target : current + Sign(target - current) * maxDelta;
