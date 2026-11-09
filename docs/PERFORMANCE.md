@@ -175,6 +175,7 @@ The rest is the engine itself, profiled on U57 and fixed where the game leans on
 | Script dispatch skips removal checks while nothing is being removed | 0.1–0.2 ms |
 | A canvas renderer given the same unchanged mesh again keeps its copy: the starmap's ~1,100 UI animations each set their batch's mesh every frame, which was copied and baked anew | U57 with the starmap open: allocations 28 → 0.9 MB a frame, canvas drawing about 10 → 4 ms (profiled on a busy machine) |
 | Per-frame engine buffers reused instead of allocated: mesh channel arrays across vertex counts, particle geometry, property block sheets, pass states, upload records, immediate draws (each with a verify mode) | allocations: late-game colony 19.5 → 12.4 MiB/s, mid-game 14.5 → 6.6; young collections 1.3 → 0.8 and 1.3 → 0.6 a minute, a gen1 every 3.4 → 5 and 1.8 → 5 minutes (Linux, speed 3, 600 s) |
+| Canvas mesh copies and merged canvas batches reuse their arrays once the device has uploaded them; Instantiate and the lifecycle walks keep their maps and lists | allocations: late-game colony 0.36 → 0.24 MiB a frame (12.0 → 10.0 MiB/s at a higher frame rate), mid-game 8.2 → 5.7 MiB/s; young collections 0.7 → 0.6 a minute in both (Linux, speed 3, 600 s) |
 
 Pooling draw records and resolving each material's values once per change also cut allocations
 by two thirds.
