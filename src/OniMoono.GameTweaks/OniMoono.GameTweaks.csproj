@@ -15,6 +15,22 @@
          (TweakChecks, TweakInstall in the host), one source for both assemblies. -->
     <Compile Include="../OniMoono.Host/GameTweaks/GameMemberAttribute.cs" Link="GameMemberAttribute.cs" />
   </ItemGroup>
+  <!-- The game's own assemblies are publicized for the compiler (Krafs.Publicizer: copies in
+       obj/ with every member public), so the tweaks reach the game's private members directly,
+       and IgnoresAccessChecksTo lets the runtime allow it. Virtual members stay as they are, so
+       an override keeps its access (MoonoTweaksScreen's), and compiler-generated ones too
+       (event backing fields would clash with their events). The reference scan (TweakChecks)
+       covers these references like any other. -->
+  <PropertyGroup>
+    <PublicizerRuntimeStrategies>IgnoresAccessChecksTo</PublicizerRuntimeStrategies>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Krafs.Publicizer" PrivateAssets="all" />
+    <Publicize Include="Assembly-CSharp" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false" />
+    <Publicize Include="Assembly-CSharp-firstpass" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false" />
+    <!-- MoonoTweaksScreen's own `shown` would hide it. -->
+    <DoNotPublicize Include="Assembly-CSharp:KModalScreen.shown" />
+  </ItemGroup>
   <ItemGroup>
     <Reference Include="$(OniManaged)/UnityEngine.CoreModule.dll" Private="false" />
     <Reference Include="$(OniManaged)/UnityEngine.dll" Private="false" />
