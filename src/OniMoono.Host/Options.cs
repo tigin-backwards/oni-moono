@@ -12,6 +12,9 @@ namespace OniMoono.Host
             : OperatingSystem.IsMacOS()
             ? OniMoono.Engine.Platform.GameLayout.DefaultMacSteamInstall(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux");
+        /// The game folder came from the command line (`--game`, or Steam's `-- %command%`); else
+        /// the start is standalone (Launch.StandaloneLaunch finds the game).
+        public bool GameDirGiven;
         /// Test runs (`--run-home DIR`): the player's per-user data (Unity's persistent and cache
         /// paths, and on Windows the Documents and local application data folders the game reads)
         /// under DIR instead of the user's (RunHome).
@@ -191,7 +194,7 @@ namespace OniMoono.Host
                 int at = i;
                 switch (args[i])
                 {
-                    case "--game": o.GameDir = args[++i]; break;
+                    case "--game": o.GameDir = args[++i]; o.GameDirGiven = true; break;
                     case "--" when at < gameFrom:
                     {
                         // Steam launch options `OniMoono [options] -- %command%`: Steam's command
@@ -207,6 +210,7 @@ namespace OniMoono.Host
                             return false;
                         }
                         o.GameDir = OniMoono.Engine.Platform.GameLayout.GameDirOfExecutable(args[exe])!;
+                        o.GameDirGiven = true;
                         o.GameExecutable = args[exe];
                         gameFrom = exe + 1;
                         o.GameArguments.AddRange(args[gameFrom..]);
