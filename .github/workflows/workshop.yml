@@ -1,0 +1,141 @@
+# Makes Moono's Workshop item as a workflow artifact, never uploaded anywhere else
+# (docs/INSTALL-MODES.md): the assets of a master release and a u60 release (or, for a dry run,
+# of a release.yml run's build, whose draft was deleted: its archives are attested all the
+# same), downloaded and
+# checked against their SLSA provenance (signed by attest.yml, built from the right branch),
+# laid out by scripts/workshop-item.py (U60 at the root, U59 in archived_versions/u59), and the
+# item's SHA256SUMS and every file in it signed by attest.yml in turn. The last job checks the
+# artifact with the item's own verify.sh. Nothing here touches Steam.
+name: Workshop item
+
+on:
+  workflow_dispatch:
+    inputs:
+      master_tag:
+        description: The master release's tag (the U59 build), vYYYY.MM.DD.NN.
+        type: string
+        required: true
+      u60_tag:
+        description: The u60 release's tag (the U60 build), vYYYY.MM.DD.NN.
+        type: string
+        required: true
+      master_run:
+        description: Dry runs; a release.yml run on master whose build to take instead of master_tag's release (master_tag names its version).
+        type: string
+        default: ""
+      u60_run:
+        description: Dry runs; a release.yml run on u60 whose build to take instead of u60_tag's release.
+        type: string
+        default: ""
+
+permissions: {}
+
+concurrency:
+  group: workshop-item
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Lay out the item
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      attestations: read
+    outputs:
+      checksums: ${{ steps.sums.outputs.checksums }}
+      manifest: ${{ steps.sums.outputs.manifest }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SIGNER: ${{ github.repository }}/.github/workflows/attest.yml
+      MASTER_TAG: ${{ inputs.master_tag }}
+      U60_TAG: ${{ inputs.u60_tag }}
+      MASTER_RUN: ${{ inputs.master_run }}
+      U60_RUN: ${{ inputs.u60_run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Each release's archives and manifests, each verified against its provenance from the
+      # branch it must come from: master for the U59 build, u60 for the U60 one.
+      - name: Download and verify the releases' assets
+        run: |
+          for tag in "$MASTER_TAG" "$U60_TAG"; do
+            [[ "$tag" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]] || { echo "::error::a tag must be vYYYY.MM.DD.NN, not '$tag'"; exit 1; }
+          done
+          for branch in master u60; do
+            tag="$MASTER_TAG"; run="$MASTER_RUN"
+            [ "$branch" = master ] || { tag="$U60_TAG"; run="$U60_RUN"; }
+            dir="$RUNNER_TEMP/assets-$branch"; mkdir "$dir"
+            if [ -n "$run" ]; then
+              [[ "$run" =~ ^[0-9]+$ ]] || { echo "::error::a run is its number, not '$run'"; exit 1; }
+              [ "$(gh api "repos/$GH_REPO/actions/runs/$run" --jq '"\(.path) \(.head_branch) \(.conclusion)"')" = ".github/workflows/release.yml $branch success" ] \
+                || { echo "::error::run $run is not a successful release.yml run on $branch"; exit 1; }
+              gh run download "$run" -n release-windows -n release-linux -D "$RUNNER_TEMP/run-$branch"
+              find "$RUNNER_TEMP/run-$branch" -type f -name 'oni-moono-*' -exec mv -t "$dir" {} +
+              source="run $run"
+            else
+              gh release download "$tag" -D "$dir" -p 'oni-moono-*'
+              source="$tag"
+            fi
+            [ "$(ls "$dir" | wc -l)" -eq 4 ] || { echo "::error::$source should have 4 oni-moono-* assets: $(ls "$dir")"; exit 1; }
+            for f in "$dir"/*; do
+              gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" --source-ref "refs/heads/$branch" > /dev/null
+              echo "$source: $(basename "$f") attested, built from $branch"
+            done
+          done
+      - name: Lay out the item
+        run: |
+          python3 -I scripts/workshop-item.py --u60 "$RUNNER_TEMP/assets-u60" --u60-tag "$U60_TAG" \
+            --master "$RUNNER_TEMP/assets-master" --master-tag "$MASTER_TAG" workshop-item
+      - id: sums
+        run: |
+          echo "checksums=$(sha256sum workshop-item/SHA256SUMS | sed 's|workshop-item/||')" >> "$GITHUB_OUTPUT"
+          { echo "manifest<<SUMS_END"; cat workshop-item/SHA256SUMS; echo "SUMS_END"; } >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: workshop-item
+          path: workshop-item
+          if-no-files-found: error
+
+  attest:
+    needs: package
+    permissions:
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/attest.yml
+    with:
+      kind: workshop
+      checksums: ${{ needs.package.outputs.checksums }}
+      manifests: ${{ needs.package.outputs.manifest }}
+
+  check:
+    name: Verify the artifact
+    needs: attest
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      attestations: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SIGNER: ${{ github.repository }}/.github/workflows/attest.yml
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: workshop-item
+          path: workshop-item
+      - name: Run the item's verify.sh
+        run: sh workshop-item/verify.sh
+      - name: Verify single files, and refuse a changed one
+        run: |
+          for f in workshop-item/OniMoono.exe workshop-item/mod_info.yaml workshop-item/archived_versions/u59/mod_info.yaml \
+                   workshop-item/linux-x64/player/OniMoono.dll; do
+            gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" > /dev/null
+            echo "$f attested"
+          done
+          cp workshop-item/mod_info.yaml changed.yaml; printf '#\n' >> changed.yaml
+          if gh attestation verify changed.yaml -R "$GH_REPO" --signer-workflow "$SIGNER"; then
+            echo "::error::a changed mod_info.yaml verified"; exit 1
+          fi
+          echo "Workshop item: $(wc -l < workshop-item/SHA256SUMS) files, verified" | tee -a "$GITHUB_STEP_SUMMARY"
