@@ -1,0 +1,51 @@
+# The project's whitespace and file-format rules, which `dotnet format whitespace` checks for
+# C# (scripts/lint.sh). Style is limited to what the code already does: no naming rules (the
+# engine mirrors Unity's API names) and no style analyzers.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[*.{cmd,bat}]
+end_of_line = crlf
+
+[*.md]
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+
+[*.cs]
+# Layout: Allman braces, block-scoped namespaces.
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+csharp_style_namespace_declarations = block_scoped:silent
+csharp_preserve_single_line_statements = true
+csharp_preserve_single_line_blocks = true
+csharp_new_line_before_members_in_object_initializers = false
+csharp_new_line_before_members_in_anonymous_types = false
+csharp_new_line_between_query_expression_clauses = false
+csharp_indent_case_contents_when_block = false
+
+# Vendored and generated code keeps the shape it comes in.
+[src/ThirdParty/**]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
+generated_code = true
+
+[**/Generated/**]
+generated_code = true
