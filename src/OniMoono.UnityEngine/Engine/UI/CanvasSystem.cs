@@ -1253,8 +1253,12 @@ namespace OniMoono.Engine.UI
                     same = ReferenceEquals(shared.Parts[i], group[i].Mesh) && shared.Versions[i] == group[i].Mesh.Version;
                 if (!same)
                 {
-                    shared.Parts = new MeshNative[group.Count];
-                    shared.Versions = new int[group.Count];
+                    // Main-thread lists of the parts: rewritten in place at the same length.
+                    if (shared.Parts.Length != group.Count)
+                    {
+                        shared.Parts = new MeshNative[group.Count];
+                        shared.Versions = new int[group.Count];
+                    }
                     for (int i = 0; i < group.Count; i++)
                     {
                         shared.Parts[i] = group[i].Mesh;
@@ -1318,8 +1322,11 @@ namespace OniMoono.Engine.UI
                 same = ReferenceEquals(m.Parts[i], run[i].Item.Mesh) && m.Versions[i] == run[i].Item.Mesh.Version;
             if (!same)
             {
-                m.Parts = new MeshNative[run.Count];
-                m.Versions = new int[run.Count];
+                if (m.Parts.Length != run.Count)
+                {
+                    m.Parts = new MeshNative[run.Count];
+                    m.Versions = new int[run.Count];
+                }
                 for (int i = 0; i < run.Count; i++)
                 {
                     m.Parts[i] = run[i].Item.Mesh;
@@ -1332,39 +1339,48 @@ namespace OniMoono.Engine.UI
             return item;
         }
 
-        /// The parts' geometry in one mesh: one submesh, or one submesh for each part.
-        static void Concatenate(MeshNative[] parts, MeshNative mesh, bool subMeshEach = false)
+        /// The parts' geometry in one mesh: one submesh, or one submesh for each part. The
+        /// channel and index arrays are the merged mesh's own, from its spares
+        /// (MeshNative.NewChannelAtLeast): Clear hands its previous ones back, and the mesh
+        /// reuses them only once the device has run every upload that could hold them. A
+        /// reused array can be longer than the vertex count and holds old values, so every
+        /// value up to the count is written here, zeros where a part lacks a UV set.
+        internal static void Concatenate(MeshNative[] parts, MeshNative mesh, bool subMeshEach = false)
         {
             int vertices = 0, indices = 0;
             bool normals = false, tangents = false;
-            var uvs = new bool[4];
+            Span<bool> uvs = stackalloc bool[4];
             foreach (var p in parts)
             {
                 vertices += p.VertexCount;
-                indices += p.SubMeshes[0].Indices.Length;
+                indices += p.SubMeshes[0].IndexCount;
                 normals |= p.Normals != null;
                 tangents |= p.Tangents != null;
                 for (int u = 0; u < 4; u++) uvs[u] |= p.Uvs[u] != null;
             }
-            var positions = new Vector3[vertices];
-            var colors = new Color[vertices];
-            var normalData = normals ? new Vector3[vertices] : null;
-            var tangentData = tangents ? new Vector4[vertices] : null;
-            var uvData = new Vector4[4][];
-            for (int u = 0; u < 4; u++) uvData[u] = uvs[u] ? new Vector4[vertices] : null;
-            var indexData = subMeshEach ? null : new int[indices];
-            var subMeshes = new List<SubMeshData>(subMeshEach ? parts.Length : 1);
-            int v = 0, k = 0;
+            mesh.Clear();
+            var positions = mesh.NewChannelAtLeast<Vector3>(vertices);
+            var colors = mesh.NewChannelAtLeast<Color>(vertices);
+            var normalData = normals ? mesh.NewChannelAtLeast<Vector3>(vertices) : null;
+            var tangentData = tangents ? mesh.NewChannelAtLeast<Vector4>(vertices) : null;
+            var uvData = mergeUvs;
+            for (int u = 0; u < 4; u++) uvData[u] = uvs[u] ? mesh.NewChannelAtLeast<Vector4>(vertices) : null;
+            var indexData = subMeshEach ? null : mesh.NewChannelAtLeast<int>(indices);
+            int v = 0, k = 0, sub = 0;
             foreach (var p in parts)
             {
+                var source = p.SubMeshes[0].Indices;
                 if (subMeshEach)
                 {
-                    var part = new int[p.SubMeshes[0].Indices.Length];
-                    for (int i = 0; i < part.Length; i++) part[i] = p.SubMeshes[0].Indices[i] + v;
-                    subMeshes.Add(new SubMeshData(part));
+                    var part = new int[source.Length];
+                    for (int i = 0; i < part.Length; i++) part[i] = source[i] + v;
+                    // Clear left one empty submesh: the first part's.
+                    var s = sub++ == 0 ? mesh.SubMeshes[0] : new SubMeshData();
+                    s.SetIndices(part);
+                    if (s != mesh.SubMeshes[0]) mesh.SubMeshes.Add(s);
                 }
                 else
-                    foreach (int index in p.SubMeshes[0].Indices) indexData[k++] = index + v;
+                    foreach (int index in source) indexData[k++] = index + v;
                 int n = p.VertexCount;
                 Array.Copy(p.Positions, 0, positions, v, n);
                 Array.Copy(p.Colors, 0, colors, v, n);
@@ -1373,25 +1389,39 @@ namespace OniMoono.Engine.UI
                 if (tangentData != null)
                     for (int i = 0; i < n; i++) tangentData[v + i] = p.Tangents != null ? p.Tangents[i] : new Vector4(1f, 0f, 0f, -1f);
                 for (int u = 0; u < 4; u++)
-                    if (uvData[u] != null && p.Uvs[u] != null) Array.Copy(p.Uvs[u], 0, uvData[u], v, n);
+                {
+                    if (uvData[u] == null) continue;
+                    if (p.Uvs[u] != null) Array.Copy(p.Uvs[u], 0, uvData[u], v, n);
+                    else Array.Clear(uvData[u], v, n);
+                }
                 v += n;
             }
-            mesh.Clear();
             mesh.VertexCount = vertices;
             mesh.Positions = positions;
+            mesh.Give(MeshNative.SlotPositions, positions);
             mesh.Colors = colors;
+            mesh.Give(MeshNative.SlotColors, colors);
             mesh.Normals = normalData;
+            if (normalData != null) mesh.Give(MeshNative.SlotNormals, normalData);
             mesh.Tangents = tangentData;
+            if (tangentData != null) mesh.Give(MeshNative.SlotTangents, tangentData);
             for (int u = 0; u < 4; u++)
             {
                 mesh.Uvs[u] = uvData[u];
                 mesh.UvDimensions[u] = uvData[u] != null ? 4 : 0;
+                if (uvData[u] != null) mesh.Give(MeshNative.SlotUv0 + u, uvData[u]);
+                uvData[u] = null;
             }
-            if (!subMeshEach) subMeshes.Add(new SubMeshData(indexData));
-            mesh.SubMeshes = subMeshes;
+            if (!subMeshEach)
+            {
+                mesh.SubMeshes[0].SetIndices(indexData, indices);
+                mesh.GiveIndices(mesh.SubMeshes[0]);
+            }
             mesh.RecalculateBounds();
             mesh.Changed();
         }
+
+        static readonly Vector4[][] mergeUvs = new Vector4[4][];
 
         /// The element's geometry in its canvas's space with its colour applied; rebuilt only
         /// when the geometry, its placement or its colour changed.
