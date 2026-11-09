@@ -24,13 +24,9 @@ namespace OniMoono.Engine
 
         public static void RemoveChild(TransformNative parent, TransformNative child)
         {
-            var children = parent.Children;
-            int index = Array.IndexOf(children, child);
+            int index = parent.Children.IndexOf(child);
             if (index < 0) return;
-            var shrunk = new TransformNative[children.Length - 1];
-            Array.Copy(children, 0, shrunk, 0, index);
-            Array.Copy(children, index + 1, shrunk, index, children.Length - index - 1);
-            parent.Children = shrunk;
+            parent.RemoveChildAt(index);
             child.Parent = null;
             Touch(parent);
             ChildrenRestructured(parent, child);
@@ -45,13 +41,7 @@ namespace OniMoono.Engine
 
         static void InsertChild(TransformNative parent, TransformNative child, int index)
         {
-            var children = parent.Children;
-            index = Math.Clamp(index, 0, children.Length);
-            var grown = new TransformNative[children.Length + 1];
-            Array.Copy(children, 0, grown, 0, index);
-            grown[index] = child;
-            Array.Copy(children, index, grown, index + 1, children.Length - index);
-            parent.Children = grown;
+            parent.InsertChildAt(child, Math.Clamp(index, 0, parent.Children.Length));
             child.Parent = parent;
             Touch(parent);
             ChildrenRestructured(parent, child);
@@ -185,14 +175,14 @@ namespace OniMoono.Engine
 
         /// Root objects report 0: Unity's player does not expose an order of scene roots (the
         /// editor's root order); observed with tools/UnityProbe, including after SetAsFirstSibling.
-        public static int GetSiblingIndex(TransformNative t) => t.Parent != null ? Array.IndexOf(t.Parent.Children, t) : 0;
+        public static int GetSiblingIndex(TransformNative t) => t.Parent != null ? t.Parent.Children.IndexOf(t) : 0;
 
         public static void SetSiblingIndex(TransformNative t, int index)
         {
             if (t.Parent != null)
             {
                 var parent = t.Parent;
-                int current = Array.IndexOf(parent.Children, t);
+                int current = parent.Children.IndexOf(t);
                 index = Math.Clamp(index, 0, parent.Children.Length - 1);
                 if (current == index) return;
                 RemoveChild(parent, t);
