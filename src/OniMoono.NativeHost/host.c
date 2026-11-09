@@ -23,6 +23,7 @@ which `--crash-dialog-render` also draws to a PNG without showing it. A self-con
 #define NETHOST_USE_AS_STATIC
 #include <windows.h>
 #include <shlobj.h>
+#include <stdlib.h>
 #include <wchar.h>
 #include <string.h>
 #include "nethost.h"
@@ -88,6 +89,24 @@ static int fail(int status, const wchar_t *what, const wchar_t *detail)
     if (err)
     {
         write_utf8(err, line);
+        return status != 0 ? status : 1;
+    }
+    /* Test runs (ONI_HOST_NO_DIALOG=1): never a message box nor the user's Player.log; the line
+     * goes to stderr whatever it is, and to ONI_HOST_MESSAGES' file when that names one. */
+    wchar_t quiet[8], messages[MAX_PATH * 2];
+    if (GetEnvironmentVariableW(L"ONI_HOST_NO_DIALOG", quiet, _countof(quiet)) && wcscmp(quiet, L"1") == 0)
+    {
+        HANDLE std_err = startup_stderr != INVALID_HANDLE_VALUE ? startup_stderr : GetStdHandle(STD_ERROR_HANDLE);
+        if (std_err && std_err != INVALID_HANDLE_VALUE) write_utf8(std_err, line);
+        if (GetEnvironmentVariableW(L"ONI_HOST_MESSAGES", messages, _countof(messages)))
+        {
+            HANDLE file = CreateFileW(messages, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+            if (file != INVALID_HANDLE_VALUE)
+            {
+                write_utf8(file, line);
+                CloseHandle(file);
+            }
+        }
         return status != 0 ? status : 1;
     }
     PWSTR low = NULL;
@@ -157,6 +176,177 @@ static int wants_workstation_gc(int argc, wchar_t **argv)
     return strncmp(at, "\"low-memory\"", 12) == 0;
 }
 
+/* The versioned install (docs/INSTALL-MODES.md, src/OniMoono.Host/Install): ROOT\OniMoono.exe is
+ * this exe as the entry point, beside ROOT\player\VERSION\ folders; it starts the version
+ * ROOT\state\current names (else the newest), with ONI_MOONO_INSTALL_ROOT set. Started from a
+ * source folder (a Workshop item: moono.json and windows-x64\player beside it), it copies that
+ * player to ROOT\player\.bootstrap-PID and starts the copy with ONI_MOONO_INSTALL_SOURCE set,
+ * which installs the version for the game and asks for it; the source folder itself never runs.
+ * The player's exit code SWITCH_EXIT, with ROOT\state\switch written, asks for the version
+ * state\current names now: this starts ROOT\OniMoono.exe again with the same arguments. */
+#define SWITCH_EXIT 77
+
+static int is_dir(const wchar_t *path)
+{
+    DWORD a = GetFileAttributesW(path);
+    return a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}
+
+static int is_file(const wchar_t *path)
+{
+    DWORD a = GetFileAttributesW(path);
+    return a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY) == 0;
+}
+
+/* A version folder's name: letters, digits, dots and dashes, not starting with a dot. */
+static int is_version_name(const wchar_t *name)
+{
+    if (name[0] == 0 || name[0] == L'.' || wcslen(name) > 64) return 0;
+    for (const wchar_t *c = name; *c; c++)
+        if (!((*c >= L'0' && *c <= L'9') || (*c >= L'a' && *c <= L'z') || (*c >= L'A' && *c <= L'Z') || *c == L'.' || *c == L'-')) return 0;
+    return 1;
+}
+
+/* ROOT\state\current's version, else the newest version folder by name; 0 when none. */
+static int pick_version(const wchar_t *root, wchar_t *version, size_t size)
+{
+    wchar_t path[MAX_PATH * 2];
+    version[0] = 0;
+    swprintf_s(path, _countof(path), L"%ls\\state\\current", root);
+    HANDLE file = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file != INVALID_HANDLE_VALUE)
+    {
+        char text[80];
+        DWORD read = 0;
+        if (ReadFile(file, text, sizeof text - 1, &read, NULL))
+        {
+            text[read] = 0;
+            size_t n = 0;
+            for (DWORD i = 0; i < read && n + 1 < size && text[i] != '\r' && text[i] != '\n'; i++) version[n++] = (wchar_t)(unsigned char)text[i];
+            version[n] = 0;
+        }
+        CloseHandle(file);
+        swprintf_s(path, _countof(path), L"%ls\\player\\%ls\\OniMoono.dll", root, version);
+        if (is_version_name(version) && is_file(path)) return 1;
+        version[0] = 0;
+    }
+    swprintf_s(path, _countof(path), L"%ls\\player\\*", root);
+    WIN32_FIND_DATAW found;
+    HANDLE find = FindFirstFileW(path, &found);
+    if (find == INVALID_HANDLE_VALUE) return 0;
+    do
+    {
+        if ((found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && is_version_name(found.cFileName) && wcscmp(found.cFileName, version) > 0)
+            wcscpy_s(version, size, found.cFileName);
+    } while (FindNextFileW(find, &found));
+    FindClose(find);
+    return version[0] != 0;
+}
+
+/* Copies the folder `from` into `to` (made), every file and folder in it; 0 on a failure. */
+static int copy_tree(const wchar_t *from, const wchar_t *to)
+{
+    if (!CreateDirectoryW(to, NULL) && GetLastError() != ERROR_ALREADY_EXISTS) return 0;
+    wchar_t *a = (wchar_t *)HeapAlloc(GetProcessHeap(), 0, sizeof(wchar_t) * LONG_PATH * 2);
+    if (a == NULL) return 0;
+    wchar_t *b = a + LONG_PATH;
+    swprintf_s(a, LONG_PATH, L"%ls\\*", from);
+    WIN32_FIND_DATAW found;
+    HANDLE find = FindFirstFileW(a, &found);
+    int ok = find != INVALID_HANDLE_VALUE;
+    if (ok)
+    {
+        do
+        {
+            if (wcscmp(found.cFileName, L".") == 0 || wcscmp(found.cFileName, L"..") == 0) continue;
+            swprintf_s(a, LONG_PATH, L"%ls\\%ls", from, found.cFileName);
+            swprintf_s(b, LONG_PATH, L"%ls\\%ls", to, found.cFileName);
+            ok = (found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? copy_tree(a, b) : CopyFileW(a, b, FALSE) != 0;
+        } while (ok && FindNextFileW(find, &found));
+        FindClose(find);
+    }
+    HeapFree(GetProcessHeap(), 0, a);
+    return ok;
+}
+
+/* ROOT\state\switch, deleted when there: the player asked for another version. */
+static int take_switch(const wchar_t *root)
+{
+    wchar_t path[MAX_PATH * 2];
+    swprintf_s(path, _countof(path), L"%ls\\state\\switch", root);
+    if (!is_file(path)) return 0;
+    DeleteFileW(path);
+    return 1;
+}
+
+/* ROOT\OniMoono.exe started with this process's arguments; waited for, its exit code, when
+ * `wait` (Steam or a shortcut started this, and waits on this process), else 0 at once (a start
+ * from the Workshop folder: its bootstrap copy is then free to be removed). */
+static int start_entry(const wchar_t *root, int wait)
+{
+    wchar_t count[16];
+    int switches = GetEnvironmentVariableW(L"ONI_MOONO_SWITCHES", count, _countof(count)) ? _wtoi(count) : 0;
+    if (switches >= 3) return fail(1, L"the installed versions keep asking for each other", root);
+    swprintf_s(count, _countof(count), L"%d", switches + 1);
+    SetEnvironmentVariableW(L"ONI_MOONO_SWITCHES", count);
+
+    /* The arguments: the command line after its first word, the executable, as Windows
+     * splits it (quoted, or up to the first space or tab). */
+    const wchar_t *rest = GetCommandLineW();
+    if (*rest == L'"') { rest++; while (*rest && *rest != L'"') rest++; if (*rest) rest++; }
+    else while (*rest && *rest != L' ' && *rest != L'\t') rest++;
+    size_t length = wcslen(root) + wcslen(rest) + 32;
+    wchar_t *line = (wchar_t *)HeapAlloc(GetProcessHeap(), 0, sizeof(wchar_t) * length);
+    if (line == NULL) return fail(1, L"out of memory", NULL);
+    swprintf_s(line, length, L"\"%ls\\OniMoono.exe\"%ls", root, rest);
+    /* It inherits only the stdout and stderr this process was started with, when they are a
+     * pipe or a file (scripts, test runs): stderr is the crash watcher's pipe by now, which must
+     * see this process's end, not the child's. */
+    HANDLE handles[2];
+    int n = 0;
+    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE), err = redirected_stderr();
+    HANDLE out_copy = NULL, err_copy = NULL;
+    if (out && out != INVALID_HANDLE_VALUE && (GetFileType(out) == FILE_TYPE_PIPE || GetFileType(out) == FILE_TYPE_DISK)
+        && DuplicateHandle(GetCurrentProcess(), out, GetCurrentProcess(), &out_copy, 0, TRUE, DUPLICATE_SAME_ACCESS)) handles[n++] = out_copy;
+    if (err && DuplicateHandle(GetCurrentProcess(), err, GetCurrentProcess(), &err_copy, 0, TRUE, DUPLICATE_SAME_ACCESS)) handles[n++] = err_copy;
+    static BYTE attributes[256];
+    SIZE_T size = 0;
+    InitializeProcThreadAttributeList(NULL, 1, 0, &size);
+    STARTUPINFOEXW startup = { 0 };
+    startup.StartupInfo.cb = sizeof startup;
+    BOOL listed = FALSE;
+    if (n > 0 && size <= sizeof attributes)
+    {
+        startup.lpAttributeList = (LPPROC_THREAD_ATTRIBUTE_LIST)attributes;
+        listed = InitializeProcThreadAttributeList(startup.lpAttributeList, 1, 0, &size)
+            && UpdateProcThreadAttribute(startup.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, handles, n * sizeof(HANDLE), NULL, NULL);
+        if (listed)
+        {
+            startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+            startup.StartupInfo.hStdOutput = out_copy;
+            startup.StartupInfo.hStdError = err_copy;
+        }
+    }
+    PROCESS_INFORMATION process;
+    BOOL started = CreateProcessW(NULL, line, NULL, NULL, listed, listed ? EXTENDED_STARTUPINFO_PRESENT : 0, NULL, NULL, &startup.StartupInfo, &process);
+    DWORD error = GetLastError();
+    if (listed) DeleteProcThreadAttributeList(startup.lpAttributeList);
+    if (out_copy) CloseHandle(out_copy);
+    if (err_copy) CloseHandle(err_copy);
+    if (!started) return fail((int)error, L"the installed entry point could not be started", line);
+    DWORD code = 0;
+    if (wait)
+    {
+        WaitForSingleObject(process.hProcess, INFINITE);
+        code = 1;
+        GetExitCodeProcess(process.hProcess, &code);
+    }
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+    HeapFree(GetProcessHeap(), 0, line);
+    return (int)code;
+}
+
 int wmain(int argc, wchar_t **argv)
 {
     if (argc >= 2 && wcscmp(argv[1], L"--crash-watch") == 0) return crash_watch(argc, argv);
@@ -170,6 +360,55 @@ int wmain(int argc, wchar_t **argv)
     if (slash == NULL) return fail(1, L"the executable's own path is unknown", exe);
     *slash = 0;
     swprintf_s(app, LONG_PATH, L"%ls\\%ls", dir, APP_DLL);
+    /* The versioned install's entry point, or a start from a source folder (see SWITCH_EXIT). */
+    static wchar_t root[LONG_PATH];
+    int versioned = 0, bootstrap = 0;
+    if (!is_file(app))
+    {
+        static wchar_t probe[LONG_PATH], source[LONG_PATH];
+        swprintf_s(probe, LONG_PATH, L"%ls\\player", dir);
+        if (is_dir(probe))
+        {
+            wcscpy_s(root, LONG_PATH, dir);
+            swprintf_s(probe, LONG_PATH, L"%ls\\OniMoono.exe.old", root);
+            DeleteFileW(probe);
+            wchar_t version[80];
+            if (!pick_version(root, version, _countof(version))) return fail(1, L"no version of Moono is installed here; start it once from its Workshop folder", root);
+            swprintf_s(dir, LONG_PATH, L"%ls\\player\\%ls", root, version);
+            /* Its source folder is state\\source from now on, not a bootstrap's. */
+            SetEnvironmentVariableW(L"ONI_MOONO_INSTALL_SOURCE", NULL);
+            versioned = 1;
+        }
+        else
+        {
+            swprintf_s(probe, LONG_PATH, L"%ls\\windows-x64\\player\\%ls", dir, APP_DLL);
+            swprintf_s(source, LONG_PATH, L"%ls\\moono.json", dir);
+            if (is_file(probe) && is_file(source))
+            {
+                wcscpy_s(source, LONG_PATH, dir);
+                if (!GetEnvironmentVariableW(L"ONI_MOONO_INSTALL_ROOT", root, LONG_PATH))
+                {
+                    PWSTR local = NULL;
+                    if (FAILED(SHGetKnownFolderPath(&FOLDERID_LocalAppData, 0, NULL, &local))) return fail(1, L"the local application data folder is unknown", NULL);
+                    swprintf_s(root, LONG_PATH, L"%ls\\oni-moono\\versioned", local);
+                    CoTaskMemFree(local);
+                }
+                SHCreateDirectoryExW(NULL, root, NULL);
+                swprintf_s(probe, LONG_PATH, L"%ls\\player", root);
+                CreateDirectoryW(probe, NULL);
+                swprintf_s(dir, LONG_PATH, L"%ls\\player\\.bootstrap-%lu", root, GetCurrentProcessId());
+                swprintf_s(probe, LONG_PATH, L"%ls\\windows-x64\\player", source);
+                if (!copy_tree(probe, dir)) return fail((int)GetLastError(), L"the player could not be copied from its Workshop folder", probe);
+                SetEnvironmentVariableW(L"ONI_MOONO_INSTALL_SOURCE", source);
+                versioned = bootstrap = 1;
+            }
+        }
+        if (versioned)
+        {
+            SetEnvironmentVariableW(L"ONI_MOONO_INSTALL_ROOT", root);
+            swprintf_s(app, LONG_PATH, L"%ls\\%ls", dir, APP_DLL);
+        }
+    }
     if (GetFileAttributesW(app) == INVALID_FILE_ATTRIBUTES) return fail(1, L"the player is incomplete; reinstall it (run setup again)", app);
 
     /* hostfxr: the app's own (self-contained), else the installed .NET's. */
@@ -227,6 +466,7 @@ int wmain(int argc, wchar_t **argv)
     rc = run_app(context);
     crash_exiting((DWORD)rc);
     close(context);
+    if (versioned && rc == SWITCH_EXIT && take_switch(root)) return start_entry(root, !bootstrap);
     if (((unsigned)rc & 0xFFFFFF00u) == 0x80008000u && hostfxr_messages[0]) return fail(rc, L"the .NET runtime could not start", app);
     return rc;
 }

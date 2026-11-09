@@ -222,6 +222,7 @@ namespace OniMoono.Tests
             Assert.True(OniMoono.Host.Options.Parse(["--game", "/x"])!.GameDirGiven);
             var steam = OniMoono.Host.Options.Parse(["--", "/games/OxygenNotIncluded/OxygenNotIncluded.exe"]);
             Assert.True(steam!.GameDirGiven);
+            Assert.Equal("1.0", OniMoono.Host.Options.Parse(["--use-version", "1.0"])!.UseVersion);
         }
 
         static string RepoRoot([CallerFilePath] string here = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", ".."));

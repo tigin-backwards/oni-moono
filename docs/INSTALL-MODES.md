@@ -1,13 +1,14 @@
 # Install modes
 
-How Moono starts and where it is installed. Two ways exist side by side:
+How Moono starts and where it is installed. Three ways exist side by side:
 
 | Mode | Started by | Player folder | Updates |
 |---|---|---|---|
 | Launch options | Steam: `"…\OniMoono.exe" -- %command%` | where setup installed it (`%LOCALAPPDATA%\oni-moono\player`, or `player/` of a release on Linux) | run a newer release's setup |
-| Standalone | `OniMoono.exe` itself (Explorer, a shortcut, a terminal) | the same | as the folder it runs from |
+| Standalone | `OniMoono.exe` itself (Explorer, a shortcut, a terminal) | the same, or a versioned install | as the folder it runs from |
+| Versioned install | its entry point, `…\oni-moono\versioned\OniMoono.exe` (Steam's launch options, its shortcut) | `versioned\player\<version>\` | from its source folder (a Workshop item) at each start |
 
-The launch-options route is unchanged by the standalone one: with `-- %command%` Moono takes the game
+The launch-options route is unchanged by the other two: with `-- %command%` Moono takes the game
 folder from Steam's command, as before.
 
 ## Standalone launch
@@ -49,3 +50,59 @@ place of the machine's (their `registry.vdf` is the client's state), `ONI_MOONO_
 command run instead of starting Steam (none: nothing starts), `ONI_MOONO_STEAM_OPENED` a file
 the steam:// links go to instead of Steam, and `ONI_MOONO_CHOOSE_GAME` the install chosen
 (`tests/OniMoono.UnityEngine.Tests/LaunchTests.cs`).
+
+## Versioned install
+
+For a distribution that updates Moono in place, as the Steam Workshop would
+(`src/OniMoono.Host/Install`, `src/OniMoono.NativeHost/host.c`):
+
+```
+%LOCALAPPDATA%\oni-moono\versioned\        ~/.local/share/oni-moono/versioned/ on Linux
+  OniMoono.exe                             the entry point (Linux: OniMoono, a shell script)
+  player\2026.11.08.01-u60\                one player per version, never written once there
+  player\2026.11.08.01\
+  state\current  source  pin  switch       what the entry point and the player read
+```
+
+On Linux a Flatpak or snap Steam can't see `~/.local/share`, so the folder is the sandbox's
+(`~/.var/app/com.valvesoftware.Steam/data/oni-moono/versioned`,
+`~/snap/steam/common/oni-moono/versioned`), as setup does for the player.
+
+**The entry point** picks the version before the .NET runtime loads, because a process can host
+only one runtime and each version carries its own (self-contained): on Windows it is the native
+host itself (no `OniMoono.dll` beside it, a `player\` folder instead), which runs
+`player\<state\current>\OniMoono.dll` in its own process with `ONI_MOONO_INSTALL_ROOT` set, so
+the GPU exports and the crash records work as from any player folder; on Linux the shell script
+does the same. The choice itself needs the game's build and the versions' `mod_info.yaml`, which
+the player reads:
+
+1. The game's build: `KleiVersion.ChangeList` in its `Assembly-CSharp.dll`, read from the
+   metadata without loading it (744825 for U59, 762230 for U60).
+2. From the source folder (`state\source`), the version the game itself would load
+   (`ArchiveChoice`, the game's `KMod.Mod.GetMostSuitableArchive`): of the root and
+   `archived_versions\*` with a `mod_info.yaml`, those whose DLC restrictions allow (the DLC
+   isn't known before the game starts, so as for none; Moono's name none) and whose
+   `APIVersion` is 2 or 0, the highest `minimumSupportedBuild` at or below the build; with no
+   `archived_versions`, the root. When that version isn't installed yet, its player is copied
+   into `player\.incoming-…`, every file hashed as it is read and checked against the version's
+   `SHA256SUMS` manifest, then moved to `player\<version>\`. A file missing or not matching ends
+   the copy, deletes it, and the current version plays on.
+3. Of the installed versions the same rule picks the one to play (newest of equals), unless
+   `--use-version VERSION` pinned one (`--use-version latest` unpins): a rollback by hand to a
+   kept version.
+4. When that is not the running version, `state\current` names it and the player exits with code
+   77 (`state\switch` written): the entry point starts again on it. A game update from U59 to
+   U60 switches this way, once.
+5. Otherwise it plays, holding `player\<version>\.in-use` open, and prunes: the current version,
+   the two newest others and a pinned one stay, and nothing held open is removed.
+
+The entry point updates itself from the chosen version: on Windows the running `OniMoono.exe` is
+renamed to `OniMoono.exe.old` (a running exe can be renamed, not replaced) and the new one put in
+place; the next start deletes the `.old`. On Linux the script is replaced by a rename.
+
+The first install from a source folder makes a shortcut to the entry point: `Moono.lnk` in the
+Start menu's Programs and on the desktop, or `oni-moono.desktop` in `~/.local/share/applications`.
+
+**Tests** of the native host set `ONI_HOST_NO_DIALOG=1`: a failure to start then shows no
+message box and touches no Player.log; its line goes to stderr, and to `ONI_HOST_MESSAGES`' file
+when set. Without a redirected stderr, a failure is a message box on the desktop.

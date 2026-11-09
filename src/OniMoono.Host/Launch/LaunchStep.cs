@@ -2,16 +2,18 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using OniMoono.Host.Install;
 
 namespace OniMoono.Host.Launch
 {
-    /// Program.Main's first step after the options: how this start came about (StandaloneLaunch).
-    /// The log is not open yet, so the lines wait in Log until it is.
+    /// Program.Main's first step after the options: how this start came about (StandaloneLaunch)
+    /// and, for a versioned install, which version plays (VersionedStart). The log is not open
+    /// yet, so the lines wait in Log until it is.
     internal static class LaunchStep
     {
         public static readonly List<string> Log = new();
 
-        /// Null to go on, else the process's exit code (a hand-off, a failure).
+        /// Null to go on, else the process's exit code (a hand-off, a failure, a version switch).
         public static int? Run(Options options)
         {
             var machine = new SteamLibrary.Machine();
@@ -40,6 +42,12 @@ namespace OniMoono.Host.Launch
                     return 2;
             }
 
+            var installRoot = Environment.GetEnvironmentVariable(VersionedInstall.RootVariable) is { Length: > 0 } root ? root : null;
+            if (installRoot != null && VersionedStart.Run(installRoot, options.GameDir, options.UseVersion, Log) is int exit)
+            {
+                foreach (var line in Log) Console.Error.WriteLine(line);
+                return exit;
+            }
             return null;
         }
     }

@@ -56,6 +56,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <!-- How Moono's own Workshop item is told (Install.VersionedInstall, the game tweak skipping it in the mod manager). -->
+    <Compile Include="../OniMoono.GameTweaks/MoonoItemMarker.cs" Link="Install/MoonoItemMarker.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Out-of-band framework pieces that Mono's class libraries provided in-box. -->
     <PackageReference Include="System.Security.Permissions" />
     <PackageReference Include="System.Runtime.Serialization.Formatters" />
