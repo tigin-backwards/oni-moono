@@ -18,6 +18,9 @@ namespace OniMoono.Host
             var options = Options.Parse(args);
             if (options == null) return 2;
             foreach (var (name, path) in options.NativeOverrides) AssemblyPolicy.NativeOverrides[name] = path;
+            // Standalone starts find the game through Steam; a versioned install picks its version
+            // (docs/INSTALL-MODES.md).
+            if (Launch.LaunchStep.Run(options) is int launchExit) return launchExit;
             // For the Restarter next to the host (App.Restart): the arguments to start again with
             // (shell-quoted for the Linux script; as a JSON array with the process id for the
             // Windows one) and the process to wait for.
@@ -64,6 +67,7 @@ namespace OniMoono.Host
             var built = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
             string commit = built?.IndexOf('+') is int plus and >= 0 ? built[(plus + 1)..] : "unknown";
             EngineLog.Engine($"Moono starting: commit={commit} exe={Environment.ProcessPath} game={options.GameDir} .NET={Environment.Version}");
+            foreach (var line in Launch.LaunchStep.Log) EngineLog.Engine(line);
             StartupStats.Mark("host starts (runtime up)");
             UnhandledExceptions.Install();
             EngineLog.Engine(NativeCrashes.Install(logPath, options.CrashDumps, scrubber, UpdateCheck.CurrentTag() ?? $"commit {commit}",
