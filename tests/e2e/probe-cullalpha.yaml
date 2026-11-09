@@ -1,0 +1,10 @@
+# UnityProbe's cullTransparentMesh probe (tools/UnityProbe/CullAlpha.cs): which transparent
+# canvas geometry a CanvasRenderer with the flag skips, and the flag's defaults, in both players.
+# Run with E2E_ONIMCP at a copy of OniMcp's mod folder with SemanticsProbe.dll added and
+# PROBE_SCENARIO=cullalpha (tools/UnityProbe/README.md, "cullalpha").
+from: main-menu
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/CullAlphaProbeDone", cond: exists, frames: 20000}

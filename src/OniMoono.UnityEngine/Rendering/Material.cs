@@ -373,6 +373,22 @@ namespace UnityEngine
             return Sheet.Textures.TryGetValue(nameID, out var t) && t.Texture != null ? t.Texture : null;
         }
 
+        /// mainTexture without the error GetTexture logs when the shader declares no such texture:
+        /// the canvas reads it for every element it draws, and the original's canvas logs nothing
+        /// for a renderer given no texture under such a shader (UnityProbe cullalpha's bare
+        /// renderers with Hidden/Internal-Colored).
+        internal Texture MainTextureQuiet
+        {
+            get
+            {
+                int id = MainProperty(ShaderPropertyAttributes.MainTexture, k_MainTexId);
+                var shader = Data.Shader;
+                if (shader != null && !(((ShaderNative)shader.NativeOrThrow).PropertiesById.TryGetValue(id, out var p) && p.Kind == ShaderPropertyKind.Texture))
+                    return null;
+                return Sheet.Textures.TryGetValue(id, out var t) && t.Texture != null ? t.Texture : null;
+            }
+        }
+
         /// The material holds a texture for the property, or its shader declares one.
         public bool HasTexture(int nameID)
             => Sheet.Textures.ContainsKey(nameID)

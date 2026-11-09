@@ -27,6 +27,11 @@ namespace SemanticsProbe
                 go.AddComponent<ApiGaps>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "cullalpha")
+            {
+                go.AddComponent<CullAlpha>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "uiztest")
             {
                 go.AddComponent<UiZTest>();

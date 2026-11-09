@@ -1536,6 +1536,65 @@ invalid clip likewise. This implementation's `RectMask2D` keeps the cull its pas
 graphic and culls one again in its next pass when its cull changed since (a direct call),
 which reproduces both (`ic-check.py diff … cull`: no step differs).
 
+### CanvasRenderer.cullTransparentMesh (measured 2026-11-08)
+
+Unity documents the flag as: geometry "can be ignored when the vertex color alpha is close to
+zero for every vertex of the mesh". The engine's `CanvasRenderer` holds it; the canvas build
+(`CanvasSystem.Collect`) acts on it. Found with Pipe Flow Overlay (Workshop 2968583663), which
+keeps one icon per pipe segment on the world-space canvas and hides them by setting the icons'
+`Image.color` to `Color.clear` (on the colony of #60, 5,744 icons drawn and batched every frame).
+
+**Measured** with `PROBE_SCENARIO=cullalpha` (tools/UnityProbe, `CullAlpha.cs`, lines `CA …`), at
+the main menu. Each case is a 20 × 20 quad in an overlay canvas, drawn red with
+`Hidden/Internal-Colored` set to blend One Zero, so that it shows whatever its alpha. A black quad
+lies under the cases. Each case's centre pixel is read back, with its renderer's `absoluteDepth`
+and whether the canvas's `GraphicRaycaster` hits it.
+
+- **Close to zero is below 0.001.** A renderer with the flag on draws nothing when the alpha of
+  every vertex of its mesh is below 0.001 as a float: `Mesh.colors` alphas of −0.01, 0, 1e-6,
+  0.0005 up to 0.0009999999 (the float below 0.001f) are culled; 0.001f, 0.0015 and 0.002 are
+  drawn. Through `VertexHelper` (`Color32`) only an alpha of 0 is culled: 1/255 is drawn.
+- **Every vertex.** One vertex at alpha 255 (or at 1/255) among three at 0 keeps the quad drawn,
+  whichever vertex it is.
+- **The vertex colours alone.** The renderer's own alpha (`SetAlpha`, `SetColor`) and the
+  `CanvasGroup`s above it do not enter the test: a vertex alpha of 1/255 under `SetAlpha(0.1)`,
+  0.25 or 0.5, or under a group alpha of 0.25, is drawn; so are opaque vertices under a renderer
+  alpha of 1e-7, a group alpha of 1e-5, or nested groups of 0.03 × 0.03 or 0.1 × 0.01. A
+  renderer alpha of exactly 0, or a group alpha of 0, hides the element with the flag on or off.
+- **The flag off** draws vertex alpha 0 (and every other case above but an alpha of 0 from the
+  renderer or the groups).
+- **Depth and raycasts.** A culled element keeps its place in the numbering: depths run on
+  without a gap across culled and drawn cases, and a renumbering (a renderer added first)
+  shifts the culled ones with the rest. Its graphic still takes raycasts.
+- **Changes show at the next frame.** The flag turned off or on alone (no rebuild, the mesh as it
+  was), a vertex colour raised or lowered through a graphic rebuild, `Graphic.color` set to
+  clear, the renderer's alpha set to 0 or back to 1 and a group's alpha set to 0 or 1 each show
+  in the next frame drawn.
+- **Masks.** A `Mask` whose `Image` is clear (vertex alpha 0) hides its child whether its renderer
+  has the flag or not; a sibling drawn after it is unaffected. With the flag on, ours draws
+  neither the mask's push nor its pop (the pop is geometry of the same renderer), which leaves
+  the same pixels.
+- **Defaults.** A `CanvasRenderer` added at run time has the flag on: by
+  `AddComponent<CanvasRenderer>()`, and as the one that `AddComponent` of an `Image`, `RawImage`,
+  `Text`, `TextMeshProUGUI` or `KImage` adds, on an active or an inactive object. `Instantiate`
+  copies the source's value. The game's loaded objects have their serialized value: at the main
+  menu 1,199 renderers have it on and 1,811 off.
+- **Pipe Flow Overlay's icons** (the mod's prefab gets its `Image` by `AddComponent`, and the icons
+  are instantiated from it) have the flag on at run time in the original, checked through
+  E2eDriver after the overlay's check box hid them. In Unity those icons are not drawn while
+  hidden.
+
+**What ours does.** As above. The test runs on the geometry the renderer was given (its colours
+as `SetMesh` copied them), answered once per geometry; the walk still visits a culled element
+for its depth and its placement (`hasMoved`), and nothing of it is collected, baked or batched.
+`ONI_VERIFY_CANVAS_CULL=1` tests every vertex again in each build and logs differences;
+`ONI_CANVAS_CULL=0` draws transparent meshes whatever their flag. The probe in ours gives the
+original's lines for every case but those under BRUTAL's credit tile, which ours draws over the
+probe's canvas (the cases at x 230–430 of each row). Its bare renderers, given no texture under
+`Hidden/Internal-Colored`, made ours log "doesn't have a texture property '_MainTex'" each frame
+(the canvas read `Material.mainTexture`), which the game turns into its error dialog; the
+original logs nothing, and the canvas now reads that texture without the error.
+
 ### Scrollbar presses on the track (measured 2026-10-23)
 
 Found through the vanilla Consumables screen (`tests/e2e/consumables-scroll.yaml`). Its header
