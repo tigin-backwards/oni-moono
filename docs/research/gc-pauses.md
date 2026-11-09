@@ -199,3 +199,91 @@ plus a collection at each save that copies the cycle's survivors (likely a few h
 comparable to the post-load hitch). Capping the frame rate would shrink it. Cutting the
 engine's avoidable per-frame allocations would lower both this and the ordinary collection
 rate.
+
+## GC strategies elsewhere (2026-11-09)
+
+What shipped games and engines do about GC pauses, and which .NET 10 knobs still apply under
+Server GC with DATAS. Labels: [doc] official documentation, [src] read in source at the linked
+commit, [claim] unverified community statement, [inf] inference. Runtime source is
+dotnet/runtime v10.0.0, `src/coreclr/gc/`.
+
+**Unity's incremental GC doesn't carry over.** [doc] Unity's collector is Boehm: non-generational,
+non-compacting. Its incremental mode marks in per-frame slices (default 3 ms, "only a guideline,
+not a hard cap"), adds write barriers to reference stores, and falls back to a full collection
+when references change faster than it can mark
+([manual](https://docs.unity3d.com/Manual/performance-incremental-garbage-collection.html),
+[time slice](https://docs.unity3d.com/ScriptReference/Scripting.GarbageCollector-incrementalTimeSliceNanoseconds.html)).
+Unity itself is moving to CoreCLR's precise, generational, compacting GC
+([blog](https://unity.com/blog/engine-platform/porting-unity-to-coreclr)). [doc] CoreCLR's
+background GC covers gen2 only; gen0 and gen1 always stop every managed thread
+([background GC](https://learn.microsoft.com/dotnet/standard/garbage-collection/background-gc)).
+[inf] Slicing helps a collector that marks the whole heap each time. Our young collections
+never mark gen2, and their cost is the card scan plus copying, which only a concurrent-copying
+collector (Satori, ruled out above) could spread over frames.
+
+**.NET knobs under Server GC with DATAS on .NET 10:**
+
+- `GCSettings.LatencyMode`: [doc][src] `LowLatency` is Workstation-only, and the setter silently
+  ignores it under Server GC (gc.cpp L52093). `SustainedLowLatency` is honoured, but next to the
+  default `Interactive` it only stops fragmentation from forcing a blocking gen2 (L22323). It
+  still allows the high-memory-load blocking gen2s (L22240-22283) and DATAS's compacting gen2
+  (L21278), and it leaves gen0 and gen1 alone. `Batch` turns background GC off.
+  ([latency modes](https://learn.microsoft.com/dotnet/standard/garbage-collection/latency))
+- `GC.TryStartNoGCRegion`: [src] with regions there is no ephemeral-segment size limit
+  (L23582), whatever the [API docs](https://learn.microsoft.com/dotnet/api/system.gc.trystartnogcregion)
+  say. On entry it commits the space, or runs a full blocking GC unless `disallowFullBlockingGC`
+  is set (L52210). At our allocation rate a 2 GiB region lasts 1-2 minutes.
+- Gen0 budget: [src] without `GCGen0MaxBudget`, DATAS caps each heap's gen0 budget at 64 MiB
+  (gcpriv.h L5084). DATAS's own formula
+  ([docs](https://learn.microsoft.com/dotnet/core/runtime-config/garbage-collector#dynamic-adaptation-to-application-sizes-datas))
+  gives about 1.7 GB on a 13 GB heap, but with 15 heaps the cap binds first, at about 0.94 GiB
+  in all. That matches the 0.9 GiB per gen0 under "Allocations in play", and it explains
+  candidate A: 64 MiB is already the default cap. `GCGen0MaxBudget` (env or
+  `System.GC.Gen0MaxBudget`) raises the cap; the .NET 10 `GCDGen0GrowthPercent` scales the
+  formula. `GCgen0size` (env only) sets a per-heap floor, but it also limits how many heaps
+  DATAS may grow to (gc.cpp L26066). `GCGen1MaxBudget` can only lower gen1's cap, which
+  defaults to 512 MiB a heap here.
+- `GCConserveMemory`: [src] DATAS turns 0 into 5 (L14478), which brings a blocking compacting gen2
+  at 50% gen2+LOH fragmentation (L21278). [doc] DATAS runs more gen0 and gen1 collections than
+  classic Server GC ([DATAS](https://learn.microsoft.com/dotnet/standard/garbage-collection/datas)).
+  `GCHeapCount` turns DATAS off (L14472). `GCHeapHardLimit` only constrains the heap.
+
+**Shipped .NET games:**
+
+- **tModLoader:** [src] the claim that it uses SustainedLowLatency isn't true of its source. At
+  1.4.5 (net10.0, [df905cb3](https://github.com/tModLoader/tModLoader/blob/df905cb3592bc1f087c2d32aca625cfb34cdfd20/patches/Terraria/Terraria/runtimeconfig.template.json))
+  nothing sets a latency mode, Server GC or concurrency. The runtimeconfig sets only the stack
+  size, so it runs Workstation concurrent GC; its `GC.Collect` calls are on mod reload.
+  Vanilla Terraria can't be checked without decompiling.
+- **Stardew Valley 1.6:** [src] SMAPI's runtimeconfig mirrors the game's and sets only TieredCompilation
+  off ([SMAPI](https://github.com/Pathoschild/SMAPI/blob/e5b8bf3d601bec0099252c8ee2f54e5571385f1a/src/SMAPI.Installer/assets/runtimeconfig.json)).
+- **Celeste (Everest):** [src] no GC properties. The level-transition `GC.Collect()` becomes a
+  forced gen1 on a background task by default
+  ([Level.cs](https://github.com/EverestAPI/Everest/blob/54f09a60451bbd47e83c6c8317311ffa8e3e26b4/Celeste.Mod.mm/Patches/Level.cs#L623)).
+  The pause is the same, since all threads stop.
+- **FNA/MonoGame:** [src] no GC configuration or guidance beyond avoiding allocation.
+- **Space Engineers:** [src] .NET Framework with a default GC, and full collections at session
+  load and unload ([MySession.cs](https://github.com/KeenSoftwareHouse/SpaceEngineers/blob/54f2f0f3169cda687a25a438097902a43bdfa603/Sources/Sandbox.Game/Game/World/MySession.cs#L696)).
+- **Vintage Story:** [claim] a forum `app.config` with `gcServer`
+  ([thread](https://www.vintagestory.at/forums/topic/15208-fix-for-garbage-collection-pauses/)),
+  with no measurements. [doc] app.config is read only by .NET Framework.
+- **KSP (Unity Mono), for contrast:** [claim] MemGraph/HeapPadder pad the Boehm heap so it collects
+  less often ([MemGraph](https://github.com/Gerry1135/MemGraph)).
+
+None of these games tune the collector. They collect at scene boundaries, as `post-load-gc`
+does, and avoid per-frame allocation. [inf] Our engine's per-frame arrays stored into
+long-lived objects also dirty cards, so the reuse items under "Allocations in play" would cut
+card-marking time as well as collection frequency.
+
+**A/B worth running** (late-game colony, `post-load-gc` on, alternating, two launches each,
+10 min or more of play). Log the heap count and the per-GC gen0 budget, because the 4-heap cap
+in [gc-modes.md](gc-modes.md) paused 4-5x longer.
+
+| Arm | Settings | Expected |
+|---|---|---|
+| control | as shipped | gen0 ~0.94 GiB, about one a minute |
+| 2x budget | `DOTNET_GCGen0MaxBudget=0x8000000`, `DOTNET_GCDGen0GrowthPercent=0x96` | gen0 ~1.9 GiB, ~2x rarer and a little longer; gen1 somewhat rarer, about as long; +~1 GB |
+| 4x budget | `DOTNET_GCGen0MaxBudget=0x10000000`, `DOTNET_GCDGen0GrowthPercent=0x12C` | gen0 ~3.8 GiB, ~4x rarer; +~3 GB |
+| classic Server | `DOTNET_GCDynamicAdaptationMode=0` | 16 heaps at up to 200 MiB, no conserve-5 compaction; +2-3 GB |
+| SLL control | `SustainedLowLatency` at start | no change to gen0/gen1 |
+| gen1 cap (optional) | `DOTNET_GCGen1MaxBudget=0x8000000` | more gen1s; whether each gets shorter shows how much of gen1 is copying rather than cards |
