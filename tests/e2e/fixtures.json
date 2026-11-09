@@ -1,0 +1,258 @@
+{
+  "schema": 1,
+  "comment": "The e2e fixture saves (tests/e2e/fixtures), by hash; each a release asset of the private refs repository. scripts/fixtures.py fetches and blesses them (tests/e2e/README.md). Descriptions by kind only.",
+  "source": {
+    "kind": "github-release",
+    "host": "github.com",
+    "repository": "tigin-backwards/oni-moono-refs"
+  },
+  "fixtures": {
+    "2minnow.sav": {
+      "description": "a mid-game Spaced Out colony on the Aquatic pack's cluster, cycle ~2,000, 50 Duplicants (30 MB)",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "740622 (before U59)",
+      "mods": "none",
+      "used_by": [
+        "scripts/mod-sweep.py (its default --from)"
+      ],
+      "sha256": "c7a9d6dafc672f0c901438053ee5d7fcd8c8b01514b39ea29bca49a593c56c9a",
+      "size": 30439095,
+      "tag": "saves/c7a9d6dafc672f0c",
+      "asset": "mid-so-every-dlc.sav"
+    },
+    "U57.sav": {
+      "description": "a late-game Spaced Out sandbox colony, cycle ~17,000, 22 Duplicants, a very large built-up base (150 MB)",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster and Prehistoric packs",
+      "build": "701625 (before U59)",
+      "mods": "none",
+      "used_by": [
+        "post-load-gc",
+        "post-load-gc-off",
+        "scripts/qa.sh verify, perf and memory (QA_U57_SAVE in out/local-tools/qa.env, else this fixture)"
+      ],
+      "sha256": "4e107c65ad26d9af6dd49ff3c3d7cf1d01c63cea0d376fac94485e3ba4b251af",
+      "size": 149467513,
+      "tag": "saves/4e107c65ad26d9af",
+      "asset": "late-so-every-dlc.sav"
+    },
+    "decrew.sav": {
+      "description": "a late-game base-game colony, cycle ~17,600, 15 Duplicants, busy gas and liquid networks (145 MB; about 4.5 minutes to load in the original)",
+      "game": "base game, no DLC",
+      "build": "679336 (before U59)",
+      "mods": "none",
+      "used_by": [
+        "path-probe-repair",
+        "pipe-flow",
+        "u60/r1-pipe-flow-vanilla",
+        "u60/s1-u59-save-roundtrip",
+        "u60/vk-smoke",
+        "scripts/qa.sh dogfood: colony, codex, management, research, naming, overlays, saveload, resize (scripts/qa-scenarios, scripts/m9-scenarios; ONI_M9_SAVE overrides)"
+      ],
+      "sha256": "d803fc5d19d4b26ef74ed75e90c7b7f35acf26595513d09cfe360fe8292a6685",
+      "size": 145579314,
+      "tag": "saves/d803fc5d19d4b26e",
+      "asset": "late-base-pipes.sav"
+    },
+    "early-base.sav": {
+      "description": "landing dug out on both sides of the pod, with an outhouse, a manual generator, an unpowered research station and a cot; debris on the floors",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "744825 (U59)",
+      "mods": "none",
+      "used_by": [
+        "most specs: the default for mod specs (2,250+ of them)",
+        "v1-current and v1-newer are made from it"
+      ],
+      "blessed_by": "early-base",
+      "sha256": "0476131cf68f2ead362b56f6fa604736b6bc2ab3bc4a12671ae823054456fb91",
+      "size": 1360609,
+      "tag": "saves/0476131cf68f2ead",
+      "asset": "early-base.sav"
+    },
+    "gas-boundary.sav": {
+      "description": "landing with a sealed box of oxygen, carbon dioxide, chlorine and hydrogen side by side, mixed for 4 seconds",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "744825 (U59)",
+      "mods": "none",
+      "used_by": [
+        "gas-view",
+        "paused-overlays"
+      ],
+      "blessed_by": "gas-boundary",
+      "sha256": "0c5b7c22b40e413cf625e0384139ba616e69ac4189e64885fc50f3cc3de5f09c",
+      "size": 1347229,
+      "tag": "saves/0c5b7c22b40e413c",
+      "asset": "gas-boundary.sav"
+    },
+    "issue-45-old.sav": {
+      "description": "a mid-game colony with a Bonbon Tree branch in a cell its trunk occupies, cycle 150 (2.5 MB)",
+      "game": "Spaced Out",
+      "build": "unknown",
+      "mods": "none",
+      "used_by": [
+        "issue-45-space-tree-branch"
+      ],
+      "not_stored": "the reporter's save attached to issue #45; copy it to tests/e2e/fixtures/issue-45-old.sav (issue-45-space-tree-branch.yaml)"
+    },
+    "issue-48-pipes.sav": {
+      "description": "early-base with a wire, a gas pipe and a liquid pipe through cells (109, 206) and (110, 206)",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "744825 (U59)",
+      "mods": "none",
+      "used_by": [
+        "issue-48-stack2"
+      ],
+      "not_stored": "scripts/e2e.py --player original --bless issue-48-pipes"
+    },
+    "issue-48-stack2.sav": {
+      "description": "issue-48-pipes with foods lying in cell (109, 206), over the wire and pipes",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "744825 (U59)",
+      "mods": "none",
+      "used_by": [
+        "issue-48-fast-track"
+      ],
+      "not_stored": "scripts/e2e.py --player original --bless issue-48-stack2"
+    },
+    "landing.sav": {
+      "description": "a new colony at its printing pod, cycle 0, 3 Duplicants",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "744825 (U59)",
+      "mods": "none",
+      "used_by": [
+        "early-base",
+        "gas-boundary",
+        "issue-47-missile-trail",
+        "thermal-gas-fissure",
+        "u60/r2-batch-pooling",
+        "u60/r7-new-anims"
+      ],
+      "sha256": "5ab1b29e466fdac270cf75357e77a241f19eb9139cb277e26b09fa300dc8cabe",
+      "size": 1344818,
+      "tag": "saves/5ab1b29e466fdac2",
+      "asset": "landing.sav"
+    },
+    "prehistoric1.sav": {
+      "description": "a new colony on the Prehistoric pack's classic cluster, cycle 1, 3 Duplicants",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "744825 (U59)",
+      "mods": "none",
+      "used_by": [
+        "demolior-pointer",
+        "mods/3544012910-extinction",
+        "mods/3590596912-vine-branch-accelerate-growth",
+        "mods/3701419178-ovagro-fertilize-growing-only",
+        "mods/3729080339-demolior-reimagined",
+        "mods/3752346568-smoked-food-expansion",
+        "mods/3771247584-stego-shake-wood"
+      ],
+      "sha256": "9364c008e092625d2d39536397480beb05739b3a48c81dcb9ce461f7bc54c05f",
+      "size": 1484793,
+      "tag": "saves/9364c008e092625d",
+      "asset": "prehistoric1.sav"
+    },
+    "rockets-so.sav": {
+      "description": "a Spaced Out sandbox test colony with two rockets on launch pads, cycle 0, 3 Duplicants",
+      "game": "Spaced Out (no packs)",
+      "build": "497575 (an early Spaced Out build)",
+      "mods": "none",
+      "used_by": [
+        "rocket-launch",
+        "sandbox-search",
+        "u60-g13",
+        "u60-l1-cell-change",
+        "u60-x3-sandbox-placement",
+        "u60-x4-study-tools-preview",
+        "u60-x6-rocket-walls",
+        "mods/2813526647-flight-planning",
+        "mods/2846982791-sandbox-default-setting",
+        "mods/3053330755-launch-pad-gantry",
+        "mods/3667413507-rocket-ladder-is-included",
+        "mods/3771260909-rocket-speed-orbital-lab-10x",
+        "mods/3792356047-rocket-idle-notifier"
+      ],
+      "sha256": "843e5d70d826a1411b848f69328134d153875b03dccf4147c59d92e219dac8d6",
+      "size": 1112091,
+      "tag": "saves/843e5d70d826a141",
+      "asset": "rockets-so.sav"
+    },
+    "terra-wide.sav": {
+      "description": "a new colony on a 1088x768 Terra world, cycle 0, 3 Duplicants; its previews are 2176x1536",
+      "game": "base game, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "744825 (U59)",
+      "mods": "none",
+      "used_by": [
+        "u60/r4-load-previews"
+      ],
+      "sha256": "8de62720eb857e07e5fcdcc364f6a62ae8c11c6c6231050d16053c5f6e641412",
+      "size": 6368990,
+      "tag": "saves/8de62720eb857e07",
+      "asset": "terra-wide.sav"
+    },
+    "u60-w10-breathing.sav": {
+      "description": "a Spaced Out sandbox colony on the Aquatic pack's cluster, cycle ~250, 10 Duplicants, with a saltwater pool of Pufferfish",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "761654 (U60 test)",
+      "mods": "none (its old mod list dropped)",
+      "used_by": [
+        "u60-w10-underwater-breathing"
+      ],
+      "sha256": "b8ce061056f197d0110f4ae0ef50c011aad11b6f62067df4ea665ca20f2c35d0",
+      "size": 2971377,
+      "tag": "saves/b8ce061056f197d0",
+      "asset": "u60-w10-breathing.sav"
+    },
+    "u60-w9-geovent.sav": {
+      "description": "a Spaced Out sandbox test colony with no Duplicants, cycle ~970, on a custom cluster; two geothermal vents full of steam, venting at load",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "761654 (U60 test)",
+      "mods": "none (its old mod list dropped)",
+      "used_by": [
+        "u60-w9-geo-vent"
+      ],
+      "sha256": "e6c96500f8cf9bfbf48bc1e0bf7969d3cd91007b0185d27f4572d96c39100842",
+      "size": 2755787,
+      "tag": "saves/e6c96500f8cf9bfb",
+      "asset": "u60-w9-geovent.sav"
+    },
+    "v1-current.sav": {
+      "description": "early-base with its header's build set to the build under test (762230)",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "762230 (U60, header restamped)",
+      "mods": "none",
+      "used_by": [
+        "u60-v1-build-check (extra_saves)"
+      ],
+      "sha256": "2f130f9225a3e411aebc8b70d3621b74d9d81f1291cf0cf464c2ee230fe1ba16",
+      "size": 1360609,
+      "tag": "saves/2f130f9225a3e411",
+      "asset": "v1-current.sav"
+    },
+    "v1-newer.sav": {
+      "description": "early-base with its header's build set to one past the build under test (762231)",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "762231 (U60, header restamped)",
+      "mods": "none",
+      "used_by": [
+        "u60-v1-build-check (extra_saves)"
+      ],
+      "sha256": "b08a6a2411ce7c41a790f9ac9a81635ed062980c8a55ddc5b19f9ad27e7213a1",
+      "size": 1360609,
+      "tag": "saves/b08a6a2411ce7c41",
+      "asset": "v1-newer.sav"
+    },
+    "vanilla-base.sav": {
+      "description": "a base-game colony at cycle 3, 3 Duplicants: dug out around the pod, outhouse, cot, manual generator and a research station, Basic Farming researched",
+      "game": "base game, no DLC",
+      "build": "744825 (U59)",
+      "mods": "none",
+      "used_by": [
+        "the base-game-only mod specs (19)"
+      ],
+      "blessed_by": "vanilla-base",
+      "sha256": "86c2a8c9919e3c046926a13f4852a30df68db8c8cb41573198dd224198158959",
+      "size": 772077,
+      "tag": "saves/86c2a8c9919e3c04",
+      "asset": "vanilla-base.sav"
+    }
+  }
+}

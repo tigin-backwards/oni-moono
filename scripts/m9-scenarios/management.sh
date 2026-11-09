@@ -1,6 +1,6 @@
 # The DeCrew colony's management screens, opened with their hotkeys and closed with Escape:
 # Priorities (L, scrolled with the wheel), Vitals (V) and Consumables (F).
-SAVE="${ONI_M9_SAVE:-$HOME/projects/onimaxxing/saves/DeCrew.sav}"
+SAVE="${ONI_M9_SAVE:-$root/tests/e2e/fixtures/decrew.sav}"
 FRAMES=2080
 DUMPS="1720 1860 2000"
 ARGS=(--input 620:click:891,176 --input 1600:click:511,567

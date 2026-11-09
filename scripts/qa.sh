@@ -22,7 +22,8 @@
 #            peak, the frame of the peak and the RssAnon/RssFile split (STAGE/memory.json).
 # verify and perf need a large Spaced Out colony and its DLC content, which cannot be published:
 # out/local-tools/qa.env sets QA_U57_GAME (a game folder with the DLC content), QA_U57_STEAM (a
-# Steam double owning the DLC) and QA_U57_SAVE; without it those stages are skipped, and say so.
+# Steam double owning the DLC) and may set QA_U57_SAVE (default: the e2e fixture U57,
+# fetched like the scenarios' saves); without it those stages are skipped.
 # It can also export the machine's GL settings for Xvfb (e.g. GALLIUM_DRIVER), which every run uses.
 # A U57 run that logs no PERF line (PerfProbe's, every 600 frames) for QA_HANG_MIN minutes (default
 # 5; the slowest legitimate gaps are about 140 s of load before the first and 110 s between two in
@@ -85,6 +86,18 @@ mem_limit_mb=${QA_MEMORY_LIMIT_MB:-18432}
 failures=0
 fail() { echo "FAIL $*"; echo "FAIL $*" >> "$run/summary.txt"; failures=$((failures + 1)); }
 ok() { echo "ok   $*"; echo "ok   $*" >> "$run/summary.txt"; }
+# The late-game colony of verify, perf and memory: qa.env's QA_U57_SAVE, else the e2e fixture.
+QA_U57_SAVE=${QA_U57_SAVE:-$root/tests/e2e/fixtures/U57.sav}
+# qa_fixture PATH: a save under tests/e2e/fixtures is fetched there (scripts/fixtures.py: the
+# shared cache, else the private refs repository's releases) when it is missing or another
+# file; on failure it prints which and how to get it. Other paths are left as they are.
+qa_fixture()
+{
+    case $1 in
+        "$root/tests/e2e/fixtures/"*) python3 -I "$root/scripts/fixtures.py" fetch "${1#"$root/tests/e2e/fixtures/"}" ;;
+        *) [ -f "$1" ] || { echo "fixtures: no save $1"; return 1; } ;;
+    esac
+}
 note() { echo "     $*"; echo "     $*" >> "$run/summary.txt"; }
 # The Data Collection option off in a run's profile (KPrivacyPrefs): no test run submits a crash
 # report to Klei's server, as e2e.py's profiles do.
@@ -191,6 +204,7 @@ run_scenario() # NAME
     printf 'strings: {}\nints:\n  ResolutionWidth: 1024\n  ResolutionHeight: 768\n  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 0\nfloats: {}\n' > "$d/kplayerprefs.yaml"
     no_data_collection "$d"
     if [ -n "$SAVE" ]; then
+        qa_fixture "$SAVE" || { fail "dogfood $name: its save $SAVE is missing (above)"; return; }
         local colony; colony=$(basename "$SAVE" .sav)
         mkdir -p "$d/cloud_save_files/76561197960265729/$colony"
         cp "$SAVE" "$d/cloud_save_files/76561197960265729/$colony/$colony.sav"
@@ -316,7 +330,7 @@ stage_dogfood()
 # ---- U57 (verify, perf) ----
 u57_ready()
 {
-    [ -n "${QA_U57_GAME:-}" ] && [ -n "${QA_U57_STEAM:-}" ] && [ -f "${QA_U57_SAVE:-}" ]
+    [ -n "${QA_U57_GAME:-}" ] && [ -n "${QA_U57_STEAM:-}" ] && qa_fixture "$QA_U57_SAVE" > /dev/null
 }
 
 # u57_run OUT FRAMES [host args] — U57 resumed from the menu, PerfProbe keeping it at speed 3,

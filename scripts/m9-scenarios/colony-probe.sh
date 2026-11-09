@@ -1,6 +1,6 @@
 # Measurement: the colony scenario up to the Database search frame (1950), with extra host
 # arguments from $PROBE (for example --dump-hierarchy or --dump-component).
-SAVE="${ONI_M9_SAVE:-$HOME/projects/onimaxxing/saves/DeCrew.sav}"
+SAVE="${ONI_M9_SAVE:-$root/tests/e2e/fixtures/decrew.sav}"
 FRAMES=1960
 DUMPS="1950"
 read -r -a probe <<< "${PROBE:-}"

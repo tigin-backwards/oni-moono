@@ -1,7 +1,7 @@
 # Save and load: the DeCrew colony saved from the pause menu (over its own file, confirmed),
 # then that save loaded back through the pause menu's load screen (the colony, its newest save),
 # and the reloaded colony captured.
-SAVE="${ONI_M9_SAVE:-$HOME/projects/onimaxxing/saves/DeCrew.sav}"
+SAVE="${ONI_M9_SAVE:-$root/tests/e2e/fixtures/decrew.sav}"
 FRAMES=3200
 DUMPS="1720 1960 2100 3150"
 TOLERANCE=0.06

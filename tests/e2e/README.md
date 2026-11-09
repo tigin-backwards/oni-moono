@@ -538,21 +538,54 @@ reaches each feature, what changes when it is used. Run it with its path under `
 references, then ours, compared with them. A spec naming OniMcp's Workshop item (3807166922)
 runs with that build as the runner's OniMcp, in place of `E2E_ONIMCP`'s.
 
-Fixtures are blessed saves (`--bless` copies a spec's `save:` into `fixtures/`, not kept in git):
+Fixtures are saves in `fixtures/`, not kept in git. [`fixtures.json`](fixtures.json) lists each
+by file name: what it is (by kind), its game mode and DLCs, the build it was saved on, the mods
+it needs, the specs and scripts that load it, and its SHA-256, size and release. The files are
+release assets of the private repository that holds the game's reference assemblies
+(`tigin-backwards/oni-moono-refs`, one release per file, tagged `saves/` and the hash's first 16
+digits), as some are other players' colonies.
+
+`e2e.py` (and `mod-sweep.py`, `e2e-warm.py`, `e2e-bench.py`, `qa.sh`) fetches the fixtures a run
+needs before it starts, with `scripts/fixtures.py`: a fixture missing from the worktree, or there
+with another hash, is taken from the shared cache `~/.cache/oni-brutal-e2e/fixtures/SHA256`
+(`E2E_FIXTURE_CACHE`), or else downloaded into it with `gh release download` (your own `gh`
+login, with read access to the refs repository) and checked against the manifest. The worktree
+gets a writable copy of the cache's read-only file (`fixtures/.verified` keeps its hash, so a
+later run does not read it again). A file with another hash is moved to
+`fixtures/.replaced/` first, unless `--bless` wrote it. A fixture it cannot get fails the specs
+that load it, with what is missing and how to get it. `E2E_FIXTURES_OFFLINE=1` uses the cache
+only.
+
+```sh
+scripts/fixtures.py fetch                 # every stored fixture into this worktree
+scripts/fixtures.py check                 # which are missing or differ; fetches nothing
+scripts/fixtures.py bless tests/e2e/fixtures/gas-boundary.sav     # upload a re-blessed one
+scripts/fixtures.py bless PATH --name NAME --description "a mid-game colony, ..." \
+  --game "Spaced Out" --build "744825 (U59)" --mods none --used-by SPEC   # a new one
+```
+
+`--bless` copies a spec's `save:` into `fixtures/` and notes it in `fixtures/.blessed-local`, so
+fetches keep it. `fixtures.py bless` then uploads it as a new release (the old one stays, for
+older checkouts), points its manifest entry there and prints the manifest's diff; commit that.
+Describe a fixture by kind only, with no colony or player names, and add where it came from to
+`saves/README.md` in the refs repository. A fixture may keep an older name as an alias
+(`aliases`), placed beside it. Entries with `not_stored` are made by a spec or come from an
+issue, and say how.
 
 - `landing`: a new Spaced Out colony at its printing pod;
 - `early-base` (`early-base.yaml`): dug out on both sides of the pod, with an outhouse, a manual
   generator, an unpowered research station and a cot. Debris lies on the floors.
 - `prehistoric1`: a Prehistoric colony at cycle 1 (copied from a played save, not blessed).
-- `decrew`: a late Spaced Out colony with busy gas and liquid networks, copied from
-  onimaxxing's `saves/DeCrew.sav` (not blessed; 145 MB, about 4.5 minutes to load in the
-  original), for [`pipe-flow.yaml`](pipe-flow.yaml).
-- `U57`: a late-game Spaced Out colony with every DLC (cycle 17,000+), copied (or linked)
-  from onimaxxing's `saves/U57.sav` (not blessed; 150 MB), for
-  [`post-load-gc.yaml`](post-load-gc.yaml) and its control.
-- `rockets-so`: a Spaced Out sandbox colony with two rockets on launch pads, copied from a Klei
-  bug-tracker save (onimaxxing's `saves/forum-so/351956__Test_-_fuel_oxy.sav`, not blessed),
-  for [`rocket-launch.yaml`](rocket-launch.yaml).
+- `decrew`: a late-game base-game colony with busy gas and liquid
+  networks (not blessed; 145 MB, about 4.5 minutes to load in the original), for
+  [`path-probe-repair.yaml`](path-probe-repair.yaml) and qa.sh's colony scenarios.
+- `U57`: a late-game Spaced Out colony with every DLC of its time
+  (cycle 17,000+; not blessed; 150 MB), for [`post-load-gc.yaml`](post-load-gc.yaml) and its
+  control, and qa.sh's verify, perf and memory stages.
+- `2minnow`: a mid-game Spaced Out colony with every DLC (cycle
+  about 2,000, 50 Duplicants; 30 MB), the load sweeps' colony.
+- `rockets-so`: a Spaced Out sandbox colony with two rockets on launch pads, from a Klei
+  bug-tracker report (not blessed), for [`rocket-launch.yaml`](rocket-launch.yaml).
 - `vanilla-base` (`vanilla-base.yaml`): a base-game colony, no Spaced Out, for mods that support
   the base game only (`supportedContent: VANILLA_ID`). The original player starts at the main
   menu with Spaced Out off (`from: main-menu`, `spaced_out: false`), plays New Game, Survival,
@@ -568,6 +601,12 @@ Fixtures are blessed saves (`--bless` copies a spec's `save:` into `fixtures/`, 
   chlorine and hydrogen side by side, mixed for 4 seconds, for
   [`gas-view.yaml`](gas-view.yaml). Bless it with
   `scripts/e2e.py --player original --bless gas-boundary`.
+- `terra-wide`: a new colony on a 1088x768 Terra world, whose previews are 2176x1536, for
+  [`u60/r4-load-previews.yaml`](u60/r4-load-previews.yaml).
+- `u60-w9-geovent` and `u60-w10-breathing`: a test colony with two venting geothermal vents and an
+  Aquatic colony with a Pufferfish pool, both saved by a U60 test build, for the W9 and W10 specs.
+- `v1-current` and `v1-newer`: `early-base` with its header's build set to the build under test
+  and the one after it, for [`u60-v1-build-check.yaml`](u60-v1-build-check.yaml).
 
 `from: main-menu` loads no fixture: the steps start at the main menu, as `vanilla-base.yaml`'s
 do. Spaced Out stays on there unless the spec says `spaced_out: false`.
@@ -666,7 +705,7 @@ five and `geyser-title` again).
 
 Before mods get specs, `scripts/mod-sweep.py` finds which of them load at all: in batches of
 about 22, each batch in the original and in ours, to the main menu and then the 2minnow colony
-(`tests/e2e/fixtures/2minnow.sav`, copied from onimaxxing's saves) played 90 s. Each run is an
+(`tests/e2e/fixtures/2minnow.sav`) played 90 s. Each run is an
 e2e.py run of a one-step spec, so lanes, the players' budget and the perf lock are the ones above.
 Its players' screen is 1280x1024 (`--screen`): the MOD DIFFERENCES dialog the save opens lists a
 whole batch, and its OK button falls below a 720-pixel screen. A run the runner itself cannot get
@@ -708,7 +747,7 @@ Agents play batches of about 25 mods, each in its own worktree. A worktree needs
 ```sh
 ln -s ~/projects/oni-brutal/out/local-tools out/local-tools    # qa.env, OniMcp, the original
 ln -s ~/projects/oni-brutal/out/ws out/ws                      # the Workshop builds
-cp ~/projects/oni-brutal/tests/e2e/fixtures/*.sav tests/e2e/fixtures/   # or bless early-base
+scripts/fixtures.py fetch                                     # the fixtures (or let e2e.py fetch them)
 export PATH=$HOME/.dotnet:$HOME/.dotnet/tools:$PATH DOTNET_ROOT=$HOME/.dotnet
 dotnet build src/OniMoono.Host -c Release
 dotnet build tools/E2eDriver -c Release

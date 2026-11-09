@@ -212,7 +212,11 @@ an Xvfb display each), a players' memory budget and locks in `~/.cache/oni-bruta
 runners left (`--clean` cleans that). `qa.sh`'s perf stage writes `perf.wanted`
 there, so no new spec starts, and takes `perf.lock` exclusively once the running ones finish;
 other perf jobs can do the same with `flock -x ~/.cache/oni-brutal-e2e/perf.lock CMD`.
-[tests/e2e/README.md](../tests/e2e/README.md) describes specs, lanes and verdicts.
+[tests/e2e/README.md](../tests/e2e/README.md) describes specs, lanes and verdicts. Its fixture saves are not in
+git: `tests/e2e/fixtures.json` lists them by hash, and `scripts/fixtures.py` fetches them into a
+worktree from the shared cache `~/.cache/oni-brutal-e2e/fixtures` or the private refs
+repository's releases (with your `gh` login), as `e2e.py` and `qa.sh` do before a run;
+`scripts/fixtures.py bless PATH` uploads a new or re-blessed one and updates the manifest.
 `scripts/mod-sweep.py NAME` runs Workshop mods in batches through the same machinery, in both
 players, and bisects failing batches; `scripts/modtable.py > docs/MOD_COMPATIBILITY.md`
 regenerates the compatibility table from the results.
