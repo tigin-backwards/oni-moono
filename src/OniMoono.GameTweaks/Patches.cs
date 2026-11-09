@@ -30,6 +30,7 @@ namespace OniMoono.GameTweaks
                 case TrimAnimLists.Name: TrimAnimLists.Install(harmony); return true;
                 case OneShotPiles.Name: OneShotPiles.Install(harmony); return true;
                 case FetchByCell.Name: FetchByCell.Install(harmony); return true;
+                case OwnWorkshopItem.Name: OwnWorkshopItem.Install(harmony); return true;
                 default: return false;
             }
         }

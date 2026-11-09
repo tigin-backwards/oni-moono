@@ -25,6 +25,9 @@ namespace OniMoono.Host.GameTweaks
     ///   GameMember line with its fingerprint and rewrites (a tweak's first declarations).
     internal static class TweakCheckTool
     {
+        /// The tweaks and the always-on patches, each checked as a tweak (the menu apart).
+        static readonly string[] Tweaks = [.. GameTweakNames.All, .. GameTweakNames.AlwaysOn];
+
         /// The build's label: its folder's name without `oni-` (`linux-744825`).
         public static string Label(string gameDir)
         {
@@ -56,8 +59,8 @@ namespace OniMoono.Host.GameTweaks
             }
             failed = typedFile == null;
             int off = 0;
-            var undeclared = GameTweakNames.All.Where(n => checks[n].Members.Count == 0).ToList();
-            foreach (var name in GameTweakNames.All)
+            var undeclared = Tweaks.Where(n => checks[n].Members.Count == 0).ToList();
+            foreach (var name in Tweaks)
             {
                 var check = checks[name];
                 if (check.Problems.Count == 0) continue;
@@ -79,7 +82,7 @@ namespace OniMoono.Host.GameTweaks
             }
             if (undeclared.Count > 0) Console.WriteLine($"  declare nothing: {string.Join(", ", undeclared)}");
             if (undeclared.Count > 0 && mode == "check") failed = true;
-            Console.WriteLine($"check-tweaks {label}: {GameTweakNames.All.Length - off} of {GameTweakNames.All.Length} tweaks pass the file checks, {off} off ({ms:F1} ms)");
+            Console.WriteLine($"check-tweaks {label}: {Tweaks.Length - off} of {Tweaks.Length} tweaks pass the file checks, {off} off ({ms:F1} ms)");
             if (off > 0 && mode == "check") failed = true;
             // The Moono Tweaks menu, checked as a tweak is.
             var menu = checks[GameTweakNames.Menu];

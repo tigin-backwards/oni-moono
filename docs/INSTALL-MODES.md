@@ -125,6 +125,10 @@ same rule gives each game build its Moono:
   `minimumSupportedBuild` and empty DLC lists, and nothing at a version's top is content the
   game scans for (no `.dll`, `.po`, `strings`, `anim` and the like): the game logs "No supported
   content" and the mod list shows it so. No code of Moono's runs inside the original game.
+- **Under Moono, the mod manager skips it** (`OniMoono.GameTweaks.OwnWorkshopItem`, a guarded
+  patch of `KMod.Steam.MakeModAndReportOutcome`, declared and checked as every game tweak is,
+  always on): no mod, no broken-mod entry, no download-failed event. The item is told by
+  `moono.json`'s `"workshopItem": "oni-moono"`, not by an ID.
 - **The first start** from the item (`OniMoono.exe` there, which has `moono.json` and
   `windows-x64\player` beside it and no player of its own) copies the root's Windows player to
   `versioned\player\.bootstrap-<pid>` and starts the copy with the item as its source; it installs
