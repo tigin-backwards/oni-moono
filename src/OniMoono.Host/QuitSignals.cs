@@ -13,7 +13,9 @@ namespace OniMoono.Host
     /// on /dev/dxg cut off that way has been followed by a kernel soft lockup).
     /// A quit that has not ended the process within the deadline (ONI_QUIT_DEADLINE seconds,
     /// default 8: a hung main thread, a long load) ends it at once; so does a second signal.
-    /// Exit code 128 + the signal's number either way.
+    /// Exit code 128 + the signal's number either way. Before the deadline's exit each thread's
+    /// state is logged (ThreadDump), for up to ThreadDump.Budget: where a hung main thread or a
+    /// GPU wait was.
     internal sealed class QuitSignals
     {
         public const double DefaultDeadline = 8;
@@ -21,15 +23,17 @@ namespace OniMoono.Host
         readonly Action<int> requestQuit;
         readonly Action<int> exit;
         readonly Action<string> log;
+        readonly Action? dumpThreads;
         readonly TimeSpan deadline;
         int received;
 
-        public QuitSignals(Action<int> requestQuit, Action<int> exit, Action<string> log, TimeSpan deadline)
+        public QuitSignals(Action<int> requestQuit, Action<int> exit, Action<string> log, TimeSpan deadline, Action? dumpThreads = null)
         {
             this.requestQuit = requestQuit;
             this.exit = exit;
             this.log = log;
             this.deadline = deadline;
+            this.dumpThreads = dumpThreads;
         }
 
         static IDisposable? installed;
@@ -39,7 +43,8 @@ namespace OniMoono.Host
         {
             if (OperatingSystem.IsWindows() || installed != null) return;
             installed = new QuitSignals(OniMoono.Engine.PlayerLoop.RequestQuit, ExitNow, OniMoono.Engine.EngineLog.Engine,
-                TimeSpan.FromSeconds(Deadline(Environment.GetEnvironmentVariable("ONI_QUIT_DEADLINE")))).Register();
+                TimeSpan.FromSeconds(Deadline(Environment.GetEnvironmentVariable("ONI_QUIT_DEADLINE"))),
+                () => ThreadDump.Write(OniMoono.Engine.EngineLog.Engine)).Register();
         }
 
         /// This instance's SIGTERM and SIGINT handlers, in place of the runtime's until disposed.
@@ -73,6 +78,8 @@ namespace OniMoono.Host
             {
                 Thread.Sleep(deadline);
                 log($"{name}: the quit did not end the process within {deadline.TotalSeconds:0.#} s; exiting now");
+                try { dumpThreads?.Invoke(); }
+                catch (Exception) { }
                 exit(status);
             })
             { IsBackground = true, Name = "Quit deadline" }.Start();

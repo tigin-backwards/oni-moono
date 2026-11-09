@@ -15,7 +15,8 @@ namespace OniMoono.Tests
         {
             readonly BlockingCollection<string> events = new();
             public QuitSignals Make(TimeSpan deadline) => new(
-                status => events.Add($"quit {status}"), status => events.Add($"exit {status}"), _ => { }, deadline);
+                status => events.Add($"quit {status}"), status => events.Add($"exit {status}"), _ => { }, deadline,
+                () => { events.Add("dump"); throw new InvalidOperationException("a dump that throws"); });
             public string Next(int ms = 5000) => events.TryTake(out var e, ms) ? e : "nothing";
         }
 
@@ -27,6 +28,7 @@ namespace OniMoono.Tests
             quit.Received(15, "SIGTERM");
             Assert.Equal("quit 143", r.Next(0));
             Assert.Equal("nothing", r.Next(50)); // the quit has its time first
+            Assert.Equal("dump", r.Next()); // each thread's state, then the exit even if the dump throws
             Assert.Equal("exit 143", r.Next());
         }
 

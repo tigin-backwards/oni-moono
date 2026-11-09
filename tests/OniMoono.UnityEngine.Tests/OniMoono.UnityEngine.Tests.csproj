@@ -44,6 +44,7 @@
     <Compile Include="../../src/OniMoono.Host/GcMode.cs" Link="Host/GcMode.cs" />
     <!-- SIGTERM and SIGINT quit at a frame boundary, with a deadline (QuitSignalsTests). -->
     <Compile Include="../../src/OniMoono.Host/QuitSignals.cs" Link="Host/QuitSignals.cs" />
+    <Compile Include="../../src/OniMoono.Host/ThreadDump.cs" Link="Host/ThreadDump.cs" />
     <!-- The main menu's update check: channels, tags and notes (UpdateCheckTests). -->
     <Compile Include="../../src/OniMoono.Host/UpdateCheck.cs" Link="Host/UpdateCheck.cs" />
     <!-- Unity's player arguments, read or ignored (UnityArgumentsTests). -->
