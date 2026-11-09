@@ -43,4 +43,14 @@ else
     skip ruff "$ruff_bin"
 fi
 
+# actionlint on .github/workflows, with the pinned shellcheck on their run: scripts (and
+# .shellcheckrc's SC2012, which a script on standard input does not read).
+if [ -x "$actionlint_bin" ]; then
+    sc=()
+    [ -x "$shellcheck_bin" ] && sc=(-shellcheck "$shellcheck_bin")
+    run actionlint env SHELLCHECK_OPTS="-e SC2012" "$actionlint_bin" -no-color "${sc[@]}"
+else
+    skip actionlint "$actionlint_bin"
+fi
+
 [ ${#failed[@]} -eq 0 ] || { echo "lint failed: ${failed[*]}"; exit 1; }
