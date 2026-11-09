@@ -18,6 +18,8 @@
     <PackageVersion Include="System.Configuration.ConfigurationManager" Version="10.0.13" />
     <PackageVersion Include="Mono.Cecil" Version="0.11.6" />
     <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="10.0.13" />
+    <!-- Build time only: OniMoono.GameTweaks compiles against publicized copies of the game's assemblies. -->
+    <PackageVersion Include="Krafs.Publicizer" Version="2.3.2" />
     <!-- Tests -->
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
