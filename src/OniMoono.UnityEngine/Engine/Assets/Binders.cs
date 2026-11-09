@@ -77,7 +77,7 @@ namespace OniMoono.Engine.Assets
             var list = new List<TransformNative>(children.Length);
             foreach (PPtr child in children)
                 if (request.Resolver.Resolve(child) is Transform t) list.Add((TransformNative)t.NativeOrThrow);
-            native.Children = list.ToArray();
+            native.SetChildren(list.ToArray());
             native.MarkDirty(false);
         }
 

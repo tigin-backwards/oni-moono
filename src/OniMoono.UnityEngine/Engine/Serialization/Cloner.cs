@@ -162,11 +162,7 @@ namespace OniMoono.Engine.Serialization
 
         static void AttachUnder(TransformNative child, TransformNative parent, bool keepWorld)
         {
-            var children = parent.Children;
-            var grown = new TransformNative[children.Length + 1];
-            Array.Copy(children, grown, children.Length);
-            grown[^1] = child;
-            parent.Children = grown;
+            parent.InsertChildAt(child, parent.Children.Length);
             child.Parent = parent;
             Hierarchy.Touch(parent);
         }
@@ -211,7 +207,7 @@ namespace OniMoono.Engine.Serialization
             var childClones = new TransformNative[srcChildren.Length];
             for (int i = 0; i < srcChildren.Length; i++)
                 childClones[i] = CloneStructure(srcChildren[i].GameObject, go.Transform, remap).Transform;
-            go.Transform.Children = childClones;
+            go.Transform.SetChildren(childClones);
             return go;
         }
 

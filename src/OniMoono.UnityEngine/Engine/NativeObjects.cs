@@ -153,8 +153,85 @@ namespace OniMoono.Engine
     internal partial class TransformNative : ComponentNative
     {
         public TransformNative Parent;
-        /// Children in sibling order; copy-on-write.
-        public TransformNative[] Children = System.Array.Empty<TransformNative>();
+
+        /// Children in sibling order. A list read before a change keeps the children it had:
+        /// a slot below the count is never written again once published. An append fills the
+        /// next spare slot of the array, any other change makes a new array (copy-on-write).
+        /// Parents that grow at run time get spare slots (ChildList.Capacity), so a parent with
+        /// thousands of children (the game's popup texts) is not copied whole for each one.
+        TransformNative[] childArray = System.Array.Empty<TransformNative>();
+        int childCount;
+
+        public ChildList Children => new(childArray, childCount);
+
+        /// Sets the children to exactly `children`, which the transform keeps.
+        public void SetChildren(TransformNative[] children)
+        {
+            childArray = children;
+            childCount = children.Length;
+        }
+
+        /// Inserts `child` at `index` (0 to Children.Length); Hierarchy keeps the parent links.
+        public void InsertChildAt(TransformNative child, int index)
+        {
+            int n = childCount;
+            var items = childArray;
+            if (index == n && n < items.Length)
+            {
+                if (VerifyingChildLists) VerifyAppend(items, n);
+                items[n] = child;
+                childCount = n + 1;
+                return;
+            }
+            if (VerifyingChildLists) childListCopies++;
+            var grown = new TransformNative[ChildList.Capacity(n + 1)];
+            System.Array.Copy(items, 0, grown, 0, index);
+            grown[index] = child;
+            System.Array.Copy(items, index, grown, index + 1, n - index);
+            childArray = grown;
+            childCount = n + 1;
+        }
+
+        /// ONI_VERIFY_CHILD_LISTS=1: each append into a spare slot checks that it and the slots
+        /// after it hold nothing (no list was ever given them), logs "child lists wrong (N)"
+        /// otherwise, and a summary every 4,096 such appends. Main thread only, as the changes.
+        public static readonly bool VerifyingChildLists = System.Environment.GetEnvironmentVariable("ONI_VERIFY_CHILD_LISTS") == "1";
+        static long childListAppends, childListCopies, childListsWrong;
+
+        static void VerifyAppend(TransformNative[] items, int count)
+        {
+            for (int i = count; i < items.Length; i++)
+            {
+                if (items[i] == null) continue;
+                EngineLog.Engine($"child lists wrong ({++childListsWrong}): spare slot {i} of {items.Length} past {count} children holds {items[i].GameObject?.Name}");
+                break;
+            }
+            if (++childListAppends % 4096 == 1)
+                EngineLog.Engine($"child lists: {childListAppends} appends into spare slots, {childListCopies} copies, {childListsWrong} wrong");
+        }
+
+        /// Removes the child at `index`. A parent that had spare slots keeps some.
+        public void RemoveChildAt(int index)
+        {
+            int n = childCount;
+            var items = childArray;
+            if (VerifyingChildLists) childListCopies++;
+            var shrunk = new TransformNative[items.Length > n ? ChildList.Capacity(n - 1) : n - 1];
+            System.Array.Copy(items, 0, shrunk, 0, index);
+            System.Array.Copy(items, index + 1, shrunk, index, n - index - 1);
+            childArray = shrunk;
+            childCount = n - 1;
+        }
+
+        /// Puts `replacement` in `child`'s place.
+        public void ReplaceChild(TransformNative child, TransformNative replacement)
+        {
+            int index = Children.IndexOf(child);
+            if (index < 0) return;
+            var copy = (TransformNative[])childArray.Clone();
+            copy[index] = replacement;
+            childArray = copy;
+        }
         public Vector3 LocalPosition;
         public Quaternion LocalRotation = Quaternion.identity;
         public Vector3 LocalScale = Vector3.one;

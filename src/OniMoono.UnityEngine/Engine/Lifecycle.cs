@@ -166,14 +166,9 @@ namespace OniMoono.Engine
             native.LocalRotation = oldNative.LocalRotation;
             native.LocalScale = oldNative.LocalScale;
             native.Parent = oldNative.Parent;
-            native.Children = oldNative.Children;
+            native.SetChildren(oldNative.Children.ToArray());
             foreach (var child in native.Children) child.Parent = native;
-            if (native.Parent != null)
-            {
-                var siblings = (TransformNative[])native.Parent.Children.Clone();
-                siblings[Array.IndexOf(siblings, oldNative)] = native;
-                native.Parent.Children = siblings;
-            }
+            native.Parent?.ReplaceChild(oldNative, native);
             var transform = Object.ConstructBound<Transform>(type, native);
             var comps = (Component[])go.Components.Clone();
             comps[0] = transform;
