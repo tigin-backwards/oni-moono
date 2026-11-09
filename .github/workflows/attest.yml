@@ -1,5 +1,6 @@
 # Signs SLSA build provenance for a release's archives, their SHA256SUMS manifests and every file
-# the manifests list. It is given only names and SHA-256 digests, never the files or the build,
+# the manifests list; or (kind workshop, .github/workflows/workshop.yml) for the Workshop item's
+# SHA256SUMS and every file it lists. It is given only names and SHA-256 digests, never the files or the build,
 # and is the only job that holds the signing identity (id-token, attestations): the build steps
 # cannot sign anything (SLSA Build Level 3). Verify an archive, a manifest or any single file from
 # an archive (as extracted or installed) with
@@ -17,9 +18,15 @@ on:
       manifests:
         description: >-
           The manifests' lines, each prefixed with its platform (PLATFORM DIGEST  PATH), in the
-          manifests' order.
+          manifests' order. For kind workshop: the item's SHA256SUMS lines (DIGEST  PATH).
         type: string
         required: true
+      kind:
+        description: >-
+          release (an archive and a manifest per platform) or workshop (checksums: the item's
+          SHA256SUMS alone).
+        type: string
+        default: release
 
 permissions: {}
 
@@ -36,6 +43,7 @@ jobs:
       # is one the build's manifest lists. One attestation per platform: its archive, manifest
       # and files (attest-build-provenance takes at most 1024 subjects in one).
       - name: Check the subjects
+        if: inputs.kind == 'release'
         env:
           CHECKSUMS: ${{ inputs.checksums }}
           MANIFESTS: ${{ inputs.manifests }}
@@ -86,10 +94,70 @@ jobs:
           PY
           cat "$RUNNER_TEMP"/*.sha256
       - name: Sign the Windows archive's provenance
+        if: inputs.kind == 'release'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-checksums: ${{ runner.temp }}/windows-x64.sha256
       - name: Sign the Linux archive's provenance
+        if: inputs.kind == 'release'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-checksums: ${{ runner.temp }}/linux-x64.sha256
+      # The Workshop item: its SHA256SUMS (the one checksums line) and every file it lists, in
+      # attestations of at most 1000 subjects each (in the workspace, where hashFiles looks).
+      - name: Check the Workshop item's subjects
+        if: inputs.kind == 'workshop'
+        env:
+          CHECKSUMS: ${{ inputs.checksums }}
+          MANIFESTS: ${{ inputs.manifests }}
+        run: |
+          python3 -I - "$GITHUB_WORKSPACE" <<'PY'
+          import hashlib, os, re, sys
+          def fail(msg):
+              print(f"::error::{msg}"); sys.exit(1)
+          lines = [l for l in os.environ["CHECKSUMS"].splitlines() if l]
+          if len(lines) != 1: fail("expected the item's SHA256SUMS alone")
+          m = re.fullmatch(r"([0-9a-f]{64})  SHA256SUMS", lines[0])
+          if not m: fail(f"unexpected subject line: {lines[0]!r}")
+          component = re.compile(r"[A-Za-z0-9._+-]+")
+          entries = []
+          for line in os.environ["MANIFESTS"].splitlines():
+              if not line: continue
+              e = re.fullmatch(r"([0-9a-f]{64})  ([^\x00-\x1f\x7f]{1,240})", line)
+              if not e: fail(f"unexpected manifest line: {line!r}")
+              digest, path = e.groups()
+              if not all(component.fullmatch(c) and c.strip(".") for c in path.split("/")):
+                  fail(f"unexpected path in the item's manifest: {path!r}")
+              entries.append((digest, path))
+          if not entries: fail("the item's manifest is empty")
+          if len({p for _, p in entries}) != len(entries): fail("the item's manifest names a file twice")
+          if hashlib.sha256("".join(f"{d}  {p}\n" for d, p in entries).encode()).hexdigest() != m.group(1):
+              fail("the manifest's lines are not the SHA256SUMS whose digest was given")
+          subjects = [(m.group(1), "workshop-item/SHA256SUMS")] + [(d, "workshop-item/" + p) for d, p in entries]
+          chunks = [subjects[i:i + 1000] for i in range(0, len(subjects), 1000)]
+          if len(chunks) > 4: fail(f"{len(subjects)} subjects, more than four attestations take")
+          for n, chunk in enumerate(chunks):
+              with open(os.path.join(sys.argv[1], f"workshop-{n}.sha256"), "w", newline="\n") as out:
+                  for d, p in chunk: out.write(f"{d}  {p}\n")
+          print(f"workshop item: SHA256SUMS and {len(entries)} files in {len(chunks)} attestations")
+          PY
+      - name: Sign the Workshop item's provenance (1)
+        if: inputs.kind == 'workshop' && hashFiles('workshop-0.sha256') != ''
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: workshop-0.sha256
+      - name: Sign the Workshop item's provenance (2)
+        if: inputs.kind == 'workshop' && hashFiles('workshop-1.sha256') != ''
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: workshop-1.sha256
+      - name: Sign the Workshop item's provenance (3)
+        if: inputs.kind == 'workshop' && hashFiles('workshop-2.sha256') != ''
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: workshop-2.sha256
+      - name: Sign the Workshop item's provenance (4)
+        if: inputs.kind == 'workshop' && hashFiles('workshop-3.sha256') != ''
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: workshop-3.sha256

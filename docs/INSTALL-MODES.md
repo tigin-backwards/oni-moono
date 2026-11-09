@@ -106,3 +106,34 @@ Start menu's Programs and on the desktop, or `oni-moono.desktop` in `~/.local/sh
 **Tests** of the native host set `ONI_HOST_NO_DIALOG=1`: a failure to start then shows no
 message box and touches no Player.log; its line goes to stderr, and to `ONI_HOST_MESSAGES`' file
 when set. Without a redirected stderr, a failure is a message box on the desktop.
+
+## Workshop item
+
+The Workshop item carries both branches in the game's `archived_versions` convention, so the
+same rule gives each game build its Moono:
+
+```
+<item>/                         the u60 build: minimumSupportedBuild 762230
+  mod_info.yaml  moono.json  oni-moono-…-u60-windows-x64.SHA256SUMS  oni-moono-…-u60-linux-x64.SHA256SUMS
+  windows-x64/  linux-x64/      the release archives' oni-moono folders
+  OniMoono.exe  OniMoono.sh     start here once (Windows: double-click; Linux: sh OniMoono.sh)
+  verify.ps1  verify.sh  README.md  SHA256SUMS
+  archived_versions/u59/        the master build: minimumSupportedBuild 744825, laid out the same
+```
+
+- **The original game loads nothing from it.** Each version's `mod_info.yaml` has `APIVersion: 2`,
+  `minimumSupportedBuild` and empty DLC lists, and nothing at a version's top is content the
+  game scans for (no `.dll`, `.po`, `strings`, `anim` and the like): the game logs "No supported
+  content" and the mod list shows it so. No code of Moono's runs inside the original game.
+- **The first start** from the item (`OniMoono.exe` there, which has `moono.json` and
+  `windows-x64\player` beside it and no player of its own) copies the root's Windows player to
+  `versioned\player\.bootstrap-<pid>` and starts the copy with the item as its source; it installs
+  the version for the game as above, the entry point and the shortcut, then hands over to the
+  entry point. The item's folder itself never runs, so Steam can always update it; later starts
+  install each update from it.
+- **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a master and a u60 release
+  tag): the releases' assets are downloaded and verified against their provenance and branch,
+  `scripts/workshop-item.py` checks each archive against its manifest while laying them out,
+  and `attest.yml` signs the item's `SHA256SUMS` and every file in it. The result is the
+  `workshop-item` artifact. Nothing goes to Steam. `verify.sh` or `verify.ps1` in the item checks
+  it against the attested release manifests and its own attested `SHA256SUMS` (docs/RELEASES.md).
