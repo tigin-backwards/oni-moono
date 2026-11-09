@@ -36,7 +36,7 @@ steps:
       "**/MoonoTweaksScreen/**/Content/splash/**/OverlapIcon": {exists: false}
   - shot: screen
   # Down to the Simulation rows: two with icons, high and low, and one where the tweak steps aside.
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -24}
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -25}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - shot: rows
   - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 100}

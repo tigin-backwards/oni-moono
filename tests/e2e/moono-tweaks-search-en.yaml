@@ -16,7 +16,8 @@ steps:
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
   - shot: search-empty
   - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel"}
-  # "screen": five rows, in General, Graphics & overlays, Changes gameplay and Bug fixes.
+  # "screen": six rows, in General, Graphics & overlays, Saving (post-load-gc's "loading screen"),
+  # Changes gameplay and Bug fixes.
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen"}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - expect_ui:
@@ -26,18 +27,19 @@ steps:
       "**/MoonoTweaksScreen/**/Content/off-screen-conveyors": {active: true}
       "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {active: true}
       "**/MoonoTweaksScreen/**/Content/fast-overlay-textures": {active: true}
+      "**/MoonoTweaksScreen/**/Content/post-load-gc": {active: true}
       "**/MoonoTweaksScreen/**/Content/Heading General": {active: true}
       "**/MoonoTweaksScreen/**/Content/Heading Changes gameplay": {active: true}
       "**/MoonoTweaksScreen/**/Content/Heading Bug fixes": {active: true}
       "**/MoonoTweaksScreen/**/Content/Heading Graphics & overlays": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading Saving": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/Heading Saving": {active: true}
       "**/MoonoTweaksScreen/**/Content/Heading Simulation": {exists: false}
       "**/MoonoTweaksScreen/**/Content/splash": {exists: false}
       "**/MoonoTweaksScreen/**/Content/fast-jobs": {exists: false}
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
-  # The rows and headings shown: five rows and four headings.
+  # The rows and headings shown: six rows and five headings.
   - expect_ui:
-      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 9}
+      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 11}
   - shot: search-screen
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "zzqx", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: stable}
