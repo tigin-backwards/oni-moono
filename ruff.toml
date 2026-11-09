@@ -1,0 +1,23 @@
+# ruff (scripts/lint.sh) for the Python tools: scripts/, tools/ and tests/scripts.
+# Pinned in scripts/lint-tools.sh; fetched by scripts/fetch-lint-tools.sh.
+target-version = "py312"
+line-length = 160
+include = ["*.py"]
+extend-exclude = ["src/ThirdParty"]
+cache-dir = "out/ruff-cache"
+
+[lint]
+# Correctness only: pyflakes, pycodestyle's errors, bugbear's bug patterns, pylint's errors.
+select = ["E4", "E7", "E9", "F", "B", "PLE", "W6"]
+ignore = [
+    "E401",  # several imports on one line: the tools' style
+    "E731",  # a lambda bound to a name: the tools' style
+    "E741",  # names like l and O
+    "B007",  # an unused loop variable
+    "B904",  # raise without from inside except
+    "B905",  # zip() without strict=
+]
+
+[format]
+# The tools' quotes as they are: single in most, double in some.
+quote-style = "preserve"
