@@ -238,6 +238,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Open a colony once on the Load screen** (`fix-load-screen-clicks`): After Load more, a click on a colony no longer builds its list of saves again for every refresh. A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same. *On by default.*
 - **Stop sounds that never end** (`fix-endless-sounds`): An eating Pip no longer leaves sounds playing forever, which in time froze the game. A bug in the game's sound data: the adult Pip's eating loop, and the debris left by a self-destructed rocket, start a new copy of a looping sound on every loop and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends. *On by default.*
 - **Cap repeated sounds in one tile** (`fix-sound-piles`): Hundreds of critters in one tile no longer freeze the game with their sounds. When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped. *On by default.*
+- **Count all a geothermal vent emits** (`fix-geothermal-vents`): A geothermal vent's kg remaining goes down as it vents, instead of stalling while it keeps emitting. A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation. *On by default.*
 <!-- tweaks:end -->
 
 ### Incremental path probes
@@ -427,6 +428,43 @@ the copies made. In normal colonies it fires only where critters or Duplicants c
 (a ranch, a fish tank), and in the six colonies measured only on sounds whose FMOD event plays
 one copy at a time anyway, so the copies it skipped would not have played. Player.log notes how
 many it skipped, at most once a minute (`fix-sound-piles: skipped ...`).
+
+### The geothermal vent fix
+
+`fix-geothermal-vents` fixes a bug in U59's code for the Frosty Planet pack's geothermal vents
+(issue #61), which U60 fixed the same way. It is on by default, in the Bug fixes group and left
+out of `exact`.
+
+A vent emits through the sim's element emitter, 3 kg every 0.2 s, and takes what it emitted off
+what it has left, from the sim's report for its emitter. That report changes at every call of
+`Game.StepTheSim`: the sim runs a step on its own thread, the next call hands back what that step
+emitted, and the call after it hands back the next step's or nothing. A frame too short for a
+sim sub-tick (1/60 s of game time) calls `StepTheSim` too, without time. U59 reads the report in
+the vent's Sim200ms, which runs in one of the 12 sub-ticks between two steps with time; a short
+frame's call between the report's arrival and that sub-tick leaves the vent reading nothing. So
+the vent goes on emitting while its "kg remaining" stalls, and its pipes clog. The original
+runs into it as soon as frames get shorter than 1/60 s of game time: above 60 frames a second at
+speed 1, 120 at speed 2, 180 at speed 3. Moono's frame rates are often there.
+
+Measured on a small colony with one connected vent, without the tweak (Linux lanes, 2026-11-08):
+at speed 1 and about 100 fps the vent took 0 kg off for 50 s while the sim reported 142 kg
+emitted every 10 s; at speed 2 and 49 fps it took off 75-90% of it; at speed 3 and 30 fps, at
+30 fps capped (`--max-frame-rate 30`) at any speed, and in the original (about 5 fps there), all
+of it. A long frame, such as an autosave's, runs all the sub-ticks at once, so the vent counts
+that step. U60 fixed it: `Game.UnsafeSim200ms` reads the report right after each step
+(`GeothermalVent.ProcessEmittedMass`), and the vent's Sim200ms no longer reads it.
+
+With the tweak the vents run U60's code for this: a postfix on `Game.StepTheSim` does what
+U60's `ProcessEmittedMass` does; the vent's Sim200ms runs U60's body (U59's without its read);
+`OnMassEmitted` runs U60's (it takes the mass from each entry of the element in turn, at most
+an entry's mass from each, scales their disease counts down with it, and recomputes the emitter
+when an entry runs out or falls under 3 kg); `RecomputeEmissions` runs U60's (the emitter's
+disease count is for the 3 kg or less a pulse emits). U60's other vent changes, such as the
+disease hashes it saves, are left out. What differs from the original: a vent's material lasts
+as long as what it emits, 15 kg a second while it vents, whatever the frame rate. The game's
+other building emitters read the same report the same way in U59 and U60
+(`BuildingElementEmitter`, for its accumulator and the oxygen report only); the tweak leaves
+them as they are.
 
 ## Translating Moono Tweaks
 

@@ -32,6 +32,7 @@ namespace OniMoono.GameTweaks
                 case EndlessLoopSounds.Name: EndlessLoopSounds.Install(harmony); return true;
                 case OneShotPiles.Name: OneShotPiles.Install(harmony); return true;
                 case FetchByCell.Name: FetchByCell.Install(harmony); return true;
+                case GeothermalVentMass.Name: GeothermalVentMass.Install(harmony); return true;
                 default: return false;
             }
         }

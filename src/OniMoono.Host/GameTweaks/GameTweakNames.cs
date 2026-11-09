@@ -27,7 +27,7 @@ namespace OniMoono.Host.GameTweaks
     /// that change gameplay (Changes gameplay, Bug fixes) that still changes what the game does a little (off by default, left out
     /// of `exact`). `OnByDefault`: a tweak that changes what the game does (left out of `exact`)
     /// but is on by default all the same (the player's choice: path-probe-repair,
-    /// fix-load-screen-clicks, fix-endless-sounds, fix-sound-piles).
+    /// fix-load-screen-clicks, fix-endless-sounds, fix-sound-piles, fix-geothermal-vents).
     internal sealed record TweakInfo(string Id, TweakGroup Group, string Title, string Effect, string Detail = "", TweakGain? Gain = null, bool IsTweak = true,
         string[]? Choices = null, bool ChangesBehaviour = false, bool OnByDefault = false)
     {
@@ -56,7 +56,7 @@ namespace OniMoono.Host.GameTweaks
         public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", StallRepeatsRow = "stall-repeats", UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
-            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles";
+            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles", GeothermalVents = "fix-geothermal-vents";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -200,10 +200,13 @@ namespace OniMoono.Host.GameTweaks
             new(SoundPiles, BugFixes, "Cap repeated sounds in one tile", "Hundreds of critters in one tile no longer freeze the game with their sounds.",
                 "When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. "
                 + "A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped.", OnByDefault: true),
+            new(GeothermalVents, BugFixes, "Count all a geothermal vent emits", "A geothermal vent's kg remaining goes down as it vents, instead of stalling while it keeps emitting.",
+                "A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, "
+                + "so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation.", OnByDefault: true),
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles, FetchByCell];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();

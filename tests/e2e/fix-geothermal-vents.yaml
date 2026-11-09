@@ -1,0 +1,29 @@
+# The fix-geothermal-vents game tweak (src/OniMoono.GameTweaks/GeothermalVentMass.cs; issue #61).
+# Ours only (`--player ours`): the original has no such tweak.
+#
+# The geo-vents colony's controller pushes 3,000 kg of steam to its one connected vent
+# (tools/GeoVentProbeTestMod's Fill, as the controller's own venting does). At speed 1 the vent
+# emits 3 kg every 0.2 s. Without the tweak, above 60 frames a second most of it is never taken
+# off what the vent has left: U59 reads the sim's report in the vent's Sim200ms, and a frame too
+# short for a sim sub-tick calls StepTheSim in between, which replaces the report. On the lanes'
+# 90-110 fps it took nothing off for 50 s, and this spec without the tweak fails. With it,
+# every kilogram the sim reports emitted is taken off (U60's fix), at speed 1 and speed 3.
+from: geo-vents
+test_mods: [GeoVentProbeTestMod]
+game_tweaks: [fix-geothermal-vents]
+memory_gb: 8
+setup:
+  - driver: {setup.call: {type: GeoVentProbeTestMod.Mod, method: Fill, args: [3000]}}
+steps:
+  - expect_state:
+      "type:GeoVentProbeTestMod.Mod::Left": {save_as: start}
+  - run: {seconds: 30, speed: 1}
+  - expect_state:
+      "type:GeoVentProbeTestMod.Mod::Emitted": [{save_as: emitted}, "> 300"]
+      "type:GeoVentProbeTestMod.Mod::Accounted": ">= 0.99 * emitted"
+      "type:GeoVentProbeTestMod.Mod::Left": "<= start - 0.99 * emitted"
+  - run: {seconds: 30}
+  - expect_state:
+      "type:GeoVentProbeTestMod.Mod::Emitted": [{save_as: emitted2}, "> emitted + 300"]
+      "type:GeoVentProbeTestMod.Mod::Accounted": ">= 0.99 * emitted2"
+      "type:GeoVentProbeTestMod.Mod::Left": "<= start - 0.99 * emitted2"

@@ -661,3 +661,15 @@ msgstr "在物品成堆的殖民地上，搬运检查缩短约 8 倍（每次 3.
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.POST_LOAD"
 msgid "No ~0.3 s freeze a minute after loading a large colony; loading ~0.2 s longer"
 msgstr "加载大型殖民地约一分钟后不再有约 0.3 秒的冻结；加载时间延长约 0.2 秒"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_GEOTHERMAL_VENTS.TITLE"
+msgid "Count all a geothermal vent emits"
+msgstr "统计地热喷口的全部喷出量"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_GEOTHERMAL_VENTS.EFFECT"
+msgid "A geothermal vent's kg remaining goes down as it vents, instead of stalling while it keeps emitting."
+msgstr "地热喷口的剩余千克数会随喷发而减少，不再一边持续喷出一边停滞不变。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_GEOTHERMAL_VENTS.DETAIL"
+msgid "A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation."
+msgstr "这是游戏自身代码的错误，已在游戏的下一次更新中修复：喷口在自己的时刻读取喷出量，帧率较高时经常读到零，于是它一直喷个不停，堵塞管道。开启后与那次更新一样，在模拟的每一步之后统计喷出量。"

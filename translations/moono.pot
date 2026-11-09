@@ -824,3 +824,18 @@ msgstr ""
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_SOUND_PILES.DETAIL"
 msgid "When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped."
 msgstr ""
+
+#. Row title (fix-geothermal-vents)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_GEOTHERMAL_VENTS.TITLE"
+msgid "Count all a geothermal vent emits"
+msgstr ""
+
+#. The line under the title (fix-geothermal-vents)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_GEOTHERMAL_VENTS.EFFECT"
+msgid "A geothermal vent's kg remaining goes down as it vents, instead of stalling while it keeps emitting."
+msgstr ""
+
+#. Tooltip: how it works (fix-geothermal-vents)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_GEOTHERMAL_VENTS.DETAIL"
+msgid "A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation."
+msgstr ""
