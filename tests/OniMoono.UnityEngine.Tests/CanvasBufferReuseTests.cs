@@ -9,8 +9,8 @@ using Object = UnityEngine.Object;
 namespace OniMoono.Tests
 {
     /// The canvas's per-element and per-batch arrays (CanvasSystem): an element's copy of its mesh
-    /// (CanvasRenderer.SetMesh) reuses arrays only once the device has run every upload that
-    /// could still read them, and gives what fresh arrays gave.
+    /// (CanvasRenderer.SetMesh) and the merged meshes of its batches reuse arrays only once the
+    /// device has run every upload that could still read them, and give what fresh arrays gave.
     public class CanvasBufferReuseTests : EngineTest
     {
         static Mesh Quad(float at, int uvSets = 1)
@@ -202,6 +202,121 @@ namespace OniMoono.Tests
             {
                 Object.DestroyImmediate(go);
             }
+        }
+
+        static MeshNative Part(float at, int uvSets, bool normals)
+        {
+            var m = new MeshNative { VertexCount = 4 };
+            m.Positions = Enumerable.Range(0, 4).Select(i => new Vector3(i, at, 0f)).ToArray();
+            m.Colors = Enumerable.Range(0, 4).Select(i => new Color(i / 4f, at / 10f, 0f, 1f)).ToArray();
+            if (normals) m.Normals = Enumerable.Range(0, 4).Select(i => new Vector3(0f, i, 1f)).ToArray();
+            for (int u = 0; u < uvSets; u++) m.Uvs[u] = Enumerable.Range(0, 4).Select(i => new Vector4(i, u, at, 2f)).ToArray();
+            m.SubMeshes[0].SetIndices([0, 1, 2, 2, 3, 0]);
+            return m;
+        }
+
+        /// What the merge gave with new arrays for every channel (CanvasSystem.Concatenate before
+        /// its arrays were reused).
+        static void AssertMerged(MeshNative[] parts, MeshNative merged, bool subMeshEach)
+        {
+            int n = parts.Sum(p => p.VertexCount);
+            Assert.Equal(n, merged.VertexCount);
+            Assert.Equal(parts.SelectMany(p => p.Positions), merged.Positions.Take(n));
+            Assert.Equal(parts.SelectMany(p => p.Colors), merged.Colors.Take(n));
+            bool normals = parts.Any(p => p.Normals != null);
+            if (normals) Assert.Equal(parts.SelectMany(p => p.Normals ?? Enumerable.Repeat(new Vector3(0f, 0f, -1f), p.VertexCount)), merged.Normals.Take(n));
+            else Assert.Null(merged.Normals);
+            for (int u = 0; u < 4; u++)
+            {
+                if (!parts.Any(p => p.Uvs[u] != null))
+                {
+                    Assert.Null(merged.Uvs[u]);
+                    Assert.Equal(0, merged.UvDimensions[u]);
+                    continue;
+                }
+                Assert.Equal(4, merged.UvDimensions[u]);
+                Assert.Equal(parts.SelectMany(p => p.Uvs[u] ?? new Vector4[p.VertexCount]), merged.Uvs[u].Take(n));
+            }
+            int at = 0;
+            var all = parts.SelectMany(p => { int first = at; at += p.VertexCount; return p.SubMeshes[0].Indices.ToArray().Select(i => i + first).ToArray(); }).ToArray();
+            if (subMeshEach)
+            {
+                Assert.Equal(parts.Length, merged.SubMeshes.Count);
+                Assert.Equal(all, merged.SubMeshes.SelectMany(s => s.Indices.ToArray()));
+            }
+            else
+            {
+                Assert.Single(merged.SubMeshes);
+                Assert.Equal(all, merged.SubMeshes[0].Indices.ToArray());
+            }
+        }
+
+        /// Merging again into arrays reused from an earlier merge, whose parts had other UV sets
+        /// and normals, gives what new arrays gave: a part without a UV set the others have
+        /// reads zeros, not what the reused array held.
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void AMergeIntoReusedArraysGivesWhatNewOnesGave(bool subMeshEach)
+        {
+            var merged = new MeshNative { Dynamic = true };
+            MeshNative[][] runs =
+            [
+                [Part(1f, 2, true), Part(2f, 2, true), Part(3f, 2, false)],
+                [Part(4f, 2, false), Part(5f, 0, false), Part(6f, 1, true)],
+                [Part(7f, 1, false), Part(8f, 2, false)],
+                [Part(9f, 0, false), Part(10f, 2, true), Part(11f, 0, false), Part(12f, 1, false)],
+            ];
+            foreach (var parts in runs)
+            {
+                CanvasSystem.Concatenate(parts, merged, subMeshEach);
+                AssertMerged(parts, merged, subMeshEach);
+                merged.UploadRan(++merged.UploadsPosted);
+            }
+        }
+
+        /// The merged mesh's arrays are reused only once the uploads holding them have run, and
+        /// those uploads keep reading what they were given.
+        [Fact]
+        public void MergedArraysAreReusedOnlyAfterTheUploadHoldingThemRan()
+        {
+            var merged = new MeshNative { Dynamic = true };
+            var parts = new[] { Part(1f, 1, false), Part(2f, 1, false) };
+            CanvasSystem.Concatenate(parts, merged);
+            var first = (merged.Positions, Uv: merged.Uvs[0], Indices: merged.SubMeshes[0].IndexArray);
+            var firstValues = first.Positions.Take(8).ToArray();
+            int upload = ++merged.UploadsPosted;
+            var others = new[] { Part(3f, 1, false), Part(4f, 1, false) };
+            CanvasSystem.Concatenate(others, merged);
+            var secondPositions = merged.Positions;
+            Assert.NotSame(first.Positions, merged.Positions);
+            Assert.NotSame(first.Uv, merged.Uvs[0]);
+            Assert.NotSame(first.Indices, merged.SubMeshes[0].IndexArray);
+            Assert.Equal(firstValues, first.Positions.Take(8));
+            merged.UploadRan(upload);
+            merged.UploadRan(++merged.UploadsPosted);
+            CanvasSystem.Concatenate(parts, merged);
+            AssertMerged(parts, merged, subMeshEach: false);
+            if (!MeshNative.ReuseOff) Assert.True(ReferenceEquals(first.Positions, merged.Positions) || ReferenceEquals(secondPositions, merged.Positions));
+        }
+
+        /// A merge of unchanged size into a mesh whose uploads ran allocates no channel arrays.
+        [Fact]
+        public void ASteadyMergeAllocatesNoChannelArrays()
+        {
+            if (MeshNative.ReuseOff) return;
+            var merged = new MeshNative { Dynamic = true };
+            var parts = Enumerable.Range(0, 16).Select(i => Part(i, 2, true)).ToArray();
+            for (int i = 0; i < 3; i++)
+            {
+                CanvasSystem.Concatenate(parts, merged);
+                merged.UploadRan(++merged.UploadsPosted);
+            }
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            CanvasSystem.Concatenate(parts, merged);
+            long bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+            // The channels alone would be 64 * (12 + 16 + 12 + 2 * 16) + 96 * 4 bytes.
+            Assert.True(bytes < 1024, $"{bytes} bytes");
         }
     }
 }
