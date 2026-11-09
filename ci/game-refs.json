@@ -9,13 +9,13 @@
         "kind": "git",
         "host": "github.com",
         "repository": "tigin-backwards/oni-moono-refs",
-        "commit": "2c479c1636e99391cc2f628f55a74880ce34878f",
+        "commit": "807be12abccc297ee3b6526815dd8083a8ea2c74",
         "path": "762230"
       },
       "files": {
         "0Harmony.dll": "3cf41290880d072dd87dd29ba0c9738376ad4548c817109eee4da2b03c631ded",
-        "Assembly-CSharp-firstpass.dll": "fff3387b817eeda2d0ed9225576eb7da1a15ba8e7ca760a3d28766eb0351263c",
-        "Assembly-CSharp.dll": "2df2620ef8510287822581bcecc7f97340ae92327d342feec05543f0c6dc1c11",
+        "Assembly-CSharp-firstpass.dll": "d099783a00b9fdce9b5cde86ccd896a40daa842c40375c7a257f1bf0db44c51b",
+        "Assembly-CSharp.dll": "b3226c98c632f2d7add518ec93e28ae58e2353747668c3488c062e74f352478f",
         "FMODUnity.dll": "27e0a9665d45afd122b7bd80abccd21b106eb3c009dc76f5c1810bf9bed743ab",
         "Ionic.Zip.dll": "aa0b1f62928f3642c10a41da52857a2d0931d82684f702cf477ca7bc956bf6c1",
         "Newtonsoft.Json.dll": "badc360b7eccbd9821d18842f58cd9ada8df3d6ec2f54535329f821374c9c7fd",
@@ -33,13 +33,13 @@
         "kind": "git",
         "host": "github.com",
         "repository": "tigin-backwards/oni-moono-refs",
-        "commit": "2c479c1636e99391cc2f628f55a74880ce34878f",
+        "commit": "807be12abccc297ee3b6526815dd8083a8ea2c74",
         "path": "762107"
       },
       "files": {
         "0Harmony.dll": "3cf41290880d072dd87dd29ba0c9738376ad4548c817109eee4da2b03c631ded",
-        "Assembly-CSharp-firstpass.dll": "fff3387b817eeda2d0ed9225576eb7da1a15ba8e7ca760a3d28766eb0351263c",
-        "Assembly-CSharp.dll": "0796a51f6e56b4511e6e649c41085fa834260cefd7fed38edddf05044bb2a343",
+        "Assembly-CSharp-firstpass.dll": "d099783a00b9fdce9b5cde86ccd896a40daa842c40375c7a257f1bf0db44c51b",
+        "Assembly-CSharp.dll": "71141526be65fce57457b0e9d812e07de36eebf5d7efb0e2f8d7bce76e8eab59",
         "FMODUnity.dll": "27e0a9665d45afd122b7bd80abccd21b106eb3c009dc76f5c1810bf9bed743ab",
         "Ionic.Zip.dll": "aa0b1f62928f3642c10a41da52857a2d0931d82684f702cf477ca7bc956bf6c1",
         "Newtonsoft.Json.dll": "badc360b7eccbd9821d18842f58cd9ada8df3d6ec2f54535329f821374c9c7fd",

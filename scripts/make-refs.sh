@@ -27,8 +27,14 @@ rm -rf "$dest"; mkdir -p "$dest"
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
 for f in "${files[@]}"; do cp "$managed/$f" "$work/"; done
 # Public and protected API only (with what InternalsVisibleTo grants); private members that take
-# no part in it are dropped, as a compiler-made reference assembly drops them.
-"$tools/refasmer" -q -c --omit-non-api-members=true -O "$dest" "${files[@]/#/$work/}"
+# no part in it are dropped, as a compiler-made reference assembly drops them. Except in the
+# game's own two: OniMoono.GameTweaks compiles against publicized copies of those and uses their
+# private members directly, so they keep every type and member (--all; still without bodies).
+own=(Assembly-CSharp.dll Assembly-CSharp-firstpass.dll)
+others=()
+for f in "${files[@]}"; do [[ " ${own[*]} " == *" $f "* ]] || others+=("$work/$f"); done
+"$tools/refasmer" -q -c --omit-non-api-members=true -O "$dest" "${others[@]}"
+"$tools/refasmer" -q -c --all -O "$dest" "${own[@]/#/$work/}"
 for f in "${files[@]}"; do [ -s "$dest/$f" ] || { echo "make-refs: $f was not made" >&2; exit 1; }; done
 (cd "$dest" && sha256sum "${files[@]}" > SHA256SUMS)
 (cd "$managed" && sha256sum "${files[@]}" > "$dest/ORIGINALS.sha256")
