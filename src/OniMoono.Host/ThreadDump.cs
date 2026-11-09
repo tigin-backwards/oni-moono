@@ -32,7 +32,8 @@ namespace OniMoono.Host
                     log("threads at the quit deadline:\n" + string.Join("\n", lines));
                 }
                 catch (Exception) { }
-            }) { IsBackground = true, Name = "Thread dump" };
+            })
+            { IsBackground = true, Name = "Thread dump" };
             try
             {
                 dump.Start();
@@ -89,9 +90,11 @@ namespace OniMoono.Host
             char c = rest[0];
             string name = c switch
             {
+                #pragma warning disable format // a hand-laid table
                 'R' => "running", 'S' => "sleeping", 'D' => "uninterruptible wait", 'Z' => "zombie",
                 'T' => "stopped", 't' => "tracing stop", 'X' => "dead", 'I' => "idle", 'P' => "parked",
                 'W' => "waking", 'K' => "wakekill", _ => "",
+                #pragma warning restore format
             };
             return name.Length == 0 ? c.ToString() : $"{c} ({name})";
         }
