@@ -29,6 +29,7 @@ OniMoono.UnityEngine.Tests OniMoono.Tests.MonoDelegateSerializationTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.ObjectLoaderTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.ParallelDrawRecordingTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.ParticleTests
+OniMoono.UnityEngine.Tests OniMoono.Tests.PassStateCacheTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.PathGridPagesTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.PhysicsTests
 OniMoono.UnityEngine.Tests OniMoono.Tests.PrimitiveTests
