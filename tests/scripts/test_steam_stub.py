@@ -2,7 +2,7 @@
 --ugc) loaded with ctypes and called as Steamworks.NET calls it, in a subprocess so that its
 environment is the one under test."""
 
-import ctypes, os, subprocess, sys, tempfile, textwrap, unittest
+import os, subprocess, sys, tempfile, textwrap, unittest
 
 import helpers
 
