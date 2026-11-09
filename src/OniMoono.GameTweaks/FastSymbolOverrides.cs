@@ -69,24 +69,8 @@ namespace OniMoono.GameTweaks
         static readonly bool timing = Environment.GetEnvironmentVariable("ONI_TWEAK_TIMING") == "1";
         static readonly bool plans = Environment.GetEnvironmentVariable("ONI_SYMBOL_PLANS") != "0";
 
-        static readonly AccessTools.FieldRef<SymbolOverrideInfoGpuData, SymbolOverrideInfoGpuData.SymbolOverrideInfoToByteConverter> converter =
-            AccessTools.FieldRefAccess<SymbolOverrideInfoGpuData, SymbolOverrideInfoGpuData.SymbolOverrideInfoToByteConverter>("symbolOverrideInfoConverter");
         static readonly AccessTools.FieldRef<SymbolOverrideInfoGpuData, int> blockVersion =
             AccessTools.FieldRefAccess<SymbolOverrideInfoGpuData, int>("<version>k__BackingField");
-        static readonly AccessTools.FieldRef<SymbolOverrideController, List<SymbolOverrideController.SymbolEntry>> overridesOf =
-            AccessTools.FieldRefAccess<SymbolOverrideController, List<SymbolOverrideController.SymbolEntry>>("symbolOverrides");
-        static readonly AccessTools.FieldRef<SymbolOverrideController, KAnimBatch.AtlasList> atlasesOf =
-            AccessTools.FieldRefAccess<SymbolOverrideController, KAnimBatch.AtlasList>("atlases");
-        static readonly AccessTools.FieldRef<SymbolOverrideController, KBatchedAnimController> animOf =
-            AccessTools.FieldRefAccess<SymbolOverrideController, KBatchedAnimController>("animController");
-        static readonly AccessTools.FieldRef<SymbolOverrideController, FaceGraph> faceOf =
-            AccessTools.FieldRefAccess<SymbolOverrideController, FaceGraph>("faceGraph");
-        static readonly AccessTools.FieldRef<SymbolOverrideController, bool> sortPending =
-            AccessTools.FieldRefAccess<SymbolOverrideController, bool>("requiresSorting");
-        static readonly AccessTools.FieldRef<KAnimBatch.AtlasList, List<Texture2D>> texturesOf =
-            AccessTools.FieldRefAccess<KAnimBatch.AtlasList, List<Texture2D>>("atlases");
-        static readonly AccessTools.FieldRef<KAnimBatch.AtlasList, int> startOf =
-            AccessTools.FieldRefAccess<KAnimBatch.AtlasList, int>("startIdx");
         // Since U60 a controller's block is made on its getter's first read after a reset (a
         // pending symbol count); before, the getter returns the field.
         static readonly bool lazyBlocks = AccessTools.Field(typeof(KAnimControllerBase), "pendingSymbolOverrideInfoSymbolCount") != null;
@@ -204,7 +188,7 @@ namespace OniMoono.GameTweaks
             if (log == null) return;
             if (log.Open)
             {
-                var bytes = converter(block).bytes;
+                var bytes = block.symbolOverrideInfoConverter.bytes;
                 for (int i = 0; i < count; i++) log.Writing(bytes, start + i);
             }
             if (!ownWrite)
@@ -215,7 +199,7 @@ namespace OniMoono.GameTweaks
         /// (skipped) when every entry it writes already holds its value.
         static bool SetRange(SymbolOverrideInfoGpuData __instance, int symbol_start_idx, int symbol_num_frames, int atlas_idx, KBatchGroupData source_data, int source_start_idx, int source_num_frames)
         {
-            var infos = converter(__instance).symbolOverrideInfos;
+            var infos = __instance.symbolOverrideInfoConverter.symbolOverrideInfos;
             for (int i = 0; i < symbol_num_frames; i++)
             {
                 var frame = source_data.symbolFrameInstances[source_start_idx + Math.Min(source_num_frames - 1, i)];
@@ -231,7 +215,7 @@ namespace OniMoono.GameTweaks
         /// SetSymbolOverrideInfo(index, ref frame): false (skipped) when the entry already holds it.
         static bool SetOne(SymbolOverrideInfoGpuData __instance, int symbol_idx, ref KAnim.Build.SymbolFrameInstance symbol_frame_instance)
         {
-            if (Holds(converter(__instance).symbolOverrideInfos[symbol_idx], symbol_frame_instance.buildImageIdx, symbol_frame_instance)) return false;
+            if (Holds(__instance.symbolOverrideInfoConverter.symbolOverrideInfos[symbol_idx], symbol_frame_instance.buildImageIdx, symbol_frame_instance)) return false;
             Writing(__instance, symbol_idx, 1);
             return true;
         }
@@ -343,7 +327,7 @@ namespace OniMoono.GameTweaks
             }
             if (timing) calls++;
             if (off) return true;
-            var anim = animOf(__instance);
+            var anim = __instance.animController;
             var batch = anim != null ? anim.GetBatch() : null;
             if (batch == null) return true;
             var plan = plansOf.GetValue(__instance, newPlan);
@@ -363,14 +347,14 @@ namespace OniMoono.GameTweaks
         static Miss Check(SymbolOverrideController soc, KBatchedAnimController anim, KAnimBatch batch, Plan plan)
         {
             if (!plan.Valid) return plan.Overlapping ? Miss.Overlap : Miss.First;
-            if (sortPending(soc)) return Miss.Sort;
+            if (soc.requiresSorting) return Miss.Sort;
             if (plan.Version != soc.version) return Miss.Version;
-            if (plan.Count != overridesOf(soc).Count) return Miss.Count;
+            if (plan.Count != soc.symbolOverrides.Count) return Miss.Count;
             var block = BlockOf(anim);
             if (block == null || !ReferenceEquals(block, plan.Block)) return Miss.Block;
             if (!ReferenceEquals(batch, plan.Batch) || batch.id != plan.BatchId) return Miss.Batch;
-            var atlases = texturesOf(batch.atlases);
-            if (atlases.Count != plan.AtlasCount || startOf(batch.atlases) != plan.BatchStart) return Miss.Atlases;
+            var atlases = batch.atlases.atlases;
+            if (atlases.Count != plan.AtlasCount || batch.atlases.startIdx != plan.BatchStart) return Miss.Atlases;
             for (int i = 0; i < atlases.Count; i++)
                 if (!ReferenceEquals(atlases[i], plan.BatchAtlases[i])) return Miss.Atlases;
             if (plan.AnimData != animData) return Miss.AnimData;
@@ -383,13 +367,13 @@ namespace OniMoono.GameTweaks
         static void Keep(SymbolOverrideController soc, KBatchedAnimController anim, KAnimBatch batch, Plan plan)
         {
             plan.Version = soc.version;
-            plan.Count = overridesOf(soc).Count;
+            plan.Count = soc.symbolOverrides.Count;
             plan.Block = BlockOf(anim);
             plan.Batch = batch;
             plan.BatchId = batch.id;
-            var atlases = texturesOf(batch.atlases);
+            var atlases = batch.atlases.atlases;
             plan.AtlasCount = atlases.Count;
-            plan.BatchStart = startOf(batch.atlases);
+            plan.BatchStart = batch.atlases.startIdx;
             if (plan.BatchAtlases.Length < atlases.Count) plan.BatchAtlases = new Texture2D[atlases.Count];
             atlases.CopyTo(plan.BatchAtlases);
             plan.AnimData = animData;
@@ -412,11 +396,11 @@ namespace OniMoono.GameTweaks
         {
             try
             {
-                var list = overridesOf(soc);
-                if (sortPending(soc))
+                var list = soc.symbolOverrides;
+                if (soc.requiresSorting)
                 {
                     list.Sort(byPriority);
-                    sortPending(soc) = false;
+                    soc.requiresSorting = false;
                 }
                 var manager = KAnimBatchManager.Instance();
                 var group = manager.GetBatchGroupData(anim.batchGroupID);
@@ -495,7 +479,7 @@ namespace OniMoono.GameTweaks
             plan.Valid = false;
             // The inputs as they are before the application (the face's speech can add an
             // override during it: the next application is then a full one again).
-            int version = soc.version, count = overridesOf(soc).Count;
+            int version = soc.version, count = soc.symbolOverrides.Count;
             if (!Lookups(soc, anim, batch, plan)) return false;
             var block = anim.symbolOverrideInfoGpuData;
             Keep(soc, anim, batch, plan);
@@ -519,7 +503,7 @@ namespace OniMoono.GameTweaks
 
         static void Run(SymbolOverrideController soc, KBatchedAnimController anim, Plan plan, SymbolOverrideInfoGpuData block, bool full)
         {
-            var atlases = atlasesOf(soc);
+            var atlases = soc.atlases;
             var log = plan.Log;
             int before = block != null ? block.version : 0;
             if (log != null)
@@ -573,7 +557,7 @@ namespace OniMoono.GameTweaks
                     if (timing) restored += redo;
                     ownWrite = false;
                 }
-                var face = faceOf(soc);
+                var face = soc.faceGraph;
                 if (face != null) face.ApplyShape();
                 done = true;
             }
@@ -582,7 +566,7 @@ namespace OniMoono.GameTweaks
                 ownWrite = false;
                 if (log != null)
                 {
-                    bool changed = log.End(converter(block).bytes);
+                    bool changed = log.End(block.symbolOverrideInfoConverter.bytes);
                     if (done && !changed && block.version != before)
                     {
                         blockVersion(block) = before;
@@ -629,7 +613,7 @@ namespace OniMoono.GameTweaks
                 written.Add(entries[e]);
                 log.Written(entries[e]);
             }
-            var infos = converter(plan.Block).symbolOverrideInfos;
+            var infos = plan.Block.symbolOverrideInfoConverter.symbolOverrideInfos;
             var last = new Dictionary<int, int>();
             for (int i = 0; i < plan.StepCount; i++)
                 if (plan.Steps[i].Texture == null)
