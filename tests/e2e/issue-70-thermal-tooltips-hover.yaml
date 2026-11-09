@@ -1,0 +1,17 @@
+# Issue #70: Thermal Tooltips Reworked (3780815871) lays its hover card's temperatures out in
+# columns: it measures a column's width once, with GetRenderedValues() on a LocText it has just
+# instantiated, styled and force-updated (KForceUpdateDirty), and moves HoverTextDrawer's
+# currentPos by it. KForceUpdateDirty in ours only marked the text dirty, so the measure was 0
+# and the columns overlapped at the line's start; the original lays the text out at once.
+#
+# The Temperature overlay's hover card over the printing pod: its temperatures stand in columns
+# as in the original (dump, shot).
+from: early-base
+mods: [3780815871]
+steps:
+  - driver: {camera.set: {cell: [124, 208], ortho: 10}}
+  - open: {key: F3}
+  - scroll: {at: [124, 208], notches: 0}
+  - run: {seconds: 1}
+  - ui_dump: {name: hover-card, root: "**/HoverTextScreen", mask_text: ['[\d.]+']}
+  - shot: {name: hover-card, pointer: stay, threshold: 0.04}
