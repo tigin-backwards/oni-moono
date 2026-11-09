@@ -146,11 +146,13 @@ namespace OniMoono.Host
             {
                 case StackBehaviour.Pop0: return 0;
                 case StackBehaviour.Pop1: case StackBehaviour.Popi: case StackBehaviour.Popref: return 1;
+                #pragma warning disable format // a hand-laid table
                 case StackBehaviour.Pop1_pop1: case StackBehaviour.Popi_pop1: case StackBehaviour.Popi_popi:
                 case StackBehaviour.Popi_popi8: case StackBehaviour.Popi_popr4: case StackBehaviour.Popi_popr8:
                 case StackBehaviour.Popref_pop1: case StackBehaviour.Popref_popi: return 2;
                 case StackBehaviour.Popi_popi_popi: case StackBehaviour.Popref_popi_popi: case StackBehaviour.Popref_popi_popi8:
                 case StackBehaviour.Popref_popi_popr4: case StackBehaviour.Popref_popi_popr8: case StackBehaviour.Popref_popi_popref:
+                #pragma warning restore format
                 case StackBehaviour.Popref_popi_pop1: return 3;
                 case StackBehaviour.Varpop:
                     if (instruction.operand is not MethodBase callee || opcode == OpCodes.Calli) return -1;

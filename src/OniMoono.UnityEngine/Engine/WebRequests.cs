@@ -466,6 +466,7 @@ namespace OniMoono.Engine
         /// "Unknown HTTP status".
         public static string HttpStatusString(long code) => code switch
         {
+            #pragma warning disable format // a hand-laid table
             100 => "Continue", 101 => "Switching Protocols", 102 => "Processing",
             200 => "OK", 201 => "Created", 202 => "Accepted", 203 => "Non-Authoritative Information", 204 => "No Content",
             205 => "Reset Content", 206 => "Partial Content", 207 => "Multi-Status", 208 => "Already Reported", 226 => "IM Used",
@@ -481,6 +482,7 @@ namespace OniMoono.Engine
             500 => "Internal Server Error", 501 => "Not Implemented", 502 => "Bad Gateway", 503 => "Service Unavailable",
             504 => "Gateway Timeout", 505 => "HTTP Version Not Supported", 506 => "Variant Also Negotiates",
             507 => "Insufficient Storage", 508 => "Loop Detected", 510 => "Not Extended", 511 => "Network Authentication Required",
+            #pragma warning restore format
             _ => "Unknown HTTP status",
         };
     }

@@ -137,6 +137,7 @@ sealed class SigNames(MetadataReader md) : ISignatureTypeProvider<string, object
     public string GetPointerType(string e) => e + "*";
     public string GetPrimitiveType(PrimitiveTypeCode t) => t switch
     {
+        #pragma warning disable format // a hand-laid table
         PrimitiveTypeCode.Boolean => "System.Boolean", PrimitiveTypeCode.Char => "System.Char",
         PrimitiveTypeCode.SByte => "System.SByte", PrimitiveTypeCode.Byte => "System.Byte",
         PrimitiveTypeCode.Int16 => "System.Int16", PrimitiveTypeCode.UInt16 => "System.UInt16",
@@ -146,6 +147,7 @@ sealed class SigNames(MetadataReader md) : ISignatureTypeProvider<string, object
         PrimitiveTypeCode.IntPtr => "System.IntPtr", PrimitiveTypeCode.UIntPtr => "System.UIntPtr",
         PrimitiveTypeCode.Object => "System.Object", PrimitiveTypeCode.String => "System.String",
         PrimitiveTypeCode.TypedReference => "System.TypedReference", PrimitiveTypeCode.Void => "System.Void",
+        #pragma warning restore format
         _ => t.ToString(),
     };
     public string GetSZArrayType(string e) => e + "[]";
