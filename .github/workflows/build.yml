@@ -171,3 +171,18 @@ jobs:
         env:
           GAME_DIR: ${{ steps.refs.outputs.game-dir }}
         run: scripts/ci-unit-tests.sh "$GAME_DIR"
+
+  lint:
+    name: Lint (shellcheck, ruff, actionlint)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The pinned linters, each checked against its SHA-256 (scripts/lint-tools.sh), then
+      # scripts/lint.sh, which skips the C# whitespace check here: it needs global.json's SDK, and
+      # scripts/check.sh runs it.
+      - run: scripts/fetch-lint-tools.sh
+      - run: scripts/lint.sh
