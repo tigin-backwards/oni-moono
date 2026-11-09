@@ -1,0 +1,33 @@
+# Issue #69: a save holding an unopened care package. The package keeps its CarePackageInfo,
+# whose `requirement` is a Func<bool>, and the game's serializer makes that delegate with
+# FormatterServices.GetUninitializedObject when it loads the save (ARCHITECTURE D62). Ours
+# failed the load there ("Error deserializing prefabs"), and the half-loaded world then ended
+# the player in DecorProvider.AddDecor.
+#
+# The printing pod delivers its ninth care package (4,000 kg of Ice, whose requirement is a
+# cycle condition) while the colony is paused, so it is still unopened when the colony is saved.
+# That save is loaded from the pause menu; the package must be there with its contents, open
+# once time runs and leave its ice by the pod.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "Immigration.Instance.carePackages[8]", method: Deliver, args: [{"$": "all:Telepad::[0].transform.position"}]}}
+steps:
+  - expect_state:
+      "Immigration.Instance.carePackages[8].id": "== 'Ice'"
+      "count:all:CarePackage::[*] if .info.id == Ice": 1
+  - save: issue-69-care-package
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/TitleContainer/SaveText", cond: text, value: issue-69-care-package}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 6000}
+  - expect_state:
+      "count:all:CarePackage::[*] if .info.id == Ice": 1
+      "sum:all:PrimaryElement::[*].Mass if .ElementID == Ice": {save_as: ice}
+  - run: {seconds: 20}
+  - expect_state:
+      "count:all:CarePackage::[*]": 0
+      "sum:all:PrimaryElement::[*].Mass if .ElementID == Ice": ">= ice + 3999"

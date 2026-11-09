@@ -194,6 +194,9 @@ namespace OniMoono.Host
                     // writes (D48). A runtime method, but one the engine never calls: patched here,
                     // off the main thread (two patches, about 20 ms).
                     MonoDelegateSerialization.Install(MonoNames.FullName, StateMachineSaveNames.AssemblyOf);
+                    // FormatterServices makes delegates without a method, as Mono's does, which the
+                    // game's serializer asks for when a save holds one (D62).
+                    MonoUninitializedObjects.Install();
                 }
                 catch (Exception e)
                 {
