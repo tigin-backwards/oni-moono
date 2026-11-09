@@ -111,6 +111,12 @@ namespace UnityEngine.Networking
         public UnityWebRequestAsyncOperation() { }
 
         public UnityWebRequest webRequest { get; internal set; }
+
+        internal WebRequestNative m_Request;
+
+        // Done when the transfer ends, on whatever thread reads it; completed still runs on the
+        // main thread (WebRequests.Update).
+        internal override bool WorkDone => m_Request != null && m_Request.State == WebRequestNative.Done;
     }
 
     public partial class UnityWebRequest
@@ -318,8 +324,9 @@ namespace UnityEngine.Networking
             return new Dictionary<string, string>(headers, StringComparer.OrdinalIgnoreCase);
         }
 
-        /// Starts the request on a background thread. The returned operation completes on the
-        /// main thread during the frame after the request finishes.
+        /// Starts the request on a background thread. The returned operation's isDone turns when
+        /// the request finishes; it completes (its completed callbacks run) on the main thread
+        /// during the frame after.
         public UnityWebRequestAsyncOperation SendWebRequest()
         {
             Threads.AssertMainThread("SendWebRequest");

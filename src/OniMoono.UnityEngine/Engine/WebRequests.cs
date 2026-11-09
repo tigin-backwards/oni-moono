@@ -28,7 +28,8 @@ namespace OniMoono.Engine
 
     /// The engine side of a UnityWebRequest: its settings, and the transfer run on a pool thread
     /// with HttpClient. Results are published as they happen (isDone may turn true on any
-    /// thread's read); the async operation completes on the main thread in EarlyUpdate.
+    /// thread's read, the async operation's too); the async operation completes on the main thread
+    /// in EarlyUpdate.
     internal sealed class WebRequestNative
     {
         public const int NotSent = 0, Executing = 1, Done = 2;
@@ -152,7 +153,7 @@ namespace OniMoono.Engine
                 if (state != NotSent) throw new InvalidOperationException(ErrorString(WebRequestError.AlreadySent));
                 Volatile.Write(ref state, Executing);
             }
-            operation = new UnityWebRequestAsyncOperation();
+            operation = new UnityWebRequestAsyncOperation { m_Request = this };
             WebRequests.Track(this, operation);
             var handler = owner.m_DownloadHandler;
             if (owner.m_UploadHandler != null)

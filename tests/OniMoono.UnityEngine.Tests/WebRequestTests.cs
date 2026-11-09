@@ -72,11 +72,11 @@ namespace OniMoono.Tests
             ctx.Response.Close();
         }
 
-        /// Runs frames until the operation completes (it completes only on the main thread).
+        /// Runs frames until the operation completes (its callbacks run only on the main thread).
         static void Pump(UnityWebRequestAsyncOperation op)
         {
             var deadline = DateTime.UtcNow.AddSeconds(20);
-            while (!op.isDone)
+            while (!op.IsCompleted)
             {
                 if (DateTime.UtcNow > deadline) throw new TimeoutException();
                 Frame();
@@ -113,6 +113,41 @@ namespace OniMoono.Tests
             Assert.Throws<InvalidOperationException>(() => request.SetRequestHeader("A", "b"));
             request.Dispose();
             Assert.Throws<NullReferenceException>(() => request.downloadHandler.text);
+        }
+
+        /// Mod Manager's Steam Web API lookup blocks the main thread on operation.isDone with
+        /// Thread.Sleep(1) and no frames (#65: the game hung until Windows ended it). In Unity the
+        /// operation turns done when the transfer ends (UnityProbe's apigaps "webspin"); callbacks
+        /// subscribed before run on the main thread a frame later, one subscribed once it is done
+        /// at once.
+        [Fact]
+        public void OperationTurnsDoneWhileTheMainThreadBlocks()
+        {
+            using var server = new Server(ctx => Reply(ctx, 200, "{}"));
+            var request = new UnityWebRequest(server.Url, "POST");
+            request.uploadHandler = new UploadHandlerRaw(Encoding.ASCII.GetBytes("itemcount=1"));
+            request.downloadHandler = new DownloadHandlerBuffer();
+            var op = request.SendWebRequest();
+            int completed = 0;
+            op.completed += _ => completed++;
+            var deadline = DateTime.UtcNow.AddSeconds(20);
+            while (!op.isDone)
+            {
+                if (DateTime.UtcNow > deadline) throw new TimeoutException("the operation never turned done without a frame");
+                Thread.Sleep(1);
+            }
+            Assert.True(request.isDone);
+            Assert.Equal(UnityWebRequest.Result.Success, request.result);
+            Assert.Equal("{}", request.downloadHandler.text);
+            Assert.Equal(1f, op.progress);
+            Assert.Equal(0, completed);
+            int late = 0;
+            op.completed += _ => late++;
+            Assert.Equal(1, late);
+            Frame();
+            Assert.Equal(1, completed);
+            Assert.Equal(1, late);
+            request.Dispose();
         }
 
         [Fact]
