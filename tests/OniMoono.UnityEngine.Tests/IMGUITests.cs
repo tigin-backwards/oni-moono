@@ -78,15 +78,7 @@ namespace OniMoono.Tests
 
     public class IMGUITests : EngineTest, IDisposable
     {
-        static string DataDir
-        {
-            get
-            {
-                var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                           ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
-                return Path.Combine(game, "OxygenNotIncluded_Data");
-            }
-        }
+        static string DataDir => GameInstall.DataDir;
 
         readonly List<string> errors = new();
 

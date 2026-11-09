@@ -174,7 +174,7 @@ namespace OniMoono.Tests
         [Fact]
         public void PropertiesReadAsTheOriginalGivesThem()
         {
-            AssetSystem.Initialize(System.IO.Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
             var wrong = new List<string>();
             Shader shader = null;
@@ -201,7 +201,7 @@ namespace OniMoono.Tests
         [Fact]
         public void FindPropertyIndexIsCaseSensitiveAndMinusOneForNone()
         {
-            AssetSystem.Initialize(System.IO.Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
             var s = Shader.Find("UI/Default");
             Assert.Equal(0, s.FindPropertyIndex("_MainTex"));

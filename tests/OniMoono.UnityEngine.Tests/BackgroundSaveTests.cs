@@ -72,6 +72,7 @@ namespace OniMoono.Tests
             Assert.False(File.Exists(path + ".writing"));
         }
 
+        [NeedsGameAssembly("Ionic.Zip")]
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -89,6 +90,7 @@ namespace OniMoono.Tests
             AssertSaved(manual, Header("manual"), manualBody);
         }
 
+        [NeedsGameAssembly("Ionic.Zip")]
         [Fact]
         public void TheSameFileSavedTwiceInARowHoldsTheSecondSave()
         {
@@ -101,6 +103,7 @@ namespace OniMoono.Tests
             AssertSaved(path, Header("second"), second);
         }
 
+        [NeedsGameAssembly("Ionic.Zip")]
         [Fact]
         public void AFailedWriteLeavesTheNextSaveWhole()
         {

@@ -25,17 +25,7 @@ namespace OniMoono.Tests
     public class AnimationTests : EngineTest
     {
         /// The reference game install (ONI_GAME_DIR, default ~/projects/oni-linux-762230).
-        static string DataDir
-        {
-            get
-            {
-                var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                           ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
-                var dir = Path.Combine(game, "OxygenNotIncluded_Data");
-                if (!Directory.Exists(dir)) throw new InvalidOperationException($"Game data not found at {dir}; set ONI_GAME_DIR.");
-                return dir;
-            }
-        }
+        static string DataDir => GameInstall.DataDir;
 
         /// The asset named `name` in `file` (path ids change between game builds).
         static T Load<T>(string file, string name) where T : Object

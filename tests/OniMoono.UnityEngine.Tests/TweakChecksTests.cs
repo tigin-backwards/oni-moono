@@ -241,6 +241,7 @@ namespace OniMoono.Tests
         /// runs it (the tweaks' installs, then the menu's), the tweaks install and the menu does
         /// not, its install never run and nothing of it patched; the tweaks the settings file
         /// chose are as it says, read without the menu.
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void WithoutTheMenusTargetTheTweaksInstallAndThereIsNoMenu()
         {
@@ -387,6 +388,7 @@ namespace OniMoono.Tests
             return Target.Calls.ToList();
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void AFailingInstallTakesBackWhatItPatchedAndTheNextInstalls()
         {
@@ -412,6 +414,7 @@ namespace OniMoono.Tests
             }
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void ATranspilerRewritingTheSitesItDeclaresInstalls()
         {
@@ -427,6 +430,7 @@ namespace OniMoono.Tests
             }
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Theory]
         [InlineData(3, "rewrote 2 of 3 sites")] // fewer, and no other owner transpiles it
         [InlineData(1, "rewrote 2 of 1 sites")] // more
@@ -446,6 +450,7 @@ namespace OniMoono.Tests
             }
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void AnUndeclaredTranspilerIsTakenBack()
         {
@@ -464,6 +469,7 @@ namespace OniMoono.Tests
         /// Issue #41: a mod's transpiler took one of the two sites first; the tweak's, run after
         /// it (Priority.Last, as the tweaks' call-site transpilers run), rewrites the other, one of the two it declares, and
         /// installs.
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void FewerSitesWithAnotherOwnersTranspilerInstalls()
         {
@@ -484,6 +490,7 @@ namespace OniMoono.Tests
             }
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void SignaturesOfLoadedMethodsAreSpelledAsTheMetadatas()
         {

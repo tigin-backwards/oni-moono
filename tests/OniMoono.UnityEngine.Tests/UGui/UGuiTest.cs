@@ -15,9 +15,7 @@ namespace OniMoono.Tests.UGui
         /// The game's data, for the built-in UI shaders (the stencil properties of UI/Default).
         protected static void UseGameAssets()
         {
-            var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
-            OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            OniMoono.Engine.Assets.AssetSystem.Initialize(GameInstall.DataDir);
             OniMoono.Engine.Assets.ProjectSettings.Load();
         }
 

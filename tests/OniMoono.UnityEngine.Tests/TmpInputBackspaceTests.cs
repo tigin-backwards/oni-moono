@@ -71,6 +71,7 @@ namespace OniMoono.Tests
             Assert.Equal(1, field.stringPosition);
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void TheMembersHaveTheModsNamesAndSignatures()
         {
@@ -111,6 +112,7 @@ namespace OniMoono.Tests
 
         static void Prefix(TMP_InputField __instance) => backspaceCalls.Add(__instance);
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void APrefixOnBackspaceRunsOncePerBackspaceKeyWhateverTheModifiers()
         {

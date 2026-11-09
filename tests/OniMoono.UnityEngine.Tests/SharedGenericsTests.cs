@@ -20,6 +20,7 @@ namespace OniMoono.Tests
 
         static void Nothing() { }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void MethodsComeInTheOrderHarmonyDetouredThem()
         {
@@ -45,6 +46,7 @@ namespace OniMoono.Tests
             }
         }
 
+        [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void TheReplacementDetouredLastRunsAfterTheSharedCodeTiersUp()
         {

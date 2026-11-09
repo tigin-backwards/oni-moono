@@ -12,9 +12,7 @@ namespace OniMoono.Tests
         [Fact]
         public void MaterialListsItsTextureProperties()
         {
-            var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
-            AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             // Shader.Find reads the shader name registry, whatever test ran before.
             ProjectSettings.Load();
             var material = new Material(Shader.Find("Hidden/Internal-GUITextureClip"));
@@ -27,9 +25,7 @@ namespace OniMoono.Tests
         {
             // The game copies its render targets and then draws the liquid with the camera's
             // matrices from one command buffer (MRTLiquidInterception).
-            var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
-            AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
             var device = new RecordingDevice();
             var previous = GraphicsDevice.Current;

@@ -10,17 +10,13 @@ namespace OniMoono.Tests
     /// The game data the TextMeshPro tests use (fonts, sprite assets, settings).
     static class TmpTestSupport
     {
-        internal static string GameDir =>
-            Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
-
         static bool s_Loaded;
 
         /// The game's data (TMP Settings, fonts) through the asset system.
         internal static void LoadGameData()
         {
             if (s_Loaded) return;
-            AssetSystem.Initialize(Path.Combine(GameDir, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
             s_Loaded = true;
         }

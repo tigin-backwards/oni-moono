@@ -57,7 +57,7 @@ namespace OniMoono.Tests
         public void ConcurrentFirstReadsMapAFileOnce()
         {
             TmpTestSupport.LoadGameData();
-            var name = Directory.GetFiles(Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data"), "*.resS")
+            var name = Directory.GetFiles(GameInstall.DataDir, "*.resS")
                 .Select(Path.GetFileName).OrderBy(n => n).Last();
             int before = AssetSystem.MappingsMade;
             using var start = new System.Threading.Barrier(32);
@@ -78,7 +78,7 @@ namespace OniMoono.Tests
         public void ARangePastTheEndThrows()
         {
             TmpTestSupport.LoadGameData();
-            var path = Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data", "resources.assets.resS");
+            var path = Path.Combine(GameInstall.DataDir, "resources.assets.resS");
             long length = new FileInfo(path).Length;
             Assert.Equal(16, AssetSystem.ReadStream("resources.assets.resS", length - 16, 16).Length);
             Assert.Throws<InvalidDataException>(() => AssetSystem.ReadStream("resources.assets.resS", length - 8, 16));
@@ -91,8 +91,8 @@ namespace OniMoono.Tests
         {
             TmpTestSupport.LoadGameData();
             AssetSystem.Get("resources.assets");
-            var dir = Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data");
-            Assert.Throws<InvalidOperationException>(() => AssetSystem.Initialize(Path.Combine(TmpTestSupport.GameDir, "elsewhere")));
+            var dir = GameInstall.DataDir;
+            Assert.Throws<InvalidOperationException>(() => AssetSystem.Initialize(Path.Combine(GameInstall.Dir, "elsewhere")));
             Assert.Equal(dir, AssetSystem.DataDir);
             AssetSystem.Initialize(dir + Path.DirectorySeparatorChar);
             AssetSystem.Initialize(dir);

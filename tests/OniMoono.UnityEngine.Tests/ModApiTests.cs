@@ -13,8 +13,7 @@ namespace OniMoono.Tests
     // loaded ones and makes temporary render textures with a read/write mode.
     public class ModApiTests : EngineTest
     {
-        static string DataDir => Path.Combine(Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230"), "OxygenNotIncluded_Data");
+        static string DataDir => GameInstall.DataDir;
 
         [Fact]
         public void LoadedAssetBundlesAreListedUntilUnloaded()

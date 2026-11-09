@@ -20,9 +20,7 @@ namespace OniMoono.Tests
 
         static Font Builtin()
         {
-            var game = Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
-            AssetSystem.Initialize(Path.Combine(game, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             if (!OperatingSystem.IsLinux()) Assert.Skip("The face chain was measured on Linux.");
             if (!SystemFonts.TryFindStyled("FreeSans", 0, out var r) || NameString(File.ReadAllBytes(r.filePath), 5) != FreeSansVersion)
                 Assert.Skip($"FreeSans {FreeSansVersion} is not installed.");

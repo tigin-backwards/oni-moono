@@ -432,7 +432,7 @@ namespace OniMoono.Tests
 
         static void LoadGame()
         {
-            AssetSystem.Initialize(System.IO.Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
         }
 

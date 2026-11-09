@@ -350,9 +350,7 @@ namespace OniMoono.Tests
         /// A shader from Unity's built-in resources in the game install (ONI_GAME_DIR).
         static Shader BuiltinShader(string name)
         {
-            var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
-            OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            OniMoono.Engine.Assets.AssetSystem.Initialize(GameInstall.DataDir);
             var file = OniMoono.Engine.Assets.AssetSystem.Get("unity_builtin_extra");
             foreach (var info in file.Objects)
                 if (file.TypeOf(info).ClassId == 48 && OniMoono.Engine.Assets.ObjectLoader.Load(file, info.PathId) is Shader shader && shader.name == name)

@@ -64,9 +64,7 @@ namespace OniMoono.Tests
         [Fact]
         public void TexelsOfABundleReadByBlocksAreTheWholeDecodes()
         {
-            var path = Path.Combine(System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                ?? Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230"),
-                "OxygenNotIncluded_Data", "StreamingAssets", "hires_base_bundle");
+            var path = Path.Combine(GameInstall.DataDir, "StreamingAssets", "hires_base_bundle");
             var archive = OniMoono.Assets.Files.UnityFsArchive.OpenFile(path);
             Assert.True(archive.ReadsBlocks);
             var whole = OniMoono.Assets.Files.UnityFsArchive.Open(path);

@@ -124,7 +124,7 @@ namespace OniMoono.Tests
         [Fact]
         public void KeptProductsAreTheProductsComputedAgain()
         {
-            AssetSystem.Initialize(System.IO.Path.Combine(TmpTestSupport.GameDir, "OxygenNotIncluded_Data"));
+            AssetSystem.Initialize(GameInstall.DataDir);
             ProjectSettings.Load();
             FrameRenderer.Install();
             CanvasSystem.Install();

@@ -12,9 +12,7 @@ namespace OniMoono.Tests
         /// A RenderTexture reads the project's colour space (PlayerSettings) when it is made.
         public ActiveRenderTargetTests()
         {
-            var game = System.Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-                       ?? System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
-            OniMoono.Engine.Assets.AssetSystem.Initialize(System.IO.Path.Combine(game, "OxygenNotIncluded_Data"));
+            OniMoono.Engine.Assets.AssetSystem.Initialize(GameInstall.DataDir);
             OniMoono.Engine.Assets.ProjectSettings.Load();
         }
 

@@ -88,7 +88,7 @@ namespace OniMoono.Assets.Tests
             for (int n = 0; n < entry.Length; n++)
                 Assert.Throws<InvalidDataException>(() => VulkanProgram.Read(entry.AsSpan(0, n)));
             foreach (var damaged in Flips(entry)) ReadsOrRefuses(damaged);
-            // A real program, when the game data is here.
+            // A real program.
             if (RealEntry() is { } real)
             {
                 for (int n = 0; n < real.Length; n += Math.Max(1, real.Length / 300)) ReadsOrRefuses(real.AsSpan(0, n).ToArray());
@@ -118,18 +118,11 @@ namespace OniMoono.Assets.Tests
             }
         }
 
+        /// A program of the game's data; without the data the test is skipped here, after the
+        /// made-up entries.
         static byte[]? RealEntry()
         {
-            string dir;
-            try
-            {
-                dir = GameData.DataDir;
-            }
-            catch (InvalidOperationException)
-            {
-                return null;
-            }
-            foreach (var shader in ShaderDataTests.Shaders(dir))
+            foreach (var shader in ShaderDataTests.Shaders(GameData.DataDir))
             {
                 var table = ShaderProgramTable.Load(shader, ShaderCompilerPlatform.Vulkan);
                 if (table == null) continue;
