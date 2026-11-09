@@ -41,8 +41,6 @@ namespace OniMoono.GameTweaks
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
 
-        static readonly AccessTools.FieldRef<SolidConduitFlow, List<List<Conduit>>> pathList =
-            AccessTools.FieldRefAccess<SolidConduitFlow, List<List<Conduit>>>("pathList");
         static System.Reflection.MethodInfo tryAdd;
         static Action<SolidConduitFlow, List<Conduit>> gameTryAdd;
 
@@ -160,7 +158,7 @@ namespace OniMoono.GameTweaks
             if (bypass || new_path == null || new_path.Count == 0) return true;
             if (checks++ % 256 == 0) foreign = Foreign();
             if (foreign) return true;
-            var paths = pathList(__instance);
+            var paths = __instance.pathList;
             Follow(__instance, paths);
             List<List<Conduit>> before = null;
             List<Conduit> theirs = null;
@@ -169,10 +167,10 @@ namespace OniMoono.GameTweaks
                 // The game's TryAdd on copies of the list and the new path.
                 before = new List<List<Conduit>>(paths);
                 theirs = new List<Conduit>(new_path);
-                pathList(__instance) = before;
+                __instance.pathList = before;
                 bypass = true;
                 try { gameTryAdd(__instance, theirs); }
-                finally { bypass = false; pathList(__instance) = paths; }
+                finally { bypass = false; __instance.pathList = paths; }
             }
             Keep(__instance, paths, new_path);
             if (verify) Compare(paths, new_path, before, theirs);

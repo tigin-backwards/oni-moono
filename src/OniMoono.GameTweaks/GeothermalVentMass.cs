@@ -50,14 +50,6 @@ namespace OniMoono.GameTweaks
     {
         public const string Name = "fix-geothermal-vents";
 
-        static readonly AccessTools.FieldRef<GeothermalVent, EmitterInfo> emitter =
-            AccessTools.FieldRefAccess<GeothermalVent, EmitterInfo>("emitterInfo");
-        static readonly AccessTools.FieldRef<GeothermalVent, List<ElementInfo>> material =
-            AccessTools.FieldRefAccess<GeothermalVent, List<ElementInfo>>("availableMaterial");
-        static readonly AccessTools.FieldRef<GeothermalVent, MeterController> massMeter =
-            AccessTools.FieldRefAccess<GeothermalVent, MeterController>("massMeter");
-        static readonly AccessTools.FieldRef<GeothermalVent, float> recentMass =
-            AccessTools.FieldRefAccess<GeothermalVent, float>("recentMass");
         static Action<GeothermalVent, ushort, float> onMassEmitted;
         static Action<GeothermalVent> recomputeEmissions;
 
@@ -84,7 +76,7 @@ namespace OniMoono.GameTweaks
             {
                 foreach (GeothermalVent vent in Components.GeothermalVents.GetItems(world))
                 {
-                    int handle = emitter(vent).simHandle;
+                    int handle = vent.emitterInfo.simHandle;
                     if (!Sim.IsValidHandle(handle)) continue;
                     Sim.EmittedMassInfo info = __instance.simData.emittedMassEntries[Sim.GetHandleIndex(handle)];
                     if (info.mass > 0f) onMassEmitted(vent, info.elemIdx, info.mass);
@@ -95,21 +87,21 @@ namespace OniMoono.GameTweaks
         /// U60's GeothermalVent.unsafeSim200ms: U59's without its read of the sim's report.
         static bool UnsafeSim200msPrefix(GeothermalVent __instance)
         {
-            ref EmitterInfo info = ref emitter(__instance);
+            ref EmitterInfo info = ref __instance.emitterInfo;
             if (Sim.IsValidHandle(info.simHandle) && info.dirty)
             {
                 SimMessages.ModifyElementEmitter(info.simHandle, info.cell, 1, ElementLoader.elements[info.element.elementIdx].id, 0.2f, Math.Min(3f, info.element.mass),
                     info.element.temperature, 120f, info.element.diseaseIdx, info.element.diseaseCount);
                 info.dirty = false;
             }
-            massMeter(__instance).SetPositionPercent(__instance.MaterialAvailable() / recentMass(__instance));
+            __instance.massMeter.SetPositionPercent(__instance.MaterialAvailable() / __instance.recentMass);
             return false;
         }
 
         /// U60's GeothermalVent.OnMassEmitted.
         static bool OnMassEmittedPrefix(GeothermalVent __instance, ushort element, float mass)
         {
-            var available = material(__instance);
+            var available = __instance.availableMaterial;
             bool recompute = false;
             for (int i = 0; i < available.Count; i++)
             {
@@ -133,8 +125,8 @@ namespace OniMoono.GameTweaks
         /// U60's GeothermalVent.RecomputeEmissions.
         static bool RecomputeEmissionsPrefix(GeothermalVent __instance)
         {
-            var available = material(__instance);
-            ref EmitterInfo info = ref emitter(__instance);
+            var available = __instance.availableMaterial;
+            ref EmitterInfo info = ref __instance.emitterInfo;
             available.Sort();
             while (available.Count > 0 && available[available.Count - 1].mass <= 0f)
                 available.RemoveAt(available.Count - 1);

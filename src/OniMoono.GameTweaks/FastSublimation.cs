@@ -44,9 +44,6 @@ namespace OniMoono.GameTweaks
         const int BlockedOnPressure = 1; // Sublimates.EmitState
         const int TagsChanged = -1582839653; // GameHashes.TagsChanged, as KPrefabID triggers it
 
-        static readonly AccessTools.FieldRef<Sublimates, PrimaryElement> primaryElement = AccessTools.FieldRefAccess<Sublimates, PrimaryElement>("primaryElement");
-        static readonly AccessTools.FieldRef<Sublimates, float> sublimatedMass = AccessTools.FieldRefAccess<Sublimates, float>("sublimatedMass");
-        static readonly AccessTools.FieldRef<SimTemperatureTransfer, int> simHandle = AccessTools.FieldRefAccess<SimTemperatureTransfer, int>("simHandle");
         static readonly Func<Sublimates, int> emitState = CompileEmitState();
         /// Each watched item's index into `changed` (set when one of its tags changes, its Sealed
         /// tag in particular); indices of cleaned-up items are reused.
@@ -93,7 +90,7 @@ namespace OniMoono.GameTweaks
         {
             var scheduler = SimAndRenderScheduler.instance;
             if (ReferenceEquals(installedFor, scheduler)) return;
-            var table = (IDictionary)AccessTools.Field(typeof(SimAndRenderScheduler), "bucketTable").GetValue(scheduler);
+            var table = (IDictionary)scheduler.bucketTable;
             var entry = table["Sublimates SIM_200ms"];
             if (entry == null) return;
             // A new colony (the game makes a scheduler per game): the previous one's items were
@@ -156,7 +153,7 @@ namespace OniMoono.GameTweaks
         {
             if (Grid.PosToCell(row.Transform.position) != row.Cell) return false;
             var stt = row.Temperature;
-            int handle = simHandle(stt);
+            int handle = stt.simHandle;
             if (!Sim.IsValidHandle(handle)) return false;
             var chunk = Game.Instance.simData.elementChunks[Sim.GetHandleIndex(handle)];
             // The update's own tests: too cold, then room in the cell.
@@ -172,7 +169,7 @@ namespace OniMoono.GameTweaks
             row.Skippable = false;
             row.Item = item;
             if (item == null) return;
-            var pe = primaryElement(item);
+            var pe = item.primaryElement;
             var stt = pe != null ? pe.sttOptimizationHook : null;
             var element = ElementLoader.FindElementByHash(item.info.sublimatedElement);
             // The temperature must come from the sim's chunk through SimTemperatureTransfer.
@@ -201,10 +198,10 @@ namespace OniMoono.GameTweaks
         static void Verify(Sublimates item, float step)
         {
             int state = emitState(item);
-            float accumulated = sublimatedMass(item), mass = primaryElement(item).Mass;
+            float accumulated = item.sublimatedMass, mass = item.primaryElement.Mass;
             item.Sim200ms(step);
             skipped++;
-            if (emitState(item) != state || sublimatedMass(item) != accumulated || primaryElement(item).Mass != mass)
+            if (emitState(item) != state || item.sublimatedMass != accumulated || item.primaryElement.Mass != mass)
                 global::Debug.Log($"{Name}: a skipped update would have changed {item.name} ({++wrong})");
             if (skipped % 100000 == 0) global::Debug.Log($"{Name}: {skipped} updates skipped, {ran} run, {wrong} wrong skips");
         }
