@@ -1384,7 +1384,7 @@ namespace OniMoono.Engine.UI
 
         /// The element's geometry in its canvas's space with its colour applied; rebuilt only
         /// when the geometry, its placement or its colour changed.
-        static MeshNative BuildMesh(CanvasRendererNative r, Matrix4x4 toSpace, Color color)
+        internal static MeshNative BuildMesh(CanvasRendererNative r, Matrix4x4 toSpace, Color color)
         {
             var g = r.Geometry;
             if (r.Baked != null && ReferenceEquals(r.BakedGeometry, g) && r.BakedToSpace.Equals(toSpace) && r.BakedColor.Equals(color))
@@ -1412,6 +1412,9 @@ namespace OniMoono.Engine.UI
                 mesh.Colors = colors;
                 mesh.Give(MeshNative.SlotColors, colors);
             }
+            // The geometry baked before is no longer the element's (SetMesh made another): its
+            // arrays go back to the baked mesh, whose uploads hold them, once it holds the new ones.
+            var released = r.BakedGeometry is { } old && !ReferenceEquals(old, g) && !ReferenceEquals(old, r.CopiedGeometry) ? old : null;
             r.BakedGeometry = g;
             r.BakedToSpace = toSpace;
             r.BakedColor = color;
@@ -1427,6 +1430,7 @@ namespace OniMoono.Engine.UI
             // past the device's recording).
             if (mesh.SubMeshes.Count == 1) mesh.SubMeshes[0].SetIndices(g.Indices);
             else mesh.SubMeshes = new List<SubMeshData> { new SubMeshData(g.Indices) };
+            released?.Release(mesh);
             mesh.RecalculateBounds();
             mesh.Changed();
             return mesh;

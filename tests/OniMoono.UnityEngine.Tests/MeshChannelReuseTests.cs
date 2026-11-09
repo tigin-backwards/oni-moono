@@ -185,15 +185,19 @@ namespace OniMoono.Tests
             Assert.Equal(default, mesh.colors32[13]);
         }
 
-        [Fact]
-        public void ACanvasRendererCopiesOnlyTheMeshsData()
+        /// With or without spares to take arrays from (the element's baked mesh).
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ACanvasRendererCopiesOnlyTheMeshsData(bool spares)
         {
             var mesh = Shrunk(out _);
-            var g = OniMoono.Engine.UI.CanvasGeometry.From(mesh.Data);
+            var g = OniMoono.Engine.UI.CanvasGeometry.From(mesh.Data, spares ? new MeshNative() : null);
             Assert.Equal(12, g.Positions.Length);
             Assert.Equal(12, g.Colors.Length);
             Assert.Equal(12, g.Uvs[0].Length);
             Assert.Equal(18, g.Indices.Length);
+            Assert.Equal(mesh.vertices, g.Positions);
         }
 
         [Fact]

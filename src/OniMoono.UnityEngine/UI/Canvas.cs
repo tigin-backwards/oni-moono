@@ -214,7 +214,13 @@ namespace UnityEngine
                 var native = (MeshNative)mesh.NativeOrThrow;
                 if (d.CopiedGeometry == null || !ReferenceEquals(d.CopiedFrom, native) || d.CopiedVersion != native.Version)
                 {
-                    d.CopiedGeometry = CanvasGeometry.From(native);
+                    var previous = d.CopiedGeometry;
+                    var baked = d.Baked ??= new MeshNative { Dynamic = true };
+                    d.CopiedGeometry = CanvasGeometry.From(native, baked);
+                    // A copy never baked (the element was not drawn since: hidden, culled, or
+                    // set twice in a frame) is in no mesh and no upload: let go of at once. A
+                    // baked one goes when its baked mesh moves on (CanvasSystem.BuildMesh).
+                    if (previous != null && !ReferenceEquals(previous, d.BakedGeometry)) previous.Release(baked, wasBaked: false);
                     d.CopiedFrom = native;
                     d.CopiedVersion = native.Version;
                 }
@@ -711,22 +717,25 @@ namespace OniMoono.Engine.UI
         public Vector4[] Tangents;
         public int[] Indices;
 
-        public static CanvasGeometry From(MeshNative m)
+        /// A copy of the mesh's geometry. Its arrays are its own, taken from `spares` (the
+        /// renderer's baked mesh, whose uploads are the last to read a geometry's arrays) when it
+        /// holds arrays of the length no upload holds any more (MeshNative.NewChannel).
+        public static CanvasGeometry From(MeshNative m, MeshNative spares)
         {
             var g = new CanvasGeometry
             {
                 // The mesh's VertexCount values of each channel (a setter's array can be longer).
-                Positions = m.Exact(m.Positions) ?? Array.Empty<Vector3>(),
-                Colors = m.Exact(m.Colors),
-                Normals = m.Exact(m.Normals),
-                Tangents = m.Exact(m.Tangents),
+                Positions = Copy(m, m.Positions, spares) ?? Array.Empty<Vector3>(),
+                Colors = CopyColors(m, spares),
+                Normals = Copy(m, m.Normals, spares),
+                Tangents = Copy(m, m.Tangents, spares),
             };
-            for (int i = 0; i < 4; i++) g.Uvs[i] = m.Exact(m.Uvs[i]);
+            for (int i = 0; i < 4; i++) g.Uvs[i] = Copy(m, m.Uvs[i], spares);
             // uGUI and TextMeshPro set their meshes on every rebuild: one array, filled in place.
             int count = 0;
             foreach (var s in m.SubMeshes)
                 if (s.Topology == MeshTopology.Triangles) count += s.Indices.Length;
-            var indices = count == 0 ? Array.Empty<int>() : new int[count];
+            var indices = count == 0 ? Array.Empty<int>() : spares != null ? spares.NewChannel<int>(count) : new int[count];
             int at = 0;
             foreach (var s in m.SubMeshes)
             {
@@ -739,6 +748,48 @@ namespace OniMoono.Engine.UI
             }
             g.Indices = indices;
             return g;
+        }
+
+        /// The mesh's colours as Color values. Colours given as bytes (uGUI's) are converted
+        /// straight into the copy, as the mesh's Colors would convert them, without the
+        /// expanded array the mesh would keep.
+        static Color[] CopyColors(MeshNative m, MeshNative spares)
+        {
+            if (m.Colors32 is not { } bytes || m.HasFloatColors) return Copy(m, m.Colors, spares);
+            var copy = spares != null ? spares.NewChannel<Color>(m.VertexCount) : new Color[m.VertexCount];
+            for (int i = 0; i < copy.Length; i++) copy[i] = bytes[i];
+            return copy;
+        }
+
+        /// The channel's VertexCount values in an array of exactly that length, or null.
+        static T[] Copy<T>(MeshNative m, T[] channel, MeshNative spares)
+        {
+            if (channel == null) return null;
+            if (spares == null) return m.Exact(channel);
+            var copy = spares.NewChannel<T>(m.VertexCount);
+            channel.AsSpan(0, m.VertexCount).CopyTo(copy);
+            return copy;
+        }
+
+        /// The geometry is no longer its renderer's, and `baked` (the renderer's baked mesh)
+        /// has moved on to another one: its arrays become the baked mesh's spares, reused once
+        /// every upload posted before now has run (at once when it was never baked, so in no
+        /// upload). The geometry is emptied, so that a stale reader fails rather than read
+        /// arrays given out again.
+        public void Release(MeshNative baked, bool wasBaked = true)
+        {
+            baked.Spare(Positions, wasBaked);
+            baked.Spare(Colors, wasBaked);
+            baked.Spare(Normals, wasBaked);
+            baked.Spare(Tangents, wasBaked);
+            for (int i = 0; i < 4; i++) baked.Spare(Uvs[i], wasBaked);
+            baked.Spare(Indices, wasBaked);
+            Positions = null;
+            Colors = null;
+            Normals = null;
+            Tangents = null;
+            Array.Clear(Uvs);
+            Indices = null;
         }
 
         int transparent; // 0 not yet known, 1 transparent, 2 not
