@@ -37,6 +37,8 @@
 # player killed in a GPU wait on WSL was followed by a kernel soft lockup), and with SIGKILL only
 # when it still runs E2E_QUIT_GRACE seconds (default 10) later. A stage's `timeout` runs inside
 # its xvfb-run, so that it signals the player, not the wrapper that stops the X server.
+# SC2329: the stages and their helpers run by name ("stage_$s").
+# shellcheck disable=SC2329
 set -uo pipefail
 source "$(dirname "$0")/env.sh"
 # Its builds, players and tests run in the memory-capped test slice (scripts/contain.sh).
@@ -70,6 +72,7 @@ fi
 [ ${#stages[@]} -eq 0 ] && stages=(unit dogfood verify perf)
 qa="$root/out/qa"; ref="$qa/reference"; run="$qa/run-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$run" "$ref"
+# shellcheck source=/dev/null  # local and optional
 [ -f "$root/out/local-tools/qa.env" ] && source "$root/out/local-tools/qa.env"
 tools="$root/scripts/qa-tools.py"
 failures=0
@@ -119,7 +122,7 @@ trap 'exit 143' TERM; trap 'exit 130' INT; trap 'exit 129' HUP
 built=0
 build_release()
 {
-    [ $built -eq 1 ] && return 0
+    [ "$built" -eq 1 ] && return 0
     if "$root/scripts/build-engine.sh" release > "$run/build-release.txt" 2>&1 \
        && "$root/scripts/build-packages.sh" >> "$run/build-release.txt" 2>&1 \
        && dotnet build "$root/src/OniMoono.Host" -c Release -v q -nologo >> "$run/build-release.txt" 2>&1 \
@@ -135,7 +138,7 @@ stage_unit()
     local log="$run/unit.txt"
     build_release || return
     "$root/scripts/check.sh" > "$log" 2>&1; local status=$?
-    [ $status -eq 0 ] || fail "unit: scripts/check.sh exited $status (see $log)"
+    [ "$status" -eq 0 ] || fail "unit: scripts/check.sh exited $status (see $log)"
     grep -E 'Total: [0-9]+, Errors: [0-9]+, Failed: [0-9]+' "$log" | sed 's/\x1b\[[0-9;]*m//g' | while read -r line; do echo "     $line"; done
     if grep -qE 'Errors: [1-9]|Failed: [1-9]' "$log"; then fail "unit: test failures (see $log)"; else ok "unit: tests"; fi
     if grep -qE '^[1-9][0-9]* failures|unresolved scripts [1-9]|missing types: [1-9]|^FAIL' "$log"; then fail "unit: host checks (see $log)"; else ok "unit: host checks"; fi
@@ -161,6 +164,7 @@ run_scenario() # NAME
     # not have a line matching the extended regex (game state a capture comparison may miss).
     SAVE=""; FRAMES=0; DUMPS=""; ARGS=(); TOLERANCE=0.03; DLC=0; KEPT_MAX=1; REQUIRE=(); MOVING=""
     DUMP_MATCH=(); DUMP_ABSENT=()
+    # shellcheck source=/dev/null  # a scenario file (scripts/qa-scenarios, scripts/m9-scenarios)
     source "$file"
     # DLC=1: the scenario needs the DLC content and a DLC-owning Steam double (qa.env).
     local gamedir="$game" runner=("$root/scripts/run-offline.sh")
@@ -193,8 +197,8 @@ run_scenario() # NAME
     # The game's own log (Debug.Log, exceptions) goes to stdout with the engine's.
     { echo "exit $status"; python3 "$tools" signatures "$out/stdout.txt" "$out/errors.txt"; } > "$out/signatures.txt"
     local rdir="$ref/dogfood/$name"
-    if [ $bless -eq 1 ]; then
-        [ $status -eq 0 ] || { fail "dogfood $name: the player exited $status; not blessed"; return; }
+    if [ "$bless" -eq 1 ]; then
+        [ "$status" -eq 0 ] || { fail "dogfood $name: the player exited $status; not blessed"; return; }
         local f; for f in $DUMPS; do [ -f "$out/f$f.png" ] || { fail "dogfood $name: no capture f$f; not blessed"; return; }; done
         rm -rf "$rdir"; mkdir -p "$rdir"; cp "$out/signatures.txt" "$rdir/"
         for f in $DUMPS; do cp "$out/f$f.png" "$rdir/"; done
@@ -249,15 +253,15 @@ quiet_begin() # STAGE
     echo $$ > "$quiet_lockdir/perf.wanted"
     exec {quiet_fd}>>"$quiet_lockdir/perf.lock"
     note "$1: waiting for running e2e specs to finish (scripts/e2e.py --status shows them)"
-    flock -x "$quiet_fd" & quiet_flock=$!; wait $quiet_flock; quiet_flock=""
+    flock -x "$quiet_fd" & quiet_flock=$!; wait "$quiet_flock"; quiet_flock=""
     # The lock keeps players out, not other work (another project's build or verifier on many
     # cores skewed a perf run by 13%): wait, at most QA_QUIET_MAX_MIN minutes, until under
     # QA_QUIET_CORES cores' worth of CPU is busy.
     local busy waited=0 max=$(( ${QA_QUIET_MAX_MIN:-30} * 60 ))
     while busy=$(cores_busy); win=$(windows_game); [ -n "$win" ] || awk -v b="$busy" -v m="${QA_QUIET_CORES:-2}" 'BEGIN { exit !(b > m) }'; do
-        [ $waited -eq 0 ] && [ -n "$win" ] && note "$1: waiting while a game runs on Windows ($win), whose load WSL can't see"
-        [ $waited -eq 0 ] && note "$1: waiting for the machine to go quiet ($busy cores busy; most: $(ps -eo pid=,pcpu=,comm= --sort=-pcpu | head -3 | xargs -L1 echo | paste -sd';' -))"
-        if [ $waited -ge $max ]; then note "$1: still $busy cores busy after ${QA_QUIET_MAX_MIN:-30} min; measuring anyway"; break; fi
+        [ "$waited" -eq 0 ] && [ -n "$win" ] && note "$1: waiting while a game runs on Windows ($win), whose load WSL can't see"
+        [ "$waited" -eq 0 ] && note "$1: waiting for the machine to go quiet ($busy cores busy; most: $(ps -eo pid=,pcpu=,comm= --sort=-pcpu | head -3 | xargs -L1 echo | paste -sd';' -))"
+        if [ "$waited" -ge "$max" ]; then note "$1: still $busy cores busy after ${QA_QUIET_MAX_MIN:-30} min; measuring anyway"; break; fi
         sleep 15; waited=$((waited + 20))
     done
 }
@@ -306,6 +310,7 @@ u57_run()
     no_data_collection "$d"
     cp -r "$root/out/bin/PerfProbe/release" "$d/mods/Local/PerfProbe"
     # U57_OVERLAYS: PerfProbe opens these overlays in turn, 300 frames each (its overlays.txt).
+    # shellcheck disable=SC2086  # U57_OVERLAYS is a space-separated list, split on purpose
     [ -n "${U57_OVERLAYS:-}" ] && { echo 'hold 300'; printf '%s\n' $U57_OVERLAYS; } > "$d/mods/Local/PerfProbe/overlays.txt"
     # U57_SCREENS: then PerfProbe opens and closes these management screens in turn (its screens.txt).
     [ -n "${U57_SCREENS:-}" ] && { echo 'wait overlays'; for s in $U57_SCREENS; do printf 'open %s\nclose\n' "$s"; done; echo 'hold 600 after-screens'; } > "$d/mods/Local/PerfProbe/screens.txt"
@@ -319,22 +324,22 @@ u57_run()
     if [ -n "${U57_MEMWATCH:-}" ]; then
         python3 "$tools" memwatch "$out" "$home" "$pid" > "$out/memory.txt" 2>&1 &
         wait $!
-        wait $pid; echo $? > "$out/exit"
+        wait "$pid"; echo $? > "$out/exit"
         return
     fi
-    while kill -0 $pid 2>/dev/null; do
+    while kill -0 "$pid" 2>/dev/null; do
         # The hang watchdog: a PERF line at least every QA_HANG_MIN minutes, the load before the
         # first one included (see the header).
         n=$(grep -ac '\] PERF f' "$out/stdout.txt" 2>/dev/null); n=${n:-0}
         [ "$n" -gt "$perfs" ] && { perfs=$n; progress=$SECONDS; }
         for p in $(pgrep -x OniMoono); do
-            grep -qa "$home" /proc/$p/environ 2>/dev/null || continue
-            rss=$(awk '/VmRSS/ {print $2}' /proc/$p/status 2>/dev/null); rss=${rss:-0}
+            grep -qa "$home" "/proc/$p/environ" 2>/dev/null || continue
+            rss=$(awk '/VmRSS/ {print $2}' "/proc/$p/status" 2>/dev/null); rss=${rss:-0}
             [ "$rss" -gt "$peak" ] && peak=$rss
             echo "$(date +%s) $rss" >> "$out/rss.txt"
             # A runaway run is killed outright before it takes the machine down.
-            [ "$rss" -gt $((24 * 1024 * 1024)) ] && kill -KILL $p
-            if [ $((SECONDS - progress)) -ge $hang ] && [ ! -d "$out/hang" ]; then
+            [ "$rss" -gt $((24 * 1024 * 1024)) ] && kill -KILL "$p"
+            if [ $((SECONDS - progress)) -ge "$hang" ] && [ ! -d "$out/hang" ]; then
                 echo "$(date '+%F %T') hang watchdog: no PERF line for ${QA_HANG_MIN:-5} min (after $perfs); diagnostics, then stop" >> "$out/stdout.txt"
                 "$root/scripts/hang-dump.sh" "$p" "$out/hang" "$out/stdout.txt" > /dev/null 2>&1
                 quit_player "$p"
@@ -342,8 +347,8 @@ u57_run()
         done
         sleep 5
     done
-    wait $pid; echo $? > "$out/exit"
-    echo $peak > "$out/peak-rss"
+    wait "$pid"; echo $? > "$out/exit"
+    echo "$peak" > "$out/peak-rss"
 }
 
 # u57_check STAGE OUT: the run ended normally, and logged no exception or error the reference for
@@ -356,7 +361,7 @@ u57_check()
         sed 's/^/       /' "$out/hang/summary.txt" | tee -a "$run/summary.txt"
     elif [ "$status" != 0 ]; then fail "$stage: the player exited $status"; fi
     python3 "$tools" signatures "$out/stdout.txt" "$out/errors.txt" > "$out/signatures.txt"
-    if [ $bless -eq 1 ]; then
+    if [ "$bless" -eq 1 ]; then
         [ "$status" = 0 ] || return # a failed run is not a reference
         cp "$out/signatures.txt" "$ref/$stage-signatures.txt"; ok "$stage: $(wc -l < "$out/signatures.txt") log signatures blessed"; return
     fi
@@ -378,7 +383,7 @@ stage_verify()
     [ -d "$out/hang" ] && return # a hung run has nothing more to check
     local report; report=$(python3 "$tools" verify "$out/stdout.txt"); local status=$?
     echo "$report" | sed 's/^/     /' | tee -a "$run/summary.txt"
-    [ $status -eq 0 ] || fail "verify: a verify mode reported mismatches"
+    [ "$status" -eq 0 ] || fail "verify: a verify mode reported mismatches"
     local tweak
     for tweak in fast-anim-events fast-anim-batches fast-sublimation fast-jobs fast-particle-collision fast-offset-tables fast-anim-cleanup fast-partitioner-cleanup fast-overlays fast-conveyor-paths fast-overlay-textures fast-smi-lookups path-probe-repair instant-reachability "nav links verify (in play)" "path grids verify" "canvas skips" "raycast cache" "cull cache" fetch-by-cell "canvas cull" "mesh reuse" "property sheets" "pass states" "canvas products" "component layouts" "texel copies" "partial uploads" "parallel draws"; do
         echo "$report" | grep -q "$tweak:" || fail "verify: no report from $tweak"
@@ -420,7 +425,7 @@ stage_perf()
     local kept; kept=$(grep -aoE '[0-9]+ kept' "$out/stdout.txt" | tail -1 | cut -d' ' -f1)
     if [ "${kept:-0}" -le 1 ]; then ok "perf: multi-target framebuffers kept ${kept:-0}"; else fail "perf: $kept multi-target framebuffers kept"; fi
     awk -v f="${fps:-0}" 'BEGIN { exit !(f > 0) }' || { fail "perf: no frame rate measured"; return; }
-    if [ $bless -eq 1 ]; then
+    if [ "$bless" -eq 1 ]; then
         [ "$status" = 0 ] && [ "$peak" -lt $((16 * 1024 * 1024)) ] || { fail "perf: a failed run is not a baseline"; return; }
         echo "$fps" > "$ref/perf-baseline"; ok "perf: $fps fps blessed as the baseline"; return
     fi

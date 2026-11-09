@@ -74,7 +74,7 @@ case $main_state in
 esac
 {
     echo "hang-dump of $pid at $(date '+%F %T'): the main thread is $verdict"
-    echo "taken: $(cd "$dir" && ls | grep -v '^summary.txt$' | paste -sd' ' -)"
+    echo "taken: $(cd "$dir" && ls -I summary.txt | paste -sd' ' -)"
     for n in "${notes[@]}"; do echo "note: $n"; done
 } > "$dir/summary.txt"
 cat "$dir/summary.txt"

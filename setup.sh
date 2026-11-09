@@ -54,7 +54,8 @@ else
         rm -f "$installer"
         dotnet="$HOME/.dotnet/dotnet"
     fi
-    export DOTNET_ROOT="$(dirname "$dotnet")" DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+    DOTNET_ROOT="$(dirname "$dotnet")"
+    export DOTNET_ROOT DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 
     say "Building the player (a few minutes the first time)..."
     # Self-contained: it carries its own .NET runtime, so it runs where Steam starts it (a snap's

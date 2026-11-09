@@ -9,6 +9,8 @@
 # checks the crash window: no case leaves one open (a run with --run-home shows none), and its
 # drawing (--crash-dialog-render, nothing shown), zip and issue link are checked offscreen.
 #   scripts/check-native-crash.sh [linux|windows|both]
+# SC2015: `TEST && pass || fail` is an if/else here, as pass always succeeds.
+# shellcheck disable=SC2015
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 [ -n "${ONI_CONTAINED:-}" ] || exec "$root/scripts/contain.sh" "$0" "$@"
@@ -71,7 +73,7 @@ if [ "$which" != windows ]; then
     # No core file, and the shell's "Segmentation fault" kept off the output.
     status=$( (ulimit -c 0; DOTNET_DbgEnableMiniDump=1 DOTNET_DbgMiniDumpType=1 DOTNET_EnableCrashReport=1 DOTNET_DbgMiniDumpName="$tmp/crash-%p.dmp" \
         "$player" --game "$game" --log "$tmp/main.log" --test-native-crash main > "$tmp/main.out" 2>&1; echo $?) 2> /dev/null)
-    [ $status -eq 139 ] && pass "linux main: SIGSEGV" || fail "linux main: exit $status"
+    [ "$status" -eq 139 ] && pass "linux main: SIGSEGV" || fail "linux main: exit $status"
     expect "linux main: hook ran" "$tmp/main.log" 'test native crash: main$'
     report=$(ls "$tmp"/crash-*.dmp.crashreport.json 2>/dev/null | head -1)
     if [ -n "$report" ] && grep -q 'libc' "$report"; then pass "linux main: crash report names libc ($(du -k "$(ls "$tmp"/crash-*.dmp | head -1)" | cut -f1) KB dump)"
@@ -180,7 +182,9 @@ if [ "$which" != linux ]; then
         # run CASE [redirect]: one player, in its own run home; with redirect, its standard error
         # to a file (as a terminal's 2> does), else no standard streams (as Steam starts it).
         run() {
+            # shellcheck disable=SC2016  # PowerShell's $true, written literally
             local home="$wstage\\${name:-$1${2:+-$2}${extra:+-full}}" shell='$true' redirect=''
+            # shellcheck disable=SC2016  # PowerShell's $false and $psi, written literally
             [ -n "${2:-}" ] && { shell='$false'; redirect="\$psi.RedirectStandardError = \$true;"; }
             (cd /mnt/c && timeout 300 powershell.exe -NoProfile -Command "
                 \$psi = New-Object System.Diagnostics.ProcessStartInfo
@@ -210,6 +214,7 @@ if [ "$which" != linux ]; then
                 [ "$code" = "$2" ] && pass "windows $1: dump exception $code ($(du -k "$dump" | cut -f1) KB)" || fail "windows $1: dump exception $code, not $2"
             else fail "windows $1: no dump"; fi
         }
+        # shellcheck disable=SC1003,SC2001  # backslashes in a regex, not quote escapes; sed escapes each one
         run main && { crashed main 0xC0000005 ' \(main\)'; expect "windows main: runtime text" "$log" 'native crash: runtime:    at OniMoono.Host.NativeCrashes.Fault'
             expect "windows main: paths hidden" "$log" 'in OniMoono.exe\+0x[0-9A-F]+ \([0-9.]+, %USERPROFILE%\\'
             refuse "windows main: no profile path" "$log" "$(sed 's/[\\.]/\\&/g' <<< "$profile")"; }
