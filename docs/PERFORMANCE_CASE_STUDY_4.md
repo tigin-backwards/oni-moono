@@ -116,9 +116,25 @@ mesh bounds or bounds overrides change. On this colony with Fast Track's mesh re
 
 `ONI_VERIFY_CULL_CACHE` checked 80 million kept bounds against fresh ones, none different.
 
+**Canvas renderers honour `cullTransparentMesh`.** Unity skips a canvas element whose vertex
+alphas are all below 0.001 when its renderer's flag is set, and the flag is on for renderers made
+at run time. Moono ignored the flag and defaulted it to off, so Pipe Flow Overlay's hidden icons
+were batched and drawn every frame. They are now skipped as in Unity, and still numbered and
+hit by raycasts:
+
+| | Before | After |
+|---|---|---|
+| World-space canvas draws | 1.52 ms | 0.03 ms |
+| Canvas build | 2.02 ms | 1.71 ms |
+| Frame rate (Linux) | about 66 fps | about 84 fps |
+| A late-game vanilla colony, frame rate | 46.8 fps | 47.0 fps |
+
+`ONI_VERIFY_CANVAS_CULL` checked 39 million elements on this colony, none wrong.
+
 ## What's left
 
-- **Pipe Flow Overlay's hidden icons**, about 4 ms a frame of canvas walk and draws.
+- **Pipe Flow Overlay's icons in the canvas walk**, about 1.7 ms a frame: hidden icons are no
+  longer drawn, but the walk still numbers them, as Unity does.
 - **Mods' patch overhead in `Game.Update`**: 12 patches on `Game.Update` alone, and 6.9 ms of the
   frame has a patched method somewhere on the stack.
 - **Collections:** with mods the heap holds 15.6 GiB against 8.8, and a gen1 collection of
