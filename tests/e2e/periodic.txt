@@ -21,6 +21,7 @@ issue-48-pipes                      # 71+59: fixture step
 issue-48-stack2                     # 41+47: fixture step
 issue-45-space-tree-branch          # 49+38: a load crash
 issue-54-debug-element-filter       # 63+43: sandbox-search covers the same fields
+issue-69-care-package-load          # -: a save with an unopened care package loads (#69)
 stray-plugin-folder                 # 41+45 (#49)
 pipe-flow                           # - (Pipe Flow Overlay gated): U60's conduit shader
 

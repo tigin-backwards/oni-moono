@@ -114,6 +114,8 @@
     <Compile Include="../../src/OniMoono.Host/SharedGenericsOrderCheck.cs" Link="Host/SharedGenericsOrderCheck.cs" />
     <!-- Delegates through the game's Newtonsoft.Json as Mono serializes them (MonoDelegateSerializationTests). -->
     <Compile Include="../../src/OniMoono.Host/MonoDelegateSerialization.cs" Link="Host/MonoDelegateSerialization.cs" />
+    <!-- Delegates FormatterServices makes without a method, as Mono's does (MonoUninitializedObjectsTests). -->
+    <Compile Include="../../src/OniMoono.Host/MonoUninitializedObjects.cs" Link="Host/MonoUninitializedObjects.cs" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>$(OniGameDir)/OxygenNotIncluded_Data/Managed/Newtonsoft.Json.dll</HintPath>
     </Reference>

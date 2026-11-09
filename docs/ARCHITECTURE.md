@@ -1611,6 +1611,20 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   `OnPrefabInit`, then a NullReferenceException from `ManagementMenu.OnSpawn`
   (`SetNotificationDisplay`), and open the crash reporter. **Kept:** no rewrite, since one
   storing the null target would make ours differ from the original.
+- **D63 Uninitialized delegates.** Read in Mono's `formatterservices.cs` (referencesource) and
+  `metadata/icall.c` (Unity's fork, branch `unity-6000.3-mbe`): FormatterServices'
+  `GetUninitializedObject` and `GetSafeUninitializedObject` call
+  `ActivationServices.AllocateUninitializedClassInstance`, which refuses only interfaces and
+  abstract classes, so a delegate type gives a delegate with no method; invoking it throws
+  NullReferenceException. CoreCLR's (`RuntimeHelpers.GetUninitializedObject`) refuses delegate
+  types with ArgumentException "Type is not supported.". The game's serializer makes a field's
+  object so when its type has no parameterless constructor
+  (`KSerialization.DeserializationMapping.ReadValue`), and a care package saved before it opens
+  holds a `CarePackageInfo` whose public `requirement` is a `Func<bool>`: the load stopped there,
+  and the half-loaded world then read the grid before it was made, an access violation in
+  `DecorProvider.AddDecor` (issue #69). **Kept:** a prefix of both methods answers a concrete
+  delegate type with a new delegate of it over a stub that throws NullReferenceException. Unlike
+  Mono's, its `Method` is that stub, not null.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.
