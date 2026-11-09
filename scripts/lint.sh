@@ -27,6 +27,16 @@ run() {
 }
 skip() { echo "lint $1 skipped: no $2 (scripts/fetch-lint-tools.sh)"; }
 
+# C# whitespace (.editorconfig): indentation, line ends, final newlines, trailing whitespace,
+# spacing; not in out/ or .claude/ (worktrees). src/ThirdParty keeps the form it comes in, and
+# generated sources are skipped.
+if dotnet --version > /dev/null 2>&1; then
+    [ $fix -eq 0 ] || dotnet format whitespace --folder --exclude src/ThirdParty out .claude -v q
+    run format dotnet format whitespace --folder --exclude src/ThirdParty out .claude --verify-no-changes -v q
+else
+    echo "lint format skipped: no .NET SDK for global.json ($(dotnet --version 2>&1 | head -1))"
+fi
+
 mapfile -t shell_files < <(git ls-files '*.sh')
 if [ -x "$shellcheck_bin" ]; then
     run shellcheck "$shellcheck_bin" -f gcc "${shell_files[@]}"
