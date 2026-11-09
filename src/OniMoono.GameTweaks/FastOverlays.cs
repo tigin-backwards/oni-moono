@@ -87,7 +87,7 @@ namespace OniMoono.GameTweaks
             infraredPatched = new System.Reflection.MethodBase[] { dispatch };
             harmony.Patch(infrared, prefix: new HarmonyMethod(typeof(FastOverlays), nameof(InfraredBegin)));
             // Visualizers subscribe with this delegate as they are made, after the tweaks install.
-            AccessTools.Field(typeof(TemperatureOverlayInfraredVisualizerBase), "OverlayInfraredUpdateDispatcher").SetValue(null, (Action<object, object>)InfraredDispatch);
+            TemperatureOverlayInfraredVisualizerBase.OverlayInfraredUpdateDispatcher = InfraredDispatch;
             addTarget = AccessTools.Method(typeof(OverlayModes.Mode), "AddTargetIfVisible");
             removeOffscreen = AccessTools.GetDeclaredMethods(typeof(OverlayModes.Mode)).First(m => m.Name == "RemoveOffscreenTargets" && m.GetParameters().Length == 4);
             highlight = AccessTools.Method(typeof(OverlayModes.Mode), "UpdateHighlightTypeOverlay");
@@ -117,8 +117,6 @@ namespace OniMoono.GameTweaks
         static bool targetsForeign;
         static int targetChecks;
         static long targetsKept, targetsChecked, targetsWrong;
-        static readonly AccessTools.FieldRef<OverlayModes.TileMode, HashSet<PrimaryElement>> tileTargets =
-            AccessTools.FieldRefAccess<OverlayModes.TileMode, HashSet<PrimaryElement>>("layerTargets");
 
         /// The modes' calls to Mode.AddTargetIfVisible, RemoveOffscreenTargets (the overload for
         /// components) and UpdateHighlightTypeOverlay go through the tweak's, same arguments.
@@ -338,7 +336,7 @@ namespace OniMoono.GameTweaks
         /// AddTargetIfVisible; an object already shown is left there either way.
         static bool TileTarget(OverlayModes.TileMode __instance, PrimaryElement pe, bool __runOriginal)
         {
-            if (!__runOriginal || verify || targetsForeign || (object)pe == null || !tileTargets(__instance).Contains(pe)) return __runOriginal;
+            if (!__runOriginal || verify || targetsForeign || (object)pe == null || !__instance.layerTargets.Contains(pe)) return __runOriginal;
             targetsKept++;
             return false;
         }
