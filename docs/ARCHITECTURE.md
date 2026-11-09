@@ -1849,6 +1849,21 @@ renderer, restricted to what the game uses (*usage §1*):
     say how much is the mesh's, every reader goes by them, and the getters copy exactly that
     many. `ONI_VERIFY_MESH_REUSE=1` checksums each upload's data when it is recorded and again on
     the GL thread before it is copied.
+  - A canvas renderer's copy of its mesh (`SetMesh`) is the renderer's; its UV, normal,
+    tangent and index arrays are also its baked mesh's channels. The copy is let go of when the
+    baked mesh moves on to a newer one, and at once when it was never baked (so in no upload);
+    never the copy the renderer still has, which a later `SetMesh` of the same mesh unchanged
+    takes again. Its arrays become the baked mesh's spares, handed to a later copy of the same
+    length once every upload of the baked mesh posted by then has run, and the copy is emptied,
+    so a stale reader fails rather than read reused arrays.
+  - A merged canvas batch (a run of draws of the same state, a nested canvas's shared mesh)
+    writes into arrays of its mesh's own, from its spares: every value up to the counts is
+    written, zeros where a part lacks a UV set the others have.
+    `ONI_VERIFY_MESH_REUSE=1` covers both: the uploads' checksums, and the NaN fill of the
+    merged mesh's reused arrays.
+  - Instantiate's clone map and the lifecycle walks' lists (activation, destruction) are kept
+    for the next call; a call started from a callback of another (Awake, OnEnable,
+    OnAfterDeserialize) takes its own.
   - Upload records (mesh and texture), immediate draws' vertex data and the arena's other
     command data belong to the frame they were recorded in and are reused once the GL thread
     has run it; a record carries a generation its command checks.
