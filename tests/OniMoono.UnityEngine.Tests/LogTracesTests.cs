@@ -146,8 +146,13 @@ namespace OniMoono.Tests
             Assert.True(at >= 0, text);
             Assert.Matches(@"^  at LogTraceSubjects\.Thrower\.Throw \(\) \[0x[0-9a-f]{5}\] in .+:\d+ $", lines[at + 1]);
             Assert.Matches(@"^  at LogTraceSubjects\.Thrower\.Thrown \(\) \[0x[0-9a-f]{5}\] in .+:\d+ $", lines[at + 2]);
-            Assert.Equal("UnityEngine.Debug:LogException(Exception)", lines[at + 3]);
-            Assert.Equal("LogTraceSubjects.Thrower:Report(Exception)", lines[at + 4]);
+            // Unity's frames of the call, as the original's log has them.
+            Assert.Equal("UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)", lines[at + 3]);
+            Assert.Equal("UnityEngine.DebugLogHandler:Internal_LogException(Exception, Object)", lines[at + 4]);
+            Assert.Equal("UnityEngine.DebugLogHandler:LogException(Exception, Object)", lines[at + 5]);
+            Assert.Equal("UnityEngine.Logger:LogException(Exception, Object)", lines[at + 6]);
+            Assert.Equal("UnityEngine.Debug:LogException(Exception)", lines[at + 7]);
+            Assert.Equal("LogTraceSubjects.Thrower:Report(Exception)", lines[at + 8]);
             // The engine's frames (this test's, too) are left out; the trace ends with an empty line.
             Assert.DoesNotContain(lines.Skip(at).TakeWhile(l => l != ""), l => l.StartsWith("OniMoono") || l.StartsWith("  at OniMoono"));
             Assert.Contains("", lines.Skip(at));
@@ -208,7 +213,7 @@ namespace OniMoono.Tests
             int at = Array.IndexOf(lines, "MissingMethodException: Method not found: void .SimMessages.SetCellProperties(int,byte)");
             Assert.True(at >= 0, text);
             Assert.Matches(@"^  at LogTraceSubjects\.Thrower\.FromHidden \(\) \[0x[0-9a-f]{5}\] in .+:\d+ $", lines[at + 1]);
-            Assert.Equal("UnityEngine.Debug:LogException(Exception)", lines[at + 2]);
+            Assert.Equal("UnityEngine.DebugLogHandler:Internal_LogException_Injected(Exception, IntPtr)", lines[at + 2]);
             var (_, stack, _) = Assert.Single(got);
             Assert.StartsWith("LogTraceSubjects.Thrower.FromHidden () (at ", stack);
         }

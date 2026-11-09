@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using UnityEngine;
@@ -285,7 +286,7 @@ namespace OniMoono.Engine
 
         /// The managed stack of the caller in Unity's format ("Type:Method(ArgTypes)" per line), the
         /// engine's frames included, with their source lines. For engine diagnostics.
-        public static string CaptureStackTrace() => LogTraces.Calls(new StackTrace(1, true), engineFrames: true);
+        public static string CaptureStackTrace() => LogTraces.Calls(new StackTrace(1, true));
     }
 }
 
@@ -359,8 +360,11 @@ namespace OniMoono.Engine.Logging
             if (IsLogTypeAllowed(logType)) logHandler.LogFormat(logType, context, format, args);
         }
 
+        // Not inlined: LogTraces reads their frames.
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void LogException(Exception exception) => LogException(exception, null);
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void LogException(Exception exception, UnityEngine.Object context)
         {
             if (logEnabled) logHandler.LogException(exception, context);
@@ -379,6 +383,7 @@ namespace OniMoono.Engine.Logging
             EngineLog.Message(logType, message, "");
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)] // its caller's frame is the trace's first
         public void LogException(Exception exception, UnityEngine.Object context)
         {
             if (exception == null) throw new ArgumentNullException(nameof(exception));

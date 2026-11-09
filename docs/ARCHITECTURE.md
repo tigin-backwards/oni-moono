@@ -2641,7 +2641,13 @@ stack trace, and its callbacks get an empty one, although `Application.GetStackT
 reports ScriptOnly for each type. An exception gets its own frames, innermost exception first, in
 Mono's format (`  at A.B (System.String s) [0x0001f] in <mvid>:0`), then the managed frames of the
 `LogException` call in Unity's (`A:B(String)`), the engine's frames left out where the original's
-are native (`Engine/LogTraces.cs`). Unlike Unity's, the file is capped at about 60 MB (D36).
+are native (`Engine/LogTraces.cs`). The call's frames are the original's: Unity's logging frames
+(`DebugLogHandler`, the handler's, `Logger:LogException`), and for an exception the player caught
+(from Update or a coroutine) `Debug:CallOverridenDebugHandler` when the game replaced the handler,
+none with the default one. A coroutine step's exception ends at Unity's stepper
+(`UnityEngine.SetupCoroutine.InvokeMoveNext`), and a first step's has StartCoroutine's frames and
+its callers after it. The callbacks get the same frames without each UnityEngine frame called by
+another (UnityProbe's cotraces scenario). Unlike Unity's, the file is capped at about 60 MB (D36).
 
 Personal paths (`--log-paths hidden`, the default; `LogScrubber`): what goes to Player.log and to
 stdout has the profile folder replaced by `%USERPROFILE%` (Windows, any case and slash) or `~`,

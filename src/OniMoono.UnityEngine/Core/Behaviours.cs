@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using OniMoono.Engine;
 
@@ -47,6 +48,8 @@ namespace UnityEngine
         }
         public bool didStart => BehaviourNative.StartCalled;
 
+        // The StartCoroutine overloads are not inlined: their frames are in logged traces (LogTraces).
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public Coroutine StartCoroutine(IEnumerator routine)
         {
             Threads.AssertMainThread("StartCoroutine");
@@ -73,11 +76,18 @@ namespace UnityEngine
 
         public bool IsInvoking(string methodName) => DelayedCalls.IsPending(this, methodName);
 
-        public Coroutine StartCoroutine(string methodName) => StartCoroutine(methodName, null, false);
-        public Coroutine StartCoroutine(string methodName, object value) => StartCoroutine(methodName, value, true);
+        // StartCoroutine(string) passes this for its value: no value, unlike a null one.
+        static readonly object NoValue = new();
 
-        Coroutine StartCoroutine(string methodName, object value, bool hasValue)
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public Coroutine StartCoroutine(string methodName) => StartCoroutine(methodName, NoValue);
+
+        // As Unity's, StartCoroutine(string) calls this one (the logged traces show both).
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public Coroutine StartCoroutine(string methodName, object value)
         {
+            bool hasValue = !ReferenceEquals(value, NoValue);
+            if (!hasValue) value = null;
             Threads.AssertMainThread("StartCoroutine");
             if (string.IsNullOrEmpty(methodName)) throw new NullReferenceException("methodName is null or empty");
             var method = ScriptInfo.FindByName(GetType(), methodName, value, hasValue);

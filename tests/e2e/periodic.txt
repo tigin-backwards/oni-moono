@@ -59,5 +59,6 @@ side-button-11                      # 35+27: U60 QA I1 played on U59
 # vram-probe                        # 466 (failed in the original): PROBE_SCENARIO=vram
 # probe-uiztest                     # 41+38: PROBE_SCENARIO=uiztest
 # probe-apigaps                     # 42+38: PROBE_SCENARIO=apigaps
+# probe-cotraces                    # 60+50: PROBE_SCENARIO=cotraces, Gone/v2 (tools/UnityProbe/ct-check.py)
 # probe-texfallback                 # 41+40: PROBE_SCENARIO=texfallback, patched installs
 # load-screen-many-saves            # 600+150: E2E_CLOUD_SAVES with a synthetic saves tree

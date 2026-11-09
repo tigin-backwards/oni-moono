@@ -329,6 +329,11 @@ namespace SemanticsProbe
                 go.AddComponent<Logging>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "cotraces")
+            {
+                go.AddComponent<CoroutineTraces>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "logthreads")
             {
                 go.AddComponent<LogThreads>();

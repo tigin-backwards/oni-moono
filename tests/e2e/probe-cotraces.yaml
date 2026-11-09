@@ -1,0 +1,7 @@
+# UnityProbe's coroutine traces probe (tools/UnityProbe/CoroutineTraces.cs): what the log
+# callbacks get for an exception left uncaught in a coroutine. Run with E2E_ONIMCP at a copy of
+# OniMcp's mod folder with SemanticsProbe.dll and Gone/v2's ProbeGone.dll added and
+# PROBE_SCENARIO=cotraces (tools/UnityProbe/README.md, "cotraces").
+from: main-menu
+steps:
+  - ui_wait: {path: "**/CoroutineTracesProbeDone", cond: exists, frames: 40000}
