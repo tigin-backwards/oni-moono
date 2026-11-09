@@ -91,11 +91,6 @@ namespace OniMoono.GameTweaks
         /// Objects verified a frame (ONI_REACH_VERIFY_SLICE, default 4,000).
         static readonly int verifySlice = int.TryParse(Environment.GetEnvironmentVariable("ONI_REACH_VERIFY_SLICE"), out var s) && s > 0 ? s : 4000;
 
-        static readonly AccessTools.FieldRef<Workable, OffsetTracker> offsetTracker = AccessTools.FieldRefAccess<Workable, OffsetTracker>("offsetTracker");
-        static readonly AccessTools.FieldRef<OffsetTracker, CellOffset[]> trackerOffsets = AccessTools.FieldRefAccess<OffsetTracker, CellOffset[]>("offsets");
-        static readonly AccessTools.FieldRef<OffsetTableTracker, CellOffset[][]> trackerTable = AccessTools.FieldRefAccess<OffsetTableTracker, CellOffset[][]>("table");
-        static readonly AccessTools.FieldRef<OffsetTableTracker, KMonoBehaviour> tableOwner = AccessTools.FieldRefAccess<OffsetTableTracker, KMonoBehaviour>("cmp");
-        static readonly AccessTools.FieldRef<MinionGroupProber, int[]> proberCells = AccessTools.FieldRefAccess<MinionGroupProber, int[]>("cells");
 
         sealed class Entry : IRosterItem
         {
@@ -275,7 +270,7 @@ namespace OniMoono.GameTweaks
         static bool OccupyList(MinionGroupProber __instance, List<int> cells)
         {
             if (!Active(__instance)) return true;
-            var table = proberCells(__instance);
+            var table = __instance.cells;
             foreach (int cell in cells) crossings.Increment(table, cell);
             return false;
         }
@@ -283,14 +278,14 @@ namespace OniMoono.GameTweaks
         static bool OccupyCell(MinionGroupProber __instance, int cell)
         {
             if (!Active(__instance)) return true;
-            crossings.Increment(proberCells(__instance), cell);
+            crossings.Increment(__instance.cells, cell);
             return false;
         }
 
         static bool OccupyListST(MinionGroupProber __instance, List<int> cells)
         {
             if (!Active(__instance)) return true;
-            var table = proberCells(__instance);
+            var table = __instance.cells;
             foreach (int cell in cells) crossings.IncrementST(table, cell);
             return false;
         }
@@ -298,7 +293,7 @@ namespace OniMoono.GameTweaks
         static bool VacateList(MinionGroupProber __instance, List<int> cells)
         {
             if (!Active(__instance)) return true;
-            var table = proberCells(__instance);
+            var table = __instance.cells;
             foreach (int cell in cells) crossings.Decrement(table, cell);
             return false;
         }
@@ -306,14 +301,14 @@ namespace OniMoono.GameTweaks
         static bool VacateCell(MinionGroupProber __instance, int cell)
         {
             if (!Active(__instance)) return true;
-            crossings.Decrement(proberCells(__instance), cell);
+            crossings.Decrement(__instance.cells, cell);
             return false;
         }
 
         static bool VacateListST(MinionGroupProber __instance, List<int> cells)
         {
             if (!Active(__instance)) return true;
-            var table = proberCells(__instance);
+            var table = __instance.cells;
             foreach (int cell in cells) crossings.DecrementST(table, cell);
             return false;
         }
@@ -347,17 +342,17 @@ namespace OniMoono.GameTweaks
                 foreach (var o in OffsetGroups.RightOnly) b.Include(o.x, o.y);
                 return b;
             }
-            var tracker = offsetTracker(master);
+            var tracker = master.offsetTracker;
             switch (ReachCoverage.Tracker(TrackerName(tracker)))
             {
                 case ReachCoverage.TrackerKind.None:
                     return b; // GetOffsets makes a StandardOffsetTracker of (0, 0)
                 case ReachCoverage.TrackerKind.Standard:
-                    var list = trackerOffsets(tracker);
+                    var list = tracker.offsets;
                     if (list != null) foreach (var o in list) b.Include(o.x, o.y);
                     return b;
                 case ReachCoverage.TrackerKind.Table:
-                    var table = trackerTable((OffsetTableTracker)tracker);
+                    var table = ((OffsetTableTracker)tracker).table;
                     if (table != null)
                         foreach (var row in table)
                             if (row != null && row.Length > 0) b.Include(row[0].x, row[0].y);
@@ -467,8 +462,8 @@ namespace OniMoono.GameTweaks
         /// offsets IsAllReachable mostly never touches.
         static bool InBounds(Workable master, OffsetBounds b)
         {
-            if (!(offsetTracker(master) is OffsetTableTracker tracker)) return true;
-            var offsets = trackerOffsets(tracker);
+            if (!(master.offsetTracker is OffsetTableTracker tracker)) return true;
+            var offsets = tracker.offsets;
             if (offsets == null) return true;
             for (int i = 0; i < offsets.Length; i++)
                 if (!b.Contains(offsets[i].x, offsets[i].y)) return false;
@@ -537,7 +532,7 @@ namespace OniMoono.GameTweaks
         static void TableStale(OffsetTracker __instance)
         {
             if (state != State.On || !(__instance is OffsetTableTracker table)) return;
-            if (tableOwner(table) is Workable owner && byMaster.TryGetValue(owner, out var entry)) Schedule(entry);
+            if (table.cmp is Workable owner && byMaster.TryGetValue(owner, out var entry)) Schedule(entry);
         }
 
         // ---- Once a frame ----
@@ -628,7 +623,7 @@ namespace OniMoono.GameTweaks
                     global::Debug.Log($"{Name}: mismatch: {entry.Master.name} ({entry.Master.GetType().Name}, {entry.CellSource}) at cell {cell} (indexed at {index.CellOf(entry.Slot)}), "
                         + $"offsets [{string.Join(" ", Array.ConvertAll(entry.Master.GetOffsets(cell), o => $"{o.x},{o.y}"))}] in bounds "
                         + $"{index.BoundsOf(entry.Slot).MinX}..{index.BoundsOf(entry.Slot).MaxX}, {index.BoundsOf(entry.Slot).MinY}..{index.BoundsOf(entry.Slot).MaxY}, "
-                        + $"tracker {offsetTracker(entry.Master)?.GetType().Name}: answered {ours}, the table says {fresh} (frame {GameClock.Instance?.GetFrame() ?? 0}) ({Mismatches})");
+                        + $"tracker {entry.Master.offsetTracker?.GetType().Name}: answered {ours}, the table says {fresh} (frame {GameClock.Instance?.GetFrame() ?? 0}) ({Mismatches})");
                 // Fix it, so one miss is counted once.
                 smi.UpdateReachability();
             }
