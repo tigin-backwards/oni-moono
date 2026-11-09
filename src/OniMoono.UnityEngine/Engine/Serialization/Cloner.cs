@@ -231,9 +231,9 @@ namespace OniMoono.Engine.Serialization
 
         /// A script type's field copy, compiled once: Instantiate copies every serialized field of
         /// every script in the hierarchy, and the game instantiates continuously (resource chunks,
-        /// splits). It does what CopyValue does field by field, in field order: values (primitives,
+        /// splits). It copies field by field, in field order: values (primitives,
         /// strings, enums, built-in structs) and arrays and lists of them are copied without
-        /// boxing, references are remapped, everything else goes through CopyValue.
+        /// boxing, references are remapped, everything else goes through CopyExpression.
         static Action<object, object, Dictionary<Object, Object>> ScriptCopier(Type type)
             => scriptCopiers.GetOrAdd(type, static t => CompileScriptCopier(t));
 
@@ -263,19 +263,17 @@ namespace OniMoono.Engine.Serialization
                     ValueKind.String => Expression.Coalesce(read, Expression.Constant("")),
                     _ when IsPlainValue(f.Shape) => read,
                     // A null serializable class becomes an instance in the source too (below).
-                    ValueKind.Composite when !f.Shape.IsValueType => Expression.Convert(Expression.Call(typeof(Cloner).GetMethod(nameof(CopyValue), BindingFlags.Static | BindingFlags.NonPublic),
-                        Expression.Convert(Expression.Assign(read, Expression.Convert(Expression.Call(typeof(Cloner).GetMethod(nameof(SourceInstance), BindingFlags.Static | BindingFlags.NonPublic),
-                            Expression.Convert(read, typeof(object)), Expression.Constant(f.Shape)), field.FieldType)), typeof(object)),
-                        Expression.Constant(f.Shape), remapArg, Expression.Constant(1)), field.FieldType),
-                    _ => Expression.Convert(Expression.Call(typeof(Cloner).GetMethod(nameof(CopyValue), BindingFlags.Static | BindingFlags.NonPublic),
-                        Expression.Convert(read, typeof(object)), Expression.Constant(f.Shape), remapArg, Expression.Constant(1)), field.FieldType),
+                    ValueKind.Composite when !f.Shape.IsValueType => CopyExpression(f.Shape,
+                        Expression.Assign(read, Expression.Convert(Expression.Call(typeof(Cloner).GetMethod(nameof(SourceInstance), BindingFlags.Static | BindingFlags.NonPublic),
+                            Expression.Convert(read, typeof(object)), Expression.Constant(f.Shape)), field.FieldType)), remapArg, Expression.Constant(1)),
+                    _ => CopyExpression(f.Shape, read, remapArg, Expression.Constant(1)),
                 };
                 body.Add(Expression.Assign(Expression.Field(dst, field), value));
             }
             return Expression.Lambda<Action<object, object, Dictionary<Object, Object>>>(Expression.Block([src, dst], body), srcArg, dstArg, remapArg).Compile();
         }
 
-        /// Values CopyValue returns as they are.
+        /// Values copied as they are.
         static bool IsPlainValue(ValueShape shape) => shape.Kind is not (ValueKind.ObjectReference or ValueKind.BuiltinClass or ValueKind.Composite or ValueKind.Array or ValueKind.List);
 
         static Object Remap(Object value, Dictionary<Object, Object> remap)
@@ -304,65 +302,160 @@ namespace OniMoono.Engine.Serialization
             return dst;
         }
 
-        static object CopyValue(object value, ValueShape shape, Dictionary<Object, Object> remap, int depth)
-        {
-            switch (shape.Kind)
-            {
-                case ValueKind.ObjectReference:
-                    if (value is Object o && remap.TryGetValue(o, out var mapped)) return mapped;
-                    return value;
-                case ValueKind.BuiltinClass:
-                    return CopyBuiltinClass(value, shape.Type);
-                case ValueKind.Composite:
-                    return CopyComposite(value, shape, remap, depth);
-                case ValueKind.Array:
-                {
-                    var src = (Array)value;
-                    int n = src?.Length ?? 0;
-                    var dst = Array.CreateInstance(shape.Element.Type, n);
-                    for (int i = 0; i < n; i++) dst.SetValue(CopyValue(src.GetValue(i), shape.Element, remap, depth), i);
-                    return dst;
-                }
-                case ValueKind.List:
-                {
-                    var src = (IList)value;
-                    var dst = (IList)Activator.CreateInstance(shape.Type);
-                    if (src != null)
-                        foreach (var item in src) dst.Add(CopyValue(item, shape.Element, remap, depth));
-                    return dst;
-                }
-                case ValueKind.String:
-                    return value ?? "";
-                default:
-                    // Primitives, enums and built-in structs are values.
-                    return value;
-            }
-        }
-
         /// Unity's serializer has no null for a serializable class: serializing a null one
         /// (Instantiate serializes its source) gives the source a new instance of its own, as
         /// measured in the original player (PerfProbe measure.txt).
         static object SourceInstance(object value, ValueShape shape) => value ?? NewInstance(shape.Type);
 
-        static object CopyComposite(object value, ValueShape shape, Dictionary<Object, Object> remap, int depth)
+        /// A copy of a serialized value nested in a script field, by its declared type, as
+        /// Unity's serializer makes one: references remapped, a null string as "", a null array
+        /// or list as an empty new one, composites through CompositeCopier. Nothing is boxed:
+        /// the game's structs (Tag, HashedString, CellOffset) and the values in them were boxed
+        /// and copied through reflection field by field.
+        static Expression CopyExpression(ValueShape shape, Expression read, Expression remap, Expression depth)
         {
-            if (depth > SerializedLayout.MaxDepth) return shape.IsValueType ? Activator.CreateInstance(shape.Type) : null;
-            var dst = NewInstance(shape.Type);
-            if (value != null) SerializedLayout.BeforeSerialize(value);
-            foreach (var f in SerializedLayout.CompositeFields(shape))
+            var type = shape.Type;
+            switch (shape.Kind)
             {
-                var fieldValue = value == null ? null : f.Field.GetValue(value);
-                // Nested in a class (a boxed struct would not write back), as at the top level.
-                if (fieldValue == null && value != null && !shape.IsValueType && f.Shape.Kind == ValueKind.Composite && !f.Shape.IsValueType && depth + 1 <= SerializedLayout.MaxDepth)
-                {
-                    fieldValue = SourceInstance(null, f.Shape);
-                    f.Field.SetValue(value, fieldValue);
-                }
-                if (value == null && f.Shape.IsValueType) fieldValue = f.Field.GetValue(dst); // keep the new instance's default
-                f.Field.SetValue(dst, CopyValue(fieldValue, f.Shape, remap, depth + 1));
+                case ValueKind.ObjectReference:
+                    return Expression.Convert(Expression.Call(Method(nameof(Remap)), Expression.Convert(read, typeof(Object)), remap), type);
+                case ValueKind.BuiltinClass:
+                    return Expression.Convert(Expression.Call(Method(nameof(CopyBuiltinClass)), Expression.Convert(read, typeof(object)), Expression.Constant(type, typeof(Type))), type);
+                case ValueKind.Composite:
+                    return Expression.Call(Method(nameof(CopyComposite)).MakeGenericMethod(type), read, remap, depth);
+                case ValueKind.Array:
+                    return Expression.Call(Method(nameof(CopyArray)).MakeGenericMethod(shape.Element.Type), read, remap, depth);
+                case ValueKind.List:
+                    return Expression.Call(Method(nameof(CopyList)).MakeGenericMethod(shape.Element.Type), read, remap, depth);
+                case ValueKind.String:
+                    return Expression.Coalesce(read, Expression.Constant(""));
+                default:
+                    // Primitives, enums and built-in structs are values.
+                    return read;
             }
-            SerializedLayout.AfterDeserialize(dst);
+        }
+
+        static MethodInfo Method(string name) => typeof(Cloner).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic);
+
+        /// A new array of the declared element type, each element copied (the elements of an
+        /// array share the array's depth).
+        static T[] CopyArray<T>(T[] src, Dictionary<Object, Object> remap, int depth)
+        {
+            int n = src?.Length ?? 0;
+            var dst = new T[n];
+            var copy = ElementCopier<T>.Copy;
+            for (int i = 0; i < n; i++) dst[i] = copy(src[i], remap, depth);
             return dst;
+        }
+
+        static List<T> CopyList<T>(List<T> src, Dictionary<Object, Object> remap, int depth)
+        {
+            var dst = new List<T>();
+            if (src != null)
+            {
+                var copy = ElementCopier<T>.Copy;
+                foreach (var item in src) dst.Add(copy(item, remap, depth));
+            }
+            return dst;
+        }
+
+        static class ElementCopier<T>
+        {
+            public static readonly Func<T, Dictionary<Object, Object>, int, T> Copy = Compile();
+
+            static Func<T, Dictionary<Object, Object>, int, T> Compile()
+            {
+                var value = Expression.Parameter(typeof(T), "value");
+                var remap = Expression.Parameter(typeof(Dictionary<Object, Object>), "remap");
+                var depth = Expression.Parameter(typeof(int), "depth");
+                var body = CopyExpression(SerializedLayout.ShapeOf(typeof(T)), value, remap, depth);
+                return Expression.Lambda<Func<T, Dictionary<Object, Object>, int, T>>(body, value, remap, depth).Compile();
+            }
+        }
+
+        internal static T CopyComposite<T>(T value, Dictionary<Object, Object> remap, int depth) => CompositeCopier<T>.Copy(value, remap, depth);
+
+        /// A serializable class or struct copied field by field in field order, compiled once
+        /// per type. Past the depth limit a struct is its default and a class null. Otherwise a
+        /// new instance (NewInstance) gets each field's copy; OnBeforeSerialize runs on the
+        /// source before its fields are read and OnAfterDeserialize on the copy after (a struct
+        /// source's on the struct handed in, whose changes the copy keeps and the source does not). A null serializable class in a field of a
+        /// class source gets an instance in the source too, as at the top level; a null source's
+        /// copy keeps its new instance's value-type fields.
+        static class CompositeCopier<T>
+        {
+            public static readonly Func<T, Dictionary<Object, Object>, int, T> Copy = Compile();
+
+            static Func<T, Dictionary<Object, Object>, int, T> Compile()
+            {
+                var type = typeof(T);
+                var shape = SerializedLayout.ShapeOf(type);
+                bool isStruct = type.IsValueType;
+                bool callbacks = typeof(ISerializationCallbackReceiver).IsAssignableFrom(type);
+                var value = Expression.Parameter(type, "value");
+                var remap = Expression.Parameter(typeof(Dictionary<Object, Object>), "remap");
+                var depth = Expression.Parameter(typeof(int), "depth");
+                var dst = Expression.Variable(type, "dst");
+                var ret = Expression.Label(type);
+                var newInstance = Expression.Convert(Expression.Call(typeof(Cloner).GetMethod(nameof(NewInstance)), Expression.Constant(type, typeof(Type))), type);
+                // A struct without a constructor of its own is its default; NewInstance would box it.
+                Expression made = isStruct && type.GetConstructor(Type.EmptyTypes) == null ? Expression.Default(type) : newInstance;
+                var body = new List<Expression>
+                {
+                    Expression.IfThen(Expression.GreaterThan(depth, Expression.Constant(SerializedLayout.MaxDepth)),
+                        Expression.Return(ret, isStruct ? made : Expression.Default(type))),
+                    Expression.Assign(dst, made),
+                };
+                var isNull = isStruct ? null : Expression.ReferenceEqual(value, Expression.Constant(null, type));
+                var notNull = isStruct ? null : Expression.Not(isNull);
+                if (!isStruct)
+                    body.Add(Expression.IfThen(notNull, Expression.Call(typeof(SerializedLayout).GetMethod(nameof(SerializedLayout.BeforeSerialize)), value)));
+                else if (callbacks)
+                    body.Add(Callback(nameof(ISerializationCallbackReceiver.OnBeforeSerialize), value));
+                var nextDepth = Expression.Add(depth, Expression.Constant(1));
+                var vars = new List<ParameterExpression> { dst };
+                foreach (var f in SerializedLayout.CompositeFields(shape))
+                {
+                    var fieldType = f.Field.FieldType;
+                    var fv = Expression.Variable(fieldType, f.Name);
+                    vars.Add(fv);
+                    if (isStruct)
+                    {
+                        body.Add(Expression.Assign(fv, Expression.Field(value, f.Field)));
+                    }
+                    else
+                    {
+                        body.Add(Expression.Assign(fv, Expression.Condition(notNull, Expression.Field(value, f.Field),
+                            f.Shape.IsValueType ? Expression.Field(dst, f.Field) : Expression.Default(fieldType))));
+                        if (f.Shape.Kind == ValueKind.Composite && !f.Shape.IsValueType)
+                        {
+                            var fieldNew = Expression.Convert(Expression.Call(typeof(Cloner).GetMethod(nameof(NewInstance)), Expression.Constant(fieldType, typeof(Type))), fieldType);
+                            body.Add(Expression.IfThen(
+                                Expression.AndAlso(Expression.AndAlso(Expression.ReferenceEqual(fv, Expression.Constant(null, fieldType)), notNull),
+                                    Expression.LessThanOrEqual(nextDepth, Expression.Constant(SerializedLayout.MaxDepth))),
+                                Expression.Block(Expression.Assign(fv, fieldNew), Expression.Assign(Expression.Field(value, f.Field), fv))));
+                        }
+                    }
+                    body.Add(Expression.Assign(Expression.Field(dst, f.Field), CopyExpression(f.Shape, fv, remap, nextDepth)));
+                }
+                if (!isStruct)
+                    body.Add(Expression.Call(typeof(SerializedLayout).GetMethod(nameof(SerializedLayout.AfterDeserialize)), dst));
+                else if (callbacks)
+                    body.Add(Callback(nameof(ISerializationCallbackReceiver.OnAfterDeserialize), dst));
+                body.Add(Expression.Label(ret, dst));
+                return Expression.Lambda<Func<T, Dictionary<Object, Object>, int, T>>(Expression.Block(vars, body), value, remap, depth).Compile();
+            }
+
+            /// A struct's callback, called on the struct itself (the game's Tag and HashedString
+            /// have them), whose changes it keeps; an exception is logged, as SerializedLayout's are.
+            static Expression Callback(string name, ParameterExpression target)
+            {
+                var map = typeof(T).GetInterfaceMap(typeof(ISerializationCallbackReceiver));
+                var method = map.TargetMethods[Array.FindIndex(map.InterfaceMethods, m => m.Name == name)];
+                var e = Expression.Variable(typeof(Exception), "e");
+                return Expression.TryCatch(Expression.Call(target, method),
+                    Expression.Catch(e, Expression.Call(typeof(Debug).GetMethod(nameof(Debug.LogException), [typeof(Exception)]), e)));
+            }
         }
 
         /// A new instance as Unity's serializer creates it: through the parameterless constructor
