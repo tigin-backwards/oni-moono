@@ -95,6 +95,15 @@ cleared once before the overlay canvases, and +z is nearer. `CanvasTests`
 (`OverlayCanvasesDrawAfterOneDepthClear`) encodes it. Ours draws BRUTAL's credit tile over the
 +500 quad.
 
+With `PROBE_SCENARIO=cullalpha` only the transparent-mesh probe runs (`CullAlpha.cs`, lines `CA
+…`, 10 s after the intro video has gone, ending with a `CullAlphaProbeDone` canvas): quads in an
+overlay canvas drawn so that they show whatever their alpha, with `CanvasRenderer.cullTransparentMesh`
+on and off, under vertex, renderer and CanvasGroup alphas, read back by pixel with their depth and
+raycast hit, before and after changes; then the flag's defaults for renderers added at run time and
+on the loaded objects. Run `tests/e2e/probe-cullalpha.yaml`; docs/cleanroom/ugui.md
+("CanvasRenderer.cullTransparentMesh") records what it measured and `CullTransparentMeshTests`
+encodes it.
+
 With `PROBE_SCENARIO=apigaps` only the API gaps probe runs (`ApiGaps.cs`, lines `AG …`, 10 s into
 the main menu, ending with an `ApiGapsProbeDone` canvas): Unity members Workshop mods call that ours
 lacked (`docs/research/unity-api-gaps.md`), by part: what `RenderTexture.active` binds, every loaded

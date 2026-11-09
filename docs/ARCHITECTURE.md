@@ -2567,6 +2567,12 @@ OpenGL fallback.
 (`_ClipRect` + `UNITY_UI_CLIP_RECT`) and stencil masks (materials from uGUI's own
 `StencilMaterial`), and draw in order (no reordering across materials; Unity's batch
 merging is an optimisation we may add only where it cannot change the result).
+A renderer with `cullTransparentMesh` on (the default for one added at run time) whose mesh has
+every vertex alpha below 0.001 is not collected, as measured in the original
+(`docs/cleanroom/ugui.md`, "CanvasRenderer.cullTransparentMesh"): it is still numbered and still
+takes raycasts, but its geometry is neither baked nor batched. Each geometry `SetMesh` copies
+answers the test once. `ONI_CANVAS_CULL=0` turns it off; `ONI_VERIFY_CANVAS_CULL=1` tests every
+vertex again at each build and logs any difference.
 
 **UI raycasts.** A `GraphicRaycaster` tests every raycast target of its canvas each frame: its
 flags, whether it sits under a closed screen, its rect at the pointer, then its raycast filters.

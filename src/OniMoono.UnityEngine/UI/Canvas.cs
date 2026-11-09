@@ -375,7 +375,7 @@ namespace UnityEngine
             set { var d = Data; if (d.Cull != value) OniMoono.Engine.UI.RaycastInputs.Changed(); d.Cull = value; d.Changed(); }
         }
 
-        /// Not drawn while its effective alpha is zero.
+        /// Not drawn while the alpha of every vertex of its mesh is zero (CanvasSystem.Collect).
         public bool cullTransparentMesh
         {
             get => Data.CullTransparentMesh;
@@ -739,6 +739,34 @@ namespace OniMoono.Engine.UI
             g.Indices = indices;
             return g;
         }
+
+        int transparent; // 0 not yet known, 1 transparent, 2 not
+
+        /// Every vertex's alpha is zero: what CanvasRenderer.cullTransparentMesh culls (CanvasSystem).
+        /// A geometry is never written once made, so the answer is found once.
+        public bool Transparent
+        {
+            get
+            {
+                if (transparent == 0) transparent = AllTransparent() ? 1 : 2;
+                return transparent == 1;
+            }
+        }
+
+        /// The answer found afresh from the colours (ONI_VERIFY_CANVAS_CULL).
+        public bool AllTransparent()
+        {
+            // Without colours every vertex is white.
+            if (Colors == null || Colors.Length < Positions.Length) return false;
+            for (int i = 0; i < Positions.Length; i++)
+                if (!ZeroAlpha(Colors[i].a)) return false;
+            return true;
+        }
+
+        /// An alpha that the flag counts as zero: below 0.001 as a float, measured in the original
+        /// (0.001f is drawn, the float below it is not; docs/cleanroom/ugui.md, "cullTransparentMesh").
+        /// A Color32 alpha of 1 (1/255) is drawn.
+        public static bool ZeroAlpha(float a) => a < 0.001f;
     }
 
     internal sealed class CanvasRendererNative : ComponentNative
@@ -768,7 +796,9 @@ namespace OniMoono.Engine.UI
         public Rect? ClipRect;
         public Vector2 ClippingSoftness;
         public bool Cull;
-        public bool CullTransparentMesh;
+        /// True on a renderer added at run time (AddComponent), as measured in the original; a
+        /// loaded one has its serialized value (Bind) and a copy its source's (CopyStateFrom).
+        public bool CullTransparentMesh = true;
         public int AbsoluteDepth = -1;
         public int RelativeDepth = -1;
         /// The sort root that numbered it last, and its DepthEpoch then.

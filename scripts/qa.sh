@@ -404,14 +404,14 @@ stage_verify()
     local overlays="Oxygen Power Temperature LiquidConduit Logic None" frames=6000
     [ "${QA_VERIFY_FULL:-0}" = 1 ] && { overlays="Oxygen Power Temperature Temperature:HeatFlow Temperature:StateChange TileMode Light Decor Disease Crop HarvestWhenReady Rooms LiquidConduit GasConduit SolidConveyor Logic Suit Radiation Priorities ThermalConductivity None"; frames=10500; }
     U57_SCREENS="consumables vitals jobs research" U57_OVERLAYS="$overlays" \
-    ONI_TWEAK_VERIFY=1 ONI_VERIFY_CANVAS_SKIPS=1 ONI_VERIFY_RAYCAST_CACHE=1 ONI_VERIFY_CULL_CACHE=1 ONI_VERIFY_FETCH_BY_CELL=1 ONI_VERIFY_CANVAS_PRODUCTS=1 ONI_VERIFY_COMPONENT_LAYOUTS=1 ONI_VERIFY_TEXEL_COPIES=1 ONI_VERIFY_PARTIAL_UPLOADS=1 ONI_VERIFY_PARALLEL_DRAWS=1 ONI_VERIFY_BINDLESS=1 ONI_BUNDLE_BLOCKS_VERIFY=1 ONI_VERIFY_VK_DRAWS=1 ONI_VERIFY_RAW_LOADS=1 u57_run "$out" "$frames"
+    ONI_TWEAK_VERIFY=1 ONI_VERIFY_CANVAS_SKIPS=1 ONI_VERIFY_RAYCAST_CACHE=1 ONI_VERIFY_CULL_CACHE=1 ONI_VERIFY_FETCH_BY_CELL=1 ONI_VERIFY_CANVAS_CULL=1 ONI_VERIFY_CANVAS_PRODUCTS=1 ONI_VERIFY_COMPONENT_LAYOUTS=1 ONI_VERIFY_TEXEL_COPIES=1 ONI_VERIFY_PARTIAL_UPLOADS=1 ONI_VERIFY_PARALLEL_DRAWS=1 ONI_VERIFY_BINDLESS=1 ONI_BUNDLE_BLOCKS_VERIFY=1 ONI_VERIFY_VK_DRAWS=1 ONI_VERIFY_RAW_LOADS=1 u57_run "$out" "$frames"
     u57_check verify "$out"
     [ -d "$out/hang" ] && return # a hung run has nothing more to check
     local report; report=$(python3 "$tools" verify "$out/stdout.txt"); local status=$?
     echo "$report" | sed 's/^/     /' | tee -a "$run/summary.txt"
     [ $status -eq 0 ] || fail "verify: a verify mode reported mismatches"
     local tweak
-    for tweak in fast-anim-events fast-anim-batches fast-sublimation fast-jobs fast-particle-collision fast-offset-tables fast-anim-cleanup fast-partitioner-cleanup fast-conveyor-paths fast-smi-lookups path-probe-repair instant-reachability trim-anim-lists "nav links verify (in play)" "path grids verify" "canvas skips" "raycast cache" "cull cache" fetch-by-cell "canvas products" "component layouts" "texel copies" "partial uploads" "parallel draws" "bundle blocks" "vulkan draws"; do
+    for tweak in fast-anim-events fast-anim-batches fast-sublimation fast-jobs fast-particle-collision fast-offset-tables fast-anim-cleanup fast-partitioner-cleanup fast-conveyor-paths fast-smi-lookups path-probe-repair instant-reachability trim-anim-lists "nav links verify (in play)" "path grids verify" "canvas skips" "raycast cache" "cull cache" fetch-by-cell "canvas cull" "canvas products" "component layouts" "texel copies" "partial uploads" "parallel draws" "bundle blocks" "vulkan draws"; do
         # The partial uploads' read-back check is the OpenGL device's (glGetTexImage); the
         # draw path's shortcuts checked are the Vulkan device's.
         [ "$tweak" = "partial uploads" ] && grep -aq "renderer: Vulkan" "$out/stdout.txt" && { note "verify: partial uploads not checked on Vulkan"; continue; }

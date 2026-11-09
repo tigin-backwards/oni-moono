@@ -804,6 +804,7 @@ namespace OniMoono.Engine.UI
                 if (hidden && !blocksRaycasts) continue;
                 r.BuiltToCanvas = Relative(ref r.ToNearestCache, worldToNearest, nearestStamp, r.GameObject.Transform);
                 if (r.Cull || hidden || r.Geometry == null || r.Geometry.Indices.Length == 0) continue;
+                if (CulledTransparent(r, groupAlpha)) continue;
                 foreach (var m in r.Materials) batch.Draws.Add(new CanvasDraw(r, space, m, pop: false, groupAlpha, own, toNearest));
                 if (r.HasPopInstruction) (pops ??= new()).Add(r);
             }
@@ -820,6 +821,50 @@ namespace OniMoono.Engine.UI
             if (go.CanvasHiddenAt != hiddenWas) RaycastInputs.Changed(); // the raycasts' closed-screen skip reads it
             if (unraycastTop && depth.IgnoringGroups == ignoringBefore && depth.Raycasters == raycastersBefore && !RaycasterAbove(go))
                 go.CanvasNoRaycastersAt = version;
+        }
+
+        // ----- Transparent meshes -----
+        //
+        // As measured in the original (UnityProbe cullalpha, `CA` lines; docs/cleanroom/ugui.md,
+        // "CanvasRenderer.cullTransparentMesh"): a renderer with the flag on draws nothing, its pop
+        // instruction included, while every vertex of its mesh has an alpha the flag counts as zero
+        // (CanvasGeometry.ZeroAlpha). The renderer's colour and the CanvasGroups above it do not
+        // enter the test (their alpha at 0 hides an element whatever the flag, in Item). It is
+        // still numbered and still takes raycasts. A renderer added at run time has the flag on.
+        // Nothing of it is collected, so its geometry is neither baked nor batched; the walk still
+        // visits it for its depth and its placement (hasMoved).
+
+        /// Skipped by its cullTransparentMesh. ONI_VERIFY_CANVAS_CULL=1 tests every vertex again
+        /// for each renderer with the flag, in each build, and logs differences.
+        static bool CulledTransparent(CanvasRendererNative r, float groupAlpha)
+        {
+            if (!r.CullTransparentMesh || !canvasCull) return false;
+            bool culled = r.Geometry.Transparent;
+            if (verifyCull) VerifyCull(r, culled, groupAlpha);
+            return culled;
+        }
+
+        /// ONI_CANVAS_CULL=0 draws transparent meshes whatever their flag (for measuring).
+        static readonly bool canvasCull = Environment.GetEnvironmentVariable("ONI_CANVAS_CULL") != "0";
+        static readonly bool verifyCull = Environment.GetEnvironmentVariable("ONI_VERIFY_CANVAS_CULL") == "1";
+        static long cullVerified, cullCulled, cullWrong;
+
+        /// The element's vertices tested one by one, as its draw would carry them: culled exactly
+        /// when the alpha of every one is zero for the flag, and so is the alpha its draw would
+        /// bake (BuildMesh: each vertex's colour times the renderer's colour and the groups'): under
+        /// an alpha-blended material such a draw changes an 8-bit target by under half a step.
+        static void VerifyCull(CanvasRendererNative r, bool culled, float groupAlpha)
+        {
+            var g = r.Geometry;
+            bool fresh = g.AllTransparent();
+            var tint = new Color(r.Color.r, r.Color.g, r.Color.b, r.Color.a * groupAlpha);
+            bool baked = g.Colors != null && g.Colors.Length >= g.Positions.Length;
+            for (int i = 0; baked && i < g.Positions.Length; i++) baked = tint.a <= 0f || CanvasGeometry.ZeroAlpha((g.Colors[i] * tint).a);
+            if (fresh != culled || culled && !baked)
+                EngineLog.Engine($"canvas cull wrong ({++cullWrong}): {r.GameObject.Name}, culled {culled}, its vertices say {fresh}, its baked colours {baked}");
+            if (culled) cullCulled++;
+            if (++cullVerified % 10000 == 0)
+                EngineLog.Engine($"canvas cull: {cullVerified} verified, {cullCulled} culled, {cullWrong} wrong");
         }
 
         // ----- Clipping out of sight -----
@@ -996,7 +1041,7 @@ namespace OniMoono.Engine.UI
                     if (p.x < bounds.min.x || p.x > bounds.max.x || p.y < bounds.min.y || p.y > bounds.max.y) continue;
                     var path = new System.Text.StringBuilder();
                     for (var t = d.Renderer.GameObject.Transform; t != null; t = t.Parent) path.Insert(0, "/" + t.GameObject.Name);
-                    var texture = d.Renderer.Texture ?? d.Material?.mainTexture;
+                    var texture = d.Renderer.Texture ?? d.Material?.MainTextureQuiet;
                     var tnat = texture == null ? null : texture.Native as TextureNative;
                     text.Append($"\n  {path} depth {d.Renderer.AbsoluteDepth} material {d.Material?.name} ({d.Material?.shader?.name}) texture {texture?.name ?? "none"}{(texture == null ? "" : $" [native {(tnat == null ? "null" : $"#{tnat.InstanceId} v{tnat.ContentVersion} gpu {tnat.Gpu?.GetType().Name ?? "none"}")}]")} colour {d.Renderer.Color} group alpha {d.GroupAlpha}{(d.Pop ? " pop" : "")}");
                 }
@@ -1040,14 +1085,15 @@ namespace OniMoono.Engine.UI
             // An element destroyed, culled or cleared after the build (later in PostLateUpdate:
             // the game's video screen clears and tears itself down when its video ends) is not
             // drawn, as the build would not have collected it.
-            if (r.Destroyed || r.Cull || r.Geometry == null || r.Geometry.Indices.Length == 0) return null;
+            if (r.Destroyed || r.Cull || r.Geometry == null || r.Geometry.Indices.Length == 0
+                || r.CullTransparentMesh && canvasCull && r.Geometry.Transparent) return null;
             float alpha = r.Color.a * d.GroupAlpha;
             // An element whose inherited alpha (renderer alpha × CanvasGroups) is zero is not
             // drawn, as in Unity (screens hidden through a CanvasGroup stay active).
             if (d.Material == null || alpha <= 0f) return null;
             var (toSpace, spaceToWorld) = SpaceOf(b, d);
             var mesh = BuildMesh(r, toSpace, new Color(r.Color.r, r.Color.g, r.Color.b, alpha));
-            var texture = r.Texture ?? d.Material.mainTexture;
+            var texture = r.Texture ?? d.Material.MainTextureQuiet;
             var state = new UiDrawState(
                 d.Pop ? null : r.Texture,
                 r.AlphaTexture,
