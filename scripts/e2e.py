@@ -3270,7 +3270,8 @@ class Player:
         if self.kind == 'original':
             env.update(original_environment(self.env.get('E2E_ORIGINAL_ENV')))
             if self.moono_item:
-                env['ONI_MOONO_INSTALL_ROOT'] = os.path.join(self.profile, 'moono-install', 'versioned')
+                # E2E_MOONO_INSTALL_ROOT: elsewhere, for a screenshot with a short path in its line.
+                env['ONI_MOONO_INSTALL_ROOT'] = os.environ.get('E2E_MOONO_INSTALL_ROOT') or os.path.join(self.profile, 'moono-install', 'versioned')
         # `blocked_plugins`, `stray_plugins`: each player runs a copy of its install with those
         # plugins unreadable and those files added. The copy is the lane's (both players of a run
         # use it in turn), at the same path for both, so the plugin's path in a load error is the
