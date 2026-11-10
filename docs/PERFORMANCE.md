@@ -193,9 +193,9 @@ The rest is the engine itself, profiled on U57 and fixed where the game leans on
 | World rotation and scale cached (TextMeshPro reads them for every text, every frame) | 1.1 ms |
 | Script dispatch skips removal checks while nothing is being removed | 0.1–0.2 ms |
 | A canvas renderer given the same unchanged mesh again keeps its copy: the starmap's ~1,100 UI animations each set their batch's mesh every frame, which was copied and baked anew | U57 with the starmap open: allocations 28 → 0.9 MB a frame, canvas drawing about 10 → 4 ms (profiled on a busy machine) |
-| Per-frame engine buffers reused instead of allocated: mesh channel arrays across vertex counts, particle geometry, property block sheets, pass states, upload records, immediate draws (each with a verify mode) | allocations: late-game colony 19.5 → 12.4 MiB/s, mid-game 14.5 → 6.6; young collections 1.3 → 0.8 and 1.3 → 0.6 a minute, a gen1 every 3.4 → 5 and 1.8 → 5 minutes (Linux, speed 3, 600 s) |
-| Canvas mesh copies and merged canvas batches reuse their arrays once the device has uploaded them; Instantiate and the lifecycle walks keep their maps and lists | allocations: late-game colony 0.36 → 0.24 MiB a frame (12.0 → 10.0 MiB/s at a higher frame rate), mid-game 8.2 → 5.7 MiB/s; young collections 0.7 → 0.6 a minute in both (Linux, speed 3, 600 s) |
-| Blits rent their property sheets and a new block's texture store is made at its size; Instantiate copies serialized structs without boxing; a parent's child list grows with spare slots | allocations at those sites: late-game colony 0.68 → 0.19 MiB/s, mid-game 0.44 → 0.12; in all, late-game 315 → 278 KiB a frame, mid-game 156 → 145 (1.87 → 1.72 MiB a game second) (Linux, speed 3, 600 s, a busy machine) |
+| Per-frame engine buffers reused instead of allocated: mesh channel arrays across vertex counts, particle geometry, property block sheets, pass states, upload records, immediate draws (each with a verify mode) | allocations: late-game colony 20.4 → 13.0 MB/s, mid-game 15.2 → 6.9; young collections 1.3 → 0.8 and 1.3 → 0.6 a minute, a gen1 every 3.4 → 5 and 1.8 → 5 minutes (Linux, speed 3, 600 s) |
+| Canvas mesh copies and merged canvas batches reuse their arrays once the device has uploaded them; Instantiate and the lifecycle walks keep their maps and lists | allocations: late-game colony 0.38 → 0.25 MB a frame (12.6 → 10.5 MB/s at a higher frame rate), mid-game 8.6 → 6.0 MB/s; young collections 0.7 → 0.6 a minute in both (Linux, speed 3, 600 s) |
+| Blits rent their property sheets and a new block's texture store is made at its size; Instantiate copies serialized structs without boxing; a parent's child list grows with spare slots | allocations at those sites: late-game colony 0.71 → 0.20 MB/s, mid-game 0.46 → 0.13; in all, late-game 323 → 285 KB a frame, mid-game 160 → 148 (1.96 → 1.80 MB a game second) (Linux, speed 3, 600 s, a busy machine) |
 
 Pooling draw records and resolving each material's values once per change also cut allocations
 by two thirds.
@@ -322,7 +322,7 @@ exercise, are in the notes under the tables, with their dates.
 | `fast-overlays`<br>overlays skip rereading what can't have changed | not measured in these runs (see note) | exact |
 | `fast-conveyor-paths`<br>the conveyor network's rebuild finds its paths from an index | the load, from the menu to the colony, 28.3–29.0 → 25.4–27.6 s | exact |
 | `fast-overlay-textures`<br>render textures dropped by overlay toggles are freed | not measured in these runs (see note) | exact |
-| `compact-nav-links`<br>the pathfinding grids keep each cell's links packed | managed heap after the windows 7,752–7,951 → 7,525–7,729 MiB<br>frame within noise | exact |
+| `compact-nav-links`<br>the pathfinding grids keep each cell's links packed | managed heap after the windows 8,129–8,337 → 7,891–8,104 MB<br>frame within noise | exact |
 | `fast-smi-lookups`<br>state machine lookups (`GetSMI<T>()`) are answered from what they answered before | frame within noise | exact |
 | Save tweaks<br>`fast-serialization`, `fast-save-type-checks`, `fast-save-compression`, `no-save-gc`, `background-save` | not measured in these runs (see note) | exact; saves still load in the original |
 | `post-load-gc`<br>two young collections at the end of a load, while the game is still paused | Windows, 2026-11-07: the first gen1 in play, a 283–344 ms pause 40–85 s after every load (6 of 6), is gone: no pause over 68 ms in the first 90 s (6 of 6)<br>the load ~0.2–0.25 s longer; steady play and memory unchanged ([research/gc-pauses.md](research/gc-pauses.md)) | exact |
@@ -368,8 +368,8 @@ Notes on the rows (more in [TWEAKS.md](TWEAKS.md)):
   (2026-10-25).
 - `compact-nav-links` keeps the links as compressed rows instead of a fixed row of slots for
   every cell of the map. On soggy lab 2, a large modded colony, the grids' links went from
-  2,387.5 to 118.2 MB and on c100 from 670.1 to 55.3 MB; on Windows the managed heap was 2.1 GiB
-  lower on soggy lab 2 and 0.6 GiB on c100, whose load was 7 s shorter, frame rate unchanged
+  2,387.5 to 118.2 MB and on c100 from 670.1 to 55.3 MB; on Windows the managed heap was 2.3 GB
+  lower on soggy lab 2 and 0.6 GB on c100, whose load was 7 s shorter, frame rate unchanged
   beyond noise (2026-11-03, U60).
 - `fast-smi-lookups` keeps each object's answers until its list of state machines changes. On
   c100 it took sleeping Duplicants' updates from 0.51 to 0.26 ms a frame, frame rate unchanged
@@ -540,16 +540,16 @@ DLC):
 | The menu's first frame done | 11,566 / 19,416 | 6,212 / 10,775 |
 
 - The first scene's Global prefab references every animation texture: about 2,550 textures,
-  2 GiB, which Unity uploads before its first frame. They now go to the GPU in the background
+  2.1 GB, which Unity uploads before its first frame. They now go to the GPU in the background
   (ARCHITECTURE §3.5): the GL thread uploads them between frames, about 400 MB/s through Mesa's
   d3d12 driver, done 3.5–3.9 s after start, while frame 1 runs the game's start-up. With every
-  DLC, the content bundles' 880 MiB of textures go up as the bundles load and are done before
+  DLC, the content bundles' 923 MB of textures go up as the bundles load and are done before
   the start-up frame ends (they used to be recorded at its end, and the menu's first frame
   waited for them). Frame 0 went from 6.1–6.3 s to 2.0–2.3 s, the menu's first frame from
   1.2–2.2 s to 0.7–0.8 s. The longest single upload is 10–150 ms. Through two colonies resumed from
   the menu (DeCrew, base game; U57, every DLC; 3,000 frames each), the same two frames over
   100 ms as before once they have loaded (115–307 ms against 126–361 ms).
-- The DLC bundles (one LZMA stream each, about 1 GiB decompressed) are decompressed on worker
+- The DLC bundles (one LZMA stream each, about 1.1 GB decompressed) are decompressed on worker
   threads from the player's start (`ONI_BUNDLE_PREFETCH=0` turns it off); loading them takes
   the game 0.3–0.6 s instead of 9–11 s.
 - The host's patches of the game and of Harmony are made while the window opens: the window and

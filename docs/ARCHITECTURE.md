@@ -2324,9 +2324,9 @@ draw: first draws of screens with many textures (the research tree) would otherw
 second and throw off the game's time-based UI animation. A non-readable texture loaded on the main
 thread is handed to the background uploads (`GlBackgroundUploads`) as it loads: worker threads
 read its texels from the asset file, and the GL thread uploads one texture at a time whenever it
-has no frame to execute, in load order, with a fence keeping the GPU no more than 32 MiB behind.
+has no frame to execute, in load order, with a fence keeping the GPU no more than 34 MB behind.
 A frame therefore waits at most for one texture's upload, and loading goes on meanwhile (the first
-scene's 2 GiB of animation textures go up while the game starts up; a DLC bundle's while the next
+scene's 2.1 GB of animation textures go up while the game starts up; a DLC bundle's while the next
 bundles load). A draw that samples a texture still queued takes it back and records its upload
 into the frame ahead of the draw, as every upload was recorded before; so does a change to the
 texture, and a release drops it. The texture gives up its texels when queued (a non-readable

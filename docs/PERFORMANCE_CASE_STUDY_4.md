@@ -19,7 +19,7 @@ A Spaced Out colony at cycle 709:
 | Loose debris items | 6,703 | 6,698 |
 | Pipes / wires | 4,167 / 2,564 | 3,787 / 2,564 |
 | Animated objects | 30,973 | 27,129 |
-| Working set after load | 15.6 GiB | 8.8 GiB |
+| Working set after load | 16.8 GB | 9.4 GB |
 
 The vanilla load is the same save without the mods except Rest for the Weary, which its
 schedules need to load at all. It drops the modded buildings.
@@ -137,5 +137,5 @@ hit by raycasts:
   longer drawn, but the walk still numbers them, as Unity does.
 - **Mods' patch overhead in `Game.Update`**: 12 patches on `Game.Update` alone, and 6.9 ms of the
   frame has a patched method somewhere on the stack.
-- **Collections:** with mods the heap holds 15.6 GiB against 8.8, and a gen1 collection of
+- **Collections:** with mods the heap holds 16.8 GB against 9.4, and a gen1 collection of
   100–145 ms every 15–30 s accounts for most frames over 100 ms.
