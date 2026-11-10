@@ -590,6 +590,26 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.DETAIL"
 msgid "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, and the parts never written read as the empty grid did. The pathfinder reads the same values."
 msgstr ""
 
+#. Row title (shared-duplicates)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.TITLE"
+msgid "Share identical data"
+msgstr ""
+
+#. The line under the title (shared-duplicates)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.EFFECT"
+msgid "Names repeated across a colony's reports and other identical data are kept once, using less memory."
+msgstr ""
+
+#. Tooltip: how it works (shared-duplicates)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.DETAIL"
+msgid "While a save loads, every copy of the same text (Duplicants' and critters' names in each day's report) becomes one; buildings with the same footprint share one table of the spots they are worked from, and work animations left at their defaults share one list. Nothing is written into them, so the game reads the same values."
+msgstr ""
+
+#. Tooltip: the measured gain (shared-duplicates)
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.SHARED"
+msgid "~0.3 GB less memory on a late-game colony"
+msgstr ""
+
 #. Row title (fetch-by-cell)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.TITLE"
 msgid "Fetch checks by pile"
