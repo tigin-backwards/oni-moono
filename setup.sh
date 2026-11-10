@@ -5,7 +5,10 @@
 # clone of the repository (a release has it in player/ beside this script), and prints the line
 # to paste into the game's Steam launch options unless every Steam account here already has it
 # (read from Steam's localconfig.vdf, never written). Run it again after updating.
-#   ./setup.sh [GAME_DIR]
+# It offers to add Moono to the applications menu (docs/INSTALL-MODES.md, Linux launcher):
+# --menu adds it without asking, --no-menu doesn't ask, --remove-menu removes it and does
+# nothing else.
+#   ./setup.sh [--menu | --no-menu | --remove-menu] [GAME_DIR]
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -26,8 +29,27 @@ find_game()
     done
 }
 
+# The applications menu's entry (XDG): its own name, apart from the versioned install's
+# oni-moono.desktop (docs/INSTALL-MODES.md), and the icon it shows.
+data="${XDG_DATA_HOME:-$HOME/.local/share}"
+menu_entry="$data/applications/oni-moono-player.desktop"
+menu_icon="$data/icons/hicolor/96x96/apps/oni-moono.png"
+menu=ask; given=""
+for arg in "$@"; do
+    case "$arg" in
+        --menu) menu=yes ;;
+        --no-menu) menu=no ;;
+        --remove-menu)
+            rm -f "$menu_entry" "$menu_icon"
+            say "Moono is no longer in the applications menu."
+            exit 0 ;;
+        -*) die "unknown option $arg (./setup.sh [--menu | --no-menu | --remove-menu] [GAME_DIR])" ;;
+        *) given=$arg ;;
+    esac
+done
+
 say "Moono: Oxygen Not Included on its own engine (unofficial). Setup."
-game="${1:-$(find_game)}"
+game="${given:-$(find_game)}"
 [ -n "$game" ] || die "Oxygen Not Included wasn't found in any Steam library; install it, or pass its directory: ./setup.sh /path/to/OxygenNotIncluded"
 [ -d "$game/OxygenNotIncluded_Data/Managed" ] || die "$game isn't an Oxygen Not Included install (no OxygenNotIncluded_Data/Managed)"
 [ -x "$game/OxygenNotIncluded" ] || die "$game is the Windows build; on Linux, Steam has to install the Linux one"
@@ -96,6 +118,36 @@ if [ -n "$inside" ]; then
 fi
 
 launch="\"$player/OniMoono\" -- %command%"
+
+# desktop_arg STRING: STRING as one argument of a desktop entry's Exec, as the specification
+# quotes it: in double quotes with \ " ` $ escaped, then the key file's own \ escaped, % doubled.
+desktop_arg()
+{
+    local s=$1
+    s=${s//\\/\\\\}; s=${s//\"/\\\"}; s=${s//\`/\\\`}; s=${s//\$/\\\$}
+    s=${s//\\/\\\\}; s=${s//%/%%}
+    printf '"%s"' "$s"
+}
+
+# The applications menu: asked once on a terminal; an entry made before is kept up to date.
+if [ "$menu" = ask ]; then
+    if [ -f "$menu_entry" ]; then menu=yes
+    elif [ -t 0 ]; then
+        read -r -p "Add Moono to the applications menu? [Y/n] " answer || answer=n
+        case "$answer" in [nN]*) menu=no ;; *) menu=yes ;; esac
+    else menu=no
+    fi
+fi
+if [ "$menu" = yes ]; then
+    mkdir -p "$(dirname "$menu_entry")" "$(dirname "$menu_icon")"
+    for icon in "$here/player/Moo.png" "$here/src/OniMoono.Desktop/Moo.png"; do
+        [ -f "$icon" ] && { cp "$icon" "$menu_icon"; break; }
+    done
+    printf '%s\n' "[Desktop Entry]" "Type=Application" "Name=Oxygen Not Included (Moono)" "Comment=Oxygen Not Included on Moono" \
+        "Exec=$(desktop_arg "$player/OniMoono")" "Icon=$menu_icon" "Terminal=false" "Categories=Game;" \
+        "StartupWMClass=OxygenNotIncluded" > "$menu_entry"
+    say "In the applications menu: Oxygen Not Included (Moono). To remove it: ./setup.sh --remove-menu"
+fi
 
 # What each Steam account here has as the game's launch options, read (never written) from its
 # localconfig.vdf: Steam keeps them under Software/Valve/Steam/apps/457140, and the account's
