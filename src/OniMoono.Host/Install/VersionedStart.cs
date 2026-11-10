@@ -62,7 +62,7 @@ namespace OniMoono.Host.Install
             {
                 var result = install.InstallFrom(source!, build.Value, NoDlc, out var version);
                 if (result == VersionedInstall.SourceResult.NoSource) log.Add($"install: the source folder {source} is gone; no updates from it");
-                if (result == VersionedInstall.SourceResult.Refused) refused = $"Moono did not install version {version} from the Workshop item: {install.Refusal}.";
+                if (result == VersionedInstall.SourceResult.Refused) refused = $"Moono did not install {(version != null ? $"version {version}" : "an update")} from the Workshop item: {install.Refusal}.";
             }
 
             var chosen = install.Choose(build.Value, NoDlc);

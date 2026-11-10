@@ -4,11 +4,11 @@
 # same), downloaded and
 # checked against their SLSA provenance (signed by attest.yml, built from the right branch),
 # laid out by scripts/workshop-item.py (U60 at the root, U59 in archived_versions/u59), and the
-# item's SHA256SUMS and every file in it signed by attest.yml in turn. The Sigstore bundle naming
-# SHA256SUMS goes into the item as attestation/SHA256SUMS.sigstore.json, which Moono's installer
-# verifies offline before it installs anything from the item (docs/INSTALL-MODES.md); the item is
-# checked with that very code (tools/ItemVerify) before it is the workshop-item artifact. The last
-# job checks the artifact with the item's own verify.sh. Nothing here touches Steam.
+# item's SHA256SUMS and every file in it attested by attest.yml in turn. The Sigstore bundle
+# naming SHA256SUMS goes into the item as attestation/SHA256SUMS.sigstore.json, for anyone to
+# check the item by hand (ci/workshop/verify.sh, docs/RELEASES.md); Moono's installer checks no
+# signature (docs/INSTALL-MODES.md). The last job checks the artifact with the repository's
+# verify.sh. Nothing here touches Steam.
 name: Workshop item
 
 on:
@@ -118,10 +118,9 @@ jobs:
       kind: workshop
       checksums: ${{ needs.package.outputs.checksums }}
 
-  # The bundle into the item, checked as the installer checks it (its own code, the trusted root
-  # embedded in Moono) and as gh checks it, then the item is the workshop-item artifact.
+  # The bundle into the item, checked as gh checks it, then the item is the workshop-item artifact.
   seal:
-    name: Put the signature in the item
+    name: Put the attestation in the item
     needs: attest
     runs-on: ubuntu-24.04
     permissions:
@@ -132,9 +131,6 @@ jobs:
       GH_REPO: ${{ github.repository }}
       SIGNER: ${{ github.repository }}/.github/workflows/attest.yml
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: workshop-layout
@@ -143,28 +139,19 @@ jobs:
         with:
           name: workshop-attestation
           path: workshop-item/attestation
-      - id: sdk
-        run: echo "version=$(python3 -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])')" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
-        env:
-          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
-        with:
-          dotnet-version: ${{ steps.sdk.outputs.version }}
-          skip-lts-prepass: true
-      - name: Build the installer's check
-        run: dotnet build tools/ItemVerify -c Release -v q -nologo -o "$RUNNER_TEMP/item-verify"
-      - name: Verify the item as the installer does, and as gh does
+      - name: Verify the bundle with gh
         run: |
           [ "$(ls workshop-item/attestation)" = SHA256SUMS.sigstore.json ] || { echo "::error::attestation/ should hold SHA256SUMS.sigstore.json alone"; exit 1; }
-          "$RUNNER_TEMP/item-verify/ItemVerify" workshop-item
-          gh attestation verify workshop-item/SHA256SUMS --bundle workshop-item/attestation/SHA256SUMS.sigstore.json \
-            -R "$GH_REPO" --signer-workflow "$SIGNER" --source-ref "refs/heads/$GITHUB_REF_NAME" > /dev/null
-          echo "attestation/SHA256SUMS.sigstore.json: verified offline and by gh"
+          configs="$(gh attestation verify workshop-item/SHA256SUMS --bundle workshop-item/attestation/SHA256SUMS.sigstore.json \
+            -R "$GH_REPO" --signer-workflow "$SIGNER" --source-ref "refs/heads/$GITHUB_REF_NAME" \
+            --format json --jq '.[].verificationResult.signature.certificate.buildConfigURI')"
+          grep -qxF "https://github.com/$GH_REPO/.github/workflows/workshop.yml@refs/heads/$GITHUB_REF_NAME" <<< "$configs" \
+            || { echo "::error::the bundle is not workshop.yml's"; exit 1; }
+          echo "attestation/SHA256SUMS.sigstore.json: verified by gh, from workshop.yml on $GITHUB_REF_NAME"
           # A changed SHA256SUMS is refused.
-          cp -R workshop-item/attestation workshop-item/SHA256SUMS "$RUNNER_TEMP/"
-          mkdir "$RUNNER_TEMP/changed"; mv "$RUNNER_TEMP/attestation" "$RUNNER_TEMP/SHA256SUMS" "$RUNNER_TEMP/changed/"
-          printf '\n' >> "$RUNNER_TEMP/changed/SHA256SUMS"
-          if "$RUNNER_TEMP/item-verify/ItemVerify" "$RUNNER_TEMP/changed"; then
+          cp workshop-item/SHA256SUMS "$RUNNER_TEMP/SHA256SUMS"; printf '\n' >> "$RUNNER_TEMP/SHA256SUMS"
+          if gh attestation verify "$RUNNER_TEMP/SHA256SUMS" --bundle workshop-item/attestation/SHA256SUMS.sigstore.json \
+            -R "$GH_REPO" --signer-workflow "$SIGNER" > /dev/null 2>&1; then
             echo "::error::a changed SHA256SUMS verified"; exit 1
           fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -185,17 +172,23 @@ jobs:
       GH_REPO: ${{ github.repository }}
       SIGNER: ${{ github.repository }}/.github/workflows/attest.yml
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: workshop-item
           path: workshop-item
-      - name: Run the item's verify.sh
-        run: sh workshop-item/verify.sh
+      # The repository's verify.sh, as users are told to run it (not the item's own copy).
+      - name: Run verify.sh on the item
+        run: |
+          cmp ci/workshop/verify.sh workshop-item/verify.sh
+          sh ci/workshop/verify.sh workshop-item
       - name: Verify single files, and refuse a changed one
         run: |
           for f in workshop-item/OniMoono.exe workshop-item/mod_info.yaml workshop-item/archived_versions/u59/mod_info.yaml \
                    workshop-item/linux-x64/player/OniMoono.dll; do
-            gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" > /dev/null
+            gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" --source-ref "refs/heads/$GITHUB_REF_NAME" > /dev/null
             echo "$f attested"
           done
           cp workshop-item/mod_info.yaml changed.yaml; printf '#\n' >> changed.yaml
