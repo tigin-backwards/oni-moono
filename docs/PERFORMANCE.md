@@ -112,6 +112,28 @@ Two settings for test runs go with frame stats:
   window, whose lines end with `frame stats ab: FIELD=VALUE` for the value it ran with: a change
   and itself switched off, alternating in one run.
 
+## Managed allocations against the original
+
+`tools/PerfProbe` with `alloc.txt` logs a `PERF alloc` line after each 600-frame window: running
+totals of what the managed heap handed out, so two lines give a span's KB a frame, MB a game
+second and MB a real second (powers of 1,000). Both players load the same save with the same probe at speed 3;
+`fps.txt` caps the frame rate (vsync off), to measure ours at the original's frame rate, since
+fewer frames a game second means less per-frame work in each.
+
+- The original: Boehm's own total, `GC_get_total_bytes`, called in the libmonobdwgc the player
+  loaded (both the U59 release build and the U60 development build export it). It counts heap
+  bytes as Boehm hands them out, rounded up to its size classes with a byte added for interior
+  pointers: the probe's calibration measures a plain object at 32 B, a `byte[100]` at 144 B and a
+  `byte[100000]` at 100,048 B. U60's development build also has Unity's "GC Allocated In Frame"
+  counter, which comes to about 0.86 of Boehm's total (object sizes, main thread only).
+- Ours: .NET's `GC.GetTotalAllocatedBytes(true)` (a plain object is 24 B), with its pause total
+  and collection counts. The calibration's objects go into a static field; .NET stack-allocates
+  ones that never escape.
+- Both: a heap-growth estimate from `Profiler.GetMonoUsedSizeLong` over frames without a
+  collection. In ours it lands within 0.3% of .NET's counter; in the original it sees only about
+  0.6 of Boehm's total, as Boehm's lazy sweep reuses freed slots without "used" rising, so it is
+  not used for the original's figures.
+
 ## The numbers
 
 **U57**, a Spaced Out colony with every DLC at cycle 17,077: 24 Duplicants, 1,186 critters, about
