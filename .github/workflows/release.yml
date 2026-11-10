@@ -155,7 +155,6 @@ jobs:
           done
       - name: Write the notes
         run: |
-          tag_note="\`gh release verify-asset $DRAFT_TAG FILE -R $GH_REPO\` (once published) or"
           : > notes.md
           if [ "$PRERELEASE" != false ]; then
             # A U60 pre-release opens as the earlier ones did: which game build it is for.
@@ -169,7 +168,7 @@ jobs:
           EOF
           fi
           cat >> notes.md <<EOF
-          Built by GitHub Actions from commit $GITHUB_SHA ([build]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)). Verify a download with $tag_note \`gh attestation verify FILE -R $GH_REPO --signer-workflow $SIGNER\`. The second also verifies any single file from an archive, extracted or installed; each archive's \`.SHA256SUMS\` lists its files.
+          Built by GitHub Actions from commit $GITHUB_SHA ([build]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)) with signed provenance. [How to verify a download]($GITHUB_SERVER_URL/$GH_REPO/blob/master/docs/RELEASES.md#verifying-a-release).
 
           Install or update: download the archive for your system, extract it, and run the setup in the \`oni-moono\` folder (Windows: double-click \`setup.cmd\`; Linux: \`./setup.sh\`). If you already set it up, running the new setup is enough.
           EOF
