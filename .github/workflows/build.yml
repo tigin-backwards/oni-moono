@@ -19,6 +19,10 @@ on:
         description: Restore and save caches. Release builds use none.
         type: boolean
         default: true
+      version_date:
+        description: The release tag's date, YYYY.MM.DD, which names the archives; empty names them by HEAD's commit date.
+        type: string
+        default: ""
     secrets:
       REFS_APP_KEY:
         required: true
@@ -66,6 +70,7 @@ jobs:
         env:
           ONI_GAME_DIR: ${{ steps.refs.outputs.game-dir }}
           MOONO_RELEASE: ${{ inputs.release_tag || 'none' }}
+          RELEASE_DATE: ${{ inputs.version_date }}
           MOONO_PLATFORMS: linux
           # Deterministic, CI-mapped builds: source paths in the symbols are /_/..., not the
           # runner's. (Not for the tests, which find the repository from their source paths.)
@@ -123,6 +128,7 @@ jobs:
         env:
           ONI_GAME_DIR: ${{ steps.refs.outputs.game-dir }}
           MOONO_RELEASE: ${{ inputs.release_tag || 'none' }}
+          RELEASE_DATE: ${{ inputs.version_date }}
           MOONO_PLATFORMS: windows
           # Deterministic, CI-mapped builds: source paths in the symbols are /_/..., not the
           # runner's. (Not for the tests, which find the repository from their source paths.)

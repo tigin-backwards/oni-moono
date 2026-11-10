@@ -39,6 +39,7 @@ jobs:
       draft_tag: ${{ steps.plan.outputs.draft_tag }}
       title: ${{ steps.plan.outputs.title }}
       prerelease: ${{ steps.plan.outputs.prerelease }}
+      version_date: ${{ steps.plan.outputs.version_date }}
     steps:
       - id: plan
         env:
@@ -58,7 +59,9 @@ jobs:
           title="${TAG#v}"; [ "$prerelease" = false ] || title="$title (U60 Beta)"
           draft_tag="$TAG"
           if [ "$DRY_RUN" = true ]; then draft_tag="vtest-${TAG#v}-$GITHUB_RUN_ID"; title="TEST $title (dry run, deleted at its end)"; fi
-          { echo "draft_tag=$draft_tag"; echo "title=$title"; echo "prerelease=$prerelease"; } >> "$GITHUB_OUTPUT"
+          # The archives are named by the tag's date (scripts/release-version.sh), not the commit's.
+          version_date="${TAG#v}"; version_date="${version_date%.*}"
+          { echo "draft_tag=$draft_tag"; echo "title=$title"; echo "prerelease=$prerelease"; echo "version_date=$version_date"; } >> "$GITHUB_OUTPUT"
           echo "Draft $draft_tag, \"$title\", from $GITHUB_SHA ($GITHUB_REF_NAME), prerelease $prerelease"
 
   build:
@@ -69,6 +72,7 @@ jobs:
     with:
       release_tag: ${{ inputs.tag }}
       use_cache: false
+      version_date: ${{ needs.plan.outputs.version_date }}
     secrets:
       REFS_APP_KEY: ${{ secrets.REFS_APP_KEY }}
 
