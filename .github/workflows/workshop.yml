@@ -100,7 +100,8 @@ jobs:
       - id: refs
         uses: ./.github/actions/game-refs
         with:
-          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          app-id: ${{ vars.REFS_APP_ID }}
+          app-key: ${{ secrets.REFS_APP_KEY }}
           use-cache: false
           build: "762230"
       - name: Build the loader mod
