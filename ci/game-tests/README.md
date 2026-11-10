@@ -8,13 +8,13 @@ CI", describes them in full.
 - `budget/BUILD.txt` is each game build's log-signature budget, one `qa-tools.py signatures` line
   each. A run of ours fails on a signature it lacks. Add a line only for an error the game logs
   itself (the full install logs it too) and say why in a `#` comment.
-- `../game-content.json` names the stripped build and the saves by hash in the private refs
-  repository.
+- `../game-content.json` names the stripped build's release asset in the private refs repository
+  by hash; the saves are `../../tests/e2e/fixtures.json`'s.
 
 oni-moono is public; the stripped game and the saves are not. The job:
 
-- reads them only with the read-only deploy key `GAME_REFS_DEPLOY_KEY`, and skips itself without it,
-  as in a fork's run;
+- reads them only with a short-lived token of the read-only GitHub App oni-moono-refs-reader
+  (`REFS_APP_ID`, secret `REFS_APP_KEY`), and skips itself without the key, as in a fork's run;
 - caches none of them, and fetches them fresh each run;
 - uploads no game files, saves, screenshots, UI dumps or logs as artifacts, and prints verdicts and
   short excerpts only.

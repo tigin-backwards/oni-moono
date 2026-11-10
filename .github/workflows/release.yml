@@ -70,7 +70,7 @@ jobs:
       release_tag: ${{ inputs.tag }}
       use_cache: false
     secrets:
-      GAME_REFS_DEPLOY_KEY: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+      REFS_APP_KEY: ${{ secrets.REFS_APP_KEY }}
 
   digests:
     name: Digests

@@ -3,7 +3,8 @@
 tests/e2e/fixtures.json and stored as release assets of the private repository that holds the
 game's reference assemblies (tigin-backwards/oni-moono-refs). Each worktree gets them from a
 shared cache, ~/.cache/oni-brutal-e2e/fixtures/SHA256 (E2E_FIXTURE_CACHE moves it), filled by
-`gh release download` with the user's own GitHub login.
+`gh release download`: with the token in GH_TOKEN when it is set (CI's GitHub App token),
+else the user's own GitHub login.
 
     scripts/fixtures.py fetch [NAME...]     every stored fixture (or NAME...) into tests/e2e/fixtures
     scripts/fixtures.py check [NAME...]     whether they are there with their hashes; fetches nothing

@@ -1,29 +1,19 @@
 {
-  "schema": 1,
-  "comment": "The stripped game (tools/GameStrip) and the fixture saves the CI game tests run on, by hash, in the private refs repository; scripts/fetch-game-content.py fetches them (docs/DEVELOPMENT.md, \"Game tests in CI\"). Private: never published.",
+  "schema": 2,
+  "comment": "The stripped game (tools/GameStrip) the CI game tests run on, by hash: a release asset of the private refs repository, one release per build and archive hash. scripts/fetch-game-content.py fetches it, and the fixture saves through tests/e2e/fixtures.json (docs/DEVELOPMENT.md, \"Game tests in CI\"). Private: never published.",
   "default_build": "762230",
   "source": {
-    "kind": "git",
+    "kind": "github-release",
     "host": "github.com",
-    "repository": "tigin-backwards/oni-moono-refs",
-    "commit": "13d6fd7e774cdaf6561c4f2dfbfe9812c1e3aad2"
+    "repository": "tigin-backwards/oni-moono-refs"
   },
   "builds": {
     "762230": {
-      "game": "U60 762230",
-      "path": "game/762230",
-      "sha256": "c2e571643a2984772191c5554c8158ce145f14b2c764ac8437dbf2a54d45966d",
-      "parts": {
-        "oni-762230.tar.zst.00": "6fb1ebce9d0cc84cc6cf102a904a588fedc400eaa048792f87737d2f045ee571",
-        "oni-762230.tar.zst.01": "398ed089d80c0b3367e348ea251783fba70f6f71736388cc08cfdd184b3dade7",
-        "oni-762230.tar.zst.02": "ec5ea24323dec65c19d1e9e8152dba1b096883acbcc09204ff64519f179eadf2"
-      }
+      "game": "U60",
+      "tag": "game/762230-c2e571643a298477",
+      "asset": "oni-762230.tar.zst",
+      "size": 115571349,
+      "sha256": "c2e571643a2984772191c5554c8158ce145f14b2c764ac8437dbf2a54d45966d"
     }
-  },
-  "saves": [
-    "0476131cf68f2ead362b56f6fa604736b6bc2ab3bc4a12671ae823054456fb91",
-    "80277777c7dc85621258cc3cf01aae264117f4cee63b571da1d9c2a01dd3b412",
-    "843e5d70d826a1411b848f69328134d153875b03dccf4147c59d92e219dac8d6",
-    "c7a9d6dafc672f0c901438053ee5d7fcd8c8b01514b39ea29bca49a593c56c9a"
-  ]
+  }
 }

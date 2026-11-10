@@ -69,9 +69,12 @@ anything it fetched (from git it reads blobs out of a bare repository, with hook
 is `git` (repository, commit and folder), `url` (a base URL on an allowed host) or `local` (a
 folder), so the files can move without touching the scripts.
 
-Actions reads the refs repository with a read-only deploy key, held in the repository secret
-`GAME_REFS_DEPLOY_KEY` and loaded into an `ssh-agent` only for the fetch (GitHub's host keys are
-pinned in `ci/github-known-hosts`).
+Actions reads the refs repository with a GitHub App, oni-moono-refs-reader, installed on that
+repository alone with read-only Contents. Its ID is the repository variable `REFS_APP_ID` and its
+private key the secret `REFS_APP_KEY`; `.github/actions/game-refs` mints a short-lived token with
+`actions/create-github-app-token` for each fetch, and the fetch passes it to git in its
+environment only. The fetch is a partial clone: it takes the commit's trees and only the blobs it
+reads.
 
 ### Caches
 

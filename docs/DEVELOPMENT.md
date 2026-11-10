@@ -260,10 +260,13 @@ declared size, the GL device draws a 1×1 grey placeholder for it, and a dropped
 for its length. Without the mode, a dropped payload is an error that names the variable, so
 normal play never shows a placeholder.
 
-The copies live in the private refs repository's `game/` folder, as zstd archives split into
-parts under 50 MB. The fixture saves CI loads are there too, under `game/saves/SHA256`, because
-CI's read-only deploy key can fetch git objects but not release assets. `ci/game-content.json`
-names the commit and every hash, and `scripts/fetch-game-content.py` fetches and checks them:
+The copies are release assets of the private refs repository, one release per build and
+archive hash (tag `game/BUILD-SHA16`, the archive's SHA-256 to 16 digits), each holding the zstd
+archive `oni-BUILD.tar.zst` and its `SHA256SUMS`. `ci/game-content.json` names this branch's tag,
+asset, size and SHA-256; the fixture saves come from their own `saves/` releases through
+`tests/e2e/fixtures.json`. `scripts/fetch-game-content.py` fetches and checks both with
+`gh release download`, which uses `GH_TOKEN` when it is set (as in CI) and your gh login
+otherwise.
 
 ```sh
 scripts/fetch-game-content.py game OUT            # this branch's stripped build into OUT
@@ -290,8 +293,10 @@ screenshots, and no spec compares pixels. OniMcp is built fresh for each run by
 
 oni-moono is public, so the job:
 
-- reads the refs repository only with the existing read-only deploy key
-  (`GAME_REFS_DEPLOY_KEY`), and skips itself in any run without it, such as a fork's;
+- reads the refs repository only with a short-lived token of the GitHub App
+  oni-moono-refs-reader (read-only Contents on that repository alone; `REFS_APP_ID` and the
+  secret `REFS_APP_KEY`, docs/RELEASES.md), and skips itself in any run without the key, such as
+  a fork's;
 - caches no game files, saves or OniMcp builds, and fetches them fresh every run;
 - uploads no game files, saves, screenshots, UI dumps or logs as artifacts, and prints verdicts
   and short report lines only.
@@ -303,9 +308,9 @@ To refresh a copy after a game update:
 1. Strip it.
 2. Archive it with
    `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --transform s,^DIR,BUILD, -cf - DIR | zstd -19`.
-3. Split it with `split -b 45M -d -a 2`.
-4. Commit the parts to the refs repository's `game/BUILD/` with their `SHA256SUMS`.
-5. Point `ci/game-content.json` at the commit, with the new hashes.
+3. Upload it as release `game/BUILD-SHA16` of the refs repository, with its `SHA256SUMS`:
+   `gh release create game/BUILD-SHA16 -R tigin-backwards/oni-moono-refs --latest=false oni-BUILD.tar.zst SHA256SUMS`.
+4. Point `ci/game-content.json` at the tag, with the archive's size and SHA-256.
 
 ## The OniMoono rename
 
