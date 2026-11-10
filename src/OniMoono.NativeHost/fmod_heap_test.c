@@ -153,7 +153,8 @@ static void write_after_free(void)
     unsigned char *p = (unsigned char *)moono_fmod_alloc(0x20, 0x200000, "test");
     moono_fmod_free(p, 0, "test");
     p[5] = 0;           /* FMOD's stale write: one byte of a freed block */
-    p[-8] = 0x11;       /* and one into its header */
+    unsigned char stamp = p[-8];
+    p[-8] = (unsigned char)(stamp ^ 0xFF); /* and one into its header (its free time's low byte) */
     CHECK(drain(seen) == 0, "nothing found before the block leaves");
     moono_fmod_heap_flush();
     int n = drain(seen);
@@ -166,7 +167,7 @@ static void write_after_free(void)
         CHECK(e->changed == 2 && e->count == 2, "changed %u", e->changed);
         CHECK(e->first_offset == -8 && e->last_offset == 5, "offsets %lld..%lld", (long long)e->first_offset, (long long)e->last_offset);
         CHECK(e->offsets[1] == 5 && e->values[1] == 0 && e->expected[1] == 0xDB, "byte 5: %02x, expected %02x", e->values[1], e->expected[1]);
-        CHECK(e->values[0] == 0x11, "header byte %02x", e->values[0]);
+        CHECK(e->values[0] == (unsigned char)(stamp ^ 0xFF) && e->expected[0] == stamp, "header byte %02x for %02x", e->values[0], e->expected[0]);
         CHECK(e->address == (uint64_t)(uintptr_t)p && e->time_ms > 1700000000000LL && e->age_ms >= 0, "address, time and age");
     }
     printf("write after free: found as the block leaves, with offsets and values\n");
