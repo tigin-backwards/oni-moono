@@ -1,0 +1,41 @@
+# The nightly game tests on the stripped game (docs/DEVELOPMENT.md, "Game tests in CI"):
+# ci/game-tests/nightly.txt's UI and mod-loading specs and the long verify run. Scheduled runs
+# test the default branch (master, U59); run it by hand on u60 for U60.
+name: Game tests (nightly)
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  game:
+    name: Nightly game tests (stripped game)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Exactly global.json's SDK, alone in a folder of its own (build.yml says why).
+      - id: sdk
+        run: echo "version=$(python3 -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])')" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+        with:
+          dotnet-version: ${{ steps.sdk.outputs.version }}
+          skip-lts-prepass: true
+      - uses: ./.github/actions/game-tests
+        with:
+          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          list: nightly
+          saves: early-base 2minnow

@@ -1,0 +1,58 @@
+name: Game tests
+description: >
+  Runs scripts/ci-game-tests.sh LIST on the stripped game (docs/DEVELOPMENT.md, "Game tests in
+  CI"): fetches this branch's stripped build and the fixture saves the list loads from the private
+  refs repository by the hashes in ci/game-content.json (the deploy key in an ssh-agent for the
+  fetches only, never on disk), builds the DLC-owning Steam double and OniMcp (scripts/onimcp.py,
+  from its author's repository; a fresh build each run), and runs the list. Nothing is cached or
+  uploaded: the game, the saves and the players' logs and dumps stay on the runner. Without the
+  deploy key (a fork's run) it does nothing and says so.
+inputs:
+  deploy-key:
+    description: The refs repository's read-only deploy key (secret GAME_REFS_DEPLOY_KEY).
+    required: true
+  list:
+    description: push or nightly (ci/game-tests/LIST.txt).
+    required: true
+  saves:
+    description: The fixtures the list loads, space-separated (tests/e2e/fixtures.json names).
+    required: true
+runs:
+  using: composite
+  steps:
+    - id: key
+      shell: bash
+      env:
+        DEPLOY_KEY: ${{ inputs.deploy-key }}
+      run: |
+        if [ -n "$DEPLOY_KEY" ]; then echo "have=true" >> "$GITHUB_OUTPUT"
+        else echo "::notice::No GAME_REFS_DEPLOY_KEY in this run (a fork's): the game tests are skipped."; echo "have=false" >> "$GITHUB_OUTPUT"; fi
+    - if: steps.key.outputs.have == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq --no-install-recommends xvfb x11-xkb-utils libgl1 libglx-mesa0 libgl1-mesa-dri libegl1 libxtst6 python3-yaml zstd binutils > /dev/null
+    - if: steps.key.outputs.have == 'true'
+      shell: bash
+      env:
+        DEPLOY_KEY: ${{ inputs.deploy-key }}
+        SAVES: ${{ inputs.saves }}
+      run: |
+        eval "$(ssh-agent -s)" > /dev/null
+        trap 'ssh-agent -k > /dev/null' EXIT
+        printf '%s\n' "$DEPLOY_KEY" | ssh-add -q -
+        export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$PWD/ci/github-known-hosts"
+        python3 -I scripts/fetch-game-content.py game "$RUNNER_TEMP/oni-game" --transport ssh
+        # shellcheck disable=SC2086  # a space-separated list
+        python3 -I scripts/fetch-game-content.py saves $SAVES --transport ssh
+    - if: steps.key.outputs.have == 'true'
+      shell: bash
+      run: |
+        echo "QA_U57_STEAM=$(tools/SteamStub/build.sh --dlc)" >> "$GITHUB_ENV"
+        ONI_GAME_DIR="$RUNNER_TEMP/oni-game" python3 -I scripts/onimcp.py "$RUNNER_TEMP/onimcp"
+        echo "E2E_ONIMCP=$RUNNER_TEMP/onimcp" >> "$GITHUB_ENV"
+    - if: steps.key.outputs.have == 'true'
+      shell: bash
+      env:
+        LIST: ${{ inputs.list }}
+      run: scripts/ci-game-tests.sh "$LIST" "$RUNNER_TEMP/oni-game"

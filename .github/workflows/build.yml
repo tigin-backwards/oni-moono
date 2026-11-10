@@ -172,6 +172,42 @@ jobs:
           GAME_DIR: ${{ steps.refs.outputs.game-dir }}
         run: scripts/ci-unit-tests.sh "$GAME_DIR"
 
+  game:
+    # The game tests on the stripped game (docs/DEVELOPMENT.md, "Game tests in CI"): check-tweaks,
+    # the unit tests that need the game, and ci/game-tests/push.txt's specs. Not in release builds
+    # (their tips passed release QA), and a run without the deploy key (a fork's) skips it.
+    name: Game tests (stripped game)
+    if: ${{ !inputs.release_tag }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Exactly global.json's SDK, alone in a folder of its own: a newer patch (the image's, or
+      # the one setup-dotnet's roll-forward picks) would put its runtime in the player.
+      - id: sdk
+        run: echo "version=$(python3 -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])')" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+        with:
+          dotnet-version: ${{ steps.sdk.outputs.version }}
+          skip-lts-prepass: true
+      # NuGet packages only: the game, the saves and OniMcp are never cached.
+      - if: inputs.use_cache != false
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
+      - uses: ./.github/actions/game-tests
+        with:
+          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          list: push
+          saves: early-base rockets-so
+
   lint:
     name: Lint (shellcheck, ruff, actionlint)
     runs-on: ubuntu-24.04

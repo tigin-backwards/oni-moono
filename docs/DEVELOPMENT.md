@@ -236,6 +236,77 @@ them. onimaxxing's data is cached in `out/modgate/cache/BUILD/` with its fetch t
 hour; the build is the game folder's (762230 for `oni-linux-762230`, else U59's 744825), or
 `ONI_GAME_BUILD`.
 
+### Game tests in CI
+
+GitHub's runners have no game, so the **Build** workflow's game job runs on a stripped copy of
+it. `tools/GameStrip` makes the copy from a Linux install with its DLC content:
+
+```sh
+dotnet build tools/GameStrip -c Release
+dotnet out/bin/GameStrip/release/GameStrip.dll census GAMEDIR       # what the install streams
+dotnet out/bin/GameStrip/release/GameStrip.dll strip GAMEDIR OUT    # the stripped copy
+```
+
+The copy keeps every serialized file and header, and the game's assemblies, plugins and
+StreamingAssets. It drops the texture and video payloads, which are only ever drawn or played,
+the FMOD banks' sample data (FMOD still loads every event, which plays silently), and Unity's
+player and Mono. Code reads texels only from readable textures, and all of those are stored
+inline, so they stay. `OUT/OxygenNotIncluded_Data/moono-stripped.txt` lists what was kept. A U59
+copy is about 820 MB, and 110 MB with zstd. Make a U59 copy with master's tool and a U60 copy with
+u60's: the tool reads Unity's type trees for that game update.
+
+The player runs a copy only in no-content mode, `ONI_NO_CONTENT=1`. A dropped texture keeps its
+declared size, the GL device draws a 1×1 grey placeholder for it, and a dropped video plays black
+for its length. Without the mode, a dropped payload is an error that names the variable, so
+normal play never shows a placeholder.
+
+The copies live in the private refs repository's `game/` folder, as zstd archives split into
+parts under 50 MB. The fixture saves CI loads are there too, under `game/saves/SHA256`, because
+CI's read-only deploy key can fetch git objects but not release assets. `ci/game-content.json`
+names the commit and every hash, and `scripts/fetch-game-content.py` fetches and checks them:
+
+```sh
+scripts/fetch-game-content.py game OUT            # this branch's stripped build into OUT
+scripts/fetch-game-content.py saves early-base    # fixtures, through scripts/fixtures.py's cache
+scripts/ci-game-tests.sh push OUT                 # what the game job runs (QA_U57_STEAM, E2E_ONIMCP)
+```
+
+`scripts/ci-game-tests.sh` runs a list:
+
+- **push** (every push to master or u60, about 15 minutes): `check-tweaks.sh` against the game's
+  assemblies, the unit tests that need the game (the no-game unit test job skips them), and
+  `ci/game-tests/push.txt`. That list holds headless load, simulate, save and reload runs on
+  early-base and a Spaced Out colony with rockets, a verify run with every tweak (zero wrong
+  answers, read by `qa-tools.py verify`), and `exact-worldgen` under Xvfb.
+- **nightly** (the **Game tests (nightly)** workflow, on master; run it by hand on u60):
+  `ci/game-tests/nightly.txt`, which holds UI specs that check their own expectations and dumps,
+  mod loading with our own test mods, and a ten-minute verify run on a mid-game colony.
+
+Each run is checked against its log-signature budget, `ci/game-tests/budget/BUILD.txt`: a run
+fails on an error or exception the budget lacks. `E2E_NO_SHOTS=1` keeps specs from taking
+screenshots, and no spec compares pixels. OniMcp is built fresh for each run by
+`scripts/onimcp.py`, against the copy and from its author's repository, with its U60 change and
+`MOONO-CHANGES.txt` as in a local build.
+
+oni-moono is public, so the job:
+
+- reads the refs repository only with the existing read-only deploy key
+  (`GAME_REFS_DEPLOY_KEY`), and skips itself in any run without it, such as a fork's;
+- caches no game files, saves or OniMcp builds, and fetches them fresh every run;
+- uploads no game files, saves, screenshots, UI dumps or logs as artifacts, and prints verdicts
+  and short report lines only.
+
+Keep it that way.
+
+To refresh a copy after a game update:
+
+1. Strip it.
+2. Archive it with
+   `tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --transform s,^DIR,BUILD, -cf - DIR | zstd -19`.
+3. Split it with `split -b 45M -d -a 2`.
+4. Commit the parts to the refs repository's `game/BUILD/` with their `SHA256SUMS`.
+5. Point `ci/game-content.json` at the commit, with the new hashes.
+
 ## The OniMoono rename
 
 The internals were renamed from OniBrutal to OniMoono. `scripts/rename-internals.py` does that

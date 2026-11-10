@@ -1,0 +1,6 @@
+# CI's game tests on every push (scripts/ci-game-tests.sh push; docs/DEVELOPMENT.md, "Game tests
+# in CI"), on the stripped game of this branch's build. Headless where no real input is needed.
+ci-smoke-early-base ours player-args='--headless'   # load, a minute at speed 3, save, reload
+ci-smoke-rockets ours player-args='--headless'      # the same on a Spaced Out cluster with rockets
+ci-verify ours player-args='--headless'             # every tweak and verify mode: 0 wrong
+exact-worldgen ours                                 # worldgen to the bit (#66), under Xvfb
