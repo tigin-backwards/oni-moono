@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The installer's own check of the item's signature (docs/INSTALL-MODES.md). -->
+    <Compile Include="../../src/OniMoono.Host/Install/Sigstore.cs" Link="Install/Sigstore.cs" />
+    <Compile Include="../../src/OniMoono.Host/Install/SigstoreTrustedRoot.cs" Link="Install/SigstoreTrustedRoot.cs" />
+    <Compile Include="../../src/OniMoono.Host/Install/ItemTrust.cs" Link="Install/ItemTrust.cs" />
+  </ItemGroup>
+</Project>

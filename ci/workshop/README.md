@@ -12,7 +12,10 @@ no supported content).
   folder, and Moono installs each update the next time it starts.
 - **Versions:** the root is the build for the game's U60 update; `archived_versions/u59` is the
   build for U59. Moono picks the one for your game's build, as the game picks a mod's version.
+- **Signed:** Moono checks this folder's signature (`attestation/`) before it installs anything
+  from it, and refuses files that aren't the ones Moono's GitHub releases signed.
 - **Check it:** `verify.ps1` (Windows) or `verify.sh` (Linux) checks every file here against
-  Moono's attested GitHub builds, with the GitHub CLI.
+  Moono's attested GitHub builds, with the GitHub CLI. Do this before the first start to be sure
+  of the first install too.
 
 More: https://github.com/tigin-backwards/oni-moono (docs/INSTALL-MODES.md).
