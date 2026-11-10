@@ -1797,10 +1797,23 @@ namespace PerfProbe
             int frames = 0;
             long contentions = RuntimeCounters.LockContentions(), paused = RuntimeCounters.GcPauseMs();
             long allocatedBytes = RuntimeCounters.Allocated(), gen0 = System.GC.CollectionCount(0);
+            // `alloc.txt`: managed allocation counters every window (AllocMeter), after a calibration.
+            bool alloc = System.IO.File.Exists(System.IO.Path.Combine(Path, "alloc.txt"));
+            if (alloc) { AllocMeter.Start(); AllocMeter.Calibrate(); }
+            // `fps.txt`: a frame-rate cap (Application.targetFrameRate, vsync off), e.g. to measure
+            // one player at the other's frame rate.
+            var fpsCap = System.IO.Path.Combine(Path, "fps.txt");
+            if (System.IO.File.Exists(fpsCap))
+            {
+                QualitySettings.vSyncCount = 0;
+                Application.targetFrameRate = int.Parse(System.IO.File.ReadAllText(fpsCap).Trim());
+                Debug.Log($"PERF target frame rate {Application.targetFrameRate}");
+            }
             while (true)
             {
                 yield return null;
                 if (Game.Instance == null) yield break;
+                if (alloc) AllocMeter.Frame();
                 // Only when the game has stopped: the search for dialogs walks the whole scene, a
                 // cost the measurement must not carry.
                 if (speed < 0 && Time.frameCount % 60 == 0 && !SpeedControlScreen.Instance.IsPaused) SpeedControlScreen.Instance.Pause(false);
@@ -1838,6 +1851,7 @@ namespace PerfProbe
                 string runtime = c < 0 ? "" : $" contentions {c - contentions} gc-pause {g - paused} ms allocated {(a - allocatedBytes) / 1048576.0:F0} MiB gen0 {g0 - gen0}";
                 contentions = c; paused = g; allocatedBytes = a; gen0 = g0;
                 Debug.Log($"PERF f{Time.frameCount} fps {frames / (now - windowStart):F2} cycle {GameClock.Instance.GetCycle()} time {GameClock.Instance.GetTime():F0} paused {SpeedControlScreen.Instance.IsPaused}{runtime}");
+                if (alloc) Debug.Log(AllocMeter.Window());
                 if (awake) Debug.Log($"PERF pointer: mousePosition {Input.mousePosition} present {Input.mousePresent} focused {Application.isFocused}{OsCursor()}");
                 windowStart = now;
                 frames = 0;
