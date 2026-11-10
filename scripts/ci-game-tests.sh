@@ -26,10 +26,11 @@ dotnet_build() { ${CI_BUILD_WRAPPER:-} dotnet build "$@" -v q -nologo "-clp:Erro
 
 echo "== build"
 dotnet_build "$root/src/OniMoono.Host" -c Release -p:OniGameDir="$game"
-# E2eDriver and our test mods (those this branch has).
+# E2eDriver and our test mods (those this branch has), against this game's assemblies: E2eDriver
+# would otherwise look for them in ~/projects/oni-linux.
 for tool in E2eDriver OverlapTestMod SelectCycleTestMod CommandLineTestMod ReachStressTestMod GeoVentProbeTestMod; do
     [ -d "$root/tools/$tool" ] || continue
-    dotnet_build "$root/tools/$tool" -c Release -p:OniGameDir="$game"
+    dotnet_build "$root/tools/$tool" -c Release -p:OniGameDir="$game" -p:OniManaged="$game/OxygenNotIncluded_Data/Managed"
 done
 
 if [ "$list" = push ]; then
