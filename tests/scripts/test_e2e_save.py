@@ -99,5 +99,62 @@ class SaveWritten(unittest.TestCase):
         self.assertEqual(self.wait(lambda n: None, timeout=5.0), (False, 5))
 
 
+PNG = b'\x89PNG\r\n\x1a\n' + b'\0' * 40 + b'\0\0\0\0IEND\xaeB`\x82'
+
+
+class PreviewWritten(unittest.TestCase):
+    """The save step's wait for the colony preview, which a load in its capture frame crashes."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.save = os.path.join(self.dir.name, 'e2e.sav')
+        self.png = os.path.join(self.dir.name, 'e2e.png')
+        self.log = os.path.join(self.dir.name, 'stdout.txt')
+        open(self.log, 'w').close()
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def write_png(self, data=PNG, mtime_ns=None):
+        with open(self.png, 'wb') as f:
+            f.write(data)
+        if mtime_ns is not None:
+            os.utime(self.png, ns=(mtime_ns, mtime_ns))
+
+    def wait(self, ticks, since=0, timeout=10.0):
+        now = [0.0]
+        polls = [0]
+
+        def sleep(seconds):
+            ticks(polls[0])
+            polls[0] += 1
+            now[0] += seconds
+
+        result = e2e.wait_preview_written(self.save, self.log, 0, since, timeout=timeout, poll=1.0, clock=lambda: now[0], sleep=sleep)
+        return result, polls[0]
+
+    def test_path_next_to_the_save(self):
+        self.assertEqual(e2e.preview_path(self.save), self.png)
+
+    def test_waits_for_the_whole_png(self):
+        self.write_png(PNG[:20])
+        self.assertEqual(self.wait(lambda n: n == 1 and self.write_png()), (True, 2))
+
+    def test_an_earlier_saves_png_does_not_count(self):
+        self.write_png(mtime_ns=1_000_000_000)
+        self.assertEqual(self.wait(lambda n: n == 2 and self.write_png(), since=2_000_000_000), (True, 3))
+
+    def test_a_skipped_preview_ends_the_wait(self):
+        def ticks(n):
+            if n == 0:
+                with open(self.log, 'a') as f:
+                    f.write('[INFO] ' + e2e.PREVIEW_SKIPPED + '\n')
+
+        self.assertEqual(self.wait(ticks), (True, 1))
+
+    def test_times_out(self):
+        self.assertEqual(self.wait(lambda n: None, timeout=5.0), (False, 5))
+
+
 if __name__ == '__main__':
     unittest.main()
