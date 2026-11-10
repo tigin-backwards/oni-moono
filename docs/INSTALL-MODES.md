@@ -247,7 +247,7 @@ list anyway).
   (`MoonoDialog`): "Moono makes Oxygen Not Included run faster. To play with it:", three
   numbered steps (click Copy launch option; in Steam, paste it into the game's launch options;
   quit the game and press Play), the launch-option line under step 1 in the box of the game's
-  own text field (monospaced, one line, shortened in the middle when long:
+  own text field (one line, shortened in the middle when long:
   `"…\oni-moono\versioned\OniMoono.exe" -- %command%`), and a muted line: "To stop seeing this,
   disable the Moono mod." It stays open until **Not now** (or Escape); the game carries on.
   Nothing is added to the main menu itself.

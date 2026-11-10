@@ -41,8 +41,11 @@ namespace MoonoLoader
             dialog.SetHeader(T(LoaderStrings.Title));
             AddText(dialog, "Intro", T(LoaderStrings.Intro));
             var step1 = AddText(dialog, "Step1", "1. " + T(LoaderStrings.StepCopy));
+            dialog.AddSpacer(4f);
             AddLine(dialog, LoaderStrings.Shorten(install.LaunchOption, ShownLength));
+            dialog.AddSpacer(8f);
             AddText(dialog, "Step2", "2. " + T(LoaderStrings.StepPaste));
+            dialog.AddSpacer(8f);
             AddText(dialog, "Step3", "3. " + T(LoaderStrings.StepRestart));
             var hint = AddText(dialog, "Hint", T(LoaderStrings.DisableHint));
             hint.color = new Color(hint.color.r, hint.color.g, hint.color.b, 0.55f);
@@ -70,6 +73,11 @@ namespace MoonoLoader
                     global::Debug.LogWarning("[MoonoLoader] not installed: " + e.Message);
                 }
             };
+            // As little room above the buttons as below the title: the button row's own top
+            // padding goes.
+            if (Traverse.Create(dialog).Field("rightButtonPanel").GetValue() is GameObject panel
+                && panel.transform.parent.GetComponent<UnityEngine.UI.HorizontalLayoutGroup>() is { } row)
+                row.padding = new RectOffset(row.padding.left, row.padding.right, 0, row.padding.bottom);
             // Escape closes it too.
             Traverse.Create(dialog).Field("escapeCloses").SetValue(true);
             global::Debug.Log("[MoonoLoader] asked whether to play with Moono");
@@ -85,7 +93,8 @@ namespace MoonoLoader
         }
 
         /// The launch-option line in the box of the game's own text field (the file name
-        /// dialog's), its editing taken out: one line, each character as wide as the next.
+        /// dialog's), its editing taken out: one line in the game's UI font (the game ships no
+        /// monospaced one, and TextMeshPro's forced spacing gaps hyphens and percent signs).
         static void AddLine(InfoDialogScreen dialog, string shown)
         {
             var prefab = Traverse.Create(ScreenPrefabs.Instance.FileNameDialog).Field("inputField").GetValue() as TMP_InputField;
@@ -116,7 +125,7 @@ namespace MoonoLoader
             text.enableWordWrapping = false;
 #pragma warning restore CS0618
             text.overflowMode = TextOverflowModes.Overflow;
-            text.text = "<mspace=0.6em><noparse>" + shown + "</noparse></mspace>";
+            text.text = "<noparse>" + shown + "</noparse>";
         }
 
         /// The game language's .po among the translations of the player the loader's version
