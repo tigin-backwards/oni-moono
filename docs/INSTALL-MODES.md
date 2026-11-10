@@ -6,7 +6,7 @@ How Moono starts and where it is installed. Three ways exist side by side:
 |---|---|---|---|
 | Launch options | Steam: `"…\OniMoono.exe" -- %command%` | where setup installed it (`%LOCALAPPDATA%\oni-moono\player`, or `player/` of a release on Linux) | run a newer release's setup |
 | Standalone | `OniMoono.exe` itself (Explorer, a shortcut, a terminal; Linux: the launcher `oni-moono.desktop`) | the same, or a versioned install | as the folder it runs from |
-| Versioned install | its entry point, `…\oni-moono\versioned\OniMoono.exe` (Steam's launch options, its shortcut) | `versioned\player\<version>\` | from its source folder (a Workshop item) at each start |
+| Versioned install | its entry point, `…\oni-moono\versioned\OniMoono.exe` (a shortcut you make, a non-Steam game in Steam, Steam's launch options) | `versioned\player\<version>\` | from its source folder (a Workshop item) at each start |
 
 The launch-options route is unchanged by the other two: with `-- %command%` Moono takes the game
 folder from Steam's command, as before.
@@ -101,8 +101,18 @@ The entry point updates itself from the chosen version: on Windows the running `
 renamed to `OniMoono.exe.old` (a running exe can be renamed, not replaced) and the new one put in
 place; the next start deletes the `.old`. On Linux the script is replaced by a rename.
 
-The first install from a source folder makes a shortcut to the entry point: `Moono.lnk` in the
-Start menu's Programs and on the desktop, or `oni-moono.desktop` in `~/.local/share/applications`.
+Moono makes no shortcut. After the first start, start Moono through the entry point,
+`%LOCALAPPDATA%\oni-moono\versioned\OniMoono.exe` (Linux: `versioned/OniMoono`, as above), in
+one of these ways:
+
+1. A shortcut you make to it (right-click, Send to, Desktop).
+2. Steam's "Add a Non-Steam Game to My Library", picking that `OniMoono.exe`. Steam starts it,
+   so the overlay works; ONI's Steam Cloud is not synced this way.
+3. ONI's launch options in Steam, with the full path (Steam may not expand `%LOCALAPPDATA%`):
+   `"C:\Users\<you>\AppData\Local\oni-moono\versioned\OniMoono.exe" -- %command%`, the form
+   setup.cmd uses. This gives the overlay and ONI's Steam Cloud.
+
+The Workshop item's `OniMoono.exe` is for the first start only.
 
 **Tests** of the native host set `ONI_HOST_NO_DIALOG=1`: a failure to start then shows no
 message box and touches no Player.log; its line goes to stderr, and to `ONI_HOST_MESSAGES`' file
@@ -164,7 +174,7 @@ same rule gives each game build its Moono:
 - **The first start** from the item (`OniMoono.exe` there, which has `moono.json` and
   `windows-x64\player` beside it and no player of its own) copies the root's Windows player to
   `versioned\player\.bootstrap-<pid>` and starts the copy with the item as its source; it installs
-  the version for the game as above, the entry point and the shortcut, then hands over to the
+  the version for the game as above, and the entry point, then hands over to the
   entry point. The item's folder itself never runs, so Steam can always update it; later starts
   install each update from it.
 - **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a master and a u60 release

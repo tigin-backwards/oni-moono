@@ -243,36 +243,49 @@ namespace OniMoono.Tests
         }
 
         [Fact]
-        public void EntryScriptAndShortcuts()
+        public void EntryScript()
         {
+            if (OperatingSystem.IsWindows()) return;
             Directory.CreateDirectory(Root);
             var install = Install();
-            var shortcuts = Path.Combine(dir, "applications");
-            Environment.SetEnvironmentVariable(Shortcuts.DirsVariable, shortcuts);
+            Assert.StartsWith("#!/bin/sh\n", Entry.Script);
+            Assert.Contains("77", Entry.Script);
+            // The entry point goes in once, and again only when it changes.
+            Workshop();
+            install.InstallFrom(Source, U60, NoDlc, out var v);
+            Entry.Install(install, Path.Combine(Root, "player", v!), log);
+            Assert.Equal(Entry.Script, File.ReadAllText(Path.Combine(Root, "OniMoono")));
+            int updates = log.Count(l => l.Contains("entry point"));
+            Entry.Install(install, Path.Combine(Root, "player", v!), log);
+            Assert.Equal(updates, log.Count(l => l.Contains("entry point")));
+        }
+
+        /// An install from a source folder writes nothing outside the install root: no shortcut
+        /// on the desktop, in the Start menu or under XDG applications.
+        [Fact]
+        public void InstallFromSourceMakesNoShortcut()
+        {
+            var data = Path.Combine(dir, "data");
+            Directory.CreateDirectory(Path.Combine(data, "applications"));
+            var old = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+            Environment.SetEnvironmentVariable("XDG_DATA_HOME", data);
             try
             {
-                Assert.True(Shortcuts.Create(install, log));
+                Workshop();
+                var install = Install();
+                Assert.Equal(VersionedInstall.SourceResult.Installed, install.InstallFrom(Source, U60, NoDlc, out var v));
+                Entry.Install(install, Path.Combine(Root, "player", v!), log);
             }
             finally
             {
-                Environment.SetEnvironmentVariable(Shortcuts.DirsVariable, null);
+                Environment.SetEnvironmentVariable("XDG_DATA_HOME", old);
             }
-            if (OperatingSystem.IsWindows()) Assert.True(File.Exists(Path.Combine(shortcuts, "Moono.lnk")));
-            else
-            {
-                var desktop = File.ReadAllText(Path.Combine(shortcuts, "oni-moono.desktop"));
-                Assert.Contains($"Exec=\"{Path.Combine(Root, "OniMoono")}\"", desktop);
-                Assert.StartsWith("#!/bin/sh\n", Entry.Script);
-                Assert.Contains("77", Entry.Script);
-                // The entry point goes in once, and again only when it changes.
-                Workshop();
-                install.InstallFrom(Source, U60, NoDlc, out var v);
-                Entry.Install(install, Path.Combine(Root, "player", v!), log);
-                Assert.Equal(Entry.Script, File.ReadAllText(Path.Combine(Root, "OniMoono")));
-                int updates = log.Count(l => l.Contains("entry point"));
-                Entry.Install(install, Path.Combine(Root, "player", v!), log);
-                Assert.Equal(updates, log.Count(l => l.Contains("entry point")));
-            }
+            Assert.Empty(Directory.GetFileSystemEntries(Path.Combine(data, "applications")));
+            Assert.Equal(["data", "root", "source"], Directory.GetDirectories(dir).Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray());
+            Assert.Empty(Directory.GetFiles(Root, "*.lnk", SearchOption.AllDirectories));
+            Assert.Empty(Directory.GetFiles(Root, "*.desktop", SearchOption.AllDirectories));
+            Assert.DoesNotContain(log, l => l.Contains("shortcut", StringComparison.OrdinalIgnoreCase));
+            Assert.Null(typeof(VersionedInstall).Assembly.GetType("OniMoono.Host.Install.Shortcuts"));
         }
 
         [Fact]

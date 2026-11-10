@@ -8,9 +8,8 @@ namespace OniMoono.Host.Install
 {
     /// A start of a versioned install (VersionedInstall; the entry point sets
     /// ONI_MOONO_INSTALL_ROOT), before anything of the game loads: install the source folder's
-    /// version for the game's build when it is new, put the entry point and the shortcut in
-    /// place, then play the installed version chosen for the build. When that is not the
-    /// running one (a bootstrap copy started from the source folder, or another game build),
+    /// version for the game's build when it is new, put the entry point in place, then play the
+    /// installed version chosen for the build. When that is not the running one (a bootstrap copy started from the source folder, or another game build),
     /// state/current names it and the exit code asks the entry point to start it.
     internal static class VersionedStart
     {
@@ -66,10 +65,6 @@ namespace OniMoono.Host.Install
                 return bootstrap ? Fail(log, $"no version for game build {build}") : null;
             }
             Entry.Install(install, chosen.Dir, log);
-            if (fromSource || install.ReadState("shortcut") == null)
-            {
-                if (Shortcuts.Create(install, log)) install.WriteState("shortcut", "made");
-            }
             install.WriteState("current", chosen.Name);
             if (chosen.Name != running)
             {
