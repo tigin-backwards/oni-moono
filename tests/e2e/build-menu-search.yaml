@@ -19,8 +19,7 @@ steps:
       "BuildingGroupScreen.Instance.inputField.text": "pump"
       "BuildingGroupScreen.IsEditing": true
   # The field refreshes the search 0.2 s after the last edit (KInputTextField).
-  # A slow runner takes more than the default 300 frames to show the results.
-  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/GasPump Group*", cond: active, frames: 900}
+  - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/GasPump Group*", cond: active}
   - ui_wait: {path: "**/BuildingGroups/Viewport/Contents", cond: stable}
   - ui_dump: {name: results, root: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport"}
   - shot: {name: results}
