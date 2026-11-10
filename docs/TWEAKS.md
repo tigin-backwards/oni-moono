@@ -495,6 +495,10 @@ To add a language:
    not match the English, and list the strings that are missing or were translated from older
    English (stale).
 
-When the English changes in `src/OniMoono.Host/GameTweaks/GameTweakNames.cs` or `TweakStrings.cs`,
+The same files translate the Workshop loader mod's dialog (`STRINGS.MOONO.LOADER.*`,
+`src/MoonoLoader/LoaderStrings.cs`; docs/INSTALL-MODES.md), which reads them from the item.
+
+When the English changes in `src/OniMoono.Host/GameTweaks/GameTweakNames.cs`, `TweakStrings.cs`
+or `LoaderStrings.cs`,
 run the unit tests with `ONI_UPDATE_DOCS=1` to regenerate `moono.pot`; the tests then list each
 translation's stale strings.

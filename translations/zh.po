@@ -1,5 +1,5 @@
-# The Moono Tweaks screen in Simplified Chinese.
-# Translation by hao7259 (https://github.com/hao7259), from PR #38.
+# Moono's strings in Simplified Chinese: the Moono Tweaks screen and the Workshop loader mod.
+# The Moono Tweaks screen's translation by hao7259 (https://github.com/hao7259), from PR #38.
 # msgctxt: the string's key; msgid: the English it was translated from (translations/moono.pot).
 msgid ""
 msgstr ""
@@ -713,3 +713,55 @@ msgstr "除今天以外，每日报告的备注都存放在紧凑的数组中，
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.REPORTS"
 msgid "~0.9 GB less memory on a late-game colony; loading ~1 s faster"
 msgstr "后期大型殖民地少用约 0.9 GB 内存，加载快约 1 秒"
+
+msgctxt "STRINGS.MOONO.LOADER.TITLE"
+msgid "Play with Moono?"
+msgstr "使用 Moono 游玩？"
+
+msgctxt "STRINGS.MOONO.LOADER.INTRO"
+msgid "Moono makes Oxygen Not Included run faster. To play with it:"
+msgstr "Moono 让《缺氧》运行得更快。使用方法："
+
+msgctxt "STRINGS.MOONO.LOADER.STEP_COPY"
+msgid "Click Copy launch option. This installs Moono and copies:"
+msgstr "点击“复制启动选项”。这会安装 Moono 并复制："
+
+msgctxt "STRINGS.MOONO.LOADER.STEP_PASTE"
+msgid "In Steam, right-click Oxygen Not Included → Properties → Launch Options, and paste."
+msgstr "在 Steam 中右键点击《缺氧》→ 属性 → 启动选项，然后粘贴。"
+
+msgctxt "STRINGS.MOONO.LOADER.STEP_RESTART"
+msgid "Quit the game and press Play."
+msgstr "退出游戏，然后点击“开始游戏”。"
+
+msgctxt "STRINGS.MOONO.LOADER.DISABLE_HINT"
+msgid "To stop seeing this, disable the Moono mod."
+msgstr "如不想再看到此窗口，请停用 Moono 模组。"
+
+msgctxt "STRINGS.MOONO.LOADER.NOT_NOW"
+msgid "Not now"
+msgstr "以后再说"
+
+msgctxt "STRINGS.MOONO.LOADER.COPY"
+msgid "Copy launch option"
+msgstr "复制启动选项"
+
+msgctxt "STRINGS.MOONO.LOADER.COPIED"
+msgid "Copied ✓"
+msgstr "已复制 ✓"
+
+msgctxt "STRINGS.MOONO.LOADER.INSTALLED"
+msgid "Moono installed. Launch option copied."
+msgstr "Moono 已安装，启动选项已复制。"
+
+msgctxt "STRINGS.MOONO.LOADER.FAILED"
+msgid "Moono could not be installed: {0}"
+msgstr "无法安装 Moono：{0}"
+
+msgctxt "STRINGS.MOONO.LOADER.MODS_BUTTON"
+msgid "Play with Moono"
+msgstr "使用 Moono"
+
+msgctxt "STRINGS.MOONO.LOADER.MODS_TIP"
+msgid "Install Moono and copy the launch option for Steam"
+msgstr "安装 Moono 并复制 Steam 启动选项"
