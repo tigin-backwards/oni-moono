@@ -1,0 +1,30 @@
+# Moono's Workshop item under Moono (docs/INSTALL-MODES.md, "The loader mod"), run with
+# --player ours: a made-up item (`moono_item`) both as a Steam subscription and as a Local mod.
+# Moono makes no mod of the subscription (skip-own-workshop-item) and drops the one mods.json
+# has for it (as the original game leaves it) without a mod event, so the Mods screen has no
+# Steam row and no dialog reports it; the Local copy's loader mod loads but sees Moono's player
+# and does nothing, so no dialog appears at the main menu.
+from: main-menu
+moono_item: true
+allowed_signatures: []
+expect_log:
+  - 'Workshop item Moono is Moono itself, not a mod: left out of the mod list \(and out of mods.json''s\)'
+  - "\\[MoonoLoader\\] Moono's player runs the game: nothing to do"
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  # No loader dialog, and no mod event dialog for the subscription mods.json had.
+  - expect_ui:
+      "**/MoonoDialog": {exists: false}
+      "**/ConfirmDialog": {exists: false}
+  - expect_state:
+      "count:Global.Instance.modManager.mods[*] if .label.distribution_platform == Steam": 0
+      "count:Global.Instance.modManager.mods[*] if .staticID == MoonoItem": 1
+      "type:MoonoLoader.Loader::VersionDir": "== ''"
+  - click: {text: "MODS", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModsScreen/Panel", cond: stable}
+  - expect_ui:
+      "**/ModsScreen/Panel/ListView/Files/Viewport/Content/Moono": {active: true}
+      "**/ModsScreen/**/MoonoButton": {exists: false}

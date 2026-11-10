@@ -190,6 +190,10 @@ data_collection: true            # the Data Collection option on, for a spec tha
 workshop: {id: 1960996649, layout: folder}   # one gated mod as a Steam subscription (folder, or zip with corrupt: true);
                                  # both players need tools/SteamStub/build.sh --dlc --ugc's library
 test_mods: [OverlapTestMod]      # our test mods (tools/NAME, built to out/bin/NAME/release) as Local mods
+moono_item: true                 # a made-up Moono Workshop item with the loader mod (dotnet build
+                                 # src/MoonoLoader -c Release) as a Local mod, in ours also as a Steam
+                                 # subscription; the original's loader installs into the profile's
+                                 # moono-install/versioned (ONI_MOONO_INSTALL_ROOT)
 game_args: [-moddev, --baz=1]    # arguments for the game: after the original's own, after the game's
                                  # executable in ours' Steam form (`-- …/OxygenNotIncluded ARGS`)
 update_check: {releases: update-releases.json, tag: v2026.11.01.04}   # ours' update check reads this

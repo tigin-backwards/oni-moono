@@ -1,0 +1,54 @@
+# Moono's Workshop item in the original game (docs/INSTALL-MODES.md, "The loader mod"), run with
+# --player original: a made-up item (`moono_item`) as a Local mod, its loader mod enabled.
+# At the main menu the loader asks once whether to play with Moono, in the game's info dialog:
+# the launch-option line (a read-only text field) and Close and Copy. Close leaves the game at
+# its main menu. The item's row in the Mods screen has a Play with Moono button that shows the
+# dialog again; Copy installs the item's player into the profile's moono-install/versioned
+# (ONI_MOONO_INSTALL_ROOT), the entry point and the state Moono reads, puts the line on the
+# clipboard and says so, and the dialog stays open until Close.
+from: main-menu
+moono_item: true
+expect_log:
+  - '\[MoonoLoader\] asked whether to play with Moono'
+  - '\[MoonoLoader\] Moono 2026\.11\.10\.01-u60 installed in .*/moono-install/versioned; launch option copied: ".*/moono-install/versioned/OniMoono" -- %command%'
+steps:
+  # The intro video of a first start plays over the main menu and its dialog.
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MoonoDialog", cond: stable, frames: 600}
+  - expect_ui:
+      "**/MoonoDialog/**/Header/Label": {text: "Play Oxygen Not Included with Moono?"}
+      "**/MoonoDialog/**/LaunchOption": {text: "/moono-install/versioned/OniMoono\" -- %command%/"}
+      "**/MoonoDialog/**/LeftButton_Prefab/Text": {text: "Close"}
+      "**/MoonoDialog/**/RightButton_Prefab/Text": {text: "Copy"}
+  - shot: {name: dialog}
+  - click: {text: "Close", under: "**/MoonoDialog"}
+  - ui_wait: {path: "**/MoonoDialog", cond: gone, frames: 600}
+  - expect_state:
+      "file:moono-install": missing
+  - click: {text: "MODS", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ModsScreen/Panel", cond: stable}
+  - expect_ui:
+      "**/ModsScreen/Panel/ListView/Files/Viewport/Content/Moono/**/MoonoButton": {active: true, interactable: true}
+  - ui_dump: {name: row, root: "**/ModsScreen/Panel/ListView/Files/Viewport/Content/Moono"}
+  - shot: {name: mods}
+  - click: {ui: "**/ModsScreen/**/Content/Moono/**/MoonoButton"}
+  - ui_wait: {path: "**/MoonoDialog", cond: stable, frames: 600}
+  - click: {text: "Copy", under: "**/MoonoDialog"}
+  - expect_ui:
+      "**/MoonoDialog/**/RightButton_Prefab/Text": {text: "Copied ✓"}
+      "**/MoonoDialog/Layout": {active: true}
+  - expect_state:
+      "file:moono-install/versioned/player/2026.11.10.01-u60/OniMoono": exists
+      "file:moono-install/versioned/player/2026.11.10.01-u60/packages/UnityEngine.UI.dll": exists
+      "file:moono-install/versioned/player/2026.11.10.01-u60/moono.json": exists
+      "file:moono-install/versioned/OniMoono": exists
+      "file:moono-install/versioned/state/current": exists
+      "file:moono-install/versioned/state/source": exists
+      "type:MoonoLoader.MoonoDialog::LastCopied": {contains: "/moono-install/versioned/OniMoono\" -- %command%"}
+  - shot: {name: copied}
+  - click: {text: "Close", under: "**/MoonoDialog"}
+  - ui_wait: {path: "**/MoonoDialog", cond: gone, frames: 600}
+  - expect_ui:
+      "**/ModsScreen/Panel": {active: true}

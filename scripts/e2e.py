@@ -71,7 +71,7 @@ writing a spec; a QA perf stage waiting to start ends it 10 minutes later.
 """
 
 import contextlib, ctypes, fcntl, glob, hashlib, importlib.util, itertools, json, os, re, shlex, shutil, signal, socket, subprocess, sys
-import struct, threading, time, urllib.error, urllib.request, zipfile, zlib
+import io, struct, tarfile, threading, time, urllib.error, urllib.request, zipfile, zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SPECS = os.path.join(ROOT, 'tests', 'e2e')
@@ -203,6 +203,7 @@ TOP_KEYS = {
     'game_args',
     'expect_log',
     'allowed_signatures',
+    'moono_item',
 }
 # `game_args`: arguments for the game itself, after the original's own (its executable's
 # arguments) and after the game's executable in our Steam form (`-- GAME-EXECUTABLE ARGS`), which
@@ -213,6 +214,12 @@ TOP_KEYS = {
 # take no image (a shot still moves the pointer away first), so a spec checks its UI dumps,
 # expectations and state only, and no picture of the game is made.
 NO_SHOTS = os.environ.get('E2E_NO_SHOTS') == '1'
+# `moono_item: true`: a made-up Moono Workshop item (moono_test_item: two fake releases laid out
+# by scripts/workshop-item.py with the loader mod, out/bin/MoonoLoader/release) as a Local mod,
+# and in ours also as a Steam subscription (MOONO_ITEM_ID), which Moono leaves out of its mod
+# list. The original's loader installs into the profile's moono-install/versioned
+# (ONI_MOONO_INSTALL_ROOT), never the machine's.
+MOONO_ITEM_ID = '3999999999'
 TEST_MODS = ('OverlapTestMod', 'SelectCycleTestMod', 'CommandLineTestMod', 'ReachStressTestMod')
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 # `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty
@@ -556,6 +563,8 @@ def check_spec(spec):
         problems.append('`options` maps a static ID to {Field: value}')
     elif not all(re.fullmatch(r'[^/\\]+\.json', str(v.get('$file', 'x.json'))) for v in options.values()):
         problems.append('an `options` `$file` is a file name ending in .json')
+    if spec.get('moono_item', True) is not True:
+        problems.append('`moono_item` is true, or left out')
     workshop = spec.get('workshop')
     if workshop is not None and (
         not isinstance(workshop, dict)
@@ -2987,8 +2996,10 @@ class Player:
         test_mods=(),
         game_args=(),
         player_args=(),
+        moono_item=False,
     ):
         self.kind, self.out, self.env, self.lane = kind, out, env, lane
+        self.moono_item = moono_item
         self.player_args = list(player_args or ())
         self.game_args = list(game_args or ())
         self.test_mods = list(test_mods or ())
@@ -3150,12 +3161,32 @@ class Player:
             )
         if self.workshop:
             entries.append(self.install_workshop_item(self.workshop))
+        if self.moono_item:
+            item = os.path.join(self.home, 'moono-item')
+            moono_test_item(item)
+            local = os.path.join(mods_dir, 'Local', 'Moono')
+            shutil.copytree(item, local)
+            with open(os.path.join(local, 'mod.yaml'), 'w') as f:
+                f.write('title: "Moono"\ndescription: "Moono\'s Workshop item, made up for a test"\nstaticID: MoonoItem\n')
+            entries.append(
+                {
+                    'label': {'distribution_platform': 0, 'id': 'Moono', 'title': 'Moono', 'version': (hash_of or ws_mods().mono_hash)('Moono')},
+                    'status': 1,
+                    'enabled': True,
+                    'enabledForDlc': ['', 'EXPANSION1_ID'],
+                    'crash_count': 0,
+                    'reinstall_path': None,
+                    'staticID': 'MoonoItem',
+                }
+            )
+            if self.kind != 'original':
+                entries.append(self.install_workshop_item({'id': MOONO_ITEM_ID}, source=item, title='Moono'))
         with open(os.path.join(mods_dir, 'mods.json'), 'w') as f:
             json.dump({'version': 1, 'mod_load_in_progress': False, 'mods': entries}, f)
         return {e['label']['id']: e['staticID'] for e in entries}
 
-    def install_workshop_item(self, workshop):
-        """The spec's `workshop` item as a Steam subscription, for the Steam double's Workshop part
+    def install_workshop_item(self, workshop, source=None, title=None):
+        """The spec's `workshop` item (or the folder `source`, not gated) as a Steam subscription, for the Steam double's Workshop part
         (tools/SteamStub/ugc.s, `build.sh --dlc --ugc`; both players must load that library): the
         mod (gated and unpacked as `mods` are) laid out under the run home's
         steamapps/workshop/content/457140/ID, as a folder (U60's loose files) or as a legacy zip
@@ -3164,12 +3195,13 @@ class Player:
         the item's mods.json entry: a Steam label, enabled."""
         wid = str(workshop['id'])
         staging = os.path.join(self.home, 'workshop-staging')
-        ws = ws_mods()
-        try:
-            ws.profile(staging, [wid])  # the mod gate first, as for `mods`
-        except ws.GateSkipped as e:
-            raise SpecFailure(str(e)) from None
-        source = os.path.join(staging, 'Local', wid)
+        if source is None:
+            ws = ws_mods()
+            try:
+                ws.profile(staging, [wid])  # the mod gate first, as for `mods`
+            except ws.GateSkipped as e:
+                raise SpecFailure(str(e)) from None
+            source = os.path.join(staging, 'Local', wid)
         item = os.path.join(self.home, 'steamapps', 'workshop', 'content', '457140', wid)
         good = os.path.join(self.home, 'workshop-download.zip')
         with zipfile.ZipFile(good, 'w', zipfile.ZIP_DEFLATED) as z:
@@ -3187,9 +3219,9 @@ class Player:
             if workshop.get('corrupt'):
                 with open(path, 'r+b') as f:
                     f.truncate(os.path.getsize(path) // 2)
-        title = mod_yaml_value(source, 'title') or wid
+        title = title or mod_yaml_value(source, 'title') or wid
         self.workshop_env = {'ONI_STEAMSTUB_UGC_ID': wid, 'ONI_STEAMSTUB_UGC_PATH': path, 'ONI_STEAMSTUB_UGC_TITLE': title, 'ONI_STEAMSTUB_UGC_DOWNLOAD': good}
-        shutil.rmtree(staging)
+        shutil.rmtree(staging, ignore_errors=True)
         # A Steam label's version is the item's lastUpdateTime, which the double's details leave 0.
         return {
             'label': {'distribution_platform': 1, 'id': wid, 'title': title, 'version': 0},
@@ -3223,6 +3255,8 @@ class Player:
                 env[name] = self.env[name]
         if self.kind == 'original':
             env.update(original_environment(self.env.get('E2E_ORIGINAL_ENV')))
+            if self.moono_item:
+                env['ONI_MOONO_INSTALL_ROOT'] = os.path.join(self.profile, 'moono-install', 'versioned')
         # `blocked_plugins`, `stray_plugins`: each player runs a copy of its install with those
         # plugins unreadable and those files added. The copy is the lane's (both players of a run
         # use it in turn), at the same path for both, so the plugin's path in a load error is the
@@ -3615,6 +3649,48 @@ def blocked_install(source, plugins, dest, stray=()):
             os.remove(added)  # a link into the install: replaced, never written through
         open(added, 'w').close()
     return dest
+
+
+def moono_test_item(dest, loader=None):
+    """A made-up Moono Workshop item in dest (`moono_item`): two releases' assets with a tiny
+    player each (an entry script, a library, a file in a folder), laid out by
+    scripts/workshop-item.py with the loader mod as the real item is."""
+    loader = loader or os.path.join(ROOT, 'out', 'bin', 'MoonoLoader', 'release', 'MoonoLoader.dll')
+    if not os.path.exists(loader):
+        raise SpecFailure(f'no {loader} (dotnet build src/MoonoLoader -c Release)')
+    assets = dest + '-assets'
+    shutil.rmtree(assets, ignore_errors=True)
+    files = {
+        'player/OniMoono': b'#!/bin/sh\necho made-up Moono\n',
+        'player/OniMoono.exe': b'MZ',
+        'player/OniMoono.dll': b'MZ dll',
+        'player/packages/UnityEngine.UI.dll': b'MZ ui',
+    }
+    manifest = ''.join(f'{hashlib.sha256(d).hexdigest()}  {p}\n' for p, d in sorted(files.items()))
+    for branch, version in (('u60', '2026.11.10.01-u60'), ('master', '2026.11.10.01')):
+        folder = os.path.join(assets, branch)
+        os.makedirs(folder)
+        for platform in ('windows-x64', 'linux-x64'):
+            base = os.path.join(folder, f'oni-moono-{version}-{platform}')
+            with open(base + '.SHA256SUMS', 'w') as f:
+                f.write(manifest)
+            if platform == 'windows-x64':
+                with zipfile.ZipFile(base + '.zip', 'w') as z:
+                    for p, d in files.items():
+                        z.writestr('oni-moono/' + p, d)
+            else:
+                with tarfile.open(base + '.tar.gz', 'w:gz') as t:
+                    for p, d in files.items():
+                        info = tarfile.TarInfo('oni-moono/' + p)
+                        info.size, info.mode = len(d), 0o755 if p == 'player/OniMoono' else 0o644
+                        t.addfile(info, io.BytesIO(d))
+    shutil.rmtree(dest, ignore_errors=True)
+    run = [sys.executable, '-I', os.path.join(ROOT, 'scripts', 'workshop-item.py'), '--u60', os.path.join(assets, 'u60'), '--u60-tag', 'v2026.11.10.01']
+    run += ['--master', os.path.join(assets, 'master'), '--master-tag', 'v2026.11.10.01', '--loader', loader, dest]
+    made = subprocess.run(run, capture_output=True, text=True)
+    shutil.rmtree(assets, ignore_errors=True)
+    if made.returncode:
+        raise SpecFailure(f'the made-up Moono item: {made.stderr.strip()}')
 
 
 def mod_yaml_value(folder, key):
@@ -4836,6 +4912,7 @@ class Run:
                 extra_env=spec.get('env'),
                 test_mods=spec.get('test_mods', ()),
                 game_args=spec.get('game_args', ()),
+                moono_item=spec.get('moono_item', False),
             )
             self.mcp.on_reply = self.player.watchdog.progress
             records = open(os.path.join(self.out, 'results.jsonl'), 'w')
