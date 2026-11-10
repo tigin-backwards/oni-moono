@@ -198,6 +198,7 @@ TOP_KEYS = {
     'workshop',
     'update_check',
     'game_tweaks',
+    'ours_needs',
     'env',
     'test_mods',
     'game_args',
@@ -502,6 +503,9 @@ def check_spec(spec):
     tweaks = spec.get('game_tweaks', [])
     if not isinstance(tweaks, list) or not all(isinstance(t, str) and t for t in tweaks):
         problems.append('`game_tweaks` is a list of `--game-tweak` values')
+    needs = spec.get('ours_needs', {})
+    if not isinstance(needs, dict) or not all(isinstance(f, str) and f and '/' not in f and isinstance(w, str) and w for f, w in needs.items()):
+        problems.append('`ours_needs` maps a file beside our host to what it is')
     game_args = spec.get('game_args', [])
     if not isinstance(game_args, list) or not all(isinstance(a, str) for a in game_args):
         problems.append('`game_args` is a list of strings')
@@ -2048,6 +2052,16 @@ class JobQueue:
         with self.condition:
             self.finished.add(job['id'])
             self.condition.notify_all()
+
+
+def ours_missing(spec, host_dir=None):
+    """Why ours can't run SPEC here (`ours_needs`: a file beside our release host, such as the
+    native allocator only Windows has), or None. Such a run is skipped, not failed."""
+    host_dir = host_dir or os.path.join(ROOT, 'out', 'bin', 'OniMoono.Host', 'release')
+    for name, what in spec.get('ours_needs', {}).items():
+        if not os.path.exists(os.path.join(host_dir, name)):
+            return f'needs {name} beside our host ({what}), not in {os.path.relpath(host_dir, ROOT)}'
+    return None
 
 
 def plan_jobs(specs, kinds, repeat):
@@ -5718,6 +5732,9 @@ def main(argv):
             originals = [results[d] for d in job['after'] if d in results]
         reference = None
         if kind == 'ours':
+            missing = ours_missing(spec)
+            if missing:
+                return dict(record, verdict='skipped', reasons=[missing], out=None)
             reference = Reference.from_runs(spec, originals) if job['after'] else Reference.blessed(spec)
             if job['after'] and reference is None:
                 return dict(record, verdict='skipped', reasons=['the spec fails in the original'], out=None)
