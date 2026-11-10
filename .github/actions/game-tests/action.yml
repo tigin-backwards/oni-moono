@@ -39,6 +39,10 @@ runs:
         sudo apt-get update -qq
         sudo apt-get install -y -qq --no-install-recommends xvfb x11-xkb-utils libgl1 libglx-mesa0 libgl1-mesa-dri libegl1 libxtst6 python3-yaml zstd binutils \
           fonts-freefont-ttf fonts-dejavu-core fonts-liberation > /dev/null
+        # DejaVu's core faces only, as a desktop has them: an ExtraLight face (fonts-dejavu-extra,
+        # if the image has it) shares the family name, sorts first and lacks glyphs tests measure.
+        sudo apt-get remove -y -qq fonts-dejavu-extra > /dev/null 2>&1 || true
+        ls /usr/share/fonts/truetype/dejavu
     - if: steps.key.outputs.have == 'true'
       id: token
       uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0

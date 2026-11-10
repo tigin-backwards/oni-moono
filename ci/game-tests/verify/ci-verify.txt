@@ -7,7 +7,6 @@ canvas products
 component layouts
 fast-anim-cleanup
 fast-jobs
-fast-offset-tables
 fast-symbol-overrides
 fetch-by-cell
 instant-reachability
