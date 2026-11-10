@@ -261,6 +261,34 @@ namespace OniMoono.Host.Install
             return lines;
         }
 
+        /// The version's release manifest, as checked while copying, kept in the installed version's
+        /// folder: what MissingFiles looks for at each start.
+        public const string SavedManifestFile = "SHA256SUMS";
+
+        /// The player files the installed version at `versionDir` lacks, by the release manifest
+        /// saved there at install (paths relative to the folder): existence only, nothing hashed.
+        /// Null when it has no saved manifest (installed before Moono kept one) or it can't be read.
+        public static List<string>? MissingFiles(string versionDir)
+        {
+            List<(string Hash, string Path)>? lines;
+            try
+            {
+                var path = Path.Combine(versionDir, SavedManifestFile);
+                if (!File.Exists(path)) return null;
+                lines = ParseManifest(File.ReadAllBytes(path));
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+            if (lines == null) return null;
+            var missing = new List<string>();
+            foreach (var (_, path) in lines)
+            {
+                if (!path.StartsWith("player/", StringComparison.Ordinal) || !IsPlainRelative(path)) continue;
+                var relative = path.Substring("player/".Length).Replace('/', Path.DirectorySeparatorChar);
+                if (!File.Exists(Path.Combine(versionDir, relative))) missing.Add(relative);
+            }
+            return missing;
+        }
+
         /// A manifest path that stays inside its folder: relative, `/`-separated, no `.` or `..`.
         public static bool IsPlainRelative(string path) =>
             path.Length > 0 && !path.StartsWith('/') && !path.Contains('\\') && !path.Contains(':')
@@ -312,6 +340,7 @@ namespace OniMoono.Host.Install
                 // What choosing among installed versions reads, beside the player.
                 File.WriteAllBytes(Path.Combine(incoming, ModInfo.FileName), modInfo);
                 File.WriteAllBytes(Path.Combine(incoming, OniMoono.GameTweaks.MoonoItemMarker.FileName), marker);
+                File.WriteAllBytes(Path.Combine(incoming, SavedManifestFile), manifestBytes);
                 Directory.Move(incoming, Path.Combine(PlayerDir, version));
                 incoming = "";
                 return null;

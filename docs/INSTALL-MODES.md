@@ -204,6 +204,13 @@ log says why. When the item can't be read at all, the player is told once, in a 
 Workshop item could not be read. Version … plays on; Player.log says why." On a first start with
 nothing installed yet, it says "Moono could not be installed: …" and exits.
 
+**Missing files at start.** The installed version keeps its release manifest (`SHA256SUMS` in
+`player\<version>\`), and before it starts, every player file the manifest lists must be there
+(existence only, nothing hashed or repaired). If any is missing, it doesn't start: a message box
+(Windows) or desktop dialog (Linux) names up to five of them, and says to delete the version's
+folder (`%LOCALAPPDATA%\oni-moono\versioned\player\<version>`) and start the game again;
+Player.log lists them all. Versions installed before Moono kept the manifest aren't checked.
+
 **No signature check.** This guards against a download Steam hasn't finished or a corrupt file,
 not against a forged item: the manifests come from the same item. Moono trusts the Workshop item
 as Steam delivers it, as the game trusts any mod: whoever controls the Steam account that uploads

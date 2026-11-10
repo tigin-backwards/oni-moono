@@ -324,6 +324,53 @@ namespace OniMoono.Tests
             Assert.Equal(["2026.11.08.01-u60"], Install().InstalledVersions().Select(v => v.Name).ToArray());
         }
 
+        /// The release manifest is kept in the installed version's folder, and each start checks
+        /// that every player file it lists is there (existence only): none missing plays, some
+        /// missing doesn't start and says which (five at most, Player.log all), and a version
+        /// installed before manifests were kept is not checked.
+        [Fact]
+        public void MissingFilesStopTheStart()
+        {
+            var game = Game((uint)U60);
+            Workshop();
+            var install = Install();
+            Assert.Equal(VersionedInstall.SourceResult.Installed, install.InstallFrom(Source, U60, NoDlc, out var version));
+            var installed = Path.Combine(Root, "player", version!);
+            Assert.True(File.Exists(Path.Combine(installed, VersionedInstall.SavedManifestFile)));
+            var told = new List<(string Message, bool Error)>();
+            int? Start() => VersionedStart.Run(Install(), game, null, log, installed, (m, e) => told.Add((m, e)));
+
+            // None missing: it plays.
+            Assert.Empty(VersionedInstall.MissingFiles(installed)!);
+            Assert.Null(Start());
+            Assert.Empty(told);
+
+            // Some missing: it doesn't start, and says which and how to repair.
+            var ui = Path.Combine("packages", "UnityEngine.UI.dll");
+            File.Delete(Path.Combine(installed, ui));
+            Assert.Equal([ui], VersionedInstall.MissingFiles(installed));
+            Assert.Equal(2, Start());
+            Assert.Equal(($"Moono's installed version {version} is missing 1 files:\n{ui}\n\nTo repair, delete {installed} and start the game again.", true), Assert.Single(told));
+            Assert.Contains(log, l => l.Contains("is missing 1 files") && l.Contains(ui));
+
+            // More than five: the first five, then how many more; the log has them all.
+            var many = Enumerable.Range(1, 8).Select(i => $"extra{i}.dll").ToList();
+            var message = VersionedStart.MissingMessage(version!, installed, many);
+            Assert.Equal(string.Join("\n", [$"Moono's installed version {version} is missing 8 files:", .. many.Take(5), "…and 3 more (Player.log lists them all).", "", $"To repair, delete {installed} and start the game again."]), message);
+            File.AppendAllLines(Path.Combine(installed, VersionedInstall.SavedManifestFile), many.Select(m => new string('0', 64) + "  player/" + m));
+            told.Clear();
+            Assert.Equal(2, Start());
+            Assert.Contains("…and 4 more (Player.log lists them all).", Assert.Single(told).Message);
+            Assert.Contains(log, l => l.Contains("is missing 9 files") && l.Contains("extra8.dll"));
+
+            // No saved manifest (installed before this was kept): not checked, it plays.
+            File.Delete(Path.Combine(installed, VersionedInstall.SavedManifestFile));
+            Assert.Null(VersionedInstall.MissingFiles(installed));
+            told.Clear();
+            Assert.Null(Start());
+            Assert.Empty(told);
+        }
+
         [Fact]
         public void PruneKeepsTwoPreviousAndClearsLeftovers()
         {
