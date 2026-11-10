@@ -160,7 +160,7 @@ screens and features) fully ticked or with documented deviations only.
 ### M7 — Render thread (done 2026-10-17)
 
 Why: on large colonies the main thread spends about 37% of its time issuing GL work (DeCrew,
-cycle 17628: ~1700 draws and ~2 MiB of texture uploads per frame), in series with game code.
+cycle 17628: ~1700 draws and ~2.1 MB of texture uploads per frame), in series with game code.
 Unity records on the main thread and executes on a render thread; we execute inline, which is
 why CoreCLR's faster game code does not show as frame rate (26 fps against the original's 26).
 Profile and counters: `--frame-stats` (draws, binds, uniforms, uploads).
