@@ -77,6 +77,14 @@ namespace OniMoono.Host.Install
                 install.WriteState("refused", refused);
                 tell($"{refused} Version {chosen.Name} plays on; Player.log says why.", true);
             }
+            // A version missing files of its saved manifest doesn't start: the player is told
+            // which, and how to repair it.
+            if (VersionedInstall.MissingFiles(chosen.Dir) is { Count: > 0 } missing)
+            {
+                log.Add($"install: version {chosen.Name} at {chosen.Dir} is missing {missing.Count} files of its manifest: {string.Join(", ", missing)}");
+                tell(MissingMessage(chosen.Name, chosen.Dir, missing), true);
+                return 2;
+            }
             Entry.Install(install, chosen.Dir, log);
             install.WriteState("current", chosen.Name);
             if (chosen.Name != running)
@@ -89,6 +97,17 @@ namespace OniMoono.Host.Install
             install.Prune(chosen.Name);
             log.Add($"install: game build {build}: playing version {chosen.Name} (installed: {string.Join(", ", install.InstalledVersions().Select(v => v.Name))})");
             return null;
+        }
+
+        /// What the player is told when an installed version is missing files: up to five of them.
+        public static string MissingMessage(string version, string versionDir, IReadOnlyList<string> missing)
+        {
+            var lines = new List<string> { $"Moono's installed version {version} is missing {missing.Count} files:" };
+            lines.AddRange(missing.Take(5));
+            if (missing.Count > 5) lines.Add($"…and {missing.Count - 5} more (Player.log lists them all).");
+            lines.Add("");
+            lines.Add($"To repair, delete {Path.GetFullPath(versionDir)} and start the game again.");
+            return string.Join("\n", lines);
         }
 
         static int Fail(List<string> log, Action<string, bool> tell, string why)

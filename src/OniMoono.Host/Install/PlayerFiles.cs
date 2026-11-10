@@ -19,6 +19,9 @@ namespace OniMoono.Host.Install
     {
         public const string IncomingPrefix = ".incoming-";
         public const string ModInfoFile = "mod_info.yaml", MarkerFile = "moono.json";
+        /// The version's release manifest, as checked while copying, kept in the installed version's
+        /// folder: what MissingFiles looks for at each start.
+        public const string SavedManifestFile = "SHA256SUMS";
 
         /// The manifest's lines: SHA-256 (hex) and path, in sha256sum's format.
         public static List<(string Hash, string Path)>? ParseManifest(byte[] manifest)
@@ -40,6 +43,30 @@ namespace OniMoono.Host.Install
         public static bool IsPlainRelative(string path) =>
             path.Length > 0 && path[0] != '/' && path.IndexOf('\\') < 0 && path.IndexOf(':') < 0
             && path.Split('/').All(part => part.Length > 0 && part != "." && part != "..");
+
+        /// The player files the installed version at `versionDir` lacks, by the release manifest
+        /// saved there at install (paths relative to the folder): existence only, nothing hashed.
+        /// Null when it has no saved manifest (installed before Moono kept one) or it can't be read.
+        public static List<string>? MissingFiles(string versionDir)
+        {
+            List<(string Hash, string Path)>? lines;
+            try
+            {
+                var path = Path.Combine(versionDir, SavedManifestFile);
+                if (!File.Exists(path)) return null;
+                lines = ParseManifest(File.ReadAllBytes(path));
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException) { return null; }
+            if (lines == null) return null;
+            var missing = new List<string>();
+            foreach (var (_, path) in lines)
+            {
+                if (!path.StartsWith("player/", StringComparison.Ordinal) || !IsPlainRelative(path)) continue;
+                var relative = path.Substring("player/".Length).Replace('/', Path.DirectorySeparatorChar);
+                if (!File.Exists(Path.Combine(versionDir, relative))) missing.Add(relative);
+            }
+            return missing;
+        }
 
         /// Copies the manifest's player/ files from `platformDir` into a new folder of
         /// `playerDir`, hashing each as it is read, writes the version's mod_info.yaml and
@@ -92,6 +119,7 @@ namespace OniMoono.Host.Install
                 // What choosing among installed versions reads, beside the player.
                 File.WriteAllBytes(Path.Combine(incoming, ModInfoFile), modInfo);
                 File.WriteAllBytes(Path.Combine(incoming, MarkerFile), marker);
+                File.WriteAllBytes(Path.Combine(incoming, SavedManifestFile), manifest);
                 Directory.Move(incoming, Path.Combine(playerDir, version));
                 incoming = "";
                 return null;

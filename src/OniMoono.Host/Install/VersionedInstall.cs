@@ -248,6 +248,12 @@ namespace OniMoono.Host.Install
         /// The manifest's lines: SHA-256 (hex) and path, in sha256sum's format.
         public static List<(string Hash, string Path)>? ParseManifest(byte[] manifest) => PlayerFiles.ParseManifest(manifest);
 
+        /// The release manifest kept in an installed version's folder (PlayerFiles.SavedManifestFile).
+        public const string SavedManifestFile = PlayerFiles.SavedManifestFile;
+
+        /// The player files an installed version lacks by its saved manifest; null without one.
+        public static List<string>? MissingFiles(string versionDir) => PlayerFiles.MissingFiles(versionDir);
+
         /// A manifest path that stays inside its folder: relative, `/`-separated, no `.` or `..`.
         public static bool IsPlainRelative(string path) => PlayerFiles.IsPlainRelative(path);
 
