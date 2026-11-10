@@ -30,7 +30,7 @@ namespace OniMoono.Host.Install
         public const string RootVariable = "ONI_MOONO_INSTALL_ROOT", SourceVariable = "ONI_MOONO_INSTALL_SOURCE";
         /// The exit code that asks the entry point to start the version state/current names.
         public const int SwitchExitCode = 77;
-        public const string BootstrapPrefix = ".bootstrap-", IncomingPrefix = ".incoming-";
+        public const string BootstrapPrefix = ".bootstrap-", IncomingPrefix = PlayerFiles.IncomingPrefix;
         public const string LockFile = ".in-use";
         /// Versions kept besides the current one.
         public const int KeepPrevious = 2;
@@ -246,128 +246,30 @@ namespace OniMoono.Host.Install
         }
 
         /// The manifest's lines: SHA-256 (hex) and path, in sha256sum's format.
-        public static List<(string Hash, string Path)>? ParseManifest(byte[] manifest)
-        {
-            var lines = new List<(string, string)>();
-            foreach (var line in System.Text.Encoding.UTF8.GetString(manifest).Split('\n'))
-            {
-                var raw = line.TrimEnd('\r');
-                if (raw.Length == 0) continue;
-                if (raw.Length < 66 || raw[64] != ' ' || (raw[65] != ' ' && raw[65] != '*')) return null;
-                var hash = raw.Substring(0, 64);
-                if (!hash.All(Uri.IsHexDigit)) return null;
-                lines.Add((hash.ToLowerInvariant(), raw.Substring(66)));
-            }
-            return lines;
-        }
+        public static List<(string Hash, string Path)>? ParseManifest(byte[] manifest) => PlayerFiles.ParseManifest(manifest);
 
-        /// The version's release manifest, as checked while copying, kept in the installed version's
-        /// folder: what MissingFiles looks for at each start.
-        public const string SavedManifestFile = "SHA256SUMS";
+        /// The release manifest kept in an installed version's folder (PlayerFiles.SavedManifestFile).
+        public const string SavedManifestFile = PlayerFiles.SavedManifestFile;
 
-        /// The player files the installed version at `versionDir` lacks, by the release manifest
-        /// saved there at install (paths relative to the folder): existence only, nothing hashed.
-        /// Null when it has no saved manifest (installed before Moono kept one) or it can't be read.
-        public static List<string>? MissingFiles(string versionDir)
-        {
-            List<(string Hash, string Path)>? lines;
-            try
-            {
-                var path = Path.Combine(versionDir, SavedManifestFile);
-                if (!File.Exists(path)) return null;
-                lines = ParseManifest(File.ReadAllBytes(path));
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
-            if (lines == null) return null;
-            var missing = new List<string>();
-            foreach (var (_, path) in lines)
-            {
-                if (!path.StartsWith("player/", StringComparison.Ordinal) || !IsPlainRelative(path)) continue;
-                var relative = path.Substring("player/".Length).Replace('/', Path.DirectorySeparatorChar);
-                if (!File.Exists(Path.Combine(versionDir, relative))) missing.Add(relative);
-            }
-            return missing;
-        }
+        /// The player files an installed version lacks by its saved manifest; null without one.
+        public static List<string>? MissingFiles(string versionDir) => PlayerFiles.MissingFiles(versionDir);
 
         /// A manifest path that stays inside its folder: relative, `/`-separated, no `.` or `..`.
-        public static bool IsPlainRelative(string path) =>
-            path.Length > 0 && !path.StartsWith('/') && !path.Contains('\\') && !path.Contains(':')
-            && path.Split('/').All(part => part.Length > 0 && part != "." && part != "..");
+        public static bool IsPlainRelative(string path) => PlayerFiles.IsPlainRelative(path);
 
-        /// Copies the manifest's player/ files from `platformDir` into a new folder, hashing each
-        /// as it is read, and moves the folder to player/VERSION when every one matched; else
-        /// deletes it and returns why. `marker` and `modInfo`: the version's moono.json and
-        /// mod_info.yaml, as read.
-        string? Copy(string platformDir, byte[] manifestBytes, string manifestName, byte[] marker, byte[] modInfo, string version)
-        {
-            var lines = ParseManifest(manifestBytes);
-            if (lines == null) return $"its manifest {manifestName} is malformed";
-            var player = lines.Where(l => l.Path.StartsWith("player/", StringComparison.Ordinal)).ToList();
-            if (player.Count == 0) return "its manifest lists no player files";
-            if (player.FirstOrDefault(l => !IsPlainRelative(l.Path)) is { Path: { } bad }) return $"its manifest names {bad}, outside the folder";
-            if (!player.Any(l => l.Path == "player/" + EntryFileInPlayer)) return $"its manifest has no player/{EntryFileInPlayer}";
-
-            Directory.CreateDirectory(PlayerDir);
-            var incoming = Path.Combine(PlayerDir, $"{IncomingPrefix}{version}-{Environment.ProcessId}");
-            try
-            {
-                if (Directory.Exists(incoming)) Directory.Delete(incoming, recursive: true);
-                Directory.CreateDirectory(incoming);
-                foreach (var (hash, path) in player)
-                {
-                    var relative = path.Substring("player/".Length);
-                    var from = Path.Combine(platformDir, path);
-                    var to = Path.Combine(incoming, relative);
-                    if (!File.Exists(from)) return $"{path} is missing (the download is incomplete)";
-                    Directory.CreateDirectory(Path.GetDirectoryName(to)!);
-                    string got;
-                    using (var input = File.OpenRead(from))
-                    using (var output = File.Create(to))
-                    using (var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256))
-                    {
-                        var buffer = new byte[1 << 16];
-                        int n;
-                        while ((n = input.Read(buffer, 0, buffer.Length)) > 0)
-                        {
-                            sha.AppendData(buffer, 0, n);
-                            output.Write(buffer, 0, n);
-                        }
-                        got = Convert.ToHexStringLower(sha.GetHashAndReset());
-                    }
-                    if (got != hash) return $"{path} doesn't match the manifest";
-                    if (!OperatingSystem.IsWindows()) MarkExecutable(to);
-                }
-                // What choosing among installed versions reads, beside the player.
-                File.WriteAllBytes(Path.Combine(incoming, ModInfo.FileName), modInfo);
-                File.WriteAllBytes(Path.Combine(incoming, OniMoono.GameTweaks.MoonoItemMarker.FileName), marker);
-                File.WriteAllBytes(Path.Combine(incoming, SavedManifestFile), manifestBytes);
-                Directory.Move(incoming, Path.Combine(PlayerDir, version));
-                incoming = "";
-                return null;
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-                return e.Message;
-            }
-            finally
-            {
-                if (incoming.Length > 0) TryDelete(incoming);
-            }
-        }
+        /// Copies the manifest's player/ files from `platformDir` into player/VERSION, every file
+        /// checked against the manifest (PlayerFiles.Copy, which the Workshop item's loader mod
+        /// shares); null when it is in place, else why not. `marker` and `modInfo`: the version's
+        /// moono.json and mod_info.yaml, as read.
+        string? Copy(string platformDir, byte[] manifestBytes, string manifestName, byte[] marker, byte[] modInfo, string version) =>
+            PlayerFiles.Copy(platformDir, manifestBytes, manifestName, marker, modInfo, PlayerDir, version, EntryFileInPlayer, Environment.ProcessId,
+                OperatingSystem.IsWindows() ? null : MarkExecutable);
 
         /// Linux: executables (ELF files and scripts) are made executable, as a Workshop download
         /// need not keep the mode.
         [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
-        static void MarkExecutable(string path)
-        {
-            Span<byte> head = stackalloc byte[4];
-            using (var f = File.OpenRead(path))
-                if (f.Read(head) < 2) return;
-            bool elf = head[0] == 0x7f && head[1] == (byte)'E' && head[2] == (byte)'L' && head[3] == (byte)'F';
-            bool script = head[0] == (byte)'#' && head[1] == (byte)'!';
-            if (elf || script)
-                File.SetUnixFileMode(path, File.GetUnixFileMode(path) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
-        }
+        static void MarkExecutable(string path) =>
+            File.SetUnixFileMode(path, File.GetUnixFileMode(path) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
 
         static void TryDelete(string dir)
         {

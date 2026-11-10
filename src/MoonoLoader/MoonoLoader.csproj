@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The loader mod in Moono's Workshop item (docs/INSTALL-MODES.md, "The loader mod"): a
+       KMod.UserMod2 the original game loads from the item's U60 root, which offers to install
+       Moono and copies the launch-option line. Plain code against the game's own assemblies
+       and its Harmony, nothing else; scripts/workshop-item.py puts MoonoLoader.dll in the item
+       (.github/workflows/workshop.yml builds it against U60's reference assemblies). Its name
+       doesn't start with OniMoono: that prefix tells Moono's own assemblies. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>MoonoLoader</AssemblyName>
+    <RootNamespace>MoonoLoader</RootNamespace>
+    <!-- The game's assemblies reference Mono's System.IO.Compression and System.Net.Http, newer
+         than netstandard2.1's; nothing here uses them. -->
+    <MSBuildWarningsAsMessages>MSB3277</MSBuildWarningsAsMessages>
+    <OniManaged Condition="'$(OniManaged)' == ''">$(OniGameDir)/OxygenNotIncluded_Data/Managed</OniManaged>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The player copy Moono's installer makes, the same code (src/OniMoono.Host/Install). -->
+    <Compile Include="../OniMoono.Host/Install/PlayerFiles.cs" Link="PlayerFiles.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="$(OniManaged)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="$(OniManaged)/Assembly-CSharp-firstpass.dll" Private="false" />
+    <Reference Include="$(OniManaged)/0Harmony.dll" Private="false" />
+    <Reference Include="$(OniManaged)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(OniManaged)/UnityEngine.UI.dll" Private="false" />
+    <Reference Include="$(OniManaged)/Unity.TextMeshPro.dll" Private="false" />
+  </ItemGroup>
+</Project>
