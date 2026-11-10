@@ -287,3 +287,60 @@ in [gc-modes.md](gc-modes.md) paused 4-5x longer.
 | classic Server | `DOTNET_GCDynamicAdaptationMode=0` | 16 heaps at up to 200 MiB, no conserve-5 compaction; +2-3 GB |
 | SLL control | `SustainedLowLatency` at start | no change to gen0/gen1 |
 | gen1 cap (optional) | `DOTNET_GCGen1MaxBudget=0x8000000` | more gen1s; whether each gets shorter shows how much of gen1 is copying rather than cards |
+
+## GC configuration A/B (2026-11-10)
+
+The matrix above, run on the late-game colony after allocation batches 2 and 3 (5c1ff982),
+with a full matrix on the earlier build (8e7cf48e) for direction. Measurement only: no default
+changed. Units here are powers of 1,000 (MB, GB).
+
+**Method.** Release builds, default tweaks (`post-load-gc` on), speed 3, autosave off, the second
+launch in a fresh run home, 600 s windows from the first steady frames after the load. Linux:
+contained Xvfb players, two launches per arm, alternating. Windows: monitor 2, `--no-focus`,
+High priority, volume 0, two launches per arm. A local PerfProbe addition logged every frame
+and each collection, plus the runtime's GC events in process (heap count, gen0 budget,
+promotion). A GC frame's cost is its time over the median of the 30 frames on each side; "GC
+time" below is that excess summed per minute. Launches with more than 1.5 cores of other load
+were redone where the queue allowed. The mid-game colony was not run.
+
+**Settings checked first** (GC source, and a console microbenchmark):
+
+- `GCGen0MaxBudget` alone changes nothing under DATAS; with `GCDGen0GrowthPercent` it raises
+  the young budget, as the section above expected.
+- `GCgen0size` is honoured with regions, but as a per-heap floor clamped at half the segment
+  size (about 1 GB a heap on a Linux test player, so 4 GB gives 1 GB). It also stops DATAS
+  adding heaps: 12 instead of 15 in the game.
+
+**Results, current build** (late-game colony; two launches each):
+
+| Arm | GC time, ms/min, Linux / Windows | Young budget | gen0 frame excess, median | Peak memory, Linux / Windows | Frames >= 50 ms |
+|---|---|---|---|---|---|
+| as shipped | 38-44 / 46-49 | 0.86-0.96 GB | 45-50 ms Linux, 31-45 ms Windows | 12.7-13.5 / 13.4-13.9 GB | unchanged |
+| 2x budget | 32-35 / 33 | 1.3 GB | 56-60 / 42-46 ms | 13.2-14.2 / 13.8-14.0 GB | unchanged |
+| 4x budget | 16-19 / 26-35 | 2.6 GB (Windows: one launch stayed at 1.0 GB) | 79-93 / 45-87 ms | 14.8-14.9 / 14.3-14.8 GB | unchanged |
+
+Each gen1 cost about 90-120 ms of frame time with 2x against about 80-110 ms as shipped, at
+0-2 gen1 collections per 10 minutes. Load time didn't change in any arm.
+
+**Earlier build, other arms** (one clean launch each, Linux, direction only):
+
+- **`GCgen0size` 256 MiB a heap:** 12 heaps; gen0 hitches of about 130 ms, gen1 185 ms;
+  +1.7 GB.
+- **`GCgen0size` 1 GiB a heap:** no collection in 10 minutes, +7 GB. The first collection would
+  copy all of it.
+- **DATAS off:** about half the GC time, but gen1 pauses up to 285 ms and +1 GB.
+- **Workstation concurrent GC:** every collection was a gen1, 16-18 a minute, about 20 times the
+  GC time, for 2 GB less memory.
+- **SustainedLowLatency** set at the start of play: no change, as expected.
+- **`GCGen1MaxBudget` cap:** inconclusive; every launch had heavy other load.
+
+**What it shows.** Under DATAS the young budget only trades how often against how long: gen0
+promotion grows with the budget, so each collection copies more. 2x cuts the time spent in GC
+frames by about a fifth on Linux and over a quarter on Windows, for about 0.5 GB more memory
+and hitches 10-20 ms longer. 4x halves it, but its gen0 hitches are about 80-90 ms and it costs
+about 1.5 GB; DATAS also doesn't always use the larger budget. Neither changes the count of
+frames over 50 ms. If a default is to change, 2x
+(`DOTNET_GCGen0MaxBudget=0x8000000`, `DOTNET_GCDGen0GrowthPercent=0x96`, or the matching
+runtimeconfig properties) is the only candidate. Windows fps with 2x (92-101) was below the
+one clean as-shipped launch (112); the other as-shipped launch ran under heavy load, so whether
+2x costs frame rate is open.
