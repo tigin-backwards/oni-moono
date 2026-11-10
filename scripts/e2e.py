@@ -3792,7 +3792,7 @@ def run_steps(mcp, seconds, until, log, resumed, speed=3):
         )
         elapsed = step.get('elapsedGameSeconds', 0) if isinstance(step, dict) else 0
         if log:
-            log(f'  ran {elapsed:.0f} s ({step.get("reason") or step.get("status")})')
+            log(f'  ran {elapsed:.0f} s ({(step.get("reason") or step.get("status")) if isinstance(step, dict) else str(step)[:200]})')
         if elapsed <= 0:
             # Just after a load the game's speed controls are not up yet, and a step returns at
             # once; it stalls for good only if it keeps doing so. step_until does not unpause
