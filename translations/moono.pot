@@ -320,6 +320,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.LOAD_SCREEN"
 msgid "Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s)"
 msgstr ""
 
+#. Row title (fmod-quarantine)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.TITLE"
+msgid "Sound memory guard"
+msgstr ""
+
+#. The line under the title (fmod-quarantine)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.EFFECT"
+msgid "Guards against a bug in the game's sound engine that can crash the game."
+msgstr ""
+
+#. Tooltip: how it works (fmod-quarantine)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.DETAIL"
+msgid "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 50 MB more memory on a large colony. Windows only for now."
+msgstr ""
+
 #. Row title (exact-worldgen)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
 msgid "Worldgen as in the original"

@@ -56,7 +56,7 @@ function Build-NativeHost($dotnet, $built) {
     $stage = Join-Path $env:TEMP "oni-moono-nativehost-$PID"
     New-Item -ItemType Directory -Force $stage | Out-Null
     try {
-        foreach ($file in 'host.c', 'crash.c', 'crash.h', 'crash_dialog.cpp', 'crash_dialog.h', 'host.rc', 'OniMoono.exe.manifest', 'crash_dialog.manifest', 'build.cmd') { Copy-Item (Join-Path $here "src\OniMoono.NativeHost\$file") $stage }
+        foreach ($file in 'host.c', 'crash.c', 'crash.h', 'crash_dialog.cpp', 'crash_dialog.h', 'fmod_heap.c', 'fmod_heap.h', 'fmod_heap_test.c', 'host.rc', 'OniMoono.exe.manifest', 'crash_dialog.manifest', 'build.cmd') { Copy-Item (Join-Path $here "src\OniMoono.NativeHost\$file") $stage }
         Copy-Item (Join-Path $here 'src\OniMoono.NativeHost\fonts\*.ttf') $stage
         Copy-Item (Join-Path $here 'src\OniMoono.Host\Moo.ico') $stage
         foreach ($file in 'nethost.h', 'hostfxr.h', 'libnethost.lib') { Copy-Item (Join-Path $pack $file) $stage }

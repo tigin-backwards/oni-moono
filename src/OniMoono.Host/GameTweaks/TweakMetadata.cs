@@ -403,8 +403,9 @@ namespace OniMoono.Host.GameTweaks
 
         public GameFiles(string managed) => this.managed = managed;
 
-        /// The game's Assembly-CSharp and Assembly-CSharp-firstpass, where declared members are looked up.
-        public static readonly string[] Primary = ["Assembly-CSharp", "Assembly-CSharp-firstpass"];
+        /// Where declared members are looked up: the game's Assembly-CSharp and
+        /// Assembly-CSharp-firstpass, and its FMOD wrapper (fmod-quarantine's).
+        public static readonly string[] Primary = ["Assembly-CSharp", "Assembly-CSharp-firstpass", "FMODUnity"];
 
         /// Whether a referenced assembly is one the game ships and Moono loads as it is (not one
         /// Moono provides itself: its engine, UI packages and the runtime's).
@@ -424,7 +425,7 @@ namespace OniMoono.Host.GameTweaks
             return file;
         }
 
-        /// A type of Assembly-CSharp or its firstpass by its full name.
+        /// A type of Assembly-CSharp, its firstpass or FMODUnity by its full name.
         public (MetadataFile File, TypeDefinitionHandle Type)? Find(string fullName)
         {
             foreach (var name in Primary)

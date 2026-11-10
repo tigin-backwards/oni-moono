@@ -27,7 +27,7 @@ else
 fi
 rm -rf "$stage"; mkdir -p "$stage"
 trap 'rm -rf "$stage"' EXIT
-cp "$root/src/OniMoono.NativeHost/"{host.c,crash.c,crash.h,crash_dialog.cpp,crash_dialog.h,host.rc,OniMoono.exe.manifest,crash_dialog.manifest,build.cmd} \
+cp "$root/src/OniMoono.NativeHost/"{host.c,crash.c,crash.h,crash_dialog.cpp,crash_dialog.h,fmod_heap.c,fmod_heap.h,fmod_heap_test.c,host.rc,OniMoono.exe.manifest,crash_dialog.manifest,build.cmd} \
    "$root/src/OniMoono.NativeHost/fonts/"*.ttf "$root/src/OniMoono.Host/Moo.ico" \
    "$pack/"{nethost.h,hostfxr.h,libnethost.lib} "$stage/"
 commit="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo unknown)"

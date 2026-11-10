@@ -57,7 +57,8 @@ namespace OniMoono.Host.GameTweaks
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles", GeothermalVents = "fix-geothermal-vents",
-            ExactWorldgen = "exact-worldgen", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history";
+            ExactWorldgen = "exact-worldgen", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
+            FmodQuarantine = "fmod-quarantine";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -132,6 +133,10 @@ namespace OniMoono.Host.GameTweaks
             new("fast-load-screen", General, "Faster Load screen", "With many saves, the Load screen opens and loads more colonies sooner.",
                 "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. "
                 + "The colonies, their order, the previews and the log are the same.", LoadScreenGain),
+            new(FmodQuarantine, General, "Sound memory guard", "Guards against a bug in the game's sound engine that can crash the game.",
+                "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. "
+                + "With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, "
+                + "and Player.log notes each one found. Uses about 50 MB more memory on a large colony. Windows only for now."),
             new(ExactWorldgen, General, "Worldgen as in the original", "A seed makes the same map as in the original game, so shared seeds match.",
                 "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. "
                 + "Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."),
