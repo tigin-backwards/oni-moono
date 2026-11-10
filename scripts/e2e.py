@@ -3197,6 +3197,8 @@ class Player:
             # OniMcp, in every spec, transpiles LoadScreen methods background-save patches: test
             # infrastructure, left out of the Moono Tweaks screen's mod overlaps.
             env['ONI_MOD_OVERLAPS_IGNORE'] = 'LIghtJUNction.OniMcp'
+            # A start-up failure goes to the log, never to a desktop dialog (DesktopDialog).
+            env['ONI_HOST_NO_DIALOG'] = '1'
             env.update(self.extra_env)
             # `env: {ONI_TWEAK_SETTINGS: "1"}`: the tweaks as a player has them (the defaults and
             # the run home's settings, every tweak's row changeable), so no `--game-tweak` at all;

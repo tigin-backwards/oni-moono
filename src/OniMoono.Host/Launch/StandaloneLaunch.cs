@@ -128,13 +128,15 @@ namespace OniMoono.Host.Launch
         static extern int setenv(string name, string value, int overwrite);
 
         /// Asks which install to use: ONI_MOONO_CHOOSE_GAME in test runs; else on Windows a
-        /// message box per install, on Linux the terminal when there is one; else the first.
-        public static int? Choose(IReadOnlyList<SteamLibrary.GameInstall> installs, SteamLibrary.Machine machine, bool test)
+        /// message box per install, on Linux the terminal when there is one, else a desktop
+        /// dialog (DesktopDialog: zenity's list, kdialog's menu); else the first.
+        public static int? Choose(IReadOnlyList<SteamLibrary.GameInstall> installs, SteamLibrary.Machine machine, bool test, DesktopDialog? dialog = null)
         {
             if (machine.Env(ChooseVariable) is { Length: > 0 } chosen) return int.TryParse(chosen, out var i) ? i : null;
             if (test) return null;
             if (machine.Windows)
             {
+                if (DesktopDialog.Quiet(machine.Env, test)) return 0;
                 for (int i = 0; i < installs.Count; i++)
                 {
                     int answer = MessageBoxW(IntPtr.Zero, $"Moono found {installs.Count} installs of Oxygen Not Included. Play the one at\n\n{installs[i].Dir}\n\n(Yes: this one, kept for later starts. No: the next one.)", "Moono", 0x3 | 0x20);
@@ -143,21 +145,30 @@ namespace OniMoono.Host.Launch
                 }
                 return null;
             }
-            if (!Console.IsInputRedirected)
+            dialog ??= new DesktopDialog { Env = machine.Env };
+            if (dialog.InputIsTerminal)
             {
                 Console.Error.WriteLine($"Moono found {installs.Count} installs of Oxygen Not Included:");
                 for (int i = 0; i < installs.Count; i++) Console.Error.WriteLine($"  {i + 1}. {installs[i].Dir}");
                 Console.Error.Write("Which one (kept for later starts)? ");
                 return int.TryParse(Console.ReadLine(), out var n) ? n - 1 : null;
             }
-            return 0;
+            var (asked, index) = dialog.Choose($"Moono found {installs.Count} installs of Oxygen Not Included. Which one should it play (kept for later starts)?",
+                installs.Select(i => i.Dir).ToList(), test);
+            return asked ? index : 0;
         }
 
-        /// A message for the player: a message box on Windows (not in test runs), and stderr.
-        public static void Tell(string message, bool error, bool test)
+        /// A message for the player: stderr, and unless this is a test run (`test`, or
+        /// ONI_HOST_NO_DIALOG=1) a message box on Windows, on Linux a desktop dialog when stderr
+        /// is not a terminal (DesktopDialog: started from the launcher or a file manager).
+        public static void Tell(string message, bool error, bool test, DesktopDialog? dialog = null)
         {
             Console.Error.WriteLine("Moono: " + message);
-            if (OperatingSystem.IsWindows() && !test) MessageBoxW(IntPtr.Zero, message, "Moono", error ? 0x10u : 0x40u);
+            if (OperatingSystem.IsWindows())
+            {
+                if (!DesktopDialog.Quiet(Environment.GetEnvironmentVariable, test)) MessageBoxW(IntPtr.Zero, message, "Moono", error ? 0x10u : 0x40u);
+            }
+            else (dialog ?? new DesktopDialog()).Tell(message, error, test);
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
