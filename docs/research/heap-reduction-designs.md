@@ -667,10 +667,81 @@ the 2,900 Workshop mods in out/ws, 4,500 DLLs; and the decompiled game):
   the names) or replaces the whole array (WarpReceiver); no mod stores into either. No code
   compares two buildings' tables or animation arrays by reference.
 
-### 4.2 Prototype: compact report history (not merged)
+### 4.2 Built (2026-11-10): `compact-report-history`
 
-On the local branch `report-history-proto` (`compact-report-history`); a write-up for a decision
-is with the maintainer.
+One exact tweak, on by default (src/OniMoono.GameTweaks/CompactReports.cs, the store in
+CompactReportsCore.cs), for the report history's note dictionaries (§4: 3.9 M of them,
+1.15 GiB, most of the report history's retained 1.69 GiB).
+
+**What the game does.** `ReportManager.NoteStorage.NoteEntries.entries` maps each report entry's
+note storage id to a `Dictionary<NoteEntryKey, float>` of its notes (a note's string hash and
+sign to its summed value). Only today's report is written to (`ReportManager.ReportValue*` go to
+`TodaysReport`; `NoteEntries.Add` is the only writer); the reports screen reads an entry's notes
+in the dictionary's order (U59 `IterateNotes`, U60 `CollectNotes`, then a sort by value); every
+save writes all of them in the outer dictionary's order. Nothing is ever removed, so both
+dictionaries enumerate in the order of first insertion.
+
+**The store.** Past days' notes leave the dictionaries for flat arrays: per entry an id, a start
+and a count; per note a hash, a sign and a value, in the dictionary's order; ids found through a
+sorted index of the loaded entries and a dictionary of later ones. Today's report stays in the
+game's dictionaries, where Fast Track and the game's own code write and read it.
+
+- Loading (`NoteEntries.Deserialize`, version 6) reads the bytes straight into the store, with
+  the game's repeats kept as `entries[id] = …` and `dictionary[key] = …` keep them (an id's
+  first place with its last notes, a key's first place with its last value). Older saves are
+  read by the game and then moved in. `ReportManager.OnDeserialized` moves today's report's
+  entries back into dictionaries built in the store's order with the game's comparer.
+- `NoteEntries.Add` to an entry in the store moves it back first (only a mod would write to a
+  past day), so the note lands where the game puts it; a new id gets its place in the order.
+- The night (`ReportManager.OnNightTime`) moves the day that ended into the store; a colony
+  started in the session gets its store at its first night. Mods that trim `dailyReports`
+  (FastSave, RemoveDailyReports) change nothing here: the game keeps those days' notes too.
+- Reads of a stored entry serve its notes in the stored order; `Serialize` writes every entry in
+  its place, from `entries` when it is there: the game's bytes. `ReportManager.OnCleanUp`
+  drops the store with its colony.
+
+**Why it is exact.** The store holds the same (key, value) pairs in the same order the game's
+dictionaries enumerate, and every path that reads them (the screen, saves) reads that order.
+The tweak's unit tests (CompactReportsTests) drive the store as the patches do against a copy of
+the game's NoteEntries: repeated ids and keys on load, entries added after the load, an `Add`
+into a past day, night boundaries, trimmed daily reports, a save with no notes, an older save,
+entries put straight into the dictionary, and random colonies of adds, nights, saves and
+reloads, comparing every save's bytes and every entry's notes. `ONI_TWEAK_VERIFY=1` keeps the
+game's own NoteEntries alongside, written as the game writes, and compares every read and save.
+
+**Mods.** In the IL of about 4,500 Workshop DLLs, Fast Track reads `entries` for today's report
+only, OniMp adds through `Add`, and nothing reads or writes a past day's `entries` directly.
+
+**Checked** (the late-game colony, Linux, release, default tweaks):
+
+- the note storage's saved bytes and every report's notes as the screen reads them hash the
+  same with the tweak on and off (190,892,383 bytes; 17,077 reports, 4.09 M entries, 17.7 M
+  notes), on U59 744825 and U60 762230;
+- verify runs: U59, 1,200 s with saves after the load and after two nights, 4 saves and
+  3.94 M reads compared, 0 mismatches; U60 762230, 600 s, a save after the load and after a
+  night, 0 mismatches;
+- saves load in either build, with the tweak on and off;
+- the e2e spec `compact-report-history` (periodic): the reports screen for today, yesterday and
+  three days before, and the pause menu's save, against the original player.
+
+Results, the shipping configuration (default tweaks, `shared-duplicates` on), Linux release, off
+against on: three loads each to the first frame-rate window, and a heap dump 300 s after it:
+
+| | off | on |
+|---|---:|---:|
+| reachable heap | 6,136 MiB, 42.3 M objects | **5,289 MiB (−847), 30.8 M objects** |
+| `ReportManager` retained | 1,480 MiB | 333 MiB, and the store's 272 MiB |
+| resident at the first window, 3 each | 17.2, 16.5, 16.4 GB | 15.6, 15.5, 14.9 GB (−1.4 GB) |
+| load (Loading save file → Loaded), 3 each | 15.7, 15.0, 14.4 s | 13.8, 14.0, 13.5 s (−1.2 s) |
+
+The store holds 3.94 M entries and 17.7 M notes in 227 MiB of arrays (9 bytes a note, 12 an
+entry, 8 an index slot), against about 300 bytes a dictionary. The load is shorter by what the
+game spent building 3.9 M dictionaries. A save's notes cost the same (the same bytes, written
+from arrays).
+
+Seen on the way, not from this tweak: a save made from a mod's `ReportManager.OnSaveGameReady`
+postfix (the verify runs' probe) makes the state machines restored after it throw in
+`FastReader.ReadKleiString` (2,196 errors, as in the prototype's runs before the rebase).
 
 ## Files
 

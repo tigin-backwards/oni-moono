@@ -84,6 +84,8 @@
     <!-- The path-probe-repair game tweak's search (ProbeRepairTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/ProbeRepairCore.cs" Link="GameTweaks/ProbeRepairCore.cs" />
     <Compile Include="../../src/OniMoono.GameTweaks/FetchByCellCore.cs" Link="GameTweaks/FetchByCellCore.cs" />
+    <!-- The compact-report-history game tweak's store of past days' notes (CompactReportsTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/CompactReportsCore.cs" Link="GameTweaks/CompactReportsCore.cs" />
     <!-- The instant-reachability game tweak's crossings, index and coverage (InstantReachabilityTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/ReachabilityIndex.cs" Link="GameTweaks/ReachabilityIndex.cs" />
     <!-- The mod overlaps with the tweaks: grading, the log and the tooltips (ModOverlapsTests). -->

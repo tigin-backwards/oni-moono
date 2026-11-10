@@ -31,6 +31,7 @@ namespace OniMoono.GameTweaks
                 case OneShotPiles.Name: OneShotPiles.Install(harmony); return true;
                 case FetchByCell.Name: FetchByCell.Install(harmony); return true;
                 case SharedDuplicates.Name: SharedDuplicates.Install(harmony); return true;
+                case CompactReports.Name: CompactReports.Install(harmony); return true;
                 case OwnWorkshopItem.Name: OwnWorkshopItem.Install(harmony); return true;
                 default: return false;
             }

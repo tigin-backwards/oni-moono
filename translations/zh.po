@@ -685,3 +685,19 @@ msgstr "加载存档时，同一段文字的所有副本（每日报告中复制
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.SHARED"
 msgid "~0.3 GB less memory on a late-game colony"
 msgstr "后期大型殖民地少用约 0.3 GB 内存"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_HISTORY.TITLE"
+msgid "Compact report history"
+msgstr "紧凑的报告历史"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_HISTORY.EFFECT"
+msgid "Past days' reports take a fraction of the memory."
+msgstr "往日的报告只占原来一小部分的内存。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_HISTORY.DETAIL"
+msgid "The notes of every day's report but today's are kept in flat arrays instead of a table for each entry; the reports screen and saves read the same notes in the same order."
+msgstr "除今天以外，每日报告的备注都存放在紧凑的数组中，而不是每个条目各占一张表；报告界面和存档读到的备注及其顺序完全相同。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.REPORTS"
+msgid "~0.9 GB less memory on a late-game colony; loading ~1 s faster"
+msgstr "后期大型殖民地少用约 0.9 GB 内存，加载快约 1 秒"
