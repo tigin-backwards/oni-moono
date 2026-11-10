@@ -2924,12 +2924,14 @@ class Watchdog(threading.Thread):
 
 
 def keyboard_server_options(keyboard):
-    """The X server's options for a spec with a `keyboard`. A server resets its keymap when its
-    last client leaves, as setxkbmap does: -noreset keeps the layout until the player connects.
-    Keys pressed by keycode are held for frames, which at a colony's frame rate outlast the
-    default autorepeat delay (660 ms): -ardelay puts it out of reach, so each press types one
-    character in both players."""
-    return ['-noreset', '-ardelay', '30000'] if keyboard else []
+    """The X server's keyboard options. Every server: keys are pressed and released a frame
+    apart, and a frame can outlast the default autorepeat delay (660 ms) at a colony's frame
+    rate or on a loaded machine (CI's runner typed "pump" as "ppuuuuuuuuummmp..." while another
+    player ran): -ardelay puts it out of reach, so each press types one character in both
+    players. A spec with a `keyboard` also gets -noreset: a server resets its keymap when its
+    last client leaves, as setxkbmap does, and -noreset keeps the layout until the player
+    connects."""
+    return ['-noreset', '-ardelay', '30000'] if keyboard else ['-ardelay', '30000']
 
 
 def dpi_server_options(dpi):
