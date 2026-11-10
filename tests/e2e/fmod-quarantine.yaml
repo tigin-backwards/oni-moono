@@ -1,0 +1,51 @@
+# The fmod-quarantine game tweak (src/OniMoono.Host/GameTweaks/FmodQuarantine.cs and
+# src/OniMoono.NativeHost/fmod_heap.c; issues #72 and #58). Ours only (`--player ours`): the
+# original has no such tweak. It needs the native allocator: OniMoono.exe on Windows, or a
+# libOniMoonoNative.so beside the host on Linux (none is built by the scripts yet; see the
+# class's comment), and fails at its first step without it.
+#
+# A mid-game colony of 50 Duplicants with a pile of ten Pips in view, run at speed 3, then 1,
+# then 3 (each run starts and ends paused, which stops and starts the looping sounds: FMOD's
+# stop/steal path): FMOD allocates from Moono's heap the whole time, sound keeps playing, and
+# no freed block leaves the quarantine changed.
+from: 2minnow
+game_tweaks: [fmod-quarantine]
+setup:
+  - driver: {setup.call: {target: "SpeedControlScreen.Instance", method: Pause, args: [false]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}
+  - driver: {setup.call: {target: "last:", method: Play, args: ["idle_loop", Loop]}}
+  - driver: {camera.set: {cell: [110, 207], ortho: 20}}
+  - driver: {setup.call: {target: "SpeedControlScreen.Instance", method: Unpause, args: [false]}}
+steps:
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.FmodQuarantine::Active": true
+      "type:OniMoono.Host.GameTweaks.FmodQuarantine::Allocs": [{save_as: allocs}, "> 1000"]
+  - run: {seconds: 60}
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.FmodQuarantine::ChannelsPlaying": "> 0"
+  - run: {seconds: 10, speed: 1}
+  - run: {seconds: 60}
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.FmodQuarantine::ChannelsPlaying": "> 0"
+      "type:OniMoono.Host.GameTweaks.FmodQuarantine::Allocs": "> allocs + 1000"
+      "type:OniMoono.Host.GameTweaks.FmodQuarantine::Frees": "> 1000"
+      "type:OniMoono.Host.GameTweaks.FmodQuarantine::QuarantinedBytes": "> 0"
+      "type:OniMoono.Host.GameTweaks.FmodQuarantine::Logged": 0

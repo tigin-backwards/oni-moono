@@ -594,6 +594,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.DETAIL"
 msgid "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same."
 msgstr "每次刷新时每个存档的信息只从文件读取一次而不是四次，并且同时读取多个文件；已显示页面的预览图不再重新生成。殖民地、顺序、预览图和日志都不变。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.TITLE"
+msgid "Sound memory guard"
+msgstr "音效内存保护"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.EFFECT"
+msgid "Guards against a bug in the game's sound engine that can crash the game."
+msgstr "防范游戏音效引擎中一个可能导致游戏崩溃的错误。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.DETAIL"
+msgid "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 50 MB more memory on a large colony. Windows only for now."
+msgstr "游戏的音效引擎 FMOD 可能会写入已经释放的内存，这是其开发者已确认的错误，也是部分“堆损坏”崩溃的原因。开启后，FMOD 使用自己的内存，释放的内存要等一段时间才会被重新使用，因此迟到的写入只会落在无人使用的地方，并且 Player.log 会记录发现的每一次。在大型殖民地上约多用 50 MB 内存。目前仅限 Windows。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
 msgid "Worldgen as in the original"
 msgstr "与原版一致的世界生成"

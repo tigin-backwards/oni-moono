@@ -2,7 +2,8 @@
 """Checks the Windows player's executable (src/OniMoono.NativeHost) from its PE file alone, so it
 runs anywhere: the GPU hint exports NvOptimusEnablement and AmdPowerXpressRequestHighPerformance
 are DWORDs of value 1 in a writable section (read at the export RVA's section offset, as the
-original OxygenNotIncluded.exe's were), the native crash records' exports, the GUI subsystem,
+original OxygenNotIncluded.exe's were), the native crash records' exports, FMOD's allocator's
+(fmod_heap.c, game tweak fmod-quarantine), the GUI subsystem,
 the icon group 32512 that GlfwPlatform.SetClassIcon loads, the application manifest and the
 version information; the crash window's manifest (resource 3) and fonts, and that the exe imports
 nothing the game's process would not load anyway (the crash window loads its graphics and UI
@@ -22,6 +23,7 @@ import sys
 
 EXPORTS = ("NvOptimusEnablement", "AmdPowerXpressRequestHighPerformance")
 CRASH_EXPORTS = ("moono_crash_install", "moono_crash_exiting", "moono_crash_test", "moono_crash_describe")
+FMOD_EXPORTS = ("moono_fmod_heap_init", "moono_fmod_alloc", "moono_fmod_realloc", "moono_fmod_free", "moono_fmod_heap_stats", "moono_fmod_heap_events")
 RT_ICON, RT_RCDATA, RT_GROUP_ICON, RT_VERSION, RT_MANIFEST = 3, 10, 14, 16, 24
 CRASH_FONTS = (101, 102, 103, 104)  # host.rc: Gabarito 400, 500, 600 and Red Hat Mono 400
 # Libraries the crash window must load itself (in the watcher), never through the import table.
@@ -184,6 +186,8 @@ def main():
 
     crash = [name for name in CRASH_EXPORTS if name not in exports]
     check(not crash, f"crash record exports (NativeCrashes.cs): {'missing ' + ', '.join(crash) if crash else ', '.join(CRASH_EXPORTS)}")
+    fmod = [name for name in FMOD_EXPORTS if name not in exports]
+    check(not fmod, f"FMOD allocator exports (FmodQuarantine.cs): {'missing ' + ', '.join(fmod) if fmod else ', '.join(FMOD_EXPORTS)}")
     check(
         pe.subsystem == 2, f"subsystem {pe.subsystem} ({'Windows GUI' if pe.subsystem == 2 else 'not GUI'}), DllCharacteristics {pe.dll_characteristics:#06x}"
     )
