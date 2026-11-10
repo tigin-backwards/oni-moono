@@ -36,6 +36,11 @@ concurrency:
   group: workshop-upload
   cancel-in-progress: false
 
+# bash -eo pipefail: steamcmd's status survives the tee after it.
+defaults:
+  run:
+    shell: bash
+
 env:
   # STEAM_WORKSHOP_ITEM (a repository variable): the item's published file ID, or new to create
   # one owned by the upload account (private, titled STEAM_WORKSHOP_TITLE or Moono).
