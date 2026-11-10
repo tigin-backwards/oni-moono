@@ -4,6 +4,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="OniMoono.Assets.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../src/OniMoono.Assets/OniMoono.Assets.csproj" />
   </ItemGroup>
 </Project>

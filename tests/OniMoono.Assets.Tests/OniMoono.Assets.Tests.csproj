@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/OniMoono.Assets/OniMoono.Assets.csproj" />
+    <ProjectReference Include="../../tools/GameStrip/GameStrip.csproj" />
     <Content Include="Data/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
