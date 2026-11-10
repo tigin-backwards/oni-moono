@@ -10,7 +10,8 @@ namespace OniMoono.GameTweaks
     /// Always on (not a Moono Tweaks row): Moono's own Workshop item (docs/INSTALL-MODES.md),
     /// which carries Moono's players and is no mod, never reaches the game's mod manager while
     /// Moono runs the game: no mod is made for it and no event reported, so it is neither a
-    /// broken mod nor a mod event. U59's KMod.Steam.MakeMod takes a Workshop item only as a legacy
+    /// broken mod nor a mod event; a mod the profile's mods.json has for it (the original game,
+    /// which runs the item's loader mod, keeps one) is dropped from the list too. U59's KMod.Steam.MakeMod takes a Workshop item only as a legacy
     /// zip and reports a folder (as this item is) as DownloadFailed; U60's
     /// MakeModAndReportOutcome takes folders and lists this one with no supported content. Each
     /// build has one of the two returning a KMod.Mod, and that one is patched. The item is told by
@@ -50,10 +51,16 @@ namespace OniMoono.GameTweaks
             var args = new object[] { id, 0UL, null, 1024u, 0u };
             if (!(installInfo.Invoke(null, args) is bool found) || !found || !(args[2] is string folder)) return true;
             if (!MoonoItemMarker.IsMoonoItem(folder)) return true;
+            // A mod the profile's mods.json kept for the item (the original game lists it and
+            // runs its loader mod) leaves the list as well, without an event: Manager.Sanitize
+            // would otherwise uninstall it and report that in a dialog at the main menu.
+            var label = id.ToString();
+            int dropped = Global.Instance.modManager.mods.RemoveAll(m => m.label.distribution_platform == Label.DistributionPlatform.Steam && m.label.id == label);
             if (!logged)
             {
                 logged = true;
-                Debug.Log($"[Moono] Workshop item {subscribed.title} is Moono itself, not a mod: left out of the mod list");
+                Debug.Log($"[Moono] Workshop item {subscribed.title} is Moono itself, not a mod: left out of the mod list"
+                    + (dropped > 0 ? " (and out of mods.json's)" : ""));
             }
             __result = null;
             return false;
