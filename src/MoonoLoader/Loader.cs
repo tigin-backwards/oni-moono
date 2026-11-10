@@ -75,8 +75,8 @@ namespace MoonoLoader
                 button.isInteractable = true;
                 button.onClick += () => MoonoDialog.Show(__instance.gameObject);
                 var label = copy.GetComponentInChildren<LocText>();
-                if (label != null) label.text = "Play with Moono";
-                copy.GetComponent<ToolTip>()?.SetSimpleTooltip("Install Moono and copy the line for Steam's launch options");
+                if (label != null) label.text = MoonoDialog.Text(LoaderStrings.ModsButton);
+                copy.GetComponent<ToolTip>()?.SetSimpleTooltip(MoonoDialog.Text(LoaderStrings.ModsTip));
             }
         }
 

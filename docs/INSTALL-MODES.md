@@ -243,12 +243,15 @@ is enabled. Under Moono it does nothing: Moono's player runs the game on .NET wi
 `OniMoono*` assemblies, so the loader returns at once (and Moono leaves the item out of its mod
 list anyway).
 
-- **At the main menu,** once each start, it shows the game's info dialog "Play Oxygen Not
-  Included with Moono?" (`MoonoDialog`): a short explanation, the launch-option line, selectable,
-  and the steps: "In Steam: right-click Oxygen Not Included → Properties → Launch Options,
-  paste, then restart the game." It stays open until **Close** (or Escape); the game carries on.
+- **At the main menu,** once each start, it shows the game's info dialog "Play with Moono?"
+  (`MoonoDialog`): "Moono makes Oxygen Not Included run faster. To play with it:", three
+  numbered steps (click Copy launch option; in Steam, paste it into the game's launch options;
+  quit the game and press Play), the launch-option line under step 1 in the box of the game's
+  own text field (monospaced, one line, shortened in the middle when long:
+  `"…\oni-moono\versioned\OniMoono.exe" -- %command%`), and a muted line: "To stop seeing this,
+  disable the Moono mod." It stays open until **Not now** (or Escape); the game carries on.
   Nothing is added to the main menu itself.
-- **Copy** installs Moono for this game build, in the game's own process: the version the game
+- **Copy launch option** installs Moono for this game build, in the game's own process: the version the game
   loaded the loader from is copied into `versioned\player\<version>\` with the installer's own
   code (`src/OniMoono.Host/Install/PlayerFiles.cs`, compiled into both), every file checked
   against the version's manifest; the entry point is put in place, and `state\source` names the
@@ -256,7 +259,8 @@ list anyway).
   Like the installer, the loader checks no signature: it is code from that same item, which the
   game runs as it runs any mod. The GitHub releases stay the root of trust, as for the first
   install above.
-  Then the line goes on the clipboard and the button says "Copied ✓", so the player can switch
+  Then the whole line goes on the clipboard, the button says "Copied ✓" and step 1 says "Moono
+  installed. Launch option copied." (or why it could not be installed), so the player can switch
   to Steam, paste and come back. The line is the entry point with its full path, as setup uses:
   `"C:\Users\<you>\AppData\Local\oni-moono\versioned\OniMoono.exe" -- %command%` (Linux:
   `"/home/<you>/.local/share/oni-moono/versioned/OniMoono" -- %command%`, the sandboxed Steam's
@@ -265,6 +269,10 @@ list anyway).
   Steam's configuration is not touched: the player pastes the line.
 - **The Mods screen:** the item's own row has a **Play with Moono** button beside its Manage
   button, which shows the same dialog.
+- **Translations:** its text is in the game's language where Moono has a translation: the
+  `STRINGS.MOONO.LOADER.*` strings of `translations/CODE.po` (`LoaderStrings`, listed in
+  `moono.pot` with the Moono Tweaks screen's, docs/TWEAKS.md), read from the item's player
+  folder.
 - **Built** by `workshop.yml` from its run's commit, against U60's reference assemblies
   (`ci/game-refs.json`, build 762230), and attested with the rest of the item.
 - **Tests:** `LoaderTests` (the install and the line, without the game); on u60,

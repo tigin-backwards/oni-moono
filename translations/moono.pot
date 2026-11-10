@@ -1,4 +1,4 @@
-# The Moono Tweaks screen's strings: the template for a translation.
+# Moono's strings (the Moono Tweaks screen and the Workshop loader mod): the template for a translation.
 # Generated from src/OniMoono.Host/GameTweaks/TweakStrings.cs; ONI_UPDATE_DOCS=1 with the unit tests rewrites it.
 # Copy it to CODE.po (the game's language code: zh, ko, ru, ...) and fill in each msgstr (docs/TWEAKS.md).
 msgid ""
@@ -908,4 +908,69 @@ msgstr ""
 #. Tooltip: how it works (fix-geothermal-vents)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_GEOTHERMAL_VENTS.DETAIL"
 msgid "A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation."
+msgstr ""
+
+#. The loader mod's dialog in the original game: its title
+msgctxt "STRINGS.MOONO.LOADER.TITLE"
+msgid "Play with Moono?"
+msgstr ""
+
+#. The dialog's first line, above three numbered steps
+msgctxt "STRINGS.MOONO.LOADER.INTRO"
+msgid "Moono makes Oxygen Not Included run faster. To play with it:"
+msgstr ""
+
+#. Step 1, above the launch-option line; Copy launch option is the COPY button
+msgctxt "STRINGS.MOONO.LOADER.STEP_COPY"
+msgid "Click Copy launch option. This installs Moono and copies:"
+msgstr ""
+
+#. Step 2
+msgctxt "STRINGS.MOONO.LOADER.STEP_PASTE"
+msgid "In Steam, right-click Oxygen Not Included → Properties → Launch Options, and paste."
+msgstr ""
+
+#. Step 3
+msgctxt "STRINGS.MOONO.LOADER.STEP_RESTART"
+msgid "Quit the game and press Play."
+msgstr ""
+
+#. A small line under the steps
+msgctxt "STRINGS.MOONO.LOADER.DISABLE_HINT"
+msgid "To stop seeing this, disable the Moono mod."
+msgstr ""
+
+#. The dialog's button that closes it
+msgctxt "STRINGS.MOONO.LOADER.NOT_NOW"
+msgid "Not now"
+msgstr ""
+
+#. The dialog's main button
+msgctxt "STRINGS.MOONO.LOADER.COPY"
+msgid "Copy launch option"
+msgstr ""
+
+#. The main button's text once it has copied the line
+msgctxt "STRINGS.MOONO.LOADER.COPIED"
+msgid "Copied ✓"
+msgstr ""
+
+#. Step 1's text once the button installed Moono and copied the line
+msgctxt "STRINGS.MOONO.LOADER.INSTALLED"
+msgid "Moono installed. Launch option copied."
+msgstr ""
+
+#. Step 1's text when the install fails; {0}: why (in English)
+msgctxt "STRINGS.MOONO.LOADER.FAILED"
+msgid "Moono could not be installed: {0}"
+msgstr ""
+
+#. The button on the item's row in the Mods screen that shows the dialog
+msgctxt "STRINGS.MOONO.LOADER.MODS_BUTTON"
+msgid "Play with Moono"
+msgstr ""
+
+#. That button's tooltip
+msgctxt "STRINGS.MOONO.LOADER.MODS_TIP"
+msgid "Install Moono and copy the launch option for Steam"
 msgstr ""

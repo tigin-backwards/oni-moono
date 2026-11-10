@@ -31,7 +31,7 @@ namespace OniMoono.Tests
             Assert.Equal(keys.Length, keys.Distinct(StringComparer.Ordinal).Count());
             foreach (var s in TweakStrings.All)
             {
-                Assert.Matches(@"^STRINGS\.MOONO\.TWEAKS\.[A-Z0-9_]+(\.[A-Z0-9_]+)*$", s.Key);
+                Assert.Matches(@"^STRINGS\.MOONO\.(TWEAKS|LOADER)\.[A-Z0-9_]+(\.[A-Z0-9_]+)*$", s.Key);
                 Assert.False(string.IsNullOrWhiteSpace(s.English), $"{s.Key} has no English");
                 // The game's .po reader keeps a backslash as written: the text has none.
                 Assert.DoesNotContain('\\', s.English);

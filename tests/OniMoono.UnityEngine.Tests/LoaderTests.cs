@@ -88,6 +88,29 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void LongLinesAreShortenedInTheMiddle()
+        {
+            var line = "\"C:\\Users\\someone-with-a-long-name\\AppData\\Local\\oni-moono\\versioned\\OniMoono.exe\" -- %command%";
+            Assert.Equal("\"…\\Local\\oni-moono\\versioned\\OniMoono.exe\" -- %command%", LoaderStrings.Shorten(line, 56));
+            Assert.True(LoaderStrings.Shorten(line, 56).Length <= 56);
+            Assert.Equal("\"/tmp/oni-moono/versioned/OniMoono\" -- %command%", LoaderStrings.Shorten("\"/tmp/oni-moono/versioned/OniMoono\" -- %command%", 56));
+        }
+
+        [Fact]
+        public void StringsComeTranslatedWhenTheirPlaceholdersMatch()
+        {
+            var zh = new Dictionary<string, string>
+            {
+                [LoaderStrings.Prefix + LoaderStrings.Copy] = "复制启动选项",
+                [LoaderStrings.Prefix + LoaderStrings.Failed] = "无法安装 Moono",
+            };
+            Assert.Equal("复制启动选项", LoaderStrings.Text(zh, LoaderStrings.Copy));
+            Assert.Equal("Moono could not be installed: {0}", LoaderStrings.Text(zh, LoaderStrings.Failed));
+            Assert.Equal("Not now", LoaderStrings.Text(zh, LoaderStrings.NotNow));
+            Assert.Equal("Play with Moono?", LoaderStrings.Text(null, LoaderStrings.Title));
+        }
+
+        [Fact]
         public void ItemRootOfAnArchivedVersion()
         {
             Assert.Equal(Item, ItemInstall.ItemRootOf(Item));
