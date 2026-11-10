@@ -280,22 +280,22 @@ scripts/ci-game-tests.sh push OUT                 # what the game job runs (QA_U
 
 - **push** (every push to master or u60, about 15 minutes): `check-tweaks.sh` against the game's
   assemblies, the unit tests that need the game (the no-game unit test job skips them), and
-  `ci/game-tests/push.txt`. That list holds headless load, simulate, save and reload runs on
-  early-base and a Spaced Out colony with rockets, a verify run with every tweak (zero wrong
+  `ci/game-tests/push.txt`. That list holds load, simulate, save and reload runs on
+  early-base (headless) and a Spaced Out colony with rockets (under Xvfb), a verify run with every tweak (zero wrong
   answers, read by `qa-tools.py verify`), and `exact-worldgen` under Xvfb.
 - **nightly** (the **Game tests (nightly)** workflow, on master; run it by hand on u60):
   `ci/game-tests/nightly.txt`, which holds UI specs that check their own expectations and dumps,
   mod loading with our own test mods, and a ten-minute verify run on a mid-game colony.
 
-The verify runs are headless, with no GL device, so they cover only the verify modes that check
-without drawing: `ONI_TWEAK_VERIFY`'s game tweaks, `ONI_VERIFY_FETCH_BY_CELL`, `_CANVAS_CULL`,
-`_CANVAS_PRODUCTS`, `_COMPONENT_LAYOUTS` and `_RAW_LOADS`. `ci/game-tests/verify/SPEC.txt` lists
-the checks each run must report, and a check that reports nothing fails the run, as a wrong
-answer does: silence is not zero wrong. CI does not cover the modes that need drawing, input or
-a GPU: `ONI_VERIFY_CANVAS_SKIPS`, `_RAYCAST_CACHE`, `_CULL_CACHE`, `_MESH_REUSE`,
-`_TEXEL_COPIES`, `_PARTIAL_UPLOADS`, `_PARALLEL_DRAWS`, `_BINDLESS`, `_PASS_STATES` and
-`_PROPERTY_SHEETS`. Headless, these report nothing or check nothing; run them with
-`scripts/qa.sh verify` on a real display.
+The verify runs set only the verify modes that check without drawing, which a headless player (no
+GL device, as in the push run) reports: `ONI_TWEAK_VERIFY`'s game tweaks,
+`ONI_VERIFY_FETCH_BY_CELL`, `_CANVAS_CULL`, `_CANVAS_PRODUCTS`, `_COMPONENT_LAYOUTS` and
+`_RAW_LOADS`. `ci/game-tests/verify/SPEC.txt` lists the checks each run must report, and a check
+that reports nothing fails the run, as a wrong answer does: silence is not zero wrong. CI does not
+cover the modes that need drawing, input or a GPU: `ONI_VERIFY_CANVAS_SKIPS`, `_RAYCAST_CACHE`,
+`_CULL_CACHE`, `_MESH_REUSE`, `_TEXEL_COPIES`, `_PARTIAL_UPLOADS`, `_PARALLEL_DRAWS`, `_BINDLESS`,
+`_PASS_STATES` and `_PROPERTY_SHEETS`. Headless, these report nothing or check nothing; run them
+with `scripts/qa.sh verify` on a real display.
 
 Each run is checked against its log-signature budget, `ci/game-tests/budget/BUILD.txt`: a run
 fails on an error or exception the budget lacks. `E2E_NO_SHOTS=1` keeps specs from taking

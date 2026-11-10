@@ -1,7 +1,7 @@
-# The checks ci-verify must report (scripts/ci-game-tests.sh: `qa-tools.py verify --expect`), one
-# check name a line: a check that reports nothing fails the run, as one that reports a wrong
-# answer does. Headless, with no GL device, these are the ones that report; docs/DEVELOPMENT.md,
-# "Game tests in CI", lists the verify modes CI does not cover.
+# The checks ci-verify must report on the stripped game (scripts/ci-game-tests.sh, with
+# `qa-tools.py verify --expect`), one check name a line: a check that reports nothing fails the
+# run, as a wrong answer does. docs/DEVELOPMENT.md, "Game tests in CI", lists the verify modes
+# CI does not cover.
 canvas cull
 canvas products
 component layouts

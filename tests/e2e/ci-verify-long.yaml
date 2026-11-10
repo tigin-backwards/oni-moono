@@ -1,6 +1,7 @@
-# CI's nightly verify run (docs/DEVELOPMENT.md, "Game tests in CI"), headless on the stripped
-# game: a mid-game Spaced Out colony (about 50 Duplicants) for ten game minutes at speed 3 with
-# every game tweak and the verify modes that report without a GL device. scripts/ci-game-tests.sh
+# CI's nightly verify run (docs/DEVELOPMENT.md, "Game tests in CI") on the stripped game, under
+# Xvfb (its load opens the MOD DIFFERENCES dialog, which takes a click): a mid-game Spaced Out
+# colony (about 50 Duplicants) for ten game minutes at speed 3 with every game tweak and the
+# verify modes that report without a GL device. scripts/ci-game-tests.sh
 # then reads the log with `qa-tools.py verify`: every check that
 # ci/game-tests/verify/ci-verify-long.txt names reports, with zero wrong answers.
 # docs/DEVELOPMENT.md, "Game tests in CI", lists the modes CI does not cover.

@@ -1,12 +1,19 @@
-# The checks ci-verify-long must report (scripts/ci-game-tests.sh: `qa-tools.py verify --expect`), one
-# check name a line: a check that reports nothing fails the run, as one that reports a wrong
-# answer does. Headless, with no GL device, these are the ones that report; docs/DEVELOPMENT.md,
-# "Game tests in CI", lists the verify modes CI does not cover.
+# The checks ci-verify-long must report on the stripped game (scripts/ci-game-tests.sh, with
+# `qa-tools.py verify --expect`), one check name a line: a check that reports nothing fails the
+# run, as a wrong answer does. docs/DEVELOPMENT.md, "Game tests in CI", lists the verify modes
+# CI does not cover.
 canvas cull
 canvas products
 component layouts
+fast-anim-batches
 fast-anim-cleanup
-fast-overlay-textures
+fast-anim-events
+fast-conveyor-paths
+fast-jobs
+fast-offset-tables
+fast-partitioner-cleanup
+fast-smi-lookups
+fast-sublimation
 fast-symbol-overrides
 fetch-by-cell
 instant-reachability
