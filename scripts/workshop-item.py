@@ -15,7 +15,7 @@ version of a mod in the game's archived_versions convention (KMod.Mod.GetMostSui
       OniMoono.exe  OniMoono.sh  verify.ps1  verify.sh  README.md   (root only)
       MoonoLoader.dll            the loader mod (src/MoonoLoader, built by workshop.yml; root only)
       SHA256SUMS                 every other file of OUT (root only)
-      attestation/               added by workshop.yml once SHA256SUMS is signed: its Sigstore bundle
+      attestation/               added by workshop.yml once SHA256SUMS is attested: its Sigstore bundle
       archived_versions/u59/     the U59 build (minimumSupportedBuild 744825), laid out the same
 
 Of what the original game loads, a version's top has only the loader at the root: no other DLL,

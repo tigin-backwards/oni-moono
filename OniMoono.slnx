@@ -25,7 +25,6 @@
     <Project Path="tools/AssemblyDiff/AssemblyDiff.csproj" />
     <Project Path="tools/FacadeGen/FacadeGen.csproj" />
     <Project Path="tools/Inventory/Inventory.csproj" />
-    <Project Path="tools/ItemVerify/ItemVerify.csproj" />
     <Project Path="tools/ModTriage/ModTriage.csproj" />
     <Project Path="tools/ShaderSurvey/ShaderSurvey.csproj" />
     <Project Path="tools/SurfaceGen/SurfaceGen.csproj" />

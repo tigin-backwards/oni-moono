@@ -30,7 +30,8 @@ namespace OniMoono.Host.Install
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
             if (path == null) return null;
-            try { return Parse(File.ReadAllText(path)); }
+            // A source's file too, before anything else reads it: capped.
+            try { return new FileInfo(path).Length > 64 << 10 ? null : Parse(File.ReadAllText(path)); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
         }
 
