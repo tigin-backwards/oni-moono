@@ -193,6 +193,11 @@ class LoginTests(unittest.TestCase):
             '@ShutdownOnFailedCommand 1\n@NoPromptForPassword 1\nset_steam_guard_code 2F9J5\n'
             'login moono_ci Abc123xyz\nworkshop_build_item /tmp/x/item.vdf\nquit\n',
         )
+        # Without a code, no Steam Guard line: the phone confirms the sign-in.
+        self.assertEqual(
+            upload.login_script('qigit', 'Abc123xyz', None, '/tmp/x/item.vdf'),
+            '@ShutdownOnFailedCommand 1\nlogin qigit Abc123xyz\nworkshop_build_item /tmp/x/item.vdf\nquit\n',
+        )
         for user, password, path in (
             ('a b', 'Abc123xyz', '/v'),
             ('moono', 'has space1', '/v'),
@@ -225,6 +230,18 @@ class LoginTests(unittest.TestCase):
             self.assertEqual(stat.S_IMODE(os.stat(out).st_mode), 0o600)
             with open(out) as f:
                 self.assertIn('set_steam_guard_code 2F9J5\nlogin moono_ci Abc123xyz\n', f.read())
+            # No shared_secret: no code, nothing to mask.
+            confirm = os.path.join(d, 'confirm.txt')
+            env.pop('STEAM_SHARED_SECRET')
+            with (
+                mock.patch.dict(os.environ, env, clear=True),
+                mock.patch('sys.argv', ['workshop-upload.py', 'login', os.path.join(d, 'item.vdf'), confirm]),
+                mock.patch('builtins.print') as printed,
+            ):
+                upload.main()
+            self.assertFalse([c for c in printed.call_args_list if 'add-mask' in str(c)])
+            with open(confirm) as f:
+                self.assertNotIn('set_steam_guard_code', f.read())
             with (
                 mock.patch.dict(os.environ, {'STEAM_USERNAME': 'x'}, clear=True),
                 mock.patch('sys.argv', ['workshop-upload.py', 'login', 'v', os.path.join(d, 'other.txt')]),

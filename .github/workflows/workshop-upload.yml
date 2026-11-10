@@ -3,9 +3,9 @@
 # attestation from workshop.yml on master or u60, tied to that run, every file, nothing more),
 # writes the VDF and installs steamcmd, and stops before any login. Mode upload does the same in
 # the steam-workshop environment, which waits for a required reviewer's approval and alone holds
-# the upload account's secrets, then logs in with a Steam Guard code made from the account's
-# shared_secret and runs workshop_build_item. steamcmd's home, with its cached login, is deleted
-# at the end of the job.
+# the account's secrets, then signs in (confirmed on the account's phone, or with a Steam Guard
+# code made from its shared_secret when that secret is set) and runs workshop_build_item.
+# steamcmd's home, with its cached login, is deleted at the end of the job.
 name: Workshop upload
 
 on:
@@ -111,23 +111,38 @@ jobs:
       - name: Install steamcmd
         run: scripts/workshop-upload.sh steamcmd "$RUNNER_TEMP/steamcmd"
       # The secrets reach this step alone, in its environment; the login script holding the
-      # password is deleted as soon as steamcmd exits. The Steam Guard code is masked.
+      # password is deleted as soon as steamcmd exits. With STEAM_SHARED_SECRET set, steamcmd
+      # gets a Steam Guard code (masked); without it, Steam asks the account's phone to confirm
+      # the sign-in. steamcmd gives up on a confirmation after about a minute, so the sign-in is
+      # retried while the 5 minutes for confirming last.
       - name: Upload
+        timeout-minutes: 90
         env:
           STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
           STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
           STEAM_SHARED_SECRET: ${{ secrets.STEAM_SHARED_SECRET }}
         run: |
           upload="$RUNNER_TEMP/upload"
-          python3 -I scripts/workshop-upload.py login "$upload/item.vdf" "$upload/login.txt"
-          status=0
-          HOME="$RUNNER_TEMP/steamcmd/home" "$RUNNER_TEMP/steamcmd/install/steamcmd.sh" +runscript "$upload/login.txt" \
-            2>&1 | tee "$upload/steamcmd.log" || status=$?
-          rm -f "$upload/login.txt"
-          log="$(sed 's/\x1b\[[0-9;]*m//g' "$upload/steamcmd.log")"
-          if [ "$status" -ne 0 ] || ! grep -q 'Committing update\.\.\.Success\.' <<< "$log"; then
+          deadline=$((SECONDS + 300))
+          for attempt in 1 2 3 4 5 6; do
+            python3 -I scripts/workshop-upload.py login "$upload/item.vdf" "$upload/login.txt"
+            if [ -z "$STEAM_SHARED_SECRET" ]; then
+              echo "::notice title=Steam sign-in::Approve the sign-in on your phone: Steam Mobile app, Steam Guard tab (attempt $attempt, until $(date -u -d "+$((deadline - SECONDS)) seconds" +%H:%M:%S) UTC)."
+            fi
+            status=0
+            HOME="$RUNNER_TEMP/steamcmd/home" "$RUNNER_TEMP/steamcmd/install/steamcmd.sh" +runscript "$upload/login.txt" \
+              < /dev/null 2>&1 | tee "$upload/steamcmd.log" || status=$?
+            rm -f "$upload/login.txt"
+            log="$(sed 's/\x1b\[[0-9;]*m//g' "$upload/steamcmd.log")"
+            if [ "$status" -eq 0 ] && grep -q 'Committing update\.\.\.Success\.' <<< "$log"; then break; fi
+            if [ -z "$STEAM_SHARED_SECRET" ] && grep -qiE 'timed out waiting for confirmation|wait for confirmation timed out' <<< "$log" \
+               && [ "$SECONDS" -lt "$deadline" ]; then
+              echo "The sign-in was not confirmed in time; asking again."
+              continue
+            fi
             echo "::error::steamcmd did not upload the item"; exit 1
-          fi
+          done
+          grep -q 'Committing update\.\.\.Success\.' <<< "$log" || { echo "::error::the sign-in was not confirmed within 5 minutes"; exit 1; }
           created="$(grep -oE 'PublishFileID [0-9]+' <<< "$log" | head -1 | cut -d' ' -f2 || true)"
           if [ "$ITEM" = new ]; then
             echo "Created Workshop item $created (private). Set the STEAM_WORKSHOP_ITEM variable to $created." | tee -a "$GITHUB_STEP_SUMMARY"
