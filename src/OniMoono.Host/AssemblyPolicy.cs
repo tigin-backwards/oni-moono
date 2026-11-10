@@ -77,8 +77,15 @@ namespace OniMoono.Host
             managedDir = Path.Combine(game.DataDir, "Managed");
             engineDir = Path.Combine(hostDir, "engine");
             AssemblyLoadContext.Default.Resolving += Resolve;
+            plugins = new GamePlugins(game, NativeOverrides, ReplacementsDir, ProcessCpu);
+            // Not the framework's (no game plugin there) nor BRUTAL's, which set their own
+            // resolvers (an assembly can have one).
+            plugins.Install(a => a.GetName().Name is not { } n || IsFrameworkAssembly(n) || n.StartsWith("Brutal.", StringComparison.Ordinal));
             AssemblyLoadContext.Default.ResolvingUnmanagedDll += ResolveNative;
         }
+
+        /// The game's plugins, bound before the runtime's own probing (#74).
+        static GamePlugins? plugins;
 
         static bool IsEngineAssembly(string name) => File.Exists(Path.Combine(engineDir, name + ".dll"));
 
@@ -127,25 +134,21 @@ namespace OniMoono.Host
         public static int ProcessCpu => RuntimeInformation.ProcessArchitecture == Architecture.Arm64
             ? NativeExports.Arm64 : NativeExports.X8664;
 
-        /// The game's native plugins live in Plugins/ (the Unity player searches there), on macOS
-        /// in the bundle's PlugIns/<name>.bundle (GameLayout.PluginCandidates). A plugin without
-        /// the process's architecture is replaced by the host's of the same name (plugins/), e.g.
-        /// the onimaxxing-sim SimDLL of an arm64 macOS build (GameLayout.Native).
+        /// What GamePlugins left to the runtime's probing and the runtime did not find either: the
+        /// override or game plugin that did not load, or none at all. Game and mod code sees
+        /// Mono's DllNotFoundException (D59); the runtime raises this event only once its own
+        /// probing has failed.
         static IntPtr ResolveNative(Assembly requester, string name)
         {
             if (NativeOverrides.TryGetValue(name, out var overridePath))
-                return Announced(name, NativeLibrary.Load(overridePath), $"{overridePath} (--native-override)");
+                return plugins!.Announce(name, NativeLibrary.Load(overridePath), overridePath, "--native-override");
             var native = layout?.Native(name, OperatingSystem.IsWindows(), ProcessCpu, ReplacementsDir);
-            // Game and mod code sees Mono's DllNotFoundException when nothing loads (D59); the
-            // runtime raises this event only once its own probing has failed.
             bool monoMessage = !IsHostAssembly(requester);
             if (native == null)
             {
-                LogMissingPlugin(name);
+                plugins?.LogMissing(name);
                 return monoMessage ? throw MonoDllNotFound.Missing(name) : IntPtr.Zero;
             }
-            if (native.Value.Replacement)
-                return Announced(name, NativeLibrary.Load(native.Value.Path), $"{native.Value.Path} (the host's replacement: the game's plugin has no {NativeExports.ArchName(ProcessCpu)} code)");
             if (NativeLibrary.TryLoad(native.Value.Path, out var handle)) return handle;
             return monoMessage ? throw MonoDllNotFound.Failed(name, native.Value.Path) : NativeLibrary.Load(native.Value.Path);
         }
@@ -160,46 +163,6 @@ namespace OniMoono.Host
             var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             return string.Equals(dir, AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar), comparison)
                 || string.Equals(dir, engineDir, comparison) || string.Equals(dir, packagesDir, comparison);
-        }
-
-        static readonly HashSet<string> announced = new(StringComparer.Ordinal);
-
-        static readonly HashSet<string> missingLogged = new(StringComparer.Ordinal);
-
-        /// The plugins the game cannot start without (Steam's, the simulation's, FMOD's).
-        static readonly string[] requiredPlugins = ["steam_api", "steam_api64", "SimDLL", "fmodstudio", "fmodstudioL"];
-
-        /// Logs, once per name, the folders searched for a required plugin that none of them has,
-        /// so a player log tells a misplaced install from a broken library (#49).
-        static void LogMissingPlugin(string name)
-        {
-            if (layout == null || Array.IndexOf(requiredPlugins, name) < 0) return;
-            lock (missingLogged)
-                if (!missingLogged.Add(name)) return;
-            bool windows = OperatingSystem.IsWindows();
-            var root = Path.GetDirectoryName(layout.IsMacBundle ? layout.App.TrimEnd('/') : layout.DataDir) ?? "";
-            var folders = layout.PluginFolders(windows).Select(f => Path.GetRelativePath(root, f));
-            string files = layout.IsMacBundle ? $"{name}.bundle, lib{name}.dylib or {name}.dylib"
-                : windows ? $"{name}.dll" : $"lib{name}.so, {name}.so or {name}";
-            EngineLog.Engine($"Native {name}: no plugin found ({files}); searched {string.Join(", ", folders)}");
-        }
-
-        /// Logs, once per name, which library replaced a game plugin; for a SimDLL, also its
-        /// SYSINFO_Acquire string (onimaxxing-sim's banner, UTF-16; the game itself never calls it),
-        /// which shows the game's imports bind to that library.
-        static unsafe IntPtr Announced(string name, IntPtr handle, string what)
-        {
-            lock (announced)
-                if (!announced.Add(name)) return handle;
-            string banner = "";
-            if (name == "SimDLL" && NativeLibrary.TryGetExport(handle, "SYSINFO_Acquire", out var acquire))
-            {
-                var text = ((delegate* unmanaged<byte*>)acquire)();
-                if (text != null) banner = ": SYSINFO \"" + (text[1] == 0 ? new string((char*)text) : Marshal.PtrToStringUTF8((IntPtr)text)) + "\"";
-                if (NativeLibrary.TryGetExport(handle, "SYSINFO_Release", out var release)) ((delegate* unmanaged<void>)release)();
-            }
-            EngineLog.Engine($"Native {name}: {what}{banner}");
-            return handle;
         }
 
         /// The simple names of the assemblies the game was built with (ScriptingAssemblies.json):
