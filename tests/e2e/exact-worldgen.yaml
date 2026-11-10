@@ -8,7 +8,7 @@
 # to the bit (E2eDriver's Worldgen::Lines: hashes of the polygons' vertices and of the cells'
 # elements, masses and temperatures as the settling simulation receives them; the settled cells
 # are left out, as the settling differs from run to run in either player). The lines below are
-# the original's.
+# U60's original's (762230): six of the eight worlds differ from U59's.
 from: main-menu
 steps:
   - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
@@ -33,11 +33,11 @@ steps:
       "type:E2eDriver.Worldgen::Count": 8
       "type:E2eDriver.Worldgen::Lines":
         equals: |-
-          expansion1::worlds/MarshyMoonlet 64x96 polys=19 verts=db68355fd0702f88 cells=fa34d858efc3b223 mass=160bee8d2d9ec242 temp=e6a8ba9710632058
-          expansion1::worlds/MediumRadioactiveVanillaWarpPlanet 160x176 polys=61 verts=77fc1fe988c4ff15 cells=5e03182fdb6afde0 mass=fea31aef8fc76879 temp=8f88012856c26cd1
-          expansion1::worlds/MiniRegolithMoonlet 96x96 polys=30 verts=6a289d10ab5e0aa0 cells=81b0ef8ce9387e2c mass=20e642b6269a8453 temp=37702c3e972d8a4f
-          expansion1::worlds/MooMoonlet 96x80 polys=24 verts=11cf10d7a6979c44 cells=a08bcfa7febca387 mass=3d17b5fddd66aff5 temp=f0769e0fa44b3bca
+          expansion1::worlds/MarshyMoonlet 64x96 polys=19 verts=d5365409b4f17d0d cells=fa34d858efc3b223 mass=160bee8d2d9ec242 temp=e6a8ba9710632058
+          expansion1::worlds/MediumRadioactiveVanillaWarpPlanet 160x176 polys=61 verts=27638c72340eeb42 cells=8d8936fadbc3b19f mass=f100e345bb3f76fc temp=1e944a5dac9fd98d
+          expansion1::worlds/MiniRegolithMoonlet 96x96 polys=30 verts=d15e4caa1f18b21d cells=81b0ef8ce9387e2c mass=20e642b6269a8453 temp=37702c3e972d8a4f
+          expansion1::worlds/MooMoonlet 96x80 polys=24 verts=9b051eb312668e59 cells=a08bcfa7febca387 mass=3d17b5fddd66aff5 temp=f0769e0fa44b3bca
           expansion1::worlds/NiobiumMoonlet 64x96 polys=21 verts=5e39cc039cfcd88f cells=ebcad1ca3832973f mass=90c3eac1f75352c5 temp=9c03d11261d28f1e
           expansion1::worlds/TundraMoonlet 64x128 polys=27 verts=339150e28316178d cells=cdc7389d86d2b231 mass=1e9e0e637a0c6249 temp=d530c907779509f8
-          expansion1::worlds/VanillaSandstoneDefault 240x380 polys=130 verts=754f7db1f9eb99c9 cells=9597076a7931955f mass=f1079b80406bf05b temp=6cd19d6c73fa87bf
-          expansion1::worlds/WaterMoonlet 80x174 polys=41 verts=83970e1af90a996f cells=2206b9b2ed0859ac mass=62fdf4fd25bc3d15 temp=af58a21776b650f6
+          expansion1::worlds/VanillaSandstoneDefault 240x380 polys=130 verts=b8ae08791a826b53 cells=9c457b88869428cf mass=7eeeff245b4412d9 temp=5446ccae7a5d3d01
+          expansion1::worlds/WaterMoonlet 80x174 polys=41 verts=bb1f6f7a12ece7b5 cells=3ecfc39da8b9541e mass=c909110a8472a203 temp=a1df77a1058c15a5

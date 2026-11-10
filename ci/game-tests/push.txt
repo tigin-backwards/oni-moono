@@ -4,5 +4,4 @@ ci-smoke-early-base ours player-args='--headless'   # load, a minute at speed 3,
 ci-smoke-rockets ours                               # the same on a Spaced Out cluster with rockets, under
 #                                                     Xvfb: its load's MOD DIFFERENCES dialog takes a click
 ci-verify ours player-args='--headless'             # every tweak and headless verify mode: 0 wrong
-# Not exact-worldgen yet: on U60 ours draws one world's polygons (MarshyMoonlet's vertices)
-# otherwise than its lines, which come from U59's original. It joins once that is resolved.
+exact-worldgen ours                                 # worldgen to the bit (#66), under Xvfb
