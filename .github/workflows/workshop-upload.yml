@@ -1,0 +1,134 @@
+# Uploads a workshop.yml run's item to Moono's Steam Workshop item (docs/WORKSHOP-UPLOAD.md). Run by
+# hand from master or u60, never on pull requests. Mode dry-run checks the run's item (its
+# attestation from workshop.yml on master or u60, tied to that run, every file, nothing more),
+# writes the VDF and installs steamcmd, and stops before any login. Mode upload does the same in
+# the steam-workshop environment, which waits for a required reviewer's approval and alone holds
+# the upload account's secrets, then logs in with a Steam Guard code made from the account's
+# shared_secret and runs workshop_build_item. steamcmd's home, with its cached login, is deleted
+# at the end of the job.
+name: Workshop upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      run:
+        description: The workshop.yml run whose workshop-item to upload (the number in its URL).
+        type: string
+        required: true
+      mode:
+        description: dry-run stops before logging in to Steam; upload waits for approval, then uploads.
+        type: choice
+        options: [dry-run, upload]
+        default: dry-run
+      visibility:
+        description: keep leaves the item's visibility as it is.
+        type: choice
+        options: [keep, private, friends, unlisted, public]
+        default: keep
+      preview:
+        description: Also upload master's ci/workshop/preview.gif as the item's preview.
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: workshop-upload
+  cancel-in-progress: false
+
+env:
+  # STEAM_WORKSHOP_ITEM (a repository variable): the item's published file ID, or new to create
+  # one owned by the upload account (private, titled STEAM_WORKSHOP_TITLE or Moono).
+  ITEM: ${{ vars.STEAM_WORKSHOP_ITEM || '3837112063' }}
+  WORKSHOP_TITLE: ${{ vars.STEAM_WORKSHOP_TITLE }}
+  RUN: ${{ inputs.run }}
+  VISIBILITY: ${{ inputs.visibility }}
+  PREVIEW: ${{ inputs.preview }}
+
+jobs:
+  dry-run:
+    name: Check the item (no Steam login)
+    if: inputs.mode == 'dry-run' && github.repository == 'tigin-backwards/oni-moono' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/u60')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The description and preview are master's, whichever branch runs this.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          path: master
+          sparse-checkout: ci/workshop
+          persist-credentials: false
+      - name: Check the item and write its VDF
+        run: scripts/workshop-upload.sh prepare "$RUN" "$RUNNER_TEMP/upload" "$GITHUB_WORKSPACE/master" "$ITEM" "$VISIBILITY" "$PREVIEW"
+      - name: Install steamcmd
+        run: scripts/workshop-upload.sh steamcmd "$RUNNER_TEMP/steamcmd"
+      - name: Remove steamcmd
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/steamcmd"
+      - name: Summary
+        run: echo "Dry run of workshop.yml run $RUN for item $ITEM ($VISIBILITY visibility, preview $PREVIEW) checked; nothing uploaded." | tee -a "$GITHUB_STEP_SUMMARY"
+
+  upload:
+    name: Upload to the Steam Workshop
+    if: inputs.mode == 'upload' && github.repository == 'tigin-backwards/oni-moono' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/u60')
+    runs-on: ubuntu-24.04
+    # Required reviewers approve each run; its secrets are readable only by jobs in it.
+    environment: steam-workshop
+    permissions:
+      contents: read
+      actions: read
+      attestations: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          path: master
+          sparse-checkout: ci/workshop
+          persist-credentials: false
+      - name: Check the item and write its VDF
+        run: scripts/workshop-upload.sh prepare "$RUN" "$RUNNER_TEMP/upload" "$GITHUB_WORKSPACE/master" "$ITEM" "$VISIBILITY" "$PREVIEW"
+      - name: Install steamcmd
+        run: scripts/workshop-upload.sh steamcmd "$RUNNER_TEMP/steamcmd"
+      # The secrets reach this step alone, in its environment; the login script holding the
+      # password is deleted as soon as steamcmd exits. The Steam Guard code is masked.
+      - name: Upload
+        env:
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+          STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
+          STEAM_SHARED_SECRET: ${{ secrets.STEAM_SHARED_SECRET }}
+        run: |
+          upload="$RUNNER_TEMP/upload"
+          python3 -I scripts/workshop-upload.py login "$upload/item.vdf" "$upload/login.txt"
+          status=0
+          HOME="$RUNNER_TEMP/steamcmd/home" "$RUNNER_TEMP/steamcmd/install/steamcmd.sh" +runscript "$upload/login.txt" \
+            2>&1 | tee "$upload/steamcmd.log" || status=$?
+          rm -f "$upload/login.txt"
+          log="$(sed 's/\x1b\[[0-9;]*m//g' "$upload/steamcmd.log")"
+          if [ "$status" -ne 0 ] || ! grep -q 'Committing update\.\.\.Success\.' <<< "$log"; then
+            echo "::error::steamcmd did not upload the item"; exit 1
+          fi
+          created="$(grep -oE 'PublishFileID [0-9]+' <<< "$log" | head -1 | cut -d' ' -f2 || true)"
+          if [ "$ITEM" = new ]; then
+            echo "Created Workshop item $created (private). Set the STEAM_WORKSHOP_ITEM variable to $created." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Uploaded workshop.yml run $RUN to Workshop item $ITEM ($VISIBILITY visibility, preview $PREVIEW)." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Remove steamcmd and its login
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/steamcmd" "$RUNNER_TEMP/upload/login.txt"

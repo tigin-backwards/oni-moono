@@ -14,6 +14,7 @@ commit of `master` (or `u60` for a U60 beta):
 | `.github/workflows/release.yml` | Run by hand with the release's tag. Calls `build.yml` without caches, checks each archive against its manifest, has `attest.yml` sign provenance for the archives, the manifests and every file in the archives, and creates a **draft** release with the archives and manifests. It never publishes. |
 | `.github/workflows/attest.yml` | Signs SLSA build provenance for the digests it is given, and does nothing else. |
 | `.github/workflows/workshop.yml` | Run by hand with a master and a u60 release tag (or, for a dry run, the release.yml runs that built them). Downloads both releases' assets and verifies their provenance and branch, lays out the Workshop item (`scripts/workshop-item.py`, [INSTALL-MODES.md](INSTALL-MODES.md#workshop-item)), has `attest.yml` attest its `SHA256SUMS` and every file in it, puts the bundle for `SHA256SUMS` in the item (`attestation/`), checks it with gh, and keeps it as the `workshop-item` artifact. Nothing is uploaded to Steam. |
+| `.github/workflows/workshop-upload.yml` | Run by hand with a `workshop.yml` run's number. Checks that run's item as `verify.sh` does and that its attestation is that run's, writes the VDF, and (mode `upload`, approved in the `steam-workshop` environment) uploads it to the Steam Workshop with a separate upload account. [WORKSHOP-UPLOAD.md](WORKSHOP-UPLOAD.md). |
 
 `<version>` in the archives' names is the release tag's date, as `oni-moono-2026.11.10-…` for
 `v2026.11.10.01` (`-u60` follows it for the u60 branch); a build of a plain push is named by its
@@ -222,10 +223,12 @@ Single files verify the same way, for example `workshop-item/mod_info.yaml` in p
 
 The Workshop page's description is `ci/workshop/description.bbcode` (Steam's BBCode; `ITEM_ID`,
 if present, stands for the item's ID). Steam keeps no history of descriptions, so edit this file
-and upload it from there, never on the Steam page. With steamcmd, give it as the `description`
-value of the item's VDF exactly as written: steamcmd does not unescape backslashes, so `\\`
-would show doubled. The images it shows are in `ci/workshop/images/`, linked by their raw GitHub
-URLs.
+and upload it from there, never on the Steam page: `workshop-upload.yml` uploads master's copy
+with every item ([WORKSHOP-UPLOAD.md](WORKSHOP-UPLOAD.md)). steamcmd reads the VDF raw: it does
+not unescape backslashes, so `\\` would show doubled, and a double quote can't be written at all
+(`scripts/workshop-upload.py` refuses one). The images it shows are in `ci/workshop/images/`,
+linked by their raw GitHub URLs. The item's preview is `ci/workshop/preview.gif` (under 1 MB),
+uploaded only when a run asks for it.
 
 ## Adding a new game build
 
