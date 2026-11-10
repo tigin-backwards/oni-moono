@@ -183,6 +183,15 @@ gh attestation verify workshop-item/mod_info.yaml -R tigin-backwards/oni-moono \
   --signer-workflow tigin-backwards/oni-moono/.github/workflows/attest.yml
 ```
 
+### The Workshop item's description
+
+The Workshop page's description is `ci/workshop/description.bbcode` (Steam's BBCode; `ITEM_ID`,
+if present, stands for the item's ID). Steam keeps no history of descriptions, so edit this file
+and upload it from there, never on the Steam page. With steamcmd, give it as the `description`
+value of the item's VDF exactly as written: steamcmd does not unescape backslashes, so `\\`
+would show doubled. The images it shows are in `ci/workshop/images/`, linked by their raw GitHub
+URLs.
+
 ## Adding a new game build
 
 When Klei ships a new build the release should compile against:
