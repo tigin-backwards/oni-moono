@@ -1,34 +1,35 @@
 #!/usr/bin/env python3
 """Fetches the stripped game (tools/GameStrip) that CI's game tests run on, and the e2e fixture
-saves they load, from the private refs repository by the hashes in ci/game-content.json.
+saves they load, from the private refs repository's release assets by the hashes in
+ci/game-content.json and tests/e2e/fixtures.json.
 
-    scripts/fetch-game-content.py game OUT [--build N] [--transport https|ssh]
-        the build's stripped install into OUT (an empty or missing folder): its archive parts
-        are read as git blobs at the manifest's commit, each checked against its SHA-256, the
-        whole archive against its own, then unpacked (zstd and tar)
-    scripts/fetch-game-content.py saves NAME... [--transport https|ssh]
-        the fixtures NAME... into tests/e2e/fixtures, through scripts/fixtures.py: each save is
-        read from the refs repository's game/saves/SHA256 (SHA256 from tests/e2e/fixtures.json),
-        checked, and put in fixtures.py's cache, from which `fixtures.py fetch` places it
+    scripts/fetch-game-content.py game OUT [--build N]
+        the build's stripped install into OUT (an empty or missing folder): its archive, release
+        TAG's asset, is downloaded, checked against its size and SHA-256, then unpacked (zstd
+        and tar)
+    scripts/fetch-game-content.py saves NAME...
+        the fixtures NAME... into tests/e2e/fixtures, through scripts/fixtures.py and its cache
     scripts/fetch-game-content.py --print-default-build
 
-The CI job reads them with the refs repository's read-only deploy key (--transport ssh, as
-scripts/fetch-game-refs.py does); --transport https uses the user's own git credentials. The
-stripped game and the saves are private: nothing here prints their contents, and CI keeps them
-in the runner's temporary folder only (docs/DEVELOPMENT.md, "Game tests in CI").
+Both download with `gh release download`: with the token in GH_TOKEN when it is set (CI's
+GitHub App token), else the user's own gh login. The stripped game and the saves are private:
+nothing here prints their contents, and CI keeps them in the runner's temporary folder only
+(docs/DEVELOPMENT.md, "Game tests in CI").
 """
 
 import argparse
-import hashlib
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MANIFEST = os.path.join(ROOT, 'ci', 'game-content.json')
+BUILD = re.compile(r'^[0-9]+$')
+ASSET = re.compile(r'^oni-[0-9]+\.tar\.zst$')
 
 
 def load(name):
@@ -38,7 +39,6 @@ def load(name):
     return module
 
 
-refs = load('fetch-game-refs')
 fixtures = load('fixtures')
 
 
@@ -49,31 +49,23 @@ class ContentError(Exception):
 def manifest():
     with open(MANIFEST, encoding='utf-8') as f:
         m = json.load(f)
-    if m.get('schema') != 1:
+    if m.get('schema') != 2:
         raise ContentError(f'game-content.json: unknown schema {m.get("schema")!r}')
     source = m.get('source', {})
-    if source.get('kind') != 'git':
+    if source.get('kind') != 'github-release' or source.get('host') != 'github.com' or not fixtures.REPOSITORY.match(source.get('repository', '')):
         raise ContentError(f'game-content.json: unexpected source {source!r}')
     for build, entry in m.get('builds', {}).items():
-        for name, digest in entry.get('parts', {}).items():
-            if not refs.SEGMENT.match(name) or not refs.SHA256.match(digest):
-                raise ContentError(f'game-content.json: build {build}: unexpected part {name!r} {digest!r}')
-        if not refs.SHA256.match(entry.get('sha256', '')):
-            raise ContentError(f'game-content.json: build {build}: no archive SHA-256')
+        digest = entry.get('sha256', '')
+        if not BUILD.match(build) or not fixtures.SHA256.match(digest):
+            raise ContentError(f'game-content.json: build {build!r}: no archive SHA-256')
+        if entry.get('tag') != f'game/{build}-{digest[:16]}':
+            raise ContentError(f'game-content.json: build {build}: the tag must be game/{build}- and the hash\'s first 16 digits, not {entry.get("tag")!r}')
+        if not ASSET.match(entry.get('asset', '')) or not isinstance(entry.get('size'), int) or entry['size'] <= 0:
+            raise ContentError(f'game-content.json: build {build}: unexpected asset {entry.get("asset")!r} or size {entry.get("size")!r}')
     return m
 
 
-def blobs(source, path, names, transport):
-    """NAME -> bytes of PATH/NAME in the refs repository at the manifest's commit."""
-    with tempfile.TemporaryDirectory() as work:
-        return refs.fetch_git(dict(source, path=path), names, transport, work)
-
-
-def sha256(data):
-    return hashlib.sha256(data).hexdigest()
-
-
-def fetch_game(out, build, transport):
+def fetch_game(out, build):
     m = manifest()
     build = build or m['default_build']
     entry = m['builds'].get(build)
@@ -81,54 +73,32 @@ def fetch_game(out, build, transport):
         raise ContentError(f'build {build} is not in game-content.json (it has {", ".join(sorted(m["builds"]))})')
     if os.path.isdir(out) and os.listdir(out):
         raise ContentError(f'{out} is not empty')
-    names = sorted(entry['parts'])
-    got = blobs(m['source'], entry['path'], names, transport)
-    for name in names:
-        if sha256(got[name]) != entry['parts'][name]:
-            raise ContentError(f'{entry["path"]}/{name}: SHA-256 differs from the manifest; nothing unpacked')
-    archive = b''.join(got[name] for name in names)
-    if sha256(archive) != entry['sha256']:
-        raise ContentError(f'build {build}: the joined archive\'s SHA-256 differs from the manifest; nothing unpacked')
-    os.makedirs(out, exist_ok=True)
-    # The archive holds one folder (the build's), unpacked into OUT itself.
-    unzstd = subprocess.Popen(['zstd', '-d', '-q', '-c'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    tar = subprocess.Popen(['tar', '-x', '-C', out, '--strip-components=1', '--no-same-owner'], stdin=unzstd.stdout)
-    unzstd.stdout.close()
-    unzstd.stdin.write(archive)
-    unzstd.stdin.close()
-    if unzstd.wait() or tar.wait():
-        raise ContentError(f'build {build}: unpacking failed')
-    print(f'game-content: build {build} ({entry["game"]}) in {out}, {len(archive) / 2**20:.0f} MiB fetched')
+    with tempfile.TemporaryDirectory(prefix='game-content-') as work:
+        archive = fixtures.gh_download(m['source']['repository'], entry['tag'], entry['asset'], work)
+        size = os.path.getsize(archive)
+        if size != entry['size'] or fixtures.sha256_file(archive) != entry['sha256']:
+            raise ContentError(f'build {build}: the archive\'s size or SHA-256 differs from the manifest; nothing unpacked')
+        os.makedirs(out, exist_ok=True)
+        # The archive holds one folder (the build's), unpacked into OUT itself.
+        with open(archive, 'rb') as f:
+            unzstd = subprocess.Popen(['zstd', '-d', '-q', '-c'], stdin=f, stdout=subprocess.PIPE)
+            tar = subprocess.Popen(['tar', '-x', '-C', out, '--strip-components=1', '--no-same-owner'], stdin=unzstd.stdout)
+            unzstd.stdout.close()
+            if unzstd.wait() or tar.wait():
+                raise ContentError(f'build {build}: unpacking failed')
+    print(f'game-content: build {build} ({entry["game"]}) in {out}, {size / 2**20:.0f} MiB fetched')
 
 
-def fetch_saves(names, transport):
-    m = manifest()
+def fetch_saves(names):
     saves = fixtures.load_manifest()
-    wanted = {}
     for name in names:
-        canonical, entry = fixtures.lookup(saves, name)
+        _, entry = fixtures.lookup(saves, name)
         if entry is None or 'sha256' not in entry:
             raise ContentError(f'{name}: not a stored fixture in tests/e2e/fixtures.json')
-        if entry['sha256'] not in m.get('saves', []):
-            raise ContentError(f'{canonical}: its hash is not among game-content.json\'s saves (copy it to the refs repository\'s game/saves first)')
-        wanted[canonical] = entry
-    cache = fixtures.cache_dir()
-    os.makedirs(cache, exist_ok=True)
-    missing = {e['sha256'] for e in wanted.values() if not os.path.isfile(os.path.join(cache, e['sha256']))}
-    if missing:
-        got = blobs(m['source'], 'game/saves', sorted(missing), transport)
-        for digest, data in got.items():
-            if sha256(data) != digest:
-                raise ContentError(f'game/saves/{digest}: the blob does not have its hash; nothing kept')
-            path = os.path.join(cache, digest)
-            with open(path + '.part', 'wb') as f:
-                f.write(data)
-            os.chmod(path + '.part', 0o444)
-            os.replace(path + '.part', path)
-    problems = fixtures.ensure(list(wanted), offline=True, log=lambda line: None)
+    problems = fixtures.ensure(names, offline=False, log=print)
     if problems:
         raise ContentError('; '.join(f'{n}: {p}' for n, p in problems.items()))
-    print(f'game-content: {len(wanted)} fixture(s) in tests/e2e/fixtures')
+    print(f'game-content: {len(names)} fixture(s) in tests/e2e/fixtures')
 
 
 def main():
@@ -139,16 +109,15 @@ def main():
     parser.add_argument('what', choices=['game', 'saves'])
     parser.add_argument('args', nargs='+')
     parser.add_argument('--build')
-    parser.add_argument('--transport', choices=['https', 'ssh'], default='https')
     a = parser.parse_args()
     try:
         if a.what == 'game':
             if len(a.args) != 1:
                 parser.error('game takes one OUT folder')
-            fetch_game(a.args[0], a.build, a.transport)
+            fetch_game(a.args[0], a.build)
         else:
-            fetch_saves(a.args, a.transport)
-    except (ContentError, refs.RefsError, fixtures.FixtureError, subprocess.CalledProcessError) as e:
+            fetch_saves(a.args)
+    except (ContentError, fixtures.FixtureError, OSError) as e:
         print(f'fetch-game-content: {e}', file=sys.stderr)
         return 1
     return 0

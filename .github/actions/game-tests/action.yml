@@ -2,14 +2,18 @@ name: Game tests
 description: >
   Runs scripts/ci-game-tests.sh LIST on the stripped game (docs/DEVELOPMENT.md, "Game tests in
   CI"): fetches this branch's stripped build and the fixture saves the list loads from the private
-  refs repository by the hashes in ci/game-content.json (the deploy key in an ssh-agent for the
-  fetches only, never on disk), builds the DLC-owning Steam double and OniMcp (scripts/onimcp.py,
+  refs repository's release assets by the hashes in ci/game-content.json and
+  tests/e2e/fixtures.json (with a short-lived token of the GitHub App oni-moono-refs-reader,
+  Contents read-only on that repository alone, held only in the fetch step's environment), builds the DLC-owning Steam double and OniMcp (scripts/onimcp.py,
   from its author's repository; a fresh build each run), and runs the list. Nothing is cached or
   uploaded: the game, the saves and the players' logs and dumps stay on the runner. Without the
-  deploy key (a fork's run) it does nothing and says so.
+  app's key (a fork's run) it does nothing and says so.
 inputs:
-  deploy-key:
-    description: The refs repository's read-only deploy key (secret GAME_REFS_DEPLOY_KEY).
+  app-id:
+    description: The refs-reading GitHub App's ID (variable REFS_APP_ID).
+    required: true
+  app-key:
+    description: The refs-reading GitHub App's private key (secret REFS_APP_KEY).
     required: true
   list:
     description: push or nightly (ci/game-tests/LIST.txt).
@@ -23,28 +27,33 @@ runs:
     - id: key
       shell: bash
       env:
-        DEPLOY_KEY: ${{ inputs.deploy-key }}
+        HAVE_KEY: ${{ inputs.app-key != '' }}
       run: |
-        if [ -n "$DEPLOY_KEY" ]; then echo "have=true" >> "$GITHUB_OUTPUT"
-        else echo "::notice::No GAME_REFS_DEPLOY_KEY in this run (a fork's): the game tests are skipped."; echo "have=false" >> "$GITHUB_OUTPUT"; fi
+        if [ "$HAVE_KEY" = true ]; then echo "have=true" >> "$GITHUB_OUTPUT"
+        else echo "::notice::No REFS_APP_KEY in this run (a fork's): the game tests are skipped."; echo "have=false" >> "$GITHUB_OUTPUT"; fi
     - if: steps.key.outputs.have == 'true'
       shell: bash
       run: |
         sudo apt-get update -qq
         sudo apt-get install -y -qq --no-install-recommends xvfb x11-xkb-utils libgl1 libglx-mesa0 libgl1-mesa-dri libegl1 libxtst6 python3-yaml zstd binutils > /dev/null
     - if: steps.key.outputs.have == 'true'
+      id: token
+      uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.app-key }}
+        owner: tigin-backwards
+        repositories: oni-moono-refs
+        permission-contents: read
+    - if: steps.key.outputs.have == 'true'
       shell: bash
       env:
-        DEPLOY_KEY: ${{ inputs.deploy-key }}
+        GH_TOKEN: ${{ steps.token.outputs.token }}
         SAVES: ${{ inputs.saves }}
       run: |
-        eval "$(ssh-agent -s)" > /dev/null
-        trap 'ssh-agent -k > /dev/null' EXIT
-        printf '%s\n' "$DEPLOY_KEY" | ssh-add -q -
-        export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$PWD/ci/github-known-hosts"
-        python3 -I scripts/fetch-game-content.py game "$RUNNER_TEMP/oni-game" --transport ssh
+        python3 -I scripts/fetch-game-content.py game "$RUNNER_TEMP/oni-game"
         # shellcheck disable=SC2086  # a space-separated list
-        python3 -I scripts/fetch-game-content.py saves $SAVES --transport ssh
+        python3 -I scripts/fetch-game-content.py saves $SAVES
     - if: steps.key.outputs.have == 'true'
       shell: bash
       run: |

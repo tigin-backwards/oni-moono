@@ -4,18 +4,20 @@ a game install, OUT/OxygenNotIncluded_Data/Managed/, so a build takes it as its 
 (-p:OniGameDir=OUT, ONI_GAME_DIR=OUT). Every file is checked against the manifest's SHA-256
 before anything is written there; the files are build inputs only and are never run.
 
-    scripts/fetch-game-refs.py OUT [--build N] [--manifest ci/game-refs.json] [--transport https|ssh] [--reuse]
+    scripts/fetch-game-refs.py OUT [--build N] [--manifest ci/game-refs.json] [--reuse]
     scripts/fetch-game-refs.py --print-default-build
 
 A build's source is one of
   {"kind": "git", "host": "github.com", "repository": "owner/name", "commit": SHA, "path": DIR}
-      the files DIR/NAME at that commit, read as blobs (no checkout, hooks or filters run);
-      --transport ssh uses git@HOST (the CI deploy key), https the user's git credentials;
+      the files DIR/NAME at that commit, read as blobs (no checkout, hooks or filters run) from a
+      partial clone that fetches only the commit's trees and those blobs; over https, with the
+      token in GH_TOKEN when it is set (CI's GitHub App token), else the user's git credentials;
   {"kind": "url", "base": "https://HOST/.../"}   BASE + NAME, from an allowed host only;
   {"kind": "local", "path": DIR}                 DIR/NAME (relative to the repository root).
 """
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -69,7 +71,7 @@ def segments(path, what):
     return parts
 
 
-def fetch_git(source, names, transport, work):
+def fetch_git(source, names, work):
     host = source.get("host", "github.com")
     if host not in GIT_HOSTS:
         raise RefsError(f"refusing git host {host!r} (allowed: {', '.join(GIT_HOSTS)})")
@@ -80,15 +82,31 @@ def fetch_git(source, names, transport, work):
     if not SHA1.match(commit):
         raise RefsError(f"commit must be a full SHA-1: {commit!r}")
     path = "/".join(segments(source["path"], "path"))
-    url = f"git@{host}:{repository}.git" if transport == "ssh" else f"https://{host}/{repository}.git"
+    url = f"https://{host}/{repository}.git"
     repo = os.path.join(work, "repo.git")
-    # A bare repository with no hooks, read with cat-file: nothing of the fetched tree runs.
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
+    token = os.environ.get("GH_TOKEN")
+    if token:
+        # The token as a header from the environment: never in a command line or on disk.
+        basic = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+        env.update(
+            GIT_CONFIG_COUNT="2",
+            GIT_CONFIG_KEY_0=f"http.https://{host}/.extraheader",
+            GIT_CONFIG_VALUE_0=f"Authorization: Basic {basic}",
+            GIT_CONFIG_KEY_1="credential.helper",
+            GIT_CONFIG_VALUE_1="",
+        )
+    # A bare repository with no hooks, read with cat-file: nothing of the fetched tree runs. A
+    # partial clone: the fetch takes the commit's trees, and cat-file fetches the blobs it reads.
     git = ["git", "-c", "core.hooksPath=/dev/null", "-c", "protocol.file.allow=never", "-C", repo]
     subprocess.run(["git", "init", "-q", "--bare", repo], check=True)
-    subprocess.run(git + ["fetch", "-q", "--depth=1", "--no-tags", url, commit], check=True)
+    subprocess.run(git + ["remote", "add", "origin", url], check=True)
+    subprocess.run(git + ["config", "remote.origin.promisor", "true"], check=True)
+    subprocess.run(git + ["config", "remote.origin.partialclonefilter", "blob:none"], check=True)
+    subprocess.run(git + ["fetch", "-q", "--depth=1", "--no-tags", "--filter=blob:none", "origin", commit], check=True, env=env)
     out = {}
     for name in names:
-        blob = subprocess.run(git + ["cat-file", "blob", f"{commit}:{path}/{name}"], check=True, stdout=subprocess.PIPE).stdout
+        blob = subprocess.run(git + ["cat-file", "blob", f"{commit}:{path}/{name}"], check=True, stdout=subprocess.PIPE, env=env).stdout
         out[name] = blob
     return out
 
@@ -124,7 +142,6 @@ def main(argv):
     parser.add_argument("out", nargs="?")
     parser.add_argument("--build", help="the game build (default: the manifest's default_build)")
     parser.add_argument("--manifest", default=os.path.join(ROOT, "ci", "game-refs.json"))
-    parser.add_argument("--transport", choices=("https", "ssh"), default="https")
     parser.add_argument("--reuse", action="store_true", help="fetch nothing when OUT already holds every file with its hash (a restored cache)")
     parser.add_argument("--print-default-build", action="store_true")
     args = parser.parse_args(argv)
@@ -147,7 +164,7 @@ def main(argv):
     with tempfile.TemporaryDirectory() as work:
         kind = source.get("kind")
         if kind == "git":
-            blobs = fetch_git(source, names, args.transport, work)
+            blobs = fetch_git(source, names, work)
         elif kind == "url":
             blobs = fetch_url(source, names)
         elif kind == "local":

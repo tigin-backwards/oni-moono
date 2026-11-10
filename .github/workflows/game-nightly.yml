@@ -36,6 +36,7 @@ jobs:
           skip-lts-prepass: true
       - uses: ./.github/actions/game-tests
         with:
-          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          app-id: ${{ vars.REFS_APP_ID }}
+          app-key: ${{ secrets.REFS_APP_KEY }}
           list: nightly
           saves: early-base 2minnow

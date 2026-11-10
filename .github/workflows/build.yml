@@ -20,7 +20,7 @@ on:
         type: boolean
         default: true
     secrets:
-      GAME_REFS_DEPLOY_KEY:
+      REFS_APP_KEY:
         required: true
 
 permissions: {}
@@ -59,7 +59,8 @@ jobs:
       - id: refs
         uses: ./.github/actions/game-refs
         with:
-          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          app-id: ${{ vars.REFS_APP_ID }}
+          app-key: ${{ secrets.REFS_APP_KEY }}
           use-cache: ${{ inputs.use_cache != false }}
       - name: Build the Linux archive
         env:
@@ -115,7 +116,8 @@ jobs:
       - id: refs
         uses: ./.github/actions/game-refs
         with:
-          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          app-id: ${{ vars.REFS_APP_ID }}
+          app-key: ${{ secrets.REFS_APP_KEY }}
           use-cache: ${{ inputs.use_cache != false }}
       - name: Build the Windows archive
         env:
@@ -165,7 +167,8 @@ jobs:
       - id: refs
         uses: ./.github/actions/game-refs
         with:
-          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          app-id: ${{ vars.REFS_APP_ID }}
+          app-key: ${{ secrets.REFS_APP_KEY }}
           use-cache: ${{ inputs.use_cache != false }}
       - name: Unit tests
         env:
@@ -175,7 +178,7 @@ jobs:
   game:
     # The game tests on the stripped game (docs/DEVELOPMENT.md, "Game tests in CI"): check-tweaks,
     # the unit tests that need the game, and ci/game-tests/push.txt's specs. Not in release builds
-    # (their tips passed release QA), and a run without the deploy key (a fork's) skips it.
+    # (their tips passed release QA), and a run without the refs app's key (a fork's) skips it.
     name: Game tests (stripped game)
     if: ${{ !inputs.release_tag }}
     runs-on: ubuntu-24.04
@@ -204,7 +207,8 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('global.json', 'Directory.Packages.props', '**/*.csproj') }}
       - uses: ./.github/actions/game-tests
         with:
-          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          app-id: ${{ vars.REFS_APP_ID }}
+          app-key: ${{ secrets.REFS_APP_KEY }}
           list: push
           saves: early-base rockets-so
 
