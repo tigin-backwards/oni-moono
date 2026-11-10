@@ -265,6 +265,7 @@ namespace OniMoono.Assets.Tests
         [Fact]
         public void GameBundleReadByBlocksMatchesItsWholeDecode()
         {
+            OniMoono.Tests.GameInstall.RequirePayloads(); // a stripped copy's bundles are not read by blocks
             var path = Path.Combine(GameData.DataDir, "StreamingAssets", "hires_base_bundle");
             var archive = UnityFsArchive.OpenFile(path, verify: true);
             var whole = UnityFsArchive.Open(path);

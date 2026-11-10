@@ -64,6 +64,7 @@ namespace OniMoono.Tests
         [Fact]
         public void TexelsHandedToAnUploadComeFromTheFile()
         {
+            GameInstall.RequirePayloads();
             var texture = LoadVistaTexture();
             var native = NativeOf(texture);
             byte[] before = native.Memory.Span.ToArray();

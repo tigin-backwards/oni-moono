@@ -64,6 +64,7 @@ namespace OniMoono.Tests
         [Fact]
         public void TexelsOfABundleReadByBlocksAreTheWholeDecodes()
         {
+            GameInstall.RequirePayloads();
             var path = Path.Combine(GameInstall.DataDir, "StreamingAssets", "hires_base_bundle");
             var archive = OniMoono.Assets.Files.UnityFsArchive.OpenFile(path);
             Assert.True(archive.ReadsBlocks);
