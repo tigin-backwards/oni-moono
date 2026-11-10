@@ -13,7 +13,7 @@ commit of `master` (or `u60` for a U60 beta):
 | `.github/workflows/build.yml` | On every push to `master` and `u60` (and when run by hand): the Linux archive on Ubuntu, the Windows archive natively on Windows (MSVC builds `OniMoono.exe`), and the unit tests that need no game. Both archives come from `scripts/release.sh` (`MOONO_PLATFORMS` picks one), so they are the archives a local `release.sh` makes. |
 | `.github/workflows/release.yml` | Run by hand with the release's tag. Calls `build.yml` without caches, checks each archive against its manifest, has `attest.yml` sign provenance for the archives, the manifests and every file in the archives, and creates a **draft** release with the archives and manifests. It never publishes. |
 | `.github/workflows/attest.yml` | Signs SLSA build provenance for the digests it is given, and does nothing else. |
-| `.github/workflows/workshop.yml` | Run by hand with a master and a u60 release tag (or, for a dry run, the release.yml runs that built them). Downloads both releases' assets and verifies their provenance and branch, lays out the Workshop item (`scripts/workshop-item.py`, [INSTALL-MODES.md](INSTALL-MODES.md#workshop-item)), has `attest.yml` sign its `SHA256SUMS` and every file in it, and keeps it as the `workshop-item` artifact. Nothing is uploaded to Steam. |
+| `.github/workflows/workshop.yml` | Run by hand with a master and a u60 release tag (or, for a dry run, the release.yml runs that built them). Downloads both releases' assets and verifies their provenance and branch, lays out the Workshop item (`scripts/workshop-item.py`, [INSTALL-MODES.md](INSTALL-MODES.md#workshop-item)), has `attest.yml` sign its `SHA256SUMS` and every file in it, puts the bundle for `SHA256SUMS` in the item (`attestation/`), checks it with the installer's own code (`tools/ItemVerify`), and keeps it as the `workshop-item` artifact. Nothing is uploaded to Steam. |
 
 Each archive comes with a manifest, `oni-moono-<version>-windows-x64.SHA256SUMS` or
 `…-linux-x64.SHA256SUMS`: the SHA-256 of every file in the archive, with paths relative to its
@@ -173,10 +173,35 @@ have neither. Releases before the manifests were added have provenance for their
 
 ### Verifying the Workshop item
 
-The item's `verify.sh` (or `verify.ps1`) checks each version's release manifest by its
-provenance and every player file against it, then the item's own `SHA256SUMS` by its provenance,
-every file against it, and that nothing else is in the folder. Single files verify as a
-release's do:
+**Moono checks the item itself.** The item carries the signature of its `SHA256SUMS`:
+`attestation/SHA256SUMS.sigstore.json`, the Sigstore bundle `attest.yml` made for it in
+`workshop.yml`. Before Moono installs any version from the item, it verifies that bundle
+offline against the Sigstore trust root built into Moono, checks that the signer is this
+repository's `attest.yml` run by `workshop.yml`, and then checks the item's files against the
+signed `SHA256SUMS` ([INSTALL-MODES.md](INSTALL-MODES.md#what-the-installer-verifies) lists every
+check). So an item uploaded by anyone who got hold of the Steam account, but not of this
+repository's Actions, installs nothing: the version you have keeps playing, and Moono says so
+once. Moono also refuses an item older than the version you have (unless you pin it with
+`--use-version`), so an old signed item can't take you back to an old version either.
+
+**The first install is the exception.** On the first start you run the item's own `OniMoono.exe`
+(or `OniMoono.sh`), and nothing can check a program before it runs. That copy then verifies the
+rest of the item as above, so files changed after signing still fail. A program that was swapped
+out entirely is another matter, though. If you want to be sure, start from a GitHub release
+(setup, [Verifying a release](#verifying-a-release)), or check the item with `verify.ps1` or
+`verify.sh` before its first start. The GitHub releases are the root of trust.
+
+**By hand,** the item's `verify.sh` (or `verify.ps1`) checks each version's release manifest by
+its provenance and every player file against it, then the item's own `SHA256SUMS` by its
+provenance (looked up, and the bundle in `attestation/`), every file against it, and that
+nothing else is in the folder. The bundle verifies with gh too:
+
+```sh
+gh attestation verify SHA256SUMS --bundle attestation/SHA256SUMS.sigstore.json \
+  -R tigin-backwards/oni-moono --signer-workflow tigin-backwards/oni-moono/.github/workflows/attest.yml
+```
+
+Single files verify as a release's do:
 
 ```sh
 gh attestation verify workshop-item/mod_info.yaml -R tigin-backwards/oni-moono \
