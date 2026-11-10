@@ -53,6 +53,19 @@ namespace OniMoono.Tests
             if (!File.Exists(Path.Combine(dir, "globalgamemanagers"))) Assert.Skip(NeedsData + dir);
         }
 
+        public const string NeedsPayloads = "needs the game's drawn-only payloads (a stripped copy): ";
+
+        /// Whether the install is a stripped copy (tools/GameStrip; CI's game tests): its
+        /// textures' texels, videos and FMOD samples are not there (moono-stripped.txt).
+        public static bool Stripped => File.Exists(Path.Combine(DataDirUnchecked, "moono-stripped.txt"));
+
+        /// Skips the test on a stripped copy: it reads texels, a movie or samples the copy
+        /// dropped. Not a game skip (test-skips.py): with the full game it runs.
+        public static void RequirePayloads()
+        {
+            if (Stripped) Assert.Skip(NeedsPayloads + DataDirUnchecked);
+        }
+
         static readonly ConcurrentDictionary<string, string?> s_Assemblies = new();
 
         /// Skips the test unless the game's assembly NAME (0Harmony, Ionic.Zip, Newtonsoft.Json)

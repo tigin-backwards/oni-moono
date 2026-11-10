@@ -35,6 +35,7 @@ namespace OniMoono.Tests
         [Fact]
         public void EveryClipDemuxesToItsDeclaredFrames()
         {
+            GameInstall.RequirePayloads();
             var clips = AllClips();
             Assert.Equal(18, clips.Count);
             foreach (var clip in clips)
@@ -64,6 +65,7 @@ namespace OniMoono.Tests
         [Fact]
         public void ADecoderBehindTheClockStillDeliversFrames()
         {
+            GameInstall.RequirePayloads();
             // A 1080p intro behind its audio clock (seconds of loading) is decoded faster than
             // real time but every frame is late until it catches up: the picture must still move,
             // as Unity's dropping playback does, not hold its first frame.
@@ -137,6 +139,7 @@ namespace OniMoono.Tests
         [Fact]
         public unsafe void FirstFrameDecodesToAnImage()
         {
+            GameInstall.RequirePayloads();
             var clip = Clip("Artifact_loop");
             var go = new GameObject("Video");
             var vp = go.AddComponent<VideoPlayer>();

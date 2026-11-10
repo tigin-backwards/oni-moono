@@ -57,6 +57,7 @@ namespace OniMoono.Tests
         public void ConcurrentFirstReadsMapAFileOnce()
         {
             TmpTestSupport.LoadGameData();
+            GameInstall.RequirePayloads();
             var name = Directory.GetFiles(GameInstall.DataDir, "*.resS")
                 .Select(Path.GetFileName).OrderBy(n => n).Last();
             int before = AssetSystem.MappingsMade;
@@ -78,6 +79,7 @@ namespace OniMoono.Tests
         public void ARangePastTheEndThrows()
         {
             TmpTestSupport.LoadGameData();
+            GameInstall.RequirePayloads();
             var path = Path.Combine(GameInstall.DataDir, "resources.assets.resS");
             long length = new FileInfo(path).Length;
             Assert.Equal(16, AssetSystem.ReadStream("resources.assets.resS", length - 16, 16).Length);
