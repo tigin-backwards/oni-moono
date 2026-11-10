@@ -13,7 +13,8 @@ namespace OniMoono.Tests
     /// The versioned install (src/OniMoono.Host/Install, compiled in here) from a fake source
     /// folder in the Workshop layout: the root (a U60 build, minimumSupportedBuild 762230) and
     /// archived_versions/u59 (744825), each with mod_info.yaml, moono.json and this platform's
-    /// player with its SHA256SUMS manifest.
+    /// player with its SHA256SUMS manifest; the item's SHA256SUMS and its signature, by the tests'
+    /// own Sigstore (TestSigstore), which these installs trust in place of the public-good one.
     public sealed class InstallTests : IDisposable
     {
         const long U59 = 744825, U60 = 762230;
@@ -26,7 +27,10 @@ namespace OniMoono.Tests
         public InstallTests() => Directory.CreateDirectory(dir);
         public void Dispose() { try { Directory.Delete(dir, true); } catch (IOException) { } }
 
-        VersionedInstall Install() => new(Root, VersionedInstall.ThisPlatform, log.Add);
+        VersionedInstall Install() => new(Root, VersionedInstall.ThisPlatform, log.Add, TestSigstore.Shared.Trust, TestSigstore.Identity);
+
+        /// Signs the source as workshop.yml signs the item (every Version does).
+        void Sign(TestSigstore.Options? options = null, string? coveredDigest = null) => TestSigstore.Shared.SignItem(Source, options, coveredDigest);
 
         /// A version folder at `relative` in the source: mod_info.yaml, moono.json, and the
         /// player (the entry file, OniMoono.dll with `content`, a file in a folder) with its manifest.
@@ -47,6 +51,7 @@ namespace OniMoono.Tests
                 .Select(f => Path.GetRelativePath(platform, f).Replace('\\', '/')).OrderBy(p => p, StringComparer.Ordinal)
                 .Select(p => $"{Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(platform, p))))}  {p}\n");
             File.WriteAllText(Path.Combine(v, manifest), string.Concat(lines));
+            Sign();
             return v;
         }
 
@@ -187,6 +192,7 @@ namespace OniMoono.Tests
             Workshop();
             var manifest = Directory.GetFiles(Source, "*.SHA256SUMS").Single();
             File.AppendAllText(manifest, new string('0', 64) + "  player/../../escape\n");
+            Sign();
             Assert.Equal(VersionedInstall.SourceResult.Failed, Install().InstallFrom(Source, U60, NoDlc, out _));
             Assert.False(VersionedInstall.IsVersionName("../x"));
             Assert.False(VersionedInstall.IsVersionName(".bootstrap-1"));
@@ -211,6 +217,163 @@ namespace OniMoono.Tests
             // A pin naming no installed version is ignored.
             install.WriteState("pin", "2020.01.01.01");
             Assert.Equal(latest, install.Choose(U60, NoDlc)!.Name);
+        }
+
+        /// The item's signature (ItemTrust) gates every install from it: each way an item can
+        /// differ from what workshop.yml signed is refused, and the current version stays.
+        [Fact]
+        public void ItemNotAsSignedIsRefused()
+        {
+            Workshop();
+            var install = Install();
+            Assert.Equal(VersionedInstall.SourceResult.Installed, install.InstallFrom(Source, U60, NoDlc, out var current));
+            const string next = "2026.11.09.01-u60";
+            var manifestName = $"oni-moono-{next}-{VersionedInstall.ThisPlatform}.SHA256SUMS";
+            void Next() { Directory.Delete(Path.Combine(Source, VersionedInstall.ThisPlatform), true); Version("", next, U60, content: "next"); }
+            void IsRefused(string why)
+            {
+                log.Clear();
+                Assert.Equal(VersionedInstall.SourceResult.Refused, install.InstallFrom(Source, U60, NoDlc, out var v));
+                Assert.Equal(next, v);
+                Assert.Contains(log, l => l.Contains("refused") && l.Contains(why));
+                Assert.NotNull(install.Refusal);
+                Assert.Equal([current], install.InstalledVersions().Select(x => x.Name).ToArray());
+                Assert.Empty(Directory.GetDirectories(Path.Combine(Root, "player"), ".incoming-*"));
+            }
+
+            // No signature at all.
+            Next();
+            Directory.Delete(Path.Combine(Source, "attestation"), true);
+            IsRefused("has no signature");
+            // A player file changed with its version's manifest and the item's SHA256SUMS made
+            // anew, the signature kept: the signature covers another SHA256SUMS.
+            Next();
+            var signedDigest = Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(Source, "SHA256SUMS"))));
+            var player = Path.Combine(Source, VersionedInstall.ThisPlatform, "player");
+            File.WriteAllText(Path.Combine(player, "OniMoono.dll"), "evil");
+            var manifest = Path.Combine(Source, manifestName);
+            File.WriteAllText(manifest, string.Join("\n", File.ReadAllLines(manifest).Select(l => l.EndsWith("  player/OniMoono.dll") ? Convert.ToHexStringLower(SHA256.HashData("evil"u8)) + "  player/OniMoono.dll" : l)) + "\n");
+            Sign(coveredDigest: signedDigest);
+            IsRefused("not the one its signature covers");
+            // The same, with the item's SHA256SUMS kept: the version's manifest isn't as it lists.
+            Next();
+            File.WriteAllText(Path.Combine(player, "OniMoono.dll"), "evil");
+            File.WriteAllText(manifest, string.Join("\n", File.ReadAllLines(manifest).Select(l => l.EndsWith("  player/OniMoono.dll") ? Convert.ToHexStringLower(SHA256.HashData("evil"u8)) + "  player/OniMoono.dll" : l)) + "\n");
+            IsRefused($"{manifestName} is not as its signed SHA256SUMS lists it");
+            // moono.json or mod_info.yaml changed.
+            Next();
+            File.AppendAllText(Path.Combine(Source, "moono.json"), " ");
+            IsRefused("moono.json is not as its signed SHA256SUMS lists it");
+            Next();
+            File.AppendAllText(Path.Combine(Source, "mod_info.yaml"), "# x\n");
+            IsRefused("mod_info.yaml is not as its signed SHA256SUMS lists it");
+            // A version the signed SHA256SUMS doesn't name (archived_versions/u59 lists, root doesn't).
+            Next();
+            var lines = File.ReadAllLines(Path.Combine(Source, "SHA256SUMS")).Where(l => !l.EndsWith("  " + manifestName)).ToArray();
+            File.WriteAllText(Path.Combine(Source, "SHA256SUMS"), string.Join("\n", lines) + "\n");
+            Sign(coveredDigest: Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(Source, "SHA256SUMS")))));
+            File.WriteAllText(Path.Combine(Source, "SHA256SUMS"), string.Join("\n", lines) + "\n");
+            IsRefused($"{manifestName} is not in its signed SHA256SUMS");
+            // Signed, but by another repository, or by an authority the root doesn't trust.
+            Next();
+            Sign(new() { Repository = "https://github.com/someone/oni-moono" });
+            IsRefused("its source repository is https://github.com/someone/oni-moono");
+            Next();
+            Sign(new() { Issuer2 = new TestSigstore("evil") });
+            IsRefused("not issued by a trusted Fulcio authority");
+            Next();
+            Sign(new() { EntryAfterIssue = TimeSpan.FromHours(1) });
+            IsRefused("not valid at");
+
+            // As signed: installed.
+            Next();
+            Assert.Equal(VersionedInstall.SourceResult.Installed, install.InstallFrom(Source, U60, NoDlc, out _));
+            Assert.Null(install.Refusal);
+            Assert.Contains(log, l => l.Contains("signature verified"));
+        }
+
+        [Fact]
+        public void OlderVersionIsRefusedUnlessPinned()
+        {
+            Assert.Equal("-u60", VersionedInstall.Line("2026.11.08.01-u60"));
+            Assert.Equal("", VersionedInstall.Line("2026.11.08.01"));
+            var install = Install();
+            Workshop(u60: "2026.11.09.01-u60", u59: "2026.11.09.01");
+            Assert.Equal(VersionedInstall.SourceResult.Installed, install.InstallFrom(Source, U60, NoDlc, out _));
+            // The item goes back a version, signed as it once was: refused.
+            Directory.Delete(Source, true);
+            Workshop(u60: "2026.11.08.02-u60", u59: "2026.11.08.01");
+            Assert.Equal(VersionedInstall.SourceResult.Refused, install.InstallFrom(Source, U60, NoDlc, out var older));
+            Assert.Equal("2026.11.08.02-u60", older);
+            Assert.Contains(log, l => l.Contains("2026.11.09.01-u60 is installed, and 2026.11.08.02-u60 is older"));
+            Assert.Contains("older than 2026.11.09.01-u60", install.Refusal);
+            // The other line has nothing newer: its version installs.
+            Assert.Equal(VersionedInstall.SourceResult.Installed, install.InstallFrom(Source, U59, NoDlc, out _));
+            // --use-version pins it: then it installs, and plays.
+            install.WriteState("pin", "2026.11.08.02-u60");
+            Assert.Equal(VersionedInstall.SourceResult.Installed, install.InstallFrom(Source, U60, NoDlc, out _));
+            Assert.Equal("2026.11.08.02-u60", install.Choose(U60, NoDlc)!.Name);
+        }
+
+        /// A fake game folder whose Assembly-CSharp.dll has KleiVersion.ChangeList = build.
+        string Game(uint build)
+        {
+            var game = Path.Combine(dir, "game");
+            var managed = Path.Combine(game, "OxygenNotIncluded_Data", "Managed");
+            Directory.CreateDirectory(managed);
+            var assembly = new System.Reflection.Emit.PersistedAssemblyBuilder(new System.Reflection.AssemblyName("Assembly-CSharp"), typeof(object).Assembly);
+            var type = assembly.DefineDynamicModule("Assembly-CSharp").DefineType("KleiVersion", System.Reflection.TypeAttributes.Public);
+            type.DefineField("ChangeList", typeof(uint), System.Reflection.FieldAttributes.Public | System.Reflection.FieldAttributes.Static | System.Reflection.FieldAttributes.Literal).SetConstant(build);
+            type.CreateType();
+            assembly.Save(Path.Combine(managed, "Assembly-CSharp.dll"));
+            return game;
+        }
+
+        /// The first start from the item, as OniMoono.exe or OniMoono.sh starts it: a bootstrap copy
+        /// of the player with the item as its source. Valid, it installs and switches; tampered, it
+        /// installs nothing and says so; and a later start from a tampered update plays on.
+        [Fact]
+        public void BootstrapVerifiesTheItem()
+        {
+            var game = Game((uint)U60);
+            Workshop();
+            File.WriteAllText(Path.Combine(Source, VersionedInstall.ThisPlatform, "player", "OniMoono.dll"), "tampered after signing");
+            var manifest = Directory.GetFiles(Source, "*.SHA256SUMS").Single();
+            File.WriteAllText(manifest, string.Join("\n", File.ReadAllLines(manifest).Select(l => l.EndsWith("  player/OniMoono.dll") ? Convert.ToHexStringLower(SHA256.HashData("tampered after signing"u8)) + "  player/OniMoono.dll" : l)) + "\n");
+            var told = new List<(string Message, bool Error)>();
+            var bootstrap = Path.Combine(Root, "player", VersionedInstall.BootstrapPrefix + "1");
+            Directory.CreateDirectory(bootstrap);
+            int? Start(string playerDir)
+            {
+                Environment.SetEnvironmentVariable(VersionedInstall.SourceVariable, playerDir == bootstrap ? Source : null);
+                try { return VersionedStart.Run(Install(), game, null, log, playerDir, (m, e) => told.Add((m, e))); }
+                finally { Environment.SetEnvironmentVariable(VersionedInstall.SourceVariable, null); }
+            }
+
+            Assert.Equal(2, Start(bootstrap));
+            Assert.Equal(("Moono could not be installed: the Workshop item's files are not the ones Moono's releases signed.", true), Assert.Single(told));
+            Assert.Empty(Install().InstalledVersions());
+            Assert.False(File.Exists(Entry.PathIn(Root)));
+
+            // The item as signed: installed, and the bootstrap hands over to it.
+            told.Clear();
+            Directory.Delete(Source, true);
+            Workshop();
+            Assert.Equal(VersionedInstall.SwitchExitCode, Start(bootstrap));
+            Assert.Empty(told);
+            Assert.Equal("2026.11.08.01-u60", Install().ReadState("current"));
+            var installed = Path.Combine(Root, "player", "2026.11.08.01-u60");
+
+            // Steam brings a tampered update: the installed version plays on, told once.
+            Directory.Delete(Path.Combine(Source, VersionedInstall.ThisPlatform), true);
+            Version("", "2026.11.09.01-u60", U60);
+            File.AppendAllText(Path.Combine(Source, "moono.json"), " ");
+            Assert.Null(Start(installed));
+            Assert.Single(told);
+            Assert.StartsWith("Moono did not install version 2026.11.09.01-u60 from the Workshop item: the Workshop item's files are not the ones Moono's releases signed. Version 2026.11.08.01-u60 plays on", told[0].Message);
+            Assert.Null(Start(installed));
+            Assert.Single(told);
+            Assert.Equal(["2026.11.08.01-u60"], Install().InstalledVersions().Select(v => v.Name).ToArray());
         }
 
         [Fact]
