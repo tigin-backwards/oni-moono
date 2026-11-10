@@ -84,10 +84,12 @@ the player reads:
    `archived_versions\*` with a `mod_info.yaml`, those whose DLC restrictions allow (the DLC
    isn't known before the game starts, so as for none; Moono's name none) and whose
    `APIVersion` is 2 or 0, the highest `minimumSupportedBuild` at or below the build; with no
-   `archived_versions`, the root. When that version isn't installed yet, its player is copied
+   `archived_versions`, the root. When that version isn't installed yet, the item's signature is
+   verified first ([What the installer verifies](#what-the-installer-verifies)), and a version
+   older than one installed of its line is refused unless pinned. Then its player is copied
    into `player\.incoming-…`, every file hashed as it is read and checked against the version's
-   `SHA256SUMS` manifest, then moved to `player\<version>\`. A file missing or not matching ends
-   the copy, deletes it, and the current version plays on.
+   `SHA256SUMS` manifest, then moved to `player\<version>\`. A refused item, or a file missing
+   or not matching, ends the install, deletes the copy, and the current version plays on.
 3. Of the installed versions the same rule picks the one to play (newest of equals), unless
    `--use-version VERSION` pinned one (`--use-version latest` unpins): a rollback by hand to a
    kept version.
@@ -160,6 +162,7 @@ same rule gives each game build its Moono:
   windows-x64/  linux-x64/      the release archives' oni-moono folders
   OniMoono.exe  OniMoono.sh     start here once (Windows: double-click; Linux: sh OniMoono.sh)
   verify.ps1  verify.sh  README.md  SHA256SUMS
+  attestation/SHA256SUMS.sigstore.json   the signature of SHA256SUMS (not listed in it)
   archived_versions/u59/        the master build: minimumSupportedBuild 744825, laid out the same
 ```
 
@@ -176,10 +179,85 @@ same rule gives each game build its Moono:
   `versioned\player\.bootstrap-<pid>` and starts the copy with the item as its source; it installs
   the version for the game as above, and the entry point, then hands over to the
   entry point. The item's folder itself never runs, so Steam can always update it; later starts
-  install each update from it.
+  install each update from it. The bootstrap copy verifies the item as every start does, so an
+  item whose files aren't as signed installs nothing even on the first start.
 - **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a master and a u60 release
   tag): the releases' assets are downloaded and verified against their provenance and branch,
   `scripts/workshop-item.py` checks each archive against its manifest while laying them out,
-  and `attest.yml` signs the item's `SHA256SUMS` and every file in it. The result is the
-  `workshop-item` artifact. Nothing goes to Steam. `verify.sh` or `verify.ps1` in the item checks
-  it against the attested release manifests and its own attested `SHA256SUMS` (docs/RELEASES.md).
+  and `attest.yml` signs the item's `SHA256SUMS` and every file in it. The Sigstore bundle of
+  the attestation naming `SHA256SUMS` goes into the item as `attestation/SHA256SUMS.sigstore.json`,
+  and `tools/ItemVerify` checks the item with the installer's own code and trust root before it
+  becomes the `workshop-item` artifact. Nothing goes to Steam. `verify.sh` or `verify.ps1` in the
+  item checks it against the attested release manifests and its own attested `SHA256SUMS`, the
+  bundle included (docs/RELEASES.md).
+
+## What the installer verifies
+
+Steam updates the item's folder whenever its owner uploads, so the folder alone proves nothing:
+whoever controls the Steam account could upload an item with matching `SHA256SUMS` files. (A
+hijacked Steam account pushing an info-stealer as a game's update has happened before.) So
+before it installs any version from a source folder, Moono checks that the item is what this
+repository's Actions signed (`src/OniMoono.Host/Install/ItemTrust.cs`, `Sigstore.cs`). Nothing is
+fetched over the network. These are the checks:
+
+1. **The bundle** `attestation/SHA256SUMS.sigstore.json` is a Sigstore bundle v0.3 with one DSSE
+   envelope, whose ECDSA P-256 signature over the envelope's PAE verifies with the key of the
+   bundle's certificate.
+2. **The transparency log.** The bundle's Rekor entry is from a log in the trusted root, whose key
+   was valid at the entry's time. Its body is this envelope (payload hash, signature,
+   certificate). Its signed entry timestamp verifies with the log's key, and so does its Merkle
+   inclusion proof (RFC 9162) up to a checkpoint that the log's key signed.
+3. **The certificate** was valid at the entry's integrated time. It is a code-signing leaf, issued
+   by a Fulcio authority of the trusted root (valid at that time), whose chain to its root checks
+   too. It carries an SCT signed over its precertificate by a CT log of the trusted root.
+4. **The identity**, from Fulcio's certificate extensions:
+   - the SAN is `https://github.com/tigin-backwards/oni-moono/.github/workflows/attest.yml@refs/heads/master`
+     (or `…@refs/heads/u60`), and the build signer is the same;
+   - the OIDC issuer is `https://token.actions.githubusercontent.com`;
+   - the source repository is `https://github.com/tigin-backwards/oni-moono`, with its repository
+     and owner IDs (1421479132, 275280754), so a repository made under that name later doesn't
+     pass;
+   - the source ref is `refs/heads/master` or `refs/heads/u60`;
+   - the workflow is `.github/workflows/workshop.yml`, so a release's attestation doesn't pass
+     as an item's;
+   - the runner is GitHub-hosted.
+5. **The statement** is an in-toto v1 statement, and one of its subjects is
+   `workshop-item/SHA256SUMS` with the SHA-256 of the item's `SHA256SUMS`.
+6. **The version's files.** The chosen version's `moono.json`, `mod_info.yaml` and its release
+   manifest (`oni-moono-…-<platform>.SHA256SUMS`) must be listed in that `SHA256SUMS` with those
+   hashes. Each is read once, checked, and the checked bytes are used. Then every player file is
+   checked against the release manifest as it is copied (above).
+7. **No rollback.** A version older than the newest installed one of its line is refused, unless
+   `--use-version <version>` pinned it. A version is `YYYY.MM.DD.NN` (master) or
+   `YYYY.MM.DD.NN-u60` (u60), and the two lines are compared apart: the item's U59 build is
+   often a release behind its U60 build.
+
+**Not checked:** revocation (Fulcio publishes none, and its certificates live ten minutes), RFC 3161 timestamps (Rekor's integrated time is the time used), Rekor v2
+entries (Ed25519 logs, which have no signed entry timestamp), and bundles older than v0.3. A
+bundle that needs any of these fails the check: Moono refuses rather than passing it.
+
+**The trust root** is Sigstore's public-good trusted root (Fulcio `fulcio.sigstore.dev`, Rekor
+`rekor.sigstore.dev`, the CT log `ctfe.sigstore.dev`), built into the player as
+`src/OniMoono.Host/Install/SigstoreTrustedRoot.cs`. To refresh it, run
+`scripts/sigstore-trusted-root.py`. It takes `gh attestation trusted-root` (which gh verifies
+against Sigstore's TUF repository) and keeps the public-good instance. Refresh it when Sigstore
+adds or rotates a key, before an item signed with the new key is uploaded. `workshop.yml`
+refuses an item that the installer would refuse, because it runs the same code. A player whose
+root is too old refuses newer items, so it plays on. Then a first start from the item, or a
+release's setup, brings the new root.
+
+**A refusal** installs nothing. The current version plays on, and the log says why, as in
+`install: version 2026.11.09.01-u60 from … refused: the Workshop item is not as Moono's release
+workflow signed it: its SHA256SUMS (SHA-256 …) is not the one its signature covers`. The player is
+told once per refused version, in a message box (Windows) or desktop dialog (Linux): "Moono did
+not install version 2026.11.09.01-u60 from the Workshop item: the Workshop item's files are not
+the ones Moono's releases signed. Version 2026.11.08.01-u60 plays on; Player.log says why."
+On a first start with nothing installed yet, it says "Moono could not be installed: …" and
+exits.
+
+**The first install** comes from the item's own `OniMoono.exe` (or `OniMoono.sh`), and a program
+can't vouch for itself. A tampered item whose bootstrap player is genuine fails visibly, as
+above. But a swapped bootstrap player can do whatever it likes. The GitHub releases are the root
+of trust: for a first install you can be sure of, use a release's setup
+([RELEASES.md](RELEASES.md#verifying-a-release)), or run the item's `verify.ps1` or `verify.sh`
+before its first start. After that, every update is checked.
