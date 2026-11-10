@@ -168,7 +168,7 @@ jobs:
           EOF
           fi
           cat >> notes.md <<EOF
-          Built by GitHub Actions from commit $GITHUB_SHA ([build]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)) with signed provenance. [How to verify a download]($GITHUB_SERVER_URL/$GH_REPO/blob/master/docs/RELEASES.md#verifying-a-release).
+          Built by GitHub Actions from commit $GITHUB_SHA ([build]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)) and attested. [How to verify a download]($GITHUB_SERVER_URL/$GH_REPO/blob/master/docs/RELEASES.md#verifying-a-release).
 
           Install or update: download the archive for your system, extract it, and run the setup in the \`oni-moono\` folder (Windows: double-click \`setup.cmd\`; Linux: \`./setup.sh\`). If you already set it up, running the new setup is enough.
           EOF
