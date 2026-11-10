@@ -21,6 +21,9 @@ inputs:
   saves:
     description: The fixtures the list loads, space-separated (tests/e2e/fixtures.json names).
     required: true
+  only:
+    description: Run only these specs of the list, space-separated (a by-hand run); empty runs all.
+    default: ""
 runs:
   using: composite
   steps:
@@ -71,4 +74,5 @@ runs:
       shell: bash
       env:
         LIST: ${{ inputs.list }}
+        CI_GAME_TESTS_ONLY: ${{ inputs.only }}
       run: scripts/ci-game-tests.sh "$LIST" "$RUNNER_TEMP/oni-game"

@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
+    inputs:
+      only:
+        description: Run only these specs of nightly.txt, space-separated; empty runs them all.
+        type: string
+        default: ""
 
 permissions: {}
 
@@ -39,4 +44,5 @@ jobs:
           app-id: ${{ vars.REFS_APP_ID }}
           app-key: ${{ secrets.REFS_APP_KEY }}
           list: nightly
+          only: ${{ inputs.only }}
           saves: early-base 2minnow
