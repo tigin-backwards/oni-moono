@@ -207,6 +207,10 @@ TOP_KEYS = {
 # passes them on to the game (#53).
 # `test_mods`: our own test mods (tools/NAME, built to out/bin/NAME/release), installed as Local
 # mods beside the spec's Workshop ones, with the title their mod.yaml gives.
+# E2E_NO_SHOTS=1 (CI's game tests, scripts/ci-game-tests.sh): `shot`, `world_shot` and `file_shot`
+# take no image (a shot still moves the pointer away first), so a spec checks its UI dumps,
+# expectations and state only, and no picture of the game is made.
+NO_SHOTS = os.environ.get('E2E_NO_SHOTS') == '1'
 TEST_MODS = ('OverlapTestMod', 'SelectCycleTestMod', 'CommandLineTestMod', 'ReachStressTestMod', 'GeoVentProbeTestMod')
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 # `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty
@@ -4236,7 +4240,8 @@ class Run:
         elif kind == 'world_shot':
             self.world_shot(value)
         elif kind == 'file_shot':
-            self.file_shot(value)
+            if not NO_SHOTS:
+                self.file_shot(value)
         elif kind == 'expect_exit':
             self.expect_exit(value)
         elif kind == 'open':
@@ -4572,6 +4577,8 @@ class Run:
         name = value['name']
         if value.get('pointer', 'away') == 'away':
             self.pointer_away()
+        if NO_SHOTS:
+            return
         menu = self.at_main_menu()
         if not menu:
             self.settle_build_menu(f'shot {name}')
@@ -4600,6 +4607,8 @@ class Run:
         self.evidence['shot'].append(meta)
 
     def world_shot(self, value):
+        if NO_SHOTS:
+            return
         name = value['name']
         driver = self.need_driver()
         camera = {}
