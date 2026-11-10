@@ -44,8 +44,8 @@ if [ "$list" = push ]; then
     for suite in OniMoono.Assets.Tests OniMoono.UnityEngine.Tests; do
         dotnet_build "$root/tests/$suite" -c Debug -p:OniGameDir="$game"
         "$root/out/bin/$suite/debug/$suite" -noColor -result-xml "$reports/$suite.xml" > "$reports/$suite.txt" 2>&1 || failed+=("$suite")
-        # The totals, and each failed test's name with the first line of its message.
-        grep -E -A1 '^\s+\S+ +Total:|\[FAIL\]$' "$reports/$suite.txt" | grep -vE '^--$' | cut -c1-240 | head -60 || true
+        # The totals, and each failed test's name with the first lines of its message.
+        grep -E -A4 '^\s+\S+ +Total:|\[FAIL\]$' "$reports/$suite.txt" | grep -vE '^--$' | cut -c1-240 | head -60 || true
     done
     python3 -I "$root/scripts/test-skips.py" --fail-on-game "$reports"/*.xml || failed+=(game-test-skips)
     rm -rf "$reports"
