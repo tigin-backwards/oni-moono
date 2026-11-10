@@ -1,6 +1,7 @@
 # Checks this folder against Moono's attested builds (docs/RELEASES.md): each version's release
 # manifest (oni-moono-*.SHA256SUMS) by its SLSA provenance and every file of its player against
-# it, then this folder's own SHA256SUMS by its provenance and every file against it, and that no
+# it, then this folder's own SHA256SUMS by its provenance (looked up, and the bundle in
+# attestation/ that Moono's installer checks offline) and every file against it, and that no
 # file is here that SHA256SUMS doesn't list. Needs the GitHub CLI (gh).
 #   powershell -ExecutionPolicy Bypass -File verify.ps1
 $ErrorActionPreference = 'Stop'
@@ -8,8 +9,9 @@ $here = $PSScriptRoot
 $repo = 'tigin-backwards/oni-moono'
 $signer = "$repo/.github/workflows/attest.yml"
 
-function Attested($file) {
-    & gh attestation verify $file -R $repo --signer-workflow $signer | Out-Null
+function Attested($file, $bundle) {
+    $extra = if ($bundle) { @('--bundle', $bundle) } else { @() }
+    & gh attestation verify $file -R $repo --signer-workflow $signer @extra | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "$file has no valid attestation" }
 }
 function Check($manifest, $folder) {
@@ -34,8 +36,11 @@ foreach ($version in $versions) {
 }
 $sums = Join-Path $here 'SHA256SUMS'
 Attested $sums
+$bundle = Join-Path $here 'attestation\SHA256SUMS.sigstore.json'
+if (((@(Get-ChildItem -LiteralPath (Join-Path $here 'attestation'))).Name -join ',') -ne 'SHA256SUMS.sigstore.json') { throw "attestation\ should hold SHA256SUMS.sigstore.json alone" }
+Attested $sums $bundle
 Check $sums $here
 $listed = Get-Content -Encoding UTF8 -LiteralPath $sums | Where-Object { $_ } | ForEach-Object { $_.Substring(66) } | Sort-Object
-$present = Get-ChildItem -Recurse -File -LiteralPath $here | ForEach-Object { $_.FullName.Substring($here.Length + 1) -replace '\\', '/' } | Where-Object { $_ -ne 'SHA256SUMS' } | Sort-Object
+$present = Get-ChildItem -Recurse -File -LiteralPath $here | ForEach-Object { $_.FullName.Substring($here.Length + 1) -replace '\\', '/' } | Where-Object { $_ -ne 'SHA256SUMS' -and $_ -ne 'attestation/SHA256SUMS.sigstore.json' } | Sort-Object
 if (Compare-Object $listed $present) { throw "files here that SHA256SUMS doesn't list, or the other way round" }
 Write-Host "All $($listed.Count) files are as attested."

@@ -14,6 +14,7 @@ version of a mod in the game's archived_versions convention (KMod.Mod.GetMostSui
       windows-x64/   linux-x64/  the archives' oni-moono folders
       OniMoono.exe  OniMoono.sh  verify.ps1  verify.sh  README.md   (root only)
       SHA256SUMS                 every other file of OUT (root only)
+      attestation/               added by workshop.yml once SHA256SUMS is signed: its Sigstore bundle
       archived_versions/u59/     the U59 build (minimumSupportedBuild 744825), laid out the same
 
 No DLL, .po or content folder is at a version's top, so the original game finds no supported

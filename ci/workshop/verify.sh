@@ -1,7 +1,8 @@
 #!/bin/sh
 # Checks this folder against Moono's attested builds (docs/RELEASES.md): each version's release
 # manifest (oni-moono-*.SHA256SUMS) by its SLSA provenance and every file of its player against
-# it, then this folder's own SHA256SUMS by its provenance and every file against it, and that no
+# it, then this folder's own SHA256SUMS by its provenance (looked up, and the bundle in
+# attestation/ that Moono's installer checks offline) and every file against it, and that no
 # file is here that SHA256SUMS doesn't list. Needs the GitHub CLI (gh) and sha256sum.
 #   sh verify.sh
 set -eu
@@ -20,8 +21,10 @@ for version in . archived_versions/*; do
     done
 done
 gh attestation verify SHA256SUMS -R "$repo" --signer-workflow "$signer" >/dev/null
+[ "$(ls attestation)" = SHA256SUMS.sigstore.json ] || { echo "attestation/ should hold SHA256SUMS.sigstore.json alone" >&2; exit 1; }
+gh attestation verify SHA256SUMS -R "$repo" --signer-workflow "$signer" --bundle attestation/SHA256SUMS.sigstore.json >/dev/null
 sha256sum --quiet --strict -c SHA256SUMS
 listed="$(cut -c67- SHA256SUMS | LC_ALL=C sort)"
-present="$(find . -type f ! -path ./SHA256SUMS | sed 's|^\./||' | LC_ALL=C sort)"
+present="$(find . -type f ! -path ./SHA256SUMS ! -path ./attestation/SHA256SUMS.sigstore.json | sed 's|^\./||' | LC_ALL=C sort)"
 [ "$listed" = "$present" ] || { echo "files here that SHA256SUMS doesn't list, or the other way round" >&2; exit 1; }
 echo "All $(wc -l < SHA256SUMS) files are as attested."
