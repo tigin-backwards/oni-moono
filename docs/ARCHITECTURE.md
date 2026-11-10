@@ -88,10 +88,17 @@ resolves names the framework does not provide:
 The scripting assemblies of `ScriptingAssemblies.json` are preloaded before any game code runs,
 as the player does.
 
-**Native libraries.** `ResolvingUnmanagedDll` on the game ALC maps the game's `DllImport`
-names (`SimDLL`, `fmodstudio`, `resonanceaudio`, `steam_api`, `cimgui`, …) to
-`OxygenNotIncluded_Data/Plugins/lib*.so`. BRUTAL installs its own per-assembly resolvers;
-we never call `SetDllImportResolver` on BRUTAL assemblies. The Vulkan loader name quirk in
+**Native libraries.** A per-assembly `SetDllImportResolver` (`GamePlugins`) maps the game's
+`DllImport` names (`SimDLL`, `fmodstudio`, `resonanceaudio`, `steam_api`, `cimgui`, …) to
+`OxygenNotIncluded_Data/Plugins/lib*.so` (Windows: `Plugins/x86_64/*.dll`) on every assembly
+but the framework's and BRUTAL's, so the game's file binds before the runtime's own probing,
+as in Unity's player. That probing (the importing assembly's folder, then the system's search:
+System32, the working directory, PATH, LD_LIBRARY_PATH) found any other copy of the name first
+when only `ResolvingUnmanagedDll` mapped them: #74, an older `steam_api64.dll` elsewhere on the
+Windows search bound in place of the game's, and Steam never initialised. `ResolvingUnmanagedDll`
+remains for what the resolver leaves (a plugin missing or not loading: D58's messages). BRUTAL
+installs its own per-assembly resolvers; we never call `SetDllImportResolver` on BRUTAL
+assemblies. The Vulkan loader name quirk in
 `brutal-api.md` does not affect us (no Vulkan).
 
 **The Windows executable.** On Windows `OniMoono.exe` is our own native host
