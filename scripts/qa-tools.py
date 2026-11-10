@@ -8,7 +8,9 @@ qa-tools.py image REFERENCE NEW DIFF [--crop X,Y,W,H] [--crop-new X,Y,W,H] [--ma
                                         fraction of (unmasked) pixels differing visibly; writes
                                         DIFF (a mask). --crop cuts both (--crop-new the new one
                                         apart); masks are relative to the crop
-qa-tools.py verify LOG                  each verify mode's last report; exit 1 on a mismatch
+qa-tools.py verify LOG [--expect FILE]  each verify mode's last report; exit 1 on a mismatch, and
+                                        with FILE (one check name a line, # comments) on a named
+                                        check that reported nothing: silence is not 0 wrong
 qa-tools.py perf STDOUT                 steady-window frame rates and game time span
 qa-tools.py memwatch OUT HOME PID       the memory stage's watch of a U57 player (MemWatch): its
                                         peak RSS, the frame of the peak and the RssAnon/RssFile
@@ -229,7 +231,14 @@ ZERO_COUNTS = re.compile(r'(?<![\w.])(\d[\d,]*) ' + ZERO_WORDS + r'(?![\w(])')
 INCIDENT = re.compile(r"\(\d+\)$|answers otherwise|the feed missed|differs from|threw|wrong|stale|mismatch|ran \d+ times")
 
 
-def verify(path):
+def verify(path, *options):
+    expected = []
+    if options:
+        if len(options) != 2 or options[0] != '--expect':
+            sys.exit('verify LOG [--expect FILE]')
+        with open(options[1], encoding='utf-8') as f:
+            expected = [line.split('#', 1)[0].strip() for line in f]
+        expected = [name for name in expected if name]
     last, incidents = {}, []
     for line in open(path, encoding='utf-8', errors='replace'):
         if any(
@@ -264,6 +273,11 @@ def verify(path):
         ok = all(c == '0' for c in ZERO_COUNTS.findall(report))
         bad |= not ok
         print(f'{"ok  " if ok else "FAIL"} {name}: {report}')
+    reported = {name for name, _ in last}
+    for name in expected:
+        if name not in reported:
+            bad = True
+            print(f'FAIL {name}: reported nothing')
     for i in incidents[:20]:
         print(f'FAIL incident {i}')
     bad |= bool(incidents)
