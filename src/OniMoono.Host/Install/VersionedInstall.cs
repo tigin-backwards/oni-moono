@@ -18,10 +18,13 @@ namespace OniMoono.Host.Install
     /// A source folder is laid out as the Workshop item: a root and archived_versions/*, each a
     /// version with mod_info.yaml, moono.json (MoonoItemMarker: its version and, per platform, the
     /// folder holding the release archive's oni-moono folder and its SHA256SUMS manifest). This
-    /// chooses a version as the game does (ArchiveChoice), copies its player into a new version
-    /// folder while checking every file against the manifest, and only then moves the folder in
-    /// place: a version folder is never written once it is there, so one in use is never touched.
-    /// A copy that fails its check is deleted and the current version stays.
+    /// chooses a version as the game does (ArchiveChoice); verifies the item's signature
+    /// (ItemTrust: its Sigstore bundle, offline, and its SHA256SUMS, which lists the version's
+    /// manifest, mod_info.yaml and moono.json); refuses a version older than one installed of its
+    /// line unless pinned; copies its player into a new version folder while checking every file
+    /// against the manifest, and only then moves the folder in place: a version folder is never
+    /// written once it is there, so one in use is never touched. A refused item or a copy that
+    /// fails its check installs nothing, and the current version stays.
     internal sealed class VersionedInstall
     {
         public const string RootVariable = "ONI_MOONO_INSTALL_ROOT", SourceVariable = "ONI_MOONO_INSTALL_SOURCE";
@@ -35,13 +38,24 @@ namespace OniMoono.Host.Install
         public readonly string Root;
         readonly string platform;
         readonly Action<string> log;
+        readonly Sigstore.TrustedRoot? trust;
+        readonly Sigstore.Identity identity;
 
-        public VersionedInstall(string root, string platform, Action<string> log)
+        /// `trust` and `identity`: whom a source folder's signature must chain to and name; by
+        /// default Sigstore's public-good root embedded in Moono and Moono's Workshop workflow.
+        public VersionedInstall(string root, string platform, Action<string> log, Sigstore.TrustedRoot? trust = null, Sigstore.Identity? identity = null)
         {
             Root = Path.GetFullPath(root);
             this.platform = platform;
             this.log = log;
+            this.trust = trust;
+            this.identity = identity ?? Sigstore.MoonoWorkshop;
         }
+
+        const string NotSigned = "the Workshop item's files are not the ones Moono's releases signed";
+
+        /// Why InstallFrom last refused a source's version, in a line for the player; null when it didn't.
+        public string? Refusal { get; private set; }
 
         /// This machine's platform folder name in a source version: windows-x64 or linux-x64.
         public static string ThisPlatform => OperatingSystem.IsWindows() ? "windows-x64" : OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";
@@ -82,12 +96,18 @@ namespace OniMoono.Host.Install
 
             public static ItemInfo? Read(string dir)
             {
+                try { return Parse(File.ReadAllBytes(Path.Combine(dir, OniMoono.GameTweaks.MoonoItemMarker.FileName))); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+            }
+
+            public static ItemInfo? Parse(byte[] json)
+            {
                 try
                 {
-                    var info = JsonSerializer.Deserialize<ItemInfo>(File.ReadAllText(Path.Combine(dir, OniMoono.GameTweaks.MoonoItemMarker.FileName)), options);
+                    var info = JsonSerializer.Deserialize<ItemInfo>(json, options);
                     return info is { WorkshopItem: OniMoono.GameTweaks.MoonoItemMarker.Item, Version: { Length: > 0 } v } && IsVersionName(v) ? info : null;
                 }
-                catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException) { return null; }
+                catch (JsonException) { return null; }
             }
         }
 
@@ -108,6 +128,14 @@ namespace OniMoono.Host.Install
             }
             return string.CompareOrdinal(a, b);
         }
+
+        /// A version's line: what follows its numbers (`-u60`), empty for master's. Versions are
+        /// newer or older only within a line: the U59 and U60 builds of a release differ in it.
+        public static string Line(string version) => version.IndexOf('-') is int dash and >= 0 ? version.Substring(dash) : "";
+
+        /// The newest installed version of `version`'s line that is newer than it, if any.
+        public string? NewerInstalled(string version) =>
+            InstalledVersions().Where(v => Line(v.Name) == Line(version) && CompareVersions(v.Name, version) > 0).Select(v => v.Name).FirstOrDefault();
 
         /// An installed version: its name, folder and mod_info.yaml.
         public sealed record Installed(string Name, string Dir, ModInfo Info);
@@ -147,7 +175,7 @@ namespace OniMoono.Host.Install
         }
 
         /// The outcome of looking at the source folder.
-        public enum SourceResult { NoSource, NoMatch, AlreadyInstalled, Installed, Failed }
+        public enum SourceResult { NoSource, NoMatch, AlreadyInstalled, Installed, Failed, Refused }
 
         /// Installs the source's version for the game's build when it isn't installed yet.
         public SourceResult InstallFrom(string source, long gameBuild, IReadOnlySet<string> subscribedDlc, out string? version)
@@ -167,13 +195,68 @@ namespace OniMoono.Host.Install
                 return SourceResult.Failed;
             }
             version = item.Version!;
+            Refusal = null;
             if (Directory.Exists(Path.Combine(PlayerDir, version))) return SourceResult.AlreadyInstalled;
+
+            // The item's signature, then what it vouches for: this version's moono.json and
+            // mod_info.yaml (read once, checked, and those bytes used), then its manifest in Copy.
+            ItemTrust trusted;
+            byte[] marker, modInfo;
+            var prefix = chosen.RelativePath.Length == 0 ? "" : chosen.RelativePath.Replace(Path.DirectorySeparatorChar, '/') + "/";
+            try
+            {
+                trusted = ItemTrust.Verify(source, trust ?? Sigstore.TrustedRoot.Embedded, identity);
+                try
+                {
+                    marker = File.ReadAllBytes(Path.Combine(chosen.Dir, OniMoono.GameTweaks.MoonoItemMarker.FileName));
+                    modInfo = File.ReadAllBytes(Path.Combine(chosen.Dir, ModInfo.FileName));
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) { throw new ItemTrust.Refusal($"{prefix}{ModInfo.FileName} or moono.json can't be read: {e.Message}"); }
+                trusted.Require(prefix + OniMoono.GameTweaks.MoonoItemMarker.FileName, marker);
+                trusted.Require(prefix + ModInfo.FileName, modInfo);
+                item = ItemInfo.Parse(marker);
+                if (item?.Version != version) throw new ItemTrust.Refusal($"{prefix}moono.json changed while it was read");
+            }
+            catch (ItemTrust.Refusal r)
+            {
+                log($"install: version {version} from {source} refused: the Workshop item is not as Moono's release workflow signed it: {r.Message}");
+                Refusal = NotSigned;
+                return SourceResult.Refused;
+            }
+            log($"install: {source}: signature verified (Sigstore, {identity.SourceRepository}), SHA256SUMS {trusted.ManifestDigest}");
+
+            // No rollback: an older version of the line than one installed only when pinned.
+            if (NewerInstalled(version) is { } newer && ReadState("pin") != version)
+            {
+                log($"install: version {version} from {source} refused: {newer} is installed, and {version} is older (--use-version {version} installs it)");
+                Refusal = $"its version {version} is older than {newer}, already installed";
+                return SourceResult.Refused;
+            }
             if (item.Platforms?.GetValueOrDefault(platform) is not { Folder: { Length: > 0 } folder, Manifest: { Length: > 0 } manifest })
             {
                 log($"install: version {version} has no {platform} player");
                 return SourceResult.NoMatch;
             }
-            string? problem = Copy(Path.Combine(chosen.Dir, folder), Path.Combine(chosen.Dir, manifest), chosen.Dir, version);
+            if (!IsPlainRelative(folder) || !IsPlainRelative(manifest))
+            {
+                log($"install: version {version}'s moono.json names a folder or manifest outside it; not installed");
+                return SourceResult.Failed;
+            }
+            byte[] manifestBytes;
+            try { manifestBytes = File.ReadAllBytes(Path.Combine(chosen.Dir, manifest)); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                log($"install: version {version} from {chosen.Dir} not installed: its manifest {manifest} can't be read (the download is incomplete?): {e.Message}");
+                return SourceResult.Failed;
+            }
+            try { trusted.Require(prefix + manifest, manifestBytes); }
+            catch (ItemTrust.Refusal r)
+            {
+                log($"install: version {version} from {source} refused: the Workshop item is not as Moono's release workflow signed it: {r.Message}");
+                Refusal = NotSigned;
+                return SourceResult.Refused;
+            }
+            string? problem = Copy(Path.Combine(chosen.Dir, folder), manifestBytes, manifest, marker, modInfo, version);
             if (problem != null)
             {
                 log($"install: version {version} from {chosen.Dir} not installed: {problem}");
@@ -184,11 +267,12 @@ namespace OniMoono.Host.Install
         }
 
         /// The manifest's lines: SHA-256 (hex) and path, in sha256sum's format.
-        public static List<(string Hash, string Path)>? ReadManifest(string path)
+        public static List<(string Hash, string Path)>? ParseManifest(byte[] manifest)
         {
             var lines = new List<(string, string)>();
-            foreach (var raw in File.ReadAllLines(path))
+            foreach (var line in System.Text.Encoding.UTF8.GetString(manifest).Split('\n'))
             {
+                var raw = line.TrimEnd('\r');
                 if (raw.Length == 0) continue;
                 if (raw.Length < 66 || raw[64] != ' ' || (raw[65] != ' ' && raw[65] != '*')) return null;
                 var hash = raw.Substring(0, 64);
@@ -205,13 +289,12 @@ namespace OniMoono.Host.Install
 
         /// Copies the manifest's player/ files from `platformDir` into a new folder, hashing each
         /// as it is read, and moves the folder to player/VERSION when every one matched; else
-        /// deletes it and returns why.
-        string? Copy(string platformDir, string manifestPath, string versionDir, string version)
+        /// deletes it and returns why. `marker` and `modInfo`: the version's moono.json and
+        /// mod_info.yaml, as checked.
+        string? Copy(string platformDir, byte[] manifestBytes, string manifestName, byte[] marker, byte[] modInfo, string version)
         {
-            List<(string Hash, string Path)>? lines;
-            try { lines = File.Exists(manifestPath) ? ReadManifest(manifestPath) : null; }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return $"its manifest can't be read: {e.Message}"; }
-            if (lines == null) return $"its manifest {Path.GetFileName(manifestPath)} is missing or malformed";
+            var lines = ParseManifest(manifestBytes);
+            if (lines == null) return $"its manifest {manifestName} is malformed";
             var player = lines.Where(l => l.Path.StartsWith("player/", StringComparison.Ordinal)).ToList();
             if (player.Count == 0) return "its manifest lists no player files";
             if (player.FirstOrDefault(l => !IsPlainRelative(l.Path)) is { Path: { } bad }) return $"its manifest names {bad}, outside the folder";
@@ -248,8 +331,8 @@ namespace OniMoono.Host.Install
                     if (!OperatingSystem.IsWindows()) MarkExecutable(to);
                 }
                 // What choosing among installed versions reads, beside the player.
-                File.Copy(Path.Combine(versionDir, ModInfo.FileName), Path.Combine(incoming, ModInfo.FileName));
-                File.Copy(Path.Combine(versionDir, OniMoono.GameTweaks.MoonoItemMarker.FileName), Path.Combine(incoming, OniMoono.GameTweaks.MoonoItemMarker.FileName));
+                File.WriteAllBytes(Path.Combine(incoming, ModInfo.FileName), modInfo);
+                File.WriteAllBytes(Path.Combine(incoming, OniMoono.GameTweaks.MoonoItemMarker.FileName), marker);
                 Directory.Move(incoming, Path.Combine(PlayerDir, version));
                 incoming = "";
                 return null;
