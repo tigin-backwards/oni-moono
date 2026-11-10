@@ -120,6 +120,11 @@ namespace OniMoono.Tests
             Assert.Equal("dll", File.ReadAllText(Path.Combine(version, "OniMoono.dll")));
             Assert.True(File.Exists(Path.Combine(version, "packages", "UnityEngine.UI.dll")));
             Assert.False(File.Exists(Path.Combine(version, "setup.sh")));
+            // The release manifest is kept beside the player, as the installer keeps it, for its
+            // missing-files check at each start.
+            Assert.Equal(File.ReadAllText(Path.Combine(Item, "oni-moono-2026.11.10.01-u60-linux-x64.SHA256SUMS")),
+                File.ReadAllText(Path.Combine(version, PlayerFiles.SavedManifestFile)));
+            Assert.Empty(PlayerFiles.MissingFiles(version)!);
             Assert.Equal(PlayerFiles.EntryScript, File.ReadAllText(Path.Combine(Root, "OniMoono")));
             // Made executable as copied, in the folder moved in place after.
             Assert.Contains(Path.Combine(Root, "player", ".incoming-2026.11.10.01-u60-4242", "OniMoono"), executable);
