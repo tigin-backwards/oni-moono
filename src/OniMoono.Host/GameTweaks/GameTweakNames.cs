@@ -59,7 +59,7 @@ namespace OniMoono.Host.GameTweaks
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles",
-            ExactWorldgen = "exact-worldgen";
+            ExactWorldgen = "exact-worldgen", SharedDuplicates = "shared-duplicates";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -80,6 +80,9 @@ namespace OniMoono.Host.GameTweaks
 
         static readonly TweakGain FetchGain = new("FETCH", "fetch updates ~8× shorter on a colony with big piles (3.1–3.4 → 0.4 ms each)",
             "a late-game Spaced Out colony with 33,600 fetchable items", "Windows", "2026-11-08", "docs/PERFORMANCE.md#the-tweaks (fetch-by-cell)");
+
+        static readonly TweakGain SharedGain = new("SHARED", "~0.3 GB less memory on a late-game colony",
+            "a late-game Spaced Out colony with every DLC (cycle 17,000+)", "Linux under WSL2", "2026-11-09", "docs/research/heap-reduction-designs.md#41-built-2026-11-09-shared-duplicates (reachable heap 6,441 → 6,158 MiB)");
 
         public static readonly TweakGroup General = new("GENERAL", "General");
         public static readonly TweakGroup Saving = new("SAVING", "Saving", SaveGain);
@@ -169,6 +172,10 @@ namespace OniMoono.Host.GameTweaks
             new(PagedPathGrids, Simulation, "Paged path grids", "Each Duplicant's map of path costs takes memory only where it can walk.",
                 "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, "
                 + "and the parts never written read as the empty grid did. The pathfinder reads the same values."),
+            new(SharedDuplicates, Simulation, "Share identical data", "Names repeated across a colony's reports and other identical data are kept once, using less memory.",
+                "While a save loads, every copy of the same text (Duplicants' and critters' names in each day's report) becomes one; "
+                + "buildings with the same footprint share one table of the spots they are worked from, and work animations left at their defaults share one list. "
+                + "Nothing is written into them, so the game reads the same values.", SharedGain),
             new(FetchByCell, Simulation, "Fetch checks by pile", "Duplicants looking for things to fetch check each pile of identical items once, not item by item.",
                 "Keeps the best item of each pile up to date as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. "
                 + "Within a pile of items that are the same in every way the game compares, a Duplicant may take another one than in the original. "
@@ -208,7 +215,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles, FetchByCell];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles, FetchByCell, SharedDuplicates];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem).

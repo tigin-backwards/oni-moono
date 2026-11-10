@@ -613,6 +613,65 @@ is a FerriteCore-style dedup.
 Strings, primitive arrays and the note dictionaries hold no references, so removing them barely
 changes gen0/gen1 cost. It shrinks gen2 marking, committed memory and the load.
 
+### 4.1 Built (2026-11-09): `shared-duplicates`
+
+One exact tweak, on by default (src/OniMoono.GameTweaks/SharedDuplicates.cs), for the three
+cheap candidates:
+
+- **Strings read while a save loads.** While `SaveLoader.Load(string)` runs, a prefix on
+  `FastReader.ReadKleiString` looks each string up by its UTF-8 bytes in a pool of the loading
+  thread and returns the string first decoded from the same bytes. The pool keys its own copy of
+  the bytes (a buffer reused by the game cannot make a wrong match) and is dropped when the load
+  ends. Null, empty, over-512-byte and out-of-range reads go to the game's own code. The
+  late-game colony reads 5.5 M strings while loading; 4,462 are distinct.
+- **Reach tables.** A prefix on `OffsetGroups.BuildReachabilityTable` replaces the placement
+  offsets by one copy per content, so buildings with the same footprint get the table the game
+  cached for it (it depends only on the offsets' values; its cache no longer grows per building).
+- **Default work animations.** After `Workable.OnSpawn`, `workAnims`, `workingPstComplete` and
+  `workingPstFailed` holding exactly the defaults become one shared array each (Complete and
+  Failed stay two arrays, as two objects they were).
+
+Results, Linux release, default tweaks, heap dump 300 s after the first frame-rate window:
+
+| | off | on |
+|---|---:|---:|
+| reachable heap | 6,441 MiB | **6,158 MiB (−283)** |
+| strings | 4.25 M, 251.6 MiB | 0.46 M, 41.3 MiB |
+| duplicate strings (extra copies) | 227.4 MiB | 17.1 MiB |
+| `CellOffset[]` / `CellOffset[][]` | 963 K, 45.4 MiB / 13,830, 5.8 MiB | 238 K, 12.9 MiB / 52 |
+| `HashedString[]` | 1.12 M, 31.8 MiB | 35 K, 1.0 MiB |
+| `ReportManager` retained | 1,687 MiB | 1,480 MiB |
+| resident memory at the dump | 14.4 GB | 13.5 GB |
+| load (Loading save file → Loaded), 3 each | 16.6, 13.4, 16.1 s | 13.4, 12.9, 16.3 s |
+
+Loading is no slower (the run-to-run spread is ±1.5 s); the pool also spares 312 MiB of
+allocation while loading.
+
+What was checked for exactness (IL of the game's assemblies, U59 744825 and U60 762230, and of
+the 2,900 Workshop mods in out/ws, 4,500 DLLs; and the decompiled game):
+
+- No code locks on a string, keys a `ConditionalWeakTable` or a reference-equality table with
+  one, or calls `ReferenceEquals` / `RuntimeHelpers.GetHashCode` on one (the game's 31
+  `Monitor.Enter` sites lock other objects; PLib's lock objects it shares).
+- No code writes into a string: the only pinned strings (the game's Superluminal markers, ImGui,
+  Unity's profiler, protobuf) are read. `Tag.Name` interns its value, as before.
+- Reference comparisons of strings are fast paths before a value comparison (two mods' sort
+  comparers, Scriban), memo checks that redo work only when the reference changes (U60's UI
+  panels, a co-op mod, OniMp), or Expeditions' check of its own state strings, which are over
+  512 bytes and not pooled. Sharing makes some of these hit where they missed; the result is the
+  same.
+- A Duplicant renamed after the load gets a new string (`MinionIdentity.SetName`); its old report
+  entries keep the old name, as before; `ReportEntry.FindEntry` compares by value.
+- No code writes into a reach table, its rows or a default animation array: the game reads them
+  (`OffsetTableTracker` builds its own `offsets`, U60 a list; `KAnimControllerBase.Play` reads
+  the names) or replaces the whole array (WarpReceiver); no mod stores into either. No code
+  compares two buildings' tables or animation arrays by reference.
+
+### 4.2 Prototype: compact report history (not merged)
+
+On the local branch `report-history-proto` (`compact-report-history`); a write-up for a decision
+is with the maintainer.
+
 ## Files
 
 Not committed (the worktree's `out/heapdesign`): BundleCensus (bundle nodes and class sizes;
