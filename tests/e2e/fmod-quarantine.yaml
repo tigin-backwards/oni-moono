@@ -1,8 +1,9 @@
 # The fmod-quarantine game tweak (src/OniMoono.Host/GameTweaks/FmodQuarantine.cs and
 # src/OniMoono.NativeHost/fmod_heap.c; issues #72 and #58). Ours only (`--player ours`): the
-# original has no such tweak. It needs the native allocator: OniMoono.exe on Windows, or a
-# libOniMoonoNative.so beside the host on Linux (none is built by the scripts yet; see the
-# class's comment), and fails at its first step without it.
+# original has no such tweak. It needs the native allocator, which only Windows' OniMoono.exe
+# has: on the Linux lanes ours is skipped (`ours_needs`) unless a libOniMoonoNative.so built from
+# fmod_heap.c is put beside the release host by hand. A player without it (the SDK's apphost)
+# fails its first step, which says the tweak is not active.
 #
 # A mid-game colony of 50 Duplicants with a pile of ten Pips in view, run at speed 3, then 1,
 # then 3 (each run starts and ends paused, which stops and starts the looping sounds: FMOD's
@@ -10,6 +11,7 @@
 # no freed block leaves the quarantine changed.
 from: 2minnow
 game_tweaks: [fmod-quarantine]
+ours_needs: {libOniMoonoNative.so: "FMOD's quarantine allocator, built only into Windows' OniMoono.exe"}
 setup:
   - driver: {setup.call: {target: "SpeedControlScreen.Instance", method: Pause, args: [false]}}
   - driver: {setup.call: {type: FXHelpers, method: CreateEffect, args: ["squirrel_kanim", [110.5, 207, 0], null, false, Creatures, false]}}

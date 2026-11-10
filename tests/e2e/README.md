@@ -170,6 +170,8 @@ tweaks_menu: true                # ours keeps the main menu's Moono Tweaks butto
 game_tweaks: [brain-rate]        # ours runs with these `--game-tweak` values after E2E_GAME_TWEAKS's
 env: {ONI_TWEAK_VERIFY: "1"}     # ours runs with these in its environment (ONI_TWEAK_SETTINGS: "1":
                                  # no --game-tweak at all, the tweaks as a player has them)
+ours_needs: {libOniMoonoNative.so: "FMOD's quarantine allocator"}   # ours is skipped, with this
+                                 # reason, when the file is not beside our release host
 scaled_screen: true              # the game may render smaller than the display (below)
 blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its install (out/e2e/.blocked-LANE)
                                  # with these native plugins `missing` or `unreadable` (mode 000)
