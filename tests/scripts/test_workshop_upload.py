@@ -193,6 +193,15 @@ class LoginTests(unittest.TestCase):
             '@ShutdownOnFailedCommand 1\n@NoPromptForPassword 1\nset_steam_guard_code 2F9J5\n'
             'login moono_ci Abc123xyz\nworkshop_build_item /tmp/x/item.vdf\nquit\n',
         )
+        # The cached login: no password, no prompt; alone, or before the upload.
+        self.assertEqual(
+            upload.login_script('qigit', None, None, None),
+            '@ShutdownOnFailedCommand 1\n@NoPromptForPassword 1\nlogin qigit\nquit\n',
+        )
+        self.assertEqual(
+            upload.login_script('qigit', None, None, '/tmp/x/item.vdf'),
+            '@ShutdownOnFailedCommand 1\n@NoPromptForPassword 1\nlogin qigit\nworkshop_build_item /tmp/x/item.vdf\nquit\n',
+        )
         # Without a code, no Steam Guard line: the phone confirms the sign-in.
         self.assertEqual(
             upload.login_script('qigit', 'Abc123xyz', None, '/tmp/x/item.vdf'),

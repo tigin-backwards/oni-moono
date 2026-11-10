@@ -5,9 +5,11 @@ docs/WORKSHOP-UPLOAD.md).
     workshop-upload.py notes ITEM NOTES-DIR OUT        the change note, from the releases' notes
     workshop-upload.py vdf --item ID|new --description FILE [--content DIR] [--preview FILE]
                            [--changenote FILE] [--visibility keep|...] [--title T] OUT
-    workshop-upload.py login VDF OUT                   steamcmd's login script, from the environment
-                                                       (a Steam Guard code if STEAM_SHARED_SECRET is set,
-                                                       else the sign-in is confirmed on the phone)
+    workshop-upload.py login [--cached] [--check] VDF OUT
+        steamcmd's login script, from the environment: --cached signs in with the session cached
+        in steamcmd's config.vdf (no password); otherwise the password, with a Steam Guard code if
+        STEAM_SHARED_SECRET is set, else the sign-in is confirmed on the phone. --check signs in
+        and quits.
 
 steamcmd reads the VDF raw: it does not unescape backslashes and has no escape for a double
 quote, so every value is written exactly as given, and a value with a double quote is refused.
@@ -198,16 +200,21 @@ def totp(shared_secret, now=None):
 
 
 def login_script(user, password, code, vdf_path):
+    """steamcmd's script: sign in, then upload the VDF (or, with vdf_path None, sign in alone).
+    password None: the cached login in steamcmd's config.vdf, with no prompt of any kind."""
     if not LOGIN_NAME.fullmatch(user):
         fail("STEAM_USERNAME must be the account name: letters, digits and _")
+    build = f"workshop_build_item {vdf_path}\n" if vdf_path is not None else ""
+    if vdf_path is not None and (not os.path.isabs(vdf_path) or re.search(r"[\s;\"]|//", vdf_path)):
+        fail(f"the VDF path must be absolute, without spaces, ';', '//' or quotes: {vdf_path!r}")
+    if password is None:
+        return f"@ShutdownOnFailedCommand 1\n@NoPromptForPassword 1\nlogin {user}\n{build}quit\n"
     if not PASSWORD.fullmatch(password) or "//" in password:
         fail("STEAM_PASSWORD has a character steamcmd's script would split or cut at (docs/WORKSHOP-UPLOAD.md)")
-    if not os.path.isabs(vdf_path) or re.search(r"[\s;\"]|//", vdf_path):
-        fail(f"the VDF path must be absolute, without spaces, ';', '//' or quotes: {vdf_path!r}")
     # With a code, steamcmd must not prompt for anything. Without one, Steam asks the account's
     # phone to confirm the sign-in and steamcmd waits for that (its stdin is /dev/null).
     guard = f"@NoPromptForPassword 1\nset_steam_guard_code {code}\n" if code else ""
-    return f"@ShutdownOnFailedCommand 1\n{guard}login {user} {password}\nworkshop_build_item {vdf_path}\nquit\n"
+    return f"@ShutdownOnFailedCommand 1\n{guard}login {user} {password}\n{build}quit\n"
 
 
 def read(path):
@@ -238,6 +245,8 @@ def main():
     p.add_argument("--title")
     p.add_argument("out")
     p = sub.add_parser("login")
+    p.add_argument("--cached", action="store_true", help="the cached login in steamcmd's config.vdf, no password")
+    p.add_argument("--check", action="store_true", help="sign in alone; VDF is ignored")
     p.add_argument("vdf")
     p.add_argument("out")
     args = parser.parse_args()
@@ -256,6 +265,13 @@ def main():
         write(args.out, text)
     else:
         env = os.environ
+        vdf_path = None if args.check else os.path.abspath(args.vdf)
+        if args.cached:
+            if not env.get("STEAM_USERNAME"):
+                fail("STEAM_USERNAME not set (the steam-workshop environment's secrets)")
+            write(args.out, login_script(env["STEAM_USERNAME"].strip(), None, None, vdf_path), 0o600)
+            print(f"{args.out}: steamcmd's script, with the cached login")
+            return
         missing = [n for n in ("STEAM_USERNAME", "STEAM_PASSWORD") if not env.get(n)]
         if missing:
             fail(f"{', '.join(missing)} not set (the steam-workshop environment's secrets)")
@@ -270,7 +286,7 @@ def main():
             except ValueError:
                 fail("STEAM_SHARED_SECRET is not the base64 shared_secret")
             print(f"::add-mask::{code}", flush=True)
-        write(args.out, login_script(env["STEAM_USERNAME"].strip(), env["STEAM_PASSWORD"], code, os.path.abspath(args.vdf)), 0o600)
+        write(args.out, login_script(env["STEAM_USERNAME"].strip(), env["STEAM_PASSWORD"], code, vdf_path), 0o600)
         print(f"{args.out}: steamcmd's login script")
 
 
