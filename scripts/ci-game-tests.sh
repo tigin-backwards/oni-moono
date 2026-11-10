@@ -18,6 +18,14 @@ source "$(dirname "$0")/env.sh"
 list="${1:?push or nightly}"
 game="$(cd "${2:?GAME_DIR}" && pwd)"
 [ -f "$root/ci/game-tests/$list.txt" ] || { echo "ci-game-tests: no ci/game-tests/$list.txt"; exit 2; }
+# CI_GAME_TESTS_ONLY="SPEC..." runs only those specs of the list (a by-hand run on one spec).
+specs="$root/ci/game-tests/$list.txt"
+if [ -n "${CI_GAME_TESTS_ONLY:-}" ]; then
+    specs="$(mktemp)"
+    for spec in $CI_GAME_TESTS_ONLY; do
+        grep -E "^$spec( |$)" "$root/ci/game-tests/$list.txt" >> "$specs" || { echo "ci-game-tests: $spec is not in $list.txt"; exit 2; }
+    done
+fi
 build="$(python3 -I "$root/scripts/fetch-game-content.py" --print-default-build)"
 export ONI_NO_CONTENT=1 ONI_CONFIG=release ONI_GAME_DIR="$game" QA_U57_GAME="$game"
 failed=()
@@ -63,9 +71,9 @@ while read -r spec _; do
     mkdir -p "$refs/$spec"
     python3 -I -c 'import json, sys; json.dump([l.rstrip("\n") for l in open(sys.argv[1]) if l.strip() and not l.startswith("#")], open(sys.argv[2], "w"), indent=1)' \
         "$budget" "$refs/$spec/signatures.json"
-done < <(grep -vE '^\s*(#|$)' "$root/ci/game-tests/$list.txt")
+done < <(grep -vE '^\s*(#|$)' "$specs")
 status=0
-python3 -I "$root/scripts/e2e.py" --player ours --lanes "${CI_E2E_LANES:-2}" --no-perf-wait --run-id "ci-$list" --list "$root/ci/game-tests/$list.txt" || status=$?
+python3 -I "$root/scripts/e2e.py" --player ours --lanes "${CI_E2E_LANES:-2}" --no-perf-wait --run-id "ci-$list" --list "$specs" || status=$?
 [ $status -eq 0 ] || failed+=(e2e)
 # A failed spec's new log signatures: normalized error and exception lines, no game content.
 for result in "$E2E_OUT"/*/ci-"$list"/ours-1/result.json; do
@@ -83,7 +91,7 @@ while read -r spec _; do
     log="$E2E_OUT/$spec/ci-$list/ours-1/stdout.txt"
     if [ ! -f "$log" ]; then echo "FAIL $spec: no log"; failed+=(verify); continue; fi
     python3 -I "$root/scripts/qa-tools.py" verify "$log" --expect "$root/ci/game-tests/verify/$spec.txt" || failed+=("verify")
-done < <(grep -vE '^\s*(#|$)' "$root/ci/game-tests/$list.txt")
+done < <(grep -vE '^\s*(#|$)' "$specs")
 
 [ ${#failed[@]} -eq 0 ] || { echo "ci-game-tests $list failed: ${failed[*]}"; exit 1; }
 echo "ci-game-tests $list: all passed"

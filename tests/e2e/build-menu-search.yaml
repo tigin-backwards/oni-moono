@@ -14,6 +14,10 @@ steps:
   - ui_wait: {path: "**/BuildingGroups/Searchbar/FilterInputField", cond: stable}
   - click: {ui: "**/BuildingGroups/Searchbar/FilterInputField"}
   - type: {ui: "**/BuildingGroups/Searchbar/FilterInputField", text: "pump"}
+  # The text reached the field, which has the keyboard (the game's own state).
+  - expect_state:
+      "BuildingGroupScreen.Instance.inputField.text": "pump"
+      "BuildingGroupScreen.IsEditing": true
   # The field refreshes the search 0.2 s after the last edit (KInputTextField).
   # A slow runner takes more than the default 300 frames to show the results.
   - ui_wait: {path: "**/BuildingGroups/Viewport/Contents/*/Grid/GasPump Group*", cond: active, frames: 900}
