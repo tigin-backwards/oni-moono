@@ -610,6 +610,26 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.SHARED"
 msgid "~0.3 GB less memory on a late-game colony"
 msgstr ""
 
+#. Row title (compact-report-history)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_HISTORY.TITLE"
+msgid "Compact report history"
+msgstr ""
+
+#. The line under the title (compact-report-history)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_HISTORY.EFFECT"
+msgid "Past days' reports take a fraction of the memory."
+msgstr ""
+
+#. Tooltip: how it works (compact-report-history)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_HISTORY.DETAIL"
+msgid "The notes of every day's report but today's are kept in flat arrays instead of a table for each entry; the reports screen and saves read the same notes in the same order."
+msgstr ""
+
+#. Tooltip: the measured gain (compact-report-history)
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.REPORTS"
+msgid "~0.9 GB less memory on a late-game colony; loading ~1 s faster"
+msgstr ""
+
 #. Row title (fetch-by-cell)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.TITLE"
 msgid "Fetch checks by pile"

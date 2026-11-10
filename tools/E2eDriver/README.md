@@ -548,6 +548,13 @@ state: `type:E2eDriver.GcWatch::MostInFrameMs` (the most one frame was paused, i
 `::MostInFrameAt` (when that frame ended, real seconds after the start), `::Frames`, `::Gen1`
 and `::Gen2` (collections since the start). Answers `{"watching": true, "supported": true}`.
 
+### reports.watch `{}`
+
+From now on, each save's report bytes (what `ReportManager.CustomSerialize` writes: its marker
+and the note storage) are hashed as the save writes them. Read as state:
+`type:E2eDriver.Reports::Saved` (`bytes=N fnv=HEX` of the last save, `none` before one) and
+`::Saves`. Calling it again starts again from `none`. Answers `{"watching": true}`.
+
 ### imgui.scrollview `{on?}`
 
 Shows an IMGUI scroll view 300 by 300 pixels centred on the screen, over content 3000 high, and
@@ -574,6 +581,21 @@ State reads that sum up a colony's world in one value, for comparing two players
 - `type:E2eDriver.Census::Chunks`: every element chunk as `ID@CELL`, sorted;
 - `type:E2eDriver.Census::StartGrid`: the start world's cells as `elements=HEX solid=N
   mass=HEX` (FNV-1a 64 over each cell's element index and mass bits).
+
+### Report reads
+
+The daily reports in one value each (reflection only, the same in U59 and U60):
+- `type:E2eDriver.Reports::Notes`: the note storage's bytes as a save writes them
+  (`NoteStorage.Serialize`), `bytes=N fnv=HEX`;
+- `type:E2eDriver.Reports::Read`: every report's entries (past days, then today), each with its
+  context entries, and their notes as the reports screen reads them (U59
+  `ReportEntry.IterateNotes`, U60 `CollectNotes`): `reports=R entries=E notes=N fnv=HEX`;
+  `::Past` leaves today's report out;
+- `type:E2eDriver.Reports::Screen`: the open reports screen's rows, each row's three
+  tooltips' text (they name the entry and list its notes), with each tooltip's lines sorted (the game sorts notes by value with
+  `List.Sort`, which may order equal values differently in each runtime) and negative zeros
+  without their minus (ours prints "-0" where Mono prints "0", ARCHITECTURE D2): `rows=N
+  fnv=HEX`; `::ScreenText` is the text it hashed last, for finding a difference.
 
 ### Worldgen reads
 

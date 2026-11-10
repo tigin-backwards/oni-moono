@@ -117,3 +117,15 @@
          '**/AutoSweeperTempFilterPanel/*TempField', '**/AutoSweeperTempFilterPanel/*TempField/Text Area/Text']
   original: '^text="(1\.3|-273\.2|726\.9)'
   ours: '^text="(1\.2|-273\.1|726\.8)'
+
+- id: negative-zero-sign
+  description: >-
+    A negative value that rounds to zero keeps its sign in ours (ARCHITECTURE D2): the reports
+    screen's removed column reads "-0" and "-0%" where the original shows "0" and "0%" (0 minus a
+    zero total is -0), and the label holds one character more.
+  link: tests/e2e/compact-report-history.yaml
+  component: LocText
+  fields: [text, textInfo]
+  path: '**/ReportScreen/Body/Viewport/Contents/*/lineItemTemplate/Negative'
+  original: '^text="0%?"'
+  ours: '^text="-0%?"'

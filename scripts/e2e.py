@@ -272,6 +272,7 @@ DRIVER_COMMANDS = {
     'stopwatch',
     'keys.log',
     'gc.watch',
+    'reports.watch',
     'imgui.scrollview',
     'templates.load',
     'buildmenu.settled',
@@ -3330,9 +3331,11 @@ class Player:
             time.sleep(3)
             if self.process.poll() is not None:
                 raise SpecFailure(f'the player exited ({self.process.returncode}) while loading')
+            # A read can time out while a large colony loads (OniMcp answers on the game's main
+            # thread): asked again on the next turn.
             try:
                 status = mcp.read('oni://colony/status')
-            except (urllib.error.URLError, ConnectionError, SpecFailure):
+            except (urllib.error.URLError, ConnectionError, TimeoutError, SpecFailure):
                 status = {}
             # The player starts at the main menu, so a colony with Duplicants is the fixture's.
             if isinstance(status, dict) and status.get('duplicantCount', 0) > 0:

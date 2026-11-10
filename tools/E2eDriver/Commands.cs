@@ -42,6 +42,7 @@ namespace E2eDriver
                 case "buildmenu.settled": return BuildMenu.Settled(request);
                 case "keys.log": return KeyLog.Start(a);
                 case "gc.watch": return GcWatch.Start(a);
+                case "reports.watch": return Reports.Watch(a);
                 case "ui.action": return UiAction(a);
                 case "imgui.scrollview": return ImguiProbe.Start(a);
                 case "templates.load": return Templates.Load(a);
