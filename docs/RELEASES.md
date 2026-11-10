@@ -15,6 +15,10 @@ commit of `master` (or `u60` for a U60 beta):
 | `.github/workflows/attest.yml` | Signs SLSA build provenance for the digests it is given, and does nothing else. |
 | `.github/workflows/workshop.yml` | Run by hand with a master and a u60 release tag (or, for a dry run, the release.yml runs that built them). Downloads both releases' assets and verifies their provenance and branch, lays out the Workshop item (`scripts/workshop-item.py`, [INSTALL-MODES.md](INSTALL-MODES.md#workshop-item)), has `attest.yml` attest its `SHA256SUMS` and every file in it, puts the bundle for `SHA256SUMS` in the item (`attestation/`), checks it with gh, and keeps it as the `workshop-item` artifact. Nothing is uploaded to Steam. |
 
+`<version>` in the archives' names is the release tag's date, as `oni-moono-2026.11.10-…` for
+`v2026.11.10.01` (`-u60` follows it for the u60 branch); a build of a plain push is named by its
+commit's date (`scripts/release-version.sh`).
+
 Each archive comes with a manifest, `oni-moono-<version>-windows-x64.SHA256SUMS` or
 `…-linux-x64.SHA256SUMS`: the SHA-256 of every file in the archive, with paths relative to its
 `oni-moono` folder, in `sha256sum`'s format. `release.sh` writes it from the staged folder just
@@ -244,8 +248,8 @@ How close the builds are to reproducible, as checked on the first dry run (2026-
 
   ```sh
   python3 -I scripts/fetch-game-refs.py out/game-refs
-  ContinuousIntegrationBuild=true MOONO_RELEASE=vYYYY.MM.DD.NN MOONO_PLATFORMS=linux \
-    ONI_GAME_DIR=out/game-refs scripts/release.sh "$(scripts/release-version.sh)"
+  ContinuousIntegrationBuild=true MOONO_RELEASE=vYYYY.MM.DD.NN RELEASE_DATE=YYYY.MM.DD \
+    MOONO_PLATFORMS=linux ONI_GAME_DIR=out/game-refs scripts/release.sh "$(scripts/release-version.sh)"
   ```
 
   This needs `global.json`'s exact SDK and nothing newer: CI installs that SDK alone, since
