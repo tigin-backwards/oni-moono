@@ -1,0 +1,74 @@
+# Issue #71: the temperature overlay over gas in cells exposed to space, such as a rocket's
+# exhaust (1400 C carbon dioxide) beside its launch pad.
+#
+# In absolute temperature mode the overlay compositor (Klei/PostFX/SimDebugViewCompositor) takes
+# the coloured overlay buffer _MRT2 where it is not black, else the cell's temperature colour.
+# Where a cell is exposed to space the back wall discards and only the stars are drawn, and
+# Klei/Stars declares an output for its first target alone while _MRT2 is bound. OpenGL leaves a
+# draw buffer the shader writes no value for undefined (4.6 core, 17.4.1), and NVIDIA's Windows
+# driver wrote the stars' colour there: every space cell showed the stars instead of its
+# temperature, the exhaust's included. Ours masks such draw buffers (GlStateCache.Outputs).
+# Vulkan requires such attachments to be left unmodified, and ours on Vulkan showed the overlay.
+#
+# Setup puts 0.1 kg of carbon dioxide in each of 16 space cells at 1678 K (left of the rocket)
+# and 16 at 300 K (right of it), and 4 cells at 1678 K in the rocket's cabin (enclosed). Mesa's
+# drivers on the lanes kept _MRT2 before the fix too, so the shots compare the colours with the
+# original rather than catching the leak itself.
+from: rockets-so
+setup:
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181122, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181858, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [182594, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [183330, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181123, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181859, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [182595, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [183331, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181124, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181860, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [182596, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [183332, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181125, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181861, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [182597, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [183333, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181138, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181874, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [182610, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [183346, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181139, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181875, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [182611, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [183347, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181140, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181876, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [182612, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [183348, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181141, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [181877, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [182613, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [183349, CarbonDioxide, null, 0.1, 300.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [11691, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [12427, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [11692, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+  - driver: {setup.call: {type: SimMessages, method: AddRemoveSubstance, args: [12428, CarbonDioxide, null, 0.1, 1678.0, 255, 0]}}
+steps:
+  # The save predates two rounds of changes, and the game shows a dialog for each, the later
+  # one on top.
+  - expect_ui: {"**/SpriteListDialog": {count: 2}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton", index: 1}
+  - expect_ui: {"**/SpriteListDialog": {count: 1}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton"}
+  - ui_wait: {path: "**/SpriteListDialog", cond: gone, frames: 120}
+  - call: {tool: navigation_control, args: {action: set_active_world, worldId: 0}}
+  - expect_state:
+      "cells:67,247..67,247::Grid.Temperature.get_Item({cell})": 1678.0
+      "cells:83,247..83,247::Grid.Temperature.get_Item({cell})": 300.0
+      "CellSelectionObject.IsExposedToSpace(181859)": true
+      "CellSelectionObject.IsExposedToSpace(181875)": true
+      "CellSelectionObject.IsExposedToSpace(11691)": false
+  - key: {code: "F3"}
+  - expect_state: {"OverlayScreen.Instance.GetMode().ToString()": "== original"}
+  - world_shot: {name: space, ortho: 10, at: [76, 248]}
+  - call: {tool: navigation_control, args: {action: set_active_world, worldId: 10}}
+  - world_shot: {name: cabin, ortho: 6, at: [652, 16]}
