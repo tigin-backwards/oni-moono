@@ -26,6 +26,30 @@
         "UnityEngine.UIModule.dll": "f027d49f26708347e8509b506df7b68b58eb9fa8725ae8bb552b64b6648ea274",
         "UnityEngine.dll": "0fcaf88492518e3811eff313a85f344c73d3bd42c81e4518e2d9e19a7f28265d"
       }
+    },
+    "762230": {
+      "game": "U60 public test",
+      "source": {
+        "kind": "git",
+        "host": "github.com",
+        "repository": "tigin-backwards/oni-moono-refs",
+        "commit": "807be12abccc297ee3b6526815dd8083a8ea2c74",
+        "path": "762230"
+      },
+      "files": {
+        "0Harmony.dll": "3cf41290880d072dd87dd29ba0c9738376ad4548c817109eee4da2b03c631ded",
+        "Assembly-CSharp-firstpass.dll": "d099783a00b9fdce9b5cde86ccd896a40daa842c40375c7a257f1bf0db44c51b",
+        "Assembly-CSharp.dll": "b3226c98c632f2d7add518ec93e28ae58e2353747668c3488c062e74f352478f",
+        "FMODUnity.dll": "27e0a9665d45afd122b7bd80abccd21b106eb3c009dc76f5c1810bf9bed743ab",
+        "Ionic.Zip.dll": "aa0b1f62928f3642c10a41da52857a2d0931d82684f702cf477ca7bc956bf6c1",
+        "Newtonsoft.Json.dll": "badc360b7eccbd9821d18842f58cd9ada8df3d6ec2f54535329f821374c9c7fd",
+        "Unity.TextMeshPro.dll": "a1b1c9ac144a50c7fa648b5fc8733315c3637f39a4ace018d2d1ba422a9cc996",
+        "UnityEngine.CoreModule.dll": "eaa60dc347bf732afc93451bc8cebb88f157dd332447b4b8e1ad5b9fc3e342ad",
+        "UnityEngine.TextRenderingModule.dll": "bb72f26cf405cdf095d54fe057c880c649ae9fcc0c110df49ffcb1ce8e52af01",
+        "UnityEngine.UI.dll": "0ca625d5c11104f8e4364ee142e65b1cea91de4f1a78806bf508bba2dc9a23b9",
+        "UnityEngine.UIModule.dll": "b7ea0e5bc8dcb52ffaed81b12ad9aef1e3960dbb180aa87b3f92607db7f049a1",
+        "UnityEngine.dll": "ebeeed7cde613d93a595320b95af655bfd31933ace86405c445e16b28007d049"
+      }
     }
   }
 }

@@ -47,34 +47,7 @@ namespace OniMoono.Host.Install
             }
         }
 
-        /// The Linux entry point.
-        public const string Script = """
-            #!/bin/sh
-            # Moono's entry point (docs/INSTALL-MODES.md): starts the installed player that
-            # state/current names, and the next one when it exits asking for a switch (77).
-            root="$(cd "$(dirname "$0")" && pwd)"
-            export ONI_MOONO_INSTALL_ROOT="$root"
-            unset ONI_MOONO_INSTALL_SOURCE
-            switches=0
-            while :; do
-                version="$(cat "$root/state/current" 2>/dev/null)"
-                case "$version" in
-                    ""|.*|*/*) version="$(ls -1 "$root/player" 2>/dev/null | grep -v '^\.' | sort | tail -n 1)" ;;
-                esac
-                if [ -z "$version" ] || [ ! -x "$root/player/$version/OniMoono" ]; then
-                    echo "Moono: no installed player in $root/player" >&2
-                    exit 1
-                fi
-                "$root/player/$version/OniMoono" "$@"
-                status=$?
-                if [ "$status" -eq 77 ] && [ -f "$root/state/switch" ] && [ "$switches" -lt 3 ]; then
-                    rm -f "$root/state/switch"
-                    switches=$((switches + 1))
-                    continue
-                fi
-                exit "$status"
-            done
-
-            """;
+        /// The Linux entry point (shared with the Workshop item's loader mod).
+        public const string Script = PlayerFiles.EntryScript;
     }
 }

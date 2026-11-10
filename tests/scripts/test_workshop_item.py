@@ -1,7 +1,8 @@
 """scripts/workshop-item.py: two releases' assets (made up here, laid out as release.sh makes
 them) become the Workshop item's folder: the U60 build at the root, U59 in
 archived_versions/u59, each with its mod_info.yaml, moono.json, manifests and players, nothing
-at a version's top the game would load, and SHA256SUMS over every file. A tampered archive or
+at a version's top the game would load but the loader mod at the root, and SHA256SUMS over every
+file. A tampered archive or
 one with a path outside its folder is refused."""
 
 import hashlib, io, json, os, subprocess, sys, tarfile, tempfile, unittest, zipfile
@@ -59,8 +60,10 @@ class WorkshopItemTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_script(self, u60='u60', master='master'):
+    def run_script(self, u60='u60', master='master', loader='MoonoLoader.dll'):
         out = os.path.join(self.dir, 'item')
+        with open(os.path.join(self.dir, loader), 'wb') as f:
+            f.write(b'MZ loader')
         p = subprocess.run(
             [
                 sys.executable,
@@ -74,6 +77,8 @@ class WorkshopItemTests(unittest.TestCase):
                 os.path.join(self.dir, master),
                 '--master-tag',
                 'v2026.11.08.01',
+                '--loader',
+                os.path.join(self.dir, loader),
                 out,
             ],
             capture_output=True,
@@ -94,8 +99,10 @@ class WorkshopItemTests(unittest.TestCase):
         self.assertEqual(json.loads(read(os.path.join(out, 'archived_versions', 'u59', 'moono.json')))['version'], '2026.11.08.01')
         self.assertEqual(read(os.path.join(out, 'OniMoono.exe'), 'rb'), b'MZ exe')
         self.assertTrue(os.access(os.path.join(out, 'linux-x64', 'player', 'OniMoono'), os.X_OK))
-        for top in (out, os.path.join(out, 'archived_versions', 'u59')):
-            self.assertFalse([n for n in os.listdir(top) if n.lower().endswith(('.dll', '.po'))])
+        # The loader is the one DLL the game finds, at the U60 root only.
+        self.assertEqual([n for n in os.listdir(out) if n.lower().endswith(('.dll', '.po'))], ['MoonoLoader.dll'])
+        self.assertEqual(read(os.path.join(out, 'MoonoLoader.dll'), 'rb'), b'MZ loader')
+        self.assertFalse([n for n in os.listdir(os.path.join(out, 'archived_versions', 'u59')) if n.lower().endswith(('.dll', '.po'))])
         # SHA256SUMS lists every other file, with its digest.
         lines = read(os.path.join(out, 'SHA256SUMS')).splitlines()
         listed = {l[66:]: l[:64] for l in lines}
@@ -122,6 +129,12 @@ class WorkshopItemTests(unittest.TestCase):
         release(os.path.join(self.dir, 'master'), '2026.11.08')
         p, _ = self.run_script()
         self.assertNotEqual(p.returncode, 0)
+
+    def test_loader_is_moonoloader(self):
+        release(os.path.join(self.dir, 'u60'), '2026.11.08-u60')
+        release(os.path.join(self.dir, 'master'), '2026.11.08')
+        p, _ = self.run_script(loader='Other.dll')
+        self.assertIn('the loader is MoonoLoader.dll', p.stderr)
 
     def test_branches_must_match(self):
         release(os.path.join(self.dir, 'u60'), '2026.11.08')

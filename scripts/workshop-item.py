@@ -2,7 +2,7 @@
 """Lays out Moono's Workshop item from two releases' assets (docs/INSTALL-MODES.md).
 
     python3 -I scripts/workshop-item.py --u60 DIR --u60-tag vYYYY.MM.DD.NN \
-        --master DIR --master-tag vYYYY.MM.DD.NN OUT
+        --master DIR --master-tag vYYYY.MM.DD.NN --loader MoonoLoader.dll OUT
 
 Each DIR holds one release's assets as downloaded (and verified: .github/workflows/workshop.yml
 checks their attestations first): its Windows zip, Linux tarball and their SHA256SUMS manifests.
@@ -13,12 +13,13 @@ version of a mod in the game's archived_versions convention (KMod.Mod.GetMostSui
       mod_info.yaml  moono.json  oni-moono-*-windows-x64.SHA256SUMS  oni-moono-*-linux-x64.SHA256SUMS
       windows-x64/   linux-x64/  the archives' oni-moono folders
       OniMoono.exe  OniMoono.sh  verify.ps1  verify.sh  README.md   (root only)
+      MoonoLoader.dll            the loader mod (src/MoonoLoader, built by workshop.yml; root only)
       SHA256SUMS                 every other file of OUT (root only)
       attestation/               added by workshop.yml once SHA256SUMS is signed: its Sigstore bundle
       archived_versions/u59/     the U59 build (minimumSupportedBuild 744825), laid out the same
 
-No DLL, .po or content folder is at a version's top, so the original game finds no supported
-content and loads nothing. Nothing is run from the archives.
+Of what the original game loads, a version's top has only the loader at the root: no other DLL,
+no .po or content folder. Nothing is run from the archives.
 """
 
 import argparse
@@ -37,6 +38,7 @@ BRANCHES = {"u60": 762230, "master": 744825}
 PLATFORMS = {"windows-x64": ".zip", "linux-x64": ".tar.gz"}
 TAG = re.compile(r"v([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2})")
 COMPONENT = re.compile(r"[A-Za-z0-9._+-]+")
+LOADER = "MoonoLoader.dll"  # the loader mod (src/MoonoLoader), the root's one DLL
 
 
 def fail(message):
@@ -126,7 +128,8 @@ def version_folder(assets, tag, branch, out):
         platforms[platform] = {"folder": platform, "manifest": manifests[0], "archive": found[0]}
         print(f"{version} {platform}: {n} files from {found[0]}")
     with open(os.path.join(out, "mod_info.yaml"), "w", newline="\n") as f:
-        f.write(f"# Moono {version}, for the game's {'U60' if branch == 'u60' else 'U59'} update. Not a mod: the game loads nothing from here.\n")
+        what = "the game loads only its loader mod, MoonoLoader.dll, from here" if branch == "u60" else "not a mod: the game loads nothing from here"
+        f.write(f"# Moono {version}, for the game's {'U60' if branch == 'u60' else 'U59'} update; {what}.\n")
         f.write(f"minimumSupportedBuild: {BRANCHES[branch]}\nAPIVersion: 2\nrequiredDlcIds: []\nforbiddenDlcIds: []\nversion: \"{version}\"\n")
     info = {"workshopItem": "oni-moono", "version": version, "tag": tag, "branch": branch, "repository": "tigin-backwards/oni-moono", "platforms": platforms}
     with open(os.path.join(out, "moono.json"), "w", newline="\n") as f:
@@ -141,6 +144,7 @@ def main():
     parser.add_argument("--u60-tag", required=True)
     parser.add_argument("--master", required=True)
     parser.add_argument("--master-tag", required=True)
+    parser.add_argument("--loader", required=True, help="the loader mod's MoonoLoader.dll, put at the root")
     parser.add_argument("out")
     args = parser.parse_args()
     if os.path.exists(args.out):
@@ -154,10 +158,15 @@ def main():
         shutil.copyfile(os.path.join(STATIC, name), os.path.join(args.out, name))
     for name in ("OniMoono.sh", "verify.sh"):
         os.chmod(os.path.join(args.out, name), 0o755)
-    # The game looks only at a version's top: nothing there may be content.
+    if os.path.basename(args.loader) != LOADER:
+        fail(f"the loader is {LOADER}, not {args.loader}")
+    shutil.copyfile(args.loader, os.path.join(args.out, LOADER))
+    # The game looks only at a version's top: nothing there may be content but the loader.
     for version in (args.out, os.path.join(args.out, "archived_versions", "u59")):
         for name in os.listdir(version):
             lower = name.lower()
+            if version == args.out and name == LOADER:
+                continue
             if lower.endswith((".dll", ".po")) or (
                 os.path.isdir(os.path.join(version, name)) and lower in ("strings", "codex", "elements", "templates", "worldgen", "buildingfacades", "anim")
             ):

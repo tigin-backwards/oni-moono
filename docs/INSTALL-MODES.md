@@ -161,19 +161,22 @@ same rule gives each game build its Moono:
   mod_info.yaml  moono.json  oni-moono-…-u60-windows-x64.SHA256SUMS  oni-moono-…-u60-linux-x64.SHA256SUMS
   windows-x64/  linux-x64/      the release archives' oni-moono folders
   OniMoono.exe  OniMoono.sh     start here once (Windows: double-click; Linux: sh OniMoono.sh)
+  MoonoLoader.dll               the loader mod, which the original game loads (below)
   verify.ps1  verify.sh  README.md  SHA256SUMS
   attestation/SHA256SUMS.sigstore.json   the signature of SHA256SUMS (not listed in it)
   archived_versions/u59/        the master build: minimumSupportedBuild 744825, laid out the same
 ```
 
-- **The original game loads nothing from it.** Each version's `mod_info.yaml` has `APIVersion: 2`,
-  `minimumSupportedBuild` and empty DLC lists, and nothing at a version's top is content the
-  game scans for (no `.dll`, `.po`, `strings`, `anim` and the like): the game logs "No supported
-  content" and the mod list shows it so. No code of Moono's runs inside the original game.
+- **The original game loads only the loader mod from it** (below). Each version's
+  `mod_info.yaml` has `APIVersion: 2`, `minimumSupportedBuild` and empty DLC lists, and nothing
+  else at a version's top is content the game scans for (no other `.dll`, no `.po`, `strings`,
+  `anim` and the like). U59 has no loader: its mod manager takes a Workshop item only as a zip,
+  and lists this folder item as failed to download.
 - **Under Moono, the mod manager skips it** (`OniMoono.GameTweaks.OwnWorkshopItem`, a guarded
   patch of `KMod.Steam.MakeModAndReportOutcome`, declared and checked as every game tweak is,
-  always on): no mod, no broken-mod entry, no download-failed event. The item is told by
-  `moono.json`'s `"workshopItem": "oni-moono"`, not by an ID.
+  always on): no mod, no broken-mod entry, no download-failed event. A mod the profile's
+  `mods.json` has for it (the original game keeps one) is dropped from the list without an
+  event. The item is told by `moono.json`'s `"workshopItem": "oni-moono"`, not by an ID.
 - **The first start** from the item (`OniMoono.exe` there, which has `moono.json` and
   `windows-x64\player` beside it and no player of its own) copies the root's Windows player to
   `versioned\player\.bootstrap-<pid>` and starts the copy with the item as its source; it installs
@@ -190,6 +193,9 @@ same rule gives each game build its Moono:
   becomes the `workshop-item` artifact. Nothing goes to Steam. `verify.sh` or `verify.ps1` in the
   item checks it against the attested release manifests and its own attested `SHA256SUMS`, the
   bundle included (docs/RELEASES.md).
+- **Uninstall:** clear Oxygen Not Included's launch options in Steam, then delete
+  `%LOCALAPPDATA%\oni-moono` (Linux: `~/.local/share/oni-moono`, or the sandboxed Steam's folder
+  above).
 
 ## What the installer verifies
 
@@ -261,3 +267,39 @@ above. But a swapped bootstrap player can do whatever it likes. The GitHub relea
 of trust: for a first install you can be sure of, use a release's setup
 ([RELEASES.md](RELEASES.md#verifying-a-release)), or run the item's `verify.ps1` or `verify.sh`
 before its first start. After that, every update is checked.
+
+## The loader mod
+
+`MoonoLoader.dll` at the item's root (`src/MoonoLoader`) is a plain `KMod.UserMod2`, with the
+game's Harmony and nothing else, that the original U60 game loads like any mod while the item
+is enabled. Under Moono it does nothing: Moono's player runs the game on .NET with its own
+`OniMoono*` assemblies, so the loader returns at once (and Moono leaves the item out of its mod
+list anyway).
+
+- **At the main menu,** once each start, it shows the game's info dialog "Play Oxygen Not
+  Included with Moono?" (`MoonoDialog`): a short explanation, the launch-option line, selectable,
+  and the steps: "In Steam: right-click Oxygen Not Included → Properties → Launch Options,
+  paste, then restart the game." It stays open until **Close** (or Escape); the game carries on.
+  Nothing is added to the main menu itself.
+- **Copy** installs Moono for this game build, in the game's own process: the version the game
+  loaded the loader from is copied into `versioned\player\<version>\` with the installer's own
+  code (`src/OniMoono.Host/Install/PlayerFiles.cs`, compiled into both), every file checked
+  against the version's manifest; the entry point is put in place, and `state\source` names the
+  item, so Moono updates from it at each start as above. An installed version is left as it is.
+  The loader doesn't check the item's signature: it is code from that same item, which the game
+  runs as it runs any mod, so a forged item would bring its own loader. The GitHub releases stay
+  the root of trust, as for the first install above.
+  Then the line goes on the clipboard and the button says "Copied ✓", so the player can switch
+  to Steam, paste and come back. The line is the entry point with its full path, as setup uses:
+  `"C:\Users\<you>\AppData\Local\oni-moono\versioned\OniMoono.exe" -- %command%` (Linux:
+  `"/home/<you>/.local/share/oni-moono/versioned/OniMoono" -- %command%`, the sandboxed Steam's
+  folder for a Flatpak or snap Steam, as `OniMoono.sh` picks it; `ONI_MOONO_INSTALL_ROOT` moves it).
+  Steam's properties can be changed while the game runs. No helper process is started and
+  Steam's configuration is not touched: the player pastes the line.
+- **The Mods screen:** the item's own row has a **Play with Moono** button beside its Manage
+  button, which shows the same dialog.
+- **Built** by `workshop.yml` from its run's commit, against U60's reference assemblies
+  (`ci/game-refs.json`, build 762230), and signed with the rest of the item.
+- **Tests:** `LoaderTests` (the install and the line, without the game); on u60,
+  `tests/e2e/workshop-loader.yaml` in the original game with a made-up item as a local mod, and
+  `workshop-loader-moono.yaml` in Moono with it also as a Workshop subscription.

@@ -3,12 +3,14 @@
 # of a release.yml run's build, whose draft was deleted: its archives are attested all the
 # same), downloaded and
 # checked against their SLSA provenance (signed by attest.yml, built from the right branch),
-# laid out by scripts/workshop-item.py (U60 at the root, U59 in archived_versions/u59), and the
-# item's SHA256SUMS and every file in it signed by attest.yml in turn. The Sigstore bundle naming
-# SHA256SUMS goes into the item as attestation/SHA256SUMS.sigstore.json, which Moono's installer
-# verifies offline before it installs anything from the item (docs/INSTALL-MODES.md); the item is
-# checked with that very code (tools/ItemVerify) before it is the workshop-item artifact. The last
-# job checks the artifact with the item's own verify.sh. Nothing here touches Steam.
+# laid out by scripts/workshop-item.py (U60 at the root, U59 in archived_versions/u59) with the
+# loader mod (src/MoonoLoader, built here from this run's commit against U60's reference
+# assemblies), and the item's SHA256SUMS and every file in it signed by attest.yml in turn. The
+# Sigstore bundle naming SHA256SUMS goes into the item as attestation/SHA256SUMS.sigstore.json,
+# which Moono's installer verifies offline before it installs anything from the item
+# (docs/INSTALL-MODES.md); the item is checked with that very code (tools/ItemVerify) before it is
+# the workshop-item artifact. The last job checks the artifact with the item's own verify.sh.
+# Nothing here touches Steam.
 name: Workshop item
 
 on:
@@ -86,10 +88,34 @@ jobs:
               echo "$source: $(basename "$f") attested, built from $branch"
             done
           done
+      # The loader mod the original game loads from the item's U60 root, built against that
+      # game build's reference assemblies (ci/game-refs.json; the U60 root's minimumSupportedBuild).
+      - id: sdk
+        run: echo "version=$(python3 -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])')" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+        with:
+          dotnet-version: ${{ steps.sdk.outputs.version }}
+          skip-lts-prepass: true
+      - id: refs
+        uses: ./.github/actions/game-refs
+        with:
+          deploy-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
+          use-cache: false
+          build: "762230"
+      - name: Build the loader mod
+        env:
+          GAME_DIR: ${{ steps.refs.outputs.game-dir }}
+          ContinuousIntegrationBuild: "true"
+          DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+          DOTNET_NOLOGO: "1"
+        run: dotnet build src/MoonoLoader -c Release -p:OniGameDir="$GAME_DIR" -v q -nologo "-clp:ErrorsOnly;NoSummary"
       - name: Lay out the item
         run: |
           python3 -I scripts/workshop-item.py --u60 "$RUNNER_TEMP/assets-u60" --u60-tag "$U60_TAG" \
-            --master "$RUNNER_TEMP/assets-master" --master-tag "$MASTER_TAG" workshop-item
+            --master "$RUNNER_TEMP/assets-master" --master-tag "$MASTER_TAG" \
+            --loader out/bin/MoonoLoader/release/MoonoLoader.dll workshop-item
       - id: sums
         run: |
           echo "checksums=$(sha256sum workshop-item/SHA256SUMS | sed 's|workshop-item/||')" >> "$GITHUB_OUTPUT"
@@ -194,7 +220,7 @@ jobs:
       - name: Verify single files, and refuse a changed one
         run: |
           for f in workshop-item/OniMoono.exe workshop-item/mod_info.yaml workshop-item/archived_versions/u59/mod_info.yaml \
-                   workshop-item/linux-x64/player/OniMoono.dll; do
+                   workshop-item/linux-x64/player/OniMoono.dll workshop-item/MoonoLoader.dll; do
             gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" > /dev/null
             echo "$f attested"
           done

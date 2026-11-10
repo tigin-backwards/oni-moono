@@ -1,7 +1,7 @@
 name: Game reference assemblies
 description: >
-  Fetches the game build's reference assemblies that ci/game-refs.json names (its default build)
-  into a folder laid out like a game install, checking every file's SHA-256
+  Fetches the game build's reference assemblies that ci/game-refs.json names (its default build,
+  or the input `build`) into a folder laid out like a game install, checking every file's SHA-256
   (scripts/fetch-game-refs.py). The deploy key reads the private refs repository; it is held in
   an ssh-agent for the fetch only, never written to disk.
 inputs:
@@ -11,6 +11,9 @@ inputs:
   use-cache:
     description: Restore and save the folder in the Actions cache (never for release builds).
     default: "true"
+  build:
+    description: A game build of the manifest other than its default build.
+    default: ""
 outputs:
   game-dir:
     description: The folder to build against (-p:OniGameDir, ONI_GAME_DIR), with forward slashes.
@@ -20,9 +23,12 @@ runs:
   steps:
     - id: dir
       shell: bash
+      env:
+        BUILD: ${{ inputs.build }}
       run: |
         py=python3; python3 -c "" 2>/dev/null || py=python
-        build="$($py -I scripts/fetch-game-refs.py --print-default-build)"
+        build="${BUILD:-$($py -I scripts/fetch-game-refs.py --print-default-build)}"
+        [[ "$build" =~ ^[0-9]+$ ]] || { echo "::error::a game build is a number, not '$build'"; exit 1; }
         dir="${RUNNER_TEMP//\\//}/game-refs-$build"
         echo "build=$build" >> "$GITHUB_OUTPUT"
         echo "game-dir=$dir" >> "$GITHUB_OUTPUT"
@@ -35,6 +41,7 @@ runs:
       env:
         DEPLOY_KEY: ${{ inputs.deploy-key }}
         GAME_DIR: ${{ steps.dir.outputs.game-dir }}
+        BUILD: ${{ steps.dir.outputs.build }}
       run: |
         py=python3; python3 -c "" 2>/dev/null || py=python
         [ -n "$DEPLOY_KEY" ] || { echo "::error::GAME_REFS_DEPLOY_KEY is not available to this run"; exit 1; }
@@ -43,4 +50,4 @@ runs:
         printf '%s\n' "$DEPLOY_KEY" | ssh-add -q -
         export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$PWD/ci/github-known-hosts"
         # A restored cache is checked file by file like a fetch (--reuse); a miss fetches.
-        $py -I scripts/fetch-game-refs.py "$GAME_DIR" --transport ssh --reuse
+        $py -I scripts/fetch-game-refs.py "$GAME_DIR" --build "$BUILD" --transport ssh --reuse

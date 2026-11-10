@@ -6,6 +6,7 @@
     <Project Path="src/OniMoono.Host/OniMoono.Host.csproj" />
     <Project Path="src/OniMoono.Restarter/OniMoono.Restarter.csproj" />
     <Project Path="src/OniMoono.UnityEngine/OniMoono.UnityEngine.csproj" />
+    <Project Path="src/MoonoLoader/MoonoLoader.csproj" />
     <Project Path="src/Unity.InternalAPIEngineBridge.004/Unity.InternalAPIEngineBridge.004.csproj" />
     <Project Path="src/Unity.TextMeshPro/Unity.TextMeshPro.csproj" />
     <Project Path="src/Unity.Timeline/Unity.Timeline.csproj" />
