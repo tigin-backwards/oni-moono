@@ -1500,6 +1500,62 @@ def wait_save_written(path, log, offset, timeout=300.0, poll=0.2, clock=time.mon
         sleep(poll)
 
 
+# The log line the game writes when its colony preview has no telepad to frame and is skipped
+# (Timelapser.RenderAndPrint): no PNG comes then.
+PREVIEW_SKIPPED = 'No telepad present, aborting screenshot.'
+
+
+def preview_path(save):
+    """The colony preview PNG SaveLoader.Save has the Timelapser write next to SAVE."""
+    return os.path.splitext(save)[0] + '.png'
+
+
+def png_written(path, since):
+    """Whether the PNG at PATH is whole (it ends with its IEND chunk) and written at or after
+    SINCE (time.time_ns() before the save), not an earlier save's."""
+    try:
+        st = os.stat(path)
+        if st.st_mtime_ns < since:
+            return False
+        with open(path, 'rb') as f:
+            f.seek(max(0, st.st_size - 12))
+            return st.st_size > 20 and f.read(12) == b'\0\0\0\0IEND\xaeB`\x82'
+    except OSError:
+        return False
+
+
+def wait_preview_written(save, log, offset, since, timeout=120.0, poll=0.2, clock=time.monotonic, sleep=time.sleep):
+    """Waits until the game has captured and written the colony preview of the save at SAVE (or
+    logged, in LOG after OFFSET, that it skipped it), written at or after SINCE (time.time_ns()
+    before the save).
+
+    A load issued in the frame of that capture crashes the U59 game (the original's too): after a
+    save Timelapser.SaveColonyPreview starts a capture, and in the next frame World.LateUpdate sees
+    it running and calls GroundRenderer.RenderAll, which rebuilds every chunk from the sim's
+    buffers (BackwallManager's raw pointers, Grid.elementIdx). LoadScreen.DoLoad has already called
+    Sim.Shutdown (ForceStopGame) by then, so it reads freed memory and throws in
+    BackwallManager.BackwallIndexer.get_Element; the error dialog then quits the game when the
+    load destroys it. OniMcp runs a call in the next frame's Update, so a load sent right after a
+    save lands in that frame whenever the save's frame outlasts the round trip (on 4 cores, as on
+    CI's runners). U60 fixed it in the game: World.LateUpdate renders only the camera's world
+    then, and the PNG is written asynchronously. False after TIMEOUT seconds."""
+    deadline = clock() + timeout
+    png = preview_path(save)
+    while True:
+        if png_written(png, since):
+            return True
+        try:
+            with open(log, 'rb') as f:
+                f.seek(offset)
+                if any(PREVIEW_SKIPPED in l.decode('utf-8', 'replace') for l in f):
+                    return True
+        except OSError:
+            pass
+        if clock() >= deadline:
+            return False
+        sleep(poll)
+
+
 def spaced_out(spec):
     """Whether SPEC's players run with Spaced Out: its `spaced_out`, else its fixture's mode
     (a base-game save loads in a base-game player), else on (the game's default)."""
@@ -4265,6 +4321,7 @@ class Run:
             mcp.call(value['tool'], **value.get('args', {}))
         elif kind == 'save':
             offset = os.path.getsize(self.player.log) if os.path.exists(self.player.log) else 0
+            since = time.time_ns()
             saved = mcp.call('game_control', domain='save', action='save', name=value, overwrite=True, updateActiveSave=False, confirm=True)
             path = saved.get('saved') if isinstance(saved, dict) else None
             if not path or not os.path.exists(path):
@@ -4273,6 +4330,10 @@ class Run:
             # being written then (its header only).
             if not wait_save_written(path, self.player.log, offset):
                 raise SpecFailure(f'save {value}: {path} not written whole after 300 s ({os.path.getsize(path)} bytes)')
+            # The next step may load: first the colony preview's capture ends (wait_preview_written
+            # tells why; a game crash otherwise, U59's and the original's alike).
+            if not wait_preview_written(path, self.player.log, offset, since):
+                raise SpecFailure(f'save {value}: the colony preview {preview_path(path)} was not written after 120 s')
             shutil.copy(path, os.path.join(self.out, value + '.sav'))
             self.saves.append(value)
         elif kind == 'shot':
