@@ -134,6 +134,9 @@ fewer frames a game second means less per-frame work in each.
   0.6 of Boehm's total, as Boehm's lazy sweep reuses freed slots without "used" rising, so it is
   not used for the original's figures.
 
+The results, by colony, game version and update section, are in
+[research/allocations-vs-original.md](research/allocations-vs-original.md).
+
 ## The numbers
 
 **U57**, a Spaced Out colony with every DLC at cycle 17,077: 24 Duplicants, 1,186 critters, about
