@@ -1730,9 +1730,12 @@ citing why.
   constantly (an item stored is parented to its storage). Scene roots are therefore an ordered
   slot list (`SceneRoots`: constant-time removal, compaction into a new array, enumeration
   safe against it), and per-frame walks cache what they look up per GameObject against its
-  copy-on-write component array (`UiParts` for the canvas walk). Searches by type
-  (`FindObjectsByType`) walk the scenes and skip inactive subtrees when inactive objects are not
-  asked for.
+  copy-on-write component array (`UiParts` for the canvas walk). A transform's child list is
+  copy-on-write too, but with spare slots once a parent grows at run time: an append fills the
+  next spare slot, which no list read before has, so the game's popup texts (a parent of
+  thousands of children, one added per new popup) no longer copy the list each time. Searches
+  by type (`FindObjectsByType`) walk the scenes and skip inactive subtrees when inactive objects
+  are not asked for.
 - **Per-frame allocation.** ONI issues ~1,700 draws a frame (most through `Graphics.DrawMesh`) and
   rebuilds several meshes every frame, so the render path allocates almost nothing per draw:
   draw items, draw lists and canvas batches are reused frame to frame (`FrameRenderer.NewDrawItem`,
@@ -1853,6 +1856,12 @@ array, list or serializable class is `""`, empty or a new instance in the clone 
 original player; issue #17); `ISerializationCallbackReceiver` hooks run
 (`OnBeforeSerialize` on the source, `OnAfterDeserialize` on the clone). Non-serialized fields
 of the clone keep their constructor/initializer values.
+A script's field copy is compiled once per type, as is the copy of each serializable struct
+or class and of each array or list element type (`Cloner.CompositeCopier`, `ElementCopier`):
+the game's structs (`Tag`, `HashedString`, `CellOffset`) are copied as values, without the
+boxes and reflection the clones of resource chunks spent most of their copying on. A struct's
+callbacks are called on the struct itself; the copy keeps their changes and the source does
+not, as with the box they used to run on.
 
 **Loading model.** Scenes (`level0..2`) are loaded in full on `SceneManager.LoadScene`.
 Other files load objects **lazily by PPtr**: an object is materialized the first time it is
@@ -1970,14 +1979,20 @@ renderer, restricted to what the game uses (*usage §1*):
   - Instantiate's clone map and the lifecycle walks' lists (activation, destruction) are kept
     for the next call; a call started from a callback of another (Awake, OnEnable,
     OnAfterDeserialize) takes its own.
+  - A transform's child list (`ChildList`) is an array and a count; a list read keeps the
+    count it was read with. Slots below a count once given out are never written again: an
+    append writes the next spare slot, and a removal, insertion or replacement makes a new
+    array (a parent that had spare slots keeps some). `ONI_VERIFY_CHILD_LISTS=1` checks at each
+    append into a spare slot that it and the slots after it are empty.
   - Upload records (mesh and texture), immediate draws' vertex data and the arena's other
     command data belong to the frame they were recorded in and are reused once the GL thread
     has run it; a record carries a generation its command checks.
   - A property block's sheet that a queued draw shares is retired with its render epoch when
-    the block moves to another, and a sprite's per-frame sheet at once; a sheet retired in epoch
-    E is free once epoch E + 2 begins (queued draws are drawn by the end of the next epoch, and
-    only draw recording reads sheets). `ONI_VERIFY_PROPERTY_SHEETS=1` holds free sheets back
-    longer, marked, and reports a draw recorded with one.
+    the block moves to another, and a sprite's or a blit's per-frame sheet at once; a sheet
+    retired in epoch E is free once epoch E + 2 begins (queued draws are drawn by the end of the
+    next epoch, and only draw recording reads sheets). `ONI_VERIFY_PROPERTY_SHEETS=1` holds free
+    sheets back longer, marked, and reports a draw recorded with one. A new property block's
+    texture store is made with room for an animation batch's textures.
   - A material's values keep a pass state per pass, kept across value changes that resolve it
     to the same bits; `ONI_VERIFY_PASS_STATES=1` resolves each kept one afresh and compares.
 - Draw sources: `MeshRenderer`+`MeshFilter`, `SpriteRenderer`, `ParticleSystemRenderer`,
