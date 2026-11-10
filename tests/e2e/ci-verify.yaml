@@ -1,17 +1,14 @@
 # CI's verify run (docs/DEVELOPMENT.md, "Game tests in CI"), headless on the stripped game:
 # early-base for five game minutes at speed 3 with every game tweak and the verify modes that
-# check without drawing. scripts/ci-game-tests.sh then reads the log with `qa-tools.py verify`:
-# every check reports zero wrong answers.
+# report without a GL device. scripts/ci-game-tests.sh then reads the log with `qa-tools.py
+# verify`: every check that ci/game-tests/verify/ci-verify.txt names reports, with zero wrong
+# answers. docs/DEVELOPMENT.md, "Game tests in CI", lists the modes CI does not cover.
 from: early-base
 game_tweaks: [all]
 env:
   ONI_TWEAK_VERIFY: "1"
   ONI_VERIFY_FETCH_BY_CELL: "1"
-  ONI_VERIFY_CANVAS_SKIPS: "1"
-  ONI_VERIFY_RAYCAST_CACHE: "1"
-  ONI_VERIFY_CULL_CACHE: "1"
   ONI_VERIFY_CANVAS_CULL: "1"
-  ONI_VERIFY_MESH_REUSE: "1"
   ONI_VERIFY_CANVAS_PRODUCTS: "1"
   ONI_VERIFY_COMPONENT_LAYOUTS: "1"
   ONI_VERIFY_RAW_LOADS: "1"

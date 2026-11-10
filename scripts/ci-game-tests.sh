@@ -5,7 +5,8 @@
 # push:    the game tweaks against the game's assemblies (check-tweaks), the unit tests that need
 #          the game (the recorded-parity probes among them) and ci/game-tests/push.txt's specs;
 # nightly: ci/game-tests/nightly.txt's specs.
-# A run checks every ci-verify* spec's log with `qa-tools.py verify` (zero wrong answers), and
+# A run checks every ci-verify* spec's log with `qa-tools.py verify` (zero wrong answers, and a
+# report from each check ci/game-tests/verify/SPEC.txt names), and
 # every spec's log signatures against the run's budget (ci/game-tests/budget/BUILD.txt): a run of
 # ours fails on an error or exception signature the budget lacks.
 # Needs: GAME_DIR (scripts/fetch-game-content.py), its fixtures in tests/e2e/fixtures, QA_U57_STEAM
@@ -20,13 +21,15 @@ game="$(cd "${2:?GAME_DIR}" && pwd)"
 build="$(python3 -I "$root/scripts/fetch-game-content.py" --print-default-build)"
 export ONI_NO_CONTENT=1 ONI_CONFIG=release ONI_GAME_DIR="$game" QA_U57_GAME="$game"
 failed=()
+# CI_BUILD_WRAPPER: a command the builds run under, such as a local build lock (CI sets none).
+dotnet_build() { ${CI_BUILD_WRAPPER:-} dotnet build "$@" -v q -nologo "-clp:ErrorsOnly;NoSummary"; }
 
 echo "== build"
-dotnet build "$root/src/OniMoono.Host" -c Release -p:OniGameDir="$game" -v q -nologo "-clp:ErrorsOnly;NoSummary"
+dotnet_build "$root/src/OniMoono.Host" -c Release -p:OniGameDir="$game"
 # E2eDriver and our test mods (those this branch has).
 for tool in E2eDriver OverlapTestMod SelectCycleTestMod CommandLineTestMod ReachStressTestMod GeoVentProbeTestMod; do
     [ -d "$root/tools/$tool" ] || continue
-    dotnet build "$root/tools/$tool" -c Release -p:OniGameDir="$game" -v q -nologo "-clp:ErrorsOnly;NoSummary"
+    dotnet_build "$root/tools/$tool" -c Release -p:OniGameDir="$game"
 done
 
 if [ "$list" = push ]; then
@@ -38,7 +41,7 @@ if [ "$list" = push ]; then
     echo "== unit tests with the game"
     reports=$(mktemp -d)
     for suite in OniMoono.Assets.Tests OniMoono.UnityEngine.Tests; do
-        dotnet build "$root/tests/$suite" -c Debug -p:OniGameDir="$game" -v q -nologo "-clp:ErrorsOnly;NoSummary"
+        dotnet_build "$root/tests/$suite" -c Debug -p:OniGameDir="$game"
         "$root/out/bin/$suite/debug/$suite" -noColor -result-xml "$reports/$suite.xml" > "$reports/$suite.txt" 2>&1 || failed+=("$suite")
         grep -E '^\s+(\S+ +Total:|\[FAIL\])' "$reports/$suite.txt" | head -40 || true
     done
@@ -63,12 +66,15 @@ status=0
 python3 -I "$root/scripts/e2e.py" --player ours --lanes "${CI_E2E_LANES:-2}" --no-perf-wait --run-id "ci-$list" --list "$root/ci/game-tests/$list.txt" || status=$?
 [ $status -eq 0 ] || failed+=(e2e)
 
-# The verify specs' reports: every check with zero wrong answers.
-for log in "$E2E_OUT"/ci-verify*/ci-"$list"/ours-1/stdout.txt; do
-    [ -f "$log" ] || continue
-    echo "== verify: $(basename "$(dirname "$(dirname "$(dirname "$log")")")")"
-    python3 -I "$root/scripts/qa-tools.py" verify "$log" || failed+=("verify")
-done
+# The verify specs' reports: every check with zero wrong answers, and every check that
+# ci/game-tests/verify/SPEC.txt names reported (silence is not zero wrong).
+while read -r spec _; do
+    case "$spec" in ci-verify*) ;; *) continue ;; esac
+    echo "== verify: $spec"
+    log="$E2E_OUT/$spec/ci-$list/ours-1/stdout.txt"
+    if [ ! -f "$log" ]; then echo "FAIL $spec: no log"; failed+=(verify); continue; fi
+    python3 -I "$root/scripts/qa-tools.py" verify "$log" --expect "$root/ci/game-tests/verify/$spec.txt" || failed+=("verify")
+done < <(grep -vE '^\s*(#|$)' "$root/ci/game-tests/$list.txt")
 
 [ ${#failed[@]} -eq 0 ] || { echo "ci-game-tests $list failed: ${failed[*]}"; exit 1; }
 echo "ci-game-tests $list: all passed"

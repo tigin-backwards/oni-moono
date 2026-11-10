@@ -287,6 +287,16 @@ scripts/ci-game-tests.sh push OUT                 # what the game job runs (QA_U
   `ci/game-tests/nightly.txt`, which holds UI specs that check their own expectations and dumps,
   mod loading with our own test mods, and a ten-minute verify run on a mid-game colony.
 
+The verify runs are headless, with no GL device, so they cover only the verify modes that check
+without drawing: `ONI_TWEAK_VERIFY`'s game tweaks, `ONI_VERIFY_FETCH_BY_CELL`, `_CANVAS_CULL`,
+`_CANVAS_PRODUCTS`, `_COMPONENT_LAYOUTS` and `_RAW_LOADS`. `ci/game-tests/verify/SPEC.txt` lists
+the checks each run must report, and a check that reports nothing fails the run, as a wrong
+answer does: silence is not zero wrong. CI does not cover the modes that need drawing, input or
+a GPU: `ONI_VERIFY_CANVAS_SKIPS`, `_RAYCAST_CACHE`, `_CULL_CACHE`, `_MESH_REUSE`,
+`_TEXEL_COPIES`, `_PARTIAL_UPLOADS`, `_PARALLEL_DRAWS`, `_BINDLESS`, `_PASS_STATES` and
+`_PROPERTY_SHEETS`. Headless, these report nothing or check nothing; run them with
+`scripts/qa.sh verify` on a real display.
+
 Each run is checked against its log-signature budget, `ci/game-tests/budget/BUILD.txt`: a run
 fails on an error or exception the budget lacks. `E2E_NO_SHOTS=1` keeps specs from taking
 screenshots, and no spec compares pixels. OniMcp is built fresh for each run by

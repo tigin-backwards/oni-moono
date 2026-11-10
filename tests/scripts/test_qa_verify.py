@@ -16,15 +16,21 @@ PROBES = (
 )
 
 
-def verify(*lines):
-    """(exit status, printed lines) of `qa-tools.py verify` on a log of these lines."""
+def verify(*lines, expect=None):
+    """(exit status, printed lines) of `qa-tools.py verify` on a log of these lines; EXPECT, the
+    lines of an --expect file."""
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, 'log')
         with open(path, 'w') as f:
             f.write(''.join(line + '\n' for line in lines))
+        options = []
+        if expect is not None:
+            options = ['--expect', os.path.join(d, 'expect')]
+            with open(options[1], 'w') as f:
+                f.write(''.join(line + '\n' for line in expect))
         out = io.StringIO()
         with contextlib.redirect_stdout(out), self_exit() as status:
-            qa_tools.verify(path)
+            qa_tools.verify(path, *options)
         return status[0], out.getvalue().splitlines()
 
 
@@ -38,6 +44,17 @@ def self_exit():
 
 
 class VerifySummary(unittest.TestCase):
+    def test_expected_check_that_reported_nothing_fails(self):
+        result = verify(
+            '[engine] canvas skips: 44376 verified, 0 wrong',
+            expect=['# the checks that must report', 'canvas skips', 'raycast cache  # a comment'],
+        )
+        self.assertVerdicts(result, 1, 'ok   canvas skips', 'FAIL raycast cache: reported nothing')
+
+    def test_every_expected_check_reported(self):
+        result = verify('[engine] canvas skips: 44376 verified, 0 wrong', expect=['canvas skips'])
+        self.assertVerdicts(result, 0, 'ok   canvas skips')
+
     def assertVerdicts(self, result, status, *starts):
         code, lines = result
         self.assertEqual(code, status, lines)

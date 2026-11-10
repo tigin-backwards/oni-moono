@@ -1,0 +1,17 @@
+# The checks ci-verify must report (scripts/ci-game-tests.sh: `qa-tools.py verify --expect`), one
+# check name a line: a check that reports nothing fails the run, as one that reports a wrong
+# answer does. Headless, with no GL device, these are the ones that report; docs/DEVELOPMENT.md,
+# "Game tests in CI", lists the verify modes CI does not cover.
+canvas cull
+canvas products
+component layouts
+fast-anim-cleanup
+fast-overlay-textures
+fast-symbol-overrides
+fetch-by-cell
+instant-reachability
+nav links verify (after the load)
+nav links verify (in play)
+path grids verify
+path-probe-repair
+raw texture loads
