@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -36,70 +35,79 @@ namespace E2eDriver
         }
 
         /// Every report's entries, the days before today and then today, each entry with its
-        /// context entries after it: day, type, context, note storage id, and its notes in the
-        /// order the game reads them (value bits and text): "reports=R entries=E notes=N fnv=HEX".
-        /// `Past`: the same without today's report, which the game writes to as it runs.
+        /// context entries after it: day, depth, type, context, note storage id, and its notes in
+        /// the order the game reads them (value bits and text), hashed as they are read:
+        /// "reports=R entries=E notes=N fnv=HEX". `Past`: the same without today's report, which
+        /// the game writes to as it runs. Typed field reads and a delegate for the notes: the
+        /// original's Mono takes about 100 s over 4 M entries through reflection.
         public static string Read => ReadReports(true);
         public static string Past => ReadReports(false);
 
         static string ReadReports(bool today)
         {
             var manager = ReportManager.Instance ?? throw new DriverError("no ReportManager");
-            var text = new StringBuilder();
-            long entries = 0, notes = 0;
             var days = new List<ReportManager.DailyReport>(manager.reports);
             if (today && manager.TodaysReport != null) days.Add(manager.TodaysReport);
-            var reportEntries = AccessTools.Field(typeof(ReportManager.DailyReport), "reportEntries");
+            var walk = new Walker();
             foreach (var day in days)
-                foreach (var entry in Items(reportEntries.GetValue(day)))
-                    Walk(day.day, (ReportManager.ReportEntry)entry, 0, text, ref entries, ref notes);
-            var bytes = Encoding.UTF8.GetBytes(text.ToString());
-            return "reports=" + days.Count + " entries=" + entries + " notes=" + notes + " fnv=" + Hash(bytes, 0, bytes.Length).ToString("x16");
+                foreach (var entry in day.reportEntries) walk.Entry(day.day, entry, 0);
+            return "reports=" + days.Count + " entries=" + walk.Entries + " notes=" + walk.Notes + " fnv=" + walk.Hash.ToString("x16");
         }
 
-        static readonly FieldInfo contextEntries = AccessTools.Field(typeof(ReportManager.ReportEntry), "contextEntries");
-        static readonly FieldInfo noteStorageId = AccessTools.Field(typeof(ReportManager.ReportEntry), "noteStorageId");
-        static readonly FieldInfo reportType = AccessTools.Field(typeof(ReportManager.ReportEntry), "reportType");
-        static readonly FieldInfo context = AccessTools.Field(typeof(ReportManager.ReportEntry), "context");
-
-        static void Walk(int day, ReportManager.ReportEntry e, int depth, StringBuilder text, ref long entries, ref long notes)
+        sealed class Walker
         {
-            entries++;
-            text.Append(day).Append(' ').Append(depth).Append(' ').Append(reportType.GetValue(e)).Append(' ')
-                .Append(context.GetValue(e)).Append(' ').Append(noteStorageId.GetValue(e)).Append(':');
-            foreach (var note in NotesOf(e))
+            public long Entries, Notes;
+            public ulong Hash = 14695981039346656037UL;
+            readonly List<ReportManager.ReportEntry.Note> notes = new List<ReportManager.ReportEntry.Note>();
+            readonly Action<ReportManager.ReportEntry.Note> add;
+
+            public Walker() => add = notes.Add;
+
+            void Int(int v)
             {
-                notes++;
-                text.Append(' ').Append(BitConverter.ToInt32(BitConverter.GetBytes(note.value), 0).ToString("x8")).Append('=').Append(note.note);
+                for (int b = 0; b < 32; b += 8) Hash = (Hash ^ (byte)(v >> b)) * 1099511628211UL;
             }
-            text.Append('\n');
-            foreach (var child in Items(contextEntries.GetValue(e))) Walk(day, (ReportManager.ReportEntry)child, depth + 1, text, ref entries, ref notes);
-        }
 
-        /// A list's items: a List, or Klei's ArrayRef (contextEntries), which is no IEnumerable.
-        static IEnumerable<object> Items(object list)
-        {
-            if (list is IEnumerable items)
+            void Text(string t)
             {
-                foreach (var item in items) yield return item;
-                yield break;
+                Int(t == null ? -1 : t.Length);
+                if (t != null)
+                    foreach (char c in t) Int(c);
             }
-            var type = list.GetType();
-            int count = (int)type.GetProperty("Count").GetValue(list);
-            var indexer = type.GetProperty("Item");
-            for (int i = 0; i < count; i++) yield return indexer.GetValue(list, new object[] { i });
+
+            public void Entry(int day, ReportManager.ReportEntry e, int depth)
+            {
+                Entries++;
+                Int(day);
+                Int(depth);
+                Int((int)e.reportType);
+                Text(e.context);
+                Int(e.noteStorageId);
+                notes.Clear();
+                if (collectNotes != null) collectNotes(e, notes);
+                else iterateNotes(e, add);
+                Int(notes.Count);
+                foreach (var note in notes)
+                {
+                    Notes++;
+                    Int(BitConverter.ToInt32(BitConverter.GetBytes(note.value), 0));
+                    Text(note.note);
+                }
+                var children = e.contextEntries;
+                for (int i = 0; i < children.Count; i++) Entry(day, children[i], depth + 1);
+            }
         }
 
-        static readonly MethodInfo iterateNotes = typeof(ReportManager.ReportEntry).GetMethod("IterateNotes", Any, null, new[] { typeof(Action<ReportManager.ReportEntry.Note>) }, null);
-        static readonly MethodInfo collectNotes = typeof(ReportManager.ReportEntry).GetMethod("CollectNotes", Any, null, new[] { typeof(List<ReportManager.ReportEntry.Note>) }, null);
+        /// ReportEntry's note reader: U59 IterateNotes(Action<Note>), U60 CollectNotes(List<Note>).
+        static readonly Action<ReportManager.ReportEntry, Action<ReportManager.ReportEntry.Note>> iterateNotes =
+            Open<Action<ReportManager.ReportEntry, Action<ReportManager.ReportEntry.Note>>>("IterateNotes", typeof(Action<ReportManager.ReportEntry.Note>));
+        static readonly Action<ReportManager.ReportEntry, List<ReportManager.ReportEntry.Note>> collectNotes =
+            Open<Action<ReportManager.ReportEntry, List<ReportManager.ReportEntry.Note>>>("CollectNotes", typeof(List<ReportManager.ReportEntry.Note>));
 
-        /// An entry's notes as the reports screen reads them.
-        static List<ReportManager.ReportEntry.Note> NotesOf(ReportManager.ReportEntry e)
+        static T Open<T>(string name, Type parameter) where T : Delegate
         {
-            var list = new List<ReportManager.ReportEntry.Note>();
-            if (collectNotes != null) collectNotes.Invoke(e, new object[] { list });
-            else iterateNotes.Invoke(e, new object[] { new Action<ReportManager.ReportEntry.Note>(list.Add) });
-            return list;
+            var m = typeof(ReportManager.ReportEntry).GetMethod(name, Any, null, new[] { parameter }, null);
+            return m == null ? null : (T)Delegate.CreateDelegate(typeof(T), m);
         }
 
         /// The minus of a number that rounds to zero ("-0", "-0.0%"): ours keeps it, Mono's
