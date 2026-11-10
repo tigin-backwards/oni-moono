@@ -160,7 +160,16 @@ namespace OniMoono.Desktop.Gl
             u.Memory = null;
             u.Pooled = false;
             u.Copying = null;
-            if (!t.Readable) u.Memory = t.TakeTexels();
+            if (t.Placeholder)
+            {
+                // A stripped copy's texture (NoContent): 1×1 grey texels, each slice, instead of
+                // its declared size; shaders sample it by normalized coordinates all the same.
+                u.Format = TextureFormat.RGBA32;
+                u.Width = u.Height = 1;
+                u.MipCount = 1;
+                u.Memory = new PixelMemory(4L * Math.Max(1, t.Depth), 0x80);
+            }
+            else if (!t.Readable) u.Memory = t.TakeTexels();
             else if (t.Texels is { } m)
             {
                 u.Memory = UploadBuffers.Rent(m.Size);

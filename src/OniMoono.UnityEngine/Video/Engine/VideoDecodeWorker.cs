@@ -14,6 +14,18 @@ namespace OniMoono.Engine.Video
         public bool HasAudio;
 
         public int FrameCount => Frames.Length;
+        /// Black frames standing in for a movie a stripped copy dropped (NoContent).
+        public bool IsBlank;
+
+        /// `frameCount` black frames at `frameRate`, 16×16 (a VideoClip's own length, for the
+        /// clip a stripped copy of the game has no movie for).
+        public static VideoStream Blank(ulong frameCount, double frameRate)
+        {
+            double rate = frameRate > 0 ? frameRate : 30;
+            var frames = new WebmFrame[(int)Math.Clamp(frameCount, 1UL, 1UL << 20)];
+            for (int i = 0; i < frames.Length; i++) frames[i] = new WebmFrame(0, 0, (long)Math.Round(i * 1e9 / rate), true);
+            return new VideoStream { Data = [], Frames = frames, Width = 16, Height = 16, IsBlank = true };
+        }
 
         /// Presentation time of a frame in seconds (its container timestamp).
         public double TimeOf(int index) => Frames[index].TimestampNs * 1e-9;
@@ -200,7 +212,7 @@ namespace OniMoono.Engine.Video
                 var s = load();
                 Volatile.Write(ref stream, s);
                 int frameBytes = s.Width * s.Height * 4;
-                decoder = new Vp8.Vp8Decoder();
+                if (!s.IsBlank) decoder = new Vp8.Vp8Decoder();
                 int decodedUpTo = -1; // the last frame fed to the decoder
                 int myGeneration = -1, next = 0, wrap = 0;
                 while (true)
@@ -235,12 +247,12 @@ namespace OniMoono.Engine.Video
                     while (decodedUpTo < next - 1 && !StaleOrDisposed(myGeneration))
                     {
                         decodedUpTo++;
-                        decoder.Decode(FrameBytes(s, decodedUpTo));
+                        decoder?.Decode(FrameBytes(s, decodedUpTo));
                     }
                     if (StaleOrDisposed(myGeneration)) continue;
 
                     int index = next++;
-                    bool shown = decoder.Decode(FrameBytes(s, index));
+                    bool shown = decoder == null || decoder.Decode(FrameBytes(s, index));
                     decodedUpTo = index;
                     if (!shown) continue; // a frame with nothing to show
 
@@ -271,9 +283,15 @@ namespace OniMoono.Engine.Video
                         }
                     }
 
-                    if (decoder.Width != s.Width || decoder.Height != s.Height)
+                    if (decoder == null)
+                    {
+                        // Opaque black.
+                        for (int i = 0; i < buffer.Length; i += 4) buffer[i] = buffer[i + 1] = buffer[i + 2] = 0;
+                        for (int i = 3; i < buffer.Length; i += 4) buffer[i] = 255;
+                    }
+                    else if (decoder.Width != s.Width || decoder.Height != s.Height)
                         throw new InvalidOperationException($"A decoded frame is {decoder.Width}x{decoder.Height}; the stream declares {s.Width}x{s.Height}.");
-                    fixed (byte* dst = buffer)
+                    else fixed (byte* dst = buffer)
                         VideoFrameConverter.I420ToRgba32(decoder.PlaneY, decoder.StrideY, decoder.PlaneU, decoder.StrideU, decoder.PlaneV, decoder.StrideV,
                             s.Width, s.Height, dst);
 
