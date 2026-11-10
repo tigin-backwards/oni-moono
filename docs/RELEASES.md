@@ -96,6 +96,42 @@ assemblies. In a run without the game, a test that misses them still skips: a fa
 missing file under the game folder, or on loading a reference assembly, is reported as one of
 those skips (`NoGameSkips`, `ONI_TESTS_NO_GAME=1` only). Any other failure fails the build.
 
+## Writing the release notes
+
+The workflow's draft holds only the U60 opener (on a U60 build), the build line and the install
+paragraph. The notes themselves are written into the draft before it is published.
+
+**Checklist**
+1. List the issues the release fixes and their reporters:
+   `gh issue list --label "fixed in next release" --json number,title,author --jq '.[]|"#\(.number) @\(.author.login) \(.title)"'`.
+   Check each against `git log PREVIOUS_TAG..` (fix commits name their issue in the body).
+2. List the changes since the previous release: `git log --oneline PREVIOUS_TAG..`. Skip what
+   players don't see (CI, tests, docs, lint, internal tooling).
+3. Write the notes into both drafts (master and u60). They are the same unless a change is
+   branch-only (a U59 backport, a U60-only fix, Vulkan).
+4. Publish master as Latest, then the U60 build as a pre-release, and verify one asset with
+   `gh release verify-asset`.
+
+**Structure**
+- master opens with: "For the normal game (U59). Playing the U60 public test (Steam beta
+  `public_testing`)? Use [the latest U60 build](…) instead." The U60 opener comes from the workflow.
+- Then up to three sections, in this order, each left out when empty: **New**, **Faster**,
+  **Fixes**.
+- Then the workflow's build line and install paragraph, unchanged.
+
+**Lines**
+- One bullet per change, in plain, concise prose: what the player notices, not how it was done.
+  A Moono Tweaks option is named in bold with its default, e.g. "(Moono Tweaks, on by default)".
+- A line that fixes or answers an issue ends with "Reported in #N by @reporter." The @mention is
+  intended: it tells the reporter.
+- Speed and memory: give memory and load-time figures where there are some (e.g. "about 0.6 to
+  1 GB less memory"), never fps numbers or tables.
+- Describe test saves by kind ("a late-game colony", "a 200-Duplicant colony"), never by our
+  names for them.
+- Say "as in the original" where a fix matches the original game's behaviour.
+
+Releases are immutable, but their notes can still be edited after publishing.
+
 ## Verifying a release
 
 Each archive, each manifest and every file in the archives has SLSA provenance signed by
