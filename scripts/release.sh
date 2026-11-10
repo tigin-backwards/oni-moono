@@ -77,17 +77,22 @@ with zipfile.ZipFile(sys.argv[1], 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as
 " "$out/oni-moono-$version-windows-x64.zip")
 fi
 
-# Linux: OniMoono with the Restarter script.
+# Linux: OniMoono with the Restarter script, and the launcher.
 if [[ " $platforms " == *" linux "* ]]; then
 build "$root/src/OniMoono.Host" linux-x64
 lin="$out/linux/oni-moono"
 stage "$lin" setup.sh
+# The launcher to double-click (docs/INSTALL-MODES.md, Linux launcher), and the icon of
+# setup's menu entry.
+cp "$root/oni-moono.desktop" "$lin/"
 cp -r "$root/out/bin/OniMoono.Host/release_linux-x64/." "$lin/player/"
+cp "$root/src/OniMoono.Desktop/Moo.png" "$lin/player/"
 rm -f "$lin/player/"FacadeGen*
-chmod +x "$lin/setup.sh" "$lin/player/OniMoono" "$lin/player/Restarter"
+chmod +x "$lin/setup.sh" "$lin/oni-moono.desktop" "$lin/player/OniMoono" "$lin/player/Restarter"
 # The Moono Tweaks screen's translations (translations/*.po from the build).
 [ -f "$lin/player/translations/zh.po" ] || { echo "$lin/player/translations/zh.po missing"; exit 1; }
 manifest "$lin" "$out/oni-moono-$version-linux-x64.SHA256SUMS"
 tar -C "$out/linux" -czf "$out/oni-moono-$version-linux-x64.tar.gz" oni-moono
+$py -I "$root/scripts/check-linux-archive.py" "$out/oni-moono-$version-linux-x64.tar.gz"
 fi
 ls -la "$out"/oni-moono-*

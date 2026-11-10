@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Oxygen Not Included (Moono)
+Comment=Oxygen Not Included on Moono
+# Runs player/OniMoono beside this file (%k: this file's path), so the folder can be anywhere;
+# from a clone of the repository, out/player (setup.sh builds it). docs/INSTALL-MODES.md,
+# Linux launcher.
+Exec=sh -c "d=\\$(dirname \\"\\$1\\"); [ -x \\"\\$d/player/OniMoono\\" ] || d=\\$d/out; exec \\"\\$d/player/OniMoono\\"" oni-moono %k
+Icon=oni-moono
+Terminal=false
+Categories=Game;
+StartupWMClass=OxygenNotIncluded

@@ -5,7 +5,7 @@ How Moono starts and where it is installed. Three ways exist side by side:
 | Mode | Started by | Player folder | Updates |
 |---|---|---|---|
 | Launch options | Steam: `"…\OniMoono.exe" -- %command%` | where setup installed it (`%LOCALAPPDATA%\oni-moono\player`, or `player/` of a release on Linux) | run a newer release's setup |
-| Standalone | `OniMoono.exe` itself (Explorer, a shortcut, a terminal) | the same, or a versioned install | as the folder it runs from |
+| Standalone | `OniMoono.exe` itself (Explorer, a shortcut, a terminal; Linux: the launcher `oni-moono.desktop`) | the same, or a versioned install | as the folder it runs from |
 | Versioned install | its entry point, `…\oni-moono\versioned\OniMoono.exe` (Steam's launch options, its shortcut) | `versioned\player\<version>\` | from its source folder (a Workshop item) at each start |
 
 The launch-options route is unchanged by the other two: with `-- %command%` Moono takes the game
@@ -20,7 +20,8 @@ Started without Steam's `-- %command%` and without `--game` (`src/OniMoono.Host/
    `~/.local/share/Steam`, the snap's and the Flatpak's, the places setup uses), each one's
    `steamapps/libraryfolders.vdf`, then app 457140's `appmanifest_457140.acf` in a library
    (`installdir`), or the library's `steamapps/common/OxygenNotIncluded`. With several installs
-   the player is asked once (a message box per install on Windows, the terminal on Linux), and
+   the player is asked once (a message box per install on Windows; on Linux the terminal, or
+   without one a desktop dialog, see [Linux launcher](#linux-launcher)), and
    the choice is kept in `oni-moono/launch.json` beside the other Moono data
    (`%LOCALAPPDATA%` or `~/.local/share`).
 2. **An install Steam hasn't finished**, with an update pending or not fully installed
@@ -106,6 +107,37 @@ Start menu's Programs and on the desktop, or `oni-moono.desktop` in `~/.local/sh
 **Tests** of the native host set `ONI_HOST_NO_DIALOG=1`: a failure to start then shows no
 message box and touches no Player.log; its line goes to stderr, and to `ONI_HOST_MESSAGES`' file
 when set. Without a redirected stderr, a failure is a message box on the desktop.
+
+## Linux launcher
+
+The Linux archive has `oni-moono.desktop` beside `setup.sh`: double-clicked in a file manager,
+it starts `player/OniMoono` as a standalone launch, as double-clicking `OniMoono.exe` does on
+Windows. A desktop entry's `Exec` can't be relative, so it runs
+`sh -c '… exec "$(dirname "$1")/player/OniMoono"' oni-moono %k`: `%k` is the entry's own path,
+which GNOME's (GLib's) and KDE's launchers, the Steam Deck's desktop mode included, fill in. From
+a clone of the repository it runs `out/player/OniMoono`, which setup builds. The archive keeps it
+executable (`scripts/check-linux-archive.py` checks the archive in `scripts/release.sh`).
+
+- **Untrusted launchers.** A file manager may ask once before it runs a launcher it didn't
+  install: Dolphin (KDE, Steam Deck) asks to execute it; on GNOME, right-click it and choose
+  *Allow Launching* where offered. GNOME Files may open it as text instead; the menu entry below
+  works there.
+- **The applications menu.** `./setup.sh` asks on a terminal whether to add Moono to it:
+  `~/.local/share/applications/oni-moono-player.desktop` (`XDG_DATA_HOME`), with the absolute path
+  of the player setup installed and the icon in `~/.local/share/icons/hicolor/96x96/apps/`. A
+  later setup keeps an entry it made up to date. `--menu` adds it without asking, `--no-menu`
+  doesn't ask, `--remove-menu` removes both files. Its name is apart from the versioned
+  install's `oni-moono.desktop`.
+- **Messages.** Started without a terminal, Moono would say why it can't start only on stderr,
+  where nobody sees it. So `StandaloneLaunch.Tell` also shows it in a dialog when stderr isn't a
+  terminal: the first of `zenity`, `kdialog` and `notify-send` that runs (an exit code of 0, or
+  1 for a dialog closed; anything else tries the next), else stderr alone
+  (`src/OniMoono.Host/Launch/DesktopDialog.cs`). With several installs of the game and no
+  terminal to ask on, the choice is a zenity list or a kdialog menu (cancelled: none chosen,
+  Moono says so); with neither, the first install.
+- **No dialogs** in test runs (`ONI_MOONO_STEAM_ROOTS` set), with `ONI_HOST_NO_DIALOG=1` (as the
+  Windows host reads it; on Windows it now also keeps the player's own message boxes away, and
+  e2e runs set it), or without `DISPLAY` and `WAYLAND_DISPLAY`.
 
 ## Workshop item
 

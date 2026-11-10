@@ -172,7 +172,7 @@ jobs:
 
           Install or update: download the archive for your system and extract it.
           - Windows: double-click \`oni-moono\\player\\OniMoono.exe\` to play, or run \`setup.cmd\` once to start Moono from Steam's Play button instead.
-          - Linux: run \`./setup.sh\` in the \`oni-moono\` folder.
+          - Linux: double-click \`oni-moono/oni-moono.desktop\` to play (your file manager may ask to allow launching it once), or run \`./setup.sh\` once to start Moono from Steam's Play button instead.
 
           If you already set it up, running the new setup is enough.
           EOF
