@@ -68,6 +68,9 @@ namespace OniMoono.Desktop.Gl
         public float[][] Sent;
         /// The bindless handle each sampler was last given (GlBindless).
         public ulong[] SamplerHandles;
+        /// The draw buffers the fragment stage writes, one bit per output location (all when
+        /// its source declares none by location); GlStateCache.Outputs masks the others.
+        public uint Outputs = ~0u;
     }
 
     /// What a material and the global properties give one program: its default-block values
@@ -184,6 +187,19 @@ namespace OniMoono.Desktop.Gl
             return true;
         }
 
+        static readonly System.Text.RegularExpressions.Regex outputLocation =
+            new(@"layout\s*\(\s*location\s*=\s*(\d+)\s*\)\s*out\s", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// The output locations a fragment source declares, one bit each; all of them when it
+        /// declares none by location (gl_FragData, or an output without a layout).
+        internal static uint OutputLocations(string fragmentSource)
+        {
+            uint mask = 0;
+            foreach (System.Text.RegularExpressions.Match m in outputLocation.Matches(fragmentSource ?? ""))
+                if (int.TryParse(m.Groups[1].Value, out int location) && location < 32) mask |= 1u << location;
+            return mask == 0 ? ~0u : mask;
+        }
+
         static DeviceProgram Build(ShaderNative shader, ShaderVariant variant)
         {
             var program = new DeviceProgram();
@@ -192,6 +208,7 @@ namespace OniMoono.Desktop.Gl
             var vertexSource = direct3D ? Direct3DClip.Vertex(variant.VertexSource) : variant.VertexSource;
             uint vs = GlApi.CompileShader(VertexShader, Prepare(vertexSource), out var vlog);
             uint fs = GlApi.CompileShader(FragmentShader, Prepare(variant.FragmentSource), out var flog);
+            program.Outputs = OutputLocations(variant.FragmentSource);
             uint gs = 0;
             string glog = "";
             if (variant.GeometrySource != null) gs = GlApi.CompileShader(GeometryShader, Prepare(variant.GeometrySource), out glog);

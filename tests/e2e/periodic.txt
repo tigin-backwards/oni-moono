@@ -40,6 +40,7 @@ issue-41-fast-track                 # 85+51
 issue-45-space-tree-branch          # 81+50: a load crash
 issue-54-debug-element-filter       # 95+59: sandbox-search covers the same fields
 issue-69-care-package-load          # -: a save with an unopened care package loads (#69)
+issue-71-space-overlay              # gas under the temperature overlay in space cells (#71)
 stray-plugin-folder                 # 66+43: a Steam leftover Plugins folder (#49)
 
 # One-off verification

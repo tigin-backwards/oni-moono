@@ -600,6 +600,7 @@ namespace OniMoono.Desktop.Gl
         {
             BindTarget();
             GlStateCache.Apply(recorded.State);
+            GlStateCache.Outputs(recorded.Program.Outputs, target.Colors?.Length ?? 1);
             Bind(recorded);
             if (sm.Count == 0) return;
             var program = recorded.Program;
@@ -863,6 +864,7 @@ namespace OniMoono.Desktop.Gl
             BindTarget();
             if (target.Colors == null) presenter.Drew(clear: false);
             GlStateCache.Apply(recorded.State);
+            GlStateCache.Outputs(recorded.Program.Outputs, target.Colors?.Length ?? 1);
             Bind(recorded);
             GlBindings.BindVertexArray(immediateVertexArray);
             GlBindings.BindBuffer(ArrayBuffer, immediateBuffer);

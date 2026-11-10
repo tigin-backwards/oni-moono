@@ -244,6 +244,28 @@ namespace OniMoono.Desktop.Gl
 
         public static void Invalidate() => valid = false;
 
+        /// Draw buffers whose writes are masked off now (glColorMaski), one bit each.
+        static uint maskedOff;
+
+        /// Masks writes to the draw buffers of a multiple-target framebuffer that the program
+        /// has no output for: GL leaves their values undefined, and some drivers write there.
+        /// Klei/Stars writes only target 0 while the temperature overlay's buffer _MRT2 is
+        /// bound, and the original keeps _MRT2 there (#71). Call after Apply.
+        public static void Outputs(uint written, int targets)
+        {
+            uint all = targets >= 32 ? ~0u : (1u << targets) - 1;
+            uint off = targets > 1 ? ~written & all : 0;
+            uint change = off | maskedOff;
+            if (off == maskedOff) return;
+            for (int i = 0; i < 32 && change >> i != 0; i++)
+            {
+                if ((change & (1u << i)) == 0) continue;
+                int m = (off & (1u << i)) != 0 ? 0 : current.Mask;
+                N.glColorMaski((uint)i, (m & 8) != 0, (m & 4) != 0, (m & 2) != 0, (m & 1) != 0);
+            }
+            maskedOff = off;
+        }
+
         public static void Apply(in ResolvedState r)
         {
             if (valid && r.Equals(current)) return;
@@ -259,6 +281,7 @@ namespace OniMoono.Desktop.Gl
                 N.glBlendEquationSeparate(Equation(r.Op), Equation(r.OpA));
             }
             N.glColorMask((r.Mask & 8) != 0, (r.Mask & 4) != 0, (r.Mask & 2) != 0, (r.Mask & 1) != 0);
+            maskedOff = 0;
 
             // CompareFunction.Disabled turns the depth test off.
             GlApi.Enable(DepthTest, r.ZTest != 0);
