@@ -225,6 +225,98 @@ namespace OniMoono.Tests
             Assert.Equal("1.0", OniMoono.Host.Options.Parse(["--use-version", "1.0"])!.UseVersion);
         }
 
+        /// A DesktopDialog whose programs are made up: `installed` maps a tool to its exit code
+        /// and output; the others can't be started. `ran` records each attempt.
+        DesktopDialog Dialog(Dictionary<string, (int, string)> installed, List<string> ran, bool errorTerminal = false, bool inputTerminal = false)
+        {
+            env["DISPLAY"] = ":99";
+            return new DesktopDialog
+            {
+                Env = name => env.TryGetValue(name, out var v) ? v : null,
+                Run = (tool, args) =>
+                {
+                    ran.Add(tool + " " + string.Join(" ", args));
+                    return installed.TryGetValue(tool, out var r) ? r : null;
+                },
+                ErrorIsTerminal = errorTerminal,
+                InputIsTerminal = inputTerminal,
+            };
+        }
+
+        [Fact]
+        public void DialogsTryZenityThenKdialogThenNotifySend()
+        {
+            var ran = new List<string>();
+            Assert.Equal("zenity", Dialog(new() { ["zenity"] = (0, ""), ["kdialog"] = (0, "") }, ran).Tell("a <b> & c", error: true, test: false));
+            Assert.Equal(["zenity --error --title=Moono --text=a &lt;b&gt; &amp; c --width=420"], ran);
+
+            ran.Clear();
+            Assert.Equal("kdialog", Dialog(new() { ["kdialog"] = (0, "") }, ran).Tell("hi", error: false, test: false));
+            Assert.Equal(["zenity --info --title=Moono --text=hi --width=420", "kdialog --title Moono --msgbox hi"], ran);
+
+            // zenity that fails (255: no GTK) and no kdialog: a notification.
+            ran.Clear();
+            Assert.Equal("notify-send", Dialog(new() { ["zenity"] = (255, ""), ["notify-send"] = (0, "") }, ran).Tell("x", error: true, test: false));
+            Assert.Equal(3, ran.Count);
+            Assert.StartsWith("notify-send --app-name=Moono --urgency=critical --icon=dialog-error Moono x", ran[2]);
+
+            // Closed with Escape is still seen; notify-send's 1 (no notification server) isn't.
+            ran.Clear();
+            Assert.Equal("zenity", Dialog(new() { ["zenity"] = (1, "") }, ran).Tell("x", error: true, test: false));
+            ran.Clear();
+            Assert.Null(Dialog(new() { ["notify-send"] = (1, "") }, ran).Tell("x", error: true, test: false));
+            Assert.Equal(3, ran.Count);
+        }
+
+        [Fact]
+        public void DialogsOnlyWithoutATerminalOutsideTests()
+        {
+            var tools = new Dictionary<string, (int, string)> { ["zenity"] = (0, "") };
+            var ran = new List<string>();
+            Assert.Null(Dialog(tools, ran, errorTerminal: true).Tell("x", error: true, test: false));
+            Assert.Null(Dialog(tools, ran).Tell("x", error: true, test: true));
+            env[DesktopDialog.NoDialogVariable] = "1";
+            Assert.Null(Dialog(tools, ran).Tell("x", error: true, test: false));
+            env.Remove(DesktopDialog.NoDialogVariable);
+            var noDisplay = Dialog(tools, ran);
+            env.Remove("DISPLAY");
+            Assert.Null(noDisplay.Tell("x", error: true, test: false));
+            env["WAYLAND_DISPLAY"] = "wayland-0";
+            Assert.Equal("zenity", noDisplay.Tell("x", error: true, test: false));
+            Assert.Single(ran);
+        }
+
+        [Fact]
+        public void ChooserAsksThroughADialogWithoutATerminal()
+        {
+            var installs = new List<SteamLibrary.GameInstall>
+            {
+                new("/a/OxygenNotIncluded", "/a", new("/a", SteamLibrary.Sandbox.None), null),
+                new("/b/OxygenNotIncluded", "/b", new("/b", SteamLibrary.Sandbox.None), null),
+            };
+            var ran = new List<string>();
+            // zenity prints the hidden index column of the row chosen.
+            Assert.Equal(1, StandaloneLaunch.Choose(installs, Machine(), false, Dialog(new() { ["zenity"] = (0, "1\n") }, ran)));
+            Assert.Contains("--hide-column=1 --print-column=1 --width=640 --height=320 0 /a/OxygenNotIncluded 1 /b/OxygenNotIncluded", ran[0]);
+            // Cancelled: none chosen.
+            Assert.Null(StandaloneLaunch.Choose(installs, Machine(), false, Dialog(new() { ["zenity"] = (1, "") }, ran)));
+            // kdialog's menu prints the tag.
+            ran.Clear();
+            Assert.Equal(0, StandaloneLaunch.Choose(installs, Machine(), false, Dialog(new() { ["kdialog"] = (0, "0\n") }, ran)));
+            Assert.Equal(2, ran.Count);
+            Assert.StartsWith("kdialog --title Moono --menu ", ran[1]);
+            // No chooser at all, or dialogs off: the first install.
+            Assert.Equal(0, StandaloneLaunch.Choose(installs, Machine(), false, Dialog(new(), ran)));
+            env[DesktopDialog.NoDialogVariable] = "1";
+            ran.Clear();
+            Assert.Equal(0, StandaloneLaunch.Choose(installs, Machine(), false, Dialog(new() { ["zenity"] = (0, "1") }, ran)));
+            Assert.Empty(ran);
+            // A test run never asks.
+            env.Remove(DesktopDialog.NoDialogVariable);
+            Assert.Null(StandaloneLaunch.Choose(installs, Machine(), true, Dialog(new() { ["zenity"] = (0, "1") }, ran)));
+            Assert.Empty(ran);
+        }
+
         static string RepoRoot([CallerFilePath] string here = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", ".."));
     }
 }
