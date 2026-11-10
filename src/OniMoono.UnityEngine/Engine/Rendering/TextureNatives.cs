@@ -135,6 +135,9 @@ namespace OniMoono.Engine.Rendering
             return new TexelSource(texture.Get<byte[]>("image data"), null, 0, 0);
         }
 
+        /// A payload a stripped copy dropped (NoContent): a stream path with no bytes.
+        public bool Missing => StreamPath != null && Size == 0;
+
         public byte[] Read()
         {
             long start = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -168,6 +171,10 @@ namespace OniMoono.Engine.Rendering
         TexelSource? source;
 
         public override bool IsReadable => Readable;
+
+        /// The texels are missing from a stripped copy (NoContent): the device draws a placeholder
+        /// and a CPU read sees zeros of the declared size.
+        public bool Placeholder { get; private set; }
 
         /// The device's snapshot of the texels still being copied (TexelCopies), finished before
         /// anything reads, writes or replaces them.
@@ -223,7 +230,8 @@ namespace OniMoono.Engine.Rendering
                 AwaitCopy();
                 if (memory == null && source is { } s)
                 {
-                    memory = GraphicsDevice.Pipelined ? s.ReadMemory() : new PixelMemory(s.Read());
+                    memory = s.Missing ? new PixelMemory(this is Texture3DNative ? SliceSize : SliceSize * Depth, 0) : GraphicsDevice.Pipelined ? s.ReadMemory() : new PixelMemory(s.Read());
+                    Placeholder = false;
                     source = null;
                     texelsChanged = true;
                 }
@@ -242,6 +250,7 @@ namespace OniMoono.Engine.Rendering
             var taken = (memory, source);
             memory = null;
             source = null;
+            Placeholder = false;
             texelsChanged = true;
             return taken;
         }
@@ -254,10 +263,12 @@ namespace OniMoono.Engine.Rendering
         /// its first draw.
         protected void SetSource(TexelSource s)
         {
+            if (s.Missing && !NoContent.Enabled) throw NoContent.Missing($"{GetType().Name.Replace("Native", "")} {Name}", s.StreamPath);
             AwaitCopy();
             memory?.Free();
             memory = null;
             source = s;
+            Placeholder = s.Missing;
             texelsChanged = true;
             GraphicsDevice.QueueUpload(this);
         }
@@ -269,6 +280,7 @@ namespace OniMoono.Engine.Rendering
             memory?.Free();
             source = null;
             memory = new PixelMemory(size, fill);
+            Placeholder = false;
             texelsChanged = true;
         }
 
@@ -280,6 +292,7 @@ namespace OniMoono.Engine.Rendering
             memory?.Free();
             source = null;
             memory = texels;
+            Placeholder = false;
             texelsChanged = true;
         }
 
@@ -291,6 +304,7 @@ namespace OniMoono.Engine.Rendering
             memory?.Free();
             memory = null;
             source = null;
+            Placeholder = false;
             texelsChanged = true;
         }
 

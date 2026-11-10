@@ -54,6 +54,7 @@ namespace OniMoono.Host
             OniMoono.Engine.Rendering.FrameRenderer.Install();
             OniMoono.Engine.UI.CanvasSystem.Install();
             OniMoono.Engine.IMGUI.GUIManager.Install();
+            if (OniMoono.Engine.Assets.NoContent.Enabled) EngineLog.Engine("no-content mode (ONI_NO_CONTENT=1): textures a stripped copy of the game dropped draw as placeholders, its videos play blank");
             EngineLog.Engine($"Project: {EngineConfig.CompanyName} / {EngineConfig.ProductName} {EngineConfig.Version} (Unity {EngineConfig.UnityVersion})");
 
             patches();

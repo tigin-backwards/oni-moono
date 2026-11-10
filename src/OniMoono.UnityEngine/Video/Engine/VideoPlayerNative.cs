@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using OniMoono.Assets.TypeTrees;
+using OniMoono.Engine.Assets;
 using OniMoono.Engine.Rendering;
 using OniMoono.Engine.Serialization;
 using UnityEngine;
@@ -330,7 +331,7 @@ namespace OniMoono.Engine.Video
             }
             if (clipData.AudioChannelCounts.Length > 0 && AudioOutputMode != VideoAudioOutputMode.None)
                 Debug.LogError($"VideoClip {clipData.Name} has audio tracks; video audio playback is not supported, the video plays without sound.", Managed);
-            worker = new VideoDecodeWorker(() => VideoStream.FromWebm(clipData.ReadMovie()), clipData.Name, Looping);
+            worker = new VideoDecodeWorker(() => clipData.MovieMissing && NoContent.Enabled ? VideoStream.Blank(clipData.FrameCount, clipData.FrameRate) : VideoStream.FromWebm(clipData.ReadMovie()), clipData.Name, Looping);
             phase = Phase.Preparing;
             loop = baseLoop = 0;
             presentedIndex = -1;

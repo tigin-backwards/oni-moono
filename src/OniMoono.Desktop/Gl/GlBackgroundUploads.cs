@@ -93,7 +93,8 @@ namespace OniMoono.Desktop.Gl
         public static bool Queue(TextureNative t)
         {
             if (!Enabled || worker == null || t is not TexelTextureNative tt || tt.Readable || tt is not (Texture2DNative or Texture2DArrayNative)) return false;
-            if (tt.Width <= 0 || tt.Height <= 0 || tt.Depth <= 0 || !tt.HasTexels) return false;
+            // A placeholder (NoContent) is 4 bytes: TexelUpload.Take makes it on the GL thread.
+            if (tt.Width <= 0 || tt.Height <= 0 || tt.Depth <= 0 || !tt.HasTexels || tt.Placeholder) return false;
             if (t.Gpu is not DeviceTexture g)
             {
                 g = new DeviceTexture();

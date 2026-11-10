@@ -52,9 +52,13 @@ namespace OniMoono.Engine.Video
         /// length = frameCount / frameRate, as Unity's VideoClip reports it.
         public double Length => FrameRate > 0 ? FrameCount / FrameRate : 0;
 
+        /// The movie was dropped from a stripped copy of the game (NoContent).
+        public bool MovieMissing => ResourcePath.Length > 0 && ResourceSize == 0;
+
         /// The movie file's bytes.
         public byte[] ReadMovie()
         {
+            if (MovieMissing && !NoContent.Enabled) throw NoContent.Missing($"VideoClip {Name}", ResourcePath);
             if (ResourcePath.Length == 0 || ResourceSize <= 0) throw new InvalidOperationException($"VideoClip {Name} has no movie data.");
             return AssetSystem.ReadStream(ResourcePath, ResourceOffset, ResourceSize);
         }
