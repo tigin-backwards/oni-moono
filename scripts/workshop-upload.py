@@ -6,6 +6,8 @@ docs/WORKSHOP-UPLOAD.md).
     workshop-upload.py vdf --item ID|new --description FILE [--content DIR] [--preview FILE]
                            [--changenote FILE] [--visibility keep|...] [--title T] OUT
     workshop-upload.py login VDF OUT                   steamcmd's login script, from the environment
+                                                       (a Steam Guard code if STEAM_SHARED_SECRET is set,
+                                                       else the sign-in is confirmed on the phone)
 
 steamcmd reads the VDF raw: it does not unescape backslashes and has no escape for a double
 quote, so every value is written exactly as given, and a value with a double quote is refused.
@@ -202,7 +204,10 @@ def login_script(user, password, code, vdf_path):
         fail("STEAM_PASSWORD has a character steamcmd's script would split or cut at (docs/WORKSHOP-UPLOAD.md)")
     if not os.path.isabs(vdf_path) or re.search(r"[\s;\"]|//", vdf_path):
         fail(f"the VDF path must be absolute, without spaces, ';', '//' or quotes: {vdf_path!r}")
-    return f"@ShutdownOnFailedCommand 1\n@NoPromptForPassword 1\nset_steam_guard_code {code}\nlogin {user} {password}\nworkshop_build_item {vdf_path}\nquit\n"
+    # With a code, steamcmd must not prompt for anything. Without one, Steam asks the account's
+    # phone to confirm the sign-in and steamcmd waits for that (its stdin is /dev/null).
+    guard = f"@NoPromptForPassword 1\nset_steam_guard_code {code}\n" if code else ""
+    return f"@ShutdownOnFailedCommand 1\n{guard}login {user} {password}\nworkshop_build_item {vdf_path}\nquit\n"
 
 
 def read(path):
@@ -251,17 +256,20 @@ def main():
         write(args.out, text)
     else:
         env = os.environ
-        missing = [n for n in ("STEAM_USERNAME", "STEAM_PASSWORD", "STEAM_SHARED_SECRET") if not env.get(n)]
+        missing = [n for n in ("STEAM_USERNAME", "STEAM_PASSWORD") if not env.get(n)]
         if missing:
             fail(f"{', '.join(missing)} not set (the steam-workshop environment's secrets)")
-        # A code from the last seconds of its 30 s step may be stale by the time Steam checks it.
-        if time.time() % 30 > 25:
-            time.sleep(30 - time.time() % 30 + 1)
-        try:
-            code = totp(env["STEAM_SHARED_SECRET"].strip())
-        except ValueError:
-            fail("STEAM_SHARED_SECRET is not the base64 shared_secret")
-        print(f"::add-mask::{code}", flush=True)
+        code = None
+        # With the authenticator's shared_secret, a Steam Guard code; without it, the phone confirms.
+        if env.get("STEAM_SHARED_SECRET", "").strip():
+            # A code from the last seconds of its 30 s step may be stale by the time Steam checks it.
+            if time.time() % 30 > 25:
+                time.sleep(30 - time.time() % 30 + 1)
+            try:
+                code = totp(env["STEAM_SHARED_SECRET"].strip())
+            except ValueError:
+                fail("STEAM_SHARED_SECRET is not the base64 shared_secret")
+            print(f"::add-mask::{code}", flush=True)
         write(args.out, login_script(env["STEAM_USERNAME"].strip(), env["STEAM_PASSWORD"], code, os.path.abspath(args.vdf)), 0o600)
         print(f"{args.out}: steamcmd's login script")
 

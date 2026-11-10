@@ -1,17 +1,16 @@
 # Uploading the Workshop item from GitHub Actions
 
 `.github/workflows/workshop-upload.yml` uploads the item a `workshop.yml` run built to the Steam
-Workshop. It logs in as a separate **upload account**, never your main Steam account, and only
-after you approve the run in GitHub. A compromised workflow can reach the upload account and the
-item, nothing else of yours.
+Workshop. Each upload needs two approvals from you: the run in GitHub, then the Steam sign-in on
+your phone. The workflow stores the account's name and password, never a Steam Guard secret.
 
 ## What a run does
 
 Run it by hand from `master` or `u60` with the number of a successful `workshop.yml` run:
 
 ```sh
-gh workflow run workshop-upload.yml -r master -f run=RUN_ID                 # dry run: no Steam login
-gh workflow run workshop-upload.yml -r master -f run=RUN_ID -f mode=upload  # waits for your approval
+gh workflow run workshop-upload.yml -r master -f run=RUN_ID                 # dry run: no Steam sign-in
+gh workflow run workshop-upload.yml -r master -f run=RUN_ID -f mode=upload  # waits for your approvals
 ```
 
 1. Checks that the run is a successful `workshop.yml` run on master or u60 and downloads its
@@ -30,63 +29,58 @@ gh workflow run workshop-upload.yml -r master -f run=RUN_ID -f mode=upload  # wa
 4. Installs steamcmd from Valve's bootstrap archive, checked against a pinned SHA-256
    (`scripts/workshop-upload.sh`). steamcmd then updates itself from Valve, which can't be pinned.
    The dry run stops here.
-5. **Upload only:** in the `steam-workshop` environment, after your approval, makes a Steam
-   Guard code from the account's `shared_secret` (masked in the log) and runs
-   `workshop_build_item`. steamcmd's home, which holds its cached login, is deleted at the end
-   of the job, even when it fails.
+5. **Upload only:** the job waits in the `steam-workshop` environment until you approve it in
+   GitHub, then signs in to Steam:
+   - Steam asks your phone to confirm the sign-in. The run shows "Approve the sign-in on your
+     phone" with a deadline 5 minutes ahead.
+   - steamcmd gives up on one confirmation after about a minute, so the job signs in again, up
+     to 6 times, until those 5 minutes are over.
+   - Then it runs `workshop_build_item`.
 
-The item is the `STEAM_WORKSHOP_ITEM` repository variable (3837112063 when unset), or `new`.
+   steamcmd's home, which holds its cached login, is deleted at the end of the job, even when the
+   job fails. The next run asks your phone again.
 
-## Can a contributor upload?
+The item is the `STEAM_WORKSHOP_ITEM` repository variable: 3837112063 when unset, or `new` to
+create one.
 
-Probably not. Valve documents nothing that lets a contributor update an item's content; every
-report found says contributors can't. Steam also refuses an update from an account that doesn't
-own the game. Sources:
+## Phone confirmation in steamcmd
 
-- [ISteamUGC `SubmitItemUpdateResult_t`](https://partner.steamgames.com/doc/api/ISteamUGC#SubmitItemUpdateResult_t):
-  `k_EResultAccessDenied` means "The user doesn't own a license for the provided app ID".
-- [Tabletop Simulator's Workshop guide](https://kb.tabletopsimulator.com/custom-content/steam-workshop/):
-  "contributors cannot update your mod for you … an ability that Valve needs to add".
-- [Steam's suggestion thread on contributor permissions](https://steamcommunity.com/discussions/forum/10/618456760263925033/)
-  (still asked for in 2024), and an [Unreal forum thread](https://forums.unrealengine.com/t/is-it-possible-to-have-multiple-contributors-to-a-steam-workshop-item/56555)
-  where a contributor's steamcmd upload failed and Family Sharing wasn't enough.
+Current steamcmd (version 1792617903, the one CI installs) supports it. When an account has the
+Steam Mobile authenticator and gets no code, steamcmd prints:
 
-So the setup below makes the upload account the item's **owner**: it creates a new private item,
-and your main account becomes a contributor on it so the item shows on your profile. Option B
-keeps item 3837112063 instead, if you want to try the contributor route first.
+```
+This account is protected by a Steam Guard mobile authenticator.
+Please confirm the login in the Steam Mobile app on your phone.
+Waiting for confirmation...OK
+```
+
+It then carries on without a code. If no one confirms within about a minute, it prints
+`Timed out waiting for confirmation` and `ERROR (Timeout)`. It needs no terminal:
+
+- [buildalon/upload-steam](https://github.com/buildalon/upload-steam) is a GitHub Action built
+  on this flow: "You will be prompted to accept the login from the Steam Mobile app on your phone".
+- Logs of both outcomes: [confirmed](https://discourse.cubecoders.com/t/startup-issue-with-left-4-dead-2-attempting-to-start-a-server-for-the-first-time/29857)
+  (2025) and [timed out](https://discourse.cubecoders.com/t/how-to-provide-steam-2fa-information-from-steams-phone-app-solved/42461)
+  (2026).
+- [UnityBuildUploader's login tests](https://github.com/JamesVeug/UnityBuildUploader/blob/HEAD/UnitTest/Core/SteamLoginOutputTests.cs)
+  treat this output as a successful login.
 
 ## One-time setup
 
 Do these yourself. Never paste a password, code or secret into a chat; each one goes straight
-into Steam, steamguard-cli or `gh`.
+into Steam or `gh`.
 
-### 1. Create the upload account
+### 1. The Steam account
 
-1. Sign up at <https://store.steampowered.com/join> with a separate email address.
-2. Use a long random password made of **letters and digits only**. The workflow refuses spaces,
-   quotes, `;`, `\` and `//`, because steamcmd's login script would split or cut the line there.
-   It allows `. _ ~ @ # % ^ * + = : , ! ? -` besides.
-3. **Give it Oxygen Not Included.** Buy it on the account or gift it from your main account;
-   Family Sharing doesn't count. Steam refuses updates from an account without the game, and
-   owning a game also lifts the new account's limits. No DLC is needed.
-4. Signed in as the upload account, accept the
-   [Workshop legal agreement](https://steamcommunity.com/sharedfiles/workshoplegalagreement).
-   Until then Steam hides its items from everyone but itself.
+The account must own Oxygen Not Included, because Steam refuses updates from an account
+without it. It must also own the item or be able to update it. `qigit` owns both, and its
+Steam Mobile app must be its Steam Guard.
 
-### 2. Set up Steam Guard with steamguard-cli
+The workflow refuses spaces, quotes, `;`, `\` and `//` in the password, because steamcmd's login
+script would split or cut the line there. Besides letters and digits it allows
+`. _ ~ @ # % ^ * + = : , ! ? -`. With any other character the job fails before signing in.
 
-1. Install [steamguard-cli](https://github.com/dyc3/steamguard-cli/releases) (v0.18.4: the
-   `.deb`, or `steamguard-linux-x86_64`).
-2. Run `steamguard setup` and sign in as the upload account. Follow its prompts; Steam confirms the change by email or text message.
-3. **Write down the revocation code** it shows (`R…`) and back up `~/.config/steamguard-cli/maFiles/`.
-   Without one of them, only Steam Support can remove the authenticator.
-4. From now on, `steamguard code` gives the account's sign-in code, and
-   `steamguard confirm` handles its confirmations.
-
-If you chose an encryption passkey during setup, run `steamguard decrypt` before step 4 and
-`steamguard encrypt` after it.
-
-### 3. Create the GitHub Environment
+### 2. Create the GitHub Environment
 
 The `steam-workshop` environment requires your approval for each run, accepts runs from
 master and u60 only, and doesn't let admins skip the approval:
@@ -104,78 +98,77 @@ done
 `275280754` is the tigin-backwards account. `prevent_self_review` is false so that you can approve
 the runs you start. You can also do this in Settings → Environments.
 
-### 4. Set the environment's secrets
+### 3. Set the environment's secrets
 
 Each command asks for the value; type or paste it there:
 
 ```sh
 gh secret set STEAM_USERNAME --env steam-workshop -R tigin-backwards/oni-moono   # the account name, not the email
 gh secret set STEAM_PASSWORD --env steam-workshop -R tigin-backwards/oni-moono
-jq -r .shared_secret ~/.config/steamguard-cli/maFiles/ACCOUNT.maFile \
-  | gh secret set STEAM_SHARED_SECRET --env steam-workshop -R tigin-backwards/oni-moono
 ```
 
-The last command pipes the secret from the maFile straight into `gh`, so it never shows on the
-screen. `ACCOUNT` is the upload account's name.
+### 4. Upload
 
-### 5. Make the item
+Start a dry run, then an upload (see the commands above). Approve the run in GitHub, keep your
+phone at hand, and approve the sign-in in the Steam Mobile app when the run asks. Steam shows
+where the sign-in comes from: a GitHub runner, usually a US data centre. Reject any sign-in you
+didn't just start.
 
-**A. A new item owned by the upload account (recommended):**
+## Unattended alternative: a code from the shared_secret
 
-1. `gh variable set STEAM_WORKSHOP_ITEM --body new -R tigin-backwards/oni-moono`
-2. Start a dry run, then an upload, of the latest `workshop.yml` run (see the commands above),
-   and approve it. The new item is created **private**, titled `Moono`, or the
-   `STEAM_WORKSHOP_TITLE` variable if set. The run's summary prints its ID.
-3. `gh variable set STEAM_WORKSHOP_ITEM --body NEW_ID -R tigin-backwards/oni-moono`
-4. Make the upload account and your main account (`qigit`) Steam friends. Then, signed in as the
-   upload account, open the item's page, choose **Add/Remove Contributors** and add `qigit`.
-5. Item 3837112063 is then unused: keep it private or delete it from its page.
+If `STEAM_SHARED_SECRET` is set in the environment, the job doesn't ask your phone. It makes
+the current Steam Guard code itself (masked in the log) and passes it with
+`set_steam_guard_code`, as [GameCI's steam-deploy](https://github.com/game-ci/steam-deploy#totp)
+does. The code uses steamguard-cli's algorithm and is tested against steamguard-cli's test vector.
 
-**B. Keep item 3837112063:** make the two accounts friends. Signed in as `qigit`, choose
-**Add/Remove Contributors** on the item's page and add the upload account. Leave
-`STEAM_WORKSHOP_ITEM` unset. If the first upload fails with an access error, switch to A.
+Anyone holding that secret and the password can sign in to the account, so use this only with a
+separate upload account:
 
-## Authentication: why TOTP
+1. The account needs Oxygen Not Included of its own.
+2. Its authenticator comes from [steamguard-cli](https://github.com/dyc3/steamguard-cli) (`steamguard setup`).
+3. Set the secret straight from the maFile, so it never shows:
 
-- **TOTP from `shared_secret` (used here).** Each run makes the current code itself
-  (steamguard-cli's algorithm, tested against its test vector), and passes it to steamcmd as
-  [GameCI's steam-deploy](https://github.com/game-ci/steam-deploy#totp) does, with
-  `set_steam_guard_code` before `login`. Nothing expires, and no login is cached between runs.
-- **A cached `config.vdf`** (GameCI's `configVdf`) holds a logged-in session. It lasts until
-  Steam drops the session: GameCI lists "License expired" and new Steam Guard prompts as
-  things to fix by hand, and Steam's refresh tokens live
-  [about 200 days](https://dev.doctormckay.com/topic/4607-access-tokens-and-refreshtoken-lifetime).
-  The secret is also a full session that works without the password, and it needs manual
-  renewal. Not used.
+   ```sh
+   jq -r .shared_secret ~/.config/steamguard-cli/maFiles/ACCOUNT.maFile \
+     | gh secret set STEAM_SHARED_SECRET --env steam-workshop -R tigin-backwards/oni-moono
+   ```
+
+Being a contributor on an item probably doesn't let that account update the item's content.
+Valve documents no such right, and the reports found say contributors can't:
+
+- [Tabletop Simulator's guide](https://kb.tabletopsimulator.com/custom-content/steam-workshop/);
+- [Steam's suggestion thread](https://steamcommunity.com/discussions/forum/10/618456760263925033/).
+
+So that account would own its own item: set `STEAM_WORKSHOP_ITEM` to `new` for one run.
+
+A cached steamcmd `config.vdf` (GameCI's `configVdf`) isn't supported. It is a full session that
+works without the password, and Steam drops it after
+[about 200 days](https://dev.doctormckay.com/topic/4607-access-tokens-and-refreshtoken-lifetime)
+or sooner.
 
 ## Steam's rules
 
 - [Steam Subscriber Agreement](https://store.steampowered.com/subscriber_agreement/) §1.C:
-  don't "reveal, share or otherwise allow others to use your password or Account". The upload
-  account is yours and only your own workflow uses it. Nothing in the agreement forbids a second
-  account (only re-registering while one is delinquent, §3.B).
+  don't "reveal, share or otherwise allow others to use your password or Account". Only your own
+  workflow uses it, and you confirm each sign-in.
 - §4.C forbids "scripts, bots, macros, or other non-human-controlled systems … to interact with
   Content and Services on Steam". Its examples are account creation, faked gameplay statistics,
   unearned rewards and automated reports. Uploading with Valve's own steamcmd is what its
-  [Workshop docs](https://partner.steamgames.com/doc/features/workshop/implementation)
-  describe (there, for testing). Each upload here is started and approved by you. This reading
-  isn't legal advice.
-- §6 (User Generated Content) applies to the item as it does to any upload: you grant Valve the
-  usual licence and confirm you have the rights.
+  [Workshop docs](https://partner.steamgames.com/doc/features/workshop/implementation) describe
+  (there, for testing). Each upload here is started and approved by you. This reading isn't
+  legal advice.
+- §6 (User Generated Content) applies to the item as it does to any upload.
 
 ## Rotating and revoking
 
 - **Password:** change it on Steam, then `gh secret set STEAM_PASSWORD --env steam-workshop`.
-- **Authenticator:** `steamguard remove`, `steamguard setup` again, then set
-  `STEAM_SHARED_SECRET` again as in step 4. If the maFile is lost, remove the authenticator
-  with the revocation code at <https://store.steampowered.com/twofactor/manage>.
 - **Stop CI uploads:** `gh secret delete STEAM_PASSWORD --env steam-workshop` (or delete the
-  environment). For option B, also remove the upload account from the item's contributors.
-- **If the account may be compromised:** change its password, choose
-  **Deauthorize all other devices** at <https://store.steampowered.com/twofactor/manage>, rotate
-  the authenticator, check the item's change notes, and reject any upload run you didn't start.
-  Anyone with your GitHub token can also approve runs through the API, so keep that token as
-  safe as the secrets.
+  environment).
+- **If the password may have leaked:** change it. A sign-in still needs your phone, so reject any
+  confirmation you didn't start. Check the account's sessions at
+  <https://store.steampowered.com/account/authorizeddevices> and remove any you don't know.
+  Anyone with your GitHub token can approve runs through the API, but not the phone
+  confirmation.
 - **Bootstrap digest:** if Valve replaces `steamcmd_linux.tar.gz` (unchanged since 2018), the
   install step fails. Check the new archive, then update `STEAMCMD_SHA256` in
   `scripts/workshop-upload.sh`.
