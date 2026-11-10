@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.parse
 import urllib.request
 
@@ -83,7 +84,6 @@ def fetch_git(source, names, work):
         raise RefsError(f"commit must be a full SHA-1: {commit!r}")
     path = "/".join(segments(source["path"], "path"))
     url = f"https://{host}/{repository}.git"
-    repo = os.path.join(work, "repo.git")
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
     token = os.environ.get("GH_TOKEN")
     if token:
@@ -97,18 +97,33 @@ def fetch_git(source, names, work):
             GIT_CONFIG_VALUE_1="",
         )
     # A bare repository with no hooks, read with cat-file: nothing of the fetched tree runs. A
-    # partial clone: the fetch takes the commit's trees, and cat-file fetches the blobs it reads.
-    git = ["git", "-c", "core.hooksPath=/dev/null", "-c", "protocol.file.allow=never", "-C", repo]
-    subprocess.run(["git", "init", "-q", "--bare", repo], check=True)
-    subprocess.run(git + ["remote", "add", "origin", url], check=True)
-    subprocess.run(git + ["config", "remote.origin.promisor", "true"], check=True)
-    subprocess.run(git + ["config", "remote.origin.partialclonefilter", "blob:none"], check=True)
-    subprocess.run(git + ["fetch", "-q", "--depth=1", "--no-tags", "--filter=blob:none", "origin", commit], check=True, env=env)
-    out = {}
-    for name in names:
-        blob = subprocess.run(git + ["cat-file", "blob", f"{commit}:{path}/{name}"], check=True, stdout=subprocess.PIPE, env=env).stdout
-        out[name] = blob
-    return out
+    # partial clone first: the fetch takes the commit's trees, and cat-file fetches the blobs it
+    # reads. GitHub has answered such a blob fetch with a 404 now and then (2026-11-10, three
+    # jobs at once), so a failed attempt is retried in a new repository, and the last attempt
+    # is a plain shallow fetch of the whole commit.
+    attempts = [True, True, False]
+    for number, partial in enumerate(attempts, 1):
+        repo = os.path.join(work, f"repo-{number}.git")
+        git = ["git", "-c", "core.hooksPath=/dev/null", "-c", "protocol.file.allow=never", "-C", repo]
+        try:
+            subprocess.run(["git", "init", "-q", "--bare", repo], check=True)
+            subprocess.run(git + ["remote", "add", "origin", url], check=True)
+            fetch = git + ["fetch", "-q", "--depth=1", "--no-tags"]
+            if partial:
+                subprocess.run(git + ["config", "remote.origin.promisor", "true"], check=True)
+                subprocess.run(git + ["config", "remote.origin.partialclonefilter", "blob:none"], check=True)
+                fetch.append("--filter=blob:none")
+            subprocess.run(fetch + ["origin", commit], check=True, env=env)
+            return {
+                name: subprocess.run(git + ["cat-file", "blob", f"{commit}:{path}/{name}"], check=True, stdout=subprocess.PIPE, env=env).stdout
+                for name in names
+            }
+        except subprocess.CalledProcessError as e:
+            if number == len(attempts):
+                raise
+            print(f"fetch-game-refs: attempt {number} failed ({e}); trying again", file=sys.stderr)
+            time.sleep(5 * number)
+    raise AssertionError("unreachable")
 
 
 def fetch_url(source, names):
