@@ -44,7 +44,8 @@ if [ "$list" = push ]; then
     for suite in OniMoono.Assets.Tests OniMoono.UnityEngine.Tests; do
         dotnet_build "$root/tests/$suite" -c Debug -p:OniGameDir="$game"
         "$root/out/bin/$suite/debug/$suite" -noColor -result-xml "$reports/$suite.xml" > "$reports/$suite.txt" 2>&1 || failed+=("$suite")
-        grep -E '^\s+(\S+ +Total:|\[FAIL\])' "$reports/$suite.txt" | head -40 || true
+        # The totals, and each failed test's name with the first line of its message.
+        grep -E -A1 '^\s+\S+ +Total:|\[FAIL\]$' "$reports/$suite.txt" | grep -vE '^--$' | cut -c1-240 | head -60 || true
     done
     python3 -I "$root/scripts/test-skips.py" --fail-on-game "$reports"/*.xml || failed+=(game-test-skips)
     rm -rf "$reports"
@@ -66,6 +67,13 @@ done < <(grep -vE '^\s*(#|$)' "$root/ci/game-tests/$list.txt")
 status=0
 python3 -I "$root/scripts/e2e.py" --player ours --lanes "${CI_E2E_LANES:-2}" --no-perf-wait --run-id "ci-$list" --list "$root/ci/game-tests/$list.txt" || status=$?
 [ $status -eq 0 ] || failed+=(e2e)
+# A failed spec's new log signatures: normalized error and exception lines, no game content.
+for result in "$E2E_OUT"/*/ci-"$list"/ours-1/result.json; do
+    python3 -I -c 'import json, sys
+r = json.load(open(sys.argv[1]))
+for line in r.get("checks", {}).get("signatures", {}).get("new", [])[:10]:
+    print("  new signature in " + r["spec"] + ": " + line[:300])' "$result" || true
+done
 
 # The verify specs' reports: every check with zero wrong answers, and every check that
 # ci/game-tests/verify/SPEC.txt names reported (silence is not zero wrong).

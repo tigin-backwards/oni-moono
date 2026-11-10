@@ -280,9 +280,9 @@ scripts/ci-game-tests.sh push OUT                 # what the game job runs (QA_U
 
 - **push** (every push to master or u60, about 15 minutes): `check-tweaks.sh` against the game's
   assemblies, the unit tests that need the game (the no-game unit test job skips them), and
-  `ci/game-tests/push.txt`. That list holds load, simulate, save and reload runs on
-  early-base (headless) and a Spaced Out colony with rockets (under Xvfb), a verify run with every tweak (zero wrong
-  answers, read by `qa-tools.py verify`), and `exact-worldgen` under Xvfb.
+  `ci/game-tests/push.txt`. That list holds load, simulate, save and reload runs on early-base
+  (headless) and a Spaced Out colony with rockets (under Xvfb), a verify run with every tweak (zero
+  wrong answers, read by `qa-tools.py verify`), and `exact-worldgen` under Xvfb.
 - **nightly** (the **Game tests (nightly)** workflow, on master; run it by hand on u60):
   `ci/game-tests/nightly.txt`, which holds UI specs that check their own expectations and dumps,
   mod loading with our own test mods, and a ten-minute verify run on a mid-game colony.
