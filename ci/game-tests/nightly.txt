@@ -1,0 +1,15 @@
+# CI's nightly game tests (scripts/ci-game-tests.sh nightly; docs/DEVELOPMENT.md, "Game tests in
+# CI"): UI specs that check their own expectations and UI dumps (no screenshots), and mod loading
+# with our own test mods only, under Xvfb; then the longer verify run on a mid-game colony.
+ci-verify-long ours player-args='--headless'        # a mid-game colony, every verify mode: 0 wrong
+build-menu-search ours                              # build menu search grid layout
+consumables-scroll ours                             # table screen ScrollRects in step
+moono-tweaks-search-en ours                         # the Moono Tweaks screen's search
+moono-tweaks-search-zh ours
+menu-button-states ours                             # main menu buttons' states
+update-badge-none ours                              # Check for updates, nothing new
+mod-overlaps-none ours                              # Moono Tweaks' mod overlaps, no mods
+issue-53-command-line ours                          # CommandLineTestMod: arguments as mods read them
+issue-52-click-cycle-patched ours                   # SelectCycleTestMod: patched click selection
+fast-anim-events-stand-down ours                    # OverlapTestMod: a prefix patch, the tweak stands down
+instant-reachability-stress ours                    # ReachStressTestMod: reachability, 0 wrong

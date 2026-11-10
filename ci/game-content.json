@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "comment": "The stripped game (tools/GameStrip) and the fixture saves the CI game tests run on, by hash, in the private refs repository; scripts/fetch-game-content.py fetches them (docs/DEVELOPMENT.md, \"Game tests in CI\"). Private: never published.",
+  "default_build": "744825",
+  "source": {
+    "kind": "git",
+    "host": "github.com",
+    "repository": "tigin-backwards/oni-moono-refs",
+    "commit": "13d6fd7e774cdaf6561c4f2dfbfe9812c1e3aad2"
+  },
+  "builds": {
+    "744825": {
+      "game": "U59",
+      "path": "game/744825",
+      "sha256": "666a6e28edad736e30674a08ce6d269c17d24a3673bbfe513dfc55e0345050bd",
+      "parts": {
+        "oni-744825.tar.zst.00": "5a5eae6aeabe8a8d305169b5c85f0c8856052c45eafa5e454f4c903d71787189",
+        "oni-744825.tar.zst.01": "df7cb09e8879b30a217ad5bd790bd05a8c807dd4a68700c705280c9e639cf7f0",
+        "oni-744825.tar.zst.02": "6d647cfa9a07b14cfc4e41c4084dedf15af45954ba6de2fdb46855c0acf59133"
+      }
+    }
+  },
+  "saves": [
+    "0476131cf68f2ead362b56f6fa604736b6bc2ab3bc4a12671ae823054456fb91",
+    "80277777c7dc85621258cc3cf01aae264117f4cee63b571da1d9c2a01dd3b412",
+    "843e5d70d826a1411b848f69328134d153875b03dccf4147c59d92e219dac8d6",
+    "c7a9d6dafc672f0c901438053ee5d7fcd8c8b01514b39ea29bca49a593c56c9a"
+  ]
+}

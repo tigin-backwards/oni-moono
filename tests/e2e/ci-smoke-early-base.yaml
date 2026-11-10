@@ -1,0 +1,11 @@
+# CI's game smoke run (docs/DEVELOPMENT.md, "Game tests in CI"), headless on the stripped game:
+# early-base loads, runs a minute of game time at speed 3, saves, and the save loads again with
+# the colony intact.
+from: early-base
+steps:
+  - expect: {duplicants: 3, buildings: {Outhouse: 1, ResearchCenter: 1, ManualGenerator: 1, Bed: 1}}
+  - run: {seconds: 60}
+  - save: ci-smoke-early-base
+  - call: {tool: game_control, args: {domain: save, action: load, index: 0, type: local, confirm: true}}
+  - run: {seconds: 10}
+  - expect: {duplicants: 3, buildings: {Outhouse: 1, ResearchCenter: 1, ManualGenerator: 1, Bed: 1}}

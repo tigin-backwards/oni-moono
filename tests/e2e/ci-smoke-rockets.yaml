@@ -1,0 +1,17 @@
+# CI's Spaced Out smoke run (docs/DEVELOPMENT.md, "Game tests in CI"), headless on the stripped
+# game: a sandbox colony with two rockets on their pads loads, runs a minute of game time at
+# speed 3, saves, and the save loads again with its Duplicants, rockets and worlds.
+from: rockets-so
+steps:
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": {save_as: duplicants}
+      "Components.Clustercrafts.Count": [">= 2", {save_as: rockets}]
+      "ClusterManager.Instance.WorldContainers.Count": {save_as: worlds}
+  - run: {seconds: 60}
+  - save: ci-smoke-rockets
+  - call: {tool: game_control, args: {domain: save, action: load, index: 0, type: local, confirm: true}}
+  - run: {seconds: 10}
+  - expect_state:
+      "Components.LiveMinionIdentities.Count": "== duplicants"
+      "Components.Clustercrafts.Count": "== rockets"
+      "ClusterManager.Instance.WorldContainers.Count": "== worlds"

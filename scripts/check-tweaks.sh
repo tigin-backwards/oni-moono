@@ -9,12 +9,13 @@
 # tweak would be off. --review: every build, each tweak that would be off and why, with the
 # fingerprints to add once its changed bodies are reviewed (a newly downloaded build), and the
 # bodies' normalised IL in out/tweak-review/BUILD/ for diffing two builds; exit 0.
+# ONI_CONFIG=release checks with the release host (CI's game tests build only that one).
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 [ -n "${ONI_CONTAINED:-}" ] || exec "$root/scripts/contain.sh" "$0" "$@"
 mode=check
 if [ "${1:-}" = --review ]; then mode=review; shift; fi
-host="$root/out/bin/OniMoono.Host/debug/OniMoono"
+host="$root/out/bin/OniMoono.Host/${ONI_CONFIG:-debug}/OniMoono"
 [ -x "$host" ] || { echo "check-tweaks: no $host (dotnet build first)"; exit 1; }
 dirs=("$@")
 if [ ${#dirs[@]} -eq 0 ]; then
