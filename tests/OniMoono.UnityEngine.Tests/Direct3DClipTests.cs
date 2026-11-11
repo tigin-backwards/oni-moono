@@ -63,5 +63,23 @@ namespace OniMoono.Tests
             Assert.Equal(OperatingSystem.IsWindows(), Direct3DClip.Applies("Klei/Stars "));
             Assert.False(Direct3DClip.Applies("Klei/BackWallArray"));
         }
+
+        // Klei/BatchedAnimation's GLCore fragment stage, around its light buffer read (#76).
+        const string AnimationLike = "uniform \tvec4 _WorldSizeInfo;\nUNITY_LOCATION(12) uniform  sampler2D _LightBufferTex;\nin  vec3 vs_TEXCOORD1;\nvoid main()\n{\n    u_xlat1.xy = vs_TEXCOORD1.xy * _WorldSizeInfo.zw;\n    u_xlat1.z = (-vs_TEXCOORD1.y) * _WorldSizeInfo.w + 1.0;\n    u_xlat13.xy = u_xlat1.xz * _WorldSizeInfo.xy;\n    u_xlat3 = texture(_LightBufferTex, u_xlat13.xy);\n}\n";
+
+        [Fact]
+        public void AnimationsReadTheLightAtTheirOwnWorldRowOnWindows()
+        {
+            var text = AnimationLight.Fragment("Klei/BatchedAnimation", AnimationLike);
+            Assert.Contains("    u_xlat1.z = vs_TEXCOORD1.y * _WorldSizeInfo.w;\n", text);
+            Assert.DoesNotContain("+ 1.0", text);
+            Assert.Equal(AnimationLike.Replace("(-vs_TEXCOORD1.y) * _WorldSizeInfo.w + 1.0", "vs_TEXCOORD1.y * _WorldSizeInfo.w"), text);
+            // A stage that reads no light buffer is left alone.
+            var other = AnimationLike.Replace("_LightBufferTex", "_OtherTex");
+            Assert.Same(other, AnimationLight.Fragment("Klei/BatchedAnimation", other));
+            Assert.Equal(OperatingSystem.IsWindows(), AnimationLight.Applies("Klei/BatchedAnimation"));
+            Assert.Equal(OperatingSystem.IsWindows(), AnimationLight.Applies("Klei/BatchedAnimationHuman "));
+            Assert.False(AnimationLight.Applies("Klei/TiledBlock"));
+        }
     }
 }

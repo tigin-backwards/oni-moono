@@ -2068,6 +2068,15 @@ renderer, restricted to what the game uses (*usage §1*):
     -1, and after its own main its vertex stage turns gl_Position's y back, so only the
     coordinates change. Ours on OpenGL against the original on Direct3D 11 went from 17 % to
     0.5 % (more than 40 levels) on those shots.
+  - *The animations' light row (read as Direct3D does).* `Klei/BatchedAnimation` and
+    `Klei/BatchedAnimationHuman` turn their pixel's world row into `1 - y / height` in their
+    GLCore text only, from a world position their vertex stage gives unturned, so on GLCore
+    buildings, plants, critters and Duplicants are shaded by the light at the world position
+    mirrored about the world's middle row: lights on screen there (Beakons in a tank above a
+    farm) make animations far from any light brighten and darken as they move (issue #76). On
+    Windows the device drops that turn (`AnimationLight`): a building's light-grey parts,
+    which varied by up to 13 levels on `-force-glcore` and in ours, vary by none, at the
+    original's Direct3D 11 levels.
   - *GLCore-only `1 - v` (kept: GLCore parity).* About 16 Klei shaders read the property pages
     `Klei/TexturePage` writes, which the two APIs store turned over, at `1 - v` in their GLCore
     text only. The same coordinates also read textures the CPU uploads, whose rows both APIs

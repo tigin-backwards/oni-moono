@@ -219,7 +219,7 @@ namespace OniMoono.Desktop.Gl
             if (!Supported(variant)) return program;
             bool direct3D = Direct3DClip.Applies(shader.ShaderName);
             var vertexSource = direct3D ? Direct3DClip.Vertex(variant.VertexSource) : variant.VertexSource;
-            var fragmentSource = variant.FragmentSource;
+            var fragmentSource = AnimationLight.Applies(shader.ShaderName) ? AnimationLight.Fragment(shader.ShaderName, variant.FragmentSource) : variant.FragmentSource;
             bool wholeCapture = CaptureTiles.Apply(shader.ShaderName, ref vertexSource, ref fragmentSource);
             uint vs = GlApi.CompileShader(VertexShader, Prepare(vertexSource), out var vlog);
             uint fs = GlApi.CompileShader(FragmentShader, Prepare(fragmentSource), out var flog);
@@ -463,6 +463,49 @@ namespace OniMoono.Desktop.Gl
             if (renderTexture)
                 for (int c = 0; c < 4; c++) p[1, c] = -p[1, c];
             return p;
+        }
+    }
+
+    /// The light the game's animations take from the light buffer, read where Direct3D 11 reads
+    /// it (issue #76). `Klei/BatchedAnimation` and `Klei/BatchedAnimationHuman` (buildings,
+    /// plants, critters and Duplicants) shade each pixel by the light buffer at its world
+    /// position, which their GLCore text alone turns into `1 - y / height` before the light
+    /// buffer's camera reads it back; the vertex stage gives the position as it is, not
+    /// already turned. So on GLCore they read the light at the world position mirrored about
+    /// the world's middle row: with lights on screen there, as Beakons swimming a tank above,
+    /// an animation far from any light brightens and darkens as the lights move. Measured on
+    /// Windows (the reporter's colony, its Beakon tank and the farm below it on screen): a
+    /// building's light-grey parts vary by up to 13 levels on `-force-glcore` and by none on
+    /// Direct3D 11. On Windows the device drops the turn, so the position is the pixel's own.
+    /// Linux keeps GLCore's, which the original draws there.
+    internal static class AnimationLight
+    {
+        static readonly HashSet<string> shaders = new(StringComparer.Ordinal) { "Klei/BatchedAnimation", "Klei/BatchedAnimationHuman" };
+
+        /// The turned world row: `u_xlatN.c = (-vs_TEXCOORDm.y) * _WorldSizeInfo.w + 1.0;`.
+        static readonly System.Text.RegularExpressions.Regex turned = new(
+            @"\b(u_xlat\d+\.[xyzw])\s*=\s*\(-(vs_TEXCOORD\d+)\.y\)\s*\*\s*_WorldSizeInfo\.w\s*\+\s*1\.0\s*;",
+            System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        static readonly HashSet<string> logged = new(StringComparer.Ordinal);
+
+        public static bool Applies(string shaderName) => Direct3DClip.Enabled && shaders.Contains(shaderName.Trim());
+
+        /// The fragment stage with the light buffer's world row unturned (the one turn its text
+        /// has, and only in a stage that reads the light buffer).
+        public static string Fragment(string shaderName, string source)
+        {
+            if (source == null || !source.Contains("_LightBufferTex", StringComparison.Ordinal)) return source;
+            int count = 0;
+            var result = turned.Replace(source, m =>
+            {
+                count++;
+                return $"{m.Groups[1].Value} = {m.Groups[2].Value}.y * _WorldSizeInfo.w;";
+            }, 1);
+            if (count == 0)
+                lock (logged)
+                    if (logged.Add(shaderName.Trim())) OniMoono.Engine.EngineLog.Engine($"animation light: '{shaderName.Trim()}' reads the light buffer in a way this change does not know; it keeps GLCore's position");
+            return result;
         }
     }
 
