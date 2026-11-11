@@ -2922,11 +2922,14 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
 - Audio: FMOD through the game's own `FMODUnity` + native `libfmodstudio.so`; the engine
   supplies what FMODUnity needs (paths, Transform, components, Timeline/Playables types). On
   Windows FMOD allocates through OniMoono.exe's `fmod_heap.c` (game tweak `fmod-quarantine`,
-  on by default): a private heap with a quarantine for freed blocks, against the write to freed
-  memory FMOD's staff acknowledged (qa.fmod.com/t/hard-crash-in-fmodstudiol/24589), the heap
-  corruption of issues #72 and #58. Native, since FMOD calls it on its own threads; its
-  `fmod heap:` lines in Player.log report each write after free it catches
-  (docs/TWEAKS.md, "The sound memory guard").
+  on by default): size-class slabs in reserved address space, with every block's state, size
+  and free list in side tables away from the blocks, and a quarantine for freed blocks, against
+  the write to freed memory FMOD's staff acknowledged
+  (qa.fmod.com/t/hard-crash-in-fmodstudiol/24589), the heap corruption of issues #72, #73, #58
+  and #78. A late write can change only FMOD's data or a freed block's fill, never bookkeeping
+  that the allocator or Windows trusts. Native, since FMOD calls it on its own threads; its
+  `fmod heap:` lines in Player.log report each late write it catches (docs/TWEAKS.md, "The
+  sound memory guard").
 - Video: `VideoPlayer` decodes VP8 WebM from `resources.resource` with our own EBML demuxer and
   our own VP8 decoder (`Video/Engine/Vp8`, a port of RFC 6386's reference decoder; VP8 decoding is
   exact by specification, and every frame of the game's 18 clips decodes to the same planes as

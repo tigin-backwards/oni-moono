@@ -8,14 +8,15 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
-    /// Game tweak `fmod-quarantine` (on by default): FMOD allocates from a heap of its own with a
-    /// quarantine for freed blocks, src/OniMoono.NativeHost/fmod_heap.c (docs/TWEAKS.md, "Why
-    /// fmod-quarantine"). It works around, and reports, the write to freed memory FMOD's staff
+    /// Game tweak `fmod-quarantine` (on by default): FMOD allocates from memory of its own, with
+    /// a quarantine for freed blocks, src/OniMoono.NativeHost/fmod_heap.c (docs/TWEAKS.md, "The
+    /// sound memory guard"). It works around, and reports, the write to freed memory FMOD's staff
     /// acknowledged in its stop/steal path (2.01.18 and later; the game ships 2.03.12), which on
-    /// Windows corrupts the process heap that FMOD shares with the runtime and the drivers: the
-    /// 0xC0000374 crashes on the FMOD Studio update thread of issues #72 and #58. A late write
-    /// lands in a quarantined block instead, and when the block leaves the quarantine its fill is
-    /// checked: each changed block is one `fmod heap:` line in Player.log.
+    /// Windows corrupts a heap's own bookkeeping: the 0xC0000374 crashes on the FMOD Studio update
+    /// thread of issues #72, #73, #58 and #78. The allocator keeps no bookkeeping in or beside
+    /// FMOD's blocks, so a late write can only change FMOD's data or a freed block's fill; the fill
+    /// is checked when a block leaves the quarantine and when its slot is reused: each changed
+    /// block is one `fmod heap:` line in Player.log.
     ///
     /// FMOD_Memory_Initialize must come before any FMOD system exists. The game's first system is
     /// FMOD.Studio.System.create in FMODUnity's RuntimeManager.Initialize, the same method in
@@ -29,7 +30,7 @@ namespace OniMoono.Host.GameTweaks
     /// The functions are OniMoono.exe's exports (Windows; built by build.cmd), or a
     /// libOniMoonoNative.so beside the host (Linux; none is built yet). Without them the tweak is
     /// off with a line saying so. ONI_FMOD_QUARANTINE_MB sets the quarantine's size (default 32;
-    /// 0 keeps the private heap and the checks, without a quarantine).
+    /// 0 keeps the slabs and the checks, without a quarantine).
     [GameMember(GameUse.Prefix, "FMOD.RESULT FMODUnity.RuntimeManager::Initialize()")]
     [GameMember(GameUse.Uses, "FMOD.RESULT FMOD.Memory::Initialize(System.IntPtr,System.Int32,FMOD.MEMORY_ALLOC_CALLBACK,FMOD.MEMORY_REALLOC_CALLBACK,FMOD.MEMORY_FREE_CALLBACK,FMOD.MEMORY_TYPE)")]
     internal static unsafe class FmodQuarantine
@@ -61,6 +62,10 @@ namespace OniMoono.Host.GameTweaks
             public ulong CheckedBytes;
             public ulong Events, EventsDropped;
             public ulong QuarantineLimit;
+            public ulong HeldBytes, SlabBytes, SideBytes, LargeBytes;
+            public ulong SmallQuarantinedBytes, SmallQuarantineLimit;
+            public ulong SmallAgeMs, LargeAgeMs;
+            public ulong SmallFrees, SmallBytesFreed;
         }
 
         static IntPtr allocAt, reallocAt, freeAt;
@@ -146,7 +151,7 @@ namespace OniMoono.Host.GameTweaks
             Active = true;
             PlayerLoop.EarlyUpdate += Drain;
             FrameStatsWindow.Reports.Add(Report);
-            EngineLog.Engine($"{Name}: FMOD allocates from Moono's heap{(OperatingSystem.IsWindows() ? " (a private one)" : "")}, freed blocks quarantined up to {(ulong)bytes / 1_000_000} MB and checked");
+            EngineLog.Engine($"{Name}: FMOD allocates from Moono's slabs, freed blocks quarantined up to {(ulong)bytes / 1_000_000} MB and checked");
         }
 
         static Counters Read()
@@ -169,16 +174,17 @@ namespace OniMoono.Host.GameTweaks
                 }
         }
 
-        static readonly string[] kinds = ["", "write after free", "double free", "overrun", "free of a pointer it never returned", "damaged block header"];
+        static readonly string[] kinds = ["", "write after free", "double free", "overrun", "free of a pointer it never returned", "damaged block header", "write to a free block after its quarantine"];
 
-        /// One problem as its log line: what, the block (size, FMOD's memory type, address),
-        /// the changed bytes (offset from the pointer FMOD was given: value, and what it should
-        /// be), how long the block had been free, and when.
+        /// One problem as its log line: what, the block (size, FMOD's memory type, address; for
+        /// a free one, its slot's size), the changed bytes (offset from the pointer FMOD was
+        /// given: value, and what it should be), how long the block had been free, and when.
         internal static string Describe(in HeapEvent e)
         {
             var line = new StringBuilder("fmod heap: ");
             line.Append(e.Kind < kinds.Length ? kinds[e.Kind] : $"problem {e.Kind}");
-            if (e.Kind != 4) line.Append($", a {e.Size}-byte block (type 0x{e.Type:x})");
+            if (e.Kind == 6) line.Append($", a {e.Size}-byte slot");
+            else if (e.Kind != 4) line.Append($", a {e.Size}-byte block (type 0x{e.Type:x})");
             line.Append($" at 0x{e.Address:x}");
             if (e.Changed > 0)
             {
@@ -199,8 +205,11 @@ namespace OniMoono.Host.GameTweaks
             var was = window;
             window = now;
             double perSecond(ulong a, ulong b) => seconds > 0 ? (a - b) / seconds : 0;
-            return [$"fmod heap: live {Mb(now.LiveBytes)} MB in {now.LiveBlocks:N0} blocks (peak {Mb(now.PeakLiveBytes)}), quarantined {Mb(now.QuarantinedBytes)} of {Mb(now.QuarantineLimit)} MB in {now.QuarantinedBlocks:N0}, held at most {Mb(now.PeakHeldBytes)} MB; "
-                + $"{perSecond(now.Allocs, was.Allocs):N0} allocs/s ({Mb((ulong)perSecond(now.BytesAllocated, was.BytesAllocated))} MB/s), {perSecond(now.Frees, was.Frees):N0} frees/s, {perSecond(now.Reallocs, was.Reallocs):N0} reallocs/s; "
+            return [$"fmod heap: live {Mb(now.LiveBytes)} MB in {now.LiveBlocks:N0} blocks (peak {Mb(now.PeakLiveBytes)}), quarantined {Mb(now.QuarantinedBytes)} of {Mb(now.QuarantineLimit)} MB in {now.QuarantinedBlocks:N0} "
+                + $"(small {Mb(now.SmallQuarantinedBytes)} of {Mb(now.SmallQuarantineLimit)} MB, held {now.SmallAgeMs / 1000.0:F1} s; large {now.LargeAgeMs / 1000.0:F1} s), "
+                + $"held {Mb(now.HeldBytes)} MB (slabs {Mb(now.SlabBytes)}, side tables {Mb(now.SideBytes)}, large {Mb(now.LargeBytes)}), at most {Mb(now.PeakHeldBytes)}; "
+                + $"{perSecond(now.Allocs, was.Allocs):N0} allocs/s ({Mb((ulong)perSecond(now.BytesAllocated, was.BytesAllocated))} MB/s), {perSecond(now.Frees, was.Frees):N0} frees/s "
+                + $"({perSecond(now.SmallFrees, was.SmallFrees):N0} small, {Mb((ulong)perSecond(now.SmallBytesFreed, was.SmallBytesFreed))} MB/s; {Mb((ulong)perSecond(now.BytesFreed - now.SmallBytesFreed, was.BytesFreed - was.SmallBytesFreed))} MB/s large), {perSecond(now.Reallocs, was.Reallocs):N0} reallocs/s; "
                 + $"{now.Events} problem{(now.Events == 1 ? "" : "s")} found{(now.EventsDropped > 0 ? $" ({now.EventsDropped} not logged)" : "")}"];
         }
 

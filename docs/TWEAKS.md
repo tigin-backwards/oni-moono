@@ -215,7 +215,7 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 ### General (on by default)
 
 - **Faster Load screen** (`fast-load-screen`): With many saves, the Load screen opens and loads more colonies sooner. Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same. *Measured: Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s); U60, 4,637 saves, Linux under WSL2, 2026-11-03.*
-- **Sound memory guard** (`fmod-quarantine`): Guards against a bug in the game's sound engine that can crash the game. FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some "heap corruption" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 50 MB more memory on a large colony. Windows only for now.
+- **Sound memory guard** (`fmod-quarantine`): Guards against a bug in the game's sound engine that can crash the game. FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some "heap corruption" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now.
 - **Worldgen as in the original** (`exact-worldgen`): A seed makes the same map as in the original game, so shared seeds match. Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected.
 
 ### Saving (on by default)
@@ -475,8 +475,8 @@ default, in the General group and part of `exact`: it changes how FMOD gets its 
 the game does. Windows only for now (OniMoono.exe carries the allocator; Linux has no native
 library of Moono's yet, and there the tweak logs that it is not active).
 
-Issues #72 and #58 are crashes with 0xC0000374 (heap corruption), found in `RtlFreeHeap` on the
-"FMOD Studio update thread" while FMOD destroys an event instance. In #72 one byte of a heap block
+Issues #72, #73, #58 and #78 are crashes with 0xC0000374 (heap corruption), found in
+`RtlFreeHeap` on the "FMOD Studio update thread" while FMOD destroys an event instance. In #72 one byte of a heap block
 header had been zeroed: a write into memory that had been freed and given to someone else. FMOD's
 staff acknowledged such a write in the stop/steal path of FMOD 2.01.18 and later, "which could
 crash if the memory is reallocated immediately", with no fix or workaround
@@ -488,13 +488,24 @@ With the tweak, FMOD allocates through `src/OniMoono.NativeHost/fmod_heap.c`, gi
 `FMOD_Memory_Initialize` before FMOD Studio starts (a prefix on FMODUnity's
 `RuntimeManager.Initialize`, the same in U59 and U60):
 
-- FMOD's blocks come from a heap of their own (`HeapCreate`), so a late write can only reach
-  FMOD's own memory.
+- FMOD's blocks up to 16 KB are slots of 40 size classes, cut from 64 KB slabs in address space
+  reserved for FMOD alone; larger ones get pages of their own. What the allocator knows about a
+  block (its state, size and type, and each slab's free slots) is kept in side tables away from
+  the blocks, found from the address alone. Nothing in or between FMOD's blocks is bookkeeping,
+  so a late write can only change FMOD's own data or a freed block's fill, never something the
+  allocator or Windows trusts.
 - A freed block is filled with a pattern and kept in a quarantine, oldest out first, up to 32 MB
-  (`ONI_FMOD_QUARANTINE_MB` sets another size; 0 keeps the rest without a quarantine). A late
-  write lands there, where nothing else lives. When the block leaves, it is checked.
-- Each block has a header and a canary after its end, so a double free, an overrun or a pointer
-  FMOD's allocator never returned is noted too, and the block is leaked rather than freed.
+  (`ONI_FMOD_QUARANTINE_MB` sets another size; 0 keeps the rest without a quarantine). Blocks
+  over 16 KB, mostly sample data, may hold a quarter of it at most, so the sample data FMOD frees
+  by the megabyte while it loads sounds cannot push the small blocks (the event instances the bug
+  writes to) below three quarters. A
+  late write lands there, where nothing else lives. When the block leaves, it is checked, and a
+  free slot is checked once more when it is reused, which catches a write that came after the
+  quarantine.
+- The bytes after each block's end, to the end of its slot, are a canary, so an overrun is noted
+  too (a write just before a block lands in the slot before it, and is noted against that one);
+  so are a double free and a pointer FMOD's allocator never returned. Slab memory is never given
+  back, only reused, so a late write never faults.
 
 What to look for in Player.log: a line per problem found, such as
 
@@ -503,8 +514,8 @@ What to look for in Player.log: a line per problem found, such as
 ```
 
 with the block's size, FMOD's memory type, the changed bytes (offset from the pointer FMOD got:
-the value found, and the pattern it should be; negative offsets are in the block's header) and
-how long after its free. A write after free is the bug of #72 and #58, caught before it could
+the value found, and the pattern it should be) and how long after its free. A "write to a free
+block after its quarantine" line is the same bug, found when the slot was reused. A write after free is the bug of #72 and #58, caught before it could
 corrupt the heap. `fmod-quarantine: FMOD allocates from Moono's heap …` at start says the tweak
 is active; at quit a line counts FMOD's allocations and the problems found, and `--frame-stats`
 adds an `fmod heap:` line every 600 frames (what FMOD holds, how fast it allocates).
@@ -514,12 +525,21 @@ never calls into .NET (a managed callback could wait there for a garbage collect
 reach the log through a lock-free queue the main thread empties each frame. Off, FMOD allocates
 as it always has: nothing is patched or called.
 
-Measured on a mid-game colony of 50 Duplicants (Linux lanes, 2026-11-10, with a test build of
-the allocator): FMOD made 4,000-13,000 allocations a second in play and held about 310 MB in
-470,000 blocks, mostly sample data. The quarantine adds its 32 MB and each block's header and
-canary 40 bytes, about 50 MB in all (FMOD's heap held at most 359 MB against 309 MB live). An
-allocation and its free cost about 150 ns against the C runtime's 20 (Windows, MSVC), so about
-1.5 ms a second on FMOD's own threads, none on the game's; no problem was found.
+Measured on a late-game colony of 22 Duplicants with a very large base (Windows, 2026-11-11, at
+speed 3): FMOD made 16,000-19,000 allocations a second, almost all of blocks up to 16 KB (about
+4 MB/s of them, and 1 MB/s of larger ones), and held about 325 MB live in 470,000 blocks. The
+allocator held at most 417 MB: the 32 MB quarantine, 14 MB of side tables, and the rest from
+rounding blocks up to their size class and from slabs not full. That is about 90 MB over what
+FMOD has live, and 38 MB more than with the first version's private heap, which held at most
+379 MB (its 32-byte headers, not Windows' own heap overhead). Freed blocks stayed in the
+quarantine for about 6.4 s (2.5 s on a mid-game colony of 50 Duplicants, where FMOD frees
+12 MB/s). The frame rate was the same with either version (93-100 fps). An allocation and its
+free cost about 140 ns on one thread, as with the private heap; eight threads at once ran 27 %
+faster. No problem was found.
+
+In a replay of #78's writes (stale writes on 300 freed instances a round, after the quarantine
+has moved on), the first version failed with 0xC0000374 in the first round of every run; this
+one ran all 30 rounds and logged the writes it could see.
 
 ### The colony snapshot fix
 

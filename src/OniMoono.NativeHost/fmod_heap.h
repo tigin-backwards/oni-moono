@@ -22,15 +22,17 @@ enum
     FH_WRITE_AFTER_FREE = 1, /* a quarantined block's fill changed before it was really freed */
     FH_DOUBLE_FREE = 2,      /* a block freed (or reallocated) while already free */
     FH_OVERRUN = 3,          /* the canary after a block's end changed while it was in use */
-    FH_NOT_OURS = 4,         /* a pointer this allocator never returned (no header of ours) */
-    FH_HEADER_DAMAGED = 5    /* a live block's header changed: written before its start */
+    FH_NOT_OURS = 4,         /* a pointer this allocator never returned (not one of its blocks) */
+    FH_HEADER_DAMAGED = 5,   /* (the first version's in-block header: no longer posted) */
+    FH_WRITE_TO_FREE = 6     /* a free slot's fill changed after its quarantine, found on reuse;
+                                `size` is the slot's (or a whole empty slab's), age_ms -1 */
 };
 
 #define FH_EVENT_BYTES 8
 
 /* One event, for the player to log (moono_fmod_heap_events). Offsets are from the pointer FMOD
- * was given: negative ones are in the block's header, `size` and up in its tail canary (a write
- * after free can reach both: the whole quarantined block is checked). */
+ * was given: `size` and up are in its canary, to the end of its slot (a write after free can
+ * reach both: the whole quarantined slot is checked). */
 typedef struct moono_fmod_heap_event
 {
     uint32_t kind;
@@ -49,8 +51,9 @@ typedef struct moono_fmod_heap_event
     uint8_t expected[FH_EVENT_BYTES]; /* what it should be */
 } moono_fmod_heap_event;
 
-/* The allocator's counters (moono_fmod_heap_stats). "Held": what the private heap holds for FMOD,
- * live blocks and quarantined ones with their headers and canaries. */
+/* The allocator's counters (moono_fmod_heap_stats). "Held": the memory committed for FMOD: slabs
+ * (live, quarantined and free slots), their side tables and large blocks' pages. "Small": blocks
+ * in slabs (up to 16 KB with their canary); the others have pages of their own. */
 typedef struct moono_fmod_heap_counters
 {
     uint64_t live_bytes, live_blocks, peak_live_bytes;
@@ -59,10 +62,15 @@ typedef struct moono_fmod_heap_counters
     uint64_t checked_bytes;   /* quarantined bytes checked on their way out */
     uint64_t events, events_dropped;
     uint64_t quarantine_limit;
+    uint64_t held_bytes, slab_bytes, side_bytes, large_bytes;
+    uint64_t small_quarantined_bytes, small_quarantine_limit; /* (the quarantine less the large blocks') */
+    uint64_t small_age_ms, large_age_ms; /* how long the last block to leave each FIFO had been in it */
+    uint64_t small_frees, small_bytes_freed;
 } moono_fmod_heap_counters;
 
-/* Once, before FMOD_Memory_Initialize is given the three callbacks: the private heap and the
- * quarantine's size in bytes (0: no quarantine, blocks are freed at once). 1 when ready. */
+/* Once, before FMOD_Memory_Initialize is given the three callbacks: reserves the address space
+ * and sets the quarantine's size in bytes (oldest out first; blocks over 16 KB a quarter of it at
+ * most; 0: no quarantine, blocks are freed at once). 1 when ready. */
 FH_EXPORT int moono_fmod_heap_init(uint64_t quarantine_bytes);
 
 /* FMOD_MEMORY_ALLOC_CALLBACK, FMOD_MEMORY_REALLOC_CALLBACK and FMOD_MEMORY_FREE_CALLBACK (F_CALL

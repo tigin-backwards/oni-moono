@@ -144,7 +144,7 @@ namespace OniMoono.Host.GameTweaks
             new(FmodQuarantine, General, "Sound memory guard", "Guards against a bug in the game's sound engine that can crash the game.",
                 "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. "
                 + "With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, "
-                + "and Player.log notes each one found. Uses about 50 MB more memory on a large colony. Windows only for now."),
+                + "and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."),
             new(ExactWorldgen, General, "Worldgen as in the original", "A seed makes the same map as in the original game, so shared seeds match.",
                 "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. "
                 + "Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."),
