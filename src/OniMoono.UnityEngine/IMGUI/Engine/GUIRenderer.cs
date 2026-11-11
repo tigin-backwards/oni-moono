@@ -62,19 +62,20 @@ namespace OniMoono.Engine.IMGUI
             }
         }
 
-        /// GUI drawing goes to the screen (the back buffer, or a capture's super-sampled target)
-        /// in screen pixel coordinates with the origin at the top left; GL immediate drawing
-        /// (Graphics.DrawTexture) inside OnGUI uses the same space.
+        /// GUI drawing goes to the screen (the back buffer, or a capture's super-sized target or
+        /// window of it) in screen pixel coordinates with the origin at the top left; GL
+        /// immediate drawing (Graphics.DrawTexture) inside OnGUI uses the same space.
         public static void BeginFrame()
         {
             var device = GraphicsDevice.Current;
             var size = new Vector2(Screen.width, Screen.height);
-            int scale = FrameRenderer.ScreenScale;
+            var pixels = FrameRenderer.ScreenPixelSize;
+            var projection = FrameRenderer.ScreenProjection(Projection);
             FrameRenderer.Bind(device, FrameRenderer.ScreenBinding);
-            device.SetViewport(new Rect(0f, 0f, size.x * scale, size.y * scale));
-            device.SetCamera(new CameraConstants(Matrix4x4.identity, Projection, Vector3.zero, -1f, 100f, true, size));
+            device.SetViewport(new Rect(0f, 0f, pixels.x, pixels.y));
+            device.SetCamera(new CameraConstants(Matrix4x4.identity, projection, Vector3.zero, -1f, 100f, true, size));
             GLState.Push();
-            GLState.Projection = Projection;
+            GLState.Projection = projection;
             GLState.ModelView = Matrix4x4.identity;
             active = true;
         }

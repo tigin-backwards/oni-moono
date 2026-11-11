@@ -179,15 +179,27 @@ namespace OniMoono.Desktop.Vulkan
         public override bool RendersFrames => true;
         public override bool Supports(ShaderNative shader) => VkPrograms.PlatformOf(shader) != 0;
 
+        /// Unity's Vulkan programs, which this device draws with, cannot take CaptureTiles'
+        /// changes, and its GLCore programs compiled for a capture read the world's property
+        /// textures (drawn by Unity's Vulkan programs) turned over.
+        public override bool CaptureTileShaders => false;
+
         public static bool IsDeviceLost(Exception e)
             => e is VkResultError { Result: VkResult.ErrorDeviceLost } || e.InnerException is VkResultError { Result: VkResult.ErrorDeviceLost };
 
         readonly HashSet<string> failuresLogged = new();
 
+        long failedCommands;
+
+        /// Commands that failed (CommandFailed), a lost device's included: a capture that saw
+        /// one writes nothing (FrameRenderer.Capture).
+        public override long FailedCommands => System.Threading.Interlocked.Read(ref failedCommands) + (deviceLost ? 1 : 0);
+
         /// A recorded command threw (device thread): logged once per kind of failure, the open
         /// pass ended, and the frame goes on; a lost device ends the game (see DeviceLost).
         void CommandFailed(Exception e)
         {
+            System.Threading.Interlocked.Increment(ref failedCommands);
             if (IsDeviceLost(e))
             {
                 if (deviceLost) return;
@@ -412,6 +424,38 @@ namespace OniMoono.Desktop.Vulkan
                     TextureFormats.Encode(destination.Format, mip, destination.Width, destX + x, destY + y,
                         new Color(pixels[o], pixels[o + 1], pixels[o + 2], pixels[o + 3]));
                 }
+        }
+
+        /// Reads as 8-bit RGBA straight into the array (a capture's band): a read that fails on
+        /// the device thread (memory for its buffer) counts as a failed command.
+        public override void ReadPixelsRgba8(RenderTextureNative source, RectInt rect, byte[] destination, int offset, int stride)
+        {
+            if (rect.width <= 0 || rect.height <= 0) return;
+            if (stride % 4 != 0 || offset < 0 || (long)offset + (long)stride * (rect.height - 1) + rect.width * 4L > destination.Length)
+                throw new ArgumentOutOfRangeException(nameof(stride));
+            var device = source != null ? GlTextures.Prepare(worker, source) : null;
+            bool autoMips = source?.AutoGenerateMips ?? false;
+            int fbWidth = platform.FramebufferWidth, fbHeight = platform.FramebufferHeight;
+            int w = rect.width, h = rect.height;
+            worker.TryCall(() =>
+            {
+                float[] pixels;
+                try
+                {
+                    pixels = ReadNow(device, autoMips, rect.x, rect.y, w, h, fbWidth, fbHeight);
+                }
+                catch (Exception e)
+                {
+                    CommandFailed(e);
+                    return 0;
+                }
+                for (int y = 0; y < h; y++)
+                {
+                    var row = destination.AsSpan(offset + y * stride, w * 4);
+                    for (int i = 0; i < row.Length; i++) row[i] = (byte)Math.Clamp((int)MathF.Round(pixels[y * w * 4 + i] * 255f), 0, 255);
+                }
+                return 0;
+            }, out _);
         }
 
         public override void Upload(TextureNative texture) => GlTextures.Prepare(worker, texture);

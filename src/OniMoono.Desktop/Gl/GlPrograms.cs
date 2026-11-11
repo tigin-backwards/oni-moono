@@ -22,6 +22,8 @@ namespace OniMoono.Desktop.Gl
         /// Vulkan, GLCore programs compiled to SPIR-V: the factor their vertex epilogue turns
         /// OpenGL's clip-space y by (VkGlsl.ClipYUniform).
         ClipY,
+        /// `oni_ScreenTile`, a tiled capture's window (CameraConstants.ScreenTile; CaptureTiles).
+        ScreenTile,
     }
 
     internal sealed class UniformBinding
@@ -45,6 +47,9 @@ namespace OniMoono.Desktop.Gl
         public bool OpenGlClip;
         /// The program runs with Direct3D's render-texture convention (Direct3DClip).
         public bool Direct3DClip;
+        /// The program places its vertices in the whole of a tiled capture and moves them into
+        /// the window itself (CaptureTiles.Positions).
+        public bool WholeCapture;
     }
 
     internal sealed class SamplerBinding
@@ -214,8 +219,10 @@ namespace OniMoono.Desktop.Gl
             if (!Supported(variant)) return program;
             bool direct3D = Direct3DClip.Applies(shader.ShaderName);
             var vertexSource = direct3D ? Direct3DClip.Vertex(variant.VertexSource) : variant.VertexSource;
+            var fragmentSource = variant.FragmentSource;
+            bool wholeCapture = CaptureTiles.Apply(shader.ShaderName, ref vertexSource, ref fragmentSource);
             uint vs = GlApi.CompileShader(VertexShader, Prepare(vertexSource), out var vlog);
-            uint fs = GlApi.CompileShader(FragmentShader, Prepare(variant.FragmentSource), out var flog);
+            uint fs = GlApi.CompileShader(FragmentShader, Prepare(fragmentSource), out var flog);
             program.Outputs = OutputLocations(variant.FragmentSource);
             uint gs = 0;
             string glog = "";
@@ -242,6 +249,7 @@ namespace OniMoono.Desktop.Gl
             foreach (var u in program.Uniforms)
             {
                 u.Direct3DClip = direct3D;
+                u.WholeCapture = wholeCapture;
                 if (u.Block < 0) program.LooseLength += GlUniforms.Length(u);
             }
             foreach (var size in program.BlockSizes) program.BlocksLength += Math.Max(size, 16);
@@ -332,6 +340,7 @@ namespace OniMoono.Desktop.Gl
                 "_WorldSpaceCameraPos" => UniformSource.WorldSpaceCameraPos,
                 "unity_WorldTransformParams" => UniformSource.WorldTransformParams,
                 "oni_ClipY" => UniformSource.ClipY,
+                CaptureTiles.Uniform => UniformSource.ScreenTile,
                 _ => UniformSource.Property,
             };
             if (u.Source != UniformSource.Property) return;
@@ -457,6 +466,140 @@ namespace OniMoono.Desktop.Gl
         }
     }
 
+    /// A super-sized capture larger than one render target renders the screen in windows
+    /// (FrameRenderer.Capture): the cameras' projections narrowed to each window, and the
+    /// screen-sized render textures the size of the window, holding that part of the screen.
+    /// Most programs come out right that way, as do those that read a screen-sized texture at
+    /// a position they derive from their clip-space one (Klei/TiledBlock and the other light
+    /// buffer readers). The game's shaders that derive screen positions any other way read the
+    /// window's, not the whole capture's, without these changes (CameraConstants.ScreenTile,
+    /// `oni_ScreenTile`):
+    ///
+    /// - Klei/Liquid reads MRT0_Copy and MRT1_Copy (the scene behind the water, refracted) at
+    ///   the screen position it computes from the world position, `_CameraZoomInfo` and the
+    ///   camera's: its reads are moved into the window (Copies).
+    /// - Klei/Stars (the space background's layers), Klei/Substance's screen-space pattern,
+    ///   Klei/BatchedAnimationShine's shine angle, Klei/PostFX/LightBufferCompositor's
+    ///   screen-space noise, and the pixel size TextMeshPro's, UI/Default's and Sprites/Mask's
+    ///   take from the projection and `_ScreenParams` derive them from the clip-space position
+    ///   and the whole capture's screen size: these programs place
+    ///   their vertices in the whole capture (UniformBinding.WholeCapture) and move them into the
+    ///   window after their own main (Positions).
+    ///
+    /// - The light buffer (`_LightBufferTex`), which the world's shaders read at points of the
+    ///   world (a kanim at its anchor, which can lie well outside the window drawing it), is
+    ///   rendered once for the whole capture (FrameRenderer.RenderLightBufferWhole); every read
+    ///   of it is moved from the window into the whole capture (Lights).
+    ///
+    /// Outside a tiled capture `oni_ScreenTile` is (1, 1, 0, 0) and these changes do nothing.
+    internal static class CaptureTiles
+    {
+        public const string Uniform = "oni_ScreenTile";
+
+        static readonly HashSet<string> copies = new(StringComparer.Ordinal) { "Klei/Liquid" };
+
+        static readonly HashSet<string> positions = new(StringComparer.Ordinal)
+        {
+            "Klei/Stars", "Klei/Substance", "Klei/BatchedAnimationShine", "Klei/PostFX/LightBufferCompositor",
+            "UI/Default", "Sprites/Mask",
+        };
+
+        /// TextMeshPro's shaders size their distance field's edge by the pixel size they derive
+        /// from the projection and `_ScreenParams`.
+        static bool PlacesInWhole(string name) => positions.Contains(name) || name.StartsWith("TextMeshPro/", StringComparison.Ordinal);
+
+        static readonly System.Text.RegularExpressions.Regex lightRead =
+            new(@"\btexture\(\s*_LightBufferTex\s*,\s*([A-Za-z_][A-Za-z0-9_]*(?:\.[xyzw]{2})?)\s*\)", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        static readonly System.Text.RegularExpressions.Regex copyRead =
+            new(@"\btexture\(\s*(MRT[0-9]_Copy)\s*,\s*([A-Za-z_][A-Za-z0-9_]*(?:\.[xyzw]{2})?)\s*\)", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        static readonly HashSet<string> logged = new(StringComparer.Ordinal);
+
+
+        /// Changes a program's stages for tiled captures; true when its vertices are placed in
+        /// the whole capture (UniformBinding.WholeCapture).
+        public static bool Apply(string shaderName, ref string vertex, ref string fragment)
+        {
+            var name = shaderName.Trim();
+            if (fragment != null && fragment.Contains("_LightBufferTex", StringComparison.Ordinal))
+            {
+                var changed = Lights(fragment, out int reads);
+                if (reads == 0) Log(name, "reads the light buffer in a way this change does not know");
+                fragment = changed;
+            }
+            if (copies.Contains(name) && fragment != null)
+            {
+                var changed = Copies(fragment, out int reads);
+                if (reads == 0) Log(name, "reads no MRT copy where expected");
+                fragment = changed;
+            }
+            if (PlacesInWhole(name) && vertex != null)
+            {
+                vertex = Positions(vertex);
+                return true;
+            }
+            return false;
+        }
+
+        static void Log(string name, string what)
+        {
+            lock (logged)
+                if (logged.Add(name)) OniMoono.Engine.EngineLog.Engine($"capture tiles: '{name}' {what}; its tiled captures may show seams");
+        }
+
+        /// The fragment stage with each read of an MRT copy moved from the whole capture's
+        /// texture coordinates into the window's.
+        internal static string Copies(string source, out int reads)
+        {
+            int count = 0;
+            var result = copyRead.Replace(source, m =>
+            {
+                count++;
+                return $"texture({m.Groups[1].Value}, {m.Groups[2].Value} * {Uniform}.xy + {Uniform}.zw)";
+            });
+            reads = count;
+            return count == 0 ? source : Declare(result);
+        }
+
+        /// The fragment stage with each read of the light buffer moved from the window's texture
+        /// coordinates into the whole capture's: a tiled capture renders the light buffer once,
+        /// for the whole capture (FrameRenderer.RenderLightBufferWhole).
+        internal static string Lights(string source, out int reads)
+        {
+            int count = 0;
+            var result = lightRead.Replace(source, m =>
+            {
+                count++;
+                return $"texture(_LightBufferTex, ({m.Groups[1].Value} - {Uniform}.zw) / {Uniform}.xy)";
+            });
+            reads = count;
+            return count == 0 ? source : Declare(result);
+        }
+
+        /// The vertex stage with its main renamed and a main that calls it, then moves
+        /// gl_Position from the whole capture into the window.
+        internal static string Positions(string source)
+        {
+            System.Text.RegularExpressions.Match main = null;
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(source, @"\bvoid\s+main\s*\(\s*\)")) main = m;
+            if (main == null) throw new FormatException("vertex stage without main");
+            var renamed = source[..main.Index] + "void oni_tile_main()" + source[(main.Index + main.Length)..];
+            return Declare(renamed)
+                + $"\nvoid main()\n{{\n    oni_tile_main();\n    gl_Position.xy = gl_Position.xy * {Uniform}.xy + ({Uniform}.xy + 2.0 * {Uniform}.zw - 1.0) * gl_Position.w;\n}}\n";
+        }
+
+        /// The uniform declared after the #version and #extension lines.
+        static string Declare(string source)
+        {
+            if (source.Contains($"uniform vec4 {Uniform};", StringComparison.Ordinal)) return source;
+            int at = 0;
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(source, @"^[ \t]*#(version|extension)[^\n]*\n", System.Text.RegularExpressions.RegexOptions.Multiline))
+                at = m.Index + m.Length;
+            return source[..at] + $"uniform vec4 {Uniform};\n" + source[at..];
+        }
+    }
+
     /// Everything a draw's uniforms can depend on.
     internal sealed class DrawInputs
     {
@@ -571,9 +714,14 @@ namespace OniMoono.Desktop.Gl
             var cam = d.Camera;
             // A compiled GLCore program reads OpenGL's projection; its epilogue does the rest.
             var conventions = u.OpenGlClip ? default : d.Conventions;
+            // A tiled capture: the camera's own projection is the whole capture's; what
+            // rasterises is the window's, but for programs that move into the window themselves
+            // (CaptureTiles).
+            var whole = cam.VirtualProjection;
+            var placed = u.WholeCapture ? whole : cam.Projection;
             // Direct3D's projection for a program drawn as Direct3D draws it (Direct3DClip).
             bool flipped = conventions.Flipped || (u.Direct3DClip && d.RenderTexture);
-            var projection = u.Direct3DClip ? Direct3DClip.Projection(cam.Projection, d.RenderTexture) : conventions.GpuProjection(cam.Projection);
+            var projection = u.Direct3DClip ? Direct3DClip.Projection(placed, d.RenderTexture) : conventions.GpuProjection(placed);
             if (u.IsMatrix)
             {
                 int matrices = Math.Max(1, u.Size / 4);
@@ -590,8 +738,8 @@ namespace OniMoono.Desktop.Gl
                     UniformSource.MatrixV => cam.View,
                     UniformSource.MatrixInvV => cam.View.inverse,
                     UniformSource.MatrixP => projection,
-                    UniformSource.CameraProjection => cam.Projection,
-                    UniformSource.CameraInvProjection => cam.Projection.inverse,
+                    UniformSource.CameraProjection => whole,
+                    UniformSource.CameraInvProjection => whole.inverse,
                     UniformSource.MatrixVP => projection * cam.View,
                     UniformSource.MatrixInvVP => (projection * cam.View).inverse,
                     UniformSource.MatrixMVP => projection * cam.View * d.ObjectToWorld,
@@ -650,12 +798,15 @@ namespace OniMoono.Desktop.Gl
                 }
                 case UniformSource.OrthoParams:
                 {
-                    float h = 1f / cam.Projection.m11, w = 1f / cam.Projection.m00;
+                    float h = 1f / whole.m11, w = 1f / whole.m00;
                     v = new Vector4(w, h, 0f, cam.Orthographic ? 1f : 0f);
                     break;
                 }
                 case UniformSource.WorldSpaceCameraPos:
                     v = new Vector4(cam.Position.x, cam.Position.y, cam.Position.z, 0f);
+                    break;
+                case UniformSource.ScreenTile:
+                    v = cam.Tile;
                     break;
                 case UniformSource.WorldTransformParams:
                     v = new Vector4(0f, 0f, 0f, d.ObjectToWorld.determinant < 0f ? -1f : 1f);

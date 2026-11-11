@@ -515,6 +515,10 @@ namespace OniMoono.Engine.Rendering
         /// texfallback: "rt-new").
         public bool EverCreated { get; private set; }
 
+        /// A screen-sized texture a super-sized capture made its window's size (FrameRenderer
+        /// .Capture): the screen size its cameras see meanwhile; zero otherwise.
+        public Vector2 CaptureLogicalSize;
+
         /// Temporary render texture pool bookkeeping (RenderTexture.GetTemporary).
         public bool IsTemporary;
         public bool TemporaryInUse;

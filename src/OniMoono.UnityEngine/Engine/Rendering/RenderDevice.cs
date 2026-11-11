@@ -68,6 +68,11 @@ namespace OniMoono.Engine.Rendering
         /// the like); each was logged.
         public virtual long FailedCommands => 0;
 
+        /// Whether the device's programs take the changes a tiled capture needs (CaptureTiles):
+        /// without them a capture fits in one render target where it can, and its windows
+        /// render the light buffer each for themselves.
+        public virtual bool CaptureTileShaders => true;
+
         /// Reads a rectangle of a render target (null: the back buffer) as RGBA 8-bit rows,
         /// bottom row first, into `destination` from `offset`, rows `stride` bytes apart. This
         /// default reads through a texture; a device reads straight into the array.
@@ -118,10 +123,13 @@ namespace OniMoono.Engine.Rendering
 
         /// View and projection (Unity convention; the device applies its clip-space rules) for
         /// the following draws, with the camera's built-in shader constants.
+        /// During a tiled capture the following draws carry the capture's window
+        /// (CameraConstants.ScreenTile, FrameRenderer.CaptureTile).
         public void SetCamera(in CameraConstants camera)
         {
-            Camera = camera;
-            ApplyCamera(camera);
+            var c = camera with { ScreenTile = FrameRenderer.CaptureTile };
+            Camera = c;
+            ApplyCamera(c);
         }
 
         /// The constants the following draws use (the last SetCamera).
@@ -185,7 +193,50 @@ namespace OniMoono.Engine.Rendering
         public static RenderTargetBinding Of(RenderTextureNative texture) => texture == null ? BackBuffer : new(texture.AsTarget ??= [texture], texture, 0);
     }
 
-    internal readonly record struct CameraConstants(Matrix4x4 View, Matrix4x4 Projection, Vector3 Position, float Near, float Far, bool Orthographic, Vector2 TargetSize);
+    internal readonly record struct CameraConstants(Matrix4x4 View, Matrix4x4 Projection, Vector3 Position, float Near, float Far, bool Orthographic, Vector2 TargetSize)
+    {
+        /// A tiled capture's window (FrameRenderer.CaptureTile): texture coordinates of the
+        /// whole capture (its virtual screen) map onto the window's render targets as
+        /// `uv * xy + zw`. Projection is then the window's (what rasterises); programs that
+        /// derive screen positions themselves read the whole capture's (ScreenTiles). Zero
+        /// outside a tiled capture.
+        public Vector4 ScreenTile { get; init; }
+
+        /// ScreenTile, or the identity (1, 1, 0, 0) outside a tiled capture.
+        public Vector4 Tile => ScreenTile.x == 0f ? new Vector4(1f, 1f, 0f, 0f) : ScreenTile;
+
+        /// The clip-space transform from the whole capture to the window (identity outside a
+        /// tiled capture): x' = x·s + (s + 2o − 1)·w per axis.
+        public Matrix4x4 TileClip
+        {
+            get
+            {
+                var t = Tile;
+                var m = Matrix4x4.identity;
+                m.m00 = t.x;
+                m.m11 = t.y;
+                m.m03 = t.x + 2f * t.z - 1f;
+                m.m13 = t.y + 2f * t.w - 1f;
+                return m;
+            }
+        }
+
+        /// The projection of the whole capture: Projection with the window's transform undone.
+        public Matrix4x4 VirtualProjection
+        {
+            get
+            {
+                if (ScreenTile.x == 0f) return Projection;
+                var t = Tile;
+                var inverse = Matrix4x4.identity;
+                inverse.m00 = 1f / t.x;
+                inverse.m11 = 1f / t.y;
+                inverse.m03 = -(t.x + 2f * t.z - 1f) / t.x;
+                inverse.m13 = -(t.y + 2f * t.w - 1f) / t.y;
+                return inverse * Projection;
+            }
+        }
+    }
 
     /// Keywords: enabled in addition to the material's and the global ones (UI rect clipping).
     /// Pass -1 draws the forward-rendering passes of the active subshader, or every pass when
