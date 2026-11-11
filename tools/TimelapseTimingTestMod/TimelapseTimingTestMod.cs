@@ -83,9 +83,9 @@ namespace TimelapseTimingTestMod
         }
 
         /// With `Verify(true)`: each colony preview is also read here, synchronously, before the game's
-        /// asynchronous read-back (Texture2D.ReadPixels, then EncodeToPNG), and once the game has
-        /// written its file, the file is compared with that: its bytes, and its texels as
-        /// LoadImage gives them. (The synchronous read makes that capture's frame longer: a run
+        /// asynchronous read-back (Texture2D.ReadPixels, then EncodeArrayToPNG on a task, as the
+        /// Timelapser encodes), and once the game has written its file, the file is compared with
+        /// that: its bytes, and its texels as LoadImage gives them. (The synchronous read makes that capture's frame longer: a run
         /// that measures the hitch leaves it off.)
         public static void Verify(bool on) => verify = on;
 
@@ -107,7 +107,11 @@ namespace TimelapseTimingTestMod
                 read.ReadPixels(new Rect(0, 0, renderTex.width, renderTex.height), 0, 0);
                 read.Apply();
                 RenderTexture.active = active;
-                syncPng = read.EncodeToPNG();
+                // Encoded as the Timelapser encodes its read-back, on a task: EncodeToPNG on the
+                // main thread deflates at another level (PngWriter.FrameLevel), so its bytes differ.
+                var raw = read.GetRawTextureData();
+                int width = read.width, height = read.height;
+                syncPng = System.Threading.Tasks.Task.Run(() => ImageConversion.EncodeArrayToPNG(raw, UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm, (uint)width, (uint)height)).Result;
                 syncPixels = read.GetPixels32();
                 UnityEngine.Object.Destroy(read);
             }

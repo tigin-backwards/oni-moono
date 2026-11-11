@@ -12,8 +12,9 @@
 #   preview of that save is the picture, not nothing (wait-timelapse-writes:
 #   src/OniMoono.GameTweaks/TimelapseWrites.cs).
 # - That preview, read synchronously as well when it is captured (Texture2D.ReadPixels, then
-#   EncodeToPNG): the file the background write left has the same bytes, and LoadImage gives the
-#   same texels.
+#   EncodeArrayToPNG on a task, as the Timelapser encodes; EncodeToPNG on the main thread deflates
+#   at another level): the file the background write left has the same bytes, and LoadImage gives
+#   the same texels.
 from: early-base
 test_mods: [TimelapseTimingTestMod]
 setup:
