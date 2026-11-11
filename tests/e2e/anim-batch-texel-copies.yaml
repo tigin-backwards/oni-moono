@@ -1,0 +1,16 @@
+# fast-anim-batches against first uploads made at Apply (src/OniMoono.GameTweaks/
+# FastAnimBatches.cs; GlAhead, rendering's "first uploads start at Apply"). Ours only (`--player
+# ours`): the original has neither.
+#
+# A late-game Spaced Out colony at speed 3 with texel copies in verify mode. The tweak writes
+# symbol override blocks after the game's loop, which applied the texture before them; a first
+# upload starts its copy at that Apply, so the writes once tore the copy (QA's verify run: 10 to
+# 12 copies of SymbolOverrideInfoTex in the first minutes). Now they wait for the copy and the
+# texture is applied again: no copy changes while it is made.
+from: U57
+env: {ONI_VERIFY_TEXEL_COPIES: "1"}
+steps:
+  - run: {seconds: 240}
+  - expect_state:
+      "type:OniMoono.Engine.Rendering.TexelCopies::verified": "> 1000"
+      "type:OniMoono.Engine.Rendering.TexelCopies::Torn": 0

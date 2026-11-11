@@ -25,8 +25,9 @@ namespace OniMoono.GameTweaks
     /// written. The override block write, which must follow the controller's own override
     /// application, is answered in the loop (written or not, by the game's own slot test) and
     /// its copy made after the loop, again on workers. Everything else (applying overrides,
-    /// texture creation, Apply, which only marks a texture changed, the dirty bookkeeping) runs
-    /// in the game's own order on the main thread. Each batch's writes touch only its own
+    /// texture creation, Apply, the dirty bookkeeping) runs in the game's own order on the main
+    /// thread; an override texture whose blocks were written after the loop is applied again
+    /// after them (its first Apply may have started its upload). Each batch's writes touch only its own
     /// textures and slots, and the controllers registered with it (a controller is in one batch).
     /// What the writes read (frame, visibility, position, transforms, the symbol instance and
     /// override blocks) is not changed by applying another controller's overrides, so writing
@@ -275,8 +276,14 @@ namespace OniMoono.GameTweaks
                 if (deferring.Count > 0)
                 {
                     long t1 = timing ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+                    // The loop's Apply came before these writes, and may have started the
+                    // texture's upload (a first upload starts at Apply, as in Unity): the writes
+                    // wait for its copy of the texels (the engine's access waits), and the
+                    // texture is applied again after them, as the game applies after its writes.
+                    foreach (var work in deferring) work.Batch.symbolOverrideInfoTex.GetDataPointer();
                     if (deferring.Count == 1) DeferBody(0);
                     else WorkerLoop.For(deferring.Count, deferBody);
+                    foreach (var work in deferring) work.Batch.symbolOverrideInfoTex.Apply();
                     if (timing) ticksParallel += System.Diagnostics.Stopwatch.GetTimestamp() - t1;
                     if (verify) VerifyDeferred();
                     deferring.Clear();
@@ -310,8 +317,8 @@ namespace OniMoono.GameTweaks
 
         /// KAnimBatch.WriteSymbolOverrideInfoTex, in a frame the workers took part in: when the
         /// slot is stale (the game would write), the block is written after the loop instead
-        /// and the game's answer (written) returned now. The texture's Apply that follows only
-        /// marks it changed; nothing reads its memory before the frame is drawn.
+        /// and the game's answer (written) returned now. The texture's Apply that follows is
+        /// made again after those writes (Postfix).
         [MirrorsGame("System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
         static bool WriteOverrides(KAnimBatch batch, int index, KAnimConverter.IAnimConverter controller, NativeArray<byte> data)
         {
