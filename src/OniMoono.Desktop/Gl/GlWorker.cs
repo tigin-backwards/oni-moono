@@ -147,6 +147,16 @@ namespace OniMoono.Desktop.Gl
             recording = next ?? new Frame();
         }
 
+        /// Submit when the GL thread has executed everything handed over (it waits for nothing);
+        /// false, with nothing handed over, when it is still busy.
+        public bool TrySubmit()
+        {
+            lock (gate)
+                if (submitted != null || stopping) return false;
+            Submit();
+            return true;
+        }
+
         // The executed frame, returned to the main thread for reuse.
         Frame finished;
 

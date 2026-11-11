@@ -527,7 +527,22 @@ namespace OniMoono.Desktop.Gl
         }
 
         internal static void PostUpload(GlWorker worker, DeviceTexture g, TexelUpload upload)
-            => worker.Post(worker.Arena.Command().UploadTexture(worker.Resources, g, upload));
+        {
+            worker.Post(worker.Arena.Command().UploadTexture(worker.Resources, g, upload));
+            if (FlushUploadBytes <= 0 || upload.Memory == null) return;
+            postedUploadBytes += upload.Memory.Size;
+            if (postedUploadBytes < FlushUploadBytes || !OniMoono.Engine.Threads.IsMainThread) return;
+            // Only when the GL thread is done with the last: the main thread never waits for it here.
+            if (worker.TrySubmit()) postedUploadBytes = 0;
+        }
+
+        /// Once texel uploads past this many bytes are recorded, the frame so far is handed to the
+        /// GL thread, ahead of the rest of the frame, when it has nothing left to execute (0:
+        /// never; the OpenGL device's 32 MB). A view's first sight of much (U60's colony preview
+        /// after a load: 230 MB of animation batch data in one frame) is then uploaded while the
+        /// main thread goes on with the frame, not after it.
+        internal static long FlushUploadBytes;
+        static long postedUploadBytes;
 
         internal static void PostSampler(GlWorker worker, DeviceTexture g, SamplerSettings sampler)
             => worker.Post(worker.Arena.Command().ApplySampler(worker.Resources, g, sampler));

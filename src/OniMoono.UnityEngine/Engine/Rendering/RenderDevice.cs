@@ -112,6 +112,10 @@ namespace OniMoono.Engine.Rendering
         /// device does that (main thread).
         public virtual void PrepareAhead(MeshNative mesh) { }
 
+        /// A script applied a texture's texels (Texture2D.Apply, main thread): the device may
+        /// record their upload now rather than at the first draw that samples it.
+        public virtual void Applied(TextureNative texture) { }
+
         /// Work was queued ahead of use (main thread): the device may start on it.
         public virtual void AheadQueued() { }
 

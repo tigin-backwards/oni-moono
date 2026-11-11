@@ -170,6 +170,7 @@ namespace OniMoono.Desktop.Gl
             worker = new GlWorker(platform.RenderWindow, CommandFailed);
             recorder = new GlDrawRecorder(worker, DefaultTexture, RunDraw);
             GlBackgroundUploads.Start(worker);
+            GlTextures.FlushUploadBytes = Environment.GetEnvironmentVariable("ONI_UPLOAD_FLUSH") == "0" ? 0 : 32L << 20;
             if (GlAhead.Enabled) GlAhead.Start(worker);
             // A frame's GPU time is measured from its first commands, not from the previous
             // present: in between the GL thread waits for the main thread's next frame.
@@ -1093,6 +1094,16 @@ namespace OniMoono.Desktop.Gl
         }
 
         public override void AheadQueued() => GlAhead.Wake();
+
+        /// The first upload of a texture whose storage was made ahead (GlAhead) is recorded when
+        /// the script applies it, not at the first draw: a view's first sight of much (the
+        /// animation batches a colony preview shows, whose data the game applies in the frame's
+        /// late update) then uploads while the main thread goes on with the frame. Later uploads
+        /// wait for a draw, as before.
+        public override void Applied(TextureNative texture)
+        {
+            if (texture.Gpu is DeviceTexture g && g.RecordedContent < 0 && g.Background == null && g.RecordedShape == null) GlTextures.Prepare(worker, texture);
+        }
 
         public override void ReleaseResource(object gpu)
         {
