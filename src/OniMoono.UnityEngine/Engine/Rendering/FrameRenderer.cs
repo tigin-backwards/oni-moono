@@ -579,8 +579,8 @@ namespace OniMoono.Engine.Rendering
             try
             {
                 using var file = new System.IO.FileStream(partial, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None, 1 << 20);
-                // Level 6: the capture is written on the main thread, in the frame it is taken.
-                using var png = new PngWriter(file, w, h, 4, level: 6);
+                // The capture is written on the main thread, in the frame it is taken.
+                using var png = new PngWriter(file, w, h, 4, level: PngWriter.FrameLevel);
                 if (scale == 1)
                 {
                     // The finished frame, as it is about to be presented.
