@@ -4,7 +4,49 @@ How much managed memory each player hands out while a colony runs, and where. KB
 powers of 1,000. "A game second" is one second of game time; "a real second" one of wall-clock
 time. Method and fixtures in [Method](#method).
 
-## Summary
+The [U60 runs after allocation batch 4](#u60-after-allocation-batch-4-2026-11-11) are the latest
+figures. The rest of this page measured an earlier u60 build (cf2d0849) and U59.
+
+## U60 after allocation batch 4 (2026-11-11)
+
+Moono u60 4ff1e540 (allocation batches 1 to 4) against the original and against the u60 build
+measured in the rest of this page (cf2d0849, batches 1 to 3), all three held at the same frame
+cap: 20 fps on the late-game colony, 34 fps on the mid-game one. The original can't reach either
+cap, so it ran at its own rate. Each row is one 600 s window at speed 3, Linux. Other load was
+0.5–0.9 cores.
+
+**Late-game colony, 20 fps cap**
+
+| Run | fps | Game s a real s | KB a frame | MB a game s | MB a real s | Collections in 600 s | GC pause |
+|---|---|---|---|---|---|---|---|
+| Original | 6.8 | 1.37 | 294 | 1.47 | 2.01 | 1 | not measured (incremental) |
+| Moono, earlier build | 19.6 | 2.99 | 283 | 1.86 | 5.55 | 5 (2 gen1, 1 gen2) | 361 ms in all |
+| Moono, batch 4 | 19.6 | 2.99 | 217 | 1.42 | 4.25 | 3 (1 gen1) | 526 ms in all |
+
+**Mid-game colony, 34 fps cap**
+
+| Run | fps | Game s a real s | KB a frame | MB a game s | MB a real s | Collections in 600 s | GC pause |
+|---|---|---|---|---|---|---|---|
+| Original | 12.5 | 2.48 | 60 | 0.30 | 0.75 | 1 | not measured (incremental) |
+| Moono, earlier build | 33.7 | 2.99 | 105 | 1.18 | 3.53 | 3 (1 gen1) | 151 ms in all |
+| Moono, batch 4 | 34.0 | 2.99 | 58 | 0.66 | 1.98 | 2 (1 gen1) | 142 ms in all |
+
+- **A frame, Moono now allocates less than the original on both colonies:** 217 against 294 KB
+  on the late-game colony, 58 against 60 on the mid-game one.
+- **A game second, Moono is level with the original on the late-game colony** (1.42 against
+  1.47 MB, 0.97×), though it draws 6.5 frames to a game second against the original's 5.0. On the
+  mid-game colony it is 2.2× (0.66 against 0.30 MB), down from 3.5–4.2× before, at 11.4 frames
+  to a game second against 5.0.
+- **Batch 4 cut** 23% a frame on the late-game colony (283 → 217 KB) and 44% on the mid-game one
+  (105 → 58 KB), with two collections fewer in 600 s on the late-game colony and one fewer on the
+  mid-game one.
+- A first late-game pair, run with the site probe loaded, gave 293 KB a frame for the original and
+  223 for Moono: the same within 3%.
+
+The section tables under [Where it goes](#where-it-goes-u60-cf2d0849-and-u59) are from the earlier build: the site
+probe wasn't run on this one.
+
+## Summary (u60 cf2d0849 and U59, 2026-11-10)
 
 Each row is one 600 s window at speed 3, Linux, Moono with its default tweaks. "Capped" is Moono
 held at 7 fps, about the original's frame rate on the late-game colony. "Other load" is the CPU
@@ -87,7 +129,7 @@ No mid-game run was capped. If Moono's once-a-frame sections on U60's mid-game c
 a frame, below) all scale with frames, capping it at 5 frames to a game second would give about
 0.7 MB a game second, about 2× the original's 0.3. That is an estimate.
 
-## Where it goes
+## Where it goes (u60 cf2d0849 and U59)
 
 Sections are the game's main update methods and every state-machine bucket, each counted without
 the sections nested in it. "(other)" is what ran on the main thread outside them, in Moono mostly
@@ -198,11 +240,12 @@ the engine. The engine's largest were `Instantiate`'s structure cloning (11%), c
 ## Method
 
 - Players: the original (U59 744825 release, U60 762230 preview, a development build) and Moono (master
-  8392ed3b for U59, u60 cf2d0849 for U60), both with PerfProbe's `alloc.txt`, on Linux under
+  8392ed3b for U59, u60 cf2d0849 for U60, and u60 4ff1e540 for the runs after batch 4), both with PerfProbe's `alloc.txt`, on Linux under
   WSL2 at 1280×720 on Xvfb. Moono ran a warm-up launch first, then default tweaks.
 - Each run loaded the colony at speed 3 with no autosaves, waited 90 s after the first frame-rate
   window, then measured about 600 s between two `PERF alloc` lines. The capped runs set
-  `fps.txt` to 7.
+  `fps.txt` to 7; the runs after batch 4 set it to 20 (late-game) and 34 (mid-game) for every
+  player.
 - The original's counter is Boehm's own total, `GC_get_total_bytes`, read from libmonobdwgc every
   frame, with `GC_get_gc_no` and `GC_get_full_gc_total_time`. Moono's is .NET's
   `GC.GetTotalAllocatedBytes(true)`, with the runtime's pause total and collection counts.
@@ -248,6 +291,10 @@ the engine. The engine's largest were `Instantiate`'s structure cloning (11%), c
 
 ## What this means
 
+- **After allocation batch 4, Moono allocates less than the original a frame on U60** and the
+  same a game second on the late-game colony; the mid-game colony is still 2.2× a game second at
+  Moono's higher frame rate ([above](#u60-after-allocation-batch-4-2026-11-11)). The rest of this
+  section is about the earlier builds.
 - **Moono allocates more than the original, almost all of it in the engine.** At the original's
   frame rate the gap on the late-game colony is 1.1× (U59) to 1.3× (U60) a game second. Uncapped,
   it is up to 1.9× on the late-game colony and 4× on U60's mid-game one, where the game itself
