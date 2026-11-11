@@ -68,6 +68,26 @@ namespace OniMoono.Engine.Rendering
         /// the like); each was logged.
         public virtual long FailedCommands => 0;
 
+        /// Reads a rectangle of a render target (null: the back buffer) as RGBA 8-bit rows,
+        /// bottom row first, into `destination` from `offset`, rows `stride` bytes apart. This
+        /// default reads through a texture; a device reads straight into the array.
+        public virtual void ReadPixelsRgba8(RenderTextureNative source, RectInt rect, byte[] destination, int offset, int stride)
+        {
+            var texture = new UnityEngine.Texture2D(rect.width, rect.height, UnityEngine.TextureFormat.RGBA32, false);
+            try
+            {
+                var native = (Texture2DNative)texture.NativeOrThrow;
+                ReadPixels(source, rect, native, 0, 0);
+                var texels = native.Memory.Span;
+                for (int y = 0; y < rect.height; y++)
+                    texels.Slice(y * rect.width * 4, rect.width * 4).CopyTo(destination.AsSpan(offset + y * stride));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
         /// Copies pixels from a render target (null: the back buffer) into a texture's CPU data.
         public abstract void ReadPixels(RenderTextureNative source, RectInt rect, Texture2DNative destination, int destX, int destY);
 

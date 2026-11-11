@@ -398,25 +398,31 @@ namespace OniMoono.Engine.Rendering
         /// ScreenCapture.CaptureScreenshot: written once this frame is complete.
         public static void RequestCapture(string path, int superSize) => captures.Add((path, Math.Max(1, superSize)));
 
+        /// Bytes of a capture's read-back band: the rows are read and compressed a band at a
+        /// time, straight into the file.
+        const int CaptureBandBytes = 8 << 20;
+
         /// Writes the frame as PNG: the back buffer itself, or for a super-sized capture the frame
-        /// rendered again into a target `scale` times the screen size. A capture that cannot be
-        /// made (an image too large to hold, memory, or a render target the device could not
-        /// make) logs an error and writes nothing; the game goes on (issue #75: an 8x capture of
-        /// a 2560x1440 screen ran out of memory in its read-back, which ended the game).
+        /// rendered again into a target `scale` times the screen size. The pixels are read back a
+        /// band of rows at a time and written through PngStream, so no copy of the whole image is
+        /// held. A capture that cannot be made (larger than the GPU's textures, memory, or a render
+        /// target the device could not make) logs an error and writes nothing; the game goes on
+        /// (issue #75: an 8x capture of a 2560x1440 screen ran out of memory in its read-back,
+        /// which ended the game).
         static void Capture(string path, int scale)
         {
             var p = Platform.PlatformServices.Current;
-            int w = p.FramebufferWidth * scale, h = p.FramebufferHeight * scale;
-            long bytes = (long)p.FramebufferWidth * scale * p.FramebufferHeight * scale * 4;
-            if (bytes > Array.MaxLength)
+            long wide = (long)p.FramebufferWidth * scale, high = (long)p.FramebufferHeight * scale;
+            if (scale > 1 && Math.Max(wide, high) > SystemInfo.maxTextureSize)
             {
-                Debug.LogError($"Failed to capture screenshot: {path} ({(long)p.FramebufferWidth * scale}x{(long)p.FramebufferHeight * scale} pixels do not fit in one image)");
+                Debug.LogError($"Failed to capture screenshot: {path} ({wide}x{high} pixels: larger than the GPU's textures, {SystemInfo.maxTextureSize})");
                 return;
             }
+            int w = (int)wide, h = (int)high;
             var device = GraphicsDevice.Current;
             long failed = device.FailedCommands;
+            var partial = $"{path}.{Environment.ProcessId}.tmp";
             RenderTexture rt = null;
-            Texture2D image = null;
             try
             {
                 RenderTextureNative source = null;
@@ -431,15 +437,28 @@ namespace OniMoono.Engine.Rendering
                     RenderScreen();
                     RenderScreenLate?.Invoke();
                 }
-                // Scale 1: the finished frame, as it is about to be presented.
-                image = new Texture2D(w, h, TextureFormat.RGBA32, false);
-                device.ReadPixels(source, new RectInt(0, 0, w, h), (Texture2DNative)image.NativeOrThrow, 0, 0);
+                // Scale 1: the finished frame, as it is about to be presented. The PNG's rows run
+                // top to bottom, the device's bottom to top.
+                int stride = w * 4, bandRows = Math.Clamp(CaptureBandBytes / stride, 1, h);
+                var band = new byte[bandRows * stride];
+                using (var file = new System.IO.FileStream(partial, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None, 1 << 20))
+                using (var png = new PngStream(file, w, h, 4))
+                {
+                    for (int top = 0; top < h; top += bandRows)
+                    {
+                        int rows = Math.Min(bandRows, h - top);
+                        device.ReadPixelsRgba8(source, new RectInt(0, h - top - rows, w, rows), band, 0, stride);
+                        if (device.FailedCommands != failed) break;
+                        for (int r = rows - 1; r >= 0; r--) png.WriteRow(band.AsSpan(r * stride, stride));
+                    }
+                    if (device.FailedCommands == failed) png.Finish();
+                }
                 if (device.FailedCommands != failed)
                 {
                     Debug.LogError($"Failed to capture screenshot: {path} (rendering at {w}x{h} failed)");
                     return;
                 }
-                System.IO.File.WriteAllBytes(path, image.EncodeToPNG());
+                System.IO.File.Move(partial, path, overwrite: true);
             }
             catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
             {
@@ -457,8 +476,9 @@ namespace OniMoono.Engine.Rendering
                     screenOverride = null;
                     screenScale = 1;
                 }
-                if (image != null) UnityEngine.Object.DestroyImmediate(image);
                 if (rt != null) UnityEngine.Object.DestroyImmediate(rt);
+                try { System.IO.File.Delete(partial); }
+                catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException) { }
             }
         }
 

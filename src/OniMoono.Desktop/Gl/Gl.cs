@@ -28,7 +28,7 @@ namespace OniMoono.Desktop.Gl
         public const uint DepthComponent16 = 0x81A5, Depth24Stencil8 = 0x88F0, Depth32FStencil8 = 0x8CAD, DepthComponent32F = 0x8CAC;
         public const uint CompressedRgbS3tcDxt1 = 0x83F0, CompressedRgbaS3tcDxt5 = 0x83F3, CompressedRedRgtc1 = 0x8DBB, CompressedRgRgtc2 = 0x8DBD;
         public const uint CompressedRgbaBptcUnorm = 0x8E8C, CompressedRgbBptcUnsignedFloat = 0x8E8F;
-        public const uint UnpackAlignment = 0x0CF5, PackAlignment = 0x0D05, UnpackRowLength = 0x0CF2;
+        public const uint UnpackAlignment = 0x0CF5, PackAlignment = 0x0D05, UnpackRowLength = 0x0CF2, PackRowLength = 0x0D02;
         public const uint ArrayBuffer = 0x8892, ElementArrayBuffer = 0x8893, UniformBuffer = 0x8A11, StaticDraw = 0x88E4, DynamicDraw = 0x88E8, StreamDraw = 0x88E0;
         public const uint Framebuffer = 0x8D40, ReadFramebuffer = 0x8CA8, DrawFramebuffer = 0x8CA9, Renderbuffer = 0x8D41;
         public const uint ColorAttachment0 = 0x8CE0, DepthAttachment = 0x8D00, DepthStencilAttachment = 0x821A, FramebufferComplete = 0x8CD5;
