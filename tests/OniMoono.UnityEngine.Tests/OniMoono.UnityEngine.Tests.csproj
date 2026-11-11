@@ -84,6 +84,8 @@
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakMetadata.cs" Link="Host/TweakMetadata.cs" />
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakChecks.cs" Link="Host/TweakChecks.cs" />
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakInstall.cs" Link="Host/TweakInstall.cs" />
+    <!-- Name lookups and mirrors against the declarations (TweakDriftTests). -->
+    <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakDrift.cs" Link="Host/TweakDrift.cs" />
     <!-- The tweaks' call-site transpilers run after mods' (CallSiteRerouteTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/CallSiteReroute.cs" Link="GameTweaks/CallSiteReroute.cs" />
     <!-- The path-probe-repair game tweak's search (ProbeRepairTests). -->

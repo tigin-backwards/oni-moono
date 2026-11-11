@@ -181,6 +181,25 @@ the game's own work is done as well and the two are compared, bit for bit where 
 data. QA's verify stage runs a late-game colony with every tweak on in this mode, every overlay
 opened in turn, for at least 10 game minutes, and fails on any mismatch.
 
+## Writing a tweak
+
+A tweak's class (the one with its `Name` constant) declares every game member it relies on with
+`[GameMember(...)]`, so a game update that changes one turns the tweak off instead of breaking
+the game ([ARCHITECTURE.md](ARCHITECTURE.md#6-configuration-and-paths), "How game tweaks install"):
+
+- each method it patches, by the kind of patch (`Prefix`, `Postfix`, `Transpiler` with its
+  `Rewrites`, `Finalizer`; `Replaces` too for a prefix that can skip the method);
+- each member or type it reaches by name (`Uses`): `AccessTools.Field(typeof(Grid), "x")`,
+  `AccessTools.TypeByName("NavType")`, `Traverse`, `Type.GetMethod("x")` and the like. A name
+  written as `nameof(...)` needs none;
+- each game method its code reimplements without patching it (`Mirrors`, with the method's
+  fingerprint for each frozen build), with `[MirrorsGame("signature")]` on that code.
+
+`scripts/check-tweaks.sh` (in check.sh) fails on a lookup or a mirror that is not declared and
+prints the line to add; `--check-tweaks review` prints the fingerprints. A lookup whose type or
+name is computed is listed as not checked: once you've checked it, mark its method
+`[NameLookupReviewed("why")]`.
+
 ## The tweaks
 
 Grouped as on the screen. Names are as used with `--game-tweak`; the gains in the screen's

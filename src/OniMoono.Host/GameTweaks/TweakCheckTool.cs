@@ -15,8 +15,9 @@ namespace OniMoono.Host.GameTweaks
     /// - check: every tweak's checks against the build's files (TweakChecks: declared members,
     ///   references, fingerprints); then, when this host is for the build's game update, the
     ///   assemblies are loaded and every tweak installs as in play (TweakInstall.Guarded: its
-    ///   transpilers' rewrite counts), and what each patched must be what it declares. Exit 1 when
-    ///   any tweak would be off or patches something undeclared.
+    ///   transpilers' rewrite counts), and what each patched must be what it declares; and each
+    ///   tweak's name lookups and mirrors against its declarations (TweakDrift). Exit 1 when any
+    ///   tweak would be off, patches something undeclared or reaches something undeclared.
     /// - review: the same, exit 0, and for each fingerprinted member whose body is not a reviewed
     ///   one, the fingerprint to add once it is reviewed (`--tweak-listings DIR`: every
     ///   fingerprinted body's normalised IL, for diffing two builds).
@@ -42,7 +43,9 @@ namespace OniMoono.Host.GameTweaks
             string managed = Path.Combine(dataDir, "Managed");
             using var game = new GameFiles(managed);
             using var typedFile = MetadataFile.Open(Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"));
-            using var hostFile = MetadataFile.Loaded(typeof(TweakCheckTool).Assembly);
+            // The host's file, for its code's bodies (drift); a single-file host has only its metadata.
+            string hostPath = typeof(TweakCheckTool).Assembly.Location;
+            using var hostFile = (hostPath.Length > 0 ? MetadataFile.Open(hostPath) : null) ?? MetadataFile.Loaded(typeof(TweakCheckTool).Assembly);
             var assemblies = new List<TweakChecks.Assembly> { new(hostFile!, typed: false) };
             if (typedFile != null) assemblies.Add(new TweakChecks.Assembly(typedFile, typed: true));
             else Console.WriteLine("check-tweaks: no OniMoono.GameTweaks.dll beside the host");
@@ -81,6 +84,7 @@ namespace OniMoono.Host.GameTweaks
                 Console.WriteLine($"  listings: {dir}");
             }
             if (undeclared.Count > 0) Console.WriteLine($"  declare nothing: {string.Join(", ", undeclared)}");
+            if (Drift(game, assemblies, checks, label, mode) && mode == "check") failed = true;
             if (undeclared.Count > 0 && mode == "check") failed = true;
             Console.WriteLine($"check-tweaks {label}: {Tweaks.Length - off} of {Tweaks.Length} tweaks pass the file checks, {off} off ({ms:F1} ms)");
             if (off > 0 && mode == "check") failed = true;
@@ -91,6 +95,30 @@ namespace OniMoono.Host.GameTweaks
             Console.WriteLine($"check-tweaks {label}: the Moono Tweaks menu {(menu.Problems.Count == 0 ? "passes" : "fails")} the file checks");
             if ((menu.Problems.Count > 0 || menu.Members.Count == 0) && mode == "check") failed = true;
             return off;
+        }
+
+        /// 5 and 6 (TweakDrift): each tweak's name lookups and mirrors against its declarations.
+        /// True when any is undeclared. Warnings (lookups the IL does not give) are listed;
+        /// reviewed ones (NameLookupReviewed) only in review.
+        static bool Drift(GameFiles game, List<TweakChecks.Assembly> assemblies, Dictionary<string, TweakCheck> checks, string label, string mode)
+        {
+            var drift = TweakDrift.Run(game, assemblies, checks, label);
+            int failures = 0, warnings = 0, notes = 0, sites = 0, nameofs = 0;
+            foreach (var (name, check) in drift.OrderBy(d => d.Key, StringComparer.Ordinal))
+            {
+                sites += check.Checked;
+                nameofs += check.Nameof;
+                failures += check.Failures.Count;
+                warnings += check.Warnings.Count;
+                notes += check.Notes.Count;
+                foreach (var failure in check.Failures) Console.WriteLine($"  undeclared {name}: {failure}");
+                foreach (var warning in check.Warnings) Console.WriteLine($"  unchecked {name}: {warning}");
+                if (mode != "check")
+                    foreach (var note in check.Notes) Console.WriteLine($"  reviewed {name}: {note}");
+            }
+            if (assemblies.Any(a => a.File.Path == null)) Console.WriteLine("  the host's code is not checked for name lookups (no file of it)");
+            Console.WriteLine($"check-tweaks {label}: name lookups and mirrors {(failures == 0 ? "declared" : "not all declared")}: {sites} lookups checked ({nameofs} by nameof), {failures} undeclared, {warnings} not checked, {notes} reviewed");
+            return failures > 0;
         }
 
         /// With the build's assemblies loaded: every tweak the file checks left on installs as

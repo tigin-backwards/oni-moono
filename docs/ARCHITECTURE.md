@@ -2704,8 +2704,11 @@ greyed out with "Not available on this game version", its setting left as the fi
   (`GameMemberAttribute.cs`, one source compiled into the host and `OniMoono.GameTweaks`): each
   method it patches (prefix, postfix, transpiler, finalizer; a prefix that can skip the method
   also `Replaces`), each it reimplements (`Mirrors`) and each member it reaches by name
-  (`Uses`), with the full signature as the metadata spells it. `Optional = true` marks a member
-  only some builds have.
+  (`Uses`), with the full signature as the metadata spells it; a type it takes by name is
+  declared by its name alone (`[GameMember(GameUse.Uses, "PathFinder/Cell")]`). `Optional = true`
+  marks a member only some builds have. The code that reimplements a game method carries
+  `[MirrorsGame("signature")]`, and a site that reaches game members by names the IL does not
+  give, once reviewed, `[NameLookupReviewed("why")]` (both in `GameMemberAttribute.cs`).
 - *Checks, from metadata alone* (`System.Reflection.Metadata` over the game's files as they are
   on disk, before any load-time rewrite, and over the tweak assemblies; nothing is JIT-compiled or
   run): (1) every declared member is there with that signature; (2) every type and member reference
@@ -2747,11 +2750,35 @@ greyed out with "Not available on this game version", its setting left as the fi
   `ONI_TWEAK_TEST_MISSING=NAME` (test runs) takes the declared members of a tweak or the menu as
   gone; `ONI_TWEAK_TEST_MENU_MISSING=PART` a part the menu takes at run time
   (`tests/e2e/moono-tweaks-menu-off.yaml`, `moono-tweaks-menu-ui-off.yaml`).
+- *The declarations against the code* (`TweakDrift.cs`, offline only: they hold for the code
+  whatever the build, so start-up does not pay for them). The code is each tweak's classes and
+  what they use, as in 2, stopping at other tweaks' classes. (5) Each game member it reaches by
+  name is declared: `AccessTools.Field/Method/Property/PropertyGetter/PropertySetter/Inner/
+  TypeByName/FieldRefAccess` (the `"Type:member"` form too), `Traverse`, `Type.GetField/GetMethod/
+  GetProperty/GetNestedType/GetMember`, `Type.GetType` and `Assembly.GetType` with a game type's
+  name, and `[HarmonyPatch]` attributes. A name is no member reference, so 2 misses it and a
+  rename would fail only as the code runs. The IL is followed from each `ldstr` and `typeof`
+  through the stack, locals, fields (one holding one value wherever it is stored, closures'
+  captures included), constant arrays of names (a `foreach` over them) and `string.Concat`, to
+  the lookup's arguments; `Traverse.Create(x)` and `x.GetType()` take `x`'s static type. A
+  lookup with a game type and a constant name must find the member in this build and be
+  declared: any declaration of it, on the type that has it (a base type's member there), a type
+  by any declaration naming it. Its failure names the site (`Type.Method (src/…:LINE)`, from the
+  PDB) and the line to paste, with each overload when the name has several. A name spelt
+  `nameof(…)` (read from the source the PDB points to) needs no declaration, as the compiler
+  checked it against the build it compiled with, but must still be in each build checked. A
+  lookup whose type or name the IL does not give, or a walk over a game type's members
+  (`GetFields`, `GetDeclaredMethods`), is a warning listing the site, a note once its method or
+  class is `NameLookupReviewed`. Not followed: names built any other way, a lambda's parameters,
+  tuples, `Expression.Field(x, "name")`. (6) Each `MirrorsGame` marker in that code has a
+  `Mirrors` declaration of the member, with its fingerprint for each build (the failure prints the
+  line with this build's), and each `Mirrors` declaration a marker.
 - Nothing is checked in play: no patch carries a guard or a finalizer for this.
 - *Offline* (`OniMoono --game DIR --check-tweaks check|review|declare`, `TweakCheckTool.cs`;
   `scripts/check-tweaks.sh`, run by check.sh over the frozen builds in `/mnt/e/oni-builds`):
-  check runs 1–3 on a build of this branch's game update and then installs every tweak and the
-  menu as in play (4, and every patch made must be declared), failing on any tweak or the menu off; review runs 1–3 on
+  check runs 1–3, 5 and 6 on a build of this branch's game update and then installs every tweak and the
+  menu as in play (4, and every patch made must be declared), failing on any tweak or the menu
+  off or anything undeclared (5's warnings do not fail it); review runs 1–3, 5 and 6 on
   any build (a newly downloaded one) and prints each body to review with the fingerprint to add
   once it is, and `--tweak-listings DIR` writes the normalised bodies for diffing two builds;
   declare prints each tweak's patches as `GameMember` lines (`ONI_TWEAK_DESCRIBE=Type::name,…`
