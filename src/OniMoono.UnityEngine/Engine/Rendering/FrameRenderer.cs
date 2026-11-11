@@ -362,6 +362,7 @@ namespace OniMoono.Engine.Rendering
                 if (!q.DuringRender) frameQueued.Add(q);
             queued.Clear();
             UpdateVisibility();
+            GraphicsDevice.PrepareUndrawn();
         }
 
         /// Cameras rendering into textures, then those rendering to the screen, each set in

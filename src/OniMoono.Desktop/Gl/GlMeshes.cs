@@ -65,6 +65,13 @@ namespace OniMoono.Desktop.Gl
 
         public const string Kind = "mesh buffers";
 
+        /// Main thread: the mesh's first upload, queued to run ahead of its first draw (GlAhead)
+        /// and not yet posted into a frame. Running it twice runs it once.
+        public Action Ahead;
+
+        /// Released (GL thread): an upload queued ahead of use leaves it alone.
+        public bool Deleted;
+
         /// The bytes of its buffers' storage (VideoMemoryLedger).
         public long Bytes()
         {
@@ -75,6 +82,7 @@ namespace OniMoono.Desktop.Gl
 
         public void Delete()
         {
+            Deleted = true;
             long bytes = Bytes();
             if (bytes != 0) VideoMemoryLedger.Add(Kind, -bytes, -1);
             if (VertexArrays != null)
@@ -194,8 +202,45 @@ namespace OniMoono.Desktop.Gl
                 m.Gpu = d;
                 GraphicsDevice.Adopt(m, d);
             }
+            // Its upload queued ahead of use goes into the frame first (it runs only once).
+            if (d.Ahead != null)
+            {
+                worker.Post(d.Ahead);
+                d.Ahead = null;
+            }
             if (d.RecordedVersion == m.Version) return d;
             var upload = worker.Arena.Record<MeshUpload>();
+            Record(m, d, upload);
+            PostUpload(worker, d, upload);
+            return d;
+        }
+
+        /// A mesh never drawn, whose data is set (main thread): its buffers are made and filled
+        /// on the GL thread while it has no frame to execute (GlAhead), not in the frame that
+        /// first draws it. Its first draw posts the upload into that frame if it has not run.
+        public static void PrepareAhead(GlWorker worker, MeshNative m)
+        {
+            if (m.Gpu != null) return;
+            var d = new DeviceMesh();
+            m.Gpu = d;
+            GraphicsDevice.Adopt(m, d);
+            var upload = new MeshUpload();
+            Record(m, d, upload);
+            var command = new ResourceCommand().UploadMesh(worker.Resources, d, upload);
+            bool ran = false;
+            d.Ahead = () =>
+            {
+                if (ran) return;
+                ran = true;
+                if (d.Deleted) upload.Ran();
+                else command();
+            };
+            GlAhead.Enqueue(d.Ahead);
+        }
+
+        /// Records the mesh's data as it is now into `upload` (main thread).
+        static void Record(MeshNative m, DeviceMesh d, MeshUpload upload)
+        {
             Array.Clear(upload.Channels);
             upload.Usage = m.Dynamic ? DynamicDraw : StaticDraw;
             upload.Mesh = m;
@@ -237,12 +282,10 @@ namespace OniMoono.Desktop.Gl
             if (!layout.SameAs(d.Layout)) d.Layout = layout.Copy();
             d.RecordedVersion = m.Version;
             if (MeshNative.VerifyReuse) MeshReuseVerify.Recorded(upload);
-            PostUpload(worker, d, upload);
-            return d;
         }
 
-        /// The mesh's device data is recorded as it is now: Prepare would record nothing.
-        public static bool IsCurrent(MeshNative m) => m.Gpu is DeviceMesh d && d.RecordedVersion == m.Version;
+        /// The mesh's device data is recorded as it is now, in a frame: Prepare would record nothing.
+        public static bool IsCurrent(MeshNative m) => m.Gpu is DeviceMesh d && d.RecordedVersion == m.Version && d.Ahead == null;
 
         // A ResourceCommand from the frame's arena: no closure or delegate per changed mesh.
         static void PostUpload(GlWorker worker, DeviceMesh d, MeshUpload upload)

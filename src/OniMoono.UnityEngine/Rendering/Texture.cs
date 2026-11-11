@@ -195,6 +195,7 @@ namespace UnityEngine
             };
             t.Allocate(width == 0 && height == 0 ? 0 : t.SliceSize, initialize ? (byte)0xCD : (byte)0);
             Bind(t);
+            if (Threads.IsMainThread) GraphicsDevice.Current.PrepareAhead(t);
         }
 
         Texture2DNative Data => (Texture2DNative)NativeOrThrow;

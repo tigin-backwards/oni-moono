@@ -66,11 +66,24 @@ namespace OniMoono.Desktop.Gl
         /// (GlTextures.UploadChanged): the next upload sends only the rows that differ.
         public byte[] UploadedTexels;
 
+        /// The storage has had an upload that kept no copy of its texels: the next keeps one.
+        public bool KeepNextUpload;
+
         /// Multi-target framebuffers this texture is attached to (GlDevice.ForgetFramebuffers).
         public List<GlDevice.MrtFramebuffer> MrtFramebuffers;
 
         /// The Vulkan device's texture (null on OpenGL, whose fields above it leaves unused).
         public Vulkan.VkTexture Vk;
+
+        /// Released (GL thread): work queued ahead of use (GlAhead) leaves it alone.
+        public bool Deleted;
+
+        /// The texture was released (GL thread): its names go, and nothing makes new ones.
+        public void Release()
+        {
+            Deleted = true;
+            Delete();
+        }
 
         public void Delete()
         {
@@ -542,6 +555,7 @@ namespace OniMoono.Desktop.Gl
                 // next upload into the new one (the same byte count in another shape or format,
                 // 256x128 after 128x256), they would hide rows that changed.
                 g.UploadedTexels = null;
+                g.KeepNextUpload = false;
             }
             GlBindings.BindTexture(target, g.Id);
             N.glPixelStorei(UnpackAlignment, 1);
@@ -575,16 +589,9 @@ namespace OniMoono.Desktop.Gl
             Begin(g, TexTarget2D, respecify: !sameStorage);
             if (!sameStorage)
             {
-                BindlessVerify.Specify(g, "glTexStorage2D");
-                N.glTexStorage2D(TexTarget2D, levels, f.Internal, t.Width, t.Height);
-                N.glTexParameteri(TexTarget2D, TextureBaseLevel, 0);
-                N.glTexParameteri(TexTarget2D, TextureMaxLevel, levels - 1);
-                Swizzle(TexTarget2D, f.Swizzle);
-                g.StorageFormat = t.Format;
-                g.Width = t.Width;
-                g.Height = t.Height;
-                g.Levels = levels;
-                g.SetBytes(TextureFormats.ImageSize(StoredAs(t.Format, f), t.Width, t.Height, levels), KindOf(t.Format, f, TexTarget2D));
+                Storage2D(g, t.Format, f, t.Width, t.Height, levels);
+                // This upload fills new storage: the next one into it keeps a copy.
+                g.KeepNextUpload = true;
             }
             var memory = t.Memory;
             if (memory != null && sameStorage && UploadChanged(t, g, f, levels)) return;
@@ -600,6 +607,31 @@ namespace OniMoono.Desktop.Gl
                     if (f.Compressed) N.glCompressedTexSubImage2D(TexTarget2D, m, 0, 0, w, h, f.Internal, (int)length, p);
                     else SubImage2D(t.Format, f, p, length, m, w, h);
                 }
+        }
+
+        /// Immutable 2D storage for the bound texture name `g`.
+        static void Storage2D(DeviceTexture g, TextureFormat format, GlFormat f, int width, int height, int levels)
+        {
+            BindlessVerify.Specify(g, "glTexStorage2D");
+            N.glTexStorage2D(TexTarget2D, levels, f.Internal, width, height);
+            N.glTexParameteri(TexTarget2D, TextureBaseLevel, 0);
+            N.glTexParameteri(TexTarget2D, TextureMaxLevel, levels - 1);
+            Swizzle(TexTarget2D, f.Swizzle);
+            g.StorageFormat = format;
+            g.Width = width;
+            g.Height = height;
+            g.Levels = levels;
+            g.SetBytes(TextureFormats.ImageSize(StoredAs(format, f), width, height, levels), KindOf(format, f, TexTarget2D));
+        }
+
+        /// GL thread, ahead of the texture's first upload (GlAhead): the storage that upload
+        /// would make, so that it only fills it. Nothing when the texture has a name already (an
+        /// upload came first) or was released.
+        internal static void SpecifyAhead(DeviceTexture g, TextureFormat format, int width, int height, int levels)
+        {
+            if (g.Id != 0 || g.Deleted) return;
+            Begin(g, TexTarget2D);
+            Storage2D(g, format, Of(format), width, height, levels);
         }
 
         // A level as stored, or decoded (Texels) for a format GL does not take. The decoding has
@@ -633,6 +665,14 @@ namespace OniMoono.Desktop.Gl
             var before = g.UploadedTexels;
             if (before == null || before.Length != length)
             {
+                // The first upload into the storage keeps no copy: most textures are uploaded
+                // once (a view's first sight of thousands of animation batches' data, made ahead
+                // of use: 230 MB of copies in one frame), and one uploaded again keeps it then.
+                if (!g.KeepNextUpload)
+                {
+                    g.KeepNextUpload = true;
+                    return false;
+                }
                 g.UploadedTexels = now.ToArray();
                 return false;
             }
