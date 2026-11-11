@@ -544,7 +544,7 @@ namespace OniMoono.Engine.Rendering
         /// what the game's shaders need for it). As in the original, the overlay UI and IMGUI are
         /// left out.
         ///
-        /// The pixels are read back a band of rows at a time and written through PngStream, so no
+        /// The pixels are read back a band of rows at a time and written through PngWriter, so no
         /// copy of the whole image is held. A capture that cannot be made (memory, or a render
         /// target the device could not make) logs an error and writes nothing; the game goes on
         /// (issue #75: an 8x capture of a 2560x1440 screen ran out of memory in its read-back,
@@ -576,7 +576,8 @@ namespace OniMoono.Engine.Rendering
             try
             {
                 using var file = new System.IO.FileStream(partial, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None, 1 << 20);
-                using var png = new PngStream(file, w, h, 4);
+                // Level 6: the capture is written on the main thread, in the frame it is taken.
+                using var png = new PngWriter(file, w, h, 4, level: 6);
                 if (scale == 1)
                 {
                     // The finished frame, as it is about to be presented.
@@ -652,7 +653,7 @@ namespace OniMoono.Engine.Rendering
 
         /// Reads a target of w x h pixels (null: the back buffer) into the PNG a band at a time.
         /// The PNG's rows run top to bottom, the device's bottom to top.
-        static void ReadBands(RenderDevice device, RenderTextureNative source, int w, int h, PngStream png, long failed)
+        static void ReadBands(RenderDevice device, RenderTextureNative source, int w, int h, PngWriter png, long failed)
         {
             int stride = w * 4, bandRows = Math.Clamp(CaptureBandBytes / stride, 1, h);
             var band = new byte[bandRows * stride];
@@ -667,7 +668,7 @@ namespace OniMoono.Engine.Rendering
 
         /// The capture's windows, a band of rows across its width at a time from the top: each
         /// window rendered, its useful part read into the band, then the band written.
-        static void RenderTiles(RenderDevice device, PngStream png, bool overlays, Vector4 wsToCs, Vector4 wsToCcs, long failed)
+        static void RenderTiles(RenderDevice device, PngWriter png, bool overlays, Vector4 wsToCs, Vector4 wsToCcs, long failed)
         {
             var c = window;
             var columns = Spans(c.VirtualWidth, c.Width, TileGuard, TileAlign);

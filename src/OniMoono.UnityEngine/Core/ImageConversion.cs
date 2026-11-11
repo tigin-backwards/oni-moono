@@ -141,8 +141,7 @@ namespace UnityEngine
         public static byte[] EncodeToPNG(this Texture2D tex)
         {
             if (!Level0(tex, out var format, out var mip, out int w, out int h)) return null;
-            int channels = Channels(format);
-            return Png.Encode(w, h, channels, Rows(format, mip, w, h, channels, topDown: true, bgr: false, rowPrefix: 1));
+            return EncodePng(format, mip, w, h, (int)TextureFormats.MipSize(format, w, 1));
         }
 
         public static byte[] EncodeToJPG(this Texture2D tex) => EncodeToJPG(tex, 75);
@@ -176,12 +175,103 @@ namespace UnityEngine
         /// EncodeToPNG writes a texture of that format (measured in the original player with
         /// RGBA, sRGB RGBA, BGRA, RGB rows with padding and R8 data). Null, with an error, for a
         /// format the engine cannot decode.
-        public static byte[] EncodeArrayToPNG(Array array, GraphicsFormat format, uint width, uint height, uint rowBytes = 0)
+        public static unsafe byte[] EncodeArrayToPNG(Array array, GraphicsFormat format, uint width, uint height, uint rowBytes = 0)
         {
-            var texels = Pack(array, format, width, height, rowBytes, "PNG", out var textureFormat);
-            if (texels == null) return null;
-            int w = (int)width, h = (int)height, channels = Channels(textureFormat);
-            return Png.Encode(w, h, channels, Rows(textureFormat, texels, w, h, channels, topDown: true, bgr: false, rowPrefix: 1));
+            if (array == null) throw new ArgumentNullException(nameof(array));
+            var textureFormat = GraphicsFormatUtility.GetTextureFormat(format);
+            if (textureFormat == 0 || !TextureFormats.CanDecode(textureFormat))
+            {
+                Debug.LogError($"Unable to encode texture in format {format} to PNG.");
+                return null;
+            }
+            int w = (int)width, h = (int)height;
+            int packed = (int)TextureFormats.MipSize(textureFormat, w, 1);
+            int stride = rowBytes == 0 ? packed : (int)rowBytes;
+            // The rows are read where they are: the array stays pinned while it is encoded.
+            var handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+            try
+            {
+                var source = new ReadOnlySpan<byte>((void*)handle.AddrOfPinnedObject(), Buffer.ByteLength(array));
+                if (h > 0 && source.Length < (long)stride * (h - 1) + packed) throw new ArgumentException("The array is too small for the image.", nameof(array));
+                return EncodePng(textureFormat, source, w, h, stride);
+            }
+            finally
+            {
+                handle.Free();
+            }
+        }
+
+        /// PNG of texels whose rows run bottom to top, `stride` bytes apart, as EncodeToPNG
+        /// writes them: RGBA formats whose every texel is opaque as RGB (no reader the game has
+        /// tells the two apart: LoadImage gives the same texels), straight from the rows where
+        /// their bytes are the PNG's.
+        static byte[] EncodePng(TextureFormat format, ReadOnlySpan<byte> texels, int w, int h, int stride)
+        {
+            int channels = Channels(format);
+            if (w <= 0 || h <= 0) return Png.Encode(w, h, channels, new byte[Math.Max(0, h) * (1 + Math.Max(0, w) * channels)]);
+            bool direct = format == TextureFormat.RGBA32 && channels == 4 || format == TextureFormat.RGB24 && channels == 3;
+            int inputChannels = channels;
+            if (channels == 4 && Opaque(format, texels, w, h, stride))
+            {
+                channels = 3;
+                // RGBA32 rows go in as they are, their alpha left out by the writer.
+                if (!direct) inputChannels = 3;
+            }
+            using var png = new PngWriter(null, w, h, channels, inputChannels);
+            var row = direct ? null : new byte[w * inputChannels];
+            bool packedRows = stride == (int)TextureFormats.MipSize(format, w, 1);
+            for (int y = 0; y < h; y++)
+            {
+                int srcY = h - 1 - y;
+                if (direct)
+                {
+                    png.WriteRow(texels.Slice(srcY * stride, w * inputChannels));
+                    continue;
+                }
+                for (int x = 0; x < w; x++)
+                {
+                    // Packed rows (block formats among them) are read as one level; padded ones a
+                    // row at a time.
+                    var c = packedRows ? Texel(format, texels, w, x, srcY) : Texel(format, texels.Slice(srcY * stride), w, x, 0);
+                    int o = x * inputChannels;
+                    if (inputChannels == 1)
+                    {
+                        row[o] = c.r;
+                        continue;
+                    }
+                    row[o] = c.r;
+                    row[o + 1] = c.g;
+                    row[o + 2] = c.b;
+                    if (inputChannels == 4) row[o + 3] = c.a;
+                }
+                png.WriteRow(row);
+            }
+            png.Finish();
+            return png.ToArray();
+        }
+
+        /// Whether every texel of an 8-bit RGBA format has alpha 255 (other formats: false).
+        static bool Opaque(TextureFormat format, ReadOnlySpan<byte> texels, int w, int h, int stride)
+        {
+            uint mask = format switch
+            {
+                TextureFormat.RGBA32 or TextureFormat.BGRA32 => 0xFF000000u,
+                TextureFormat.ARGB32 => 0x000000FFu,
+                _ => 0,
+            };
+            if (mask == 0) return false;
+            var all = new System.Numerics.Vector<uint>(mask);
+            int lanes = System.Numerics.Vector<uint>.Count;
+            for (int y = 0; y < h; y++)
+            {
+                var pixels = MemoryMarshal.Cast<byte, uint>(texels.Slice(y * stride, w * 4));
+                int i = 0;
+                for (; i + lanes <= pixels.Length; i += lanes)
+                    if ((new System.Numerics.Vector<uint>(pixels.Slice(i)) & all) != all) return false;
+                for (; i < pixels.Length; i++)
+                    if ((pixels[i] & mask) != mask) return false;
+            }
+            return true;
         }
 
         /// JPEG of raw texels, as EncodeArrayToPNG reads them and EncodeToJPG writes them.
@@ -377,15 +467,20 @@ namespace UnityEngine.Experimental.Rendering
 
 namespace OniMoono.Engine
 {
-    /// Minimal PNG writer: one IHDR, one zlib-compressed IDAT, IEND. PngStream writes the same
-    /// bytes row by row.
+    /// The PNG of an empty image (no rows or no columns), as the engine always wrote it: one
+    /// IHDR, one zlib-compressed IDAT, IEND. PngWriter writes every other.
     internal static class Png
     {
         public static byte[] Encode(int width, int height, int channels, byte[] filteredRows)
         {
             using var output = new MemoryStream();
-            output.Write(Signature);
-            Chunk(output, "IHDR", Header(width, height, channels));
+            output.Write(PngWriter.Signature);
+            var header = new byte[13];
+            PngWriter.BigEndian(header.AsSpan(0), width);
+            PngWriter.BigEndian(header.AsSpan(4), height);
+            header[8] = 8;
+            header[9] = channels switch { 1 => 0, 3 => 2, _ => 6 };
+            Chunk(output, "IHDR", header);
             using (var compressed = new MemoryStream())
             {
                 using (var z = new ZLibStream(compressed, CompressionLevel.Optimal, leaveOpen: true)) z.Write(filteredRows);
@@ -395,23 +490,10 @@ namespace OniMoono.Engine
             return output.ToArray();
         }
 
-        public static ReadOnlySpan<byte> Signature => [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A];
-
-        /// IHDR's data: 8 bits a channel, greyscale (1 channel), RGB (3) or RGBA.
-        public static byte[] Header(int width, int height, int channels)
-        {
-            var header = new byte[13];
-            BigEndian(header.AsSpan(0), width);
-            BigEndian(header.AsSpan(4), height);
-            header[8] = 8;
-            header[9] = channels switch { 1 => 0, 3 => 2, _ => 6 };
-            return header;
-        }
-
-        public static void Chunk(Stream s, string type, byte[] data)
+        static void Chunk(Stream s, string type, byte[] data)
         {
             Span<byte> word = stackalloc byte[4];
-            BigEndian(word, data.Length);
+            PngWriter.BigEndian(word, data.Length);
             s.Write(word);
             var typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
             s.Write(typeBytes);
@@ -419,143 +501,8 @@ namespace OniMoono.Engine
             var crc = new Crc32();
             crc.Append(typeBytes);
             crc.Append(data);
-            BigEndian(word, (int)crc.Current);
+            PngWriter.BigEndian(word, (int)crc.Current);
             s.Write(word);
-        }
-
-        public static void BigEndian(Span<byte> b, int value)
-        {
-            b[0] = (byte)(value >> 24);
-            b[1] = (byte)(value >> 16);
-            b[2] = (byte)(value >> 8);
-            b[3] = (byte)value;
-        }
-    }
-
-    /// A PNG written row by row into a seekable stream: the bytes Png.Encode gives for the same
-    /// rows (zlib's output does not depend on how its input is split), without the image or its
-    /// compressed data in memory. Each IDAT's length is written once it is done; compressed
-    /// data past ChunkBytes goes on in another IDAT (a chunk's length must fit 31 bits, and the
-    /// largest captures compress to more).
-    internal sealed class PngStream : IDisposable
-    {
-        readonly Stream output;
-        readonly IdatWriter idat;
-        readonly ZLibStream deflate;
-        readonly int rowBytes;
-        static readonly byte[] FilterNone = [0];
-        int rowsLeft;
-        bool finished;
-
-        /// The most compressed bytes in one IDAT.
-        internal const int DefaultChunkBytes = 1 << 30;
-
-        public PngStream(Stream output, int width, int height, int channels, int chunkBytes = DefaultChunkBytes)
-        {
-            if (!output.CanSeek) throw new ArgumentException("The stream must be seekable.", nameof(output));
-            this.output = output;
-            rowBytes = width * channels;
-            rowsLeft = height;
-            output.Write(Png.Signature);
-            Png.Chunk(output, "IHDR", Png.Header(width, height, channels));
-            idat = new IdatWriter(output, chunkBytes);
-            deflate = new ZLibStream(idat, CompressionLevel.Optimal, leaveOpen: true);
-        }
-
-        /// The next row, top first: width x channels bytes (filter type None).
-        public void WriteRow(ReadOnlySpan<byte> row)
-        {
-            if (row.Length != rowBytes) throw new ArgumentException($"A row is {rowBytes} bytes.", nameof(row));
-            if (rowsLeft-- <= 0) throw new InvalidOperationException("The image has all its rows.");
-            deflate.Write(FilterNone);
-            deflate.Write(row);
-        }
-
-        /// Ends the IDATs and the file.
-        public void Finish()
-        {
-            if (rowsLeft != 0) throw new InvalidOperationException($"{rowsLeft} row(s) missing.");
-            finished = true;
-            deflate.Dispose();
-            idat.End();
-            Png.Chunk(output, "IEND", Array.Empty<byte>());
-            output.Flush();
-        }
-
-        public void Dispose()
-        {
-            if (!finished) deflate.Dispose();
-        }
-
-        /// Compressed bytes into IDAT chunks of at most `limit` data bytes, each chunk's length
-        /// written when it ends.
-        sealed class IdatWriter : Stream
-        {
-            readonly Stream inner;
-            readonly int limit;
-            Crc32 crc;
-            long lengthAt = -1;
-            int count;
-
-            public IdatWriter(Stream inner, int limit)
-            {
-                this.inner = inner;
-                this.limit = limit;
-            }
-
-            void Begin()
-            {
-                lengthAt = inner.Position;
-                inner.Write(stackalloc byte[4]);
-                inner.Write("IDAT"u8);
-                crc = new Crc32();
-                crc.Append("IDAT"u8);
-                count = 0;
-            }
-
-            /// Ends the open chunk (an empty one when nothing was written).
-            public void End()
-            {
-                if (lengthAt < 0) Begin();
-                Span<byte> word = stackalloc byte[4];
-                Png.BigEndian(word, (int)crc.Current);
-                inner.Write(word);
-                long end = inner.Position;
-                inner.Position = lengthAt;
-                Png.BigEndian(word, count);
-                inner.Write(word);
-                inner.Position = end;
-                lengthAt = -1;
-            }
-
-            public override void Write(ReadOnlySpan<byte> buffer)
-            {
-                while (buffer.Length > 0)
-                {
-                    if (lengthAt < 0) Begin();
-                    else if (count == limit)
-                    {
-                        End();
-                        Begin();
-                    }
-                    int n = Math.Min(buffer.Length, limit - count);
-                    crc.Append(buffer[..n]);
-                    inner.Write(buffer[..n]);
-                    count += n;
-                    buffer = buffer[n..];
-                }
-            }
-
-            public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
-            public override void Flush() { }
-            public override bool CanRead => false;
-            public override bool CanSeek => false;
-            public override bool CanWrite => true;
-            public override long Length => throw new NotSupportedException();
-            public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
-            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-            public override void SetLength(long value) => throw new NotSupportedException();
         }
     }
 
