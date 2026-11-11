@@ -268,3 +268,47 @@ the engine. The engine's largest were `Instantiate`'s structure cloning (11%), c
   late-game colony and about 1 s on the mid-game one, every 2–5 minutes. Moono runs 2–6
   collections in 10 minutes for 0.2–0.9 s in all, 60–220 ms a collection on average, and it does
   so while handing out 2–5× more a real second.
+
+## The engine's frame and the canvas rebuilds, by site (allocation batch 4)
+
+An allocation trace with thread IDs (EventPipe sampling, 180 s at speed 3, Linux, U59, master
+dce09838, the section probe on) split the first two candidates by call site. KB a frame on the
+main thread; "the engine's own" is what an engine frame allocated itself, the rest is game or uGUI
+code (the late-game colony at 41 fps, the mid-game one at 39).
+
+| `(other)` | Late-game | Mid-game |
+|---|---|---|
+| In all | 54.5 | 55.1 |
+| Game and uGUI code (scripts' `Update`, `LateUpdate` and `Start`, run by the engine's loop) | 26.2 | 14.8 |
+| The engine's own | 28.3 | 40.3 |
+| of which: per-frame list and array copies (cameras, canvases, particle systems, pending Starts, phase invocation lists, the update phases' sorted lists, coroutine waiters, image-effect and batcher lists) | 6.8 | 8.7 |
+| render targets (`RenderTargetBinding.Of`, the GL device's target records) | 6.1 | 6.4 |
+| `Canvas.willRenderCanvases` removals (TextMeshPro's texts leaving it when disabled) | 3.8 | 5.5 |
+| canvas element copies set outside the rebuilds, rebakes, nested canvas merges | 5.3 | 3.5 |
+| `GetTemporary`'s lookup description, immediate draws' closures | 2.2 | 2.3 |
+| texel copies' tasks, particle geometry, other | 4.1 | 14.0 |
+
+| `CanvasUpdateRegistry.PerformUpdate` | Late-game | Mid-game |
+|---|---|---|
+| In all | 41.1 | 16.5 |
+| Element copies (`CanvasRenderer.SetMesh`: positions, colours, four UV sets, normals, tangents, indices) | 18.6 | 9.8 |
+| uGUI's worker mesh channels (`VertexHelper.FillMesh`) | 5.9 | 0.9 |
+| `Mesh.Clear`'s new submesh list | 2.3 | 2.6 |
+| A chart's `UILineRenderer` (game code, as in the original) | 13.8 | 2.2 |
+| TextMeshPro, layout | under 0.5 | under 0.5 |
+
+The copies missed their arrays because each renderer kept its own spares for 4 frames at one
+length: most elements rebuild less often, or at another length. Other threads (late-game 24.6 KB
+a frame, mid-game 9.5) were mostly game code: the chore collection's contexts on the game's job
+threads (`RemoteChore.CollectChores`, 20.7 on the late-game colony), then the GL thread's
+texture uploads and screenshot read-backs (1.5 and 5.5) and `Parallel.For`'s own state on the
+thread pool (about 2).
+
+After batch 4 (same method and base), the engine's own sites above come to 0.9 KB a frame
+in `(other)` on both colonies (from 18.8 and 22.8) and 5.6 and 3.1 in the canvas sites (from 32.6
+and 17.8). 600 s meter runs on the mid-game colony, at 34 fps both: 159 → 109 KB a frame, 1.81 →
+1.26 MB a game second, the canvas rebuilds 17.7 → 3.5 KB a frame and `(other)` 53.9 → 26.4; 5 → 4
+collections in 600 s. On the late-game colony held at 20 fps (uncapped runs drew 28–40 fps on a
+busy machine, too far apart to compare): 381 → 309 KB a frame, 2.46 → 2.06 MB a game second, the
+canvas rebuilds 48.8 → 18.2 KB a frame (most of the rest is a chart's `UILineRenderer`, game code)
+and `(other)` 78 → 50; 5 → 4 collections.

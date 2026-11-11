@@ -1895,14 +1895,24 @@ renderer, restricted to what the game uses (*usage §1*):
     its larger arrays, new ones at a size class): `VertexCount` and each submesh's `IndexCount`
     say how much is the mesh's, every reader goes by them, and the getters copy exactly that
     many. `ONI_VERIFY_MESH_REUSE=1` checksums each upload's data when it is recorded and again on
-    the GL thread before it is copied.
+    the GL thread before it is copied. A mesh never drawn (uGUI's shared worker mesh, a
+    TextMeshPro text's) keeps up to 32 spares for 120 frames, others 16 for 4: its fills
+    alternate between elements of every size. `Clear` keeps the submesh list and its first
+    submesh, emptied as a new one is.
   - A canvas renderer's copy of its mesh (`SetMesh`) is the renderer's; its UV, normal,
     tangent and index arrays are also its baked mesh's channels. The copy is let go of when the
     baked mesh moves on to a newer one, and at once when it was never baked (so in no upload);
     never the copy the renderer still has, which a later `SetMesh` of the same mesh unchanged
-    takes again. Its arrays become the baked mesh's spares, handed to a later copy of the same
-    length once every upload of the baked mesh posted by then has run, and the copy is emptied,
-    so a stale reader fails rather than read reused arrays.
+    takes again. Its arrays, and the baked positions and colours a rebake replaces, go to a
+    pool every canvas renderer shares (`CanvasArrays`, by element type and length): a later
+    copy of that length, any element's, takes one once every upload of the mesh it was baked
+    into, posted by then, has run; one unused for 120 frames is dropped. Most elements rebuild
+    less often than the 4 frames a mesh keeps its own spares, or at another length. A channel
+    whose values all have the same bits (uGUI's unused UV sets, its default normal and
+    tangent, a plain image's colour) is one array that every copy of its length and value
+    shares, and never goes back to the pool. The copy is emptied, so a stale reader fails
+    rather than read reused arrays, and is the renderer's next copy (only the renderer's
+    current and baked copies are compared by reference).
   - A merged canvas batch (a run of draws of the same state, a nested canvas's shared mesh)
     writes into arrays of its mesh's own, from its spares: every value up to the counts is
     written, zeros where a part lacks a UV set the others have.
@@ -1927,6 +1937,21 @@ renderer, restricted to what the game uses (*usage §1*):
     texture store is made with room for an animation batch's textures.
   - A material's values keep a pass state per pass, kept across value changes that resolve it
     to the same bits; `ONI_VERIFY_PASS_STATES=1` resolves each kept one afresh and compares.
+  - Passes over a list their callbacks may change (particle systems, cameras, canvases, moved
+    rects, pending Starts) copy it into an array the pass keeps (`ListSnapshot`), cleared after
+    it; a pass started from inside one gets its own. The phase delegates' invocation lists are
+    made once per delegate, the update phases iterate an array of their execution-order lists,
+    coroutine waiter lists swap rather than being made anew, and a camera's image-effect list,
+    the canvas batcher's run list, the canvas walk's mask renderers and a nested canvas's
+    submeshes are kept. `Canvas.willRenderCanvases` and `preWillRenderCanvases` keep their
+    handlers in a list (`DelegateList`) with a multicast delegate's rules (append, remove the
+    last matching run, call those there were when the call began, stop at an exception):
+    every TextMeshPro text joins the first when enabled and leaves it when disabled, which
+    copied every other text's handler each time. `GetTemporary` looks its pool up with a
+    description it keeps, making one only for a texture it creates. A render texture's
+    single-target array is its own (`RenderTargetBinding.Of`), and the GL device records the
+    same target object again for the same texture or the back buffer at the same size: the GL
+    thread only reads them.
 - Draw sources: `MeshRenderer`+`MeshFilter`, `SpriteRenderer`, `ParticleSystemRenderer`,
   `LineRenderer` (mods' lines: its strip as Unity's BakeMesh measures it, corners mitered; rounded
   corners and caps are drawn square), `CanvasRenderer` (world-space and screen-space-camera canvases), and the per-frame
