@@ -191,7 +191,8 @@ the game ([ARCHITECTURE.md](ARCHITECTURE.md#6-configuration-and-paths), "How gam
   `Rewrites`, `Finalizer`; `Replaces` too for a prefix that can skip the method);
 - each member or type it reaches by name (`Uses`): `AccessTools.Field(typeof(Grid), "x")`,
   `AccessTools.TypeByName("NavType")`, `Traverse`, `Type.GetMethod("x")` and the like. A name
-  written as `nameof(...)` needs none;
+  written as `nameof(...)` needs one too: the compiler checks only that the name exists, not
+  the member's signature;
 - each game method its code reimplements without patching it (`Mirrors`, with the method's
   fingerprint for each frozen build), with `[MirrorsGame("signature")]` on that code.
 

@@ -31,6 +31,10 @@ namespace OniMoono.GameTweaks
     /// saved: after a load the object falls again until its first step lands it.
     [GameMember(GameUse.Uses, "System.Action`1<UnityEngine.Transform> FallerComponents::OnLandedAction")]
     [GameMember(GameUse.Postfix | GameUse.Transpiler, "System.Void GravityComponents::FixedUpdate(System.Single)", "740814f5168a2a2f linux-744825 win-744825", Rewrites = 1)]
+    [GameMember(GameUse.Uses, "System.Boolean Grid::IsValidCellInWorld(System.Int32,System.Int32)")]
+    [GameMember(GameUse.Uses, "UnityEngine.Vector3 TransformExtensions::GetPosition(UnityEngine.Transform)")]
+    [GameMember(GameUse.Uses, "System.Single GravityComponent::GetGroundOffset(GravityComponent)")]
+    [GameMember(GameUse.Uses, "System.Boolean GravityComponent::mayLeaveWorld")]
     public static class OffWorldFallers
     {
         public const string Name = "off-world-fallers";

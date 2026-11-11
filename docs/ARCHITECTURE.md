@@ -2728,12 +2728,13 @@ greyed out with "Not available on this game version", its setting left as the fi
   `[GameMember(use, "System.Void KAnimBatch::UpdateDirty(System.Int32)", fingerprints…)]`
   (`GameMemberAttribute.cs`, one source compiled into the host and `OniMoono.GameTweaks`): each
   method it patches (prefix, postfix, transpiler, finalizer; a prefix that can skip the method
-  also `Replaces`), each it reimplements (`Mirrors`) and each member it reaches by name
-  (`Uses`), with the full signature as the metadata spells it; a type it takes by name is
-  declared by its name alone (`[GameMember(GameUse.Uses, "PathFinder/Cell")]`). `Optional = true`
-  marks a member only some builds have. The code that reimplements a game method carries
-  `[MirrorsGame("signature")]`, and a site that reaches game members by names the IL does not
-  give, once reviewed, `[NameLookupReviewed("why")]` (both in `GameMemberAttribute.cs`).
+  also `Replaces`), each it reimplements (`Mirrors`) and each member it reaches by name,
+  `nameof` included (`Uses`), with the full signature as the metadata spells it; a type it
+  takes by name is declared by its name alone (`[GameMember(GameUse.Uses, "PathFinder/Cell")]`).
+  `Optional = true` marks a member only some builds have. The code that reimplements a game
+  method carries `[MirrorsGame("signature")]`, and a site that reaches game members by names the
+  IL does not give, once reviewed, `[NameLookupReviewed("why")]` (both in
+  `GameMemberAttribute.cs`).
 - *Checks, from metadata alone* (`System.Reflection.Metadata` over the game's files as they are
   on disk, before any load-time rewrite, and over the tweak assemblies; nothing is JIT-compiled or
   run): (1) every declared member is there with that signature; (2) every type and member reference
@@ -2790,9 +2791,9 @@ greyed out with "Not available on this game version", its setting left as the fi
   declared: any declaration of it, on the type that has it (a base type's member there), a type
   by any declaration naming it. Its failure names the site (`Type.Method (src/…:LINE)`, from the
   PDB) and the line to paste, with each overload when the name has several. A name spelt
-  `nameof(…)` (read from the source the PDB points to) needs no declaration, as the compiler
-  checked it against the build it compiled with, but must still be in each build checked. A
-  lookup whose type or name the IL does not give, or a walk over a game type's members
+  `nameof(…)` compiles to the same constant and needs the same declaration: the compiler
+  checked only that the name exists in the build it compiled with, not the member's signature
+  or what it does. A lookup whose type or name the IL does not give, or a walk over a game type's members
   (`GetFields`, `GetDeclaredMethods`), is a warning listing the site, a note once its method or
   class is `NameLookupReviewed`. Not followed: names built any other way, a lambda's parameters,
   tuples, `Expression.Field(x, "name")`. (6) Each `MirrorsGame` marker in that code has a

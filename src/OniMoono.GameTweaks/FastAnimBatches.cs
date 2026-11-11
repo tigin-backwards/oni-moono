@@ -55,6 +55,9 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "UnityEngine.Vector4 KBatchedAnimTracker::MyAnimGetPosition()")]
     [GameMember(GameUse.Uses, "SymbolOverrideInfoGpuData KAnimControllerBase::get_symbolOverrideInfoGpuData()")]
     [GameMember(GameUse.Uses, "SymbolInstanceGpuData KAnimControllerBase::get_symbolInstanceGpuData()")]
+    [GameMember(GameUse.Uses, "UnityEngine.Vector3 KAnimControllerBase::get_PositionIncludingOffset()")]
+    [GameMember(GameUse.Uses, "UnityEngine.Vector3 KAnimControllerBase::get_Offset()")]
+    [GameMember(GameUse.Uses, "UnityEngine.Vector3 KAnimControllerBase::GetPivotSymbolPosition()")]
     [GameMember(GameUse.Uses, "System.Int32 KBatchedAnimController::GetCurrentFrameIndex()")]
     [GameMember(GameUse.Uses, "System.Boolean KBatchedAnimController::IsVisible()")]
     [GameMember(GameUse.Uses, "System.Int32 KBatchedAnimController::GetCurrentNumFrames()")]
@@ -64,6 +67,11 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "KBatchedAnimInstanceData KBatchedAnimController::GetBatchInstanceData()")]
     [GameMember(GameUse.Uses, "UnityEngine.Matrix4x4 KBatchedAnimController::GetSymbolTransform(HashedString,System.Boolean&)")]
     [GameMember(GameUse.Uses, "Matrix2x3 KBatchedAnimController::GetSymbolLocalTransform(HashedString,System.Boolean&)")]
+    [GameMember(GameUse.Uses, "Matrix2x3 KBatchedAnimController::GetTransformMatrix()")]
+    [GameMember(GameUse.Uses, "System.Void SymbolOverrideInfoGpuData::WriteToTexture(Unity.Collections.NativeArray`1<System.Byte>,System.Int32,System.Int32)")]
+    [GameMember(GameUse.Uses, "System.Void KBatchedAnimInstanceData::WriteToTexture(Unity.Collections.NativeArray`1<System.Byte>,System.Int32,System.Int32)")]
+    [GameMember(GameUse.Uses, "System.Void SymbolInstanceGpuData::WriteToTexture(Unity.Collections.NativeArray`1<System.Byte>,System.Int32,System.Int32)")]
+    [GameMember(GameUse.Uses, "UnityEngine.Vector3 TransformExtensions::GetPosition(UnityEngine.Transform)")]
     public static class FastAnimBatches
     {
         public const string Name = "fast-anim-batches";
