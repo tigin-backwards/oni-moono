@@ -415,15 +415,22 @@ namespace OniMoono.Desktop.Vulkan
             var device = source != null ? GlTextures.Prepare(worker, source) : null;
             bool autoMips = source?.AutoGenerateMips ?? false;
             int fbWidth = platform.FramebufferWidth, fbHeight = platform.FramebufferHeight;
-            var pixels = worker.Call(() => ReadNow(device, autoMips, rect.x, rect.y, w, h, fbWidth, fbHeight));
-            var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    int o = (y * w + x) * 4;
-                    TextureFormats.Encode(destination.Format, mip, destination.Width, destX + x, destY + y,
-                        new Color(pixels[o], pixels[o + 1], pixels[o + 2], pixels[o + 3]));
-                }
+            // A band of rows at a time (about a million pixels, as GlDevice reads), so a large
+            // read needs no float array of its size.
+            int band = Math.Clamp((1 << 20) / w, 1, h);
+            for (int y0 = 0; y0 < h; y0 += band)
+            {
+                int rows = Math.Min(band, h - y0), bandY = y0;
+                var pixels = worker.Call(() => ReadNow(device, autoMips, rect.x, rect.y + bandY, w, rows, fbWidth, fbHeight));
+                var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
+                for (int y = 0; y < rows; y++)
+                    for (int x = 0; x < w; x++)
+                    {
+                        int o = (y * w + x) * 4;
+                        TextureFormats.Encode(destination.Format, mip, destination.Width, destX + x, destY + y0 + y,
+                            new Color(pixels[o], pixels[o + 1], pixels[o + 2], pixels[o + 3]));
+                    }
+            }
         }
 
         /// Reads as 8-bit RGBA straight into the array (a capture's band): a read that fails on

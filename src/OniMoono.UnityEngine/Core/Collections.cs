@@ -109,8 +109,25 @@ namespace Unity.Collections
 
         public T[] ToArray()
         {
-            var result = new T[m_Length];
-            Copy(this, 0, result, 0, m_Length);
+            // Every element is copied over: the array needs no clearing first. A large array (U60's
+            // Timelapser copies its 400 MB read-back of an 8192x12288 snapshot on the main thread)
+            // is copied by several threads, which also share the first touch of its pages.
+            var result = GC.AllocateUninitializedArray<T>(m_Length);
+            long bytes = (long)m_Length * Unsafe.SizeOf<T>();
+            if (bytes < OniMoono.Engine.ParallelCopy.MinBytes || RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            {
+                Copy(this, 0, result, 0, m_Length);
+                return result;
+            }
+            var handle = GCHandle.Alloc(result, GCHandleType.Pinned);
+            try
+            {
+                OniMoono.Engine.ParallelCopy.Copy((byte*)m_Buffer, (byte*)handle.AddrOfPinnedObject(), bytes);
+            }
+            finally
+            {
+                handle.Free();
+            }
             return result;
         }
 
@@ -370,5 +387,26 @@ namespace UnityEngine.Pool
         public static PooledObject<TCollection> Get(out TCollection value) => shared.Get(out value);
 
         public static void Release(TCollection toRelease) => shared.Release(toRelease);
+    }
+}
+
+namespace OniMoono.Engine
+{
+    /// A large copy split between pool threads (half the cores, at most 4), 4 MB a piece.
+    internal static unsafe class ParallelCopy
+    {
+        public const long MinBytes = 32L << 20;
+        const long Piece = 4L << 20;
+
+        public static void Copy(byte* from, byte* to, long bytes)
+        {
+            long pieces = (bytes + Piece - 1) / Piece;
+            var options = new System.Threading.Tasks.ParallelOptions { MaxDegreeOfParallelism = Math.Clamp(Environment.ProcessorCount / 2, 1, 4) };
+            System.Threading.Tasks.Parallel.For(0L, pieces, options, i =>
+            {
+                long at = i * Piece, n = Math.Min(Piece, bytes - at);
+                Buffer.MemoryCopy(from + at, to + at, n, n);
+            });
+        }
     }
 }
