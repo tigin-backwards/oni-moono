@@ -483,6 +483,7 @@ namespace UnityEngine
             }
             t.ContentChanged();
             if (RawTextureLoads.Verify) RawTextureLoads.VerifyUpload(t);
+            if (Threads.IsMainThread) GraphicsDevice.Current.Applied(t);
         }
 
         public bool Reinitialize(int width, int height)
