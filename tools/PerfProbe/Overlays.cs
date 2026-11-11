@@ -26,17 +26,20 @@ namespace PerfProbe
         public static bool Started, Done;
 
         /// A colony that reaches a victory imperative on load (2minnow) starts the victory
-        /// sequence, which hides the HUD and with it the overlay screen; the sweep skips it.
+        /// sequence, which hides the HUD and with it the overlay screen; the sweep skips it, as
+        /// does any run with `novictory.txt` (the allocation comparisons: the sequence pauses the
+        /// game for its video).
         public static void Install(HarmonyLib.Harmony harmony, string path)
         {
-            if (!System.IO.File.Exists(System.IO.Path.Combine(path, "overlays.txt"))) return;
+            if (!System.IO.File.Exists(System.IO.Path.Combine(path, "overlays.txt"))
+                && !System.IO.File.Exists(System.IO.Path.Combine(path, "novictory.txt"))) return;
             harmony.Patch(HarmonyLib.AccessTools.Method(typeof(ColonyAchievementTracker), "BeginVictorySequence"),
                 prefix: new HarmonyLib.HarmonyMethod(typeof(Overlays), nameof(NoVictorySequence)));
         }
 
         static bool NoVictorySequence(string achievementID)
         {
-            Debug.Log($"PERF overlay sweep: victory sequence for {achievementID} skipped");
+            Debug.Log($"PERF victory sequence for {achievementID} skipped");
             return false;
         }
 
