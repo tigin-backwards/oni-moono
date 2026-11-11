@@ -442,6 +442,12 @@ namespace OniMoono.Desktop.Gl
             return subs;
         }
 
+        /// Buffers this small are made with the dynamic usage hint whatever the mesh's: on Mesa's
+        /// D3D12 driver making a small static buffer took about 0.3 ms, a dynamic one about
+        /// 10 µs (measured: a view's first sight of a few hundred buildings' and labels' meshes
+        /// was 0.4 s of one frame). The hint changes nothing a draw reads.
+        const long SmallBufferBytes = 64 << 10;
+
         /// Writes data into a buffer (direct state access: no binding changes, so the bound
         /// vertex array keeps its index buffer): in place when it fits the current storage, else
         /// into new storage. Returns the storage size.
@@ -455,7 +461,7 @@ namespace OniMoono.Desktop.Gl
                     N.glNamedBufferSubData(new GlBuffer(buffer), 0, (nint)bytes, p);
                     return capacity;
                 }
-                N.glNamedBufferData(new GlBuffer(buffer), (nint)bytes, p, usage);
+                N.glNamedBufferData(new GlBuffer(buffer), (nint)bytes, p, bytes <= SmallBufferBytes ? DynamicDraw : usage);
             }
             return bytes;
         }
