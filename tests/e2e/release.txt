@@ -52,6 +52,7 @@ fullscreen-window-resolution        # 28+22: fullscreen at a lower resolution, p
 path-probe-repair ours              # 168: the default-on tweak, every repair checked
 update-badge-states ours            # 45
 fix-sound-piles ours                # 39: the bug-fix tweak (#51)
+fix-timelapse-snapshots ours        # the bug-fix tweak
 issue-52-fast-track-no-tiering ours # est 37 (Fast Track gated on u60's run home)
 mod-overlaps-en ours                # 35
 mod-overlaps-zh ours                # 29

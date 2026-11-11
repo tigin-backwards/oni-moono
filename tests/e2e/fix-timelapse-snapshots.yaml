@@ -1,0 +1,47 @@
+# The fix-timelapse-snapshots game tweak (src/OniMoono.GameTweaks/TimelapseSnapshots.cs). Ours
+# only (`--player ours`): the original has no such tweak, and its snapshot has the stripes.
+#
+# The Timelapser draws its daily snapshot (512x768, 2:3) with the post-effects set up for the
+# screen's frame (16:9): with a building picked for placement, the build grid maps the left of
+# the image to cells left of the grid and draws a stripe in every column there, and the lights
+# are squeezed. Setup makes the snapshot frame wide, as a grown colony's is (the Timelapser frames
+# every building: a ladder 84 cells left of the pod, and the ruins' tiles the revealed map
+# around the pod holds), so that the screen's frame reaches left of the grid. Then a ladder is picked
+# from the Base menu and the game runs to the middle of cycle 2, when it takes the snapshot.
+# tools/TimelapseProbeTestMod measures the capture: what its render saw and, in the image, the
+# columns the screen's frame maps left of the grid. Without the tweak (and in the original) the
+# grid is on there, those columns hold the stripes (a brightness step across about 15 times the
+# step down) and the light buffer is drawn at 16:9.
+from: early-base
+test_mods: [TimelapseProbeTestMod]
+game_tweaks: [fix-timelapse-snapshots]
+setup:
+  - driver: {setup.call: {target: 'Assets.GetBuildingDef("Ladder")', method: Build, args: [131692, Neutral, null, [SandStone], 293.0]}}
+  - driver: {setup.call: {type: GridVisibility, method: Reveal, args: [124, 207, 160, 150.0]}}
+steps:
+  # The build menu offers materials only once the game has run a little.
+  - run: {seconds: 5}
+  - driver: {camera.set: {cell: [114, 208], ortho: 10}}
+  - open: {key: Alpha1}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/BuildingGroups", cond: stable}
+  - click: {ui: "**/BuildingGroups/**/Grid/Ladder Group*"}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/ProductInfoScreen", cond: stable}
+  - click: {ui: "**/MaterialSelectorTemplate/**/Toggles/MaterialSelection_*"}
+  - expect_state:
+      "PlayerController.Instance.ActiveTool.name": BuildTool
+      "GridCompositor.Instance.enabled": true
+      "type:TimelapseProbeTestMod.Mod::Snapshots": 0
+  # The fixture is at 290 s of cycle 0, its world discovered at -1: the first snapshot is
+  # cycle 2's, taken at its 300 s (1,500 s).
+  - run: {seconds: 1230}
+  - wait_state: {state: {"type:TimelapseProbeTestMod.Mod::Snapshots": ">= 1"}, seconds: 120}
+  - expect_state:
+      "type:TimelapseProbeTestMod.Mod::BuildToolActive": true
+      "type:TimelapseProbeTestMod.Mod::GridOn": false
+      "type:TimelapseProbeTestMod.Mod::BandColumns": "> 100"
+      "type:TimelapseProbeTestMod.Mod::BandStripes": "< 2"
+      "type:TimelapseProbeTestMod.Mod::BandLift": "< 20"
+      "type:TimelapseProbeTestMod.Mod::LeftCellX": ">= 0"
+      "type:TimelapseProbeTestMod.Mod::LightAspect": ["> 0.66", "< 0.67"]
+      "GridCompositor.Instance.enabled": true
+  - file_shot: {name: snapshot, path: "RetiredColonies/*/00000/*_cycle_0002.png"}

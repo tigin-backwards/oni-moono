@@ -30,6 +30,7 @@ namespace OniMoono.GameTweaks
                 case TrimAnimLists.Name: TrimAnimLists.Install(harmony); return true;
                 case OneShotPiles.Name: OneShotPiles.Install(harmony); return true;
                 case FetchByCell.Name: FetchByCell.Install(harmony); return true;
+                case TimelapseSnapshots.Name: TimelapseSnapshots.Install(harmony); return true;
                 case SharedDuplicates.Name: SharedDuplicates.Install(harmony); return true;
                 case CompactReports.Name: CompactReports.Install(harmony); return true;
                 case OwnWorkshopItem.Name: OwnWorkshopItem.Install(harmony); return true;

@@ -682,6 +682,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.POST_LOAD"
 msgid "No ~0.3 s freeze a minute after loading a large colony; loading ~0.2 s longer"
 msgstr "加载大型殖民地约一分钟后不再有约 0.3 秒的冻结；加载时间延长约 0.2 秒"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.TITLE"
+msgid "Correct daily colony snapshots"
+msgstr "修正每日殖民地快照"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.EFFECT"
+msgid "Colony snapshots saved each cycle no longer get vertical stripes, squeezed lights or stray effects."
+msgstr "每个周期保存的殖民地快照不再出现竖条纹、被挤压的光照或错位的效果。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.DETAIL"
+msgid "A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view."
+msgstr "这是游戏自身代码的错误：快照绘制在一张较窄的图像中，但建造网格、光照以及热、冷和灰尘效果都是按屏幕较宽的视野设置的。选中建筑准备放置时，网格会在图像左侧画出条纹。开启后，它们按快照自己的视野绘制。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.TITLE"
 msgid "Share identical data"
 msgstr "共享相同的数据"
