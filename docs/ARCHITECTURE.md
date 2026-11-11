@@ -1585,6 +1585,23 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   `DecorProvider.AddDecor` (issue #69). **Kept:** a prefix of both methods answers a concrete
   delegate type with a new delegate of it over a stub that throws NullReferenceException. Unlike
   Mono's, its `Method` is that stub, not null.
+- **D64 Delegates passed to native code.** Read in Mono's `metadata/marshal.c` (Unity's fork,
+  `unity-main`): `mono_delegate_to_ftnptr`, behind a P/Invoke's delegate argument and
+  `Marshal.GetFunctionPointerForDelegate`, compiles a trampoline for the delegate's method and
+  records the delegate in `delegate_hash_table` under it. For a delegate to a static method the
+  trampoline is shared by every delegate of its type and method, and the table holds a strong GC
+  handle that is never freed: the delegate lives for good. A delegate with a target is held by a
+  weak handle, as on CoreCLR. CoreCLR keeps a delegate passed to native code only as long as
+  managed code does; a call of its thunk after a collection fails fast ("A callback was made on a
+  garbage collected delegate"). The game passes SimDLL its message handler as a fresh delegate
+  (`Sim.SIM_Initialize(Sim.DLL_MessageHandler)`, `docs/research/runtime.md` R2), which SimDLL
+  calls to report an error and from its exception handler when the process crashes: in issue #75
+  an unhandled OutOfMemoryException reached that handler, and the process ended with the
+  collected delegate's message instead of the exception's. **Kept:** the calls of P/Invokes with
+  delegate parameters, and of `GetFunctionPointerForDelegate`, in the game's assemblies and in
+  mods (rewritten as they load, MonoConversions' pass) pass a delegate to a static method through
+  `MonoMarshalledDelegates.Keep`: the first delegate of its type and method, kept for good, so
+  native code gets one thunk that stays valid, as Mono's shared trampoline.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.

@@ -1389,6 +1389,49 @@ namespace OniMoono.Host
                     try { Directory.Delete(dir, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
                 }
             });
+            Check("A delegate to a static method a mod passes to a P/Invoke stays alive (MonoMarshalledDelegates)", () =>
+            {
+                ModAccess.Install();
+                var dir = Directory.CreateTempSubdirectory("oni-moono-check-").FullName;
+                try
+                {
+                    // Sim.SIM_Initialize(Sim.DLL_MessageHandler): a fresh delegate for native code,
+                    // after another argument.
+                    var mod = new System.Reflection.Emit.PersistedAssemblyBuilder(new AssemblyName("OniMoonoCheckCallbacks"), typeof(object).Assembly);
+                    var type = mod.DefineDynamicModule("OniMoonoCheckCallbacks").DefineType("Callbacks", TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
+                    var handler = type.DefineMethod("Handler", MethodAttributes.Public | MethodAttributes.Static, typeof(void), Type.EmptyTypes);
+                    handler.GetILGenerator().Emit(System.Reflection.Emit.OpCodes.Ret);
+                    var native = type.DefinePInvokeMethod("Register", "oni-moono-check-no-such-library", MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.PinvokeImpl,
+                        CallingConventions.Standard, typeof(void), [typeof(int), typeof(ThreadStart)], System.Runtime.InteropServices.CallingConvention.Cdecl, System.Runtime.InteropServices.CharSet.Ansi);
+                    native.SetImplementationFlags(MethodImplAttributes.PreserveSig);
+                    var pass = type.DefineMethod("Pass", MethodAttributes.Public | MethodAttributes.Static, typeof(void), Type.EmptyTypes).GetILGenerator();
+                    pass.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_7);
+                    pass.Emit(System.Reflection.Emit.OpCodes.Ldnull);
+                    pass.Emit(System.Reflection.Emit.OpCodes.Ldftn, handler);
+                    pass.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(ThreadStart).GetConstructors()[0]);
+                    pass.Emit(System.Reflection.Emit.OpCodes.Call, native);
+                    pass.Emit(System.Reflection.Emit.OpCodes.Ret);
+                    type.CreateType();
+                    var modPath = Path.Combine(dir, "OniMoonoCheckCallbacks.dll");
+                    mod.Save(modPath);
+                    var callbacks = ModAccess.LoadFrom(modPath).GetType("Callbacks")!;
+                    int before = MonoMarshalledDelegates.Count;
+                    for (int i = 0; i < 2; i++)
+                        try { callbacks.GetMethod("Pass")!.Invoke(null, null); }
+                        catch (TargetInvocationException e) when (e.InnerException is DllNotFoundException) { }
+                    if (MonoMarshalledDelegates.Count != before + 1) throw new InvalidOperationException($"{MonoMarshalledDelegates.Count - before} delegate(s) kept for two calls");
+                    var kept = new WeakReference(MonoMarshalledDelegates.Keep(callbacks.GetMethod("Handler")!.CreateDelegate<ThreadStart>()));
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
+                    if (!kept.IsAlive) throw new InvalidOperationException("the kept delegate was collected");
+                    return "both calls passed one delegate, alive after a full collection";
+                }
+                finally
+                {
+                    try { Directory.Delete(dir, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                }
+            });
             Check("A mod's copy of a library, and references to it, when another version is loaded (ModAccess)", () =>
             {
                 ModAccess.Install();
