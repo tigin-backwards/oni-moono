@@ -181,6 +181,41 @@ namespace OniMoono.Tests
             Assert.Equal("UnityEngine.Debug:LogException(Exception)", frames[4]);
         }
 
+        static void ThrowInEngine(Exception e) => throw e;
+
+        static Exception ThrownInEngine(Exception e)
+        {
+            try { ThrowInEngine(e); }
+            catch (Exception caught) { return caught; }
+            return null;
+        }
+
+        // Issue #79: an OutOfMemoryException from the engine's own code (all its frames left out
+        // of the original's format) said neither where it was thrown nor how much memory was in use.
+        [Fact]
+        public void AnEngineFaultFollowsWithItsFramesAndMemory()
+        {
+            var e = ThrownInEngine(new OutOfMemoryException());
+            var text = LogText(() => UnityEngine.Debug.LogException(e)).Replace("\r\n", "\n");
+            var lines = text.Split('\n');
+            int at = Array.IndexOf(lines, "OutOfMemoryException: Insufficient memory to continue the execution of the program.");
+            Assert.True(at >= 0, text);
+            // The original's format first, the engine's frames still left out of it.
+            Assert.DoesNotContain(lines.Skip(at).TakeWhile(l => l != ""), l => l.Contains("OniMoono"));
+            Assert.Matches(new Regex(@"\n\[engine\] memory at an OutOfMemoryException: working set [\d,]+ MB \(peak [\d,]+ MB\), private [\d,]+ MB, managed heap [\d,]+ MB \(committed [\d,]+ MB, fragmented [\d,]+ MB\), collections \d+/\d+/\d+"), text);
+            Assert.Matches(new Regex(@"\n\[engine\] engine fault: System\.OutOfMemoryException: Insufficient memory to continue the execution of the program\.\n\s+at OniMoono\.Tests\.LogTracesTests\.ThrowInEngine"), text);
+        }
+
+        [Fact]
+        public void AScriptsExceptionHasNoEngineLines()
+        {
+            var e = Thrower.Thrown();
+            var text = LogText(() => Thrower.Report(e));
+            Assert.Contains("InvalidOperationException: thrown", text);
+            Assert.DoesNotContain("engine fault", text);
+            Assert.DoesNotContain("memory at an OutOfMemoryException", text);
+        }
+
         [Fact]
         public void AnExceptionFromUpdateHasItsOwnFramesAlone()
         {

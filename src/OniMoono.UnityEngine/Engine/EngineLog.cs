@@ -391,6 +391,7 @@ namespace OniMoono.Engine.Logging
             if (exception == null) throw new ArgumentNullException(nameof(exception));
             var report = LogTraces.Exception(exception, new StackTrace(1, true));
             EngineLog.Message(LogType.Exception, report.Condition, report.LogTrace, report.CallbackTrace);
+            foreach (var line in LogTraces.EngineDetails(exception)) EngineLog.Engine(line);
         }
     }
 }

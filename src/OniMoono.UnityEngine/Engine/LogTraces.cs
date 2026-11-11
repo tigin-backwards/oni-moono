@@ -190,6 +190,55 @@ namespace OniMoono.Engine
             return null;
         }
 
+        /// The engine's lines that go after a logged exception's text, for what the original's
+        /// format leaves out: an exception thrown in the engine's own code (an engine fault) has
+        /// only engine frames, all left out above, so its .NET text follows with them; and an
+        /// OutOfMemoryException comes with the process's and the system's memory, which tell a
+        /// single allocation too big from memory running out. Empty for any other exception.
+        public static List<string> EngineDetails(Exception exception)
+        {
+            var lines = new List<string>();
+            try
+            {
+                bool engine = false, outOfMemory = false;
+                for (var e = exception; e != null; e = e.InnerException)
+                {
+                    outOfMemory |= e is OutOfMemoryException;
+                    var frames = new StackTrace(e, false).GetFrames();
+                    int shown = 0, ours = 0;
+                    foreach (var f in frames)
+                    {
+                        var m = f.GetMethod();
+                        if (m == null || Hidden(m)) continue;
+                        shown++;
+                        if (IsEngine(m)) ours++;
+                    }
+                    engine |= shown > 0 && ours == shown;
+                }
+                if (outOfMemory) lines.Add(MemoryAtOutOfMemory(MachineStats.Sample()));
+                if (engine) lines.Add("engine fault: " + exception);
+            }
+            catch (Exception)
+            {
+                // Out of memory again, say: the exception's own text is in the log already.
+            }
+            return lines;
+        }
+
+        /// The memory figures at an OutOfMemoryException, in MB.
+        internal static string MemoryAtOutOfMemory(MachineSample machine)
+        {
+            var gc = GC.GetGCMemoryInfo();
+            using var self = Process.GetCurrentProcess();
+            var text = new StringBuilder("memory at an OutOfMemoryException: ");
+            text.Append($"working set {self.WorkingSet64 / 1_000_000:N0} MB (peak {self.PeakWorkingSet64 / 1_000_000:N0} MB), private {self.PrivateMemorySize64 / 1_000_000:N0} MB, ");
+            text.Append($"managed heap {gc.HeapSizeBytes / 1_000_000:N0} MB (committed {gc.TotalCommittedBytes / 1_000_000:N0} MB, fragmented {gc.FragmentedBytes / 1_000_000:N0} MB), ");
+            text.Append($"collections {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)}");
+            if (machine.RamTotal > 0) text.Append($"; the system: RAM {machine.RamAvailable / 1_000_000:N0} MB of {machine.RamTotal / 1_000_000:N0} MB free");
+            if (machine.CommitLimit > 0) text.Append($", committed {machine.Committed / 1_000_000:N0} MB of a {machine.CommitLimit / 1_000_000:N0} MB limit");
+            return text.ToString();
+        }
+
         static bool Hidden(MethodBase m) =>
             m.IsDefined(typeof(StackTraceHiddenAttribute), false) || (m.DeclaringType?.IsDefined(typeof(StackTraceHiddenAttribute), false) ?? false);
 
