@@ -125,35 +125,39 @@ namespace OniMoono.Engine.Rendering
         }
 
         /// Arrays keep the first `count` elements; an array property's size is fixed by its first
-        /// assignment (Unity: later, larger arrays are truncated to that size).
+        /// assignment (Unity: later, larger arrays are truncated to that size); a shorter one
+        /// leaves the rest zero.
         public void SetFloatArray(int id, float[] values, int count)
         {
             floats?.Remove(id);
-            var store = floatArrays ??= new();
-            store[id] = FixedArray(store, id, values, count);
+            CopyArray(floatArrays ??= new(), id, values, count);
             Version++;
         }
 
         public void SetVectorArray(int id, Vector4[] values, int count)
         {
-            var store = vectorArrays ??= new();
-            store[id] = FixedArray(store, id, values, count);
+            CopyArray(vectorArrays ??= new(), id, values, count);
             Version++;
         }
 
         public void SetMatrixArray(int id, Matrix4x4[] values, int count)
         {
-            var store = matrixArrays ??= new();
-            store[id] = FixedArray(store, id, values, count);
+            CopyArray(matrixArrays ??= new(), id, values, count);
             Version++;
         }
 
-        static T[] FixedArray<T>(Dictionary<int, T[]> store, int id, T[] values, int count)
+        /// The values go into the property's array, made at its first assignment and written over
+        /// after that, as Unity copies them into the property's own storage: nothing outside the
+        /// sheet holds the array (a queued draw shares a block's sheet, not its arrays alone,
+        /// and a block shared with one moves to a copy before it changes; the device reads the
+        /// values while it records draws, and copies of a sheet clone them), so a game that sets
+        /// an array each frame (TerrainBG's background, 255 vectors) allocates nothing.
+        static void CopyArray<T>(Dictionary<int, T[]> store, int id, T[] values, int count)
         {
-            int size = store.TryGetValue(id, out var existing) ? existing.Length : count;
-            var result = new T[size];
-            Array.Copy(values, result, Math.Min(size, count));
-            return result;
+            if (!store.TryGetValue(id, out var array)) store[id] = array = new T[count];
+            int n = Math.Min(array.Length, count);
+            Array.Copy(values, array, n);
+            if (n < array.Length) Array.Clear(array, n, array.Length - n);
         }
 
         /// Empties the stores, keeping their storage (a recycled sheet fills them again).
