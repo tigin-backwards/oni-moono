@@ -73,6 +73,7 @@ namespace OniMoono.GameTweaks
         public const string Name = "fast-overlays";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
+        [NameLookupReviewed("Overlay modes' methods from a list of types and names, each patched (so declared), and the Mirrors-declared overloads picked by their parameters")]
         public static void Install(Harmony harmony)
         {
             var update = AccessTools.Method(typeof(OverlayModes.Power), nameof(OverlayModes.Power.Update));
@@ -131,6 +132,7 @@ namespace OniMoono.GameTweaks
 
         /// The game's AddTargetIfVisible without its own visit to an object already among the
         /// targets: the method's test for that ends it with nothing done.
+        [MirrorsGame("System.Void OverlayModes/Mode::AddTargetIfVisible``1(!!0,Vector2I,Vector2I,System.Collections.Generic.ICollection`1<!!0>,System.Int32,System.Action`1<!!0>,System.Func`2<KMonoBehaviour,System.Boolean>)")]
         static void AddTarget<T>(OverlayModes.Mode mode, T instance, Vector2I visMin, Vector2I visMax, ICollection<T> targets, int layer, Action<T> onAdded, Func<KMonoBehaviour, bool> shouldAdd)
             where T : IUniformGridObject
         {
@@ -243,6 +245,8 @@ namespace OniMoono.GameTweaks
         /// Mode.RemoveOffscreenTargets(targets, min, max, on_removed): the game's
         /// ClearOutsideViewObjects with the targets' transforms and fixed positions kept, and
         /// its unused KPrefabID lookup left out (it filters only by prefab, and is given none).
+        [MirrorsGame("System.Void OverlayModes/Mode::RemoveOffscreenTargets``1(System.Collections.Generic.ICollection`1<!!0>,Vector2I,Vector2I,System.Action`1<!!0>)")]
+        [MirrorsGame("System.Void OverlayModes/Mode::ClearOutsideViewObjects``1(System.Collections.Generic.ICollection`1<!!0>,Vector2I,Vector2I,System.Collections.Generic.ICollection`1<Tag>,System.Action`1<!!0>)")]
         static void RemoveOffscreen<T>(ICollection<T> targets, Vector2I visMin, Vector2I visMax, Action<T> onRemoved) where T : KMonoBehaviour
         {
             if (RowsForeign())
@@ -283,6 +287,7 @@ namespace OniMoono.GameTweaks
 
         /// Mode.UpdateHighlightTypeOverlay, the game's loop with the targets' transforms,
         /// controllers and fixed positions kept.
+        [MirrorsGame("System.Void OverlayModes/Mode::UpdateHighlightTypeOverlay``1(Vector2I,Vector2I,System.Collections.Generic.ICollection`1<!!0>,System.Collections.Generic.ICollection`1<Tag>,OverlayModes/ColorHighlightCondition[],OverlayModes/BringToFrontLayerSetting,System.Int32)")]
         static void Highlight<T>(OverlayModes.Mode mode, Vector2I min, Vector2I max, ICollection<T> targets, ICollection<Tag> itemIds,
             OverlayModes.ColorHighlightCondition[] highlights, OverlayModes.BringToFrontLayerSetting bringToFront, int layer) where T : KMonoBehaviour
         {
@@ -380,6 +385,7 @@ namespace OniMoono.GameTweaks
         /// The visualizers' handler (the game's dispatcher, replaced): the game's test, with the
         /// position kept for objects that cannot move. A kept place out of view is passed over
         /// without touching the visualizer at all.
+        [MirrorsGame("System.Void TemperatureOverlayInfraredVisualizerBase::OnTemperatureOverlayInfraredUpdate(System.Object)")]
         static void InfraredDispatch(object context, object obj)
         {
             if (infraredForeign)

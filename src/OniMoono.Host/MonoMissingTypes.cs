@@ -12,6 +12,7 @@ using System.Runtime.Loader;
 using Mono.Cecil.Rocks;
 using OniMoono.Engine;
 using Cecil = Mono.Cecil;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host
 {
@@ -149,6 +150,7 @@ namespace OniMoono.Host
         /// it: D15) lacks the type, when its types are the same in both players; for Unity's engine
         /// and packages, ours, whether both ours and the original's copy in Managed/ lack it (a type
         /// Unity's copy has and ours lacks is our API's gap: D57, GapOf).
+        [NameLookupReviewed("Whether a type a mod names is in the assembly it names (any assembly)")]
         static bool IsMissing(string assemblyName, string ns, string name)
         {
             if (Loaded(assemblyName) is not { } assembly) return false;

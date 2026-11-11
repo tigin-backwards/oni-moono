@@ -168,6 +168,7 @@ namespace OniMoono.GameTweaks
 
         /// NoteEntries.Add: an entry the store holds goes back to `entries` first; a new entry
         /// gets its place in the store's order.
+        [MirrorsGame("System.Void ReportManager/NoteStorage/NoteEntries::Add(System.Int32,System.Single,System.Int32)")]
         static void Adding(NoteEntries __instance, int report_entry_id, float value, int note_id)
         {
             var s = StoreOf(__instance);

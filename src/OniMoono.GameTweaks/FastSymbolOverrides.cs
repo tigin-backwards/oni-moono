@@ -61,6 +61,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SymbolOverrideInfoGpuData::SetSymbolOverrideInfo(System.Int32,System.Int32,System.Int32,KBatchGroupData,System.Int32,System.Int32)", "3e09bb5981edcea0 linux-744825 win-744825")]
     [GameMember(GameUse.Uses, "System.Int32 KAnimControllerBase::pendingSymbolOverrideInfoSymbolCount", Optional = true)]
     [GameMember(GameUse.Uses, "SymbolOverrideInfoGpuData KAnimControllerBase::_symbolOverrideInfoGpuData", Optional = true)]
+    [GameMember(GameUse.Uses, "System.Int32 SymbolOverrideInfoGpuData::<version>k__BackingField")]
     public static class FastSymbolOverrides
     {
         public const string Name = "fast-symbol-overrides";

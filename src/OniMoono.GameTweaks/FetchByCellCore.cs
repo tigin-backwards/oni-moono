@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -30,6 +31,7 @@ namespace OniMoono.GameTweaks
         /// members that may (the game checks each; `bestFailed` counts these); then any special
         /// item (one whose answer differs by Duplicant) that may be picked up and comes before it.
         /// Null when none may be picked up.
+        [MirrorsGame("System.Void FetchManager/FetchablesByPrefabId::GatherPickupablesWhichCanBePickedUp(System.Int32)")]
         public static T Choose<T, TRules>(T best, List<T> members, List<T> specials, TRules rules, ref long bestFailed, ref long specialChecks)
             where T : class where TRules : struct, IPileRules<T>
         {
@@ -58,6 +60,7 @@ namespace OniMoono.GameTweaks
     /// itself. While all share one, any of them gives the cell the path cost the game gives it
     /// (through the first item there in its list that may be picked up); otherwise that cost is
     /// found as the game finds it.
+    [MirrorsGame("System.Int32 Workable::GetNavigationCost(Navigator,System.Int32)")]
     public sealed class CellSources
     {
         object single;

@@ -12,6 +12,7 @@ using Mono.Cecil.Rocks;
 using OniMoono.Engine;
 using Cecil = Mono.Cecil;
 using Cil = Mono.Cecil.Cil;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host
 {
@@ -137,6 +138,7 @@ namespace OniMoono.Host
         static TypeKind Of(Type type) => new(type.IsValueType, type.IsValueType ? MonoKind(type) : 0, MonoMissingTypes.SameInBothPlayers(type.Assembly));
 
         /// The type a TypeRef names, from the assembly loaded under its name, or null.
+        [NameLookupReviewed("A mod's type references, by the names in its own metadata")]
         internal static Type? Resolve(MetadataReader md, TypeReferenceHandle handle)
         {
             var reference = md.GetTypeReference(handle);

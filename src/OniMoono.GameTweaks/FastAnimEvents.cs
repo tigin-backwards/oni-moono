@@ -38,6 +38,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "System.Void KAnimControllerBase::StartQueuedAnim()")]
     [GameMember(GameUse.Postfix, "System.Void KAnimControllerBase::set_PlayMode(KAnim/PlayMode)")]
     [GameMember(GameUse.Postfix, "System.Void KBatchedAnimController::SwapAnims(KAnimFile[])")]
+    [GameMember(GameUse.Mirrors, "System.Int32 KAnim/Anim::GetFrameIdx(KAnim/PlayMode,System.Single)", "935caccae1bc048b linux-744825 win-744825")]
     public static class FastAnimEvents
     {
         public const string Name = "fast-anim-events";
@@ -94,6 +95,7 @@ namespace OniMoono.GameTweaks
         /// The methods another owner's patch makes this tweak stand down for: the loop and its
         /// caller, what the loop copies or caches, the entries' other writers, and the methods whose
         /// flags keep the mirror current.
+        [NameLookupReviewed("Every overload of GetFrameIdx (nameof) on KAnimControllerBase and KAnim.Anim")]
         internal static IEnumerable<MethodBase> Guarded()
         {
             var aem = typeof(AnimEventManager);
@@ -283,6 +285,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// KAnim.Anim.GetFrameIdx(mode, elapsedSeconds), with the animation's numbers.
+        [MirrorsGame("System.Int32 KAnim/Anim::GetFrameIdx(KAnim/PlayMode,System.Single)")]
         static int FrameIdx(KAnim.PlayMode mode, int numFrames, float totalTime, float frameRate, float elapsedSeconds)
         {
             if (numFrames <= 0) return -1;

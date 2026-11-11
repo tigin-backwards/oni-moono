@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host
 {
@@ -197,6 +198,7 @@ namespace OniMoono.Host
 
             public bool SameInBothPlayers(Type type) => MonoMissingTypes.SameInBothPlayers(type.Assembly);
 
+            [NameLookupReviewed("A mod's type references, by the names in its own metadata")]
             public Type? Resolve(TypeReferenceHandle handle)
             {
                 if (resolved.TryGetValue(handle, out var known)) return known;

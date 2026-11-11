@@ -1,4 +1,5 @@
 using UnityEngine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -9,6 +10,7 @@ namespace OniMoono.GameTweaks
         /// The top-right and bottom-left world corners of an orthographic camera at `centre`
         /// with half-height `orthographicSize`, drawing into a `width` by `height` target (as
         /// Camera.ViewportToWorldPoint gives them at (1, 1) and (0, 0) for an unrotated camera).
+        [MirrorsGame("System.Void CameraController::RenderCameraForTimelapse(UnityEngine.Camera,UnityEngine.RenderTexture&,UnityEngine.LayerMask,System.Single)")]
         public static (Vector2 TopRight, Vector2 BottomLeft) Corners(Vector3 centre, float orthographicSize, int width, int height)
         {
             float halfWidth = orthographicSize * width / height;
@@ -17,11 +19,13 @@ namespace OniMoono.GameTweaks
 
         /// Game.LateUpdate's `_WsToCs` for a frame with those corners: screen UV (1 - uv, top
         /// right first) to the grid's UV, on a grid of `gridWidth` by `gridHeight` cells.
+        [MirrorsGame("System.Void Game::LateUpdate()")]
         public static Vector4 Cells(Vector2 topRight, Vector2 bottomLeft, float gridWidth, float gridHeight) =>
             new(topRight.x / gridWidth, topRight.y / gridHeight, (bottomLeft.x - topRight.x) / gridWidth, (bottomLeft.y - topRight.y) / gridHeight);
 
         /// Game.LateUpdate's `_WsToCcs`: the same to the active world's UV, the world at `offset`
         /// with `size` cells, of which the top `hiddenYOffset` rows are not shown.
+        [MirrorsGame("System.Void Game::LateUpdate()")]
         public static Vector4 World(Vector2 topRight, Vector2 bottomLeft, Vector2 offset, Vector2 size, float hiddenYOffset)
         {
             float height = size.y - hiddenYOffset;

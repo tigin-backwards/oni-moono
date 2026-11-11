@@ -50,9 +50,20 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Transpiler, "System.Int32 KAnimBatch::UpdateDirty(System.Int32)", "179b53cbc38cbf63 linux-744825 win-744825", Rewrites = 3)]
     [GameMember(GameUse.Uses, "System.Void KAnimBatch::WriteBatchedAnimInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
     [GameMember(GameUse.Uses, "System.Boolean KAnimBatch::WriteSymbolInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
-    [GameMember(GameUse.Uses, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
+    [GameMember(GameUse.Mirrors, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)", "8e847ca8af22507b linux-744825 win-744825")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Int32 KAnimBatchManager::UpdateDirty(System.Int32)")]
     [GameMember(GameUse.Uses, "UnityEngine.Vector4 KBatchedAnimTracker::MyAnimGetPosition()")]
+    [GameMember(GameUse.Uses, "SymbolOverrideInfoGpuData KAnimControllerBase::get_symbolOverrideInfoGpuData()")]
+    [GameMember(GameUse.Uses, "SymbolInstanceGpuData KAnimControllerBase::get_symbolInstanceGpuData()")]
+    [GameMember(GameUse.Uses, "System.Int32 KBatchedAnimController::GetCurrentFrameIndex()")]
+    [GameMember(GameUse.Uses, "System.Boolean KBatchedAnimController::IsVisible()")]
+    [GameMember(GameUse.Uses, "System.Int32 KBatchedAnimController::GetCurrentNumFrames()")]
+    [GameMember(GameUse.Uses, "System.Single KBatchedAnimController::GetPostProcessingParams()")]
+    [GameMember(GameUse.Uses, "System.Int32 KBatchedAnimController::GetFirstFrameIndex()")]
+    [GameMember(GameUse.Uses, "UnityEngine.Vector4 KBatchedAnimController::GetPositionData()")]
+    [GameMember(GameUse.Uses, "KBatchedAnimInstanceData KBatchedAnimController::GetBatchInstanceData()")]
+    [GameMember(GameUse.Uses, "UnityEngine.Matrix4x4 KBatchedAnimController::GetSymbolTransform(HashedString,System.Boolean&)")]
+    [GameMember(GameUse.Uses, "Matrix2x3 KBatchedAnimController::GetSymbolLocalTransform(HashedString,System.Boolean&)")]
     public static class FastAnimBatches
     {
         public const string Name = "fast-anim-batches";
@@ -279,6 +290,7 @@ namespace OniMoono.GameTweaks
         /// slot is stale (the game would write), the block is written after the loop instead
         /// and the game's answer (written) returned now. The texture's Apply that follows only
         /// marks it changed; nothing reads its memory before the frame is drawn.
+        [MirrorsGame("System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
         static bool WriteOverrides(KAnimBatch batch, int index, KAnimConverter.IAnimConverter controller, NativeArray<byte> data)
         {
             if (pending.Count == 0) return writeOverrides(batch, index, controller, data);

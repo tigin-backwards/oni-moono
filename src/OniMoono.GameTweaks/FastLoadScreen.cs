@@ -54,6 +54,7 @@ namespace OniMoono.GameTweaks
         static bool bypass;
         static int verified, differed;
 
+        [NameLookupReviewed("Every field of SaveGame.GameInfo, copied whatever they are")]
         public static void Install(Harmony harmony)
         {
             // Every field of GameInfo must be one a copy can be made of: a value, a string, a
@@ -194,6 +195,7 @@ namespace OniMoono.GameTweaks
             }
         }
 
+        [NameLookupReviewed("Every field of SaveGame.GameInfo, compared whatever they are")]
         static bool Same(SaveGame.GameInfo a, SaveGame.GameInfo b)
         {
             foreach (var field in typeof(SaveGame.GameInfo).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))

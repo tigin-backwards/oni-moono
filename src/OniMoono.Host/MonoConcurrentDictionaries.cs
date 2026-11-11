@@ -7,6 +7,7 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using OniMoono.Engine;
 using Cecil = Mono.Cecil;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host
 {
@@ -44,6 +45,7 @@ namespace OniMoono.Host
         {
             uint netBuckets;
 
+            [NameLookupReviewed("CoreCLR's ConcurrentDictionary internals, not the game's; read with a fallback")]
             public ConcurrentDictionary<string, TValue> Attach<TValue>(ConcurrentDictionary<string, TValue> dictionary)
             {
                 var tables = dictionary.GetType().GetField("_tables", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(dictionary);

@@ -41,6 +41,9 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Transpiler, "System.Void Workable::SetOffsets(CellOffset[])", "7300b07737b428bb linux-744825 win-744825", Rewrites = 1)]
     [GameMember(GameUse.Transpiler, "System.Boolean Workable::ValidateOffsets(System.Int32)", "22b59c7ba40b813d linux-744825 win-744825", Rewrites = 1)]
     [GameMember(GameUse.Uses, "OffsetTracker Workable::offsetTracker")]
+    [GameMember(GameUse.Mirrors, "System.Void FetchManager/UpdateOffsetTables::Run(System.Object,System.Int32)", "ec5560fc0a44ea90 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void FetchManager/UpdateOffsetTables::Finish()", "c84f57da494868bf linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "HandleVector`1/Handle<!0> HandleVector`1::PackHandle(System.Int32)", "9e3fc90495fba39f linux-744825 win-744825")]
     public static class FastOffsetTables
     {
         public const string Name = "fast-offset-tables";
@@ -170,6 +173,8 @@ namespace OniMoono.GameTweaks
         }
 
         /// The offset pass, in place of the job.
+        [MirrorsGame("System.Void FetchManager/UpdateOffsetTables::Run(System.Object,System.Int32)")]
+        [MirrorsGame("System.Void FetchManager/UpdateOffsetTables::Finish()")]
         static void FixOffsets(IWorkItemCollection _, FetchManager manager)
         {
             updates++;
@@ -234,6 +239,7 @@ namespace OniMoono.GameTweaks
 
 
         /// The current handle of a slot of a handle vector (version in the top byte, as PackHandle).
+        [MirrorsGame("HandleVector`1/Handle<!0> HandleVector`1::PackHandle(System.Int32)")]
         static HandleVector<int>.Handle HandleFor(HandleVector<int> hv, int slot)
         {
             var handle = HandleVector<int>.InvalidHandle;

@@ -86,7 +86,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "System.Collections.Concurrent.ConcurrentDictionary`2<System.Int32,Grid/SuitMarker> Grid::suitMarkers")]
     [GameMember(GameUse.Uses, "System.Collections.Concurrent.ConcurrentDictionary`2<System.Int32,Grid/TubeEntrance> Grid::tubeEntrances")]
     [GameMember(GameUse.Uses, "System.Int32 MinionPathFinderAbilities::GetSubmergedPathCostPenalty(PathFinder/PotentialPath,NavGrid/Link)")]
-    [GameMember(GameUse.Uses, "System.Boolean MinionPathFinderAbilities::TraversePath(PathFinder/PotentialPath&,System.Int32,NavType,System.Int32,System.Int32,System.Boolean)")]
+    [GameMember(GameUse.Mirrors, "System.Boolean MinionPathFinderAbilities::TraversePath(PathFinder/PotentialPath&,System.Int32,NavType,System.Int32,System.Int32,System.Boolean)", "71e026f70cd66176 linux-744825 win-744825")]
     [GameMember(GameUse.Uses, "NavGrid/Link[] NavGrid::Links")]
     [GameMember(GameUse.Postfix, "System.Void NavGrid::UpdateGraph(System.Collections.Generic.List`1<System.Int32>)")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "PathGrid Navigator::TakeResult(AsyncPathProber/WorkResult&)", "4abe6f0a0b6d41d9 linux-744825 win-744825")]
@@ -97,6 +97,16 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Mirrors, "System.Void PathGrid::SetCell(PathFinder/PotentialPath,PathFinder/Cell&)", "b0dcc60351852076 linux-744825 win-744825")]
     [GameMember(GameUse.Mirrors, "System.Void PathProber::Run(Navigator,System.Collections.Generic.List`1<System.Int32>)", "d4bc7ec75bac26b5 linux-744825 win-744825")]
     [GameMember(GameUse.Mirrors, "System.Void PathProber::Run(System.Int32,PathFinderAbilities,NavGrid,NavType,PathGrid,System.UInt16,PathFinder/PotentialScratchPad,PathFinder/PotentialList,PathFinder/PotentialPath/Flags,System.Collections.Generic.List`1<System.Int32>)", "13bd4a949ea0c8d9 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList::Add(System.Int32,PathFinder/PotentialPath)", "8c439cbc3acfadb8 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Collections.Generic.KeyValuePair`2<System.Int32,PathFinder/PotentialPath> PathFinder/PotentialList::Next()", "b30cfa819f3f675d linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList/HOTQueue`1::Enqueue(System.Int32,!0)", "e5ec673ece5c5910 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Collections.Generic.KeyValuePair`2<System.Int32,!0> PathFinder/PotentialList/HOTQueue`1::Dequeue()", "eab24fbb91278196 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList/PriorityQueue`1::Enqueue(System.Int32,!0)", "6b25a52ef0eb554f linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Collections.Generic.KeyValuePair`2<System.Int32,!0> PathFinder/PotentialList/PriorityQueue`1::Dequeue()", "8a06dc15ae6d914d linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList/PriorityQueue`1::Insert(System.Int32,!0)", "30e34c1f628c391a linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Int32 PathFinder/PotentialList/PriorityQueue`1::HeapifyFromEndToBeginning(System.Int32)", "5ce5ef8cb114e509 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList/PriorityQueue`1::DeleteRoot()", "0876982196746de7 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList/PriorityQueue`1::HeapifyFromBeginningToEnd(System.Int32)", "5adc8d43adb98df3 linux-744825 win-744825")]
     public static class ProbeRepair
     {
         public const string Name = "path-probe-repair";
@@ -191,6 +201,7 @@ namespace OniMoono.GameTweaks
         /// through the host's PathGridPages.Materialise and keeps verify mode's flat array
         /// (PathGridPages.ShadowOf) written, each write counted as the host's are
         /// (PathGridPages.WritesOf). A grid's table never changes, so its view is kept.
+        [NameLookupReviewed("PathGrid's arrays its callers name (Cells, ProberCells: declared), the page fields paged-path-grids adds, and the host's own types")]
         static Func<PathGrid, ProbePages<TView>> ViewOf<TView>(string array) where TView : struct
         {
             var pagesField = AccessTools.Field(typeof(PathGrid), $"<{array}>pages");
@@ -269,6 +280,7 @@ namespace OniMoono.GameTweaks
         // ---- Standing down ----
 
         /// The methods another owner's patch makes this tweak stand down.
+        [NameLookupReviewed("Every overload of PathProber.Run and NavGrid.UpdateGraph (nameof)")]
         internal static IEnumerable<MethodBase> Guarded()
         {
             foreach (var m in AccessTools.GetDeclaredMethods(typeof(PathProber))) if (m.Name == nameof(PathProber.Run)) yield return m;
@@ -421,6 +433,7 @@ namespace OniMoono.GameTweaks
                 return h;
             }
 
+            [NameLookupReviewed("KeyValuePair's Key and Value, not the game's")]
             static Dictionary<int, long> Hashes(System.Collections.IEnumerable dict)
             {
                 var r = new Dictionary<int, long>();

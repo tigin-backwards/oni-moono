@@ -203,6 +203,7 @@ namespace OniMoono.GameTweaks
         /// main menu is made, so that a game update that renamed one leaves the menu out rather
         /// than failing while it is built or opened. `ONI_TWEAK_TEST_MENU_MISSING=NAME,…` (test
         /// runs) takes those parts as missing.
+        [NameLookupReviewed("The menu's parts, declared and checked here at run time")]
         internal static string Problem(MainMenu menu)
         {
             var missing = (Environment.GetEnvironmentVariable("ONI_TWEAK_TEST_MENU_MISSING") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
@@ -367,6 +368,7 @@ namespace OniMoono.GameTweaks
         KScrollRect scroll;
 
         /// The Mods screen's serialized state: its KScreen settings and its parts.
+        [NameLookupReviewed("Every field of KModalScreen and its bases, copied whatever they are")]
         internal void TakeOver(ModsScreen mods)
         {
             for (var type = typeof(KModalScreen); type != null && type != typeof(MonoBehaviour); type = type.BaseType)

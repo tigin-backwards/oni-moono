@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -23,6 +24,7 @@ namespace OniMoono.GameTweaks
         public const int TranspilerPriority = Priority.Last;
 
         /// A transpiler of `type`'s method `name`, run after every other owner's.
+        [NameLookupReviewed("A tweak's own transpiler, by its name")]
         public static HarmonyMethod Transpiler(Type type, string name) => new(type, name) { priority = TranspilerPriority };
 
         /// The instructions, with each call to an instance of a generic method definition that

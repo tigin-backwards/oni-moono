@@ -83,6 +83,9 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Mirrors, "System.Int32 Workable::GetCell()", "fb2172362f29653c linux-744825 win-744825")]
     [GameMember(GameUse.Postfix, "System.Void Workable::SetOffsetTable(CellOffset[][])")]
     [GameMember(GameUse.Postfix, "System.Void Workable::SetOffsets(CellOffset[])")]
+    [GameMember(GameUse.Mirrors, "CellOffset[] Workable::GetOffsets(System.Int32)", "5ee61caa3c2e4e94 linux-744825 win-744825")]
+    [GameMember(GameUse.Uses, "System.Void OffsetTableTracker::UpdateOffsets(System.Int32)")]
+    [GameMember(GameUse.Uses, "System.Void OffsetTableTracker::UpdateCell(System.Int32,System.Int32)")]
     public static class InstantReachability
     {
         public const string Name = "instant-reachability";
@@ -170,6 +173,7 @@ namespace OniMoono.GameTweaks
         // ---- Standing down ----
 
         /// The methods another owner's patch makes this tweak stand down.
+        [NameLookupReviewed("Every overload of MinionGroupProber's methods named by nameof")]
         internal static IEnumerable<MethodBase> Guarded()
         {
             yield return AccessTools.Method(typeof(ReachabilityMonitor), nameof(ReachabilityMonitor.InitializeStates));
@@ -318,6 +322,7 @@ namespace OniMoono.GameTweaks
         static readonly Dictionary<Type, (ReachCoverage.CellSource Cell, ReachCoverage.OffsetSource Offsets)> sources =
             new Dictionary<Type, (ReachCoverage.CellSource, ReachCoverage.OffsetSource)>();
 
+        [NameLookupReviewed("GetCell and GetOffsets (nameof) on any Workable's type, to find which game type declares them")]
         static (ReachCoverage.CellSource Cell, ReachCoverage.OffsetSource Offsets) SourcesOf(Type type)
         {
             if (sources.TryGetValue(type, out var found)) return found;
@@ -333,6 +338,8 @@ namespace OniMoono.GameTweaks
         static string TrackerName(OffsetTracker t) => t == null ? null : t.GetType().Assembly == typeof(Workable).Assembly ? t.GetType().Name : "(mod)";
 
         /// The rectangle of offsets the master can ever answer, or null when the tweak can't follow them.
+        [MirrorsGame("CellOffset[] OffsetTracker::GetOffsets(System.Int32)")]
+        [MirrorsGame("CellOffset[] Unsealable::GetOffsets(System.Int32)")]
         static OffsetBounds? BoundsOf(Workable master, ReachCoverage.OffsetSource offsets)
         {
             var b = OffsetBounds.Origin;

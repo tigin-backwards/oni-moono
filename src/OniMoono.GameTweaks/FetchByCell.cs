@@ -85,6 +85,10 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "OffsetTracker Workable::offsetTracker")]
     [GameMember(GameUse.Postfix, "System.Void Workable::SetOffsets(CellOffset[])")]
     [GameMember(GameUse.Postfix, "System.Void Workable::SetOffsetTable(CellOffset[][])")]
+    [GameMember(GameUse.Mirrors, "CellOffset[] Workable::GetOffsets(System.Int32)", "5ee61caa3c2e4e94 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "HandleVector`1/Handle<!0> HandleVector`1::PackHandle(System.Int32)", "9e3fc90495fba39f linux-744825 win-744825")]
+    [GameMember(GameUse.Uses, "System.Void OffsetTableTracker::UpdateOffsets(System.Int32)")]
+    [GameMember(GameUse.Postfix, "System.Void Game::OnPrefabInit()")]
     public static class FetchByCell
     {
         public const string Name = "fetch-by-cell";
@@ -393,6 +397,9 @@ namespace OniMoono.GameTweaks
 
         static bool Better(Item a, Item b) => a.Qual > b.Qual || (a.Qual == b.Qual && a.Fresh > b.Fresh);
 
+        [MirrorsGame("System.Void FetchManager/FetchablesByPrefabId::GatherReachablePickups(Navigator)")]
+        [MirrorsGame("System.Int32 FetchManager/PickupComparerIncludingPriority::Compare(FetchManager/Pickup,FetchManager/Pickup)")]
+        [MirrorsGame("System.Int32 FetchManager/PickupComparerNoPriority::Compare(FetchManager/Pickup,FetchManager/Pickup)")]
         static void RunByCell(GroupMirror gm, Navigator nav, int worker, List<Pickup> output)
         {
             output.Clear();
@@ -526,6 +533,9 @@ namespace OniMoono.GameTweaks
 
         /// Whether the navigator's reached worlds are known (reached[]): those of its occupied
         /// cells (its last probe's), and its own.
+        [MirrorsGame("System.Int32 Navigator::GetNavigationCost(System.Int32)")]
+        [MirrorsGame("System.Int32 Navigator::GetNavigationCost(System.Int32,CellOffset[])")]
+        [MirrorsGame("System.Int32 PathGrid::GetCost(System.Int32)")]
         static bool Reached(Navigator nav)
         {
             if (nav == null || !nav.reportOccupation) return false;
@@ -606,6 +616,7 @@ namespace OniMoono.GameTweaks
             return true;
         }
 
+        [MirrorsGame("CellOffset[] Workable::GetOffsets(System.Int32)")]
         static int RadiusOf(Pickupable p)
         {
             var type = p.GetType();
@@ -753,6 +764,7 @@ namespace OniMoono.GameTweaks
             for (int i = 0; i < data.Count; i++) Insert(gm, data[i], HandleFor(hv, slots[i]));
         }
 
+        [MirrorsGame("HandleVector`1/Handle<!0> HandleVector`1::PackHandle(System.Int32)")]
         static HandleVector<int>.Handle HandleFor(HandleVector<int> hv, int slot)
         {
             var handle = HandleVector<int>.InvalidHandle;
@@ -785,6 +797,8 @@ namespace OniMoono.GameTweaks
             Count(item, +1);
         }
 
+        [MirrorsGame("System.Boolean Pickupable::CouldBePickedUpByMinion(System.Int32)")]
+        [MirrorsGame("System.Boolean Pickupable::CouldBePickedUpCommon(System.Int32)")]
         static bool IsSpecial(Pickupable p)
         {
             var list = p.reservations;

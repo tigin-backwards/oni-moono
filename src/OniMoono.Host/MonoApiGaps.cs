@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host
 {
@@ -42,6 +43,7 @@ namespace OniMoono.Host
         static readonly ConcurrentDictionary<(string, string), (Type?, OursFailure, string?)> ours = new();
 
         /// `File` is the display name of the assembly ours could not load.
+        [NameLookupReviewed("A type a mod names in an assembly ours answers for, by that name")]
         internal static (Type? Type, OursFailure Failure, string? File) Ours(string assemblyName, string fullName) =>
             ours.GetOrAdd((assemblyName, fullName), key =>
             {
