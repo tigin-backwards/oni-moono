@@ -64,6 +64,10 @@ namespace OniMoono.Engine.Rendering
         /// are not drawn), as Unity's -nographics player.
         public abstract bool RendersFrames { get; }
 
+        /// Device commands that failed so far (a render texture the driver could not make, and
+        /// the like); each was logged.
+        public virtual long FailedCommands => 0;
+
         /// Copies pixels from a render target (null: the back buffer) into a texture's CPU data.
         public abstract void ReadPixels(RenderTextureNative source, RectInt rect, Texture2DNative destination, int destX, int destY);
 

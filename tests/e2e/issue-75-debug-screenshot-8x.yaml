@@ -1,0 +1,16 @@
+# Issue #75: the debug high-resolution screenshot writes its PNG, as the original's does.
+#
+# With debug mode on, Alt+3 (Action.SreenShot8x) calls ScreenCapture.CaptureScreenshot(path, 8),
+# written to the save's folder, under screenshot/: the frame rendered again at eight times the
+# screen's size, UI included. Ours read the render back in one piece, as floats: at 2560x1440
+# that was 3.5 GB, which ran out of memory and ended the game. Alt+S (screenshot mode) hides the
+# UI first, as the reporter did. At 1280x720 both players write a 10240x5760 image.
+from: early-base
+setup:
+  # As debug_enable.txt in the game folder would (DebugHandler reads it at start-up).
+  - driver: {setup.call: {type: "DebugHandler", method: "SetDebugEnabled", args: [true]}}
+steps:
+  - key: {code: "Alt+S"}
+  - key: {code: "Alt+3"}
+  - wait_state: {state: {"file:save_files/e2e/screenshot": ">= 1"}, seconds: 600}
+  - file_shot: {name: screenshot-8x, path: "save_files/e2e/screenshot/*.png", wait: 600}
