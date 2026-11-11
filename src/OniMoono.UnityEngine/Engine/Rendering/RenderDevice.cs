@@ -93,6 +93,11 @@ namespace OniMoono.Engine.Rendering
             }
         }
 
+        /// Starts reading a render texture's level 0 back (AsyncGPUReadback) without waiting for
+        /// the GPU: texels in `format`, rows bottom to top, as ReadPixels gives them. Null: the
+        /// device cannot, and the caller reads it now.
+        public virtual DeviceReadback BeginReadback(RenderTextureNative source, int width, int height, UnityEngine.TextureFormat format) => null;
+
         /// Copies pixels from a render target (null: the back buffer) into a texture's CPU data.
         public abstract void ReadPixels(RenderTextureNative source, RectInt rect, Texture2DNative destination, int destX, int destY);
 
@@ -394,5 +399,25 @@ namespace OniMoono.Engine.Rendering
             }
             return orphans.Count;
         }
+    }
+
+    /// A read-back the device has started (RenderDevice.BeginReadback): main thread only. Its
+    /// texels are readable at `Data` once `Ready` (or `Wait` has returned) until `Release`.
+    internal abstract unsafe class DeviceReadback
+    {
+        /// Set from any thread once the texels are at Data, or the read failed.
+        public volatile bool Ready;
+        public bool Failed;
+        public byte* Data;
+        public int Size;
+
+        /// Lets the device see whether the GPU is done (once a frame while not Ready).
+        public virtual void Poll() { }
+
+        /// Blocks until Ready.
+        public abstract void Wait();
+
+        /// Frees the texels and what the device held for them.
+        public abstract void Release();
     }
 }

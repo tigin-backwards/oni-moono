@@ -9,10 +9,13 @@ using UnityEngine.Experimental.Rendering;
 
 namespace UnityEngine.Rendering
 {
-    /// Texture read-backs (mods: Fast Save's timelapse images). The texels are read when the
-    /// request is made; the request is done three frames later, as measured in the original player
-    /// (a render texture read back to RGBA32), its callback runs then, and its data stays readable
-    /// for that frame only.
+    /// Texture read-backs (mods: Fast Save's timelapse images; U59's own code makes none). A
+    /// render texture is read by the device without waiting for the GPU (GL: a pixel buffer and
+    /// a fence); a texture's texels, or a render texture the device cannot read so, are read
+    /// when the request is made. The request
+    /// is done three frames later, as measured in the original player (a render texture read back
+    /// to RGBA32), or once the device has the texels if that takes longer; its callback runs
+    /// then, and its data stays readable for that frame only.
     public static partial class AsyncGPUReadback
     {
         internal const int Latency = 3;
@@ -49,6 +52,14 @@ namespace UnityEngine.Rendering
         {
             if (format == (TextureFormat)(-1) || !TextureFormats.CanEncode(format) || mipIndex < 0) return false;
             int width = Math.Max(1, src.width >> mipIndex), height = Math.Max(1, src.height >> mipIndex);
+            if (src.NativeOrThrow is RenderTextureNative started && mipIndex == 0 && started.Created
+                && GraphicsDevice.Current.BeginReadback(started, width, height, format) is { } device)
+            {
+                state.Device = device;
+                state.Width = width;
+                state.Height = height;
+                return true;
+            }
             var copy = new Texture2D(width, height, format, false);
             try
             {
@@ -110,14 +121,31 @@ namespace UnityEngine.Rendering
             int frame = Time.frameCount;
             foreach (var state in pending.ToArray())
             {
-                if (!state.Done && frame >= state.DueFrame) Complete(state);
-                else if (state.Done && frame > state.DoneFrame) Release(state);
+                if (!state.Done)
+                {
+                    var device = state.Device;
+                    if (device != null && !device.Ready) device.Poll();
+                    if (frame >= state.DueFrame && (device == null || device.Ready)) Complete(state);
+                }
+                else if (frame > state.DoneFrame) Release(state);
             }
         }
 
-        internal static void Complete(AsyncGPUReadbackRequest.State state)
+        /// Runs the callback, first waiting for the device's texels if they are not there yet
+        /// (WaitForCompletion, WaitAllRequests).
+        internal static unsafe void Complete(AsyncGPUReadbackRequest.State state)
         {
             if (state.Done) return;
+            if (state.Device is { } device)
+            {
+                if (!device.Ready) device.Wait();
+                if (device.Failed) state.HasError = true;
+                else
+                {
+                    state.Data = device.Data;
+                    state.Size = device.Size;
+                }
+            }
             state.Done = true;
             state.DoneFrame = Time.frameCount;
             state.Callback?.Invoke(new AsyncGPUReadbackRequest(state));
@@ -126,7 +154,9 @@ namespace UnityEngine.Rendering
         static unsafe void Release(AsyncGPUReadbackRequest.State state)
         {
             pending.Remove(state);
-            if (state.Data != null) NativeMemory.Free(state.Data);
+            if (state.Device != null) state.Device.Release();
+            else if (state.Data != null) NativeMemory.Free(state.Data);
+            state.Device = null;
             state.Data = null;
             state.Released = true;
         }
@@ -141,6 +171,8 @@ namespace UnityEngine.Rendering
             public bool Done, HasError, Released;
             public byte* Data;
             public int Size, Width, Height;
+            /// The device's read-back, while it reads (its texels are Data once done).
+            public DeviceReadback Device;
         }
 
         readonly State state;

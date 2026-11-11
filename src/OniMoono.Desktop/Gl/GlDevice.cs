@@ -956,6 +956,23 @@ namespace OniMoono.Desktop.Gl
         {
             int w = Math.Min(rect.width, destination.Width - destX), h = Math.Min(rect.height, destination.Height - destY);
             if (w <= 0 || h <= 0 || !TextureFormats.CanEncode(destination.Format) || destination.Memory == null) return;
+            // An 8-bit target into an 8-bit texture: read as bytes, a quarter of the floats'
+            // memory and no conversion; the texels are the same. (The present trace logs the
+            // screen's reads from the float path.)
+            if (source == null ? !PresentTrace.Enabled : GlReadback.EightBit(source))
+                if (TextureFormats.ReadPixelsBytes(destination.Format))
+                {
+                    int byteBand = Math.Clamp(ReadBandPixels / w, 1, h);
+                    var bytes = new byte[w * byteBand * 4];
+                    for (int y0 = 0; y0 < h; y0 += byteBand)
+                    {
+                        int rows = Math.Min(byteBand, h - y0);
+                        if (!ReadRgba8(source, new RectInt(rect.x, rect.y + y0, w, rows), bytes, 0, w * 4)) return;
+                        TextureFormats.StoreRgba8(destination.Format, destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0)), destination.Width,
+                            destX, destY + y0, bytes, w, rows);
+                    }
+                    return;
+                }
             var device = source != null ? GlTextures.Prepare(worker, source) : null;
             bool autoMips = source?.AutoGenerateMips ?? false;
             int fbWidth = platform.FramebufferWidth, fbHeight = platform.FramebufferHeight;
@@ -1003,11 +1020,27 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
+        /// AsyncGPUReadback: the read goes with the frame's work, into a pixel buffer the GPU
+        /// fills behind a fence (GlReadback); the main thread does not wait for the GPU.
+        public override DeviceReadback BeginReadback(RenderTextureNative source, int width, int height, TextureFormat format)
+        {
+            if (!TextureFormats.CanEncode(format)) return null;
+            var device = GlTextures.Prepare(worker, source);
+            bool autoMips = source.AutoGenerateMips;
+            var read = new GlReadback(worker, width, height, format, GlReadback.ReadsBytes(source, format));
+            worker.Post(() => read.Start(device, autoMips));
+            return read;
+        }
+
         /// Reads straight into the array, as GL_UNSIGNED_BYTE: a capture's band needs no float
         /// copy and no texture.
         public override void ReadPixelsRgba8(RenderTextureNative source, RectInt rect, byte[] destination, int offset, int stride)
+            => ReadRgba8(source, rect, destination, offset, stride);
+
+        /// ReadPixelsRgba8; false once the device has stopped (nothing read).
+        bool ReadRgba8(RenderTextureNative source, RectInt rect, byte[] destination, int offset, int stride)
         {
-            if (rect.width <= 0 || rect.height <= 0) return;
+            if (rect.width <= 0 || rect.height <= 0) return true;
             if (stride % 4 != 0 || offset < 0 || (long)offset + (long)stride * (rect.height - 1) + rect.width * 4L > destination.Length)
                 throw new ArgumentOutOfRangeException(nameof(stride));
             var device = source != null ? GlTextures.Prepare(worker, source) : null;
@@ -1029,9 +1062,10 @@ namespace OniMoono.Desktop.Gl
                 N.glPixelStorei(PackRowLength, 0);
                 framebufferValid = false;
                 return 0;
-            }, out _)) return;
+            }, out _)) return true;
             if (!loggedStoppedRead) EngineLog.Engine("ReadPixels after the OpenGL device stopped: nothing read (logged once)");
             loggedStoppedRead = true;
+            return false;
         }
 
         bool loggedStoppedRead;

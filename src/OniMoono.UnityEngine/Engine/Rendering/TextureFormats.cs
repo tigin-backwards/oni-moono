@@ -215,6 +215,57 @@ namespace OniMoono.Engine.Rendering
         static float H(ReadOnlySpan<byte> p, int i) => (float)BinaryPrimitives.ReadHalfLittleEndian(p[(i * 2)..]);
         static float F(ReadOnlySpan<byte> p, int i) => BinaryPrimitives.ReadSingleLittleEndian(p[(i * 4)..]);
 
+        /// The 8-bit formats StoreRgba8 writes: what Encode gives for colours read from 8-bit
+        /// channels, without going through floats.
+        public static bool ReadPixelsBytes(TextureFormat format)
+            => format is TextureFormat.RGBA32 or TextureFormat.ARGB32 or TextureFormat.BGRA32 or TextureFormat.RGB24;
+
+        /// RGBA 8-bit rows (`rows` of `width` texels, bottom first) into a level at (x, y), as
+        /// Encode writes each texel's colour read from them.
+        public static void StoreRgba8(TextureFormat format, Span<byte> mip, int mipWidth, int x, int y, ReadOnlySpan<byte> rgba, int width, int rows)
+        {
+            TryGetBlock(format, out _, out _, out int bpp);
+            for (int r = 0; r < rows; r++)
+            {
+                var from = rgba.Slice(r * width * 4, width * 4);
+                var to = mip.Slice(((y + r) * mipWidth + x) * bpp, width * bpp);
+                switch (format)
+                {
+                    case TextureFormat.RGBA32:
+                        from.CopyTo(to);
+                        break;
+                    case TextureFormat.ARGB32:
+                        for (int i = 0; i < width; i++)
+                        {
+                            to[i * 4] = from[i * 4 + 3];
+                            to[i * 4 + 1] = from[i * 4];
+                            to[i * 4 + 2] = from[i * 4 + 1];
+                            to[i * 4 + 3] = from[i * 4 + 2];
+                        }
+                        break;
+                    case TextureFormat.BGRA32:
+                        for (int i = 0; i < width; i++)
+                        {
+                            to[i * 4] = from[i * 4 + 2];
+                            to[i * 4 + 1] = from[i * 4 + 1];
+                            to[i * 4 + 2] = from[i * 4];
+                            to[i * 4 + 3] = from[i * 4 + 3];
+                        }
+                        break;
+                    case TextureFormat.RGB24:
+                        for (int i = 0; i < width; i++)
+                        {
+                            to[i * 3] = from[i * 4];
+                            to[i * 3 + 1] = from[i * 4 + 1];
+                            to[i * 3 + 2] = from[i * 4 + 2];
+                        }
+                        break;
+                    default:
+                        throw new ArgumentException($"{format} is not an 8-bit format StoreRgba8 writes.", nameof(format));
+                }
+            }
+        }
+
         /// Writes texel (x, y) of a mip level. 8/16-bit channels are clamped to [0, 1] and rounded.
         public static void Encode(TextureFormat format, Span<byte> mip, int mipWidth, int x, int y, Color c)
         {

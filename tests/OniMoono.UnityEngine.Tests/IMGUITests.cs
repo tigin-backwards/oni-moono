@@ -32,6 +32,10 @@ namespace OniMoono.Tests
         public Action<OniMoono.Engine.Rendering.RenderTextureNative, RectInt, OniMoono.Engine.Rendering.Texture2DNative, int, int> OnReadPixels;
         public override void ReadPixels(OniMoono.Engine.Rendering.RenderTextureNative source, RectInt rect, OniMoono.Engine.Rendering.Texture2DNative destination, int destX, int destY)
             => OnReadPixels?.Invoke(source, rect, destination, destX, destY);
+        /// Answers BeginReadback (null: the engine reads the texture now, through ReadPixels).
+        public Func<OniMoono.Engine.Rendering.RenderTextureNative, int, int, TextureFormat, OniMoono.Engine.Rendering.DeviceReadback> OnBeginReadback;
+        public override OniMoono.Engine.Rendering.DeviceReadback BeginReadback(OniMoono.Engine.Rendering.RenderTextureNative source, int width, int height, TextureFormat format)
+            => OnBeginReadback?.Invoke(source, width, height, format);
         /// Device commands that failed, as a test sets it.
         public long Failures;
         public override long FailedCommands => Failures;
