@@ -16,7 +16,8 @@ namespace OniMoono.Host
     /// operand is a float32 or float64, found by following the IL's stack types) call these
     /// instead, which convert as Mono does (OniMoono.Engine.MonoConvert). An assembly that cannot
     /// be rewritten loads unchanged. The same pass sends the assembly's directory listings to
-    /// MonoDirectoryListing (D30) and its calls of Thread.Abort to MonoThreadAbort (D47), and the
+    /// MonoDirectoryListing (D30), its calls of Thread.Abort to MonoThreadAbort (D47) and its
+    /// delegates for native code through MonoMarshalledDelegates (D64), and the
     /// game's rewritten images are cached with them.
     public static class MonoConversions
     {
@@ -45,6 +46,7 @@ namespace OniMoono.Host
         internal static byte[]? Adjust(byte[] image, ref byte[]? symbols, string path)
         {
             if (!MayConvertFloats(image) && !MonoDirectoryListing.MayList(image) && !MonoModHelperDrop.MayDrop(image) && !MonoThreadAbort.MayAbort(image)
+                && !MonoMarshalledDelegates.MayMarshal(image)
                 && !(NavGridLinksRewrite.Enabled && NavGridLinksRewrite.MayTouch(image))
                 && !(PathGridPagesRewrite.Enabled && PathGridPagesRewrite.MayTouch(image))) return null;
             try
@@ -80,6 +82,7 @@ namespace OniMoono.Host
         internal static byte[]? AdjustGame(byte[] image, string path)
         {
             if (!MayConvertFloats(image) && !MonoDirectoryListing.MayList(image) && !MonoModHelperDrop.MayDrop(image) && !MonoThreadAbort.MayAbort(image)
+                && !MonoMarshalledDelegates.MayMarshal(image)
                 && !(NavGridLinksRewrite.Enabled && NavGridLinksRewrite.MayTouch(image))
                 && !(PathGridPagesRewrite.Enabled && PathGridPagesRewrite.MayTouch(image))
                 && !(MonoFloatWidening.Enabled && MonoFloatWidening.MayTouch(path))) return null;
@@ -186,7 +189,9 @@ namespace OniMoono.Host
             int drops = MonoModHelperDrop.RewriteModule(module);
             // And its calls of Thread.Abort abort as Mono's do (D47).
             int aborts = MonoThreadAbort.RewriteModule(module, out int catchEnds);
-            if (converted == 0 && listings == 0 && drops == 0 && aborts == 0 && links == 0 && pages == 0 && widened == 0) return null;
+            // And its delegates for native code stay alive as Mono keeps them (D64).
+            int marshalled = MonoMarshalledDelegates.RewriteModule(module);
+            if (converted == 0 && listings == 0 && drops == 0 && aborts == 0 && marshalled == 0 && links == 0 && pages == 0 && widened == 0) return null;
             using var output = new MemoryStream();
             using var symbolOutput = new MemoryStream();
             module.Write(output, new Cecil.WriterParameters { WriteSymbols = withSymbols, SymbolStream = withSymbols ? symbolOutput : null, SymbolWriterProvider = withSymbols ? new Cil.PortablePdbWriterProvider() : null });
@@ -202,6 +207,8 @@ namespace OniMoono.Host
             if (aborts > 0)
                 EngineLog.Engine($"{what.Replace("conversions", "aborts")}: {Path.GetFileName(path)}: {aborts} call(s) of Thread.Abort or ResetAbort abort as on Mono"
                                  + (catchEnds > 0 ? $"; {catchEnds} catch exit(s) raise the abort again" : ""));
+            if (marshalled > 0)
+                EngineLog.Engine($"{what.Replace("conversions", "marshalled delegates")}: {Path.GetFileName(path)}: {marshalled} call(s) pass delegates to native code, those to static methods kept alive as on Mono");
             return output.ToArray();
         }
 
