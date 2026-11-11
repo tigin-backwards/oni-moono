@@ -494,6 +494,49 @@ decision dropped from about 400 ns to about 5 ns per item, and a pickupable scan
 70 ms frame (on Linux, before the tweaks). But mods and the UI write the same game state, so it would mean rewriting the game's
 systems rather than tweaking them.
 
+## Timelapse snapshots, colony previews and screenshots
+
+U59's Timelapser renders its daily snapshot (512×768 by default, up to 8192×12288 in the save
+options) and a save's colony preview into a render texture, then on the main thread reads it with
+`ReadPixels` into an ARGB32 texture, encodes it with `EncodeToPNG` and writes the file. In Moono
+`ReadPixels` read the target as floats and converted each texel, and the encoder wrote every row
+unfiltered and deflated it on one thread. Now an 8-bit target read into an 8-bit texture is read
+as bytes, and PNGs take adaptive filters, deflated in bands of about 2 MB on pool threads
+(level 6 on the main thread; ARCHITECTURE §3.5, PNG encoding). The debug 8× screenshot
+(`ScreenCapture.CaptureScreenshot` at 8 times the screen) is written the same way.
+
+Measured on an early colony on Linux (WSL, OpenGL through Mesa's D3D12 driver under Xvfb, so
+the frame times are only a direction), one snapshot after another, 2026-11-11; two runs each,
+the range shown. The longest frame is the capture's; the first snapshot after the load also
+pays one-time costs.
+
+| | Before | After |
+|---|---|---|
+| 512×768 snapshot (the first): longest frame | 461–535 ms | 487–536 ms |
+| 2048×3072 snapshot: longest frame | 752–767 ms | 551–578 ms |
+| 8192×12288 snapshot: longest frame | 6.1–6.7 s | 3.0–3.1 s |
+| 1272×808 colony preview: the Timelapser's write | 112–125 ms | 87–90 ms |
+| 8× screenshot (10240×5760 from a 1280×720 screen): longest frame | 1.9 s | 0.73–0.75 s |
+
+The files are smaller and decode to the same pixels:
+
+| PNG | Before | After |
+|---|---|---|
+| 512×768 snapshot | 256 KB | 200 KB |
+| 2048×3072 snapshot | 3.29 MB | 2.70 MB |
+| 8192×12288 snapshot | 42.8 MB | 32.6 MB |
+| 1272×808 colony preview | 0.98 MB | 0.80 MB |
+| 8× screenshot | 51.2 MB | 37.5 MB |
+
+Filtering costs time on small images, which are one band and so one thread: the 512×768
+snapshot's encode takes 44–51 ms against 16–21 ms before, the colony preview's about 50 ms as
+before. At level 9 the preview's write took 210 ms, which is why the main thread stays at
+level 6.
+
+U60's Timelapser reads its images with `AsyncGPUReadback` and encodes them on a task, at level 9;
+on that branch the read-back no longer stalls (ARCHITECTURE §3.5). U59's own code makes no
+read-back requests; mods do (Fast Save's timelapse images), and get the same.
+
 ## Loading
 
 Loading U57 takes 25–26 s on Windows with the default tweaks, against 2 min 22 s in the original,

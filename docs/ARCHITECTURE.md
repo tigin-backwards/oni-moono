@@ -2064,7 +2064,8 @@ capture's width a few hundred rows tall, each window's cameras rendered with the
 narrowed to it (`CaptureWindow.Clip`), the screen-sized textures the window's size, and 64 pixels
 around each window rendered and cropped, so that kernels reading neighbours (bloom, the water's
 refraction, bilinear reads) see what one target would give them. A band is read into one buffer
-and written through `PngStream` (its IDATs split at 1 GB) before the next. What the windows need
+and written through `PngWriter` (at level 6: a capture is written in the frame it is taken)
+before the next. What the windows need
 from the game's shaders is in `CaptureTiles`: `oni_ScreenTile` maps the whole capture's texture
 coordinates to the window's. `Klei/Liquid`, which reads `MRT0_Copy`/`MRT1_Copy` where its world
 position, `_CameraZoomInfo` and the camera put it on the screen, reads them through it; the
@@ -2077,6 +2078,21 @@ drawing them, and every `_LightBufferTex` read is moved into it. The game's scre
 vectors of its full-screen passes (`_WsToCs`, `_WsToCcs`) are narrowed to each window.
 `ONI_CAPTURE_TWICE=tiles:WxH` renders each super-sized capture again in windows of that size,
 for a pixel comparison of the two.
+
+**PNG encoding.** `EncodeToPNG`, `EncodeArrayToPNG` and captures write through `PngWriter`
+(`Engine/PngWriter.cs`): each row gets libpng's filter choice (the filter whose output, its bytes
+taken signed, sums to the least in absolute value), and the rows are deflated with zlib's
+filtered strategy: at level 6 (`PngWriter.FrameLevel`) for captures and for `EncodeTo*` on the
+main thread, whose file is written in the frame (U59's Timelapser encodes so), and at level 9
+off it (U60's Timelapser encodes on a task). The rows are cut into bands of
+about 2 MB, each filtered and deflated on its own pool thread (half the cores, at most 8) and
+written as one IDAT ending in a sync flush, so a band's output follows the last one's in the
+zlib stream; the Adler-32 is combined from the bands' and written in a last IDAT. Bands fall by
+the image's width alone, so the same texels give the same bytes on any machine and thread. An
+8-bit RGBA texture or array whose every alpha is 255 is written as RGB (colour type 2): the
+original writes RGBA there, but `LoadImage` gives the same texels for both, as does any other
+reader. `EncodeArrayToPNG` reads the caller's rows where they are (pinned), with no copy of the
+image.
 
 **Render thread, presentation and frame pacing.** Unity's player records rendering on the main
 thread and executes it on a render thread (`kGfxThreadingModeClientWorkerJobs` on GLCore), and
@@ -2092,7 +2108,17 @@ recorded (a non-readable texture hands over its memory, as it keeps no CPU copy)
 hands the frame to the GL thread once the previous frame has been executed, so one frame is in
 flight. Work whose result the main thread needs waits for the GL thread: `ReadPixels` and
 captures, compiling a program variant the first time it is used, `Shader.WarmupAllShaders`,
-diagnostics. A command that throws is logged and the frame goes on, as an exception in a draw
+diagnostics. `AsyncGPUReadback` of a render texture does not (`GlReadback`): its
+`glReadPixels` goes into a pixel buffer with the frame's work, a fence after it; once a frame
+the GL thread looks at the fence, and when the GPU has passed it maps the buffer, whose bytes
+are the request's data (an 8-bit target read as RGBA32; any other read is read as floats and
+converted on a pool thread). A read past 32 MB is first copied on the GPU, the target as it is
+then, and the copy read a band of 32 MB a frame: on Mesa's D3D12 driver 400 MB in one piece
+held the GL thread about 230 ms. The request is done three frames on, as measured in the
+original, or once the texels are there if that takes longer. U59's own code makes no such
+request; mods do (Fast Save's timelapse images). `ReadPixels` from an 8-bit target into an
+8-bit texture reads bytes, not floats (U59's Timelapser reads its snapshots so). A command
+that throws is logged and the frame goes on, as an exception in a draw
 used to unwind only that draw. The GL thread renders into an offscreen back buffer (colour
 texture + depth-stencil); at present it fences the frame and hands it to a presenter thread
 current on the window's context, which waits for the fence on its own thread (neither context's

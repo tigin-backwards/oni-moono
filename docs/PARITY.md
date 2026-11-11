@@ -194,3 +194,10 @@ the shipped package on both sides showed it too.
   fits and windows past it, with the water's, the light buffer's and the screen-space shaders'
   positions mapped into each window, so its captures are seamless (issue #75; ARCHITECTURE §3.5,
   Super-sized captures).
+- PNGs (`EncodeToPNG`, `EncodeArrayToPNG`, captures) decode to the same texels as the original's,
+  but their bytes differ: rows take libpng's filter choice and level-6 deflate (level 9 off the
+  main thread) in bands of about 2 MB, where the original's use zlib's fastest level, and an
+  8-bit RGBA image whose every alpha is 255 is written as RGB, where the original writes RGBA.
+  `LoadImage`, the game's only reader of them, gives the same texels for both (ARCHITECTURE
+  §3.5, PNG encoding). U59's timelapse snapshots and colony previews are such images: a colony
+  preview comes out 0.80 MB where Moono wrote 0.98 MB before.
