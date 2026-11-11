@@ -233,6 +233,12 @@ if [ "$which" != linux ]; then
         for c in fastfail gs abort; do
             run $c && { expect "windows $c: end" "$log" 'native crash: the process ended with 0xC0000409 \(fast fail'; [ -z "$dump" ] && pass "windows $c: no dump" || fail "windows $c: a dump"; }
         done
+        # With Windows Error Reporting on, as in play: its record names the module and offset, and
+        # the instruction there the fast fail's code.
+        run fastfail-reported && { expect "windows fastfail-reported: fault line" "$log" \
+                'native crash: 0xC0000409 fast fail 7 \(abort\(\) or a fatal app exit\) in OniMoono\.exe\+0x[0-9A-F]+ \([0-9.]+, [^)]+\), as Windows Error Reporting recorded it'
+            expect "windows fastfail-reported: end" "$log" 'native crash: the process ended with 0xC0000409 \(fast fail.*\); a fast fail skips every handler and leaves no dump'
+            [ -z "$dump" ] && pass "windows fastfail-reported: no dump" || fail "windows fastfail-reported: a dump"; }
         run terminate && expect "windows terminate: end" "$log" "native crash: the process ended with 1 without the player's own exit"
         run failfast && { expect "windows failfast: runtime text" "$log" 'native crash: runtime: Process terminated\.'
             expect "windows failfast: end" "$log" 'native crash: the process ended with 0x80131623'; dumped failfast none; }

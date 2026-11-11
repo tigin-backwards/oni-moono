@@ -16,7 +16,8 @@
  *  - A fault on a thread with no managed frames reaches the unhandled-exception filter, which is
  *    the runtime's, set at its start; ours replaces it once the runtime is up and calls it after.
  *  - __fastfail, a /GS check, abort() of the static C runtime and TerminateProcess skip every
- *    handler: only the exit code tells.
+ *    handler: only the exit code tells, and for a fast fail Windows Error Reporting's event
+ *    (wer_record).
  * So the record is written by a watcher, a second OniMoono.exe started before the runtime, which
  * waits for the game to end. When it ends without the player's own exit, the watcher appends what
  * the game noted (a fault noted at first chance when its exit code is that fault's), the runtime's
@@ -37,6 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <winevt.h>
 #include "crash.h"
 #include "crash_dialog.h"
 
@@ -642,10 +644,12 @@ static DWORD WINAPI faulting_thread(void *what)
 
 /* Faults on purpose, in native code: `access-violation` and `recursion` (a stack overflow) on the
  * calling thread, `thread` on a new native thread, `stack-overflow` there too, `fastfail`, `heap`,
- * `gs`, `abort`, `terminate`.
+ * `gs`, `abort`, `terminate`; `fastfail-reported` is `fastfail` with Windows Error Reporting on,
+ * as in play (SEM_NOGPFAULTERRORBOX turns it off).
  * Returns 0 for an unknown name. No error dialog either way. */
 __declspec(dllexport) int moono_crash_test(const wchar_t *what)
 {
+    if (wcscmp(what, L"fastfail-reported") == 0) __fastfail(7 /* FAST_FAIL_FATAL_APP_EXIT */);
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     if (wcscmp(what, L"access-violation") == 0) *nowhere = 1;
     else if (wcscmp(what, L"thread") == 0 || wcscmp(what, L"stack-overflow") == 0)
@@ -938,6 +942,151 @@ static int dialog_wanted(DWORD code)
     return shared->dialog_off ? -1 : 1;
 }
 
+/* ---- Windows Error Reporting's record of a crash nothing in the game saw -------------------- */
+
+/* A fast fail (0xC0000409) skips every handler of the game's, and the process is gone once the
+ * watcher wakes, too late for a dump; but Windows Error Reporting has seen it: its "Application
+ * Error" event 1000 in the Application log, written before the process ends, names the module
+ * and offset (as Event Viewer shows it). Read with wevtapi.dll, loaded here only. The fast fail's
+ * code (FAST_FAIL_*) is read from the module's file, mapped as an image, when the instruction at
+ * the offset is __fastfail's int 0x29 after mov ecx, CODE. */
+typedef EVT_HANDLE (WINAPI *evt_query_fn)(EVT_HANDLE, LPCWSTR, LPCWSTR, DWORD);
+typedef BOOL (WINAPI *evt_next_fn)(EVT_HANDLE, DWORD, EVT_HANDLE *, DWORD, DWORD, PDWORD);
+typedef EVT_HANDLE (WINAPI *evt_create_render_context_fn)(DWORD, LPCWSTR *, DWORD);
+typedef BOOL (WINAPI *evt_render_fn)(EVT_HANDLE, EVT_HANDLE, DWORD, DWORD, PVOID, PDWORD, PDWORD);
+typedef BOOL (WINAPI *evt_close_fn)(EVT_HANDLE);
+
+static wchar_t wer_module[64], wer_version[32], wer_path[PATH_MOST];
+static ULONG64 wer_offset;
+static LONG wer_fast_fail = -1;
+
+static const char *fast_fail_name(DWORD code)
+{
+    switch (code)
+    {
+    case 2: return "a /GS stack cookie check";
+    case 3: return "a corrupt list entry";
+    case 5: return "an invalid parameter to the C runtime";
+    case 7: return "abort() or a fatal app exit";
+    case 8: return "a range check";
+    case 10: return "a Control Flow Guard check";
+    case 14: return "an invalid reference count";
+    default: return NULL;
+    }
+}
+
+static const wchar_t *evt_string(const EVT_VARIANT *v)
+{
+    return v->Type == EvtVarTypeString && v->StringVal ? v->StringVal : L"";
+}
+
+/* A number as the event has it: ProcessId and ProcessCreationTime typed (hex), the exception's
+ * code and the offset as hex strings. */
+static ULONG64 evt_number(const EVT_VARIANT *v)
+{
+    switch (v->Type)
+    {
+    case EvtVarTypeUInt32: case EvtVarTypeHexInt32: return v->UInt32Val;
+    case EvtVarTypeUInt64: case EvtVarTypeHexInt64: return v->UInt64Val;
+    case EvtVarTypeString: return v->StringVal ? _wcstoui64(v->StringVal, NULL, 16) : 0;
+    default: return 0;
+    }
+}
+
+/* The code of the __fastfail at `offset` in the module at `path`, or -1. */
+static LONG fast_fail_code(const wchar_t *path, ULONG64 offset)
+{
+    HMODULE image = LoadLibraryExW(path, NULL, LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+    if (!image) return -1;
+    LONG code = -1;
+    const BYTE *base = (const BYTE *)((ULONG_PTR)image & ~(ULONG_PTR)3);
+    __try
+    {
+        const IMAGE_DOS_HEADER *dos = (const IMAGE_DOS_HEADER *)base;
+        const IMAGE_NT_HEADERS64 *nt = (const IMAGE_NT_HEADERS64 *)(base + dos->e_lfanew);
+        if (dos->e_magic == IMAGE_DOS_SIGNATURE && nt->Signature == IMAGE_NT_SIGNATURE
+            && nt->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC
+            && offset >= 5 && offset + 2 <= nt->OptionalHeader.SizeOfImage)
+        {
+            const BYTE *at = base + offset;
+            if (at[0] == 0xCD && at[1] == 0x29 && at[-5] == 0xB9) code = (LONG)*(const DWORD UNALIGNED *)(at - 4);
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) { code = -1; }
+    FreeLibrary(image);
+    return code;
+}
+
+/* Finds the game's event 1000 (its process id, creation time and exit code), waiting up to 4 s
+ * for it; 1 when found (wer_*). */
+static int wer_record(DWORD code)
+{
+    FILETIME created, ended, kernel, user;
+    if (!GetProcessTimes(game, &created, &ended, &kernel, &user)) return 0;
+    ULONG64 created_at = ((ULONG64)created.dwHighDateTime << 32) | created.dwLowDateTime;
+    DWORD pid = GetProcessId(game);
+    wchar_t system[MAX_PATH], dll[MAX_PATH];
+    if (!GetSystemDirectoryW(system, MAX_PATH)) return 0;
+    swprintf_s(dll, MAX_PATH, L"%ls\\wevtapi.dll", system);
+    HMODULE wevtapi = LoadLibraryW(dll);
+    if (!wevtapi) return 0;
+    evt_query_fn query = (evt_query_fn)GetProcAddress(wevtapi, "EvtQuery");
+    evt_next_fn next = (evt_next_fn)GetProcAddress(wevtapi, "EvtNext");
+    evt_create_render_context_fn context_of = (evt_create_render_context_fn)GetProcAddress(wevtapi, "EvtCreateRenderContext");
+    evt_render_fn render = (evt_render_fn)GetProcAddress(wevtapi, "EvtRender");
+    evt_close_fn close = (evt_close_fn)GetProcAddress(wevtapi, "EvtClose");
+    int found = 0;
+    if (query && next && context_of && render && close)
+    {
+        enum { PID, CREATED, CODE, MODULE, VERSION, OFFSET, PATH, VALUES };
+        LPCWSTR paths[VALUES] = {
+            L"Event/EventData/Data[@Name='ProcessId']", L"Event/EventData/Data[@Name='ProcessCreationTime']",
+            L"Event/EventData/Data[@Name='ExceptionCode']", L"Event/EventData/Data[@Name='ModuleName']",
+            L"Event/EventData/Data[@Name='ModuleVersion']", L"Event/EventData/Data[@Name='FaultingOffset']",
+            L"Event/EventData/Data[@Name='ModulePath']",
+        };
+        EVT_HANDLE context = context_of(VALUES, paths, EvtRenderContextValues);
+        static BYTE buffer[16384];
+        for (int attempt = 0; context && !found && attempt < 16; attempt++)
+        {
+            if (attempt) Sleep(250);
+            EVT_HANDLE results = query(NULL, L"Application",
+                L"*[System[Provider[@Name='Application Error'] and EventID=1000 and TimeCreated[timediff(@SystemTime) <= 600000]]]",
+                EvtQueryChannelPath | EvtQueryReverseDirection);
+            if (!results) break;
+            EVT_HANDLE events[16];
+            DWORD count = 0;
+            while (!found && next(results, 16, events, 0, 0, &count))
+            {
+                for (DWORD i = 0; i < count; i++)
+                {
+                    DWORD used = 0, values = 0;
+                    if (!found && render(context, events[i], EvtRenderEventValues, sizeof buffer, buffer, &used, &values) && values == VALUES)
+                    {
+                        const EVT_VARIANT *v = (const EVT_VARIANT *)buffer;
+                        ULONG64 at = evt_number(&v[CREATED]);
+                        if (evt_number(&v[PID]) == pid && (at == created_at || at == 0)
+                            && evt_number(&v[CODE]) == code && evt_string(&v[MODULE])[0])
+                        {
+                            wcsncpy_s(wer_module, _countof(wer_module), evt_string(&v[MODULE]), _TRUNCATE);
+                            wcsncpy_s(wer_version, _countof(wer_version), evt_string(&v[VERSION]), _TRUNCATE);
+                            wcsncpy_s(wer_path, _countof(wer_path), evt_string(&v[PATH]), _TRUNCATE);
+                            wer_offset = evt_number(&v[OFFSET]);
+                            found = 1;
+                        }
+                    }
+                    close(events[i]);
+                }
+            }
+            close(results);
+        }
+        if (context) close(context);
+    }
+    FreeLibrary(wevtapi);
+    if (found && code == STATUS_STACK_BUFFER_OVERRUN_CODE && wer_path[0]) wer_fast_fail = fast_fail_code(wer_path, wer_offset);
+    return found;
+}
+
 /* The error line from the record: the fault and its module, the managed exception's type, method
  * and message, else the exit code with its name (an exit code alone: the window says so). */
 static void error_line(DWORD code, int used_fault, wchar_t *out, size_t most)
@@ -960,6 +1109,13 @@ static void error_line(DWORD code, int used_fault, wchar_t *out, size_t most)
         put_hex(&o, shared->seen_code, 8);
         if (fault_name[0]) { put(&o, " ("); put(&o, fault_name); put(&o, ")"); }
         if (shared->fault_module[0]) { put(&o, " in "); put_wide(&o, shared->fault_module); }
+    }
+    else if (wer_module[0])
+    {
+        put_hex(&o, code, 8);
+        if (name[0]) { put(&o, " ("); put(&o, name); put(&o, ")"); }
+        put(&o, " in ");
+        put_wide(&o, wer_module);
     }
     else if (managed_line[0])
     {
@@ -1075,6 +1231,34 @@ int crash_watch(int argc, wchar_t **argv)
         }
     }
     if (runtime_length) put(&o, runtime_text);
+    int nothing_seen = seen == SEEN_NONE && !runtime_length && !shared->clean;
+    int reported = nothing_seen && is_fault(code) && wer_record(code);
+    if (reported)
+    {
+        /* As the fault line, from Windows Error Reporting's record. */
+        put(&o, "[engine] native crash: ");
+        put_hex(&o, code, 8);
+        if (code == STATUS_STACK_BUFFER_OVERRUN_CODE)
+        {
+            put(&o, " fast fail");
+            if (wer_fast_fail >= 0)
+            {
+                const char *kind = fast_fail_name((DWORD)wer_fast_fail);
+                put(&o, " ");
+                put_dec(&o, (ULONG64)wer_fast_fail);
+                if (kind) { put(&o, " ("); put(&o, kind); put(&o, ")"); }
+            }
+        }
+        else if (exception_name(code)) { put(&o, " "); put(&o, exception_name(code)); }
+        put(&o, " in ");
+        put_wide(&o, wer_module);
+        put(&o, "+");
+        put_hex(&o, wer_offset, 1);
+        put(&o, " (");
+        if (wer_version[0]) { put_wide(&o, wer_version); put(&o, ", "); }
+        put_path(&o, shared, wer_path);
+        put(&o, "), as Windows Error Reporting recorded it\r\n");
+    }
     put(&o, "[engine] native crash: the process ended with ");
     if (code < 0x10000) put_dec(&o, code); else put_hex(&o, code, 8);
     const char *name = exception_name(code);
@@ -1084,6 +1268,8 @@ int crash_watch(int argc, wchar_t **argv)
         put(&o, " while exiting with ");
         put_dec(&o, shared->clean_code);
     }
+    else if (reported)
+        put(&o, code == STATUS_STACK_BUFFER_OVERRUN_CODE ? "; a fast fail skips every handler and leaves no dump" : "; no handler saw it");
     else if (seen == SEEN_NONE && !runtime_length)
         put(&o, code == STATUS_STACK_BUFFER_OVERRUN_CODE ? "; a fast fail skips every handler, so nothing more is known"
                 : code < 0x10000 ? " without the player's own exit (ExitProcess or TerminateProcess from native code, or from outside)"

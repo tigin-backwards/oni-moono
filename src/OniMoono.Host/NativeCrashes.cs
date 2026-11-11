@@ -144,15 +144,17 @@ namespace OniMoono.Host
         /// --test-native-crash WHERE, once the log is open: a crash on purpose, for the checks
         /// (scripts/check-native-crash.sh). `main` and `worker` fault in native code called from
         /// managed code (the main thread; a managed thread), `thread` and `stack-overflow` on a
-        /// native thread, `main-stack-overflow` a native recursion called from the main thread, `fastfail`, `heap`, `gs`, `abort` and `terminate` as named,
+        /// native thread, `main-stack-overflow` a native recursion called from the main thread, `fastfail`, `heap`, `gs`, `abort` and `terminate` as named
+        /// (`fastfail-reported` with Windows Error Reporting on, as in play),
         /// `failfast` is Environment.FailFast; `managed-null` is a null reference the runtime turns
         /// into a NullReferenceException that is caught, and the run goes on. On Linux, `main` and
         /// `worker` fault in libc (strlen of address 1); the others are Windows'.
         public static void Test(string what)
         {
             EngineLog.Engine($"test native crash: {what}");
-            // No error dialog for the crash on purpose (Windows Error Reporting still has it).
-            if (OperatingSystem.IsWindows()) SetErrorMode(SemFailCriticalErrors | SemNoGpFaultErrorBox);
+            // No error dialog for the crash on purpose, and no Windows Error Reporting but for
+            // fastfail-reported, whose record the watcher reads.
+            if (OperatingSystem.IsWindows() && what != "fastfail-reported") SetErrorMode(SemFailCriticalErrors | SemNoGpFaultErrorBox);
             switch (what)
             {
                 case "managed-null":
