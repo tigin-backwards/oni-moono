@@ -590,6 +590,26 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.CONVEYOR"
 msgid "No hitch on rail edits (was 0.05–0.5 s)"
 msgstr ""
 
+#. Row title (fast-pipe-rebuilds)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PIPE_REBUILDS.TITLE"
+msgid "Faster pipe network rebuilds"
+msgstr ""
+
+#. The line under the title (fast-pipe-rebuilds)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PIPE_REBUILDS.EFFECT"
+msgid "Building or removing pipes no longer makes every pipe in the colony check its network."
+msgstr ""
+
+#. Tooltip: how it works (fast-pipe-rebuilds)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PIPE_REBUILDS.DETAIL"
+msgid "After a gas or liquid network changes, only the pipes of that kind recheck whether their network has a building taking from it, all through one handler instead of one or two for every pipe. The status items and the Pipe Flow arrows come out the same."
+msgstr ""
+
+#. Tooltip: the measured gain (fast-pipe-rebuilds)
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PIPES"
+msgid "Each pipe network rebuild ~25 ms shorter on a colony with 27,000 pipes (~57 → ~32 ms)"
+msgstr ""
+
 #. Row title (compact-nav-links)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.TITLE"
 msgid "Compact navigation links"

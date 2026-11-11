@@ -326,6 +326,7 @@ exercise, are in the notes under the tables, with their dates.
 | `fast-symbol-overrides`<br>unchanged symbol-override blocks aren't uploaded again | animation batch uploads (`World.LateUpdate`) 1.48–1.52 → 0.90–0.98 ms<br>frame 40.9–44.8 → 32.8–36.1 ms | exact |
 | `fast-anim-batches`<br>animation batches are written on worker threads | `World.LateUpdate` 0.96–1.01 → 0.90–0.98 ms | exact |
 | `fast-conveyor-paths`<br>the conveyor network's rebuild finds its paths from an index | the load, from the menu to the colony, 28.3–29.0 → 25.4–27.6 s | exact |
+| `fast-pipe-rebuilds` (U60)<br>one handler checks the rebuilt kind of pipes instead of every pipe handling every rebuild | a pipe network rebuild 50–66 → 28–41 ms (the handlers 6–10 ms of it)<br>frame unchanged: no rebuild in play without pipe edits | exact |
 | `compact-nav-links`<br>the pathfinding grids keep each cell's links packed | managed heap after the windows 7,752–7,951 → 7,525–7,729 MiB<br>frame within noise | exact |
 | `fast-smi-lookups`<br>state machine lookups (`GetSMI<T>()`) are answered from earlier answers | frame within noise | exact |
 | `trim-anim-lists`<br>the anims' frame and symbol lists are cut to their length once loaded | not measured in these runs (see note) | exact |
@@ -359,6 +360,11 @@ Notes on the rows (more in [TWEAKS.md](TWEAKS.md)):
   reconnected, and at the load; its path searches are answered from an index of the kept paths
   instead of searching every kept path for every path found. On U57 it took a rebuild after an
   edit from 50–510 to 2–14 ms, and the load's from 840–850 to 14 ms (2026-10-25).
+- `fast-pipe-rebuilds`: since U60 every gas and liquid pipe handles every pipe network rebuild,
+  twice for pipes with Pipe Flow arrows. On a late-game base-game colony with 27,349 pipes
+  (13,526 gas, 13,823 liquid) it took a rebuild from 50–66 to 28–41 ms (30 forced rebuilds each
+  way), and the rebuild after deconstructing 1,200 liquid pipes at once from 122 to 26 ms. Steady
+  play made no rebuild in 330–390 game seconds either way (2026-11-10, Linux).
 - `trim-anim-lists`: the batch groups' frame, frame element and symbol frame lists grew by
   doubling. On U60 with every DLC it cut 5,923 lists, 66.5 MB of unused slots, and c100's live
   managed heap at the load went from 8,251 to 8,186 MB (2026-11-03, Linux).

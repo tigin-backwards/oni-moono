@@ -1,0 +1,201 @@
+# U60's "Pipe Network Requires Building Intake" status items, pipe by pipe, compared with the
+# original through builds, removals, a split and a bridge (fast-pipe-rebuilds; docs/TWEAKS.md,
+# "Pipe network rebuilds").
+#
+# From rockets-so (a sandbox save): its gas and liquid pipes on the asteroid and in the rockets
+# (some liquid pipes with no building taking from them) are read as loaded, then, in sandbox mode
+# with instant build, in the Printing Pod's room (x 76-85, y 135-136; x 76-83, y 137-138):
+# - a gas pipe along y 138 with nothing on it, then a Gas Vent at its end;
+# - a liquid pipe along y 135 (x 76-85), then a Liquid Vent at its east end; pipes up to y 136 at
+#   x 77 and 79; the pipe cut at x 78 by a Duplicant (the west part loses the vent); a Liquid
+#   Bridge over the cut, from (77, 136) to (79, 136);
+# - the Plumbing overlay with Pipe Flow on while the liquid pipe is cut again at x 82, for the
+#   flow arrows' handler.
+# After each step every pipe's two status items are read (how many pipes have each and the sum
+# of their cells) and compared with the original, and the flow arrows' shader parameters summed.
+from: rockets-so
+setup:
+  - driver: {setup.call: {target: "Research.Instance.GetTechInstance(\"GasPiping\")", method: Purchased}}
+  - driver: {setup.call: {target: "Research.Instance.GetTechInstance(\"LiquidPiping\")", method: Purchased}}
+steps:
+  - expect_ui: {"**/SpriteListDialog": {count: 2}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton", index: 1}
+  - expect_ui: {"**/SpriteListDialog": {count: 1}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton"}
+  - ui_wait: {path: "**/SpriteListDialog", cond: gone, frames: 120}
+  - run: {seconds: 2, speed: 1}
+  - &status
+    expect_state:
+      "count:all:Conduit::[*] if .type == Gas": "== original"
+      "count:all:Conduit::[*] if .type == Liquid": "== original"
+      "count:all:Conduit::[*] if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"GasPipeNetworkNoSink\") == true": "== original"
+      "count:all:Conduit::[*] if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"LiquidPipeNetworkNoSink\") == true": "== original"
+      "sum:all:Conduit::[*].Cell if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"GasPipeNetworkNoSink\") == true": "== original"
+      "sum:all:Conduit::[*].Cell if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"LiquidPipeNetworkNoSink\") == true": "== original"
+      "sum:all:ConduitFlowKAnimVisualizer::[*].kBatchedAnimController.customShaderParameters": "== original"
+  - expect_state:
+      "count:all:Conduit::[*] if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"LiquidPipeNetworkNoSink\") == true": 6
+      "count:all:Conduit::[*] if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"GasPipeNetworkNoSink\") == true": {save_as: gas0}
+  # The room right of the building menu and its card, left of the overlay legend.
+  - driver: {camera.set: {pos: [79, 136.5], ortho: 10}}
+  - click: {ui: "**/TopLeftControlPanel(Clone)/SecondaryRow/SandboxToggle"}
+  - expect_state:
+      "Game.Instance.SandboxModeActive": true
+      "SandboxToolParameterMenu.instance.settings.InstantBuild": true
+  - run: {seconds: 1, speed: 1}
+  # Each placement: the pointer rests on its cell first, and OniMcp's speech bubble for the last
+  # run (it shows beside the pointer and takes the clicks there) has gone; then it is made twice:
+  # in a spec run the first drag after picking a building sometimes places nothing in ours (never
+  # by hand), and a second one over what is there already changes nothing. The building menu
+  # stays open from one pick to the next (Escape would close its category). Plumbing's list is
+  # scrolled to its top, then 9 notches down, which shows its pipe, bridge and vent.
+  # A gas pipe with nothing on it: every segment gets the gas item.
+  - click: {ui: "**/PlanScreen/Toggle:Ventilation"}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/GasConduit Group:*", cond: active, frames: 120}
+  - driver: {buildmenu.settled: {}}
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: 20}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/GasConduit Group:*", cond: stable}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/GasConduit Group:*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_*", cond: stable}
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_*", index: 0}
+  - run: {seconds: 1, speed: 1}
+  - scroll: {at: [76, 138], notches: 0}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "OniMcp_ToolCallSpeechOverlay/**/ToolCallSpeechBubble", cond: gone, frames: 900}
+  - drag: {from: [76, 138], to: [83, 138], steps: 8, hold: 2}
+  - drag: {from: [76, 138], to: [83, 138], steps: 8, hold: 2}
+  - run: {seconds: 1, speed: 1}
+  - *status
+  - expect_state:
+      "count:all:Conduit::[*] if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"GasPipeNetworkNoSink\") == true": "== gas0 + 8"
+  # A Gas Vent at its east end takes from it: the items go.
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: -20}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/GasVent Group:*", cond: stable}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/GasVent Group:*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_*", cond: stable}
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_*", index: 0}
+  - run: {seconds: 1, speed: 1}
+  - scroll: {at: [83, 138], notches: 0}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "OniMcp_ToolCallSpeechOverlay/**/ToolCallSpeechBubble", cond: gone, frames: 900}
+  - click_world: {cell: [83, 138]}
+  - click_world: {cell: [83, 138]}
+  - run: {seconds: 1, speed: 1}
+  - *status
+  - expect_state:
+      "count:all:Conduit::[*] if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"GasPipeNetworkNoSink\") == true": "== gas0"
+  # A liquid pipe along y 135, then a Liquid Vent at its east end (a Ration Box stands at its west end).
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduit Group:*", cond: active, frames: 120}
+  - driver: {buildmenu.settled: {}}
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: 20}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduit Group:*", cond: stable, stable: 10}
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: -9}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduit Group:*", cond: stable}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduit Group:*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_*", cond: stable}
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_*", index: 0}
+  - run: {seconds: 1, speed: 1}
+  - scroll: {at: [76, 135], notches: 0}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "OniMcp_ToolCallSpeechOverlay/**/ToolCallSpeechBubble", cond: gone, frames: 900}
+  - drag: {from: [76, 135], to: [85, 135], steps: 12, hold: 2}
+  - drag: {from: [76, 135], to: [85, 135], steps: 12, hold: 2}
+  - run: {seconds: 1, speed: 1}
+  - *status
+  - expect_state:
+      "count:all:Conduit::[*] if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"LiquidPipeNetworkNoSink\") == true": 16
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: 20}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidVent Group:*", cond: stable, stable: 10}
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: -9}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidVent Group:*", cond: stable}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/LiquidVent Group:*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_*", cond: stable}
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_*", index: 0}
+  - run: {seconds: 1, speed: 1}
+  - scroll: {at: [85, 135], notches: 0}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "OniMcp_ToolCallSpeechOverlay/**/ToolCallSpeechBubble", cond: gone, frames: 900}
+  - click_world: {cell: [85, 135]}
+  - click_world: {cell: [85, 135]}
+  - run: {seconds: 1, speed: 1}
+  - *status
+  - expect_state:
+      "count:all:Conduit::[*] if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"LiquidPipeNetworkNoSink\") == true": 6
+  # Pipes up from y 135 at x 77 and x 79, for the bridge below.
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: 20}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduit Group:*", cond: stable, stable: 10}
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: -9}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduit Group:*", cond: stable}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduit Group:*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_*", cond: stable}
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_*", index: 0}
+  - run: {seconds: 1, speed: 1}
+  - scroll: {at: [77, 135], notches: 0}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "OniMcp_ToolCallSpeechOverlay/**/ToolCallSpeechBubble", cond: gone, frames: 900}
+  - drag: {from: [77, 135], to: [77, 136], steps: 3, hold: 2}
+  - drag: {from: [77, 135], to: [77, 136], steps: 3, hold: 2}
+  - run: {seconds: 1, speed: 1}
+  - *status
+  - scroll: {at: [79, 135], notches: 0}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "OniMcp_ToolCallSpeechOverlay/**/ToolCallSpeechBubble", cond: gone, frames: 900}
+  - drag: {from: [79, 135], to: [79, 136], steps: 3, hold: 2}
+  - drag: {from: [79, 135], to: [79, 136], steps: 3, hold: 2}
+  - run: {seconds: 1, speed: 1}
+  - *status
+  # The pipe cut at x 78 (a Duplicant deconstructs it: instant build does not cover that): the
+  # west part (x 76-77 and the pipe up at x 77) has no vent. The colony has 17 Liquid Pipes and 12
+  # were built above.
+  - key: {code: Escape}
+  - tool: {toolbar: Deconstruct}
+  - scroll: {at: [78, 135], notches: 0}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "OniMcp_ToolCallSpeechOverlay/**/ToolCallSpeechBubble", cond: gone, frames: 900}
+  - drag: {from: [78, 135], to: [78, 135], steps: 1, hold: 2}
+  - drag: {from: [78, 135], to: [78, 135], steps: 1, hold: 2}
+  - run: {seconds: 300, until: {buildings: {LiquidConduit: "<=28"}}}
+  - *status
+  - expect_state:
+      "count:all:Conduit::[*] if .GetComponent<KSelectable>.GetStatusItemGroup().HasStatusItemID(\"LiquidPipeNetworkNoSink\") == true": 9
+  - key: {code: Escape}
+  # A Liquid Bridge over the cut, from (77, 136) to (79, 136).
+  - click: {ui: "**/PlanScreen/Toggle:Plumbing"}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduitBridge Group:*", cond: active, frames: 120}
+  - driver: {buildmenu.settled: {}}
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: 20}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduitBridge Group:*", cond: stable, stable: 10}
+  - scroll: {at: "**/PlanBuildingSelectionPanel/BuildingGroups/Viewport", notches: -9}
+  - ui_wait: {path: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduitBridge Group:*", cond: stable}
+  - click: {ui: "**/PlanBuildingSelectionPanel/**/Grid/LiquidConduitBridge Group:*"}
+  - ui_wait: {path: "**/MaterialSelectionPanel/**/MaterialSelection_*", cond: stable}
+  - click: {ui: "**/MaterialSelectionPanel/**/MaterialSelection_*", index: 0}
+  - run: {seconds: 1, speed: 1}
+  - scroll: {at: [78, 136], notches: 0}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "OniMcp_ToolCallSpeechOverlay/**/ToolCallSpeechBubble", cond: gone, frames: 900}
+  - click_world: {cell: [78, 136]}
+  - click_world: {cell: [78, 136]}
+  - run: {seconds: 1, speed: 1}
+  - *status
+  - key: {code: Escape}
+  # Plumbing with Pipe Flow on, then the liquid pipe cut again at x 82.
+  - open: {key: F6}
+  - ui_wait: {path: "**/OverlayParamaterMenu/Content/List/toggleEntry/Toggle", cond: stable}
+  - click: {ui: "**/OverlayParamaterMenu/Content/List/toggleEntry/Toggle", index: 1}
+  - expect_state:
+      "type:OverlayModes+ConduitMode::IsViewConduitFlowEnabled": true
+  - run: {seconds: 1, speed: 1}
+  - *status
+  - tool: {toolbar: Deconstruct}
+  - scroll: {at: [82, 135], notches: 0}
+  - run: {seconds: 1, speed: 1}
+  - ui_wait: {path: "OniMcp_ToolCallSpeechOverlay/**/ToolCallSpeechBubble", cond: gone, frames: 900}
+  - drag: {from: [82, 135], to: [82, 135], steps: 1, hold: 2}
+  - drag: {from: [82, 135], to: [82, 135], steps: 1, hold: 2}
+  - run: {seconds: 300, until: {buildings: {LiquidConduit: "<=27"}}}
+  - *status
+  - key: {code: Escape}
+  - run: {seconds: 30}
+  - *status

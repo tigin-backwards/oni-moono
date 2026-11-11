@@ -51,7 +51,9 @@ step aside. It only shows what it finds; it never turns a tweak on or off.
   write path), `fast-symbol-overrides` (its kept calls), `fast-smi-lookups`
   (`StateMachineController.GetSMI`), `fast-conveyor-paths` (`SolidConduitFlow.TryAdd`),
   `fast-anim-events` (the animation event loop and what it reads; see
-  [Animation events](#animation-events)), and the two rewrites for a transpiler they did not
+  [Animation events](#animation-events)), `fast-pipe-rebuilds` (the pipes' rebuild handlers and
+  `Conduit.RefreshInvalidNetworkStatusItem`; see [Pipe network rebuilds](#pipe-network-rebuilds)),
+  and the two rewrites for a transpiler they did not
   review. The icon is the grey disabled sign.
 
 An affected row gets the icon beside its switch, and its tooltip names each mod and what it
@@ -234,6 +236,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Faster pickup checks** (`fast-offset-tables`): Where an item can be picked up from is rechecked only when its surroundings change. Fetch updates recheck only the items whose work spots can have changed.
 - **Faster spatial index cleanup** (`fast-partitioner-cleanup`): The once-a-second tidy-up of what is where looks only at what was removed. The spatial index's cleanup visits only the entries that were removed.
 - **Faster conveyor rebuilds** (`fast-conveyor-paths`): Building or removing conveyor rails no longer stalls the game. The rails' network rebuild finds its routes from an index instead of searching every kept route again. *Measured: no hitch on rail edits (was 0.05–0.5 s); a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, 2026-10-25.*
+- **Faster pipe network rebuilds** (`fast-pipe-rebuilds`): Building or removing pipes no longer makes every pipe in the colony check its network. After a gas or liquid network changes, only the pipes of that kind recheck whether their network has a building taking from it, all through one handler instead of one or two for every pipe. The status items and the Pipe Flow arrows come out the same. *Measured: each pipe network rebuild ~25 ms shorter on a colony with 27,000 pipes (~57 → ~32 ms); a late-game base-game colony with 27,000 pipes, Linux under WSL2, 2026-11-10.*
 - **Compact navigation links** (`compact-nav-links`): The map of where Duplicants and critters can move takes a fraction of the memory. Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; the pathfinder reads the same moves in the same order.
 - **Faster state machine lookups** (`fast-smi-lookups`): Finding one of an object's state machines no longer searches all of them each time. Each object remembers which of its state machines answered each lookup until its list of state machines changes.
 - **Paged path grids** (`paged-path-grids`): Each Duplicant's map of path costs takes memory only where it can walk. A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, and the parts never written read as the empty grid did. The pathfinder reads the same values.
@@ -369,6 +372,32 @@ this one runs beside it, and Player.log reports every 30 s
 with a line for each result that differs other than by a tie, for each item in a skipped cell
 that had a path, and for each difference found when the mirror is checked against the game's
 lists (every 5 s in this mode; in play only after a change it tracks came from another thread).
+
+### Pipe network rebuilds
+
+U60 only (the game's code it changes is new in U60). After each rebuild of the gas or the liquid
+pipe networks, the game tells every pipe in the colony, gas and liquid alike: each pipe segment
+looks up its own network and adds or removes "Pipe Network Requires Building Intake" (a network
+with no building taking from it), and each pipe with Pipe Flow arrows checks whether its overlay
+is open. That is one or two handlers for every pipe on each rebuild, and a rebuild comes with
+every pipe or pipe building built, removed, broken or repaired.
+
+With `fast-pipe-rebuilds`, the pipes register with one handler instead, which runs the game's own
+check (`Conduit.RefreshInvalidNetworkStatusItem`) for the pipes of the rebuilt kind, for the
+other kind's pipes while their networks wait for a rebuild of their own, and for pipes not checked
+since they were built; and the arrows' update for the arrows of the rebuilt kind while its Pipe
+Flow overlay is open, as their own handler does. A pipe of the other kind it skips would come out
+of the check unchanged: its networks change only in their own rebuild, after which every pipe of
+that kind is checked, or through a removal that marks them for one. A mod's handler on the same
+event still gets it. A pipe whose handler is a mod's override keeps its own subscription, and
+while a mod patches either handler or the check, every pipe's handler runs on every rebuild.
+
+With `ONI_VERIFY_PIPE_NETWORK_STATUS=1` (or `ONI_TWEAK_VERIFY=1`), after every rebuild each
+pipe's status items are checked against the game's check run as a shadow (would it add or remove
+an item now?), each arrow handler skipped against its own condition, and every 64th rebuild the
+registered pipes against the colony's; Player.log reports
+`fast-pipe-rebuilds: N rebuilds, N of N pipe refreshes made, N of N flow-arrow handlers run, 0 mismatches`
+every 200 rebuilds or 30 s, and a line for each mismatch.
 
 ### Animation events
 

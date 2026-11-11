@@ -59,7 +59,7 @@ namespace OniMoono.Host.GameTweaks
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots",
-            ExactWorldgen = "exact-worldgen", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
+            ExactWorldgen = "exact-worldgen", FastPipeRebuilds = "fast-pipe-rebuilds", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
             FmodQuarantine = "fmod-quarantine";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
@@ -87,6 +87,9 @@ namespace OniMoono.Host.GameTweaks
 
         static readonly TweakGain ReportsGain = new("REPORTS", "~0.9 GB less memory on a late-game colony; loading ~1 s faster",
             "a late-game Spaced Out colony with every DLC (cycle 17,000+)", "Linux under WSL2", "2026-11-10", "docs/research/heap-reduction-designs.md#42-built-2026-11-10-compact-report-history (reachable heap 6,136 → 5,289 MiB; load 15.0 → 13.8 s)");
+
+        static readonly TweakGain PipesGain = new("PIPES", "each pipe network rebuild ~25 ms shorter on a colony with 27,000 pipes (~57 → ~32 ms)",
+            "a late-game base-game colony with 27,000 pipes", "Linux under WSL2", "2026-11-10", "docs/PERFORMANCE.md#the-tweaks (fast-pipe-rebuilds)");
 
         public static readonly TweakGroup General = new("GENERAL", "General");
         public static readonly TweakGroup Saving = new("SAVING", "Saving", SaveGain);
@@ -172,6 +175,9 @@ namespace OniMoono.Host.GameTweaks
                 "The spatial index's cleanup visits only the entries that were removed."),
             new("fast-conveyor-paths", Simulation, "Faster conveyor rebuilds", "Building or removing conveyor rails no longer stalls the game.",
                 "The rails' network rebuild finds its routes from an index instead of searching every kept route again.", ConveyorGain),
+            new(FastPipeRebuilds, Simulation, "Faster pipe network rebuilds", "Building or removing pipes no longer makes every pipe in the colony check its network.",
+                "After a gas or liquid network changes, only the pipes of that kind recheck whether their network has a building taking from it, "
+                + "all through one handler instead of one or two for every pipe. The status items and the Pipe Flow arrows come out the same.", PipesGain),
             new(CompactNavLinks, Simulation, "Compact navigation links", "The map of where Duplicants and critters can move takes a fraction of the memory.",
                 "Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; "
                 + "the pathfinder reads the same moves in the same order."),
@@ -229,7 +235,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem).

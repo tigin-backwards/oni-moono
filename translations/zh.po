@@ -346,6 +346,22 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONVEYOR_PATHS.DETAIL"
 msgid "The rails' network rebuild finds its routes from an index instead of searching every kept route again."
 msgstr "轨道网络重建从索引中查找路线，而不是把保留的每条路线都重新搜索一遍。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PIPE_REBUILDS.TITLE"
+msgid "Faster pipe network rebuilds"
+msgstr "更快的管道网络重建"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PIPE_REBUILDS.EFFECT"
+msgid "Building or removing pipes no longer makes every pipe in the colony check its network."
+msgstr "建造或拆除管道不再让殖民地里的每一段管道都检查一遍自己的网络。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PIPE_REBUILDS.DETAIL"
+msgid "After a gas or liquid network changes, only the pipes of that kind recheck whether their network has a building taking from it, all through one handler instead of one or two for every pipe. The status items and the Pipe Flow arrows come out the same."
+msgstr "气体或液体网络变化后，只有同类管道会重新检查其网络中是否有从中取用的建筑，并且全部由一个处理程序完成，而不是每段管道各有一到两个。状态提示和管道流向箭头与原版相同。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PIPES"
+msgid "Each pipe network rebuild ~25 ms shorter on a colony with 27,000 pipes (~57 → ~32 ms)"
+msgstr "在有 27,000 段管道的殖民地上，每次管道网络重建缩短约 25 毫秒（约 57 → 约 32 毫秒）"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.TITLE"
 msgid "Compact navigation links"
 msgstr "紧凑的寻路连接"
