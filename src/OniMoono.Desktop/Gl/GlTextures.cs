@@ -216,6 +216,12 @@ namespace OniMoono.Desktop.Gl
         /// Uploads into the device texture (GL thread) and frees the texels.
         public void Execute(DeviceTexture g)
         {
+            if (GlBatchProfile.Enabled && Copying is { IsCompleted: false })
+            {
+                long waited = GlTimings.Now;
+                Copying.Wait();
+                GlBatchProfile.Add("waiting for texel copies", GlTimings.Now - waited);
+            }
             Copying?.Wait();
             try
             {
@@ -654,8 +660,14 @@ namespace OniMoono.Desktop.Gl
         // upload, unchanged ones included.
         static void SubImage2D(TextureFormat format, GlFormat f, byte* p, long length, int m, int w, int h)
         {
-            if (!f.Decompress) N.glTexSubImage2D(TexTarget2D, m, 0, 0, w, h, f.Format, f.Type, p);
-            else DecodedSubImage2D(format, f, p, length, m, w, h);
+            if (f.Decompress)
+            {
+                DecodedSubImage2D(format, f, p, length, m, w, h);
+                return;
+            }
+            long s0 = GlBatchProfile.Enabled ? GlTimings.Now : 0;
+            N.glTexSubImage2D(TexTarget2D, m, 0, 0, w, h, f.Format, f.Type, p);
+            if (GlBatchProfile.Enabled) GlBatchProfile.Add($"  glTexSubImage2D {(length < 65536 ? "under" : "over")} 64 KB", GlTimings.Now - s0, length);
         }
 
         static void DecodedSubImage2D(TextureFormat format, GlFormat f, byte* p, long length, int m, int w, int h)
@@ -688,7 +700,9 @@ namespace OniMoono.Desktop.Gl
                     g.KeepNextUpload = true;
                     return false;
                 }
+                long copying = GlBatchProfile.Enabled ? GlTimings.Now : 0;
                 g.UploadedTexels = now.ToArray();
+                if (GlBatchProfile.Enabled) GlBatchProfile.Add("  copy kept for partial uploads", GlTimings.Now - copying, length);
                 return false;
             }
             int rowBytes = (int)(length / t.Height), first = 0, last = t.Height - 1;

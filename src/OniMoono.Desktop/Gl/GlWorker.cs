@@ -251,12 +251,22 @@ namespace OniMoono.Desktop.Gl
                     BatchStarting?.Invoke();
                     long start = GlTimings.Now;
                     busyFrom = start;
-                    foreach (var command in frame.Commands)
-                    {
-                        try { command(); }
-                        catch (Exception e) { commandFailed(e); }
-                    }
+                    if (GlBatchProfile.Enabled)
+                        foreach (var command in frame.Commands)
+                        {
+                            long c0 = GlTimings.Now;
+                            try { command(); }
+                            catch (Exception e) { commandFailed(e); }
+                            if (command.Target is not ResourceCommand) GlBatchProfile.Add("command " + (command.Target?.GetType().Name ?? "") + "." + command.Method.Name, GlTimings.Now - c0);
+                        }
+                    else
+                        foreach (var command in frame.Commands)
+                        {
+                            try { command(); }
+                            catch (Exception e) { commandFailed(e); }
+                        }
                     GlTimings.Busy += GlTimings.Now - start;
+                    if (GlBatchProfile.Enabled) GlBatchProfile.BatchDone(GlTimings.Now - start);
                     busyBefore += GlTimings.Now - busyFrom;
                     System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.GlBusyTicks, GlTimings.Now - start);
                     frame.Reset();

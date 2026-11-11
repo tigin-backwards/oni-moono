@@ -123,6 +123,7 @@ namespace OniMoono.Desktop.Gl
         {
             long t = GlTimings.Now;
             GlTextures.EnsureRenderTexture(texture, shape, name);
+            if (GlBatchProfile.Enabled) GlBatchProfile.Add($"render target {name}", GlTimings.Now - t);
             GlTimings.Targets += GlTimings.Now - t;
         }
 
@@ -130,7 +131,9 @@ namespace OniMoono.Desktop.Gl
         {
             long t = GlTimings.Now;
             uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
+            var (key, bytes) = GlBatchProfile.Enabled ? ($"texture {(texture.Id == 0 ? "made" : "updated")} {upload.Width}x{upload.Height} {upload.Format}", upload.Memory?.Size ?? 0) : (null, 0);
             upload.Execute(texture);
+            if (key != null) GlBatchProfile.Add(key, GlTimings.Now - t, bytes);
             if (GlGpuProfile.Enabled) GlGpuProfile.End($"texture upload {upload.Width}x{upload.Height} {upload.Format}", q);
             GlTimings.TextureUploads += GlTimings.Now - t;
             System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.GlUploadTicks, GlTimings.Now - t);
@@ -145,7 +148,9 @@ namespace OniMoono.Desktop.Gl
             try
             {
                 if (MeshNative.VerifyReuse) MeshReuseVerify.Uploading(upload);
+                string key = GlBatchProfile.Enabled ? GlBatchProfile.MeshKey(mesh.IndexBuffer == 0, upload.Mesh?.Name, upload.VertexCount) : null;
                 GlMeshes.Upload(mesh, upload);
+                if (key != null) GlBatchProfile.Add(key, GlTimings.Now - t);
             }
             finally
             {

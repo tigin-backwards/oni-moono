@@ -456,12 +456,15 @@ namespace OniMoono.Desktop.Gl
             long bytes = (long)count * sizeof(T);
             fixed (T* p = data)
             {
+                long t0 = GlBatchProfile.Enabled ? GlTimings.Now : 0;
                 if (bytes > 0 && bytes <= capacity)
                 {
                     N.glNamedBufferSubData(new GlBuffer(buffer), 0, (nint)bytes, p);
+                    if (GlBatchProfile.Enabled) GlBatchProfile.Add("  glNamedBufferSubData", GlTimings.Now - t0, bytes);
                     return capacity;
                 }
                 N.glNamedBufferData(new GlBuffer(buffer), (nint)bytes, p, bytes <= SmallBufferBytes ? DynamicDraw : usage);
+                if (GlBatchProfile.Enabled) GlBatchProfile.Add($"  glNamedBufferData {(bytes < 4096 ? "under" : "over")} 4 KB", GlTimings.Now - t0, bytes);
             }
             return bytes;
         }
