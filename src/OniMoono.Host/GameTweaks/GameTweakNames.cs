@@ -59,7 +59,7 @@ namespace OniMoono.Host.GameTweaks
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles", GeothermalVents = "fix-geothermal-vents", TimelapseSnapshots = "fix-timelapse-snapshots",
             ExactWorldgen = "exact-worldgen", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
-            FmodQuarantine = "fmod-quarantine";
+            FmodQuarantine = "fmod-quarantine", FmodStaleHandles = "fmod-stale-handles";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -138,6 +138,10 @@ namespace OniMoono.Host.GameTweaks
                 "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. "
                 + "With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, "
                 + "and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."),
+            new(FmodStaleHandles, General, "Sound handle guard", "Stops the game from changing sounds the sound engine has already removed, which can crash the game.",
+                "The game keeps some sounds after it is done with them and goes on changing them. FMOD, the sound engine, reuses a removed sound's number after a while, "
+                + "and then the game's change lands on whatever has that number now, sometimes not a sound at all. With this, a change to a removed sound is skipped, "
+                + "as FMOD skips it while the number is unused, so nothing you hear changes."),
             new(ExactWorldgen, General, "Worldgen as in the original", "A seed makes the same map as in the original game, so shared seeds match.",
                 "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. "
                 + "Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."),

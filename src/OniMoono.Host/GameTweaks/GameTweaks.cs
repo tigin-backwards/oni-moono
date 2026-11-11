@@ -59,6 +59,7 @@ namespace OniMoono.Host.GameTweaks
             if (fastCompression) yield return (FastSaveCompression.Name, h => FastSaveCompression.Install(h, compress: !on(BackgroundSave.Name)), true);
             if (on(BackgroundSave.Name)) yield return (BackgroundSave.Name, h => BackgroundSave.Install(h, fastCompression), true);
             if (on(FmodQuarantine.Name)) yield return (FmodQuarantine.Name, FmodQuarantine.Install, true);
+            if (on(FmodStaleHandles.Name)) yield return (FmodStaleHandles.Name, FmodStaleHandles.Install, true);
             if (on(NoSaveGc.Name)) yield return (NoSaveGc.Name, NoSaveGc.Install, true);
             if (on(PostLoadGc.Name)) yield return (PostLoadGc.Name, PostLoadGc.Install, true);
             if (on(FastSerialization.Name)) yield return (FastSerialization.Name, FastSerialization.Install, true);
@@ -117,6 +118,7 @@ namespace OniMoono.Host.GameTweaks
         {
             if (backgroundSave) BackgroundSave.WaitAll();
             FmodQuarantine.Shutdown();
+            FmodStaleHandles.Shutdown();
         }
     }
 }

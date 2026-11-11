@@ -335,6 +335,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.DETAIL"
 msgid "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."
 msgstr ""
 
+#. Row title (fmod-stale-handles)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STALE_HANDLES.TITLE"
+msgid "Sound handle guard"
+msgstr ""
+
+#. The line under the title (fmod-stale-handles)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STALE_HANDLES.EFFECT"
+msgid "Stops the game from changing sounds the sound engine has already removed, which can crash the game."
+msgstr ""
+
+#. Tooltip: how it works (fmod-stale-handles)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STALE_HANDLES.DETAIL"
+msgid "The game keeps some sounds after it is done with them and goes on changing them. FMOD, the sound engine, reuses a removed sound's number after a while, and then the game's change lands on whatever has that number now, sometimes not a sound at all. With this, a change to a removed sound is skipped, as FMOD skips it while the number is unused, so nothing you hear changes."
+msgstr ""
+
 #. Row title (exact-worldgen)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
 msgid "Worldgen as in the original"
