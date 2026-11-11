@@ -43,8 +43,84 @@ cap, so it ran at its own rate. Each row is one 600 s window at speed 3, Linux. 
 - A first late-game pair, run with the site probe loaded, gave 293 KB a frame for the original and
   223 for Moono: the same within 3%.
 
-The section tables under [Where it goes](#where-it-goes-u60-cf2d0849-and-u59) are from the earlier build: the site
-probe wasn't run on this one.
+### Where it goes after batch 4
+
+PerfProbe's `sites.txt` and `scripts/alloc-compare.py` (method in
+[PERFORMANCE.md](../PERFORMANCE.md#managed-allocations-against-the-original)), one 600 s run each at
+the same caps as above, Moono u60 4ff1e540. The totals came within 7% of the runs above, either way:
+the runs vary that much, and the site probe's brackets cost little. These tables replace the earlier build's U60 tables under
+[Where it goes](#where-it-goes-u60-cf2d0849-and-u59). As there, the original's counter is
+process-wide and Moono's the main thread's, so `BrainScheduler`, `(other)` and "(other threads)"
+compare only together.
+
+**Late-game colony, 20 fps cap** (the original at 6.8 fps, 5.5 frames to a game second; Moono at
+18.9 fps, 6.4)
+
+| Section | Original KB a game s | Moono KB a game s | Original KB a frame | Moono KB a frame |
+|---|---|---|---|---|
+| BrainScheduler.RenderEveryTick | 385 | 33 | 69.6 | 5.2 |
+| (other threads) | (in the rows) | 373 | | 58.5 |
+| Game.UnsafeSim200ms | 326 | 330 | 59.0 | 51.8 |
+| (other) | 199 | 223 | 36.0 | 34.9 |
+| CanvasUpdateRegistry.PerformUpdate | 145 | 119 | 26.2 | 18.6 |
+| Game.Update | 84 | 85 | 15.2 | 13.3 |
+| Work(Pickup) | 64 | 59 | 11.5 | 9.3 |
+| SolidTransferArm SIM_1000ms | 41 | 25 | 7.5 | 3.9 |
+| KBatchedAnimUpdater.LateUpdate | 38 | 25 | 6.9 | 3.9 |
+| HighEnergyParticle states | 29 | 29 | 5.3 | 4.6 |
+| Global.Update | 28 | 15 | 5.1 | 2.4 |
+| World.LateUpdate | 8 | 27 | 1.5 | 4.3 |
+| SapTree states | 24 | 15 | 4.4 | 2.4 |
+| Game.LateUpdate | 11 | 5 | 1.9 | 0.8 |
+| Total | 1,508 | 1,466 | 273 | 230 |
+
+**Mid-game colony, 34 fps cap** (the original at 11.6 fps, 5.0 frames to a game second; Moono at
+33.6 fps, 11.2)
+
+| Section | Original KB a game s | Moono KB a game s | Original KB a frame | Moono KB a frame |
+|---|---|---|---|---|
+| (other) | 57 | 247 | 11.4 | 22.0 |
+| World.LateUpdate | 2 | 75 | 0.4 | 6.7 |
+| (other threads) | (in the rows) | 62 | | 5.5 |
+| CanvasUpdateRegistry.PerformUpdate | 18 | 38 | 3.6 | 3.3 |
+| Global.Update | 29 | 31 | 5.7 | 2.8 |
+| BrainScheduler.RenderEveryTick | 24 | 27 | 4.8 | 2.4 |
+| Game.Update | 21 | 26 | 4.2 | 2.4 |
+| Work(Pickup) | 23 | 25 | 4.6 | 2.3 |
+| KBatchedAnimUpdater.LateUpdate | 25 | 16 | 5.0 | 1.5 |
+| Game.UnsafeSim200ms | 17 | 21 | 3.3 | 1.8 |
+| UpdateNavigator | 10 | 13 | 2.0 | 1.2 |
+| Pathfinding.UpdateNavGrids | 1 | 11 | 0.2 | 1.0 |
+| Game.LateUpdate | 1 | 9 | 0.1 | 0.8 |
+| Total | 302 | 680 | 60 | 60 |
+
+Against the earlier build's U60 tables, a frame:
+- **The canvas rebuilds** fell from 44.2 to 18.6 KB on the late-game colony, now below the
+  original's 26.2, and from 16.6 to 3.3 on the mid-game one. Most of what is left is a chart's
+  `UILineRenderer` (game code, as in the original): 15.6 KB of the late-game colony's 19.4 in the
+  trace below.
+- **`SpriteSheetAnimManager`** fell from 2.9 KB to 0.01, `PropertyTextures.LateUpdate` from 1.0
+  to 0.5, and `Game.LateUpdate` from 1.9–2.0 to 0.8.
+- **`(other)`**, the engine's own frame with the scripts it runs, is 35 KB on the late-game colony
+  (the original 36, counting other threads too) and 22 on the mid-game one (the original 11).
+- **`World.LateUpdate`** is unchanged: 4.3 and 6.7 KB against the original's 1.5 and 0.4. It is
+  now the largest engine-facing section on the mid-game colony after `(other)`.
+- The game's own sections (the sim, `Game.Update`, the workables and state machines) still match
+  the original a game second, a little lower in Moono.
+
+**By thread and call site.** A 180 s allocation trace of each colony (`--trace`, same caps; the
+counter 228 and 68 KB a frame):
+- The late-game colony's other threads are the chore collection: `RemoteChore.CollectChores` on
+  the game's job threads hands out 46 KB a frame of its 52, which the original books under
+  `BrainScheduler.RenderEveryTick` (that section and the other threads come to 406 KB a game
+  second in Moono against the original's 385). On the mid-game colony the other threads hand out
+  9 KB a frame, mostly the GL thread's texture uploads (2.6) and `Parallel.For`'s own state.
+- `(other)` splits into game, uGUI and mod code (25 KB a frame on the late-game colony, 12 on the
+  mid-game one) and the engine's own (10 and 14). Batch 4's engine sites come to 5.3 and 2.6 KB a
+  frame in all (canvas copies 2.5 and 0.5).
+- The largest single sites left in `(other)`: `TerrainBG.LateUpdate`'s `Vector4[]` (4–5 KB a
+  frame on both colonies), the texel copies' tasks (1–3.4) and, on the mid-game colony,
+  `ReadPixels` and `AsyncGPUReadback` read-backs (3.6).
 
 ## Summary (u60 cf2d0849 and U59, 2026-11-10)
 
@@ -130,6 +206,9 @@ a frame, below) all scale with frames, capping it at 5 frames to a game second w
 0.7 MB a game second, about 2× the original's 0.3. That is an estimate.
 
 ## Where it goes (u60 cf2d0849 and U59)
+
+The U60 tables here are superseded by [Where it goes after batch 4](#where-it-goes-after-batch-4);
+the U59 tables stand.
 
 Sections are the game's main update methods and every state-machine bucket, each counted without
 the sections nested in it. "(other)" is what ran on the main thread outside them, in Moono mostly
@@ -249,7 +328,8 @@ the engine. The engine's largest were `Instantiate`'s structure cloning (11%), c
 - The original's counter is Boehm's own total, `GC_get_total_bytes`, read from libmonobdwgc every
   frame, with `GC_get_gc_no` and `GC_get_full_gc_total_time`. Moono's is .NET's
   `GC.GetTotalAllocatedBytes(true)`, with the runtime's pause total and collection counts.
-- The site breakdown is a local PerfProbe addition (not committed): Harmony prefixes and postfixes
+- The site breakdown is PerfProbe's `sites.txt` (AllocSites; committed 2026-11-11, rebuilt from
+  this description after the first copy was lost): Harmony prefixes and finalizers
   on the main update methods and a replacement of the state-machine bucket loop that brackets
   each bucket, crediting the counter's rise to the innermost open section. It used Boehm's total
   in the original and `GC.GetAllocatedBytesForCurrentThread` (main thread) in Moono. Usable runs:
