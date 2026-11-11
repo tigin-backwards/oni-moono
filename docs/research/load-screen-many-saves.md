@@ -425,7 +425,7 @@ header four times; it now reads it once, ahead.
 times, 2.9-4.1 s in ours (5.3-8.9 s in the original); with `fix-load-screen-clicks`, once, 0.41-0.43
 s. Without Load more nothing changes (one build, 0.26-0.57 s).
 
-### Fewer draws in the colony view (5): measured, designed, not built
+### Fewer draws in the colony view (5): measured, designed, built 2026-11-11
 
 **The original's draws.** Unity's player reports its render counters to `ProfilerRecorder` in a
 release build too, so E2eDriver's stopwatch hold now reads `Draw Calls Count`, `Batches Count`
@@ -475,3 +475,21 @@ in-game UI included, so its proof is screenshots of every UI spec against the or
 the frame-time cost of the layering on the busiest screens; and the gain is the colony view of
 very large colonies (ours 34-47 ms a frame there on the WSL GPU, 4-12 ms in the list). It is a
 large engine change for its own branch, not part of this one.
+
+**Built (2026-11-11).** `CanvasLayering` and `CanvasSystem.OrderFor` (ARCHITECTURE, "UI
+rendering"), with these changes to the design: a draw's pixels are the pixel centres its bounds
+reach on the screen, so a draw off the screen (most of the 715 rows, under a stencil Mask, are
+drawn and not culled) reaches none and joins the first draw of its state; the grid's cells hold
+the draws themselves and each overlap is tested exactly (a cell's highest layer per state would
+make neighbouring rows overlap); clip rects do not narrow the bounds (a clipped fragment of
+alpha 0 still runs); nested canvas spaces are part of the state rather than barriers; the kept
+order is checked against each draw's mesh bounds, not its version (a hovered row is baked again
+every frame). Same tree, U60 762230, ours on Mesa d3d12, a stopwatch hold of 120 frames:
+
+| screen | draws, hierarchy order | draws, reordered | frame, in order | frame, reordered |
+|---|---|---|---|---|
+| colony list, 1 page | 254 | 80 | 3.9–5.4 ms | 3.1–3.5 ms |
+| colony list, 5 pages | 896 | 82 | 8.9 ms | 5.2–6.0 ms |
+| colony view, 715 saves | 5,069 | 76 | 29.9–31.5 ms | 5.8–13.0 ms |
+
+The original draws the colony view in about 61 (above); ours counts every draw of the frame.
