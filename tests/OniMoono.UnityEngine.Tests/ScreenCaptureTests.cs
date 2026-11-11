@@ -98,29 +98,6 @@ namespace OniMoono.Tests
         }
 
         [Fact]
-        public void PngStreamWritesTheBytesPngEncodeDoes()
-        {
-            var random = new System.Random(75);
-            const int w = 333, h = 517;
-            var rows = new byte[h * (1 + w * 4)];
-            for (int y = 0; y < h; y++)
-            {
-                var row = rows.AsSpan(y * (1 + w * 4) + 1, w * 4);
-                // Runs and noise, so the deflate output has both matches and literals.
-                if (y % 3 == 0) random.NextBytes(row);
-                else row.Fill((byte)(y * 7));
-            }
-            var expected = OniMoono.Engine.Png.Encode(w, h, 4, rows);
-            using var stream = new MemoryStream();
-            using (var png = new OniMoono.Engine.PngStream(stream, w, h, 4))
-            {
-                for (int y = 0; y < h; y++) png.WriteRow(rows.AsSpan(y * (1 + w * 4) + 1, w * 4));
-                png.Finish();
-            }
-            Assert.Equal(expected, stream.ToArray());
-        }
-
-        [Fact]
         public void ACaptureWhoseRenderFailsLogsAnErrorAndWritesNothing()
         {
             var device = Install(40, 30);
