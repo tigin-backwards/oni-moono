@@ -1,0 +1,19 @@
+# The fmod-stale-handles game tweak (src/OniMoono.Host/GameTweaks/FmodStaleHandles.cs; issues
+# #78, #72, #73 and #58). Ours only (`--player ours`): the original has no such tweak.
+#
+# A late-game Spaced Out colony at speed 3 in verify mode: FMOD's DESTROYED callback notes
+# thousands of instances dead, the game's calls on them (its ambience layers' isValid() every
+# update) are skipped, and every skipped handle is one the second record saw destroyed.
+from: U57
+env: {ONI_VERIFY_FMOD_STALE_HANDLES: "1"}
+steps:
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.FmodStaleHandles::Active": true
+  - run: {seconds: 120}
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.FmodStaleHandles::Created": "> 1000"
+      "type:OniMoono.Host.GameTweaks.FmodStaleHandles::Destroyed": "> 1000"
+  - run: {seconds: 180}
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.FmodStaleHandles::Skipped": "> 0"
+      "type:OniMoono.Host.GameTweaks.FmodStaleHandles::VerifyMismatch": 0

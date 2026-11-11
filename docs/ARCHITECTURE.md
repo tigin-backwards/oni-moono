@@ -2963,6 +2963,12 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
   that the allocator or Windows trusts. Native, since FMOD calls it on its own threads; its
   `fmod heap:` lines in Player.log report each late write it catches (docs/TWEAKS.md, "The
   sound memory guard").
+  Game tweak `fmod-stale-handles` (on by default, managed, every platform) removes the cause
+  found behind #78's writes: the game calls event instances it has released, FMOD's 11-bit
+  handle serials wrap, and the call lands on whatever object has that handle now. FMOD's
+  `DESTROYED` callback (on its Studio update thread) notes each instance dead in a fixed bitmap
+  keyed by the handle, and prefixes on FMODUnity's `EventInstance` methods skip calls on those
+  (docs/TWEAKS.md, "The sound handle guard").
 - Video: `VideoPlayer` decodes VP8 WebM from `resources.resource` with our own EBML demuxer and
   our own VP8 decoder (`Video/Engine/Vp8`, a port of RFC 6386's reference decoder; VP8 decoding is
   exact by specification, and every frame of the game's 18 clips decodes to the same planes as

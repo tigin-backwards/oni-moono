@@ -216,6 +216,7 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 
 - **Faster Load screen** (`fast-load-screen`): With many saves, the Load screen opens and loads more colonies sooner. Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same. *Measured: Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s); U60, 4,637 saves, Linux under WSL2, 2026-11-03.*
 - **Sound memory guard** (`fmod-quarantine`): Guards against a bug in the game's sound engine that can crash the game. FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some "heap corruption" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now.
+- **Sound handle guard** (`fmod-stale-handles`): Stops the game from changing sounds the sound engine has already removed, which can crash the game. The game keeps some sounds after it is done with them and goes on changing them. FMOD, the sound engine, reuses a removed sound's number after a while, and then the game's change lands on whatever has that number now, sometimes not a sound at all. With this, a change to a removed sound is skipped, as FMOD skips it while the number is unused, so nothing you hear changes.
 - **Worldgen as in the original** (`exact-worldgen`): A seed makes the same map as in the original game, so shared seeds match. Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected.
 
 ### Saving (on by default)
@@ -540,6 +541,79 @@ faster. No problem was found.
 In a replay of #78's writes (stale writes on 300 freed instances a round, after the quarantine
 has moved on), the first version failed with 0xC0000374 in the first round of every run; this
 one ran all 30 rounds and logged the writes it could see.
+
+### The sound handle guard
+
+`fmod-stale-handles` stops the game's calls on FMOD event instances that FMOD has already
+destroyed. It is on by default, in the General group and part of `exact`: a skipped call is one
+FMOD itself refuses while the handle is unused, so nothing audible changes. It works on every
+platform (it is managed code only) and complements `fmod-quarantine`, which catches the writes
+this guard prevents. Issues #78, #72, #73 and #58.
+
+**Why.** An FMOD Studio handle is 32 bits: a table (the low 8 bits), a slot (13 bits) and a
+serial (11 bits). FMOD resolves a handle by checking that the object in its slot still holds
+that handle; nothing checks the object's kind. A freed slot gets its serial raised by one
+(wrapping after 2,047), and freed slots are reused oldest first. The game keeps some instances
+after it has released them and goes on calling them:
+
+- An ambience layer (`AmbienceManager.Layer`) keeps its stopped instance, and every update calls
+  `isValid()` on it for each layer not playing, then `stop()` and `release()` when it is valid.
+- `LoopingSoundManager.StopAllSounds` (switching worlds) stops and releases every playing loop
+  but leaves it flagged as playing: its position, volume and parameters (and the parameter
+  updaters' `setParameterByID`) keep being set every frame while it is in view, and it is
+  stopped and released again when it leaves it.
+
+Each such call fails while the slot is free or holds an object with another serial. But once
+the slot has come round 2,047 times, the object in it has the same handle, and the game's call
+lands there: on another sound, or on another kind of FMOD object. Every command is resolved
+again by the Studio update thread when it runs, without a check of the object's kind;
+`EventInstance::stop`'s increments a counter at offset 0x84 and clears a flag at 0xBD, past the
+end of a smaller object. That is the pair of writes (57 bytes apart) of #78's `fmod heap:`
+lines, which landed in freed blocks next to a live object.
+
+**How.** Each event instance the game creates (`EventDescription.createInstance`, the only way
+to make one) is noted alive. Each event description gets FMOD's `DESTROYED` callback
+(`EventDescription.setCallback`, that type only) before its first instance is made, so every
+instance carries it; FMOD's Studio update thread calls it just before it frees the instance and
+its handle, and the callback notes the handle dead. A guarded call (every `EventInstance` method
+that changes the instance, and `isValid()`) on a handle noted dead and not made again since
+returns `ERR_INVALID_HANDLE` (`isValid()` false) without reaching FMOD. A description that a mod
+or the game gives a callback of its own keeps it, and an instance given its own is never noted
+dead: those calls go to FMOD as before. The record is one bit per possible handle of each
+handle table the game's instances come from, 2 MB a table, made when the table's first instance
+is (one or two in play), so it never grows; the callback sets a bit with one atomic OR, a
+create clears it, a call tests it, with no lock and no allocation.
+
+With `ONI_TWEAK_VERIFY=1` (or `ONI_VERIFY_FMOD_STALE_HANDLES=1`) each skipped call is counted
+by method, the first for each handle is logged with its caller, and each is checked against a
+second record of destroyed handles kept under a lock (`record mismatches` must stay 0) and
+against FMOD's own `isValid` (true there: FMOD would have sent the call to another object with
+the same handle). Player.log gets a line at most once a minute while calls are skipped
+(`fmod-stale-handles: skipped N calls on destroyed event instances`); `--frame-stats` adds the
+instances made and destroyed and the calls skipped a frame.
+
+**Measured** (Windows, a late-game Spaced Out colony at speed 3, 2026-11-11). In 25 minutes of
+play the game called 634,000 times on destroyed instances, 11 a frame: ambience layers'
+`isValid()` and a few loops' `set3DAttributes`; FMOD refused every one, since its handle
+serials had come round about 380 of 2,047 times (about 16 a minute on that colony: they wrap
+after about two hours, and #78's writes began four and a half hours into a session). FMOD's
+DESTROYED callback came for each of the 439,000 instances destroyed, while the instance still
+held its handle, and its memory was found freed (the quarantine's fill) 50-400 ms later. To
+reach the wrap in minutes, a test build made and released 300 extra instances a frame: without
+the guard, the frame the serials came round brought three `fmod heap:` lines, the stop
+command's pair of writes (+0x84 incremented, +0xBD cleared) landing in freed 72-byte blocks
+and past the end of an 80-byte one, the same bytes as #78's; with it, the guard skipped two
+`isValid()` calls that FMOD would have resolved to an object that was not an event instance,
+and the quarantine found nothing.
+
+Its cost: a guarded call takes 2 ns more (`isValid` 5.0 → 7.3 ns, `setVolume` 63.8 → 65.8 ns,
+`set3DAttributes` 23.2 → 25.1 ns), and a skipped one less than FMOD's own refusal (`setVolume`
+on a destroyed instance 21.0 → 7.6 ns). The game made about 160 guarded calls and 4 instances a
+frame: under 1 µs a frame on the main thread. The callback costs 12-15 ns on FMOD's Studio
+update thread, about 4 a frame; FMOD's own measure of that thread read 4.67% without the guard
+and 4.76% with it. Frame rates, two pairs of runs each: 101 and 103 fps without, 109 and 117
+with (the spread is the runs' own). The record holds 2 MB for each FMOD handle table instances
+come from: two on that colony, 4 MB.
 
 ### The colony snapshot fix
 
