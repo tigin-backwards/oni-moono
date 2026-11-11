@@ -238,8 +238,9 @@ namespace OniMoono.Host.GameTweaks
         public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
-        /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem).
-        public static readonly string[] AlwaysOn = ["skip-own-workshop-item"];
+        /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem) and
+        /// wait-timelapse-writes (OniMoono.GameTweaks.TimelapseWrites).
+        public static readonly string[] AlwaysOn = ["skip-own-workshop-item", "wait-timelapse-writes"];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();

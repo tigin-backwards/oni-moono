@@ -221,7 +221,7 @@ NO_SHOTS = os.environ.get('E2E_NO_SHOTS') == '1'
 # list. The original's loader installs into the profile's moono-install/versioned
 # (ONI_MOONO_INSTALL_ROOT), never the machine's.
 MOONO_ITEM_ID = '3999999999'
-TEST_MODS = ('OverlapTestMod', 'SelectCycleTestMod', 'CommandLineTestMod', 'ReachStressTestMod', 'TimelapseProbeTestMod')
+TEST_MODS = ('OverlapTestMod', 'SelectCycleTestMod', 'CommandLineTestMod', 'ReachStressTestMod', 'TimelapseProbeTestMod', 'TimelapseTimingTestMod')
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 # `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty
 # file (what Steam can leave of another branch's build: #49).

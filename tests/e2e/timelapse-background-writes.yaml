@@ -1,0 +1,51 @@
+# U60's Timelapser writes its images in the background: it reads its render back with
+# AsyncGPUReadback and encodes and writes the PNG on a task (src/OniMoono.UnityEngine/Rendering/
+# AsyncGPUReadback.cs, Engine/PngWriter.cs). Ours only (`--player ours`): the original stalls on the
+# read-back, and has the write race below.
+#
+# - The daily snapshot at the largest size the save options offer, 8192x12288: no frame of the
+#   capture is 500 ms longer than the frames before it (tools/TimelapseTimingTestMod times them;
+#   150-260 ms here, 2.8 s when the read-back waited for the GPU, 0.8 s in the original), and the
+#   PNG is written.
+# - The pause menu's Save, then the Load screen at once, while the save's colony preview is still
+#   being written (the mod holds that write back 8 s, as a slow disk would): the Load screen's
+#   preview of that save is the picture, not nothing (wait-timelapse-writes:
+#   src/OniMoono.GameTweaks/TimelapseWrites.cs).
+# - That preview, read synchronously as well when it is captured (Texture2D.ReadPixels, then
+#   EncodeToPNG): the file the background write left has the same bytes, and LoadImage gives the
+#   same texels.
+from: early-base
+test_mods: [TimelapseTimingTestMod]
+setup:
+  - driver: {setup.call: {type: "TimelapseTimingTestMod.Mod", method: SetResolution, args: [8192, 12288]}}
+  - driver: {setup.call: {type: "TimelapseTimingTestMod.Mod", method: SlowWrites, args: [1, 8000]}}
+  - driver: {setup.call: {type: "TimelapseTimingTestMod.Mod", method: Verify, args: [true]}}
+steps:
+  # The fixture is at 290 s of cycle 0, its world discovered at -1: the first snapshot is
+  # cycle 2's, taken at its 300 s (1,500 s).
+  - run: {seconds: 1230}
+  - wait_state: {state: {"type:TimelapseTimingTestMod.Mod::Snapshots": ">= 1"}, seconds: 300}
+  - expect_state:
+      "type:TimelapseTimingTestMod.Mod::LastWidth": 8192
+      "type:TimelapseTimingTestMod.Mod::LastHeight": 12288
+      "type:TimelapseTimingTestMod.Mod::LastHitchMs": "< 500"
+      "type:TimelapseTimingTestMod.Mod::LastFileBytes": "> 1000000"
+      "type:TimelapseTimingTestMod.Mod::Previews": {save_as: previews}
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent/SaveButton"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/SaveButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/SaveButton"}
+  - ui_wait: {path: "**/ConfirmDialog/**/OKButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/**/OKButton"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - expect_state:
+      "type:TimelapseTimingTestMod.Mod::PreviewReads": ">= 1"
+      "type:TimelapseTimingTestMod.Mod::LastPreviewLoaded": true
+      "type:TimelapseTimingTestMod.Mod::LastPreviewWidth": "> 0"
+  # The autosaves before the snapshot made previews of their own: this one is the next.
+  - wait_state: {state: {"type:TimelapseTimingTestMod.Mod::Previews": ">= previews + 1"}, seconds: 120}
+  - expect_state:
+      "type:TimelapseTimingTestMod.Mod::Verified": true
+      "type:TimelapseTimingTestMod.Mod::BytesMatch": true
+      "type:TimelapseTimingTestMod.Mod::PixelsMatch": true

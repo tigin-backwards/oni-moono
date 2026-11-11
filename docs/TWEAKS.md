@@ -556,6 +556,23 @@ draws at the image's aspect; the screen is behind the Timelapser's freeze frame 
 sees no change. Each of these is set back right after the render, also when it fails. In U60,
 which reads the image back asynchronously, the readback is queued before they are set back.
 
+### Colony images written in the background
+
+U60's Timelapser writes its images (a save's colony preview, the daily snapshots) in the
+background: it reads the render back asynchronously, then encodes and writes the PNG on a task.
+It waits for those writes only when the colony is unloaded, not when the game reads the files.
+The Load screen opened from the pause menu right after a save reads the preview that save is
+still writing: it gets a partial file and shows no picture (on Windows the read can fail
+outright). The Retired Colonies screen reads the snapshots the same way, and deleting a save
+deletes its preview.
+
+`wait-timelapse-writes` is always on, whatever tweaks are chosen, and has no row in Moono
+Tweaks: before each of those reads and deletes, it waits for the Timelapser's pending read-backs
+and writes (`Timelapser.FlushPendingScreenshots`, which returns at once when there are none). The
+files and what the game shows of them are the game's own; only when they are read changes.
+`tests/e2e/timelapse-background-writes.yaml` holds a preview's write back 8 s and opens the Load
+screen right after the save: the preview shows.
+
 ## Translating Moono Tweaks
 
 The screen shows the game's language when the player has a translation for it, and English
