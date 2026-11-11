@@ -15,6 +15,7 @@ namespace PerfProbe
             Worldgen.Install(harmony, path);
             Overlays.Install(harmony, path);
             Rebuilds.Install(harmony, path);
+            AllocSites.Install(harmony, path);
             if (System.IO.File.Exists(System.IO.Path.Combine(path, "layout.txt"))) LayoutTrace.Install(harmony);
             var keeper = new GameObject("PerfProbe");
             Object.DontDestroyOnLoad(keeper);
@@ -1943,6 +1944,7 @@ namespace PerfProbe
                 worst /= frameTimes.Length / 100;
                 Debug.Log($"PERF f{Time.frameCount} fps {frames / (now - windowStart):F2} cycle {GameClock.Instance.GetCycle()} time {GameClock.Instance.GetTime():F0} paused {SpeedControlScreen.Instance.IsPaused}{runtime} worst1% {worst * 1000:F1} ms");
                 if (alloc) Debug.Log(AllocMeter.Window());
+                if (alloc && AllocSites.Enabled) Debug.Log(AllocSites.Window());
                 if (awake) Debug.Log($"PERF pointer: mousePosition {Input.mousePosition} present {Input.mousePresent} focused {Application.isFocused}{OsCursor()}");
                 windowStart = now;
                 frames = 0;

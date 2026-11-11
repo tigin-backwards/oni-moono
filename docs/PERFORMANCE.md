@@ -134,6 +134,28 @@ fewer frames a game second means less per-frame work in each.
   0.6 of Boehm's total, as Boehm's lazy sweep reuses freed slots without "used" rising, so it is
   not used for the original's figures.
 
+By update section: with `sites.txt` beside `alloc.txt`, PerfProbe's AllocSites brackets the main
+update methods (prefix and finalizer) and each state machine bucket (the bucket loop, the same
+calls in the same order) and credits the counter's rise to the innermost open section; a
+`PERF sites` line after each `PERF alloc` line holds the running totals. The original's counter
+is process-wide, ours the main thread's own (`GC.GetAllocatedBytesForCurrentThread`), the rest
+of the total being other threads'. By call site and thread (ours only): an EventPipe trace of
+the GC's allocation ticks with stacks, converted by `tools/AllocTrace`.
+
+`scripts/alloc-compare.py` runs and reads them (its `--help` has the settings: the game folder,
+the Steam double and the original player, from `out/local-tools/qa.env` by default). Linux only,
+on Xvfb, through `scripts/contain.sh`; each launch holds the perf queue and a place in the e2e
+memory budget. None of it ships: PerfProbe and AllocTrace are built on their own.
+
+```
+dotnet build tools/PerfProbe -c Release -p:OniManaged=GAME/OxygenNotIncluded_Data/Managed
+dotnet build tools/AllocTrace -c Release        # for --trace
+scripts/alloc-compare.py run orig SAVE out/alloc/orig --fps 20 --sites
+scripts/alloc-compare.py run ours SAVE out/alloc/ours --fps 20 --sites [--trace --secs 180]
+scripts/alloc-compare.py compare out/alloc/orig out/alloc/ours   # sections, Markdown
+scripts/alloc-compare.py split out/alloc/ours                    # a --trace run by thread and site
+```
+
 The results, by colony, game version and update section, are in
 [research/allocations-vs-original.md](research/allocations-vs-original.md).
 
