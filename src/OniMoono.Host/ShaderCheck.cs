@@ -37,7 +37,8 @@ namespace OniMoono.Host
                 foreach (var info in file.Objects)
                     if (file.TypeOf(info).ClassId == 48 && ObjectLoader.Load(file, info.PathId) is Shader) shaders++;
             }
-            Shader.WarmupAllShaders();
+            // Every program built before the count is read (the game's warm-up does not wait).
+            device.WarmupShaders(wait: true);
             Console.WriteLine($"{shaders} shaders warmed up, {errors} compile/link errors");
             platform.Dispose();
             return errors == 0 ? 0 : 1;

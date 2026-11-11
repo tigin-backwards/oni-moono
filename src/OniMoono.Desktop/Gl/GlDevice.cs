@@ -172,6 +172,7 @@ namespace OniMoono.Desktop.Gl
             GlBackgroundUploads.Start(worker);
             GlTextures.FlushUploadBytes = Environment.GetEnvironmentVariable("ONI_UPLOAD_FLUSH") == "0" ? 0 : 32L << 20;
             if (GlAhead.Enabled) GlAhead.Start(worker);
+            if (GlWarmup.Enabled) GlWarmup.Start(worker);
             // A frame's GPU time is measured from its first commands, not from the previous
             // present: in between the GL thread waits for the main thread's next frame.
             worker.BatchStarting = () =>
@@ -1118,22 +1119,35 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
-        /// Compiles every variant of every loaded shader.
-        public override void WarmupShaders()
+        /// Compiles every variant of every loaded shader: on the GL thread while it is idle, the
+        /// main thread going on (GlWarmup); with ONI_WARMUP_AHEAD=0, or `wait`, the main thread
+        /// waits for them all.
+        public override void WarmupShaders() => WarmupShaders(wait: !GlWarmup.Enabled);
+
+        internal void WarmupShaders(bool wait)
         {
-            var shaders = new List<ShaderNative>();
+            var variants = new List<(ShaderNative, int)>();
             foreach (var native in ObjectTable.Snapshot())
-                if (native is ShaderNative shader && shader.HasOpenGLCorePrograms) shaders.Add(shader);
-            worker.Call(() =>
-            {
-                foreach (var shader in shaders)
+                if (native is ShaderNative shader && shader.HasOpenGLCorePrograms)
+                {
+                    // Loaded here: the GL thread reads them while the main thread goes on.
+                    if (shader.Programs == null) continue;
                     foreach (var sub in shader.SubShaders)
                         foreach (var pass in sub.Passes)
                         {
                             if (pass.Type != 0) continue;
                             foreach (var variant in pass.Variants)
-                                if (!StereoOnly(variant.Keywords)) GlPrograms.Get(shader, variant.BlobIndex);
+                                if (!StereoOnly(variant.Keywords)) variants.Add((shader, variant.BlobIndex));
                         }
+                }
+            if (!wait)
+            {
+                GlWarmup.Queue(variants);
+                return;
+            }
+            worker.Call(() =>
+            {
+                foreach (var (shader, blob) in variants) GlPrograms.Get(shader, blob);
             });
         }
 
@@ -1156,6 +1170,7 @@ namespace OniMoono.Desktop.Gl
         /// QualitySettings.vSyncCount as the swap interval.
         public override void Present()
         {
+            if (GlWarmup.Enabled) GlWarmup.Publish();
             int interval = SwapIntervalOverride >= 0 ? SwapIntervalOverride : QualitySettings.vSyncCount;
             // The window's size: the frame, drawn at the rendering size (smaller in a fullscreen
             // window the game asked a smaller resolution of), is stretched over it.

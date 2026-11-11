@@ -200,6 +200,12 @@ namespace OniMoono.Desktop.Gl
         public DeviceProgram Program(ShaderNative shader, int blob)
         {
             if (shader.Gpu is DeviceProgramSet set && set.Programs.TryGetValue(blob, out var p)) return p;
+            // Built by the warm-up since the last present (GlWarmup).
+            if (GlWarmup.Enabled)
+            {
+                GlWarmup.Publish();
+                if (shader.Gpu is DeviceProgramSet set2 && set2.Programs.TryGetValue(blob, out p)) return p;
+            }
             return Build(shader, blob);
         }
 
