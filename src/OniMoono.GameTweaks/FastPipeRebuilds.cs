@@ -66,6 +66,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Mirrors, "System.Void UtilityNetworkManager`2::Update()", "4452c202e10d4017 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Mirrors, "System.Void UtilityNetworkManager`2::RemoveFromNetworks(System.Int32,System.Object,System.Boolean)", "b230a8939b2e26d5 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Uses, "System.Boolean UtilityNetworkManager`2::get_IsDirty()")]
+    [GameMember(GameUse.Uses, "System.Int32 KMonoBehaviour::Subscribe(System.Int32,System.Action`1<System.Object>)")]
     public static class FastPipeRebuilds
     {
         public const string Name = "fast-pipe-rebuilds";

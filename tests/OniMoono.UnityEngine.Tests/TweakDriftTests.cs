@@ -73,11 +73,11 @@ namespace OniMoono.Tests
         }
 
         [Fact]
-        public void ANameofLookupNeedsNoDeclaration()
+        public void ANameofLookupNeedsADeclaration()
         {
             var drift = Drift(DriftFixtures.ByNameof.Name)[DriftFixtures.ByNameof.Name];
-            Assert.Empty(drift.Failures);
-            Assert.Equal(1, drift.Nameof);
+            var failure = Assert.Single(drift.Failures);
+            Assert.Contains("[GameMember(GameUse.Uses, \"System.Int32 Machine::count\")]", failure);
         }
 
         [Fact]

@@ -30,6 +30,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "Extents ScenePartitioner::GetNodeExtents(ScenePartitionerEntry)")]
     [GameMember(GameUse.Prefix, "System.Void ScenePartitioner::Remove(HandleVector`1/Handle<System.Int32>)")]
     [GameMember(GameUse.Postfix | GameUse.Transpiler, "System.Void ScenePartitioner::Sim1000ms(System.Single)", "05fc3c89d3d74062 linux-744825 win-744825", "fd6073d6209c4325 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
+    [GameMember(GameUse.Uses, "System.Int32 HybridListHashSet`1::get_Count()")]
     public static class FastPartitionerCleanup
     {
         public const string Name = "fast-partitioner-cleanup";

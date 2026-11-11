@@ -103,11 +103,10 @@ namespace OniMoono.Host.GameTweaks
         static bool Drift(GameFiles game, List<TweakChecks.Assembly> assemblies, Dictionary<string, TweakCheck> checks, string label, string mode)
         {
             var drift = TweakDrift.Run(game, assemblies, checks, label);
-            int failures = 0, warnings = 0, notes = 0, sites = 0, nameofs = 0;
+            int failures = 0, warnings = 0, notes = 0, sites = 0;
             foreach (var (name, check) in drift.OrderBy(d => d.Key, StringComparer.Ordinal))
             {
                 sites += check.Checked;
-                nameofs += check.Nameof;
                 failures += check.Failures.Count;
                 warnings += check.Warnings.Count;
                 notes += check.Notes.Count;
@@ -117,7 +116,7 @@ namespace OniMoono.Host.GameTweaks
                     foreach (var note in check.Notes) Console.WriteLine($"  reviewed {name}: {note}");
             }
             if (assemblies.Any(a => a.File.Path == null)) Console.WriteLine("  the host's code is not checked for name lookups (no file of it)");
-            Console.WriteLine($"check-tweaks {label}: name lookups and mirrors {(failures == 0 ? "declared" : "not all declared")}: {sites} lookups checked ({nameofs} by nameof), {failures} undeclared, {warnings} not checked, {notes} reviewed");
+            Console.WriteLine($"check-tweaks {label}: name lookups and mirrors {(failures == 0 ? "declared" : "not all declared")}: {sites} lookups checked, {failures} undeclared, {warnings} not checked, {notes} reviewed");
             return failures > 0;
         }
 

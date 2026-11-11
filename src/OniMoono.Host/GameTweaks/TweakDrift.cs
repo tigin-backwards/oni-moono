@@ -23,10 +23,8 @@ namespace OniMoono.Host.GameTweaks
 
     /// A call that reaches a game member by name, found in a tweak's IL: `Type` and `Name` null
     /// when the IL does not give them as constants.
-    /// `NameMethod` and `NameOffset`: where the name was written, when not at the call (a
-    /// constant list of names).
     internal sealed record LookupSite(TypeDefinitionHandle Owner, MethodDefinitionHandle Method, int Offset, string Api, LookupKind Kind,
-        string? Type, TypeOrigin Origin, string? Name, MethodDefinitionHandle NameMethod = default, int NameOffset = -1);
+        string? Type, TypeOrigin Origin, string? Name);
 
     /// What `--check-tweaks` finds of a tweak's drift from its declarations (TweakDrift):
     /// failures (an undeclared name lookup, a MirrorsGame marker and Mirrors declaration without
@@ -36,8 +34,8 @@ namespace OniMoono.Host.GameTweaks
     {
         public readonly string Tweak;
         public readonly List<string> Failures = new(), Warnings = new(), Notes = new();
-        /// Lookups checked, and those of them spelt with nameof (checked by the compiler).
-        public int Checked, Nameof;
+        /// Lookups checked.
+        public int Checked;
 
         public DriftCheck(string tweak) => Tweak = tweak;
     }
@@ -55,7 +53,8 @@ namespace OniMoono.Host.GameTweaks
     ///    value wherever it is stored, closures' captures included) to the lookup's arguments.
     ///    One with a game type and a constant name must resolve in the game and be declared (any
     ///    declaration of that member, on the type that has it; a type by any declaration that
-    ///    names it); one whose type or name the IL does not give is a warning, unless its method
+    ///    names it), a name written `nameof(…)` too: the compiler checks only that the name
+    ///    exists, not the member's signature or what it does. One whose type or name the IL does not give is a warning, unless its method
     ///    or class is marked NameLookupReviewed.
     /// 6. Each MirrorsGame marker on its code has a Mirrors declaration of that member, and each
     ///    Mirrors declaration a marker.
@@ -138,7 +137,6 @@ namespace OniMoono.Host.GameTweaks
             }
             drift.Checked++;
             string name = site.Name!;
-            bool nameof = scan.Nameof(site);
             if (site.Kind == LookupKind.Nested)
             {
                 string nested = site.Type + "/" + name;
@@ -150,8 +148,6 @@ namespace OniMoono.Host.GameTweaks
             }
             var found = Find(game, owner!.Value, site.Kind, name);
             string declaring = found.Count > 0 ? found[0].Declaring : site.Type;
-            // nameof: the compiler checked it against its build; it must be in this one too.
-            if (nameof && found.Count > 0) { drift.Nameof++; return; }
             if (declared.Any(d => Matches(d, declaring, site.Kind, name))) return;
             if (found.Count == 0 && site.Origin == TypeOrigin.Static)
             {
@@ -266,8 +262,6 @@ namespace OniMoono.Host.GameTweaks
             readonly HashSet<EntityHandle> conflicted = new();
             /// Each new array's strings, by its id; null once anything else is stored in it.
             readonly Dictionary<string, List<string>?> arrays = new(StringComparer.Ordinal);
-            /// Where each array was made: its method and offset.
-            readonly Dictionary<string, (MethodDefinitionHandle Method, int Offset)> made = new(StringComparer.Ordinal);
             bool fieldsKnown;
             MetadataReader? pdb;
             bool pdbOpened;
@@ -403,53 +397,6 @@ namespace OniMoono.Host.GameTweaks
                 int src = document.LastIndexOf("/src/", StringComparison.Ordinal);
                 if (src < 0) src = document.LastIndexOf("/tests/", StringComparison.Ordinal);
                 return (src >= 0 ? document.Substring(src + 1) : System.IO.Path.GetFileName(document)) + ":" + p.Point.StartLine;
-            }
-
-            readonly Dictionary<string, string[]?> sources = new(StringComparer.Ordinal);
-
-            /// Whether a site's statement spells its constant name `nameof(…Name)`, not as a
-            /// literal: the compiler checked that member against the game it was built with. Read
-            /// from the source the PDB names; false without it.
-            public bool Nameof(LookupSite site)
-            {
-                var (method, offset) = site.NameMethod.IsNil ? (site.Method, site.Offset) : (site.NameMethod, site.NameOffset);
-                if (site.Name == null || method.IsNil || offset < 0 || Point(method, offset) is not { } p) return false;
-                if (!sources.TryGetValue(p.Document, out var lines))
-                {
-                    try { lines = Source(p.Document) is { } path ? File.ReadAllLines(path) : null; }
-                    catch (IOException) { lines = null; }
-                    catch (UnauthorizedAccessException) { lines = null; }
-                    sources[p.Document] = lines;
-                }
-                var point = p.Point;
-                if (lines == null || point.StartLine < 1 || point.EndLine > lines.Length || point.EndLine < point.StartLine) return false;
-                var text = new System.Text.StringBuilder();
-                for (int line = point.StartLine; line <= point.EndLine; line++)
-                {
-                    string l = lines[line - 1];
-                    int from = line == point.StartLine ? Math.Min(l.Length, point.StartColumn - 1) : 0;
-                    int to = line == point.EndLine ? Math.Min(l.Length, point.EndColumn - 1) : l.Length;
-                    if (to > from) text.Append(l, from, to - from).Append('\n');
-                }
-                string statement = text.ToString();
-                return !statement.Contains("\"" + site.Name + "\"", StringComparison.Ordinal)
-                    && System.Text.RegularExpressions.Regex.IsMatch(statement, @"\bnameof\s*\([^()]*?\b" + System.Text.RegularExpressions.Regex.Escape(site.Name) + @"\s*\)");
-            }
-
-            /// A PDB's document on disk: as it names it, or, mapped (a release build's `/_/src/…`,
-            /// DeterministicSourcePaths) or built elsewhere, the same path under a folder above
-            /// the assembly's (the checkout it was built in).
-            string? Source(string document)
-            {
-                if (File.Exists(document)) return document;
-                string path = document.Replace('\\', '/');
-                int at = path.StartsWith("/_/", StringComparison.Ordinal) ? 3 : path.LastIndexOf("/src/", StringComparison.Ordinal) + 1;
-                if (at <= 0) at = path.LastIndexOf("/tests/", StringComparison.Ordinal) + 1;
-                if (at <= 0 || file.Path == null) return null;
-                string relative = path.Substring(at);
-                for (var dir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(file.Path)); dir != null; dir = System.IO.Path.GetDirectoryName(dir))
-                    if (File.Exists(System.IO.Path.Combine(dir, relative))) return System.IO.Path.Combine(dir, relative);
-                return null;
             }
 
             (SequencePoint Point, string Document)? Point(MethodDefinitionHandle method, int offset)
@@ -633,7 +580,6 @@ namespace OniMoono.Host.GameTweaks
                         Pop();
                         string id = MetadataTokens.GetToken(handle) + "@" + i.Offset;
                         arrays.TryAdd(id, new List<string>());
-                        made[id] = (handle, i.Offset);
                         stack.Add(new Value(Value.Array, id));
                     }
                     else if (op == OpCodes.Stelem_Ref || op == OpCodes.Stelem)
@@ -839,10 +785,7 @@ namespace OniMoono.Host.GameTweaks
                     var origin = typeName == null ? TypeOrigin.Unknown : type.Origin;
                     // One of a constant list's names: each of them.
                     if (OneOf(text) is { } names)
-                    {
-                        var at = made.TryGetValue(text.Text!, out var where) ? where : (method, offset);
-                        foreach (var n in names) list.Add(new LookupSite(owner, method, offset, api, kind, typeName, origin, n, at.Item1, at.Item2));
-                    }
+                        foreach (var n in names) list.Add(new LookupSite(owner, method, offset, api, kind, typeName, origin, n));
                     else list.Add(new LookupSite(owner, method, offset, api, kind, typeName, origin, text.Kind == Value.String ? text.Text : null));
                 }
                 Value Named(Value text) => text.Kind == Value.String && text.Text is { Length: > 0 } t ? new Value(Value.Type, TypeName(t), TypeOrigin.Named) : new Value(Value.Type);

@@ -13,7 +13,8 @@ namespace OniMoono.Tweaks
     internal enum GameUse
     {
         /// Reaches it by name (reflection, a delegate, a field it reads): it must be there as declared.
-        /// `--check-tweaks` fails on a lookup by a constant name that is not declared (TweakDrift).
+        /// `--check-tweaks` fails on a lookup by a constant name (a literal or `nameof`) that is
+        /// not declared (TweakDrift).
         Uses = 0,
         Prefix = 1,
         Postfix = 2,

@@ -44,6 +44,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Mirrors, "System.Void FetchManager/UpdateOffsetTables::Run(System.Object,System.Int32)", "6d13711e4e195dac linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Mirrors, "System.Void FetchManager/UpdateOffsetTables::Finish()", "6d489f3399685a4a linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Mirrors, "HandleVector`1/Handle<!0> HandleVector`1::PackHandle(System.Int32)", "a4cfb35ec41a1f88 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Uses, "System.Void GlobalJobManager::Run(IWorkItemCollection)")]
     public static class FastOffsetTables
     {
         public const string Name = "fast-offset-tables";
