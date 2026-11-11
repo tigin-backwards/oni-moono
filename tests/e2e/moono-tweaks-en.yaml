@@ -21,6 +21,10 @@ steps:
   # list to settle before a shot or a hover.
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - shot: {name: end}
+  # The gameplay-changing section's last row sits just above the Bug fixes section, which can
+  # fill the list's end: two notches back up bring it out from under the search box.
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 2}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: 0}
   - shot: {name: gameplay-tip, pointer: stay}
   # The Bug fixes section, last: its rows show their tooltips too.
