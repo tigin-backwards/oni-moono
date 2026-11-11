@@ -52,13 +52,14 @@ namespace OniMoono.Tests
 
         /// GetTemporary looks its pool up with a description it keeps: a released texture of the
         /// same description is given again, another description makes a texture of its own with
-        /// that description.
+        /// that description. (Linear read/write: the default reads the project's colour space,
+        /// which needs the game's data.)
         [Fact]
         public void TemporariesAreFoundAndMadeAsBefore()
         {
-            var a = RenderTexture.GetTemporary(24, 12, 0, RenderTextureFormat.ARGB32);
+            var a = RenderTexture.GetTemporary(24, 12, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             RenderTexture.ReleaseTemporary(a);
-            var again = RenderTexture.GetTemporary(24, 12, 0, RenderTextureFormat.ARGB32);
+            var again = RenderTexture.GetTemporary(24, 12, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             Assert.Same(a, again);
             var other = RenderTexture.GetTemporary(24, 12, 16, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             Assert.NotSame(again, other);
@@ -76,15 +77,15 @@ namespace OniMoono.Tests
         [Fact]
         public void ATexturesTargetArrayIsItsOwnAndHoldsItAlone()
         {
-            var rt = new RenderTexture(8, 8, 0);
-            var native = (RenderTextureNative)rt.Native;
+            // A native alone: a constructed texture reads the project's colour space (game data).
+            var native = new RenderTextureNative { Width = 8, Height = 8 };
             var a = RenderTargetBinding.Of(native);
             var b = RenderTargetBinding.Of(native);
             Assert.Same(a.Colors, b.Colors);
             Assert.Equal([native], a.Colors);
             Assert.Same(native, a.Depth);
             Assert.Null(RenderTargetBinding.Of(null).Colors);
-            Assert.NotSame(a.Colors, RenderTargetBinding.Of((RenderTextureNative)new RenderTexture(8, 8, 0).Native).Colors);
+            Assert.NotSame(a.Colors, RenderTargetBinding.Of(new RenderTextureNative()).Colors);
         }
 
         /// A delegate list calls what a multicast delegate given the same adds and removes calls,
