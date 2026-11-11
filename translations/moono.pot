@@ -350,6 +350,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STALE_HANDLES.DETAIL"
 msgid "The game keeps some sounds after it is done with them and goes on changing them. FMOD, the sound engine, reuses a removed sound's number after a while, and then the game's change lands on whatever has that number now, sometimes not a sound at all. With this, a change to a removed sound is skipped, as FMOD skips it while the number is unused, so nothing you hear changes."
 msgstr ""
 
+#. Row title (fmod-steal-fix)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.TITLE"
+msgid "Stolen sound crash guard"
+msgstr ""
+
+#. The line under the title (fmod-steal-fix)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.EFFECT"
+msgid "Fixes a bug in the game's sound engine that can crash the game when many sounds play at once."
+msgstr ""
+
+#. Tooltip: how it works (fmod-steal-fix)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.DETAIL"
+msgid "When too many copies of a sound play, FMOD, the sound engine, stops the oldest; if that one is still loading, FMOD frees it and then writes to it. With this, that one write is skipped, in FMOD's code in memory, only for the exact FMOD files the game ships; anything else is left as it is. Nothing you hear changes."
+msgstr ""
+
 #. Row title (exact-worldgen)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
 msgid "Worldgen as in the original"
