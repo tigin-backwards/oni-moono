@@ -2969,6 +2969,9 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
   `DESTROYED` callback (on its Studio update thread) notes each instance dead in a fixed bitmap
   keyed by the handle, and prefixes on FMODUnity's `EventInstance` methods skip calls on those
   (docs/TWEAKS.md, "The sound handle guard").
+  Game tweak `fmod-steal-fix` patches FMOD's own write to a freed instance (a bus steal of an
+  instance still loading) in memory, after `RuntimeManager.Initialize`, only for the FMOD
+  version, file hash and bytes it was written for (docs/TWEAKS.md, "The FMOD steal fix").
 - Video: `VideoPlayer` decodes VP8 WebM from `resources.resource` with our own EBML demuxer and
   our own VP8 decoder (`Video/Engine/Vp8`, a port of RFC 6386's reference decoder; VP8 decoding is
   exact by specification, and every frame of the game's 18 clips decodes to the same planes as

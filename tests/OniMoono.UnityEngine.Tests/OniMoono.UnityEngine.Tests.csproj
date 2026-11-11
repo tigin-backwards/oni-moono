@@ -38,6 +38,8 @@
     <Compile Include="../../src/OniMoono.Host/PlayerSettings.cs" Link="Host/PlayerSettings.cs" />
     <!-- Game plugins bound before the runtime's probing (GamePluginsTests, #74). -->
     <Compile Include="../../src/OniMoono.Host/GamePlugins.cs" Link="Host/GamePlugins.cs" />
+    <!-- fmod-steal-fix's checks and writes, on byte arrays (FmodStealPatchTests). -->
+    <Compile Include="../../src/OniMoono.Host/GameTweaks/FmodStealPatch.cs" Link="Host/GameTweaks/FmodStealPatch.cs" />
     <!-- The GPU option's decisions and its native environment (GpuChoiceTests). -->
     <Compile Include="../../src/OniMoono.Host/GpuChoice.cs" Link="Host/GpuChoice.cs" />
     <Compile Include="../../src/OniMoono.Host/DxgiFaultOption.cs" Link="Host/DxgiFaultOption.cs" />

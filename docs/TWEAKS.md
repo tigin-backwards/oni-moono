@@ -217,6 +217,7 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 - **Faster Load screen** (`fast-load-screen`): With many saves, the Load screen opens and loads more colonies sooner. Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same. *Measured: Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s); U60, 4,637 saves, Linux under WSL2, 2026-11-03.*
 - **Sound memory guard** (`fmod-quarantine`): Guards against a bug in the game's sound engine that can crash the game. FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some "heap corruption" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now.
 - **Sound handle guard** (`fmod-stale-handles`): Stops the game from changing sounds the sound engine has already removed, which can crash the game. The game keeps some sounds after it is done with them and goes on changing them. FMOD, the sound engine, reuses a removed sound's number after a while, and then the game's change lands on whatever has that number now, sometimes not a sound at all. With this, a change to a removed sound is skipped, as FMOD skips it while the number is unused, so nothing you hear changes.
+- **Stolen sound crash guard** (`fmod-steal-fix`): Fixes a bug in the game's sound engine that can crash the game when many sounds play at once. When too many copies of a sound play, FMOD, the sound engine, stops the oldest; if that one is still loading, FMOD frees it and then writes to it. With this, that one write is skipped, in FMOD's code in memory, only for the exact FMOD files the game ships; anything else is left as it is. Nothing you hear changes.
 - **Worldgen as in the original** (`exact-worldgen`): A seed makes the same map as in the original game, so shared seeds match. Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected.
 
 ### Saving (on by default)
@@ -614,6 +615,62 @@ update thread, about 4 a frame; FMOD's own measure of that thread read 4.67% wit
 and 4.76% with it. Frame rates, two pairs of runs each: 101 and 103 fps without, 109 and 117
 with (the spread is the runs' own). The record holds 2 MB for each FMOD handle table instances
 come from: two on that colony, 4 MB.
+
+### The FMOD steal fix
+
+`fmod-steal-fix` patches, in memory, a write to freed memory inside FMOD itself. It is on by
+default, in the General group and part of `exact`, and it applies only to the exact FMOD files it
+was written for. Issues #78, #72, #73 and #58.
+
+**The bug.** In FMOD 2.03.12 (build 160365), `EventInstance::changeStateStopped` fires STOPPED,
+destroys the instance when the game has released it, and then clears the instance's timeline
+position (`this+0x4B0`, what `getTimelinePosition` reads). When the destroy happened there and
+then, that store writes 4 zero bytes into the freed instance (offset 0x4B8 of a freed
+1,312-byte block). It happens when a bus's instance limit (Stealing = Oldest) steals an instance
+that is still loading its sample data: `BusInstance::addPlayingEvent` stops it straight away, the
+stack of FMOD's forum thread 24589. In the game, the Duplicants' TileSnow movement sounds share
+such a bus: ten of them started and released in one frame write to freed memory twice.
+
+**The patch.** Only that store is skipped, and only when the instance was destroyed before it:
+
+- Linux (`libfmodstudio.so`): the destroy is inlined, and the store follows its call. The
+  `test eax,eax; jne epilogue` after the call becomes `jmp epilogue`. eax is 0 after a successful
+  destroy, the value the function returned after the store; on an error the original jumped to
+  the epilogue too. The paths that defer the destroy jump to the store as before.
+- Windows (`fmodstudio.dll`): the destroy is a helper (fmodstudio+0x69790) that destroys at once
+  unless the instance is flagged at +0x2F8 (0x80) or the system is in its update (+0x7A8). The
+  site jumps to a stub in the slack at the end of the module's code section, which reads those two
+  conditions into edi (the helper reads them first thing, unchanged) and jumps back to the
+  helper's call, still in the function; after the call, the original's `test eax, eax` and a jump
+  to a second stub, which returns an error as before, goes back to the store when the destroy was
+  deferred, or skips it, counts it in the slack at the end of the data section and returns 0. The
+  stubs call nothing, so the only return address involved is the call's own, in the function, at
+  an instruction that is no epilogue: a stack walk from inside the helper unwinds through the
+  function's own unwind data. At start, the system's unwinder must take a synthetic stack from the
+  new return address to the same caller as from the original one, or the original bytes are put
+  back and nothing stays written. edi is saved by the function, used as a loop variable until
+  +0x68A3A and dead from there to its restore at +0x68A85.
+
+Every other path runs the same instructions on the same state; the STOPPED and DESTROYED callbacks
+come in the same order. It is applied in a postfix on FMODUnity's `RuntimeManager.Initialize` once
+FMOD Studio runs, before the game has made any instance, and only when all three match: FMOD's own
+version (2.03.12 build 160365, as the core library reports it to the core system's getVersion),
+the SHA-256 of the loaded Studio library's file (U59's `fmodstudio.dll` and `libfmodstudio.so`),
+and every byte the patch relies on: the site and what follows it to the epilogue, and the
+destroy's code (on Windows also the slack still empty). Anything else, such as a game update that
+ships another FMOD, and nothing is written: `fmod-steal-fix: not applied, …` names what did not
+match, and `fmod-quarantine` stays the only guard. `fmod-steal-fix: FMOD 2.03.12's store …` says
+it is in; on Windows the line at quit counts the stores skipped.
+
+**Measured** (2026-11-11). FMOD's own repro, with the game's banks and library (ten TileSnow
+instances started and released in one batch), on Windows and Linux, synchronous and
+asynchronous update: two writes to freed memory without the patch, none with it (the Windows
+counter: 2 stores skipped); with the sample data loaded first (the control) none either way, and
+nothing skipped. The callbacks come in the same order with and without it. In the game on
+Windows the patch is applied at start and the colony plays on; a test that started and released
+ten TileSnow instances every 5 seconds for 50 seconds of a late-game colony stole no loading
+instance (0 skipped), and three sessions of 25 minutes or less without the patch logged none of
+its writes either: on that colony the path is rare.
 
 ### The colony snapshot fix
 
