@@ -48,7 +48,8 @@ namespace OniMoono.GameTweaks
     /// counted and logged with its caller (VerifyStaleCalls must stay 0), until FMOD hands out
     /// that handle again. The first call on a cleared loop logs FMOD's answer, and after each
     /// StopAllSounds its loops are followed for 300 frames: one that gets a new instance in that
-    /// time is logged (VerifyRestarted, 0 when the game's own timing holds).
+    /// time before the game stopped it is logged (VerifyRestarted, 0 when the game's own timing
+    /// holds; a loop the game stops out of view and starts again back in view does not count).
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AmbienceManager/Layer::Stop()", "2f74965174a7ee20 linux-744825 win-744825", "15c1f2ba0af14d7b linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void LoopingSoundManager::StopAllSounds()", "db3b86cb9239e9a2 linux-744825 win-744825", "a1ba518f98eb9619 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Postfix, "System.Void LoopingSoundManager::RenderEveryTick(System.Single)")]
@@ -249,7 +250,9 @@ namespace OniMoono.GameTweaks
                     f.Stopped = true;
                     global::Debug.Log($"{Name}: {f.Path} stopped by the game {frame - followFrom} frames after StopAllSounds ({(f.Culled ? "out of view" : "never culled")})");
                 }
-                else if (s.IsPlaying && s.ev.handle != IntPtr.Zero && !f.Restarted)
+                // A loop the game stopped first (out of view) and started again later (back in
+                // view) runs on the game's own timing: only a new instance before that counts.
+                else if (s.IsPlaying && s.ev.handle != IntPtr.Zero && !f.Restarted && !f.Stopped)
                 {
                     f.Restarted = true;
                     VerifyRestarted++;
