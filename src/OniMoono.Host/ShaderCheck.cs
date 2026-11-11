@@ -41,7 +41,10 @@ namespace OniMoono.Host
                 foreach (var info in file.Objects)
                     if (file.TypeOf(info).ClassId == 48 && ObjectLoader.Load(file, info.PathId) is Shader) shaders++;
             }
-            Shader.WarmupAllShaders();
+            // Every program built before the count is read (the game's warm-up does not wait on
+            // OpenGL).
+            if (device is OniMoono.Desktop.Gl.GlDevice gl) gl.WarmupShaders(wait: true);
+            else Shader.WarmupAllShaders();
             // The Vulkan device logs what it cannot build without raising errors.
             errors += OniMoono.Desktop.Vulkan.VkDevice.CheckFailures;
             Console.WriteLine($"{shaders} shaders warmed up, {errors} compile/link errors{(device is OniMoono.Desktop.Vulkan.VkDevice ? $" ({OniMoono.Desktop.Vulkan.VkDevice.CheckFailures} Vulkan programs or pipelines not built)" : "")}");

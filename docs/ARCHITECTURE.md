@@ -2173,8 +2173,8 @@ gets, and the mesh's layout and submesh range; changed texels and vertex data ar
 recorded (a non-readable texture hands over its memory, as it keeps no CPU copy). `Present`
 hands the frame to the GL thread once the previous frame has been executed, so one frame is in
 flight. Work whose result the main thread needs waits for the GL thread: `ReadPixels` and
-captures, compiling a program variant the first time it is used, `Shader.WarmupAllShaders`,
-diagnostics. `AsyncGPUReadback` of a render texture does not (`GlReadback`): its
+captures, compiling a program variant the first time it is used, diagnostics.
+`Shader.WarmupAllShaders` does not wait (`GlWarmup`, below). `AsyncGPUReadback` of a render texture does not (`GlReadback`): its
 `glReadPixels` goes into a pixel buffer with the frame's work, a fence after it; once a frame
 the GL thread looks at the fence, and when the GPU has passed it maps the buffer, whose bytes
 are the request's data (an 8-bit target read as RGBA32; any other read is read as floats and
@@ -2554,6 +2554,17 @@ preview after a load) uploads while the main thread goes on. Mesh buffers up to 
 dynamic usage hint: Mesa's D3D12 driver took about 0.3 ms to make a small static one.
 `ONI_AHEAD_OF_USE=0` and `ONI_UPLOAD_FLUSH=0` turn these off (PERFORMANCE.md, the first capture
 after a load).
+
+`Shader.WarmupAllShaders` (the game calls it once a load, in `Game.OnPrefabInit`) queues every
+variant of every loaded shader for the GL thread and returns (`GlWarmup`): the GL thread builds
+them one at a time while it has no frame to execute, after the uploads and the work ahead of use,
+and the main thread goes on loading the colony. Unity's returns once they are built, which no
+script can observe but by the time it takes; with an empty driver cache it held a save load's
+main thread 1.8 s on Linux. A program the warm-up builds is kept apart until the main thread adds
+it to its shader's programs (at the next present, or when a draw finds one missing), so the main
+thread and the draw recorders read a shader's programs while nothing writes them, as before; a
+draw whose program is not built yet builds it at first use, as for any program, and the warm-up
+then skips it. `ONI_WARMUP_AHEAD=0` waits for them all, as before; `--check-shaders` always does.
 
 Per-draw uniform blocks are streamed through a ring buffer that stays persistently mapped for the
 device's lifetime (`GlStreamBuffer`, ARB_buffer_storage): data is copied into the mapping, blocks

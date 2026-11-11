@@ -154,12 +154,33 @@ namespace OniMoono.Desktop.Gl
                 GraphicsDevice.Adopt(shader, set);
             }
             if (set.Programs.TryGetValue(blobIndex, out var p)) return p;
-            long buildStart = System.Diagnostics.Stopwatch.GetTimestamp();
-            p = Build(shader, shader.Programs.Variant(blobIndex));
-            System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.ProgramTicks, System.Diagnostics.Stopwatch.GetTimestamp() - buildStart);
-            System.Threading.Interlocked.Increment(ref OniMoono.Engine.StartupStats.Programs);
+            // Built by the warm-up and not yet published (GlWarmup), or built now.
+            if (!GlWarmup.Take(shader, blobIndex, out p))
+            {
+                p = BuildVariant(shader, blobIndex);
+                GlWarmup.NoteBuilt(shader, blobIndex);
+            }
             set.Programs[blobIndex] = p;
             return p;
+        }
+
+        /// GL thread: a variant's program, not added to its shader's set (Get, GlWarmup).
+        internal static DeviceProgram BuildVariant(ShaderNative shader, int blobIndex)
+        {
+            long buildStart = System.Diagnostics.Stopwatch.GetTimestamp();
+            var p = Build(shader, shader.Programs.Variant(blobIndex));
+            System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.ProgramTicks, System.Diagnostics.Stopwatch.GetTimestamp() - buildStart);
+            System.Threading.Interlocked.Increment(ref OniMoono.Engine.StartupStats.Programs);
+            return p;
+        }
+
+        /// GL thread: a program that no set holds (DeviceProgramSet.Delete's, for one).
+        internal static void Delete(DeviceProgram p)
+        {
+            if (p.Id == 0) return;
+            GlBindings.ForgetProgram(p.Id);
+            N.glDeleteProgram(new GlProgram(p.Id));
+            p.Id = 0;
         }
 
         /// GLSL 1.50 needs extensions for the explicit uniform locations and block bindings
