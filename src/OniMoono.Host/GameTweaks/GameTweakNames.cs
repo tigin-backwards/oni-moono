@@ -60,7 +60,7 @@ namespace OniMoono.Host.GameTweaks
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots",
             ExactWorldgen = "exact-worldgen", FastPipeRebuilds = "fast-pipe-rebuilds", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
-            FmodQuarantine = "fmod-quarantine", FmodStaleHandles = "fmod-stale-handles", FmodStealFix = "fmod-steal-fix";
+            FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix", ReleasedSounds = "fix-released-sounds";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
         // code ran about half as fast as on Windows (docs/PERFORMANCE.md, "How it's measured"); a
@@ -145,13 +145,13 @@ namespace OniMoono.Host.GameTweaks
                 "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. "
                 + "With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, "
                 + "and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."),
-            new(FmodStaleHandles, General, "Sound handle guard", "Stops the game from changing sounds the sound engine has already removed, which can crash the game.",
-                "The game keeps some sounds after it is done with them and goes on changing them. FMOD, the sound engine, reuses a removed sound's number after a while, "
-                + "and then the game's change lands on whatever has that number now, sometimes not a sound at all. With this, a change to a removed sound is skipped, "
-                + "as FMOD skips it while the number is unused, so nothing you hear changes."),
             new(FmodStealFix, General, "Stolen sound crash guard", "Fixes a bug in the game's sound engine that can crash the game when many sounds play at once.",
                 "When too many copies of a sound play, FMOD, the sound engine, stops the oldest; if that one is still loading, FMOD frees it and then writes to it. "
                 + "With this, that one write is skipped, in FMOD's code in memory, only for the exact FMOD files the game ships; anything else is left as it is. Nothing you hear changes."),
+            new(ReleasedSounds, General, "Forget released sounds", "The game stops changing sounds it is done with, which after hours of play could crash it.",
+                "A bug in the game's own code: background sounds, and looping sounds after a switch to another asteroid, keep the sound engine's number for a sound the game is done with, and go on using it. "
+                + "After a couple of hours on a large colony the sound engine gives that number to something else, and the game's change lands there, sometimes not on a sound at all. "
+                + "With this, the number is forgotten when the sound is let go. Nothing you hear changes."),
             new(ExactWorldgen, General, "Worldgen as in the original", "A seed makes the same map as in the original game, so shared seeds match.",
                 "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. "
                 + "Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."),
@@ -242,7 +242,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds, ReleasedSounds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem) and
@@ -274,8 +274,10 @@ namespace OniMoono.Host.GameTweaks
         /// any unknown tweak's (PlayerSettings). fix-endless-sounds: U60 762107's sound sheets loop
         /// both rows. fix-disease-overlay-crash: U60 762230's CellChangeMonitor drops a destroyed
         /// object's entry itself. slow-reachability (checked every 4 s instead of every second):
-        /// instant-reachability checks only what changed, sooner and for less.
-        public static readonly (string Old, string? New)[] Retired = [("fix-endless-sounds", null), ("fix-disease-overlay-crash", null), ("slow-reachability", InstantReachability)];
+        /// instant-reachability checks only what changed, sooner and for less. fmod-stale-handles
+        /// (every call on a destroyed FMOD instance skipped): fix-released-sounds clears the
+        /// handles where the game keeps them.
+        public static readonly (string Old, string? New)[] Retired = [("fix-endless-sounds", null), ("fix-disease-overlay-crash", null), ("slow-reachability", InstantReachability), ("fmod-stale-handles", ReleasedSounds)];
 
         /// Whether a `--game-tweak` value names a retired tweak, with the value naming its
         /// replacement (with its `-` when the name has one), or null when none took its place.

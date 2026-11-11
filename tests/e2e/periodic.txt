@@ -17,6 +17,7 @@ timelapse-background-writes ours    # ours only, ~8 min: 8192x12288 snapshot hit
 post-load-gc-off ours               # ours only: its control, the pause with the tweak off
 compact-report-history              # the late-game colony's report history reads and saves as the original's (fixture U57)
 pipe-network-status                 # pipes' "requires building intake" items through builds, cuts and a bridge (fast-pipe-rebuilds)
+fix-released-sounds ours            # ours only: released FMOD handles cleared, no call on one after (fixture U57)
 
 # Issue regressions: fixed, in code that changes rarely, or a variant of a kept spec
 issue-48-fast-track                 # - (Fast Track gated)

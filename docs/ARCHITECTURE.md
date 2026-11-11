@@ -2972,12 +2972,12 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
   that the allocator or Windows trusts. Native, since FMOD calls it on its own threads; its
   `fmod heap:` lines in Player.log report each late write it catches (docs/TWEAKS.md, "The
   sound memory guard").
-  Game tweak `fmod-stale-handles` (on by default, managed, every platform) removes the cause
-  found behind #78's writes: the game calls event instances it has released, FMOD's 11-bit
-  handle serials wrap, and the call lands on whatever object has that handle now. FMOD's
-  `DESTROYED` callback (on its Studio update thread) notes each instance dead in a fixed bitmap
-  keyed by the handle, and prefixes on FMODUnity's `EventInstance` methods skip calls on those
-  (docs/TWEAKS.md, "The sound handle guard").
+  Game tweak `fix-released-sounds` (on by default, managed, every platform) removes
+  the cause found behind #78's writes: the game keeps the handles of event instances it has
+  released at two places (an ambience layer's `Stop`, `LoopingSoundManager.StopAllSounds`) and
+  goes on calling them, FMOD's 11-bit handle serials wrap, and the call lands on whatever object
+  has that handle now. Prefixes replacing those two methods clear the handle as it is released
+  (docs/TWEAKS.md, "The released sounds fix").
   Game tweak `fmod-steal-fix` patches FMOD's own write to a freed instance (a bus steal of an
   instance still loading) in memory, after `RuntimeManager.Initialize`, only for the FMOD
   version, file hash and bytes it was written for (docs/TWEAKS.md, "The FMOD steal fix").

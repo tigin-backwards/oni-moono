@@ -34,6 +34,7 @@ namespace OniMoono.GameTweaks
                 case SharedDuplicates.Name: SharedDuplicates.Install(harmony); return true;
                 case CompactReports.Name: CompactReports.Install(harmony); return true;
                 case FastPipeRebuilds.Name: FastPipeRebuilds.Install(harmony); return true;
+                case ReleasedSounds.Name: ReleasedSounds.Install(harmony); return true;
                 case OwnWorkshopItem.Name: OwnWorkshopItem.Install(harmony); return true;
                 case TimelapseWrites.Name: TimelapseWrites.Install(harmony); return true;
                 default: return false;

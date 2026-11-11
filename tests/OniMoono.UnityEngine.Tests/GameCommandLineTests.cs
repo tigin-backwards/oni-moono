@@ -51,6 +51,9 @@ namespace OniMoono.Tests
             // starts the player, with the new one (and `-NAME` leaves the new one out).
             var o = Options.Parse(["--game-tweak", "slow-reachability", "--game-tweak", "-slow-reachability", "--", Exe])!;
             Assert.Equal(new[] { "instant-reachability", "-instant-reachability" }, o.GameTweaks);
+            // fmod-stale-handles gave way to fix-released-sounds.
+            o = Options.Parse(["--game-tweak", "-fmod-stale-handles", "--", Exe])!;
+            Assert.Equal(new[] { "-fix-released-sounds" }, o.GameTweaks);
             Assert.Null(Options.Parse(["--game-tweak", "no-such-tweak", "--", Exe]));
         }
 
