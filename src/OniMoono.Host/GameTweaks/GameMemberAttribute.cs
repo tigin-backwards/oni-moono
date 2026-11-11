@@ -13,6 +13,7 @@ namespace OniMoono.Tweaks
     internal enum GameUse
     {
         /// Reaches it by name (reflection, a delegate, a field it reads): it must be there as declared.
+        /// `--check-tweaks` fails on a lookup by a constant name that is not declared (TweakDrift).
         Uses = 0,
         Prefix = 1,
         Postfix = 2,
@@ -28,7 +29,8 @@ namespace OniMoono.Tweaks
     /// its `--game-tweak` name). `Member` is its full signature as the game's metadata spells it:
     /// `System.Void KAnimBatch::UpdateDirty(System.Int32)` for a method (return type, declaring
     /// type with `/` between nested types, name, parameter types; `` `N`` after a generic method's
-    /// name), `System.Int32 Grid::WidthInCells` for a field. Before the tweak patches anything,
+    /// name), `System.Int32 Grid::WidthInCells` for a field, `PathFinder/Cell` for a type the
+    /// tweak takes by name (`Uses` only). Before the tweak patches anything,
     /// every declared member must be in the game with that signature (TweakChecks).
     ///
     /// `Fingerprints`: for a member it transpiles, replaces or mirrors, the accepted hashes of
@@ -53,6 +55,32 @@ namespace OniMoono.Tweaks
         public string[] Fingerprints { get; }
         public int Rewrites { get; set; } = -1;
         public bool Optional { get; set; }
+    }
+
+    /// On the code that reimplements a game method without patching it: `Member` is the method's
+    /// signature as GameMemberAttribute spells it, and the tweak's class must declare it
+    /// `GameUse.Mirrors` with its fingerprints (`--check-tweaks`, TweakDrift); a Mirrors
+    /// declaration with no code marked so fails too.
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Property,
+        AllowMultiple = true, Inherited = false)]
+    internal sealed class MirrorsGameAttribute : Attribute
+    {
+        public MirrorsGameAttribute(string member) => Member = member;
+
+        public string Member { get; }
+    }
+
+    /// On a method (or class) whose lookups of game members by a name or type the IL does not
+    /// give as constants (`AccessTools.Field(type, name)` with both passed in) were reviewed:
+    /// `--check-tweaks` notes them instead of warning (TweakDrift). Constant lookups of game
+    /// members still need their GameMember declarations.
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Property,
+        AllowMultiple = false, Inherited = false)]
+    internal sealed class NameLookupReviewedAttribute : Attribute
+    {
+        public NameLookupReviewedAttribute(string reason) => Reason = reason;
+
+        public string Reason { get; }
     }
 
     /// Each transpiler's count of the sites it rewrote, for the host's check after a tweak
