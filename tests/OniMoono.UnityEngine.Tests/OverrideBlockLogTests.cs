@@ -261,6 +261,19 @@ namespace OniMoono.Tests
                 }
         }
 
+        /// Many writes sort without allocating, once the thread's keys are made.
+        [Fact]
+        public void OverlapOfManyWritesAllocatesNothingOnceWarm()
+        {
+            var starts = Enumerable.Range(0, 80).Select(i => (i * 37) % 80 * 2).ToArray();
+            var lengths = Enumerable.Repeat(2, 80).ToArray();
+            var order = new int[80];
+            Assert.False(OverrideBlockLog.Overlap(starts, lengths, 80, order));
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int i = 0; i < 100; i++) Assert.False(OverrideBlockLog.Overlap(starts, lengths, 80, order));
+            Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+
         [Fact]
         public void LastWritingFindsTheLastRange()
         {
