@@ -122,6 +122,39 @@ counter 228 and 68 KB a frame):
   frame on both colonies), the texel copies' tasks (1–3.4) and, on the mid-game colony,
   `ReadPixels` and `AsyncGPUReadback` read-backs (3.6).
 
+### After allocation batch 5
+
+The two largest sites where Moono allocated more than the original:
+- **`TerrainBG.LateUpdate`'s `Vector4[]`**: the engine's own. TerrainBG sets two array properties
+  (255 and 28 vectors) on its back-wall block before each frame's draw, and the engine made a new
+  array at each assignment. Unity copies the values into the property's storage; so does Moono
+  now, into the array made at the first assignment.
+- **`World.LateUpdate`**: Moono's own tweaks, not the game or the engine. fast-anim-batches' two
+  `Parallel.For` calls a frame (its tasks, replicas, ranges and closures), an invocation list for
+  each controller with a position delegate, and fast-symbol-overrides' sort of many writes with a
+  comparer (a delegate a call). The tweaks now run the same items with a loop of their own on the
+  thread pool, read a single-target delegate's method directly, and sort without a comparer.
+  Their verify mode reported no mismatches on either colony.
+
+u60 b928b77a against the same build with batch 5, one 600 s run each at the same caps as above,
+`sites.txt` on. The machine was busier than for the runs above, so neither player reached the
+mid-game cap, and the late-game pair had uneven background load (2.2 cores beside the first
+run, 0.6 beside the second), so its frame rates differ.
+
+| KB a frame | Mid-game, before | Mid-game, after | Late-game, before | Late-game, after |
+|---|---|---|---|---|
+| In all | 64.9 | 54.7 | 234 | 214 |
+| `World.LateUpdate` | 6.7 | 2.0 | 4.6 | 2.9 |
+| `(other)` | 23.6 | 20.1 | 35.1 | 28.0 |
+| Other threads | 5.3 | 2.3 | 58.0 | 56.9 |
+| fps | 30.0 | 29.0 | 18.7 | 20.0 |
+| Collections in 600 s | 2 (171 ms) | 1 (79 ms) | 3 (302 ms) | 3 (235 ms) |
+
+A 180 s allocation trace of the mid-game colony after batch 5 has no `TerrainBG` allocations
+left. `World.LateUpdate` is 2.0–2.9 KB a frame against the original's 0.4–1.5. In the trace
+(2.7 KB a frame) the largest parts left are the thread pool's record of each helper the tweaks'
+loop queues (0.9 KB) and the game's own override blocks (0.5 KB, as in the original).
+
 ## Summary (u60 cf2d0849 and U59, 2026-11-10)
 
 Each row is one 600 s window at speed 3, Linux, Moono with its default tweaks. "Capped" is Moono
