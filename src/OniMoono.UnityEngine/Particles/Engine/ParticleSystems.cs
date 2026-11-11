@@ -26,10 +26,13 @@ namespace OniMoono.Engine.Particles
 
         public static void Remove(ParticleSystemNative ps) => systems.Remove(ps);
 
+        static readonly ListSnapshot<ParticleSystemNative> runSnapshot = new();
+
         static void Run()
         {
             if (systems.Count == 0) return;
-            var batch = systems.ToArray();
+            using var snapshot = runSnapshot.Take(systems);
+            var batch = snapshot.Items;
             foreach (var ps in batch)
             {
                 if (ps.Destroyed || !ps.GameObject.ActiveInHierarchy) continue;

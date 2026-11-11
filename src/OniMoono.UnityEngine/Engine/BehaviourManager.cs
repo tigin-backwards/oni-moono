@@ -89,6 +89,10 @@ namespace OniMoono.Engine
             /// With frame stats on: each script's wall time in this phase since the last report.
             public readonly Dictionary<ScriptInfo, long> Times = new();
             readonly SortedDictionary<int, List<BehaviourNative>> byOrder = new();
+            /// byOrder's lists in key order, remade when an order is added (iterating the
+            /// sorted dictionary allocated its enumerator's stack every phase).
+            List<BehaviourNative>[] ordered = [];
+            Predicate<BehaviourNative> removing;
             readonly List<BehaviourNative> pendingAdd = new();
             readonly HashSet<BehaviourNative> pendingAddSet = new();
             readonly HashSet<BehaviourNative> members = new();
@@ -123,7 +127,7 @@ namespace OniMoono.Engine
                         if (byOrder.TryGetValue(b.ExecutionOrder, out var list) && !touched.Contains(list))
                         {
                             touched.Add(list);
-                            list.RemoveAll(pendingRemove.Contains);
+                            list.RemoveAll(removing ??= pendingRemove.Contains);
                         }
                     touched.Clear();
                     foreach (var b in pendingRemove) members.Remove(b);
@@ -131,7 +135,11 @@ namespace OniMoono.Engine
                 }
                 foreach (var b in pendingAdd)
                 {
-                    if (!byOrder.TryGetValue(b.ExecutionOrder, out var list)) byOrder[b.ExecutionOrder] = list = new();
+                    if (!byOrder.TryGetValue(b.ExecutionOrder, out var list))
+                    {
+                        byOrder[b.ExecutionOrder] = list = new();
+                        ordered = [.. byOrder.Values];
+                    }
                     list.Add(b);
                     members.Add(b);
                 }
@@ -150,7 +158,7 @@ namespace OniMoono.Engine
                 depth++;
                 try
                 {
-                    foreach (var list in byOrder.Values)
+                    foreach (var list in ordered)
                         for (int i = 0; i < list.Count; i++)
                         {
                             var b = list[i];
@@ -187,6 +195,7 @@ namespace OniMoono.Engine
         static readonly PhaseList lateUpdate = new("LateUpdate", Phase.LateUpdate);
         static readonly PhaseList fixedUpdate = new("FixedUpdate", Phase.FixedUpdate);
         static readonly List<BehaviourNative> startQueue = new();
+        static readonly ListSnapshot<BehaviourNative> startSnapshot = new();
 
         public static void Register(BehaviourNative b)
         {
@@ -236,9 +245,9 @@ namespace OniMoono.Engine
         public static void RunStarts()
         {
             if (startQueue.Count == 0) return;
-            var batch = startQueue.ToArray();
+            using var snapshot = startSnapshot.Take(startQueue);
             startQueue.Clear();
-            foreach (var b in batch)
+            foreach (var b in snapshot.Items)
             {
                 // Started since it was queued (by its first update callback): nothing to do.
                 if (b.StartCalled || b.Destroyed) continue;

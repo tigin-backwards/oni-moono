@@ -10,8 +10,21 @@ namespace UnityEngine
 {
     public partial class Canvas
     {
-        public static event WillRenderCanvases preWillRenderCanvases;
-        public static event WillRenderCanvases willRenderCanvases;
+        // Kept as lists (DelegateList): every TextMeshPro text joins willRenderCanvases when
+        // enabled and leaves it when disabled, which copied the whole invocation list each time.
+        static readonly DelegateList<WillRenderCanvases> preWillRender = new(), willRender = new();
+
+        public static event WillRenderCanvases preWillRenderCanvases
+        {
+            add => preWillRender.Add(value);
+            remove => preWillRender.Remove(value);
+        }
+
+        public static event WillRenderCanvases willRenderCanvases
+        {
+            add => willRender.Add(value);
+            remove => willRender.Remove(value);
+        }
 
         public Canvas() { }
 
@@ -171,8 +184,17 @@ namespace UnityEngine
             CanvasSystem.RunCanvasUpdate();
         }
 
-        internal static void SendPreWillRenderCanvases() => preWillRenderCanvases?.Invoke();
-        internal static void SendWillRenderCanvases() => willRenderCanvases?.Invoke();
+        internal static void SendPreWillRenderCanvases() => Send(preWillRender);
+        internal static void SendWillRenderCanvases() => Send(willRender);
+
+        /// Calls the subscribers there are now, in order; an exception stops the call there and
+        /// goes to the caller, as a multicast delegate's would.
+        static void Send(DelegateList<WillRenderCanvases> list)
+        {
+            if (list.Count == 0) return;
+            using var subscribers = list.Take();
+            foreach (var d in subscribers.Items) d();
+        }
 
         /// The shared default UI material ("UI/Default").
         public static Material GetDefaultCanvasMaterial() => CanvasSystem.DefaultMaterial;

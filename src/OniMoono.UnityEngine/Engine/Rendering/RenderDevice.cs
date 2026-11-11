@@ -181,7 +181,8 @@ namespace OniMoono.Engine.Rendering
     internal readonly record struct RenderTargetBinding(RenderTextureNative[] Colors, RenderTextureNative Depth, int MipLevel)
     {
         public static readonly RenderTargetBinding BackBuffer = new(null, null, 0);
-        public static RenderTargetBinding Of(RenderTextureNative texture) => texture == null ? BackBuffer : new([texture], texture, 0);
+        /// The texture as colour and depth (the array is the texture's, and never written).
+        public static RenderTargetBinding Of(RenderTextureNative texture) => texture == null ? BackBuffer : new(texture.AsTarget ??= [texture], texture, 0);
     }
 
     internal readonly record struct CameraConstants(Matrix4x4 View, Matrix4x4 Projection, Vector3 Position, float Near, float Far, bool Orthographic, Vector2 TargetSize);

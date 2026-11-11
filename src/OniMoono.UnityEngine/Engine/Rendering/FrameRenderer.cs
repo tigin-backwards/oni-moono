@@ -368,8 +368,12 @@ namespace OniMoono.Engine.Rendering
         /// ascending depth (enable order on ties); then overlay canvases.
         static void RenderScreen()
         {
-            var cameras = Cameras.Enabled.ToArray();
-            var order = new List<(int Key, float Depth, int Index, Camera Camera)>();
+            using var snapshot = cameraSnapshot.Take(Cameras.Enabled);
+            var cameras = snapshot.Items;
+            // The order list is this pass's; a pass started from a camera's callbacks makes its own.
+            var order = screenOrder ?? new List<(int Key, float Depth, int Index, Camera Camera)>();
+            screenOrder = null;
+            order.Clear();
             for (int i = 0; i < cameras.Length; i++)
             {
                 var n = (CameraNative)cameras[i].Native;
@@ -380,8 +384,13 @@ namespace OniMoono.Engine.Rendering
             order.Sort((a, b) => a.Key != b.Key ? a.Key.CompareTo(b.Key) : a.Depth != b.Depth ? a.Depth.CompareTo(b.Depth) : a.Index.CompareTo(b.Index));
             foreach (var entry in order)
                 if (entry.Camera != null) RenderCamera(entry.Camera);
+            order.Clear();
+            screenOrder = order;
             RenderOverlays?.Invoke();
         }
+
+        static readonly ListSnapshot<Camera> cameraSnapshot = new();
+        static List<(int Key, float Depth, int Index, Camera Camera)> screenOrder = new();
 
         // ----- The screen, and super-sampled captures of it -----
 
@@ -682,11 +691,28 @@ namespace OniMoono.Engine.Rendering
             if (cam.Destroyed) return;
             Camera.onPreRender?.Invoke(camera);
 
-            // Image effects render the camera into a temporary target first.
-            var effects = new List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)>();
-            foreach (var c in cam.GameObject.Components)
-                if (c is MonoBehaviour mb && c.Native is BehaviourNative { IsActiveAndEnabledState: true } bn && bn.Script?.OnRenderImage is { } effect)
-                    effects.Add((mb, effect));
+            // Image effects render the camera into a temporary target first. The list is this
+            // render's (a camera rendered from another's callbacks takes another).
+            var effects = effectLists.Count > 0 ? effectLists.Pop() : new List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)>();
+            try
+            {
+                foreach (var c in cam.GameObject.Components)
+                    if (c is MonoBehaviour mb && c.Native is BehaviourNative { IsActiveAndEnabledState: true } bn && bn.Script?.OnRenderImage is { } effect)
+                        effects.Add((mb, effect));
+                RenderCameraTargets(camera, cam, device, draws, departuresAtCull, effects);
+            }
+            finally
+            {
+                effects.Clear();
+                effectLists.Push(effects);
+            }
+        }
+
+        static readonly Stack<List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)>> effectLists = new();
+
+        static void RenderCameraTargets(Camera camera, CameraNative cam, RenderDevice device, List<DrawItem> draws, long departuresAtCull,
+            List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)> effects)
+        {
 
             RenderTexture source = null;
             bool toScreen = cam.TargetTexture == null && cam.TargetColorBuffers == null;

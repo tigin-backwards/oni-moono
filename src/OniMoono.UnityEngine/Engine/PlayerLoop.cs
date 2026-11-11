@@ -135,10 +135,25 @@ namespace OniMoono.Engine
         /// Runs an engine phase's subscribers, each on its own: an exception in one (an engine
         /// fault) is logged and the frame goes on, as Unity's native engine never ends the game
         /// over a managed exception. (Game callbacks inside are guarded one by one already.)
+        /// Each phase delegate's invocation list, made once per delegate (a delegate never
+        /// changes; subscribing makes a new one).
+        static readonly (Action Phase, Delegate[] List)[] invocationLists = new (Action, Delegate[])[16];
+        static int nextInvocationList;
+
+        static Delegate[] InvocationList(Action phase)
+        {
+            foreach (var (p, list) in invocationLists)
+                if (ReferenceEquals(p, phase)) return list;
+            var made = phase.GetInvocationList();
+            invocationLists[nextInvocationList] = (phase, made);
+            nextInvocationList = (nextInvocationList + 1) % invocationLists.Length;
+            return made;
+        }
+
         static void RunPhase(Action phase)
         {
             if (phase == null) return;
-            foreach (var subscriber in phase.GetInvocationList())
+            foreach (var subscriber in InvocationList(phase))
             {
                 try
                 {

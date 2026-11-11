@@ -378,21 +378,48 @@ namespace OniMoono.Desktop.Gl
 
         /// A render target as recorded: the device textures (null colours: the back buffer, of
         /// the window's framebuffer size when recorded).
-        sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int BackBufferWidth, int BackBufferHeight);
+        /// Never written once made: the GL thread only reads it, so one with the same values can
+        /// be recorded again (DeviceTexture.BoundAlone, backBufferTarget).
+        internal sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int BackBufferWidth, int BackBufferHeight);
+
+        /// The back buffer as the last target recorded for it (main thread).
+        BoundTarget backBufferTarget;
 
         public override void SetRenderTarget(in RenderTargetBinding binding)
         {
             DeviceTexture[] colors = null;
             DeviceTexture depth = null;
-            if (binding.Colors != null && binding.Colors.Length > 0 && binding.Colors[0] != null)
+            int width = platform.FramebufferWidth, height = platform.FramebufferHeight;
+            BoundTarget bound;
+            if (binding.Colors is { Length: 1 } single && single[0] != null && (binding.Depth == null || binding.Depth == single[0]))
+            {
+                // One colour texture, as its own depth or with none (a camera's texture, a
+                // blit's destination): the target recorded for it last, when the same.
+                var texture = GlTextures.Prepare(worker, single[0]);
+                bool withDepth = binding.Depth != null;
+                bound = withDepth ? texture.BoundWithDepth : texture.BoundAlone;
+                if (bound == null || bound.Colors[0] != texture || bound.BackBufferWidth != width || bound.BackBufferHeight != height)
+                {
+                    bound = new BoundTarget([texture], withDepth ? texture : null, width, height);
+                    if (withDepth) texture.BoundWithDepth = bound;
+                    else texture.BoundAlone = bound;
+                }
+            }
+            else if (binding.Colors == null || binding.Colors.Length == 0 || binding.Colors[0] == null)
+            {
+                bound = backBufferTarget;
+                if (bound == null || bound.BackBufferWidth != width || bound.BackBufferHeight != height)
+                    backBufferTarget = bound = new BoundTarget(null, null, width, height);
+            }
+            else
             {
                 colors = new DeviceTexture[binding.Colors.Length];
                 // A null target after the first (a destroyed buffer) leaves its attachment empty.
                 for (int i = 0; i < colors.Length; i++) colors[i] = binding.Colors[i] == null ? null : GlTextures.Prepare(worker, binding.Colors[i]);
                 if (binding.Depth != null) depth = binding.Depth == binding.Colors[0] ? colors[0] : GlTextures.Prepare(worker, binding.Depth);
+                bound = new BoundTarget(colors, depth, width, height);
             }
-            var bound = new BoundTarget(colors, depth, platform.FramebufferWidth, platform.FramebufferHeight);
-            recorder.RenderTexture = colors != null;
+            recorder.RenderTexture = bound.Colors != null;
             worker.Post(worker.Arena.Command(setTargetNow ??= SetTargetNow, bound));
         }
 
@@ -770,12 +797,17 @@ namespace OniMoono.Desktop.Gl
             }
             int count = vertices.Length;
             if (GlGpuProfile.Enabled) recorded.Label = "immediate " + shader.ShaderName;
-            worker.Post(() =>
-            {
-                uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
-                ExecuteImmediate(recorded, primitive, array.AsSpan(at, length), count);
-                if (GlGpuProfile.Enabled) GlGpuProfile.End(recorded.Label, q);
-            });
+            worker.Post(worker.Arena.Command(immediateNow ??= ImmediateNow, (recorded, primitive, array, at, length, count)));
+        }
+
+        // The immediate draw's work (GL thread), recorded as a StateCommand with this delegate, made once.
+        Action<(ProgramInputs Recorded, ImmediatePrimitive Primitive, float[] Array, int At, int Length, int Count)> immediateNow;
+
+        void ImmediateNow((ProgramInputs Recorded, ImmediatePrimitive Primitive, float[] Array, int At, int Length, int Count) d)
+        {
+            uint q = GlGpuProfile.Enabled ? GlGpuProfile.Begin() : 0;
+            ExecuteImmediate(d.Recorded, d.Primitive, d.Array.AsSpan(d.At, d.Length), d.Count);
+            if (GlGpuProfile.Enabled) GlGpuProfile.End(d.Recorded.Label, q);
         }
 
         static void Uv(Span<float> data, int o, in Vector4 uv)

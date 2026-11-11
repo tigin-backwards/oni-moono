@@ -182,7 +182,24 @@ namespace OniMoono.Engine
         {
             if (waiters.Count == 0) return;
             var current = waiters;
-            waiters = new List<CoroutineState>();
+            // The lists swap: the one drained here is the next phase's new list (one taken by a
+            // pass started from inside this one, none expected, is replaced by a new one).
+            waiters = spareWaiters.Count > 0 ? spareWaiters.Pop() : new List<CoroutineState>();
+            try
+            {
+                Drain(current, waiters, ready);
+            }
+            finally
+            {
+                current.Clear();
+                spareWaiters.Push(current);
+            }
+        }
+
+        static readonly Stack<List<CoroutineState>> spareWaiters = new();
+
+        static void Drain(List<CoroutineState> current, List<CoroutineState> waiters, Func<CoroutineState, bool> ready)
+        {
             foreach (var s in current)
             {
                 if (s.Done) continue;
