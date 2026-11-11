@@ -1,0 +1,28 @@
+# The fix-released-sounds game tweak (src/OniMoono.GameTweaks/ReleasedSounds.cs; issues #78, #72,
+# #73 and #58). Ours only (`--player ours`): the original has no such tweak.
+#
+# A late-game Spaced Out colony at speed 3 in verify mode. Its ambience layers stop and start as
+# the view's tiles change, each stopped layer's handle cleared. Switching to another asteroid in
+# the world selector and back runs LoopingSoundManager.StopAllSounds each time, which clears
+# every playing loop's handle; the game stops those loops itself as they leave the view, and none
+# gets a new instance sooner than it would in the game. No call reaches a handle released there
+# afterwards. fmod-steal-fix (src/OniMoono.Host/GameTweaks/FmodStealFix.cs, on in `exact`) found
+# the FMOD library it was written for and patched it.
+from: U57
+game_tweaks: [fix-released-sounds]
+env: {ONI_VERIFY_RELEASED_SOUNDS: "1"}
+steps:
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.FmodStealFix::Applied": true
+  - run: {seconds: 60}
+  - expect_state:
+      "type:OniMoono.GameTweaks.ReleasedSounds::LayersCleared": "> 0"
+  - ui_wait: {path: "**/WorldSelector/Cluster/Worlds/Row", cond: stable}
+  - click: {ui: "**/WorldSelector/Cluster/Worlds/Row", index: 1}
+  - run: {seconds: 30}
+  - click: {ui: "**/WorldSelector/Cluster/Worlds/Row", index: 0}
+  - run: {seconds: 30}
+  - expect_state:
+      "type:OniMoono.GameTweaks.ReleasedSounds::LoopsCleared": "> 0"
+      "type:OniMoono.GameTweaks.ReleasedSounds::VerifyStaleCalls": 0
+      "type:OniMoono.GameTweaks.ReleasedSounds::VerifyRestarted": 0
