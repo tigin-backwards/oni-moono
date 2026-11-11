@@ -650,13 +650,21 @@ such a bus: ten of them started and released in one frame write to freed memory 
   new return address to the same caller as from the original one, or the original bytes are put
   back and nothing stays written. edi is saved by the function, used as a loop variable until
   +0x68A3A and dead from there to its restore at +0x68A85.
+- U60 ships FMOD's logging build of the same version (`fmodstudioL.dll`, `libfmodstudioL.so`),
+  the same code with logging around it. Linux: the `je store` after the destroy's call is
+  retargeted to the `xor ebp,ebp; jmp epilogue` just past the store (one byte). Windows: the
+  same two stubs, with r15 for the decision (the function saves r15 in its prolog, restores it
+  in its epilogue and does not use it after the site; edi holds the call's result there), the
+  original's `mov edi, eax` kept after the call, and an error sent to the original's logging
+  path.
 
 Every other path runs the same instructions on the same state; the STOPPED and DESTROYED callbacks
 come in the same order. It is applied in a postfix on FMODUnity's `RuntimeManager.Initialize` once
 FMOD Studio runs, before the game has made any instance, and only when all three match: FMOD's own
 version (2.03.12 build 160365, as the core library reports it to the core system's getVersion),
-the SHA-256 of the loaded Studio library's file (U59's `fmodstudio.dll` and `libfmodstudio.so`),
-and every byte the patch relies on: the site and what follows it to the epilogue, and the
+the SHA-256 of the loaded Studio library's file (U59's `fmodstudio.dll` and `libfmodstudio.so`,
+and U60's `fmodstudioL.dll` and `libfmodstudioL.so`, the same in every U60 build so far, 761015 to
+762230), and every byte the patch relies on: the site and what follows it to the epilogue, and the
 destroy's code (on Windows also the slack still empty). Anything else, such as a game update that
 ships another FMOD, and nothing is written: `fmod-steal-fix: not applied, …` names what did not
 match, and `fmod-quarantine` stays the only guard. `fmod-steal-fix: FMOD 2.03.12's store …` says
@@ -664,8 +672,8 @@ it is in; on Windows the line at quit counts the stores skipped.
 
 **Measured** (2026-11-11). FMOD's own repro, with the game's banks and library (ten TileSnow
 instances started and released in one batch), on Windows and Linux, synchronous and
-asynchronous update: two writes to freed memory without the patch, none with it (the Windows
-counter: 2 stores skipped); with the sample data loaded first (the control) none either way, and
+asynchronous update, with U59's libraries and with U60's logging ones: two writes to freed
+memory without the patch, none with it (the Windows counter: 2 stores skipped); with the sample data loaded first (the control) none either way, and
 nothing skipped. The callbacks come in the same order with and without it. In the game on
 Windows the patch is applied at start and the colony plays on; a test that started and released
 ten TileSnow instances every 5 seconds for 50 seconds of a late-game colony stole no loading
