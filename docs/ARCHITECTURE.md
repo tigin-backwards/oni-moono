@@ -2778,8 +2778,27 @@ OpenGL fallback.
 **UI rendering.** `Canvas` implements Unity's canvas batching: per root canvas, walk
 `CanvasRenderer`s in hierarchy order, apply `CanvasGroup` alpha, `RectMask2D` clip rects
 (`_ClipRect` + `UNITY_UI_CLIP_RECT`) and stencil masks (materials from uGUI's own
-`StencilMaterial`), and draw in order (no reordering across materials; Unity's batch
-merging is an optimisation we may add only where it cannot change the result).
+`StencilMaterial`), and merge draws of the same state into one mesh.
+An overlay canvas's draws are first reordered as Unity's batcher orders them, where it cannot
+change a pixel (`CanvasLayering`): each draw gets a layer above the earlier draws of other
+states whose pixel centres it shares, or the layer of an earlier draw of its own state it
+overlaps; then a stable sort by layer and by the state's first appearance in it, then the
+merge. Two draws that share no pixel can swap, since blending, depth and stencil act per pixel;
+two that share one keep their order. A draw's pixels are its baked mesh's bounds on the screen
+(pixel centres, an eighth of a pixel of slack); a draw off the screen reaches none and joins the
+first draw of its state. Only shaders whose vertex programs place each vertex where the mesh
+puts it (UI/Default, Klei's UI/Default Desat and chart lines, and TextMesh Pro's, read in the
+game's programs; TextMesh Pro's `_VertexOffsetX/Y` set makes a barrier) may move; a stencil write (a `Mask`'s graphic), a pop
+and any other shader are barriers that nothing crosses. Draws in a nested canvas's space join
+only each other. Overlap tests go through a grid of 64-pixel cells, and the order is kept on the
+canvas while every draw's mesh bounds, material, sheet and transform stand.
+Camera and world-space canvases, and super-sized captures, keep the hierarchy order.
+`--no-ui-reorder` or `ONI_CANVAS_REORDER=0` turns it off; `ONI_VERIFY_CANVAS_ORDER=1` checks
+every pair of draws that share a pixel by their vertices, every 60th order a canvas uses, and
+that a kept order matches a new one; `ONI_VERIFY_CANVAS_PIXELS=1` draws the overlay canvases
+again into a target of their own, in hierarchy order and reordered, every 120th frame, and
+compares every pixel (with merged meshes made for the check: a kept mesh made again for another
+order within a frame changes under the draws already queued).
 A renderer with `cullTransparentMesh` on (the default for one added at run time) whose mesh has
 every vertex alpha below 0.001 is not collected, as measured in the original
 (`docs/cleanroom/ugui.md`, "CanvasRenderer.cullTransparentMesh"): it is still numbered and still
