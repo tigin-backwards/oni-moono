@@ -21,9 +21,14 @@ namespace OniMoono.Engine
     {
         /// Rows a band takes: about this many filtered bytes.
         internal const int BandBytes = 2 << 20;
-        /// ImageConversion's level: the smallest files (5 to 9 % smaller than level 6's on the
-        /// game's images, for 3 to 4 times the time, spent on other threads in U60's flow).
+        /// ImageConversion's level off the main thread: the smallest files (4 to 9 % smaller than
+        /// level 6's on the game's images, for 3 to 4 times the time, spent on other threads in
+        /// U60's flow).
         internal const int SmallestLevel = 9;
+        /// The level of a PNG written in a frame, on the main thread: captures, and EncodeTo* there
+        /// (U59's Timelapser encodes its snapshots and colony previews so: a 1272x808 preview takes
+        /// 38 ms at level 6, 154 ms at level 9).
+        internal const int FrameLevel = 6;
 
         /// Bands being encoded at once, at most: half the cores, so that the game's own threads
         /// keep theirs, and at most 8.

@@ -296,6 +296,31 @@ namespace OniMoono.Tests
             Assert.Equal(a, Texture(w, h, TextureFormat.RGBA32, packed).EncodeToPNG());
         }
 
+        /// On the main thread the file is written at the frame's level, elsewhere at the
+        /// smallest: different bytes, the same texels.
+        [Fact]
+        public void TheMainThreadsFileTakesTheFramesLevel()
+        {
+            const int w = 300, h = 200;
+            var texels = Picture(w, h, 4, seed: 9);
+            var main = ImageConversion.EncodeArrayToPNG(texels, GraphicsFormat.R8G8B8A8_UNorm, w, h);
+            byte[] task = null;
+            var other = new System.Threading.Thread(() => task = ImageConversion.EncodeArrayToPNG(texels, GraphicsFormat.R8G8B8A8_UNorm, w, h));
+            other.Start();
+            other.Join();
+            Assert.Equal(PngWriter.FrameLevel, Level(main));
+            Assert.Equal(PngWriter.SmallestLevel, Level(task));
+            Assert.Equal(Read(main).Rows, Read(task).Rows);
+        }
+
+        /// The level a PNG's zlib header names (FLEVEL: 2 for levels 6, 3 for 7 to 9).
+        static int Level(byte[] png)
+        {
+            int idat = png.AsSpan().IndexOf("IDAT"u8);
+            int flevel = png[idat + 5] >> 6;
+            return flevel == 3 ? PngWriter.SmallestLevel : flevel == 2 ? PngWriter.FrameLevel : -1;
+        }
+
         /// A timelapse-sized image: many bands, each encoded on its own thread, in one file.
         [Fact]
         public void ALargeImageIsWrittenInBandsThatDecodeAsOne()

@@ -204,7 +204,8 @@ namespace UnityEngine
         /// PNG of texels whose rows run bottom to top, `stride` bytes apart, as EncodeToPNG
         /// writes them: RGBA formats whose every texel is opaque as RGB (no reader the game has
         /// tells the two apart: LoadImage gives the same texels), straight from the rows where
-        /// their bytes are the PNG's.
+        /// their bytes are the PNG's. On the main thread the file is written in the frame, at
+        /// PngWriter.FrameLevel; elsewhere (U60's Timelapser task) at the smallest level.
         static byte[] EncodePng(TextureFormat format, ReadOnlySpan<byte> texels, int w, int h, int stride)
         {
             int channels = Channels(format);
@@ -217,7 +218,7 @@ namespace UnityEngine
                 // RGBA32 rows go in as they are, their alpha left out by the writer.
                 if (!direct) inputChannels = 3;
             }
-            using var png = new PngWriter(null, w, h, channels, inputChannels);
+            using var png = new PngWriter(null, w, h, channels, inputChannels, Threads.IsMainThread ? PngWriter.FrameLevel : PngWriter.SmallestLevel);
             var row = direct ? null : new byte[w * inputChannels];
             bool packedRows = stride == (int)TextureFormats.MipSize(format, w, 1);
             for (int y = 0; y < h; y++)
