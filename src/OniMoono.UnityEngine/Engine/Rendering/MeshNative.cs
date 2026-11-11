@@ -37,6 +37,17 @@ namespace OniMoono.Engine.Rendering
         public Bounds Bounds;
         /// The index array a mesh setter made for this submesh (MeshNative.Retire).
         internal int[] Given;
+
+        /// As a new submesh: no indices, triangles, no base vertex, empty bounds.
+        public void Reset()
+        {
+            array = Array.Empty<int>();
+            count = 0;
+            Topology = MeshTopology.Triangles;
+            BaseVertex = 0;
+            Bounds = default;
+            Given = null;
+        }
     }
 
     /// A mesh's data, kept as per-attribute arrays (Unity's channel model). The device builds its
@@ -266,6 +277,11 @@ namespace OniMoono.Engine.Rendering
 
         const int MaxSpares = 16, SpareFrames = 4;
 
+        /// A mesh never drawn (uGUI's shared worker mesh, filled for every element rebuilt and
+        /// copied by its renderer) keeps more spares, longer: no upload holds them, and its
+        /// fills alternate between elements of every size, the larger ones a few times a second.
+        const int MaxWorkerSpares = 32, WorkerSpareFrames = 120;
+
         /// Reuse statistics (ONI_MESH_SPARES=stats): arrays wanted, taken from spares, and
         /// arrays retired.
         internal static readonly bool Stats = Environment.GetEnvironmentVariable("ONI_MESH_SPARES") == "stats" || Environment.GetEnvironmentVariable("ONI_VERIFY_MESH_REUSE") == "1";
@@ -274,26 +290,6 @@ namespace OniMoono.Engine.Rendering
         /// Reuse off (ONI_MESH_SPARES=off, or set while running by a measurement): every new
         /// channel array is allocated, and canvas elements rebake their colours (CanvasSystem).
         internal static bool ReuseOff = Environment.GetEnvironmentVariable("ONI_MESH_SPARES") == "off";
-
-        /// A new channel array of exactly `length` (its contents are the caller's to fill): a
-        /// spare of that length no upload holds any more, else a new one.
-        internal T[] NewChannel<T>(int length)
-        {
-            if (Stats) Wanted++;
-            if (spares != null && !ReuseOff)
-            {
-                int ran = System.Threading.Volatile.Read(ref UploadsRan);
-                for (int i = spares.Count - 1; i >= 0; i--)
-                {
-                    var (array, posted, _) = spares[i];
-                    if (posted > ran || array is not T[] typed || typed.Length != length) continue;
-                    spares.RemoveAt(i);
-                    if (Stats) Taken++;
-                    return typed;
-                }
-            }
-            return new T[length];
-        }
 
         /// A new channel array of at least `length` for the mesh setters, which record the count
         /// beside it (VertexCount, SubMeshData.IndexCount): the smallest spare no upload holds
@@ -341,7 +337,7 @@ namespace OniMoono.Engine.Rendering
         }
 
         /// Reuse counts for the verify report.
-        internal static string ReuseCounts() => $"{Wanted} arrays wanted, {Taken} reused";
+        internal static string ReuseCounts() => $"{Wanted} arrays wanted, {Taken} reused; canvas copies {UI.CanvasArrays.Wanted} wanted, {UI.CanvasArrays.Taken} reused";
 
         /// ONI_VERIFY_MESH_REUSE=1: each mesh upload checksums the arrays it holds when it is
         /// recorded and again on the render thread before copying them; a reused array written in
@@ -349,7 +345,7 @@ namespace OniMoono.Engine.Rendering
         /// filled with NaN bytes when taken, so values a setter failed to write show too.
         internal static readonly bool VerifyReuse = Environment.GetEnvironmentVariable("ONI_VERIFY_MESH_REUSE") == "1";
 
-        /// Records `array` (made by NewChannel and filled) as the setter's for `slot`.
+        /// Records `array` (made by NewChannelAtLeast and filled) as the setter's for `slot`.
         internal void Give(int slot, Array array)
         {
             if (ReuseOff) return;
@@ -387,7 +383,7 @@ namespace OniMoono.Engine.Rendering
             Retire(SlotColors32, colors32);
         }
 
-        /// Records the submesh's index array (made by NewChannel and filled) as a setter's.
+        /// Records the submesh's index array (made by NewChannelAtLeast and filled) as a setter's.
         internal void GiveIndices(SubMeshData s)
         {
             if (!ReuseOff) s.Given = s.IndexArray;
@@ -416,16 +412,6 @@ namespace OniMoono.Engine.Rendering
             foreach (var s in SubMeshes) RetireIndices(s);
         }
 
-        /// An array no longer anyone's but this mesh's uploads (an element's released canvas
-        /// geometry): kept as a spare, reused once those uploads have run; with `inUploads`
-        /// false (an array no upload was given), as soon as it is wanted.
-        internal void Spare(Array array, bool inUploads = true)
-        {
-            if (array == null || ReuseOff) return;
-            if (inUploads) AddSpare(array);
-            else AddSpare(array, System.Threading.Volatile.Read(ref UploadsRan));
-        }
-
         void AddSpare(Array array) => AddSpare(array, UploadsPosted);
 
         void AddSpare(Array array, int posted)
@@ -437,7 +423,7 @@ namespace OniMoono.Engine.Rendering
                 listed = true;
                 withSpares.Add(this);
             }
-            if (spares.Count >= MaxSpares) spares.RemoveAt(0);
+            if (spares.Count >= (UploadsPosted == 0 ? MaxWorkerSpares : MaxSpares)) spares.RemoveAt(0);
             spares.Add((array, posted, Time.frameCount));
             if (Stats) Retired++;
         }
@@ -454,7 +440,8 @@ namespace OniMoono.Engine.Rendering
                 var s = mesh.spares;
                 // Oldest first: they were added in frame order.
                 int stale = 0;
-                while (stale < s.Count && frame - s[stale].Frame > SpareFrames) stale++;
+                int keep = mesh.UploadsPosted == 0 ? WorkerSpareFrames : SpareFrames;
+                while (stale < s.Count && frame - s[stale].Frame > keep) stale++;
                 s.RemoveRange(0, stale);
                 if (s.Count > 0) continue;
                 mesh.listed = false;
@@ -491,7 +478,12 @@ namespace OniMoono.Engine.Rendering
             colors = null;
             colors32 = null;
             Array.Clear(Uvs.Raw);
-            SubMeshes = new List<SubMeshData> { new SubMeshData() };
+            // One empty submesh, as a new one is: the list and its first submesh are kept (they
+            // are the mesh's own; the device copies what it needs when it records a draw or an
+            // upload), so meshes rebuilt every frame (uGUI's, particles') allocate neither.
+            if (SubMeshes.Count > 1) SubMeshes.RemoveRange(1, SubMeshes.Count - 1);
+            if (SubMeshes.Count == 1) SubMeshes[0].Reset();
+            else SubMeshes.Add(new SubMeshData());
             // The bounds stay (measured in the original player).
             Changed();
         }

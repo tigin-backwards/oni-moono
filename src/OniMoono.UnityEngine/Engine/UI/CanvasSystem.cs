@@ -1375,6 +1375,10 @@ namespace OniMoono.Engine.UI
                 tangents |= p.Tangents != null;
                 for (int u = 0; u < 4; u++) uvs[u] |= p.Uvs[u] != null;
             }
+            // The submeshes after the first, which Clear drops, are this merge's again.
+            var spareSubs = mergeSubMeshes;
+            spareSubs.Clear();
+            for (int i = 1; i < mesh.SubMeshes.Count; i++) spareSubs.Add(mesh.SubMeshes[i]);
             mesh.Clear();
             var positions = mesh.NewChannelAtLeast<Vector3>(vertices);
             var colors = mesh.NewChannelAtLeast<Color>(vertices);
@@ -1389,10 +1393,21 @@ namespace OniMoono.Engine.UI
                 var source = p.SubMeshes[0].Indices;
                 if (subMeshEach)
                 {
+                    // An array of each part's own: as spares, one for each of hundreds of parts
+                    // would push the merged mesh's channel arrays out of its spares.
                     var part = new int[source.Length];
                     for (int i = 0; i < part.Length; i++) part[i] = source[i] + v;
-                    // Clear left one empty submesh: the first part's.
-                    var s = sub++ == 0 ? mesh.SubMeshes[0] : new SubMeshData();
+                    // Clear left one empty submesh: the first part's; the others are the
+                    // previous merge's, emptied as new ones are.
+                    SubMeshData s;
+                    if (sub++ == 0) s = mesh.SubMeshes[0];
+                    else if (spareSubs.Count > 0)
+                    {
+                        s = spareSubs[^1];
+                        spareSubs.RemoveAt(spareSubs.Count - 1);
+                        s.Reset();
+                    }
+                    else s = new SubMeshData();
                     s.SetIndices(part);
                     if (s != mesh.SubMeshes[0]) mesh.SubMeshes.Add(s);
                 }
@@ -1429,6 +1444,7 @@ namespace OniMoono.Engine.UI
                 if (uvData[u] != null) mesh.Give(MeshNative.SlotUv0 + u, uvData[u]);
                 uvData[u] = null;
             }
+            spareSubs.Clear();
             if (!subMeshEach)
             {
                 mesh.SubMeshes[0].SetIndices(indexData, indices);
@@ -1439,6 +1455,7 @@ namespace OniMoono.Engine.UI
         }
 
         static readonly Vector4[][] mergeUvs = new Vector4[4][];
+        static readonly List<SubMeshData> mergeSubMeshes = new();
 
         /// The element's geometry in its canvas's space with its colour applied; rebuilt only
         /// when the geometry, its placement or its colour changed.
@@ -1451,24 +1468,23 @@ namespace OniMoono.Engine.UI
             var mesh = r.Baked ??= new MeshNative { Dynamic = true };
             // An element that only moved (world-space canvases follow their objects every frame)
             // keeps its colours: the array is never written once made, so the new version can
-            // hold it too. Arrays made here are reused once the device has uploaded them
-            // (MeshNative.NewChannel).
+            // hold it too. The positions and colours made here are the baked mesh's alone and go
+            // back to the canvas copies' arrays (CanvasArrays), reused once the device has run
+            // the uploads that hold them.
             bool sameColors = !MeshNative.ReuseOff && ReferenceEquals(r.BakedGeometry, g) && r.BakedColor.Equals(color) && mesh.Colors is { } kept && kept.Length == n;
             mesh.VertexCount = n;
-            mesh.Retire(MeshNative.SlotPositions);
-            mesh.Positions = mesh.NewChannel<Vector3>(n);
-            mesh.Give(MeshNative.SlotPositions, mesh.Positions);
+            CanvasArrays.Give(mesh.Positions, mesh);
+            mesh.Positions = CanvasArrays.Take<Vector3>(n);
             if (!sameColors)
             {
-                mesh.RetireColors();
-                var colors = mesh.NewChannel<Color>(n);
+                CanvasArrays.Give(mesh.Colors, mesh);
+                var colors = CanvasArrays.Take<Color>(n);
                 for (int i = 0; i < n; i++)
                 {
                     var c = g.Colors != null && i < g.Colors.Length ? g.Colors[i] : Color.white;
                     colors[i] = c * color;
                 }
                 mesh.Colors = colors;
-                mesh.Give(MeshNative.SlotColors, colors);
             }
             // The geometry baked before is no longer the element's (SetMesh made another): its
             // arrays go back to the baked mesh, whose uploads hold them, once it holds the new ones.
@@ -1488,7 +1504,11 @@ namespace OniMoono.Engine.UI
             // past the device's recording).
             if (mesh.SubMeshes.Count == 1) mesh.SubMeshes[0].SetIndices(g.Indices);
             else mesh.SubMeshes = new List<SubMeshData> { new SubMeshData(g.Indices) };
-            released?.Release(mesh);
+            if (released != null)
+            {
+                released.Release(mesh);
+                r.SpareGeometry = released;
+            }
             mesh.RecalculateBounds();
             mesh.Changed();
             return mesh;

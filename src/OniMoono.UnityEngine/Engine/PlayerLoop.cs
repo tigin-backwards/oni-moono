@@ -185,6 +185,7 @@ namespace OniMoono.Engine
             }
             else Rendering.TexelCopies.Fence();
             Rendering.MeshNative.SweepSpares();
+            UI.CanvasArrays.Sweep();
             Time.BeginFrame(realDelta);
             RunPhase(FrameStart);
 

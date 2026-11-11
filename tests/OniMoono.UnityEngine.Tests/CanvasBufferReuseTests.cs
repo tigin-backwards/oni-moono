@@ -318,5 +318,110 @@ namespace OniMoono.Tests
             // The channels alone would be 64 * (12 + 16 + 12 + 2 * 16) + 96 * 4 bytes.
             Assert.True(bytes < 1024, $"{bytes} bytes");
         }
+
+        /// A geometry copy's arrays come back for any renderer's copy of the same length, once
+        /// the uploads of the mesh that held them have run; one never in an upload at once.
+        [Fact]
+        public void CanvasArraysWaitForTheirOwnersUploads()
+        {
+            if (MeshNative.ReuseOff) return;
+            var owner = new MeshNative();
+            int length = 4093; // a length no other test gives back
+            var held = new Vector4[length];
+            int upload = ++owner.UploadsPosted;
+            CanvasArrays.Give(held, owner);
+            Assert.NotSame(held, CanvasArrays.Take<Vector4>(length));
+            Assert.NotSame(held, CanvasArrays.Take<Vector4>(length + 1));
+            owner.UploadRan(upload);
+            Assert.Same(held, CanvasArrays.Take<Vector4>(length));
+            // Taken once: the next is new.
+            Assert.NotSame(held, CanvasArrays.Take<Vector4>(length));
+
+            var never = new Vector4[length];
+            CanvasArrays.Give(never, null);
+            Assert.Same(never, CanvasArrays.Take<Vector4>(length));
+            // Other element types keep apart.
+            var colors = new Color[length];
+            CanvasArrays.Give(colors, null);
+            Assert.NotSame((object)colors, CanvasArrays.Take<Vector4>(length));
+            Assert.Same(colors, CanvasArrays.Take<Color>(length));
+            Assert.Empty(CanvasArrays.Take<Vector3>(0));
+        }
+
+        /// A copy one element let go of serves another element's copy of the same length, and
+        /// the emptied copy object is the element's next copy, filled as a new one.
+        [Fact]
+        public void AnotherElementTakesAReleasedCopysArrays()
+        {
+            if (MeshNative.ReuseOff) return;
+            var (goA, a, da) = Element();
+            var (goB, b, db) = Element();
+            try
+            {
+                a.SetMesh(Quad(1f));
+                var first = da.Geometry;
+                var uvs = first.Uvs[0];
+                // Set again before any build: the first copy was in no upload, released at once.
+                a.SetMesh(Quad(2f));
+                Assert.Null(first.Positions);
+                b.SetMesh(Quad(3f));
+                Assert.Same(uvs, db.Geometry.Uvs[0]);
+                AssertGeometry(Quad(3f), db.Geometry);
+                // A's next copy is made into its emptied first one.
+                a.SetMesh(Quad(4f));
+                Assert.Same(first, da.Geometry);
+                AssertGeometry(Quad(4f), first);
+                Assert.False(first.Transparent);
+            }
+            finally
+            {
+                Object.DestroyImmediate(goA);
+                Object.DestroyImmediate(goB);
+            }
+        }
+
+        /// A channel whose values all have the same bits (uGUI's unused UV sets) is one array
+        /// that copies of its length share; it never goes back to the pool, and a value of other
+        /// bits (-0 against 0) has its own.
+        [Fact]
+        public void UniformChannelsAreSharedAndNeverReused()
+        {
+            if (MeshNative.ReuseOff) return;
+            static Mesh WithUv1(float at, float value)
+            {
+                var mesh = Quad(at);
+                mesh.SetUVs(1, new System.Collections.Generic.List<Vector4> { new(value, 0f, 0f, 0f), new(value, 0f, 0f, 0f), new(value, 0f, 0f, 0f), new(value, 0f, 0f, 0f) });
+                return mesh;
+            }
+            var (goA, a, da) = Element();
+            var (goB, b, db) = Element();
+            var (goC, c, dc) = Element();
+            try
+            {
+                a.SetMesh(WithUv1(1f, 0f));
+                b.SetMesh(WithUv1(2f, 0f));
+                var zeros = da.Geometry.Uvs[1];
+                Assert.Same(zeros, db.Geometry.Uvs[1]);
+                Assert.All(zeros, v => Assert.Equal(Vector4.zero, v));
+                Assert.NotSame(da.Geometry.Uvs[0], db.Geometry.Uvs[0]);
+                c.SetMesh(WithUv1(3f, -0f));
+                Assert.NotSame(zeros, dc.Geometry.Uvs[1]);
+                Assert.True(float.IsNegative(dc.Geometry.Uvs[1][2].x));
+                // Released (never baked): the shared array stays out of the pool.
+                a.SetMesh(Quad(4f));
+                b.SetMesh(Quad(5f));
+                c.SetMesh(Quad(6f, uvSets: 2));
+                Assert.NotSame(zeros, dc.Geometry.Uvs[0]);
+                Assert.NotSame(zeros, dc.Geometry.Uvs[1]);
+                AssertGeometry(Quad(6f, uvSets: 2), dc.Geometry);
+                Assert.All(zeros, v => Assert.Equal(Vector4.zero, v));
+            }
+            finally
+            {
+                Object.DestroyImmediate(goA);
+                Object.DestroyImmediate(goB);
+                Object.DestroyImmediate(goC);
+            }
+        }
     }
 }
