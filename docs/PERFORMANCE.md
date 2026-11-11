@@ -492,6 +492,54 @@ decision dropped from about 400 ns to about 5 ns per item, and a pickupable scan
 70 ms frame (on Linux, before the tweaks). But mods and the UI write the same game state, so it would mean rewriting the game's
 systems rather than tweaking them.
 
+## Timelapse snapshots and colony previews (U60)
+
+U60's Timelapser renders its daily snapshot (512×768 by default, up to 8192×12288 in the save
+options) and a save's colony preview into a render texture, reads it back with
+`AsyncGPUReadback`, copies the pixels in the callback, then encodes and writes the PNG on a task.
+In Moono the read-back used to be synchronous: `AsyncGPUReadback.Request` read the target as
+floats on the main thread, waiting for the GPU, and the encoder copied the image twice more
+before compressing it on one thread. Now the read-back goes with the frame's GPU work (a pixel
+buffer and a fence on OpenGL, a host buffer under the frame's fence on Vulkan; a read past 32 MB
+is copied on the GPU and read 32 MB a frame), and `EncodeArrayToPNG` reads the game's array where
+it is and deflates it in parallel bands (ARCHITECTURE §3.5, PNG encoding).
+
+Measured on an early colony on Linux (WSL, OpenGL through Mesa's D3D12 driver; the original on
+the same driver, its frames held to 60 fps), one snapshot after another, 2026-11-11. The hitch is
+the capture's longest frame less the median frame before it; memory is the peak over the
+capture, above where it started; the first snapshot after the load also pays one-time costs in
+every player. Two runs of Moono after the change gave the range shown.
+
+| | Original | Moono before | Moono after |
+|---|---|---|---|
+| 512×768 snapshot (the first): hitch | 101 ms | 363 ms | 225–232 ms |
+| 2048×3072 snapshot: hitch | 57 ms | 284 ms | 44 ms |
+| 2048×3072: peak resident / managed memory | 50 / 29 MB | 160 / 139 MB | 34–69 / 41 MB |
+| 8192×12288 snapshot: hitch | 775 ms | 2.8 s | 144–192 ms |
+| 8192×12288: peak resident / managed memory | 772 / 433 MB | 1.4 / 1.5 GB | 482–489 / 434 MB |
+| 8192×12288: request to file written | 5.3 s | 5.6 s | 2.9 s |
+| 1272×808 colony preview: hitch | 37 ms | 136 ms | 58 ms |
+
+What is left of the 8192×12288 hitch is the frame that renders the image (the GPU copy and the
+first band, 150–200 ms of waiting for the GL thread) and the game's own callback, which copies the
+403 MB into a managed array on the main thread (85–110 ms, the copy shared between four threads;
+the original's takes 376 ms). That array is most of the managed peak, in the original too.
+
+The files are smaller, and decode to the same pixels:
+
+| PNG | Original | Moono before | Moono after | Encode time after (on the task) |
+|---|---|---|---|---|
+| 512×768 snapshot | 253 KB | 257 KB | 192 KB | 112–114 ms |
+| 2048×3072 snapshot | 3.44 MB | 3.29 MB | 2.59 MB | 334–339 ms |
+| 8192×12288 snapshot | 42.9 MB | 42.7 MB | 30.6 MB | 2.2–2.3 s |
+| 1272×808 colony preview | 1.00 MB | 0.99 MB | 0.77 MB | 183–191 ms |
+
+Level 9 costs time on small images, which are one band and so one thread: 512×768 took 13 ms
+to encode before. All of it is on the Timelapser's task, not the main thread. The first colony
+preview of a Spaced Out cluster after its load (1472×608) is still a 2.0 s frame (2.2 s before;
+0.5 s in the original): that frame's GL work draws the whole cluster for the first time, not the
+read-back.
+
 ## Loading
 
 Loading U57 takes 25–26 s on Windows with the default tweaks, against 2 min 22 s in the original,

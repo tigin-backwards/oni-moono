@@ -72,7 +72,7 @@ Legend: `[x]` verified · `[ ]` not yet verified · `[~]` deviation (see the not
 - [x] `GameOverScreen` (colony lost)
 - [x] `StoryMessageScreen` ("IMPERATIVE ACHIEVED" alert, Proceed → camera sequence) as the original, triggered with tools/UnityProbe; `VictoryScreen` is never opened in this build (prefab field only)
 - [x] `EventInfoScreen.ShowPopup` (the Somnium Synthesizer story-trait popup) as the original, triggered with tools/UnityProbe
-- [x] Timelapse capture and save preview (`Timelapser`: base and overlay cameras rendered from an end-of-frame coroutine into a render texture, `ReadPixels` + `EncodeToPNG`): the world around the printing pod as in the original's images
+- [x] Timelapse capture and save preview (`Timelapser`: base and overlay cameras rendered from an end-of-frame coroutine into a render texture, read back with `AsyncGPUReadback`, encoded with `EncodeArrayToPNG` and written on a task): the world around the printing pod as in the original's images
 - [x] Camera: wheel zoom out/in, keyboard pan, Home (camera return)
 - [x] Camera: right- and middle-button drag pan move the view by the same pixel offsets as the original (−200,−100 and −250,+200, the latter clamped at the world edge, measured by image registration); Ctrl+1 / Shift+1 bookmark returns to the exact view in both. ONI has no edge pan (the edge padding only clamps the camera)
 - [x] Camera follow: stress meter click selects and focuses a Duplicant, Follow Cam zooms in and keeps the Duplicant centred while it walks
@@ -194,3 +194,9 @@ the shipped package on both sides showed it too.
   fits and windows past it, with the water's, the light buffer's and the screen-space shaders'
   positions mapped into each window, so its captures are seamless (issue #75; ARCHITECTURE §3.5,
   Super-sized captures). On Vulkan, captures past the GPU's texture size keep seams like the original's.
+- PNGs (`EncodeToPNG`, `EncodeArrayToPNG`, captures) decode to the same texels as the original's,
+  but their bytes differ: rows take libpng's filter choice and level-9 deflate (captures: level 6)
+  in bands of about 2 MB, where the original's use zlib's fastest level, and an 8-bit RGBA image
+  whose every alpha is 255 is written as RGB, where the original writes RGBA. `LoadImage`, the
+  game's only reader of them, gives the same texels for both (ARCHITECTURE §3.5, PNG encoding).
+  Two 512×768 colony snapshots came out 14 % and 20 % smaller than the original's.
