@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading;
-using System.Threading.Tasks;
 using HarmonyLib;
 using Unity.Collections;
 using UnityEngine;
@@ -95,6 +94,9 @@ namespace OniMoono.GameTweaks
         static readonly Func<KAnimBatch, int, KAnimConverter.IAnimConverter, NativeArray<byte>, bool> writeOverrides =
             AccessTools.MethodDelegate<Func<KAnimBatch, int, KAnimConverter.IAnimConverter, NativeArray<byte>, bool>>(writeOverridesMethod);
         static readonly MethodInfo trackerPosition = AccessTools.Method(typeof(KBatchedAnimTracker), "MyAnimGetPosition");
+        /// Delegate.HasSingleTarget (.NET 9; this assembly is built for netstandard2.1), or null.
+        static readonly Func<Delegate, bool> hasSingleTarget = typeof(Delegate).GetProperty("HasSingleTarget")?.GetGetMethod() is MethodInfo getter
+            ? (Func<Delegate, bool>)Delegate.CreateDelegate(typeof(Func<Delegate, bool>), getter) : null;
 
         /// A batch's writes done ahead for the current pass, by controller index.
         sealed class Work
@@ -249,7 +251,7 @@ namespace OniMoono.GameTweaks
             }
             parallelFrames++;
             long t0 = timing ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
-            Parallel.For(0, pending.Count, body);
+            WorkerLoop.For(pending.Count, body);
             if (timing) ticksParallel += System.Diagnostics.Stopwatch.GetTimestamp() - t0;
         }
 
@@ -262,7 +264,7 @@ namespace OniMoono.GameTweaks
                 {
                     long t1 = timing ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
                     if (deferring.Count == 1) DeferBody(0);
-                    else Parallel.For(0, deferring.Count, deferBody);
+                    else WorkerLoop.For(deferring.Count, deferBody);
                     if (timing) ticksParallel += System.Diagnostics.Stopwatch.GetTimestamp() - t1;
                     if (verify) VerifyDeferred();
                     deferring.Clear();
@@ -389,6 +391,8 @@ namespace OniMoono.GameTweaks
         static bool PlainPosition(Func<Vector4> f)
         {
             if (f == null) return true;
+            // One target, the usual case: its method, without GetInvocationList's array.
+            if (hasSingleTarget != null && hasSingleTarget(f)) return f.Method == trackerPosition;
             foreach (var d in f.GetInvocationList())
                 if (d.Method != trackerPosition) return false;
             return true;

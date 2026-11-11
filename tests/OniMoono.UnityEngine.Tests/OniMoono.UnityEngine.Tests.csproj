@@ -111,6 +111,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/GameFrameStats.cs" Link="GameTweaks/GameFrameStats.cs" />
     <!-- The fast-symbol-overrides game tweak's block bookkeeping (OverrideBlockLogTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/OverrideBlockLog.cs" Link="GameTweaks/OverrideBlockLog.cs" />
+    <!-- fast-anim-batches' loop over the dirty batches (WorkerLoopTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/WorkerLoop.cs" Link="GameTweaks/WorkerLoop.cs" />
     <!-- The background-save game tweak's writes (BackgroundSaveTests), with the game's zlib. -->
     <Compile Include="../../src/OniMoono.Host/GameTweaks/BackgroundSave.cs" Link="Host/BackgroundSave.cs" />
     <Reference Include="Ionic.Zip">

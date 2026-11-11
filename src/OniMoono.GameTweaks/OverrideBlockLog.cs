@@ -115,7 +115,9 @@ namespace OniMoono.GameTweaks
             for (int i = 0; i < count; i++)
                 if (lengths[i] > 0) order[n++] = i;
             // By start (the answer does not depend on the order of equal starts). A few writes,
-            // the usual case, by insertion: Array.Sort with a comparer allocates a delegate.
+            // the usual case, by insertion; more by Array.Sort of the starts with the order as
+            // items, which compares ints directly (one with a comparer allocates a delegate
+            // for it each call).
             if (n <= 32)
                 for (int k = 1; k < n; k++)
                 {
@@ -123,26 +125,20 @@ namespace OniMoono.GameTweaks
                     for (; j >= 0 && starts[order[j]] > starts[v]; j--) order[j + 1] = order[j];
                     order[j + 1] = v;
                 }
-            else Array.Sort(order, 0, n, Comparer.Of(starts));
+            else
+            {
+                var keys = sortKeys;
+                if (keys == null || keys.Length < n) sortKeys = keys = new int[Math.Max(n, 64)];
+                for (int k = 0; k < n; k++) keys[k] = starts[order[k]];
+                Array.Sort(keys, order, 0, n);
+            }
             for (int k = 1; k < n; k++)
                 if (starts[order[k]] < starts[order[k - 1]] + lengths[order[k - 1]]) return true;
             return false;
         }
 
-        sealed class Comparer : System.Collections.Generic.IComparer<int>
-        {
-            [ThreadStatic] static Comparer shared;
-            int[] starts;
-
-            public static Comparer Of(int[] starts)
-            {
-                var c = shared ??= new Comparer();
-                c.starts = starts;
-                return c;
-            }
-
-            public int Compare(int a, int b) => starts[a].CompareTo(starts[b]);
-        }
+        /// Overlap's keys for Array.Sort (one per thread: batches are written on several).
+        [ThreadStatic] static int[] sortKeys;
 
         /// Ends the application: true when some entry's bytes differ from what they were at
         /// Begin, or more entries were written than were kept.
