@@ -36,6 +36,7 @@ namespace OniMoono.Host
                 OniMoono.Desktop.Gl.GlDevice.SwapIntervalOverride = options.VSyncCount;
                 OniMoono.Desktop.Gl.GlGpuProfile.Enabled = options.GpuProfile;
                 OniMoono.Desktop.Gl.GlBindless.Disabled = options.NoBindless;
+                if (options.NoUiReorder) OniMoono.Engine.UI.CanvasSystem.Reorder = false;
                 OniMoono.Desktop.Gl.GlBindless.Forced = options.Bindless;
                 OniMoono.Desktop.Gl.DxgiSwapChain.Enabled = options.Dxgi != false;
                 OniMoono.Desktop.Gl.DxgiSwapChain.Fault = options.DxgiFault;

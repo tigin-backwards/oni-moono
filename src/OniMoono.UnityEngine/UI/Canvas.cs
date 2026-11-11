@@ -695,6 +695,8 @@ namespace OniMoono.Engine.UI
         public int DepthEpoch;
         /// The last canvas build that drew it as a sort root.
         public int SortRootBuild = -1;
+        /// As an overlay sort root: its draws' last order and what it came from (CanvasSystem.OrderFor).
+        public CanvasSystem.LayeredOrder LayeredOrder;
 
         public override void RemapReferences(Func<Object, Object> map) => WorldCamera = (Camera)map(WorldCamera);
 

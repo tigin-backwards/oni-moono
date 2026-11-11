@@ -430,6 +430,9 @@ namespace OniMoono.Engine.Rendering
         /// capture, while what is drawn goes to its targets; zero otherwise.
         internal static Vector4 CaptureTile => activeTile;
 
+        /// A super-sized capture is rendering the frame again into its own target.
+        public static bool RenderingCapture => screenOverride != null;
+
         /// ScreenCapture.CaptureScreenshot: written once this frame is complete.
         public static void RequestCapture(string path, int superSize) => captures.Add((path, Math.Max(1, superSize)));
 

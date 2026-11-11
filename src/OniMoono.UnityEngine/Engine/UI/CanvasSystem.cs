@@ -546,8 +546,9 @@ namespace OniMoono.Engine.UI
                 statsTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
                 if (++statsFrames == 600)
                 {
-                    EngineLog.Engine($"canvas build: {statsTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / statsFrames:F3} ms a frame, {statsVisits / statsFrames} objects walked a frame, {statsRenumbered / (double)statsFrames:F2} sort roots renumbered");
-                    statsFrames = 0; statsTicks = 0; statsVisits = 0; statsRenumbered = 0;
+                    EngineLog.Engine($"canvas build: {statsTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / statsFrames:F3} ms a frame, {statsVisits / statsFrames} objects walked a frame, {statsRenumbered / (double)statsFrames:F2} sort roots renumbered; "
+                        + $"draw order {statsLayerTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / statsFrames:F3} ms a frame, {(layeredMade - statsMade) / (double)statsFrames:F2} orders made and {(layeredKept - statsKept) / (double)statsFrames:F2} kept a frame");
+                    statsFrames = 0; statsTicks = 0; statsVisits = 0; statsRenumbered = 0; statsLayerTicks = 0; statsMade = layeredMade; statsKept = layeredKept;
                 }
             }
             else Build();
@@ -998,7 +999,7 @@ namespace OniMoono.Engine.UI
         /// ONI_CANVAS_STATS=1: the build's time and the objects it walks, a frame, every 600 frames.
         static readonly bool stats = Environment.GetEnvironmentVariable("ONI_CANVAS_STATS") == "1";
         static int statsFrames;
-        static long statsTicks, statsVisits, statsRenumbered;
+        static long statsTicks, statsVisits, statsRenumbered, statsLayerTicks, statsMade, statsKept;
         static long skipsVerified, skipsWrong;
 
         /// A skipped hidden subtree, as the walk would visit it: every element numbered by the
@@ -1175,14 +1176,27 @@ namespace OniMoono.Engine.UI
         // ----- Batching -----
 
         /// The batch's draws with consecutive draws of identical state (material, keywords,
-        /// property values) merged into one mesh, as Unity's canvas batching does; the drawing
-        /// order is unchanged.
+        /// property values) merged into one mesh, as Unity's canvas batching does. An overlay
+        /// canvas's draws are first put in the order that lets the most of them merge without
+        /// changing a pixel (CanvasLayering; OrderFor); a camera's canvas keeps its hierarchy
+        /// order.
         static List<DrawItem> Batched(CanvasBatch b, bool overlay)
         {
             var items = FrameRenderer.NewDrawList();
             // The run list is this call's (a call from inside it, none expected, takes its own).
             var run = batchRun ?? new List<(DrawItem Item, CanvasRendererNative Renderer)>();
             batchRun = null;
+            var g = gathered ?? new Gathered();
+            gathered = null;
+            int n = 0;
+            foreach (var d in b.Draws)
+            {
+                if (Item(b, d, overlay) is not { } item) continue;
+                g.Add(n++, item, StateOf(d.Renderer, item), NestedSpace(d), d.Renderer, d.Pop);
+            }
+            long layerStart = stats ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            var order = overlay && n > 1 ? OrderFor(b.Canvas, g, n) : null;
+            if (stats) statsLayerTicks += System.Diagnostics.Stopwatch.GetTimestamp() - layerStart;
             UiDrawState runState = default;
             CanvasNative runSpace = null;
             nestedDraws.Clear();
@@ -1194,11 +1208,12 @@ namespace OniMoono.Engine.UI
                 if (runSpace != null) nestedDraws.Add((runSpace, item));
                 run.Clear();
             }
-            foreach (var d in b.Draws)
+            for (int k = 0; k < n; k++)
             {
-                if (Item(b, d, overlay) is not { } item) continue;
-                var state = StateOf(d.Renderer, item);
-                var space = NestedSpace(d);
+                int i = order == null ? k : order[k];
+                var item = g.Items[i];
+                ref readonly var state = ref g.States[i];
+                var space = g.Spaces[i];
                 // Elements baked in different spaces (a nested canvas's, the root's) draw apart.
                 if (run.Count > 0 && (!SameState(run[0].Item, runState, item, state) || runSpace != space)) Flush();
                 if (run.Count == 0)
@@ -1206,13 +1221,392 @@ namespace OniMoono.Engine.UI
                     runState = state;
                     runSpace = space;
                 }
-                run.Add((item, d.Renderer));
+                run.Add((item, g.Renderers[i]));
             }
             Flush();
+            g.Clear(n);
+            gathered = g;
             batchRun = run;
             if (nestedDraws.Count > 0) ShareNestedMeshes();
             return items;
         }
+
+        /// A batch's drawable draws, in hierarchy order, as Batched gathers them.
+        internal sealed class Gathered
+        {
+            public DrawItem[] Items = [];
+            public UiDrawState[] States = [];
+            public CanvasNative[] Spaces = [];
+            public CanvasRendererNative[] Renderers = [];
+            public bool[] Pops = [];
+
+            public void Add(int i, DrawItem item, in UiDrawState state, CanvasNative space, CanvasRendererNative renderer, bool pop)
+            {
+                if (i == Items.Length)
+                {
+                    int size = Math.Max(16, i * 2);
+                    Array.Resize(ref Items, size);
+                    Array.Resize(ref States, size);
+                    Array.Resize(ref Spaces, size);
+                    Array.Resize(ref Renderers, size);
+                    Array.Resize(ref Pops, size);
+                }
+                Items[i] = item;
+                States[i] = state;
+                Spaces[i] = space;
+                Renderers[i] = renderer;
+                Pops[i] = pop;
+            }
+
+            /// Lets go of the frame's objects (the draw items go back to their pool).
+            public void Clear(int n)
+            {
+                Array.Clear(Items, 0, n);
+                Array.Clear(States, 0, n);
+                Array.Clear(Spaces, 0, n);
+                Array.Clear(Renderers, 0, n);
+            }
+        }
+
+        static Gathered gathered = new();
+
+        // ----- The layered order -----
+        //
+        // An overlay canvas's draws reordered so that more of them merge, with the same pixels
+        // (CanvasLayering has the rule). Here: which draws can move and how far they reach.
+        //
+        // - A draw's pixels are its baked mesh's bounds taken to the screen (overlay world space
+        //   is screen pixels), so only shaders whose vertex programs
+        //   place each vertex where the mesh puts it may move (PlainShaders): any other draw is a
+        //   barrier, as are a stencil write (a Mask's graphic) and a pop (a Mask's after its
+        //   children), whose order the doc's design keeps whatever their pixels.
+        // - A state is what SameState compares and the space the draw is baked in: draws in a
+        //   nested canvas's space join only each other.
+        // - The order is kept on the canvas and used again while every draw has the same mesh at
+        //   the same bounds, material, sheet at the same version, transform and target size (a
+        //   material's values only count where they change whether the draw is a barrier); any
+        //   change computes it again.
+        //
+        // ONI_CANVAS_REORDER=0 (or Reorder false) keeps the hierarchy order. ONI_VERIFY_CANVAS_ORDER=1
+        // checks, every 60th order a canvas uses, that no two draws that share a pixel changed
+        // order (pairwise, each draw's vertices taken to the screen one by one), and that a kept
+        // order is the one a new computation gives, and logs differences.
+
+        /// Reorder overlay canvases' draws (the default; ONI_CANVAS_REORDER=0 and the
+        /// ui-draw-batching tweak off turn it off).
+        internal static bool Reorder = Environment.GetEnvironmentVariable("ONI_CANVAS_REORDER") != "0";
+
+        static readonly bool verifyOrder = Environment.GetEnvironmentVariable("ONI_VERIFY_CANVAS_ORDER") == "1";
+
+        /// The shaders whose vertex programs take the vertex position through unity_ObjectToWorld
+        /// and unity_MatrixVP and nothing else, read in the game's programs (`--dump-shader`):
+        /// Unity's UI/Default, Klei's UI/Default Desat and Lines/Colored Blended (the Colony
+        /// Summary's charts), and TextMesh Pro's, which add the material's _VertexOffsetX/Y first
+        /// (a draw with an offset is a barrier).
+        static readonly HashSet<string> PlainShaders = new(StringComparer.Ordinal)
+        {
+            "UI/Default", "UI/Default Desat", "Lines/Colored Blended",
+            "TextMeshPro/Distance Field", "TextMeshPro/Mobile/Distance Field", "TextMeshPro/Sprite",
+        };
+
+        static readonly int StencilOpId = ShaderPropertyIds.Get("_StencilOp");
+        static readonly int VertexOffsetXId = ShaderPropertyIds.Get("_VertexOffsetX");
+        static readonly int VertexOffsetYId = ShaderPropertyIds.Get("_VertexOffsetY");
+
+        /// A canvas's last order and what it was computed from.
+        internal sealed class LayeredOrder
+        {
+            public int Count, Width, Height, Uses;
+            public int[] Order = [];
+            public MeshNative[] Meshes = [];
+            public int[] SheetVersions = [], MaterialVersions = [];
+            public Vector3[] Centers = [], Extents = [];
+            public Material[] Materials = [];
+            public PropertySheet[] Sheets = [];
+            public string[][] Keywords = [];
+            public CanvasNative[] Spaces = [];
+            public bool[] Pops = [], Barriers = [];
+            public Matrix4x4[] Matrices = [];
+
+            public bool Matches(Gathered g, int n, int width, int height)
+            {
+                if (n != Count || width != Width || height != Height) return Miss("count", null);
+                for (int i = 0; i < n; i++)
+                {
+                    var item = g.Items[i];
+                    // Of the mesh only its bounds count: a mesh baked again in place (a hovered
+                    // button's colour) keeps the order.
+                    if (!ReferenceEquals(item.Mesh, Meshes[i])) return Miss("mesh", g.Renderers[i]);
+                    var bounds = item.Mesh.Bounds;
+                    if (!SameBits(bounds.center, Centers[i]) || !SameBits(bounds.extents, Extents[i])) return Miss("bounds", g.Renderers[i]);
+                    if (!ReferenceEquals(item.Material, Materials[i])) return Miss("material", g.Renderers[i]);
+                    if (MaterialVersion(item.Material) != MaterialVersions[i])
+                    {
+                        // A material set every frame (the Load screen's animated starfield): its
+                        // values only decide whether the draw is a barrier.
+                        if (IsBarrier(g, i) != Barriers[i]) return Miss("material", g.Renderers[i]);
+                        MaterialVersions[i] = MaterialVersion(item.Material);
+                    }
+                    if (!ReferenceEquals(item.Properties, Sheets[i]) || item.Properties.Version != SheetVersions[i]) return Miss("sheet", g.Renderers[i]);
+                    if (!ReferenceEquals(item.Keywords, Keywords[i]) || !ReferenceEquals(g.Spaces[i], Spaces[i]) || g.Pops[i] != Pops[i]) return Miss("kind", g.Renderers[i]);
+                    if (!SameBits(item.ObjectToWorld, Matrices[i])) return Miss("matrix", g.Renderers[i]);
+                }
+                return true;
+            }
+
+            static long misses;
+
+            static bool Miss(string why, CanvasRendererNative r)
+            {
+                if (verifyOrder && ++misses % 300 == 1) EngineLog.Engine($"canvas order: made again ({misses}): {why} of {r?.GameObject?.Name}");
+                return false;
+            }
+
+            public void Keep(Gathered g, int n, int width, int height, int[] order)
+            {
+                if (Order.Length < n)
+                {
+                    int size = Math.Max(n, Order.Length * 2);
+                    Order = new int[size];
+                    Meshes = new MeshNative[size];
+                    Centers = new Vector3[size];
+                    Extents = new Vector3[size];
+                    SheetVersions = new int[size];
+                    MaterialVersions = new int[size];
+                    Materials = new Material[size];
+                    Sheets = new PropertySheet[size];
+                    Keywords = new string[size][];
+                    Spaces = new CanvasNative[size];
+                    Pops = new bool[size];
+                    Barriers = new bool[size];
+                    Matrices = new Matrix4x4[size];
+                }
+                else if (n < Count)
+                {
+                    // Nothing past the draws held: the meshes and materials of draws gone are let go.
+                    Array.Clear(Meshes, n, Count - n);
+                    Array.Clear(Materials, n, Count - n);
+                    Array.Clear(Sheets, n, Count - n);
+                    Array.Clear(Keywords, n, Count - n);
+                    Array.Clear(Spaces, n, Count - n);
+                }
+                Count = n;
+                Width = width;
+                Height = height;
+                Array.Copy(order, Order, n);
+                for (int i = 0; i < n; i++)
+                {
+                    var item = g.Items[i];
+                    Meshes[i] = item.Mesh;
+                    Centers[i] = item.Mesh.Bounds.center;
+                    Extents[i] = item.Mesh.Bounds.extents;
+                    Materials[i] = item.Material;
+                    MaterialVersions[i] = MaterialVersion(item.Material);
+                    Sheets[i] = item.Properties;
+                    SheetVersions[i] = item.Properties.Version;
+                    Keywords[i] = item.Keywords;
+                    Spaces[i] = g.Spaces[i];
+                    Pops[i] = g.Pops[i];
+                    Barriers[i] = IsBarrier(g, i);
+                    Matrices[i] = item.ObjectToWorld;
+                }
+            }
+        }
+
+        static int MaterialVersion(Material m) => m.Native is MaterialNative native ? native.Version * 31 + native.Properties.Version : 0;
+
+        static readonly CanvasLayering layering = new();
+        static int[] stateBuckets = [], stateNext = [], stateRep = [];
+
+        /// The order of a batch's n gathered draws (null: as gathered).
+        static int[] OrderFor(CanvasNative canvas, Gathered g, int n)
+        {
+            // A super-sized capture renders the frame again in its own pixels: in hierarchy order
+            // (the same pixels as reordered).
+            if (!Reorder || FrameRenderer.RenderingCapture) return null;
+            var size = ScreenSize;
+            int width = (int)size.x, height = (int)size.y;
+            var kept = canvas.LayeredOrder ??= new LayeredOrder();
+            if (kept.Matches(g, n, width, height))
+            {
+                layeredKept++;
+                if (verifyOrder && ++kept.Uses % 60 == 0)
+                {
+                    Layer(g, n, width, height);
+                    for (int i = 0; i < n; i++)
+                        if (layering.Order[i] != kept.Order[i])
+                        {
+                            EngineLog.Engine($"canvas order wrong ({++orderWrong}): {canvas.GameObject.Name}'s kept order differs from a new one at {i} of {n}");
+                            break;
+                        }
+                    VerifyOrder(canvas, g, n, kept.Order, width, height);
+                }
+                return kept.Order;
+            }
+            layeredMade++;
+            Layer(g, n, width, height);
+            kept.Keep(g, n, width, height, layering.Order);
+            if (verifyOrder && ++kept.Uses % 60 == 0) VerifyOrder(canvas, g, n, kept.Order, width, height);
+            return kept.Order;
+        }
+
+        static long layeredMade, layeredKept, orderVerified, orderWrong;
+
+        /// Fills the layering's inputs (states, barriers, pixel ranges) and runs it.
+        static void Layer(Gathered g, int n, int width, int height)
+        {
+            var l = layering;
+            l.Reset(n, 0);
+            int buckets = 16;
+            while (buckets < n * 2) buckets <<= 1;
+            if (stateBuckets.Length < buckets) stateBuckets = new int[buckets];
+            Array.Fill(stateBuckets, -1, 0, buckets);
+            if (stateNext.Length < n)
+            {
+                stateNext = new int[Math.Max(n, stateNext.Length * 2)];
+                stateRep = new int[stateNext.Length];
+            }
+            int states = 0;
+            for (int i = 0; i < n; i++)
+            {
+                var item = g.Items[i];
+                if (IsBarrier(g, i))
+                {
+                    l.State[i] = CanvasLayering.Barrier;
+                    if (verifyOrder) NoteBarrier(g, i);
+                    continue;
+                }
+                var mesh = item.Mesh;
+                var bounds = mesh.Bounds;
+                if (!ScreenRect(item.ObjectToWorld, bounds.center, bounds.extents, out double minX, out double minY, out double maxX, out double maxY))
+                {
+                    l.State[i] = CanvasLayering.Barrier;
+                    continue;
+                }
+                CanvasLayering.Covers(minX, minY, maxX, maxY, width, height, out l.X0[i], out l.Y0[i], out l.X1[i], out l.Y1[i]);
+                // The state's id: a draw of the same state met before (hashed by what SameState
+                // compares by reference, and by the whole state when no secondary textures can
+                // make different states the same sheet).
+                ref readonly var state = ref g.States[i];
+                int hash = HashCode.Combine(RuntimeHelpers.GetHashCode(item.Material), item.Keywords == null ? 0 : RuntimeHelpers.GetHashCode(item.Keywords),
+                    g.Spaces[i] == null ? 0 : RuntimeHelpers.GetHashCode(g.Spaces[i]));
+                if (state.Secondary.Length == 0)
+                    hash = HashCode.Combine(hash, state.MainTexture == null ? 0 : RuntimeHelpers.GetHashCode(state.MainTexture),
+                        state.AlphaTexture == null ? 0 : RuntimeHelpers.GetHashCode(state.AlphaTexture), state.Clip, state.ZTest, state.SampleAdd);
+                int bucket = hash & (buckets - 1), id = -1;
+                for (int s = stateBuckets[bucket]; s >= 0; s = stateNext[s])
+                {
+                    int j = stateRep[s];
+                    if (ReferenceEquals(g.Spaces[j], g.Spaces[i]) && SameState(g.Items[j], g.States[j], item, state))
+                    {
+                        id = s;
+                        break;
+                    }
+                }
+                if (id < 0)
+                {
+                    id = states++;
+                    stateRep[id] = i;
+                    stateNext[id] = stateBuckets[bucket];
+                    stateBuckets[bucket] = id;
+                }
+                l.State[i] = id;
+            }
+            l.EnsureStates(states);
+            l.Run(width, height);
+        }
+
+        /// A draw that keeps its place: a Mask's stencil write or pop, a shader whose vertices may
+        /// go elsewhere than the mesh puts them, or a TextMesh Pro vertex offset.
+        static bool IsBarrier(Gathered g, int i)
+        {
+            if (g.Pops[i]) return true;
+            var material = g.Items[i].Material;
+            if (material.Native is not MaterialNative native) return true;
+            if (native.Shader is not { } shader || shader.Native is not ShaderNative program || !PlainShaders.Contains(program.ShaderName)) return true;
+            return material.GetFloat(StencilOpId) != 0f || material.GetFloat(VertexOffsetXId) != 0f || material.GetFloat(VertexOffsetYId) != 0f;
+        }
+
+        static readonly HashSet<string> barrierShaders = new();
+
+        /// ONI_VERIFY_CANVAS_ORDER: each shader met as a barrier, once (whether it could be plain).
+        static void NoteBarrier(Gathered g, int i)
+        {
+            var material = g.Items[i].Material;
+            string name = material.shader is { } shader && shader.Native is ShaderNative program ? program.ShaderName : "(none)";
+            string why = g.Pops[i] ? "pop" : !PlainShaders.Contains(name) ? "shader" : material.GetFloat(StencilOpId) != 0f ? "stencil write" : "vertex offset";
+            if (barrierShaders.Add(name + " " + why)) EngineLog.Engine($"canvas order: barrier {why}: {name} ({material.name})");
+        }
+
+        /// A mesh's bounds (centre and extents) through an affine object-to-world matrix, in
+        /// screen pixels (an overlay canvas's world space): false when not finite or the matrix
+        /// projects.
+        static bool ScreenRect(in Matrix4x4 m, Vector3 c, Vector3 e, out double minX, out double minY, out double maxX, out double maxY)
+        {
+            minX = minY = maxX = maxY = 0;
+            if (m.m30 != 0f || m.m31 != 0f || m.m32 != 0f || m.m33 != 1f) return false;
+            double cx = (double)m.m00 * c.x + (double)m.m01 * c.y + (double)m.m02 * c.z + m.m03;
+            double cy = (double)m.m10 * c.x + (double)m.m11 * c.y + (double)m.m12 * c.z + m.m13;
+            double ex = Math.Abs((double)m.m00) * e.x + Math.Abs((double)m.m01) * e.y + Math.Abs((double)m.m02) * e.z;
+            double ey = Math.Abs((double)m.m10) * e.x + Math.Abs((double)m.m11) * e.y + Math.Abs((double)m.m12) * e.z;
+            // The bounds' centre and extents round the mesh's minimum and maximum: a few units of
+            // the last place more either way.
+            double pad = (Math.Abs(cx) + ex) * 1e-6;
+            minX = cx - ex - pad;
+            maxX = cx + ex + pad;
+            pad = (Math.Abs(cy) + ey) * 1e-6;
+            minY = cy - ey - pad;
+            maxY = cy + ey + pad;
+            return double.IsFinite(minX) && double.IsFinite(maxX) && double.IsFinite(minY) && double.IsFinite(maxY);
+        }
+
+        /// ONI_VERIFY_CANVAS_ORDER: every pair of draws that can share a pixel, by their vertices
+        /// one by one, and every pair with a barrier keep their order.
+        static void VerifyOrder(CanvasNative canvas, Gathered g, int n, int[] order, int width, int height)
+        {
+            var at = verifyAt.Length >= n ? verifyAt : verifyAt = new int[n * 2];
+            var rects = verifyRects.Length >= n ? verifyRects : verifyRects = new (int, int, int, int, bool, bool)[n * 2];
+            for (int k = 0; k < n; k++) at[order[k]] = k;
+            for (int i = 0; i < n; i++)
+            {
+                var item = g.Items[i];
+                double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+                var mesh = item.Mesh;
+                for (int v = 0; v < mesh.VertexCount; v++)
+                {
+                    var p = item.ObjectToWorld.MultiplyPoint3x4(mesh.Positions[v]);
+                    minX = Math.Min(minX, p.x);
+                    maxX = Math.Max(maxX, p.x);
+                    minY = Math.Min(minY, p.y);
+                    maxY = Math.Max(maxY, p.y);
+                }
+                bool covers = CanvasLayering.Covers(minX, minY, maxX, maxY, width, height, out int x0, out int y0, out int x1, out int y1);
+                var bounds = mesh.Bounds;
+                bool barrier = IsBarrier(g, i) || !ScreenRect(item.ObjectToWorld, bounds.center, bounds.extents, out _, out _, out _, out _);
+                rects[i] = (x0, y0, x1, y1, covers, barrier);
+            }
+            int wrong = 0;
+            for (int i = 0; i < n; i++)
+            {
+                var a = rects[i];
+                bool bi = a.Item6;
+                for (int j = i + 1; j < n; j++)
+                {
+                    if (at[i] < at[j]) continue;
+                    var b = rects[j];
+                    bool share = bi || b.Item6 || a.Item5 && b.Item5 && a.Item1 <= b.Item3 && b.Item1 <= a.Item3 && a.Item2 <= b.Item4 && b.Item2 <= a.Item4;
+                    if (!share) continue;
+                    if (wrong++ == 0)
+                        EngineLog.Engine($"canvas order wrong ({orderWrong + 1}): {canvas.GameObject.Name}: {g.Renderers[j].GameObject.Name} now draws before {g.Renderers[i].GameObject.Name}, which it overlaps");
+                }
+            }
+            if (wrong > 0) orderWrong++;
+            if (++orderVerified % 10 == 0)
+                EngineLog.Engine($"canvas order: {orderVerified} orders verified, {orderWrong} wrong; {layeredMade} made, {layeredKept} kept");
+        }
+
+        static int[] verifyAt = [];
+        static (int, int, int, int, bool, bool)[] verifyRects = [];
 
         static List<(DrawItem Item, CanvasRendererNative Renderer)> batchRun = new();
 
@@ -1253,7 +1647,9 @@ namespace OniMoono.Engine.UI
                     else nestedDraws[kept++] = e;
                 }
                 nestedDraws.RemoveRange(kept, nestedDraws.Count - kept);
-                var shared = nestedMeshes.GetValue(space, _ => new NestedMesh());
+                // The pixel check's draws get meshes of their own: a kept mesh made again for
+                // another order within the frame would change under draws already queued.
+                var shared = freshMeshes ? new NestedMesh() : nestedMeshes.GetValue(space, _ => new NestedMesh());
                 bool same = shared.Parts.Length == group.Count;
                 for (int i = 0; same && i < group.Count; i++)
                     same = ReferenceEquals(shared.Parts[i], group[i].Mesh) && shared.Versions[i] == group[i].Mesh.Version;
@@ -1322,7 +1718,9 @@ namespace OniMoono.Engine.UI
         {
             var first = run[0];
             var runs = merged.GetValue(first.Renderer, _ => new Dictionary<Material, MergedRun>());
-            if (!runs.TryGetValue(first.Item.Material, out var m)) runs[first.Item.Material] = m = new MergedRun();
+            MergedRun m;
+            if (freshMeshes) m = new MergedRun();
+            else if (!runs.TryGetValue(first.Item.Material, out m)) runs[first.Item.Material] = m = new MergedRun();
             bool same = m.Parts.Length == run.Count;
             for (int i = 0; same && i < run.Count; i++)
                 same = ReferenceEquals(m.Parts[i], run[i].Item.Mesh) && m.Versions[i] == run[i].Item.Mesh.Version;
@@ -1531,6 +1929,102 @@ namespace OniMoono.Engine.UI
                 // Canvas items name no pass (-1).
                 FrameRenderer.DrawQueue(device, Batched(b, overlay: true));
             }
+            if (verifyPixels && bound && Reorder && !FrameRenderer.RenderingCapture && ++pixelFrames % 120 == 0) VerifyPixels(device, size);
+        }
+
+        /// ONI_VERIFY_CANVAS_PIXELS=1: every 120th frame, the overlay canvases drawn again into a
+        /// target of their own over the same background, in hierarchy order and reordered, and the
+        /// two read back: every pixel must be the same (the order changes nothing a pixel shows).
+        static readonly bool verifyPixels = Environment.GetEnvironmentVariable("ONI_VERIFY_CANVAS_PIXELS") == "1";
+        static long pixelFrames, pixelsCompared, pixelsDiffered;
+        /// While the pixel check draws: merged and nested meshes are made anew, not kept.
+        static bool freshMeshes;
+        static RenderTexture pixelTarget;
+        static byte[] pixelsOff = [], pixelsOn = [];
+
+        static string PixelText(byte[] p, int i) => $"{p[i * 4]},{p[i * 4 + 1]},{p[i * 4 + 2]},{p[i * 4 + 3]}";
+
+        /// ONI_VERIFY_CANVAS_PIXELS: the draws whose bounds hold a screen point, in hierarchy
+        /// order, with their place reordered.
+        static void LogDrawsAt(float x, float y)
+        {
+            foreach (var b in batches)
+            {
+                if (!IsOverlay(b.Root) || b.Draws.Count == 0) continue;
+                var g = new Gathered();
+                int n = 0;
+                foreach (var d in b.Draws)
+                    if (Item(b, d, true) is { } item) g.Add(n++, item, StateOf(d.Renderer, item), NestedSpace(d), d.Renderer, d.Pop);
+                var order = n > 1 ? OrderFor(b.Canvas, g, n) : null;
+                var at = new int[n];
+                for (int k = 0; k < n; k++) at[order == null ? k : order[k]] = k;
+                for (int i = 0; i < n; i++)
+                {
+                    var item = g.Items[i];
+                    var bounds = item.Mesh.Bounds;
+                    if (!ScreenRect(item.ObjectToWorld, bounds.center, bounds.extents, out double x0, out double y0, out double x1, out double y1)) x0 = y0 = double.MinValue;
+                    bool barrier = IsBarrier(g, i);
+                    if (!barrier && (x < x0 || x > x1 || y < y0 || y > y1)) continue;
+                    var tex = g.States[i].MainTexture;
+                    EngineLog.Engine($"canvas pixels:   {b.Canvas.GameObject.Name} #{i} -> {at[i]}: {g.Renderers[i].GameObject.Name} {item.Material?.name} ({item.Material?.shader?.name}) tex {tex?.name}{(g.Pops[i] ? " pop" : "")}{(barrier ? " barrier" : "")} [{x0:F1},{y0:F1} .. {x1:F1},{y1:F1}] space {g.Spaces[i]?.GameObject?.Name}");
+                }
+            }
+        }
+
+        static void VerifyPixels(RenderDevice device, Vector2 size)
+        {
+            int w = (int)size.x, h = (int)size.y;
+            if (w <= 0 || h <= 0) return;
+            if (pixelTarget == null || pixelTarget.width != w || pixelTarget.height != h)
+            {
+                if (pixelTarget != null) UnityEngine.Object.DestroyImmediate(pixelTarget);
+                pixelTarget = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32) { hideFlags = HideFlags.HideAndDontSave };
+                pixelsOff = new byte[w * h * 4];
+                pixelsOn = new byte[w * h * 4];
+            }
+            var target = (RenderTextureNative)pixelTarget.NativeOrThrow;
+            try
+            {
+                freshMeshes = true;
+                for (int pass = 0; pass < 2; pass++)
+                {
+                    Reorder = pass == 1;
+                    FrameRenderer.Bind(device, RenderTargetBinding.Of(target));
+                    device.SetViewport(new Rect(0f, 0f, w, h));
+                    device.SetCamera(new CameraConstants(Matrix4x4.identity, Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f), Vector3.zero, -1000f, 1000f, true, size));
+                    // A background blending shows through: any change of order where draws
+                    // overlap changes it.
+                    device.Clear(true, true, new Color(0.3f, 0.55f, 0.7f, 0.6f), 1f);
+                    foreach (var b in batches)
+                        if (IsOverlay(b.Root) && b.Draws.Count > 0) FrameRenderer.DrawQueue(device, Batched(b, overlay: true));
+                    device.ReadPixelsRgba8(target, new RectInt(0, 0, w, h), pass == 0 ? pixelsOff : pixelsOn, 0, w * 4);
+                }
+            }
+            finally
+            {
+                freshMeshes = false;
+                Reorder = true;
+                FrameRenderer.Bind(device, FrameRenderer.ScreenBinding);
+                var pixels = FrameRenderer.ScreenPixelSize;
+                device.SetViewport(new Rect(0f, 0f, pixels.x, pixels.y));
+                device.SetCamera(new CameraConstants(Matrix4x4.identity, FrameRenderer.ScreenProjection(Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f)), Vector3.zero, -1000f, 1000f, true, size));
+            }
+            int differ = 0, first = -1;
+            for (int i = 0; i < pixelsOff.Length; i += 4)
+                if (pixelsOff[i] != pixelsOn[i] || pixelsOff[i + 1] != pixelsOn[i + 1] || pixelsOff[i + 2] != pixelsOn[i + 2] || pixelsOff[i + 3] != pixelsOn[i + 3])
+                {
+                    if (first < 0) first = i / 4;
+                    differ++;
+                }
+            pixelsCompared++;
+            if (differ > 0)
+            {
+                EngineLog.Engine($"canvas pixels wrong ({++pixelsDiffered}): {differ} of {w * h} pixels differ reordered, the first at ({first % w}, {first / w}): "
+                                 + $"in order {PixelText(pixelsOff, first)}, reordered {PixelText(pixelsOn, first)}");
+                if (pixelsDiffered <= 3) LogDrawsAt(first % w + 0.5f, first / w + 0.5f);
+            }
+            if (pixelsCompared % 10 == 0 || differ > 0)
+                EngineLog.Engine($"canvas pixels: {pixelsCompared} frames compared reordered and in order, {pixelsDiffered} differed");
         }
 
         /// Screen Space - Camera canvases draw with their camera; World Space canvases with
