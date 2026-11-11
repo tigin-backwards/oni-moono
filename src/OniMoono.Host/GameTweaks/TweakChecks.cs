@@ -13,12 +13,15 @@ namespace OniMoono.Host.GameTweaks
     {
         public bool Fingerprinted => (Use & (GameUse.Transpiler | GameUse.Replaces | GameUse.Mirrors)) != 0;
         public bool IsMethod => Member.Contains('(');
+        /// A type taken by name (`PathFinder/Cell`): no `::` and no space.
+        public bool IsType => !Member.Contains("::", StringComparison.Ordinal) && !Member.Contains(' ');
 
         /// `Type.Member`, as the log and the screen name it.
         public string Display
         {
             get
             {
+                if (IsType) return GameLookup.Display(Member);
                 var (type, name) = Split(Member);
                 int tick = name.IndexOf("``", StringComparison.Ordinal);
                 return GameLookup.Display(type) + "." + (tick >= 0 ? name.Substring(0, tick) : name);
@@ -181,6 +184,12 @@ namespace OniMoono.Host.GameTweaks
         /// 1 and 3 for one declared member. `gone`: taken as missing from the game (a test run's).
         static void Declared(GameFiles game, GameMemberDeclaration member, TweakCheck check, bool bodies, bool gone = false)
         {
+            if (member.IsType && member.Member.Length > 0)
+            {
+                if (member.Optional) return;
+                if (gone || game.Find(member.Member) == null) check.Problems.Add($"`{member.Display}` is missing in this game version");
+                return;
+            }
             var (typeName, name) = GameMemberDeclaration.Split(member.Member);
             if (typeName.Length == 0)
             {
