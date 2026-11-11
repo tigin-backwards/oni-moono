@@ -116,8 +116,10 @@ upload() {
         python3 -I "$here/workshop-upload.py" login --cached --check "$dir/item.vdf" "$dir/login.txt"
         status=0
         run_steamcmd "$steam" "$dir/login.txt" "$dir/check.log" 180 || status=$?
-        if [ $status -ne 0 ] || ! grep -q 'Waiting for user info\.\.\.OK' "$dir/check.log"; then
-            line="$(grep -m1 -iE 'FAILED|Invalid Password|Login Failure|License expired|password:|cached credentials not found|Steam Guard|confirm the login' "$dir/check.log" || true)"
+        # steamcmd can print more before the OK ("Waiting for user info...Waiting for compat in
+        # post-logon took: 0.05sOK"), and its "@ShutdownOnFailedCommand" echo is not a failure.
+        if [ $status -ne 0 ] || ! grep -qE 'Waiting for user info\.\.\..*OK' "$dir/check.log"; then
+            line="$(grep -v '@ShutdownOnFailedCommand' "$dir/check.log" | grep -m1 -iE 'FAILED|Invalid Password|Login Failure|License expired|password:|cached credentials not found|Steam Guard|confirm the login' || true)"
             [ $status -ne 124 ] || line="no sign-in within 3 minutes"
             fail "The cached Steam session in STEAM_CONFIG_VDF has expired or was revoked (steamcmd: ${line:-exit $status}). $REPRIME."
         fi
