@@ -971,6 +971,37 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
+        /// Reads straight into the array, as GL_UNSIGNED_BYTE: a capture's band needs no float
+        /// copy and no texture.
+        public override void ReadPixelsRgba8(RenderTextureNative source, RectInt rect, byte[] destination, int offset, int stride)
+        {
+            if (rect.width <= 0 || rect.height <= 0) return;
+            if (stride % 4 != 0 || offset < 0 || (long)offset + (long)stride * (rect.height - 1) + rect.width * 4L > destination.Length)
+                throw new ArgumentOutOfRangeException(nameof(stride));
+            var device = source != null ? GlTextures.Prepare(worker, source) : null;
+            bool autoMips = source?.AutoGenerateMips ?? false;
+            int fbWidth = platform.FramebufferWidth, fbHeight = platform.FramebufferHeight;
+            if (worker.TryCall(() =>
+            {
+                uint framebuffer;
+                if (device != null)
+                {
+                    GlTextures.PrepareForSampling(device, autoMips);
+                    framebuffer = device.Framebuffer;
+                }
+                else framebuffer = presenter.ReadBuffer(fbWidth, fbHeight);
+                GlApi.BindFramebuffer(ReadFramebuffer, framebuffer);
+                N.glPixelStorei(PackAlignment, 4);
+                N.glPixelStorei(PackRowLength, stride / 4);
+                fixed (byte* p = destination) N.glReadPixels(rect.x, rect.y, rect.width, rect.height, Rgba, UnsignedByte, p + offset);
+                N.glPixelStorei(PackRowLength, 0);
+                framebufferValid = false;
+                return 0;
+            }, out _)) return;
+            if (!loggedStoppedRead) EngineLog.Engine("ReadPixels after the OpenGL device stopped: nothing read (logged once)");
+            loggedStoppedRead = true;
+        }
+
         bool loggedStoppedRead;
 
         public override void Upload(TextureNative texture) => GlTextures.Prepare(worker, texture);

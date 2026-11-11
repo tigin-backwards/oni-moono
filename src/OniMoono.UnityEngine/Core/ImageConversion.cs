@@ -377,19 +377,15 @@ namespace UnityEngine.Experimental.Rendering
 
 namespace OniMoono.Engine
 {
-    /// Minimal PNG writer: one IHDR, one zlib-compressed IDAT, IEND.
+    /// Minimal PNG writer: one IHDR, one zlib-compressed IDAT, IEND. PngStream writes the same
+    /// bytes row by row.
     internal static class Png
     {
         public static byte[] Encode(int width, int height, int channels, byte[] filteredRows)
         {
             using var output = new MemoryStream();
-            output.Write([0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A]);
-            var header = new byte[13];
-            WriteBigEndian(header, 0, width);
-            WriteBigEndian(header, 4, height);
-            header[8] = 8;
-            header[9] = channels switch { 1 => 0, 3 => 2, _ => 6 };
-            Chunk(output, "IHDR", header);
+            output.Write(Signature);
+            Chunk(output, "IHDR", Header(width, height, channels));
             using (var compressed = new MemoryStream())
             {
                 using (var z = new ZLibStream(compressed, CompressionLevel.Optimal, leaveOpen: true)) z.Write(filteredRows);
@@ -399,28 +395,125 @@ namespace OniMoono.Engine
             return output.ToArray();
         }
 
-        static void Chunk(Stream s, string type, byte[] data)
+        public static ReadOnlySpan<byte> Signature => [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A];
+
+        /// IHDR's data: 8 bits a channel, greyscale (1 channel), RGB (3) or RGBA.
+        public static byte[] Header(int width, int height, int channels)
         {
-            var length = new byte[4];
-            WriteBigEndian(length, 0, data.Length);
-            s.Write(length);
+            var header = new byte[13];
+            BigEndian(header.AsSpan(0), width);
+            BigEndian(header.AsSpan(4), height);
+            header[8] = 8;
+            header[9] = channels switch { 1 => 0, 3 => 2, _ => 6 };
+            return header;
+        }
+
+        public static void Chunk(Stream s, string type, byte[] data)
+        {
+            Span<byte> word = stackalloc byte[4];
+            BigEndian(word, data.Length);
+            s.Write(word);
             var typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
             s.Write(typeBytes);
             s.Write(data);
             var crc = new Crc32();
             crc.Append(typeBytes);
             crc.Append(data);
-            var c = new byte[4];
-            WriteBigEndian(c, 0, (int)crc.Current);
-            s.Write(c);
+            BigEndian(word, (int)crc.Current);
+            s.Write(word);
         }
 
-        static void WriteBigEndian(byte[] b, int offset, int value)
+        public static void BigEndian(Span<byte> b, int value)
         {
-            b[offset] = (byte)(value >> 24);
-            b[offset + 1] = (byte)(value >> 16);
-            b[offset + 2] = (byte)(value >> 8);
-            b[offset + 3] = (byte)value;
+            b[0] = (byte)(value >> 24);
+            b[1] = (byte)(value >> 16);
+            b[2] = (byte)(value >> 8);
+            b[3] = (byte)value;
+        }
+    }
+
+    /// A PNG written row by row into a seekable stream: the bytes Png.Encode gives for the same
+    /// rows (zlib's output does not depend on how its input is split), without the image or its
+    /// compressed data in memory. The IDAT's length is written once the rows are done.
+    internal sealed class PngStream : IDisposable
+    {
+        readonly Stream output;
+        readonly long lengthAt;
+        readonly CrcCounter counter;
+        readonly ZLibStream deflate;
+        readonly int rowBytes;
+        static readonly byte[] FilterNone = [0], Placeholder = [0, 0, 0, 0];
+        int rowsLeft;
+        bool finished;
+
+        public PngStream(Stream output, int width, int height, int channels)
+        {
+            if (!output.CanSeek) throw new ArgumentException("The stream must be seekable.", nameof(output));
+            this.output = output;
+            rowBytes = width * channels;
+            rowsLeft = height;
+            output.Write(Png.Signature);
+            Png.Chunk(output, "IHDR", Png.Header(width, height, channels));
+            lengthAt = output.Position;
+            output.Write(Placeholder);
+            counter = new CrcCounter(output);
+            counter.Write("IDAT"u8);
+            deflate = new ZLibStream(counter, CompressionLevel.Optimal, leaveOpen: true);
+        }
+
+        /// The next row, top first: width x channels bytes (filter type None).
+        public void WriteRow(ReadOnlySpan<byte> row)
+        {
+            if (row.Length != rowBytes) throw new ArgumentException($"A row is {rowBytes} bytes.", nameof(row));
+            if (rowsLeft-- <= 0) throw new InvalidOperationException("The image has all its rows.");
+            deflate.Write(FilterNone);
+            deflate.Write(row);
+        }
+
+        /// Ends the IDAT and the file.
+        public void Finish()
+        {
+            if (rowsLeft != 0) throw new InvalidOperationException($"{rowsLeft} row(s) missing.");
+            finished = true;
+            deflate.Dispose();
+            Span<byte> word = stackalloc byte[4];
+            Png.BigEndian(word, (int)counter.Crc.Current);
+            output.Write(word);
+            long end = output.Position;
+            output.Position = lengthAt;
+            Png.BigEndian(word, checked((int)(counter.Count - 4)));
+            output.Write(word);
+            output.Position = end;
+            Png.Chunk(output, "IEND", Array.Empty<byte>());
+            output.Flush();
+        }
+
+        public void Dispose()
+        {
+            if (!finished) deflate.Dispose();
+        }
+
+        /// Passes bytes on, with their count and CRC-32.
+        sealed class CrcCounter(Stream inner) : Stream
+        {
+            public readonly Crc32 Crc = new();
+            public long Count { get; private set; }
+            public override void Write(ReadOnlySpan<byte> buffer)
+            {
+                Crc.Append(buffer);
+                Count += buffer.Length;
+                inner.Write(buffer);
+            }
+            public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
+            public override void Flush() { }
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => throw new NotSupportedException();
+            public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
         }
     }
 

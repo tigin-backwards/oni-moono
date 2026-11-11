@@ -69,6 +69,57 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void ACaptureKeepsTheRowsInPlace()
+        {
+            // Each row reads as its own colour; the PNG's rows run top to bottom, the device's
+            // bottom to top, read in bands.
+            var device = Install(600, 9000);
+            device.OnReadPixels = (_, rect, destination, x, y) =>
+            {
+                var mip = destination.Memory.Span.Slice((int)destination.MipOffset(0), (int)destination.MipSize(0));
+                for (int j = 0; j < rect.height; j++)
+                    for (int i = 0; i < rect.width; i++)
+                        TextureFormats.Encode(destination.Format, mip, destination.Width, x + i, y + j, new Color((rect.y + j) % 251 / 255f, (rect.y + j) / 255 / 255f, i % 7 / 255f, 1f));
+            };
+            var path = Path.Combine(folder, "rows.png");
+            ScreenCapture.CaptureScreenshot(path, 1);
+            Frame();
+
+            Assert.Empty(errors);
+            var image = new Texture2D(2, 2);
+            Assert.True(image.LoadImage(File.ReadAllBytes(path)));
+            Assert.Equal((600, 9000), (image.width, image.height));
+            foreach (int row in new[] { 0, 1, 3494, 3495, 6990, 8999 })
+            {
+                var c = (Color32)image.GetPixel(5, row);
+                Assert.Equal((row % 251, row / 255, 5), (c.r, c.g, c.b));
+            }
+        }
+
+        [Fact]
+        public void PngStreamWritesTheBytesPngEncodeDoes()
+        {
+            var random = new System.Random(75);
+            const int w = 333, h = 517;
+            var rows = new byte[h * (1 + w * 4)];
+            for (int y = 0; y < h; y++)
+            {
+                var row = rows.AsSpan(y * (1 + w * 4) + 1, w * 4);
+                // Runs and noise, so the deflate output has both matches and literals.
+                if (y % 3 == 0) random.NextBytes(row);
+                else row.Fill((byte)(y * 7));
+            }
+            var expected = OniMoono.Engine.Png.Encode(w, h, 4, rows);
+            using var stream = new MemoryStream();
+            using (var png = new OniMoono.Engine.PngStream(stream, w, h, 4))
+            {
+                for (int y = 0; y < h; y++) png.WriteRow(rows.AsSpan(y * (1 + w * 4) + 1, w * 4));
+                png.Finish();
+            }
+            Assert.Equal(expected, stream.ToArray());
+        }
+
+        [Fact]
         public void ACaptureWhoseRenderFailsLogsAnErrorAndWritesNothing()
         {
             var device = Install(40, 30);
@@ -81,6 +132,7 @@ namespace OniMoono.Tests
             Frame();
 
             Assert.False(File.Exists(path));
+            Assert.Empty(Directory.GetFiles(folder));
             Assert.Contains("rendering at 320x240 failed", Assert.Single(errors));
             errors.Clear();
             Frame();
@@ -113,7 +165,7 @@ namespace OniMoono.Tests
 
             Assert.Equal(0, reads);
             Assert.False(File.Exists(path));
-            Assert.Contains("81920x46080", Assert.Single(errors));
+            Assert.Contains("81920x46080 pixels: larger than the GPU's textures, 16384", Assert.Single(errors));
             errors.Clear();
         }
     }
