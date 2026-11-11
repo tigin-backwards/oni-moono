@@ -408,6 +408,9 @@ namespace OniMoono.Engine.Rendering
         /// apigaps "rtctor"); a serialized one reads its settings.
         public RenderTextureNative() => WrapU = WrapV = WrapW = UnityEngine.TextureWrapMode.Clamp;
 
+        /// The texture alone as a target's colours (RenderTargetBinding.Of); never written.
+        internal RenderTextureNative[] AsTarget;
+
         public int VolumeDepth = 1;
         public RenderTextureFormat Format = RenderTextureFormat.ARGB32;
         public GraphicsFormat ColorFormat = GraphicsFormat.R8G8B8A8_UNorm;

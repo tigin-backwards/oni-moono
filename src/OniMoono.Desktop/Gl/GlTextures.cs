@@ -25,6 +25,10 @@ namespace OniMoono.Desktop.Gl
         /// it back (GlBackgroundUploads.Claim).
         public BackgroundUpload Background;
 
+        /// Main thread: the render target last recorded for this texture alone, and as its own
+        /// depth too (GlDevice.SetRenderTarget).
+        public GlDevice.BoundTarget BoundAlone, BoundWithDepth;
+
         public uint Id;
         public uint Target = TexTarget2D;
         public int Width, Height, Depth;

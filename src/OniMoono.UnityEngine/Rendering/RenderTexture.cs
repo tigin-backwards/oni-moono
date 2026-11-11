@@ -257,6 +257,11 @@ namespace UnityEngine
             => Describe(width, height, depth, format, RenderTextureReadWrite.Default);
 
         internal static RenderTextureNative Describe(int width, int height, int depth, RenderTextureFormat format, RenderTextureReadWrite readWrite)
+            => Describe(new RenderTextureNative(), width, height, depth, format, readWrite);
+
+        /// The description written into `into`, which no other code writes: GetTemporary looks
+        /// its pool up with one kept description and makes a new one only for a texture it creates.
+        static RenderTextureNative Describe(RenderTextureNative into, int width, int height, int depth, RenderTextureFormat format, RenderTextureReadWrite readWrite)
         {
             bool srgb = readWrite switch
             {
@@ -265,18 +270,19 @@ namespace UnityEngine
                 _ => QualitySettings.activeColorSpace == ColorSpace.Linear,
             };
             if ((format == RenderTextureFormat.Depth || format == RenderTextureFormat.Shadowmap) && depth < 16) depth = 16;
-            return new RenderTextureNative
-            {
-                Width = width,
-                Height = height,
-                Format = format,
-                ColorFormat = RenderTextureFormats.ToGraphicsFormat(format, srgb),
-                Srgb = srgb,
-                DepthBits = depth <= 0 ? 0 : depth <= 16 ? 16 : depth <= 24 ? 24 : 32,
-                DepthStencilFormat = RenderTextureFormats.DepthFormat(depth <= 0 ? 0 : depth <= 16 ? 16 : depth <= 24 ? 24 : 32),
-                Dimension = TextureKind.Tex2D,
-            };
+            into.Width = width;
+            into.Height = height;
+            into.Format = format;
+            into.ColorFormat = RenderTextureFormats.ToGraphicsFormat(format, srgb);
+            into.Srgb = srgb;
+            into.DepthBits = depth <= 0 ? 0 : depth <= 16 ? 16 : depth <= 24 ? 24 : 32;
+            into.DepthStencilFormat = RenderTextureFormats.DepthFormat(depth <= 0 ? 0 : depth <= 16 ? 16 : depth <= 24 ? 24 : 32);
+            into.Dimension = TextureKind.Tex2D;
+            return into;
         }
+
+        /// GetTemporary's lookup description (main thread).
+        static readonly RenderTextureNative temporaryLookup = new();
 
         static void CopyDescription(RenderTextureNative src, RenderTextureNative t)
         {
@@ -475,14 +481,18 @@ namespace UnityEngine
         {
             if (width <= 0) throw new ArgumentException("RenderTextureDesc width must be greater than zero.", "desc.width");
             if (height <= 0) throw new ArgumentException("RenderTextureDesc height must be greater than zero.", "desc.height");
-            return TemporaryRenderTextures.Get(Describe(width, height, depthBuffer, RenderTextureFormats.Resolve(format)));
+            var resolved = RenderTextureFormats.Resolve(format);
+            return TemporaryRenderTextures.Find(Describe(temporaryLookup, width, height, depthBuffer, resolved, RenderTextureReadWrite.Default))
+                   ?? TemporaryRenderTextures.Get(Describe(width, height, depthBuffer, resolved));
         }
 
         public static RenderTexture GetTemporary(int width, int height, int depthBuffer, RenderTextureFormat format, RenderTextureReadWrite readWrite)
         {
             if (width <= 0) throw new ArgumentException("RenderTextureDesc width must be greater than zero.", "desc.width");
             if (height <= 0) throw new ArgumentException("RenderTextureDesc height must be greater than zero.", "desc.height");
-            return TemporaryRenderTextures.Get(Describe(width, height, depthBuffer, RenderTextureFormats.Resolve(format), readWrite));
+            var resolved = RenderTextureFormats.Resolve(format);
+            return TemporaryRenderTextures.Find(Describe(temporaryLookup, width, height, depthBuffer, resolved, readWrite))
+                   ?? TemporaryRenderTextures.Get(Describe(width, height, depthBuffer, resolved, readWrite));
         }
 
         public static RenderTexture GetTemporary(RenderTextureDescriptor desc)
@@ -655,7 +665,9 @@ namespace OniMoono.Engine.Rendering
 
         static readonly List<RenderTexture> pool = new();
 
-        public static RenderTexture Get(RenderTextureNative description)
+        /// A released texture of the description, now in use; null when the pool has none.
+        /// The description is only read.
+        public static RenderTexture Find(RenderTextureNative description)
         {
             Threads.AssertMainThread("RenderTexture.GetTemporary");
             foreach (var rt in pool)
@@ -666,6 +678,14 @@ namespace OniMoono.Engine.Rendering
                 t.TemporaryLastFrame = Time.frameCount;
                 return rt;
             }
+            return null;
+        }
+
+        /// A texture of the description: a released one from the pool, else one made from
+        /// `description` (which becomes the new texture's).
+        public static RenderTexture Get(RenderTextureNative description)
+        {
+            if (Find(description) is { } pooled) return pooled;
             // A temporary's anisoLevel reads 0, a constructed one's 1 (measured in the original,
             // UnityProbe's apigaps "rtctor").
             description.Aniso = 0;

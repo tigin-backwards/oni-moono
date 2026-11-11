@@ -506,13 +506,16 @@ namespace OniMoono.Engine.UI
         /// the same frame, and so does an ancestor's; a size change alone, a sibling index, an
         /// activation and the placement of an object made or cloned do not. On other canvases a
         /// move sends nothing.
+        static readonly ListSnapshot<RectTransformNative> movedSnapshot = new();
+        static readonly ListSnapshot<CanvasNative> enabledSnapshot = new();
+
         static void SendMovesOnPixelPerfectCanvases()
         {
             if (movedRects.Count == 0) return;
-            var moved = movedRects.ToArray();
+            using var snapshot = movedSnapshot.Take(movedRects);
             movedRects.Clear();
             movedSet.Clear();
-            foreach (var rect in moved)
+            foreach (var rect in snapshot.Items)
             {
                 var go = rect.GameObject;
                 if (rect.Destroyed || go == null || go.Destroyed || !go.ActiveInHierarchy) continue;
@@ -532,7 +535,8 @@ namespace OniMoono.Engine.UI
 
         static void Update()
         {
-            foreach (var c in enabled.ToArray()) UpdateRootTransform(c);
+            using (var snapshot = enabledSnapshot.Take(enabled))
+                foreach (var c in snapshot.Items) UpdateRootTransform(c);
             RunCanvasUpdate();
             SendMovesOnPixelPerfectCanvases();
             if (stats)
@@ -657,6 +661,7 @@ namespace OniMoono.Engine.UI
                     if (stats) statsRenumbered++;
                 }
                 var top = c.GameObject.Transform;
+                popRenderers.Clear();
                 Collect(b, c.GameObject, b.Root, isBatchRoot: true, depth, c, top.LocalToWorld.inverse, top.WorldStamp, Matrix4x4.identity, 0, alpha, blocks);
             }
             // A canvas no longer a sort root (one moved under a canvas that draws it, or under a
@@ -726,6 +731,8 @@ namespace OniMoono.Engine.UI
         /// called while it is disabled, still tests its graphics. Test runs
         /// (ONI_VERIFY_CANVAS_SKIPS=1) check each skipped subtree as the walk would have seen it
         /// and log differences.
+        static readonly List<CanvasRendererNative> popRenderers = new();
+
         static void Collect(CanvasBatch batch, GameObjectNative go, CanvasNative space, bool isBatchRoot, Counter depth,
             CanvasNative nearest, Matrix4x4 worldToNearest, long nearestStamp, Matrix4x4 parentToNearest, long parentStamp, float groupAlpha, bool blocksRaycasts)
         {
@@ -783,7 +790,9 @@ namespace OniMoono.Engine.UI
             long toNearestStamp = 0;
             var toNearest = own == null || go == own.GameObject ? Matrix4x4.identity
                 : ToNearest(parts, parentToNearest, parentStamp, go.Transform, out toNearestStamp);
-            List<CanvasRendererNative> pops = null;
+            // The renderers whose pop materials draw after the children: this call's stretch of
+            // one list (each call removes its own before it returns).
+            int popsFrom = popRenderers.Count;
             bool numbersPop = false;
             foreach (var r in parts.Renderers)
             {
@@ -806,13 +815,16 @@ namespace OniMoono.Engine.UI
                 if (r.Cull || hidden || r.Geometry == null || r.Geometry.Indices.Length == 0) continue;
                 if (CulledTransparent(r, groupAlpha)) continue;
                 foreach (var m in r.Materials) batch.Draws.Add(new CanvasDraw(r, space, m, pop: false, groupAlpha, own, toNearest));
-                if (r.HasPopInstruction) (pops ??= new()).Add(r);
+                if (r.HasPopInstruction) popRenderers.Add(r);
             }
             foreach (var child in go.Transform.Children)
                 Collect(batch, child.GameObject, space, isBatchRoot: false, depth, nearest, worldToNearest, nearestStamp, toNearest, toNearestStamp, groupAlpha, blocksRaycasts);
-            if (pops != null)
-                foreach (var r in pops)
-                    foreach (var m in r.PopMaterials) batch.Draws.Add(new CanvasDraw(r, space, m, pop: true, groupAlpha, own, toNearest));
+            for (int i = popsFrom; i < popRenderers.Count; i++)
+            {
+                var r = popRenderers[i];
+                foreach (var m in r.PopMaterials) batch.Draws.Add(new CanvasDraw(r, space, m, pop: true, groupAlpha, own, toNearest));
+            }
+            popRenderers.RemoveRange(popsFrom, popRenderers.Count - popsFrom);
             if (numbersPop)
                 foreach (var r in parts.Renderers)
                     if (!r.Destroyed && r.HasPopInstruction) depth.Value++;
@@ -1168,7 +1180,9 @@ namespace OniMoono.Engine.UI
         static List<DrawItem> Batched(CanvasBatch b, bool overlay)
         {
             var items = FrameRenderer.NewDrawList();
-            var run = new List<(DrawItem Item, CanvasRendererNative Renderer)>();
+            // The run list is this call's (a call from inside it, none expected, takes its own).
+            var run = batchRun ?? new List<(DrawItem Item, CanvasRendererNative Renderer)>();
+            batchRun = null;
             UiDrawState runState = default;
             CanvasNative runSpace = null;
             nestedDraws.Clear();
@@ -1195,9 +1209,12 @@ namespace OniMoono.Engine.UI
                 run.Add((item, d.Renderer));
             }
             Flush();
+            batchRun = run;
             if (nestedDraws.Count > 0) ShareNestedMeshes();
             return items;
         }
+
+        static List<(DrawItem Item, CanvasRendererNative Renderer)> batchRun = new();
 
         static readonly List<(CanvasNative Space, DrawItem Item)> nestedDraws = new();
         static readonly List<DrawItem> nestedGroup = new();
