@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using OniMoono.Engine.Platform;
 using OniMoono.Engine.Rendering;
 using UnityEngine;
@@ -154,19 +155,85 @@ namespace OniMoono.Tests
         }
 
         [Fact]
-        public void ACaptureTooLargeForOneImageLogsAnErrorAndWritesNothing()
+        public void ACaptureLargerThanTheGpusTexturesRendersInWindows()
         {
-            var device = Install(2560, 1440);
-            int reads = 0;
-            device.OnReadPixels = (_, _, _, _, _) => reads++;
-            var path = Path.Combine(folder, "huge.png");
-            ScreenCapture.CaptureScreenshot(path, 32);
+            // 4x of 4100x30 is 16400 wide, past the null device's 16384: windows of bands of
+            // rows, each window's useful part read into its place.
+            var device = Install(4100, 30);
+            new GameObject("Camera").AddComponent<Camera>();
+            var reads = new List<(int Width, int Height, RectInt Rect)>();
+            device.OnReadPixels = (source, rect, _, _, _) => reads.Add((source.Width, source.Height, rect));
+            var path = Path.Combine(folder, "wide.png");
+            ScreenCapture.CaptureScreenshot(path, 4);
             Frame();
 
-            Assert.Equal(0, reads);
-            Assert.False(File.Exists(path));
-            Assert.Contains("81920x46080 pixels: larger than the GPU's textures, 16384", Assert.Single(errors));
-            errors.Clear();
+            Assert.Empty(errors);
+            Assert.True(reads.Count > 1);
+            foreach (var (w, h, rect) in reads)
+            {
+                Assert.True(w <= 16384 && h <= 120);
+                Assert.True(rect.x >= 0 && rect.y >= 0 && rect.xMax <= w && rect.yMax <= h);
+            }
+            Assert.Equal(16400L * 120, reads.Sum(r => (long)r.Rect.width * r.Rect.height));
+            var image = new Texture2D(2, 2);
+            Assert.True(image.LoadImage(File.ReadAllBytes(path)));
+            Assert.Equal((16400, 120), (image.width, image.height));
+        }
+
+        [Fact]
+        public void ASuperSizedCaptureLeavesTheOverlayUiOut()
+        {
+            // The original's super-sized captures show the cameras only (a 2x capture of a
+            // 1280x720 screen, which fits one target, leaves out the overlay canvas the frame
+            // has); a 1x capture is the frame, UI and all.
+            var device = Install(40, 30);
+            int overlays = 0;
+            void Count() => overlays++;
+            FrameRenderer.RenderOverlays += Count;
+            try
+            {
+                Frame();
+                int perFrame = overlays;
+                overlays = 0;
+                ScreenCapture.CaptureScreenshot(Path.Combine(folder, "two.png"), 2);
+                Frame();
+                Assert.Equal(perFrame, overlays);
+                overlays = 0;
+                ScreenCapture.CaptureScreenshot(Path.Combine(folder, "one.png"), 1);
+                Frame();
+                Assert.Equal(perFrame, overlays);
+                Assert.Empty(errors);
+            }
+            finally
+            {
+                FrameRenderer.RenderOverlays -= Count;
+            }
+        }
+
+        [Fact]
+        public void ScreenSizedTexturesAreTheCapturesSizeForIt()
+        {
+            // The game's screen-sized targets (its world's MRT targets, the light buffer) render
+            // at the capture's size, their cameras seeing the screen's; afterwards they are as
+            // they were, their device textures too.
+            var device = Install(40, 30);
+            var target = new RenderTexture(40, 30, 24);
+            var other = new RenderTexture(64, 64, 0);
+            var native = (RenderTextureNative)target.NativeOrThrow;
+            var gpu = new object();
+            native.Gpu = gpu;
+            var camera = new GameObject("Camera").AddComponent<Camera>();
+            camera.targetTexture = target;
+            var during = new List<(int, int, Vector2, int)>();
+            device.OnReadPixels = (_, _, _, _, _) => during.Add((native.Width, native.Height, ((CameraNative)camera.NativeOrThrow).TargetSize, other.width));
+            ScreenCapture.CaptureScreenshot(Path.Combine(folder, "sized.png"), 3);
+            Frame();
+
+            Assert.Empty(errors);
+            Assert.Equal((120, 90, new Vector2(40f, 30f), 64), Assert.Single(during));
+            Assert.Equal((40, 30), (target.width, target.height));
+            Assert.Same(gpu, native.Gpu);
+            Assert.Equal(default, native.CaptureLogicalSize);
         }
     }
 }

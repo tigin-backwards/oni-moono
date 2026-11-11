@@ -1522,8 +1522,9 @@ namespace OniMoono.Engine.UI
                 if (!bound)
                 {
                     FrameRenderer.Bind(device, FrameRenderer.ScreenBinding);
-                    device.SetViewport(new Rect(0f, 0f, size.x * FrameRenderer.ScreenScale, size.y * FrameRenderer.ScreenScale));
-                    device.SetCamera(new CameraConstants(Matrix4x4.identity, Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f), Vector3.zero, -1000f, 1000f, true, size));
+                    var pixels = FrameRenderer.ScreenPixelSize;
+                    device.SetViewport(new Rect(0f, 0f, pixels.x, pixels.y));
+                    device.SetCamera(new CameraConstants(Matrix4x4.identity, FrameRenderer.ScreenProjection(Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f)), Vector3.zero, -1000f, 1000f, true, size));
                     device.Clear(false, true, default, 1f);
                     bound = true;
                 }

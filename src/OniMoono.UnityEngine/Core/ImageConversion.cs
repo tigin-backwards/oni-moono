@@ -434,19 +434,23 @@ namespace OniMoono.Engine
 
     /// A PNG written row by row into a seekable stream: the bytes Png.Encode gives for the same
     /// rows (zlib's output does not depend on how its input is split), without the image or its
-    /// compressed data in memory. The IDAT's length is written once the rows are done.
+    /// compressed data in memory. Each IDAT's length is written once it is done; compressed
+    /// data past ChunkBytes goes on in another IDAT (a chunk's length must fit 31 bits, and the
+    /// largest captures compress to more).
     internal sealed class PngStream : IDisposable
     {
         readonly Stream output;
-        readonly long lengthAt;
-        readonly CrcCounter counter;
+        readonly IdatWriter idat;
         readonly ZLibStream deflate;
         readonly int rowBytes;
-        static readonly byte[] FilterNone = [0], Placeholder = [0, 0, 0, 0];
+        static readonly byte[] FilterNone = [0];
         int rowsLeft;
         bool finished;
 
-        public PngStream(Stream output, int width, int height, int channels)
+        /// The most compressed bytes in one IDAT.
+        internal const int DefaultChunkBytes = 1 << 30;
+
+        public PngStream(Stream output, int width, int height, int channels, int chunkBytes = DefaultChunkBytes)
         {
             if (!output.CanSeek) throw new ArgumentException("The stream must be seekable.", nameof(output));
             this.output = output;
@@ -454,11 +458,8 @@ namespace OniMoono.Engine
             rowsLeft = height;
             output.Write(Png.Signature);
             Png.Chunk(output, "IHDR", Png.Header(width, height, channels));
-            lengthAt = output.Position;
-            output.Write(Placeholder);
-            counter = new CrcCounter(output);
-            counter.Write("IDAT"u8);
-            deflate = new ZLibStream(counter, CompressionLevel.Optimal, leaveOpen: true);
+            idat = new IdatWriter(output, chunkBytes);
+            deflate = new ZLibStream(idat, CompressionLevel.Optimal, leaveOpen: true);
         }
 
         /// The next row, top first: width x channels bytes (filter type None).
@@ -470,20 +471,13 @@ namespace OniMoono.Engine
             deflate.Write(row);
         }
 
-        /// Ends the IDAT and the file.
+        /// Ends the IDATs and the file.
         public void Finish()
         {
             if (rowsLeft != 0) throw new InvalidOperationException($"{rowsLeft} row(s) missing.");
             finished = true;
             deflate.Dispose();
-            Span<byte> word = stackalloc byte[4];
-            Png.BigEndian(word, (int)counter.Crc.Current);
-            output.Write(word);
-            long end = output.Position;
-            output.Position = lengthAt;
-            Png.BigEndian(word, checked((int)(counter.Count - 4)));
-            output.Write(word);
-            output.Position = end;
+            idat.End();
             Png.Chunk(output, "IEND", Array.Empty<byte>());
             output.Flush();
         }
@@ -493,17 +487,65 @@ namespace OniMoono.Engine
             if (!finished) deflate.Dispose();
         }
 
-        /// Passes bytes on, with their count and CRC-32.
-        sealed class CrcCounter(Stream inner) : Stream
+        /// Compressed bytes into IDAT chunks of at most `limit` data bytes, each chunk's length
+        /// written when it ends.
+        sealed class IdatWriter : Stream
         {
-            public readonly Crc32 Crc = new();
-            public long Count { get; private set; }
+            readonly Stream inner;
+            readonly int limit;
+            Crc32 crc;
+            long lengthAt = -1;
+            int count;
+
+            public IdatWriter(Stream inner, int limit)
+            {
+                this.inner = inner;
+                this.limit = limit;
+            }
+
+            void Begin()
+            {
+                lengthAt = inner.Position;
+                inner.Write(stackalloc byte[4]);
+                inner.Write("IDAT"u8);
+                crc = new Crc32();
+                crc.Append("IDAT"u8);
+                count = 0;
+            }
+
+            /// Ends the open chunk (an empty one when nothing was written).
+            public void End()
+            {
+                if (lengthAt < 0) Begin();
+                Span<byte> word = stackalloc byte[4];
+                Png.BigEndian(word, (int)crc.Current);
+                inner.Write(word);
+                long end = inner.Position;
+                inner.Position = lengthAt;
+                Png.BigEndian(word, count);
+                inner.Write(word);
+                inner.Position = end;
+                lengthAt = -1;
+            }
+
             public override void Write(ReadOnlySpan<byte> buffer)
             {
-                Crc.Append(buffer);
-                Count += buffer.Length;
-                inner.Write(buffer);
+                while (buffer.Length > 0)
+                {
+                    if (lengthAt < 0) Begin();
+                    else if (count == limit)
+                    {
+                        End();
+                        Begin();
+                    }
+                    int n = Math.Min(buffer.Length, limit - count);
+                    crc.Append(buffer[..n]);
+                    inner.Write(buffer[..n]);
+                    count += n;
+                    buffer = buffer[n..];
+                }
             }
+
             public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
             public override void Flush() { }
             public override bool CanRead => false;

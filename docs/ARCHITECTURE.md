@@ -2026,6 +2026,33 @@ upload at every `Apply`), its `raw texture loads` line ending in `variant=0` or 
 `ONI_CAPTURE_TWICE=full-uploads` renders each super-sized capture again after every texture
 loaded this way is uploaded in full.
 
+**Super-sized captures.** `ScreenCapture.CaptureScreenshot(path, superSize)` renders the frame
+again as a screen `superSize` times larger would show it (`FrameRenderer.Capture`), the cameras
+only: the original's super-sized captures leave out the overlay UI and IMGUI, even when they fit
+one render target. The game renders its world into render textures it makes the screen's size
+(the MRT camera's `MRT0`/`MRT1` and their copies, the light buffer, `_LitTex`); for the capture
+each such texture gets a device texture of the capture's size (its own is kept aside and put
+back afterwards), and the cameras still see the screen's size
+(`RenderTextureNative.CaptureLogicalSize`), so the world is drawn at the capture's resolution.
+A capture larger than the GPU's textures or than `WindowPixels` renders in windows: bands of the
+capture's width a few hundred rows tall, each window's cameras rendered with their projections
+narrowed to it (`CaptureWindow.Clip`), the screen-sized textures the window's size, and 64 pixels
+around each window rendered and cropped, so that kernels reading neighbours (bloom, the water's
+refraction, bilinear reads) see what one target would give them. A band is read into one buffer
+and written through `PngStream` (its IDATs split at 1 GB) before the next. What the windows need
+from the game's shaders is in `CaptureTiles`: `oni_ScreenTile` maps the whole capture's texture
+coordinates to the window's. `Klei/Liquid`, which reads `MRT0_Copy`/`MRT1_Copy` where its world
+position, `_CameraZoomInfo` and the camera put it on the screen, reads them through it; the
+programs that derive screen-space patterns or pixel sizes from their clip position (`Klei/Stars`,
+`Klei/Substance`, `Klei/BatchedAnimationShine`, `Klei/PostFX/LightBufferCompositor`'s noise,
+TextMeshPro, `UI/Default`) place their vertices in the whole capture and move them into the
+window after their own main. The light buffer is rendered once for the whole capture (at most
+`LightPixels`), since kanims read it at their anchor, which can lie far outside the window
+drawing them, and every `_LightBufferTex` read is moved into it. The game's screen-to-world
+vectors of its full-screen passes (`_WsToCs`, `_WsToCcs`) are narrowed to each window.
+`ONI_CAPTURE_TWICE=tiles:WxH` renders each super-sized capture again in windows of that size,
+for a pixel comparison of the two.
+
 **Render thread, presentation and frame pacing.** Unity's player records rendering on the main
 thread and executes it on a render thread (`kGfxThreadingModeClientWorkerJobs` on GLCore), and
 presents from there, so GL work and a swap that blocks — vsync, or a display path that reads the

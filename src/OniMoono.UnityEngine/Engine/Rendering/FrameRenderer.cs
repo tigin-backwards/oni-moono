@@ -366,7 +366,7 @@ namespace OniMoono.Engine.Rendering
 
         /// Cameras rendering into textures, then those rendering to the screen, each set in
         /// ascending depth (enable order on ties); then overlay canvases.
-        static void RenderScreen()
+        static void RenderScreen(bool overlays = true)
         {
             using var snapshot = cameraSnapshot.Take(Cameras.Enabled);
             var cameras = snapshot.Items;
@@ -383,10 +383,10 @@ namespace OniMoono.Engine.Rendering
             }
             order.Sort((a, b) => a.Key != b.Key ? a.Key.CompareTo(b.Key) : a.Depth != b.Depth ? a.Depth.CompareTo(b.Depth) : a.Index.CompareTo(b.Index));
             foreach (var entry in order)
-                if (entry.Camera != null) RenderCamera(entry.Camera);
+                if (entry.Camera != null && (lightCamera == null || entry.Camera.Native != lightCamera)) RenderCamera(entry.Camera);
             order.Clear();
             screenOrder = order;
-            RenderOverlays?.Invoke();
+            if (overlays) RenderOverlays?.Invoke();
         }
 
         static readonly ListSnapshot<Camera> cameraSnapshot = new();
@@ -396,13 +396,39 @@ namespace OniMoono.Engine.Rendering
 
         static readonly List<(string Path, int Scale)> captures = new();
         static RenderTextureNative screenOverride;
-        static int screenScale = 1;
+        /// The super-sized capture being rendered, and the window of it being drawn.
+        static CaptureWindow window;
+        /// The window's tile for the device's camera constants (CaptureTile).
+        static Vector4 activeTile;
+        /// A tiled capture's light buffer camera: rendered once for the whole capture, not in
+        /// each window (LightBufferWhole).
+        static CameraNative lightCamera;
+
+        /// Pixels of a tiled capture's light buffer at most.
+        const long LightPixels = 4096L * 2304;
 
         /// Where screen rendering goes: the back buffer, or a capture's off-screen target.
         public static RenderTargetBinding ScreenBinding => screenOverride == null ? RenderTargetBinding.BackBuffer : RenderTargetBinding.Of(screenOverride);
 
-        /// Pixels per screen pixel of the current screen target (superSize during captures).
-        public static int ScreenScale => screenScale;
+        /// The size in pixels of the screen target: the back buffer, or a capture's window.
+        public static Vector2 ScreenPixelSize
+        {
+            get
+            {
+                if (window != null) return new Vector2(window.Width, window.Height);
+                var p = Platform.PlatformServices.Current;
+                return new Vector2(p.FramebufferWidth, p.FramebufferHeight);
+            }
+        }
+
+        /// A projection of drawing in screen space (overlay canvases, IMGUI) as it lands on the
+        /// screen target: during a tiled capture narrowed to the window.
+        public static Matrix4x4 ScreenProjection(Matrix4x4 projection)
+            => window is { Tiled: true } w ? w.Clip(0f, 0f, w.VirtualWidth, w.VirtualHeight) * projection : projection;
+
+        /// CameraConstants.ScreenTile for the device's following draws: the window of a tiled
+        /// capture, while what is drawn goes to its targets; zero otherwise.
+        internal static Vector4 CaptureTile => activeTile;
 
         /// ScreenCapture.CaptureScreenshot: written once this frame is complete.
         public static void RequestCapture(string path, int superSize) => captures.Add((path, Math.Max(1, superSize)));
@@ -411,63 +437,178 @@ namespace OniMoono.Engine.Rendering
         /// time, straight into the file.
         const int CaptureBandBytes = 8 << 20;
 
+        /// A tiled capture's band, the whole capture's width: its rows are rendered window by
+        /// window, then written.
+        const int TileBandBytes = 16 << 20;
+
+        /// Pixels of one window at most (each screen-sized render texture is made this size
+        /// for the capture): a capture larger than this, or than the GPU's textures, renders in
+        /// windows.
+        const long WindowPixels = 4096L * 2048;
+
+        /// Pixels each window renders past its edges, cropped: kernels reading neighbours
+        /// (the bloom's blur, the water's refraction, bilinear reads) see the pixels beyond.
+        /// ONI_CAPTURE_GUARD=N (diagnostics) sets another.
+        internal static int TileGuard = int.TryParse(Environment.GetEnvironmentVariable("ONI_CAPTURE_GUARD"), out int guard) && guard >= 0 ? guard : 64;
+
+        /// Window origins are multiples of this, so the game's downsampled targets (a
+        /// quarter, an eighth of the screen) keep the whole capture's grid.
+        const int TileAlign = 8;
+
+        /// Diagnostics and tests (ONI_CAPTURE_WINDOW=WxH): super-sized captures render in
+        /// windows of this size, however small.
+        static (int Width, int Height)? forcedWindow = ParseWindow(Environment.GetEnvironmentVariable("ONI_CAPTURE_WINDOW"));
+
+        static (int, int)? ParseWindow(string value)
+        {
+            var parts = value?.Split('x');
+            return parts is { Length: 2 } && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h) && w > 0 && h > 0 ? (w, h) : null;
+        }
+
+        /// A super-sized capture: the screen `Scale` times its size (VirtualWidth x
+        /// VirtualHeight), drawn a window at a time (X, Y, Width, Height, from the bottom left).
+        internal sealed class CaptureWindow
+        {
+            public int Scale, VirtualWidth, VirtualHeight, X, Y, Width, Height;
+
+            public bool Tiled => Width != VirtualWidth || Height != VirtualHeight;
+
+            /// CameraConstants.ScreenTile: the whole capture's texture coordinates in the window's.
+            public Vector4 Tile => Tiled
+                ? new Vector4((float)VirtualWidth / Width, (float)VirtualHeight / Height, -(float)X / Width, -(float)Y / Height)
+                : default;
+
+            /// The clip-space transform that places a rectangle of the whole capture (pixels from
+            /// the bottom left), which the projection fills, in the window.
+            public Matrix4x4 Clip(float x, float y, float width, float height)
+            {
+                var m = Matrix4x4.identity;
+                m.m00 = width / Width;
+                m.m11 = height / Height;
+                m.m03 = (2f * (x - X) + width) / Width - 1f;
+                m.m13 = (2f * (y - Y) + height) / Height - 1f;
+                return m;
+            }
+        }
+
+        /// The windows covering `total` pixels along one axis: each one's useful span (start,
+        /// length) and the origin of the window of `size` pixels that renders it, `guard`
+        /// pixels past the span where the capture goes on.
+        internal static List<(int Start, int Length, int Origin)> Spans(int total, int size, int guard, int align)
+        {
+            var spans = new List<(int, int, int)>();
+            if (size >= total)
+            {
+                spans.Add((0, total, 0));
+                return spans;
+            }
+            int step = Math.Max(1, size - 2 * guard - align);
+            for (int start = 0; start < total; start += step)
+            {
+                int origin = Math.Max(0, start - guard);
+                origin -= origin % align;
+                if (origin >= total - size)
+                {
+                    // The last window, at the capture's end: its span runs to it.
+                    spans.Add((start, total - start, total - size));
+                    break;
+                }
+                spans.Add((start, step, origin));
+            }
+            return spans;
+        }
+
+        /// The window size of a capture of vw x vh pixels: the whole, when it fits one render
+        /// target and the window budget; else bands of the whole width (in windows as wide as
+        /// the GPU's textures allow) a few hundred rows tall.
+        internal static (int Width, int Height) WindowSize(int vw, int vh, int maxTextureSize, (int Width, int Height)? forced, long budget = WindowPixels)
+        {
+            if (forced is { } f) return (Math.Min(f.Width, vw), Math.Min(f.Height, vh));
+            if (vw <= maxTextureSize && vh <= maxTextureSize && (long)vw * vh <= budget) return (vw, vh);
+            int rows = Math.Max(64, TileBandBytes / (vw * 4));
+            int height = Math.Min(vh, Math.Min(maxTextureSize, rows + 2 * TileGuard + TileAlign));
+            int width = (int)Math.Min(Math.Min(vw, maxTextureSize), Math.Max(4L * TileGuard, WindowPixels / height));
+            return (width, height);
+        }
+
+        /// A screen-sized render texture made the window's size for a capture, with what it had.
+        readonly record struct Resized(RenderTextureNative Texture, object Gpu, int Width, int Height, int MipCount);
+
         /// Writes the frame as PNG: the back buffer itself, or for a super-sized capture the frame
-        /// rendered again into a target `scale` times the screen size. The pixels are read back a
-        /// band of rows at a time and written through PngStream, so no copy of the whole image is
-        /// held. A capture that cannot be made (larger than the GPU's textures, memory, or a render
+        /// rendered again `scale` times the screen size, as a screen that size would show it: the
+        /// render textures the game makes the screen's size (the world's MRT targets and their
+        /// copies, the light buffer and the like) are made the capture's size for it. A capture
+        /// larger than one render target can be (the GPU's texture size, or WindowPixels) renders
+        /// in windows, each camera's projection narrowed to the window and those render textures
+        /// the window's size, with TileGuard pixels around each window cropped (CaptureTiles has
+        /// what the game's shaders need for it). As in the original, the overlay UI and IMGUI are
+        /// left out.
+        ///
+        /// The pixels are read back a band of rows at a time and written through PngStream, so no
+        /// copy of the whole image is held. A capture that cannot be made (memory, or a render
         /// target the device could not make) logs an error and writes nothing; the game goes on
         /// (issue #75: an 8x capture of a 2560x1440 screen ran out of memory in its read-back,
         /// which ended the game).
         static void Capture(string path, int scale)
         {
             var p = Platform.PlatformServices.Current;
-            long wide = (long)p.FramebufferWidth * scale, high = (long)p.FramebufferHeight * scale;
-            if (scale > 1 && Math.Max(wide, high) > SystemInfo.maxTextureSize)
+            int sw = p.FramebufferWidth, sh = p.FramebufferHeight;
+            long wide = (long)sw * scale, high = (long)sh * scale;
+            if (wide > int.MaxValue / 4 || high > int.MaxValue / 4)
             {
-                Debug.LogError($"Failed to capture screenshot: {path} ({wide}x{high} pixels: larger than the GPU's textures, {SystemInfo.maxTextureSize})");
+                Debug.LogError($"Failed to capture screenshot: {path} ({wide}x{high} pixels: too large for one image)");
                 return;
             }
             int w = (int)wide, h = (int)high;
             var device = GraphicsDevice.Current;
             long failed = device.FailedCommands;
             var partial = $"{path}.{Environment.ProcessId}.tmp";
+            int maxTexture = SystemInfo.maxTextureSize;
+            // As the original: a super-sized capture has the cameras only, without the overlay
+            // UI (and IMGUI) the frame shows (measured: a 2x capture of a 1280x720 screen, which
+            // fits one target, leaves out a Screen Space - Overlay canvas the frame has).
+            bool overlays = scale == 1;
             RenderTexture rt = null;
+            var resized = new List<Resized>();
+            var wsToCs = Shader.GetGlobalVector(WsToCs);
+            var wsToCcs = Shader.GetGlobalVector(WsToCcs);
+            bool written = false;
             try
             {
-                RenderTextureNative source = null;
-                if (scale > 1)
+                using var file = new System.IO.FileStream(partial, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None, 1 << 20);
+                using var png = new PngStream(file, w, h, 4);
+                if (scale == 1)
                 {
-                    rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32);
-                    source = (RenderTextureNative)rt.NativeOrThrow;
-                    screenOverride = source;
-                    screenScale = scale;
-                    queued.Clear();
-                    queued.AddRange(frameQueued);
-                    RenderScreen();
-                    RenderScreenLate?.Invoke();
+                    // The finished frame, as it is about to be presented.
+                    ReadBands(device, null, w, h, png, failed);
                 }
-                // Scale 1: the finished frame, as it is about to be presented. The PNG's rows run
-                // top to bottom, the device's bottom to top.
-                int stride = w * 4, bandRows = Math.Clamp(CaptureBandBytes / stride, 1, h);
-                var band = new byte[bandRows * stride];
-                using (var file = new System.IO.FileStream(partial, System.IO.FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.None, 1 << 20))
-                using (var png = new PngStream(file, w, h, 4))
+                else
                 {
-                    for (int top = 0; top < h; top += bandRows)
+                    bool changes = device.CaptureTileShaders;
+                    var (ww, wh) = WindowSize(w, h, maxTexture, forcedWindow, changes ? WindowPixels : (long)maxTexture * maxTexture);
+                    window = new CaptureWindow { Scale = scale, VirtualWidth = w, VirtualHeight = h, Width = ww, Height = wh };
+                    (int Width, int Height) light = window.Tiled && changes ? LightSize(w, h, maxTexture) : (ww, wh);
+                    ResizeScreenTextures(sw, sh, ww, wh, light, resized);
+                    rt = new RenderTexture(ww, wh, 24, RenderTextureFormat.ARGB32);
+                    screenOverride = (RenderTextureNative)rt.NativeOrThrow;
+                    if (window.Tiled && changes) RenderLightBufferWhole(resized, light);
+                    if (!window.Tiled)
                     {
-                        int rows = Math.Min(bandRows, h - top);
-                        device.ReadPixelsRgba8(source, new RectInt(0, h - top - rows, w, rows), band, 0, stride);
-                        if (device.FailedCommands != failed) break;
-                        for (int r = rows - 1; r >= 0; r--) png.WriteRow(band.AsSpan(r * stride, stride));
+                        RenderWindow(overlays, wsToCs, wsToCcs);
+                        ReadBands(device, screenOverride, w, h, png, failed);
                     }
-                    if (device.FailedCommands == failed) png.Finish();
+                    else
+                    {
+                        EngineLog.Engine($"capture: {w}x{h} pixels in windows of {ww}x{wh}, the light buffer {light.Width}x{light.Height}");
+                        RenderTiles(device, png, overlays, wsToCs, wsToCcs, failed);
+                    }
                 }
-                if (device.FailedCommands != failed)
+                if (device.FailedCommands == failed)
                 {
-                    Debug.LogError($"Failed to capture screenshot: {path} (rendering at {w}x{h} failed)");
-                    return;
+                    png.Finish();
+                    written = true;
                 }
-                System.IO.File.Move(partial, path, overwrite: true);
+                else Debug.LogError($"Failed to capture screenshot: {path} (rendering at {w}x{h} failed)");
             }
             catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
             {
@@ -483,21 +624,190 @@ namespace OniMoono.Engine.Rendering
                 {
                     queued.Clear();
                     screenOverride = null;
-                    screenScale = 1;
+                    window = null;
+                    lightCamera = null;
+                    activeTile = default;
+                    RestoreScreenTextures(resized);
+                    if (wsToCs != Shader.GetGlobalVector(WsToCs)) Shader.SetGlobalVector(WsToCs, wsToCs);
+                    if (wsToCcs != Shader.GetGlobalVector(WsToCcs)) Shader.SetGlobalVector(WsToCcs, wsToCcs);
                 }
                 if (rt != null) UnityEngine.Object.DestroyImmediate(rt);
+            }
+            try
+            {
+                if (written) System.IO.File.Move(partial, path, overwrite: true);
+            }
+            catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+            {
+                Debug.LogError($"Failed to store screenshot: {path} ({e.Message})");
+            }
+            finally
+            {
                 try { System.IO.File.Delete(partial); }
                 catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException) { }
+            }
+        }
+
+        static readonly int WsToCs = Shader.PropertyToID("_WsToCs"), WsToCcs = Shader.PropertyToID("_WsToCcs");
+
+        /// Reads a target of w x h pixels (null: the back buffer) into the PNG a band at a time.
+        /// The PNG's rows run top to bottom, the device's bottom to top.
+        static void ReadBands(RenderDevice device, RenderTextureNative source, int w, int h, PngStream png, long failed)
+        {
+            int stride = w * 4, bandRows = Math.Clamp(CaptureBandBytes / stride, 1, h);
+            var band = new byte[bandRows * stride];
+            for (int top = 0; top < h; top += bandRows)
+            {
+                int rows = Math.Min(bandRows, h - top);
+                device.ReadPixelsRgba8(source, new RectInt(0, h - top - rows, w, rows), band, 0, stride);
+                if (device.FailedCommands != failed) return;
+                for (int r = rows - 1; r >= 0; r--) png.WriteRow(band.AsSpan(r * stride, stride));
+            }
+        }
+
+        /// The capture's windows, a band of rows across its width at a time from the top: each
+        /// window rendered, its useful part read into the band, then the band written.
+        static void RenderTiles(RenderDevice device, PngStream png, bool overlays, Vector4 wsToCs, Vector4 wsToCcs, long failed)
+        {
+            var c = window;
+            var columns = Spans(c.VirtualWidth, c.Width, TileGuard, TileAlign);
+            var bands = Spans(c.VirtualHeight, c.Height, TileGuard, TileAlign);
+            int stride = c.VirtualWidth * 4;
+            int bandRows = 0;
+            foreach (var b in bands) bandRows = Math.Max(bandRows, b.Length);
+            var band = new byte[(long)bandRows * stride];
+            for (int i = bands.Count - 1; i >= 0; i--)
+            {
+                var (y, rows, wy) = bands[i];
+                foreach (var (x, columnsWide, wx) in columns)
+                {
+                    c.X = wx;
+                    c.Y = wy;
+                    RenderWindow(overlays, wsToCs, wsToCcs);
+                    device.ReadPixelsRgba8(screenOverride, new RectInt(x - wx, y - wy, columnsWide, rows), band, x * 4, stride);
+                    if (device.FailedCommands != failed) return;
+                }
+                for (int r = rows - 1; r >= 0; r--) png.WriteRow(band.AsSpan(r * stride, stride));
+            }
+        }
+
+        /// Renders the screen into the current window: the frame's queued meshes again, the
+        /// cameras, and the UI when `overlays`. The game's screen-to-world mapping of its
+        /// full-screen passes (_WsToCs, _WsToCcs: texture coordinates of the screen to the
+        /// world's) is narrowed to the window with them.
+        static void RenderWindow(bool overlays, Vector4 wsToCs, Vector4 wsToCcs)
+        {
+            var c = window;
+            activeTile = c.Tile;
+            if (c.Tiled)
+            {
+                Shader.SetGlobalVector(WsToCs, NarrowScreenToWorld(wsToCs, c));
+                Shader.SetGlobalVector(WsToCcs, NarrowScreenToWorld(wsToCcs, c));
+            }
+            queued.Clear();
+            queued.AddRange(frameQueued);
+            RenderScreen(overlays);
+            if (overlays) RenderScreenLate?.Invoke();
+        }
+
+        /// The game's screen-to-world vector (Game.LateUpdate: world = (1 − uv)·zw + xy, uv
+        /// the screen's) for texture coordinates of the window.
+        internal static Vector4 NarrowScreenToWorld(Vector4 v, CaptureWindow c)
+        {
+            var t = c.Tile;
+            // uv of the screen = (uv' − o) / s, so 1 − uv = ((1 − uv') + (s − 1 + o)) / s.
+            return new Vector4(
+                v.x + v.z * (t.x - 1f + t.z) / t.x,
+                v.y + v.w * (t.y - 1f + t.w) / t.y,
+                v.z / t.x,
+                v.w / t.y);
+        }
+
+        /// The render textures the game made the screen's size become the window's for the
+        /// capture: each gets a device texture of that size, its own kept aside until the
+        /// capture ends (RestoreScreenTextures). Cameras and scripts see their screen size
+        /// (CaptureLogicalSize); drawing into them and reading them is the window's.
+        static void ResizeScreenTextures(int sw, int sh, int ww, int wh, (int Width, int Height) light, List<Resized> resized)
+        {
+            foreach (var native in ObjectTable.Snapshot())
+            {
+                if (native is not RenderTextureNative t || t.Destroyed || t.IsTemporary || t.Dimension != TextureKind.Tex2D || t.Width != sw || t.Height != sh) continue;
+                resized.Add(new Resized(t, t.Gpu, t.Width, t.Height, t.MipCount));
+                bool isLight = t.Name == LightBufferName;
+                t.Gpu = null;
+                t.Width = isLight ? light.Width : ww;
+                t.Height = isLight ? light.Height : wh;
+                t.MipsChanged();
+                t.CaptureLogicalSize = new Vector2(sw, sh);
+            }
+        }
+
+        /// The game's light buffer (LightBuffer: what lights shine on, read by the world's
+        /// shaders as `_LightBufferTex`).
+        const string LightBufferName = "LightBuffer";
+
+        /// The size of a tiled capture's light buffer: the whole capture, scaled down to the
+        /// GPU's textures and LightPixels.
+        internal static (int Width, int Height) LightSize(int vw, int vh, int maxTextureSize)
+        {
+            double f = Math.Min(1.0, Math.Min((double)maxTextureSize / vw, (double)maxTextureSize / vh));
+            f = Math.Min(f, Math.Sqrt((double)LightPixels / ((double)vw * vh)));
+            return (Math.Max(1, (int)(vw * f)), Math.Max(1, (int)(vh * f)));
+        }
+
+        /// A tiled capture renders the light buffer once, for the whole capture: the world's
+        /// shaders read it at points of the world (a kanim's at its anchor), which can lie far
+        /// outside the window drawing them (CaptureTiles moves their reads into the whole
+        /// capture's buffer). Its camera is then left out of the windows.
+        static void RenderLightBufferWhole(List<Resized> resized, (int Width, int Height) light)
+        {
+            RenderTextureNative buffer = null;
+            foreach (var r in resized)
+                if (r.Texture.Name == LightBufferName) buffer = r.Texture;
+            if (buffer == null) return;
+            foreach (var camera in Cameras.Enabled.ToArray())
+            {
+                var n = (CameraNative)camera.Native;
+                if (n == null || !n.GameObject.ActiveInHierarchy || n.TargetTexture == null || n.TargetTexture.Native != buffer) continue;
+                var tiled = window;
+                window = new CaptureWindow { Scale = tiled.Scale, VirtualWidth = light.Width, VirtualHeight = light.Height, Width = light.Width, Height = light.Height };
+                try
+                {
+                    queued.Clear();
+                    queued.AddRange(frameQueued);
+                    RenderCamera(camera);
+                }
+                finally
+                {
+                    window = tiled;
+                }
+                lightCamera = n;
+                return;
+            }
+        }
+
+        static void RestoreScreenTextures(List<Resized> resized)
+        {
+            foreach (var r in resized)
+            {
+                var t = r.Texture;
+                GraphicsDevice.Release(ref t.Gpu);
+                t.Width = r.Width;
+                t.Height = r.Height;
+                t.MipCount = r.MipCount;
+                t.Gpu = r.Gpu;
+                t.CaptureLogicalSize = default;
             }
         }
 
         /// Draw queues are recorded serially, whatever the device would do (diagnostics).
         public static bool SerialQueues;
 
-        /// Diagnostics (ONI_CAPTURE_TWICE=serial|parallel|full-uploads): each super-sized capture
-        /// renders the frame a second time, with draw queues recorded serially, as usual, or
-        /// (full-uploads) with every raw-loaded texture uploaded in full (RawTextureLoads), into
-        /// PATH.again.png: the two must be identical.
+        /// Diagnostics (ONI_CAPTURE_TWICE=serial|parallel|full-uploads|tiles:WxH): each
+        /// super-sized capture renders the frame a second time, with draw queues recorded
+        /// serially, as usual, (full-uploads) with every raw-loaded texture uploaded in full
+        /// (RawTextureLoads), or (tiles) in windows of W x H pixels, into PATH.again.png: the two
+        /// must be identical (tiles: but where the window's guard is too narrow).
         static readonly string captureTwice = Environment.GetEnvironmentVariable("ONI_CAPTURE_TWICE");
 
         /// Screen drawing after the frame renderer's (IMGUI); captures repeat it.
@@ -600,8 +910,14 @@ namespace OniMoono.Engine.Rendering
                     // Diagnostics: the same frame rendered again, into PATH.again.png.
                     SerialQueues = captureTwice == "serial";
                     if (captureTwice == "full-uploads") RawTextureLoads.UploadAll();
+                    var forced = forcedWindow;
+                    if (captureTwice.StartsWith("tiles:", StringComparison.Ordinal)) forcedWindow = ParseWindow(captureTwice["tiles:".Length..]);
                     try { Capture(path + ".again.png", scale); }
-                    finally { SerialQueues = false; }
+                    finally
+                    {
+                        SerialQueues = false;
+                        forcedWindow = forced;
+                    }
                 }
             captures.Clear();
             frameQueued.Clear();
@@ -704,8 +1020,10 @@ namespace OniMoono.Engine.Rendering
 
             RenderTexture source = null;
             bool toScreen = cam.TargetTexture == null && cam.TargetColorBuffers == null;
-            int pixelScale = toScreen ? screenScale : 1;
-            var size = cam.TargetSize * pixelScale;
+            // A super-sized capture renders the cameras of the screen and of its screen-sized
+            // textures into its window (Capture).
+            bool windowed = window != null && (toScreen || IsWindowTarget(cam));
+            var size = windowed ? new Vector2(window.Width, window.Height) : cam.TargetSize;
             if (effects.Count > 0)
             {
                 source = RenderTexture.GetTemporary(Math.Max(1, (int)size.x), Math.Max(1, (int)size.y), 24,
@@ -714,10 +1032,44 @@ namespace OniMoono.Engine.Rendering
             }
             var cameraTarget = source != null ? RenderTargetBinding.Of((RenderTextureNative)source.NativeOrThrow) : CameraTarget(cam);
             if (source == null) Bind(device, cameraTarget);
-            var viewport = cam.PixelRect;
-            var pixelViewport = new Rect(viewport.x * pixelScale, viewport.y * pixelScale, viewport.width * pixelScale, viewport.height * pixelScale);
+            var pixelViewport = windowed ? new Rect(0f, 0f, window.Width, window.Height) : cam.PixelRect;
             device.SetViewport(pixelViewport);
             var constants = Constants(cam);
+            if (windowed)
+            {
+                // The camera's rect of the whole capture, placed in the window; its constants as
+                // a screen the capture's size would give them.
+                var logical = cam.TargetSize;
+                var rect = cam.PixelRect;
+                float sx = window.VirtualWidth / logical.x, sy = window.VirtualHeight / logical.y;
+                var clip = window.Clip(rect.x * sx, rect.y * sy, rect.width * sx, rect.height * sy);
+                constants = constants with { Projection = clip * constants.Projection, TargetSize = new Vector2(window.VirtualWidth, window.VirtualHeight) };
+            }
+            var tile = activeTile;
+            activeTile = windowed && window.Tiled ? window.Tile : default;
+            try
+            {
+                RenderCameraPasses(camera, cam, device, draws, effects, source, cameraTarget, pixelViewport, constants, departuresAtCull);
+            }
+            finally
+            {
+                activeTile = tile;
+            }
+        }
+
+        /// A camera's target is one of the screen-sized render textures a capture renders in its
+        /// window.
+        static bool IsWindowTarget(CameraNative cam)
+        {
+            if (cam.TargetTexture != null) return ((RenderTextureNative)cam.TargetTexture.NativeOrThrow).CaptureLogicalSize != default;
+            return cam.TargetColorBuffers is { Length: > 0 }
+                && ObjectTable.FindByInstanceId(cam.TargetColorBuffers[0].m_RenderTextureInstanceID) is RenderTextureNative { CaptureLogicalSize.x: > 0 };
+        }
+
+        static void RenderCameraPasses(Camera camera, CameraNative cam, RenderDevice device, List<DrawItem> draws,
+            List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)> effects,
+            RenderTexture source, RenderTargetBinding cameraTarget, Rect pixelViewport, CameraConstants constants, long departuresAtCull)
+        {
             device.SetCamera(constants);
             // Camera-event command buffers may retarget or change matrices; the camera's own
             // passes continue on its target with its matrices afterwards, as in Unity.
@@ -728,7 +1080,7 @@ namespace OniMoono.Engine.Rendering
                 device.SetViewport(pixelViewport);
                 device.SetCamera(constants);
             }
-            GLState.BeginCamera(cam);
+            GLState.BeginCamera(cam, constants.Projection);
 
             switch (cam.ClearFlags)
             {

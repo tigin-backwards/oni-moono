@@ -261,8 +261,7 @@ namespace OniMoono.Engine.Rendering
             {
                 var rt = RenderTexture.active;
                 if (rt != null) return new Vector2(rt.width, rt.height);
-                var p = OniMoono.Engine.Platform.PlatformServices.Current;
-                return new Vector2(p.FramebufferWidth, p.FramebufferHeight);
+                return FrameRenderer.ScreenPixelSize;
             }
         }
 
@@ -271,10 +270,12 @@ namespace OniMoono.Engine.Rendering
         public static Matrix4x4 View = Matrix4x4.identity;
 
         /// While a camera renders, GL starts from its view and projection.
-        public static void BeginCamera(CameraNative cam)
+        /// While a camera renders, GL starts from its view and projection (the projection that
+        /// rasterises: a capture's window's, FrameRenderer).
+        public static void BeginCamera(CameraNative cam, Matrix4x4 projection)
         {
             ModelView = cam.WorldToCamera;
-            Projection = cam.Projection;
+            Projection = projection;
             View = cam.WorldToCamera;
         }
 
@@ -370,7 +371,7 @@ namespace OniMoono.Engine.Rendering
         public static Vector2 SetTarget(RenderTexture dest)
         {
             RenderTexture.active = dest;
-            return dest == null ? GLState.TargetSize * FrameRenderer.ScreenScale : GLState.TargetSize;
+            return GLState.TargetSize;
         }
 
         /// Binds dest (null: the screen) on the device, with the viewport over all of it; what
@@ -379,7 +380,7 @@ namespace OniMoono.Engine.Rendering
         {
             var device = GraphicsDevice.Current;
             FrameRenderer.Bind(device, dest == null ? FrameRenderer.ScreenBinding : RenderTargetBinding.Of((RenderTextureNative)dest.NativeOrThrow));
-            var size = dest == null ? GLState.TargetSize * FrameRenderer.ScreenScale : GLState.TargetSize;
+            var size = GLState.TargetSize;
             device.SetViewport(new Rect(0f, 0f, size.x, size.y));
         }
 
