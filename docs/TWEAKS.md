@@ -52,6 +52,8 @@ step aside. It only shows what it finds; it never turns a tweak on or off.
   `fast-overlays` (the overlay methods each of its parts stands in for),
   `fast-overlay-textures` (`MultipleRenderTargetProxy.CreateRenderTarget`), `fast-anim-events`
   (the animation event loop and what it reads; see [Animation events](#animation-events)),
+  `save-read-ahead` (any patch of `SaveLoader.DecompressContents`, a transpiler or a prefix
+  that can skip `SaveLoader.Load`; see [Reading saves ahead](#reading-saves-ahead)),
   and the two rewrites for a transpiler they did not review. The icon is the grey disabled sign.
 
 An affected row gets the icon beside its switch, and its tooltip names each mod and what it
@@ -225,6 +227,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Faster save compression** (`fast-save-compression`): Saving and loading take seconds less; files stay compatible, a little larger. Compresses with .NET's zlib instead of the game's own; the files are about 14% larger.
 - **Background saving** (`background-save`): The save is compressed and written to disk while the game plays on. Compression and the file write move to another thread; quitting waits for them.
 - **No cleanup pause when saving** (`no-save-gc`): Skips the memory cleanup the game forces after each save, a pause of its own. Skips the full garbage collection the game asks for after saving.
+- **Read saves ahead** (`save-read-ahead`): Loading a colony starts reading and unpacking its save as soon as you pick it. The picked save is read and decompressed on another thread while you look at it or while loading starts; the load takes the result if the file has not changed since, byte for byte what it would read itself. Off while another mod changes how saves are read.
 - **Memory cleanup during loading** (`post-load-gc`): Collects garbage during the loading screen, avoiding a large hitch shortly after the game starts. Runs the memory cleanup that would otherwise pause the game about a minute into play at the end of the load, while the game is still paused. Only with Fast garbage collection (the default). *Measured: no ~0.3 s freeze a minute after loading a large colony; loading ~0.2 s longer; a late-game Spaced Out colony with every DLC (cycle 17,000+), Windows, 2026-11-07.*
 
 ### Simulation (on by default)
@@ -422,6 +425,25 @@ the repeated work. It installs only where the Load screen still has the bug: whe
 changes `LoadScreen.AddColonyToList` or the fields the fix reads, or the method no longer adds
 the handler without clearing the button first, the tweak is left out with one line in
 Player.log (`fix-load-screen-clicks: left out, ...`).
+
+### Reading saves ahead
+
+A load reads the whole save, finds where its compressed body starts and decompresses it on the
+main thread, in the frame that builds the colony: about 0.5 s of a mid-game colony's load and
+2.6 s of a late-game one's on Linux ([measurements](research/save-load-and-loading-screen.md)).
+With `save-read-ahead` a thread of its own does that from the moment a save is selected on the
+Load screen (0.2 s after the selection settles; opening a colony selects its newest save), or
+at once when a load starts (the Load button, the main menu's Resume, the game's own reloads). It
+decompresses with the game's own `SaveLoader.DecompressContents`, so with `fast-save-compression`
+on it uses that tweak's zlib, as the load would. The load takes the bytes read when the file has
+the same path, size and write time as when it was read, and the decompressed body when the
+compressed bytes it is given are, compared whole, the ones the thread decompressed; anything
+else, or a failure on the thread, leaves the load to read and decompress as before (a corrupt
+save fails as it would). One save at most is kept: a new selection drops the last, and a save
+not loaded is dropped 30 s after it is ready or when the Load screen closes. It steps aside while
+another mod patches `SaveLoader.DecompressContents`, transpiles `SaveLoader.Load`, or patches it
+with a prefix that can skip it. With `ONI_TWEAK_VERIFY=1` the load also reads and decompresses
+the save itself and compares both, byte for byte.
 
 ### The sound fixes
 

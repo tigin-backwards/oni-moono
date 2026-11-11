@@ -209,6 +209,7 @@ namespace OniMoono.GameTweaks
             Add(FastOverlays.Name, FastOverlays.Guarded);
             Add(FastOverlayTextures.Name, () => new[] { FastOverlayTextures.Guarded() });
             Add(FastAnimEvents.Name, FastAnimEvents.Guarded, FastAnimEvents.KindsOf);
+            Add(SaveReadAhead.Name, SaveReadAhead.Guarded, SaveReadAhead.KindsOf);
             return guards;
         }
     }

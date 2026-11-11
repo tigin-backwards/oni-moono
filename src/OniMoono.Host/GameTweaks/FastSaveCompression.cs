@@ -36,9 +36,11 @@ namespace OniMoono.Host.GameTweaks
             return false;
         }
 
-        /// SaveLoader.DecompressContents(byte[]): the save's body.
-        static bool Decompress(byte[] compressed, ref byte[] __result)
+        /// SaveLoader.DecompressContents(byte[]): the save's body. A prefix ahead of it that skips
+        /// the game's (save-read-ahead's, with the body decompressed ahead by this one) is left be.
+        static bool Decompress(byte[] compressed, ref byte[] __result, bool __runOriginal)
         {
+            if (!__runOriginal) return false;
             using var zlib = new ZLibStream(new MemoryStream(compressed), CompressionMode.Decompress);
             var output = new MemoryStream((int)System.Math.Min((long)compressed.Length * 4, System.Array.MaxLength));
             zlib.CopyTo(output);

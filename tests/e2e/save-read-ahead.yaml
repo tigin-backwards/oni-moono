@@ -1,0 +1,34 @@
+# save-read-ahead (docs/TWEAKS.md, "Reading saves ahead"): a save made from the pause menu, then
+# loaded through the Load screen. Opening the colony selects its newest save, which a thread reads
+# and decompresses; the Load button's load takes both, and verify compares them with the game's
+# own read and decompression. Ours only (`--player ours`); the colony comes back as in the
+# better-save spec.
+from: early-base
+env:
+  ONI_TWEAK_VERIFY: "1"
+steps:
+  - run: {seconds: 2}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/SaveButton"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/OKButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/SaveButton", cond: gone, frames: 1200}
+  - expect_state: {"file:save_files/e2e/early-base.sav": exists}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/TitleContainer/SaveText", cond: text, value: early-base}
+  # The selection's read and decompression finish while the screen is up.
+  - run: {seconds: 2}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 6000}
+  - ui_wait: {path: "**/BottomPanelRight/ToolMenu", cond: stable, frames: 6000}
+  - run: {seconds: 10}
+  - expect: {duplicants: 3, buildings: {Outhouse: 1, ManualGenerator: 1, ResearchCenter: 1}}
+  - expect_state:
+      "type:OniMoono.GameTweaks.SaveReadAhead::Taken": "> 0"
+      "type:OniMoono.GameTweaks.SaveReadAhead::Decompressed": "> 0"
+      "type:OniMoono.GameTweaks.SaveReadAhead::SteppedAside": 0
+      "type:OniMoono.GameTweaks.SaveReadAhead::Mismatches": 0

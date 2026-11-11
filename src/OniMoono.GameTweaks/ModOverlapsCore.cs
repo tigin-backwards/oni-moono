@@ -88,7 +88,7 @@ namespace OniMoono.GameTweaks
         ///   reviewed transpiler).
         public static OverlapGrade Grade(TweakUse use, ForeignPatch patch, bool reviewed)
         {
-            if (use.Guard && ProbeRepairPolicy.Counts(use.GuardKinds, patch.Kind)) return OverlapGrade.StepsAside;
+            if (use.Guard && ProbeRepairPolicy.Counts(use.GuardKinds, patch.Kind, patch.CanSkip)) return OverlapGrade.StepsAside;
             if (patch.Kind == PatchKind.Transpiler)
             {
                 if (use.Rewrite && use.StepsAsideOnTranspiler) return reviewed ? OverlapGrade.Low : OverlapGrade.StepsAside;
