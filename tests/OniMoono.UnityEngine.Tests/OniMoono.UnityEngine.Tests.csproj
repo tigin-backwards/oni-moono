@@ -86,6 +86,8 @@
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakMetadata.cs" Link="Host/TweakMetadata.cs" />
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakChecks.cs" Link="Host/TweakChecks.cs" />
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakInstall.cs" Link="Host/TweakInstall.cs" />
+    <!-- Name lookups and mirrors against the declarations (TweakDriftTests). -->
+    <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakDrift.cs" Link="Host/TweakDrift.cs" />
     <!-- The path-probe-repair game tweak's search (ProbeRepairTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/ProbeRepairCore.cs" Link="GameTweaks/ProbeRepairCore.cs" />
     <Compile Include="../../src/OniMoono.GameTweaks/FetchByCellCore.cs" Link="GameTweaks/FetchByCellCore.cs" />

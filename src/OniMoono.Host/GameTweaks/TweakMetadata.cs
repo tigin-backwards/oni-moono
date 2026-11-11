@@ -20,6 +20,8 @@ namespace OniMoono.Host.GameTweaks
     {
         public readonly string Name;
         public readonly MetadataReader Reader;
+        /// Its file on disk (null for a loaded assembly's metadata).
+        public string? Path { get; private set; }
         readonly PEReader? pe;
         readonly Dictionary<string, TypeDefinitionHandle> topLevel = new(StringComparer.Ordinal);
         bool indexed;
@@ -52,7 +54,7 @@ namespace OniMoono.Host.GameTweaks
             {
                 var pe = new PEReader(stream);
                 if (!pe.HasMetadata) { pe.Dispose(); return null; }
-                return new MetadataFile(Path.GetFileNameWithoutExtension(path), pe);
+                return new MetadataFile(System.IO.Path.GetFileNameWithoutExtension(path), pe) { Path = path };
             }
             catch (BadImageFormatException)
             {
@@ -523,7 +525,7 @@ namespace OniMoono.Host.GameTweaks
         }
 
         /// A generic instantiation's type definition or reference (the type itself otherwise).
-        static EntityHandle GenericHead(MetadataReader reader, TypeSpecificationHandle spec)
+        internal static EntityHandle GenericHead(MetadataReader reader, TypeSpecificationHandle spec)
         {
             var blob = reader.GetBlobReader(reader.GetTypeSpecification(spec).Signature);
             if (blob.ReadSignatureTypeCode() != SignatureTypeCode.GenericTypeInstance) return default;
@@ -554,7 +556,7 @@ namespace OniMoono.Host.GameTweaks
             return game.Find(assembly, from.Names.Reference(handle));
         }
 
-        static bool IsGameReference(GameFiles game, MetadataFile from, TypeReferenceHandle handle)
+        internal static bool IsGameReference(GameFiles game, MetadataFile from, TypeReferenceHandle handle)
         {
             var scope = Scope(from.Reader, handle);
             return !scope.IsNil && game.IsGame(from.Reader.GetString(from.Reader.GetAssemblyReference(scope).Name));
@@ -693,24 +695,36 @@ namespace OniMoono.Host.GameTweaks
                 return collect;
             }
 
-            /// `stop`: types not followed into (their own references are not the roots' problems).
-            public List<string> Problems(IEnumerable<TypeDefinitionHandle> roots, IReadOnlySet<TypeDefinitionHandle>? stop = null)
+            /// The types the code of `roots` reaches (the roots too), not following into `stop`.
+            public List<TypeDefinitionHandle> Reach(IEnumerable<TypeDefinitionHandle> roots, IReadOnlySet<TypeDefinitionHandle>? stop = null) => Walk(roots, stop, null, null);
+
+            List<TypeDefinitionHandle> Walk(IEnumerable<TypeDefinitionHandle> roots, IReadOnlySet<TypeDefinitionHandle>? stop, HashSet<TypeReferenceHandle>? types, HashSet<MemberReferenceHandle>? members)
             {
                 var seen = new HashSet<TypeDefinitionHandle>(stop ?? (IEnumerable<TypeDefinitionHandle>)[]);
                 var pending = new Queue<TypeDefinitionHandle>();
+                var reached = new List<TypeDefinitionHandle>();
                 foreach (var root in roots)
                     if (seen.Add(root)) pending.Enqueue(root);
+                while (pending.Count > 0)
+                {
+                    var type = pending.Dequeue();
+                    reached.Add(type);
+                    var collect = Direct(type);
+                    foreach (var used in collect.Seen)
+                        if (seen.Add(used)) pending.Enqueue(used);
+                    types?.UnionWith(collect.References);
+                    members?.UnionWith(collect.Members);
+                }
+                return reached;
+            }
+
+            /// `stop`: types not followed into (their own references are not the roots' problems).
+            public List<string> Problems(IEnumerable<TypeDefinitionHandle> roots, IReadOnlySet<TypeDefinitionHandle>? stop = null)
+            {
                 var problems = new List<string>();
                 var types = new HashSet<TypeReferenceHandle>();
                 var members = new HashSet<MemberReferenceHandle>();
-                while (pending.Count > 0)
-                {
-                    var collect = Direct(pending.Dequeue());
-                    foreach (var used in collect.Seen)
-                        if (seen.Add(used)) pending.Enqueue(used);
-                    types.UnionWith(collect.References);
-                    members.UnionWith(collect.Members);
-                }
+                Walk(roots, stop, types, members);
                 foreach (var reference in types)
                     if (TypeProblem(reference) is { } problem) problems.Add(problem);
                 foreach (var member in members)

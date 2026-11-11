@@ -44,7 +44,7 @@ namespace OniMoono.Tests
         /// one; plus two once its body changed), Signed(int) (long once its signature changed),
         /// a field count (an int, a long once retyped), and Helper(), which the tweak's lambda
         /// calls; class MainMenu with OnPrefabInit(), which the Moono Tweaks menu patches.
-        static string Game(string folder, Update update)
+        internal static string Game(string folder, Update update)
         {
             Directory.CreateDirectory(folder);
             var name = new Cecil.AssemblyNameDefinition("Assembly-CSharp", new Version(0, 0, 0, 0));

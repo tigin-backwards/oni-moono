@@ -67,7 +67,8 @@ namespace OniMoono.Host.GameTweaks
     ///    code first runs in play.
     /// 3. Every member it transpiles, replaces or mirrors has a body whose fingerprint
     ///    (Fingerprints.Of) is one it declares as reviewed.
-    /// (4, the sites each transpiler rewrote, is checked as it installs: GameTweaks.)
+    /// (4, the sites each transpiler rewrote, is checked as it installs: GameTweaks; 5 and 6, the
+    /// declarations against the code, offline: TweakDrift.)
     internal static class TweakChecks
     {
         /// Every tweak's declarations in an assembly, by tweak name; `classes` the classes whose
@@ -131,7 +132,9 @@ namespace OniMoono.Host.GameTweaks
             public readonly Dictionary<string, List<GameMemberDeclaration>> Declared;
             public readonly Dictionary<string, List<TypeDefinitionHandle>> Classes;
             GameLookup.ReferenceScan? scan;
+            TweakDrift.Scan? drift;
             public GameLookup.ReferenceScan Scan(GameFiles game) => scan ??= new GameLookup.ReferenceScan(game, File);
+            public TweakDrift.Scan Drift(GameFiles game) => drift ??= new TweakDrift.Scan(game, File);
 
             public Assembly(MetadataFile file, bool typed)
             {
