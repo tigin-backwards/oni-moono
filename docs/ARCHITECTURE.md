@@ -3221,7 +3221,8 @@ with .NET 10 (`--test-native-crash`):
 | Fault on a thread with no managed frames (a native thread) | our vectored handler, then the unhandled-exception filter (ours, then the runtime's) | line, stack, exit code, dump |
 | Native stack overflow on such a thread | the same | line, stack (`(x95)` for the recursion), dump |
 | Heap corruption (0xC0000374) | raised to the vectored handlers just before the heap ends the process | line, stack, dump |
-| `__fastfail`, a /GS check, `abort()` (0xC0000409), `TerminateProcess` by another module | nothing | the exit code alone |
+| `__fastfail`, a /GS check, `abort()` (0xC0000409) | nothing; Windows Error Reporting records it (its Application Error event 1000) before the process ends | the line from that record (module, offset and the fast fail's code, as `0xC0000409 fast fail 5 (an invalid parameter to the C runtime) in SimDLL.dll+0x9F1CB`), the exit code; no dump, as the process is gone (`--test-native-crash fastfail-reported`; the other cases turn Windows Error Reporting off) |
+| `TerminateProcess` by another module | nothing | the exit code alone |
 | `Environment.FailFast`; a stack overflow on a managed thread (in managed code or native code it called) | the runtime's text (`Process terminated.`, `Stack overflow.`), which it handles first | that text with the managed stack, the exit code, a dump |
 | A managed null reference, caught or not; the mods' stack probes | the runtime's vectored handler, which is first, handles it | nothing (the managed exception is logged as before) |
 
@@ -3275,7 +3276,8 @@ a player who agrees to send it; the default stays the small dump.
 **The crash window** (`crash_dialog.cpp`). Once the watcher has written a crash record it shows
 a window, the onimaxxing site's dialog in its light or dark palette: "The game closed
 unexpectedly", the error line taken from the record (the fault's code, its name and module, as
-`0xC0000005 (access violation) in nvoglv64.dll`; an unhandled managed exception's type, method and
+`0xC0000005 (access violation) in nvoglv64.dll`, a fast fail's module from Windows Error Reporting
+as `0xC0000409 (fast fail) in SimDLL.dll`; an unhandled managed exception's type, method and
 message; or the exit code and its name, as `0xC0000409 (fast fail)`), **Show details** (Moono's
 release, the game's build, Windows, the GPU and its driver, installed memory, the session's
 length, the enabled mods, the files), a box for what the player was doing, a check box to include

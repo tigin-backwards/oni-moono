@@ -8,7 +8,7 @@ namespace OniMoono.Host
     internal static class NativeCrashTestOption
     {
         public static readonly string[] Choices =
-            ["main", "worker", "thread", "stack-overflow", "main-stack-overflow", "fastfail", "heap", "gs", "abort", "terminate", "failfast", "managed-null"];
+            ["main", "worker", "thread", "stack-overflow", "main-stack-overflow", "fastfail", "fastfail-reported", "heap", "gs", "abort", "terminate", "failfast", "managed-null"];
 
         public static string Known => string.Join(", ", Choices);
 
