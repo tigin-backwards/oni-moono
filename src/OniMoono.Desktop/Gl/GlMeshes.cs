@@ -112,7 +112,7 @@ namespace OniMoono.Desktop.Gl
         public ulong Checksum;
         public uint Usage;
         /// The mesh and this upload's place in its uploads: once it has run, the arrays it held
-        /// may be reused (MeshNative.NewChannel).
+        /// may be reused (MeshNative.NewChannelAtLeast, CanvasArrays).
         public MeshNative Mesh;
         public int Sequence;
 

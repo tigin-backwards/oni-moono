@@ -266,5 +266,33 @@ namespace OniMoono.Tests
             mesh.SetTriangles(new List<int> { 0, 1, 9 }, 0);
             Assert.Equal(new[] { 0, 1, 2, 3, 4, 5 }, mesh.triangles);
         }
+
+        /// Mesh.Clear leaves one empty triangle submesh, as a new mesh has, whatever it had.
+        [Fact]
+        public void ClearLeavesOneEmptySubmeshAsANewMeshHas()
+        {
+            var mesh = new Mesh
+            {
+                vertices = [Vector3.zero, Vector3.up, Vector3.right, Vector3.one],
+                subMeshCount = 3,
+            };
+            mesh.SetIndices(new[] { 0, 1, 2 }, MeshTopology.Triangles, 0);
+            mesh.SetIndices(new[] { 0, 1, 2, 3 }, MeshTopology.Lines, 1, calculateBounds: true, baseVertex: 0);
+            mesh.SetIndices(new[] { 1, 2, 3 }, MeshTopology.Triangles, 2, calculateBounds: true, baseVertex: 1);
+            var first = mesh.Data.SubMeshes[0];
+            mesh.Clear();
+            Assert.Equal(1, mesh.subMeshCount);
+            Assert.Same(first, mesh.Data.SubMeshes[0]);
+            Assert.Equal(0, mesh.Data.SubMeshes[0].IndexCount);
+            Assert.Equal(MeshTopology.Triangles, mesh.GetTopology(0));
+            Assert.Equal(0, mesh.Data.SubMeshes[0].BaseVertex);
+            Assert.Equal(default, mesh.Data.SubMeshes[0].Bounds);
+            Assert.Null(mesh.Data.SubMeshes[0].Given);
+            Assert.Empty(mesh.GetTriangles(0));
+            // And a cleared mesh is filled as a new one is.
+            mesh.vertices = [Vector3.zero, Vector3.up, Vector3.right];
+            mesh.triangles = [0, 1, 2];
+            Assert.Equal([0, 1, 2], mesh.triangles);
+        }
     }
 }
