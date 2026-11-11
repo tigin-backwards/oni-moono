@@ -104,6 +104,17 @@ namespace OniMoono.Engine.Rendering
         /// Frees the device resource held in an object's Gpu slot.
         public abstract void ReleaseResource(object gpu);
 
+        /// Makes a script's new texture's device storage ahead of its first use, where the
+        /// device does that (main thread).
+        public virtual void PrepareAhead(TextureNative texture) { }
+
+        /// Uploads the data of a mesh no draw has used yet ahead of its first draw, where the
+        /// device does that (main thread).
+        public virtual void PrepareAhead(MeshNative mesh) { }
+
+        /// Work was queued ahead of use (main thread): the device may start on it.
+        public virtual void AheadQueued() { }
+
         /// Makes a texture resident on the device with its current content.
         public virtual void Upload(TextureNative texture) { }
 
@@ -319,6 +330,30 @@ namespace OniMoono.Engine.Rendering
             owners.Remove(gpu);
             Current.ReleaseResource(gpu);
             gpu = null;
+        }
+
+        static readonly List<MeshNative> undrawn = new();
+
+        /// A mesh no draw has used yet was given data (main thread).
+        public static void NoteUndrawn(MeshNative mesh)
+        {
+            if (!Current.RendersFrames) return;
+            mesh.AheadNoted = true;
+            undrawn.Add(mesh);
+        }
+
+        /// End of the frame's rendering (main thread): the meshes given data that no draw has used
+        /// yet go to the device to be uploaded ahead of their first draw (RenderDevice.PrepareAhead).
+        public static void PrepareUndrawn()
+        {
+            if (undrawn.Count == 0) return;
+            foreach (var mesh in undrawn)
+            {
+                mesh.AheadNoted = false;
+                if (!mesh.Destroyed && mesh.Gpu == null && mesh.VertexCount > 0) Current.PrepareAhead(mesh);
+            }
+            undrawn.Clear();
+            Current.AheadQueued();
         }
 
         /// Textures loaded since the last frame, uploaded before it renders (any thread may load).

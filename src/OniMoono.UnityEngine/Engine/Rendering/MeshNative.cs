@@ -249,7 +249,15 @@ namespace OniMoono.Engine.Rendering
 
         public MeshNative() => Uvs = new UvSet(this);
 
-        public void Changed() => Version++;
+        public void Changed()
+        {
+            Version++;
+            // Data for a mesh no draw has used yet: the device may upload it ahead of its first draw.
+            if (Gpu == null && !AheadNoted && Threads.IsMainThread) GraphicsDevice.NoteUndrawn(this);
+        }
+
+        /// Main thread: noted for GraphicsDevice.PrepareUndrawn at the end of this frame's rendering.
+        public bool AheadNoted;
 
         // ----- Channel arrays for reuse -----
 

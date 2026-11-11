@@ -170,10 +170,12 @@ namespace OniMoono.Desktop.Gl
             worker = new GlWorker(platform.RenderWindow, CommandFailed);
             recorder = new GlDrawRecorder(worker, DefaultTexture, RunDraw);
             GlBackgroundUploads.Start(worker);
+            if (GlAhead.Enabled) GlAhead.Start(worker);
             // A frame's GPU time is measured from its first commands, not from the previous
             // present: in between the GL thread waits for the main thread's next frame.
             worker.BatchStarting = () =>
             {
+                if (GlAhead.Enabled) GlAhead.BetweenBatches();
                 if (!gpuTimingArmed) return;
                 gpuTimingArmed = false;
                 BeginGpuTiming();
@@ -1072,13 +1074,33 @@ namespace OniMoono.Desktop.Gl
 
         public override void Upload(TextureNative texture) => GlTextures.Prepare(worker, texture);
 
+        public override void PrepareAhead(TextureNative texture)
+        {
+            if (!GlAhead.Enabled || texture is not Texture2DNative t || t.Gpu != null || t.Width <= 0 || t.Height <= 0 || t.Placeholder) return;
+            if (t.SliceSize > GlAhead.MaxTextureBytes) return;
+            var g = new DeviceTexture();
+            t.Gpu = g;
+            GraphicsDevice.Adopt(t, g);
+            var (format, width, height, levels) = (t.Format, t.Width, t.Height, Math.Max(1, t.MipCount));
+            GlAhead.Enqueue(() => GlTextures.SpecifyAhead(g, format, width, height, levels));
+            // Now: a texture made during a long frame (a load's) is made while the frame goes on.
+            GlAhead.Wake();
+        }
+
+        public override void PrepareAhead(MeshNative mesh)
+        {
+            if (GlAhead.Enabled) GlMeshes.PrepareAhead(worker, mesh);
+        }
+
+        public override void AheadQueued() => GlAhead.Wake();
+
         public override void ReleaseResource(object gpu)
         {
             switch (gpu)
             {
                 case DeviceTexture t:
                     if (t.Background != null) GlBackgroundUploads.Claim(t, null);
-                    worker.Post(t.Delete);
+                    worker.Post(t.Release);
                     break;
                 case DeviceMesh m: worker.Post(m.Delete); break;
                 case DeviceProgramSet p: worker.Post(p.Delete); break;
