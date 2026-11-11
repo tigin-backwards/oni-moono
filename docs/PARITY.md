@@ -187,4 +187,10 @@ the shipped package on both sides showed it too.
 
 - Floating-point results are not bit-exact (out of scope, ARCHITECTURE §5).
 - Runtime deviations inherent to CoreCLR (ARCHITECTURE §2.1).
-- `ScreenCapture.CaptureScreenshot` with superSize > 1 (debug screenshot keys only): open item, PLAN.
+- `ScreenCapture.CaptureScreenshot` with superSize > 1 (debug screenshot keys only) renders the
+  frame again at that size, UI included, as the original does while the size fits its GPU (a
+  10240x5760 8x capture of a 1280x720 screen is within 3 % of the original's,
+  `tests/e2e/issue-75-debug-screenshot-8x.yaml`). Past the GPU's texture size limit (16384 on
+  Direct3D 11 and llvmpipe) the original still writes the image, without the overlay UI; ours logs
+  an error and writes nothing, as it does when the GPU cannot make the targets or memory runs out
+  (issue #75).

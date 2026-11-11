@@ -194,12 +194,17 @@ namespace OniMoono.Desktop.Gl
         /// of context state are dropped, since the command may have stopped part way.
         void CommandFailed(Exception e)
         {
+            System.Threading.Interlocked.Increment(ref failedCommands);
             Debug.LogException(e);
             GlBindings.Invalidate();
             GlStateCache.Invalidate();
             framebufferValid = false;
             Array.Clear(constants);
         }
+
+        long failedCommands;
+
+        public override long FailedCommands => System.Threading.Interlocked.Read(ref failedCommands);
 
         /// Video memory in MB (SystemInfo.graphicsMemorySize), 0 when the driver reports none:
         /// - the dedicated video memory of NVX_gpu_memory_info (NVIDIA's driver, and Mesa's
@@ -909,7 +914,12 @@ namespace OniMoono.Desktop.Gl
 
         // ----- Read-back, resources, presentation -----
 
-        /// Waits for the GL thread to render everything recorded so far, then reads.
+        /// Rows a read-back takes at once: about a million pixels (16 MB of floats), so a large
+        /// read (a super-sized capture's) needs no buffer of its size.
+        const int ReadBandPixels = 1 << 20;
+
+        /// Waits for the GL thread to render everything recorded so far, then reads, a band of
+        /// rows at a time.
         public override void ReadPixels(RenderTextureNative source, RectInt rect, Texture2DNative destination, int destX, int destY)
         {
             int w = Math.Min(rect.width, destination.Width - destX), h = Math.Min(rect.height, destination.Height - destY);
@@ -917,42 +927,48 @@ namespace OniMoono.Desktop.Gl
             var device = source != null ? GlTextures.Prepare(worker, source) : null;
             bool autoMips = source?.AutoGenerateMips ?? false;
             int fbWidth = platform.FramebufferWidth, fbHeight = platform.FramebufferHeight;
-            if (!worker.TryCall(() =>
+            int band = Math.Clamp(ReadBandPixels / w, 1, h);
+            var read = new float[w * band * 4];
+            for (int y0 = 0; y0 < h; y0 += band)
             {
-                uint framebuffer;
-                if (device != null)
+                int rows = Math.Min(band, h - y0);
+                int bandY = y0;
+                if (!worker.TryCall(() =>
                 {
-                    GlTextures.PrepareForSampling(device, autoMips);
-                    framebuffer = device.Framebuffer;
-                }
-                else framebuffer = presenter.ReadBuffer(fbWidth, fbHeight);
-                GlApi.BindFramebuffer(ReadFramebuffer, framebuffer);
-                var read = new float[w * h * 4];
-                N.glPixelStorei(PackAlignment, 4);
-                fixed (float* p = read) N.glReadPixels(rect.x, rect.y, w, h, Rgba, Float, p);
-                if (PresentTrace.Enabled && device == null)
+                    uint framebuffer;
+                    if (device != null)
+                    {
+                        GlTextures.PrepareForSampling(device, autoMips);
+                        framebuffer = device.Framebuffer;
+                    }
+                    else framebuffer = presenter.ReadBuffer(fbWidth, fbHeight);
+                    GlApi.BindFramebuffer(ReadFramebuffer, framebuffer);
+                    N.glPixelStorei(PackAlignment, 4);
+                    fixed (float* p = read) N.glReadPixels(rect.x, rect.y + bandY, w, rows, Rgba, Float, p);
+                    if (PresentTrace.Enabled && device == null)
+                    {
+                        double sum = 0;
+                        for (int i = 0; i < w * rows * 4; i += 4) sum += 0.299 * read[i] + 0.587 * read[i + 1] + 0.114 * read[i + 2];
+                        PresentTrace.Log($"frame {Time.frameCount}: ReadPixels of the screen {rect} rows {bandY}+{rows} from framebuffer {framebuffer}: mean luminance {255 * sum / (w * rows):F1}");
+                    }
+                    framebufferValid = false;
+                    return 0;
+                }, out _))
                 {
-                    double sum = 0;
-                    for (int i = 0; i < read.Length; i += 4) sum += 0.299 * read[i] + 0.587 * read[i + 1] + 0.114 * read[i + 2];
-                    PresentTrace.Log($"frame {Time.frameCount}: ReadPixels of the screen {rect} from framebuffer {framebuffer}: mean luminance {255 * sum / (w * h):F1}");
+                    // The window has closed: the destination keeps its texels.
+                    if (!loggedStoppedRead) EngineLog.Engine("ReadPixels after the OpenGL device stopped: nothing read (logged once)");
+                    loggedStoppedRead = true;
+                    return;
                 }
-                framebufferValid = false;
-                return read;
-            }, out var pixels))
-            {
-                // The window has closed: the destination keeps its texels.
-                if (!loggedStoppedRead) EngineLog.Engine("ReadPixels after the OpenGL device stopped: nothing read (logged once)");
-                loggedStoppedRead = true;
-                return;
+                var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
+                for (int y = 0; y < rows; y++)
+                    for (int x = 0; x < w; x++)
+                    {
+                        int o = (y * w + x) * 4;
+                        TextureFormats.Encode(destination.Format, mip, destination.Width, destX + x, destY + y0 + y,
+                            new Color(read[o], read[o + 1], read[o + 2], read[o + 3]));
+                    }
             }
-            var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    int o = (y * w + x) * 4;
-                    TextureFormats.Encode(destination.Format, mip, destination.Width, destX + x, destY + y,
-                        new Color(pixels[o], pixels[o + 1], pixels[o + 2], pixels[o + 3]));
-                }
         }
 
         bool loggedStoppedRead;
