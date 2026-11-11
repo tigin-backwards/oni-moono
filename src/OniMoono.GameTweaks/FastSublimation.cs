@@ -36,6 +36,8 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "System.Void Sublimates::OnSpawn()")]
     [GameMember(GameUse.Mirrors, "System.Void Sublimates::Sim200ms(System.Single)", "86bc4dc07c603b92 linux-744825 win-744825", "32cbb2fea2652722 linux-761211 win-761211", "c2fd396cf612bb8a linux-761654 linux-762107 linux-762230 win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Uses, "Sublimates/EmitState Sublimates::lastEmitState")]
+    [GameMember(GameUse.Mirrors, "System.Single SimTemperatureTransfer::OnGetTemperature(PrimaryElement)", "ede264fbd3c16edb linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Mirrors, "System.Void UpdateBucketWithUpdater`1::Update(System.Single)", "ffb17e937154691b linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
     public static class FastSublimation
     {
         public const string Name = "fast-sublimation";
@@ -86,6 +88,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// Sublimates are scheduled as they spawn: the first one's buckets get the batch function.
+        [NameLookupReviewed("SimAndRenderScheduler.Entry.buckets, declared")]
         static void Spawned()
         {
             var scheduler = SimAndRenderScheduler.instance;
@@ -117,6 +120,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// UpdateBucketWithUpdater.Update's loop, with the items that would not change skipped.
+        [MirrorsGame("System.Void UpdateBucketWithUpdater`1::Update(System.Single)")]
         static void Batch(Mirror mirror, List<Entry> items, float dt)
         {
             int count = items.Count;
@@ -149,6 +153,8 @@ namespace OniMoono.GameTweaks
 
         /// Whether the item's full update would leave it as it is; if so, makes the temperature
         /// read's side effect.
+        [MirrorsGame("System.Void Sublimates::Sim200ms(System.Single)")]
+        [MirrorsGame("System.Single SimTemperatureTransfer::OnGetTemperature(PrimaryElement)")]
         static unsafe bool Unchanged(ref Row row)
         {
             if (Grid.PosToCell(row.Transform.position) != row.Cell) return false;

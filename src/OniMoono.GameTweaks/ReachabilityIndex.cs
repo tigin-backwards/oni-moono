@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -320,6 +321,9 @@ namespace OniMoono.GameTweaks
         public enum TrackerKind { Unknown, None, Standard, Table }
 
         /// Where GetCell() comes from, by the type declaring the object's override.
+        [MirrorsGame("System.Int32 Diggable::GetCell()")]
+        [MirrorsGame("System.Int32 Pickupable::GetCell()")]
+        [MirrorsGame("System.Int32 Workable::GetCell()")]
         public static CellSource Cell(string declaringType) => declaringType switch
         {
             "Workable" => CellSource.Transform,
@@ -329,6 +333,7 @@ namespace OniMoono.GameTweaks
         };
 
         /// Where GetOffsets(int) comes from, by the type declaring the object's override.
+        [MirrorsGame("System.Collections.Generic.IReadOnlyList`1<CellOffset> Workable::GetOffsets(System.Int32)")]
         public static OffsetSource Offsets(string declaringType) => declaringType switch
         {
             "Workable" => OffsetSource.Tracker,
@@ -337,6 +342,7 @@ namespace OniMoono.GameTweaks
         };
 
         /// The tracker by its exact type name (a subclass may compute anything).
+        [MirrorsGame("System.Collections.Generic.IReadOnlyList`1<CellOffset> OffsetTracker::GetOffsets(System.Int32)")]
         public static TrackerKind Tracker(string exactType) => exactType switch
         {
             null => TrackerKind.None,

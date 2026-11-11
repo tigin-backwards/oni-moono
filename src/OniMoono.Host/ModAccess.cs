@@ -11,6 +11,7 @@ using System.Runtime.Loader;
 using HarmonyLib;
 using Cecil = Mono.Cecil;
 using OniMoono.Engine;
+using OniMoono.Tweaks;
 
 namespace OniMoono.Host
 {
@@ -409,6 +410,7 @@ namespace OniMoono.Host
         static readonly MethodInfo? raiseResolve = typeof(AssemblyLoadContext).GetMethod("OnAssemblyResolve", BindingFlags.NonPublic | BindingFlags.Static);
 
         /// The first game member or type the assembly references that is not public, or null.
+        [NameLookupReviewed("Mods' references, by the names in their own metadata (any assembly's members)")]
         static string? Unreachable(string path)
         {
             found = new Dictionary<string, Assembly>();
@@ -513,6 +515,7 @@ namespace OniMoono.Host
         }
 
         /// A type reference into a loaded game assembly, or null.
+        [NameLookupReviewed("Mods' type references, by the names in their own metadata")]
         static Type? GameType(MetadataReader md, TypeReferenceHandle handle)
         {
             if (handle.IsNil) return null;

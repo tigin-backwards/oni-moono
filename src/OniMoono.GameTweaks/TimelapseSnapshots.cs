@@ -47,6 +47,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "Timelapser Game::timelapser")]
     [GameMember(GameUse.Uses, "System.Boolean Timelapser::screenshotActive")]
     [GameMember(GameUse.Uses, "UnityEngine.RenderTexture Timelapser::bufferRenderTexture")]
+    [GameMember(GameUse.Mirrors, "System.Void Game::LateUpdate()", "ddef0e828352db67 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
     public static class TimelapseSnapshots
     {
         public const string Name = "fix-timelapse-snapshots";
@@ -77,6 +78,7 @@ namespace OniMoono.GameTweaks
             public bool GridEnabled;
         }
 
+        [MirrorsGame("System.Void CameraController::RenderForTimelapser(UnityEngine.RenderTexture&)")]
         static void RenderPrefix(CameraController __instance, ref RenderTexture tex, out Saved __state)
         {
             __state = default;

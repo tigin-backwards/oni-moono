@@ -41,6 +41,9 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Transpiler, "System.Void Workable::SetOffsets(CellOffset[])", "7300b07737b428bb linux-744825 win-744825", "8b1fc1698d1ea5b7 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
     [GameMember(GameUse.Transpiler, "System.Boolean Workable::ValidateOffsets(System.Int32)", "22b59c7ba40b813d linux-744825 win-744825", "24cfa72c440b0d97 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
     [GameMember(GameUse.Uses, "OffsetTracker Workable::offsetTracker")]
+    [GameMember(GameUse.Mirrors, "System.Void FetchManager/UpdateOffsetTables::Run(System.Object,System.Int32)", "6d13711e4e195dac linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Mirrors, "System.Void FetchManager/UpdateOffsetTables::Finish()", "6d489f3399685a4a linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Mirrors, "HandleVector`1/Handle<!0> HandleVector`1::PackHandle(System.Int32)", "a4cfb35ec41a1f88 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
     public static class FastOffsetTables
     {
         public const string Name = "fast-offset-tables";
@@ -170,6 +173,8 @@ namespace OniMoono.GameTweaks
         }
 
         /// The offset pass, in place of the job.
+        [MirrorsGame("System.Void FetchManager/UpdateOffsetTables::Run(System.Object,System.Int32)")]
+        [MirrorsGame("System.Void FetchManager/UpdateOffsetTables::Finish()")]
         static void FixOffsets(IWorkItemCollection _, FetchManager manager)
         {
             updates++;
@@ -234,6 +239,7 @@ namespace OniMoono.GameTweaks
 
 
         /// The current handle of a slot of a handle vector (version in the top byte, as PackHandle).
+        [MirrorsGame("HandleVector`1/Handle<!0> HandleVector`1::PackHandle(System.Int32)")]
         static HandleVector<int>.Handle HandleFor(HandleVector<int> hv, int slot)
         {
             var handle = HandleVector<int>.InvalidHandle;

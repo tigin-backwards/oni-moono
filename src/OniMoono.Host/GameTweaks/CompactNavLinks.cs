@@ -20,6 +20,8 @@ namespace OniMoono.Host.GameTweaks
     [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<NavGrid> Pathfinding::GetNavGrids()")]
     [GameMember(GameUse.Uses, "Pathfinding Pathfinding::Instance")]
     [GameMember(GameUse.Postfix, "System.Void Pathfinding::UpdateNavGrids(System.Boolean)")]
+    [GameMember(GameUse.Uses, "System.Int32 NavGrid::get_maxLinksPerCell()")]
+    [GameMember(GameUse.Uses, "KMod.LoadedModData KMod.DLLLoader::LoadDLLs(KMod.Mod,System.String,System.String,System.Boolean)")]
     internal static class CompactNavLinks
     {
         public const string Name = GameTweakNames.CompactNavLinks;
@@ -83,6 +85,7 @@ namespace OniMoono.Host.GameTweaks
             return reason;
         }
 
+        [NameLookupReviewed("The methods in `hotMethods`, for the log's note; one missing is left out of it")]
         static string? Reason(out List<string> notes)
         {
             notes = new List<string>();
@@ -236,6 +239,7 @@ namespace OniMoono.Host.GameTweaks
         }
 
         /// The reviewed transpilers applied to the loaded methods: what each did.
+        [NameLookupReviewed("Mods' transpiler types and the targets in `reviewed`, by those names; one missing is skipped")]
         static string ApplyReviewed(string[] mods)
         {
             ModAccess.Install();
@@ -291,6 +295,7 @@ namespace OniMoono.Host.GameTweaks
             return applied.Count == 0 ? "no reviewed transpiler found in ONI_NAVLINKS_MODS" : string.Join(", ", applied);
         }
 
+        [NameLookupReviewed("The targets in `reviewed`, for mods' reviewed transpilers; one missing is skipped")]
         static MethodBase TargetOf(string target)
         {
             var dot = target.IndexOf('.');

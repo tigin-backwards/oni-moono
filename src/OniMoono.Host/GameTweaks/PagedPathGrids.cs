@@ -17,6 +17,20 @@ namespace OniMoono.Host.GameTweaks
     [GameMember(GameUse.Uses, "System.Int32 Grid::WidthInCells")]
     [GameMember(GameUse.Uses, "PathFinder/Cell[] PathGrid::Cells")]
     [GameMember(GameUse.Uses, "PathGrid/ProberCell[] PathGrid::ProberCells")]
+    [GameMember(GameUse.Uses, "NavType")]
+    [GameMember(GameUse.Uses, "PathFinder/PotentialPath")]
+    [GameMember(GameUse.Uses, "PathFinder/PotentialPath/Flags")]
+    [GameMember(GameUse.Uses, "CellOffset")]
+    [GameMember(GameUse.Uses, "System.Void PathGrid::BeginUpdate(System.UInt16,System.Int32,System.Collections.Generic.List`1<System.Int32>)")]
+    [GameMember(GameUse.Uses, "System.Void PathGrid::SetCell(PathFinder/PotentialPath,PathFinder/Cell&)")]
+    [GameMember(GameUse.Uses, "PathFinder/Cell PathGrid::GetCell(System.Int32,NavType,System.Boolean&)")]
+    [GameMember(GameUse.Uses, "System.Int32 PathGrid::GetCost(System.Int32)")]
+    [GameMember(GameUse.Uses, "System.Int32 PathGrid::GetCostIgnoreProberOffset(System.Int32,System.Collections.Generic.IReadOnlyList`1<CellOffset>)")]
+    [GameMember(GameUse.Uses, "System.Void PathGrid::ResetProberCells()")]
+    [GameMember(GameUse.Uses, "System.Int32 PathFinder/Cell::cost")]
+    [GameMember(GameUse.Uses, "System.Int32 PathFinder/Cell::parent")]
+    [GameMember(GameUse.Uses, "System.UInt16 PathFinder/Cell::queryId")]
+    [GameMember(GameUse.Uses, "KMod.LoadedModData KMod.DLLLoader::LoadDLLs(KMod.Mod,System.String,System.String,System.Boolean)")]
     internal static class PagedPathGrids
     {
         public const string Name = GameTweakNames.PagedPathGrids;
@@ -30,6 +44,7 @@ namespace OniMoono.Host.GameTweaks
 
         /// GameTweaks.Install: whether the game's PathGrid was rewritten, and the tables' summary
         /// (and verify mode's comparisons) in play.
+        [NameLookupReviewed("The page fields this tweak's rewrite adds to PathGrid, not the game's")]
         public static void Install(Harmony harmony)
         {
             if (AccessTools.TypeByName("PathGrid") is not { } pathGrid || AccessTools.Field(pathGrid, PathGridPagesRewrite.PagesField("Cells")) == null)
@@ -140,6 +155,7 @@ namespace OniMoono.Host.GameTweaks
 
         const int CheckWidth = 40, CheckHeight = 20;
 
+        [NameLookupReviewed("The page fields this tweak's rewrite adds to PathGrid, not the game's")]
         static string Exercise()
         {
             var grid = AccessTools.TypeByName("PathGrid") ?? throw new InvalidOperationException("no PathGrid");

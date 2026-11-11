@@ -179,6 +179,7 @@ namespace OniMoono.Host.GameTweaks
 
         /// What Helper.WriteValue writes for a plain value of this kind, read typed; null when the
         /// field is not one the direct path covers exactly (then WriteValue writes it).
+        [MirrorsGame("System.Void KSerialization.Helper::WriteValue(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Object)")]
         static Expression? PlainWrite(int kind, Type fieldType, Expression value, Expression writer)
         {
             Expression Write(Type parameter, Expression v) => Expression.Call(writer, typeof(BinaryWriter).GetMethod(nameof(BinaryWriter.Write), [parameter])!, v);

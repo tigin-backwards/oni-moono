@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
+using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
@@ -210,6 +211,7 @@ namespace OniMoono.GameTweaks
 
         /// What MinionPathFinderAbilities.TraversePath refuses whatever the cells (IProbeRules.Refused):
         /// a swim, into or out of one, without the skill; a hover with no jet pack or no fuel.
+        [MirrorsGame("System.Boolean MinionPathFinderAbilities::TraversePath(PathFinder/PotentialPath&,System.Int32,NavType,System.Int32,System.Int32,System.Boolean)")]
         public static uint Refused(bool hasSwimSkill, bool outOfFuel, byte flags)
         {
             uint m = 0;
@@ -624,6 +626,8 @@ namespace OniMoono.GameTweaks
         }
 
         /// PathFinder.PotentialList.PriorityQueue: a binary heap with its sift rules.
+        [MirrorsGame("System.Void PathFinder/PotentialList/PriorityQueue`1::Enqueue(System.Int32,!0)")]
+        [MirrorsGame("System.Collections.Generic.KeyValuePair`2<System.Int32,!0> PathFinder/PotentialList/PriorityQueue`1::Dequeue()")]
         sealed class Heap
         {
             public Entry[] A = new Entry[1024];
@@ -631,6 +635,8 @@ namespace OniMoono.GameTweaks
 
             // The game's sifts swap the moving entry down or up; these move the others into its
             // hole and make the same comparisons (`a - b > 0`, as the game's, overflow and all).
+            [MirrorsGame("System.Int32 PathFinder/PotentialList/PriorityQueue`1::HeapifyFromEndToBeginning(System.Int32)")]
+            [MirrorsGame("System.Void PathFinder/PotentialList/PriorityQueue`1::Insert(System.Int32,!0)")]
             public void Push(in Entry e)
             {
                 if (N == A.Length) Array.Resize(ref A, N * 2);
@@ -646,6 +652,8 @@ namespace OniMoono.GameTweaks
                 a[pos] = e;
             }
 
+            [MirrorsGame("System.Void PathFinder/PotentialList/PriorityQueue`1::HeapifyFromBeginningToEnd(System.Int32)")]
+            [MirrorsGame("System.Void PathFinder/PotentialList/PriorityQueue`1::DeleteRoot()")]
             public Entry Pop()
             {
                 var a = A;
@@ -671,6 +679,8 @@ namespace OniMoono.GameTweaks
         Heap hot = new Heap(), cold = new Heap();
         int hotThreshold = int.MinValue, coldThreshold = int.MinValue, queued;
 
+        [MirrorsGame("System.Void PathFinder/PotentialList::Add(System.Int32,PathFinder/PotentialPath)")]
+        [MirrorsGame("System.Void PathFinder/PotentialList/HOTQueue`1::Enqueue(System.Int32,!0)")]
         void Enqueue(int key, int cell, byte nav, byte flags)
         {
             var e = new Entry { Key = key, Cell = cell, Nav = nav, Flags = flags };
@@ -683,6 +693,8 @@ namespace OniMoono.GameTweaks
             queued++;
         }
 
+        [MirrorsGame("System.Collections.Generic.KeyValuePair`2<System.Int32,PathFinder/PotentialPath> PathFinder/PotentialList::Next()")]
+        [MirrorsGame("System.Collections.Generic.KeyValuePair`2<System.Int32,!0> PathFinder/PotentialList/HOTQueue`1::Dequeue()")]
         Entry Dequeue()
         {
             if (hot.N == 0)
@@ -703,6 +715,10 @@ namespace OniMoono.GameTweaks
         /// PathGrid.BeginUpdate: `cells`/`probers` are the path grid's arrays, `flags` gets every
         /// state's path flags, `found` the cells found (as PathGrid.SetCell adds them). Returns how
         /// many times a state was set.
+        [MirrorsGame("System.Void PathProber::Run(Navigator,System.Collections.Generic.List`1<System.Int32>)")]
+        [MirrorsGame("System.Void PathProber::Run(System.Int32,PathFinderAbilities,NavGrid,NavType,PathGrid,System.UInt16,PathFinder/PotentialScratchPad,PathFinder/PotentialList,PathFinder/PotentialPath/Flags,System.Collections.Generic.List`1<System.Int32>)")]
+        [MirrorsGame("System.Void PathFinder::AddPotentials(PathFinder/PotentialScratchPad,PathFinder/PotentialPath,System.Int32,PathFinderAbilities&,PathFinderQuery,System.Int32,NavGrid/Link[],PathFinder/PotentialList,PathGrid,System.Int32,NavType)")]
+        [MirrorsGame("System.Void PathFinder::AddPotential(PathFinder/PotentialPath,System.Int32,NavType,System.Int32,System.Byte,PathFinder/PotentialList,PathGrid,PathFinder/Cell&)")]
         public int Flood(ProbePages<PCell> cells, ProbePages<PProber> probers, ProbeFlags flags, ushort serial, int root, byte rootNav, byte rootFlags, IProbeRules rules, List<int> found)
         {
             int set = 0;
@@ -838,6 +854,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// PathGrid.SetCell.
+        [MirrorsGame("System.Void PathGrid::SetCell(PathFinder/PotentialPath,PathFinder/Cell&)")]
         void Set(ProbePages<PCell> cells, ProbePages<PProber> probers, ProbeFlags flags, ushort serial, int cell, byte nav, ref PCell data, byte pf, List<int> found)
         {
             data.QueryId = serial;

@@ -40,6 +40,7 @@ namespace OniMoono.Host.GameTweaks
     [GameMember(GameUse.Uses, "Extents KCollider2D::cachedExtents")]
     [GameMember(GameUse.Uses, "HandleVector`1/Handle<System.Int32> KCollider2D::partitionerEntry")]
     [GameMember(GameUse.Uses, "System.Object ScenePartitionerEntry::obj")]
+    [GameMember(GameUse.Uses, "KCircleCollider2D")]
     internal static class FastParticleCollision
     {
         public const string Name = GameTweakNames.FastParticleCollision;
@@ -111,6 +112,7 @@ namespace OniMoono.Host.GameTweaks
 
         /// GameScenePartitioner.GatherEntries(x, y, width, height, layer, list), made only when another
         /// radbolt has a collider registered in the area.
+        [NameLookupReviewed("ScenePartitionerEntry.obj, declared")]
         static void GatherIfNeeded(object partitioner, int x, int y, int width, int height, object layer, object list, UnityEngine.Component self)
         {
             if (MergeableParticleIn(self, x, y, width, height))
@@ -172,6 +174,7 @@ namespace OniMoono.Host.GameTweaks
             return false;
         }
 
+        [NameLookupReviewed("HighEnergyParticle.isCollideable, declared")]
         static Func<object, bool> CompileCollideable(Type particle)
         {
             var arg = System.Linq.Expressions.Expression.Parameter(typeof(object), "particle");
@@ -197,6 +200,7 @@ namespace OniMoono.Host.GameTweaks
             return System.Linq.Expressions.Expression.Lambda<Action<object, int, int, int, int, object, object>>(call, ps).Compile();
         }
 
+        [NameLookupReviewed("KCollider2D's fields, declared, and HandleVector's IsValid on the declared field's type")]
         static Func<object, (bool, int, int, int, int)> CompileRegistration()
         {
             var arg = System.Linq.Expressions.Expression.Parameter(typeof(object), "collider");
