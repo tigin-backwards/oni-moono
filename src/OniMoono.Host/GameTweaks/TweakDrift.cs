@@ -399,6 +399,7 @@ namespace OniMoono.Host.GameTweaks
             {
                 if (Point(method, offset) is not { } p) return null;
                 string document = p.Document.Replace('\\', '/');
+                if (document.StartsWith("/_/", StringComparison.Ordinal)) return document.Substring(3) + ":" + p.Point.StartLine;
                 int src = document.LastIndexOf("/src/", StringComparison.Ordinal);
                 if (src < 0) src = document.LastIndexOf("/tests/", StringComparison.Ordinal);
                 return (src >= 0 ? document.Substring(src + 1) : System.IO.Path.GetFileName(document)) + ":" + p.Point.StartLine;
@@ -415,7 +416,7 @@ namespace OniMoono.Host.GameTweaks
                 if (site.Name == null || method.IsNil || offset < 0 || Point(method, offset) is not { } p) return false;
                 if (!sources.TryGetValue(p.Document, out var lines))
                 {
-                    try { lines = File.Exists(p.Document) ? File.ReadAllLines(p.Document) : null; }
+                    try { lines = Source(p.Document) is { } path ? File.ReadAllLines(path) : null; }
                     catch (IOException) { lines = null; }
                     catch (UnauthorizedAccessException) { lines = null; }
                     sources[p.Document] = lines;
@@ -433,6 +434,22 @@ namespace OniMoono.Host.GameTweaks
                 string statement = text.ToString();
                 return !statement.Contains("\"" + site.Name + "\"", StringComparison.Ordinal)
                     && System.Text.RegularExpressions.Regex.IsMatch(statement, @"\bnameof\s*\([^()]*?\b" + System.Text.RegularExpressions.Regex.Escape(site.Name) + @"\s*\)");
+            }
+
+            /// A PDB's document on disk: as it names it, or, mapped (a release build's `/_/src/…`,
+            /// DeterministicSourcePaths) or built elsewhere, the same path under a folder above
+            /// the assembly's (the checkout it was built in).
+            string? Source(string document)
+            {
+                if (File.Exists(document)) return document;
+                string path = document.Replace('\\', '/');
+                int at = path.StartsWith("/_/", StringComparison.Ordinal) ? 3 : path.LastIndexOf("/src/", StringComparison.Ordinal) + 1;
+                if (at <= 0) at = path.LastIndexOf("/tests/", StringComparison.Ordinal) + 1;
+                if (at <= 0 || file.Path == null) return null;
+                string relative = path.Substring(at);
+                for (var dir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(file.Path)); dir != null; dir = System.IO.Path.GetDirectoryName(dir))
+                    if (File.Exists(System.IO.Path.Combine(dir, relative))) return System.IO.Path.Combine(dir, relative);
+                return null;
             }
 
             (SequencePoint Point, string Document)? Point(MethodDefinitionHandle method, int offset)
@@ -791,7 +808,9 @@ namespace OniMoono.Host.GameTweaks
                 var args = new Value[count];
                 for (int k = count - 1; k >= 0; k--) args[k] = stack.Count == 0 ? Value.Unknown : Pop(stack);
                 var result = Evaluate(owner, method, i.Offset, declaring, name, sig, generic, args, construct, list);
-                if (construct || sig.ReturnType != "System.Void") stack.Add(result == Value.Unknown ? Value.Of(construct ? declaring : sig.ReturnType) : result);
+                // A generic method's `!!N` return type is its type argument (GetComponent<T>()).
+                string returns = sig.ReturnType.StartsWith("!!", StringComparison.Ordinal) && int.TryParse(sig.ReturnType.AsSpan(2), out int n) && n < generic.Length ? generic[n] : sig.ReturnType;
+                if (construct || sig.ReturnType != "System.Void") stack.Add(result == Value.Unknown ? Value.Of(construct ? declaring : returns) : result);
             }
 
             /// The strings of a constant list a value is one of (Value.Strings), or null.
