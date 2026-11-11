@@ -27,7 +27,8 @@ namespace OniMoono.Host.GameTweaks
     /// that change gameplay (Changes gameplay, Bug fixes) that still changes what the game does a little (off by default, left out
     /// of `exact`). `OnByDefault`: a tweak that changes what the game does (left out of `exact`)
     /// but is on by default all the same (the player's choice: path-probe-repair,
-    /// fix-load-screen-clicks, fix-endless-sounds, fix-sound-piles, fix-geothermal-vents).
+    /// fix-load-screen-clicks, fix-endless-sounds, fix-sound-piles, fix-geothermal-vents,
+    /// fix-timelapse-snapshots).
     internal sealed record TweakInfo(string Id, TweakGroup Group, string Title, string Effect, string Detail = "", TweakGain? Gain = null, bool IsTweak = true,
         string[]? Choices = null, bool ChangesBehaviour = false, bool OnByDefault = false)
     {
@@ -56,7 +57,7 @@ namespace OniMoono.Host.GameTweaks
         public const string SplashRow = "splash", FrameStatsRow = "frame-stats", LogPathsRow = "log-paths", GpuRow = "gpu", DxgiRow = "dxgi", StallRepeatsRow = "stall-repeats", UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
-            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles", GeothermalVents = "fix-geothermal-vents",
+            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", EndlessSounds = "fix-endless-sounds", SoundPiles = "fix-sound-piles", GeothermalVents = "fix-geothermal-vents", TimelapseSnapshots = "fix-timelapse-snapshots",
             ExactWorldgen = "exact-worldgen", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
             FmodQuarantine = "fmod-quarantine";
 
@@ -225,10 +226,13 @@ namespace OniMoono.Host.GameTweaks
             new(GeothermalVents, BugFixes, "Count all a geothermal vent emits", "A geothermal vent's kg remaining goes down as it vents, instead of stalling while it keeps emitting.",
                 "A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, "
                 + "so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation.", OnByDefault: true),
+            new(TimelapseSnapshots, BugFixes, "Correct daily colony snapshots", "Colony snapshots saved each cycle no longer get vertical stripes, squeezed lights or stray effects.",
+                "A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. "
+                + "With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view.", OnByDefault: true),
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, SharedDuplicates, CompactReports];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, TimelapseSnapshots, SharedDuplicates, CompactReports];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem).

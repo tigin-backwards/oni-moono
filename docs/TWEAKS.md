@@ -243,6 +243,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Stop sounds that never end** (`fix-endless-sounds`): An eating Pip no longer leaves sounds playing forever, which in time froze the game. A bug in the game's sound data: the adult Pip's eating loop, and the debris left by a self-destructed rocket, start a new copy of a looping sound on every loop and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends. *On by default.*
 - **Cap repeated sounds in one tile** (`fix-sound-piles`): Hundreds of critters in one tile no longer freeze the game with their sounds. When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped. *On by default.*
 - **Count all a geothermal vent emits** (`fix-geothermal-vents`): A geothermal vent's kg remaining goes down as it vents, instead of stalling while it keeps emitting. A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation. *On by default.*
+- **Correct daily colony snapshots** (`fix-timelapse-snapshots`): Colony snapshots saved each cycle no longer get vertical stripes, squeezed lights or stray effects. A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view. *On by default.*
 <!-- tweaks:end -->
 
 ### Incremental path probes
@@ -522,6 +523,42 @@ as long as what it emits, 15 kg a second while it vents, whatever the frame rate
 other building emitters read the same report the same way in U59 and U60
 (`BuildingElementEmitter`, for its accumulator and the oxygen report only); the tweak leaves
 them as they are.
+
+### The colony snapshot fix
+
+`fix-timelapse-snapshots` fixes the images the game's Timelapser writes: the colony snapshots in
+`RetiredColonies` (every cycle up to cycle 50, then less often) and a save's colony preview.
+It is on by default, in the Bug fixes group and left out of `exact`: it changes those images,
+and nothing else.
+
+The Timelapser moves the cameras to the snapshot's position and size at the end of one frame and
+renders into its image (512×768 by default, 2:3) at the end of the next. That frame's own updates
+set up the post-effects for the screen (16:9), 2.67 times wider than the image:
+- `Game.LateUpdate` sets `_WsToCs` and `_WsToCcs`, which map the screen to the grid's and the
+  world's cells, from the screen's frame. The heat, cold, dust and radiation effects land at
+  the wrong cells, and the build grid (`GridCompositor`) maps the left of the image to cells left
+  of the grid. There its grid pattern keeps the sign of a negative cell and draws the full grid
+  colour in every column: vertical stripes. The grid is on while a building is picked for
+  placement, and the Timelapser waits only until no drag is under way, so a player who leaves a
+  building picked gets the stripes in that cycle's snapshot.
+- The light buffer, drawn by a camera of its own into a screen-sized texture, covers the screen's
+  frame and is read with the image's coordinates: lights are squeezed 2.67 times sideways.
+
+Measured on an early Spaced Out colony whose snapshot frame reaches left of the grid (the
+pod at x = 124, the frame 2 × 170 cells high), in the original and in Moono without the tweak
+(2026-11-10): with a ladder picked, the image's left 150 columns are covered with stripes
+(their brightness steps 15 times more from a column to the next than from a row to the next,
+and they are 119 levels brighter on average than the image); with no tool picked they are not.
+The two players' images agree to under 0.3% of pixels. The building preview (on the `Place`
+layer, which the snapshot's camera draws) did not show in the original's snapshot, nor did
+anything else that follows the pointer.
+
+With the tweak, for the capture's render only, the grid compositor is off, and `_WsToCs` and
+`_WsToCcs` are set for the image's own frame (the base camera's position and size at the image's
+aspect, with `Game.LateUpdate`'s formulas). In the frame of the capture, the light buffer camera
+draws at the image's aspect; the screen is behind the Timelapser's freeze frame then, so a player
+sees no change. Each of these is set back right after the render, also when it fails. In U60,
+which reads the image back asynchronously, the readback is queued before they are set back.
 
 ## Translating Moono Tweaks
 

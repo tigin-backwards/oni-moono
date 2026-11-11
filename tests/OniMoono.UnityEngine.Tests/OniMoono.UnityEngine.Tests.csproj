@@ -97,6 +97,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/ModOverlapsCore.cs" Link="GameTweaks/ModOverlapsCore.cs" />
     <!-- The fast-load-screen game tweak's header memo and read-ahead (HeaderReadsTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/HeaderReads.cs" Link="GameTweaks/HeaderReads.cs" />
+    <!-- The fix-timelapse-snapshots game tweak's frame arithmetic (TimelapseFrameTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/TimelapseFrame.cs" Link="GameTweaks/TimelapseFrame.cs" />
     <!-- The fix-load-screen-clicks game tweak's check for the bug (LoadScreenClickBugTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/LoadScreenClickBug.cs" Link="GameTweaks/LoadScreenClickBug.cs" />
     <!-- The fast-jobs game tweak's worker wakes (WorkerWakesTests). -->

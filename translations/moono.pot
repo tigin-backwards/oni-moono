@@ -910,6 +910,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_GEOTHERMAL_VENTS.DETAIL"
 msgid "A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation."
 msgstr ""
 
+#. Row title (fix-timelapse-snapshots)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.TITLE"
+msgid "Correct daily colony snapshots"
+msgstr ""
+
+#. The line under the title (fix-timelapse-snapshots)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.EFFECT"
+msgid "Colony snapshots saved each cycle no longer get vertical stripes, squeezed lights or stray effects."
+msgstr ""
+
+#. Tooltip: how it works (fix-timelapse-snapshots)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.DETAIL"
+msgid "A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view."
+msgstr ""
+
 #. The loader mod's dialog in the original game: its title
 msgctxt "STRINGS.MOONO.LOADER.TITLE"
 msgid "Play with Moono?"

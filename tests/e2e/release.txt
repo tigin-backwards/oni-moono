@@ -48,6 +48,7 @@ path-probe-repair ours              # 181: the default-on tweak, every repair ch
 fix-sound-piles ours                # 42: the bug-fix tweak (#51)
 fix-endless-sounds ours             # 37: the bug-fix tweak (#51)
 fix-geothermal-vents ours           # the bug-fix tweak (#61)
+fix-timelapse-snapshots ours        # the bug-fix tweak
 issue-52-fast-track-no-tiering ours # 37: Fast Track with tiered compilation off (#52)
 mod-overlaps-en ours                # 26: Moono Tweaks' mod overlaps
 mod-overlaps-zh ours                # 27

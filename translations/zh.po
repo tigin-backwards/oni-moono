@@ -698,6 +698,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_GEOTHERMAL_VENTS.DETAIL"
 msgid "A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation."
 msgstr "这是游戏自身代码的错误，已在游戏的下一次更新中修复：喷口在自己的时刻读取喷出量，帧率较高时经常读到零，于是它一直喷个不停，堵塞管道。开启后与那次更新一样，在模拟的每一步之后统计喷出量。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.TITLE"
+msgid "Correct daily colony snapshots"
+msgstr "修正每日殖民地快照"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.EFFECT"
+msgid "Colony snapshots saved each cycle no longer get vertical stripes, squeezed lights or stray effects."
+msgstr "每个周期保存的殖民地快照不再出现竖条纹、被挤压的光照或错位的效果。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.DETAIL"
+msgid "A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view."
+msgstr "这是游戏自身代码的错误：快照绘制在一张较窄的图像中，但建造网格、光照以及热、冷和灰尘效果都是按屏幕较宽的视野设置的。选中建筑准备放置时，网格会在图像左侧画出条纹。开启后，它们按快照自己的视野绘制。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.TITLE"
 msgid "Share identical data"
 msgstr "共享相同的数据"
