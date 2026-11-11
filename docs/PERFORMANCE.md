@@ -534,6 +534,15 @@ snapshot's encode takes 44–51 ms against 16–21 ms before, the colony preview
 before. At level 9 the preview's write took 210 ms, which is why the main thread stays at
 level 6.
 
+The first snapshot or preview after a load also made, in its frame, every texture and mesh it
+showed for the first time (the camera moves out to the whole world: the animation batches' data
+textures, the terrain chunks' meshes). They are now made ahead of their first draw, small mesh
+buffers take the dynamic usage hint, and first uploads start when the game applies them
+(ARCHITECTURE §3.5). Measured on U60, whose capture makes the same first-sight work (the u60
+branch's PERFORMANCE.md): an early colony's first 512×768 snapshot 249–259 → 61–81 ms of hitch
+(the original 81–87 ms), a Spaced Out cluster's first colony preview 1.74–1.76 s → 334–351 ms (the
+original 443–624 ms).
+
 U60's Timelapser reads its images with `AsyncGPUReadback` and encodes them on a task, at level 9;
 on that branch the read-back no longer stalls (ARCHITECTURE §3.5). U59's own code makes no
 read-back requests; mods do (Fast Save's timelapse images), and get the same.
