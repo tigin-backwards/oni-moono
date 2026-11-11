@@ -2515,6 +2515,20 @@ textures loaded on other threads, are uploaded by the main thread before the nex
 when many are pending at once their texels are read on worker threads first and the uploads go
 to the GL thread in batches. `ONI_BACKGROUND_UPLOADS=0` turns the background uploads off.
 
+What scripts make is put on the device ahead of its first draw (`GlAhead`): a script's new
+texture's storage (`new Texture2D`, up to 16 MB) and the buffers and data of a mesh given data
+that no draw has used yet, on the GL thread while it has no frame to execute, or for a
+millisecond before each frame when it never runs out. A texture's first upload then fills that
+storage (or makes it, if it comes first); a mesh's first draw posts the queued upload into its
+frame ahead of the draw when it has not run, so it runs once and before any later upload, and a
+released mesh's never runs. A texture made ahead records its first upload when the script applies
+it (as Unity uploads at `Apply`), and once 32 MB of uploads are recorded the frame so far goes to
+the GL thread if it has nothing left to execute, so a view's first sight of much (a colony
+preview after a load) uploads while the main thread goes on. Mesh buffers up to 64 KB take the
+dynamic usage hint: Mesa's D3D12 driver took about 0.3 ms to make a small static one.
+`ONI_AHEAD_OF_USE=0` and `ONI_UPLOAD_FLUSH=0` turn these off (PERFORMANCE.md, the first capture
+after a load).
+
 Per-draw uniform blocks are streamed through a ring buffer that stays persistently mapped for the
 device's lifetime (`GlStreamBuffer`, ARB_buffer_storage): data is copied into the mapping, blocks
 are bound by range, and a fence per frame keeps a region from being reused before the GPU has

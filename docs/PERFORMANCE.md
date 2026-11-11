@@ -535,13 +535,14 @@ every player. Two runs of Moono after the change gave the range shown.
 
 | | Original | Moono before | Moono after |
 |---|---|---|---|
-| 512×768 snapshot (the first): hitch | 101 ms | 363 ms | 225–232 ms |
+| 512×768 snapshot (the first): hitch | 101 ms | 363 ms | 225–232 ms (61–81 ms, below) |
 | 2048×3072 snapshot: hitch | 57 ms | 284 ms | 44 ms |
 | 2048×3072: peak resident / managed memory | 50 / 29 MB | 160 / 139 MB | 34–69 / 41 MB |
 | 8192×12288 snapshot: hitch | 775 ms | 2.8 s | 144–192 ms |
 | 8192×12288: peak resident / managed memory | 772 / 433 MB | 1.4 / 1.5 GB | 482–489 / 434 MB |
 | 8192×12288: request to file written | 5.3 s | 5.6 s | 2.9 s |
 | 1272×808 colony preview: hitch | 37 ms | 136 ms | 58 ms |
+| 1472×608 colony preview of a Spaced Out cluster (the first): hitch | 530 ms | 2.2 s | 2.0 s (334–351 ms, below) |
 
 What is left of the 8192×12288 hitch is the frame that renders the image (the GPU copy and the
 first band, 150–200 ms of waiting for the GL thread) and the game's own callback, which copies the
@@ -558,10 +559,75 @@ The files are smaller, and decode to the same pixels:
 | 1272×808 colony preview | 1.00 MB | 0.99 MB | 0.77 MB | 183–191 ms |
 
 Level 9 costs time on small images, which are one band and so one thread: 512×768 took 13 ms
-to encode before. All of it is on the Timelapser's task, not the main thread. The first colony
-preview of a Spaced Out cluster after its load (1472×608) is still a 2.0 s frame (2.2 s before;
-0.5 s in the original): that frame's GL work draws the whole cluster for the first time, not the
-read-back.
+to encode before. All of it is on the Timelapser's task, not the main thread (encodes on the main
+thread, as U59's, take level 6).
+
+### The first capture after a load
+
+The first snapshot or preview after a load stayed slower than the original's after the read-back
+stopped waiting. That was not the read-back, nor program builds (none) or the encoder (on its
+task), but the GL thread making, in one frame, everything the capture showed for the first time.
+Capturing moves the camera out to the whole world: the game activates every animation batch in
+view and writes their data textures, builds the terrain chunks' meshes, and the render draws them
+all. The main thread waited for that at the next frame's present. Broken down with
+`ONI_GL_BATCH_PROFILE=1` (below; it slows what it times) and `ONI_STARTUP_STATS=1`:
+
+| GL thread, the capture's frame | Early colony, 512×768 snapshot | Spaced Out, 1472×608 preview |
+|---|---|---|
+| Before: textures made and filled | 57–62 ms (about 110) | 1.1 s (about 2,150; 230 MB of animation batch data) |
+| Before: meshes made | 120 ms (2,500, most of them terrain chunks) | 0.36 s (2,600) |
+| Before: draws | 21–23 ms (3,890) | 83 ms (6,664) |
+| Before: render targets made (the capture's, the post effects') | 14–18 ms | 28 ms |
+| Before: read-back started | 11 ms | 11 ms |
+| Before: in all | 217–233 ms | 1.65 s |
+| After: in all | 37–84 ms: draws, targets, read-back | 0.3–0.4 s: 0.2 s of uploads, the rest as before |
+
+In the Spaced Out preview the frame before the capture's is the game's late update with every
+batch active (about 160 ms of the main thread) and the camera's draws (89 ms); the original
+spends 260–400 ms there as well. Three changes took the rest apart (each can be turned off for a
+comparison):
+
+- Textures and meshes are made ahead of their first draw (`GlAhead`, `ONI_AHEAD_OF_USE=0`): a
+  script's new texture's storage when it is created, a mesh's buffers and data at the end of the
+  frame that gave it data without drawing it, on the GL thread while it has no frame to execute
+  (or for a millisecond before each frame when it never runs out). On Mesa's D3D12 driver making
+  a texture takes about 0.4 ms and a mesh about 40 µs. After the early colony's load 9,500 of
+  them were made in 0.48–0.55 s of the GL thread, none of it in a frame; after the Spaced Out
+  cluster's, 8,400 in 0.63 s. The textures take their video memory at the load rather than at
+  first sight (73 MB more in the Spaced Out cluster, which its first preview allocated anyway).
+- Mesh buffers up to 64 KB take the dynamic usage hint: on that driver a small static buffer
+  took about 0.3 ms to make, a dynamic one 10 µs (1,480 of them in the Spaced Out preview's
+  frame, 0.4 s).
+- A texture made ahead records its first upload when the script applies it, and once 32 MB of
+  uploads are recorded the frame so far goes to the GL thread if it is idle (`ONI_UPLOAD_FLUSH=0`):
+  the preview's uploads run during the late update that writes them instead of after the frame.
+
+Measured as above, Moono and the original taking turns, three runs each, 2026-11-11, with other
+players running on Windows throughout; Moono before these changes from an earlier round the same
+day, run the same way (the original 97–106 ms and 409–438 ms there). The frames are the capture's
+two longest:
+
+| | Original | Moono before | Moono after |
+|---|---|---|---|
+| Early colony, first 512×768 snapshot: hitch | 81–87 ms | 249–259 ms | 61–81 ms |
+| its longest frames | 93–100, 57–72 ms | 256–266, 55–56 ms | 66–86, 51–54 ms |
+| Spaced Out, first 1472×608 colony preview: hitch | 443–624 ms | 1.74–1.76 s | 334–351 ms |
+| its longest frames | 454–642, 255–401 ms | 1.74–1.77 s, 297–349 ms | 340–358, 300–318 ms |
+| Median frame before the capture | 10–18 ms | 5–8 ms | 5–7 ms |
+
+The later captures were as before (second 512×768 snapshot 26–29 ms, 1272×808 preview 19–27 ms
+of hitch), and so are the files: the Spaced Out preview read back synchronously as well
+(TimelapseTimingTestMod's `Verify`) has the same bytes and texels. What is left of that preview
+is the game's work in the frame before it, uploads the game applies a second time in the
+capture's frame (about 100 ms: a texture the GPU has not finished with waits on that driver), the
+6,650 draws, and the preview's target, made in its frame (30–70 ms). Uploading through a
+pixel-unpack buffer would take the 230 MB in 210 ms instead of 360 ms, but that path corrupted
+textures on Mesa's D3D12 driver in long runs (ARCHITECTURE §3.5), so it is not used.
+
+`ONI_GL_BATCH_PROFILE=1` times each command the GL thread runs and, after a batch of 30 ms or
+more, logs where the time went (`gl batch frame F took T ms: ...`): draws, render targets made,
+texture uploads by size and format (made or updated), mesh uploads by name, and within them the
+driver calls (glTexSubImage2D, glNamedBufferData) and the copies kept for partial uploads.
 
 ## Loading
 
