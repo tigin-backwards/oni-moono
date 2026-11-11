@@ -121,7 +121,7 @@ namespace OniMoono.Host.GameTweaks
 
         /// The quarantine's size: ONI_FMOD_QUARANTINE_MB, else DefaultMegabytes.
         internal static ulong QuarantineBytes(string? megabytes) =>
-            (ulong)(int.TryParse(megabytes, out var mb) && mb >= 0 && mb <= 4096 ? mb : DefaultMegabytes) << 20;
+            (ulong)(int.TryParse(megabytes, out var mb) && mb >= 0 && mb <= 4096 ? mb : DefaultMegabytes) * 1_000_000;
 
         /// RuntimeManager.Initialize's prefix: once, before its FMOD.Studio.System.create.
         static void Initializing()
@@ -146,7 +146,7 @@ namespace OniMoono.Host.GameTweaks
             Active = true;
             PlayerLoop.EarlyUpdate += Drain;
             FrameStatsWindow.Reports.Add(Report);
-            EngineLog.Engine($"{Name}: FMOD allocates from Moono's heap{(OperatingSystem.IsWindows() ? " (a private one)" : "")}, freed blocks quarantined up to {bytes >> 20} MiB and checked");
+            EngineLog.Engine($"{Name}: FMOD allocates from Moono's heap{(OperatingSystem.IsWindows() ? " (a private one)" : "")}, freed blocks quarantined up to {(ulong)bytes / 1_000_000} MB and checked");
         }
 
         static Counters Read()
@@ -199,12 +199,12 @@ namespace OniMoono.Host.GameTweaks
             var was = window;
             window = now;
             double perSecond(ulong a, ulong b) => seconds > 0 ? (a - b) / seconds : 0;
-            return [$"fmod heap: live {Mib(now.LiveBytes)} MiB in {now.LiveBlocks:N0} blocks (peak {Mib(now.PeakLiveBytes)}), quarantined {Mib(now.QuarantinedBytes)} of {Mib(now.QuarantineLimit)} MiB in {now.QuarantinedBlocks:N0}, held at most {Mib(now.PeakHeldBytes)} MiB; "
-                + $"{perSecond(now.Allocs, was.Allocs):N0} allocs/s ({Mib((ulong)perSecond(now.BytesAllocated, was.BytesAllocated))} MiB/s), {perSecond(now.Frees, was.Frees):N0} frees/s, {perSecond(now.Reallocs, was.Reallocs):N0} reallocs/s; "
+            return [$"fmod heap: live {Mb(now.LiveBytes)} MB in {now.LiveBlocks:N0} blocks (peak {Mb(now.PeakLiveBytes)}), quarantined {Mb(now.QuarantinedBytes)} of {Mb(now.QuarantineLimit)} MB in {now.QuarantinedBlocks:N0}, held at most {Mb(now.PeakHeldBytes)} MB; "
+                + $"{perSecond(now.Allocs, was.Allocs):N0} allocs/s ({Mb((ulong)perSecond(now.BytesAllocated, was.BytesAllocated))} MB/s), {perSecond(now.Frees, was.Frees):N0} frees/s, {perSecond(now.Reallocs, was.Reallocs):N0} reallocs/s; "
                 + $"{now.Events} problem{(now.Events == 1 ? "" : "s")} found{(now.EventsDropped > 0 ? $" ({now.EventsDropped} not logged)" : "")}"];
         }
 
-        static string Mib(ulong bytes) => (bytes / 1048576.0).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+        static string Mb(ulong bytes) => (bytes / 1e6).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
 
         /// The end of the run (GameTweaks.Shutdown): the problems not yet logged, and the totals.
         public static void Shutdown()
@@ -212,7 +212,7 @@ namespace OniMoono.Host.GameTweaks
             if (!Active) return;
             Drain();
             var c = Read();
-            EngineLog.Engine($"{Name}: {c.Allocs:N0} allocs, {c.Frees:N0} frees, {c.Reallocs:N0} reallocs ({Mib(c.BytesAllocated)} MiB allocated), live at most {Mib(c.PeakLiveBytes)} MiB, held at most {Mib(c.PeakHeldBytes)} MiB; {Mib(c.CheckedBytes)} MiB checked on leaving the quarantine; {c.Events} problem{(c.Events == 1 ? "" : "s")} found");
+            EngineLog.Engine($"{Name}: {c.Allocs:N0} allocs, {c.Frees:N0} frees, {c.Reallocs:N0} reallocs ({Mb(c.BytesAllocated)} MB allocated), live at most {Mb(c.PeakLiveBytes)} MB, held at most {Mb(c.PeakHeldBytes)} MB; {Mb(c.CheckedBytes)} MB checked on leaving the quarantine; {c.Events} problem{(c.Events == 1 ? "" : "s")} found");
         }
     }
 }
