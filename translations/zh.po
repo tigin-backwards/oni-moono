@@ -607,8 +607,8 @@ msgid "Guards against a bug in the game's sound engine that can crash the game."
 msgstr "防范游戏音效引擎中一个可能导致游戏崩溃的错误。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.DETAIL"
-msgid "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 50 MB more memory on a large colony. Windows only for now."
-msgstr "游戏的音效引擎 FMOD 可能会写入已经释放的内存，这是其开发者已确认的错误，也是部分“堆损坏”崩溃的原因。开启后，FMOD 使用自己的内存，释放的内存要等一段时间才会被重新使用，因此迟到的写入只会落在无人使用的地方，并且 Player.log 会记录发现的每一次。在大型殖民地上约多用 50 MB 内存。目前仅限 Windows。"
+msgid "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."
+msgstr "游戏的音效引擎 FMOD 可能会写入已经释放的内存，这是其开发者已确认的错误，也是部分“堆损坏”崩溃的原因。开启后，FMOD 使用自己的内存，释放的内存要等一段时间才会被重新使用，因此迟到的写入只会落在无人使用的地方，并且 Player.log 会记录发现的每一次。在大型殖民地上约多用 90 MB 内存。目前仅限 Windows。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
 msgid "Worldgen as in the original"
