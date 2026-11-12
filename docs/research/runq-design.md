@@ -1,6 +1,6 @@
 # runq: a run broker for the shared test machine
 
-Status: design for review, not implemented. Written 2026-11-12.
+Status: phase 1 built (2026-11-12; [RUNQ.md](../RUNQ.md) is how to use it). Phases 2-4 are not. Written 2026-11-12.
 
 ## 1. Summary
 
@@ -554,3 +554,30 @@ In `tests/scripts/`, so `check.sh` runs them (`python3 -m unittest discover`):
 7. **A GitHub ruleset** for the freeze, or the local hook only.
 8. **Linger:** whether keeping the user manager (and so possibly the WSL VM) alive between
    sessions is wanted.
+
+## 15. Phase 1 as built
+
+The user's answers to section 14, each a value in `~/.config/oni-runq/config.toml` (defaults in
+`scripts/runqlib/config.py`), and where phase 1 differs from the text above:
+
+- **Levels:** the agent passes its own, `--level` (`--priority` is the same option), default
+  `study`; `issue` and `release` are allowed and logged to `levels.log`. No owner registry yet;
+  the owner defaults to the worktree's folder name instead of being refused.
+- **Commands run as transient systemd units** in `oni-tests.slice`, as in 3.4. `TimeoutStopSec`
+  is 30 s (`stop_grace_seconds`), since e2e.py's own teardown takes up to 10 s per player.
+- **Caps and bounds** as proposed: 2 running per owner (burndown 1), 4 h of the Windows or perf
+  slot per owner, user 30 min, study 3 h, burndown 8 h.
+- **check.sh** goes through runq by default as the `check` kind. `RUNQ_JOB` set (inside any job,
+  the daemon's own runs included) runs it directly, so it never recurses.
+- **No linger:** the CLI installs and starts `oni-runqd.service` when the daemon does not answer
+  (3.3 had it exit 69 instead). Inside a job, or with a test daemon (`RUNQ_STATE_DIR`), it starts
+  none.
+- **Status page** (phase 2): `status_port = 8777`, localhost only, not served yet.
+- **Legacy bridge:** a lock or ledger entry counts as runq's only when the daemon or a job's shim
+  holds it; an old script run inside a job still counts as an occupant. A job whose own process
+  blocks on a legacy lock its shim holds is stopped at once (`self-deadlock`).
+- **out.log** has the command's output as it wrote it, without time stamps, so `runq run` shows
+  what the script prints.
+- Not built in phase 1: `runq stats`, `--dry-run` forecasts, the status page (phase 2), the
+  worktree registry (phase 3), the freeze and merge queue (phase 4), and removing the direct
+  claims from the old scripts (the end of 1c, after a week of use).

@@ -174,6 +174,32 @@ class Queue(unittest.TestCase):
         self.assertEqual([j['after'] for j in jobs], [[], []])
 
 
+class Runq(unittest.TestCase):
+    """e2e.py through runq (docs/RUNQ.md): what a run asks for, and the lanes of its grant."""
+
+    def setUp(self):
+        self.saved = (e2e.fixture_of, e2e.player_gb)
+        e2e.fixture_of = lambda s: None
+        e2e.player_gb = lambda s, f=None: s['memory_gb']
+
+    def tearDown(self):
+        e2e.fixture_of, e2e.player_gb = self.saved
+
+    def test_request_and_lanes(self):
+        specs = [{'name': 'a', 'memory_gb': 4}, {'name': 'b', 'memory_gb': 9}]
+        self.assertEqual(e2e.runq_request(specs, ['ours'], {'lanes': 2, 'repeat': 1}), (2, 13, 6, 30))
+        self.assertEqual(e2e.runq_request(specs[:1], ['original', 'ours'], {'lanes': 3, 'repeat': 1})[:2], (2, 8))
+        old = dict(os.environ)
+        try:
+            os.environ.update(RUNQ_JOB='j1', RUNQ_LANES='3,7')
+            self.assertEqual(e2e.runq_lanes(), [3, 7])
+            os.environ['RUNQ_LANES'] = ''
+            self.assertIsNone(e2e.runq_lanes())
+        finally:
+            os.environ.clear()
+            os.environ.update(old)
+
+
 if __name__ == '__main__':
     unittest.main()
 

@@ -34,7 +34,10 @@ while its ports or display are in use or reserved (the directory's `reserved` fi
 E2E_RESERVED). Each player is counted for its memory in the machine's players' budget
 (E2E_MEMORY_GB, default 40; E2E_MAX_PLAYERS, default 4). A run holds perf.lock shared, so a perf
 job taking it exclusively (`flock -x -o ~/.cache/oni-brutal-e2e/perf.lock CMD`) keeps specs from
-starting; specs also wait while ps shows a perf job. Each wait says what it waits for, and
+starting; specs also wait while ps shows a perf job. With runq's daemon up (docs/RUNQ.md), a run
+queues itself as a runq job of kind e2e instead and, inside it, uses the lanes runq granted
+(RUNQ_LANES) with neither the perf wait nor the budget; RUNQ=off keeps the old path. Each wait
+says what it waits for, and
 --max-wait (or E2E_MAX_WAIT) fails the run after that many minutes. A run's players and Xvfbs end
 with it however it ends (a watcher, e2e.py --reap-after, sees to a kill -9), and a runner taking a
 lane whose last holder died first cleans what that holder left (see "leftovers" below).
@@ -1749,6 +1752,61 @@ def machine_lock(lock_dir=None, perf_wait=True, log=say, max_wait=None):
         yield
     finally:
         f.close()
+
+
+# runq (docs/RUNQ.md): a spec run queues itself as a runq job of kind e2e, with lanes, players,
+# memory and cores for its --lanes, and runs once the machine has room. Inside a job with lanes
+# (RUNQ_LANES) it takes only those lanes, and neither waits for perf jobs nor counts its players in
+# the budget: the grant stands in for both, and the job's shim holds the legacy entries for it.
+# RUNQ=off, or no daemon, runs it as before.
+
+
+def runq_lanes():
+    """The lanes this runq job was granted (RUNQ_LANES), or None outside a job with lanes."""
+    if not os.environ.get('RUNQ_JOB'):
+        return None
+    lanes = [int(x) for x in os.environ.get('RUNQ_LANES', '').split(',') if x.strip()]
+    return lanes or None
+
+
+def runq_request(specs, kinds, opts):
+    """(lanes, memory GB, cores, timeout minutes) for a run of SPECS."""
+    jobs = len(specs) * len(kinds) * opts['repeat']
+    lanes = max(1, min(opts['lanes'], jobs))
+    gbs = sorted((player_gb(s, fixture_of(s)) for s in specs), reverse=True) or [6]
+    gb = sum((gbs + [gbs[0]] * lanes)[:lanes])
+    minutes = min(360, max(30, 15 + 15 * -(-jobs // lanes)))  # RUNQ_TIMEOUT (runq run) overrides it
+    return lanes, gb, 3 * lanes, minutes
+
+
+def runq_self_submit(argv, specs, kinds, opts):
+    """Re-runs this invocation as a runq job (and does not return), unless it runs in one, the
+    kill switch is on, or the daemon does not answer."""
+    if os.environ.get('RUNQ_JOB') or os.environ.get('RUNQ', '').lower() in ('off', '0', 'no', 'false'):
+        return
+    runq = os.path.join(ROOT, 'scripts', 'runq')
+    ping = subprocess.run([sys.executable, runq, 'ping'], capture_output=True, text=True)
+    if ping.returncode:
+        why = ping.stderr.strip().removeprefix('runq: ')
+        print(f'runq: {why}; running directly with the old locks', file=sys.stderr)
+        return
+    lanes, gb, cpu, minutes = runq_request(specs, kinds, opts)
+    label = 'e2e ' + ' '.join(s['name'] for s in specs)
+    label = label if len(label) <= 60 else label[:57] + '...'
+    cmd = [
+        sys.executable,
+        runq,
+        'run',
+        '--kind',
+        'e2e',
+        '--needs',
+        f'lane={lanes},players={lanes},mem={gb:g},cpu={cpu}',
+        '--timeout',
+        f'{minutes}m',
+        '--label',
+        label,
+    ]
+    os.execv(sys.executable, cmd + ['--', sys.executable, os.path.abspath(__file__), *argv])
 
 
 def port_listeners(procs=None):
@@ -5566,6 +5624,10 @@ def main(argv):
                 'at installs of one build with the same DLC content (out/local-tools/qa.env).'
             )
             return 2
+    runq_self_submit(argv, specs, kinds, opts)
+    granted = runq_lanes()
+    if granted:
+        opts['perf_wait'] = False
     ensure_fixtures(specs, log=say)
     # Its players and Xvfbs end with it, however it ends (see "leftovers").
     install_teardown()
@@ -5610,8 +5672,8 @@ def main(argv):
 
         try:
             with (
-                machine_lock(perf_wait=opts['perf_wait'], log=waits, max_wait=opts['max_wait']),
-                budget.hold(gb, f'{spec["name"]}/{kind}-{index} lane {lane.number}', waits, opts['max_wait']),
+                contextlib.nullcontext() if granted else machine_lock(perf_wait=opts['perf_wait'], log=waits, max_wait=opts['max_wait']),
+                contextlib.nullcontext() if granted else budget.hold(gb, f'{spec["name"]}/{kind}-{index} lane {lane.number}', waits, opts['max_wait']),
             ):
                 lane.update(state=f'running {job_name}')
                 point_latest(os.path.join(OUT, spec['name']), run_id)
@@ -5660,8 +5722,8 @@ def main(argv):
             # A slot still waiting for a lane once the other slots have taken every job gives up,
             # or the invocation would wait for that lane before writing its records.
             lane = allocate_lane(
-                opts['first_lane'],
-                last=opts['last_lane'],
+                granted[slot] if granted else opts['first_lane'],
+                last=granted[slot] if granted else opts['last_lane'],
                 log=log,
                 max_wait=opts['max_wait'],
                 display=not opts['xvfb_run'] and not opts['displays'],
@@ -5705,7 +5767,8 @@ def main(argv):
         finally:
             lane.release()
 
-    threads = [threading.Thread(target=worker, args=(slot,)) for slot in range(min(opts['lanes'], len(queue.jobs)))]
+    slots = min(opts['lanes'], len(queue.jobs), len(granted) if granted else MAX_LANES)
+    threads = [threading.Thread(target=worker, args=(slot,)) for slot in range(slots)]
     for t in threads:
         t.start()
         time.sleep(1)  # lanes are allocated in order

@@ -178,8 +178,8 @@ use the game's own Harmony, as for players: with BepInEx 6, its HarmonyX replace
 call newer Harmony APIs (Bitshifter, Rocketry Expanded) failed. A copy set up with BepInEx before
 is converted on its next run (its `BepInEx` folder becomes `BepInEx.unused`). A first setup copies
 Unity Doorstop 4's `winhttp.dll` from `ONI_DOORSTOP_SOURCE`, a folder that holds it (another copy,
-or a BepInEx 6 install). One copy runs one player at a time: hold `windows-game.lock` for the whole
-run. The script has the details.
+or a BepInEx 6 install). One copy runs one player at a time: runq's Windows slot holds it (outside runq, hold
+`windows-game.lock` for the whole run). The script has the details.
 
 ## Testing
 
@@ -190,7 +190,14 @@ scripts/qa.sh --memory         # U57's peak memory alone, beside other runs
 scripts/e2e.py SPEC...         # end-to-end specs: tests/e2e
 scripts/e2e.py --player both --lanes 2 --list tests/e2e/release.txt   # release QA's e2e run
 scripts/e2e.py --status        # what runs, holds and waits on the machine: look here first
+scripts/runq status            # runq's jobs: what runs, what waits and why
 ```
+
+On the shared test machine these scripts, and `run.sh`, `run-windows.sh`, `original-windows.sh`
+and `alloc-compare.py run`, queue themselves through runq ([RUNQ.md](RUNQ.md)), which starts
+each when the machine has room for it and holds the locks below for it; anything else that
+loads the machine goes through `scripts/runq run --kind KIND -- CMD`. `RUNQ=off` runs them the
+old way, directly with the locks.
 
 `check.sh` builds the solution, runs the test suites and the scripts' tests
 (`tests/scripts`), and cross-publishes the macOS host. Then it checks the game's assemblies

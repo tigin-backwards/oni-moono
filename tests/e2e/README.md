@@ -31,6 +31,11 @@ load at all, in both players, comes first from [Load sweeps](#load-sweeps).
   to the original's. `E2E_GAME_TWEAKS` gives others, space-separated
   `--game-tweak` values: `E2E_GAME_TWEAKS=exact` (no gameplay changes at all), `=none`,
   `=background-save`.
+- **runq.** With runq's daemon up ([docs/RUNQ.md](../../docs/RUNQ.md)), a run queues itself as
+  a runq job of kind `e2e` (a lane, a player and 3 cores per `--lanes`, the specs' largest
+  memory) and starts when the machine has room. Inside that job it uses the lanes runq granted
+  (`RUNQ_LANES`), takes their lane locks, and neither waits for perf jobs nor counts its players
+  in the budget below: runq's grant stands in for both. `RUNQ=off` runs it as described below.
 - **The lock directory.** Runners in every worktree on the machine meet in one directory,
   `$E2E_LOCK_DIR` or by default `~/.cache/oni-brutal-e2e/`: lane locks, the players' budget, the
   perf lock and the reservations below live there, never in a worktree's `out/`.
