@@ -21,23 +21,31 @@ on:
       pairs:
         description: A B pairs a job launches.
         type: number
-        default: 3
+        default: 5
       window:
-        description: Frames a window (CI's software renderer runs about 1 fps on 2minnow).
+        description: Frames a window (CI's software renderer runs about 6 fps on early-base, 1 on 2minnow).
         type: number
-        default: 150
+        default: 300
       pause_windows:
         description: Windows paused (the first has no counters).
         type: number
-        default: 2
+        default: 3
       run_windows:
         description: Windows running at speed 3 (the first is left out).
         type: number
-        default: 3
+        default: 4
       launch_minutes:
         description: A launch is stopped after this long, with what it has.
         type: number
         default: 14
+      args:
+        description: More player arguments for both, such as --game-tweak exact.
+        type: string
+        default: ""
+      b_args:
+        description: More player arguments for B alone, such as --game-tweak -NAME for a tweak A lacks.
+        type: string
+        default: ""
 
 permissions: {}
 
@@ -117,6 +125,8 @@ jobs:
           PAUSE_WINDOWS: ${{ inputs.pause_windows }}
           RUN_WINDOWS: ${{ inputs.run_windows }}
           LAUNCH_MINUTES: ${{ inputs.launch_minutes }}
+          ARGS: ${{ inputs.args }}
+          B_ARGS: ${{ inputs.b_args }}
         run: |
           export ONI_NO_CONTENT=1 SPREAD_GAME="$RUNNER_TEMP/oni-game" SPREAD_PROBE="$PWD/out/bin/PerfProbe/release" SPREAD_SAVE="$PWD/tests/e2e/fixtures/$SAVE.sav"
           # 960x540: Mesa's software renderer is the slowest part, and its cost goes with the pixels.
@@ -125,21 +135,24 @@ jobs:
           sleep 2
           spread="$RUNNER_TEMP/spread"
           mkdir -p out/perf-spread/runs
-          launch() { # launch TREE NAME LABEL PAUSE RUN SECONDS
+          launch() { # launch TREE NAME LABEL PAUSE RUN SECONDS [HOST ARGS]
             scripts/perf-spread.py run "$1" "$spread/$2" --label "$3" --window "$WINDOW" --size 960x540 \
-              --pause-windows "$4" --run-windows "$5" --timeout "$6" || true
-            if [ -f "$spread/$2/result.json" ] && [ "${2#warm}" = "$2" ]; then
+              --pause-windows "$4" --run-windows "$5" --timeout "$6" --host-args "${7:-}" || true
+            if [ -f "$spread/$2/result.json" ] && [[ "$2" == [0-9]* ]]; then
               mkdir -p "out/perf-spread/runs/$2"
               cp "$spread/$2/result.json" "out/perf-spread/runs/$2/"
             fi
           }
           # A warm-up launch of each first (disk caches, the first JIT), not counted.
-          launch "$RUNNER_TEMP/base" warm-A A 1 0 600
-          launch . warm-B B 1 0 600
+          launch "$RUNNER_TEMP/base" warm-A A 1 0 600 "$ARGS"
+          launch . warm-B B 1 0 600 "$ARGS $B_ARGS"
           for i in $(seq 1 "$PAIRS"); do
-            launch "$RUNNER_TEMP/base" "$i-A" A "$PAUSE_WINDOWS" "$RUN_WINDOWS" $((LAUNCH_MINUTES * 60))
-            launch . "$i-B" B "$PAUSE_WINDOWS" "$RUN_WINDOWS" $((LAUNCH_MINUTES * 60))
+            launch "$RUNNER_TEMP/base" "$i-A" A "$PAUSE_WINDOWS" "$RUN_WINDOWS" $((LAUNCH_MINUTES * 60)) "$ARGS"
+            launch . "$i-B" B "$PAUSE_WINDOWS" "$RUN_WINDOWS" $((LAUNCH_MINUTES * 60)) "$ARGS $B_ARGS"
           done
+          # With B's own arguments, one more B launch without them, not counted: whether B gets
+          # through without them (its error lines if not).
+          [ -z "$B_ARGS" ] || launch . probe-B B 1 0 300
       - name: Summary
         if: always()
         run: |
