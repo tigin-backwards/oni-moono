@@ -80,21 +80,6 @@ namespace OniMoono.Tests
         }
 
         [Fact]
-        public void SaveReadAheadStepsAsideOnlyForWhatCanReplaceTheRead()
-        {
-            // SaveLoader.Load(string): many mods note the load in a postfix or a void prefix.
-            var load = Use("save-read-ahead", transpiler: true, postfix: true, guard: true);
-            load.GuardKinds = ProbeRepairPolicy.GuardedKinds.SkipsAndTranspilers;
-            Assert.Equal(OverlapGrade.StepsAside, ModOverlapsCore.Grade(load, Patch(PatchKind.Transpiler), false));
-            Assert.Equal(OverlapGrade.StepsAside, ModOverlapsCore.Grade(load, Patch(PatchKind.Prefix, canSkip: true), false));
-            Assert.Equal(OverlapGrade.Low, ModOverlapsCore.Grade(load, Patch(PatchKind.Prefix), false));
-            Assert.Equal(OverlapGrade.Low, ModOverlapsCore.Grade(load, Patch(PatchKind.Postfix), false));
-            Assert.Equal(OverlapGrade.Low, ModOverlapsCore.Grade(load, Patch(PatchKind.Finalizer), false));
-            Assert.Equal(new[] { "t", "i" }, ProbeRepairPolicy.Counted(ProbeRepairPolicy.GuardedKinds.SkipsAndTranspilers,
-                new[] { "p" }, new[] { "o" }, new[] { "t" }, new[] { "f" }, new[] { "i" }));
-        }
-
-        [Fact]
         public void EachTweakHasItsOwnHarmonyId()
         {
             Assert.Equal("OniMoono.Host.GameTweaks.fast-jobs", ModOverlapsCore.OwnerOf("fast-jobs"));

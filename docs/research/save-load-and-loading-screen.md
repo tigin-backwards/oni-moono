@@ -285,19 +285,16 @@ mod risk, and B shortens what A has to cover.
 
 ## Built: option B (2026-11-11)
 
-- **`save-read-ahead`** (a game tweak, in `exact`; docs/TWEAKS.md, "Reading saves ahead"): the
-  save is read and decompressed on a thread of its own from its selection on the Load screen, or
-  from the click (Load button, `LoadScreen.DoLoad`, Resume, `SaveLoader.LoadScene`). The load takes
-  the bytes when the file is unchanged and the body when the compressed bytes match, compared
-  whole; otherwise the game's own path runs.
 - **The shader warm-up** no longer waits (`GlWarmup`, ARCHITECTURE.md): the GL thread builds the
   programs while it has no frame to execute. `ONI_WARMUP_AHEAD=0` restores the wait. The Vulkan
-  device's warm-up (U60) is unchanged.
+  device's warm-up (U60) is unchanged. Kept.
+- **Reading and decompressing the save ahead** was built as a game tweak (`save-read-ahead`),
+  measured, and dropped before any release (see below).
 
 Measured as above (Linux U59, Xvfb, each run in its own run home, so Mesa's cache starts empty),
 three runs per configuration, interleaved, under the perf queue; other agents' players ran beside
-some of them. *Before*: `-save-read-ahead` and `ONI_WARMUP_AHEAD=0`. *Click*: both on, the load
-started from the click. *Selected*: the save selected about 2 s before the click.
+some of them. *Before*: both off. *Click*: both on, the load started from the click. *Selected*:
+the save selected about 2 s before the click.
 
 Click to interactive, s (each run; the median in bold):
 
@@ -306,23 +303,27 @@ Click to interactive, s (each run; the median in bold):
 | Mid-game colony | 16.0, **16.3**, 18.7 | 14.7, **14.7**, 18.0 | 15.1, **15.1**, 41.8 |
 | Late-game colony | 26.8, **30.9**, 31.2 | 25.6, **27.9**, 30.4 | 25.4, **26.0**, 30.6 |
 
-The phases the change takes over, ms (means of the three runs):
+The phases the two changes take over, ms (means of the three runs):
 
 | Phase | Mid: before | Click | Selected | Late: before | Click | Selected |
 |---|---|---|---|---|---|---|
 | File read | 12 | 1 | 1 | 70 | 1 | 1 |
 | Decompression | 297 | 51 | 13 | 1,550 | 1,243 | 215 |
 | `Shader.WarmupAllShaders` | 1,403 | 17 | 17 | 1,449 | 14 | 16 |
-| Sum | 1,712 | 69 | 31 | 3,069 | 1,258 | 232 |
 
-- From the click, the late-game colony's decompression (about 1.5 s on the thread) is not done
-  when the load reaches it: the load waits for the rest, about 0.3 s less than before. Selected
-  first, it is done; the remaining ~0.2 s is the whole-body comparison and, in one run, a wait.
-- The warm-up's 360 programs were built on the GL thread in 1.4–1.6 s, done well before the end
-  of `SaveManager.Load`; no draw waited for one.
-- Every other phase is the same within the runs' spread (the first colony frames vary by seconds
-  between runs, and one selected mid-game run's took 34 s, with another player loading beside it).
-- Memory: the late-game colony's save is 150 MB read and 690 MB decompressed; one save at most is
-  held, from the pick until the load takes it.
-- `ONI_TWEAK_VERIFY=1`: the bytes read ahead and the body decompressed ahead were the game's own
-  on both colonies and in the e2e specs, with `fast-save-compression` on and off (0 mismatches).
+- **The warm-up** saves about 1.4 s of every load with an empty driver cache. The 360 programs
+  were built on the GL thread in 1.4–1.6 s, done well before the end of `SaveManager.Load`; no
+  draw waited for one. Every other phase is the same within the runs' spread (the first colony
+  frames vary by seconds between runs; one selected mid-game run's took 34 s, with another player
+  loading beside it).
+- **The read-ahead** gave the same bytes as the game's own read and decompression
+  (`ONI_TWEAK_VERIFY=1`, 0 mismatches on both colonies, with `fast-save-compression` on and off),
+  but was dropped:
+  - From the click it saves only about 0.3–0.4 s: the late-game colony's decompression takes
+    about 1.5 s on the thread and is not done when the load reaches it.
+  - It holds the save read and decompressed (150 MB and 690 MB for the late-game colony) through
+    the load; during a load from the pause menu that is on top of the old colony, raising the
+    load's peak memory.
+  - From the selection it saves more (1.3 s of decompression on the late-game colony), but players
+    click through many saves on the Load screen, and each selection would cost about 1.5 s of CPU
+    and 840 MB.

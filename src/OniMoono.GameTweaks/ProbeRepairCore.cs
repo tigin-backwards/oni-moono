@@ -1427,9 +1427,8 @@ namespace OniMoono.GameTweaks
         /// `AllButPostfixes`: a postfix there runs after the game's code as before. `Finalizers`:
         /// the tweak's own postfix there runs after any prefix (even one that skips the body), the
         /// transpiled body and other postfixes, so only a finalizer, which can swallow an exception
-        /// that skipped it, counts. `SkipsAndTranspilers`: only what can replace the method's work,
-        /// a transpiler or a prefix that can skip the body (save-read-ahead's SaveLoader.Load).
-        public enum GuardedKinds { All, AllButPostfixes, Finalizers, SkipsAndTranspilers }
+        /// that skipped it, counts.
+        public enum GuardedKinds { All, AllButPostfixes, Finalizers }
 
         /// The owners of one method's patches that count under `kinds` (inner patches change calls
         /// inside the body, as a transpiler does).
@@ -1442,13 +1441,6 @@ namespace OniMoono.GameTweaks
                 foreach (var o in owners)
                     if (!counted.Contains(o)) counted.Add(o);
             }
-            if (kinds == GuardedKinds.SkipsAndTranspilers)
-            {
-                // The owners' names alone do not tell which prefixes can skip: none counted here.
-                Add(transpilers);
-                Add(inner);
-                return counted;
-            }
             Add(finalizers);
             if (kinds == GuardedKinds.Finalizers) return counted;
             Add(prefixes);
@@ -1459,8 +1451,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// Whether a patch of `kind` counts under `kinds` (as Counted, for the overlaps screen).
-        public static bool Counts(GuardedKinds kinds, PatchKind kind, bool canSkip = false) =>
-            kinds == GuardedKinds.SkipsAndTranspilers ? kind == PatchKind.Transpiler || (kind == PatchKind.Prefix && canSkip)
-            : kinds == GuardedKinds.All || kind == PatchKind.Finalizer || (kinds == GuardedKinds.AllButPostfixes && kind != PatchKind.Postfix);
+        public static bool Counts(GuardedKinds kinds, PatchKind kind) =>
+            kinds == GuardedKinds.All || kind == PatchKind.Finalizer || (kinds == GuardedKinds.AllButPostfixes && kind != PatchKind.Postfix);
     }
 }
