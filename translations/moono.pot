@@ -362,7 +362,7 @@ msgstr ""
 
 #. Tooltip: how it works (loading-animation)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.DETAIL"
-msgid "A save loads in one long step during which the game shows no new picture, for half a minute on a large colony. Meanwhile Moono shows the loading screen with a progress bar below it, and an animated loading screen from a mod (Pip Licks Butt's Pip) keeps playing. The load itself is the same and takes as long."
+msgid "A save loads in one long step during which the game shows no new picture, for half a minute on a large colony. Meanwhile Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. The load itself is the same and takes as long."
 msgstr ""
 
 #. Row title (fmod-quarantine)
