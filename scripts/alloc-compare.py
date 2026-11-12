@@ -4,6 +4,7 @@
 AllocSites). Linux, on Xvfb, players through scripts/contain.sh.
 
     scripts/alloc-compare.py run orig|ours SAVE OUT [--fps N] [--sites] [--trace] [--secs 600] [--warm 90]
+                             [--uilists FILE] [--frame-stats] [--env NAME=VALUE]...
         One launch: SAVE loaded at speed 3 with PerfProbe (alloc.txt, novictory.txt, no autosaves),
         1280x720, measured for --secs after --warm s past the first frame-rate window. Moono gets a
         warm-up launch first and runs with its default tweaks. --fps caps the frame rate (both
@@ -11,7 +12,10 @@ AllocSites). Linux, on Xvfb, players through scripts/contain.sh.
         an allocation trace with stacks and thread ids for `split`. Runs as a runq job of kind
         linux-perf (docs/RUNQ.md); with RUNQ=off or no daemon it holds the perf queue
         (perf.wanted and perf.lock, as qa.sh's perf stage) and a player's place in scripts/e2e.py's
-        memory budget for the launch, and gives both back after it.
+        memory budget for the launch, and gives both back after it. --uilists gives PerfProbe FILE as
+        its uilists.txt (the long-list screens' scenario, tools/PerfProbe/UiLists.cs) and measures
+        until it logs `PERF ui done` instead of for --secs; --frame-stats and --env NAME=VALUE (ours
+        only) add the frame-stats lines and engine settings.
     scripts/alloc-compare.py rates RUN...       KB a frame, MB a game s and a real s, collections
     scripts/alloc-compare.py sites RUN [N]      the N largest sections (KB a game s and a frame)
     scripts/alloc-compare.py compare ORIG OURS  the two runs' sections side by side, buckets grouped
@@ -223,7 +227,7 @@ def stop(pid, proc):
         proc.kill()
 
 
-def prepare_home(out, save, probe, fps, sites):
+def prepare_home(out, save, probe, fps, sites, uilists=None):
     home = os.path.join(out, 'home')
     d = os.path.join(home, 'config', 'unity3d', 'Klei', 'Oxygen Not Included')
     saves = os.path.join(d, 'cloud_save_files', STEAM_ID, 'INV')
@@ -243,6 +247,9 @@ def prepare_home(out, save, probe, fps, sites):
         files['fps.txt'] = f'{fps}\n'
     if sites:
         files['sites.txt'] = ''
+    if uilists:
+        with open(uilists) as f:
+            files['uilists.txt'] = f.read()
     for name, text in files.items():
         with open(os.path.join(mod, name), 'w') as f:
             f.write(text)
@@ -286,6 +293,9 @@ def run(argv):
     ap.add_argument('--trace', action='store_true')
     ap.add_argument('--secs', type=int, default=600)
     ap.add_argument('--warm', type=int, default=90)
+    ap.add_argument('--uilists')
+    ap.add_argument('--frame-stats', action='store_true')
+    ap.add_argument('--env', action='append', default=[])
     a = ap.parse_args(argv)
     if a.trace and a.player != 'ours':
         raise SystemExit('alloc-compare: --trace needs .NET (ours)')
@@ -298,7 +308,7 @@ def run(argv):
     out = os.path.abspath(a.out)
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out)
-    home, mods_json = prepare_home(out, os.path.abspath(a.save), s['probe'], a.fps, a.sites)
+    home, mods_json = prepare_home(out, os.path.abspath(a.save), s['probe'], a.fps, a.sites, a.uilists and os.path.abspath(a.uilists))
     env = dict(os.environ)
     for k, v in (('GALLIUM_DRIVER', s['gallium']), ('MESA_D3D12_DEFAULT_ADAPTER_NAME', s['adapter'])):
         if v:
@@ -311,6 +321,7 @@ def run(argv):
     else:
         comm, log = 'OniMoono', os.path.join(out, 'stdout.txt')
         env.update(ONI_TWEAK_SETTINGS='1', ONI_GAME_DIR=s['game'], ONI_RUN_HOME=home, ONI_CONFIG='release')
+        env.update(dict(e.split('=', 1) for e in a.env))
 
     def launch(path):
         with open(mods_json, 'w') as f:
@@ -320,6 +331,8 @@ def run(argv):
             sink = open(os.path.join(out, 'player-stdout.txt'), 'a')
         else:
             cmd = [contain, 'scripts/run.sh', '--splash', 'none', '--log-paths', 'full', '--native-override', f'steam_api={s["steam"]}', *SIZE]
+            if a.frame_stats and path == log:
+                cmd.append('--frame-stats')
             sink = open(path, 'w')
         return subprocess.Popen(['timeout', '-k', '10', '2700', *cmd], cwd=s['worktree'], env=env, stdout=sink, stderr=subprocess.STDOUT)
 
@@ -362,6 +375,8 @@ def run(argv):
                         stdin=subprocess.DEVNULL,
                         env=dotnet_env(),
                     )
+            elif a.uilists:
+                wait_for(log, r'PERF ui done', proc)
             else:
                 time.sleep(a.secs)
             cpu1, win1 = cpu_sample(pid), windows(log)
