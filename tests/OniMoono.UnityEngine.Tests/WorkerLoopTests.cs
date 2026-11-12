@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using OniMoono.GameTweaks;
 using Xunit;
 
@@ -102,12 +103,32 @@ namespace OniMoono.Tests
         {
             var sum = new long[1];
             Action<int> body = i => Interlocked.Add(ref sum[0], i);
-            for (int i = 0; i < 20; i++) WorkerLoop.For(64, body);
-            long before = GC.GetAllocatedBytesForCurrentThread();
-            for (int i = 0; i < 100; i++) WorkerLoop.For(64, body);
-            long ours = (GC.GetAllocatedBytesForCurrentThread() - before) / 100;
-            // The run and one pool record a helper queued.
-            Assert.True(ours <= 64 + 48L * WorkerLoop.MaxHelpers, $"{ours} bytes a call");
+            long ours = MedianBytesACall(() => WorkerLoop.For(64, body));
+            long theirs = MedianBytesACall(() => Parallel.For(0, 64, body));
+            // A call allocates its run (48 bytes on 64-bit) and the pool's record of each helper
+            // queued (32), so 528 bytes with 15 helpers on 16 cores; Parallel.For's about 2.5 KB.
+            long ceiling = 64 + 48L * WorkerLoop.MaxHelpers;
+            Assert.True(ours <= ceiling, $"WorkerLoop.For: {ours} bytes a call (median), at most {ceiling} expected");
+            // The measure sees Parallel.For's allocations, so it would see the loop's.
+            Assert.True(theirs > ceiling, $"Parallel.For: {theirs} bytes a call (median), more than {ceiling} expected");
+        }
+
+        /// The median of what single calls allocate on the calling thread. On a loaded machine
+        /// some calls also pay there for the pool's own work, up to tens of KB: starting a
+        /// worker thread, or growing its queue when helpers start late. That is the pool's, not
+        /// the call's, and the median leaves it out (an average over 100 calls did not).
+        static long MedianBytesACall(Action call)
+        {
+            for (int i = 0; i < 50; i++) call();
+            var bytes = new long[401];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                long before = GC.GetAllocatedBytesForCurrentThread();
+                call();
+                bytes[i] = GC.GetAllocatedBytesForCurrentThread() - before;
+            }
+            Array.Sort(bytes);
+            return bytes[bytes.Length / 2];
         }
     }
 }
