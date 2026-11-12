@@ -58,6 +58,8 @@
   <ItemGroup>
     <!-- How Moono's own Workshop item is told (Install.VersionedInstall, the game tweak skipping it in the mod manager). -->
     <Compile Include="../OniMoono.GameTweaks/MoonoItemMarker.cs" Link="Install/MoonoItemMarker.cs" />
+    <!-- fast-anim-batches' loop: the tweaks call this copy, whose runs are reused thread-pool work items. -->
+    <Compile Include="../OniMoono.GameTweaks/WorkerLoop.cs" Link="GameTweaks/WorkerLoop.cs" />
     <!-- The Workshop loader mod's strings, in moono.pot with the Moono Tweaks screen's (TweakStrings). -->
     <Compile Include="../MoonoLoader/LoaderStrings.cs" Link="GameTweaks/LoaderStrings.cs" />
   </ItemGroup>
