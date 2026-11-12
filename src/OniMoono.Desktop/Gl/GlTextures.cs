@@ -173,7 +173,7 @@ namespace OniMoono.Desktop.Gl
             u.Target = t switch { Texture2DArrayNative => TexTarget2DArray, Texture3DNative => TexTarget3D, _ => TexTarget2D };
             u.Memory = null;
             u.Pooled = false;
-            u.Copying = null;
+            u.Copying = default;
             if (t.Placeholder)
             {
                 // A stripped copy's texture (NoContent): 1×1 grey texels, each slice, instead of
@@ -197,7 +197,7 @@ namespace OniMoono.Desktop.Gl
         public bool Pooled;
 
         /// The copy into Memory, when it is still being made on another thread (TexelCopies).
-        public System.Threading.Tasks.Task Copying;
+        public TexelCopy Copying;
 
         public long MipSize(int mip) => TextureFormats.MipSize(Format, Math.Max(1, Width >> mip), Math.Max(1, Height >> mip))
                                         * (Target == TexTarget3D ? Math.Max(1, Depth >> mip) : 1);
@@ -213,7 +213,7 @@ namespace OniMoono.Desktop.Gl
         /// Uploads into the device texture (GL thread) and frees the texels.
         public void Execute(DeviceTexture g)
         {
-            Copying?.Wait();
+            Copying.Wait();
             try
             {
                 if (Target == TexTarget2DArray) GlTextures.UploadArray(this, g);
@@ -225,7 +225,7 @@ namespace OniMoono.Desktop.Gl
                 if (Pooled) UploadBuffers.Return(Memory);
                 else Memory?.Free();
                 Memory = null;
-                Copying = null;
+                Copying = default;
             }
         }
     }
