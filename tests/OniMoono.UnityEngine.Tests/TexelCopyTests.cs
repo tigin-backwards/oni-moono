@@ -49,10 +49,31 @@ namespace OniMoono.Tests
                 foreach (var target in targets) Assert.True(target.Span.IndexOfAnyExcept(value) < 0);
             }
             for (int round = 0; round < 20; round++) Round((byte)round);
-            long before = System.GC.GetAllocatedBytesForCurrentThread();
-            for (int round = 0; round < 100; round++) Round((byte)(round + 20));
-            long perCopy = (System.GC.GetAllocatedBytesForCurrentThread() - before) / (100 * targets.Length);
+            long bytes = 0;
+            for (int round = 0; round < 100; round++)
+            {
+                WaitForAnEmptyPoolQueue();
+                long before = System.GC.GetAllocatedBytesForCurrentThread();
+                Round((byte)(round + 20));
+                bytes += System.GC.GetAllocatedBytesForCurrentThread() - before;
+            }
+            long perCopy = bytes / (100 * targets.Length);
             Assert.True(perCopy < 8, $"{perCopy} bytes a copy");
+        }
+
+        /// Each copy queues its work item, and the item stays in the pool's queue when the fence
+        /// made the copy first. On a loaded machine the pool runs those entries late: back to back,
+        /// 100 rounds left up to 226 queued, and the queue grew on the calling thread (2.3 and
+        /// 4.4 KB a time, 16 bytes a copy in all). That is the pool's, not the copies': waiting
+        /// for its queue to empty first measures a round as on a pool that keeps up.
+        static void WaitForAnEmptyPoolQueue()
+        {
+            long deadline = Environment.TickCount64 + 30_000;
+            while (System.Threading.ThreadPool.PendingWorkItemCount != 0)
+            {
+                if (Environment.TickCount64 > deadline) Assert.Fail($"{System.Threading.ThreadPool.PendingWorkItemCount} work items still queued after 30 s");
+                System.Threading.Thread.Sleep(1);
+            }
         }
 
         [Fact]
