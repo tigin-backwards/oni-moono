@@ -461,7 +461,10 @@ unchanged.
   Gluttony, Linux, stopwatch: 1.92–2.01 → 1.49–1.65 ms a frame; 3.2 million writes and 55,000
   deferred override blocks verified with ONI_TWEAK_VERIFY (each redone at its original place
   and compared byte for byte), none different. The engine's transform caches were made safe
-  for concurrent readers for it.
+  for concurrent readers for it. The workers are WorkerLoop's: Parallel.For without its
+  allocations (about 2 KB a call), with eight reused thread-pool work items. A call that finds
+  all eight still held (the pool behind) runs on the main thread alone, queuing no helpers and
+  allocating nothing, and Player.log gets a line at most once a minute counting such calls.
 
 - `fast-overlays`: the overlays' per-frame visits to objects. Temperature: the game's event
   reaches every temperature visualizer (U57: about 91,000) and each reads its transform; the

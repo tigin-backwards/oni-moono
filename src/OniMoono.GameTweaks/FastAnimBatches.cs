@@ -226,6 +226,7 @@ namespace OniMoono.GameTweaks
                 if (!off) CheckPatches();
             }
             if (off) return;
+            ReportAlone();
             frames++;
             pass++;
             pending.Clear();
@@ -257,6 +258,29 @@ namespace OniMoono.GameTweaks
             long t0 = timing ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
             WorkerLoop.For(pending.Count, body);
             if (timing) ticksParallel += System.Diagnostics.Stopwatch.GetTimestamp() - t0;
+        }
+
+        static float aloneLogAt = -1f;
+        static int aloneCalls, aloneSeen;
+
+        /// Player.log gets a line at most once a minute while calls of the worker loop found the
+        /// pool so far behind that they ran on the main thread alone (WorkerLoop).
+        static void ReportAlone()
+        {
+            float t = Time.realtimeSinceStartup;
+            if (aloneLogAt < 0f)
+            {
+                aloneLogAt = t + 60f;
+                aloneCalls = WorkerLoop.Calls;
+                aloneSeen = WorkerLoop.CallerAlone;
+            }
+            if (t < aloneLogAt) return;
+            int calls = WorkerLoop.Calls, alone = WorkerLoop.CallerAlone;
+            if (alone != aloneSeen)
+                global::Debug.Log($"{Name}: worker loop: {alone - aloneSeen} of {calls - aloneCalls} calls ran on the caller alone (pool behind), last minute");
+            aloneCalls = calls;
+            aloneSeen = alone;
+            aloneLogAt = t + 60f;
         }
 
         static void Postfix()

@@ -13,9 +13,12 @@ namespace OniMoono.GameTweaks
     ///
     /// Compiled into the host as well (OniMoono, .NET): there a run is the pool's work item
     /// itself, queued once a helper, and runs are reused once every helper queued for them has
-    /// finished with them, so a call allocates nothing. This assembly (.NET Standard, which has no
-    /// such work items) calls the host's copy when it finds it, and otherwise makes a run a call
-    /// and the pool a record a helper queued.
+    /// finished with them, so a call allocates nothing. When every reusable run is held (by
+    /// calls, or by helpers the pool has not started yet: the pool is behind), the call runs its
+    /// items on the calling thread alone, in order, queues no helper and allocates nothing, so a
+    /// saturated pool gets no more work; CallerAlone counts those calls. This assembly (.NET
+    /// Standard, which has no such work items) calls the host's copy when it finds it, and
+    /// otherwise makes a run a call and the pool a record a helper queued.
     ///
     /// Exceptions as Parallel.For: after one, no item starts that had not; those running finish,
     /// and every exception thrown comes out in one AggregateException.
@@ -53,6 +56,12 @@ namespace OniMoono.GameTweaks
 #if NET
         /// Runs to reuse (any thread may call For).
         static readonly Run[] runs = new Run[8];
+        static int calls, alone;
+
+        /// Calls so far (with items), and those that found every run held and ran on the caller
+        /// alone (the pool behind). fast-anim-batches logs them.
+        public static int Calls => Volatile.Read(ref calls);
+        public static int CallerAlone => Volatile.Read(ref alone);
 
         static Run Take()
         {
@@ -72,12 +81,30 @@ namespace OniMoono.GameTweaks
                     Volatile.Write(ref run.InUse, 0);
                 }
             }
-            // Every run is held by a call or by a helper still to start: one of this call's own.
-            return new Run { InUse = 1 };
+            // Every run is held by a call or by a helper still to start: the pool is behind.
+            return null;
+        }
+
+        /// A call that found every run held: its items on this thread, in order, none after a
+        /// failure, with no run (nothing allocated unless an item throws).
+        static void Alone(int count, Action<int> body)
+        {
+            Interlocked.Increment(ref alone);
+            for (int i = 0; i < count; i++)
+            {
+                try
+                {
+                    body(i);
+                }
+                catch (Exception e)
+                {
+                    throw new AggregateException(e);
+                }
+            }
         }
 
         /// Helpers queued for the reusable runs that have not finished with them. While any are,
-        /// a call may find every run held and make its own (tests wait for none).
+        /// a call may find every run held and run on the caller alone (tests wait for none).
         internal static int HelpersQueued
         {
             get
@@ -91,7 +118,13 @@ namespace OniMoono.GameTweaks
 #else
         static readonly WaitCallback help = state => Work((Run)state);
         static Action<int, Action<int>> hosted;
+        static Func<int> hostedCalls, hostedAlone;
         static bool bound;
+        static int calls;
+
+        /// The host's counts when it runs the calls (see its copy); here no call runs alone.
+        public static int Calls => Hosted() != null && hostedCalls != null ? hostedCalls() : Volatile.Read(ref calls);
+        public static int CallerAlone => Hosted() != null && hostedAlone != null ? hostedAlone() : 0;
 
         /// The host's copy (allocates nothing), when this runs in it.
         static Action<int, Action<int>> Hosted()
@@ -100,12 +133,16 @@ namespace OniMoono.GameTweaks
             bound = true;
             try
             {
-                var method = Type.GetType("OniMoono.GameTweaks.WorkerLoop, OniMoono", false)?.GetMethod(nameof(For), new[] { typeof(int), typeof(Action<int>) });
+                var type = Type.GetType("OniMoono.GameTweaks.WorkerLoop, OniMoono", false);
+                var method = type?.GetMethod(nameof(For), new[] { typeof(int), typeof(Action<int>) });
                 if (method != null) hosted = (Action<int, Action<int>>)Delegate.CreateDelegate(typeof(Action<int, Action<int>>), method);
+                if (type?.GetProperty(nameof(Calls))?.GetGetMethod() is { } c) hostedCalls = (Func<int>)Delegate.CreateDelegate(typeof(Func<int>), c);
+                if (type?.GetProperty(nameof(CallerAlone))?.GetGetMethod() is { } a) hostedAlone = (Func<int>)Delegate.CreateDelegate(typeof(Func<int>), a);
             }
             catch (Exception)
             {
                 hosted = null;
+                hostedCalls = hostedAlone = null;
             }
             return hosted;
         }
@@ -115,7 +152,13 @@ namespace OniMoono.GameTweaks
         {
             if (count <= 0) return;
 #if NET
+            Interlocked.Increment(ref calls);
             var run = Take();
+            if (run == null)
+            {
+                Alone(count, body);
+                return;
+            }
             run.Body = body;
             run.Count = count;
             run.Errors = null;
@@ -131,6 +174,7 @@ namespace OniMoono.GameTweaks
                 host(count, body);
                 return;
             }
+            Interlocked.Increment(ref calls);
             var run = new Run { Body = body, Count = count };
             int helpers = Math.Min(count - 1, MaxHelpers);
             for (int i = 0; i < helpers; i++) ThreadPool.UnsafeQueueUserWorkItem(help, run);
