@@ -369,6 +369,20 @@ Measured as above (U59, every run in its own run home; Linux on Xvfb, Windows wi
 - **The bar** (seven phases, weighted by the same save's last load): its largest distance from a
   straight line in time fell from 0.23–0.29 (first load, default weights) to 0.08–0.12 (second
   load) on Windows, and from 0.18–0.33 to 0.19–0.20 on Linux.
-- Vulkan (U60's default renderer) has its own presenter, which this does not cover: the arming
-  and the bar's counters run, nothing is drawn, and the kanim frames are not rendered. U60 on
-  OpenGL works as on U59.
+- **On Vulkan** (U60's default renderer; VkLoadAnimation, built 2026-11-12), measured on U60:
+  - The replay check: 0 of 118,680 pixels differ on Windows (an RTX 3090, through DXGI and through
+    Vulkan's own swapchain); 16–20 differ by at most 7 of 255 on Mesa's software Vulkan (llvmpipe,
+    this machine's Linux lanes). The frames took 3.1–3.2 ms on Windows, 0.9–4.2 ms on llvmpipe.
+  - Click to interactive, on minus off, order alternated: Windows mid-game −0.4 and −1.4 s,
+    late-game −2.0 and −1.0 s (the runs' spread). On llvmpipe the load's long frame ended
+    0.15–0.26 s later (mid-game, three pairs) and 0.30–0.34 s later (late-game, two pairs):
+    llvmpipe draws the presenter's redraws on the CPU the load runs on; "interactive" means
+    nothing there, every software-rendered frame lasting over 100 ms.
+  - Redraw gaps: 113–250 ms on Windows (1–9 a load), almost none of it in a redraw: the
+    collections. On llvmpipe the first load's longest gap was 1.7 s, nearly all of it inside a
+    redraw: its submission and present wait for the queue's lock while the render thread's long
+    llvmpipe submissions (the first load's pipeline builds) run. Later loads in the same process
+    had gaps of 0.15–0.33 s.
+  - 21 loads in a row (the save reloaded 20 times from the colony, with Loading Pip) in one
+    session on Windows and on Linux: each animated with the kanim replayed, no hang, no lost
+    device, no presentation failure.
