@@ -453,7 +453,9 @@ def cmd_status(argv):
     print(
         f'runq {st["version"]}, pid {st["pid"]}. Machine: windows {m["windows"]}, perf {m["perf"]}, lanes {m["lanes_used"]} used/{m["lanes_free"]} free, '
         f'mem {m["mem_used"]:g}/{m["mem_cap"]:g} GB, cpu {m["cpu_used"]:g}/{m["cpu_cap"]:g}, players {m["players_used"]:g}/{m["players_cap"]}, '
-        f'{m["ext_cpu"]:.1f} cores busy outside runq' + (', the user is in ONI' if m.get('user_in_oni') else '')
+        f'{m["ext_cpu"]:.1f} cores busy outside runq'
+        + (', the user is in ONI' if m.get('user_in_oni') else '')
+        + (f', Windows processes through {m["interop"]}' if m.get('interop') else '')
     )
     print('RUNNING')
     for d in st['running'] or []:

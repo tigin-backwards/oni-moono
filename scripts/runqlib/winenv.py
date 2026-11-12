@@ -191,6 +191,51 @@ def legacy_test_game(cmdline):
     return '\\oni-runq\\' not in lower and ('--run-home' in lower or '\\oni-brutal\\' in lower or 'run-home' in lower or 'player.log' in lower)
 
 
+# WSL interop and Windows' image-load policy. A Windows process that a systemd unit starts goes
+# through the interop server of WSL's own init (/run/WSL/1_interop, the fallback without
+# WSL_INTEROP), whose host process, wslhost.exe, starts it with the PreferSystem32Images
+# mitigation; its children inherit it and no parent can turn it off. A DLL beside an executable
+# then loses to System32's of the same name: Unity Doorstop's winhttp.dll in the original's copy
+# never loads (no isolation), and our host would pick System32's copies of DLLs it ships. A
+# terminal's session goes through its own init's socket (/run/WSL/PID_interop), which starts
+# processes without it. So runq jobs use a session's socket, one checked to start processes
+# without the mitigation (choose_interop); Windows-slot jobs wait while there is none.
+
+
+def interop_sockets(root='/run/WSL'):
+    """[(path, pid)] of the interop sockets whose relay process is alive, longest-lived first,
+    WSL's own (pid 1 and 2) last."""
+    found = []
+    try:
+        names = os.listdir(root)
+    except OSError:
+        return []
+    for name in names:
+        m = re.fullmatch(r'(\d+)_interop', name)
+        if not m:
+            continue
+        pid = int(m.group(1))
+        if not os.path.exists(f'/proc/{pid}'):
+            continue
+        try:
+            with open(f'/proc/{pid}/stat') as f:
+                start = int(f.read().rsplit(')', 1)[1].split()[19])
+        except (OSError, IndexError, ValueError):
+            start = 0
+        found.append((os.path.join(root, name), pid, start))
+    found.sort(key=lambda x: (x[1] in (1, 2), x[2]))
+    return [(path, pid) for path, pid, _ in found]
+
+
+def choose_interop(sockets, prefers_system32):
+    """The first socket whose Windows processes start without PreferSystem32Images
+    (PREFERS_SYSTEM32(path) -> True, False, or None when it cannot tell), else None."""
+    for path, _ in sockets:
+        if prefers_system32(path) is False:
+            return path
+    return None
+
+
 def windows_exe(name, folder='C:\\Windows\\System32'):
     """A Windows executable by its full path: the daemon's systemd unit has no Windows folders in
     its PATH (interop itself works there)."""
@@ -251,6 +296,25 @@ class Windows:
             raise ValueError(f'refusing a short match {match!r}')
         return self._ps('-Action', 'boost', '-Match', match)
 
+    def prefers_system32(self, interop):
+        """Whether a Windows process started through the interop socket INTEROP runs with the
+        PreferSystem32Images mitigation (None: no answer)."""
+        env = dict(os.environ, WSL_INTEROP=interop)
+        try:
+            r = subprocess.run(
+                [self.powershell, '-NoProfile', '-NonInteractive', '-Command', '(Get-ProcessMitigation -Id $PID).ImageLoad.PreferSystem32'],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                stdin=subprocess.DEVNULL,
+                cwd='/mnt/c',
+                env=env,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        answer = r.stdout.strip().upper()
+        return {'ON': True, 'OFF': False}.get(answer)
+
     def user_in_oni(self):
         """Steam's RunningAppID is ONI's (read-only)."""
         r = subprocess.run(
@@ -279,6 +343,7 @@ class FakeWindows:
 
     def __init__(self, temp='C:\\Users\\test\\AppData\\Local\\Temp', root=None):
         self.calls, self.procs, self.in_oni, self._temp, self.root = [], [], False, temp, root
+        self.policy = {}  # interop socket -> prefers System32 (True/False)
 
     def available(self):
         return True
@@ -301,6 +366,10 @@ class FakeWindows:
 
     def user_in_oni(self):
         return self.in_oni
+
+    def prefers_system32(self, interop):
+        self.calls.append(('probe', interop))
+        return self.policy.get(interop)
 
     def remove(self, win_path):
         self.calls.append(('remove', win_path))

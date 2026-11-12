@@ -64,6 +64,8 @@ class Worker(threading.Thread):
         self.boost_matches = []  # (job id, match) of win-perf jobs, set by the loop
         self.boosted = set()
         self.stop = False
+        # The WSL interop socket jobs use (winenv.choose_interop), and when it was chosen.
+        self.interop, self.interop_at = None, 0.0
 
     def cgroup_usec(self, paths):
         total = 0
@@ -76,6 +78,21 @@ class Worker(threading.Thread):
             except OSError:
                 pass
         return total
+
+    def pick_interop(self, w, now):
+        if self.interop and os.path.exists(self.interop) and w.prefers_system32(self.interop) is False:
+            self.interop_at = now
+            return
+        chosen = winenv.choose_interop(winenv.interop_sockets(), w.prefers_system32)
+        if chosen != self.interop:
+            log(
+                f'interop: jobs start Windows processes through {chosen}'
+                if chosen
+                else 'interop: no WSL session socket starts Windows processes without PreferSystem32Images; Windows jobs wait'
+            )
+        with self.lock:
+            self.interop, self.interop_at = chosen, now
+        self.d.wake()
 
     def run(self):
         w = self.d.windows
@@ -102,6 +119,8 @@ class Worker(threading.Thread):
                 with self.lock:
                     self.ext_cpu = max(0.0, busy - ours)
                 now = time.monotonic()
+                if w is not None and (self.interop is None or not os.path.exists(self.interop) or now - self.interop_at >= 300):
+                    self.pick_interop(w, now)
                 period = 30 if self.d.windows_relevant else 300
                 if w is not None and (self.want_windows.is_set() or now - last_win >= period):
                     self.want_windows.clear()
@@ -657,6 +676,11 @@ class Daemon:
         caller_env = (shim.read_json(os.path.join(job['dir'], 'job.json'), {}) or {}).get('caller_env', {})
         jobd = dict(job, needs=needs)
         env = winenv.job_env(caller_env, jobd, {'lanes': list(g.lanes), 'needs': needs}, self.cfg, self.win_temp())
+        # Windows processes the job starts go through a session's interop socket, not init's
+        # (winenv: init's starts them with PreferSystem32Images, and DLLs beside them lose).
+        interop = self.worker.interop
+        if interop and os.path.exists(interop):
+            env['WSL_INTEROP'] = interop
         # Commands inside the job (runq phase, a nested runq run) reach this daemon.
         env['RUNQ_SOCKET'] = config.socket_path()
         for name in ('RUNQ_STATE_DIR', 'RUNQ_RUNS_DIR', 'RUNQ_CONFIG'):
@@ -930,6 +954,12 @@ class Daemon:
                 elif winenv.legacy_test_game(cmd):
                     ext.windows = True
                     why.append(f'a test game outside runq, pid {g.get("pid")} ({g.get("name")})')
+            interop = self.worker.interop
+            if wants_windows and not (interop and os.path.exists(interop)):
+                ext.windows = True
+                why.append(
+                    'no WSL session interop socket that starts Windows processes without PreferSystem32Images (being checked; a WSL terminal provides one)'
+                )
             if wants_windows and now - games_at > 90:
                 ext.windows = True
                 why.append('the Windows side is being checked')
@@ -1086,6 +1116,7 @@ class Daemon:
                 'players_used': used['players'] + ext.players,
                 'players_cap': c['players'],
                 'ext_cpu': self.worker.ext_cpu,
+                'interop': self.worker.interop,
                 'user_in_oni': self.worker.user_in_oni,
             },
             'running': running,
