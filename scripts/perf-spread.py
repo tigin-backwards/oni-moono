@@ -129,6 +129,7 @@ def run(argv):
     ap.add_argument('--run-windows', type=int, default=4)
     ap.add_argument('--window', type=int, default=600, help='frames a window')
     ap.add_argument('--size', default='1280x720', help='the window, WxH')
+    ap.add_argument('--host-args', default='', help="more of the player's arguments, space-separated")
     ap.add_argument('--timeout', type=int, default=2400, help='seconds for the whole launch')
     a = ap.parse_args(argv)
     game, steam, probe = (os.environ.get(n) for n in ('SPREAD_GAME', 'SPREAD_STEAM', 'SPREAD_PROBE'))
@@ -150,6 +151,7 @@ def run(argv):
         '--log-paths',
         'full',
         '--frame-stats',
+        *a.host_args.split(),
         '--native-override',
         f'steam_api={steam}',
         *('-screen-width', size[0], '-screen-height', size[1], '-screen-fullscreen', '0'),
@@ -189,10 +191,36 @@ def run(argv):
         json.dump(result, f, indent=1)
     got = len(result['windows'])
     print(f'perf-spread: {a.label} {status}, {got} windows of {wanted} in {took:.0f} s (colony after {result["to_colony_s"]} s)', flush=True)
+    if got < wanted:
+        for line in failure_lines([os.path.join(out, 'stdout.txt'), log], home):
+            print('  ' + line, flush=True)
     return 0 if got >= wanted else 1
 
 
 # ---- reading a log ----
+
+FAILURE = re.compile(r'exception|error|abort|fatal|assert|unhandled|signal|crash', re.IGNORECASE)
+
+
+def failure_lines(paths, home, most=12):
+    """A failed launch's last error lines, short, with the run home's path left out: verdicts and
+    short excerpts only, as the CI game tests print (ci/game-tests/README.md)."""
+    found = []
+    for path in paths:
+        try:
+            with open(path, errors='replace') as f:
+                found += [l.strip().replace(home, 'HOME')[:240] for l in f if FAILURE.search(l)]
+        except FileNotFoundError:
+            pass
+    found = found[-most:]
+    # And the player's last words, which a native abort leaves without a keyword.
+    try:
+        with open(paths[0], errors='replace') as f:
+            found += ['(end) ' + l.strip().replace(home, 'HOME')[:240] for l in f.readlines()[-6:]]
+    except FileNotFoundError:
+        pass
+    return found
+
 
 NUM = r'(-?[\d.]+)'
 

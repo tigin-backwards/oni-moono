@@ -114,13 +114,15 @@ Two settings for test runs go with frame stats:
 The **Perf spread** workflow (`.github/workflows/perf-spread.yml`, by hand only) measures how
 steady GitHub's runners are, before any perf number goes into the nightly. Each of its three jobs
 builds the last release (A) and the commit (B) against the stripped game, launches each once to
-warm up, then A and B in turn, three times each, on the same save (early-base by default) under
-Xvfb with Mesa's software renderer, at 960x540. That renderer is slow: 2minnow ran at about 1 fps.
-Each launch (`scripts/perf-spread.py run`) holds the colony paused for two windows of 150 frames
-(PerfProbe's `pausefirst.txt` and `window.txt`), then runs it at speed 3 for three, with
-`alloc.txt`, `sites.txt` and `--frame-stats`, and stops after 14 minutes with what it has. The
-first window of each phase is left out. Each launch's `result.json` is kept as it ends, so a
-job cut short still has a summary. The job summary and the artifact give, for each label, the
+warm up, then A and B in turn, five times each, on the same save (early-base by default) under
+Xvfb with Mesa's software renderer, at 960x540. That renderer is slow: early-base runs at about
+6 fps, 2minnow at about 1. Each launch (`scripts/perf-spread.py run`) holds the colony paused for
+three windows of 300 frames (PerfProbe's `pausefirst.txt` and `window.txt`), then runs it at
+speed 3 for four, with `alloc.txt`, `sites.txt` and `--frame-stats`, and stops after 14 minutes
+with what it has; a launch that falls short prints its last error lines. The first window of
+each phase is left out. Each launch's `result.json` is kept as it ends, so a job cut short still
+has a summary. `args` and `b_args` add player arguments to both or to B alone (a tweak the
+release lacks can only be named for B). The job summary and the artifact give, for each label, the
 spread of the counts (allocations per frame paused and per game second running, by update
 section too, collections, draws, texture uploads) and, for each A/B pair, the ratio of the
 medians of main-thread ms a frame and the sim's ms a frame, with the runner's CPU model.
