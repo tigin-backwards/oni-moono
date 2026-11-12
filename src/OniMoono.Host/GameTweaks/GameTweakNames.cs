@@ -60,7 +60,7 @@ namespace OniMoono.Host.GameTweaks
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots",
             ExactWorldgen = "exact-worldgen", FastPipeRebuilds = "fast-pipe-rebuilds", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
-            FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix", ReleasedSounds = "fix-released-sounds",
+            SimStepPace = "sim-step-pace", FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix", ReleasedSounds = "fix-released-sounds",
             LoadingAnimation = "loading-animation";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
@@ -91,6 +91,9 @@ namespace OniMoono.Host.GameTweaks
 
         static readonly TweakGain PipesGain = new("PIPES", "each pipe network rebuild ~25 ms shorter on a colony with 27,000 pipes (~57 → ~32 ms)",
             "a late-game base-game colony with 27,000 pipes", "Linux under WSL2", "2026-11-10", "docs/PERFORMANCE.md#the-tweaks (fast-pipe-rebuilds)");
+
+        static readonly TweakGain PaceGain = new("PACE", "112 → 220 fps at normal speed on a large modded colony",
+            "a large modded Spaced Out colony", "Windows", "2026-11-12", "docs/TWEAKS.md#simulation-at-its-own-pace (alternating segments, frame time p99 34 → 12 ms)");
 
         public static readonly TweakGroup General = new("GENERAL", "General");
         public static readonly TweakGroup Saving = new("SAVING", "Saving", SaveGain);
@@ -234,6 +237,10 @@ namespace OniMoono.Host.GameTweaks
                 + "The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second.", OnByDefault: true),
             new("off-screen-conveyors", ChangesGameplay, "Lazy unseen conveyor items", "Items riding rails off screen are placed only when they stop or come into view.",
                 "The rails carry exactly the same things, but items' positions lag while off screen."),
+            new(SimStepPace, ChangesGameplay, "Simulation at its own pace", "Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU.",
+                "Between its steps, five a second, the game asks the simulation for its state on every frame with no game time to step, which happens only above 60 fps at normal speed. "
+                + "Each such call makes the frame wait for the step underway and runs a step of no time. With this, the simulation is called only at its steps, as the game already does below 60 fps and at faster speeds. "
+                + "Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later than without it (up to 0.4 s), as below 60 fps. Paused, or while another mod changes these calls, the game's own calls run.", PaceGain),
             new("brain-rate", ChangesGameplay, "Critter and dupe brain updates capped at 30 updates a second", "Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps.",
                 "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps."),
             new("off-world-fallers", BugFixes, "Land items lost below a world", "Items that fall out the bottom of a world (a rocket's chute) stop falling forever.",
@@ -250,7 +257,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds, ReleasedSounds];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds, ReleasedSounds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem) and

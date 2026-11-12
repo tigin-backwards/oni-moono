@@ -263,6 +263,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Incremental path probes** (`path-probe-repair`): Duplicants' path checks redo only what changed in the world, using less CPU. Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may walk the other one, not the original's. Keeps about 0.9 MB a Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths). *On by default.*
 - **Instant reachability checks** (`instant-reachability`): Duplicants notice a newly opened or blocked path at once, using less CPU. Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second. *On by default.*
 - **Lazy unseen conveyor items** (`off-screen-conveyors`): Items riding rails off screen are placed only when they stop or come into view. The rails carry exactly the same things, but items' positions lag while off screen.
+- **Simulation at its own pace** (`sim-step-pace`): Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU. Between its steps, five a second, the game asks the simulation for its state on every frame with no game time to step, which happens only above 60 fps at normal speed. Each such call makes the frame wait for the step underway and runs a step of no time. With this, the simulation is called only at its steps, as the game already does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later than without it (up to 0.4 s), as below 60 fps. Paused, or while another mod changes these calls, the game's own calls run. *Measured: 112 → 220 fps at normal speed on a large modded colony; a large modded Spaced Out colony, Windows, 2026-11-12.*
 - **Critter and dupe brain updates capped at 30 updates a second** (`brain-rate`): Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps. The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps.
 
 ### Bug fixes (off by default but where marked)
@@ -404,6 +405,28 @@ an item now?), each arrow handler skipped against its own condition, and every 6
 registered pipes against the colony's; Player.log reports
 `fast-pipe-rebuilds: N rebuilds, N of N pipe refreshes made, N of N flow-arrow handlers run, 0 mismatches`
 every 200 rebuilds or 30 s, and a line for each mismatch.
+
+### Simulation at its own pace
+
+Off by default (`sim-step-pace`, in the Changes gameplay group, not in `exact`).
+
+The game steps its simulation five times a second, each step 0.2 s of game time
+(`Game.SimEveryTick`). On a frame with no game time to step, which at normal speed happens only
+above 60 fps, it also calls the simulation with no time (`UnsafeSim200ms(0)`). That call reads
+the simulation's state back, so the frame waits for the step still running (a median 25 ms on a
+large modded colony on Windows), and it runs another pass of the simulation, about 10 ms of CPU
+each. Measured on Windows on a large modded colony at 1×, off against on in alternating
+segments of one run: 112 → 220 fps, frame times p50 7.4 → 3.9 ms and p99 34 → 12 ms, the sim's
+CPU about 160 → 38 ms a step.
+
+With the tweak those calls are left out, so the simulation is called only at its steps, as the
+game already does below 60 fps and at speeds 2 and 3. Sub-ticks, errands and the steps themselves
+run as in the game. What changes, above 60 fps at normal speed: a change the game asks of the
+simulation (a dug tile, a built tile, a door) shows when the next step's results come back, about
+0.3 s later than without the tweak (median 27 → 310 ms for a dug tile, at most about 0.4 s), as it
+does below 60 fps. Paused, the game's calls still run, so tools
+used while paused show at once. While another mod patches `Game.SimEveryTick` or
+`Game.UnsafeSim200ms`, the game's own code runs (`sim-step-pace: off (...)` in Player.log).
 
 ### Animation events
 
