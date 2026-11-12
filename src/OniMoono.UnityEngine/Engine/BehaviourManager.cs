@@ -247,14 +247,8 @@ namespace OniMoono.Engine
             if (startQueue.Count == 0) return;
             using var snapshot = startSnapshot.Take(startQueue);
             startQueue.Clear();
-            var items = snapshot.Items;
-            // A save load's bar (LoadProgress) counts the pass that starts its objects.
-            bool counted = LoadProgress.Phase >= LoadProgress.AfterObjects;
-            if (counted) LoadProgress.StartPass(items.Length);
-            for (int i = 0; i < items.Length; i++)
+            foreach (var b in snapshot.Items)
             {
-                var b = items[i];
-                if (counted) LoadProgress.Started(i);
                 // Started since it was queued (by its first update callback): nothing to do.
                 if (b.StartCalled || b.Destroyed) continue;
                 b.StartPending = false;

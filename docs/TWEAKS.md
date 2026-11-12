@@ -211,7 +211,6 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 ### General (on by default)
 
 - **Faster Load screen** (`fast-load-screen`): With many saves, the Load screen opens and loads more colonies sooner. Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same. *Measured: Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s); U60, 4,637 saves, Linux under WSL2, 2026-11-03.*
-- **Moving loading screen** (`loading-animation`): The loading screen keeps moving while a colony loads. A save loads in one long step during which the game shows no new picture, for half a minute on a large colony. Meanwhile Moono shows the loading screen with a progress bar below it, and an animated loading screen from a mod (Pip Licks Butt's Pip) keeps playing. The load itself is the same and takes as long.
 - **Sound memory guard** (`fmod-quarantine`): Guards against a bug in the game's sound engine that can crash the game. FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some "heap corruption" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now.
 - **Stolen sound crash guard** (`fmod-steal-fix`): Fixes a bug in the game's sound engine that can crash the game when many sounds play at once. When too many copies of a sound play, FMOD, the sound engine, stops the oldest; if that one is still loading, FMOD frees it and then writes to it. With this, that one write is skipped, in FMOD's code in memory, only for the exact FMOD files the game ships; anything else is left as it is. Nothing you hear changes.
 - **Forget released sounds** (`fix-released-sounds`): The game stops changing sounds it is done with, which after hours of play could crash it. A bug in the game's own code: background sounds, and looping sounds after a switch to another asteroid, keep the sound engine's number for a sound the game is done with, and go on using it. After a couple of hours on a large colony the sound engine gives that number to something else, and the game's change lands there, sometimes not on a sound at all. With this, the number is forgotten when the sound is let go. Nothing you hear changes.
@@ -423,35 +422,6 @@ the repeated work. It installs only where the Load screen still has the bug: whe
 changes `LoadScreen.AddColonyToList` or the fields the fix reads, or the method no longer adds
 the handler without clearing the button first, the tweak is left out with one line in
 Player.log (`fix-load-screen-clicks: left out, ...`).
-
-### The loading screen
-
-A save loads inside one engine frame (the scene, the save read, every object made and spawned), so
-the game shows no new picture for up to half a minute
-([measurements](research/save-load-and-loading-screen.md)). With `loading-animation` the
-presenter thread shows the loading screen again 30 times a second with a thin bar under it, in the
-start-up splash's place and colours, until the colony's first frame; nothing is drawn over a game
-frame. A loading overlay that no scene load follows within 250 ms gets a pulse instead.
-
-The bar's phases are the scene switch, the save read, its decompression, the world set up, the
-objects loaded (`SaveManager.Load`), what follows, and the Start pass that spawns every object.
-What moves the bar within a phase is the engine's or .NET's: the zlib stream's position in the
-compressed bytes (with `fast-save-compression`), the reader's position in the decompressed body,
-the engine's Start queue counted. The game's own methods (`SaveLoader.DecompressContents`,
-`SaveManager.Load`) only mark where a phase starts, with prefixes and postfixes that change
-nothing; when one is missing after a game update, or another mod transpiles `SaveManager.Load`,
-that phase moves by time instead, and the load is not affected. Each phase takes the share of
-the bar it took the last time the same save (by path and size) was loaded, kept in
-`oni-moono/load-times.json` (32 saves at most); a save never loaded uses a mid-game colony's.
-Within a phase without a count, the bar moves about 80% of the way by the phase's expected time
-and creeps on after; it never goes back.
-
-A kanim the loading screen plays (Pip Licks Butt's Pip) keeps playing: when the load starts, the
-overlay is drawn once for each frame of the kanim's anim into a texture of its own, with only the
-frame number in the kanim batch's data changed and put back, and the presenter plays them on at
-the anim's rate. That costs 3 to 11 ms (at most 50 ms; past that it is not replayed). With
-`ONI_TWEAK_VERIFY=1` the first frame replayed is compared with the frame the screen shows, pixel
-by pixel, and the log says how many differ.
 
 ### The sound fixes
 

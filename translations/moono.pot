@@ -320,21 +320,6 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.LOAD_SCREEN"
 msgid "Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s)"
 msgstr ""
 
-#. Row title (loading-animation)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.TITLE"
-msgid "Moving loading screen"
-msgstr ""
-
-#. The line under the title (loading-animation)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.EFFECT"
-msgid "The loading screen keeps moving while a colony loads."
-msgstr ""
-
-#. Tooltip: how it works (loading-animation)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.DETAIL"
-msgid "A save loads in one long step during which the game shows no new picture, for half a minute on a large colony. Meanwhile Moono shows the loading screen with a progress bar below it, and an animated loading screen from a mod (Pip Licks Butt's Pip) keeps playing. The load itself is the same and takes as long."
-msgstr ""
-
 #. Row title (fmod-quarantine)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.TITLE"
 msgid "Sound memory guard"

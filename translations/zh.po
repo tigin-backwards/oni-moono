@@ -598,18 +598,6 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.DETAIL"
 msgid "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same."
 msgstr "每次刷新时每个存档的信息只从文件读取一次而不是四次，并且同时读取多个文件；已显示页面的预览图不再重新生成。殖民地、顺序、预览图和日志都不变。"
 
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.TITLE"
-msgid "Moving loading screen"
-msgstr "会动的加载画面"
-
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.EFFECT"
-msgid "The loading screen keeps moving while a colony loads."
-msgstr "加载殖民地时，加载画面不再静止不动。"
-
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.DETAIL"
-msgid "A save loads in one long step during which the game shows no new picture, for half a minute on a large colony. Meanwhile Moono shows the loading screen with a progress bar below it, and an animated loading screen from a mod (Pip Licks Butt's Pip) keeps playing. The load itself is the same and takes as long."
-msgstr "读取存档是一个漫长的步骤，期间游戏不会显示新画面，大型殖民地可长达半分钟。这段时间里 Moono 会在加载画面下方显示一条进度条，模组提供的动画加载画面（如 Pip Licks Butt 的松鼠）也会继续播放。加载过程本身不变，耗时也相同。"
-
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.TITLE"
 msgid "Sound memory guard"
 msgstr "音效内存保护"
