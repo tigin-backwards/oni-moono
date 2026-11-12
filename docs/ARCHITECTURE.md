@@ -2668,8 +2668,14 @@ frames to a device thread; only the work posted for resources differs (`IResourc
   with nothing drawn yet is the pass's load op) and ended when the target changes, a copy must
   run outside it, or the frame ends. Pipelines are made on first use per program, resolved pass
   state, vertex layout, topology and target formats, with the driver's pipeline cache kept in the
-  player's cache folder; each draw's key is hashed once and the last draw's pipeline is tried
-  first. Set 0 is pushed (`VK_KHR_push_descriptor`, when the program's bindings fit the device's
+  player's cache folder (`vulkan-pipelines.bin`, written at shutdown to a new file moved over the
+  old; `VkPipelineCacheFile`): the driver's data behind our header with its length and SHA-256,
+  read back only when it is whole and its Vulkan header names this GPU (vendor, device) and
+  driver (pipelineCacheUUID), otherwise discarded and logged, so a damaged or foreign file never
+  reaches the driver (`ONI_VK_PIPELINE_CACHE=0` leaves it unread). On Windows (NVIDIA) a
+  mid-game load's first frames make about 80 pipelines in 67 ms with the cache empty and 10 ms
+  with it read; lavapipe keeps nothing in it. Each draw's key is hashed once and the last draw's
+  pipeline is tried first. Set 0 is pushed (`VK_KHR_push_descriptor`, when the program's bindings fit the device's
   push limit, 32 on NVIDIA and Mesa), through an update template made with the program (one
   image or buffer info per slot, no writes built per draw), or, for programs with more (Klei's batched animation shaders
   bind 39, on about half a colony's draws), taken from a cache of sets kept across frames by the

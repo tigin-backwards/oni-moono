@@ -393,17 +393,37 @@ namespace OniMoono.Desktop.Vulkan
 
         static readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> messages = new();
 
-        VkPipelineCache CreatePipelineCache()
+        /// ONI_VK_PIPELINE_CACHE=0: the cache file is not read (measurements of a launch without
+        /// it); it is still written.
+        static readonly bool ReadPipelineCache = Environment.GetEnvironmentVariable("ONI_VK_PIPELINE_CACHE") != "0";
+
+        /// The driver's cache data from the file, when it is whole and this device's
+        /// (VkPipelineCacheFile); otherwise null, the file left to be replaced at shutdown.
+        byte[] ReadPipelineCacheFile()
         {
-            byte[] data = null;
+            if (pipelineCachePath == null || !ReadPipelineCache) return null;
+            byte[] file;
             try
             {
-                if (pipelineCachePath != null && System.IO.File.Exists(pipelineCachePath)) data = System.IO.File.ReadAllBytes(pipelineCachePath);
+                if (!System.IO.File.Exists(pipelineCachePath)) return null;
+                file = System.IO.File.ReadAllBytes(pipelineCachePath);
             }
             catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
             {
                 EngineLog.Engine($"vulkan: pipeline cache unreadable ({e.Message})");
+                return null;
             }
+            var props = Properties;
+            // VK_UUID_SIZE bytes; `props` is a local, so its fixed buffer does not move.
+            var uuid = new ReadOnlySpan<byte>(props.PipelineCacheUUID, 16);
+            var data = VkPipelineCacheFile.Unwrap(file, (uint)props.VendorID, (uint)props.DeviceID, uuid, out var why);
+            EngineLog.Engine(data != null ? $"vulkan: pipeline cache read ({data.Length / 1000} KB)" : $"vulkan: pipeline cache file discarded: {why}");
+            return data;
+        }
+
+        VkPipelineCache CreatePipelineCache()
+        {
+            byte[] data = ReadPipelineCacheFile();
             fixed (byte* p = data)
             {
                 var info = new VkPipelineCacheCreateInfo { InitialDataSize = (nuint)(data?.Length ?? 0), InitialData = p };
@@ -423,7 +443,8 @@ namespace OniMoono.Desktop.Vulkan
             }
         }
 
-        /// Writes the pipeline cache for the next launch (the driver validates it on load).
+        /// Writes the pipeline cache for the next launch: to a file beside it, then moved over
+        /// it, so a launch that ends while writing leaves the last file whole.
         public void SavePipelineCache()
         {
             if (pipelineCachePath == null || PipelineCache.IsNull()) return;
@@ -431,9 +452,9 @@ namespace OniMoono.Desktop.Vulkan
             {
                 nuint size = Device.GetPipelineCacheData_Count(PipelineCache);
                 var data = new byte[(int)size];
+                nuint written = size;
                 fixed (byte* p = data)
                 {
-                    nuint written = size;
                     // VK_INCOMPLETE (the cache grew since its size was asked) is a success too:
                     // what was written is valid cache data (the specification).
                     var r = Device.PInvoke.vkGetPipelineCacheData.Invoke(Device.Handle, PipelineCache, &written, p);
@@ -442,9 +463,11 @@ namespace OniMoono.Desktop.Vulkan
                         EngineLog.Engine($"vulkan: pipeline cache not saved (vkGetPipelineCacheData: {r})");
                         return;
                     }
-                    System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(pipelineCachePath)!);
-                    System.IO.File.WriteAllBytes(pipelineCachePath, data.AsSpan(0, (int)written).ToArray());
                 }
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(pipelineCachePath)!);
+                string temporary = pipelineCachePath + ".new";
+                System.IO.File.WriteAllBytes(temporary, VkPipelineCacheFile.Wrap(data.AsSpan(0, (int)written)));
+                System.IO.File.Move(temporary, pipelineCachePath, overwrite: true);
             }
             catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException or VkResultError)
             {
