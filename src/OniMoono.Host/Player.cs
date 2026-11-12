@@ -271,8 +271,51 @@ namespace OniMoono.Host
             if (maxFrameRate > 0 && (target <= 0 || target > maxFrameRate)) target = maxFrameRate;
             if (target <= 0) return;
             double remaining = 1.0 / target - (clock.Elapsed.TotalSeconds - frameStart);
-            if (remaining > 0.001) Thread.Sleep(TimeSpan.FromSeconds(remaining));
+            if (remaining > 0.001) FrameSleep.For(remaining);
         }
+    }
+
+    /// The frame cap's sleep. Windows' Sleep ends on the system timer's tick, 15.6 ms unless a
+    /// process raised the resolution, so a 12 ms sleep took 15.6 or 31 ms: a cap of 50 fps ran at
+    /// 32. A high-resolution waitable timer (Windows 10 1803 on) ends within about half a
+    /// millisecond, without raising the timer's resolution for the whole system; elsewhere, or
+    /// when the timer cannot be made, Thread.Sleep.
+    internal static class FrameSleep
+    {
+        static IntPtr timer;
+        static bool tried;
+
+        public static void For(double seconds)
+        {
+            if (OperatingSystem.IsWindows() && Timer() != IntPtr.Zero)
+            {
+                long due = -(long)(seconds * 10_000_000);
+                if (SetWaitableTimerEx(timer, ref due, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0) != 0
+                    && WaitForSingleObject(timer, 1000) == 0)
+                    return;
+            }
+            Thread.Sleep(TimeSpan.FromSeconds(seconds));
+        }
+
+        static IntPtr Timer()
+        {
+            if (!tried)
+            {
+                tried = true;
+                // CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS.
+                timer = CreateWaitableTimerExW(IntPtr.Zero, IntPtr.Zero, 0x2, 0x1F0003);
+            }
+            return timer;
+        }
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern IntPtr CreateWaitableTimerExW(IntPtr attributes, IntPtr name, uint flags, uint access);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        static extern int SetWaitableTimerEx(IntPtr timer, ref long dueTime, int period, IntPtr completion, IntPtr arg, IntPtr wakeContext, uint tolerableDelay);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
     }
 
     /// [RuntimeInitializeOnLoadMethod] methods, as recorded at build time in
