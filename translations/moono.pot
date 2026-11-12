@@ -1005,6 +1005,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.DETAIL"
 msgid "A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view."
 msgstr ""
 
+#. Row title (fix-table-scroll)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TABLE_SCROLL.TITLE"
+msgid "Keep table columns where they were scrolled"
+msgstr ""
+
+#. The line under the title (fix-table-scroll)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TABLE_SCROLL.EFFECT"
+msgid "Scrolled table columns no longer jump back to the first ones every second or so."
+msgstr ""
+
+#. Tooltip: how it works (fix-table-scroll)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TABLE_SCROLL.DETAIL"
+msgid "A bug in the game's own code: each row of a table keeps its own scroll position in step with the others, and when the rows are laid out again (as they are every second or so while the columns move), one row's columns go back to the start and the game moves every row there. With this, laying out a row keeps the table's scroll position."
+msgstr ""
+
 #. The loader mod's dialog in the original game: its title
 msgctxt "STRINGS.MOONO.LOADER.TITLE"
 msgid "Play with Moono?"

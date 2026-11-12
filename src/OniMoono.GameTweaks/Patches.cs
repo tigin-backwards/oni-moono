@@ -39,6 +39,7 @@ namespace OniMoono.GameTweaks
                 case ReleasedSounds.Name: ReleasedSounds.Install(harmony); return true;
                 case OwnWorkshopItem.Name: OwnWorkshopItem.Install(harmony); return true;
                 case TimelapseWrites.Name: TimelapseWrites.Install(harmony); return true;
+                case TableScrollJumps.Name: TableScrollJumps.Install(harmony); return true;
                 default: return false;
             }
         }

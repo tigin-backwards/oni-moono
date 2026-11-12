@@ -1,0 +1,52 @@
+# The fix-table-scroll game tweak (src/OniMoono.GameTweaks/TableScrollJumps.cs, on by default). Ours
+# only (`--player ours`): the original has no such tweak, and has the bug.
+#
+# A table's rows each scroll their columns in step (TableScreen.SetScrollersDirty). When the
+# rows are laid out again, the default row's layout group puts its columns back at the start, and
+# the game then moves every row there: scrolled sideways, the columns jump back to the first ones
+# every second or so (in the original too). With the tweak a layout pass keeps the table's scroll
+# position. Here Consumables' columns are scrolled right with the wheel, two notches at a time, six
+# times, each followed by 6 game seconds at speed 3 (the rows' values change and the table is laid out
+# again), and after each step the table must not have moved back, and the default
+# row must be in step with the header. Without the tweak a jump in the middle of the steps leaves
+# the table short of where the steps took it (a later notch scrolls on from the first columns).
+from: U57
+memory_gb: 15
+game_tweaks: [fix-table-scroll]
+steps:
+  - open: {management: consumables}
+  - ui_wait: {path: "**/ConsumablesTableScreen", cond: stable, frames: 600}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": [{save_as: p0}, "< 0.001"]
+  - scroll: {at: "**/ConsumablesTableScreen/**/world_divider/Header/Scroller", notches: -2}
+  - run: {seconds: 6}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": [{save_as: p1}, ">= p0 - 0.001"]
+      "ui:**/ConsumablesTableScreen/**/Content/defaultRow/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": ">= p0 - 0.001"
+  - scroll: {at: "**/ConsumablesTableScreen/**/world_divider/Header/Scroller", notches: -2}
+  - run: {seconds: 6}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": [{save_as: p2}, ">= p1 - 0.001"]
+      "ui:**/ConsumablesTableScreen/**/Content/defaultRow/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": ">= p1 - 0.001"
+  - scroll: {at: "**/ConsumablesTableScreen/**/world_divider/Header/Scroller", notches: -2}
+  - run: {seconds: 6}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": [{save_as: p3}, ">= p2 - 0.001"]
+      "ui:**/ConsumablesTableScreen/**/Content/defaultRow/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": ">= p2 - 0.001"
+  - scroll: {at: "**/ConsumablesTableScreen/**/world_divider/Header/Scroller", notches: -2}
+  - run: {seconds: 6}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": [{save_as: p4}, ">= p3 - 0.001"]
+      "ui:**/ConsumablesTableScreen/**/Content/defaultRow/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": ">= p3 - 0.001"
+  - scroll: {at: "**/ConsumablesTableScreen/**/world_divider/Header/Scroller", notches: -2}
+  - run: {seconds: 6}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": [{save_as: p5}, ">= p4 - 0.001"]
+      "ui:**/ConsumablesTableScreen/**/Content/defaultRow/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": ">= p4 - 0.001"
+  - scroll: {at: "**/ConsumablesTableScreen/**/world_divider/Header/Scroller", notches: -2}
+  - run: {seconds: 6}
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": [{save_as: p6}, ">= p5 - 0.001"]
+      "ui:**/ConsumablesTableScreen/**/Content/defaultRow/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": ">= p5 - 0.001"
+  - expect_state:
+      "ui:**/ConsumablesTableScreen/HeaderContent/prefab_row_header/Scroller::GetComponent<KScrollRect>.horizontalNormalizedPosition": "> 0.05"

@@ -53,6 +53,7 @@ path-probe-repair ours              # 168: the default-on tweak, every repair ch
 update-badge-states ours            # 45
 fix-sound-piles ours                # 39: the bug-fix tweak (#51)
 fix-timelapse-snapshots ours        # the bug-fix tweak
+fix-table-scroll ours               # the bug-fix tweak: table columns kept where scrolled
 issue-52-fast-track-no-tiering ours # est 37 (Fast Track gated on u60's run home)
 mod-overlaps-en ours                # 35
 mod-overlaps-zh ours                # 29

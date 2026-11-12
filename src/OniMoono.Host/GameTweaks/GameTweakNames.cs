@@ -27,7 +27,7 @@ namespace OniMoono.Host.GameTweaks
     /// that change gameplay (Changes gameplay, Bug fixes) that still changes what the game does a little (off by default, left out
     /// of `exact`). `OnByDefault`: a tweak that changes what the game does (left out of `exact`)
     /// but is on by default all the same (the player's choice: path-probe-repair,
-    /// fix-load-screen-clicks, fix-sound-piles, fix-timelapse-snapshots).
+    /// fix-load-screen-clicks, fix-sound-piles, fix-timelapse-snapshots, fix-table-scroll).
     internal sealed record TweakInfo(string Id, TweakGroup Group, string Title, string Effect, string Detail = "", TweakGain? Gain = null, bool IsTweak = true,
         string[]? Choices = null, bool ChangesBehaviour = false, bool OnByDefault = false)
     {
@@ -58,7 +58,7 @@ namespace OniMoono.Host.GameTweaks
             UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
-            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots",
+            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots", TableScroll = "fix-table-scroll",
             ExactWorldgen = "exact-worldgen", FastPipeRebuilds = "fast-pipe-rebuilds", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
             SimStepPace = "sim-step-pace", FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix", ReleasedSounds = "fix-released-sounds",
             LoadingAnimation = "loading-animation";
@@ -254,10 +254,13 @@ namespace OniMoono.Host.GameTweaks
             new(TimelapseSnapshots, BugFixes, "Correct daily colony snapshots", "Colony snapshots saved each cycle no longer get vertical stripes, squeezed lights or stray effects.",
                 "A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. "
                 + "With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view.", OnByDefault: true),
+            new(TableScroll, BugFixes, "Keep table columns where they were scrolled", "Scrolled table columns no longer jump back to the first ones every second or so.",
+                "A bug in the game's own code: each row of a table keeps its own scroll position in step with the others, and when the rows are laid out again (as they are every second or so while the columns move), "
+                + "one row's columns go back to the start and the game moves every row there. With this, laying out a row keeps the table's scroll position.", OnByDefault: true),
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds, ReleasedSounds];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, TableScroll, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds, ReleasedSounds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem) and

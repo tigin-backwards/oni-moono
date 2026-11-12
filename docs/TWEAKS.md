@@ -137,7 +137,7 @@ Launch options still work and win over the screen, which then shows those rows a
 launch options:
 - `--game-tweak exact`: every tweak that leaves the game as the original plays it: all but the
   Changes gameplay and Bug fixes groups (so without `path-probe-repair`, `instant-reachability`,
-  `fix-load-screen-clicks` and `fix-sound-piles`, which are on by default).
+  `fix-load-screen-clicks`, `fix-sound-piles` and `fix-table-scroll`, which are on by default).
 - `--game-tweak all`: every tweak.
 - `--game-tweak none`: no tweaks.
 - Tweaks by name: `--game-tweak exact --game-tweak brain-rate`. `--game-tweak -NAME` leaves
@@ -272,6 +272,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Open a colony once on the Load screen** (`fix-load-screen-clicks`): After Load more, a click on a colony no longer builds its list of saves again for every refresh. A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same. *On by default.*
 - **Cap repeated sounds in one tile** (`fix-sound-piles`): Hundreds of critters in one tile no longer freeze the game with their sounds. When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped. *On by default.*
 - **Correct daily colony snapshots** (`fix-timelapse-snapshots`): Colony snapshots saved each cycle no longer get vertical stripes, squeezed lights or stray effects. A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view. *On by default.*
+- **Keep table columns where they were scrolled** (`fix-table-scroll`): Scrolled table columns no longer jump back to the first ones every second or so. A bug in the game's own code: each row of a table keeps its own scroll position in step with the others, and when the rows are laid out again (as they are every second or so while the columns move), one row's columns go back to the start and the game moves every row there. With this, laying out a row keeps the table's scroll position. *On by default.*
 <!-- tweaks:end -->
 
 ### Incremental path probes
@@ -772,6 +773,30 @@ aspect, with `Game.LateUpdate`'s formulas). In the frame of the capture, the lig
 draws at the image's aspect; the screen is behind the Timelapser's freeze frame then, so a player
 sees no change. Each of these is set back right after the render, also when it fails. In U60,
 which reads the image back asynchronously, the readback is queued before they are set back.
+
+### The table scroll fix
+
+`fix-table-scroll` keeps a table screen's columns where they were scrolled. It is on by default,
+in the Bug fixes group and left out of `exact`.
+
+Each row of a table screen (Consumables, Vitals, Priorities and the like) scrolls its columns
+in a ScrollRect of its own, and the game keeps them in step: a row whose scroll position changed
+sends it to `TableScreen.SetScrollersDirty`, which moves every row there. The row's scroller
+object also holds the layout group that places the row's columns, so whenever the table's rows
+are laid out again, the default ("New Duplicants") row's columns go back to their start. Its
+ScrollRect reports position 0 at the next LateUpdate, and `SetScrollersDirty` moves every row to
+the first columns. While the columns are scrolled sideways that happens every second or so: the
+table jumps back for a frame, or stays back until the next notch of the wheel. Frame-by-frame
+captures show it in the original on Direct3D 11 and Vulkan, and in Moono on Vulkan and OpenGL.
+
+With the tweak, once a row's layout group has placed its columns, they go back to the table's
+scroll position (the game's own target, as `PositionScrollers` sets it), so a layout pass no
+longer scrolls a row and no row that was not scrolled moves the others. Scrolling with the wheel,
+dragging a row or the header's scrollbar, and the table zeroing its columns as it opens are as
+before. The tweak stands down, with a line in `Player.log`, when another mod patches
+`TableScreen.SetScrollersDirty`, `TableScreen.PositionScrollers` or the layout groups' placing.
+`tests/e2e/fix-table-scroll.yaml` scrolls Consumables' columns with the wheel while the game runs
+and checks that they never move back.
 
 ### Colony images written in the background
 

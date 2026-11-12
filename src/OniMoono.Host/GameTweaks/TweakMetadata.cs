@@ -406,8 +406,10 @@ namespace OniMoono.Host.GameTweaks
         public GameFiles(string managed) => this.managed = managed;
 
         /// Where declared members are looked up: the game's Assembly-CSharp and
-        /// Assembly-CSharp-firstpass, and its FMOD wrapper (fmod-quarantine's).
-        public static readonly string[] Primary = ["Assembly-CSharp", "Assembly-CSharp-firstpass", "FMODUnity"];
+        /// Assembly-CSharp-firstpass, its FMOD wrapper (fmod-quarantine's), and the uGUI package
+        /// the game was built with (fix-table-scroll patches a layout group's placing, which
+        /// Moono's own UnityEngine.UI keeps with the same signature).
+        public static readonly string[] Primary = ["Assembly-CSharp", "Assembly-CSharp-firstpass", "FMODUnity", "UnityEngine.UI"];
 
         /// Whether a referenced assembly is one the game ships and Moono loads as it is (not one
         /// Moono provides itself: its engine, UI packages and the runtime's).
@@ -427,7 +429,7 @@ namespace OniMoono.Host.GameTweaks
             return file;
         }
 
-        /// A type of Assembly-CSharp, its firstpass or FMODUnity by its full name.
+        /// A type of Assembly-CSharp, its firstpass, FMODUnity or UnityEngine.UI by its full name.
         public (MetadataFile File, TypeDefinitionHandle Type)? Find(string fullName)
         {
             foreach (var name in Primary)
