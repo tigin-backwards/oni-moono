@@ -257,7 +257,9 @@ def plan(state):
         blocked = None
         if u[LANE] > len(lanes_free):
             blocked = 'lane'
-        blocked = blocked or fits_window(u, now, end, entries + reservations, cap, ext, now)
+        # Now beside what runs (in runq and outside it), and over its whole window beside the
+        # reservations (which assume the occupants outside runq are gone by then).
+        blocked = blocked or fits_window(u, now, end, entries, cap, ext, now) or fits_window(u, now, end, entries + reservations, cap)
         if not blocked and u[PERF] and state.external.perf_shared:
             blocked = 'perf-shared'
         gate = None
