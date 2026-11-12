@@ -99,6 +99,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/ReachabilityIndex.cs" Link="GameTweaks/ReachabilityIndex.cs" />
     <!-- The mod overlaps with the tweaks: grading, the log and the tooltips (ModOverlapsTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/ModOverlapsCore.cs" Link="GameTweaks/ModOverlapsCore.cs" />
+    <!-- The fast-save-roots game tweak's search (SaveRootsTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/SaveRootsCore.cs" Link="GameTweaks/SaveRootsCore.cs" />
     <!-- The fast-load-screen game tweak's header memo and read-ahead (HeaderReadsTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/HeaderReads.cs" Link="GameTweaks/HeaderReads.cs" />
     <!-- The fix-timelapse-snapshots game tweak's frame arithmetic (TimelapseFrameTests). -->

@@ -366,6 +366,7 @@ exercise, are in the notes under the tables, with their dates.
 | `fast-overlay-textures`<br>render textures dropped by overlay toggles are freed | not measured in these runs (see note) | exact |
 | `compact-nav-links`<br>the pathfinding grids keep each cell's links packed | managed heap after the windows 8,129–8,337 → 7,891–8,104 MB<br>frame within noise | exact |
 | `fast-smi-lookups`<br>state machine lookups (`GetSMI<T>()`) are answered from what they answered before | frame within noise | exact |
+| `fast-save-roots`<br>a stored item leaves the save list by a reference search instead of `Equals` on every saved item of its kind | Linux, 2026-11-12, a late-game colony (U60), six off/on pairs in one run: item hand-offs (`Pickupable.OnStore`) −19%, the conveyor rails' update −9%, the 200 ms sim step −3% | exact |
 | Save tweaks<br>`fast-serialization`, `fast-save-type-checks`, `fast-save-compression`, `no-save-gc`, `background-save` | not measured in these runs (see note) | exact; saves still load in the original |
 | `post-load-gc`<br>two young collections at the end of a load, while the game is still paused | Windows, 2026-11-07: the first gen1 in play, a 283–344 ms pause 40–85 s after every load (6 of 6), is gone: no pause over 68 ms in the first 90 s (6 of 6)<br>the load ~0.2–0.25 s longer; steady play and memory unchanged ([research/gc-pauses.md](research/gc-pauses.md)) | exact |
 

@@ -180,6 +180,9 @@ namespace OniMoono.Host.GameTweaks
                 + "the pathfinder reads the same moves in the same order."),
             new("fast-smi-lookups", Simulation, "Faster state machine lookups", "Finding one of an object's state machines no longer searches all of them each time.",
                 "Each object remembers which of its state machines answered each lookup until its list of state machines changes."),
+            new("fast-save-roots", Simulation, "Faster conveyor item moves", "Items moving between rails and buildings no longer search every saved item of their kind.",
+                "When an item is stored, the game takes it out of its list of things to save by comparing it with every item of its kind; "
+                + "this compares references instead, which finds the same entry."),
             new(PagedPathGrids, Simulation, "Paged path grids", "Each Duplicant's map of path costs takes memory only where it can walk.",
                 "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, "
                 + "and the parts never written read as the empty grid did. The pathfinder reads the same values."),
@@ -239,7 +242,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, TimelapseSnapshots, SharedDuplicates, CompactReports, ReleasedSounds];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, TimelapseSnapshots, SharedDuplicates, CompactReports, ReleasedSounds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem).
