@@ -956,7 +956,10 @@ namespace OniMoono.Desktop.Gl
         const int ReadBandPixels = 1 << 20;
 
         /// Waits for the GL thread to render everything recorded so far, then reads, a band of
-        /// rows at a time.
+        /// rows at a time. The band is native memory, freed after the read: a read of the screen
+        /// (the Timelapser's each day, 3.7 MB at 1280x720) hands the managed heap nothing. Once
+        /// the device has stopped, a read that did not run is not known to be past its band, so
+        /// that band is left allocated.
         public override void ReadPixels(RenderTextureNative source, RectInt rect, Texture2DNative destination, int destX, int destY)
         {
             int w = Math.Min(rect.width, destination.Width - destX), h = Math.Min(rect.height, destination.Height - destY);
@@ -968,13 +971,23 @@ namespace OniMoono.Desktop.Gl
                 if (TextureFormats.ReadPixelsBytes(destination.Format))
                 {
                     int byteBand = Math.Clamp(ReadBandPixels / w, 1, h);
-                    var bytes = new byte[w * byteBand * 4];
-                    for (int y0 = 0; y0 < h; y0 += byteBand)
+                    long bandBytes = (long)w * byteBand * 4;
+                    var bytes = (byte*)NativeMemory.Alloc((nuint)bandBytes);
+                    bool ran = true;
+                    try
                     {
-                        int rows = Math.Min(byteBand, h - y0);
-                        if (!ReadRgba8(source, new RectInt(rect.x, rect.y + y0, w, rows), bytes, 0, w * 4)) return;
-                        TextureFormats.StoreRgba8(destination.Format, destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0)), destination.Width,
-                            destX, destY + y0, bytes, w, rows);
+                        for (int y0 = 0; y0 < h && ran; y0 += byteBand)
+                        {
+                            int rows = Math.Min(byteBand, h - y0);
+                            ran = ReadRgba8(source, new RectInt(rect.x, rect.y + y0, w, rows), null, (nint)bytes, w * 4);
+                            if (ran)
+                                TextureFormats.StoreRgba8(destination.Format, destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0)), destination.Width,
+                                    destX, destY + y0, new ReadOnlySpan<byte>(bytes, w * rows * 4), w, rows);
+                        }
+                    }
+                    finally
+                    {
+                        if (ran) NativeMemory.Free(bytes);
                     }
                     return;
                 }
@@ -982,46 +995,57 @@ namespace OniMoono.Desktop.Gl
             bool autoMips = source?.AutoGenerateMips ?? false;
             int fbWidth = platform.FramebufferWidth, fbHeight = platform.FramebufferHeight;
             int band = Math.Clamp(ReadBandPixels / w, 1, h);
-            var read = new float[w * band * 4];
-            for (int y0 = 0; y0 < h; y0 += band)
+            var read = (float*)NativeMemory.Alloc((nuint)((long)w * band * 4), sizeof(float));
+            nint at = (nint)read;
+            bool stopped = false;
+            try
             {
-                int rows = Math.Min(band, h - y0);
-                int bandY = y0;
-                if (!worker.TryCall(() =>
+                for (int y0 = 0; y0 < h; y0 += band)
                 {
-                    uint framebuffer;
-                    if (device != null)
+                    int rows = Math.Min(band, h - y0);
+                    int bandY = y0;
+                    if (!worker.TryCall(() =>
                     {
-                        GlTextures.PrepareForSampling(device, autoMips);
-                        framebuffer = device.Framebuffer;
-                    }
-                    else framebuffer = presenter.ReadBuffer(fbWidth, fbHeight);
-                    GlApi.BindFramebuffer(ReadFramebuffer, framebuffer);
-                    N.glPixelStorei(PackAlignment, 4);
-                    fixed (float* p = read) N.glReadPixels(rect.x, rect.y + bandY, w, rows, Rgba, Float, p);
-                    if (PresentTrace.Enabled && device == null)
+                        uint framebuffer;
+                        if (device != null)
+                        {
+                            GlTextures.PrepareForSampling(device, autoMips);
+                            framebuffer = device.Framebuffer;
+                        }
+                        else framebuffer = presenter.ReadBuffer(fbWidth, fbHeight);
+                        GlApi.BindFramebuffer(ReadFramebuffer, framebuffer);
+                        N.glPixelStorei(PackAlignment, 4);
+                        var into = (float*)at;
+                        N.glReadPixels(rect.x, rect.y + bandY, w, rows, Rgba, Float, into);
+                        if (PresentTrace.Enabled && device == null)
+                        {
+                            double sum = 0;
+                            for (int i = 0; i < w * rows * 4; i += 4) sum += 0.299 * into[i] + 0.587 * into[i + 1] + 0.114 * into[i + 2];
+                            PresentTrace.Log($"frame {Time.frameCount}: ReadPixels of the screen {rect} rows {bandY}+{rows} from framebuffer {framebuffer}: mean luminance {255 * sum / (w * rows):F1}");
+                        }
+                        framebufferValid = false;
+                        return 0;
+                    }, out _))
                     {
-                        double sum = 0;
-                        for (int i = 0; i < w * rows * 4; i += 4) sum += 0.299 * read[i] + 0.587 * read[i + 1] + 0.114 * read[i + 2];
-                        PresentTrace.Log($"frame {Time.frameCount}: ReadPixels of the screen {rect} rows {bandY}+{rows} from framebuffer {framebuffer}: mean luminance {255 * sum / (w * rows):F1}");
+                        // The window has closed: the destination keeps its texels.
+                        if (!loggedStoppedRead) EngineLog.Engine("ReadPixels after the OpenGL device stopped: nothing read (logged once)");
+                        loggedStoppedRead = true;
+                        stopped = true;
+                        return;
                     }
-                    framebufferValid = false;
-                    return 0;
-                }, out _))
-                {
-                    // The window has closed: the destination keeps its texels.
-                    if (!loggedStoppedRead) EngineLog.Engine("ReadPixels after the OpenGL device stopped: nothing read (logged once)");
-                    loggedStoppedRead = true;
-                    return;
+                    var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
+                    for (int y = 0; y < rows; y++)
+                        for (int x = 0; x < w; x++)
+                        {
+                            int o = (y * w + x) * 4;
+                            TextureFormats.Encode(destination.Format, mip, destination.Width, destX + x, destY + y0 + y,
+                                new Color(read[o], read[o + 1], read[o + 2], read[o + 3]));
+                        }
                 }
-                var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
-                for (int y = 0; y < rows; y++)
-                    for (int x = 0; x < w; x++)
-                    {
-                        int o = (y * w + x) * 4;
-                        TextureFormats.Encode(destination.Format, mip, destination.Width, destX + x, destY + y0 + y,
-                            new Color(read[o], read[o + 1], read[o + 2], read[o + 3]));
-                    }
+            }
+            finally
+            {
+                if (!stopped) NativeMemory.Free(read);
             }
         }
 
@@ -1040,14 +1064,18 @@ namespace OniMoono.Desktop.Gl
         /// Reads straight into the array, as GL_UNSIGNED_BYTE: a capture's band needs no float
         /// copy and no texture.
         public override void ReadPixelsRgba8(RenderTextureNative source, RectInt rect, byte[] destination, int offset, int stride)
-            => ReadRgba8(source, rect, destination, offset, stride);
-
-        /// ReadPixelsRgba8; false once the device has stopped (nothing read).
-        bool ReadRgba8(RenderTextureNative source, RectInt rect, byte[] destination, int offset, int stride)
         {
-            if (rect.width <= 0 || rect.height <= 0) return true;
+            if (rect.width <= 0 || rect.height <= 0) return;
             if (stride % 4 != 0 || offset < 0 || (long)offset + (long)stride * (rect.height - 1) + rect.width * 4L > destination.Length)
                 throw new ArgumentOutOfRangeException(nameof(stride));
+            ReadRgba8(source, rect, destination, offset, stride);
+        }
+
+        /// ReadPixelsRgba8 into `array` from `offset`, or with no array into native memory at
+        /// `offset` (an address); false once the device has stopped (nothing read).
+        bool ReadRgba8(RenderTextureNative source, RectInt rect, byte[] array, nint offset, int stride)
+        {
+            if (rect.width <= 0 || rect.height <= 0) return true;
             var device = source != null ? GlTextures.Prepare(worker, source) : null;
             bool autoMips = source?.AutoGenerateMips ?? false;
             int fbWidth = platform.FramebufferWidth, fbHeight = platform.FramebufferHeight;
@@ -1063,7 +1091,8 @@ namespace OniMoono.Desktop.Gl
                 GlApi.BindFramebuffer(ReadFramebuffer, framebuffer);
                 N.glPixelStorei(PackAlignment, 4);
                 N.glPixelStorei(PackRowLength, stride / 4);
-                fixed (byte* p = destination) N.glReadPixels(rect.x, rect.y, rect.width, rect.height, Rgba, UnsignedByte, p + offset);
+                if (array == null) N.glReadPixels(rect.x, rect.y, rect.width, rect.height, Rgba, UnsignedByte, (void*)offset);
+                else fixed (byte* p = array) N.glReadPixels(rect.x, rect.y, rect.width, rect.height, Rgba, UnsignedByte, p + offset);
                 N.glPixelStorei(PackRowLength, 0);
                 framebufferValid = false;
                 return 0;
