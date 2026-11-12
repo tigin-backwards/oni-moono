@@ -509,10 +509,13 @@ namespace OniMoono.Desktop.Gl
         {
             worker.Post(worker.Arena.Command(runUpload, (g, upload, upload.Generation)));
             if (FlushUploadBytes <= 0 || upload.Memory == null) return;
+            // Counted for the frame being recorded: a hand-over since starts again from none.
+            if (worker.Submissions != postedSubmission)
+            {
+                postedSubmission = worker.Submissions;
+                postedUploadBytes = 0;
+            }
             postedUploadBytes += upload.Memory.Size;
-            if (postedUploadBytes < FlushUploadBytes || !OniMoono.Engine.Threads.IsMainThread) return;
-            // Only when the GL thread is done with the last: the main thread never waits for it here.
-            if (worker.TrySubmit()) postedUploadBytes = 0;
         }
 
         /// Once texel uploads past this many bytes are recorded, the frame so far is handed to the
@@ -521,7 +524,25 @@ namespace OniMoono.Desktop.Gl
         /// after a load: 230 MB of animation batch data in one frame) is then uploaded while the
         /// main thread goes on with the frame, not after it.
         internal static long FlushUploadBytes;
-        static long postedUploadBytes;
+        static long postedUploadBytes, postedSubmission = -1;
+
+        /// The hand-over FlushUploadBytes asks for, done only between draws (main thread): by the
+        /// device after a draw, a queue, a texture's Apply or upload, never by PostUpload itself.
+        /// A draw being recorded holds objects of the frame's arena (its ProgramInputs, its values
+        /// and blocks); handed over in the middle of it (from its textures' Prepare), the draw went
+        /// into the next frame with objects of the one handed over, which the main thread then
+        /// recorded other draws into while the GL thread still had to execute the draw: it ran
+        /// with another draw's program, textures or mesh, read half-written (a sampler index past
+        /// the program's samplers), or drew a mesh whose buffers its upload, later in the frame,
+        /// had not made yet: no index buffer, so the driver read the indices from address 0
+        /// (an access violation in NVIDIA's OpenGL driver, after a save's colony preview).
+        internal static void FlushUploads(GlWorker worker)
+        {
+            if (FlushUploadBytes <= 0 || postedSubmission != worker.Submissions || postedUploadBytes < FlushUploadBytes) return;
+            if (!OniMoono.Engine.Threads.IsMainThread) return;
+            // Only when the GL thread is done with the last: the main thread never waits for it here.
+            if (worker.TrySubmit()) postedUploadBytes = 0;
+        }
 
         static readonly Action<(DeviceTexture Texture, TexelUpload Upload, int Generation)> runUpload = RunUpload;
 

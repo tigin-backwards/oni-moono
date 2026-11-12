@@ -322,10 +322,11 @@ namespace OniMoono.Desktop.Gl
         readonly DrawInputs drawInputs = new();
         readonly List<(ShaderNative Shader, ShaderPass Pass)> drawPasses = new();
 
-        public void Draw(in DrawRequest draw) => Draw(draw, worker.Arena, null);
+        public void Draw(in DrawRequest draw) => Draw(draw, null, null);
 
-        /// Records a draw into `arena` and posts its passes, or with `sink` adds them to it
-        /// instead (verify mode).
+        /// Records a draw into `arena` (null: the arena of the frame being recorded, read for each
+        /// pass, as a pass's program compiled on the way hands the frame over) and posts its
+        /// passes, or with `sink` adds them to it instead (verify mode).
         void Draw(in DrawRequest draw, FrameArena arena, List<ProgramInputs> sink)
         {
             if (draw.Material == null || draw.Mesh == null) return;
@@ -353,7 +354,7 @@ namespace OniMoono.Desktop.Gl
                 var program = Program(passShader, blob);
                 if (program.Id == 0) continue;
                 inputs.Shader = passShader;
-                var recorded = Record(program, StateOf(pass), inputs, arena);
+                var recorded = Record(program, StateOf(pass), inputs, arena ?? worker.Arena);
                 if (GlGpuProfile.Enabled) recorded.Label = Label(passShader, pass);
                 recorded.Mesh = mesh;
                 recorded.Layout = layout;
@@ -453,6 +454,7 @@ namespace OniMoono.Desktop.Gl
                 return;
             }
             var frame = worker.Recording;
+            long submissions = worker.Submissions;
             int size = Math.Max(MinChunk, (n + MaxChunks - 1) / MaxChunks);
             chunkCount = (n + size - 1) / size;
             while (chunks.Count < chunkCount) chunks.Add(new Chunk());
@@ -485,11 +487,12 @@ namespace OniMoono.Desktop.Gl
             // In order: each draw recorded ahead has what it left prepared (posting any upload at
             // its place) and is posted; the others are recorded here. A program compiled on the
             // way (worker.Call) hands the frame over: the draws after it record into the next
-            // frame, serially, since their data lives in the frame handed over.
+            // frame, serially, since their data lives in the frame handed over. Told by the count
+            // of hand-overs, not the Frame: two of them bring the same Frame back to recording.
             for (int i = 0; i < n; i++)
             {
                 int count = counts[i];
-                if (count < 0 || worker.Recording != frame)
+                if (count < 0 || worker.Submissions != submissions)
                 {
                     Draw(RequestOf(items[i]));
                     continue;

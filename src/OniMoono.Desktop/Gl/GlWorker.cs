@@ -87,10 +87,19 @@ namespace OniMoono.Desktop.Gl
         }
 
         /// A worker that only records (tests): no GL thread runs what is posted, and nothing is
-        /// handed over.
-        internal GlWorker()
+        /// handed over; with `handedOver`, each Submit puts the recorded frame there and the next
+        /// one records into a new frame.
+        internal GlWorker(List<Frame> handedOver = null)
         {
+            this.handedOver = handedOver;
         }
+
+        readonly List<Frame> handedOver;
+
+        /// Frames handed over so far (main thread): a recording that holds the frame's objects
+        /// compares it to tell that the frame it records into is still the one it began with
+        /// (two hand-overs bring the same Frame object back to recording).
+        public long Submissions { get; private set; }
 
         /// The frame being recorded (main thread).
         public Frame Recording => recording;
@@ -103,7 +112,14 @@ namespace OniMoono.Desktop.Gl
         /// Hands the recorded frame to the GL thread once the previous one has been executed.
         public void Submit()
         {
-            if (thread == null) throw new InvalidOperationException("This worker only records.");
+            if (thread == null)
+            {
+                if (handedOver == null) throw new InvalidOperationException("This worker only records.");
+                handedOver.Add(recording);
+                recording = new Frame();
+                Submissions++;
+                return;
+            }
             Frame next;
             lock (gate)
             {
@@ -111,6 +127,7 @@ namespace OniMoono.Desktop.Gl
                 if (stopping)
                 {
                     recording.Reset();
+                    Submissions++;
                     return;
                 }
                 if (submitted != null && OniMoono.Engine.PlayerLoop.FrameStats)
@@ -129,6 +146,7 @@ namespace OniMoono.Desktop.Gl
                 Monitor.PulseAll(gate);
             }
             recording = next ?? new Frame();
+            Submissions++;
         }
 
         /// Submit when the GL thread has executed everything handed over (it waits for nothing);
