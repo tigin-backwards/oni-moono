@@ -166,7 +166,6 @@ namespace OniMoono.Desktop.Gl
             GlStateCache.Invalidate();
             presenter = new GlPresenter(platform.Window, platform.PresentWindow, platform.ContextFreeWindow, Splash != null ? new GlSplash(Splash) : null, platform.WindowFramebufferWidth, platform.WindowFramebufferHeight);
             platform.ContentsDamaged += presenter.Refresh;
-            LoadingScreen.Changed = presenter.Poke;
             // From here on the context belongs to the GL thread.
             worker = new GlWorker(platform.RenderWindow, CommandFailed);
             recorder = new GlDrawRecorder(worker, DefaultTexture, RunDraw);
@@ -1164,31 +1163,6 @@ namespace OniMoono.Desktop.Gl
         }
 
         public override void FlushRecorded() => worker.Submit();
-
-        /// After the commands that render the loading screen's kanim frames: a fence, and the
-        /// frames to the presenter (LoadingScreen.RenderKanim).
-        public override bool AnimatesLoading => true;
-
-        public override void HandOverLoadingFrames(LoadingScreen.KanimFrames frames)
-        {
-            var strip = frames.Strip.Gpu as DeviceTexture;
-            if (strip == null)
-            {
-                frames.Done = true;
-                return;
-            }
-            worker.Post(() =>
-            {
-                if (strip.Id == 0 || strip.Deleted)
-                {
-                    frames.Done = true;
-                    return;
-                }
-                var fence = N.glFenceSync(0x9117 /* SYNC_GPU_COMMANDS_COMPLETE */, default);
-                N.glFlush();
-                presenter.HandOverLoading(frames, strip.Id, fence);
-            });
-        }
 
         public override bool UploadInBackground(TextureNative texture) => GlBackgroundUploads.Queue(texture);
 

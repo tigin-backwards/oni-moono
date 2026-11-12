@@ -2512,38 +2512,6 @@ the next at the last launch's pace (about 80% of the way by the expected time, t
 never reaching it before it is passed), and while the first scene loads it moves by the objects
 loaded; the drawn bar follows that with a 0.25 s smoothing, so it never stalls or jumps.
 
-**Loading screen during a save load (game tweak `loading-animation`, in `exact`).** A save load
-runs inside one engine frame (the scene, `SaveLoader`, `Game.OnSpawn`, every object's `OnSpawn`),
-so no frame is presented for up to half a minute
-([research](research/save-load-and-loading-screen.md)). The presenter thread then shows the last
-frame again 30 times a second (kanims' own rate; each redraw is a full copy and swap; on Windows
-the timer resolution is raised meanwhile, as for StallRepeats) with a progress bar over it in the
-start-up bar's place and colours, fading in after 0.15 s (`GlLoadAnimation`; a pulse when no scene
-load follows the overlay). The bar (`LoadProgress`) has seven phases, each weighted by what it took
-the last time the same save was loaded (`LoadTimes`, `oni-moono/load-times.json`). The main thread
-only marks phase starts, each a timestamp and an int: the engine's SceneLoader, and prefixes and
-postfixes on `SaveLoader.DecompressContents` and `SaveManager.Load` that change nothing. Within a
-phase the presenter reads engine and .NET state: the zlib stream's position in the compressed
-bytes (`fast-save-compression`'s decompression), the
-`FastReader`'s position in the decompressed body (not when a mod transpiles `SaveManager.Load`),
-and the Start pass's count (`BehaviourManager.RunStarts`, an int written per behaviour); without a
-count, the time against the expected time. The drawn bar eases towards that with a quarter-second
-smoothing and never goes back. It is armed
-by main-thread frame numbers (`LoadingScreen`): a scene load that starts while `LoadingOverlay` is
-up (`SceneLoader.LoadStarting`, before the old scenes go) arms it over every frame from before the
-load's own; with the overlay up and no scene load, a frame that no frame follows for 250 ms starts
-it. The first frame of the load's own frame or later (the colony) ends it, and nothing is ever
-drawn over a game frame. A kanim the overlay plays (a mod's: Pip Licks Butt) keeps playing: at the
-scene load's start the overlay canvases are drawn once per frame of its anim into tiles of one
-render texture (`CanvasSystem.RenderOverlaysInto`), as the last frame drew them with only the
-frame number in the kanim batch's instance data changed and then put back, so the controller,
-its time, flags and events are untouched; the GL thread renders them in order with the rest, a
-fence follows, and the presenter blits the tile due at the anim's frame rate over the area (looping
-a loop, holding the last frame otherwise). The rendering is bounded (50 ms of main-thread time,
-64 MB, tiles at a lower resolution past it) and logged. A garbage collection still stops the
-presenter: the log's `loading animation:` line gives the redraws, the longest gap between them
-and how much of the long gaps was spent presenting rather than stopped.
-
 **Window messages during long frames.** The frame polls the window's messages at its start, as
 Unity does, but a start-up frame takes seconds, and Windows marks a window that has not taken its
 messages for 5 s as not responding. Long engine steps (loading an object, instantiating, adding a
