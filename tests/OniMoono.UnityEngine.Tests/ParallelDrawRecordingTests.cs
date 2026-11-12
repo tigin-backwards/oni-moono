@@ -270,6 +270,52 @@ namespace OniMoono.Tests
             }
         }
 
+        /// A frame is handed over between draws only: once enough texel uploads are recorded,
+        /// the hand-over waits until the draw whose texture uploaded is recorded and posted. In
+        /// the middle of it, the draw went into the next frame holding objects of the frame
+        /// handed over, which later draws were recorded into while the GL thread still had to
+        /// execute it (a save's colony preview then crashed in the OpenGL driver).
+        [Fact]
+        public void AnUploadsHandOverWaitsUntilItsDrawIsPosted()
+        {
+            var shader = TestShader(out var native, out var previousGpu);
+            long previousFlush = GlTextures.FlushUploadBytes;
+            var scene = Build(shader);
+            try
+            {
+                GlTextures.FlushUploadBytes = 1;
+                var handed = new List<GlWorker.Frame>();
+                var worker = new GlWorker(handed);
+                var executed = new List<ProgramInputs>();
+                var recorder = new GlDrawRecorder(worker, DefaultTexture, executed.Add) { ParallelQueues = false };
+                recorder.Camera = new CameraConstants(Matrix4x4.identity, Matrix4x4.Ortho(-10f, 10f, -10f, 10f, 0.1f, 100f), Vector3.zero, 0.1f, 100f, true, new Vector2(640f, 480f));
+                var d = scene.Queue[0];
+                recorder.Draw(new DrawRequest(d.Mesh, d.SubMesh, d.ObjectToWorld, d.Material, d.Pass, d.Properties, d.Keywords));
+                // The texture's upload is recorded, and nothing is handed over in the draw.
+                Assert.Empty(handed);
+                var commands = worker.Recording.Commands;
+                Assert.Contains(commands, c => c.Target is ResourceCommand { Recorded: ResourceCommand.Kind.UploadTexture });
+                Assert.Contains(commands, c => c.Method.DeclaringType?.DeclaringType == typeof(GlDrawRecorder));
+                Assert.Equal(0, worker.Submissions);
+
+                // Between draws: the frame so far, the draw with its upload, goes over.
+                GlTextures.FlushUploads(worker);
+                var frame = Assert.Single(handed);
+                Assert.Same(commands, frame.Commands);
+                Assert.Empty(worker.Recording.Commands);
+                Assert.Equal(1, worker.Submissions);
+                // Counted per frame: the next frame has recorded no uploads yet.
+                GlTextures.FlushUploads(worker);
+                Assert.Single(handed);
+            }
+            finally
+            {
+                GlTextures.FlushUploadBytes = previousFlush;
+                native.Gpu = previousGpu;
+                scene.Destroy();
+            }
+        }
+
         [Fact]
         public void ChildArenasAreResetWithTheFrame()
         {

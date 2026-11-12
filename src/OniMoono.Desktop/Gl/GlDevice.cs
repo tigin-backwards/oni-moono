@@ -604,9 +604,17 @@ namespace OniMoono.Desktop.Gl
         /// Records draws (main thread); its commands run ExecuteDraw.
         readonly GlDrawRecorder recorder;
 
-        public override void Draw(in DrawRequest draw) => recorder.Draw(draw);
+        public override void Draw(in DrawRequest draw)
+        {
+            recorder.Draw(draw);
+            GlTextures.FlushUploads(worker);
+        }
 
-        public override void DrawQueue(List<DrawItem> items) => recorder.DrawQueue(items);
+        public override void DrawQueue(List<DrawItem> items)
+        {
+            recorder.DrawQueue(items);
+            GlTextures.FlushUploads(worker);
+        }
 
         void RunDraw(ProgramInputs r)
         {
@@ -633,6 +641,9 @@ namespace OniMoono.Desktop.Gl
             N.glBindBufferRange(UniformBuffer, index, new GlBuffer(uniformStream.Id), offset, data.Length);
         }
 
+        /// Draws skipped for a mesh with no index buffer (GL thread).
+        long unuploadedDraws;
+
         void ExecuteDraw(ProgramInputs recorded, DeviceMesh mesh, MeshLayout layout, (int Offset, int Count, uint Mode, int BaseVertex) sm)
         {
             BindTarget();
@@ -640,6 +651,14 @@ namespace OniMoono.Desktop.Gl
             GlStateCache.Outputs(recorded.Program.Outputs, target.Colors?.Length ?? 1);
             Bind(recorded);
             if (sm.Count == 0) return;
+            // A mesh with no index buffer has had no upload run (or was deleted): its draw would
+            // read the indices from client memory at the offset, address 0 on, and NVIDIA's
+            // driver faults there; its vertex array would also keep the missing index buffer.
+            if (mesh.IndexBuffer == 0)
+            {
+                if (unuploadedDraws++ == 0) EngineLog.Engine($"gl: a draw of a mesh with no index buffer was skipped ({recorded.Label ?? recorded.Program.Id.ToString()}; logged once)");
+                return;
+            }
             var program = recorded.Program;
             GlBindings.BindVertexArray(GlMeshes.VertexArray(mesh, layout, program));
             SetAbsentChannels(program, layout);
@@ -803,6 +822,7 @@ namespace OniMoono.Desktop.Gl
             int count = vertices.Length;
             if (GlGpuProfile.Enabled) recorded.Label = "immediate " + shader.ShaderName;
             worker.Post(worker.Arena.Command(immediateNow ??= ImmediateNow, (recorded, primitive, array, at, length, count)));
+            GlTextures.FlushUploads(worker);
         }
 
         // The immediate draw's work (GL thread), recorded as a StateCommand with this delegate, made once.
@@ -895,6 +915,7 @@ namespace OniMoono.Desktop.Gl
                 recorded.SubMesh = device.SubMeshes[s];
                 worker.Post(recorded.RunDraw);
             }
+            GlTextures.FlushUploads(worker);
         }
 
         readonly DrawInputs immediateInputs = new();
@@ -1104,7 +1125,11 @@ namespace OniMoono.Desktop.Gl
 
         bool loggedStoppedRead;
 
-        public override void Upload(TextureNative texture) => GlTextures.Prepare(worker, texture);
+        public override void Upload(TextureNative texture)
+        {
+            GlTextures.Prepare(worker, texture);
+            GlTextures.FlushUploads(worker);
+        }
 
         public override void PrepareAhead(TextureNative texture)
         {
@@ -1133,7 +1158,9 @@ namespace OniMoono.Desktop.Gl
         /// wait for a draw, as before.
         public override void Applied(TextureNative texture)
         {
-            if (texture.Gpu is DeviceTexture g && g.RecordedContent < 0 && g.Background == null && g.RecordedShape == null) GlTextures.Prepare(worker, texture);
+            if (texture.Gpu is not DeviceTexture g || g.RecordedContent >= 0 || g.Background != null || g.RecordedShape != null) return;
+            GlTextures.Prepare(worker, texture);
+            GlTextures.FlushUploads(worker);
         }
 
         public override void ReleaseResource(object gpu)
