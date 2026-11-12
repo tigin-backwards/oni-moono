@@ -812,8 +812,8 @@ its worktree, `qa.sh` to `out/qa/run-DATE/`, and Windows runs use the run home t
 Every Windows test window opens on the second monitor and never takes the focus:
 `scripts/run-windows.sh` passes `-screen-fullscreen 0 -monitor 2 --no-focus` before the run's own
 arguments, and `scripts/original-windows.sh` passes `-screen-fullscreen 0 -monitor 2`, gives the
-focus back to the window that had it if the game takes it while opening, and turns BepInEx's
-console window off (`ONI_WIN_MONITOR=N` picks another monitor for both). A window gets the focus
+focus back to the window that had it if the game takes it while opening (`ONI_WIN_MONITOR=N`
+picks another monitor for both). A window gets the focus
 only through `out/local-tools/win-run.ps1 -Match RUN_HOME -Action focus`. Act on a Windows game
 process only through `win-run.ps1` (it finds the process by the run home in its command line),
 never by its name: the user plays the same executables on this machine.

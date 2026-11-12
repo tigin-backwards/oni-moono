@@ -162,16 +162,24 @@ ONI_RUN_HOME='C:\...' scripts/run-windows.sh -screen-width 1024 -screen-height 7
 ```
 
 Test windows open windowed on the second monitor without taking the focus (`-monitor 2`; our
-player's `--no-focus`; `ONI_WIN_MONITOR` picks another), and the original's BepInEx console stays
-closed. Focus one only through `out/local-tools/win-run.ps1 -Match RUN_HOME -Action focus`, and act
-on Windows game processes only through it, never by name.
+player's `--no-focus`; `ONI_WIN_MONITOR` picks another). Focus one only through
+`out/local-tools/win-run.ps1 -Match RUN_HOME -Action focus`, and act on Windows game processes
+only through it, never by name.
 
 `windows-run-home.sh` prepares a run home with a single colony, which the main menu resumes on
 its own, and mods enabled (`tools/PerfProbe` holds speed 3 and logs frame rates). The original
-runs from a renamed copy of the install (`ORIG_DIR`, default `E:\Development\BrutalNotIncluded`)
-with BepInEx 6 and `tools/OriginalIsolation`, which gives it the same separate data folders and
-audio file. Its first setup copies BepInEx from an existing install (`ONI_BEPINEX_SOURCE`). The
-script has the details.
+runs from a renamed copy of the install (`ORIG_DIR`, default `E:\Development\BrutalNotIncluded`;
+the frozen builds' copies are `E:\oni-builds\BrutalNotIncluded-BUILD`), where Unity Doorstop
+starts `tools/OriginalIsolation`. It gives the original the same separate data folders and audio
+file, and each run its own Unity registry key and LocalLow folder (a product name of its own,
+moved into the run home afterwards). The player ends when the isolation has not confirmed itself
+in `RUN_HOME\original-isolation.txt` 3 s after Unity's log appears. There is no BepInEx, so mods
+use the game's own Harmony, as for players: with BepInEx 6, its HarmonyX replaced it, and mods that
+call newer Harmony APIs (Bitshifter, Rocketry Expanded) failed. A copy set up with BepInEx before
+is converted on its next run (its `BepInEx` folder becomes `BepInEx.unused`). A first setup copies
+Unity Doorstop 4's `winhttp.dll` from `ONI_DOORSTOP_SOURCE`, a folder that holds it (another copy,
+or a BepInEx 6 install). One copy runs one player at a time: hold `windows-game.lock` for the whole
+run. The script has the details.
 
 ## Testing
 
