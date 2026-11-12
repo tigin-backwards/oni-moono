@@ -112,6 +112,21 @@ Two settings for test runs go with frame stats:
   window, whose lines end with `frame stats ab: FIELD=VALUE` for the value it ran with: a change
   and itself switched off, alternating in one run.
 
+## Perf spread on CI's runners
+
+The **Perf spread** workflow (`.github/workflows/perf-spread.yml`, by hand only) measures how
+steady GitHub's runners are, before any perf number goes into the nightly. Each of its three jobs
+builds the last release (A) and the commit (B) against the stripped game, launches each once to
+warm up, then A and B in turn, five times each, on the same save (2minnow by default) under Xvfb
+with Mesa's software renderer. Each launch (`scripts/perf-spread.py run`) holds the colony paused
+for three 600-frame windows (PerfProbe's `pausefirst.txt`), then runs it at speed 3 for four, with
+`alloc.txt`, `sites.txt` and `--frame-stats`. The first window of each phase is left out. The job
+summary and the artifact give, for each label, the spread of the counts (allocations per frame
+paused and per game second running, by update section too, collections, draws, texture uploads)
+and, for each A/B pair, the ratio of the medians of main-thread ms a frame and the sim's ms a
+frame, with the runner's CPU model. `scripts/perf-spread.py jobs` sets several jobs' summaries
+side by side.
+
 ## Managed allocations against the original
 
 `tools/PerfProbe` with `alloc.txt` logs a `PERF alloc` line after each 600-frame window: running
