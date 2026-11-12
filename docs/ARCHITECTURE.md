@@ -3578,10 +3578,13 @@ suppressions only), central package versions in `Directory.Packages.props`.
    behaviour (DLC ownership, Workshop mods, achievements, cloud) is verified only with the
    real client.
 8. **Original-player comparisons on Windows** (`scripts/original-windows.sh`). The original runs
-   from a renamed copy of the install with BepInEx 6 and `tools/OriginalIsolation`, which
-   redirects the same two known folders our host's `--run-home` does and sends FMOD's output to
-   a WAV file; the copy's product name (PlayerSettings) is changed to one of the same length so
-   Unity's registry key and LocalLow folder are the copy's own; the Steam double stands in for
-   Steam. Both players load `tools/PerfProbe`, a game mod that keeps the colony at speed 3 and
+   from a renamed copy of the install where Unity Doorstop starts `tools/OriginalIsolation`
+   before the game's assemblies load. It patches with the game's own 0Harmony (BepInEx's
+   HarmonyX, used before, replaced it and broke mods built against the game's Harmony), redirects
+   the known folders our host's `--run-home` does and sends FMOD's output to a WAV file; the
+   launcher ends the player when the isolation does not confirm itself 3 s after Unity's log
+   appears. Each run sets the copy's product name (PlayerSettings) to its own of the same length,
+   so Unity's registry key and LocalLow folder are the run's, moved into the run home afterwards;
+   the Steam double stands in for Steam. Both players load `tools/PerfProbe`, a game mod that keeps the colony at speed 3 and
    logs the frame rate from the real-time clock, and resume the save through the game's own
    `AutoResumeSaveFile` setting (`scripts/windows-run-home.sh`), so the same code measures both.

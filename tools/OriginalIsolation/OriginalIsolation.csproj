@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- A BepInEx 6 (Unity.Mono) plugin for the original Windows player in a renamed test copy
-       (scripts/original-windows.sh). Built against the game's and BepInEx's own assemblies:
-       GameManaged is the copy's Managed folder, BepInExCore its BepInEx\core. -->
+  <!-- The isolation of the original Windows player in a renamed test copy
+       (scripts/original-windows.sh), which Unity Doorstop starts. Built against the game's own
+       assemblies: GameManaged is the copy's Managed folder. -->
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
@@ -10,11 +10,7 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="$(GameManaged)/UnityEngine.dll" Private="false" />
-    <Reference Include="$(GameManaged)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(GameManaged)/0Harmony.dll" Private="false" />
     <Reference Include="$(GameManaged)/FMODUnity.dll" Private="false" />
-    <Reference Include="$(BepInExCore)/BepInEx.Core.dll" Private="false" />
-    <Reference Include="$(BepInExCore)/BepInEx.Unity.Mono.dll" Private="false" />
-    <Reference Include="$(BepInExCore)/0Harmony.dll" Private="false" />
   </ItemGroup>
 </Project>
