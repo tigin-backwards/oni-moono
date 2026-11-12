@@ -137,7 +137,7 @@ namespace OniMoono.Host.GameTweaks
                 + "The colonies, their order, the previews and the log are the same.", LoadScreenGain),
             new(LoadingAnimation, General, "Moving loading screen", "The loading screen keeps moving while a colony loads.",
                 "A save loads in one long step during which the game shows no new picture, for half a minute on a large colony. "
-                + "Meanwhile Moono shows the loading screen with a progress bar below it, and an animated loading screen from a mod (Pip Licks Butt's Pip) keeps playing. "
+                + "Meanwhile Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. "
                 + "The load itself is the same and takes as long."),
             new(FmodQuarantine, General, "Sound memory guard", "Guards against a bug in the game's sound engine that can crash the game.",
                 "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. "
