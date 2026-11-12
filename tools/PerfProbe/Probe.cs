@@ -1836,6 +1836,8 @@ namespace PerfProbe
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "ab.txt"))) StartCoroutine(Toggle.Run(System.IO.Path.Combine(Path, "ab.txt")));
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "rebuild.txt"))) StartCoroutine(Rebuilds.Run(System.IO.Path.Combine(Path, "rebuild.txt")));
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "screens.txt"))) StartCoroutine(Screens.Run(System.IO.Path.Combine(Path, "screens.txt")));
+            // `uilists.txt`: the long-list screens measured (UiLists).
+            if (System.IO.File.Exists(System.IO.Path.Combine(Path, "uilists.txt"))) StartCoroutine(UiLists.Run(System.IO.Path.Combine(Path, "uilists.txt")));
             if (System.IO.File.Exists(System.IO.Path.Combine(Path, "starmap.txt"))) StartCoroutine(Starmap.Run(System.IO.Path.Combine(Path, "starmap.txt")));
             // `counts.txt` lists component type names (Assembly-CSharp first, then -firstpass): how
             // many of each exist, active or not, logged once the colony is up.
