@@ -99,6 +99,14 @@ class Resources(unittest.TestCase):
         self.assertEqual(granted(p), [])
         self.assertIn('windows-game.lock', p.reasons['w'])
 
+    def test_a_perf_job_outside_runq_holds_back_load(self):
+        # perf.wanted or an exclusive perf.lock outside runq: nothing that loads the machine
+        # starts; light jobs do.
+        ext = sched.External(perf=True, load=1, why=('perf.wanted names pid 9',))
+        p = sched.plan(state([job('e', kind='linux-player'), job('c', 'b', kind='check', order=1), job('g', 'c', kind='light', order=2)], external=ext))
+        self.assertEqual(granted(p), ['g'])
+        self.assertIn('perf.wanted', p.reasons['e'])
+
     def test_perf_waits_for_shared_holders_outside_runq(self):
         ext = sched.External(perf_shared=1, why=('perf.lock shared by pid 9',))
         p = sched.plan(state([job('perf', kind='linux-perf')], external=ext))

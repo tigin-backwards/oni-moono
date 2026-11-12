@@ -332,7 +332,10 @@ def scan(cfg, lock_dir, prefix='runq', daemon_pid=None, runq_lanes=(), procs=Non
                 ext_why.append(f'perf.lock shared by pid {pid}')
         wanted = wanted_pid(lock_dir)
         if wanted is not None and alive(wanted) and not ours(wanted):
+            # A perf job outside runq waits for the load to end: old spec runners start nothing
+            # new meanwhile, and neither does runq (it counts as a perf job that loads the machine).
             ext.perf = True
+            ext.load += 1
             ext_why.append(f'perf.wanted names pid {wanted} (a perf job outside runq waits)')
         for pid, _ in flock_holders(os.path.join(lock_dir, 'windows-game.lock')):
             if not ours(pid):

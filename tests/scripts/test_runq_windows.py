@@ -222,6 +222,14 @@ class Bridge(unittest.TestCase):
                 self.assertEqual(ext.perf_shared, 1)
                 self.assertTrue(ext.windows)
                 self.assertTrue(ext.perf)  # the perf pattern
+                sleeper = subprocess.Popen(['sleep', '30'])
+                with open(os.path.join(locks, 'perf.wanted'), 'w') as f:
+                    f.write(f'{sleeper.pid}\n')
+                ext2, _ = legacy.scan(cfg, locks, procs=[], port_busy=lambda p: False, display_busy=lambda d: False)
+                sleeper.kill()
+                sleeper.wait()
+                self.assertTrue(ext2.perf)
+                self.assertGreaterEqual(ext2.load, 1)
                 self.assertEqual(ext.mem, CFG['legacy_qa_gb'])  # qa.sh
                 self.assertEqual(free, (101, 103))
             finally:
