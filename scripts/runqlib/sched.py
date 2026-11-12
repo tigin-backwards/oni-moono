@@ -218,7 +218,7 @@ def describe_ext(ext):
 WORDS = {
     'windows': 'the Windows slot',
     'perf': 'the perf slot',
-    'perf-exclusive': 'a perf job runs or waits to (nothing else that loads the machine runs beside it)',
+    'perf-exclusive': 'the perf job to end (nothing else that loads the machine runs beside one)',
     'lane': 'a free lane',
     'players': 'a player slot',
     'mem': 'memory',
