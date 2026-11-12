@@ -4,6 +4,11 @@
 # this project's UI packages.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
+# It runs as a runq job of kind check (docs/RUNQ.md): never beside a perf run, its 8 cores
+# counted against the machine's. Inside a job (RUNQ_JOB), with RUNQ=off or without a daemon it
+# runs directly.
+source "$root/scripts/runq-submit.sh"
+runq_self_submit --kind check --label "check.sh${*:+ $*}" -- "$root/scripts/check.sh" "$@"
 # Its builds and tests run in the memory-capped test slice (scripts/contain.sh).
 [ -n "${ONI_CONTAINED:-}" ] || exec "$root/scripts/contain.sh" "$root/scripts/check.sh" "$@"
 dotnet build "$root/OniMoono.slnx" -v q -nologo

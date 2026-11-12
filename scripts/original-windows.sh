@@ -26,7 +26,7 @@
 #   <run home>\unity-prefs.reg and deleted, and LocalLow\Klei\PRODUCT moves to <run home>\LocalLow.
 #   The game's code does not read the product name. TEMP and TMP are <run home>\Temp.
 # Unity's log goes to <run home>\Player.log. The run ends after ORIG_SECONDS (default 600), the
-# process killed. A copy runs one player at a time: take windows-game.lock for the whole run.
+# process killed. A copy runs one player at a time: the Windows slot (runq's, or windows-game.lock).
 # As scripts/run-windows.sh's, the window opens windowed on the second monitor (`-screen-fullscreen
 # 0 -monitor 2` first, so the run's own arguments win; ONI_WIN_MONITOR=N picks another monitor),
 # and when it takes the focus as it opens, the window that had it gets it back (in its first
@@ -34,8 +34,15 @@
 # RUN_HOME -Action focus.
 #
 #   ONI_RUN_HOME='C:\...\orig-home' scripts/original-windows.sh -screen-width 1024 -screen-height 768 -screen-fullscreen 0
+# It runs as a runq job (docs/RUNQ.md) of kind windows, or RUNQ_KIND (win-perf for frame-rate
+# runs): runq holds the Windows slot (and windows-game.lock for the old scripts), sets ONI_RUN_HOME
+# to %TEMP%\oni-runq\JOB\home when it is unset, sets the run home's volumes to 0, and kills the game
+# by its run home when the job ends. Inside a job, with RUNQ=off or without a daemon it runs
+# directly (then take windows-game.lock yourself).
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
+source "$root/scripts/runq-submit.sh"
+runq_self_submit --kind "${RUNQ_KIND:-windows}" --label "original-windows.sh${*:+ $*}" -- "$root/scripts/original-windows.sh" "$@"
 : "${ONI_RUN_HOME:?set ONI_RUN_HOME to the run home (a Windows path)}"
 orig_win="${ORIG_DIR:-E:\\Development\\BrutalNotIncluded}"
 orig_win="${orig_win%\\}"
@@ -100,6 +107,7 @@ with open(path, 'r+b') as f:
 PY
 
 home="$(wslpath "$ONI_RUN_HOME")"; mkdir -p "$home"
+[ -z "${RUNQ_JOB:-}" ] || python3 -I "$root/scripts/runqlib/winenv.py" mute "$home"
 rm -f "$home/original-isolation.txt" "$home/Player.log"
 printf '%s\n' "$product" > "$home/unity-product.txt"
 args=""; for a in -logFile "$ONI_RUN_HOME\\Player.log" -screen-fullscreen 0 -monitor "${ONI_WIN_MONITOR:-2}" "$@"; do args="$args'${a//\'/\'\'}',"; done

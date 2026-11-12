@@ -8,7 +8,8 @@ AllocSites). Linux, on Xvfb, players through scripts/contain.sh.
         1280x720, measured for --secs after --warm s past the first frame-rate window. Moono gets a
         warm-up launch first and runs with its default tweaks. --fps caps the frame rate (both
         players, vsync off); --sites adds the per-section counters; --trace (Moono only) records
-        an allocation trace with stacks and thread ids for `split`. Holds the perf queue
+        an allocation trace with stacks and thread ids for `split`. Runs as a runq job of kind
+        linux-perf (docs/RUNQ.md); with RUNQ=off or no daemon it holds the perf queue
         (perf.wanted and perf.lock, as qa.sh's perf stage) and a player's place in scripts/e2e.py's
         memory budget for the launch, and gives both back after it.
     scripts/alloc-compare.py rates RUN...       KB a frame, MB a game s and a real s, collections
@@ -27,7 +28,7 @@ Settings (environment, else out/local-tools/qa.env as scripts/e2e.py reads it):
     ALLOC_GB        the player's place in the memory budget (default 15)
 """
 
-import collections, fcntl, os, re, shutil, signal, subprocess, sys, time
+import collections, contextlib, fcntl, os, re, shutil, signal, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'scripts'))
@@ -57,6 +58,34 @@ def settings():
 
 
 # ---- the perf queue ----
+
+
+def runq_self_submit(argv, a, s):
+    """Re-runs this launch as a runq job of kind linux-perf (docs/RUNQ.md): runq holds the perf
+    slot and a player's place for it, on a quiet machine. Not inside a job, with RUNQ=off or
+    without a daemon: PerfQueue and e2e.py's budget, as before."""
+    if os.environ.get('RUNQ_JOB') or os.environ.get('RUNQ', '').lower() in ('off', '0', 'no', 'false'):
+        return
+    runq = os.path.join(ROOT, 'scripts', 'runq')
+    ping = subprocess.run([sys.executable, runq, 'ping'], capture_output=True, text=True)
+    if ping.returncode:
+        print(f'runq: {ping.stderr.strip().removeprefix("runq: ")}; running directly with the old locks', file=sys.stderr)
+        return
+    minutes = 10 + (2 if a.player == 'ours' else 1) * 45  # each launch is capped at 45 min
+    cmd = [
+        sys.executable,
+        runq,
+        'run',
+        '--kind',
+        'linux-perf',
+        '--needs',
+        f'mem={s["gb"]:g}',
+        '--timeout',
+        f'{minutes}m',
+        '--label',
+        f'alloc-compare run {a.player} {os.path.basename(a.save)}',
+    ]
+    os.execv(sys.executable, cmd + ['--', sys.executable, os.path.abspath(__file__), 'run', *argv])
 
 
 class PerfQueue:
@@ -265,6 +294,7 @@ def run(argv):
     missing = [n for n in need if not s[n] or not os.path.exists(s[n])]
     if missing:
         raise SystemExit(f'alloc-compare: missing {", ".join(missing)} (see --help)')
+    runq_self_submit(argv, a, s)
     out = os.path.abspath(a.out)
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out)
@@ -293,11 +323,13 @@ def run(argv):
             sink = open(path, 'w')
         return subprocess.Popen(['timeout', '-k', '10', '2700', *cmd], cwd=s['worktree'], env=env, stdout=sink, stderr=subprocess.STDOUT)
 
+    in_runq = bool(os.environ.get('RUNQ_JOB'))
     queue = PerfQueue()
-    queue.claim()
+    if not in_runq:
+        queue.claim()
     xvfb = None
     try:
-        with e2e.Budget().hold(s['gb'], f'alloc-compare {os.path.basename(out)}'):
+        with contextlib.nullcontext() if in_runq else e2e.Budget().hold(s['gb'], f'alloc-compare {os.path.basename(out)}'):
             display = free_display()
             xvfb = subprocess.Popen(
                 ['Xvfb', f':{display}', '-screen', '0', '1280x720x24', '-nolisten', 'tcp'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL

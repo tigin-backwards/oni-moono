@@ -12,8 +12,12 @@
 # them).
 # ONI_TWEAK_SETTINGS=1 leaves that out: the run home's settings and the defaults apply, as in a
 # user's launch (for trying the main menu's Moono Tweaks screen).
+# It runs as a runq job of kind linux-player (docs/RUNQ.md; a lane, a player's memory and cores);
+# inside a job, with RUNQ=off or without a daemon it runs directly.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
+source "$root/scripts/runq-submit.sh"
+runq_self_submit --kind linux-player --label "run.sh${*:+ $*}" -- "$root/scripts/run.sh" "$@"
 home="${ONI_RUN_HOME:-$root/out/run-home}"
 mkdir -p "$home/config" "$home/cache"
 export XDG_CONFIG_HOME="$home/config" XDG_CACHE_HOME="$home/cache"

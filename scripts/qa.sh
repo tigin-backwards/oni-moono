@@ -44,6 +44,11 @@
 # shellcheck disable=SC2329
 set -uo pipefail
 source "$(dirname "$0")/env.sh"
+# It runs as a runq job of kind qa (docs/RUNQ.md), and each stage asks runq for its own resources
+# (`runq phase --kind qa-STAGE`: the perf stage gets the machine to itself, quiet). Inside a job
+# (RUNQ_JOB), with RUNQ=off or without a daemon it runs directly, with the old locks.
+source "$root/scripts/runq-submit.sh"
+runq_self_submit --kind qa --label "qa.sh${*:+ $*}" -- "$root/scripts/qa.sh" "$@"
 # Its builds, players and tests run in the memory-capped test slice (scripts/contain.sh).
 [ -n "${ONI_CONTAINED:-}" ] || exec "$root/scripts/contain.sh" "$root/scripts/qa.sh" "$@"
 export PATH="$HOME/.dotnet:$PATH"
@@ -282,11 +287,26 @@ run_scenario() # NAME
 # frames), and so does the memory stage: peak memory does not depend on the machine's load.
 quiet_lockdir="${E2E_LOCK_DIR:-$HOME/.cache/oni-brutal-e2e}"
 quiet_fd=""
+# In a runq job of kind qa, runq_phase gave the stage its resources (qa-perf: the perf slot and a
+# quiet machine), so quiet_begin only cleans and quiet_end has nothing to give back.
+runq_qa() { [ -n "${RUNQ_JOB:-}" ] && [ "${RUNQ_KIND:-}" = qa ]; }
+runq_phase() # STAGE: in a runq qa job, gives back what the last stage held and waits for STAGE's
+{
+    runq_qa || return 0
+    local granted
+    granted=$(python3 "$root/scripts/runq" phase --kind "qa-$1") || { echo "runq phase qa-$1 failed"; exit 1; }
+    runq_noisy=""; grep -qx 'RUNQ_NOISY=1' <<< "$granted" && runq_noisy=1
+    return 0
+}
 quiet_begin() # STAGE
 {
     mkdir -p "$quiet_lockdir"
     # What dead e2e runners left (players, Xvfbs) would keep the machine busy for nothing.
     python3 "$root/scripts/e2e.py" --clean | grep -v '^cleaned 0 ' | sed "s/^/     $1: /"
+    if runq_qa; then
+        if [ -n "${runq_noisy:-}" ]; then note "$1: runq granted the machine, but it did not go quiet within its bound: noisy"; fi
+        return 0
+    fi
     echo $$ > "$quiet_lockdir/perf.wanted"
     exec {quiet_fd}>>"$quiet_lockdir/perf.lock"
     note "$1: waiting for running e2e specs to finish (scripts/e2e.py --status shows them)"
@@ -316,6 +336,7 @@ cores_busy() # cores' worth of CPU busy over 5 s, from /proc/stat
 }
 quiet_end()
 {
+    runq_qa && return 0
     flock -u "$quiet_fd"; exec {quiet_fd}>&-; quiet_fd=""
     rm -f "$quiet_lockdir/perf.wanted"
 }
@@ -500,7 +521,7 @@ stage_memory()
 
 for s in "${stages[@]}"; do
     case $s in
-        unit|dogfood|verify|perf|memory) echo "== $s"; "stage_$s" ;;
+        unit|dogfood|verify|perf|memory) echo "== $s"; runq_phase "$s"; "stage_$s" ;;
         *) echo "unknown stage $s"; exit 2 ;;
     esac
 done
