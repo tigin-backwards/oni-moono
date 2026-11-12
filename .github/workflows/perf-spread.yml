@@ -16,20 +16,28 @@ on:
       save:
         description: The fixture both load (tests/e2e/fixtures.json).
         type: choice
-        options: [2minnow, early-base]
-        default: 2minnow
+        options: [early-base, 2minnow]
+        default: early-base
       pairs:
         description: A B pairs a job launches.
         type: number
-        default: 5
+        default: 3
+      window:
+        description: Frames a window (CI's software renderer runs about 1 fps on 2minnow).
+        type: number
+        default: 150
       pause_windows:
-        description: 600-frame windows paused (the first has no counters).
+        description: Windows paused (the first has no counters).
+        type: number
+        default: 2
+      run_windows:
+        description: Windows running at speed 3 (the first is left out).
         type: number
         default: 3
-      run_windows:
-        description: 600-frame windows running at speed 3 (the first is left out).
+      launch_minutes:
+        description: A launch is stopped after this long, with what it has.
         type: number
-        default: 4
+        default: 14
 
 permissions: {}
 
@@ -41,7 +49,7 @@ jobs:
   spread:
     name: Perf spread ${{ matrix.job }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 300
+    timeout-minutes: 150
     permissions:
       contents: read
     strategy:
@@ -98,32 +106,48 @@ jobs:
           done
           dotnet build tools/PerfProbe -c Release -p:OniManaged="$game/OxygenNotIncluded_Data/Managed" -v q -nologo "-clp:ErrorsOnly;NoSummary"
           echo "SPREAD_STEAM=$(tools/SteamStub/build.sh --dlc)" >> "$GITHUB_ENV"
+      # The step's own timeout, inside the job's, leaves time for the summary and the upload:
+      # each launch writes its result.json as it ends, so a cut-short step still has numbers.
       - name: Launch A and B in turn
+        timeout-minutes: 120
         env:
           SAVE: ${{ inputs.save }}
           PAIRS: ${{ inputs.pairs }}
+          WINDOW: ${{ inputs.window }}
           PAUSE_WINDOWS: ${{ inputs.pause_windows }}
           RUN_WINDOWS: ${{ inputs.run_windows }}
+          LAUNCH_MINUTES: ${{ inputs.launch_minutes }}
         run: |
           export ONI_NO_CONTENT=1 SPREAD_GAME="$RUNNER_TEMP/oni-game" SPREAD_PROBE="$PWD/out/bin/PerfProbe/release" SPREAD_SAVE="$PWD/tests/e2e/fixtures/$SAVE.sav"
-          Xvfb :99 -screen 0 1280x720x24 -nolisten tcp > /dev/null 2>&1 &
+          # 960x540: Mesa's software renderer is the slowest part, and its cost goes with the pixels.
+          Xvfb :99 -screen 0 960x540x24 -nolisten tcp > /dev/null 2>&1 &
           export DISPLAY=:99
           sleep 2
           spread="$RUNNER_TEMP/spread"
+          mkdir -p out/perf-spread/runs
+          launch() { # launch TREE NAME LABEL PAUSE RUN SECONDS
+            scripts/perf-spread.py run "$1" "$spread/$2" --label "$3" --window "$WINDOW" --size 960x540 \
+              --pause-windows "$4" --run-windows "$5" --timeout "$6" || true
+            if [ -f "$spread/$2/result.json" ] && [ "${2#warm}" = "$2" ]; then
+              mkdir -p "out/perf-spread/runs/$2"
+              cp "$spread/$2/result.json" "out/perf-spread/runs/$2/"
+            fi
+          }
           # A warm-up launch of each first (disk caches, the first JIT), not counted.
-          scripts/perf-spread.py run "$RUNNER_TEMP/base" "$spread/warm-A" --label A --pause-windows 2 --run-windows 0 || true
-          scripts/perf-spread.py run . "$spread/warm-B" --label B --pause-windows 2 --run-windows 0 || true
+          launch "$RUNNER_TEMP/base" warm-A A 1 0 600
+          launch . warm-B B 1 0 600
           for i in $(seq 1 "$PAIRS"); do
-            scripts/perf-spread.py run "$RUNNER_TEMP/base" "$spread/$i-A" --label A --pause-windows "$PAUSE_WINDOWS" --run-windows "$RUN_WINDOWS" || true
-            scripts/perf-spread.py run . "$spread/$i-B" --label B --pause-windows "$PAUSE_WINDOWS" --run-windows "$RUN_WINDOWS" || true
+            launch "$RUNNER_TEMP/base" "$i-A" A "$PAUSE_WINDOWS" "$RUN_WINDOWS" $((LAUNCH_MINUTES * 60))
+            launch . "$i-B" B "$PAUSE_WINDOWS" "$RUN_WINDOWS" $((LAUNCH_MINUTES * 60))
           done
-          mkdir -p out/perf-spread
-          for d in "$spread"/[0-9]*; do
-            mkdir -p "out/perf-spread/runs/$(basename "$d")"
-            cp "$d/result.json" "out/perf-spread/runs/$(basename "$d")/" 2>/dev/null || true
-          done
+      - name: Summary
+        if: always()
+        run: |
           # Glob order (1-A, 1-B, 10-A, ...) keeps each A with its B.
-          scripts/perf-spread.py summary out/perf-spread out/perf-spread/runs/* >> "$GITHUB_STEP_SUMMARY"
+          shopt -s nullglob
+          runs=(out/perf-spread/runs/*)
+          if [ ${#runs[@]} -eq 0 ]; then echo "No launch finished." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          scripts/perf-spread.py summary out/perf-spread "${runs[@]}" >> "$GITHUB_STEP_SUMMARY"
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
