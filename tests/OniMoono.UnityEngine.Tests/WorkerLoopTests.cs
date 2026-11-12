@@ -142,12 +142,101 @@ namespace OniMoono.Tests
             long ours = MedianBytesACall(() => WorkerLoop.For(64, body));
             long theirs = MedianBytesACall(() => Parallel.For(0, 64, body));
             // Runs are reused thread-pool work items, queued as they are: a call allocates
-            // nothing. (A call finding every run still held by helpers yet to start makes one,
-            // 48 bytes; Parallel.For's about 2.5 KB.)
+            // nothing (Parallel.For's about 2.5 KB). A call finding every run still held runs
+            // alone, allocating nothing either (TheCallerRunsAloneWhenEveryRunIsHeld).
             Assert.True(ours < 16, $"WorkerLoop.For: {ours} bytes a call (median), none expected");
             // The measure sees Parallel.For's allocations, so it would see the loop's.
             long ceiling = 64 + 48L * WorkerLoop.MaxHelpers;
             Assert.True(theirs > ceiling, $"Parallel.For: {theirs} bytes a call (median), more than {ceiling} expected");
+        }
+
+        [Fact]
+        public void TheCallerRunsAloneWhenEveryRunIsHeld()
+        {
+            // As when the pool has not started earlier calls' helpers: no helper is queued for a
+            // pool that is behind, every item runs once on the calling thread, nothing is made.
+            var sum = new long[1];
+            int thread = Environment.CurrentManagedThreadId, elsewhere = 0;
+            var runs = new int[64];
+            Action<int> body = i =>
+            {
+                runs[i]++;
+                Interlocked.Add(ref sum[0], i);
+                if (Environment.CurrentManagedThreadId != thread) Interlocked.Increment(ref elsewhere);
+            };
+            WithEveryRunHeld(() =>
+            {
+                WorkerLoop.For(runs.Length, body);
+                Array.Clear(runs);
+                for (int round = 0; round < 100; round++)
+                {
+                    int alone = WorkerLoop.CallerAlone, calls = WorkerLoop.Calls;
+                    long before = GC.GetAllocatedBytesForCurrentThread();
+                    WorkerLoop.For(runs.Length, body);
+                    long bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+                    Assert.Equal(0, bytes);
+                    Assert.Equal(alone + 1, WorkerLoop.CallerAlone);
+                    Assert.Equal(calls + 1, WorkerLoop.Calls);
+                    Assert.Equal(0, WorkerLoop.HelpersQueued);
+                }
+            });
+            Assert.All(runs, n => Assert.Equal(100, n));
+            Assert.Equal(0, elsewhere);
+        }
+
+        [Fact]
+        public void NoItemStartsAfterAFailureWhenTheCallerRunsAlone()
+        {
+            var runs = new int[64];
+            WithEveryRunHeld(() =>
+            {
+                int alone = WorkerLoop.CallerAlone;
+                var e = Assert.Throws<AggregateException>(() => WorkerLoop.For(runs.Length, i =>
+                {
+                    runs[i]++;
+                    if (i == 3) throw new InvalidOperationException();
+                }));
+                Assert.Equal(alone + 1, WorkerLoop.CallerAlone);
+                Assert.IsType<InvalidOperationException>(Assert.Single(e.InnerExceptions));
+            });
+            Assert.Equal(new[] { 1, 1, 1, 1 }, runs[..4]);
+            Assert.All(runs[4..], n => Assert.Equal(0, n));
+        }
+
+        /// Runs `test` while every reusable run is held: a call on each of eight threads, each
+        /// blocked in its one item (one item: no helper queued).
+        static void WithEveryRunHeld(Action test)
+        {
+            WaitForHelpers();
+            int entered = 0, alone = WorkerLoop.CallerAlone;
+            using var release = new ManualResetEventSlim();
+            var holders = new Thread[8];
+            for (int t = 0; t < holders.Length; t++)
+            {
+                holders[t] = new Thread(() => WorkerLoop.For(1, _ =>
+                {
+                    Interlocked.Increment(ref entered);
+                    release.Wait();
+                }));
+                holders[t].Start();
+            }
+            try
+            {
+                long deadline = Environment.TickCount64 + 30_000;
+                while (Volatile.Read(ref entered) < holders.Length)
+                {
+                    if (Environment.TickCount64 > deadline) Assert.Fail($"{entered} of {holders.Length} holders started after 30 s");
+                    Thread.Sleep(1);
+                }
+                // Each holder took a run of its own.
+                Assert.Equal(alone, WorkerLoop.CallerAlone);
+                test();
+            }
+            finally
+            {
+                release.Set();
+                foreach (var t in holders) t.Join();
+            }
         }
 
         /// The median of what single calls allocate on the calling thread, each made once the
