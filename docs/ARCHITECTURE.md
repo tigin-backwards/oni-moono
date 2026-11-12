@@ -484,11 +484,14 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   ran the copy, whose `Location` is empty: Threshold Walls). The methods CoreCLR reports missing
   get an explicit implementation that throws the `TypeLoadException` CoreCLR would have. The class
   loads, and calling the missing method fails. Where Mono fails earlier (an interface check of the class),
-  ours goes on. Collecting a probe's context takes two blocking full collections (80 with 40
-  mods), so each probe's verdict is kept in the cache folder (`oni-moono/mod-type-probes`) under
-  a key naming its inputs: the image's hash, the runtime's and the host's builds, and each loaded
-  assembly the image's references reach (outside the runtime's folder) by name, module version
-  id and file size and time; a later start with the same mods probes nothing. `--check-types`
+  ours goes on. Collecting a probe's context takes two blocking collections. They are gen 1
+  ones, as the context is young (a full one follows only if they leave it alive): with 150 mods
+  on a first start, full ones paused the Windows player 8.7 s, gen 1 ones 3.7 s (the collector
+  still makes some of them full when gen 2's budget runs out). Each probe's verdict is kept in
+  the cache folder (`oni-moono/mod-type-probes`) under a key naming its inputs: the image's
+  hash, the runtime's and the host's builds, and each loaded assembly the image's references
+  reach (outside the runtime's folder) by name, module version id and file size and time; a
+  later start with the same mods probes nothing. `--check-types`
   loads a mod built against an older shape of an interface, whose new method takes one of the
   game's own types (Trashcans), and calls the method it lacks; it then completes the image again
   from the cache and checks the bytes and each kept verdict against a fresh probe.
