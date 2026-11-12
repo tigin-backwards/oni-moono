@@ -106,6 +106,10 @@ class Resources(unittest.TestCase):
         p = sched.plan(state([job('e', kind='linux-player'), job('c', 'b', kind='check', order=1), job('g', 'c', kind='light', order=2)], external=ext))
         self.assertEqual(granted(p), ['g'])
         self.assertIn('perf.wanted', p.reasons['e'])
+        self.assertFalse(p.drain)  # not due yet: the old perf claimers go on
+        # Once a job is due, perf.wanted asks them to start no new run.
+        p = sched.plan(state([job('c', 'b', kind='check', order=0)], external=ext, now=4 * H))
+        self.assertTrue(p.drain)
 
     def test_perf_waits_for_shared_holders_outside_runq(self):
         ext = sched.External(perf_shared=1, why=('perf.lock shared by pid 9',))
