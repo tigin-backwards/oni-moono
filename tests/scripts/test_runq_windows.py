@@ -53,6 +53,32 @@ class Environment(unittest.TestCase):
             winenv.wsl_path('/home/u')
 
 
+class Interop(unittest.TestCase):
+    """Jobs start Windows processes through a WSL session's interop socket that does not give
+    them PreferSystem32Images (init's does: Doorstop's winhttp.dll then never loads)."""
+
+    def test_sockets_of_live_relays_longest_lived_first_wsls_own_last(self):
+        with tempfile.TemporaryDirectory() as d:
+            sleeper = subprocess.Popen(['sleep', '30'])
+            try:
+                for pid in (1, os.getpid(), sleeper.pid, 999999999):
+                    open(os.path.join(d, f'{pid}_interop'), 'w').close()
+                open(os.path.join(d, 'other'), 'w').close()
+                found = [pid for _, pid in winenv.interop_sockets(d)]
+                self.assertEqual(found, [os.getpid(), sleeper.pid, 1])  # the dead relay's is left out
+            finally:
+                sleeper.kill()
+                sleeper.wait()
+
+    def test_choose_skips_sockets_that_prefer_system32(self):
+        fake = winenv.FakeWindows()
+        fake.policy = {'/run/WSL/1_interop': True, '/run/WSL/750_interop': True, '/run/WSL/900_interop': False}
+        sockets = [('/run/WSL/750_interop', 750), ('/run/WSL/900_interop', 900), ('/run/WSL/1_interop', 1)]
+        self.assertEqual(winenv.choose_interop(sockets, fake.prefers_system32), '/run/WSL/900_interop')
+        fake.policy = {'/run/WSL/750_interop': None}
+        self.assertIsNone(winenv.choose_interop(sockets, fake.prefers_system32))
+
+
 class Volume(unittest.TestCase):
     def prefs(self, text):
         with tempfile.TemporaryDirectory() as home:

@@ -398,6 +398,53 @@ class Shims(unittest.TestCase):
         self.assertIn('running directly with the old locks', r.stderr)
 
 
+def wsl_interop_ok():
+    try:
+        sys.path.insert(0, helpers.SCRIPTS)
+        from runqlib import winenv
+
+        return systemd_ok() and winenv.Windows().available()
+    except Exception:
+        return False
+
+
+@unittest.skipUnless(wsl_interop_ok(), 'needs systemd and WSL interop')
+class WindowsInterop(unittest.TestCase):
+    """A Windows process a job starts runs without PreferSystem32Images, as from a terminal: a
+    DLL beside an executable (Doorstop's winhttp.dll beside the original) wins over System32's.
+    Read-only on the Windows side: PowerShell reports its own mitigation policy."""
+
+    def setUp(self):
+        self.h = Harness()
+        self.h.env['RUNQ_WINDOWS'] = 'real'
+        self.h.start()
+
+    def tearDown(self):
+        self.h.close()
+        no_real_daemon(self)
+
+    def test_windows_processes_without_prefer_system32(self):
+        def chosen():
+            return json.loads(self.h.runq('status', '--json').stdout)['machine'].get('interop')
+
+        self.h.wait_for(chosen, timeout=90, what='an interop socket')
+        ps = '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
+        r = self.h.runq(
+            'run',
+            '--kind',
+            'light',
+            '--',
+            ps,
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            '(Get-ProcessMitigation -Id $PID).ImageLoad.PreferSystem32',
+            timeout=120,
+        )
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout.strip(), 'OFF')
+
+
 class Rules(unittest.TestCase):
     """runq's sources never kill by pattern or name, never move the pointer, never pass the
     flag that pins the pointer over a Windows game."""

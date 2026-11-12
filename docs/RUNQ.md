@@ -106,6 +106,13 @@ runq already holds for its job, would wait forever: it is stopped at once (`self
   granted lane numbers, `3,4`), `E2E_MEMORY_GB` and `E2E_MAX_PLAYERS` for jobs with players,
   `ONI_CONTAINED=1`, `ONI_HOST_NO_DIALOG=1` listed in `WSLENV`, and no sound (`PULSE_SERVER` to
   nothing, `SDL_AUDIODRIVER=dummy`).
+- Windows processes started the way a terminal starts them: through a WSL session's interop
+  socket (`WSL_INTEROP`), one the daemon checks. A systemd unit's default, the socket of WSL's
+  own init, starts them with Windows' PreferSystem32Images mitigation, which their children
+  inherit: a DLL beside an executable then loses to System32's of the same name (Unity
+  Doorstop's `winhttp.dll` in the original's copy never loaded, so `original-windows.sh` failed
+  its isolation check). Windows-slot jobs wait while no such socket exists (a WSL terminal
+  provides one); `runq status` names the one in use.
 - With the Windows slot: `%TEMP%\oni-runq\ID\stage` (`ONI_WIN_STAGE`, where `run-windows.sh`
   stages the host) and `%TEMP%\oni-runq\ID\home` (`ONI_RUN_HOME`, unless the caller set its own),
   the run home's volume settings at 0, and `ONI_WIN_MONITOR=2` whatever the caller set. When the
