@@ -150,22 +150,36 @@ namespace OniMoono.Tests
             Assert.True(theirs > ceiling, $"Parallel.For: {theirs} bytes a call (median), more than {ceiling} expected");
         }
 
-        /// The median of what single calls allocate on the calling thread. On a loaded machine
-        /// some calls also pay there for the pool's own work, up to tens of KB: starting a
-        /// worker thread, or growing its queue when helpers start late. That is the pool's, not
-        /// the call's, and the median leaves it out (an average over 100 calls did not).
+        /// The median of what single calls allocate on the calling thread, each made once the
+        /// helpers of the calls before it have finished. On a loaded machine the pool starts
+        /// helpers late: back to back, every call found all runs held by helpers yet to start
+        /// and made its own (56 bytes), and the pool's queue grew on the calling thread (16 KB
+        /// and more a time). Waiting first measures a call as the loop is meant to run, so a
+        /// call that allocates still shows. The median leaves out the pool's rarer work there,
+        /// such as starting a worker thread.
         static long MedianBytesACall(Action call)
         {
             for (int i = 0; i < 50; i++) call();
             var bytes = new long[401];
             for (int i = 0; i < bytes.Length; i++)
             {
+                WaitForHelpers();
                 long before = GC.GetAllocatedBytesForCurrentThread();
                 call();
                 bytes[i] = GC.GetAllocatedBytesForCurrentThread() - before;
             }
             Array.Sort(bytes);
             return bytes[bytes.Length / 2];
+        }
+
+        static void WaitForHelpers()
+        {
+            long deadline = Environment.TickCount64 + 30_000;
+            while (WorkerLoop.HelpersQueued != 0)
+            {
+                if (Environment.TickCount64 > deadline) Assert.Fail($"{WorkerLoop.HelpersQueued} helpers still queued after 30 s");
+                Thread.Sleep(1);
+            }
         }
     }
 }

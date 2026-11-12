@@ -75,6 +75,19 @@ namespace OniMoono.GameTweaks
             // Every run is held by a call or by a helper still to start: one of this call's own.
             return new Run { InUse = 1 };
         }
+
+        /// Helpers queued for the reusable runs that have not finished with them. While any are,
+        /// a call may find every run held and make its own (tests wait for none).
+        internal static int HelpersQueued
+        {
+            get
+            {
+                int n = 0;
+                foreach (var run in runs)
+                    if (run != null) n += Volatile.Read(ref run.Queued);
+                return n;
+            }
+        }
 #else
         static readonly WaitCallback help = state => Work((Run)state);
         static Action<int, Action<int>> hosted;
