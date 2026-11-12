@@ -1433,7 +1433,7 @@ namespace OniMoono.Engine.Rendering
         /// The particles built for this camera (world space): submesh i with material i.
         static void CollectParticles(Particles.ParticleSystemRendererNative r, Camera camera, List<DrawItem> draws)
         {
-            var mesh = particleMeshes.GetValue(r, _ => new MeshNative());
+            var mesh = particleMeshes.GetValue(r, _ => new MeshNative { KeepsSpares = true });
             if (!r.BuildGeometry(camera, mesh, out var objectToWorld)) return;
             for (int i = 0; i < mesh.SubMeshes.Count && i < r.Materials.Length; i++)
             {

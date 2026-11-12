@@ -290,6 +290,15 @@ namespace OniMoono.Engine.Rendering
         /// fills alternate between elements of every size, the larger ones a few times a second.
         const int MaxWorkerSpares = 32, WorkerSpareFrames = 120;
 
+        /// A mesh the engine refills itself in each frame it is seen, for each camera that sees
+        /// it (a particle system's): it keeps spares as the worker mesh does. A fill retires
+        /// about six arrays, and while the device has yet to run the uploads holding the last
+        /// fills, MaxSpares made room by dropping the oldest spares, the ones it was done with;
+        /// a system that pauses between bursts found its spares swept.
+        internal bool KeepsSpares;
+
+        bool ManySpares => UploadsPosted == 0 || KeepsSpares;
+
         /// Reuse statistics (ONI_MESH_SPARES=stats): arrays wanted, taken from spares, and
         /// arrays retired.
         internal static readonly bool Stats = Environment.GetEnvironmentVariable("ONI_MESH_SPARES") == "stats" || Environment.GetEnvironmentVariable("ONI_VERIFY_MESH_REUSE") == "1";
@@ -422,6 +431,13 @@ namespace OniMoono.Engine.Rendering
 
         void AddSpare(Array array) => AddSpare(array, UploadsPosted);
 
+        /// An array the device made for one of this mesh's uploads (`sequence`, its place in
+        /// UploadsPosted) from NewChannelAtLeast, given back: reused once that upload has run.
+        internal void RetireUploaded(Array array, int sequence)
+        {
+            if (!ReuseOff) AddSpare(array, sequence);
+        }
+
         void AddSpare(Array array, int posted)
         {
             if (array.Length == 0) return;
@@ -431,7 +447,7 @@ namespace OniMoono.Engine.Rendering
                 listed = true;
                 withSpares.Add(this);
             }
-            if (spares.Count >= (UploadsPosted == 0 ? MaxWorkerSpares : MaxSpares)) spares.RemoveAt(0);
+            if (spares.Count >= (ManySpares ? MaxWorkerSpares : MaxSpares)) spares.RemoveAt(0);
             spares.Add((array, posted, Time.frameCount));
             if (Stats) Retired++;
         }
@@ -448,7 +464,7 @@ namespace OniMoono.Engine.Rendering
                 var s = mesh.spares;
                 // Oldest first: they were added in frame order.
                 int stale = 0;
-                int keep = mesh.UploadsPosted == 0 ? WorkerSpareFrames : SpareFrames;
+                int keep = mesh.ManySpares ? WorkerSpareFrames : SpareFrames;
                 while (stale < s.Count && frame - s[stale].Frame > keep) stale++;
                 s.RemoveRange(0, stale);
                 if (s.Count > 0) continue;
