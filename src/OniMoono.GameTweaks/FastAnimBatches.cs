@@ -26,16 +26,16 @@ namespace OniMoono.GameTweaks
     /// application, is answered in the loop (written or not, by the game's own slot test) and
     /// its copy made after the loop, again on workers. Everything else (applying overrides,
     /// texture creation, Apply, the dirty bookkeeping) runs in the game's own order on the main
-    /// thread; an override texture whose blocks were written after the loop is applied again
-    /// after them (its first Apply may have started its upload). Each batch's writes touch only its own
-    /// textures and slots, and the controllers registered with it (a controller is in one batch).
-    /// What the writes read (frame, visibility, position, transforms, the symbol instance and
-    /// override blocks) is not changed by applying another controller's overrides, so writing
-    /// them earlier or later gives the same bytes. The engine's transform caches are safe for
-    /// concurrent readers. Since U60 a controller's override block is created on first read
-    /// (KAnimControllerBase.symbolOverrideInfoGpuData); the loop's own read in WriteOverrides,
-    /// on the main thread, creates it before a deferred write reads it on a worker, and only
-    /// LoadAnims (never reached from the loop) can reset it.
+    /// thread; an override texture whose blocks were written after the loop in the pass after it
+    /// was made is applied again after them (its first Apply started its upload). Each batch's
+    /// writes touch only its own textures and slots, and the controllers registered with it (a
+    /// controller is in one batch). What the writes read (frame, visibility, position,
+    /// transforms, the symbol instance and override blocks) is not changed by applying another
+    /// controller's overrides, so writing them earlier or later gives the same bytes. The
+    /// engine's transform caches are safe for concurrent readers. Since U60 a controller's
+    /// override block is created on first read (KAnimControllerBase.symbolOverrideInfoGpuData);
+    /// the loop's own read in WriteOverrides, on the main thread, creates it before a deferred
+    /// write reads it on a worker, and only LoadAnims (never reached from the loop) can reset it.
     ///
     /// Written on the main thread in the game's order as before: batches being set up (Init),
     /// UI batches (their transform reads UI layout), controllers that are not exactly a
@@ -113,6 +113,8 @@ namespace OniMoono.GameTweaks
             /// Override blocks to write after the loop: index, controller, its version then.
             public int DeferPass;
             public NativeArray<byte> OverrideData;
+            /// The override texture whose first upload the deferred writes have waited for.
+            public Texture2D OverrideTexture;
             public readonly List<(int Index, KAnimConverter.IAnimConverter Controller, int Version)> Deferred = new List<(int, KAnimConverter.IAnimConverter, int)>();
 
             public void Fit(int count)
@@ -141,6 +143,7 @@ namespace OniMoono.GameTweaks
 
         static readonly Action<int> body = Body;
         static readonly List<Work> deferring = new List<Work>();
+        static readonly List<Work> firstUploads = new List<Work>();
         static readonly Action<int> deferBody = DeferBody;
         static long deferred;
 
@@ -276,14 +279,27 @@ namespace OniMoono.GameTweaks
                 if (deferring.Count > 0)
                 {
                     long t1 = timing ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
-                    // The loop's Apply came before these writes, and may have started the
-                    // texture's upload (a first upload starts at Apply, as in Unity): the writes
-                    // wait for its copy of the texels (the engine's access waits), and the
-                    // texture is applied again after them, as the game applies after its writes.
-                    foreach (var work in deferring) work.Batch.symbolOverrideInfoTex.GetDataPointer();
+                    // The loop's Apply came before these writes. A texture's first Apply starts its
+                    // upload there (as in Unity), copying the texels while the workers would write
+                    // them: in the first pass after a batch gets its override texture, the writes
+                    // wait for that copy (the engine's access waits) and the texture is applied
+                    // again after them, as the game applies after its writes. Later uploads are
+                    // made at the draw, after these writes, so they need neither; applying again
+                    // every pass made the device send more of the textures (a late-game colony:
+                    // 915 -> 1,442 KB of texel uploads a frame).
+                    firstUploads.Clear();
+                    foreach (var work in deferring)
+                    {
+                        var texture = work.Batch.symbolOverrideInfoTex.texture;
+                        if (ReferenceEquals(texture, work.OverrideTexture)) continue;
+                        work.OverrideTexture = texture;
+                        work.Batch.symbolOverrideInfoTex.GetDataPointer();
+                        firstUploads.Add(work);
+                    }
                     if (deferring.Count == 1) DeferBody(0);
                     else WorkerLoop.For(deferring.Count, deferBody);
-                    foreach (var work in deferring) work.Batch.symbolOverrideInfoTex.Apply();
+                    foreach (var work in firstUploads) work.Batch.symbolOverrideInfoTex.Apply();
+                    firstUploads.Clear();
                     if (timing) ticksParallel += System.Diagnostics.Stopwatch.GetTimestamp() - t1;
                     if (verify) VerifyDeferred();
                     deferring.Clear();
@@ -317,8 +333,8 @@ namespace OniMoono.GameTweaks
 
         /// KAnimBatch.WriteSymbolOverrideInfoTex, in a frame the workers took part in: when the
         /// slot is stale (the game would write), the block is written after the loop instead
-        /// and the game's answer (written) returned now. The texture's Apply that follows is
-        /// made again after those writes (Postfix).
+        /// and the game's answer (written) returned now. A new texture's Apply that follows is made
+        /// again after those writes (Postfix).
         [MirrorsGame("System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
         static bool WriteOverrides(KAnimBatch batch, int index, KAnimConverter.IAnimConverter controller, NativeArray<byte> data)
         {
