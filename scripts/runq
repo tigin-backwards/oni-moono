@@ -1,0 +1,653 @@
+#!/usr/bin/env python3
+"""runq: run jobs on the shared test machine through its broker, runqd (docs/RUNQ.md).
+
+  runq run    [OPTIONS] -- CMD [ARG...]   queue CMD, wait, stream its output, exit with its code
+  runq submit [OPTIONS] -- CMD [ARG...]   queue CMD, print the job id, return at once
+  runq wait ID...                         block until each ends; exit with the first failure's code
+  runq cancel ID                          dequeue, or stop a running job (SIGTERM, then SIGKILL)
+  runq show ID                            the job's record, resources, wait and result
+  runq log ID [-f]                        its out.log
+  runq status [--json] [--owner X]        running, queued, why each waits, what runs outside runq
+  runq history [--owner X] [--since D]    past jobs
+  runq phase --kind K | --needs R         inside a job: give back what it holds, wait for K's resources
+  runq beat                               inside a job: a heartbeat (--heartbeat)
+  runq ping                               start the daemon when it is down; exit 0 when it answers
+  runq install                            install the daemon (~/.local/share/oni-runq) and its unit
+  runq doctor                             check the database and the unit
+
+OPTIONS
+  --owner NAME      who asks (default $RUNQ_OWNER, else the worktree's folder name)
+  --level LEVEL     issue, release, user, study, burndown (default $RUNQ_LEVEL, else study)
+  --kind KIND       light, generic, build, check, linux-player, e2e, windows, win-perf, linux-perf, qa
+  --needs R=N,...   resources beyond the kind's: lane, mem (GB), cpu, players, windows, perf, quiet
+  --timeout DUR     hard limit (90s, 45m, 2h; default the kind's; at most 6 h)
+  --expect DUR      expected duration, for the slot-hours cap
+  --label TEXT      what the run is, for status
+  --after ID        start only after ID ended (--after-ok: only when it succeeded)
+  --script FILE     copy FILE into the job folder and run the copy (with the arguments after --)
+  --env NAME        keep NAME from the caller's environment (beyond the allowlist)
+  --heartbeat DUR   stop the job when no `runq beat` comes for DUR
+  --retry-on-lost   requeue the job when a WSL restart loses it
+  --keep-home       keep a Windows job's %TEMP%\\oni-runq\\ID folder
+  --budget-ok WHY   past the Windows/perf slot-hours cap (ask the user first)
+  --cancel-on-detach  cancel the job when `runq run` itself is stopped
+RUNQ_LEVEL, RUNQ_OWNER, RUNQ_TIMEOUT and RUNQ_EXPECT in the environment stand in for --level,
+--owner, --timeout and --expect (RUNQ_TIMEOUT and RUNQ_EXPECT win over the options: the migrated
+scripts pass their own estimates).
+
+Exit codes: the command's, or 124 timeout, 137 killed (cancel, idle-held, heartbeat), 75 refused
+at submit, 76 lost (a WSL restart), 69 no daemon. Each job's folder is ~/oni-runs/ID (out.log,
+result.json, out/ as $RUNQ_OUT). The kill switch: RUNQ=off or `enabled = false` in
+~/.config/oni-runq/config.toml sends the migrated scripts back to the old locks."""
+
+import hashlib, json, os, shutil, signal, socket, subprocess, sys, time, uuid
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from runqlib import config  # noqa: E402
+
+EXIT_NO_DAEMON, EXIT_REFUSED = 69, 75
+UNIT = 'oni-runqd.service'
+
+
+def die(msg, code=2):
+    print(f'runq: {msg}', file=sys.stderr)
+    sys.exit(code)
+
+
+# ---------------------------------------------------------------- install
+
+
+def sources():
+    files = ['runq'] + sorted(os.path.join('runqlib', n) for n in os.listdir(os.path.join(HERE, 'runqlib')) if n.endswith(('.py', '.ps1')))
+    return files
+
+
+def version():
+    h = hashlib.sha256()
+    for name in sources():
+        h.update(name.encode())
+        with open(os.path.join(HERE, name), 'rb') as f:
+            h.update(f.read())
+    return h.hexdigest()[:12]
+
+
+def install_root():
+    return os.environ.get('RUNQ_INSTALL_DIR') or os.path.join(config.HOME, '.local', 'share', 'oni-runq')
+
+
+def unit_path():
+    return os.path.join(config.HOME, '.config', 'systemd', 'user', UNIT)
+
+
+def install(restart=True, quiet=False):
+    """Copies the scripts into ~/.local/share/oni-runq/VERSION (old versions stay: running jobs'
+    cleanups name them) and writes and enables the daemon's user unit."""
+    ver = version()
+    dest = os.path.join(install_root(), ver)
+    if not os.path.exists(os.path.join(dest, 'VERSION')):
+        tmp = dest + f'.tmp{os.getpid()}'
+        os.makedirs(os.path.join(tmp, 'runqlib'), exist_ok=True)
+        for name in sources():
+            shutil.copy2(os.path.join(HERE, name), os.path.join(tmp, name))
+        with open(os.path.join(tmp, 'VERSION'), 'w') as f:
+            f.write(ver + '\n')
+        try:
+            os.replace(tmp, dest)
+        except OSError:  # another client installed the same version meanwhile
+            shutil.rmtree(tmp, ignore_errors=True)
+            if not os.path.exists(os.path.join(dest, 'VERSION')):
+                raise
+    # The job slice (scripts/contain.sh installs the same file).
+    slice_src = os.path.join(HERE, 'oni-tests.slice')
+    slice_dst = os.path.join(config.HOME, '.config', 'systemd', 'user', 'oni-tests.slice')
+    os.makedirs(os.path.dirname(slice_dst), exist_ok=True)
+    if os.path.exists(slice_src) and (not os.path.exists(slice_dst) or open(slice_src).read() != open(slice_dst).read()):
+        shutil.copy(slice_src, slice_dst)
+    text = (
+        '# runq, the run broker of the shared test machine (scripts/runq install writes this file).\n'
+        '[Unit]\nDescription=runq run broker (oni-brutal test machine)\n\n'
+        '[Service]\n'
+        f'ExecStart={sys.executable or "/usr/bin/python3"} -I {dest}/runq _daemon\n'
+        'Restart=always\nRestartSec=2\nKillMode=process\n\n'
+        '[Install]\nWantedBy=default.target\n'
+    )
+    changed = not os.path.exists(unit_path()) or open(unit_path()).read() != text
+    if changed:
+        with open(unit_path(), 'w') as f:
+            f.write(text)
+    subprocess.run(['systemctl', '--user', 'daemon-reload'], check=False)
+    subprocess.run(['systemctl', '--user', 'enable', '--quiet', UNIT], check=False)
+    if changed and restart:
+        subprocess.run(['systemctl', '--user', 'restart', UNIT], check=False)
+    if not quiet:
+        print(f'runq {ver} installed in {dest}' + ('; the daemon restarted (jobs keep running)' if changed and restart else ''))
+    return ver
+
+
+# ---------------------------------------------------------------- the socket
+
+
+class Client:
+    def __init__(self, sock):
+        self.sock, self.buf = sock, b''
+
+    def send(self, obj):
+        self.sock.sendall((json.dumps(obj) + '\n').encode())
+
+    def recv(self, timeout=None):
+        """The next message, or None on timeout; raises ConnectionError when the daemon goes."""
+        self.sock.settimeout(timeout)
+        while b'\n' not in self.buf:
+            try:
+                data = self.sock.recv(65536)
+            except socket.timeout:
+                return None
+            if not data:
+                raise ConnectionError('the daemon closed the connection')
+            self.buf += data
+        line, self.buf = self.buf.split(b'\n', 1)
+        return json.loads(line)
+
+    def call(self, obj, timeout=60):
+        self.send(obj)
+        reply = self.recv(timeout)
+        if reply is None:
+            raise ConnectionError('no answer from the daemon')
+        return reply
+
+
+def try_connect():
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        s.connect(config.socket_path())
+    except OSError:
+        s.close()
+        return None
+    return Client(s)
+
+
+def connect(start=True, wait=60):
+    """A connection to the daemon, starting its unit when it does not answer (no linger: the CLI
+    starts it). Exits 69 when there is none."""
+    c = try_connect()
+    if c or not start:
+        return c
+    if os.environ.get('RUNQ_STATE_DIR') or os.environ.get('RUNQ_JOB'):  # a test daemon, or inside a job: start none
+        deadline = time.time() + min(wait, 5)
+        while time.time() < deadline:
+            c = try_connect()
+            if c:
+                return c
+            time.sleep(0.2)
+        die(f'no daemon at {config.socket_path()}', EXIT_NO_DAEMON)
+    if not os.path.exists(unit_path()):
+        install(restart=False, quiet=True)
+    subprocess.run(['systemctl', '--user', 'start', UNIT], capture_output=True)
+    deadline = time.time() + min(wait, 20)
+    while time.time() < deadline:
+        c = try_connect()
+        if c:
+            return c
+        time.sleep(0.2)
+    die(f'no daemon at {config.socket_path()} (systemctl --user status {UNIT}; journalctl --user -u {UNIT})', EXIT_NO_DAEMON)
+
+
+def reconnect(deadline_s=60):
+    """A connection again after the daemon went (systemd restarts it within seconds)."""
+    deadline = time.time() + deadline_s
+    while time.time() < deadline:
+        c = try_connect()
+        if c:
+            return c
+        time.sleep(1)
+    die('the daemon went away and did not come back within 60 s', EXIT_NO_DAEMON)
+
+
+# ---------------------------------------------------------------- run, submit, wait
+
+
+def owner_default(cwd):
+    if os.environ.get('RUNQ_OWNER'):
+        return os.environ['RUNQ_OWNER']
+    r = subprocess.run(['git', '-C', cwd, 'rev-parse', '--show-toplevel'], capture_output=True, text=True)
+    top = r.stdout.strip() if r.returncode == 0 else cwd
+    return os.path.basename(top.rstrip('/')) or 'unknown'
+
+
+def parse_job(argv):
+    if '--' in argv:
+        i = argv.index('--')
+        opts, cmd = argv[:i], argv[i + 1 :]
+    else:
+        opts, cmd = argv, []
+    req = {'op': 'submit', 'env_names': []}
+    flags = {'cancel_on_detach': False}
+    i = 0
+    takes = {
+        '--owner': 'owner',
+        '--level': 'level',
+        '--priority': 'level',
+        '--kind': 'kind',
+        '--needs': 'needs',
+        '--timeout': 'timeout',
+        '--expect': 'expect',
+        '--label': 'label',
+        '--after': 'after',
+        '--script': 'script',
+        '--env': 'env',
+        '--heartbeat': 'heartbeat',
+        '--budget-ok': 'budget_ok',
+    }
+    while i < len(opts):
+        a = opts[i]
+        key, _, inline = a.partition('=')
+        if key in takes:
+            if inline == '' and '=' not in a:
+                i += 1
+                if i >= len(opts):
+                    die(f'{a} needs a value')
+                value = opts[i]
+            else:
+                value = inline
+            name = takes[key]
+            if name == 'after':
+                req.setdefault('after', []).append(value)
+            elif name == 'env':
+                req['env_names'].append(value)
+            elif name in ('timeout', 'expect', 'heartbeat'):
+                try:
+                    req[name] = config.parse_duration(value)
+                except ValueError as e:
+                    die(str(e))
+            elif name == 'script':
+                try:
+                    with open(value) as f:
+                        req['script'] = f.read()
+                except OSError as e:
+                    die(f'--script {value}: {e}')
+                req['script_replaces'] = True
+                cmd = [value] + cmd
+            else:
+                req[name] = value
+        elif a == '--after-ok':
+            req['after_ok'] = True
+        elif a == '--retry-on-lost':
+            req['retry_on_lost'] = True
+        elif a == '--keep-home':
+            req['keep_home'] = True
+        elif a == '--cancel-on-detach':
+            flags['cancel_on_detach'] = True
+        else:
+            die(f'unknown option {a} (runq --help)')
+        i += 1
+    if not cmd:
+        die('no command: runq run [OPTIONS] -- CMD [ARG...]')
+    # The caller's RUNQ_TIMEOUT and RUNQ_EXPECT win over what a script passes (its estimate).
+    for name in ('timeout', 'expect'):
+        value = os.environ.get(f'RUNQ_{name.upper()}')
+        if value:
+            try:
+                req[name] = config.parse_duration(value)
+            except ValueError as e:
+                die(f'RUNQ_{name.upper()}: {e}')
+    cwd = os.getcwd()
+    req.update(argv=cmd, cwd=cwd, env=dict(os.environ))
+    req.setdefault('owner', owner_default(cwd))
+    req.setdefault('level', os.environ.get('RUNQ_LEVEL') or None)
+    if os.environ.get('RUNQ_JOB'):
+        print(f'runq: note: submitting from inside job {os.environ["RUNQ_JOB"]}', file=sys.stderr)
+    return req, flags
+
+
+def tail(path, pos, out):
+    try:
+        with open(path, 'rb') as f:
+            f.seek(pos)
+            data = f.read()
+    except FileNotFoundError:
+        return pos
+    if data:
+        out.write(data)
+        out.flush()
+    return pos + len(data)
+
+
+def follow(c, job_id, log_path, stream=True, cancel_on_detach=False, quiet=False):
+    """Waits for JOB_ID's end on C, streaming its log; returns its exit code."""
+    pos = 0
+    out = sys.stdout.buffer
+    detached = {'sig': None}
+
+    def on_signal(signum, frame):
+        detached['sig'] = signum
+        raise KeyboardInterrupt
+
+    old = {s: signal.signal(s, on_signal) for s in (signal.SIGTERM, signal.SIGHUP)}
+    started, said, asked = False, None, time.time()
+    try:
+        while True:
+            # While it waits, why (when that changes), at most every 30 s.
+            if not started and not quiet and time.time() - asked >= 30:
+                asked = time.time()
+                try:
+                    d = try_connect().call({'op': 'show', 'id': job_id}).get('job') or {}
+                    if d.get('state') == 'queued' and d.get('waits') and d['waits'] != said:
+                        said = d['waits']
+                        print(f'runq: {job_id} waits: {said}', file=sys.stderr)
+                except Exception:
+                    pass
+            try:
+                msg = c.recv(0.25)
+            except ConnectionError:
+                c = reconnect()
+                c.send({'op': 'wait', 'id': job_id})
+                continue
+            if stream:
+                pos = tail(log_path, pos, out)
+            if msg is None:
+                continue
+            ev = msg.get('event')
+            if ev == 'started':
+                started = True
+            if ev == 'started' and not quiet:
+                lanes = msg.get('lanes') or []
+                print(
+                    f'runq: {job_id} started'
+                    + (f', lanes {",".join(map(str, lanes))}' if lanes else '')
+                    + (' (noisy: the machine was not quiet)' if msg.get('noisy') else ''),
+                    file=sys.stderr,
+                )
+            elif ev == 'end':
+                time.sleep(0.1)
+                if stream:
+                    pos = tail(log_path, pos, out)
+                code = msg.get('exit')
+                code = 76 if code is None else int(code)
+                if not quiet and (msg.get('reason') or code):
+                    print(f'runq: {job_id} ended, exit {code}' + (f' ({msg["reason"]})' if msg.get('reason') else ''), file=sys.stderr)
+                return code
+            elif msg.get('ok') is False:
+                die(msg.get('error', 'refused'), msg.get('code', 2))
+    except KeyboardInterrupt:
+        if cancel_on_detach:
+            try:
+                connect(start=False).call({'op': 'cancel', 'id': job_id})
+                print(f'runq: {job_id} cancelled', file=sys.stderr)
+            except Exception:
+                pass
+        else:
+            print(f'runq: detached; {job_id} goes on (runq wait {job_id}, runq cancel {job_id})', file=sys.stderr)
+        return 130 if detached['sig'] is None else 128 + detached['sig']
+    finally:
+        for s, h in old.items():
+            signal.signal(s, h)
+
+
+def cmd_run(argv, wait=True):
+    req, flags = parse_job(argv)
+    req['wait'] = wait
+    c = connect()
+    reply = c.call(req)
+    if not reply.get('ok'):
+        die(reply.get('error', 'refused'), reply.get('code', EXIT_REFUSED))
+    job_id = reply['id']
+    if not wait:
+        print(job_id)
+        return 0
+    print(
+        f'runq: {job_id} queued ({req["owner"]}, {req.get("level") or "default level"}, {req.get("kind") or "generic"}); output {reply["out"]}; log {reply["log"]}',
+        file=sys.stderr,
+    )
+    return follow(c, job_id, reply['log'], cancel_on_detach=flags['cancel_on_detach'])
+
+
+def cmd_wait(ids):
+    if not ids:
+        die('runq wait ID...')
+    first_fail = 0
+    for job_id in ids:
+        c = connect()
+        reply = c.call({'op': 'wait', 'id': job_id})
+        if not reply.get('ok'):
+            die(reply.get('error'), reply.get('code', 2))
+        code = follow(c, job_id, os.path.join(reply['dir'], 'out.log'), stream=False, quiet=True)
+        print(f'{job_id} exit {code}')
+        if code and not first_fail:
+            first_fail = code
+    return first_fail
+
+
+def when(t):
+    return time.strftime('%H:%M', time.localtime(t)) if t else '-'
+
+
+def mins(s):
+    return f'{s / 3600:.1f} h' if s >= 5400 else f'{s / 60:.0f} min'
+
+
+def needs_text(n):
+    parts = []
+    for k in ('windows', 'perf', 'lane', 'mem', 'cpu', 'players'):
+        v = (n or {}).get(k)
+        if v:
+            parts.append(k if k in ('windows', 'perf') else f'{k}={v:g}' if isinstance(v, float) else f'{k}={v}')
+    if (n or {}).get('quiet'):
+        parts.append('quiet')
+    return ','.join(parts) or 'light'
+
+
+def cmd_status(argv):
+    owner = None
+    as_json = '--json' in argv
+    if '--owner' in argv:
+        owner = argv[argv.index('--owner') + 1]
+    c = connect()
+    st = c.call({'op': 'status', 'owner': owner})['status']
+    if as_json:
+        print(json.dumps(st, indent=1))
+        return 0
+    m = st['machine']
+    now = st['now']
+    print(
+        f'runq {st["version"]}, pid {st["pid"]}. Machine: windows {m["windows"]}, perf {m["perf"]}, lanes {m["lanes_used"]} used/{m["lanes_free"]} free, '
+        f'mem {m["mem_used"]:g}/{m["mem_cap"]:g} GB, cpu {m["cpu_used"]:g}/{m["cpu_cap"]:g}, players {m["players_used"]:g}/{m["players_cap"]}, '
+        f'{m["ext_cpu"]:.1f} cores busy outside runq' + (', the user is in ONI' if m.get('user_in_oni') else '')
+    )
+    print('RUNNING')
+    for d in st['running'] or []:
+        ran = now - (d['start'] or now)
+        ph = d.get('phase') or {}
+        extra = f'  phase {ph.get("kind") or ""} {ph.get("state")}' if ph else ''
+        lanes = f' lanes {",".join(map(str, d["lanes"]))}' if d.get('lanes') else ''
+        print(f'  {d["id"]} {d["level"]:<8} {d["owner"]:<14} {d["label"][:40]:<40} {needs_text(d["needs"])}{lanes}  {mins(ran)} of {mins(d["timeout"])}{extra}')
+    if not st['running']:
+        print('  none')
+    print('QUEUED (in start order)')
+    for d in st['queued'] or []:
+        due = d.get('due_at')
+        due_text = 'due' if due and due <= now else f'due in {mins(due - now)}' if due else ''
+        starts = f'; starts ~{when(d["starts_by"])} at the earliest' if d.get('starts_by') else ''
+        print(
+            f'  {d["id"]} {d["level"]:<8} {d["owner"]:<14} {d["label"][:40]:<40} {needs_text(d["needs"] if not d.get("phase") else d["phase"].get("needs"))}  {due_text}{starts}'
+        )
+        if d.get('waits'):
+            print(f'      {d["waits"]}')
+    if not st['queued']:
+        print('  none')
+    if st['external']:
+        print('OUTSIDE RUNQ')
+        for line in st['external']:
+            print(f'  {line}')
+    if st['warnings']:
+        print('WARNINGS')
+        for jid, ws in st['warnings'].items():
+            for w in ws:
+                print(f'  {jid}: {w}')
+    if st['owners']:
+        print('OWNERS (24 h)  ' + ' | '.join(f'{o} {h:.1f} h' for o, h in sorted(st['owners'].items(), key=lambda x: -x[1])))
+    return 0
+
+
+def cmd_show(argv):
+    if not argv:
+        die('runq show ID')
+    reply = connect().call({'op': 'show', 'id': argv[0]})
+    if not reply.get('ok'):
+        die(reply.get('error'), 2)
+    print(json.dumps(reply['job'], indent=1))
+    return 0
+
+
+def cmd_cancel(argv):
+    if not argv:
+        die('runq cancel ID')
+    code = 0
+    for job_id in argv:
+        reply = connect().call({'op': 'cancel', 'id': job_id})
+        if not reply.get('ok'):
+            print(f'runq: {reply.get("error")}', file=sys.stderr)
+            code = 2
+        else:
+            print(f'{job_id}: {reply.get("state")}')
+    return code
+
+
+def cmd_log(argv):
+    if not argv:
+        die('runq log ID [-f]')
+    path = os.path.join(config.runs_dir(), argv[0], 'out.log')
+    if '-f' not in argv:
+        tail(path, 0, sys.stdout.buffer)
+        return 0
+    c = connect()
+    reply = c.call({'op': 'wait', 'id': argv[0]})
+    if not reply.get('ok'):
+        die(reply.get('error'), 2)
+    return follow(c, argv[0], path, quiet=True)
+
+
+def cmd_history(argv):
+    owner = argv[argv.index('--owner') + 1] if '--owner' in argv else None
+    since = 0.0
+    if '--since' in argv:
+        since = time.time() - config.parse_duration(argv[argv.index('--since') + 1])
+    reply = connect().call({'op': 'history', 'owner': owner, 'since': since})
+    for d in reply['jobs']:
+        took = (d['end'] - d['start']) if d.get('end') and d.get('start') else None
+        print(
+            f'{d["id"]} {when(d["submit"])} {d["state"]:<9} exit {"-" if d["exit"] is None else d["exit"]:<4} {d["owner"]:<14} {d["level"]:<8} {d["kind"]:<12} {mins(took) if took else "-":<8} {d["label"][:50]}'
+            + (f'  ({d["reason"]})' if d.get('reason') else '')
+        )
+    return 0
+
+
+def cmd_phase(argv):
+    job_id = os.environ.get('RUNQ_JOB')
+    if not job_id:
+        die('runq phase runs inside a runq job (RUNQ_JOB is unset)')
+    req = {'op': 'phase', 'id': job_id, 'token': uuid.uuid4().hex}
+    i = 0
+    while i < len(argv):
+        if argv[i] in ('--kind', '--needs') and i + 1 < len(argv):
+            req[argv[i][2:]] = argv[i + 1]
+            i += 2
+        elif argv[i].startswith(('--kind=', '--needs=')):
+            k, _, v = argv[i][2:].partition('=')
+            req[k] = v
+            i += 1
+        else:
+            die(f'runq phase: unknown argument {argv[i]}')
+    if 'kind' not in req and 'needs' not in req:
+        die('runq phase --kind KIND | --needs R=N,...')
+    print(f'runq: {job_id} phase {req.get("kind") or req.get("needs")}: holds released, waiting', file=sys.stderr)
+    t0 = time.time()
+    c = connect()
+    c.send(req)
+    while True:
+        try:
+            msg = c.recv(None)
+        except ConnectionError:
+            c = reconnect()
+            c.send(req)
+            continue
+        if msg.get('ok'):
+            print(f'runq: {job_id} phase granted after {mins(time.time() - t0)}', file=sys.stderr)
+            for k, v in (msg.get('env') or {}).items():
+                print(f'{k}={v}')
+            return 0
+        die(msg.get('error', 'phase refused'), msg.get('code', 2))
+
+
+def cmd_beat():
+    d = os.environ.get('RUNQ_DIR')
+    if not d:
+        die('runq beat runs inside a runq job (RUNQ_DIR is unset)')
+    with open(os.path.join(d, 'beat'), 'a'):
+        os.utime(os.path.join(d, 'beat'))
+    return 0
+
+
+def cmd_ping():
+    why = config.disabled()
+    if why:
+        print(f'runq: off ({why})', file=sys.stderr)
+        return EXIT_NO_DAEMON
+    c = connect()
+    reply = c.call({'op': 'ping'})
+    print(f'runq {reply.get("version")} pid {reply.get("pid")}')
+    return 0
+
+
+def cmd_doctor():
+    from runqlib import store
+
+    s = store.Store(os.path.join(config.state_dir(), 'runq.db'))
+    print(f'database: {s.integrity()}')
+    r = subprocess.run(['systemctl', '--user', 'is-active', UNIT], capture_output=True, text=True)
+    print(f'{UNIT}: {r.stdout.strip()}')
+    print(f'this checkout\'s version: {version()}')
+    c = try_connect()
+    print(f'daemon: {c.call({"op": "ping"}) if c else "not answering"}')
+    return 0
+
+
+def main(argv):
+    if not argv or argv[0] in ('-h', '--help', 'help'):
+        print(__doc__)
+        return 0
+    cmd, rest = argv[0], argv[1:]
+    if cmd == '_daemon':
+        from runqlib import daemon
+
+        return daemon.main()
+    if cmd == '_shim':
+        from runqlib import shim
+
+        return shim.main(rest[0])
+    if cmd == '_cleanup':
+        from runqlib import cleanup
+
+        return cleanup.main(rest[0])
+    table = {
+        'run': lambda: cmd_run(rest, True),
+        'submit': lambda: cmd_run(rest, False),
+        'wait': lambda: cmd_wait(rest),
+        'cancel': lambda: cmd_cancel(rest),
+        'show': lambda: cmd_show(rest),
+        'log': lambda: cmd_log(rest),
+        'status': lambda: cmd_status(rest),
+        'history': lambda: cmd_history(rest),
+        'phase': lambda: cmd_phase(rest),
+        'beat': cmd_beat,
+        'ping': cmd_ping,
+        'install': lambda: (install(), 0)[1],
+        'doctor': cmd_doctor,
+    }
+    if cmd not in table:
+        die(f'unknown command {cmd} (runq --help)')
+    return table[cmd]()
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
