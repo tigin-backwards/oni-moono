@@ -133,7 +133,9 @@ namespace UnityEngine
         {
             var r = Rect;
             int i = (int)axis;
-            r.SizeDelta[i] = size - r.ParentSize()[i] * (r.AnchorMax[i] - r.AnchorMin[i]);
+            var sizeDelta = r.SizeDelta;
+            sizeDelta[i] = size - r.ParentSize()[i] * (r.AnchorMax[i] - r.AnchorMin[i]);
+            r.SizeDelta = sizeDelta;
             r.Resolve();
         }
 
@@ -147,11 +149,19 @@ namespace UnityEngine
             bool farEdge = edge == Edge.Right || edge == Edge.Top;
             float anchor = farEdge ? 1f : 0f;
             float pivotOnAxis = r.Pivot[axis];
-            r.AnchorMin[axis] = anchor;
-            r.AnchorMax[axis] = anchor;
+            var anchorMin = r.AnchorMin;
+            var anchorMax = r.AnchorMax;
+            var sizeDelta = r.SizeDelta;
+            var anchoredPosition = r.AnchoredPosition;
+            anchorMin[axis] = anchor;
+            anchorMax[axis] = anchor;
             // With both anchors on the edge the anchor span is empty, so sizeDelta is the size.
-            r.SizeDelta[axis] = size;
-            r.AnchoredPosition[axis] = farEdge ? -inset - size * (1f - pivotOnAxis) : inset + size * pivotOnAxis;
+            sizeDelta[axis] = size;
+            anchoredPosition[axis] = farEdge ? -inset - size * (1f - pivotOnAxis) : inset + size * pivotOnAxis;
+            r.AnchorMin = anchorMin;
+            r.AnchorMax = anchorMax;
+            r.SizeDelta = sizeDelta;
+            r.AnchoredPosition = anchoredPosition;
             r.Resolve();
         }
 
@@ -170,11 +180,21 @@ namespace OniMoono.Engine
     /// is resolved from them and the parent rect, and re-resolved whenever the parent rect changes.
     internal sealed class RectTransformNative : TransformNative
     {
-        public UnityEngine.Vector2 AnchorMin = new(0.5f, 0.5f);
-        public UnityEngine.Vector2 AnchorMax = new(0.5f, 0.5f);
+        UnityEngine.Vector2 anchorMin = new(0.5f, 0.5f), anchorMax = new(0.5f, 0.5f), sizeDelta = new(100f, 100f), pivot = new(0.5f, 0.5f);
+
+        // The rect (ComputeRect) reads these, the parent's and the parents' above: each write of
+        // one, and each change of any transform's parent (TransformNative.Parent), starts a new
+        // rect epoch, and a rect computed in the current epoch is returned as it was computed.
+        public UnityEngine.Vector2 AnchorMin { get => anchorMin; set { anchorMin = value; RectEpoch++; } }
+        public UnityEngine.Vector2 AnchorMax { get => anchorMax; set { anchorMax = value; RectEpoch++; } }
+        public UnityEngine.Vector2 SizeDelta { get => sizeDelta; set { sizeDelta = value; RectEpoch++; } }
+        public UnityEngine.Vector2 Pivot { get => pivot; set { pivot = value; RectEpoch++; } }
         public UnityEngine.Vector2 AnchoredPosition;
-        public UnityEngine.Vector2 SizeDelta = new(100f, 100f);
-        public UnityEngine.Vector2 Pivot = new(0.5f, 0.5f);
+
+        /// The rect epoch: any write that can change any rect takes a new one (main thread only).
+        internal static long RectEpoch = 1;
+        UnityEngine.Rect epochRect;
+        long epochRectAt;
         public UnityEngine.Object DrivenByObject;
         public UnityEngine.DrivenTransformProperties DrivenProperties;
         public bool SendChildDimensionsChange = true;
@@ -199,12 +219,30 @@ namespace OniMoono.Engine
 
         UnityEngine.Rect ParentRect() => Parent is RectTransformNative p ? p.ComputeRect() : default;
 
+        /// The rect from the parent's size, the anchors, sizeDelta and the pivot: computed once in
+        /// a rect epoch (a mask's pass reads the rect of every graphic it clips each frame, and a
+        /// rect's computation walks every parent up to the canvas: about 2 ms a frame on a
+        /// table screen with 50 rows), the same value as computed afresh.
         public UnityEngine.Rect ComputeRect()
         {
-            var parentSize = ParentSize();
-            var size = UnityEngine.Vector2.Scale(parentSize, AnchorMax - AnchorMin) + SizeDelta;
-            return new UnityEngine.Rect(-Pivot.x * size.x, -Pivot.y * size.y, size.x, size.y);
+            if (epochRectAt == RectEpoch)
+            {
+                if (UI.UiCacheVerify.On) UI.UiCacheVerify.Rect(this, epochRect, RectFrom(FreshParentSize()));
+                return epochRect;
+            }
+            epochRect = RectFrom(ParentSize());
+            epochRectAt = RectEpoch;
+            return epochRect;
         }
+
+        UnityEngine.Rect RectFrom(UnityEngine.Vector2 parentSize)
+        {
+            var size = UnityEngine.Vector2.Scale(parentSize, anchorMax - anchorMin) + sizeDelta;
+            return new UnityEngine.Rect(-pivot.x * size.x, -pivot.y * size.y, size.x, size.y);
+        }
+
+        /// The parent's size computed afresh up the whole chain, for the verify mode.
+        UnityEngine.Vector2 FreshParentSize() => Parent is RectTransformNative p ? p.RectFrom(p.FreshParentSize()).size : UnityEngine.Vector2.zero;
 
         /// The anchor reference point in the parent's local space: the anchors, interpolated by the
         /// pivot when they are apart.

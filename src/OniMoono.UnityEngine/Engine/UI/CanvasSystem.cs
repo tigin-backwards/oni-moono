@@ -286,8 +286,27 @@ namespace OniMoono.Engine.UI
             return result;
         }
 
-        /// The nearest live canvas at or above a GameObject.
+        /// The nearest live canvas at or above a GameObject. Each object's answer is kept while the
+        /// hierarchy is unchanged (Hierarchy.Touches: parents, activation, components and their
+        /// enabled state, which decide which canvases are live), so a mask's pass, which asks for
+        /// every graphic it clips each frame (CanvasRenderer.hasMoved), walks each object once.
         public static CanvasNative NearestCanvas(GameObjectNative go)
+        {
+            if (go == null) return null;
+            long touches = Hierarchy.Touches + 1; // never 0, the mark of none kept
+            if (go.NearestCanvasAt == touches)
+            {
+                if (UiCacheVerify.On) UiCacheVerify.Nearest(go, go.NearestCanvas, WalkNearestCanvas(go));
+                return go.NearestCanvas;
+            }
+            var found = CanvasOn(go) ?? (go.Transform.Parent is { } parent ? NearestCanvas(parent.GameObject) : null);
+            go.NearestCanvas = found;
+            go.NearestCanvasAt = touches;
+            return found;
+        }
+
+        /// The nearest live canvas found by walking up, for the verify mode.
+        static CanvasNative WalkNearestCanvas(GameObjectNative go)
         {
             for (var t = go.Transform; t != null; t = t.Parent)
                 if (CanvasOn(t.GameObject) is { } c) return c;
