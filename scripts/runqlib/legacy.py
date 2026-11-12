@@ -424,3 +424,27 @@ def self_waiters(lock_dir, prefix='runq'):
             if job and job in held_by:
                 found.append((job, name))
     return sorted(set(found))
+
+
+def ancestors(pid=None):
+    """PID (default this process) and its parents up to init."""
+    pid = os.getpid() if pid is None else pid
+    chain = []
+    while pid and pid > 1 and pid not in chain:
+        chain.append(pid)
+        pid = parent(pid)
+    return chain
+
+
+def caller_holds(lock_dir, pid=None):
+    """The legacy claim (perf.lock, windows-game.lock, perf.wanted) that this process or one of
+    its parents holds, or None: a wrapper of the old kind calling a migrated script, which must
+    then run directly (runq would wait for the wrapper's own lock forever)."""
+    chain = set(ancestors(pid))
+    for name in ('perf.lock', 'windows-game.lock'):
+        if any(p in chain for p, _ in flock_holders(os.path.join(lock_dir, name))):
+            return name
+    wanted = wanted_pid(lock_dir)
+    if wanted in chain:
+        return 'perf.wanted'
+    return None

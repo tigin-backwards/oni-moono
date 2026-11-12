@@ -386,6 +386,12 @@ class Shims(unittest.TestCase):
         self.assertIn('job=none', r.stdout)
         self.assertIn('enabled = false', r.stderr)
 
+    def test_old_style_wrapper_runs_it_directly(self):
+        lock = os.path.join(self.h.env['E2E_LOCK_DIR'], 'windows-game.lock')
+        r = subprocess.run(['flock', '-x', lock, self.script, 'a'], env=self.h.env, capture_output=True, text=True, timeout=60)
+        self.assertIn('job=none', r.stdout)
+        self.assertIn('the caller holds windows-game.lock', r.stderr)
+
     def test_no_daemon(self):
         r = self.sh({'RUNQ_SOCKET': os.path.join(self.h.tmp, 'nothing')})
         self.assertIn('job=none', r.stdout)
