@@ -134,6 +134,7 @@ namespace OniMoono.Desktop.Vulkan
                 throw new VulkanUnavailableException($"{e.GetType().Name}: {e.Message}", e);
             }
             platform.ContentsDamaged += presenter.Refresh;
+            LoadingScreen.Changed = presenter.Poke;
             worker = new GlWorker("Vulkan", () => { }, () => { }, CommandFailed) { Resources = this };
             recorder = new GlDrawRecorder(worker, DefaultTexture, RunDraw)
             {
@@ -511,6 +512,36 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         public override void FlushRecorded() => worker.Submit();
+
+        public override bool AnimatesLoading => true;
+
+        /// After the commands that render the loading screen's kanim frames (render thread): the
+        /// strip resolved and left in TransferSrcOptimal, the batch submitted, then the frames
+        /// to the presenter, whose blits from it come after on the queue. Nothing here touches the
+        /// strip again until it is released (LoadingScreen, once the presenter is done with it).
+        public override void HandOverLoadingFrames(LoadingScreen.KanimFrames frames)
+        {
+            if (frames.Strip.Gpu is not DeviceTexture strip)
+            {
+                frames.Done = true;
+                return;
+            }
+            worker.Post(() =>
+            {
+                var vt = strip.Vk;
+                if (deviceLost || vt?.Image == null || vt.DepthOnly)
+                {
+                    frames.Done = true;
+                    return;
+                }
+                var cb = OutsideRendering();
+                PrepareForSampling(cb, vt, autoGenerateMips: false);
+                vt.Image.ForTransferRead(cb);
+                FlushStreams();
+                this.frames.Submit(endFrame: false);
+                presenter.HandOverLoading(frames, vt.Image);
+            });
+        }
 
         /// Hands the frame to the device thread, which submits it and gives the back buffer to
         /// the presenter with QualitySettings.vSyncCount as the swap interval.
