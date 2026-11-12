@@ -274,7 +274,7 @@ namespace OniMoono.Desktop.Vulkan
         public void UploadTexture(DeviceTexture g, TexelUpload u)
         {
             long t = System.Diagnostics.Stopwatch.GetTimestamp();
-            u.Copying?.Wait();
+            u.Copying.Wait();
             BoundStaging(u);
             try
             {

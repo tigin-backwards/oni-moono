@@ -187,14 +187,14 @@ namespace OniMoono.Engine.Rendering
 
         /// The device's snapshot of the texels still being copied (TexelCopies), finished before
         /// anything reads, writes or replaces them.
-        public System.Threading.Tasks.Task PendingCopy;
+        public TexelCopy PendingCopy;
 
         void AwaitCopy()
         {
             var p = PendingCopy;
-            if (p == null) return;
+            if (p.IsNone) return;
+            PendingCopy = default;
             p.Wait();
-            PendingCopy = null;
         }
 
         /// The texels may differ from those of the last ContentChanged, the ones the device was
