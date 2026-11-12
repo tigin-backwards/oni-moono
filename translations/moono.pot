@@ -685,6 +685,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.DETAIL"
 msgid "Each object remembers which of its state machines answered each lookup until its list of state machines changes."
 msgstr ""
 
+#. Row title (fast-save-roots)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_ROOTS.TITLE"
+msgid "Faster conveyor item moves"
+msgstr ""
+
+#. The line under the title (fast-save-roots)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_ROOTS.EFFECT"
+msgid "Items moving between rails and buildings no longer search every saved item of their kind."
+msgstr ""
+
+#. Tooltip: how it works (fast-save-roots)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_ROOTS.DETAIL"
+msgid "When an item is stored, the game takes it out of its list of things to save by comparing it with every item of its kind; this compares references instead, which finds the same entry."
+msgstr ""
+
 #. Row title (paged-path-grids)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.TITLE"
 msgid "Paged path grids"

@@ -27,6 +27,7 @@ namespace OniMoono.GameTweaks
                 case FastLoadScreen.Name: FastLoadScreen.Install(harmony); return true;
                 case FixLoadScreenClicks.Name: FixLoadScreenClicks.Install(harmony); return true;
                 case FastSmiLookups.Name: FastSmiLookups.Install(harmony); return true;
+                case FastSaveRoots.Name: FastSaveRoots.Install(harmony); return true;
                 case TrimAnimLists.Name: TrimAnimLists.Install(harmony); return true;
                 case OneShotPiles.Name: OneShotPiles.Install(harmony); return true;
                 case FetchByCell.Name: FetchByCell.Install(harmony); return true;
