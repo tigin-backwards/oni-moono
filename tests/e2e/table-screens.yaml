@@ -1,0 +1,49 @@
+# The long-list screens on a late-game colony of 22 Duplicants: Vitals, Consumables, Priorities, Schedule
+# and Skills, each opened and then scrolled down its list with the wheel, against the original.
+#
+# Each screen is shot as it opens and after 6 notches down its Duplicant list (in the table
+# screens each row is a RectMask2D over its own cells, so a scroll moves every row's clip rect
+# and re-culls their graphics), and its hierarchy dumped after the scroll. The colony is paused:
+# only the UI changes. Columns are never scrolled sideways: U60's tables throw their columns back
+# to the first one for a frame or more about once a second while they move, in both players
+# (TableScreen.SetScrollersDirty takes the default row's 0), so a shot of a sideways scroll
+# depends on timing.
+from: U57
+memory_gb: 15
+steps:
+  - open: {management: vitals}
+  - ui_wait: {path: "**/VitalsTableScreen", cond: stable, frames: 600}
+  - shot: {name: vitals, crop: "**/VitalsTableScreen"}
+  - scroll: {at: "**/VitalsTableScreen/Content/Scroll View", notches: -6}
+  - ui_wait: {path: "**/VitalsTableScreen", cond: stable, frames: 600}
+  - ui_dump: {name: vitals-scrolled, root: "**/VitalsTableScreen"}
+  - shot: {name: vitals-scrolled, crop: "**/VitalsTableScreen"}
+  - open: {management: consumables}
+  - ui_wait: {path: "**/ConsumablesTableScreen", cond: stable, frames: 600}
+  - shot: {name: consumables, crop: "**/ConsumablesTableScreen"}
+  - scroll: {at: "**/ConsumablesTableScreen/Content/Scroll View", notches: -6}
+  - ui_wait: {path: "**/ConsumablesTableScreen", cond: stable, frames: 600}
+  - ui_dump: {name: consumables-scrolled, root: "**/ConsumablesTableScreen"}
+  - shot: {name: consumables-scrolled, crop: "**/ConsumablesTableScreen"}
+  - open: {management: priorities}
+  - ui_wait: {path: "**/JobsTableScreen", cond: stable, frames: 600}
+  - shot: {name: priorities, crop: "**/JobsTableScreen"}
+  - scroll: {at: "**/JobsTableScreen/Content/Scroll View", notches: -6}
+  - ui_wait: {path: "**/JobsTableScreen", cond: stable, frames: 600}
+  - ui_dump: {name: priorities-scrolled, root: "**/JobsTableScreen"}
+  - shot: {name: priorities-scrolled, crop: "**/JobsTableScreen"}
+  - open: {management: schedule}
+  - ui_wait: {path: "**/ScheduleScreen", cond: stable, frames: 600}
+  - shot: {name: schedule, crop: "**/ScheduleScreen"}
+  - scroll: {at: "**/ScheduleScreen/Content/Scroll View", notches: -6}
+  - ui_wait: {path: "**/ScheduleScreen", cond: stable, frames: 600}
+  - ui_dump: {name: schedule-scrolled, root: "**/ScheduleScreen"}
+  - shot: {name: schedule-scrolled, crop: "**/ScheduleScreen"}
+  - open: {management: skills}
+  - ui_wait: {path: "**/SkillsScreen", cond: stable, frames: 600}
+  - shot: {name: skills, crop: "**/SkillsScreen"}
+  - scroll: {at: "**/SkillsScreen/Minions/Contents/Scroll View", notches: -6}
+  - ui_wait: {path: "**/SkillsScreen", cond: stable, frames: 600}
+  # The experience bar's figure for the next level is a float sum: one more or less in Moono (D25).
+  - ui_dump: {name: skills-scrolled, root: "**/SkillsScreen/Minions", mask_text: ['\d+ / \d+']}
+  - shot: {name: skills-scrolled, crop: "**/SkillsScreen"}

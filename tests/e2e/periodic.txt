@@ -9,6 +9,7 @@ rocket-launch                       # 1134+290: a Spaced Out rocket launch
 klei-unreachable                    # 553+346: Klei's servers out of reach (#28)
 thermal-gas-fissure                 # 321+92: Aquatic Pack fissure bubbles
 vista-toggle                        # 155+56: the vista projector's Resources.Load/UnloadAsset
+table-screens                       # the long-list screens opened and scrolled on a late-game colony
 instant-reachability-stress ours    # ours only, ~6 min: instant-reachability's verify under a storm of reach changes
 fast-anim-events-stand-down ours    # ours only: fast-anim-events turns off for a mod's prefix on the event loop
 fast-anim-events-restart ours       # ours only, ~3 min: fast-anim-events' verify with animations swapped by reflection
