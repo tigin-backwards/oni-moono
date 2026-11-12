@@ -630,6 +630,89 @@ more, logs where the time went (`gl batch frame F took T ms: ...`): draws, rende
 texture uploads by size and format (made or updated), mesh uploads by name, and within them the
 driver calls (glTexSubImage2D, glNamedBufferData) and the copies kept for partial uploads.
 
+## Long-list screens (U60)
+
+The management screens that list every Duplicant (Vitals, Consumables, Priorities, Schedule,
+Skills) and the other long lists (Research, Reports, the Codex, the build menu's search), measured
+on a 50-Duplicant colony at speed 3 with PerfProbe's `uilists.txt` scenario
+(`tools/PerfProbe/UiLists.cs`): each screen opened as its button does, then 600 frames as it is,
+its longest list scrolled down and up for 720 frames, Consumables' columns scrolled sideways, a
+Consumables checkbox and a priority clicked every 10th frame, and the build menu's search typed
+into. Native Windows, 1280×720, unfocused at High priority; Moono on Vulkan without game
+tweaks, the original on Direct3D 11 (2026-11-12, the mean frame in ms of two launches each).
+
+| Span | Original | Moono before | Moono after |
+|---|---|---|---|
+| No screen open | 38.9 | 14.1 | 14.3 |
+| Vitals, still | 41.6 | 15.8 | 15.8 |
+| Consumables, opening (180 frames) | 59.4 | 25.8 | 22.6 |
+| Consumables, still | 59.6 | 23.6 | 20.9 |
+| Consumables, scrolling the list | 76.4 | 32.4 | 30.0 |
+| Consumables, scrolling the columns | 70.4 | 31.5 | 28.5 |
+| Consumables, a checkbox clicked | 57.8 | 22.4 | 20.4 |
+| Priorities, still / scrolling | 44.9 / 57.1 | 18.5 / 21.6 | 18.0 / 20.8 |
+| Schedule, still / scrolling | 49.0 / 68.7 | 24.0 / 33.0 | 21.3 / 30.7 |
+| Skills, still / scrolling | 40.1 / 44.7 | 15.8 / 17.7 | 15.4 / 17.4 |
+| Research, still / panning | 46.9 / 41.3 | 22.0 / 22.0 | 21.1 / 22.2 |
+| Reports, Codex, the build menu's search | 38.8–57.9 | 14.2–18.5 | 14.2–18.4 |
+
+"After" is the rect and nearest-canvas caches below; the rest moved within the runs' spread.
+
+Where Moono's time went on the table screens, from EventPipe samples of the main thread on
+Linux: the canvas update (25% of the frame with Consumables scrolling), and in it the masks' pass
+(`RectMask2D.PerformClipping`, 12%). A table keeps a RectMask2D per row, and each mask checks
+every graphic it clips every frame: its rect's size and whether it moved
+(`CanvasRenderer.hasMoved`). Both walked every parent up to the canvas, for each graphic: 2.9 ms a
+frame with Consumables still, 5.5 ms while it scrolled. A RectTransform now keeps its rect until
+something it reads changes (any anchor, size or pivot written, or any parent changed: a "rect
+epoch"), and each object keeps its nearest live canvas while the hierarchy is unchanged
+(`Hierarchy.Touches`). `ONI_VERIFY_UI_CACHES=1` computes both again for every answer kept; on the
+colony through every screen, 69 million rects and 47 million canvases, none wrong. The game's own
+code on these screens (the table's `ScreenUpdate`, each row's scrollers) is under 1% of the frame.
+
+Once a second the render 1000 ms bucket marks every table column dirty (`TableColumn.Render1000ms`)
+and the open table refreshes every widget in its next frame. With Consumables open that refresh
+costs the original about 22 ms on Windows, and Moono 12 ms before the change and 8 ms after
+(the two frames around each refresh against the others).
+
+Allocations differ most while lists scroll: Schedule allocates about 200 KB a frame scrolling
+(Linux, the original's Boehm total 75 KB), nearly all of it new channel arrays for the
+Schedule's nested canvas, whose shared mesh is rebuilt every frame its content moves
+(`CanvasSystem.Concatenate`). Letting that mesh keep 40 spare arrays instead of 16 raised the
+reuse of all mesh arrays from 93.5% to 96% but left that screen's allocations as they were, so it
+was not kept.
+
+### What Klei changed in U60
+
+- `ShowOptimizedKScreen` (Vitals, Consumables and Priorities, and the resources and diagnostics
+  screens) disables the RectMask2Ds, ScrollRects, animated portraits and (761654 on) the
+  GraphicRaycaster under a hidden screen, and enables those again when it shows. Closed tables cost
+  nothing a frame, and opening and closing one costs a walk of its subtree. Moono's skip of masks
+  under hidden screens (`CanvasSystem.OutOfSight`) still applies to the screens that are not
+  ShowOptimized (Research, the build menu's panels).
+- `TableScreen.SetScrollersDirty` ignores a column position within 0.001 of the current one, and
+  `ZeroScrollers` runs only when a table shows.
+- The build menu (`PlanScreen`, always open in a colony) caches what it looked up each frame: its
+  grids, the copy button's images, the research icons, its toggles by index; a button's tooltip
+  and label are rebuilt only when they change, and its search only when the text does.
+- The reports screen counts a row's notes only when its values change (`NoteCounter`) and builds
+  its title and tooltips with a pooled string builder.
+
+None of Moono's tweaks patch these screens; `compact-report-history`'s `CollectNotes` is the
+method U60's reports call, less often.
+
+### Columns jumping back while they scroll
+
+Scrolling a table's columns sideways (the wheel over a row, or the columns' scroll position),
+both players throw every row back to the first columns for a frame or more, once a second or so:
+the default ("New Duplicants") row's scroller reports its content at the start (its content is
+back at x = 798, the left edge, without any input) and `TableScreen.SetScrollersDirty` takes its
+0 for every row. Frame-by-frame captures showed it in the original on Direct3D 11 and Vulkan and
+in Moono on Vulkan and OpenGL, 2 to 4 times in 120 frames. The default row's scroller object
+also holds the layout group that places its columns: when the table's rows are laid out again
+(a value in a row changes width as the game runs), that group puts the columns back at the
+start. The `fix-table-scroll` tweak (TWEAKS.md) puts them back at the table's position.
+
 ## Loading
 
 Loading U57 takes 25–26 s on Windows with the default tweaks, against 2 min 22 s in the original,
