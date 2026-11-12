@@ -4,10 +4,12 @@ save, each launch measuring a still colony and then a running one with PerfProbe
 `--frame-stats` (.github/workflows/perf-spread.yml, docs/PERFORMANCE.md "Perf spread on CI's
 runners"). Linux, under the X display in DISPLAY.
 
-    scripts/perf-spread.py run WORKTREE OUT [--label A] [--save SAVE] [--pause-windows 3] [--run-windows 4]
+    scripts/perf-spread.py run WORKTREE OUT [--label A] [--save SAVE] [--window 600] [--size 1280x720]
+                               [--pause-windows 3] [--run-windows 4] [--timeout 2400]
         One launch of WORKTREE's release build: SAVE loaded with PerfProbe (alloc.txt, sites.txt,
-        no autosaves), paused for --pause-windows 600-frame windows, then at speed 3 for
-        --run-windows. Writes OUT/result.json: each window's counts and times, no log text.
+        no autosaves), paused for --pause-windows windows of --window frames, then at speed 3
+        for --run-windows, in a --size window; stopped after --timeout seconds whatever it has.
+        Writes OUT/result.json: each window's counts and times, no log text.
     scripts/perf-spread.py summary OUT RUN...
         The runs' spreads (OUT/summary.md, OUT/summary.json): exact counts across a label's
         launches, the A/B timing ratio by pair, and the machine's CPU.
@@ -24,14 +26,12 @@ are per frame (paused) or per game second (running); times are the medians of a 
 import json, os, re, shutil, signal, statistics, subprocess, sys, time
 
 STEAM_ID = '76561197960265729'
-WINDOW = 600
 MODS_JSON = (
     '{"version":1,"mods":[{"label":{"distribution_platform":0,"id":"PerfProbe","title":"PerfProbe","version":-2037174645},'
     '"status":1,"enabled":true,"enabledForDlc":["","EXPANSION1_ID"],"crash_count":0,"reinstall_path":null,"staticID":"PerfProbe"}],'
     '"mod_load_in_progress":false}'
 )
-PREFS = 'strings: {}\nints:\n  ResolutionWidth: 1280\n  ResolutionHeight: 720\n  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 0\nfloats: {}\n'
-SIZE = ['-screen-width', '1280', '-screen-height', '720', '-screen-fullscreen', '0']
+PREFS = 'strings: {{}}\nints:\n  ResolutionWidth: {}\n  ResolutionHeight: {}\n  RefreshRateNumerator: 60\n  RefreshRateDenominator: 1\n  FullScreen: 0\nfloats: {{}}\n'
 GAME_DIR = os.path.join('config', 'unity3d', 'Klei', 'Oxygen Not Included')
 
 # Frame stats phases that are the main thread's own work; `present` waits for the device and
@@ -42,7 +42,7 @@ MAIN_PHASES = ('early+fixed', 'update', 'late', 'post-late', 'particles', 'rende
 # ---- one launch ----
 
 
-def prepare_home(out, save, probe, pause_windows):
+def prepare_home(out, save, probe, pause_windows, window, size):
     home = os.path.join(out, 'home')
     d = os.path.join(home, GAME_DIR)
     saves = os.path.join(d, 'cloud_save_files', STEAM_ID, 'SPREAD')
@@ -52,16 +52,24 @@ def prepare_home(out, save, probe, pause_windows):
     placed = os.path.join(saves, os.path.basename(save))
     shutil.copyfile(save, placed)
     with open(os.path.join(d, 'kplayerprefs.yaml'), 'w') as f:
-        f.write(PREFS)
+        f.write(PREFS.format(*size))
     with open(os.path.join(d, 'Agreements', 'OxygenNotIncluded', 'kprivacyprefs.yaml'), 'w') as f:
         f.write('disableDataCollection: true\n')
     with open(os.path.join(d, 'mods', 'mods.json'), 'w') as f:
         f.write(MODS_JSON)
     mod = os.path.join(d, 'mods', 'Local', 'PerfProbe')
     shutil.copytree(probe, mod)
-    files = {'load.txt': placed + '\n', 'noautosave.txt': '', 'alloc.txt': '', 'sites.txt': '', 'novictory.txt': '', 'speed.txt': '2\n'}
+    files = {
+        'window.txt': f'{window}\n',
+        'load.txt': placed + '\n',
+        'noautosave.txt': '',
+        'alloc.txt': '',
+        'sites.txt': '',
+        'novictory.txt': '',
+        'speed.txt': '2\n',
+    }
     if pause_windows:
-        files['pausefirst.txt'] = f'{pause_windows * WINDOW}\n'
+        files['pausefirst.txt'] = f'{pause_windows * window}\n'
     for name, text in files.items():
         with open(os.path.join(mod, name), 'w') as f:
             f.write(text)
@@ -119,6 +127,8 @@ def run(argv):
     ap.add_argument('--save', default=os.environ.get('SPREAD_SAVE'))
     ap.add_argument('--pause-windows', type=int, default=3)
     ap.add_argument('--run-windows', type=int, default=4)
+    ap.add_argument('--window', type=int, default=600, help='frames a window')
+    ap.add_argument('--size', default='1280x720', help='the window, WxH')
     ap.add_argument('--timeout', type=int, default=2400, help='seconds for the whole launch')
     a = ap.parse_args(argv)
     game, steam, probe = (os.environ.get(n) for n in ('SPREAD_GAME', 'SPREAD_STEAM', 'SPREAD_PROBE'))
@@ -128,7 +138,8 @@ def run(argv):
     out = os.path.abspath(a.out)
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out)
-    home = prepare_home(out, os.path.abspath(a.save), probe, a.pause_windows)
+    size = a.size.split('x')
+    home = prepare_home(out, os.path.abspath(a.save), probe, a.pause_windows, a.window, size)
     log = os.path.join(home, GAME_DIR, 'Player.log')
     env = dict(os.environ, ONI_TWEAK_SETTINGS='1', ONI_GAME_DIR=game, ONI_RUN_HOME=home, ONI_CONFIG='release')
     worktree = os.path.abspath(a.worktree)
@@ -141,7 +152,7 @@ def run(argv):
         '--frame-stats',
         '--native-override',
         f'steam_api={steam}',
-        *SIZE,
+        *('-screen-width', size[0], '-screen-height', size[1], '-screen-fullscreen', '0'),
     ]
     started = time.time()
     with open(os.path.join(out, 'stdout.txt'), 'w') as sink:
@@ -165,7 +176,15 @@ def run(argv):
     if proc.poll() is None:
         stop(home, proc)
     result = parse(log, a.pause_windows)
-    result.update(label=a.label, worktree=os.path.basename(worktree), status=status, seconds=round(took, 1), to_colony_s=round(colony, 1) if colony else None)
+    result.update(
+        label=a.label,
+        worktree=os.path.basename(worktree),
+        status=status,
+        seconds=round(took, 1),
+        to_colony_s=round(colony, 1) if colony else None,
+        window=a.window,
+        size=a.size,
+    )
     with open(os.path.join(out, 'result.json'), 'w') as f:
         json.dump(result, f, indent=1)
     got = len(result['windows'])

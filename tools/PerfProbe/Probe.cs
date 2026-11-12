@@ -1788,11 +1788,15 @@ namespace PerfProbe
             var speedFile = System.IO.Path.Combine(Path, "speed.txt");
             int speed = System.IO.File.Exists(speedFile) ? int.Parse(System.IO.File.ReadAllText(speedFile).Trim()) : 2;
             // `pausefirst.txt` "FRAMES": the colony is held paused for its first FRAMES frames
-            // (a multiple of 600 keeps the windows apart), then runs at speed.txt's speed: one
-            // launch measures a still colony and a running one (scripts/perf-spread.py).
+            // (a multiple of the window keeps the windows apart), then runs at speed.txt's speed:
+            // one launch measures a still colony and a running one (scripts/perf-spread.py).
             var pauseFile = System.IO.Path.Combine(Path, "pausefirst.txt");
             int pauseFirst = System.IO.File.Exists(pauseFile) ? int.Parse(System.IO.File.ReadAllText(pauseFile).Trim()) : 0;
             int keptSpeed = speed;
+            // `window.txt` "FRAMES": the windows' length in frames (default 600), for a slow
+            // renderer (CI's software one).
+            var windowFile = System.IO.Path.Combine(Path, "window.txt");
+            int windowFrames = System.IO.File.Exists(windowFile) ? int.Parse(System.IO.File.ReadAllText(windowFile).Trim()) : 600;
             if (pauseFirst > 0) speed = -1;
             // `resize.txt` "FRAMES W H": that many frames into the colony the window goes to W×H
             // (Screen.SetResolution, windowed); the game's error screen it raises is closed 60
@@ -1859,7 +1863,7 @@ namespace PerfProbe
                 }
                 if (resize != null && colonyFrames == resize[0] + 120)
                     ScreenCapture.CaptureScreenshot(System.IO.Path.Combine(Path, "resized.png"));
-                if (++frames < 600) continue;
+                if (++frames < windowFrames) continue;
                 float now = Time.realtimeSinceStartup;
                 long c = RuntimeCounters.LockContentions(), g = RuntimeCounters.GcPauseMs();
                 long a = RuntimeCounters.Allocated(), g0 = System.GC.CollectionCount(0);
