@@ -50,6 +50,11 @@ namespace OniMoono.Desktop.Gl
         public int RecordedVersion = -1;
         public MeshLayout Layout = new();
         public (int Offset, int Count, uint Mode, int BaseVertex)[] SubMeshes = Array.Empty<(int, int, uint, int)>();
+        /// The index array Indices made for the last upload (submeshes in one, quads as
+        /// triangles), and that upload's place in the mesh's: the next upload gives it back to
+        /// the mesh's spares, reused once the device has run that upload.
+        public int[] Combined;
+        public int CombinedSequence;
 
         // GL thread.
         public readonly uint[] Buffers = new uint[(int)Channel.Count];
@@ -278,7 +283,17 @@ namespace OniMoono.Desktop.Gl
                 // UVs are stored as Vector4 whatever their dimension.
                 AddChannel(upload, layout, Channel.Uv0 + u, uv, uv == null ? 0 : -Math.Max(1, m.UvDimensions[u]));
             }
+            if (d.Combined != null)
+            {
+                m.RetireUploaded(d.Combined, d.CombinedSequence);
+                d.Combined = null;
+            }
             d.SubMeshes = Indices(m, d.SubMeshes, out upload.Indices, out upload.IndexCount);
+            if (upload.Indices.Length > 0 && (m.SubMeshes.Count != 1 || m.SubMeshes[0].Topology == MeshTopology.Quads))
+            {
+                d.Combined = upload.Indices;
+                d.CombinedSequence = upload.Sequence;
+            }
             if (!layout.SameAs(d.Layout)) d.Layout = layout.Copy();
             d.RecordedVersion = m.Version;
             if (MeshNative.VerifyReuse) MeshReuseVerify.Recorded(upload);
@@ -396,8 +411,9 @@ namespace OniMoono.Desktop.Gl
         };
 
         /// Every submesh's indices in one array (quads as two triangles each), with each
-        /// submesh's range. A mesh of one submesh that needs no conversion uploads its own index
-        /// array (index arrays, like the channels, are never written once published).
+        /// submesh's range: an array of at least `count`, from the mesh's spares (Record gives it
+        /// back). A mesh of one submesh that needs no conversion uploads its own index array
+        /// (index arrays, like the channels, are never written once published).
         /// The ranges go into `previous` when it has the length (the device mesh's last ranges:
         /// read on the main thread only, as values, by the draws it records).
         static (int, int, uint, int)[] Indices(MeshNative m, (int, int, uint, int)[] previous, out int[] indices, out int count)
@@ -414,7 +430,8 @@ namespace OniMoono.Desktop.Gl
             int total = 0;
             foreach (var sm in m.SubMeshes)
                 total += sm.Topology == MeshTopology.Quads ? sm.IndexCount / 4 * 6 : sm.IndexCount;
-            indices = new int[total];
+            // Its contents up to `total` are all written below.
+            indices = m.NewChannelAtLeast<int>(total);
             count = total;
             int at = 0;
             for (int s = 0; s < subs.Length; s++)
