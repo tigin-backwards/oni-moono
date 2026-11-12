@@ -155,6 +155,61 @@ left. `World.LateUpdate` is 2.0–2.9 KB a frame against the original's 0.4–1.
 (2.7 KB a frame) the largest parts left are the thread pool's record of each helper the tweaks'
 loop queues (0.9 KB) and the game's own override blocks (0.5 KB, as in the original).
 
+### After allocation batch 6
+
+The smaller engine sites left after batch 5, by what a 180 s allocation trace of the mid-game
+colony found them handing out before and after (KB a frame):
+
+| Site | Before | After | What it was |
+|---|---|---|---|
+| Texel copies | 3.05 | 0.02 | A `Task`, its state tuple and, when the fence waited with a timeout, its contingent properties, for each copy of a readable texture's texels |
+| Particle geometry | 1.36 | 0.49 | A particle system's mesh dropped its oldest spares, the ones the device was done with, to make room while newer ones were still held by uploads |
+| `World.LateUpdate`'s pool records | 0.86 | 0 | The thread pool's record of each helper fast-anim-batches' loop queued |
+| `ReadPixels` | 0.68 | 0 | A managed band for each read: the Timelapser reads the whole screen before each day's snapshot (3.7 MB at 1280x720) |
+
+- **Texel copies** are now thread-pool work items, reused once the fence has seen them finished.
+  The thread that comes first makes a copy: a pool thread, or one that waits for it. The fence
+  makes every copy no pool thread has taken yet itself, so it no longer waits for a pool thread
+  to start. The texel verify mode and the anim-batch-texel-copies spec found no copy changed
+  while it was made.
+- **Particle meshes** keep their spares as uGUI's worker mesh does (32, for 120 frames). Meshes of
+  several submeshes or of quads (a particle system with trails) take their combined index array
+  from the mesh's spares too. Combined index arrays did not show in the mid-game trace.
+- **fast-anim-batches' loop** runs as the host's copy, whose runs are the pool's work items
+  themselves, reused once every helper queued for them is done with them. The game tweaks build
+  for .NET Standard, which has no such work items.
+- **`ReadPixels`** reads into native memory, freed after the read.
+- The asynchronous read-backs (`AsyncGPUReadback`) hand out nothing of the engine's own a frame.
+  The Timelapser's own copy of the data it reads back (`NativeArray.ToArray`, 0.3 KB a frame)
+  is the game's code, as in the original.
+
+u60 b94eec0f against the same build with batch 6, one 600 s run each at the same caps as above,
+`sites.txt` on. Other load was 5.2–6.4 cores beside the runs before and 0.6–0.7 beside the runs
+after, so the players before were further below their caps and drew fewer frames a game second.
+Compare the sections a game second as well as a frame.
+
+| | Mid-game, before | Mid-game, after | Late-game, before | Late-game, after |
+|---|---|---|---|---|
+| KB a frame | 63.6 | 47.0 | 234 | 212 |
+| KB a game s | 570 | 516 | 1,425 | 1,426 |
+| `(other)`, KB a frame (a game s) | 22.0 (197) | 11.9 (131) | 31.6 (193) | 27.3 (183) |
+| `World.LateUpdate`, KB a frame (a game s) | 2.0 (18) | 0.9 (10) | 2.2 (13) | 0.9 (6) |
+| Other threads, KB a frame | 8.0 | 6.4 | 57.1 | 57.0 |
+| fps | 26.1 | 32.9 | 17.3 | 20.1 |
+| Collections in 600 s | 1 (113 ms) | 1 (46 ms) | 3 (701 ms) | 3 (222 ms) |
+
+- In the mid-game traces, the engine's own part of `(other)` fell from 12.8 to 6.9 KB a frame,
+  and the main thread's total from 52.8 to 43.9.
+- On the late-game colony, other threads hand out the same, mostly the game's chore collection,
+  and a game second comes to the same total. The late-game run before the change was the busier
+  one: 17.3 against 20.1 fps.
+- **Left on the GL thread:** in both mid-game traces, about 17 KB a frame is one burst of about
+  100 MB in a few seconds, the GL thread's copies of texels kept for partial uploads
+  (`GlTextures.UploadChanged`). The burst comes with the Timelapser's snapshot (its "Saving
+  screenshot" line, the same second in both traces): each texture uploaded a second time keeps
+  a copy for comparing with its next upload. These copies are held for the texture's life, not
+  handed out a frame, and the batch left them alone.
+
 ## Summary (u60 cf2d0849 and U59, 2026-11-10)
 
 Each row is one 600 s window at speed 3, Linux, Moono with its default tweaks. "Capped" is Moono
