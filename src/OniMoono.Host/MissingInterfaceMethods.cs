@@ -53,8 +53,8 @@ namespace OniMoono.Host
         internal static string? CacheFolder;
 
         /// What Probe finds for the image, from the cache when the same image was probed against
-        /// the same loaded assemblies before. A probe costs a few blocking full collections
-        /// (Collect: two per probe, 80 with 40 mods at each start, measured); its verdict is a
+        /// the same loaded assemblies before. A probe costs two blocking collections (Collect: gen 1
+        /// ones where they suffice; 320 with 150 mods on a first start, measured); its verdict is a
         /// function of the image, the assemblies its probe can bind to and what those bind to, the
         /// host's rewriting of them and the runtime, so the cache key names all of them: the
         /// image's hash, the runtime's and this host's builds, and each loaded assembly its
@@ -287,15 +287,24 @@ namespace OniMoono.Host
         /// The probe's copy of the assembly is gone before the real one loads: until its context is
         /// collected, AppDomain.GetAssemblies lists it too, and a mod library that picks its
         /// instance from there (PLib) would run the probe's copy, whose Location is empty.
+        /// The context and its loader's objects were made during the probe, so they are young:
+        /// gen 1 collections free them (two, as full ones do) without marking the whole heap. A
+        /// full collection follows only for a context they leave alive (one promoted to gen 2 by
+        /// a collection during the probe). With 150 mods on a first start, 320 collections were
+        /// 270 gen 1 ones and 50 the collector made full (gen 2's budget ran out), not 320 full.
         static void Collect(WeakReference probe)
         {
             for (int i = 0; probe.IsAlive && i < 20; i++)
             {
-                GC.Collect();
+                if (i < EphemeralTries) GC.Collect(1, GCCollectionMode.Forced, blocking: true, compacting: false);
+                else GC.Collect();
                 GC.WaitForPendingFinalizers();
             }
             if (probe.IsAlive) EngineLog.Engine("mod types: a probe's load context was not collected; its copy of the mod stays listed");
         }
+
+        /// Gen 1 collections before Collect falls back to full ones: a young context takes two.
+        const int EphemeralTries = 4;
 
         /// Binds a probed mod's references only to assemblies already loaded, so probing loads
         /// nothing else (an unresolved reference fails only the probe's types that need it).
