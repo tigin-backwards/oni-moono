@@ -2551,11 +2551,12 @@ millisecond before each frame when it never runs out. A texture's first upload t
 storage (or makes it, if it comes first); a mesh's first draw posts the queued upload into its
 frame ahead of the draw when it has not run, so it runs once and before any later upload, and a
 released mesh's never runs. A texture made ahead records its first upload when the script applies
-it (as Unity uploads at `Apply`), and once 32 MB of uploads are recorded the frame so far goes to
-the GL thread if it has nothing left to execute, so a view's first sight of much (a colony
-preview after a load) uploads while the main thread goes on. Mesh buffers up to 64 KB take the
+it (as Unity uploads at `Apply`). With `ONI_UPLOAD_FLUSH=1` (off by default since #82), once 32 MB
+of uploads are recorded the frame so far goes to the GL thread if it has nothing left to execute,
+so a view's first sight of much (a colony preview after a load) uploads while the main thread goes
+on. Mesh buffers up to 64 KB take the
 dynamic usage hint: Mesa's D3D12 driver took about 0.3 ms to make a small static one.
-`ONI_AHEAD_OF_USE=0` and `ONI_UPLOAD_FLUSH=0` turn these off (PERFORMANCE.md, the first capture
+`ONI_AHEAD_OF_USE=0` turns making ahead off (PERFORMANCE.md, the first capture
 after a load).
 
 `Shader.WarmupAllShaders` (the game calls it once a load, in `Game.OnPrefabInit`) queues every

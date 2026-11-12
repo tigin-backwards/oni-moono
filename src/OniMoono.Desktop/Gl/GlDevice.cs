@@ -170,7 +170,8 @@ namespace OniMoono.Desktop.Gl
             worker = new GlWorker(platform.RenderWindow, CommandFailed);
             recorder = new GlDrawRecorder(worker, DefaultTexture, RunDraw);
             GlBackgroundUploads.Start(worker);
-            GlTextures.FlushUploadBytes = Environment.GetEnvironmentVariable("ONI_UPLOAD_FLUSH") == "0" ? 0 : 32L << 20;
+            // Off by default since #82: ONI_UPLOAD_FLUSH=1 turns the mid-frame hand-over on.
+            GlTextures.FlushUploadBytes = Environment.GetEnvironmentVariable("ONI_UPLOAD_FLUSH") == "1" ? 32L << 20 : 0;
             if (GlAhead.Enabled) GlAhead.Start(worker);
             if (GlWarmup.Enabled) GlWarmup.Start(worker);
             // A frame's GPU time is measured from its first commands, not from the previous
