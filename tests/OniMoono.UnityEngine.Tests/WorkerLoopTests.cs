@@ -99,17 +99,54 @@ namespace OniMoono.Tests
         }
 
         [Fact]
-        public void ACallAllocatesFarLessThanParallelFor()
+        public void CallersOnSeveralThreadsAndNestedCallsEachRunTheirOwnItems()
+        {
+            // Runs are reused as soon as their helpers are done with them: calls back to back,
+            // at once on several threads and from inside an item, must not see each other's.
+            int bad = 0;
+            var threads = new Thread[4];
+            for (int t = 0; t < threads.Length; t++)
+            {
+                threads[t] = new Thread(() =>
+                {
+                    for (int round = 0; round < 200; round++)
+                    {
+                        int count = 1 + round % 37;
+                        var runs = new int[count];
+                        WorkerLoop.For(count, i =>
+                        {
+                            Interlocked.Increment(ref runs[i]);
+                            if (i == 0 && round % 10 == 0)
+                            {
+                                var inner = new int[5];
+                                WorkerLoop.For(inner.Length, j => Interlocked.Increment(ref inner[j]));
+                                foreach (int n in inner)
+                                    if (n != 1) Interlocked.Increment(ref bad);
+                            }
+                        });
+                        foreach (int n in runs)
+                            if (n != 1) Interlocked.Increment(ref bad);
+                    }
+                });
+                threads[t].Start();
+            }
+            foreach (var t in threads) t.Join();
+            Assert.Equal(0, bad);
+        }
+
+        [Fact]
+        public void ACallAllocatesNothing()
         {
             var sum = new long[1];
             Action<int> body = i => Interlocked.Add(ref sum[0], i);
             long ours = MedianBytesACall(() => WorkerLoop.For(64, body));
             long theirs = MedianBytesACall(() => Parallel.For(0, 64, body));
-            // A call allocates its run (48 bytes on 64-bit) and the pool's record of each helper
-            // queued (32), so 528 bytes with 15 helpers on 16 cores; Parallel.For's about 2.5 KB.
-            long ceiling = 64 + 48L * WorkerLoop.MaxHelpers;
-            Assert.True(ours <= ceiling, $"WorkerLoop.For: {ours} bytes a call (median), at most {ceiling} expected");
+            // Runs are reused thread-pool work items, queued as they are: a call allocates
+            // nothing. (A call finding every run still held by helpers yet to start makes one,
+            // 48 bytes; Parallel.For's about 2.5 KB.)
+            Assert.True(ours < 16, $"WorkerLoop.For: {ours} bytes a call (median), none expected");
             // The measure sees Parallel.For's allocations, so it would see the loop's.
+            long ceiling = 64 + 48L * WorkerLoop.MaxHelpers;
             Assert.True(theirs > ceiling, $"Parallel.For: {theirs} bytes a call (median), more than {ceiling} expected");
         }
 
