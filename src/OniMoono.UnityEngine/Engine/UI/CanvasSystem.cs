@@ -1932,6 +1932,44 @@ namespace OniMoono.Engine.UI
             if (verifyPixels && bound && Reorder && !FrameRenderer.RenderingCapture && ++pixelFrames % 120 == 0) VerifyPixels(device, size);
         }
 
+        /// The overlay canvases as the last frame drew them, again, into `tile` of `target`:
+        /// the screen's pixels `area` (rows bottom first) scaled to the tile (LoadingScreen's
+        /// kanim frames). `clear`: the whole target is cleared first, to opaque black. Meshes
+        /// merged for it are made anew, not kept, as for the pixel check below.
+        internal static void RenderOverlaysInto(RenderDevice device, RenderTextureNative target, RectInt tile, RectInt area, bool clear)
+        {
+            FrameRenderer.Bind(device, RenderTargetBinding.Of(target));
+            if (clear)
+            {
+                device.SetViewport(new Rect(0f, 0f, target.Width, target.Height));
+                device.Clear(true, true, new Color(0f, 0f, 0f, 1f), 1f);
+            }
+            device.SetViewport(new Rect(tile.x, tile.y, tile.width, tile.height));
+            // The target's size is the area's, as the projection's: shaders that size pixels from
+            // both (TextMesh Pro's SDF edges, pixel snapping) see the screen's pixels.
+            device.SetCamera(new CameraConstants(Matrix4x4.identity, Matrix4x4.Ortho(area.xMin, area.xMax, area.yMin, area.yMax, -1000f, 1000f), Vector3.zero, -1000f, 1000f, true, new Vector2(area.width, area.height)));
+            freshMeshes = true;
+            try
+            {
+                foreach (var b in batches)
+                    if (IsOverlay(b.Root) && b.Draws.Count > 0) FrameRenderer.DrawQueue(device, Batched(b, overlay: true));
+            }
+            finally
+            {
+                freshMeshes = false;
+            }
+        }
+
+        /// The screen bound again after RenderOverlaysInto, as the frame's overlays bind it.
+        internal static void RestoreScreenBinding(RenderDevice device)
+        {
+            var size = ScreenSize;
+            FrameRenderer.Bind(device, FrameRenderer.ScreenBinding);
+            var pixels = FrameRenderer.ScreenPixelSize;
+            device.SetViewport(new Rect(0f, 0f, pixels.x, pixels.y));
+            device.SetCamera(new CameraConstants(Matrix4x4.identity, FrameRenderer.ScreenProjection(Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f)), Vector3.zero, -1000f, 1000f, true, size));
+        }
+
         /// ONI_VERIFY_CANVAS_PIXELS=1: every 120th frame, the overlay canvases drawn again into a
         /// target of their own over the same background, in hierarchy order and reordered, and the
         /// two read back: every pixel must be the same (the order changes nothing a pixel shows).
