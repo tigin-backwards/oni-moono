@@ -29,8 +29,8 @@ the main thread with the simulation, so a scroll is as smooth as the main thread
     sub-ticks are not the spike.
   - Don't build UI-only frames. They cannot be made invisible to game code, and they
     would not shorten the heavy frame.
-  - Measure the vsync wait's rule on a 60 Hz display, where it stays on through the sim-step
-    frames; see [present pacing](#e-present-pacing).
+  - Leave the vsync wait as it is: with vsync at 60 Hz about 1–2% of refreshes repeat a
+    picture, and queue depths 1, 2 and 3 measure alike; see [present pacing](#e-present-pacing).
 - **Nothing landed.**
 
 ## Method
@@ -133,10 +133,21 @@ Game speed reached at speed 3 (game seconds a real second, from the frames' time
 | | speed 3, scrolling | 71 | 13.3 | 21.0 | 24.5 | 31 | 0.3% | 0.0% |
 | | paused, scrolling | 192 | 5.1 | 6.1 | 7.0 | 9 | 0.0% | 0.0% |
 | | autosave | 118 | 6.5 | 10.7 | 13.5 | 944 | 2.0% | 0.3% |
+| Windows, original | paused | 105 | 9.3 | 12.0 | 13.0 | 15 | 0.0% | 0.0% |
+| | speed 1 | 55 | 17.3 | 25.7 | 32.5 | 36 | 0.2% | 0.8% |
+| | speed 2 | 36 | 26.4 | 37.7 | 43.4 | 54 | 0.1% | 15% |
+| | speed 3 | 29 | 33.7 | 46.2 | 53.7 | 217 | 0.2% | 53% |
+| | speed 3, scrolling | 22 | 44.8 | 60.8 | 67.5 | 86 | 0.0% | 99.5% |
+| | paused, scrolling | 68 | 14.5 | 17.6 | 19.2 | 22 | 0.0% | 0.0% |
+| | autosave | 24 | 34.2 | 47.5 | 54.6 | 4,880 | 0.3% | 57% |
 
-The original's Windows runs on this colony, and the Windows runs with the brackets on it, were
-held back when the machine went to a release's QA. The 105 ms frame at speed 3 is a 92 ms
-gen0 collection.
+The 105 ms frame in ours at speed 3 is a 92 ms gen0 collection. On Windows the original keeps
+speed 3 on this colony (2.99×), at 29 fps; scrolling the table costs it 11 ms a frame against
+Moono's 2.8 ms. A second Moono launch with the brackets ran at speed 3 with p50 8.5, p99 15.4 and max
+44 ms (the runs differ by about 20% in their medians, as Windows runs on this machine do): its
+frames over 2× the median add up to 255 ms in all phases together, a sim-step frame there costing 3.3 ms
+more than another (2.1 ms in StepTheSim). Spikes on this colony are small on Windows: sim-step frames 35% of
+that, canvas rebuilds 22%, a GC 14%.
 
 ### What the distributions say
 
@@ -238,7 +249,7 @@ one also gets more sub-ticks: 2.75 against 1.65 on average, +2.3 ms).
 | (b) Sim pacing | Smooth the delta the game sees, carrying the rest | Modelled: sd 3.86 → 3.72 ms, p99 20.4 → 19.9 ms, spikes 6.2% → 5.6% (Windows, late-game) | No: a different delta sequence; game time stays exact over time | Low | Rejected: no gain |
 | (c) UI-only frames | A frame of input, UI and drawing without game updates | Would not shorten the heavy frame | No: see below | High | Rejected |
 | (d) GC tuning | Gen0 budget cap, Satori | 1–7% of spike time | Yes | Medium to high | Leave; Satori later |
-| (e) Present pacing | The vsync wait's rule, queue depth | See below | Yes (no game-visible change) | Low | Design; measurement scenario ready, not run |
+| (e) Present pacing | The vsync wait's rule, queue depth | With vsync about 1–2% of refreshes repeat; depth 1, 2 and 3 alike | Yes (no game-visible change) | Low | Measured: queue depth 1–3 within the runs' spread; no change |
 
 ### (a) Spreading batches
 
@@ -308,24 +319,42 @@ GC is 1–7% of Moono's spike time here, so it comes after the step batch.
 With vsync, what the player sees is the presents' cadence, not the frames' cost. Since
 docs/research/input-latency.md the main thread waits before the next frame until frame n + 1 −
 `QualitySettings.maxQueuedFrames` (2) has been presented, while Swappy's rule (`QueuedFrames`)
-says the frame's stages fit a refresh. It turns the wait off only when more than 10% of the frames
-over 2 s miss their refresh.
+says the frame's stages fit a refresh; it turns the wait off only when more than 10% of the frames
+over 2 s miss their refresh. On the late-game colony 4–8% of frames are over 16.7 ms with vsync
+off, all sim-step frames, so the question was whether a deeper queue (or the wait off) would
+absorb them.
 
-On the late-game colony on Windows, 4% of the frames at speed 3 (8% while scrolling) are over 16.7
-ms, all of them sim-step frames at a steady 15 Hz. That is under the 10% threshold, so the wait
-stays on. With the wait on, the pipeline has no picture in reserve, so each sim-step frame that
-runs over a refresh shows the picture before it twice. With the wait off, the device thread and
-the presenter each hold a frame. That queue absorbs a single long frame behind fast ones, so the
-cadence stays even at one to two refreshes more latency. On a 144 Hz display every sim-step frame
-is over the refresh (6.9 ms), about 14% of the frames, so the rule turns the wait off there.
+Measured with vsync on (`vsync.txt`: the PerfProbe `queued N` command sets
+`QualitySettings.maxQueuedFrames`), late-game colony, Windows, windowed on the 59.95 Hz monitor
+(so composed by DWM), the main thread's frame intervals:
 
-A rule that also counted misses at the step's 15 Hz would turn the wait off earlier on a 60 Hz
-display, trading latency (47 against 66 ms on the small base in input-latency.md) for an even
-cadence. The `queued N` scenario command (`QualitySettings.maxQueuedFrames`,
-`vsync.txt`: depth 2, 3 and 1 with vsync, ours and the original) was made to measure this. Its
-Windows runs had not run when this was written: the machine went to a release's QA. Until they
-run, this is a design, not a measured change. The rule has no effect on game-visible state:
-frame times reach the game through the frame pacing of frame-timing.md either way.
+| Player, queue depth | Phase | fps | p50 | p95 | p99 | max | 2 refreshes | 3+ refreshes | interval changes |
+|---|---|---|---|---|---|---|---|---|---|
+| Ours, 2 (default) | speed 3 | 59.0 | 16.6 | 26.0 | 32.8 | 47 | 5.3% | 1.8% | 7.0% |
+| | scrolling | 59.2 | 16.6 | 26.6 | 30.4 | 58 | 5.5% | 1.9% | 7.4% |
+| Ours, 3 | speed 3 | 59.6 | 16.6 | 24.4 | 28.3 | 39 | 5.2% | 0.8% | 6.2% |
+| | scrolling | 59.6 | 16.6 | 26.4 | 31.4 | 37 | 4.4% | 2.5% | 7.7% |
+| Ours, 1 | speed 3 | 59.6 | 16.6 | 24.9 | 29.5 | 58 | 4.8% | 1.3% | 6.7% |
+| Original, 2 | speed 3 | 9.7 | 94.8 | 146.8 | 236.6 | 456 | 0% | 100% | 55% |
+| | scrolling | 10.0 | 93.8 | 135.8 | 176.7 | 214 | 0% | 100% | 53% |
+| Original, 3 | speed 3 | 10.2 | 93.2 | 134.5 | 150.4 | 651 | 0% | 100% | 52% |
+| Original, 1 | speed 3 | 7.9 | 117.0 | 166.9 | 183.7 | 667 | 0% | 100% | 70% |
+
+("Interval changes": frames whose interval differs from the one before by more than 12 ms.)
+
+- **Ours with vsync:** about 7% of frame intervals are two or more refreshes, and the depth makes
+  no difference beyond the runs' spread (6.2–7.7% interval changes at every depth). The frame rate
+  stays at 59.0–59.6 of 59.95, so about 1–2% of refreshes repeat a picture. The main thread then
+  catches up on the next frame, which is why intervals of two refreshes show twice as often as the
+  dropped refreshes.
+- **A deeper queue does not absorb the sim-step frames**, because each one is followed by
+  another full frame of work; there is no slack to fill the queue with at 60 Hz. A
+  periodic-miss term for `QueuedFrames` would change latency, not cadence: not worth building.
+- **The original with vsync** runs at 8–10 fps, every frame three or more refreshes, half of
+  its intervals changing by more than 12 ms from one frame to the next; its depth 1 costs it 2 fps.
+- Not measured: borderless fullscreen (where DXGI's frame statistics name each picture's
+  vblank, as in frame-timing.md), 144 Hz, and present-side timing (a DXGI hook). The intervals
+  above are the main thread's, which the wait ties to the presents.
 
 ## Recommended plan
 
@@ -341,9 +370,9 @@ frame times reach the game through the frame pacing of frame-timing.md either wa
    target is the step frame's 7.5 ms extra on Windows. By the fit above, halving
    it brings the step frame from about 13.7 ms to 10 ms (Windows, speed 3), under a 60 Hz
    refresh even while scrolling, though still over a 144 Hz one.
-2. **Present pacing:** run `vsync.txt` on Windows (60 Hz, then 144 Hz), ours with depth 1, 2
-   and 3 and the original. If depth 3 or the wait off evens the 60 Hz cadence on the late-game
-   colony, add a periodic-miss term to `QueuedFrames`'s rule behind a switch.
+2. **Present pacing:** no change. With vsync at 60 Hz the queue depth makes no measurable
+   difference; the sim-step frames have to get cheaper (1). A 144 Hz borderless run with a
+   present-side hook is the check to make once (1) has landed.
 3. **Autosave:** the 2.4–3.0 s serialization stays on the main thread (a save is one instant of
    the game's state). The 750 ms after it (the snapshot and its read-back, animation catch-up)
    is worth a look by the capture work.
@@ -353,5 +382,5 @@ frame times reach the game through the frame pacing of frame-timing.md either wa
 ## Runs
 
 Local, not in the repository: the probe and scenarios on branch `jank-u60` (out/jank: `full.txt`,
-`clean.txt`, `trace.txt`, `vsync.txt`; `linux-run.py`, `win-run.sh`; `analyze.py`, `sim.py`,
+`clean.txt`, `trace.txt`, `vsync.txt`; `linux-run.py`, `win-run.sh`, `win-job.sh` (a runq job); `analyze.py`, `sim.py`,
 `table.py`, `shares.py`), the runs' logs and per-frame CSVs, and the trace with its breakdowns.
