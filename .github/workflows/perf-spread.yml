@@ -1,0 +1,135 @@
+# How steady GitHub's runners are for perf numbers (scripts/perf-spread.py, docs/PERFORMANCE.md
+# "Perf spread on CI's runners"): on the stripped game, the last release (A) and this commit (B)
+# launched in turn, A B A B ..., on the same save, each launch measuring the colony paused and
+# then running with PerfProbe and --frame-stats. Three jobs, so three runner machines. By hand
+# only: never scheduled, never on push. Like the game tests, it uploads no game files, saves or
+# logs: the artifact holds the numbers alone.
+name: Perf spread
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: The A build's tag; empty takes the latest release tag this commit contains.
+        type: string
+        default: ""
+      save:
+        description: The fixture both load (tests/e2e/fixtures.json).
+        type: choice
+        options: [2minnow, early-base]
+        default: 2minnow
+      pairs:
+        description: A B pairs a job launches.
+        type: number
+        default: 5
+      pause_windows:
+        description: 600-frame windows paused (the first has no counters).
+        type: number
+        default: 3
+      run_windows:
+        description: 600-frame windows running at speed 3 (the first is left out).
+        type: number
+        default: 4
+
+permissions: {}
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  spread:
+    name: Perf spread ${{ matrix.job }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        job: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # Exactly global.json's SDK, alone in a folder of its own (build.yml says why).
+      - id: sdk
+        run: echo "version=$(python3 -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])')" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        env:
+          DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+        with:
+          dotnet-version: ${{ steps.sdk.outputs.version }}
+          skip-lts-prepass: true
+      - name: Packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends xvfb x11-xkb-utils libgl1 libglx-mesa0 libgl1-mesa-dri libegl1 libxtst6 zstd binutils \
+            fonts-freefont-ttf fonts-dejavu-core fonts-liberation > /dev/null
+          sudo apt-get remove -y -qq fonts-dejavu-extra > /dev/null 2>&1 || true
+      - id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.REFS_APP_ID }}
+          private-key: ${{ secrets.REFS_APP_KEY }}
+          owner: tigin-backwards
+          repositories: oni-moono-refs
+          permission-contents: read
+      - name: The stripped game and the save
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          SAVE: ${{ inputs.save }}
+        run: |
+          python3 -I scripts/fetch-game-content.py game "$RUNNER_TEMP/oni-game"
+          python3 -I scripts/fetch-game-content.py saves "$SAVE"
+      - name: Build A (the release) and B (this commit)
+        env:
+          BASE: ${{ inputs.base }}
+        run: |
+          base="$BASE"
+          [ -n "$base" ] || base=$(git tag --merged HEAD --sort=-creatordate --list 'v*' | grep -v -- '-u60' | head -1)
+          [ -n "$base" ] || { echo "no release tag in this commit's history"; exit 1; }
+          echo "A: $base ($(git rev-parse --short "$base^{commit}")), B: $(git rev-parse --short HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
+          git worktree add -q "$RUNNER_TEMP/base" "$base"
+          game="$RUNNER_TEMP/oni-game"
+          for tree in "$RUNNER_TEMP/base" "$GITHUB_WORKSPACE"; do
+            dotnet build "$tree/src/OniMoono.Host" -c Release -p:OniGameDir="$game" -v q -nologo "-clp:ErrorsOnly;NoSummary"
+          done
+          dotnet build tools/PerfProbe -c Release -p:OniManaged="$game/OxygenNotIncluded_Data/Managed" -v q -nologo "-clp:ErrorsOnly;NoSummary"
+          echo "SPREAD_STEAM=$(tools/SteamStub/build.sh --dlc)" >> "$GITHUB_ENV"
+      - name: Launch A and B in turn
+        env:
+          SAVE: ${{ inputs.save }}
+          PAIRS: ${{ inputs.pairs }}
+          PAUSE_WINDOWS: ${{ inputs.pause_windows }}
+          RUN_WINDOWS: ${{ inputs.run_windows }}
+        run: |
+          export ONI_NO_CONTENT=1 SPREAD_GAME="$RUNNER_TEMP/oni-game" SPREAD_PROBE="$PWD/out/bin/PerfProbe/release" SPREAD_SAVE="$PWD/tests/e2e/fixtures/$SAVE.sav"
+          Xvfb :99 -screen 0 1280x720x24 -nolisten tcp > /dev/null 2>&1 &
+          export DISPLAY=:99
+          sleep 2
+          spread="$RUNNER_TEMP/spread"
+          # A warm-up launch of each first (disk caches, the first JIT), not counted.
+          scripts/perf-spread.py run "$RUNNER_TEMP/base" "$spread/warm-A" --label A --pause-windows 2 --run-windows 0 || true
+          scripts/perf-spread.py run . "$spread/warm-B" --label B --pause-windows 2 --run-windows 0 || true
+          for i in $(seq 1 "$PAIRS"); do
+            scripts/perf-spread.py run "$RUNNER_TEMP/base" "$spread/$i-A" --label A --pause-windows "$PAUSE_WINDOWS" --run-windows "$RUN_WINDOWS" || true
+            scripts/perf-spread.py run . "$spread/$i-B" --label B --pause-windows "$PAUSE_WINDOWS" --run-windows "$RUN_WINDOWS" || true
+          done
+          mkdir -p out/perf-spread
+          for d in "$spread"/[0-9]*; do
+            mkdir -p "out/perf-spread/runs/$(basename "$d")"
+            cp "$d/result.json" "out/perf-spread/runs/$(basename "$d")/" 2>/dev/null || true
+          done
+          # Glob order (1-A, 1-B, 10-A, ...) keeps each A with its B.
+          scripts/perf-spread.py summary out/perf-spread out/perf-spread/runs/* >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: perf-spread-${{ matrix.job }}
+          path: |
+            out/perf-spread/summary.json
+            out/perf-spread/summary.md
+            out/perf-spread/runs/*/result.json
+          if-no-files-found: warn

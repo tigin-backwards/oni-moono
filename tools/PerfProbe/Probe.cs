@@ -1787,6 +1787,13 @@ namespace PerfProbe
             // `speed.txt`: the game speed kept, 0 (normal) to 2 (fastest, the default), or -1: paused.
             var speedFile = System.IO.Path.Combine(Path, "speed.txt");
             int speed = System.IO.File.Exists(speedFile) ? int.Parse(System.IO.File.ReadAllText(speedFile).Trim()) : 2;
+            // `pausefirst.txt` "FRAMES": the colony is held paused for its first FRAMES frames
+            // (a multiple of 600 keeps the windows apart), then runs at speed.txt's speed: one
+            // launch measures a still colony and a running one (scripts/perf-spread.py).
+            var pauseFile = System.IO.Path.Combine(Path, "pausefirst.txt");
+            int pauseFirst = System.IO.File.Exists(pauseFile) ? int.Parse(System.IO.File.ReadAllText(pauseFile).Trim()) : 0;
+            int keptSpeed = speed;
+            if (pauseFirst > 0) speed = -1;
             // `resize.txt` "FRAMES W H": that many frames into the colony the window goes to W×H
             // (Screen.SetResolution, windowed); the game's error screen it raises is closed 60
             // frames later and the screen captured at 120 (resized.png beside the probe), the
@@ -1830,6 +1837,13 @@ namespace PerfProbe
                     Debug.Log($"PERF camera moved by the game; put back at {v.At}");
                 }
                 colonyFrames++;
+                // The load's dialogs (MOD DIFFERENCES) close while held paused, as they do running.
+                if (pauseFirst > 0 && (colonyFrames == 60 || colonyFrames == 300)) Screens.DismissDialogs();
+                if (pauseFirst > 0 && colonyFrames == pauseFirst)
+                {
+                    speed = keptSpeed;
+                    Debug.Log($"PERF phase run f{Time.frameCount} speed {speed}");
+                }
                 if (resize != null && colonyFrames == resize[0])
                 {
                     Debug.Log($"PERF resize to {resize[1]}x{resize[2]}");
