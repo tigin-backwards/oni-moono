@@ -39,19 +39,9 @@ namespace OniMoono.Host.GameTweaks
         /// SaveLoader.DecompressContents(byte[]): the save's body.
         static bool Decompress(byte[] compressed, ref byte[] __result)
         {
-            var input = new MemoryStream(compressed, writable: false);
-            using var zlib = new ZLibStream(input, CompressionMode.Decompress);
+            using var zlib = new ZLibStream(new MemoryStream(compressed), CompressionMode.Decompress);
             var output = new MemoryStream((int)System.Math.Min((long)compressed.Length * 4, System.Array.MaxLength));
-            // The loading screen's bar reads how far through the compressed bytes it is.
-            OniMoono.Engine.LoadProgress.Decompressing = input;
-            try
-            {
-                zlib.CopyTo(output);
-            }
-            finally
-            {
-                if (OniMoono.Engine.LoadProgress.Decompressing == input) OniMoono.Engine.LoadProgress.Decompressing = null;
-            }
+            zlib.CopyTo(output);
             __result = output.ToArray();
             return false;
         }

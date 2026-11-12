@@ -187,14 +187,6 @@ namespace OniMoono.Engine.Rendering
         /// (a device that records nothing does nothing).
         public virtual void FlushRecorded() { }
 
-        /// The loading screen's kanim frames, rendered into their strip by the commands recorded
-        /// so far, go to the presenter once those have run (LoadingScreen; main thread).
-        public virtual void HandOverLoadingFrames(LoadingScreen.KanimFrames frames) => frames.Done = true;
-
-        /// Its presenter animates the loading screen during a save load (LoadingScreen): the
-        /// kanim frames are rendered only for a device that shows them.
-        public virtual bool AnimatesLoading => false;
-
         /// Takes a texture loaded from an asset file to upload in the background, in load order,
         /// instead of before the next frame renders; a draw that samples it first uploads it at
         /// once (main thread). False when the device does not (then Upload does it now).

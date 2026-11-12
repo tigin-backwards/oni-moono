@@ -70,7 +70,6 @@ namespace OniMoono.Host.GameTweaks
             if (on(PagedPathGrids.Name)) yield return (PagedPathGrids.Name, PagedPathGrids.Install, true);
             // Enabled at start-up (ExactWorldgen.Enable); this says when it could not widen.
             if (on(ExactWorldgen.Name)) yield return (ExactWorldgen.Name, ExactWorldgen.Install, true);
-            if (on(LoadingAnimation.Name)) yield return (LoadingAnimation.Name, LoadingAnimation.Install, true);
             // fast-load-screen's engine side; its game side is a typed tweak (below), which logs it.
             if (on(LoadScreenPreviews.Name)) yield return (LoadScreenPreviews.Name, LoadScreenPreviews.Install, false);
             // The tweaks built against the game's own types (src/OniMoono.GameTweaks).
