@@ -76,5 +76,43 @@ namespace OniMoono.Tests
             float near = far ? corners[2][axis] : corners[0][axis];
             Assert.Equal(far ? half - 10f : -half + 10f, near, 3);
         }
+
+        /// A rect read again is the same until something it depends on changes, and then follows
+        /// it: the parent's size, the anchors, the pivot, sizeDelta and the parent itself, at
+        /// any depth (RectTransformNative keeps a rect per rect epoch).
+        [Fact]
+        public void KeptRectsFollowEveryChangeAbove()
+        {
+            var root = new GameObject("Root", typeof(RectTransform)).GetComponent<RectTransform>();
+            root.sizeDelta = new Vector2(200, 100);
+            var mid = new GameObject("Mid", typeof(RectTransform)).GetComponent<RectTransform>();
+            mid.SetParent(root, false);
+            mid.anchorMin = Vector2.zero;
+            mid.anchorMax = Vector2.one;
+            mid.sizeDelta = Vector2.zero;
+            var leaf = new GameObject("Leaf", typeof(RectTransform)).GetComponent<RectTransform>();
+            leaf.SetParent(mid, false);
+            leaf.anchorMin = Vector2.zero;
+            leaf.anchorMax = new Vector2(0.5f, 1f);
+            leaf.sizeDelta = new Vector2(-10, 0);
+            Assert.Equal(new Rect(-45, -50, 90, 100), leaf.rect);
+            Assert.Equal(leaf.rect, leaf.rect);
+
+            root.sizeDelta = new Vector2(400, 60);
+            Assert.Equal(new Rect(-95, -30, 190, 60), leaf.rect);
+            mid.sizeDelta = new Vector2(-100, 0);
+            Assert.Equal(new Rect(-70, -30, 140, 60), leaf.rect);
+            leaf.pivot = Vector2.zero;
+            Assert.Equal(new Rect(0, 0, 140, 60), leaf.rect);
+            leaf.anchorMax = Vector2.one;
+            Assert.Equal(new Rect(0, 0, 290, 60), leaf.rect);
+
+            var other = new GameObject("Other", typeof(RectTransform)).GetComponent<RectTransform>();
+            other.sizeDelta = new Vector2(50, 20);
+            mid.SetParent(other, false);
+            Assert.Equal(new Rect(0, 0, -60, 20), leaf.rect);
+            leaf.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 30);
+            Assert.Equal(new Rect(0, 0, 30, 20), leaf.rect);
+        }
     }
 }

@@ -106,6 +106,10 @@ namespace OniMoono.Engine
         /// CanvasSystem.Unreachable's answer for this object, and the pass it was found in.
         public long UnreachablePass;
         public bool Unreachable;
+        /// CanvasSystem.NearestCanvas's answer for the object, and the Hierarchy.Touches it was
+        /// found at (0: none kept).
+        public long NearestCanvasAt;
+        public UI.CanvasNative NearestCanvas;
     }
 
     internal class ComponentNative : NativeObject
@@ -152,7 +156,18 @@ namespace OniMoono.Engine
 
     internal partial class TransformNative : ComponentNative
     {
-        public TransformNative Parent;
+        TransformNative parent;
+
+        /// The parent transform. A change of it starts a new rect epoch (RectTransformNative.ComputeRect).
+        public TransformNative Parent
+        {
+            get => parent;
+            set
+            {
+                parent = value;
+                RectTransformNative.RectEpoch++;
+            }
+        }
 
         /// Children in sibling order. A list read before a change keeps the children it had:
         /// a slot below the count is never written again once published. An append fills the
