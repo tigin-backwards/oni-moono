@@ -25,6 +25,7 @@ namespace OniMoono.GameTweaks
                 case FastConveyorPaths.Name: FastConveyorPaths.Install(harmony); return true;
                 case FastOverlayTextures.Name: FastOverlayTextures.Install(harmony); return true;
                 case BrainRate.Name: BrainRate.Install(harmony); return true;
+                case SimStepPace.Name: SimStepPace.Install(harmony); return true;
                 case ProbeRepair.Name: ProbeRepair.Install(harmony); return true;
                 case FastLoadScreen.Name: FastLoadScreen.Install(harmony); return true;
                 case FixLoadScreenClicks.Name: FixLoadScreenClicks.Install(harmony); return true;

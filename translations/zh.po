@@ -805,3 +805,19 @@ msgstr "使用 Moono"
 msgctxt "STRINGS.MOONO.LOADER.MODS_TIP"
 msgid "Install Moono and copy the launch option for Steam"
 msgstr "安装 Moono 并复制 Steam 启动选项"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.TITLE"
+msgid "Simulation at its own pace"
+msgstr "按模拟自身的节奏运行"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.EFFECT"
+msgid "Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU."
+msgstr "在正常速度下超过 60 fps 时，帧不再等待模拟，CPU 占用也更少。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.DETAIL"
+msgid "Between its steps, five a second, the game asks the simulation for its state on every frame with no game time to step, which happens only above 60 fps at normal speed. Each such call makes the frame wait for the step underway and runs a step of no time. With this, the simulation is called only at its steps, as the game already does below 60 fps and at faster speeds. The simulation's data then changes five times a second, as below 60 fps, instead of up to about 30, and dug tiles and finished buildings show up to 0.2 s later. Paused, or while another mod changes these calls, the game's own calls run."
+msgstr "在两次模拟步进之间（每秒五次），游戏会在每个没有游戏时间可推进的帧上向模拟查询其状态，这只会在正常速度下超过 60 fps 时发生。每次这样的调用都会让该帧等待正在进行的步进，并运行一次零时间的步进。启用后，模拟只在其步进时被调用，与游戏在 60 fps 以下和更快速度下的做法相同。挖掉的格子、建成的格子以及游戏对模拟提出的其他改动，随之比不启用时晚约 0.3 秒显示（最多 0.4 秒），与 60 fps 以下相同。暂停时，或有其他模组修改这些调用时，仍运行游戏自身的调用。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PACE"
+msgid "112 → 220 fps at normal speed on a large modded colony"
+msgstr "大型模组殖民地在正常速度下 112 → 220 fps"

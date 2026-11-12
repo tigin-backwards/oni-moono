@@ -210,6 +210,7 @@ namespace OniMoono.GameTweaks
             Add(FastOverlays.Name, FastOverlays.Guarded);
             Add(FastOverlayTextures.Name, () => new[] { FastOverlayTextures.Guarded() });
             Add(FastAnimEvents.Name, FastAnimEvents.Guarded, FastAnimEvents.KindsOf);
+            Add(SimStepPace.Name, SimStepPace.Guarded);
             return guards;
         }
     }

@@ -82,6 +82,8 @@
     <Compile Include="../../src/OniMoono.Host/MonoFloatWidening.cs" Link="Host/MonoFloatWidening.cs" />
     <!-- The brain-rate game tweak's allowance (BrainRateAllowanceTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/BrainRateAllowance.cs" Link="GameTweaks/BrainRateAllowance.cs" />
+    <!-- The sim-step-pace game tweak's frame against the game's SimEveryTick (SimStepPaceTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/SimStepPaceCore.cs" Link="GameTweaks/SimStepPaceCore.cs" />
     <!-- A tweak written for another game version is off; the checks and the install (TweakChecksTests). -->
     <Compile Include="../../src/OniMoono.Host/GameTweaks/GameMemberAttribute.cs" Link="Host/GameMemberAttribute.cs" />
     <Compile Include="../../src/OniMoono.Host/GameTweaks/TweakMetadata.cs" Link="Host/TweakMetadata.cs" />
