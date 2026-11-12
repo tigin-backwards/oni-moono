@@ -371,8 +371,29 @@ Measured as above (U59, every run in its own run home; Linux on Xvfb, Windows wi
   load) on Windows, and from 0.18–0.33 to 0.19–0.20 on Linux.
 - **On Vulkan** (U60's default renderer; VkLoadAnimation, built 2026-11-12), measured on U60:
   - The replay check: 0 of 118,680 pixels differ on Windows (an RTX 3090, through DXGI and through
-    Vulkan's own swapchain); 16–20 differ by at most 7 of 255 on Mesa's software Vulkan (llvmpipe,
-    this machine's Linux lanes). The frames took 3.1–3.2 ms on Windows, 0.9–4.2 ms on llvmpipe.
+    Vulkan's own swapchain). On Mesa's software Vulkan (llvmpipe, this machine's Linux lanes)
+    16–175 differed by up to 8 of 255, as many as the kanim frame the load began on gave (175
+    for frame 11, 16–20 for others), so the spec failed now and then. Two causes, each measured
+    on its own:
+    - The frames were rendered as Unity renders a render texture on Vulkan, upside down (rows
+      bottom first), and llvmpipe draws the same triangles mirrored differently at a few edges.
+      Rendered as the screen is, rows top first (`RenderTextureNative.ScreenRows`), 4–5 differed
+      (20 before, on the same frame).
+    - Those 4–5 were the frame drawn elsewhere in the target than on the screen: llvmpipe puts
+      a few pixels differently even when a draw is only moved by whole pixels (a translated
+      viewport or projection gave 4–8). Drawn at the screen's own place with the screen's
+      viewport and projection, none differ (largest difference 0).
+
+    So each frame is now drawn where the screen drew it, into a target of the screen's height,
+    and its area copied into its tile (`RenderDevice.CopyTargetRect`; OpenGL, already exact,
+    keeps drawing into the tiles). 0 pixels differed in 13 of 13 runs on llvmpipe since, over
+    four different start frames (largest difference 0); the frames took 7–23 ms there.
+  - The frames' cost forecast: one of those runs rendered no frames, as its first frame took
+    6.3 ms and 18 of those would pass the 50 ms budget, while all 18 took 10–23 ms in the others:
+    the first frame carries one-off work. The forecast is now the first frame plus the second's
+    cost for each frame after it.
+  - Earlier, before the frames were drawn at the screen's place: the frames took 3.1–3.2 ms on
+    Windows, 0.9–4.2 ms on llvmpipe.
   - Click to interactive, on minus off, order alternated: Windows mid-game −0.4 and −1.4 s,
     late-game −2.0 and −1.0 s (the runs' spread). On llvmpipe the load's long frame ended
     0.15–0.26 s later (mid-game, three pairs) and 0.30–0.34 s later (late-game, two pairs):

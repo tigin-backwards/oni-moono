@@ -467,6 +467,12 @@ namespace OniMoono.Engine.Rendering
         /// The texture alone as a target's colours (RenderTargetBinding.Of); never written.
         internal RenderTextureNative[] AsTarget;
 
+        /// Rendered as the back buffer is (LoadingScreen's kanim frames, drawn again into a tile
+        /// of it as the screen drew them): on Vulkan, rows stored top first with the back
+        /// buffer's conventions, not flipped as Unity renders render textures, so each draw
+        /// rasterises as it did on the screen. OpenGL renders both the same way already.
+        internal bool ScreenRows;
+
         public int VolumeDepth = 1;
         public RenderTextureFormat Format = RenderTextureFormat.ARGB32;
         public GraphicsFormat ColorFormat = GraphicsFormat.R8G8B8A8_UNorm;

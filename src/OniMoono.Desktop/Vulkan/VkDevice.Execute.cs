@@ -25,6 +25,9 @@ namespace OniMoono.Desktop.Vulkan
         VkTargetFormats targetFormats;
         int renderWidth = 1, renderHeight = 1;
         bool toBackBuffer;
+        /// The target's rows are stored top first (the back buffer, a ScreenRows render
+        /// texture): rectangles from the bottom left are turned over.
+        bool topFirst;
         UnityEngine.Rect viewport = new(0, 0, 1, 1);
         Rect? scissor;
         long draws, pipelineBinds, renderPasses, uploadBreaks;
@@ -79,6 +82,7 @@ namespace OniMoono.Desktop.Vulkan
                 samples = image.Samples;
             }
             toBackBuffer = t.Colors == null;
+            topFirst = toBackBuffer || t.ScreenRows;
             if (toBackBuffer)
             {
                 var bb = presenter.BackBuffer(t.BackBufferWidth, t.BackBufferHeight, frames);
@@ -142,7 +146,7 @@ namespace OniMoono.Desktop.Vulkan
             renderWidth = width;
             renderHeight = height;
             bool stencil = depth != null && VkImageResource.HasStencil(depth.Format);
-            targetFormats = VkTargetFormats.Of(formats[..count], depth?.Format ?? VkFormat.Undefined, stencil ? depth.Format : VkFormat.Undefined, samples, flipped: !toBackBuffer);
+            targetFormats = VkTargetFormats.Of(formats[..count], depth?.Format ?? VkFormat.Undefined, stencil ? depth.Format : VkFormat.Undefined, samples, flipped: !topFirst);
             fixed (VkRenderingAttachmentInfo* c = colors)
             {
                 var info = new VkRenderingInfo
@@ -184,7 +188,7 @@ namespace OniMoono.Desktop.Vulkan
             int h = Math.Max(1, (int)viewport.height);
             var v = new VkViewport
             {
-                X = (int)viewport.x, Y = toBackBuffer ? renderHeight - (int)viewport.y - h : (int)viewport.y,
+                X = (int)viewport.x, Y = topFirst ? renderHeight - (int)viewport.y - h : (int)viewport.y,
                 Width = Math.Max(1, (int)viewport.width), Height = h, MaxDepth = 1f,
             };
             frames.Main.SetViewport(0, new ReadOnlySpan<VkViewport>(&v, 1));
@@ -205,7 +209,7 @@ namespace OniMoono.Desktop.Vulkan
             {
                 int x0 = Math.Clamp((int)s.x, 0, renderWidth), y0 = Math.Clamp((int)s.y, 0, renderHeight);
                 int x1 = Math.Clamp((int)s.x + Math.Max(0, (int)s.width), 0, renderWidth), y1 = Math.Clamp((int)s.y + Math.Max(0, (int)s.height), 0, renderHeight);
-                if (toBackBuffer) (y0, y1) = (renderHeight - y1, renderHeight - y0);
+                if (topFirst) (y0, y1) = (renderHeight - y1, renderHeight - y0);
                 r = new VkRect2D { Offset = new VkOffset2D(x0, y0), Extent = new VkExtent2D(x1 - x0, y1 - y0) };
             }
             else r = new VkRect2D(renderWidth, renderHeight);

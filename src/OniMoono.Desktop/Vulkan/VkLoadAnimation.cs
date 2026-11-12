@@ -168,7 +168,7 @@ namespace OniMoono.Desktop.Vulkan
             if (f == null || strip == null) return t;
             int index = (int)Math.Floor(t * f.Rate) + f.Start;
             index = f.Loop ? index % f.Count : Math.Min(index, f.Count - 1);
-            int sx = index % f.Columns * f.TileWidth, sy = index / f.Columns * f.TileHeight;
+            int sx = f.TileX(index), sy = f.TileY(index);
             // The area in window pixels, rows top first (the frame shown is stretched over the
             // window too). The strip is a render texture, stored rows bottom first: the tile is
             // read turned over.
@@ -176,31 +176,33 @@ namespace OniMoono.Desktop.Vulkan
             int x0 = (int)Math.Round(f.Area.xMin * kx), x1 = (int)Math.Round(f.Area.xMax * kx);
             int top = height - (int)Math.Round(f.Area.yMax * ky), bottom = height - (int)Math.Round(f.Area.yMin * ky);
             bool scaled = x1 - x0 != f.TileWidth || bottom - top != f.TileHeight;
-            if (!replayed && verify && !scaled) VerifyQueued(cb, target, x0, top, f, f.Start % f.Columns * f.TileWidth, f.Start / f.Columns * f.TileHeight);
+            if (!replayed && verify && !scaled) VerifyQueued(cb, target, x0, top, f, f.TileX(f.Start), f.TileY(f.Start));
             var blit = new VkImageBlit
             {
                 SrcSubresource = new VkImageSubresourceLayers { AspectMask = VkImageAspectFlags.ColorBit, LayerCount = 1 },
                 DstSubresource = new VkImageSubresourceLayers { AspectMask = VkImageAspectFlags.ColorBit, LayerCount = 1 },
             };
-            int srcTop = strip.Height - (sy + f.TileHeight), srcBottom = strip.Height - sy;
-            blit.SrcOffsets[0] = new VkOffset3D(sx, srcBottom, 0);
-            blit.SrcOffsets[1] = new VkOffset3D(sx + f.TileWidth, srcTop, 1);
+            // The tile's rows in the strip: where VkDevice rendered them (TileTop), and turned over
+            // when stored bottom first.
+            int srcTop = TileTop(f, sy), srcBottom = srcTop + f.TileHeight;
+            bool bottomFirst = BottomFirst(f);
+            blit.SrcOffsets[0] = new VkOffset3D(sx, bottomFirst ? srcBottom : srcTop, 0);
+            blit.SrcOffsets[1] = new VkOffset3D(sx + f.TileWidth, bottomFirst ? srcTop : srcBottom, 1);
             blit.DstOffsets[0] = new VkOffset3D(x0, top, 0);
             blit.DstOffsets[1] = new VkOffset3D(x1, bottom, 1);
-            if (!StripRowsBottomFirst)
-            {
-                blit.SrcOffsets[0] = new VkOffset3D(sx, sy, 0);
-                blit.SrcOffsets[1] = new VkOffset3D(sx + f.TileWidth, sy + f.TileHeight, 1);
-            }
             cb.BlitImage(strip.Image, VkImageLayout.TransferSrcOptimal, target, VkImageLayout.TransferDstOptimal, new ReadOnlySpan<VkImageBlit>(&blit, 1),
                 scaled ? VkFilter.Linear : VkFilter.Nearest);
             replayed = true;
             return t;
         }
 
-        /// How a render texture's rows are stored on Vulkan (set from the replay check while
-        /// building; VkDevice renders them as OpenGL lays them out).
-        internal static bool StripRowsBottomFirst = Environment.GetEnvironmentVariable("ONI_LOADANIM_STRIP_TOP_FIRST") != "1";
+        /// The strip's rows are stored bottom first (a render texture as Unity's Vulkan programs
+        /// render one), not top first as the back buffer's (ScreenRows, LoadingScreen's strip).
+        static bool BottomFirst(LoadingScreen.KanimFrames f) => !f.Strip.ScreenRows;
+
+        /// The first image row of the tile `sy` pixels up the strip (its place, rows bottom
+        /// first): the same row stored bottom first, turned over stored top first.
+        static int TileTop(LoadingScreen.KanimFrames f, int sy) => BottomFirst(f) ? sy : f.Strip.Height - (sy + f.TileHeight);
 
         /// Records the bar into `view` (in ColorAttachmentOptimal, rows top first): the start-up
         /// splash's track and fill, opaque, the fill's edge column part-covered (as SplashRain's
@@ -283,7 +285,7 @@ namespace OniMoono.Desktop.Vulkan
         VkBufferAlloc verifyShown, verifyTile, verifyStrip;
         LoadingScreen.KanimFrames verifyFrames;
         int verifyW, verifyH;
-        bool verifyBgra;
+        bool verifyBgra, verifyBottomFirst;
 
         /// Copies the frame's area (the target, after its copy) and the tile into host buffers;
         /// compared once the slot's fence has signalled (VerifyCompare).
@@ -304,7 +306,8 @@ namespace OniMoono.Desktop.Vulkan
             };
             vk.Device.PInvoke.vkCmdCopyImageToBuffer.Invoke(cb.Handle, target, VkImageLayout.TransferSrcOptimal, verifyShown.Buffer, 1, &region);
             Barrier(cb, target, VkImageLayout.TransferSrcOptimal, VkImageLayout.TransferDstOptimal, VkAccessFlags2.TransferReadBit, VkAccessFlags2.TransferWriteBit);
-            region.ImageOffset = new VkOffset3D(sx, StripRowsBottomFirst ? strip.Height - (sy + h) : sy, 0);
+            region.ImageOffset = new VkOffset3D(sx, TileTop(f, sy), 0);
+            verifyBottomFirst = BottomFirst(f);
             vk.Device.PInvoke.vkCmdCopyImageToBuffer.Invoke(cb.Handle, strip.Image, VkImageLayout.TransferSrcOptimal, verifyTile.Buffer, 1, &region);
             // The whole strip, to say which frame the screen showed when it is not the start.
             verifyFrames = f;
@@ -337,10 +340,12 @@ namespace OniMoono.Desktop.Vulkan
                 verifyTile.Invalidate(vk);
                 byte* a = (byte*)verifyShown.Mapped, b = (byte*)verifyTile.Mapped;
                 int w = verifyW, h = verifyH, differ = 0, largest = 0;
+                System.Text.StringBuilder samples = null;
+                static string Rgba(byte* px, bool bgra) => bgra ? $"{px[2]},{px[1]},{px[0]},{px[3]}" : $"{px[0]},{px[1]},{px[2]},{px[3]}";
                 for (int row = 0; row < h; row++)
                 {
                     // The tile's rows as copied: bottom first when the strip stores them so.
-                    int tileRow = StripRowsBottomFirst ? h - 1 - row : row;
+                    int tileRow = verifyBottomFirst ? h - 1 - row : row;
                     for (int col = 0; col < w; col++)
                     {
                         byte* p = a + ((long)row * w + col) * 4, q = b + ((long)tileRow * w + col) * 4;
@@ -350,7 +355,8 @@ namespace OniMoono.Desktop.Vulkan
                             int pc = verifyBgra ? p[2 - c] : p[c];
                             d = Math.Max(d, Math.Abs(pc - q[c]));
                         }
-                        if (d > 2) differ++;
+                        if (d > 2 && differ++ < 6)
+                            (samples ??= new System.Text.StringBuilder()).Append($" ({col}, {row}) {Rgba(p, verifyBgra)} against {Rgba(q, false)}");
                         largest = Math.Max(largest, d);
                     }
                 }
@@ -359,15 +365,15 @@ namespace OniMoono.Desktop.Vulkan
                 verifyStrip.Invalidate(vk);
                 byte* st = (byte*)verifyStrip.Mapped;
                 var vf = verifyFrames;
-                int sw = vf.Columns * w, shh = (vf.Count + vf.Columns - 1) / vf.Columns * h;
+                int sw = vf.Strip.Width, shh = vf.Strip.Height;
                 int best = -1, bestDiffer = int.MaxValue;
                 for (int k = 0; k < vf.Count; k++)
                 {
-                    int tx = k % vf.Columns * w, ty = k / vf.Columns * h, n = 0;
+                    int tx = vf.TileX(k), ty = TileTop(vf, vf.TileY(k)), n = 0;
                     for (int row = 0; row < h && n < bestDiffer; row += 2)
                         for (int col = 0; col < w; col += 2)
                         {
-                            int srow = StripRowsBottomFirst ? ty + (h - 1 - row) : ty + row;
+                            int srow = verifyBottomFirst ? ty + (h - 1 - row) : ty + row;
                             byte* p = a + ((long)row * w + col) * 4, q = st + ((long)srow * sw + tx + col) * 4;
                             int d = 0;
                             for (int c = 0; c < 3; c++) d = Math.Max(d, Math.Abs((verifyBgra ? p[2 - c] : p[c]) - q[c]));
@@ -405,9 +411,9 @@ namespace OniMoono.Desktop.Vulkan
                         }
                     }
                     Write("vk-shown.ppm", a, verifyBgra, false);
-                    Write("vk-tile.ppm", b, false, StripRowsBottomFirst);
+                    Write("vk-tile.ppm", b, false, verifyBottomFirst);
                 }
-                EngineLog.Engine($"loading animation: replay check: the first replayed frame against the frame shown, {differ} of {w * h} pixels differ by more than 2 (largest difference {largest})");
+                EngineLog.Engine($"loading animation: replay check: the first replayed frame against the frame shown, {differ} of {w * h} pixels differ by more than 2 (largest difference {largest}){(samples != null ? $"; shown against replayed, RGBA, rows top first:{samples}" : "")}");
             }
             finally
             {

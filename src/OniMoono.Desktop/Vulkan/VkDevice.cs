@@ -273,7 +273,7 @@ namespace OniMoono.Desktop.Vulkan
 
         // ----- Targets, viewport, clears (main thread records) -----
 
-        sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int BackBufferWidth, int BackBufferHeight);
+        sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int BackBufferWidth, int BackBufferHeight, bool ScreenRows = false);
 
         public override void SetRenderTarget(in RenderTargetBinding binding)
         {
@@ -285,9 +285,11 @@ namespace OniMoono.Desktop.Vulkan
                 for (int i = 0; i < colors.Length; i++) colors[i] = binding.Colors[i] == null ? null : GlTextures.Prepare(worker, binding.Colors[i]);
                 if (binding.Depth != null) depth = binding.Depth == binding.Colors[0] ? colors[0] : GlTextures.Prepare(worker, binding.Depth);
             }
-            var bound = new BoundTarget(colors, depth, platform.FramebufferWidth, platform.FramebufferHeight);
-            // Unity's Vulkan programs render into render textures upside down (RenderConventions).
-            recorder.Conventions = new RenderConventions(Vulkan: true, Flipped: colors != null);
+            // Unity's Vulkan programs render into render textures upside down (RenderConventions),
+            // but for one rendered as the back buffer is (ScreenRows).
+            bool screenRows = colors != null && binding.Colors[0].ScreenRows;
+            var bound = new BoundTarget(colors, depth, platform.FramebufferWidth, platform.FramebufferHeight, screenRows);
+            recorder.Conventions = new RenderConventions(Vulkan: true, Flipped: colors != null && !screenRows);
             worker.Post(worker.Arena.Command(setTarget ??= SetTarget, bound));
         }
 
@@ -514,6 +516,39 @@ namespace OniMoono.Desktop.Vulkan
         public override void FlushRecorded() => worker.Submit();
 
         public override bool AnimatesLoading => true;
+
+        public override bool CopiesTargetRects => true;
+
+        public override void CopyTargetRect(RenderTextureNative source, RectInt from, RenderTextureNative target, Vector2Int to)
+        {
+            if (source.ScreenRows != target.ScreenRows) throw new ArgumentException("the textures are rendered the other way round from each other");
+            var src = GlTextures.Prepare(worker, source);
+            var dst = GlTextures.Prepare(worker, target);
+            worker.Post(() =>
+            {
+                var s = src.Vk;
+                var d = dst.Vk;
+                if (deviceLost || s?.Image == null || d?.Image == null || s.DepthOnly || d.DepthOnly) return;
+                var cb = OutsideRendering();
+                PrepareForSampling(cb, s, autoGenerateMips: false);
+                s.Image.ForTransferRead(cb);
+                d.Image.ForTransferWrite(cb);
+                // Rows from the bottom as stored: turned over in a texture stored top first.
+                int sy = source.ScreenRows ? s.Image.Height - (from.y + from.height) : from.y;
+                int dy = target.ScreenRows ? d.Image.Height - (to.y + from.height) : to.y;
+                var region = new VkImageCopy
+                {
+                    SrcSubresource = new VkImageSubresourceLayers { AspectMask = VkImageAspectFlags.ColorBit, LayerCount = 1 },
+                    DstSubresource = new VkImageSubresourceLayers { AspectMask = VkImageAspectFlags.ColorBit, LayerCount = 1 },
+                    SrcOffset = new VkOffset3D(from.x, sy, 0),
+                    DstOffset = new VkOffset3D(to.x, dy, 0),
+                    Extent = new VkExtent3D(from.width, from.height, 1),
+                };
+                vk.Device.PInvoke.vkCmdCopyImage.Invoke(cb.Handle, s.Image.Image, VkImageLayout.TransferSrcOptimal, d.Image.Image, VkImageLayout.TransferDstOptimal, 1, &region);
+                s.LastUsedBatch = d.LastUsedBatch = frames.Batch;
+                d.Dirty = true;
+            });
+        }
 
         /// After the commands that render the loading screen's kanim frames (render thread): the
         /// strip resolved and left in TransferSrcOptimal, the batch submitted, then the frames

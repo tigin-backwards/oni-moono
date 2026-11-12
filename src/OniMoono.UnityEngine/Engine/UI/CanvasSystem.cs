@@ -1946,7 +1946,9 @@ namespace OniMoono.Engine.UI
         /// The overlay canvases as the last frame drew them, again, into `tile` of `target`:
         /// the screen's pixels `area` (rows bottom first) scaled to the tile (LoadingScreen's
         /// kanim frames). `clear`: the whole target is cleared first, to opaque black. Meshes
-        /// merged for it are made anew, not kept, as for the pixel check below.
+        /// merged for it are made anew, not kept, as for the pixel check below. A tile at the
+        /// area's own place is drawn with the screen's viewport and projection, kept to the
+        /// area by the scissor, so every draw goes where it went on the screen.
         internal static void RenderOverlaysInto(RenderDevice device, RenderTextureNative target, RectInt tile, RectInt area, bool clear)
         {
             FrameRenderer.Bind(device, RenderTargetBinding.Of(target));
@@ -1955,10 +1957,21 @@ namespace OniMoono.Engine.UI
                 device.SetViewport(new Rect(0f, 0f, target.Width, target.Height));
                 device.Clear(true, true, new Color(0f, 0f, 0f, 1f), 1f);
             }
-            device.SetViewport(new Rect(tile.x, tile.y, tile.width, tile.height));
-            // The target's size is the area's, as the projection's: shaders that size pixels from
-            // both (TextMesh Pro's SDF edges, pixel snapping) see the screen's pixels.
-            device.SetCamera(new CameraConstants(Matrix4x4.identity, Matrix4x4.Ortho(area.xMin, area.xMax, area.yMin, area.yMax, -1000f, 1000f), Vector3.zero, -1000f, 1000f, true, new Vector2(area.width, area.height)));
+            bool inPlace = tile.Equals(area);
+            if (inPlace)
+            {
+                var size = ScreenSize;
+                device.SetViewport(new Rect(0f, 0f, size.x, size.y));
+                device.SetScissor(new Rect(area.x, area.y, area.width, area.height));
+                device.SetCamera(new CameraConstants(Matrix4x4.identity, Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f), Vector3.zero, -1000f, 1000f, true, size));
+            }
+            else
+            {
+                device.SetViewport(new Rect(tile.x, tile.y, tile.width, tile.height));
+                // The target's size is the area's, as the projection's: shaders that size pixels
+                // from both (TextMesh Pro's SDF edges, pixel snapping) see the screen's pixels.
+                device.SetCamera(new CameraConstants(Matrix4x4.identity, Matrix4x4.Ortho(area.xMin, area.xMax, area.yMin, area.yMax, -1000f, 1000f), Vector3.zero, -1000f, 1000f, true, new Vector2(area.width, area.height)));
+            }
             freshMeshes = true;
             try
             {
@@ -1968,6 +1981,7 @@ namespace OniMoono.Engine.UI
             finally
             {
                 freshMeshes = false;
+                if (inPlace) device.SetScissor(null);
             }
         }
 

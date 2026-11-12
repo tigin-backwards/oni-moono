@@ -191,6 +191,14 @@ namespace OniMoono.Engine.Rendering
         /// so far, go to the presenter once those have run (LoadingScreen; main thread).
         public virtual void HandOverLoadingFrames(LoadingScreen.KanimFrames frames) => frames.Done = true;
 
+        /// The device copies rectangles between render textures (CopyTargetRect).
+        public virtual bool CopiesTargetRects => false;
+
+        /// Copies `source`'s pixels `from` into `target` at `to` (rectangles from the bottom left,
+        /// as viewports), both rendered the same way round (ScreenRows), in order with the draws
+        /// recorded around it (main thread). Only where CopiesTargetRects.
+        public virtual void CopyTargetRect(RenderTextureNative source, RectInt from, RenderTextureNative target, Vector2Int to) => throw new NotSupportedException();
+
         /// Its presenter animates the loading screen during a save load (LoadingScreen): the
         /// kanim frames are rendered only for a device that shows them.
         public virtual bool AnimatesLoading => false;

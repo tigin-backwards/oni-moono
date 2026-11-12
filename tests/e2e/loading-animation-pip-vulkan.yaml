@@ -14,7 +14,8 @@ env: {ONI_TWEAK_VERIFY: "1"}
 steps:
   - expect_state:
       "type:OniMoono.Host.GameTweaks.LoadingAnimation::Replayed": ">= 1"
-      # Exact on a GPU (Windows); Mesa's software Vulkan (llvmpipe, this machine's lanes) draws
-      # about 20 of 118,680 edge pixels of the render texture up to 7 of 255 apart.
-      "type:OniMoono.Host.GameTweaks.LoadingAnimation::LastReplayDiffer": "< 120"
+      # Exact on Mesa's software Vulkan (llvmpipe) too: each frame is drawn where the screen
+      # drew it, rows top first, and copied into its tile. Drawn into the tile itself, upside
+      # down, 16-175 pixels came out up to 8 of 255 apart, depending on the frame.
+      "type:OniMoono.Host.GameTweaks.LoadingAnimation::LastReplayDiffer": 0
       "type:OniMoono.Host.GameTweaks.LoadingAnimation::LastRedraws": "> 60"

@@ -71,6 +71,9 @@ namespace OniMoono.Engine
         {
             public RenderTextureNative Strip;
             public int Count, Columns, TileWidth, TileHeight;
+            /// Where tile `k` is in the strip (pixels, rows bottom first).
+            public int TileX(int k) => k % Columns * TileWidth;
+            public int TileY(int k) => k / Columns * TileHeight;
             public RectInt Area;
             public int ScreenWidth, ScreenHeight;
             /// The tile the screen showed when they were rendered (the kanim's frame then).
@@ -128,6 +131,18 @@ namespace OniMoono.Engine
             }
             var strip = RenderTexture.Describe(columns * tileW, rows * tileH, 24, RenderTextureFormat.ARGB32);
             strip.Name = "loading animation frames";
+            // Where the device copies rectangles between render textures (Vulkan), each frame is
+            // drawn where the screen drew it, into a target of the screen's height (`spot`), and
+            // its area copied into its tile: Mesa's software rasteriser (llvmpipe) puts a few
+            // edge pixels differently when the same draws land elsewhere in a target, even moved
+            // by whole pixels. Both are rendered as the screen is (ScreenRows), rows top first.
+            RenderTextureNative spot = null;
+            if (device.CopiesTargetRects && tileW == area.width && tileH == area.height)
+            {
+                spot = RenderTexture.Describe(area.xMax, screenH, 24, RenderTextureFormat.ARGB32);
+                spot.Name = "loading animation frame";
+                spot.ScreenRows = strip.ScreenRows = true;
+            }
             var frames = new KanimFrames
             {
                 Strip = strip, Count = count, Columns = columns, TileWidth = tileW, TileHeight = tileH, Area = area,
@@ -136,17 +151,28 @@ namespace OniMoono.Engine
             float original = ReadFloat(instanceData, frameOffset);
             int rendered = 0;
             bool over = false;
+            double firstMs = 0;
             try
             {
                 for (int k = 0; k < count; k++)
                 {
                     WriteFloat(instanceData, frameOffset, first + k);
                     instanceData.Apply(false);
-                    var tile = new RectInt(k % columns * tileW, k / columns * tileH, tileW, tileH);
-                    UI.CanvasSystem.RenderOverlaysInto(device, strip, tile, area, clear: k == 0);
+                    var tile = new RectInt(frames.TileX(k), frames.TileY(k), tileW, tileH);
+                    if (spot != null)
+                    {
+                        UI.CanvasSystem.RenderOverlaysInto(device, spot, area, area, clear: true);
+                        device.CopyTargetRect(spot, area, strip, tile.position);
+                    }
+                    else UI.CanvasSystem.RenderOverlaysInto(device, strip, tile, area, clear: k == 0);
                     rendered++;
-                    // The first frame's cost, times the frames, past the budget: stop now.
-                    if (k == 0 && clock.Elapsed.TotalMilliseconds * count > BudgetMs * 1.5 || clock.Elapsed.TotalMilliseconds > BudgetMs)
+                    // The frames' cost foreseen past the budget: stop now. The first frame carries
+                    // one-off work (on llvmpipe up to 6-12 ms, against about 1 ms for each frame
+                    // after it), so the forecast is the first frame plus the second's cost for
+                    // each frame after it.
+                    double ms = clock.Elapsed.TotalMilliseconds;
+                    if (k == 0) firstMs = ms;
+                    if (ms > BudgetMs || k == 1 && firstMs + (ms - firstMs) * (count - 1) > BudgetMs * 1.5)
                     {
                         over = true;
                         break;
@@ -158,6 +184,7 @@ namespace OniMoono.Engine
                 WriteFloat(instanceData, frameOffset, original);
                 instanceData.Apply(false);
                 UI.CanvasSystem.RestoreScreenBinding(device);
+                Release(spot);
             }
             LastRenderMs = clock.Elapsed.TotalMilliseconds;
             LastRenderedFrames = rendered;

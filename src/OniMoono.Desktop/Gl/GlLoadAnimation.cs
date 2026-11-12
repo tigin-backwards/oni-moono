@@ -264,7 +264,7 @@ namespace OniMoono.Desktop.Gl
                 N.glFramebufferTexture2D(ReadFramebuffer, ColorAttachment0, TexTarget2D, stripTexture, 0);
             }
             else GlApi.BindFramebuffer(ReadFramebuffer, readFramebuffer);
-            int sx = index % f.Columns * f.TileWidth, sy = index / f.Columns * f.TileHeight;
+            int sx = f.TileX(index), sy = f.TileY(index);
             // The area in window pixels: the frame shown is stretched over the window too.
             double kx = (double)width / f.ScreenWidth, ky = (double)height / f.ScreenHeight;
             int x0 = (int)Math.Round(f.Area.xMin * kx), x1 = (int)Math.Round(f.Area.xMax * kx);
@@ -297,7 +297,7 @@ namespace OniMoono.Desktop.Gl
             GlApi.BindFramebuffer(ReadFramebuffer, target);
             fixed (byte* p = shownPixels) N.glReadPixels(x, y, w, h, Rgba, UnsignedByte, p);
             GlApi.BindFramebuffer(ReadFramebuffer, readFramebuffer);
-            int sx = f.Start % f.Columns * w, sy = f.Start / f.Columns * h;
+            int sx = f.TileX(f.Start), sy = f.TileY(f.Start);
             fixed (byte* p = tilePixels) N.glReadPixels(sx, sy, w, h, Rgba, UnsignedByte, p);
             int differ = 0, largest = 0, bx0 = w, by0 = h, bx1 = -1, by1 = -1;
             for (int row = 0; row < h; row++)
