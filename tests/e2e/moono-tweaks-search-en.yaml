@@ -16,14 +16,15 @@ steps:
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
   - shot: search-empty
   - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel"}
-  # "screen": eight rows, in General, Graphics & overlays, Simulation (compact-report-history's
-  # "reports screen"), Saving (post-load-gc's "loading screen"), Changes gameplay and Bug fixes
-  # (fix-timelapse-snapshots' "the screen's wider view").
+  # "screen": nine rows, in General (loading-animation's "loading screen"), Graphics & overlays,
+  # Simulation (compact-report-history's "reports screen"), Saving (post-load-gc's "loading
+  # screen"), Changes gameplay and Bug fixes (fix-timelapse-snapshots' "the screen's wider view").
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen"}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - expect_ui:
       "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Text": {text: "~screen"}
       "**/MoonoTweaksScreen/**/Content/dxgi": {active: true}
+      "**/MoonoTweaksScreen/**/Content/loading-animation": {active: true}
       "**/MoonoTweaksScreen/**/Content/fast-load-screen": {active: true}
       "**/MoonoTweaksScreen/**/Content/off-screen-conveyors": {active: true}
       "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {active: true}
@@ -40,9 +41,9 @@ steps:
       "**/MoonoTweaksScreen/**/Content/splash": {exists: false}
       "**/MoonoTweaksScreen/**/Content/fast-jobs": {exists: false}
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
-  # The rows and headings shown: eight rows and six headings.
+  # The rows and headings shown: nine rows and six headings.
   - expect_ui:
-      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 14}
+      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 15}
   - shot: search-screen
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "zzqx", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: stable}
