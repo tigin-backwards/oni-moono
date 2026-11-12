@@ -24,6 +24,17 @@ namespace OniMoono.Host
     /// InterfaceTool.GetObjectUnderCursor<KSelectable> and calls it from its SelectTool click
     /// prefix; once the shared code tiered up, the original body ran, which returns the first object
     /// under the cursor every time, so clicks stopped cycling through a stack (issue #48).
+    ///
+    /// The detour may not reach the shared code before that first recompile either: MonoMod
+    /// applies it where its walk from the instantiation's entry point ends. That is the shared code
+    /// when the instantiating stub only adds the instantiation argument and jumps; when the stub
+    /// has to move arguments to the stack (on Windows x64 with more than four arguments counting
+    /// that one, as GetObjectUnderCursor's three, `this` and it; on Linux in other shapes) the walk
+    /// stops at the stub, and code compiled for the instantiation calls the shared code without it. Until the shared code tiered up (30 calls,
+    /// counted only once the JIT has been idle for a while), the original ran: with Fast Track,
+    /// whose click prefix is the only caller, about the first 30 clicks of a session selected the
+    /// topmost object every time (issue #52). Once Harmony has detoured an instantiation (Detoured),
+    /// the host moves the detour onto the shared code's latest compile, as for a recompile.
     internal static class UnboxedMethods
     {
         // CoreCLR 10's MethodDesc (src/coreclr/vm/method.hpp): UINT16 m_wFlags3AndTokenRemainder,
@@ -45,10 +56,15 @@ namespace OniMoono.Host
         static readonly object gate = new();
         // A shared MethodDesc → the patched instantiations it is the code of.
         static readonly Dictionary<IntPtr, List<MethodBase>> instantiationsOf = new();
+        // A shared MethodDesc of a generic method → the latest code the JIT compiled for it.
+        static readonly Dictionary<IntPtr, (IntPtr Start, ulong Size)> sharedCode = new();
         static MethodInfo? onMethodCompiled;
+        static FieldInfo? relatedDetours;
         [ThreadStatic] static bool forwarding;
         /// How many times a patched instantiation's detour was moved onto its recompiled shared code.
         internal static int recompiles;
+        /// How many detours were moved from where MonoMod applied them onto the shared code.
+        internal static int placed;
 
         public static void Install()
         {
@@ -61,6 +77,11 @@ namespace OniMoono.Host
             var harmony = new Harmony("OniMoono.Host.UnboxedMethods");
             harmony.Patch(tryDisable, postfix: new HarmonyMethod(typeof(UnboxedMethods), nameof(Postfix)));
             harmony.Patch(onMethodCompiled, prefix: new HarmonyMethod(typeof(UnboxedMethods), nameof(Recompiled)));
+            relatedDetours = AccessTools.Field(onMethodCompiled.DeclaringType, "relatedDetours")
+                ?? throw new MissingFieldException("MonoMod.Core.Platforms.PlatformTripleDetourFactory+Detour", "relatedDetours");
+            var detourMethod = AccessTools.Method("HarmonyLib.PatchTools:DetourMethod")
+                ?? throw new MissingMethodException("HarmonyLib.PatchTools", "DetourMethod");
+            harmony.Patch(detourMethod, postfix: new HarmonyMethod(typeof(UnboxedMethods), nameof(Detoured)));
         }
 
         static void Postfix(MethodBase method, bool __result)
@@ -109,6 +130,8 @@ namespace OniMoono.Host
         /// code of, so their detours follow.
         static void Recompiled(RuntimeMethodHandle methodHandle, IntPtr codeStart, IntPtr codeStartRw, ulong codeSize)
         {
+            if (IsSharedCode(methodHandle.Value))
+                lock (gate) sharedCode[methodHandle.Value] = (codeStart, codeSize);
             if (forwarding) return;
             MethodBase[] patched;
             lock (gate)
@@ -129,6 +152,71 @@ namespace OniMoono.Host
             {
                 forwarding = false;
             }
+        }
+
+        /// Postfix of Harmony's PatchTools.DetourMethod (under Harmony's lock): when `method` is an
+        /// instantiation whose shared code has been compiled and MonoMod applied the detour
+        /// elsewhere (on Windows, at the instantiating stub), the detour moves onto the shared code,
+        /// as for a recompile. The code is written in place (no writable alias: the JIT's alias of
+        /// it is gone once that compile finished). A shared code not compiled yet is detoured as it
+        /// is compiled (Recompiled).
+        static void Detoured(MethodBase method)
+        {
+            if (forwarding) return;
+            IntPtr handle;
+            try
+            {
+                handle = method.MethodHandle.Value;
+            }
+            catch (Exception) // no handle (a dynamic method)
+            {
+                return;
+            }
+            var shared = Shared(handle);
+            if (shared == IntPtr.Zero) return;
+            (IntPtr Start, ulong Size) code;
+            lock (gate)
+                if (!instantiationsOf.TryGetValue(shared, out var list) || !list.Contains(method) || !sharedCode.TryGetValue(shared, out code)) return;
+            if (DetourSources(method).Contains(code.Start)) return;
+            forwarding = true;
+            try
+            {
+                onMethodCompiled!.Invoke(null, [method.MethodHandle, method, code.Start, IntPtr.Zero, code.Size]);
+                Interlocked.Increment(ref placed);
+            }
+            finally
+            {
+                forwarding = false;
+            }
+        }
+
+        /// Where MonoMod's detours of `method` are applied (PlatformTripleDetourFactory.Detour's
+        /// table of related detours: each ManagedDetourBox's SimpleNativeDetour).
+        internal static List<IntPtr> DetourSources(MethodBase method)
+        {
+            var found = new List<IntPtr>();
+            if (relatedDetours?.GetValue(null) is not System.Collections.IDictionary bags) return found;
+            foreach (System.Collections.DictionaryEntry entry in bags)
+            {
+                if (entry.Key is not MethodBase key || key is System.Reflection.Emit.DynamicMethod || entry.Value == null || key.MethodHandle != method.MethodHandle) continue;
+                lock (entry.Value)
+                {
+                    if (AccessTools.Field(entry.Value.GetType(), "RelatedDetours")?.GetValue(entry.Value) is not System.Collections.IEnumerable boxes) continue;
+                    foreach (var box in boxes)
+                    {
+                        var detour = AccessTools.Field(box.GetType(), "Detour")?.GetValue(box);
+                        if (detour != null && AccessTools.Property(detour.GetType(), "Source")?.GetValue(detour) is IntPtr source) found.Add(source);
+                    }
+                }
+            }
+            return found;
+        }
+
+        /// A generic method's shared code (`GetObjectUnderCursor<__Canon>`).
+        static unsafe bool IsSharedCode(IntPtr methodDesc)
+        {
+            byte* p = (byte*)methodDesc;
+            return (*(ushort*)(p + Flags) & ClassificationMask) == Instantiated && (*(ushort*)(p + Flags2) & KindMask) == SharedInstantiation;
         }
 
         /// The shared MethodDesc an instantiating stub wraps, or zero for any other MethodDesc.

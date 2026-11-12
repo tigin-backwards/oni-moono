@@ -1043,7 +1043,7 @@ namespace OniMoono.Host
                 return prefixedG - before == 100 ? "the prefix runs from code compiled after the patch"
                     : throw new InvalidOperationException($"Pick<Selectable>'s prefix ran {prefixedG - before} of 100 calls");
             });
-            Check("A Harmony prefix on a generic method over a reference type, after its shared code tiers up (UnboxedMethods)", () =>
+            Check("A Harmony prefix on a generic method over a reference type, before and after its shared code tiers up (UnboxedMethods)", () =>
             {
                 UnboxedMethods.Install();
                 // Pick<T> is patched for one class, as Fast Track patches
@@ -1051,20 +1051,26 @@ namespace OniMoono.Host
                 // tiered compilation recompiles its shared code (Pick<__Canon>), as Fast Track's click
                 // prefix did some 40 clicks into a session (issue #48). MonoMod moves a detour onto a
                 // method's new code by the method compiled, and without the host the shared code's
-                // compile found none: the prefix stopped running.
+                // compile found none: the prefix stopped running. Before that, on Windows, MonoMod's
+                // detour was at the instantiating stub, which code compiled for Pick<Selectable> does
+                // not call: the prefix ran from the recompile on only, as Fast Track's ran from about
+                // the 30th click of a session (issue #52).
                 var module = System.Reflection.Emit.AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("OniMoono.Host.GenericTierCheck"),
                     System.Reflection.Emit.AssemblyBuilderAccess.Run).DefineDynamicModule("GenericTierCheck");
                 var selectable = module.DefineType("Selectable", TypeAttributes.Public | TypeAttributes.Class);
                 selectable.DefineDefaultConstructor(MethodAttributes.Public);
                 var selectableType = selectable.CreateType();
                 var type = module.DefineType("Generic", TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
-                var pick = type.DefineMethod("Pick", MethodAttributes.Public | MethodAttributes.Static, typeof(int), [typeof(int)]);
+                // Four arguments and the instantiation argument, as GetObjectUnderCursor's three and
+                // `this`: on Windows x64 the instantiating stub then moves arguments to the stack, and
+                // MonoMod's walk stops at it (with fewer it walks through to the shared code).
+                var pick = type.DefineMethod("Pick", MethodAttributes.Public | MethodAttributes.Static, typeof(int), [typeof(int), typeof(int), typeof(int), typeof(int)]);
                 pick.DefineGenericParameters("T")[0].SetBaseTypeConstraint(selectableType);
                 var il = pick.GetILGenerator();
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0); il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_3); il.Emit(System.Reflection.Emit.OpCodes.Mul); il.Emit(System.Reflection.Emit.OpCodes.Ret);
                 var caller = type.DefineMethod("Caller", MethodAttributes.Public | MethodAttributes.Static, typeof(int), [typeof(int)]);
                 il = caller.GetILGenerator();
-                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+                for (int i = 0; i < 4; i++) il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
                 il.Emit(System.Reflection.Emit.OpCodes.Call, pick.MakeGenericMethod(selectableType));
                 il.Emit(System.Reflection.Emit.OpCodes.Ret);
                 var generic = type.CreateType();
@@ -1074,6 +1080,10 @@ namespace OniMoono.Host
                 // Tier 1 compiles a method after 30 calls once a 100 ms delay without new tier-0
                 // compiles has passed, in the background: 2 s of calls covers it on a loaded machine.
                 int recompiles = UnboxedMethods.recompiles;
+                int first = prefixedG;
+                for (int i = 0; i < 10; i++) run.Invoke(null, [i]);
+                if (prefixedG - first != 10)
+                    throw new InvalidOperationException($"before the shared code was recompiled, Pick<Selectable>'s prefix ran {prefixedG - first} of 10 calls");
                 var clock = System.Diagnostics.Stopwatch.StartNew();
                 while (clock.Elapsed.TotalSeconds < 2)
                 {
@@ -1082,7 +1092,7 @@ namespace OniMoono.Host
                 }
                 int before = prefixedG;
                 for (int i = 0; i < 100; i++) run.Invoke(null, [i]);
-                return prefixedG - before == 100 ? $"the prefix runs after the shared code was recompiled ({UnboxedMethods.recompiles - recompiles} time(s))"
+                return prefixedG - before == 100 ? $"the prefix runs from the first call ({UnboxedMethods.placed} detour(s) moved onto shared code) and after the shared code was recompiled ({UnboxedMethods.recompiles - recompiles} time(s))"
                     : throw new InvalidOperationException($"after the shared code was recompiled, Pick<Selectable>'s prefix ran {prefixedG - before} of 100 calls");
             });
             Check("Harmony patches of two copies of a library naming a generic type over their own types (GenericMemberScopes)", () =>

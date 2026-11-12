@@ -315,14 +315,31 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   `SelectTool.OnLeftClickDown` prefix, falling back to its own cycling; about 40 clicks into a
   session the shared code tiered up and the original body ran, which, given no previous
   selection, returns the first object under the cursor, so clicks on a stack stopped cycling
-  (issue #48). Mono has no unboxing stubs or instantiating stubs, and inlines no method that
-  large. **Resolved by patches** of MonoMod's `PlatformTriple.TryDisableInlining` and
-  `OnMethodCompiled` (`UnboxedMethods`): the unboxed or the shared MethodDesc is marked too
-  (CoreCLR 10's layouts), and a compile of shared code is reported again for each patched
-  instantiation it is the code of, so their detours follow it. The host's `--check-types` patches
-  an emitted value type's `GetHashCode` and fails if dictionary lookups miss after tier-up, and
-  prefixes an emitted generic method over a class and fails if code compiled after the patch, or
-  calls after its shared code tiered up, skip the prefix.
+  (issue #48). Before that recompile the detour could miss the shared code too: MonoMod applies it
+  where its walk from the instantiation's entry point ends, which is the shared code when the
+  instantiating stub only adds the instantiation argument and jumps. When the stub has to move
+  arguments to the stack (on Windows x64 with more than four arguments counting that one, as
+  `GetObjectUnderCursor`'s three, `this` and it; on Linux in other shapes, such as a static method
+  with four), the walk stops at the stub, and code compiled for the instantiation calls the shared
+  code without it. The shared code had been compiled when MonoMod prepared the method, before the
+  detour existed, so the original ran until the first recompile: tiering counts 30 calls, and only
+  once the JIT has been idle for 100 ms, which after a load can take many seconds. Fast Track's
+  click prefix is the method's only caller (its `LateUpdate` replaces the game's), so the first 30
+  or so clicks of each session selected the topmost object every time (issue #52, reported with the
+  automation overlay open; on Linux the walk reaches its shared code, and clicks cycled from the
+  first). Mono has no unboxing stubs or instantiating stubs, and inlines no method that large.
+  **Resolved by patches** of MonoMod's `PlatformTriple.TryDisableInlining` and `OnMethodCompiled`
+  and of Harmony's `PatchTools.DetourMethod` (`UnboxedMethods`): the unboxed or the shared
+  MethodDesc is marked too (CoreCLR 10's layouts); a compile of shared code is reported again for
+  each patched instantiation it is the code of, so their detours follow it; and once Harmony has
+  detoured an instantiation whose shared code is compiled, a detour MonoMod applied elsewhere is
+  moved onto that code, written in place (the JIT's writable alias of the code is gone by then under
+  W^X, so writing through it changed nothing). Cost: a table entry per compile of a generic method's
+  shared code, and a look at MonoMod's detours per patch of an instantiation. The host's
+  `--check-types` patches an emitted value type's `GetHashCode` and fails if dictionary lookups miss
+  after tier-up, and prefixes an emitted generic method over a class and fails if code compiled
+  after the patch, its first ten calls from tier-0 code (a static method of four arguments, whose
+  stub moves arguments on both systems), or calls after its shared code tiered up, skip the prefix.
 - **D14 Mono's enum formatting.** Mods that add elements name their `SimHashes` values by
   patching enum formatting: Mono's private `Enum.InternalFormat(RuntimeType eT, Object value)`, or
   `Enum.ToString()`. In Mono's `system/enum.cs`, `ToString()` is
