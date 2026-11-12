@@ -495,21 +495,6 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.NO_SAVE_GC.DETAIL"
 msgid "Skips the full garbage collection the game asks for after saving."
 msgstr ""
 
-#. Row title (save-read-ahead)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SAVE_READ_AHEAD.TITLE"
-msgid "Read saves ahead"
-msgstr ""
-
-#. The line under the title (save-read-ahead)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SAVE_READ_AHEAD.EFFECT"
-msgid "Loading a colony starts reading and unpacking its save as soon as you pick it."
-msgstr ""
-
-#. Tooltip: how it works (save-read-ahead)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SAVE_READ_AHEAD.DETAIL"
-msgid "The picked save is read and decompressed on another thread while you look at it or while loading starts; the load takes the result if the file has not changed since, byte for byte what it would read itself. Off while another mod changes how saves are read."
-msgstr ""
-
 #. Row title (post-load-gc)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.TITLE"
 msgid "Memory cleanup during loading"

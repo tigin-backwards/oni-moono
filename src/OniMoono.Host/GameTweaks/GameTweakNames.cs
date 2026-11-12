@@ -58,7 +58,7 @@ namespace OniMoono.Host.GameTweaks
             UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
-            PagedPathGrids = "paged-path-grids", SaveReadAhead = "save-read-ahead", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots",
+            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots",
             ExactWorldgen = "exact-worldgen", FastPipeRebuilds = "fast-pipe-rebuilds", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
             FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix", ReleasedSounds = "fix-released-sounds";
 
@@ -166,9 +166,6 @@ namespace OniMoono.Host.GameTweaks
                 "Compression and the file write move to another thread; quitting waits for them."),
             new(NoSaveGc, Saving, "No cleanup pause when saving", "Skips the memory cleanup the game forces after each save, a pause of its own.",
                 "Skips the full garbage collection the game asks for after saving."),
-            new(SaveReadAhead, Saving, "Read saves ahead", "Loading a colony starts reading and unpacking its save as soon as you pick it.",
-                "The picked save is read and decompressed on another thread while you look at it or while loading starts; "
-                + "the load takes the result if the file has not changed since, byte for byte what it would read itself. Off while another mod changes how saves are read."),
             new(PostLoadGc, Saving, "Memory cleanup during loading", "Collects garbage during the loading screen, avoiding a large hitch shortly after the game starts.",
                 "Runs the memory cleanup that would otherwise pause the game about a minute into play at the end of the load, while the game is still paused. "
                 + "Only with Fast garbage collection (the default).", PostLoadGain),
@@ -245,7 +242,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds, ReleasedSounds, SaveReadAhead];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "trim-anim-lists", SoundPiles, TimelapseSnapshots, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds, ReleasedSounds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem) and

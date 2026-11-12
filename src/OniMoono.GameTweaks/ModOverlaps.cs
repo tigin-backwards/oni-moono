@@ -208,7 +208,6 @@ namespace OniMoono.GameTweaks
             Add(FastConveyorPaths.Name, () => new[] { FastConveyorPaths.Guarded() });
             Add(FastAnimEvents.Name, FastAnimEvents.Guarded, FastAnimEvents.KindsOf);
             Add(FastPipeRebuilds.Name, FastPipeRebuilds.Guarded);
-            Add(SaveReadAhead.Name, SaveReadAhead.Guarded, SaveReadAhead.KindsOf);
             return guards;
         }
     }
