@@ -309,4 +309,11 @@ def plan(state):
             starts[job.id] = t
             if u[PERF] and not (job.needs.get('windows') and (state.external.windows or any(e[0][WINDOWS] for e in entries))):
                 drain = True
+        # A due job held up by a perf job outside runq: perf.wanted asks the old perf claimers to
+        # start no new run, so the wait ends with the current one instead of a chain of them.
+        due = job.boost or now - job.order >= float(cfg['due_minutes'].get(job.level, 0)) * 60
+        if gate is None and due and u[LOAD] and state.external.perf:
+            fits_alone = fits_window(u, now, end, entries, cap) is None
+            if fits_alone and fits_window(u, now, end, entries, cap, ext, now):
+                drain = True
     return Plan(grants, reasons, starts, quiet_started, drain, [j.id for j in order])
