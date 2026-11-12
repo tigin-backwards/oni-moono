@@ -46,8 +46,6 @@ namespace OniMoono.Desktop.Vulkan
         readonly GlfwWindow window;
         readonly VkSurfaceKHR surface;
         readonly VkSplash splash;
-        /// The loading screen's animation while a save loads (LoadingScreen, VkLoadAnimation).
-        readonly VkLoadAnimation loading;
         readonly VkBackBuffer[] buffers = [new() { Index = 0 }, new() { Index = 1 }, new() { Index = 2 }];
         readonly VkFormat depthFormat;
         int current;
@@ -121,7 +119,6 @@ namespace OniMoono.Desktop.Vulkan
             this.surface = surface;
             this.splash = splash;
             this.depthFormat = depthFormat;
-            loading = new VkLoadAnimation(vk);
             windowWidth = Math.Max(1, width);
             windowHeight = Math.Max(1, height);
             try
@@ -277,48 +274,6 @@ namespace OniMoono.Desktop.Vulkan
             }
         }
 
-        /// The loading screen's arming changed (main thread, LoadingScreen.Changed).
-        public void Poke()
-        {
-            lock (gate) Monitor.PulseAll(gate);
-        }
-
-        /// The loading screen's kanim frames, their rendering submitted and `image` left in
-        /// TransferSrcOptimal (render thread).
-        public void HandOverLoading(LoadingScreen.KanimFrames frames, VkImageResource image)
-        {
-            lock (gate)
-            {
-                loading.HandOver(frames, image);
-                Monitor.PulseAll(gate);
-            }
-        }
-
-        /// Under the gate: 0 when the loading screen's animation is due over the frame shown now,
-        /// else milliseconds until it may be, -1 never (GlPresenter.LoadingWait).
-        int LoadingWait()
-        {
-            if (!LoadingScreen.Enabled || shown == null || splash != null && splash.Active) return -1;
-            int armed = LoadingScreen.ArmedFrame, overlay = LoadingScreen.OverlayFrame;
-            double idle = loading.IdleMs;
-            if (GlLoadAnimation.Wanted(shown.DrawnFrame, armed, overlay, idle))
-            {
-                loading.Begin(armed, byWatchdog: !(armed >= 0 && shown.DrawnFrame < armed), waitSubmitted ??= WaitSubmitted);
-                return 0;
-            }
-            return GlLoadAnimation.WatchdogDue(shown.DrawnFrame, overlay, idle);
-        }
-
-        Action waitSubmitted;
-
-        /// Waits for every submission of the presenter's slots (presenter thread): what they read
-        /// may then go.
-        void WaitSubmitted()
-        {
-            for (int s = 0; s < Slots; s++)
-                if (submitted[s]) VkCheck.Ok(VkFenceWait.Wait(vk, fences[s], "presenter: before the loading frames go back", s), "vkWaitForFences (presenter)");
-        }
-
         public void WaitIdle()
         {
             lock (gate)
@@ -345,18 +300,6 @@ namespace OniMoono.Desktop.Vulkan
                             }
                             // DXGI: the last frame again once no frame has come for a while
                             // (StallRepeats). The wait is the one there was, timed.
-                            // The loading screen's animation, 30 times a second while a save
-                            // loads; or a timed wait for its watchdog.
-                            else if (LoadingWait() is int loadingWait && loadingWait >= 0)
-                            {
-                                if (loadingWait == 0)
-                                {
-                                    // Windows' default timer resolution would make 33 ms 47.
-                                    if (OperatingSystem.IsWindows() && !timerRaised) timerRaised = Dxgi.timeBeginPeriod(1) == 0;
-                                    if (!Monitor.Wait(gate, loading.WaitMs)) { redraw = true; break; }
-                                }
-                                else Monitor.Wait(gate, loadingWait);
-                            }
                             else if (MayRepeat)
                             {
                                 int ms = stall.WaitMilliseconds(GlTimings.Now);
@@ -478,9 +421,6 @@ namespace OniMoono.Desktop.Vulkan
         {
             if (gameFrame) shown = b;
             if (gameFrame && splash != null && splash.Active) splash.GameFrame();
-            // Nothing is drawn over a game frame; one after the loading screen's ends its animation.
-            if (gameFrame) loading.GameFrame(GlLoadAnimation.Wanted(b.DrawnFrame, LoadingScreen.ArmedFrame, LoadingScreen.OverlayFrame, 0));
-            drawLoading = !gameFrame && b != null && loading.Running && !(splash != null && splash.Active);
             long t = GlTimings.Now;
             lastWait = 0;
             if (OperatingSystem.IsWindows() && dxgiLost && RestartDxgi() is { } restarted) dxgi = restarted;
@@ -493,34 +433,6 @@ namespace OniMoono.Desktop.Vulkan
 
         /// Time the last Show waited for its picture to be on its way (Stopwatch ticks).
         long lastWait;
-
-        /// This picture is a redraw with the loading screen's animation over it.
-        bool drawLoading;
-
-        /// Records the loading screen's kanim tile and bar into `target` (in TransferDstOptimal
-        /// after the frame's copy), leaving it in ColorAttachmentOptimal (presenter thread).
-        VkImageLayout RecordLoading(CommandBuffer cb, VkImage target, VkImageView view, VkFormat format, int width, int height)
-        {
-            loading.TargetFormat(format);
-            double t = loading.RecordKanim(cb, target, width, height);
-            Barrier(cb, target, VkImageLayout.TransferDstOptimal, VkImageLayout.ColorAttachmentOptimal, VkPipelineStageFlags2.AllTransferBit, VkAccessFlags2.TransferWriteBit,
-                VkPipelineStageFlags2.ColorAttachmentOutputBit, VkAccessFlags2.ColorAttachmentReadBit | VkAccessFlags2.ColorAttachmentWriteBit);
-            loading.RecordBar(cb, view, width, height, t);
-            return VkImageLayout.ColorAttachmentOptimal;
-        }
-
-        /// After a redraw's submission to slot `s`: the replay check's copies are compared once
-        /// the slot is done.
-        void AfterLoading(int s)
-        {
-            if (!drawLoading) return;
-            if (loading.VerifyPending)
-            {
-                VkCheck.Ok(VkFenceWait.Wait(vk, fences[s], "presenter: the loading replay check", s), "vkWaitForFences (presenter)");
-                loading.VerifyCompare();
-            }
-            loading.Shown();
-        }
 
         /// The command buffer of the next presenter slot, once its last submission is done.
         CommandBuffer BeginSlot(out int s)
@@ -640,7 +552,6 @@ namespace OniMoono.Desktop.Vulkan
                 layout = VkImageLayout.ColorAttachmentOptimal;
                 splash.Draw(cb, views[index], SwapchainFormat, width, height, s);
             }
-            else if (drawLoading) layout = RecordLoading(cb, target, views[index], SwapchainFormat, width, height);
             Barrier(cb, target, layout, VkImageLayout.PresentSrcKHR, VkPipelineStageFlags2.AllCommandsBit,
                 VkAccessFlags2.TransferWriteBit | VkAccessFlags2.ColorAttachmentWriteBit, VkPipelineStageFlags2.None, 0);
             imageLayouts[index] = VkImageLayout.PresentSrcKHR;
@@ -657,7 +568,6 @@ namespace OniMoono.Desktop.Vulkan
             };
             vk.Queue.Submit2(new Span<VkSubmitInfo2>(&submit, 1), fences[s]);
             submitted[s] = true;
-            AfterLoading(s);
             var sc = swapchain;
             var done = renderDone[index];
             var present = new VkPresentInfoKHR { WaitSemaphoreCount = 1, WaitSemaphores = &done, SwapchainCount = 1, Swapchains = &sc, ImageIndices = &index };
@@ -712,7 +622,6 @@ namespace OniMoono.Desktop.Vulkan
                 layout = VkImageLayout.ColorAttachmentOptimal;
                 splash.Draw(cb, dxgi.View, VkDxgiTarget.Format, width, height, s);
             }
-            else if (drawLoading) layout = RecordLoading(cb, target, dxgi.View, VkDxgiTarget.Format, width, height);
             // Given back to D3D11.
             ExternalBarrier(cb, target, layout, VkImageLayout.General, acquire: false,
                 VkPipelineStageFlags2.AllCommandsBit, VkAccessFlags2.TransferWriteBit | VkAccessFlags2.ColorAttachmentWriteBit, VkPipelineStageFlags2.None, 0);
@@ -731,7 +640,6 @@ namespace OniMoono.Desktop.Vulkan
             // waits for the queue would freeze the game. Nothing handles it.
             vk.Queue.Submit2(new Span<VkSubmitInfo2>(&submit, 1), fences[s]);
             submitted[s] = true;
-            AfterLoading(s);
             if (!dxgi.Show(interval))
             {
                 DxgiFailed();

@@ -78,8 +78,6 @@ namespace OniMoono.Desktop.Gl
 
         /// The player's loading splash, drawn over the window by this thread (null: none).
         readonly GlSplash splash;
-        /// The loading screen's animation while a save loads (LoadingScreen).
-        readonly GlLoadAnimation loading = new();
         // The window's framebuffer size as of the latest frame (GL thread writes): what a redraw
         // between frames fills.
         volatile int windowWidth, windowHeight;
@@ -282,38 +280,6 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
-        /// The loading screen's arming changed (main thread, LoadingScreen.Changed): the wait
-        /// below is timed anew.
-        public void Poke()
-        {
-            lock (gate) Monitor.PulseAll(gate);
-        }
-
-        /// The loading screen's kanim frames, rendered by the commands before this (GL thread).
-        public void HandOverLoading(LoadingScreen.KanimFrames frames, uint texture, GlSync after)
-        {
-            lock (gate)
-            {
-                loading.HandOver(frames, texture, after);
-                Monitor.PulseAll(gate);
-            }
-        }
-
-        /// Under the gate: 0 when the loading screen's animation is due over the frame shown
-        /// now, else how long until it may be (milliseconds), -1 never (no new frame).
-        int LoadingWait()
-        {
-            if (!LoadingScreen.Enabled || shown == null || splash != null && splash.Active) return -1;
-            int armed = LoadingScreen.ArmedFrame, overlay = LoadingScreen.OverlayFrame;
-            double idle = loading.IdleMs;
-            if (GlLoadAnimation.Wanted(shown.DrawnFrame, armed, overlay, idle))
-            {
-                loading.Begin(armed, byWatchdog: !(armed >= 0 && shown.DrawnFrame < armed));
-                return 0;
-            }
-            return GlLoadAnimation.WatchdogDue(shown.DrawnFrame, overlay, idle);
-        }
-
         /// Waits until every frame handed over has been presented.
         public void WaitIdle()
         {
@@ -340,19 +306,6 @@ namespace OniMoono.Desktop.Gl
                             if (splash != null && splash.Active)
                             {
                                 if (!Monitor.Wait(gate, PresenterTimings.SplashWait(target is DxgiTarget))) { redraw = true; break; }
-                            }
-                            // The loading screen's animation, 30 times a second while a save
-                            // loads; or a timed wait for its watchdog.
-                            else if (LoadingWait() is int loadingWait && loadingWait >= 0)
-                            {
-                                if (loadingWait == 0)
-                                {
-                                    // Windows' default timer resolution (15.6 ms) would make a
-                                    // 33 ms wait 47 ms; raised as for the repeats, until the next frame.
-                                    if (OperatingSystem.IsWindows() && !timerRaised) timerRaised = Dxgi.timeBeginPeriod(1) == 0;
-                                    if (!Monitor.Wait(gate, loading.WaitMs)) { redraw = true; break; }
-                                }
-                                else Monitor.Wait(gate, loadingWait);
                             }
                             // DXGI: the last frame again once no frame has come for a while
                             // (StallRepeats). The wait is the one there was, timed.
@@ -551,7 +504,6 @@ namespace OniMoono.Desktop.Gl
             }
             probeFramebuffer = 0;
             splash?.ContextReplaced();
-            loading.ContextReplaced();
         }
 
         /// Makes the target ready for a `width` x `height` picture, its framebuffer bound for
@@ -633,8 +585,6 @@ namespace OniMoono.Desktop.Gl
                 splash.GameFrame();
                 splash.Draw(width, height, flip);
             }
-            // Nothing is drawn over a game frame; one after the loading screen's ends its animation.
-            loading.GameFrame(GlLoadAnimation.Wanted(b.DrawnFrame, LoadingScreen.ArmedFrame, LoadingScreen.OverlayFrame, 0));
             N.glFlush();
             PresenterTimings.Add(ref PresenterTimings.Copy, GlTimings.Now - copyStart);
             if (PresentTrace.Enabled) Probe(b, width, height);
@@ -709,7 +659,7 @@ namespace OniMoono.Desktop.Gl
         void Redraw()
         {
             int width = windowWidth, height = windowHeight;
-            if (PresentTrace.Enabled && !(splash != null && splash.Active) && !loading.Running) PresentTrace.Log($"window contents damaged: frame {shown?.DrawnFrame ?? -1} shown again");
+            if (PresentTrace.Enabled && !(splash != null && splash.Active)) PresentTrace.Log($"window contents damaged: frame {shown?.DrawnFrame ?? -1} shown again");
             bool flip = BeginTarget(width, height);
             if (shown != null)
             {
@@ -723,10 +673,8 @@ namespace OniMoono.Desktop.Gl
                 N.glClear(ColorBufferBit);
             }
             if (splash != null && splash.Active) splash.Draw(width, height, flip);
-            else if (shown != null) loading.Draw(width, height, flip, target.Framebuffer);
             N.glFlush();
             ShowTarget(lastInterval, again: true);
-            loading.Shown();
         }
 
         // ----- Diagnostics (presenter thread) -----

@@ -13,9 +13,6 @@ namespace OniMoono.Engine
     internal static class SceneLoader
     {
         static int pendingBuildIndex = -1;
-
-        /// A scene load is starting (main thread), the scenes it replaces still loaded.
-        public static Action<int> LoadStarting;
         static bool firstSceneLoaded;
 
         static SceneLoader() => PlayerLoop.FrameStart += CompletePendingLoad;
@@ -52,8 +49,6 @@ namespace OniMoono.Engine
         /// Replaces the loaded scenes with build scene `index` (the first scene uses this directly).
         public static SceneRecord LoadNow(int index)
         {
-            // Before anything of the loaded scenes goes (game tweak loading-animation).
-            LoadStarting?.Invoke(index);
             var previous = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             foreach (var old in Scenes.Loaded.ToArray()) Unload(old, notify: true);
 
@@ -96,7 +91,6 @@ namespace OniMoono.Engine
             Time.LevelLoaded();
             Activate(scene);
             StartupStats.Mark($"scene {index} awake and enabled");
-            LoadProgress.Mark(LoadProgress.SceneLoaded);
             EngineLog.Engine($"Loaded scene {scene.Name} ({gameObjects.Count} GameObjects)");
             PlayerLoop.LogVideoMemory($"scene {scene.Name} loaded");
             UnityEngine.SceneManagement.SceneManager.RaiseActiveSceneChanged(previous, scene);
