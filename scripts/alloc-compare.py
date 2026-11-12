@@ -67,7 +67,7 @@ def runq_self_submit(argv, a, s):
     if os.environ.get('RUNQ_JOB') or os.environ.get('RUNQ', '').lower() in ('off', '0', 'no', 'false'):
         return
     runq = os.path.join(ROOT, 'scripts', 'runq')
-    ping = subprocess.run([sys.executable, runq, 'ping'], capture_output=True, text=True)
+    ping = subprocess.run([sys.executable, runq, 'ping', '--caller'], capture_output=True, text=True)
     if ping.returncode:
         print(f'runq: {ping.stderr.strip().removeprefix("runq: ")}; running directly with the old locks', file=sys.stderr)
         return

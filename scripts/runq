@@ -11,7 +11,8 @@
   runq history [--owner X] [--since D]    past jobs
   runq phase --kind K | --needs R         inside a job: give back what it holds, wait for K's resources
   runq beat                               inside a job: a heartbeat (--heartbeat)
-  runq ping                               start the daemon when it is down; exit 0 when it answers
+  runq ping [--caller]                    start the daemon when it is down; exit 0 when it answers
+                                          (--caller: and the calling script's parents hold no old lock)
   runq install                            install the daemon (~/.local/share/oni-runq) and its unit
   runq doctor                             check the database and the unit
 
@@ -588,11 +589,19 @@ def cmd_beat():
     return 0
 
 
-def cmd_ping():
+def cmd_ping(argv=()):
     why = config.disabled()
     if why:
         print(f'runq: off ({why})', file=sys.stderr)
         return EXIT_NO_DAEMON
+    if '--caller' in argv:
+        # A migrated script asks: does the process that runs it hold an old lock already?
+        from runqlib import legacy
+
+        held = legacy.caller_holds(config.legacy_dir(), os.getppid())
+        if held:
+            print(f'runq: the caller holds {held} (an old-style wrapper)', file=sys.stderr)
+            return EXIT_NO_DAEMON
     c = connect()
     reply = c.call({'op': 'ping'})
     print(f'runq {reply.get("version")} pid {reply.get("pid")}')
@@ -640,7 +649,7 @@ def main(argv):
         'history': lambda: cmd_history(rest),
         'phase': lambda: cmd_phase(rest),
         'beat': cmd_beat,
-        'ping': cmd_ping,
+        'ping': lambda: cmd_ping(rest),
         'install': lambda: (install(), 0)[1],
         'doctor': cmd_doctor,
     }
