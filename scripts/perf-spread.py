@@ -336,32 +336,43 @@ def measured(result, phase):
 
 
 def launch_metrics(result):
-    """One launch's numbers: counts as exact per-window values (lists), times as medians."""
+    """One launch's numbers: each count by window (its spread within the launch) and over all its
+    measured windows together (the launch's value), times as the windows' medians. Running counts
+    go per game second and per frame: on a slow renderer each frame gets about the same game time."""
     m = {}
     for phase in ('paused', 'running'):
         ws = measured(result, phase)
         if not ws:
             continue
-        per = (lambda w: w['frames']) if phase == 'paused' else (lambda w: w['game_s'] or 1e-9)
-        unit = 'frame' if phase == 'paused' else 'game s'
-        counts = {
-            f'alloc B a {unit}': [w['alloc_bytes'] / per(w) for w in ws],
-            f'gen0 GCs a {unit}': [w['gc'][0] / per(w) for w in ws],
-            f'gen1+2 GCs a {unit}': [(w['gc'][1] + w['gc'][2]) / per(w) for w in ws],
-            'draws a frame': [w.get('draws') for w in ws],
-            'texture uploads a frame': [w.get('uploads') for w in ws],
-            'upload KB a frame': [w.get('upload_kb') for w in ws],
-        }
+        dens = {'frame': lambda w: w['frames'], 'game s': lambda w: w['game_s'] or 1e-9}
+        units = ['frame'] if phase == 'paused' else ['game s', 'frame']
+        counts, totals = {}, {}
+        for unit in units:
+            den = dens[unit]
+            for key, num in (
+                (f'alloc B a {unit}', lambda w: w['alloc_bytes']),
+                (f'gen0 GCs a {unit}', lambda w: w['gc'][0]),
+                (f'gen1+2 GCs a {unit}', lambda w: w['gc'][1] + w['gc'][2]),
+            ):
+                counts[key] = [num(w) / den(w) for w in ws]
+                totals[key] = sum(num(w) for w in ws) / sum(den(w) for w in ws)
+        for key, name in (('draws a frame', 'draws'), ('texture uploads a frame', 'uploads'), ('upload KB a frame', 'upload_kb')):
+            vals = [w[name] for w in ws if w.get(name) is not None]
+            counts[key] = vals
+            if vals:
+                totals[key] = sum(v * w['frames'] for v, w in zip(vals, ws)) / sum(w['frames'] for w in ws)
+        den = dens[units[0]]
         sites = {}
         for w in ws:
             for k, v in w['sites'].items():
-                sites.setdefault(k, []).append(v / per(w))
+                sites[k] = sites.get(k, 0) + v
+        sites = {k: v / sum(den(w) for w in ws) for k, v in sites.items()}
         times = {}
         for key in ('main_ms', 'frame_ms', 'step_ms', 'sim_ms', 'game_s_per_s'):
             vals = [w[key] for w in ws if w.get(key) is not None]
             if vals:
                 times[key] = statistics.median(vals)
-        m[phase] = {'counts': {k: [x for x in v if x is not None] for k, v in counts.items()}, 'sites': sites, 'times': times}
+        m[phase] = {'counts': counts, 'totals': totals, 'sites': sites, 'times': times}
     return m
 
 
@@ -403,9 +414,10 @@ def summary(argv):
                 continue
             for key in ls[0]['counts']:
                 within = [rel_spread(l['counts'][key]) for l in ls]
-                between = rel_spread([statistics.median(l['counts'][key]) for l in ls if l['counts'][key]])
+                values = [l['totals'][key] for l in ls if key in l['totals']]
+                between = rel_spread(values)
                 counts.setdefault(phase, {}).setdefault(key, {})[label] = {
-                    'median': statistics.median([statistics.median(l['counts'][key]) for l in ls if l['counts'][key]] or [0]),
+                    'median': statistics.median(values or [0]),
                     'within_launch_pct': max([w for w in within if w is not None], default=None),
                     'between_launches_pct': between,
                 }
@@ -413,7 +425,7 @@ def summary(argv):
             names = {}
             for l in ls:
                 for k, v in l['sites'].items():
-                    names.setdefault(k, []).append(statistics.median(v))
+                    names.setdefault(k, []).append(v)
             top = sorted(names.items(), key=lambda kv: -abs(statistics.median(kv[1])))[:12]
             counts[phase].setdefault('sections', {})[label] = {k: {'median': statistics.median(v), 'between_launches_pct': rel_spread(v)} for k, v in top}
     s['counts'] = counts
