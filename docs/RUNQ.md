@@ -160,7 +160,10 @@ Until no script takes them directly, runq and the old locks see each other:
   running `qa.sh` (15 GB) and the sweep and measurement scripts `e2e.py` calls perf jobs.
   `runq status` lists them under OUTSIDE RUNQ.
 - While a perf job waits for load to end, the daemon writes its own pid to `perf.wanted`, so old
-  spec runners start no new spec.
+  spec runners start no new spec. It does the same once a job is due and only a perf job outside
+  runq holds it up, so the old perf claimers start no new run and the wait ends with theirs.
+- A migrated script whose caller already holds `perf.lock`, `windows-game.lock` or `perf.wanted`
+  (an old-style wrapper, `flock -x perf.lock scripts/qa.sh`) runs directly, as before.
 
 ## The daemon
 
