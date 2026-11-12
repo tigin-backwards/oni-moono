@@ -956,6 +956,34 @@ typedef EVT_HANDLE (WINAPI *evt_create_render_context_fn)(DWORD, LPCWSTR *, DWOR
 typedef BOOL (WINAPI *evt_render_fn)(EVT_HANDLE, EVT_HANDLE, DWORD, DWORD, PVOID, PDWORD, PDWORD);
 typedef BOOL (WINAPI *evt_close_fn)(EVT_HANDLE);
 
+typedef struct
+{
+    HMODULE module;
+    evt_query_fn query;
+    evt_next_fn next;
+    evt_create_render_context_fn context_of;
+    evt_render_fn render;
+    evt_close_fn close;
+} evt_t;
+
+/* wevtapi.dll from the system folder, and its functions; 0 when any is missing (none loaded). */
+static int evt_load(evt_t *evt)
+{
+    wchar_t system[MAX_PATH], dll[MAX_PATH];
+    if (!GetSystemDirectoryW(system, MAX_PATH)) return 0;
+    swprintf_s(dll, MAX_PATH, L"%ls\\wevtapi.dll", system);
+    evt->module = LoadLibraryW(dll);
+    if (!evt->module) return 0;
+    evt->query = (evt_query_fn)GetProcAddress(evt->module, "EvtQuery");
+    evt->next = (evt_next_fn)GetProcAddress(evt->module, "EvtNext");
+    evt->context_of = (evt_create_render_context_fn)GetProcAddress(evt->module, "EvtCreateRenderContext");
+    evt->render = (evt_render_fn)GetProcAddress(evt->module, "EvtRender");
+    evt->close = (evt_close_fn)GetProcAddress(evt->module, "EvtClose");
+    if (evt->query && evt->next && evt->context_of && evt->render && evt->close) return 1;
+    FreeLibrary(evt->module);
+    return 0;
+}
+
 static wchar_t wer_module[64], wer_version[32], wer_path[PATH_MOST];
 static ULONG64 wer_offset;
 static LONG wer_fast_fail = -1;
@@ -1025,66 +1053,142 @@ static int wer_record(DWORD code)
     if (!GetProcessTimes(game, &created, &ended, &kernel, &user)) return 0;
     ULONG64 created_at = ((ULONG64)created.dwHighDateTime << 32) | created.dwLowDateTime;
     DWORD pid = GetProcessId(game);
-    wchar_t system[MAX_PATH], dll[MAX_PATH];
-    if (!GetSystemDirectoryW(system, MAX_PATH)) return 0;
-    swprintf_s(dll, MAX_PATH, L"%ls\\wevtapi.dll", system);
-    HMODULE wevtapi = LoadLibraryW(dll);
-    if (!wevtapi) return 0;
-    evt_query_fn query = (evt_query_fn)GetProcAddress(wevtapi, "EvtQuery");
-    evt_next_fn next = (evt_next_fn)GetProcAddress(wevtapi, "EvtNext");
-    evt_create_render_context_fn context_of = (evt_create_render_context_fn)GetProcAddress(wevtapi, "EvtCreateRenderContext");
-    evt_render_fn render = (evt_render_fn)GetProcAddress(wevtapi, "EvtRender");
-    evt_close_fn close = (evt_close_fn)GetProcAddress(wevtapi, "EvtClose");
+    evt_t evt;
+    if (!evt_load(&evt)) return 0;
     int found = 0;
-    if (query && next && context_of && render && close)
+    enum { PID, CREATED, CODE, MODULE, VERSION, OFFSET, PATH, VALUES };
+    LPCWSTR paths[VALUES] = {
+        L"Event/EventData/Data[@Name='ProcessId']", L"Event/EventData/Data[@Name='ProcessCreationTime']",
+        L"Event/EventData/Data[@Name='ExceptionCode']", L"Event/EventData/Data[@Name='ModuleName']",
+        L"Event/EventData/Data[@Name='ModuleVersion']", L"Event/EventData/Data[@Name='FaultingOffset']",
+        L"Event/EventData/Data[@Name='ModulePath']",
+    };
+    EVT_HANDLE context = evt.context_of(VALUES, paths, EvtRenderContextValues);
+    static BYTE buffer[16384];
+    for (int attempt = 0; context && !found && attempt < 16; attempt++)
     {
-        enum { PID, CREATED, CODE, MODULE, VERSION, OFFSET, PATH, VALUES };
-        LPCWSTR paths[VALUES] = {
-            L"Event/EventData/Data[@Name='ProcessId']", L"Event/EventData/Data[@Name='ProcessCreationTime']",
-            L"Event/EventData/Data[@Name='ExceptionCode']", L"Event/EventData/Data[@Name='ModuleName']",
-            L"Event/EventData/Data[@Name='ModuleVersion']", L"Event/EventData/Data[@Name='FaultingOffset']",
-            L"Event/EventData/Data[@Name='ModulePath']",
-        };
-        EVT_HANDLE context = context_of(VALUES, paths, EvtRenderContextValues);
-        static BYTE buffer[16384];
-        for (int attempt = 0; context && !found && attempt < 16; attempt++)
+        if (attempt) Sleep(250);
+        EVT_HANDLE results = evt.query(NULL, L"Application",
+            L"*[System[Provider[@Name='Application Error'] and EventID=1000 and TimeCreated[timediff(@SystemTime) <= 600000]]]",
+            EvtQueryChannelPath | EvtQueryReverseDirection);
+        if (!results) break;
+        EVT_HANDLE events[16];
+        DWORD count = 0;
+        while (!found && evt.next(results, 16, events, 0, 0, &count))
         {
-            if (attempt) Sleep(250);
-            EVT_HANDLE results = query(NULL, L"Application",
-                L"*[System[Provider[@Name='Application Error'] and EventID=1000 and TimeCreated[timediff(@SystemTime) <= 600000]]]",
-                EvtQueryChannelPath | EvtQueryReverseDirection);
-            if (!results) break;
-            EVT_HANDLE events[16];
-            DWORD count = 0;
-            while (!found && next(results, 16, events, 0, 0, &count))
+            for (DWORD i = 0; i < count; i++)
             {
-                for (DWORD i = 0; i < count; i++)
+                DWORD used = 0, values = 0;
+                if (!found && evt.render(context, events[i], EvtRenderEventValues, sizeof buffer, buffer, &used, &values) && values == VALUES)
                 {
-                    DWORD used = 0, values = 0;
-                    if (!found && render(context, events[i], EvtRenderEventValues, sizeof buffer, buffer, &used, &values) && values == VALUES)
+                    const EVT_VARIANT *v = (const EVT_VARIANT *)buffer;
+                    ULONG64 at = evt_number(&v[CREATED]);
+                    if (evt_number(&v[PID]) == pid && (at == created_at || at == 0)
+                        && evt_number(&v[CODE]) == code && evt_string(&v[MODULE])[0])
                     {
-                        const EVT_VARIANT *v = (const EVT_VARIANT *)buffer;
-                        ULONG64 at = evt_number(&v[CREATED]);
-                        if (evt_number(&v[PID]) == pid && (at == created_at || at == 0)
-                            && evt_number(&v[CODE]) == code && evt_string(&v[MODULE])[0])
-                        {
-                            wcsncpy_s(wer_module, _countof(wer_module), evt_string(&v[MODULE]), _TRUNCATE);
-                            wcsncpy_s(wer_version, _countof(wer_version), evt_string(&v[VERSION]), _TRUNCATE);
-                            wcsncpy_s(wer_path, _countof(wer_path), evt_string(&v[PATH]), _TRUNCATE);
-                            wer_offset = evt_number(&v[OFFSET]);
-                            found = 1;
-                        }
+                        wcsncpy_s(wer_module, _countof(wer_module), evt_string(&v[MODULE]), _TRUNCATE);
+                        wcsncpy_s(wer_version, _countof(wer_version), evt_string(&v[VERSION]), _TRUNCATE);
+                        wcsncpy_s(wer_path, _countof(wer_path), evt_string(&v[PATH]), _TRUNCATE);
+                        wer_offset = evt_number(&v[OFFSET]);
+                        found = 1;
                     }
-                    close(events[i]);
                 }
+                evt.close(events[i]);
             }
-            close(results);
         }
-        if (context) close(context);
+        evt.close(results);
     }
-    FreeLibrary(wevtapi);
+    if (context) evt.close(context);
+    FreeLibrary(evt.module);
     if (found && code == STATUS_STACK_BUFFER_OVERRUN_CODE && wer_path[0]) wer_fast_fail = fast_fail_code(wer_path, wer_offset);
     return found;
+}
+
+/* ---- NVIDIA's OpenGL driver's own record ------------------------------------------------------ */
+
+/* NVIDIA's OpenGL driver ends a process it cannot go on with (a TDR, more GPU memory asked for
+ * than there is, a kernel exception, a lost display driver) with abort(): a fast fail 7 in
+ * nvoglv64.dll, which says nothing of why (#77). Before that it writes the reason, with its
+ * "Error code: N", to the Application log as an "NVIDIA OpenGL Driver" event, as it does its
+ * warnings (out of GPU memory, residency limits overflowed); the text ends with the process id,
+ * "(pid=N ...)". Read from the 512.72 driver (nvoglv64.dll's table of reasons and its
+ * ReportEventA call) and from its events on this machine. */
+#define GL_DRIVER_EVENTS_MOST 4
+#define GL_DRIVER_TEXT_MOST 400
+
+/* The event's text as one line, up to its "(pid=" (0 when it names no pid or another one). */
+static int gl_driver_text(const wchar_t *text, DWORD pid, wchar_t *out, size_t most)
+{
+    const wchar_t *at = wcsstr(text, L"(pid=");
+    if (!at || wcstoul(at + 5, NULL, 10) != pid) return 0;
+    size_t n = 0;
+    for (const wchar_t *c = text; c < at && n + 1 < most; c++)
+    {
+        wchar_t ch = *c == L'\r' || *c == L'\n' || *c == L'\t' ? L' ' : *c;
+        if (ch == L' ' && (n == 0 || out[n - 1] == L' ')) continue;
+        out[n++] = ch;
+    }
+    while (n && out[n - 1] == L' ') n--;
+    out[n] = 0;
+    return n > 0;
+}
+
+/* The driver's last events for the game (process `pid`, which ended at `ended`) from the last
+ * `age_ms`, oldest first, a line each: "NVIDIA's OpenGL driver, S s before the end: TEXT". */
+static void gl_driver_events(out_t *o, DWORD pid, ULONG64 ended, DWORD age_ms)
+{
+    evt_t evt;
+    if (!evt_load(&evt)) return;
+    enum { TEXT, TIME, VALUES };
+    LPCWSTR paths[VALUES] = { L"Event/EventData/Data", L"Event/System/TimeCreated/@SystemTime" };
+    EVT_HANDLE context = evt.context_of(VALUES, paths, EvtRenderContextValues);
+    wchar_t query[200];
+    swprintf_s(query, _countof(query),
+        L"*[System[Provider[@Name='NVIDIA OpenGL Driver'] and TimeCreated[timediff(@SystemTime) <= %lu]]]", age_ms);
+    EVT_HANDLE results = context ? evt.query(NULL, L"Application", query, EvtQueryChannelPath | EvtQueryReverseDirection) : NULL;
+    static wchar_t texts[GL_DRIVER_EVENTS_MOST][GL_DRIVER_TEXT_MOST];
+    static ULONG64 times[GL_DRIVER_EVENTS_MOST];
+    static BYTE buffer[16384];
+    int count = 0;
+    if (results)
+    {
+        EVT_HANDLE events[16];
+        DWORD got = 0;
+        while (count < GL_DRIVER_EVENTS_MOST && evt.next(results, 16, events, 0, 0, &got))
+        {
+            for (DWORD i = 0; i < got; i++)
+            {
+                DWORD used = 0, values = 0;
+                if (count < GL_DRIVER_EVENTS_MOST
+                    && evt.render(context, events[i], EvtRenderEventValues, sizeof buffer, buffer, &used, &values) && values == VALUES)
+                {
+                    const EVT_VARIANT *v = (const EVT_VARIANT *)buffer;
+                    /* A classic event's Data comes as an array of its strings (one here). */
+                    const wchar_t *text = v[TEXT].Type == (EvtVarTypeString | EVT_VARIANT_TYPE_ARRAY) && v[TEXT].Count && v[TEXT].StringArr[0]
+                        ? v[TEXT].StringArr[0] : evt_string(&v[TEXT]);
+                    if (gl_driver_text(text, pid, texts[count], GL_DRIVER_TEXT_MOST))
+                        times[count++] = v[TIME].Type == EvtVarTypeFileTime ? v[TIME].FileTimeVal : 0;
+                }
+                evt.close(events[i]);
+            }
+        }
+        evt.close(results);
+    }
+    if (context) evt.close(context);
+    FreeLibrary(evt.module);
+    while (count--)
+    {
+        put(o, "[engine] native crash: NVIDIA's OpenGL driver");
+        if (times[count] && ended >= times[count])
+        {
+            put(o, ", ");
+            put_dec(o, (ended - times[count]) / 10000000);
+            put(o, " s before the end");
+        }
+        put(o, ": ");
+        put_wide(o, texts[count]);
+        put(o, "\r\n");
+    }
 }
 
 /* The error line from the record: the fault and its module, the managed exception's type, method
@@ -1216,7 +1320,7 @@ int crash_watch(int argc, wchar_t **argv)
     /* The rest of the game's standard error (its children may still hold the pipe). */
     if (reader) WaitForSingleObject(reader, 2000);
 
-    static char text[TEXT_MOST + RUNTIME_TEXT_MOST + 2048];
+    static char text[TEXT_MOST + RUNTIME_TEXT_MOST + 2048 + GL_DRIVER_EVENTS_MOST * GL_DRIVER_TEXT_MOST * 3];
     out_t o = { text, 0, sizeof text };
     LONG seen = shared->seen;
     ULONGLONG ago = GetTickCount64() - shared->seen_tick;
@@ -1258,6 +1362,11 @@ int crash_watch(int argc, wchar_t **argv)
         if (wer_version[0]) { put_wide(&o, wer_version); put(&o, ", "); }
         put_path(&o, shared, wer_path);
         put(&o, "), as Windows Error Reporting recorded it\r\n");
+    }
+    {
+        FILETIME created, ended, kernel, user;
+        if (GetProcessTimes(game, &created, &ended, &kernel, &user))
+            gl_driver_events(&o, GetProcessId(game), ((ULONG64)ended.dwHighDateTime << 32) | ended.dwLowDateTime, 600000);
     }
     put(&o, "[engine] native crash: the process ended with ");
     if (code < 0x10000) put_dec(&o, code); else put_hex(&o, code, 8);

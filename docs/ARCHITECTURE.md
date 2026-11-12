@@ -3031,6 +3031,15 @@ with .NET 10 (`--test-native-crash`):
 | `Environment.FailFast`; a stack overflow on a managed thread (in managed code or native code it called) | the runtime's text (`Process terminated.`, `Stack overflow.`), which it handles first | that text with the managed stack, the exit code, a dump |
 | A managed null reference, caught or not; the mods' stack probes | the runtime's vectored handler, which is first, handles it | nothing (the managed exception is logged as before) |
 
+NVIDIA's OpenGL driver ends a process it cannot go on with (a TDR, more GPU memory asked for than
+there is, a kernel exception, a lost display driver) with `abort()`: a fast fail 7 in
+`nvoglv64.dll`, which says nothing of why (#77). It writes the reason first, with its `Error
+code: N`, as an `NVIDIA OpenGL Driver` event in the Application log, as it does its warnings (out
+of GPU memory, residency limits overflowed), the text ending in `(pid=N ...)` (read from the
+512.72 driver's code and its events on this machine). The record adds the driver's last four
+events for the game's process from the last 10 minutes, oldest first, after any crash:
+`native crash: NVIDIA's OpenGL driver, S s before the end: TEXT`.
+
 The record is written by a watcher: OniMoono.exe starts a second copy of itself (`--crash-watch`,
 with inherited handles: no paths on its command line, so `win-run.ps1 -Match RUN_HOME` finds only
 the game) before the runtime, sharing a page of memory with the game. The watcher waits for the
