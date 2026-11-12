@@ -458,8 +458,8 @@ A save loads inside one engine frame (the scene, the save read, every object mad
 the game shows no new picture for up to half a minute
 ([measurements](research/save-load-and-loading-screen.md)). With `loading-animation` the
 presenter thread shows the loading screen again 30 times a second with a thin bar under it, in the
-start-up splash's place and colours, until the colony's first frame; nothing is drawn over a game
-frame. A loading overlay that no scene load follows within 250 ms gets a pulse instead.
+start-up splash's place and colours, until the colony's first frame, on Vulkan and on OpenGL;
+nothing is drawn over a game frame. A loading overlay that no scene load follows within 250 ms gets a pulse instead.
 
 The bar's phases are the scene switch, the save read, its decompression, the world set up, the
 objects loaded (`SaveManager.Load`), what follows, and the Start pass that spawns every object.

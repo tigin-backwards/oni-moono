@@ -1,0 +1,20 @@
+# On Vulkan (VkPresenter, VkLoadAnimation): the loading-animation game tweak with a mod's
+# animated loading screen: Loading Pip with Pip
+# Licks Butt puts a playing kanim (Pip's lick_butt_loop) on the loading overlay. Ours only
+# (`--player ours`): the original has no such tweak. Run with `E2E_PLAYER_ARGS='--renderer vulkan'`
+# (or `player-args=--renderer vulkan` in a list): the log must say the renderer is Vulkan.
+#
+# When the fixture's load starts, the overlay is rendered once for each frame of the kanim's anim
+# and the presenter plays them on during the load. With ONI_TWEAK_VERIFY=1 the first frame it
+# replays is compared with the frame the screen shows, pixel by pixel: none may differ.
+from: 2minnow
+expect_log: ['renderer: Vulkan']
+mods: [3408518726, 3802090892]
+env: {ONI_TWEAK_VERIFY: "1"}
+steps:
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.LoadingAnimation::Replayed": ">= 1"
+      # Exact on a GPU (Windows); Mesa's software Vulkan (llvmpipe, this machine's lanes) draws
+      # about 20 of 118,680 edge pixels of the render texture up to 7 of 255 apart.
+      "type:OniMoono.Host.GameTweaks.LoadingAnimation::LastReplayDiffer": "< 120"
+      "type:OniMoono.Host.GameTweaks.LoadingAnimation::LastRedraws": "> 60"

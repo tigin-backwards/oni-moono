@@ -1,0 +1,19 @@
+# On Vulkan (VkPresenter, VkLoadAnimation): the loading-animation game tweak
+# (src/OniMoono.Host/GameTweaks/LoadingAnimation.cs). Ours only
+# (`--player ours`): the original has no such tweak. Run with `E2E_PLAYER_ARGS='--renderer vulkan'`
+# (or `player-args=--renderer vulkan` in a list): the log must say the renderer is Vulkan.
+#
+# The fixture is loaded as the Load button does (LoadingOverlay.Load, then LoadScreen.DoLoad),
+# and the load runs inside one engine frame, with no frame presented for seconds. The scene load
+# under the overlay arms the presenter, which shows the loading screen again with its progress
+# bar 30 times a second until the colony's first frame: the load had pictures presented in the
+# gap, and the bar was nearly full when the colony came.
+from: 2minnow
+expect_log: ['renderer: Vulkan']
+steps:
+  - expect_state:
+      "type:OniMoono.Host.GameTweaks.LoadingAnimation::Armed": ">= 1"
+      "type:OniMoono.Host.GameTweaks.LoadingAnimation::Animated": ">= 1"
+      "type:OniMoono.Host.GameTweaks.LoadingAnimation::LastRedraws": "> 60"
+      "type:OniMoono.Host.GameTweaks.LoadingAnimation::LastSeconds": "> 2"
+      "type:OniMoono.Host.GameTweaks.LoadingAnimation::LastBar": "> 0.9"

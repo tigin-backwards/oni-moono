@@ -2544,6 +2544,19 @@ a loop, holding the last frame otherwise). The rendering is bounded (50 ms of ma
 presenter: the log's `loading animation:` line gives the redraws, the longest gap between them
 and how much of the long gaps was spent presenting rather than stopped.
 
+On Vulkan (`VkLoadAnimation`, U60's default renderer) the presenter does the same with its own
+command buffers: the redraw copies the last frame into the swapchain image (or DXGI's shared
+image), blits the kanim tile due from the strip after it (both transfers), then clears the bar's
+rectangles in a rendering scope (opaque, as `VkSplash`'s start-up bar; no fade-in). The arming,
+pacing and bar are OpenGL's (`GlLoadAnimation.Wanted`, `WatchdogDue`, `Advance`; `LoadProgress`).
+The strip is the render thread's: `VkDevice.HandOverLoadingFrames` leaves it in
+`TransferSrcOptimal` after the commands that render it, submits that batch, and only then hands
+it to the presenter, whose blits come after it on the one queue (Brutal's `Queue` takes a lock
+for every submission and present, so the two threads never submit at once). Nothing on the
+render thread touches the strip again; the presenter waits for its own slots' fences before
+handing it back, and only then does the main thread release it. The strip is a render texture,
+stored rows bottom first (OpenGL's layout); the blit turns it over into the swapchain's rows.
+
 **Window messages during long frames.** The frame polls the window's messages at its start, as
 Unity does, but a start-up frame takes seconds, and Windows marks a window that has not taken its
 messages for 5 s as not responding. Long engine steps (loading an object, instantiating, adding a
