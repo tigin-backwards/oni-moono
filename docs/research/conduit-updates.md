@@ -232,8 +232,19 @@ Track, MoreTek, Colony Performance Fixes or Multiplayer Mod is active.
   0 failures. `fast-partitioner-events`: 2,667,730 walks skipped, 56,150 freed handles
   dropped, 0 wrong. `fast-conduit-sorts`: 2,817 sorts, 0 wrong. `fast-partitioner-cleanup`, on
   the shared record: 500,000 nodes cleaned, 0 wrong.
-- **Windows:** not measured yet. The `win-perf` A/B (the tweaks' bypass switches, four off/on
-  pairs in one run) was stopped twice by runq before it measured.
+- **Windows** (U60 763023, the late-game colony at speed 3, High priority, unfocused; both tweaks
+  switched by their bypass in four off/on pairs of 100 steps in one run):
+
+  | ms a game second | off | on | change |
+  |---|---|---|---|
+  | Conveyor rails (`SolidConduitFlow.Sim200ms`) | 5.06 | 3.95 | −22% (pairs −19 to −27%) |
+  | The 200 ms step, all five | 24.2 | 23.0 | −5% (pairs −4.4 to −5.7%) |
+  | Gas pipes | 1.15 | 1.11 | −3% |
+  | Liquid pipes | 4.41 | 4.42 | unchanged |
+  | Frame rate | 104.5 fps | 111.8 fps | +2 to +5% in pairs 2–4 (pair 1, +20%, was still warming up) |
+
+  Most of the gain is outside the rails' step too: items moving cell every frame no longer walk
+  their node.
 
 ## What I would build first
 
