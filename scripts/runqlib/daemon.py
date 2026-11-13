@@ -61,7 +61,7 @@ class Worker(threading.Thread):
         self.games, self.games_at, self.user_in_oni = [], 0.0, False
         self.ext_cpu, self.win_temp = 0.0, None
         self.cgroups = []  # the runq jobs' cgroup folders, set by the loop
-        self.boost_matches = []  # (job id, match) of win-perf jobs, set by the loop
+        self.boost_matches = []  # (job id, ('match', text) or ('pid', pid, created), priority), set by the loop
         self.boosted = set()
         self.stop = False
         # The WSL interop socket jobs use (winenv.choose_interop), and when it was chosen.
@@ -130,12 +130,18 @@ class Worker(threading.Thread):
                     with self.lock:
                         self.games, self.games_at, self.user_in_oni = games, time.time(), in_oni
                         boosts = list(self.boost_matches)
-                    for job_id, match in boosts:
+                    for job_id, target, priority in boosts:
                         for g in games:
-                            if match in g.get('cmdline', '') and (job_id, g.get('pid')) not in self.boosted:
-                                out = w.boost(match)
-                                log(f'{job_id}: {out.strip()}')
-                                self.boosted.add((job_id, g.get('pid')))
+                            if (job_id, g.get('pid')) in self.boosted:
+                                continue
+                            if target[0] == 'match' and target[1] in g.get('cmdline', ''):
+                                out = w.boost(target[1], priority)
+                            elif target[0] == 'pid' and g.get('pid') == target[1] and g.get('created') == target[2]:
+                                out = w.boost_pid(target[1], target[2], priority)
+                            else:
+                                continue
+                            log(f'{job_id}: {out.strip()}')
+                            self.boosted.add((job_id, g.get('pid')))
                     self.d.wake()
             except Exception:
                 log('worker: ' + traceback.format_exc())
@@ -993,12 +999,20 @@ class Daemon:
                 keep = [w for w in self.warnings.get(j['id'], []) if w.startswith('idle')]
                 self.warnings[j['id']] = keep + found
             with self.worker.lock:
-                self.worker.boost_matches = [
-                    (j['id'], m)
-                    for j in running_rows
-                    if cfg['kinds'].get(j['kind'], {}).get('boost') or ((j['needs'] or {}).get('perf') and (j['needs'] or {}).get('windows'))
-                    for m in winenv.run_home_matches(j['id'], shim.read_json(os.path.join(j['dir'], 'env.json'), {}) or {})
-                ]
+                # Every game a Windows job runs gets power throttling off (a throttled test game
+                # runs many times slower); a perf job's also the High priority class.
+                boosts = winenv.boost_targets(
+                    [
+                        dict(
+                            j,
+                            env=shim.read_json(os.path.join(j['dir'], 'env.json'), {}) or {},
+                            games=shim.read_json(os.path.join(j['dir'], 'games.json'), []) or [],
+                        )
+                        for j in running_rows
+                    ],
+                    cfg,
+                )
+                self.worker.boost_matches = boosts
         ext.why = tuple(dict.fromkeys(why))
         self.external, self.lanes_free = ext, lanes_free
         mono = time.monotonic()

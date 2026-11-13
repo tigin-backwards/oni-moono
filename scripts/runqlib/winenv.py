@@ -275,6 +275,25 @@ def attribute(games, job_start, others=()):
     return found
 
 
+def boost_targets(jobs, cfg):
+    """[(job id, target, priority)] for the running JOBS' games (each job with its env and the
+    games tied to it): power throttling off for every Windows job's game (a throttled test game
+    runs many times slower), with the High priority class for perf jobs and Normal otherwise.
+    A target is ('match', run home text) or ('pid', pid, created)."""
+    out = []
+    for j in jobs:
+        needs = j.get('needs') or {}
+        if not needs.get('windows'):
+            continue
+        perf = cfg['kinds'].get(j.get('kind'), {}).get('boost') or needs.get('perf')
+        priority = 'High' if perf else 'Normal'
+        for m in run_home_matches(j['id'], j.get('env') or {}):
+            out.append((j['id'], ('match', m), priority))
+        for g in j.get('games') or []:
+            out.append((j['id'], ('pid', g['pid'], g['created']), priority))
+    return out
+
+
 class Windows:
     """The real backend: PowerShell through WSL interop."""
 
@@ -319,10 +338,14 @@ class Windows:
             raise ValueError(f'refusing a short match {match!r}')
         return self._ps('-Action', 'kill', '-Match', match)
 
-    def boost(self, match):
+    def boost(self, match, priority='High'):
+        """Power throttling off and PRIORITY (Normal or High) for the games MATCH names."""
         if len(match) < 12:
             raise ValueError(f'refusing a short match {match!r}')
-        return self._ps('-Action', 'boost', '-Match', match)
+        return self._ps('-Action', 'boost', '-Match', match, '-Priority', priority)
+
+    def boost_pid(self, pid, created, priority='High'):
+        return self._ps('-Action', 'boost', '-Id', str(int(pid)), '-Created', str(int(created)), '-Priority', priority)
 
     def kill_pid(self, pid, created):
         """Kills game PID if it still is the process created at CREATED (epoch seconds)."""
@@ -392,8 +415,12 @@ class FakeWindows:
         self.procs = [p for p in self.procs if match not in p['cmdline']]
         return ''
 
-    def boost(self, match):
-        self.calls.append(('boost', match))
+    def boost(self, match, priority='High'):
+        self.calls.append(('boost', match, priority))
+        return ''
+
+    def boost_pid(self, pid, created, priority='High'):
+        self.calls.append(('boostpid', pid, created, priority))
         return ''
 
     def kill_pid(self, pid, created):

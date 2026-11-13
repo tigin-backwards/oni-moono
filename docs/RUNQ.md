@@ -123,8 +123,9 @@ runq already holds for its job, would wait forever: it is stopped at once (`self
   own (a runner that picks its homes) is tied to the job when the daemon sees it, and killed with
   it by pid and start time. Every 30 s the daemon reads the job's game command line and warns in
   `runq status` when our player lacks `--no-focus`, a game is not on monitor 2, or a game was
-  started with the flag that pins the pointer over it. A `win-perf` job's game gets the High
-  priority class with power throttling off. runq never focuses a window or moves the pointer.
+  started with the flag that pins the pointer over it. Every Windows job's game gets power
+  throttling (EcoQoS) off, as a throttled test game runs many times slower; a `win-perf` job's
+  also gets the High priority class, the others Normal. runq never focuses a window or moves the pointer.
 - A heartbeat lease with `--heartbeat DUR`: `runq beat` from inside the job.
 
 ## The migrated scripts
