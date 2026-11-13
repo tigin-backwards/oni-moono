@@ -1,5 +1,6 @@
 # The nightly game tests on the stripped game (docs/DEVELOPMENT.md, "Game tests in CI"):
-# ci/game-tests/nightly.txt's UI and mod-loading specs and the long verify run. Scheduled runs
+# ci/game-tests/nightly.txt's UI and mod-loading specs and the long verify run, and the perf
+# gates (perf-spread.yml, docs/PERFORMANCE.md "Perf gates in the nightly"). Scheduled runs
 # test the default branch (master, U59); run it by hand on u60 for U60.
 name: Game tests (nightly)
 
@@ -46,3 +47,28 @@ jobs:
           list: nightly
           only: ${{ inputs.only }}
           saves: early-base 2minnow
+  # The last release against this commit on early-base, three pairs in turn (about an hour):
+  # draws and collections must not rise, allocations within their tolerances; the main thread's
+  # time only warns. Left out of a by-hand run of chosen specs.
+  perf:
+    name: Nightly perf gates
+    if: inputs.only == '' || inputs.only == null
+    permissions:
+      contents: read
+    uses: ./.github/workflows/perf-spread.yml
+    with:
+      base: ""
+      save: early-base
+      pairs: 3
+      window: 300
+      pause_windows: 2
+      run_windows: 3
+      launch_minutes: 9
+      args: ""
+      b_args: ""
+      jobs: "[1]"
+      gate: true
+      launch_step_minutes: 55
+      job_minutes: 70
+    secrets:
+      REFS_APP_KEY: ${{ secrets.REFS_APP_KEY }}

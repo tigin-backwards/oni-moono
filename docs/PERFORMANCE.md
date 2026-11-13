@@ -131,6 +131,30 @@ section too, collections, draws, texture uploads) and, for each A/B pair, the ra
 medians of main-thread ms a frame and the sim's ms a frame, with the runner's CPU model.
 `scripts/perf-spread.py jobs` sets several jobs' summaries side by side.
 
+## Perf gates in the nightly
+
+The **Game tests (nightly)** workflow's second job calls Perf spread for one runner: the branch's
+last release (A) and the commit (B), three pairs in turn on early-base, in about an hour, with
+`scripts/perf-spread.py gate` on its summary. The gates come from the spread measured on three
+runner machines (2026-11-13; above): what was exactly steady fails the job when B rises above A,
+what moved by a few percent between launches has a tolerance, and the times only warn.
+
+- Fails the job: the paused colony's draws a frame and every collection count (gen0, gen1 and
+  gen2, paused and running) higher than A's; paused allocations a frame more than 5% over A's,
+  and each paused update section over 200 B a frame by more than 5% (or by more than A's own
+  launches spread, when that is wider); running draws a frame more than 3% over A's.
+- Warns: main-thread ms a frame while running, B over A across the interleaved pairs, when it is
+  past the larger of 3% and twice the pairs' standard deviation over the square root of their
+  number (about 3–6% on these runners).
+- Not judged: frame rates and absolute times, which differ by 20–40% between runners (the
+  renderer is Mesa's software one), and running allocations, which move by up to a third between
+  launches.
+
+Each run logs the runner's CPU model. A rise against the release that is meant (a new feature
+that draws more) fails until the next release becomes A; a fall is noted. When A measures nothing
+(a release that does not run on a newer game build), nothing is compared and the job passes with
+a note.
+
 ## Managed allocations against the original
 
 `tools/PerfProbe` with `alloc.txt` logs a `PERF alloc` line after each 600-frame window: running
