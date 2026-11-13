@@ -21,6 +21,10 @@ posts WM_XBUTTONDOWN/UP for XBUTTON1, XBUTTON2 to the player's own window, which
 read. `type` sets the field's text whole; steps that need real input (keyboard
 layouts, physical keys) fail with "needs real input". Front-end shots come from E2eDriver's
 screen.capture.
+
+It runs as a runq job of kind windows (docs/RUNQ.md): the players' homes and our host's stage are
+then in the job's own stage folder (ONI_WIN_STAGE), so `runq cancel` and the job's end kill them
+by its run home.
 """
 
 import contextlib, importlib.util, json, os, re, shutil, socket, subprocess, sys, threading, time
@@ -70,6 +74,11 @@ def upath(p):
 
 
 def stage_dir():
+    """The stage: runq's per-job folder in a runq job (ONI_WIN_STAGE), so the homes and the host
+    are under the job's run home and runq's cleanup kills the players by it; else
+    %TEMP%\\oni-brutal\\qa-win."""
+    if os.environ.get('ONI_WIN_STAGE'):
+        return upath(os.environ['ONI_WIN_STAGE'])
     return os.path.join(WSL_TEMP, *STAGE.split('\\'))
 
 
@@ -624,6 +633,38 @@ def no_budget(self, *a, **k):
 
 e2e.Budget.hold = no_budget
 
+# runq (docs/RUNQ.md): the run queues itself as a job of kind windows (RUNQ_KIND to change it)
+# and runs inside it; e2e.py's own queueing (as a Linux e2e job of e2e.py itself) and its perf
+# lock stay out, runq's grant stands in. RUNQ=off, an old-style caller or no daemon: as before.
+e2e.runq_self_submit = lambda *a, **k: None
+
+
+def runq_self_submit(argv):
+    if os.environ.get('RUNQ_JOB') or os.environ.get('RUNQ', '').lower() in ('off', '0', 'no', 'false'):
+        return
+    runq = os.path.join(ROOT, 'scripts', 'runq')
+    ping = subprocess.run([sys.executable, runq, 'ping', '--caller'], capture_output=True, text=True)
+    if ping.returncode:
+        print(f'runq: {ping.stderr.strip().removeprefix("runq: ")}; running directly with the old locks', file=sys.stderr)
+        return
+    kind = os.environ.get('RUNQ_KIND') or 'windows'
+    cmd = [
+        sys.executable,
+        runq,
+        'run',
+        '--kind',
+        kind,
+        '--timeout',
+        '180m',
+        '--label',
+        'e2e-windows ' + ' '.join(a for a in argv if not a.startswith('-'))[:50],
+    ]
+    os.execv(sys.executable, cmd + ['--', sys.executable, os.path.abspath(__file__), *argv])
+
+
 if __name__ == '__main__':
+    runq_self_submit(sys.argv[1:])
+    if os.environ.get('RUNQ_JOB'):
+        e2e.machine_lock = lambda *a, **k: contextlib.nullcontext()
     os.makedirs(stage_dir(), exist_ok=True)
     sys.exit(e2e.main(['--no-perf-wait', *sys.argv[1:]]))
