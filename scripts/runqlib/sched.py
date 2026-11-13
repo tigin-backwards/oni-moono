@@ -77,6 +77,7 @@ class State:
     ext_cpu: float = 0.0  # cores busy outside runq, sampled
     user_in_oni: bool = False
     windows_hold: str | None = None  # `runq hold windows`: why the slot is kept for the user
+    background: str | None = None  # a background game (config background_game_paths) runs
 
 
 @dataclasses.dataclass
@@ -274,6 +275,8 @@ def plan(state):
             gate = 'hold'
         elif job.needs.get('windows') and state.user_in_oni:
             gate = 'user-in-oni'
+        elif state.background and (job.needs.get('quiet') or (job.needs.get('perf') and job.needs.get('windows'))):
+            gate = 'background'
         elif not blocked and u[PERF] and job.needs.get('quiet') and state.ext_cpu >= float(cfg['quiet_cores']):
             since = job.quiet_since if job.quiet_since is not None else now
             if job.quiet_since is None:
@@ -292,6 +295,10 @@ def plan(state):
             continue
         if gate == 'user-in-oni':
             reasons[job.id] = 'the user is in ONI: no Windows job runs beside their game (waits, holds nothing)'
+            starts[job.id] = math.inf
+            continue
+        if gate == 'background':
+            reasons[job.id] = f'{state.background}: it may run beside Windows jobs, not beside measurements (waits, holds nothing)'
             starts[job.id] = math.inf
             continue
         if gate == 'hold':

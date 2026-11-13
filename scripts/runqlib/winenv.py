@@ -309,14 +309,21 @@ def read_steam_tracked(path=STEAM_LOG, tail=262144):
         return None
 
 
-def attribute(games, job_start, others=()):
+def background_game(cmdline, paths):
+    """A game of another tool of the user's (config background_game_paths): its executable's
+    path starts with one of PATHS."""
+    exe = executable(cmdline).lower()
+    return any(exe.startswith(p.lower()) for p in paths or ())
+
+
+def attribute(games, job_start, others=(), background=()):
     """The games a job holding the Windows slot started: test games created since it started
     (one second's slack) that no other runq job's run home names. The Windows slot is runq's, so
     a test game started meanwhile is that job's, under whatever run home its script chose."""
     found = []
     for g in games:
         cmd = g.get('cmdline', '')
-        if not test_game(cmd) or not g.get('created') or g['created'] < job_start - 1:
+        if not test_game(cmd) or background_game(cmd, background) or not g.get('created') or g['created'] < job_start - 1:
             continue
         if any(job_match(o) in cmd for o in others):
             continue
