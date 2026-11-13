@@ -54,6 +54,33 @@ class Order(unittest.TestCase):
         p = sched.plan(state([new, old], now=8 * H + 1))
         self.assertEqual(p.order, ['old', 'new'])
 
+    def test_due_jobs_by_level_then_submit_time(self):
+        # User jobs past their 30 min bound, then a release job submitted later (due at once):
+        # the release job goes first, then the user jobs in submit order.
+        u1 = job('u1', 'a', level='user', order=0)
+        u2 = job('u2', 'b', level='user', order=60)
+        rel = job('rel', 'u60-update', level='release', order=3 * H)
+        st = job('st', 'c', level='study', order=0)  # due too (3 h)
+        p = sched.plan(state([u1, u2, st, rel], now=3 * H + 1))
+        self.assertEqual(p.order, ['rel', 'u1', 'u2', 'st'])
+
+    def test_due_release_check_waits_for_one_perf_job_at_most(self):
+        # A perf job runs; a study perf job and user jobs are due ahead in submit order. A
+        # release check queued later starts as soon as the running perf job ends, before them.
+        running = [run('perf', 'x', kind='linux-perf', end=4 * H)]
+        queued = [
+            job('sp', 'y', level='study', order=0, kind='linux-perf'),
+            job('ub', 'z', level='user', order=60, kind='build'),
+            job('rc', 'u60-update', level='release', order=3 * H, kind='check'),
+        ]
+        p = sched.plan(state(queued, running=running, now=3 * H + 1))
+        self.assertEqual(p.order[0], 'rc')
+        self.assertEqual(granted(p), [])  # no preemption
+        self.assertEqual(p.starts['rc'], 4 * H)
+        p = sched.plan(state(queued, now=4 * H + 1))
+        self.assertIn('rc', granted(p))
+        self.assertNotIn('sp', granted(p))
+
     def test_boosted_job_goes_first(self):
         jobs = [job('i', level='issue', order=5), job('lost', level='burndown', order=9, boost=True)]
         self.assertEqual(sched.plan(state(jobs, now=10)).order, ['lost', 'i'])
@@ -236,12 +263,14 @@ class Properties(unittest.TestCase):
                 owners[r.owner] = owners.get(r.owner, 0) + 1
             for o, count in owners.items():
                 self.assertLessEqual(count, CFG['caps']['running_per_owner'])
-            # The bound: a job waits at most its level's due bound, plus the timeouts of the jobs
-            # that can be ahead of it (at most 25 queued, plus those running), plus the owner cap's
-            # turn. Generous, but finite: no job starves.
+            # The bound: an issue or release job waits at most its level's bound plus the timeouts
+            # of the jobs that can be ahead of it (at most 25 queued, plus those running). Due jobs
+            # go by level, so in this overloaded stream the lower levels have no such bound: they
+            # wait while higher levels keep coming.
             for j in queued:
-                bound = CFG['due_minutes'][j.level] * 60 + 26 * max_timeout
-                self.assertLess(now - j.order, bound, f'{j.id} ({j.level}) waits too long')
+                if j.level in ('issue', 'release'):
+                    bound = CFG['due_minutes'][j.level] * 60 + 26 * max_timeout
+                    self.assertLess(now - j.order, bound, f'{j.id} ({j.level}) waits too long')
         return len(started)
 
     def test_random_streams(self):

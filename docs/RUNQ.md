@@ -48,9 +48,10 @@ options (`RUNQ_TIMEOUT` and `RUNQ_EXPECT` win over a script's own estimate).
 and measurement series), `burndown`. The default is `study`. The agent passes its own level;
 `issue` and `release` are allowed and logged in `~/.local/state/oni-runq/levels.log`. A queued
 job is due after its level's bound (issue and release at once, user 30 min, study 3 h, burndown
-8 h); due jobs go first, by submit time, ahead of every level. Within a level, the owner with the
-least service over the last 24 h goes first, so one agent's back-to-back runs interleave with
-another's.
+8 h); due jobs go ahead of every job not yet due, by level and then by submit time, so a
+higher-level job that becomes due goes ahead of lower-level jobs due earlier. Running jobs are
+never preempted. Within a level, the owner with the least service over the last 24 h goes first,
+so one agent's back-to-back runs interleave with another's.
 
 ### Kinds and resources
 
