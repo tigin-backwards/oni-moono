@@ -158,6 +158,18 @@ class Rules(unittest.TestCase):
         ]
         self.assertEqual([g['pid'] for g in winenv.attribute(games, 90, others=['j0000009'])], [1])
 
+    def test_every_windows_jobs_game_is_unthrottled(self):
+        jobs = [
+            {'id': 'j1', 'kind': 'windows', 'needs': {'windows': 1}, 'env': {}, 'games': [{'pid': 9, 'created': 5}]},
+            {'id': 'j2', 'kind': 'win-perf', 'needs': {'windows': 1, 'perf': 1}, 'env': {}},
+            {'id': 'j3', 'kind': 'check', 'needs': {'cpu': 8}},
+        ]
+        got = winenv.boost_targets(jobs, CFG)
+        self.assertIn(('j1', ('match', '\\oni-runq\\j1\\'), 'Normal'), got)
+        self.assertIn(('j1', ('pid', 9, 5), 'Normal'), got)
+        self.assertIn(('j2', ('match', '\\oni-runq\\j2\\'), 'High'), got)
+        self.assertFalse([t for t in got if t[0] == 'j3'])
+
     def test_short_matches_refused(self):
         w = winenv.Windows()
         for bad in ('', 'OniMoono', '.exe'):

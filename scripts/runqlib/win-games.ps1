@@ -4,12 +4,13 @@
 # only on games whose command line contains MATCH (a runq job's run home folder): never by name, as
 # the user may be playing the same executables. A game process is our host (OniMoono.exe,
 # OniBrutal.exe) or any Unity player (an executable with its NAME_Data folder beside it), as in
-# out/local-tools/win-run.ps1. boost gives the game the High priority class and turns Windows'
-# power throttling (EcoQoS) off for it. killpid kills one game a runq job started (seen while the
+# out/local-tools/win-run.ps1. boost (by -Match, or -Id and -Created) gives the game the -Priority
+# class (Normal, AboveNormal or High; default High) and turns Windows' power throttling (EcoQoS)
+# off for it. killpid kills one game a runq job started (seen while the
 # job held the Windows slot, under a run home of its own), by its pid and its start time (a pid
 # Windows reused for another process is left alone). Nothing here moves the pointer or takes the
 # focus.
-param([string]$Action = 'list', [string]$Match = '', [int]$Id = 0, [long]$Created = 0)
+param([string]$Action = 'list', [string]$Match = '', [int]$Id = 0, [long]$Created = 0, [ValidateSet('Normal', 'AboveNormal', 'High')][string]$Priority = 'High')
 $hosts = @('OniMoono.exe', 'OniBrutal.exe')
 function Test-Game($p) {
     if ($p.ProcessId -eq $PID) { return $false }
@@ -27,8 +28,8 @@ if ($Action -eq 'killpid') {
     foreach ($p in $games) { if ($p.ProcessId -eq $Id -and (Get-Created $p) -eq $Created) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue; "killed $($p.ProcessId)" } }
     exit 0
 }
-if ($Action -ne 'list' -and -not $Match) { 'no -Match'; exit 2 }
-$mine = @($games | Where-Object { $Match -and $_.CommandLine.Contains($Match) })
+if ($Action -ne 'list' -and -not $Match -and -not ($Action -eq 'boost' -and $Id -and $Created)) { 'no -Match'; exit 2 }
+$mine = @($games | Where-Object { ($Match -and $_.CommandLine.Contains($Match)) -or ($Id -and $_.ProcessId -eq $Id -and (Get-Created $_) -eq $Created) })
 switch ($Action) {
     'list' { foreach ($p in $games) { [pscustomobject]@{ pid = $p.ProcessId; name = $p.Name; cmdline = $p.CommandLine; created = (Get-Created $p) } | ConvertTo-Json -Compress } }
     'kill' { foreach ($p in $mine) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue; "killed $($p.ProcessId)" } }
@@ -42,7 +43,7 @@ public static extern bool SetProcessInformation(System.IntPtr process, int infoC
         foreach ($c in $mine) {
             $p = Get-Process -Id $c.ProcessId -ErrorAction SilentlyContinue
             if (-not $p) { continue }
-            $p.PriorityClass = 'High'
+            $p.PriorityClass = $Priority
             $t = New-Object RunQ.P+Throttling
             $t.Version = 1; $t.ControlMask = 1; $t.StateMask = 0
             $ok = [RunQ.P]::SetProcessInformation($p.Handle, 4, [ref]$t, 12)
