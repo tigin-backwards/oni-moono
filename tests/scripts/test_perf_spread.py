@@ -63,7 +63,8 @@ class PerfSpreadTests(unittest.TestCase):
         out = os.path.join(self.dir, 'sum')
         with contextlib.redirect_stdout(io.StringIO()):
             ps.summary([out, *runs])
-        s = json.load(open(os.path.join(out, 'summary.json')))
+        with open(os.path.join(out, 'summary.json')) as f:
+            s = json.load(f)
         self.assertEqual(s['counts']['paused']['alloc B a frame']['A']['between_launches_pct'], 0.0)
         main = s['timing']['running']['main_ms']
         self.assertAlmostEqual(main['ratio_of_medians'], 19.51 / 18.51, places=4)
@@ -91,18 +92,37 @@ class PerfSpreadTests(unittest.TestCase):
             status = ps.gate([summary])
         return status, text.getvalue()
 
+    def report(self, summary):
+        with open(os.path.join(os.path.dirname(summary), 'summary.md')) as f:
+            return f.read()
+
     def test_gate_passes_the_same_counts(self):
-        status, text = self.gate(self.summarise([('A', 10.0, 75), ('B', 10.0, 75), ('A', 10.0, 75), ('B', 10.0, 75)]))
+        summary = self.summarise([('A', 10.0, 75), ('B', 10.0, 75), ('A', 10.0, 75), ('B', 10.0, 75)])
+        status, text = self.gate(summary)
         self.assertEqual(status, 0, text)
-        self.assertIn('| paused draws a frame | 75 | 75 | 0 | must not rise |', text)
+        self.assertIn('Passed', text)
+        report = self.report(summary)
+        # The verdict first, a line a gate, then the tables, the detail folded away last.
+        self.assertLess(report.index('Passed'), report.index('### Paused colony'))
+        self.assertIn('| ✅ | Draws a frame, paused | 75 | 75 | no more than A | Hard gate |', report)
+        self.assertIn('| Game.Update | method | 500 | 500 | 0 | 0.0% |', report)
+        self.assertLess(report.index('### Running at speed 3'), report.index('<details>'))
 
     def test_gate_fails_on_more_draws_and_warns_on_time(self):
-        status, text = self.gate(self.summarise([('A', 10.0, 75), ('B', 13.0, 76), ('A', 10.0, 75), ('B', 13.0, 76)]))
+        summary = self.summarise([('A', 10.0, 75), ('B', 13.0, 76), ('A', 10.0, 75), ('B', 13.0, 76)])
+        status, text = self.gate(summary)
         self.assertEqual(status, 1)
-        self.assertIn('paused draws a frame: 76', text)
+        report = self.report(summary)
+        self.assertIn('| ❌ | Draws a frame, paused | 75 | 76 | no more than A | Hard gate |', report)
         # The main thread's time only warns.
-        self.assertIn('Warnings:', text)
-        self.assertNotIn('main-thread ms a frame, running: B/A 1.1', text.split('Warnings:')[0])
+        self.assertIn('| ⚠️ | Main-thread ms a frame, running (B/A) |', report)
+
+    def test_section_names(self):
+        self.assertEqual(ps.section_parts('bucket OrbitalObject RENDER_1000ms'), ('OrbitalObject', 'bucket, render 1,000 ms'))
+        self.assertEqual(ps.section_parts('bucket DiagnosticRow SIM_4000ms'), ('DiagnosticRow', 'bucket, sim 4,000 ms'))
+        self.assertEqual(ps.section_parts('Game.Update'), ('Game.Update', 'method'))
+        self.assertEqual(ps.section_parts('(other)')[1], '–')
+        self.assertEqual(ps.num(1234567), '1,234,567')
 
 
 if __name__ == '__main__':

@@ -10,13 +10,15 @@ runners"). Linux, under the X display in DISPLAY.
         no autosaves), paused for --pause-windows windows of --window frames, then at speed 3
         for --run-windows, in a --size window; stopped after --timeout seconds whatever it has.
         Writes OUT/result.json: each window's counts and times, no log text.
-    scripts/perf-spread.py summary OUT RUN...
-        The runs' spreads (OUT/summary.md, OUT/summary.json): exact counts across a label's
-        launches, the A/B timing ratio by pair, and the machine's CPU.
+    scripts/perf-spread.py summary [--a NAME] [--b NAME] [--save NAME] OUT RUN...
+        The runs' report (OUT/summary.md, the job summary as is, and OUT/summary.json): a header
+        line (A and B by name, the save, the CPU model, the pairs), each gate's verdict, then
+        tables of the counts and sections paused and running and of the times' A/B ratios, and
+        each launch's numbers and every section folded away last.
     scripts/perf-spread.py jobs SUMMARY.json...
         Several jobs' summaries side by side: the between-job spread of the absolute times.
     scripts/perf-spread.py gate SUMMARY.json
-        The nightly's gates on one job (B against A), as markdown; exit 1 when one fails: the
+        The verdict line of the nightly's gates (the report shows each); exit 1 when one fails: the
         paused draws and every collection count must not rise, paused allocations (also by
         section) within 5%, running draws within 3%. The interleaved main-thread ratio only warns.
 
@@ -236,7 +238,8 @@ def parse(log, pause_windows):
     windows, pending = [], None
     prev_alloc, prev_sites = None, None
     try:
-        lines = open(log, errors='replace').read().splitlines()
+        with open(log, errors='replace') as f:
+            lines = f.read().splitlines()
     except FileNotFoundError:
         lines = []
 
@@ -389,11 +392,17 @@ def rel_spread(values):
 
 
 def summary(argv):
+    # --a NAME, --b NAME, --save NAME: the report's header.
+    meta = {}
+    while len(argv) > 1 and argv[0].startswith('--'):
+        meta[argv[0][2:]] = argv[1]
+        argv = argv[2:]
     out, runs = argv[0], argv[1:]
     results = []
     for r in runs:
         try:
-            results.append(json.load(open(os.path.join(r, 'result.json'))))
+            with open(os.path.join(r, 'result.json')) as f:
+                results.append(json.load(f))
         except (OSError, ValueError):
             pass
     os.makedirs(out, exist_ok=True)
@@ -408,7 +417,7 @@ def summary(argv):
         }
         for r in results
     ]
-    s = {'cpu': cpu_model(), 'nproc': os.cpu_count(), 'runner': os.environ.get('RUNNER_NAME'), 'launches': launches}
+    s = {'cpu': cpu_model(), 'nproc': os.cpu_count(), 'runner': os.environ.get('RUNNER_NAME'), 'meta': meta, 'launches': launches}
     # Exact counts: each label's launches, every measured window's value.
     counts = {}
     for phase in ('paused', 'running'):
@@ -430,8 +439,8 @@ def summary(argv):
             for l in ls:
                 for k, v in l['sites'].items():
                     names.setdefault(k, []).append(v)
-            top = sorted(names.items(), key=lambda kv: -abs(statistics.median(kv[1])))[:12]
-            counts[phase].setdefault('sections', {})[label] = {k: {'median': statistics.median(v), 'between_launches_pct': rel_spread(v)} for k, v in top}
+            ranked = sorted(names.items(), key=lambda kv: -abs(statistics.median(kv[1])))
+            counts[phase].setdefault('sections', {})[label] = {k: {'median': statistics.median(v), 'between_launches_pct': rel_spread(v)} for k, v in ranked}
     s['counts'] = counts
     # Timings: A/B pairs in launch order, the ratio B/A of each pair's medians.
     timing = {}
@@ -459,6 +468,7 @@ def summary(argv):
                 )
             timing.setdefault(phase, {})[key] = entry
     s['timing'] = timing
+    s['checks'] = checks(s)
     with open(os.path.join(out, 'summary.json'), 'w') as f:
         json.dump(s, f, indent=1)
     md = markdown(s)
@@ -468,57 +478,190 @@ def summary(argv):
     return 0
 
 
-def pct(v):
-    return '–' if v is None else f'{v:.2f}%'
+def pct(v, signed=False):
+    if v is None:
+        return '–'
+    return f'{v:+.1f}%' if signed else f'{v:.1f}%'
 
 
 def num(v):
-    return '–' if v is None else (f'{v:,.0f}' if abs(v) >= 100 else f'{v:.3g}')
+    """Thousands separators; small values to three figures."""
+    if v is None:
+        return '–'
+    if v == 0:
+        return '0'
+    return f'{v:,.0f}' if abs(v) >= 100 else f'{v:.3g}'
+
+
+def change(a, b):
+    if a is None or b is None:
+        return '–'
+    if a == b:
+        return '0'
+    return '–' if not a else f'{(b / a - 1) * 100:+.1f}%'
+
+
+ICONS = {'pass': '✅', 'fail': '❌', 'warn': '⚠️', 'note': 'ℹ️'}
+BUCKET_RATES = {'EVERY_TICK': 'every tick', '33ms': '33 ms', '200ms': '200 ms', '1000ms': '1,000 ms', '4000ms': '4,000 ms'}
+
+
+def section_parts(name):
+    """(section, kind) for a PERF sites name: `bucket OrbitalObject RENDER_1000ms` is the state
+    machine bucket OrbitalObject at render 1,000 ms; `(other)` the main thread outside them all."""
+    if name == '(other)':
+        return 'Main thread, outside the sections', '–'
+    if name.startswith('bucket '):
+        parts = name.split(' ')
+        if len(parts) >= 3 and '_' in parts[-1]:
+            kind, _, rate = parts[-1].partition('_')
+            return ' '.join(parts[1:-1]), f'bucket, {kind.lower()} {BUCKET_RATES.get(rate, rate)}'
+        return name[len('bucket ') :], 'bucket'
+    return name, 'method'
+
+
+def section_label(name):
+    section, kind = section_parts(name)
+    return section if kind in ('–', 'method') else f'{section}, {kind}'
+
+
+def table(head, rows):
+    return ['| ' + ' | '.join(head) + ' |', '|' + '|'.join('---' for _ in head) + '|'] + ['| ' + ' | '.join(str(c) for c in r) + ' |' for r in rows]
+
+
+def verdict_line(cs):
+    fails = sum(c['status'] == 'fail' for c in cs)
+    warns = sum(c['status'] == 'warn' for c in cs)
+    head = '❌ **Failed**' if fails else '⚠️ **Passed with a warning**' if warns else '✅ **Passed**'
+    return f'{head}: {fails} failed, {warns} warned, of {len(cs)} checks.'
+
+
+COUNT_ROWS = (
+    ('draws a frame', 'Draws a frame'),
+    ('texture uploads a frame', 'Texture uploads a frame'),
+    ('upload KB a frame', 'Texture upload KB a frame'),
+    ('alloc B a frame', 'Allocated bytes a frame'),
+    ('alloc B a game s', 'Allocated bytes a game second'),
+    ('gen0 GCs a frame', 'Gen0 collections a frame'),
+    ('gen1+2 GCs a frame', 'Gen1 and gen2 collections a frame'),
+    ('gen0 GCs a game s', 'Gen0 collections a game second'),
+    ('gen1+2 GCs a game s', 'Gen1 and gen2 collections a game second'),
+)
+TIME_ROWS = (
+    ('main_ms', 'Main thread, ms a frame'),
+    ('step_ms', 'Sim step, ms a frame'),
+    ('sim_ms', 'Sim in all, ms a frame'),
+    ('frame_ms', 'Frame, ms (the software renderer)'),
+)
 
 
 def markdown(s):
-    out = [f'## Perf spread: {s["cpu"]} ({s["nproc"]} CPUs)', '']
-    out.append('| launch | status | to colony | windows |')
-    out.append('|---|---|---|---|')
-    for l in s['launches']:
-        out.append(f'| {l["label"]} | {l["status"]} | {l["to_colony_s"]} s | {l["windows"]} |')
-    for phase, keys in s['counts'].items():
-        out += [
-            '',
-            f'### Counts, {phase} (spread: max−min over the median)',
-            '',
-            '| count | label | median | within a launch | between launches |',
-            '|---|---|---|---|---|',
-        ]
-        for key, by in keys.items():
-            if key == 'sections':
+    meta = s.get('meta', {})
+    pairs = min(sum(l['label'] == 'A' for l in s['launches']), sum(l['label'] == 'B' for l in s['launches']))
+    a_name, b_name = meta.get('a', 'the release'), meta.get('b', 'this commit')
+    out = [
+        f'## Perf: {a_name} (A) against {b_name} (B)',
+        '',
+        f'{meta.get("save", "the save")} · {s["cpu"]} ({s["nproc"]} CPUs) · {pairs} pairs, launched A B A B …',
+        '',
+    ]
+    cs = s.get('checks') or []
+    if cs:
+        out += [verdict_line(cs), '']
+        names = {'hard': 'Hard gate', 'tolerance': 'Tolerance', 'soft': 'Warning only'}
+        rows = []
+        for c in cs:
+            rows.append([ICONS[c['status']], c['name'], num(c['a']), num(c['b']), c['limit'], names[c['group']]])
+        out += table(['', 'Check', 'A', 'B', 'Limit', 'Kind'], rows) + ['']
+        out += ['Hard gates and tolerances fail the job; the warning does not. Frame rates and absolute times are never judged.', '']
+    counts = s.get('counts', {})
+    for phase, title in (('paused', 'Paused colony'), ('running', 'Running at speed 3')):
+        keys = counts.get(phase)
+        if not keys:
+            continue
+        rows = []
+        for key, label in COUNT_ROWS:
+            by = keys.get(key)
+            if not by:
                 continue
-            for label, e in by.items():
-                out.append(f'| {key} | {label} | {num(e["median"])} | {pct(e["within_launch_pct"])} | {pct(e["between_launches_pct"])} |')
-        for label, secs in keys.get('sections', {}).items():
-            out += ['', f'Sections, {phase}, {label} (B a {"frame" if phase == "paused" else "game s"}, between launches):', '']
-            out.append(', '.join(f'{k} {num(v["median"])} ({pct(v["between_launches_pct"])})' for k, v in secs.items()))
-    for phase, keys in s['timing'].items():
-        out += [
-            '',
-            f'### Times, {phase} (launch medians)',
-            '',
-            '| time | A | A spread | B | B spread | B/A | pair ratio sd | 2 sd/√n |',
-            '|---|---|---|---|---|---|---|---|',
-        ]
-        for key, e in keys.items():
-            out.append(
-                f'| {key} | {num(e["A_median"])} | {pct(e["A_spread_pct"])} | {num(e.get("B_median"))} | {pct(e.get("B_spread_pct"))} | '
-                f'{"–" if e.get("ratio_of_medians") is None else f"{e["ratio_of_medians"]:.4f}"} | {pct(e.get("pair_ratio_sd_pct"))} | {pct(e.get("detectable_pct"))} |'
+            a, b = by.get('A', {}), by.get('B', {})
+            spread = max([x for x in (a.get('between_launches_pct'), b.get('between_launches_pct')) if x is not None], default=None)
+            rows.append([label, num(a.get('median')), num(b.get('median')), change(a.get('median'), b.get('median')), pct(spread)])
+        out += [f'### {title}', ''] + table(['Count', 'A', 'B', 'Change', 'Spread'], rows) + ['']
+        if phase == 'paused':
+            out += ['Change is B against A. Spread is the wider of A\'s and B\'s spreads between their launches (largest less smallest, over the median).', '']
+        secs_a, secs_b = keys.get('sections', {}).get('A', {}), keys.get('sections', {}).get('B', {})
+        if secs_a or secs_b:
+            unit = 'B a frame' if phase == 'paused' else 'B a game s'
+            out += [f'Allocations by section, the 12 largest ({unit}):', ''] + section_table(secs_a, secs_b, 12) + ['']
+    timing = s.get('timing', {}).get('running', {})
+    if timing:
+        rows = []
+        for key, label in TIME_ROWS:
+            e = timing.get(key)
+            if not e:
+                continue
+            ratio = e.get('ratio_of_medians')
+            rows.append(
+                [
+                    label,
+                    num(e['A_median']),
+                    num(e.get('B_median')),
+                    '–' if ratio is None else f'{ratio:.3f}',
+                    pct(e.get('pair_ratio_sd_pct')),
+                    pct(e.get('detectable_pct')),
+                ]
             )
-    return '\n'.join(out) + '\n'
+        out += ['### Times while running (not judged, but the main thread warns)', '']
+        out += table(['Time', 'A', 'B', 'B/A', 'Pairs sd', 'Detectable'], rows) + ['']
+        out += ['Times differ by 20–40% between runner machines: only B/A, measured in turn on one machine, compares.', '']
+    out += ['<details><summary>Each launch, and every section</summary>', '']
+    rows = []
+    for i, l in enumerate(s['launches'], 1):
+        m = l['metrics']
+        p, r = m.get('paused', {}), m.get('running', {})
+        rows.append(
+            [
+                i,
+                l['label'],
+                l['status'],
+                '–' if l['to_colony_s'] is None else f'{l["to_colony_s"]:.0f} s',
+                l['windows'],
+                num(p.get('totals', {}).get('alloc B a frame')),
+                num(p.get('totals', {}).get('draws a frame')),
+                num(r.get('totals', {}).get('draws a frame')),
+                num(r.get('times', {}).get('main_ms')),
+                num(r.get('times', {}).get('step_ms')),
+            ]
+        )
+    out += table(['#', 'Build', 'Status', 'To colony', 'Windows', 'Paused B a frame', 'Paused draws', 'Running draws', 'Main ms', 'Step ms'], rows) + ['']
+    for phase in ('paused', 'running'):
+        secs = counts.get(phase, {}).get('sections', {})
+        if secs:
+            unit = 'B a frame' if phase == 'paused' else 'B a game s'
+            out += [f'Every section, {phase} ({unit}):', ''] + section_table(secs.get('A', {}), secs.get('B', {}), None) + ['']
+    out += ['</details>', '']
+    return '\n'.join(out)
+
+
+def section_table(secs_a, secs_b, most):
+    names = sorted(set(secs_a) | set(secs_b), key=lambda k: -max(secs_a.get(k, {}).get('median', 0), secs_b.get(k, {}).get('median', 0)))
+    rows = []
+    for name in names[:most] if most else names:
+        a, b = secs_a.get(name, {}), secs_b.get(name, {})
+        section, kind = section_parts(name)
+        spread = max([x for x in (a.get('between_launches_pct'), b.get('between_launches_pct')) if x is not None], default=None)
+        rows.append([section, kind, num(a.get('median')), num(b.get('median')), change(a.get('median'), b.get('median')), pct(spread)])
+    return table(['Section', 'Kind', 'A', 'B', 'Change', 'Spread'], rows)
 
 
 # ---- several jobs ----
 
 
 def jobs(argv):
-    ss = [json.load(open(p)) for p in argv]
+    ss = []
+    for path in argv:
+        with open(path) as f:
+            ss.append(json.load(f))
     print('CPUs: ' + '; '.join(s['cpu'] for s in ss))
     for phase in ('paused', 'running'):
         for key in ('main_ms', 'frame_ms', 'step_ms', 'sim_ms', 'game_s_per_s'):
@@ -535,16 +678,19 @@ def jobs(argv):
 # ---- the nightly's gates ----
 
 # Counts that were exactly steady on every runner (docs/PERFORMANCE.md, "Perf spread on CI's
-# runners"): B over A fails the job.
+# runners"): B over A fails.
 HARD = (
-    ('paused', 'draws a frame'),
-    ('paused', 'gen0 GCs a frame'),
-    ('paused', 'gen1+2 GCs a frame'),
-    ('running', 'gen0 GCs a game s'),
-    ('running', 'gen1+2 GCs a game s'),
+    ('paused', 'draws a frame', 'Draws a frame, paused'),
+    ('paused', 'gen0 GCs a frame', 'Gen0 collections a frame, paused'),
+    ('paused', 'gen1+2 GCs a frame', 'Gen1 and gen2 collections a frame, paused'),
+    ('running', 'gen0 GCs a game s', 'Gen0 collections a game second, running'),
+    ('running', 'gen1+2 GCs a game s', 'Gen1 and gen2 collections a game second, running'),
 )
-# Counts steady within a few percent: B past A by more than the tolerance fails the job.
-TOLERANCE = (('paused', 'alloc B a frame', 5.0), ('running', 'draws a frame', 3.0))
+# Counts steady within a few percent: B past A by more than the tolerance fails.
+TOLERANCE = (
+    ('paused', 'alloc B a frame', 'Allocations a frame, paused', 5.0),
+    ('running', 'draws a frame', 'Draws a frame, running', 3.0),
+)
 SECTION_TOLERANCE = 5.0
 # Sections smaller than this (B a frame, paused) are left out: a few bytes swing by a lot.
 SECTION_FLOOR = 200
@@ -552,73 +698,75 @@ SECTION_FLOOR = 200
 RATIO_WARN = 3.0
 
 
+def checks(s):
+    """The gates on one job's summary: each {group, name, a, b, limit, status}, status 'pass',
+    'fail', 'warn' or 'note' (not measured, or nothing to compare)."""
+    out = []
+    has = {lab: any(l['label'] == lab and l['windows'] > 0 for l in s['launches']) for lab in ('A', 'B')}
+    if not has['B']:
+        return [dict(group='hard', name='This commit (B) measured', a=None, b=None, limit='every launch failed', status='fail')]
+    if not has['A']:
+        return [
+            dict(group='hard', name='The release (A) measured', a=None, b=None, limit='nothing to compare (it may not run on this game build)', status='note')
+        ]
+    counts = s['counts']
+
+    def value(phase, key, lab):
+        return counts.get(phase, {}).get(key, {}).get(lab, {}).get('median')
+
+    for phase, key, name in HARD:
+        a, b = value(phase, key, 'A'), value(phase, key, 'B')
+        status = 'note' if a is None or b is None else 'fail' if b > a + 1e-9 else 'pass'
+        out.append(dict(group='hard', name=name, a=a, b=b, limit='no more than A', status=status))
+    for phase, key, name, tol in TOLERANCE:
+        a, b = value(phase, key, 'A'), value(phase, key, 'B')
+        status = 'note' if not a or b is None else 'fail' if (b / a - 1) * 100 > tol else 'pass'
+        out.append(dict(group='tolerance', name=name, a=a, b=b, limit=f'at most {tol:g}% over A', status=status))
+    sa = counts.get('paused', {}).get('sections', {}).get('A', {})
+    sb = counts.get('paused', {}).get('sections', {}).get('B', {})
+    worst = None
+    over = []
+    for section, ea in sa.items():
+        eb = sb.get(section)
+        if eb is None or ea['median'] < SECTION_FLOOR:
+            continue
+        # A section the release's own launches spread wider than the tolerance gets that spread.
+        tol = max(SECTION_TOLERANCE, ea['between_launches_pct'] or 0)
+        change = (eb['median'] / ea['median'] - 1) * 100
+        if change > tol:
+            over.append(f'{section_label(section)} {change:+.1f}% against {tol:.1f}%')
+        if worst is None or change - tol > worst[0]:
+            worst = (change - tol, section, change, tol)
+    if worst:
+        _, section, rise, _ = worst
+        detail = f'each at most {SECTION_TOLERANCE:g}% over A (or A\'s own spread); '
+        detail += 'over: ' + '; '.join(over) if over else f'closest: {section_label(section)}, {rise:+.1f}%'
+        out.append(dict(group='tolerance', name='Allocations by section, paused', a=None, b=None, limit=detail, status='fail' if over else 'pass'))
+    t = s['timing'].get('running', {}).get('main_ms', {})
+    if t.get('ratio_of_medians'):
+        change = (t['ratio_of_medians'] - 1) * 100
+        limit = max(RATIO_WARN, t.get('detectable_pct') or 0)
+        out.append(
+            dict(
+                group='soft',
+                name='Main-thread ms a frame, running (B/A)',
+                a=t['A_median'],
+                b=t.get('B_median'),
+                limit=f'{change:+.1f}% against ±{limit:.1f}% detectable',
+                status='warn' if abs(change) > limit else 'pass',
+            )
+        )
+    return out
+
+
 def gate(argv):
-    """SUMMARY.json's gates as markdown on stdout; exit 1 when one fails. Only counts gate:
-    the main-thread time warns, and no frame rate or absolute time is judged."""
-    s = json.load(open(argv[0]))
-    out = [f'## Perf gates: {s["cpu"]} ({s["nproc"]} CPUs)', '']
-    fails, warns, notes, rows = [], [], [], []
-    ok = {lab: [l for l in s['launches'] if l['label'] == lab and l['windows'] > 0] for lab in ('A', 'B')}
-    if not ok['B']:
-        fails.append('B (this commit) measured nothing: every launch failed.')
-    elif not ok['A']:
-        notes.append('A (the release) measured nothing, so nothing is compared: it may not run on this game build.')
-    else:
-        counts = s['counts']
-
-        def value(phase, key, lab):
-            return counts.get(phase, {}).get(key, {}).get(lab, {}).get('median')
-
-        for phase, key in HARD:
-            a, b = value(phase, key, 'A'), value(phase, key, 'B')
-            if a is not None and b is not None:
-                rows.append((f'{phase} {key}', a, b, 'must not rise'))
-            if a is None or b is None:
-                notes.append(f'{phase} {key}: not measured')
-            elif b > a + 1e-9:
-                fails.append(f'{phase} {key}: {num(b)} against the release\'s {num(a)}')
-            elif b < a - 1e-9:
-                notes.append(f'{phase} {key}: {num(b)}, fewer than the release\'s {num(a)}')
-        for phase, key, tol in TOLERANCE:
-            a, b = value(phase, key, 'A'), value(phase, key, 'B')
-            if not a or b is None:
-                notes.append(f'{phase} {key}: not measured')
-                continue
-            rows.append((f'{phase} {key}', a, b, f'within +{tol:g}%'))
-            change = (b / a - 1) * 100
-            if change > tol:
-                fails.append(f'{phase} {key}: {num(b)} against the release\'s {num(a)}, {change:+.1f}% (more than {tol:g}%)')
-            elif change < -tol:
-                notes.append(f'{phase} {key}: {change:+.1f}% against the release')
-        sa = counts.get('paused', {}).get('sections', {}).get('A', {})
-        sb = counts.get('paused', {}).get('sections', {}).get('B', {})
-        for name, ea in sa.items():
-            eb = sb.get(name)
-            if eb is None or ea['median'] < SECTION_FLOOR:
-                continue
-            # A section the release's own launches spread wider than the tolerance gets that spread.
-            tol = max(SECTION_TOLERANCE, ea['between_launches_pct'] or 0)
-            rows.append((f'paused section {name}', ea['median'], eb['median'], f'within +{tol:.1f}%'))
-            change = (eb['median'] / ea['median'] - 1) * 100
-            if change > tol:
-                fails.append(f'paused section {name}: {num(eb["median"])} B a frame against {num(ea["median"])}, {change:+.1f}% (more than {tol:.1f}%)')
-        t = s['timing'].get('running', {}).get('main_ms', {})
-        if t.get('ratio_of_medians'):
-            change = (t['ratio_of_medians'] - 1) * 100
-            limit = max(RATIO_WARN, t.get('detectable_pct') or 0)
-            line = f'main-thread ms a frame, running: B/A {t["ratio_of_medians"]:.3f} ({change:+.1f}%; this run detects about {limit:.1f}%)'
-            (warns if abs(change) > limit else notes).append(line)
-    out.append('**' + ('FAIL' if fails else 'pass') + f'**: {len(fails)} failed, {len(warns)} warnings.')
-    for title, items in (('Failed', fails), ('Warnings', warns), ('Notes', notes)):
-        if items:
-            out += ['', f'{title}:', ''] + [f'- {x}' for x in items]
-    if rows:
-        out += ['', '| gated count | A (release) | B (this commit) | change | gate |', '|---|---|---|---|---|']
-        for name, a, b, rule in rows:
-            change = '0' if a == b else ('–' if not a else f'{(b / a - 1) * 100:+.1f}%')
-            out.append(f'| {name} | {num(a)} | {num(b)} | {change} | {rule} |')
-    print('\n'.join(out) + '\n')
-    return 1 if fails else 0
+    """Exit 1 when one of SUMMARY.json's gates failed (the summary's report shows them); prints
+    the verdict line."""
+    with open(argv[0]) as f:
+        s = json.load(f)
+    cs = s.get('checks') or checks(s)
+    print(verdict_line(cs))
+    return 1 if any(c['status'] == 'fail' for c in cs) else 0
 
 
 def main():
