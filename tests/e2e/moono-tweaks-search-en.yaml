@@ -16,14 +16,15 @@ steps:
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
   - shot: search-empty
   - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel"}
-  # "screen": seven rows, in General, Simulation (compact-report-history's "reports screen"),
-  # Saving (post-load-gc's "loading screen"), Changes gameplay and Bug fixes
-  # (fix-timelapse-snapshots' "the screen's wider view").
+  # "screen": eight rows, in General (loading-animation's "loading screen"), Simulation
+  # (compact-report-history's "reports screen"), Saving (post-load-gc's "loading screen"),
+  # Changes gameplay and Bug fixes (fix-timelapse-snapshots' "the screen's wider view").
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen"}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - expect_ui:
       "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Text": {text: "~screen"}
       "**/MoonoTweaksScreen/**/Content/dxgi": {active: true}
+      "**/MoonoTweaksScreen/**/Content/loading-animation": {active: true}
       "**/MoonoTweaksScreen/**/Content/fast-load-screen": {active: true}
       "**/MoonoTweaksScreen/**/Content/off-screen-conveyors": {active: true}
       "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {active: true}
@@ -38,9 +39,9 @@ steps:
       "**/MoonoTweaksScreen/**/Content/splash": {exists: false}
       "**/MoonoTweaksScreen/**/Content/fast-jobs": {exists: false}
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
-  # The rows and headings shown: seven rows and five headings.
+  # The rows and headings shown: eight rows and five headings.
   - expect_ui:
-      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 12}
+      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 13}
   - shot: search-screen
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "zzqx", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: stable}
