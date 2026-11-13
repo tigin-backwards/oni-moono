@@ -1,6 +1,6 @@
 """e2e.py's lanes: ports, lane locks, the perf wait and the job queue."""
 
-import os, shutil, signal, subprocess, tempfile, threading, time, types, unittest
+import fcntl, os, shutil, signal, subprocess, tempfile, threading, time, types, unittest
 
 import helpers  # noqa: F401
 import e2e
@@ -184,6 +184,26 @@ class Runq(unittest.TestCase):
 
     def tearDown(self):
         e2e.fixture_of, e2e.player_gb = self.saved
+
+    def test_no_perf_lock_inside_a_runq_job(self):
+        # A win-perf job's shim holds perf.lock exclusively: e2e.py inside it must not wait for
+        # a shared hold of the job's own lock.
+        with tempfile.TemporaryDirectory() as locks:
+            holder = open(os.path.join(locks, 'perf.lock'), 'a')
+            fcntl.flock(holder, fcntl.LOCK_EX)
+            old = dict(os.environ)
+            try:
+                os.environ.update(E2E_LOCK_DIR=locks, RUNQ_JOB='j1', RUNQ_LANES='')
+                with e2e.spec_lock({'perf_wait': True, 'max_wait': 2}, lambda s: None):
+                    pass
+                os.environ.pop('RUNQ_JOB')
+                with self.assertRaises(e2e.WaitTimeout):
+                    with e2e.spec_lock({'perf_wait': False, 'max_wait': 0}, lambda s: None):
+                        pass
+            finally:
+                os.environ.clear()
+                os.environ.update(old)
+                holder.close()
 
     def test_request_and_lanes(self):
         specs = [{'name': 'a', 'memory_gb': 4}, {'name': 'b', 'memory_gb': 9}]
