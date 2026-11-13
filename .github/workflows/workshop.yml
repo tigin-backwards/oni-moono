@@ -103,7 +103,7 @@ jobs:
           app-id: ${{ vars.REFS_APP_ID }}
           app-key: ${{ secrets.REFS_APP_KEY }}
           use-cache: false
-          build: "762230"
+          build: "763023"
       - name: Build the loader mod
         env:
           GAME_DIR: ${{ steps.refs.outputs.game-dir }}

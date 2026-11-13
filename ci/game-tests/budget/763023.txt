@@ -1,0 +1,2 @@
+# Log signatures (scripts/qa-tools.py signatures) the CI game tests allow on build 763023: errors the
+# game logs itself on the full install too, one a line, each with a comment saying why.

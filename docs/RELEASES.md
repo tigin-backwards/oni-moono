@@ -67,7 +67,7 @@ guidelines).
 
 `ci/game-refs.json` lists each game build the branch supports, where its files come from and
 the SHA-256 of every file; `default_build` is the one the release builds against (U59 744825 on
-`master`, U60 762230 on `u60`). `scripts/fetch-game-refs.py OUT` fetches one build into
+`master`, U60 763023 on `u60`). `scripts/fetch-game-refs.py OUT` fetches one build into
 `OUT/OxygenNotIncluded_Data/Managed`, a folder that works as `ONI_GAME_DIR`. It checks every file
 against the manifest before writing any, refuses hosts other than GitHub's, and never runs
 anything it fetched (from git it reads blobs out of a bare repository, with hooks off). A source
