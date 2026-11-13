@@ -421,7 +421,7 @@ stage_verify()
     echo "$report" | sed 's/^/     /' | tee -a "$run/summary.txt"
     [ "$status" -eq 0 ] || fail "verify: a verify mode reported mismatches"
     local tweak
-    for tweak in fast-anim-events fast-anim-batches fast-sublimation fast-jobs fast-particle-collision fast-offset-tables fast-anim-cleanup fast-partitioner-cleanup fast-overlays fast-conveyor-paths fast-overlay-textures fast-smi-lookups fast-save-roots path-probe-repair instant-reachability "nav links verify (in play)" "path grids verify" "canvas skips" "raycast cache" "cull cache" fetch-by-cell "canvas cull" "mesh reuse" "property sheets" "pass states" "canvas products" "component layouts" "texel copies" "partial uploads" "parallel draws"; do
+    for tweak in fast-anim-events fast-anim-batches fast-sublimation fast-jobs fast-particle-collision fast-offset-tables fast-anim-cleanup fast-partitioner-cleanup fast-overlays fast-conveyor-paths fast-overlay-textures fast-smi-lookups fast-save-roots fast-partitioner-events fast-conduit-sorts path-probe-repair instant-reachability "nav links verify (in play)" "path grids verify" "canvas skips" "raycast cache" "cull cache" fetch-by-cell "canvas cull" "mesh reuse" "property sheets" "pass states" "canvas products" "component layouts" "texel copies" "partial uploads" "parallel draws"; do
         echo "$report" | grep -q "$tweak:" || fail "verify: no report from $tweak"
     done
     # The overlays tweak reports each of its parts.

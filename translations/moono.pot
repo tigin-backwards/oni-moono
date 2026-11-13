@@ -585,6 +585,36 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_CLEANUP.DETAIL"
 msgid "The spatial index's cleanup visits only the entries that were removed."
 msgstr ""
 
+#. Row title (fast-partitioner-events)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.TITLE"
+msgid "Faster item moves on the map"
+msgstr ""
+
+#. The line under the title (fast-partitioner-events)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.EFFECT"
+msgid "An item changing tile no longer looks through every item near it."
+msgstr ""
+
+#. Tooltip: how it works (fast-partitioner-events)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.DETAIL"
+msgid "When an item moves or is stored, the game tells the spatial index's listeners for that tile by looking through every item in the surrounding area; items have no listeners, so this skips the look and tidies up the removed entries it would have."
+msgstr ""
+
+#. Row title (fast-conduit-sorts)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.TITLE"
+msgid "Faster pipe and rail updates"
+msgstr ""
+
+#. The line under the title (fast-conduit-sorts)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.EFFECT"
+msgid "Pipes and rails no longer re-sort every building's update each second."
+msgstr ""
+
+#. Tooltip: how it works (fast-conduit-sorts)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.DETAIL"
+msgid "Each second the game sorts the list of pipe and rail buildings by priority again; this repeats the reordering its last sort made while the priorities are the same, which gives the same order."
+msgstr ""
+
 #. Row title (fast-conveyor-paths)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONVEYOR_PATHS.TITLE"
 msgid "Faster conveyor rebuilds"

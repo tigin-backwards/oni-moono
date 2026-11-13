@@ -181,6 +181,12 @@ namespace OniMoono.Host.GameTweaks
                 "Fetch updates recheck only the items whose work spots can have changed."),
             new("fast-partitioner-cleanup", Simulation, "Faster spatial index cleanup", "The once-a-second tidy-up of what is where looks only at what was removed.",
                 "The spatial index's cleanup visits only the entries that were removed."),
+            new("fast-partitioner-events", Simulation, "Faster item moves on the map", "An item changing tile no longer looks through every item near it.",
+                "When an item moves or is stored, the game tells the spatial index's listeners for that tile by looking through every item in the surrounding area; "
+                + "items have no listeners, so this skips the look and tidies up the removed entries it would have."),
+            new("fast-conduit-sorts", Simulation, "Faster pipe and rail updates", "Pipes and rails no longer re-sort every building's update each second.",
+                "Each second the game sorts the list of pipe and rail buildings by priority again; this repeats the reordering its last sort made "
+                + "while the priorities are the same, which gives the same order."),
             new("fast-conveyor-paths", Simulation, "Faster conveyor rebuilds", "Building or removing conveyor rails no longer stalls the game.",
                 "The rails' network rebuild finds its routes from an index instead of searching every kept route again.", ConveyorGain),
             new(CompactNavLinks, Simulation, "Compact navigation links", "The map of where Duplicants and critters can move takes a fraction of the memory.",
@@ -254,7 +260,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, TimelapseSnapshots, SharedDuplicates, CompactReports, ReleasedSounds];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, TimelapseSnapshots, SharedDuplicates, CompactReports, ReleasedSounds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem).

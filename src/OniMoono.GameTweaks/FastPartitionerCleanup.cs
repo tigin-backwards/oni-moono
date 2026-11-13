@@ -16,7 +16,8 @@ namespace OniMoono.GameTweaks
     ///
     /// A handle is freed only through GameScenePartitioner.Free, which first removes it from the
     /// partitioner: ScenePartitioner.Remove, which marks the nodes it is in dirty. So the handles
-    /// removed since the last run are recorded with those nodes, and each node's scan looks up only
+    /// removed since the last run are recorded with those nodes (PartitionerFreed, shared with
+    /// fast-partitioner-events), and each node's scan looks up only
     /// those still in it, dropping the ones whose lookup fails in descending order of their place
     /// in the node's list. That is the game's descending scan: each removal swaps the list's last
     /// entry into the freed place, and every entry after that place has been kept, so the list ends
@@ -36,51 +37,14 @@ namespace OniMoono.GameTweaks
         public const string Name = "fast-partitioner-cleanup";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        static Func<ScenePartitioner, ScenePartitionerEntry, Extents> nodeExtents = null!;
-
-        /// The handles removed since the last scan, by node (layer, y, x), for one partitioner.
-        static readonly Dictionary<(int, int, int), List<Handle>> removed = new();
-
-        /// Lists `removed` let go of, cleared, with their storage: a list belongs to `removed`
-        /// from Take until the records are done with (Release), and nothing else holds one.
-        static readonly Stack<List<Handle>> spareLists = new();
-
-        static List<Handle> Take() => spareLists.Count > 0 ? spareLists.Pop() : new List<Handle>();
-
-        static void Release()
-        {
-            foreach (var list in removed.Values)
-            {
-                list.Clear();
-                spareLists.Push(list);
-            }
-            removed.Clear();
-        }
-        static ScenePartitioner owner;
-        static readonly List<(int Place, Handle Handle)> dropping = new();
         static long nodes, dropped, wrong;
 
         public static void Install(Harmony harmony)
         {
-            nodeExtents = AccessTools.MethodDelegate<Func<ScenePartitioner, ScenePartitionerEntry, Extents>>(
-                AccessTools.Method(typeof(ScenePartitioner), "GetNodeExtents", [typeof(ScenePartitionerEntry)]));
-            harmony.Patch(AccessTools.Method(typeof(ScenePartitioner), nameof(ScenePartitioner.Remove)), prefix: new HarmonyMethod(typeof(FastPartitionerCleanup), nameof(Removing)));
+            // The handles removed since the last scan, by node: PartitionerFreed (shared with fast-partitioner-events).
+            PartitionerFreed.Install(harmony);
             harmony.Patch(AccessTools.Method(typeof(ScenePartitioner), nameof(ScenePartitioner.Sim1000ms)),
-                transpiler: new HarmonyMethod(typeof(FastPartitionerCleanup), nameof(Transpiler)), postfix: new HarmonyMethod(typeof(FastPartitionerCleanup), nameof(Scanned)));
-        }
-
-        /// ScenePartitioner.Remove: the nodes it is about to mark dirty, with the handle.
-        static void Removing(ScenePartitioner __instance, Handle handle)
-        {
-            if (!GameScenePartitioner.Instance.Lookup(handle, out var entry)) return;
-            if (!ReferenceEquals(owner, __instance)) { Release(); owner = __instance; }
-            var e = nodeExtents(__instance, entry);
-            for (int y = e.y; y < e.y + e.height; y++)
-                for (int x = e.x; x < e.x + e.width; x++)
-                {
-                    if (!removed.TryGetValue((entry.layer, y, x), out var list)) removed[(entry.layer, y, x)] = list = Take();
-                    list.Add(handle);
-                }
+                transpiler: new HarmonyMethod(typeof(FastPartitionerCleanup), nameof(Transpiler)));
         }
 
         /// In each dirty node's scan, `entries.Count` (where the descending scan starts) becomes
@@ -115,16 +79,7 @@ namespace OniMoono.GameTweaks
         {
             nodes++;
             var lookup = GameScenePartitioner.Instance;
-            if (removed.TryGetValue((layer, y, x), out var handles))
-            {
-                var place = entries.dict;
-                dropping.Clear();
-                foreach (var handle in handles)
-                    if (place.TryGetValue(handle, out int at) && !lookup.Lookup(handle, out _) && !dropping.Contains((at, handle))) dropping.Add((at, handle));
-                dropping.Sort((a, b) => b.Place.CompareTo(a.Place));
-                foreach (var (_, handle) in dropping) entries.Remove(handle);
-                dropped += dropping.Count;
-            }
+            dropped += PartitionerFreed.DropFreed(entries, layer, y, x);
             if (verify)
             {
                 for (int i = entries.Count - 1; i >= 0; i--)
@@ -137,8 +92,5 @@ namespace OniMoono.GameTweaks
             }
             return 0;
         }
-
-        /// After the scan: every dirty node has been cleaned, so the records are done with.
-        static void Scanned() => Release();
     }
 }
