@@ -237,7 +237,10 @@ namespace OniMoono.Host.GameTweaks
             }
             if (found.IsNil)
             {
-                if (member.Optional && !named) return;
+                // An optional method may be an overload only some builds add beside others of its
+                // name (Grid.RegisterRestriction's owner overload, 763023); a field only when none
+                // of its name is there.
+                if (member.Optional && (member.IsMethod || !named)) return;
                 check.Problems.Add($"`{member.Display}` {(named ? "changed" : "is missing")} in this game version");
                 return;
             }

@@ -40,7 +40,8 @@ namespace OniMoono.Tweaks
     /// other body turns the tweak off until it is reviewed (`--check-tweaks --review`).
     /// `Rewrites`: for a transpiler, the sites it rewrites in that body (TranspilerCounts).
     /// `Optional`: a member only some game builds have (the tweak checks for it itself); when
-    /// it is there, it must match.
+    /// it is there, it must match. For a method, an overload only some builds have beside others
+    /// of its name is optional too; those others need declarations of their own.
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
     internal sealed class GameMemberAttribute : Attribute
     {
