@@ -81,8 +81,9 @@ started from a Steam library or Moono's own install, `%LOCALAPPDATA%\oni-moono`,
 home; Steam's RunningAppID counts for nothing, as test games set it and it outlives them) or while
 the slot is held for them (`runq hold windows [--for 3h]`, `runq release windows`; `runq status`
 shows the hold). Such a job waits holding nothing, and others run meanwhile. Games run from the
-folders in `background_game_paths` (default `E:\Development\u59bake\`, another tool of the
-user's) are a background load: they hold back only `win-perf` and `quiet` jobs, are never the
+folders in `background_game_paths` (by default onimaxxing's copies under `E:\Development\`:
+TestingNotIncluded, SimNotIncluded, DataNotIncluded, u59bake, and OniSnapshot's) are a background
+load: they hold back only `win-perf` and `quiet` jobs, are never the
 user's game, and runq never kills them.
 
 ### Caps
@@ -125,14 +126,14 @@ runq already holds for its job, would wait forever: it is stopped at once (`self
   stages the host) and `%TEMP%\oni-runq\ID\home` (`ONI_RUN_HOME`, unless the caller set its own),
   the run home's volume settings at 0, and `ONI_WIN_MONITOR=2` whatever the caller set. When the
   job ends, its game is killed by its run home (never by process name) and the folder is removed
-  (`--keep-home` keeps it). A game started while the job holds the slot under a run home of its
-  own (a runner that picks its homes) is tied to the job when the daemon sees it, and killed with
-  it by pid and start time. Every 30 s the daemon reads the job's game command line and warns in
+  (`--keep-home` keeps it). A job's own games (run from, or naming, its stage or run home) are
+  recorded and killed with it by pid and start time; a game that only started while it ran is
+  never its own. Every 30 s the daemon reads the job's game command line and warns in
   `runq status` when our player lacks `--no-focus`, a game is not on monitor 2, or a game was
   started with the flag that pins the pointer over it. Every Windows job's game gets power
   throttling (EcoQoS) off, as a throttled test game runs many times slower; a `win-perf` job's
   also gets the High priority class, the others Normal. runq never focuses a window or moves the pointer.
-- No contact with the user's Steam: a Windows job whose game Steam tracks as ONI running (Steam's
+- No contact with the user's Steam: a Windows job whose own game Steam tracks as ONI running (Steam's
   `logs\gameprocess_log.txt`) is stopped (`steam-contact`), and test games outside runq that Steam
   tracks are named under OUTSIDE RUNQ.
 - A heartbeat lease with `--heartbeat DUR`: `runq beat` from inside the job.
