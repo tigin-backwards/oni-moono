@@ -17,8 +17,8 @@ Resources: lane (count of lane numbers), mem (GB), cpu (cores), players (count),
 slot), perf (exclusive timing: while one runs, no other job that loads the machine runs; a job
 with no resources at all, kind light, still does). quiet is a flag on perf: the external CPU must
 be under the configured cores, waited for at most quiet_wait_minutes, then the job starts noisy.
-A win-perf job (perf and windows) never starts while the user is in ONI and holds no reservation
-meanwhile (others keep running)."""
+No job that needs the Windows slot starts while the user is in ONI or the slot is held for them
+(`runq hold windows`); such a job holds no reservation meanwhile (others keep running)."""
 
 import dataclasses, math
 
@@ -76,6 +76,7 @@ class State:
     service: dict = dataclasses.field(default_factory=dict)  # (owner, level) -> hours in 24 h
     ext_cpu: float = 0.0  # cores busy outside runq, sampled
     user_in_oni: bool = False
+    windows_hold: str | None = None  # `runq hold windows`: why the slot is kept for the user
 
 
 @dataclasses.dataclass
@@ -267,7 +268,11 @@ def plan(state):
             blocked = 'perf-shared'
         gate = None
         noisy = False
-        if not blocked and u[PERF] and job.needs.get('windows') and state.user_in_oni:
+        # The user's own game, or the slot held for them: no job that needs the Windows slot
+        # starts, and none holds a reservation meanwhile (others keep running).
+        if job.needs.get('windows') and state.windows_hold:
+            gate = 'hold'
+        elif job.needs.get('windows') and state.user_in_oni:
             gate = 'user-in-oni'
         elif not blocked and u[PERF] and job.needs.get('quiet') and state.ext_cpu >= float(cfg['quiet_cores']):
             since = job.quiet_since if job.quiet_since is not None else now
@@ -286,7 +291,11 @@ def plan(state):
                 running_per_owner[job.owner] = running_per_owner.get(job.owner, 0) + 1
             continue
         if gate == 'user-in-oni':
-            reasons[job.id] = 'the user is in ONI: a perf number beside their game is worthless (waits, holds nothing)'
+            reasons[job.id] = 'the user is in ONI: no Windows job runs beside their game (waits, holds nothing)'
+            starts[job.id] = math.inf
+            continue
+        if gate == 'hold':
+            reasons[job.id] = f'the Windows slot is held for the user: {state.windows_hold} (waits, holds nothing)'
             starts[job.id] = math.inf
             continue
         if gate == 'quiet':

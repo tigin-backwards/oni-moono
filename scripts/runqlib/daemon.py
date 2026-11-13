@@ -389,6 +389,10 @@ class Daemon:
         elif op == 'history':
             jobs = self.store.history(req.get('owner'), float(req.get('since') or 0), int(req.get('limit') or 50))
             conn.send({'ok': True, 'jobs': [self.describe(j) for j in jobs]})
+        elif op == 'hold':
+            conn.send(self.hold(req))
+        elif op == 'release':
+            conn.send(self.release(req))
         elif op == 'phase':
             self.phase(conn, req)
         else:
@@ -575,6 +579,37 @@ class Daemon:
         d['warnings'] = self.warnings.get(job['id'], [])
         return d
 
+    # ------------------------------------------------------------ holds for the user
+
+    def holds_path(self):
+        return os.path.join(self.state_dir, 'holds.json')
+
+    def holds(self):
+        """{resource: {until, by, reason, since}} of the holds not expired."""
+        now = time.time()
+        data = shim.read_json(self.holds_path(), {}) or {}
+        return {k: v for k, v in data.items() if v.get('until', 0) > now}
+
+    def hold(self, req):
+        if req.get('resource') != 'windows':
+            return {'ok': False, 'code': 2, 'error': 'only the Windows slot can be held (runq hold windows)'}
+        until = time.time() + float(req.get('seconds') or 3 * 3600)
+        data = self.holds()
+        data['windows'] = {'until': until, 'by': req.get('by') or '?', 'reason': req.get('reason') or 'the user plays', 'since': time.time()}
+        shim.write_json(self.holds_path(), data)
+        log(f'Windows slot held for the user until {time.strftime("%H:%M", time.localtime(until))} by {req.get("by")}')
+        self.dirty = True
+        return {'ok': True, 'until': until}
+
+    def release(self, req):
+        data = self.holds()
+        gone = data.pop(req.get('resource') or 'windows', None)
+        shim.write_json(self.holds_path(), data)
+        if gone:
+            log(f'Windows slot released by {req.get("by")}')
+        self.dirty = True
+        return {'ok': True, 'released': bool(gone)}
+
     # ------------------------------------------------------------ phases
 
     def phase(self, conn, req):
@@ -734,7 +769,7 @@ class Daemon:
             return
         if job['reason'] in ('timeout',):
             code = EXIT_TIMEOUT
-        elif job['reason'] in ('cancelled', 'idle-held', 'heartbeat') or (job['reason'] or '').startswith('self-deadlock'):
+        elif job['reason'] in ('cancelled', 'idle-held', 'heartbeat') or (job['reason'] or '').startswith(('self-deadlock', 'steam-contact')):
             code = EXIT_KILLED
         elif 'exit' in result:
             code = int(result['exit'])
@@ -940,7 +975,7 @@ class Daemon:
                 log(f'{job_id}: {why}; stopping')
         why = list(ext.why)
         with self.worker.lock:
-            games, games_at, steam_oni, ext_cpu = list(self.worker.games), self.worker.games_at, self.worker.user_in_oni, self.worker.ext_cpu
+            games, games_at, ext_cpu = list(self.worker.games), self.worker.games_at, self.worker.ext_cpu
         wants_windows = any((j['needs'] or {}).get('windows') or ((j['phase'] or {}).get('needs') or {}).get('windows') for j in rows)
         self.windows_relevant = wants_windows
         live_ids = {j['id'] for j in running_rows}
@@ -985,8 +1020,27 @@ class Daemon:
                     shim.write_json(path, known + new)
                     log(f'{j["id"]}: its game(s) {", ".join(str(g["pid"]) for g in new)}, killed with it when it ends')
                 attributed |= {g['pid'] for g in known + new}
-            in_oni = winenv.user_playing(steam_oni, games, attributed)
+            in_oni = winenv.user_playing(games, attributed)
             self.user_in_oni = in_oni
+            # A test game must never reach the user's Steam: a game of a runq Windows job that
+            # Steam tracks as ONI's (its gameprocess_log.txt) stops the job. Test games outside
+            # runq that Steam tracks are named under OUTSIDE RUNQ.
+            tracked = winenv.read_steam_tracked() or set()
+            for j in running_rows:
+                if not (j['needs'] or {}).get('windows') or j['reason']:
+                    continue
+                env = shim.read_json(os.path.join(j['dir'], 'env.json'), {}) or {}
+                mine = {g['pid'] for g in shim.read_json(os.path.join(j['dir'], 'games.json'), []) or []}
+                mine |= {g.get('pid') for g in games if any(m in g.get('cmdline', '') for m in winenv.run_home_matches(j['id'], env))}
+                hit = sorted(p for p in tracked & mine if p)
+                if hit:
+                    reason = f'steam-contact: Steam tracks its game (pid {", ".join(map(str, hit))}) as ONI running: a test game reached the user\'s Steam'
+                    self.store.update(j['id'], reason=reason, exit=EXIT_KILLED)
+                    self.stop_unit(j['unit'])
+                    log(f'{j["id"]}: {reason}; stopping')
+            for g in games:
+                if g.get('pid') in tracked and winenv.test_game(g.get('cmdline', '')):
+                    why.append(f'Steam tracks test game pid {g["pid"]} ({g.get("name")}) as ONI running')
             # Violations of the Windows rules by running jobs' games.
             for j in running_rows:
                 if not (j['needs'] or {}).get('windows'):
@@ -1058,6 +1112,7 @@ class Daemon:
             service=self.store.service(now),
             ext_cpu=ext_cpu,
             user_in_oni=in_oni,
+            windows_hold=self.hold_text(),
         )
         p = sched.plan(state)
         for jid, t in p.quiet_started.items():
@@ -1077,6 +1132,12 @@ class Daemon:
             self.wanted_written = False
         if p.grants:
             self.dirty = True
+
+    def hold_text(self):
+        h = self.holds().get('windows')
+        if not h:
+            return None
+        return f'{h["reason"]}, until {time.strftime("%H:%M", time.localtime(h["until"]))} (runq release windows)'
 
     def after_blocked(self, job):
         for dep in job['after'] or []:
@@ -1153,6 +1214,7 @@ class Daemon:
             'running': running,
             'queued': queued,
             'external': list(ext.why),
+            'holds': self.holds(),
             'warnings': {k: v for k, v in self.warnings.items() if v},
             'owners': holds,
         }

@@ -11,6 +11,9 @@
   runq history [--owner X] [--since D]    past jobs
   runq phase --kind K | --needs R         inside a job: give back what it holds, wait for K's resources
   runq beat                               inside a job: a heartbeat (--heartbeat)
+  runq hold windows [--for DUR] [--reason T]  keep the Windows slot for the user (default 3 h): no new
+                                          job that needs it starts; running ones go on
+  runq release windows                    end the hold
   runq ping [--caller]                    start the daemon when it is down; exit 0 when it answers
                                           (--caller: and the calling script's parents hold no old lock)
   runq install                            install the daemon (~/.local/share/oni-runq) and its unit
@@ -478,6 +481,8 @@ def cmd_status(argv):
             print(f'      {d["waits"]}')
     if not st['queued']:
         print('  none')
+    for name, h in (st.get('holds') or {}).items():
+        print(f'HELD: the {name} slot, for the user until {when(h["until"])} ({h["reason"]}, by {h["by"]}; runq release {name})')
     if st['external']:
         print('OUTSIDE RUNQ')
         for line in st['external']:
@@ -582,6 +587,26 @@ def cmd_phase(argv):
         die(msg.get('error', 'phase refused'), msg.get('code', 2))
 
 
+def cmd_hold(argv, release=False):
+    """runq hold windows [--for DUR] [--reason TEXT] / runq release windows."""
+    if not argv or argv[0] != 'windows':
+        die('runq hold windows [--for 3h] [--reason TEXT] | runq release windows')
+    req = {'op': 'release' if release else 'hold', 'resource': 'windows', 'by': os.environ.get('RUNQ_OWNER') or owner_default(os.getcwd())}
+    rest = argv[1:]
+    if '--for' in rest:
+        req['seconds'] = config.parse_duration(rest[rest.index('--for') + 1])
+    if '--reason' in rest:
+        req['reason'] = rest[rest.index('--reason') + 1]
+    reply = connect().call(req)
+    if not reply.get('ok'):
+        die(reply.get('error'), reply.get('code', 2))
+    if release:
+        print('Windows slot released' if reply.get('released') else 'the Windows slot was not held')
+    else:
+        print(f'Windows slot held until {time.strftime("%H:%M", time.localtime(reply["until"]))}: no new job that needs it starts (runq release windows)')
+    return 0
+
+
 def cmd_beat():
     d = os.environ.get('RUNQ_DIR')
     if not d:
@@ -651,6 +676,8 @@ def main(argv):
         'history': lambda: cmd_history(rest),
         'phase': lambda: cmd_phase(rest),
         'beat': cmd_beat,
+        'hold': lambda: cmd_hold(rest),
+        'release': lambda: cmd_hold(rest, release=True),
         'ping': lambda: cmd_ping(rest),
         'install': lambda: (install(), 0)[1],
         'doctor': cmd_doctor,

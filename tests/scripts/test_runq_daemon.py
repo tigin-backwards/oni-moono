@@ -301,6 +301,15 @@ class Daemon(unittest.TestCase):
         self.assertEqual(r.returncode, 137)
         self.assertIn('self-deadlock', r.stderr)
 
+    def test_hold_windows_for_the_user(self):
+        r = self.h.runq('hold', 'windows', '--for', '1h', '--reason', 'the user plays')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        st = json.loads(self.h.runq('status', '--json').stdout)
+        self.assertIn('windows', st['holds'])
+        self.assertIn('HELD: the windows slot', self.h.runq('status').stdout)
+        self.assertEqual(self.h.runq('release', 'windows').returncode, 0)
+        self.assertEqual(json.loads(self.h.runq('status', '--json').stdout)['holds'], {})
+
     def test_heartbeat(self):
         r = self.h.runq('run', '--kind', 'light', '--heartbeat', '2s', '--', 'sleep', '60')
         self.assertEqual(r.returncode, 137)
