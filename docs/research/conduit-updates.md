@@ -221,6 +221,20 @@ storage walk, about 1–2 µs. An idle rail endpoint is the connection and netwo
   `ElementFilter` 22 µs, one call. Only one of them is above 0.05 ms: the conduction panels,
   0.32 ms.
 
+## Landed (2026-11-13)
+
+Candidates 1 and 2 are game tweaks, on by default on both branches: `fast-partitioner-events`
+(with the freed-handle record now shared with `fast-partitioner-cleanup`) and
+`fast-conduit-sorts`. Both stand down for foreign patches on what they replace and while Fast
+Track, MoreTek, Colony Performance Fixes or Multiplayer Mod is active.
+
+- **Verify:** QA's verify stage on the late-game colony (U60 763023, Linux), 840 game seconds,
+  0 failures. `fast-partitioner-events`: 2,667,730 walks skipped, 56,150 freed handles
+  dropped, 0 wrong. `fast-conduit-sorts`: 2,817 sorts, 0 wrong. `fast-partitioner-cleanup`, on
+  the shared record: 500,000 nodes cleaned, 0 wrong.
+- **Windows:** not measured yet. The `win-perf` A/B (the tweaks' bypass switches, four off/on
+  pairs in one run) was stopped twice by runq before it measured.
+
 ## What I would build first
 
 Candidate 1, as a game tweak on both branches:
