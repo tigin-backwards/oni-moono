@@ -578,6 +578,10 @@ The user's answers to section 14, each a value in `~/.config/oni-runq/config.tom
   blocks on a legacy lock its shim holds is stopped at once (`self-deadlock`).
 - **out.log** has the command's output as it wrote it, without time stamps, so `runq run` shows
   what the script prints.
+- **Due jobs by level:** due jobs go by level, then by submit time (6.1 had submit time alone),
+  so a release job that becomes due goes ahead of user jobs due earlier. Running jobs are never
+  preempted. The bound of 6.4 then holds for the highest levels only: a lower-level due job waits
+  while higher-level jobs keep becoming due.
 - Not built in phase 1: `runq stats`, `--dry-run` forecasts, the status page (phase 2), the
   worktree registry (phase 3), the freeze and merge queue (phase 4), and removing the direct
   claims from the old scripts (the end of 1c, after a week of use).

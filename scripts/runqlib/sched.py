@@ -190,13 +190,16 @@ def ordered(state):
     due, by_level = [], {}
     for job in state.queued:
         bound = float(bounds.get(job.level, 0)) * 60
+        # Due jobs go ahead of every job not yet due, by level, then by submit time: a higher
+        # level that becomes due goes ahead of lower levels due earlier.
+        rank = levels.get(job.level, len(levels))
         if job.boost:
-            due.append((-1, job.order, job.id, job))
+            due.append((-1, rank, job.order, job.id, job))
         elif now - job.order >= bound:
-            due.append((0, job.order, job.id, job))
+            due.append((0, rank, job.order, job.id, job))
         else:
             by_level.setdefault(job.level, []).append(job)
-    out = [j for *_, j in sorted(due, key=lambda x: x[:3])]
+    out = [j for *_, j in sorted(due, key=lambda x: x[:4])]
     for level in sorted(by_level, key=lambda name: levels.get(name, len(levels))):
         jobs = by_level[level]
         owners = {}
