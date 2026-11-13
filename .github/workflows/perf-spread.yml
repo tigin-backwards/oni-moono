@@ -182,7 +182,8 @@ jobs:
           # (u60's pre-releases are not in master's, nor master's in u60's).
           [ -n "$base" ] || base=$(git tag --merged HEAD --sort=-creatordate --list 'v*' | head -1)
           [ -n "$base" ] || { echo "no release tag in this commit's history"; exit 1; }
-          echo "A: $base ($(git rev-parse --short "$base^{commit}")), B: $(git rev-parse --short HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "A: $base ($(git rev-parse --short "$base^{commit}")), B: $(git rev-parse --short HEAD)"
+          { echo "SPREAD_A=$base"; echo "SPREAD_B=$(git rev-parse --short HEAD)"; } >> "$GITHUB_ENV"
           git worktree add -q "$RUNNER_TEMP/base" "$base"
           game="$RUNNER_TEMP/oni-game"
           for tree in "$RUNNER_TEMP/base" "$GITHUB_WORKSPACE"; do
@@ -231,21 +232,22 @@ jobs:
           [ -z "$B_ARGS" ] || launch . probe-B B 1 0 300
       - name: Summary
         if: always()
+        env:
+          SAVE: ${{ inputs.save }}
         run: |
           # Glob order (1-A, 1-B, 10-A, ...) keeps each A with its B.
           shopt -s nullglob
           runs=(out/perf-spread/runs/*)
           if [ ${#runs[@]} -eq 0 ]; then echo "No launch finished." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
-          scripts/perf-spread.py summary out/perf-spread "${runs[@]}" >> "$GITHUB_STEP_SUMMARY"
+          scripts/perf-spread.py summary --a "${SPREAD_A:-the release}" --b "${SPREAD_B:-this commit}" --save "$SAVE" out/perf-spread "${runs[@]}" > /dev/null
+          cat out/perf-spread/summary.md >> "$GITHUB_STEP_SUMMARY"
       # The nightly's gates (scripts/perf-spread.py gate): counts only, the CPU model logged.
       - name: Gates
         if: always() && inputs.gate
         run: |
-          [ -f out/perf-spread/summary.json ] || { echo "No summary: no launch finished." | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; }
-          status=0
-          scripts/perf-spread.py gate out/perf-spread/summary.json > out/perf-spread/gates.md || status=$?
-          cat out/perf-spread/gates.md | tee -a "$GITHUB_STEP_SUMMARY"
-          exit $status
+          # The summary above shows each check; this step only fails the job on a failed one.
+          [ -f out/perf-spread/summary.json ] || { echo "No summary: no launch finished."; exit 1; }
+          scripts/perf-spread.py gate out/perf-spread/summary.json
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -253,6 +255,5 @@ jobs:
           path: |
             out/perf-spread/summary.json
             out/perf-spread/summary.md
-            out/perf-spread/gates.md
             out/perf-spread/runs/*/result.json
           if-no-files-found: warn
