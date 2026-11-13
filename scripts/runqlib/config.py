@@ -184,10 +184,14 @@ def slice_name():
 
 
 def disabled(environ=None, cfg=None):
-    """Why the kill switch is on (RUNQ=off, or enabled = false), else None."""
+    """Why the kill switch is on (RUNQ=off, enabled = false, or a GitHub Actions runner), else
+    None. runq brokers the shared test machine; a CI runner is a machine of one job's own, and a
+    job runq ran there would lose the display its caller made (a job never keeps DISPLAY)."""
     environ = os.environ if environ is None else environ
     if environ.get('RUNQ', '').lower() in ('off', '0', 'no', 'false'):
         return 'RUNQ=off'
+    if environ.get('GITHUB_ACTIONS') == 'true':
+        return 'a GitHub Actions runner'
     try:
         cfg = cfg or load()
     except Exception as e:  # a broken config file turns runq off rather than every script
