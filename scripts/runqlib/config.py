@@ -81,8 +81,15 @@ DEFAULTS = {
     'win_monitor': 2,
     # Games run from these folders (prefixes of the executable's path, any case) belong to other
     # tools of the user's: a background load. They block only jobs that measure (win-perf, quiet),
-    # are never the user's game, and runq never kills them (onimaxxing's save-load tester).
-    'background_game_paths': ['E:\\Development\\u59bake\\'],
+    # are never the user's game, and runq never kills them (onimaxxing's testers and copies).
+    'background_game_paths': [
+        'E:\\Development\\TestingNotIncluded',
+        'E:\\Development\\SimNotIncluded',
+        'E:\\Development\\DataNotIncluded',
+        'E:\\Development\\u59bake\\',
+        'E:\\Development\\help-i-want-to-customize-my-oxygen-not-included-worldgen\\',
+        'E:\\tmp\\oni-fps\\',
+    ],
     'min_free_gb': 5,
     'retention_days': 14,
     'retention_failed_days': 30,

@@ -5,7 +5,7 @@
 - players the job started in systemd scopes of their own (scripts/contain.sh with ONI_SCOPE, as
   e2e.py and qa.sh do) are stopped: the scopes whose processes carry RUNQ_JOB=<id>;
 - a job that held the Windows slot: its game is killed by its run home (never by name), and so are
-  the games the daemon saw it start under other run homes (by pid and start time); then its
+  the job's own games the daemon recorded (by pid and start time); then its
   Windows folder (%TEMP%\\oni-runq\\<id>) is removed, unless --keep-home;
 - cleanup.json records systemd's view of the end ($SERVICE_RESULT, $EXIT_CODE, $EXIT_STATUS),
   and the daemon frees the job's resources once it is there."""
@@ -53,7 +53,16 @@ def windows_cleanup(job, windows, log):
             log(f'kill by {match}: {e}')
     # The games it started under a run home of their own (the daemon saw them while the job held
     # the Windows slot): by pid and start time.
+    from . import config
+
+    background = config.load().get('background_game_paths', [])
+    matches = winenv.run_home_matches(job['id'], env)
     for g in shim.read_json(os.path.join(job['dir'], 'games.json'), []) or []:
+        # Only the job's own games (an older daemon tied any game started meanwhile).
+        cmd = g.get('cmdline', '')
+        if winenv.background_game(cmd, background) or not any(m in cmd for m in matches):
+            log(f'left {g.get("pid")} alone: not the job\'s own game')
+            continue
         try:
             out = windows.kill_pid(g['pid'], g['created'])
             if out.strip():

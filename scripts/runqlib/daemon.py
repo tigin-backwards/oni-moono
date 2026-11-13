@@ -1009,20 +1009,18 @@ class Daemon:
                 ext.windows = True
                 why.append('the Windows side is being checked')
                 self.worker.want_windows.set()
-            # The games a job holding the Windows slot started, whatever their run home: its
-            # cleanup kills them too (by pid and start time).
+            # A job's own games (run from, or naming, its stage or run home): its cleanup kills
+            # them by pid and start time too, and they are never the user's.
             attributed = set()
+            own = {}
             for j in running_rows:
                 if not (j['needs'] or {}).get('windows') or not j['start']:
                     continue
                 path = os.path.join(j['dir'], 'games.json')
                 known = shim.read_json(path, []) or []
-                others = [r['id'] for r in running_rows if r['id'] != j['id']]
-                new = [
-                    g
-                    for g in winenv.attribute(games, j['start'], others, cfg['background_game_paths'])
-                    if (g['pid'], g['created']) not in {(k['pid'], k['created']) for k in known}
-                ]
+                jenv = shim.read_json(os.path.join(j['dir'], 'env.json'), {}) or {}
+                own[j['id']] = winenv.attribute(games, winenv.run_home_matches(j['id'], jenv), cfg['background_game_paths'])
+                new = [g for g in own[j['id']] if (g['pid'], g['created']) not in {(k['pid'], k['created']) for k in known}]
                 if new:
                     shim.write_json(path, known + new)
                     log(f'{j["id"]}: its game(s) {", ".join(str(g["pid"]) for g in new)}, killed with it when it ends')
@@ -1036,9 +1034,7 @@ class Daemon:
             for j in running_rows:
                 if not (j['needs'] or {}).get('windows') or j['reason']:
                     continue
-                env = shim.read_json(os.path.join(j['dir'], 'env.json'), {}) or {}
-                mine = {g['pid'] for g in shim.read_json(os.path.join(j['dir'], 'games.json'), []) or []}
-                mine |= {g.get('pid') for g in games if any(m in g.get('cmdline', '') for m in winenv.run_home_matches(j['id'], env))}
+                mine = {g['pid'] for g in own.get(j['id'], [])}
                 hit = sorted(p for p in tracked & mine if p)
                 if hit:
                     reason = f'steam-contact: Steam tracks its game (pid {", ".join(map(str, hit))}) as ONI running: a test game reached the user\'s Steam'
@@ -1046,7 +1042,11 @@ class Daemon:
                     self.stop_unit(j['unit'])
                     log(f'{j["id"]}: {reason}; stopping')
             for g in games:
-                if g.get('pid') in tracked and winenv.test_game(g.get('cmdline', '')):
+                if (
+                    g.get('pid') in tracked
+                    and winenv.test_game(g.get('cmdline', ''))
+                    and not winenv.background_game(g.get('cmdline', ''), cfg['background_game_paths'])
+                ):
                     why.append(f'Steam tracks test game pid {g["pid"]} ({g.get("name")}) as ONI running')
             # Violations of the Windows rules by running jobs' games.
             for j in running_rows:

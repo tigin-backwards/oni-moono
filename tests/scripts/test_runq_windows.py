@@ -161,14 +161,35 @@ class Rules(unittest.TestCase):
         self.assertEqual(winenv.steam_tracked(log), {45716})
         self.assertEqual(winenv.steam_tracked(log + '[t] Remove 457140 from running list\n'), set())
 
-    def test_games_a_windows_job_started_under_other_run_homes(self):
+    def test_a_jobs_games_are_only_its_own(self):
+        # j0000321's own game, run from its stage with its run home; an onimaxxing tester that only
+        # started while it ran (j0000321 and j0000346 were stopped for one); another job's; the
+        # user's; a test game outside runq under its own home.
+        matches = winenv.run_home_matches('j0000321', {'ONI_RUN_HOME': 'C:\\T\\oni-runq\\j0000321\\home'})
         games = [
-            {'pid': 1, 'created': 100, 'cmdline': 'X.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-original\\Player.log'},
-            {'pid': 2, 'created': 50, 'cmdline': 'X.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-ours\\Player.log'},  # before the job
-            {'pid': 3, 'created': 120, 'cmdline': '"C:\\\\Steam\\\\steamapps\\\\common\\\\OxygenNotIncluded\\\\OxygenNotIncluded.exe"'},  # the user's
-            {'pid': 4, 'created': 130, 'cmdline': 'OniMoono.exe --run-home C:\\T\\oni-runq\\j0000009\\home'},  # another job's
+            {'pid': 1, 'created': 100, 'cmdline': '"C:\\T\\oni-runq\\j0000321\\stage\\host\\OniMoono.exe" --run-home C:\\T\\oni-runq\\j0000321\\home'},
+            {'pid': 2, 'created': 120, 'cmdline': '"E:\\Development\\TestingNotIncluded\\TestingNotIncluded.exe" -popupwindow -logFile E:\\x\\unity.log'},
+            {'pid': 3, 'created': 130, 'cmdline': 'OniMoono.exe --run-home C:\\T\\oni-runq\\j0000009\\home'},
+            {'pid': 4, 'created': 140, 'cmdline': '"C:\\Steam\\steamapps\\common\\OxygenNotIncluded\\OxygenNotIncluded.exe"'},
+            {'pid': 5, 'created': 150, 'cmdline': 'X.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-original\\Player.log'},
         ]
-        self.assertEqual([g['pid'] for g in winenv.attribute(games, 90, others=['j0000009'])], [1])
+        self.assertEqual([g['pid'] for g in winenv.attribute(games, matches, CFG['background_game_paths'])], [1])
+        # A caller's own run home outside oni-runq counts (gc79's %TEMP%\\oni-gc79 homes).
+        gc = winenv.run_home_matches('j0000184', {'ONI_RUN_HOME': 'C:\\T\\oni-gc79\\home-hf1'})
+        g = {'pid': 6, 'created': 1, 'cmdline': 'OniMoono.exe --run-home C:\\T\\oni-gc79\\home-hf1'}
+        self.assertEqual(len(winenv.attribute([g], gc)), 1)
+
+    def test_onimaxxing_copies_are_background(self):
+        for exe in (
+            'TestingNotIncluded\\TestingNotIncluded.exe',
+            'TestingNotIncluded-U59-744825\\TestingNotIncluded.exe',
+            'SimNotIncluded\\SimNotIncluded.exe',
+            'DataNotIncluded-U60-761015\\DataNotIncluded.exe',
+            'u59bake\\TestingNotIncluded\\TestingNotIncluded.exe',
+        ):
+            self.assertTrue(winenv.background_game(f'"E:\\Development\\{exe}" -popupwindow', CFG['background_game_paths']), exe)
+        # Our test original's copy is not one.
+        self.assertFalse(winenv.background_game('"E:\\Development\\BrutalNotIncluded\\BrutalNotIncluded.exe" -logFile x', CFG['background_game_paths']))
 
     def test_every_windows_jobs_game_is_unthrottled(self):
         jobs = [
@@ -200,11 +221,18 @@ class Cleanup(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             j = job(dir=d, win_temp=TEMP, windows_used=True)
             with open(os.path.join(d, 'games.json'), 'w') as f:
-                json.dump([{'pid': 9936, 'created': 1000}], f)
+                json.dump(
+                    [
+                        {'pid': 9936, 'created': 1000, 'cmdline': 'B.exe -logFile ' + TEMP + '\\oni-runq\\j0000042\\home\\Player.log'},
+                        {'pid': 77, 'created': 5, 'cmdline': '"E:\\\\Development\\\\TestingNotIncluded\\\\T.exe"'},
+                    ],
+                    f,
+                )
             fake = winenv.FakeWindows(TEMP)
             fake.procs = [{'pid': 9936, 'created': 1000, 'cmdline': 'B.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-original\\Player.log'}]
             cleanup.windows_cleanup(j, fake, lambda s: None)
             self.assertIn(('killpid', 9936, 1000), fake.calls)
+            self.assertNotIn(('killpid', 77, 5), fake.calls)  # not the job's own
             self.assertEqual(fake.procs, [])
 
     def test_windows_cleanup_kills_by_run_home_then_removes(self):
