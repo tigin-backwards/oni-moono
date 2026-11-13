@@ -7,6 +7,7 @@
 # files, saves or logs: the artifact holds the numbers alone.
 name: Perf spread
 
+# workflow_dispatch takes 10 inputs at most: gate and the timeouts are the nightly's (workflow_call).
 on:
   workflow_dispatch:
     inputs:
@@ -51,18 +52,6 @@ on:
         description: The jobs, as a JSON list (one runner machine each).
         type: string
         default: "[1, 2, 3]"
-      gate:
-        description: Fail the job when B's counts pass their gates against A.
-        type: boolean
-        default: false
-      launch_step_minutes:
-        description: The launches' step is stopped after this long, leaving time for the summary.
-        type: number
-        default: 120
-      job_minutes:
-        description: The job's timeout.
-        type: number
-        default: 150
   workflow_call:
     inputs:
       base:
@@ -131,7 +120,7 @@ jobs:
   spread:
     name: Perf spread ${{ matrix.job }}
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.job_minutes }}
+    timeout-minutes: ${{ inputs.job_minutes || 150 }}
     permissions:
       contents: read
     strategy:
@@ -194,7 +183,7 @@ jobs:
       # The step's own timeout, inside the job's, leaves time for the summary and the upload:
       # each launch writes its result.json as it ends, so a cut-short step still has numbers.
       - name: Launch A and B in turn
-        timeout-minutes: ${{ inputs.launch_step_minutes }}
+        timeout-minutes: ${{ inputs.launch_step_minutes || 120 }}
         env:
           SAVE: ${{ inputs.save }}
           PAIRS: ${{ inputs.pairs }}
