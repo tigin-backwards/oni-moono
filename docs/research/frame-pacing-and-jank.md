@@ -248,7 +248,7 @@ one also gets more sub-ticks: 2.75 against 1.65 on average, +2.3 ms).
 | (a') Cheaper step batch | Exact tweaks of conduits, conveyor rails, plant absorbers, power | Each ms off StepTheSim's 4.7 ms comes off the spike | Yes, by construction and verify modes, as other tweaks | Per tweak | **Recommended** |
 | (b) Sim pacing | Smooth the delta the game sees, carrying the rest | Modelled: sd 3.86 → 3.72 ms, p99 20.4 → 19.9 ms, spikes 6.2% → 5.6% (Windows, late-game) | No: a different delta sequence; game time stays exact over time | Low | Rejected: no gain |
 | (c) UI-only frames | A frame of input, UI and drawing without game updates | Would not shorten the heavy frame | No: see below | High | Rejected |
-| (d) GC tuning | Gen0 budget cap, Satori | 1–7% of spike time | Yes | Medium to high | Leave; Satori later |
+| (d) GC tuning | Gen0 budget cap, Satori | 1–7% of spike time | Yes | Medium to high | Leave: both tried, no gain |
 | (e) Present pacing | The vsync wait's rule, queue depth | With vsync about 1–2% of refreshes repeat; depth 1, 2 and 3 alike | Yes (no game-visible change) | Low | Measured: queue depth 1–3 within the runs' spread; no change |
 
 ### (a) Spreading batches
@@ -309,7 +309,7 @@ six missed refreshes at 60 Hz), 100–135 ms on Linux. gc-pauses.md measured the
 - **Gen0 budget cap: rejected there.** A 64 MB a heap cap made steady play worse: a 105–118 ms pause, and more GC time a second.
 - **Post-load collection: already shipped** (post-load-gc).
 - **What is left:**
-  - Satori, a low-pause collector. It needs a runtime fork, which is allowed; plan it first.
+  - Satori, a low-pause collector: already tried, and it gave no gain here.
   - Fewer allocations: the allocation batches, which make collections rarer, not shorter.
 
 GC is 1–7% of Moono's spike time here, so it comes after the step batch.
@@ -377,7 +377,7 @@ Measured with vsync on (`vsync.txt`: the PerfProbe `queued N` command sets
    the game's state). The 750 ms after it (the snapshot and its read-back, animation catch-up)
    is worth a look by the capture work.
 4. **No sim-pacing or UI-only-frame changes**, for the reasons above.
-5. **GC:** nothing now; Satori as a planned runtime fork if pauses come to matter after (1).
+5. **GC:** nothing; the gen0 cap and Satori were both tried without a gain.
 
 ## Runs
 
