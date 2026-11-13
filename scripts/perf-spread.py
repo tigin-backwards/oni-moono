@@ -15,6 +15,10 @@ runners"). Linux, under the X display in DISPLAY.
         launches, the A/B timing ratio by pair, and the machine's CPU.
     scripts/perf-spread.py jobs SUMMARY.json...
         Several jobs' summaries side by side: the between-job spread of the absolute times.
+    scripts/perf-spread.py gate SUMMARY.json
+        The nightly's gates on one job (B against A), as markdown; exit 1 when one fails: the
+        paused draws and every collection count must not rise, paused allocations (also by
+        section) within 5%, running draws within 3%. The interleaved main-thread ratio only warns.
 
 Settings (environment): SPREAD_GAME (the game folder), SPREAD_STEAM (the Steam double),
 SPREAD_PROBE (PerfProbe's release build), SPREAD_SAVE (the save, else --save).
@@ -528,11 +532,101 @@ def jobs(argv):
     return 0
 
 
+# ---- the nightly's gates ----
+
+# Counts that were exactly steady on every runner (docs/PERFORMANCE.md, "Perf spread on CI's
+# runners"): B over A fails the job.
+HARD = (
+    ('paused', 'draws a frame'),
+    ('paused', 'gen0 GCs a frame'),
+    ('paused', 'gen1+2 GCs a frame'),
+    ('running', 'gen0 GCs a game s'),
+    ('running', 'gen1+2 GCs a game s'),
+)
+# Counts steady within a few percent: B past A by more than the tolerance fails the job.
+TOLERANCE = (('paused', 'alloc B a frame', 5.0), ('running', 'draws a frame', 3.0))
+SECTION_TOLERANCE = 5.0
+# Sections smaller than this (B a frame, paused) are left out: a few bytes swing by a lot.
+SECTION_FLOOR = 200
+# The interleaved main-thread ratio warns past the larger of this and its own 2 sd/sqrt(n).
+RATIO_WARN = 3.0
+
+
+def gate(argv):
+    """SUMMARY.json's gates as markdown on stdout; exit 1 when one fails. Only counts gate:
+    the main-thread time warns, and no frame rate or absolute time is judged."""
+    s = json.load(open(argv[0]))
+    out = [f'## Perf gates: {s["cpu"]} ({s["nproc"]} CPUs)', '']
+    fails, warns, notes, rows = [], [], [], []
+    ok = {lab: [l for l in s['launches'] if l['label'] == lab and l['windows'] > 0] for lab in ('A', 'B')}
+    if not ok['B']:
+        fails.append('B (this commit) measured nothing: every launch failed.')
+    elif not ok['A']:
+        notes.append('A (the release) measured nothing, so nothing is compared: it may not run on this game build.')
+    else:
+        counts = s['counts']
+
+        def value(phase, key, lab):
+            return counts.get(phase, {}).get(key, {}).get(lab, {}).get('median')
+
+        for phase, key in HARD:
+            a, b = value(phase, key, 'A'), value(phase, key, 'B')
+            if a is not None and b is not None:
+                rows.append((f'{phase} {key}', a, b, 'must not rise'))
+            if a is None or b is None:
+                notes.append(f'{phase} {key}: not measured')
+            elif b > a + 1e-9:
+                fails.append(f'{phase} {key}: {num(b)} against the release\'s {num(a)}')
+            elif b < a - 1e-9:
+                notes.append(f'{phase} {key}: {num(b)}, fewer than the release\'s {num(a)}')
+        for phase, key, tol in TOLERANCE:
+            a, b = value(phase, key, 'A'), value(phase, key, 'B')
+            if not a or b is None:
+                notes.append(f'{phase} {key}: not measured')
+                continue
+            rows.append((f'{phase} {key}', a, b, f'within +{tol:g}%'))
+            change = (b / a - 1) * 100
+            if change > tol:
+                fails.append(f'{phase} {key}: {num(b)} against the release\'s {num(a)}, {change:+.1f}% (more than {tol:g}%)')
+            elif change < -tol:
+                notes.append(f'{phase} {key}: {change:+.1f}% against the release')
+        sa = counts.get('paused', {}).get('sections', {}).get('A', {})
+        sb = counts.get('paused', {}).get('sections', {}).get('B', {})
+        for name, ea in sa.items():
+            eb = sb.get(name)
+            if eb is None or ea['median'] < SECTION_FLOOR:
+                continue
+            # A section the release's own launches spread wider than the tolerance gets that spread.
+            tol = max(SECTION_TOLERANCE, ea['between_launches_pct'] or 0)
+            rows.append((f'paused section {name}', ea['median'], eb['median'], f'within +{tol:.1f}%'))
+            change = (eb['median'] / ea['median'] - 1) * 100
+            if change > tol:
+                fails.append(f'paused section {name}: {num(eb["median"])} B a frame against {num(ea["median"])}, {change:+.1f}% (more than {tol:.1f}%)')
+        t = s['timing'].get('running', {}).get('main_ms', {})
+        if t.get('ratio_of_medians'):
+            change = (t['ratio_of_medians'] - 1) * 100
+            limit = max(RATIO_WARN, t.get('detectable_pct') or 0)
+            line = f'main-thread ms a frame, running: B/A {t["ratio_of_medians"]:.3f} ({change:+.1f}%; this run detects about {limit:.1f}%)'
+            (warns if abs(change) > limit else notes).append(line)
+    out.append('**' + ('FAIL' if fails else 'pass') + f'**: {len(fails)} failed, {len(warns)} warnings.')
+    for title, items in (('Failed', fails), ('Warnings', warns), ('Notes', notes)):
+        if items:
+            out += ['', f'{title}:', ''] + [f'- {x}' for x in items]
+    if rows:
+        out += ['', '| gated count | A (release) | B (this commit) | change | gate |', '|---|---|---|---|---|']
+        for name, a, b, rule in rows:
+            change = '0' if a == b else ('–' if not a else f'{(b / a - 1) * 100:+.1f}%')
+            out.append(f'| {name} | {num(a)} | {num(b)} | {change} | {rule} |')
+    print('\n'.join(out) + '\n')
+    return 1 if fails else 0
+
+
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ('run', 'summary', 'jobs'):
+    commands = {'run': run, 'summary': summary, 'jobs': jobs, 'gate': gate}
+    if len(sys.argv) < 2 or sys.argv[1] not in commands:
         print(__doc__)
         return 2
-    return {'run': run, 'summary': summary, 'jobs': jobs}[sys.argv[1]](sys.argv[2:])
+    return commands[sys.argv[1]](sys.argv[2:])
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ import helpers
 ps = helpers.script('perf-spread.py')
 
 
-def launch_log(path, update_ms, windows=5, pause=2):
+def launch_log(path, update_ms, windows=5, pause=2, draws=75):
     lines = ['[x] PERF colony f100 cycle 5\n']
     mono, n, rt, gt, other = 10**9, 0, 0.0, 0.0, 0
     for w in range(windows):
@@ -18,7 +18,7 @@ def launch_log(path, update_ms, windows=5, pause=2):
         )
         lines.append(
             '[engine] frame counts (per frame over 60): gl thread busy 13.87: draws 0.29, texture uploads 52.98; '
-            'draws 75, program binds 51, texture uploads 62.0 (1000 KiB), unchanged 0.0; presenter per picture (60): frame wait 1.04\n'
+            f'draws {draws}, program binds 51, texture uploads 62.0 (1000 KiB), unchanged 0.0; presenter per picture (60): frame wait 1.04\n'
         )
         lines.append('[engine] sim (ms/frame over 600): SimEveryTick 1.00 (SimDLL 0.1), UnsafeSim200ms 2.00 (SimDLL 0.1), StepTheSim 3.00 (SimDLL 0.1); x\n')
         n, rt, mono, other = n + 600, rt + 40, mono + 600_000, other + 300_000
@@ -68,6 +68,41 @@ class PerfSpreadTests(unittest.TestCase):
         main = s['timing']['running']['main_ms']
         self.assertAlmostEqual(main['ratio_of_medians'], 19.51 / 18.51, places=4)
         self.assertEqual(main['pair_ratio_sd_pct'], 0.0)
+
+    def summarise(self, launches):
+        runs = []
+        for i, (label, ms, draws) in enumerate(launches):
+            d = os.path.join(self.dir, str(i))
+            os.makedirs(d)
+            launch_log(os.path.join(d, 'Player.log'), ms, draws=draws)
+            r = ps.parse(os.path.join(d, 'Player.log'), 2)
+            r.update(label=label, status='ok', seconds=1, to_colony_s=1)
+            with open(os.path.join(d, 'result.json'), 'w') as f:
+                json.dump(r, f)
+            runs.append(d)
+        out = os.path.join(self.dir, 'sum')
+        with contextlib.redirect_stdout(io.StringIO()):
+            ps.summary([out, *runs])
+        return os.path.join(out, 'summary.json')
+
+    def gate(self, summary):
+        text = io.StringIO()
+        with contextlib.redirect_stdout(text):
+            status = ps.gate([summary])
+        return status, text.getvalue()
+
+    def test_gate_passes_the_same_counts(self):
+        status, text = self.gate(self.summarise([('A', 10.0, 75), ('B', 10.0, 75), ('A', 10.0, 75), ('B', 10.0, 75)]))
+        self.assertEqual(status, 0, text)
+        self.assertIn('| paused draws a frame | 75 | 75 | 0 | must not rise |', text)
+
+    def test_gate_fails_on_more_draws_and_warns_on_time(self):
+        status, text = self.gate(self.summarise([('A', 10.0, 75), ('B', 13.0, 76), ('A', 10.0, 75), ('B', 13.0, 76)]))
+        self.assertEqual(status, 1)
+        self.assertIn('paused draws a frame: 76', text)
+        # The main thread's time only warns.
+        self.assertIn('Warnings:', text)
+        self.assertNotIn('main-thread ms a frame, running: B/A 1.1', text.split('Warnings:')[0])
 
 
 if __name__ == '__main__':

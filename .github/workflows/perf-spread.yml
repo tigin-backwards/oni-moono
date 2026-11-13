@@ -1,9 +1,10 @@
 # How steady GitHub's runners are for perf numbers (scripts/perf-spread.py, docs/PERFORMANCE.md
 # "Perf spread on CI's runners"): on the stripped game, the last release (A) and this commit (B)
 # launched in turn, A B A B ..., on the same save, each launch measuring the colony paused and
-# then running with PerfProbe and --frame-stats. Three jobs, so three runner machines. By hand
-# only: never scheduled, never on push. Like the game tests, it uploads no game files, saves or
-# logs: the artifact holds the numbers alone.
+# then running with PerfProbe and --frame-stats. By hand, three jobs, so three runner machines;
+# game-nightly.yml calls it for one job with `gate` on, which fails the job when B's counts pass
+# their gates (scripts/perf-spread.py gate). Never on push. Like the game tests, it uploads no game
+# files, saves or logs: the artifact holds the numbers alone.
 name: Perf spread
 
 on:
@@ -46,6 +47,79 @@ on:
         description: More player arguments for B alone, such as --game-tweak -NAME for a tweak A lacks.
         type: string
         default: ""
+      jobs:
+        description: The jobs, as a JSON list (one runner machine each).
+        type: string
+        default: "[1, 2, 3]"
+      gate:
+        description: Fail the job when B's counts pass their gates against A.
+        type: boolean
+        default: false
+      launch_step_minutes:
+        description: The launches' step is stopped after this long, leaving time for the summary.
+        type: number
+        default: 120
+      job_minutes:
+        description: The job's timeout.
+        type: number
+        default: 150
+  workflow_call:
+    inputs:
+      base:
+        description: The A build's tag; empty takes the latest release tag this commit contains.
+        type: string
+        default: ""
+      save:
+        description: The fixture both load (tests/e2e/fixtures.json).
+        type: string
+        default: early-base
+      pairs:
+        description: A B pairs a job launches.
+        type: number
+        default: 5
+      window:
+        description: Frames a window (CI's software renderer runs about 6 fps on early-base, 1 on 2minnow).
+        type: number
+        default: 300
+      pause_windows:
+        description: Windows paused (the first has no counters).
+        type: number
+        default: 3
+      run_windows:
+        description: Windows running at speed 3 (the first is left out).
+        type: number
+        default: 4
+      launch_minutes:
+        description: A launch is stopped after this long, with what it has.
+        type: number
+        default: 14
+      args:
+        description: More player arguments for both, such as --game-tweak exact.
+        type: string
+        default: ""
+      b_args:
+        description: More player arguments for B alone, such as --game-tweak -NAME for a tweak A lacks.
+        type: string
+        default: ""
+      jobs:
+        description: The jobs, as a JSON list (one runner machine each).
+        type: string
+        default: "[1, 2, 3]"
+      gate:
+        description: Fail the job when B's counts pass their gates against A.
+        type: boolean
+        default: false
+      launch_step_minutes:
+        description: The launches' step is stopped after this long, leaving time for the summary.
+        type: number
+        default: 120
+      job_minutes:
+        description: The job's timeout.
+        type: number
+        default: 150
+    secrets:
+      REFS_APP_KEY:
+        required: true
 
 permissions: {}
 
@@ -57,13 +131,13 @@ jobs:
   spread:
     name: Perf spread ${{ matrix.job }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: ${{ inputs.job_minutes }}
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        job: [1, 2, 3]
+        job: ${{ fromJSON(inputs.jobs) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -104,7 +178,9 @@ jobs:
           BASE: ${{ inputs.base }}
         run: |
           base="$BASE"
-          [ -n "$base" ] || base=$(git tag --merged HEAD --sort=-creatordate --list 'v*' | grep -v -- '-u60' | head -1)
+          # The branch's last release: each branch's history holds its own releases' tags only
+          # (u60's pre-releases are not in master's, nor master's in u60's).
+          [ -n "$base" ] || base=$(git tag --merged HEAD --sort=-creatordate --list 'v*' | head -1)
           [ -n "$base" ] || { echo "no release tag in this commit's history"; exit 1; }
           echo "A: $base ($(git rev-parse --short "$base^{commit}")), B: $(git rev-parse --short HEAD)" | tee -a "$GITHUB_STEP_SUMMARY"
           git worktree add -q "$RUNNER_TEMP/base" "$base"
@@ -117,7 +193,7 @@ jobs:
       # The step's own timeout, inside the job's, leaves time for the summary and the upload:
       # each launch writes its result.json as it ends, so a cut-short step still has numbers.
       - name: Launch A and B in turn
-        timeout-minutes: 120
+        timeout-minutes: ${{ inputs.launch_step_minutes }}
         env:
           SAVE: ${{ inputs.save }}
           PAIRS: ${{ inputs.pairs }}
@@ -161,6 +237,15 @@ jobs:
           runs=(out/perf-spread/runs/*)
           if [ ${#runs[@]} -eq 0 ]; then echo "No launch finished." >> "$GITHUB_STEP_SUMMARY"; exit 0; fi
           scripts/perf-spread.py summary out/perf-spread "${runs[@]}" >> "$GITHUB_STEP_SUMMARY"
+      # The nightly's gates (scripts/perf-spread.py gate): counts only, the CPU model logged.
+      - name: Gates
+        if: always() && inputs.gate
+        run: |
+          [ -f out/perf-spread/summary.json ] || { echo "No summary: no launch finished." | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; }
+          status=0
+          scripts/perf-spread.py gate out/perf-spread/summary.json > out/perf-spread/gates.md || status=$?
+          cat out/perf-spread/gates.md | tee -a "$GITHUB_STEP_SUMMARY"
+          exit $status
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -168,5 +253,6 @@ jobs:
           path: |
             out/perf-spread/summary.json
             out/perf-spread/summary.md
+            out/perf-spread/gates.md
             out/perf-spread/runs/*/result.json
           if-no-files-found: warn
