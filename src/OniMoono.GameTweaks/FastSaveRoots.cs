@@ -23,7 +23,7 @@ namespace OniMoono.GameTweaks
     ///
     /// While another Harmony owner patches SaveManager.Unregister (checked at the first call and
     /// every 4,096 calls), the game's method runs.
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SaveManager::Unregister(SaveLoadRoot)", "a9c1eb3a6c848563 linux-744825 win-744825", "6d8f6b37bb4200dc linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SaveManager::Unregister(SaveLoadRoot)", "a9c1eb3a6c848563 linux-744825 win-744825", "6d8f6b37bb4200dc linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<SaveLoadRoot> SaveManager::GetSaveLoadRootList(SaveLoadRoot)")]
     [GameMember(GameUse.Uses, "System.Action`1<SaveLoadRoot> SaveManager::onRegister")]
     [GameMember(GameUse.Uses, "System.Action`1<SaveLoadRoot> SaveManager::onUnregister")]

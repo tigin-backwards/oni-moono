@@ -42,10 +42,10 @@ namespace OniMoono.GameTweaks
     ///
     /// ONI_TWEAK_VERIFY=1 keeps the game's own NoteEntries alongside, written as the game
     /// writes, and compares every read and save with it.
-    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::Deserialize(System.IO.BinaryReader,System.Int32)", "93e6eaf5ebc7a283 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::Serialize(System.IO.BinaryWriter)", "eaaf26378714f7d0 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
-    [GameMember(GameUse.Prefix | GameUse.Mirrors, "System.Void ReportManager/NoteStorage/NoteEntries::Add(System.Int32,System.Single,System.Int32)", "5f2da166a92be7f1 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::CollectNotes(ReportManager/NoteStorage/StringTable,System.Int32,System.Collections.Generic.List`1<ReportManager/ReportEntry/Note>)", "595ebe03ba762105 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::Deserialize(System.IO.BinaryReader,System.Int32)", "93e6eaf5ebc7a283 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::Serialize(System.IO.BinaryWriter)", "eaaf26378714f7d0 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
+    [GameMember(GameUse.Prefix | GameUse.Mirrors, "System.Void ReportManager/NoteStorage/NoteEntries::Add(System.Int32,System.Single,System.Int32)", "5f2da166a92be7f1 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::CollectNotes(ReportManager/NoteStorage/StringTable,System.Int32,System.Collections.Generic.List`1<ReportManager/ReportEntry/Note>)", "595ebe03ba762105 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Postfix, "System.Void ReportManager::OnDeserialized()")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void ReportManager::OnNightTime(System.Object)")]
     [GameMember(GameUse.Postfix, "System.Void ReportManager::OnCleanUp()")]

@@ -28,7 +28,7 @@ namespace OniMoono.Host.GameTweaks
     [GameMember(GameUse.Prefix, "System.Void LoadScreen::DeleteFileAndEmptyFolder(System.String)")]
     [GameMember(GameUse.Prefix, "System.Boolean LoadScreen::FileMatch(System.String,System.String,Tuple`2<System.Boolean,System.Boolean>&)")]
     [GameMember(GameUse.Prefix, "System.Boolean LoadScreen::MigrateSave(System.String,System.String,System.Boolean,System.String&)")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SaveLoader::CompressContents(System.IO.BinaryWriter,System.Byte[],System.Int32)", "7027ce9ea9fd4d7b linux-744825 win-744825", "772347a4c67b2ad9 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SaveLoader::CompressContents(System.IO.BinaryWriter,System.Byte[],System.Int32)", "7027ce9ea9fd4d7b linux-744825 win-744825", "772347a4c67b2ad9 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Prefix, "System.Boolean SaveLoader::Load(System.String)")]
     [GameMember(GameUse.Prefix, "System.String SaveLoader::Save(System.String,System.Boolean,System.Boolean)")]
     internal static class BackgroundSave

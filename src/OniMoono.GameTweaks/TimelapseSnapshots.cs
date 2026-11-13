@@ -38,8 +38,8 @@ namespace OniMoono.GameTweaks
     /// What differs from the game: the snapshots, and nothing else. U60 reads the texture back
     /// asynchronously after the render; its requests are queued then, so the restore after the
     /// render changes nothing in them.
-    [GameMember(GameUse.Prefix | GameUse.Finalizer | GameUse.Mirrors, "System.Void CameraController::RenderForTimelapser(UnityEngine.RenderTexture&)", "ca4c5a42c91bb52b linux-744825 win-744825", "f3eee7968b175f9d linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
-    [GameMember(GameUse.Mirrors, "System.Void CameraController::RenderCameraForTimelapse(UnityEngine.Camera,UnityEngine.RenderTexture&,UnityEngine.LayerMask,System.Single)", "dccdf57307fd4f12 linux-744825 win-744825", "80ddb7d2861897f5 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Prefix | GameUse.Finalizer | GameUse.Mirrors, "System.Void CameraController::RenderForTimelapser(UnityEngine.RenderTexture&)", "ca4c5a42c91bb52b linux-744825 win-744825", "f3eee7968b175f9d linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
+    [GameMember(GameUse.Mirrors, "System.Void CameraController::RenderCameraForTimelapse(UnityEngine.Camera,UnityEngine.RenderTexture&,UnityEngine.LayerMask,System.Single)", "dccdf57307fd4f12 linux-744825 win-744825", "80ddb7d2861897f5 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Prefix, "System.Void LightBuffer::LateUpdate()")]
     [GameMember(GameUse.Uses, "UnityEngine.Camera CameraController::baseCamera")]
     [GameMember(GameUse.Uses, "UnityEngine.Camera CameraController::lightBufferCamera")]
@@ -47,7 +47,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "Timelapser Game::timelapser")]
     [GameMember(GameUse.Uses, "System.Boolean Timelapser::screenshotActive")]
     [GameMember(GameUse.Uses, "UnityEngine.RenderTexture Timelapser::bufferRenderTexture")]
-    [GameMember(GameUse.Mirrors, "System.Void Game::LateUpdate()", "ddef0e828352db67 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Mirrors, "System.Void Game::LateUpdate()", "ddef0e828352db67 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761654 win-762107 win-762230 win-763023")]
     public static class TimelapseSnapshots
     {
         public const string Name = "fix-timelapse-snapshots";

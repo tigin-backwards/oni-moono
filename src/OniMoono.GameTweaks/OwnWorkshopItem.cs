@@ -20,7 +20,7 @@ namespace OniMoono.GameTweaks
     ///
     /// Steamworks is reached by reflection (the tweaks are built against the game's assemblies
     /// CI has, which leave Steamworks.NET out).
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "KMod.Mod KMod.Steam::MakeModAndReportOutcome(SteamUGCService/Mod)", "04a676d4fb13bce4 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "KMod.Mod KMod.Steam::MakeModAndReportOutcome(SteamUGCService/Mod)", "04a676d4fb13bce4 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Uses, "Steamworks.PublishedFileId_t SteamUGCService/Mod::get_fileId()")]
     [GameMember(GameUse.Uses, "KMod.Steam/MakeModResult KMod.Steam::MakeMod(SteamUGCService/Mod)")]
     public static class OwnWorkshopItem

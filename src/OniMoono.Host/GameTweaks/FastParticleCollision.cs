@@ -34,7 +34,7 @@ namespace OniMoono.Host.GameTweaks
     /// logged.
     [GameMember(GameUse.Uses, "System.Void GameScenePartitioner::GatherEntries(System.Int32,System.Int32,System.Int32,System.Int32,ScenePartitionerLayer,System.Collections.Generic.List`1<ScenePartitionerEntry>)")]
     [GameMember(GameUse.Postfix, "System.Void HighEnergyParticle::.ctor()")]
-    [GameMember(GameUse.Transpiler, "System.Void HighEnergyParticle::CheckCollision()", "4322d622f5b47a0c linux-744825 win-744825", "4aa8354cd16662f1 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 2)]
+    [GameMember(GameUse.Transpiler, "System.Void HighEnergyParticle::CheckCollision()", "4322d622f5b47a0c linux-744825 win-744825", "4aa8354cd16662f1 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023", Rewrites = 2)]
     [GameMember(GameUse.Uses, "System.Boolean HighEnergyParticle::isCollideable")]
     [GameMember(GameUse.Uses, "System.Boolean KCollider2D::Intersects(UnityEngine.Vector2)")]
     [GameMember(GameUse.Uses, "Extents KCollider2D::cachedExtents")]

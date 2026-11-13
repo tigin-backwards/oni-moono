@@ -10,7 +10,7 @@ namespace OniMoono.Host.GameTweaks
     /// collection of the whole heap on the main thread (about 9 GB in a large colony), to release
     /// the save's buffers. The collector reclaims them on its own schedule anyway; this removes the
     /// forced collection from saving and nothing else.
-    [GameMember(GameUse.Transpiler, "System.String SaveLoader::Save(System.String,System.Boolean,System.Boolean)", "905dcad114d8f685 linux-744825 win-744825", "fccecb11030b621c linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230", Rewrites = 1)]
+    [GameMember(GameUse.Transpiler, "System.String SaveLoader::Save(System.String,System.Boolean,System.Boolean)", "905dcad114d8f685 linux-744825 win-744825", "fccecb11030b621c linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023", Rewrites = 1)]
     internal static class NoSaveGc
     {
         public const string Name = GameTweakNames.NoSaveGc;

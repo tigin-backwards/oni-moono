@@ -26,7 +26,7 @@ namespace OniMoono.GameTweaks
     ///
     /// While another Harmony owner patches SimEveryTick or UnsafeSim200ms (checked at the first
     /// frame and every 4,096 frames), the game's method runs.
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void Game::SimEveryTick(System.Single)", "0339e1b13ef02096 linux-744825 win-744825", "5c36683191300649 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void Game::SimEveryTick(System.Single)", "0339e1b13ef02096 linux-744825 win-744825", "5c36683191300649 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Uses, "System.Void Game::UnsafeSim200ms(System.Single)")]
     [GameMember(GameUse.Uses, "System.Single Game::simDt")]
     [GameMember(GameUse.Uses, "System.Int32 Game::simSubTick")]

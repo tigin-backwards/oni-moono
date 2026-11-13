@@ -32,7 +32,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "HandleVector`1/Handle<System.Int32> AnimEventManager::PlayAnim(KAnimControllerBase,KAnim/Anim,KAnim/PlayMode,System.Single,System.Boolean)")]
     [GameMember(GameUse.Uses, "System.Void AnimEventManager::PlayEvents(AnimEventManager/EventPlayerData)")]
     [GameMember(GameUse.Uses, "System.Void AnimEventManager::StopEvents(AnimEventManager/EventPlayerData)")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AnimEventManager::Update(System.Single,System.Collections.Generic.List`1<AnimEventManager/AnimData>,System.Collections.Generic.List`1<AnimEventManager/EventPlayerData>)", "7ed564a03b1e771f linux-744825 win-744825", "da665f499501053d linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AnimEventManager::Update(System.Single,System.Collections.Generic.List`1<AnimEventManager/AnimData>,System.Collections.Generic.List`1<AnimEventManager/EventPlayerData>)", "7ed564a03b1e771f linux-744825 win-744825", "da665f499501053d linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Uses, "System.Single AnimEventManager::GetElapsedTime(HandleVector`1/Handle<System.Int32>)")]
     [GameMember(GameUse.Uses, "System.Void AnimEventManager::SetElapsedTime(HandleVector`1/Handle<System.Int32>,System.Single)")]
     [GameMember(GameUse.Uses, "System.Void AnimEventManager::StopAnim(HandleVector`1/Handle<System.Int32>)")]
@@ -44,7 +44,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "KAnim/Anim KAnimControllerBase::get_CurrentAnim()")]
     [GameMember(GameUse.Uses, "System.Single KAnimControllerBase::GetPlaySpeed()")]
     [GameMember(GameUse.Postfix, "System.Void KBatchedAnimController::SwapAnims(KAnimFile[])")]
-    [GameMember(GameUse.Mirrors, "System.Int32 KAnim/Anim::GetFrameIdx(KAnim/PlayMode,System.Single)", "f1225a79599ed43a linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Mirrors, "System.Int32 KAnim/Anim::GetFrameIdx(KAnim/PlayMode,System.Single)", "f1225a79599ed43a linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761654 win-762107 win-762230 win-763023")]
     public static class FastAnimEvents
     {
         public const string Name = "fast-anim-events";

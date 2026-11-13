@@ -41,7 +41,7 @@ namespace OniMoono.GameTweaks
     /// old name, as before. No code writes into the reach tables, their rows or the default
     /// animation arrays: the game and mods only read them, or replace the whole array.
     [GameMember(GameUse.Prefix | GameUse.Finalizer, "System.Boolean SaveLoader::Load(System.String)")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.String FastReader::ReadKleiString()", "a586e97c36a864c9 linux-761211 linux-761654 linux-762107 linux-762230 win-761211 win-761654 win-762107 win-762230")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.String FastReader::ReadKleiString()", "a586e97c36a864c9 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Uses, "System.Int32 FastReader::idx")]
     [GameMember(GameUse.Uses, "System.Byte[] FastReader::bytes")]
     [GameMember(GameUse.Prefix, "CellOffset[][] OffsetGroups::BuildReachabilityTable(CellOffset[],CellOffset[][],CellOffset[])")]

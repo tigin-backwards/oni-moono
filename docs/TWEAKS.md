@@ -721,7 +721,7 @@ FMOD Studio runs, before the game has made any instance, and only when all three
 version (2.03.12 build 160365, as the core library reports it to the core system's getVersion),
 the SHA-256 of the loaded Studio library's file (U59's `fmodstudio.dll` and `libfmodstudio.so`,
 and U60's `fmodstudioL.dll` and `libfmodstudioL.so`, the same in every U60 build so far, 761015 to
-762230), and every byte the patch relies on: the site and what follows it to the epilogue, and the
+763023), and every byte the patch relies on: the site and what follows it to the epilogue, and the
 destroy's code (on Windows also the slack still empty). Anything else, such as a game update that
 ships another FMOD, and nothing is written: `fmod-steal-fix: not applied, …` names what did not
 match, and `fmod-quarantine` stays the only guard. `fmod-steal-fix: FMOD 2.03.12's store …` says
