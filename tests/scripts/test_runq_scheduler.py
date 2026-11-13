@@ -202,8 +202,16 @@ class Reservations(unittest.TestCase):
         p = sched.plan(state([wp, other], user_in_oni=True))
         self.assertEqual(granted(p), ['chk'])
         self.assertIn('user is in ONI', p.reasons['wp'])
-        # A functional Windows job runs anyway.
-        self.assertEqual(granted(sched.plan(state([job('w', kind='windows')], user_in_oni=True))), ['w'])
+        # Nor does a functional Windows job.
+        self.assertEqual(granted(sched.plan(state([job('w', kind='windows')], user_in_oni=True))), [])
+
+    def test_windows_slot_held_for_the_user(self):
+        jobs = [job('w', 'a', level='issue', kind='windows'), job('wp', 'b', level='release', kind='win-perf', order=1), job('c', 'c', kind='check', order=2)]
+        p = sched.plan(state(jobs, windows_hold='the user plays, until 23:00'))
+        self.assertEqual(granted(p), ['c'])
+        self.assertIn('held for the user', p.reasons['w'])
+        self.assertEqual(p.starts['wp'], math.inf)  # holds no reservation
+        self.assertEqual(sorted(granted(sched.plan(state(jobs[:2])))), ['w'])
 
     def test_phase_keeps_the_original_submit_time(self):
         # A phase request submitted long ago (its job's submit) is due and goes first.

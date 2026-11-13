@@ -186,9 +186,8 @@ def violations(cmdline, monitor):
 
 
 def legacy_test_game(cmdline):
-    """A test run's game started outside runq: a run home of the old scripts' or any --run-home."""
-    lower = cmdline.lower()
-    return '\\oni-runq\\' not in lower and ('--run-home' in lower or '\\oni-brutal\\' in lower or 'run-home' in lower or 'player.log' in lower)
+    """A test game started outside runq: any game that is neither a runq job's nor the user's."""
+    return '\\oni-runq\\' not in cmdline.lower() and test_game(cmdline)
 
 
 # WSL interop and Windows' image-load policy. A Windows process that a systemd unit starts goes
@@ -248,16 +247,66 @@ def windows_exe(name, folder='C:\\Windows\\System32'):
 
 
 def test_game(cmdline):
-    """A game a test run started: a runq job's, or one with a run home of its own (an old
-    script's, scripts/e2e-windows/run.py's)."""
-    return '\\oni-runq\\' in cmdline.lower() or legacy_test_game(cmdline)
+    """A game a test started: a runq job's, one with a run home of its own, or any game run from
+    outside the places the user's games run from (user_game)."""
+    return not user_game({'cmdline': cmdline})
 
 
-def user_playing(steam_oni, games, attributed=()):
-    """The user is in ONI: Steam reports ONI running (RunningAppID) and a game runs that no test
-    started. A test game can set RunningAppID too (through a Steam client or double), and the
-    value outlives the game, so it does not count alone."""
-    return bool(steam_oni) and any(not test_game(g.get('cmdline', '')) and g.get('pid') not in attributed for g in games)
+def executable(cmdline):
+    """The executable of a Windows command line (its first word, quoted or not)."""
+    cmdline = cmdline.strip()
+    if cmdline.startswith('"'):
+        return cmdline[1:].split('"', 1)[0]
+    return cmdline.split(' ', 1)[0]
+
+
+def user_game(g, attributed=()):
+    """The user's own game: a game run from a Steam library (steamapps) or from Moono's install
+    (%LOCALAPPDATA%\\oni-moono: setup's player, the versioned install), with no test's run home. Tests never run from a Steam library (their
+    copies and stages live elsewhere), and Steam's RunningAppID alone says nothing: a test game
+    can set it, and it outlives the game."""
+    cmd = g.get('cmdline', '')
+    exe = executable(cmd).lower()
+    lower = cmd.lower()
+    if '\\oni-runq\\' in lower or '--run-home' in lower or '\\oni-brutal\\' in lower:
+        return False
+    return ('\\steamapps\\' in exe or '\\appdata\\local\\oni-moono\\' in exe) and g.get('pid') not in attributed
+
+
+def user_playing(games, attributed=()):
+    """The user is in ONI: a game of theirs runs (user_game)."""
+    return any(user_game(g, attributed) for g in games)
+
+
+STEAM_LOG = '/mnt/c/Program Files (x86)/Steam/logs/gameprocess_log.txt'
+
+
+def steam_tracked(text, app=STEAM_APP):
+    """The pids Steam tracks as APP's processes now, from its gameprocess_log.txt: "AppID APP
+    adding PID N as a tracked process", "no longer tracking PID N", "Remove APP from running list"."""
+    pids = set()
+    for line in text.splitlines():
+        m = re.search(rf'AppID {app} adding PID (\d+) as a tracked process', line)
+        if m:
+            pids.add(int(m.group(1)))
+            continue
+        m = re.search(rf'AppID {app} no longer tracking PID (\d+)', line)
+        if m:
+            pids.discard(int(m.group(1)))
+        elif f'Remove {app} from running list' in line:
+            pids.clear()
+    return pids
+
+
+def read_steam_tracked(path=STEAM_LOG, tail=262144):
+    """steam_tracked over the log's last TAIL bytes (None without the log)."""
+    try:
+        with open(path, 'rb') as f:
+            f.seek(0, 2)
+            f.seek(max(0, f.tell() - tail))
+            return steam_tracked(f.read().decode('utf-8', 'replace'))
+    except OSError:
+        return None
 
 
 def attribute(games, job_start, others=()):

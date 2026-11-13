@@ -29,6 +29,7 @@ can `runq wait ID` later: stopping `runq run` does not cancel the job unless it 
 | `runq show ID`, `runq log ID [-f]`, `runq history` | one job's record, its output, past jobs |
 | `runq phase --kind K` | inside a job: give back what it holds, then wait for K's resources |
 | `runq beat` | inside a job: a heartbeat, for `--heartbeat DUR` |
+| `runq hold windows [--for DUR]`, `runq release windows` | keep the Windows slot for the user (default 3 h) |
 | `runq ping`, `runq install`, `runq doctor` | start the daemon when it is down; install it; check it |
 
 Exit codes: the command's own, or 124 (timeout), 137 (cancelled, idle-held, no heartbeat, or a
@@ -75,9 +76,11 @@ jobs end. A job starts only when every resource it needs is free; it never holds
 A later job may start ahead of a waiting one only when it fits beside that one's reservation for
 its whole timeout. `quiet` waits at most 15 minutes for the CPU outside runq to go under 2
 cores, then starts the job flagged noisy (`RUNQ_NOISY=1`, and `noisy` in its record). A
-`win-perf` job never starts while the user is in ONI: Steam's RunningAppID is ONI's and a game
-runs that no test started (no run home, not tied to a job; a test original can set RunningAppID
-itself). It waits holding nothing, and others run meanwhile.
+job that needs the Windows slot starts while the user is in ONI (a game of theirs runs: one
+started from a Steam library or Moono's own install, `%LOCALAPPDATA%\oni-moono`, with no test run
+home; Steam's RunningAppID counts for nothing, as test games set it and it outlives them) or while
+the slot is held for them (`runq hold windows [--for 3h]`, `runq release windows`; `runq status`
+shows the hold). Such a job waits holding nothing, and others run meanwhile.
 
 ### Caps
 
@@ -126,6 +129,9 @@ runq already holds for its job, would wait forever: it is stopped at once (`self
   started with the flag that pins the pointer over it. Every Windows job's game gets power
   throttling (EcoQoS) off, as a throttled test game runs many times slower; a `win-perf` job's
   also gets the High priority class, the others Normal. runq never focuses a window or moves the pointer.
+- No contact with the user's Steam: a Windows job whose game Steam tracks as ONI running (Steam's
+  `logs\gameprocess_log.txt`) is stopped (`steam-contact`), and test games outside runq that Steam
+  tracks are named under OUTSIDE RUNQ.
 - A heartbeat lease with `--heartbeat DUR`: `runq beat` from inside the job.
 
 ## The migrated scripts

@@ -127,33 +127,37 @@ class Rules(unittest.TestCase):
         self.assertFalse(winenv.legacy_test_game('"C:\\Program Files (x86)\\Steam\\steamapps\\common\\OxygenNotIncluded\\OxygenNotIncluded.exe"'))
         self.assertFalse(winenv.legacy_test_game('OniMoono.exe --run-home C:\\T\\oni-runq\\j0000001\\home'))
 
-    def test_user_in_oni_needs_a_game_no_test_started(self):
-        user = {
-            'pid': 5,
-            'name': 'OxygenNotIncluded.exe',
-            'cmdline': '"C:\\Program Files (x86)\\Steam\\steamapps\\common\\OxygenNotIncluded\\OxygenNotIncluded.exe"',
-        }
-        orig = {
+    def test_user_in_oni_needs_a_game_of_theirs(self):
+        user = {'pid': 5, 'cmdline': '"C:\\Program Files (x86)\\Steam\\steamapps\\common\\OxygenNotIncluded\\OxygenNotIncluded.exe"'}
+        moono = {
             'pid': 6,
-            'name': 'BrutalNotIncluded-763023.exe',
-            'cmdline': 'BrutalNotIncluded-763023.exe -logFile C:\\T\\oni-runq\\j0000213\\home\\Player.log -monitor 2',
+            'cmdline': '"C:\\Users\\u\\AppData\\Local\\oni-moono\\versioned\\OniMoono.exe" -- "C:\\Steam\\steamapps\\common\\OxygenNotIncluded\\OxygenNotIncluded.exe"',
         }
-        qawin = {'pid': 7, 'name': 'BrutalNotIncluded-763023.exe', 'cmdline': 'X.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-original\\Player.log'}
-        odd = {'pid': 8, 'name': 'Odd.exe', 'cmdline': 'Odd.exe'}
-        # A test original sets RunningAppID: not the user.
-        self.assertFalse(winenv.user_playing(True, [orig, qawin]))
-        # RunningAppID left over with no game at all: not the user.
-        self.assertFalse(winenv.user_playing(True, []))
-        self.assertTrue(winenv.user_playing(True, [orig, user]))
-        self.assertFalse(winenv.user_playing(False, [user]))
-        # A game the daemon tied to a job is not the user's, whatever its command line.
-        self.assertFalse(winenv.user_playing(True, [odd], attributed={8}))
+        orig = {'pid': 7, 'cmdline': 'BrutalNotIncluded-763023.exe -logFile C:\\T\\oni-runq\\j0000213\\home\\Player.log -monitor 2'}
+        bepinex = {'pid': 8, 'cmdline': '"E:\\Development\\u59bake\\TestingNotIncluded\\TestingNotIncluded.exe" -popupwindow -logFile E:\\x\\unity.log'}
+        # Test games, whatever Steam's RunningAppID says (a stale or test-set value): not the user.
+        self.assertFalse(winenv.user_playing([orig, bepinex]))
+        self.assertFalse(winenv.user_playing([]))
+        self.assertTrue(winenv.user_playing([orig, user]))
+        self.assertTrue(winenv.user_playing([moono]))
+        self.assertTrue(winenv.legacy_test_game(bepinex['cmdline']))
+        # A game the daemon tied to a job is not the user's.
+        self.assertFalse(winenv.user_playing([user], attributed={5}))
+
+    def test_steam_tracked_processes(self):
+        log = """[t] AppID 457140 adding PID 15016 as a tracked process "x"
+[t] AppID 457140 adding PID 45716 as a tracked process "y"
+[t] AppID 457140 no longer tracking PID 15016, exit code 0
+[t] AppID 999 adding PID 7 as a tracked process "z"
+"""
+        self.assertEqual(winenv.steam_tracked(log), {45716})
+        self.assertEqual(winenv.steam_tracked(log + '[t] Remove 457140 from running list\n'), set())
 
     def test_games_a_windows_job_started_under_other_run_homes(self):
         games = [
             {'pid': 1, 'created': 100, 'cmdline': 'X.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-original\\Player.log'},
             {'pid': 2, 'created': 50, 'cmdline': 'X.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-ours\\Player.log'},  # before the job
-            {'pid': 3, 'created': 120, 'cmdline': '"C:\\Steam\\OxygenNotIncluded.exe"'},  # the user's
+            {'pid': 3, 'created': 120, 'cmdline': '"C:\\\\Steam\\\\steamapps\\\\common\\\\OxygenNotIncluded\\\\OxygenNotIncluded.exe"'},  # the user's
             {'pid': 4, 'created': 130, 'cmdline': 'OniMoono.exe --run-home C:\\T\\oni-runq\\j0000009\\home'},  # another job's
         ]
         self.assertEqual([g['pid'] for g in winenv.attribute(games, 90, others=['j0000009'])], [1])
