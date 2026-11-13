@@ -274,5 +274,14 @@ class Properties(unittest.TestCase):
                     self.assertNotEqual(g.id, 'head')
 
 
+class KillSwitch(unittest.TestCase):
+    def test_off(self):
+        self.assertIsNone(config.disabled({}, CFG))
+        self.assertEqual(config.disabled({'RUNQ': 'off'}, CFG), 'RUNQ=off')
+        # A CI runner: the scripts run directly there, keeping the display their caller made.
+        self.assertEqual(config.disabled({'GITHUB_ACTIONS': 'true'}, CFG), 'a GitHub Actions runner')
+        self.assertIsNotNone(config.disabled({}, dict(CFG, enabled=False)))
+
+
 if __name__ == '__main__':
     unittest.main()

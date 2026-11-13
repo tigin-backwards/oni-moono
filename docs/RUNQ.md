@@ -151,7 +151,9 @@ locks for its jobs.
 
 `RUNQ=off` in the environment, or `enabled = false` in `~/.config/oni-runq/config.toml`, sends
 the migrated scripts back to their old direct path, with the old locks. So does a daemon that
-does not answer, with one line on stderr.
+does not answer, with one line on stderr, and a GitHub Actions runner (`GITHUB_ACTIONS=true`):
+runq would start a daemon there, and a script queued through it would lose the caller's X
+display, as every job does.
 
 ## Living beside the old locks
 
