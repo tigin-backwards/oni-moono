@@ -16,7 +16,8 @@ steps:
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
   - shot: search-empty
   - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel"}
-  # "screen": three rows by their names, in General, Changes gameplay and Bug fixes.
+  # "screen": three rows by their names, in General, Changes gameplay and Bug fixes. A row whose
+  # English has the word (lazy-table-refresh's "the rows on screen") stays out: it is translated.
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen"}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - expect_ui:
@@ -28,6 +29,7 @@ steps:
       "**/MoonoTweaksScreen/**/Content/Heading 错误修复": {active: true}
       "**/MoonoTweaksScreen/**/Content/Heading 存档": {exists: false}
       "**/MoonoTweaksScreen/**/Content/dxgi": {exists: false}
+      "**/MoonoTweaksScreen/**/Content/lazy-table-refresh": {exists: false}
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
   # Three rows and three headings.
   - expect_ui:

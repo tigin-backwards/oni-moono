@@ -378,6 +378,30 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_CLEANUP.DETAIL"
 msgid "The spatial index's cleanup visits only the entries that were removed."
 msgstr "空间索引的清理只访问被移除的条目。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.TITLE"
+msgid "Faster item moves on the map"
+msgstr "更快的地图物品移动"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.EFFECT"
+msgid "An item changing tile no longer looks through every item near it."
+msgstr "物品换格时不再查看附近的每一个物品。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.DETAIL"
+msgid "When an item moves or is stored, the game tells the spatial index's listeners for that tile by looking through every item in the surrounding area; items have no listeners, so this skips the look and tidies up the removed entries it would have."
+msgstr "物品移动或被存放时，游戏会查看周围区域内的每一个物品，以通知空间索引中该格的监听者；物品没有监听者，因此此项跳过这次查看，并清理它原本会清理的已移除条目。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.TITLE"
+msgid "Faster pipe and rail updates"
+msgstr "更快的管道和轨道更新"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.EFFECT"
+msgid "Pipes and rails no longer re-sort every building's update each second."
+msgstr "管道和轨道不再每秒把每个建筑的更新重新排序。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.DETAIL"
+msgid "Each second the game sorts the list of pipe and rail buildings by priority again; this repeats the reordering its last sort made while the priorities are the same, which gives the same order."
+msgstr "游戏每秒都会把管道和轨道建筑的列表按优先级重新排序；优先级不变时，此项重复上一次排序所做的调整，得到的顺序相同。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONVEYOR_PATHS.TITLE"
 msgid "Faster conveyor rebuilds"
 msgstr "更快的传送带重建"
@@ -413,6 +437,18 @@ msgstr "查找物体的某个状态机时，不再每次都搜索它的全部状
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.DETAIL"
 msgid "Each object remembers which of its state machines answered each lookup until its list of state machines changes."
 msgstr "每个物体会记住每次查找由哪个状态机作答，直到它的状态机列表发生变化。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_ROOTS.TITLE"
+msgid "Faster conveyor item moves"
+msgstr "更快的传送带物品移动"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_ROOTS.EFFECT"
+msgid "Items moving between rails and buildings no longer search every saved item of their kind."
+msgstr "物品在轨道和建筑之间移动时，不再搜索每一个已保存的同类物品。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_ROOTS.DETAIL"
+msgid "When an item is stored, the game takes it out of its list of things to save by comparing it with every item of its kind; this compares references instead, which finds the same entry."
+msgstr "物品被存放时，游戏会把它与每一个同类物品逐一比较，以将它从待保存列表中取出；此项改为比较引用，找到的是同一个条目。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.TITLE"
 msgid "Paged path grids"
@@ -457,6 +493,18 @@ msgstr "每个复制人上一次的路径探测只在变化之处（挖掘、建
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
 msgid "Graphics & overlays"
 msgstr "图形"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.TITLE"
+msgid "Update only the table rows in sight"
+msgstr "只更新可见的表格行"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.EFFECT"
+msgid "Consumables, Vitals, Priorities and the other tables update only the rows on screen each second."
+msgstr "消耗品、体征、优先度等表格每秒只更新可见的行。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.DETAIL"
+msgid "Once a second the game updates every row of an open table in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update."
+msgstr "游戏每秒一次在同一帧内更新已打开表格的每一行：复制人多时会造成卡顿。开启后，看不到的行会在滚动进入视野之前才更新，因此它们显示的是那时读取的数值，而不是上一次更新时的数值。当有模组改变表格的更新方式时，此项关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_EVENTS.TITLE"
 msgid "Faster animation events"
@@ -621,6 +669,30 @@ msgstr "防范游戏音效引擎中一个可能导致游戏崩溃的错误。"
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.DETAIL"
 msgid "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."
 msgstr "游戏的音效引擎 FMOD 可能会写入已经释放的内存，这是其开发者已确认的错误，也是部分“堆损坏”崩溃的原因。开启后，FMOD 使用自己的内存，释放的内存要等一段时间才会被重新使用，因此迟到的写入只会落在无人使用的地方，并且 Player.log 会记录发现的每一次。在大型殖民地上约多用 90 MB 内存。目前仅限 Windows。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.TITLE"
+msgid "Stolen sound crash guard"
+msgstr "被抢占声音的崩溃防护"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.EFFECT"
+msgid "Fixes a bug in the game's sound engine that can crash the game when many sounds play at once."
+msgstr "修复游戏音效引擎中一个在同时播放大量声音时可能导致游戏崩溃的错误。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.DETAIL"
+msgid "When too many copies of a sound play, FMOD, the sound engine, stops the oldest; if that one is still loading, FMOD frees it and then writes to it. With this, that one write is skipped, in FMOD's code in memory, only for the exact FMOD files the game ships; anything else is left as it is. Nothing you hear changes."
+msgstr "同一声音播放的份数过多时，音效引擎 FMOD 会停掉最早的那一份；如果那一份还在加载，FMOD 会先释放它，然后又向它写入。开启后会在内存中的 FMOD 代码里跳过这一次写入，且仅针对游戏自带的那几个 FMOD 文件；其他情况一律保持原样。你听到的声音不会有任何变化。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_RELEASED_SOUNDS.TITLE"
+msgid "Forget released sounds"
+msgstr "忘掉已释放的声音"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_RELEASED_SOUNDS.EFFECT"
+msgid "The game stops changing sounds it is done with, which after hours of play could crash it."
+msgstr "游戏不再改动它已经用完的声音，这在游玩数小时后可能导致崩溃。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_RELEASED_SOUNDS.DETAIL"
+msgid "A bug in the game's own code: background sounds, and looping sounds after a switch to another asteroid, keep the sound engine's number for a sound the game is done with, and go on using it. After a couple of hours on a large colony the sound engine gives that number to something else, and the game's change lands there, sometimes not on a sound at all. With this, the number is forgotten when the sound is let go. Nothing you hear changes."
+msgstr "这是游戏自身代码的错误：背景声音，以及切换到另一颗小行星后的循环声音，会留着音效引擎给某个已用完的声音分配的编号，并继续使用它。在大型殖民地上玩几个小时后，音效引擎会把这个编号分给别的东西，游戏的改动就落到那里，有时根本不是一个声音。开启后，声音被放掉时就忘掉这个编号。你听到的声音不会有任何变化。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
 msgid "Worldgen as in the original"
@@ -815,7 +887,7 @@ msgid "Above 60 fps at normal speed, frames no longer wait for the simulation, a
 msgstr "在正常速度下超过 60 fps 时，帧不再等待模拟，CPU 占用也更少。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.DETAIL"
-msgid "Between its steps, five a second, the game asks the simulation for its state on every frame with no game time to step, which happens only above 60 fps at normal speed. Each such call makes the frame wait for the step underway and runs a step of no time. With this, the simulation is called only at its steps, as the game already does below 60 fps and at faster speeds. The simulation's data then changes five times a second, as below 60 fps, instead of up to about 30, and dug tiles and finished buildings show up to 0.2 s later. Paused, or while another mod changes these calls, the game's own calls run."
+msgid "Between its steps, five a second, the game asks the simulation for its state on every frame with no game time to step, which happens only above 60 fps at normal speed. Each such call makes the frame wait for the step underway and runs a step of no time. With this, the simulation is called only at its steps, as the game already does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later than without it (up to 0.4 s), as below 60 fps. Paused, or while another mod changes these calls, the game's own calls run."
 msgstr "在两次模拟步进之间（每秒五次），游戏会在每个没有游戏时间可推进的帧上向模拟查询其状态，这只会在正常速度下超过 60 fps 时发生。每次这样的调用都会让该帧等待正在进行的步进，并运行一次零时间的步进。启用后，模拟只在其步进时被调用，与游戏在 60 fps 以下和更快速度下的做法相同。挖掉的格子、建成的格子以及游戏对模拟提出的其他改动，随之比不启用时晚约 0.3 秒显示（最多 0.4 秒），与 60 fps 以下相同。暂停时，或有其他模组修改这些调用时，仍运行游戏自身的调用。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PACE"
