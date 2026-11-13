@@ -68,12 +68,18 @@ namespace E2eDriver
             // The game unlocks the position only from its debug keys; it is set again each frame.
             KInputManager.isMousePosLocked = true;
             KInputManager.lockedMousePos = new Vector3(position.x, position.y, 0f);
-            Attach();
+            // FindObjectsOfType walks every live object: on a late-game colony that was about
+            // 190 ms a frame in both players. Once a second is enough here; each input request
+            // attaches again first (Begin).
+            if (Time.frameCount - attachedFrame >= 60) Attach();
         }
+
+        static int attachedFrame = -1000;
 
         /// The override on every enabled input module (the game switches between two).
         static void Attach()
         {
+            attachedFrame = Time.frameCount;
             foreach (var module in UnityEngine.Object.FindObjectsOfType<BaseInputModule>())
                 if (module.inputOverride != instance) module.inputOverride = instance;
         }
