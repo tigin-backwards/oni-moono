@@ -11,7 +11,7 @@ How to build, run and test Moono from source. If you just want to play, the
 - The .NET SDK pinned in `global.json` (10.0.402, or a later patch release). The scripts use
   `~/.dotnet/dotnet` if it exists.
 - The Linux build of Oxygen Not Included, expected at `~/projects/oni-linux` (on the `u60`
-  branch, U60 build 762230 at `~/projects/oni-linux-762230`). To use another location, set
+  branch, U60 build 763023 at `~/projects/oni-linux-763023`). To use another location, set
   `ONI_GAME_DIR` for the scripts and tests, and pass `-p:OniGameDir=...` to `dotnet build`.
 - `python3` and binutils (`as`, `ld`), for the offline Steam stub.
 - Optionally `libvpx`, for the one test that compares our VP8 decoder against it. The test is
@@ -248,7 +248,7 @@ the last. Any other mod is skipped, with the reason ("not reviewed by onimaxxing
 is not analysed"), and waits for onimaxxing's review: `e2e.py` reports its spec as skipped, and
 `mod-sweep.py` records it as not run. `scripts/mod-gate.py ID...` checks mods without playing
 them. onimaxxing's data is cached in `out/modgate/cache/BUILD/` with its fetch time, for an
-hour; the build is the game folder's (762230 for `oni-linux-762230`, else U59's 744825), or
+hour; the build is the game folder's (763023 for `oni-linux-763023`, else U59's 744825), or
 `ONI_GAME_BUILD`.
 
 ### Game tests in CI

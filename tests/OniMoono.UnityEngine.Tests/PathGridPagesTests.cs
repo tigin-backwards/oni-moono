@@ -13,7 +13,7 @@ namespace OniMoono.Tests
     /// paged-path-grids' tables (src/OniMoono.Host/PathGridPages.cs, compiled in here) against a
     /// flat array, from one thread and several, and its rewrite of the game's PathGrid
     /// (PathGridPagesRewrite) on the game's own Assembly-CSharp: U60 761211 (ONI_GAME_DIR or
-    /// ~/projects/oni-linux-762230) and U59 744825 when installed (ONI_U59_GAME_DIR or
+    /// ~/projects/oni-linux-763023) and U59 744825 when installed (ONI_U59_GAME_DIR or
     /// ~/projects/oni-linux).
     public class PathGridPagesTests(ITestOutputHelper output)
     {
@@ -265,7 +265,7 @@ namespace OniMoono.Tests
             return File.Exists(path) ? path : null;
         }
 
-        public static TheoryData<string, string> Builds() => new() { { "ONI_GAME_DIR", "oni-linux-762230" }, { "ONI_U59_GAME_DIR", "oni-linux" } };
+        public static TheoryData<string, string> Builds() => new() { { "ONI_GAME_DIR", "oni-linux-763023" }, { "ONI_U59_GAME_DIR", "oni-linux" } };
 
         /// PathGrid's twelve accesses go through the tables and nothing else changes: every other
         /// instruction of its methods, and every other method of the assembly, as it was.

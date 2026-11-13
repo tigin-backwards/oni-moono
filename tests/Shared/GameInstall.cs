@@ -11,7 +11,7 @@ using Xunit.v3;
 namespace OniMoono.Tests
 {
     /// The game install the unit tests read (ONI_GAME_DIR, by default
-    /// ~/projects/oni-linux-762230) and what they need of it. A test that needs the game's data
+    /// ~/projects/oni-linux-763023) and what they need of it. A test that needs the game's data
     /// or one of its runnable assemblies asks here before it touches them, and is skipped
     /// without them, for a reason that starts with NeedsData or NeedsAssembly. The CI build has
     /// only the game's reference assemblies and skips those tests (scripts/ci-unit-tests.sh);
@@ -30,7 +30,7 @@ namespace OniMoono.Tests
         /// The install's folder, whether or not the game is in it.
         public static string Dir =>
             Environment.GetEnvironmentVariable("ONI_GAME_DIR")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-762230");
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "projects", "oni-linux-763023");
 
         /// OxygenNotIncluded_Data, whether or not the game's data is in it (its Managed folder may
         /// hold reference assemblies only).

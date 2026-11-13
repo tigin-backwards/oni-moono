@@ -8,7 +8,7 @@
 # The fixtures are made from early-base.sav: bytes 0-3 (SaveGame.Header.buildVersion, little
 # endian) set to the build under test and the one after it: 761211 and 761212 on 761211, 761654
 # and 761655 on 761654 (u60-761654.md, W13), 762107 and 762108 on 762107, 762230 and 762231 on
-# 762230.
+# 762230, 763023 and 763024 on 763023.
 from: main-menu
 extra_saves: [v1-current, v1-newer]
 steps:

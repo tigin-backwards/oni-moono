@@ -92,7 +92,7 @@ class WorkshopItemTests(unittest.TestCase):
         p, out = self.run_script()
         self.assertEqual(p.returncode, 0, p.stderr)
         root_info = read(os.path.join(out, 'mod_info.yaml'))
-        self.assertIn('minimumSupportedBuild: 762230\nAPIVersion: 2\n', root_info)
+        self.assertIn('minimumSupportedBuild: 763023\nAPIVersion: 2\n', root_info)
         self.assertIn('minimumSupportedBuild: 744825\n', read(os.path.join(out, 'archived_versions', 'u59', 'mod_info.yaml')))
         meta = json.loads(read(os.path.join(out, 'moono.json')))
         self.assertEqual((meta['workshopItem'], meta['version']), ('oni-moono', '2026.11.08.02-u60'))

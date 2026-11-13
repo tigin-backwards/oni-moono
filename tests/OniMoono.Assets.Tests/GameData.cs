@@ -3,7 +3,7 @@ using System.IO;
 
 namespace OniMoono.Assets.Tests
 {
-    /// The reference game install (GameInstall: ONI_GAME_DIR, default ~/projects/oni-linux-762230).
+    /// The reference game install (GameInstall: ONI_GAME_DIR, default ~/projects/oni-linux-763023).
     /// Corpus tests need its data; they are skipped without it (GameInstall.NeedsData), and
     /// scripts/check.sh fails on that skip rather than passing silently.
     static class GameData

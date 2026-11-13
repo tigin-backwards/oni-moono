@@ -24,7 +24,7 @@ namespace OniMoono.Tests
 
     public class AnimationTests : EngineTest
     {
-        /// The reference game install (ONI_GAME_DIR, default ~/projects/oni-linux-762230).
+        /// The reference game install (ONI_GAME_DIR, default ~/projects/oni-linux-763023).
         static string DataDir => GameInstall.DataDir;
 
         /// The asset named `name` in `file` (path ids change between game builds).
