@@ -50,6 +50,9 @@ step aside. It only shows what it finds; it never turns a tweak on or off.
   isn't counted: `path-probe-repair` (the probe and what it relies on), `fast-anim-batches` (its
   write path), `fast-symbol-overrides` (its kept calls), `fast-smi-lookups`
   (`StateMachineController.GetSMI`), `fast-save-roots` (`SaveManager.Unregister`),
+  `fast-partitioner-events` (the scene partitioner's event, insert, remove and scan; also while
+  Fast Track, MoreTek, Colony Performance Fixes or Multiplayer Mod is active), `fast-conduit-sorts`
+  (the pipe and rail flows' `Sim200ms`; also while those mods are active),
   `fast-conveyor-paths` (`SolidConduitFlow.TryAdd`),
   `fast-anim-events` (the animation event loop and what it reads; see
   [Animation events](#animation-events)), `fast-pipe-rebuilds` (the pipes' rebuild handlers and
@@ -240,6 +243,8 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Faster radbolt collisions** (`fast-particle-collision`): Radbolts look for each other only where one can be. A radbolt skips searching every stored item nearby when no other radbolt is close.
 - **Faster pickup checks** (`fast-offset-tables`): Where an item can be picked up from is rechecked only when its surroundings change. Fetch updates recheck only the items whose work spots can have changed.
 - **Faster spatial index cleanup** (`fast-partitioner-cleanup`): The once-a-second tidy-up of what is where looks only at what was removed. The spatial index's cleanup visits only the entries that were removed.
+- **Faster item moves on the map** (`fast-partitioner-events`): An item changing tile no longer looks through every item near it. When an item moves or is stored, the game tells the spatial index's listeners for that tile by looking through every item in the surrounding area; items have no listeners, so this skips the look and tidies up the removed entries it would have.
+- **Faster pipe and rail updates** (`fast-conduit-sorts`): Pipes and rails no longer re-sort every building's update each second. Each second the game sorts the list of pipe and rail buildings by priority again; this repeats the reordering its last sort made while the priorities are the same, which gives the same order.
 - **Faster conveyor rebuilds** (`fast-conveyor-paths`): Building or removing conveyor rails no longer stalls the game. The rails' network rebuild finds its routes from an index instead of searching every kept route again. *Measured: no hitch on rail edits (was 0.05–0.5 s); a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, 2026-10-25.*
 - **Faster pipe network rebuilds** (`fast-pipe-rebuilds`): Building or removing pipes no longer makes every pipe in the colony check its network. After a gas or liquid network changes, only the pipes of that kind recheck whether their network has a building taking from it, all through one handler instead of one or two for every pipe. The status items and the Pipe Flow arrows come out the same. *Measured: each pipe network rebuild ~25 ms shorter on a colony with 27,000 pipes (~57 → ~32 ms); a late-game base-game colony with 27,000 pipes, Linux under WSL2, 2026-11-10.*
 - **Compact navigation links** (`compact-nav-links`): The map of where Duplicants and critters can move takes a fraction of the memory. Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; the pathfinder reads the same moves in the same order.

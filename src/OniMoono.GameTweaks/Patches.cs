@@ -20,6 +20,8 @@ namespace OniMoono.GameTweaks
                 case InstantReachability.Name: InstantReachability.Install(harmony); return true;
                 case OffWorldFallers.Name: OffWorldFallers.Install(harmony); return true;
                 case FastPartitionerCleanup.Name: FastPartitionerCleanup.Install(harmony); return true;
+                case FastPartitionerEvents.Name: FastPartitionerEvents.Install(harmony); return true;
+                case FastConduitSorts.Name: FastConduitSorts.Install(harmony); return true;
                 case FastAnimBatches.Name: FastAnimBatches.Install(harmony); return true;
                 case FastConveyorPaths.Name: FastConveyorPaths.Install(harmony); return true;
                 case BrainRate.Name: BrainRate.Install(harmony); return true;
