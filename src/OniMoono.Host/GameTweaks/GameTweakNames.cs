@@ -225,7 +225,7 @@ namespace OniMoono.Host.GameTweaks
             new(LazyTableRefresh, Graphics, "Update only the table rows in sight", "Consumables, Vitals, Priorities and the other tables update only the rows on screen each second.",
                 "Once a second the game updates every row of an open table in one frame: a stutter with many Duplicants. "
                 + "With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. "
-                + "Off while a mod changes how tables update.", ChangesBehaviour: true),
+                + "Off while a mod changes how tables update.", ChangesBehaviour: true, OnByDefault: true),
 
             new("fast-anim-events", Graphics, "Faster animation events", "Animations check their sound and effect cues with less work.",
                 "Keeps a compact copy of what each playing animation's per-frame event check reads."),
