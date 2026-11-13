@@ -810,6 +810,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
 msgid "Graphics & overlays"
 msgstr ""
 
+#. Row title (lazy-table-refresh)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.TITLE"
+msgid "Update only the table rows in sight"
+msgstr ""
+
+#. The line under the title (lazy-table-refresh)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.EFFECT"
+msgid "Consumables, Vitals, Priorities and the other tables update only the rows on screen each second."
+msgstr ""
+
+#. Tooltip: how it works (lazy-table-refresh)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.DETAIL"
+msgid "Once a second the game updates every row of an open table in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update."
+msgstr ""
+
 #. Row title (fast-anim-events)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_EVENTS.TITLE"
 msgid "Faster animation events"

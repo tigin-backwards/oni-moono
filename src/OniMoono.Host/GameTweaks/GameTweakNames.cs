@@ -58,7 +58,7 @@ namespace OniMoono.Host.GameTweaks
             UpdateCheckRow = "update-check", GcRow = "gc";
         public const string FastSaveCompression = "fast-save-compression", BackgroundSave = "background-save", NoSaveGc = "no-save-gc", PostLoadGc = "post-load-gc",
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
-            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots", TableScroll = "fix-table-scroll",
+            PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots", TableScroll = "fix-table-scroll", LazyTableRefresh = "lazy-table-refresh",
             ExactWorldgen = "exact-worldgen", FastPipeRebuilds = "fast-pipe-rebuilds", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history",
             SimStepPace = "sim-step-pace", FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix", ReleasedSounds = "fix-released-sounds",
             LoadingAnimation = "loading-animation";
@@ -222,6 +222,11 @@ namespace OniMoono.Host.GameTweaks
                 + "Within a pile of items that are the same in every way the game compares, a Duplicant may take another one than in the original. "
                 + "Off while a mod changes how Duplicants choose what to fetch.", FetchGain, ChangesBehaviour: true),
 
+            new(LazyTableRefresh, Graphics, "Update only the table rows in sight", "Consumables, Vitals, Priorities and the other tables update only the rows on screen each second.",
+                "Once a second the game updates every row of an open table in one frame: a stutter with many Duplicants. "
+                + "With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. "
+                + "Off while a mod changes how tables update.", ChangesBehaviour: true),
+
             new("fast-anim-events", Graphics, "Faster animation events", "Animations check their sound and effect cues with less work.",
                 "Keeps a compact copy of what each playing animation's per-frame event check reads."),
             new("fast-anim-cleanup", Graphics, "Faster animation cleanup", "Removed animations are swept out only where one was removed.",
@@ -266,7 +271,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, TableScroll, FetchByCell, SharedDuplicates, CompactReports, FastPipeRebuilds, ReleasedSounds];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, TableScroll, FetchByCell, SharedDuplicates, LazyTableRefresh, CompactReports, FastPipeRebuilds, ReleasedSounds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem) and
@@ -352,8 +357,8 @@ namespace OniMoono.Host.GameTweaks
                     md.Append($"- **{r.Title}** (`{r.Id}`): {r.Effect}");
                     if (r.Detail.Length > 0) md.Append(' ').Append(r.Detail);
                     if (r.Gain != null) md.Append($" *Measured: {Gain(r.Gain)}.*");
-                    if (r.ChangesBehaviour && !group.ChangesGameplay) md.Append(" *Off by default.*");
-                    if (r.OnByDefault) md.Append(" *On by default.*");
+                    if (r.ChangesBehaviour && !group.ChangesGameplay && !r.OnByDefault) md.Append(" *Off by default.*");
+                    if (r.OnByDefault) md.Append(r.ChangesBehaviour && !group.ChangesGameplay ? " *On by default; left out of `exact`.*" : " *On by default.*");
                     md.Append('\n');
                 }
             }
