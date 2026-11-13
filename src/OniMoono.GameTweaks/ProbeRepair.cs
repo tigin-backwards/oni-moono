@@ -68,6 +68,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "Sim/GameDataUpdate* Game::StepTheSim(System.Single)")]
     [GameMember(GameUse.Postfix, "System.Void Grid::ClearRestriction(System.Int32,System.Int32)")]
     [GameMember(GameUse.Postfix, "System.Void Grid::RegisterRestriction(System.Int32,Grid/Restriction/Orientation)")]
+    [GameMember(GameUse.Postfix, "System.Void Grid::RegisterRestriction(System.Int32,Grid/Restriction/Orientation,System.Int32)", Optional = true)]
     [GameMember(GameUse.Postfix, "System.Void Grid::RegisterSuitMarker(System.Int32)")]
     [GameMember(GameUse.Postfix, "System.Void Grid::RegisterTubeEntrance(System.Int32,System.Int32)")]
     [GameMember(GameUse.Postfix, "System.Boolean Grid::ReserveEmptyLocker(System.Int32,System.Int32,System.Boolean)")]
@@ -174,7 +175,16 @@ namespace OniMoono.GameTweaks
             // The tables a link's evaluation reads, through their writers.
             harmony.Patch(AccessTools.Method(typeof(Grid), "UpdateNavMask"), prefix: M(nameof(NavMaskPre)), postfix: M(nameof(NavMaskPost)));
             harmony.Patch(AccessTools.Method(typeof(Grid), "UpdateBuildMask"), prefix: M(nameof(BuildMaskPre)), postfix: M(nameof(BuildMaskPost)));
-            foreach (var name in new[] { nameof(Grid.RegisterRestriction), nameof(Grid.UnregisterRestriction), nameof(Grid.SetRestriction), nameof(Grid.ClearRestriction) })
+            // Door permissions, through their writers. Since 763023 a registration takes the
+            // door's owner (the two-argument one passes 0 to the owner's, which writes), and the
+            // owner-checked UnregisterRestriction(cell, owner) calls the one-cell one when it
+            // removes anything. Before, the two-argument registration wrote. Both registrations
+            // are patched where both are there: the forwarding one marks its cell twice.
+            harmony.Patch(AccessTools.Method(typeof(Grid), nameof(Grid.RegisterRestriction), new[] { typeof(int), typeof(Grid.Restriction.Orientation) }), postfix: M(nameof(DoorPost)));
+            if (AccessTools.Method(typeof(Grid), nameof(Grid.RegisterRestriction), new[] { typeof(int), typeof(Grid.Restriction.Orientation), typeof(int) }) is { } owned)
+                harmony.Patch(owned, postfix: M(nameof(DoorPost)));
+            harmony.Patch(AccessTools.Method(typeof(Grid), nameof(Grid.UnregisterRestriction), new[] { typeof(int) }), postfix: M(nameof(DoorPost)));
+            foreach (var name in new[] { nameof(Grid.SetRestriction), nameof(Grid.ClearRestriction) })
                 harmony.Patch(AccessTools.Method(typeof(Grid), name), postfix: M(nameof(DoorPost)));
             foreach (var name in new[] { nameof(Grid.RegisterTubeEntrance), nameof(Grid.UnregisterTubeEntrance), nameof(Grid.ReserveTubeEntrance),
                          nameof(Grid.SetTubeEntranceReservationCapacity), nameof(Grid.SetTubeEntranceOperational),
