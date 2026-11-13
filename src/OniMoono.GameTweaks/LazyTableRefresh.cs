@@ -22,7 +22,9 @@ namespace OniMoono.GameTweaks
     /// (Canvas.preWillRenderCanvases), once any stale row has come that close (scrolled, the view
     /// resized, the rows laid out again) every stale row gets the load actions it missed, in the
     /// same order, in one go (a table laid out again once, not every frame of a scroll); a frame
-    /// that sorts the rows refreshes every stale row first. A frame in which the table
+    /// that sorts the rows refreshes every stale row first. While the list is being scrolled (it
+    /// moved within the last 1.5 s) the refresh is the game's, of every row: rows coming into
+    /// sight one after another would otherwise be caught up more often than once a second. A frame in which the table
     /// builds its rows (opening, a Duplicant added or removed) refreshes every row, as the game.
     ///
     /// What differs from the game: a row out of sight shows, once scrolled in, values read then
@@ -60,6 +62,9 @@ namespace OniMoono.GameTweaks
         {
             public readonly Dictionary<TableRow, List<TableColumn>> Stale = new();
             public ScrollRect View;
+            /// Where the scrolled content was last seen, and when it last moved (unscaled time).
+            public Vector3 LastAt;
+            public float MovedAt = float.NegativeInfinity;
             /// The view's extent in the content's space at the last Measure.
             public float ViewMin, ViewMax;
             public bool Measured;
@@ -67,6 +72,9 @@ namespace OniMoono.GameTweaks
 
         static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TableScreen, Table> tables = new();
         static readonly List<TableScreen> withStale = new();
+
+        /// How long after its list last moved a table still counts as being scrolled.
+        const float ScrollingSeconds = 1.5f;
 
         enum State { Unchecked, On, Off }
         static State state;
@@ -201,7 +209,23 @@ namespace OniMoono.GameTweaks
             var columns = columnsOf(__instance);
             if (columns == null) return;
             var t = tables.GetValue(__instance, _ => new Table());
-            if (rowsDirty(__instance) || incubating(__instance))
+            // A table whose list moved within the last second is being scrolled: its rows come
+            // into sight one after another, and bringing them up to date as they do would lay
+            // the table out more often than the game's own refresh, once a second. So while it
+            // scrolls, the refresh is the game's, of every row.
+            var content = __instance.scroll_content_transform;
+            float now = Time.unscaledTime;
+            if (content != null)
+            {
+                var at = content.localPosition;
+                if (at != t.LastAt)
+                {
+                    t.LastAt = at;
+                    t.MovedAt = now;
+                }
+            }
+            bool scrolling = now - t.MovedAt < ScrollingSeconds;
+            if (rowsDirty(__instance) || incubating(__instance) || scrolling)
             {
                 // The game's loop then refreshes every row of each dirty column; the misses of the
                 // others stay.
@@ -268,7 +292,9 @@ namespace OniMoono.GameTweaks
                     withStale.RemoveAt(s);
                     continue;
                 }
-                if (!screen.isActiveAndEnabled) continue;
+                // A closed table (ShowOptimizedKScreen keeps it active, hidden) draws nothing: its
+                // stale rows wait until it shows again.
+                if (!screen.isActiveAndEnabled || !screen.IsScreenActive()) continue;
                 Measure(screen, t);
                 // One stale row near sight brings every stale row of the table up to date: a row's
                 // load actions change its texts, which lays the whole table out again, so rows

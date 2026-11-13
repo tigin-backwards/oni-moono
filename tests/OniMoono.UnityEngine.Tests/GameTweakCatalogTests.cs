@@ -56,7 +56,7 @@ namespace OniMoono.Tests
             // path-probe-repair, instant-reachability, fix-load-screen-clicks, the two sound fixes, fix-geothermal-vents and fix-timelapse-snapshots change behaviour
             // (out of `exact`, in the Changes gameplay and Bug fixes groups) but are on by default
             // (the player's choice); the others are off.
-            Assert.Equal(GameTweakNames.ChangingBehaviour.Where(n => n is not ("path-probe-repair" or "instant-reachability" or "fix-load-screen-clicks" or "fix-endless-sounds" or "fix-sound-piles" or "fix-geothermal-vents" or "fix-timelapse-snapshots")).Order(),
+            Assert.Equal(GameTweakNames.ChangingBehaviour.Where(n => n is not ("path-probe-repair" or "instant-reachability" or "fix-load-screen-clicks" or "fix-endless-sounds" or "fix-sound-piles" or "fix-geothermal-vents" or "fix-timelapse-snapshots" or "lazy-table-refresh")).Order(),
                 GameTweakNames.OffByDefault.Order());
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Rows.Single(r => r.Id == "path-probe-repair").Group);
             Assert.Equal(new[] { "off-world-fallers", "fix-load-screen-clicks", "fix-endless-sounds", "fix-sound-piles", "fix-geothermal-vents", "fix-timelapse-snapshots" }, GameTweakNames.Rows.Where(r => r.Group == GameTweakNames.BugFixes).Select(r => r.Id));
