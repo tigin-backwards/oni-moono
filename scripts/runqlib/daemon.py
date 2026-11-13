@@ -934,10 +934,11 @@ class Daemon:
                 log(f'{job_id}: {why}; stopping')
         why = list(ext.why)
         with self.worker.lock:
-            games, games_at, in_oni, ext_cpu = list(self.worker.games), self.worker.games_at, self.worker.user_in_oni, self.worker.ext_cpu
+            games, games_at, steam_oni, ext_cpu = list(self.worker.games), self.worker.games_at, self.worker.user_in_oni, self.worker.ext_cpu
         wants_windows = any((j['needs'] or {}).get('windows') or ((j['phase'] or {}).get('needs') or {}).get('windows') for j in rows)
         self.windows_relevant = wants_windows
         live_ids = {j['id'] for j in running_rows}
+        in_oni = False
         if self.windows is None:
             if wants_windows:
                 ext.windows = True
@@ -964,6 +965,22 @@ class Daemon:
                 ext.windows = True
                 why.append('the Windows side is being checked')
                 self.worker.want_windows.set()
+            # The games a job holding the Windows slot started, whatever their run home: its
+            # cleanup kills them too (by pid and start time).
+            attributed = set()
+            for j in running_rows:
+                if not (j['needs'] or {}).get('windows') or not j['start']:
+                    continue
+                path = os.path.join(j['dir'], 'games.json')
+                known = shim.read_json(path, []) or []
+                others = [r['id'] for r in running_rows if r['id'] != j['id']]
+                new = [g for g in winenv.attribute(games, j['start'], others) if (g['pid'], g['created']) not in {(k['pid'], k['created']) for k in known}]
+                if new:
+                    shim.write_json(path, known + new)
+                    log(f'{j["id"]}: its game(s) {", ".join(str(g["pid"]) for g in new)}, killed with it when it ends')
+                attributed |= {g['pid'] for g in known + new}
+            in_oni = winenv.user_playing(steam_oni, games, attributed)
+            self.user_in_oni = in_oni
             # Violations of the Windows rules by running jobs' games.
             for j in running_rows:
                 if not (j['needs'] or {}).get('windows'):
@@ -1117,7 +1134,7 @@ class Daemon:
                 'players_cap': c['players'],
                 'ext_cpu': self.worker.ext_cpu,
                 'interop': self.worker.interop,
-                'user_in_oni': self.worker.user_in_oni,
+                'user_in_oni': getattr(self, 'user_in_oni', False),
             },
             'running': running,
             'queued': queued,

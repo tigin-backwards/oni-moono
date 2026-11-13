@@ -247,6 +247,34 @@ def windows_exe(name, folder='C:\\Windows\\System32'):
     return wsl_path(folder) + '/' + name
 
 
+def test_game(cmdline):
+    """A game a test run started: a runq job's, or one with a run home of its own (an old
+    script's, scripts/e2e-windows/run.py's)."""
+    return '\\oni-runq\\' in cmdline.lower() or legacy_test_game(cmdline)
+
+
+def user_playing(steam_oni, games, attributed=()):
+    """The user is in ONI: Steam reports ONI running (RunningAppID) and a game runs that no test
+    started. A test game can set RunningAppID too (through a Steam client or double), and the
+    value outlives the game, so it does not count alone."""
+    return bool(steam_oni) and any(not test_game(g.get('cmdline', '')) and g.get('pid') not in attributed for g in games)
+
+
+def attribute(games, job_start, others=()):
+    """The games a job holding the Windows slot started: test games created since it started
+    (one second's slack) that no other runq job's run home names. The Windows slot is runq's, so
+    a test game started meanwhile is that job's, under whatever run home its script chose."""
+    found = []
+    for g in games:
+        cmd = g.get('cmdline', '')
+        if not test_game(cmd) or not g.get('created') or g['created'] < job_start - 1:
+            continue
+        if any(job_match(o) in cmd for o in others):
+            continue
+        found.append({'pid': g['pid'], 'created': g['created'], 'name': g.get('name'), 'cmdline': cmd})
+    return found
+
+
 class Windows:
     """The real backend: PowerShell through WSL interop."""
 
@@ -295,6 +323,10 @@ class Windows:
         if len(match) < 12:
             raise ValueError(f'refusing a short match {match!r}')
         return self._ps('-Action', 'boost', '-Match', match)
+
+    def kill_pid(self, pid, created):
+        """Kills game PID if it still is the process created at CREATED (epoch seconds)."""
+        return self._ps('-Action', 'killpid', '-Id', str(int(pid)), '-Created', str(int(created)))
 
     def prefers_system32(self, interop):
         """Whether a Windows process started through the interop socket INTEROP runs with the
@@ -362,6 +394,11 @@ class FakeWindows:
 
     def boost(self, match):
         self.calls.append(('boost', match))
+        return ''
+
+    def kill_pid(self, pid, created):
+        self.calls.append(('killpid', pid, created))
+        self.procs = [p for p in self.procs if not (p['pid'] == pid and p.get('created') == created)]
         return ''
 
     def user_in_oni(self):

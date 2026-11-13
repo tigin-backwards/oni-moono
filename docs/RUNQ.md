@@ -75,8 +75,9 @@ jobs end. A job starts only when every resource it needs is free; it never holds
 A later job may start ahead of a waiting one only when it fits beside that one's reservation for
 its whole timeout. `quiet` waits at most 15 minutes for the CPU outside runq to go under 2
 cores, then starts the job flagged noisy (`RUNQ_NOISY=1`, and `noisy` in its record). A
-`win-perf` job never starts while the user is in ONI (Steam's RunningAppID); it waits holding
-nothing, and others run meanwhile.
+`win-perf` job never starts while the user is in ONI: Steam's RunningAppID is ONI's and a game
+runs that no test started (no run home, not tied to a job; a test original can set RunningAppID
+itself). It waits holding nothing, and others run meanwhile.
 
 ### Caps
 
@@ -118,7 +119,9 @@ runq already holds for its job, would wait forever: it is stopped at once (`self
   stages the host) and `%TEMP%\oni-runq\ID\home` (`ONI_RUN_HOME`, unless the caller set its own),
   the run home's volume settings at 0, and `ONI_WIN_MONITOR=2` whatever the caller set. When the
   job ends, its game is killed by its run home (never by process name) and the folder is removed
-  (`--keep-home` keeps it). Every 30 s the daemon reads the job's game command line and warns in
+  (`--keep-home` keeps it). A game started while the job holds the slot under a run home of its
+  own (a runner that picks its homes) is tied to the job when the daemon sees it, and killed with
+  it by pid and start time. Every 30 s the daemon reads the job's game command line and warns in
   `runq status` when our player lacks `--no-focus`, a game is not on monitor 2, or a game was
   started with the flag that pins the pointer over it. A `win-perf` job's game gets the High
   priority class with power throttling off. runq never focuses a window or moves the pointer.
