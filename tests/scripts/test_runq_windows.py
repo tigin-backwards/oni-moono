@@ -121,6 +121,16 @@ class Rules(unittest.TestCase):
         # The original has no --no-focus of ours.
         self.assertEqual(winenv.violations('E:\\c\\BrutalNotIncluded.exe -logFile H\\Player.log -screen-fullscreen 0 -monitor 2', 2), [])
 
+    def test_rule_breaks_of_a_jobs_games(self):
+        good = {'pid': 1, 'cmdline': 'C:\\T\\oni-runq\\j1\\stage\\host\\OniMoono.exe --run-home H -monitor 2 --no-focus'}
+        focused = {'pid': 2, 'cmdline': 'C:\\T\\oni-runq\\j1\\stage\\host\\OniMoono.exe --run-home H -screen-fullscreen 0'}
+        watcher = {'pid': 3, 'cmdline': '"C:\\T\\oni-runq\\j1\\stage\\host\\OniMoono.exe" --crash-watch 194 1a0'}
+        pinned = {'pid': 4, 'cmdline': good['cmdline'] + ' ' + winenv.BACKGROUND}
+        self.assertEqual(winenv.rule_breaks([good, watcher], 2), [])
+        broken = winenv.rule_breaks([focused], 2)
+        self.assertTrue(any('--no-focus' in b for b in broken) and any('monitor 2' in b for b in broken), broken)
+        self.assertTrue(winenv.rule_breaks([pinned], 2))
+
     def test_classification(self):
         self.assertTrue(winenv.legacy_test_game('OniMoono.exe --run-home C:\\T\\oni-brutal\\run-home'))
         self.assertTrue(winenv.legacy_test_game('X.exe -logFile C:\\h\\Player.log'))

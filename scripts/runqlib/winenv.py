@@ -185,6 +185,18 @@ def violations(cmdline, monitor):
     return found
 
 
+def rule_breaks(games, monitor):
+    """['game pid N: what it breaks'] for a job's own GAMES (attribute's). A helper process of
+    our player (its crash watcher) has no window and is left out."""
+    out = []
+    for g in games:
+        cmd = g.get('cmdline', '')
+        if '--crash-watch' in cmd:
+            continue
+        out += [f'game pid {g.get("pid")}: {v}' for v in violations(cmd, monitor)]
+    return out
+
+
 def legacy_test_game(cmdline):
     """A test game started outside runq: any game that is neither a runq job's nor the user's."""
     return '\\oni-runq\\' not in cmdline.lower() and test_game(cmdline)
