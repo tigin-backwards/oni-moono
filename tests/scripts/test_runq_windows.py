@@ -144,6 +144,14 @@ class Rules(unittest.TestCase):
         # A game the daemon tied to a job is not the user's.
         self.assertFalse(winenv.user_playing([user], attributed={5}))
 
+    def test_background_games_are_neither_tests_to_kill_nor_the_users(self):
+        paths = CFG['background_game_paths']
+        g = {'pid': 9, 'created': 100, 'cmdline': '"E:\\Development\\u59bake\\TestingNotIncluded\\TestingNotIncluded.exe" -popupwindow'}
+        self.assertTrue(winenv.background_game(g['cmdline'], paths))
+        self.assertFalse(winenv.background_game('"E:\\Development\\Other\\X.exe"', paths))
+        self.assertFalse(winenv.user_playing([g]))
+        self.assertEqual(winenv.attribute([g], 50, background=paths), [])
+
     def test_steam_tracked_processes(self):
         log = """[t] AppID 457140 adding PID 15016 as a tracked process "x"
 [t] AppID 457140 adding PID 45716 as a tracked process "y"

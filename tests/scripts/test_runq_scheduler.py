@@ -205,6 +205,13 @@ class Reservations(unittest.TestCase):
         # Nor does a functional Windows job.
         self.assertEqual(granted(sched.plan(state([job('w', kind='windows')], user_in_oni=True))), [])
 
+    def test_background_game_holds_back_measurements_only(self):
+        jobs = [job('w', 'a', kind='windows'), job('wp', 'b', kind='win-perf', order=1), job('lp', 'c', kind='linux-perf', order=2)]
+        p = sched.plan(state(jobs, background='a game of another tool runs: pid 5'))
+        self.assertEqual(granted(p), ['w'])
+        self.assertIn('another tool', p.reasons['wp'])
+        self.assertIn('another tool', p.reasons['lp'])
+
     def test_windows_slot_held_for_the_user(self):
         jobs = [job('w', 'a', level='issue', kind='windows'), job('wp', 'b', level='release', kind='win-perf', order=1), job('c', 'c', kind='check', order=2)]
         p = sched.plan(state(jobs, windows_hold='the user plays, until 23:00'))

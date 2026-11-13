@@ -80,7 +80,10 @@ job that needs the Windows slot starts while the user is in ONI (a game of their
 started from a Steam library or Moono's own install, `%LOCALAPPDATA%\oni-moono`, with no test run
 home; Steam's RunningAppID counts for nothing, as test games set it and it outlives them) or while
 the slot is held for them (`runq hold windows [--for 3h]`, `runq release windows`; `runq status`
-shows the hold). Such a job waits holding nothing, and others run meanwhile.
+shows the hold). Such a job waits holding nothing, and others run meanwhile. Games run from the
+folders in `background_game_paths` (default `E:\Development\u59bake\`, another tool of the
+user's) are a background load: they hold back only `win-perf` and `quiet` jobs, are never the
+user's game, and runq never kills them.
 
 ### Caps
 

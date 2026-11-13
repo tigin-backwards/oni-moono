@@ -980,6 +980,7 @@ class Daemon:
         self.windows_relevant = wants_windows
         live_ids = {j['id'] for j in running_rows}
         in_oni = False
+        background = []
         if self.windows is None:
             if wants_windows:
                 ext.windows = True
@@ -993,6 +994,8 @@ class Daemon:
                         ext.windows = True
                         why.append(f'game pid {g.get("pid")} of ended job {owner_id} (being killed)')
                         self.kill_leftover(owner_id)
+                elif winenv.background_game(cmd, cfg['background_game_paths']):
+                    background.append(f'pid {g.get("pid")} ({g.get("name")})')
                 elif winenv.legacy_test_game(cmd):
                     ext.windows = True
                     why.append(f'a test game outside runq, pid {g.get("pid")} ({g.get("name")})')
@@ -1015,7 +1018,11 @@ class Daemon:
                 path = os.path.join(j['dir'], 'games.json')
                 known = shim.read_json(path, []) or []
                 others = [r['id'] for r in running_rows if r['id'] != j['id']]
-                new = [g for g in winenv.attribute(games, j['start'], others) if (g['pid'], g['created']) not in {(k['pid'], k['created']) for k in known}]
+                new = [
+                    g
+                    for g in winenv.attribute(games, j['start'], others, cfg['background_game_paths'])
+                    if (g['pid'], g['created']) not in {(k['pid'], k['created']) for k in known}
+                ]
                 if new:
                     shim.write_json(path, known + new)
                     log(f'{j["id"]}: its game(s) {", ".join(str(g["pid"]) for g in new)}, killed with it when it ends')
@@ -1113,6 +1120,7 @@ class Daemon:
             ext_cpu=ext_cpu,
             user_in_oni=in_oni,
             windows_hold=self.hold_text(),
+            background=('a game of another tool runs: ' + ', '.join(background)) if background else None,
         )
         p = sched.plan(state)
         for jid, t in p.quiet_started.items():
