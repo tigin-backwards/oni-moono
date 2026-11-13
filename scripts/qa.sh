@@ -280,7 +280,8 @@ quiet_begin() # STAGE
     mkdir -p "$quiet_lockdir"
     # What dead e2e runners left (players, Xvfbs) would keep the machine busy for nothing.
     python3 "$root/scripts/e2e.py" --clean | grep -v '^cleaned 0 ' | sed "s/^/     $1: /"
-    if runq_qa; then
+    # In any runq job, runq granted the resources (a perf job's shim holds perf.lock itself).
+    if [ -n "${RUNQ_JOB:-}" ]; then
         if [ -n "${runq_noisy:-}" ]; then note "$1: runq granted the machine, but it did not go quiet within its bound: noisy"; fi
         return 0
     fi
@@ -313,7 +314,7 @@ cores_busy() # cores' worth of CPU busy over 5 s, from /proc/stat
 }
 quiet_end()
 {
-    runq_qa && return 0
+    [ -z "${RUNQ_JOB:-}" ] || return 0
     flock -u "$quiet_fd"; exec {quiet_fd}>&-; quiet_fd=""
     rm -f "$quiet_lockdir/perf.wanted"
 }

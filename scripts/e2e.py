@@ -1757,7 +1757,8 @@ def machine_lock(lock_dir=None, perf_wait=True, log=say, max_wait=None):
 # runq (docs/RUNQ.md): a spec run queues itself as a runq job of kind e2e, with lanes, players,
 # memory and cores for its --lanes, and runs once the machine has room. Inside a job with lanes
 # (RUNQ_LANES) it takes only those lanes, and neither waits for perf jobs nor counts its players in
-# the budget: the grant stands in for both, and the job's shim holds the legacy entries for it.
+# the budget: the grant stands in for both, and the job's shim holds the legacy entries for it. In
+# any runq job it takes no perf lock (spec_lock).
 # RUNQ=off, or no daemon, runs it as before.
 
 
@@ -1767,6 +1768,15 @@ def runq_lanes():
         return None
     lanes = [int(x) for x in os.environ.get('RUNQ_LANES', '').split(',') if x.strip()]
     return lanes or None
+
+
+def spec_lock(opts, log):
+    """What a spec run holds of the perf lock: nothing inside a runq job (runq granted its
+    resources; a perf job's shim holds perf.lock exclusively, so a shared take would wait on the
+    job's own lock for ever), else machine_lock's shared hold."""
+    if os.environ.get('RUNQ_JOB'):
+        return contextlib.nullcontext()
+    return machine_lock(perf_wait=opts['perf_wait'], log=log, max_wait=opts['max_wait'])
 
 
 def runq_request(specs, kinds, opts):
@@ -5626,7 +5636,7 @@ def main(argv):
             return 2
     runq_self_submit(argv, specs, kinds, opts)
     granted = runq_lanes()
-    if granted:
+    if os.environ.get('RUNQ_JOB'):
         opts['perf_wait'] = False
     ensure_fixtures(specs, log=say)
     # Its players and Xvfbs end with it, however it ends (see "leftovers").
@@ -5672,7 +5682,7 @@ def main(argv):
 
         try:
             with (
-                contextlib.nullcontext() if granted else machine_lock(perf_wait=opts['perf_wait'], log=waits, max_wait=opts['max_wait']),
+                spec_lock(opts, waits),
                 contextlib.nullcontext() if granted else budget.hold(gb, f'{spec["name"]}/{kind}-{index} lane {lane.number}', waits, opts['max_wait']),
             ):
                 lane.update(state=f'running {job_name}')
