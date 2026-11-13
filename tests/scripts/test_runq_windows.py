@@ -127,6 +127,37 @@ class Rules(unittest.TestCase):
         self.assertFalse(winenv.legacy_test_game('"C:\\Program Files (x86)\\Steam\\steamapps\\common\\OxygenNotIncluded\\OxygenNotIncluded.exe"'))
         self.assertFalse(winenv.legacy_test_game('OniMoono.exe --run-home C:\\T\\oni-runq\\j0000001\\home'))
 
+    def test_user_in_oni_needs_a_game_no_test_started(self):
+        user = {
+            'pid': 5,
+            'name': 'OxygenNotIncluded.exe',
+            'cmdline': '"C:\\Program Files (x86)\\Steam\\steamapps\\common\\OxygenNotIncluded\\OxygenNotIncluded.exe"',
+        }
+        orig = {
+            'pid': 6,
+            'name': 'BrutalNotIncluded-763023.exe',
+            'cmdline': 'BrutalNotIncluded-763023.exe -logFile C:\\T\\oni-runq\\j0000213\\home\\Player.log -monitor 2',
+        }
+        qawin = {'pid': 7, 'name': 'BrutalNotIncluded-763023.exe', 'cmdline': 'X.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-original\\Player.log'}
+        odd = {'pid': 8, 'name': 'Odd.exe', 'cmdline': 'Odd.exe'}
+        # A test original sets RunningAppID: not the user.
+        self.assertFalse(winenv.user_playing(True, [orig, qawin]))
+        # RunningAppID left over with no game at all: not the user.
+        self.assertFalse(winenv.user_playing(True, []))
+        self.assertTrue(winenv.user_playing(True, [orig, user]))
+        self.assertFalse(winenv.user_playing(False, [user]))
+        # A game the daemon tied to a job is not the user's, whatever its command line.
+        self.assertFalse(winenv.user_playing(True, [odd], attributed={8}))
+
+    def test_games_a_windows_job_started_under_other_run_homes(self):
+        games = [
+            {'pid': 1, 'created': 100, 'cmdline': 'X.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-original\\Player.log'},
+            {'pid': 2, 'created': 50, 'cmdline': 'X.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-ours\\Player.log'},  # before the job
+            {'pid': 3, 'created': 120, 'cmdline': '"C:\\Steam\\OxygenNotIncluded.exe"'},  # the user's
+            {'pid': 4, 'created': 130, 'cmdline': 'OniMoono.exe --run-home C:\\T\\oni-runq\\j0000009\\home'},  # another job's
+        ]
+        self.assertEqual([g['pid'] for g in winenv.attribute(games, 90, others=['j0000009'])], [1])
+
     def test_short_matches_refused(self):
         w = winenv.Windows()
         for bad in ('', 'OniMoono', '.exe'):
@@ -141,6 +172,17 @@ class Rules(unittest.TestCase):
 
 
 class Cleanup(unittest.TestCase):
+    def test_kills_the_jobs_games_by_pid_and_start_time(self):
+        with tempfile.TemporaryDirectory() as d:
+            j = job(dir=d, win_temp=TEMP, windows_used=True)
+            with open(os.path.join(d, 'games.json'), 'w') as f:
+                json.dump([{'pid': 9936, 'created': 1000}], f)
+            fake = winenv.FakeWindows(TEMP)
+            fake.procs = [{'pid': 9936, 'created': 1000, 'cmdline': 'B.exe -logFile C:\\T\\oni-brutal\\qa-win\\home-original\\Player.log'}]
+            cleanup.windows_cleanup(j, fake, lambda s: None)
+            self.assertIn(('killpid', 9936, 1000), fake.calls)
+            self.assertEqual(fake.procs, [])
+
     def test_windows_cleanup_kills_by_run_home_then_removes(self):
         with tempfile.TemporaryDirectory() as d:
             j = job(dir=d, win_temp=TEMP, windows_used=True)

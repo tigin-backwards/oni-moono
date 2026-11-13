@@ -4,7 +4,8 @@
   (the shim does both itself when it ends normally; this covers a shim killed outright);
 - players the job started in systemd scopes of their own (scripts/contain.sh with ONI_SCOPE, as
   e2e.py and qa.sh do) are stopped: the scopes whose processes carry RUNQ_JOB=<id>;
-- a job that held the Windows slot: its game is killed by its run home (never by name), then its
+- a job that held the Windows slot: its game is killed by its run home (never by name), and so are
+  the games the daemon saw it start under other run homes (by pid and start time); then its
   Windows folder (%TEMP%\\oni-runq\\<id>) is removed, unless --keep-home;
 - cleanup.json records systemd's view of the end ($SERVICE_RESULT, $EXIT_CODE, $EXIT_STATUS),
   and the daemon frees the job's resources once it is there."""
@@ -50,6 +51,15 @@ def windows_cleanup(job, windows, log):
                 log(out.strip())
         except Exception as e:
             log(f'kill by {match}: {e}')
+    # The games it started under a run home of their own (the daemon saw them while the job held
+    # the Windows slot): by pid and start time.
+    for g in shim.read_json(os.path.join(job['dir'], 'games.json'), []) or []:
+        try:
+            out = windows.kill_pid(g['pid'], g['created'])
+            if out.strip():
+                log(out.strip())
+        except Exception as e:
+            log(f'kill {g.get("pid")}: {e}')
     if job.get('keep_home'):
         log('Windows folder kept (--keep-home)')
         return
