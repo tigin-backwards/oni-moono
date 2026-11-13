@@ -109,7 +109,7 @@ class Worker(threading.Thread):
                 b0, t0 = legacy.machine_busy_sample()
                 c0 = self.cgroup_usec(paths)
                 start = time.monotonic()
-                self.want_windows.wait(5)
+                self.want_windows.wait(2 if self.d.windows_running else 5)
                 b1, t1 = legacy.machine_busy_sample()
                 c1 = self.cgroup_usec(paths)
                 secs = max(time.monotonic() - start, 0.1)
@@ -121,7 +121,9 @@ class Worker(threading.Thread):
                 now = time.monotonic()
                 if w is not None and (self.interop is None or not os.path.exists(self.interop) or now - self.interop_at >= 300):
                     self.pick_interop(w, now)
-                period = 30 if self.d.windows_relevant else 300
+                # While a Windows job runs, often: a game that breaks the Windows rules is stopped
+                # as it starts.
+                period = 2 if self.d.windows_running else 30 if self.d.windows_relevant else 300
                 if w is not None and (self.want_windows.is_set() or now - last_win >= period):
                     self.want_windows.clear()
                     last_win = now
@@ -172,6 +174,7 @@ class Daemon:
         self.external, self.lanes_free = sched.External(), ()
         self.retention_at = 0.0
         self.windows_relevant = False
+        self.windows_running = False
         self.wake_r, self.wake_w = os.pipe()
         os.set_blocking(self.wake_r, False)
         os.set_blocking(self.wake_w, False)
@@ -769,7 +772,7 @@ class Daemon:
             return
         if job['reason'] in ('timeout',):
             code = EXIT_TIMEOUT
-        elif job['reason'] in ('cancelled', 'idle-held', 'heartbeat') or (job['reason'] or '').startswith(('self-deadlock', 'steam-contact')):
+        elif job['reason'] in ('cancelled', 'idle-held', 'heartbeat') or (job['reason'] or '').startswith(('self-deadlock', 'steam-contact', 'windows-rules')):
             code = EXIT_KILLED
         elif 'exit' in result:
             code = int(result['exit'])
@@ -978,6 +981,7 @@ class Daemon:
             games, games_at, ext_cpu = list(self.worker.games), self.worker.games_at, self.worker.ext_cpu
         wants_windows = any((j['needs'] or {}).get('windows') or ((j['phase'] or {}).get('needs') or {}).get('windows') for j in rows)
         self.windows_relevant = wants_windows
+        self.windows_running = any((j['needs'] or {}).get('windows') for j in running_rows)
         live_ids = {j['id'] for j in running_rows}
         in_oni = False
         background = []
@@ -1048,17 +1052,22 @@ class Daemon:
                     and not winenv.background_game(g.get('cmdline', ''), cfg['background_game_paths'])
                 ):
                     why.append(f'Steam tracks test game pid {g["pid"]} ({g.get("name")}) as ONI running')
-            # Violations of the Windows rules by running jobs' games.
+            # The Windows rules, enforced: a job's own game without --no-focus (ours), off the
+            # test monitor, or with the background flag is killed at once (by pid, it is the
+            # job's), and the job stopped with the reason.
             for j in running_rows:
                 if not (j['needs'] or {}).get('windows'):
                     continue
-                env = shim.read_json(os.path.join(j['dir'], 'env.json'), {}) or {}
-                found = []
-                for g in games:
-                    if any(m in g.get('cmdline', '') for m in winenv.run_home_matches(j['id'], env)):
-                        found += [f'game pid {g.get("pid")}: {v}' for v in winenv.violations(g['cmdline'], cfg['win_monitor'])]
+                broken = winenv.rule_breaks(own.get(j['id'], []), cfg['win_monitor'])
                 keep = [w for w in self.warnings.get(j['id'], []) if w.startswith('idle')]
-                self.warnings[j['id']] = keep + found
+                self.warnings[j['id']] = keep + broken
+                if broken and not (j['reason'] or '').startswith('windows-rules'):
+                    reason = 'windows-rules: ' + '; '.join(broken)
+                    self.store.update(j['id'], reason=reason, exit=EXIT_KILLED)
+                    self.stop_unit(j['unit'])
+                    log(f'{j["id"]}: {reason}; stopping')
+                    for g in own.get(j['id'], []):
+                        threading.Thread(target=self.windows.kill_pid, args=(g['pid'], g['created']), daemon=True).start()
             with self.worker.lock:
                 # Every game a Windows job runs gets power throttling off (a throttled test game
                 # runs many times slower); a perf job's also the High priority class.

@@ -128,9 +128,10 @@ runq already holds for its job, would wait forever: it is stopped at once (`self
   job ends, its game is killed by its run home (never by process name) and the folder is removed
   (`--keep-home` keeps it). A job's own games (run from, or naming, its stage or run home) are
   recorded and killed with it by pid and start time; a game that only started while it ran is
-  never its own. Every 30 s the daemon reads the job's game command line and warns in
-  `runq status` when our player lacks `--no-focus`, a game is not on monitor 2, or a game was
-  started with the flag that pins the pointer over it. Every Windows job's game gets power
+  never its own. While a Windows job runs, the daemon reads its games' command lines
+  every few seconds; a game of the job's that lacks `--no-focus` (ours), is not on monitor 2, or
+  was started with the flag that pins the pointer over it is killed at once and the job stopped
+  (`windows-rules`, 137, the reason naming what it broke). Every Windows job's game gets power
   throttling (EcoQoS) off, as a throttled test game runs many times slower; a `win-perf` job's
   also gets the High priority class, the others Normal. runq never focuses a window or moves the pointer.
 - No contact with the user's Steam: a Windows job whose own game Steam tracks as ONI running (Steam's
