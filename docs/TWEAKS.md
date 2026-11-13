@@ -252,6 +252,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 
 ### Graphics & overlays (on by default)
 
+- **Update only the table rows in sight** (`lazy-table-refresh`): Consumables, Vitals, Priorities and the other tables update only the rows on screen each second. Once a second the game updates every row of an open table in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update. *Off by default.*
 - **Faster animation events** (`fast-anim-events`): Animations check their sound and effect cues with less work. Keeps a compact copy of what each playing animation's per-frame event check reads.
 - **Faster animation cleanup** (`fast-anim-cleanup`): Removed animations are swept out only where one was removed. The sweep for destroyed animations skips grid chunks that can't hold any.
 - **Parallel animation uploads** (`fast-anim-batches`): Animation data for the graphics card is prepared on several threads. Animation batches write their instance and symbol data on worker threads, the rest in the game's order.
@@ -792,6 +793,63 @@ aspect, with `Game.LateUpdate`'s formulas). In the frame of the capture, the lig
 draws at the image's aspect; the screen is behind the Timelapser's freeze frame then, so a player
 sees no change. Each of these is set back right after the render, also when it fails. In U60,
 which reads the image back asynchronously, the readback is queued before they are set back.
+
+### Table rows in sight
+
+`lazy-table-refresh` (Graphics & overlays) changes when a table screen's rows are brought up to
+date. It is off by default and left out of `exact`, as it changes when the game's code runs.
+
+Once a second the render 1000 ms bucket marks every column of the table screens dirty
+(`TableColumn.Render1000ms`), and the open table's next `ScreenUpdate` runs each column's load
+action on the widget of every row: on a colony of 200 Duplicants, thousands of widgets in one
+frame, most of them scrolled out of sight. With the tweak that frame updates the rows within the
+table's scroll view or within one view's height of it, in the game's order, and marks the others
+stale. Each frame, before the canvases are laid out and drawn (`Canvas.preWillRenderCanvases`), a
+stale row that has come that close (scrolled, the view resized, the rows laid out again) brings
+every stale row up to date, with the load actions each missed, in the same order: a row's texts
+changing lays the whole table out again, so catching rows up one or two a frame while a list
+scrolls would lay it out every frame. Sorting the rows first brings every stale row up to date,
+and a frame in which the table builds its rows updates every row, as the game does.
+
+A row scrolled into view then shows values read as it comes into view, at most a second newer
+than the game would show; a mod reading the text of widgets out of sight would read older
+values. Every row and object stays as the game made it. With `ONI_TWEAK_VERIFY=1` each update
+also runs the game's own, of every row, and the widgets of the rows in sight must read the same
+after both (texts, sprites, colours, toggles' states, active objects); and no stale row may lie in
+the view in any frame. The tweak stands down when another mod patches the table's `ScreenUpdate`
+or `SortRows`, or the columns' `Render1000ms`, `MarkDirty` or `MarkClean`.
+
+Measured on Windows (Vulkan, speed 3, exact tweaks with and without it, two launches each,
+2026-11-13), the once-a-second update's cost over the two frames around it, and the mean frame:
+
+| Table | 200-Duplicant colony: update, off → on | Still | Scrolling |
+|---|---|---|---|
+| Consumables | 15.6 → 0 ms | 35.2 → 35.2 ms | 69.1 → 71.1 ms |
+| Vitals | 15.6 → 10.7 ms | 13.2 → 13.9 ms | 19.9 → 20.4 ms |
+| Priorities | 1.0 → 1.9 ms | 30.3 → 30.9 ms | 43.3 → 43.5 ms |
+| Schedule | 3.6 → 0 ms | 14.5 → 15.6 ms | 21.2 → 23.8 ms |
+
+On the 50-Duplicant colony the update went 5.5 → 2.3 ms (Consumables) and 8.6 → 4.9 ms
+(Vitals), and the mean frame moved within about a millisecond either way. Scrolling costs a
+little more with it (the rows out of sight are brought up to date in a frame of their own, so
+the table is laid out twice a second instead of once), so it is off by default.
+
+### Colony images written in the background
+
+U60's Timelapser writes its images (a save's colony preview, the daily snapshots) in the
+background: it reads the render back asynchronously, then encodes and writes the PNG on a task.
+It waits for those writes only when the colony is unloaded, not when the game reads the files.
+The Load screen opened from the pause menu right after a save reads the preview that save is
+still writing: it gets a partial file and shows no picture (on Windows the read can fail
+outright). The Retired Colonies screen reads the snapshots the same way, and deleting a save
+deletes its preview.
+
+`wait-timelapse-writes` is always on, whatever tweaks are chosen, and has no row in Moono
+Tweaks: before each of those reads and deletes, it waits for the Timelapser's pending read-backs
+and writes (`Timelapser.FlushPendingScreenshots`, which returns at once when there are none). The
+files and what the game shows of them are the game's own; only when they are read changes.
+`tests/e2e/timelapse-background-writes.yaml` holds a preview's write back 8 s and opens the Load
+screen right after the save: the preview shows.
 
 ## Translating Moono Tweaks
 
