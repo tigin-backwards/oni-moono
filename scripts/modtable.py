@@ -27,7 +27,10 @@ What our runs recorded:
   `scripts/e2e.py --record`: a record's verdict and note decide the Played column, ahead of the
   hand-written status sets below, which stay for mods no spec has played yet;
 - then those played on U60, tests/e2e/results-u60/*.json (or ONI_RESULTS_U60_DIR): a mod's U60
-  record wins over its main one, and its note starts "on U60:"."""
+  record wins over its main one, and its note starts "on U60:".
+
+On a branch that builds against U60 (ci/game-refs.json's default build), the mods of `broken_u60`
+(broken by members U60 removed; their records are U59's) get that note in place of their U59 one."""
 
 import glob, json, os, subprocess, sys
 
@@ -149,6 +152,19 @@ if CATALOG_U60 and os.path.exists(CATALOG_U60):
     cat.sort(key=lambda r: int(r[0]))  # stable: the TSV's row first at a rank both have
 by_id = {r[1]: r for r in cat}
 FULL_RANKS = 750  # every mod up to this rank; beyond it, those that work in the original
+
+
+def builds_for_u60():
+    """Whether this branch builds against U60: the game of ci/game-refs.json's default build."""
+    path = os.path.join(ROOT, 'ci', 'game-refs.json')
+    if not os.path.exists(path):
+        return False
+    with open(path, encoding='utf-8') as f:
+        refs = json.load(f)
+    return refs.get('builds', {}).get(refs.get('default_build'), {}).get('game', '').startswith('U60')
+
+
+ON_U60 = builds_for_u60()
 results = read_results(RESULTS)
 for mid, record in read_results(RESULTS_U60).items():
     results[mid] = dict(record, u60=True)
@@ -641,6 +657,37 @@ not_run_in_ours |= {
     '3821447025',
     '3828163036',
 }
+# Broken by members every U60 build lacks (761015 to 763023; docs/research/u60-763023.md, "Mods
+# broken by members U60 removed"): read from each mod's DLL references and onimaxxing's U60
+# analysis, not run on U60. Their sweeps and spec records are U59's, so on a U60 branch this note
+# stands in for them: id -> (Loads and Colony mark, note).
+YIELD = 'it reads `Database.PlantAttributes.YieldAmount`, which U60 renamed `YieldFactor`'
+YIELD_CRASH = ('❌', f'broken on U60 (builds 761015 to 763023): {YIELD} (onimaxxing: crashes at startup; not run here on U60)')
+YIELD_MAY = ('⬜', f'may crash on U60 (builds 761015 to 763023): {YIELD} (onimaxxing: may crash in play; not run here on U60)')
+broken_u60 = {
+    '1818145851': YIELD_CRASH,
+    '1914501780': YIELD_CRASH,
+    '2778941969': (
+        '❌',
+        f'broken on U60 (builds 761015 to 763023): {YIELD}; on build 763023 its patch on `SpaceTreeConfig.CreatePrefab` '
+        'throws a MissingFieldException in `Assets.OnPrefabInit` and the original exits while loading; not run in ours',
+    ),
+    '3292488355': YIELD_CRASH,
+    '3609531831': YIELD_CRASH,
+    '3719204845': YIELD_CRASH,
+    '3767758558': YIELD_CRASH,
+    '3807135177': YIELD_CRASH,
+    '3019685469': YIELD_MAY,
+    '3025506650': YIELD_MAY,
+    '3390581599': YIELD_MAY,
+    '3733686186': YIELD_MAY,
+    '3648432502': ('⬜', f'may crash on U60 (builds 761015 to 763023): {YIELD} (from its DLL; not flagged by onimaxxing, not run here on U60)'),
+    '1960947963': (
+        '❌',
+        'broken on U60 (seen on builds 761211 and 763023): its patch on `SelectToolHoverTextCard.UpdateHoverElements` '
+        'fails (HarmonyException) and the original exits at start; not run in ours',
+    ),
+}
 # Titles of played mods the catalog TSV does not rank (none since it reaches rank 2274).
 unranked = {}
 # Worldgen mods no sweep ran, as their specs' runs of ours found them (id -> (loads, colony)): a
@@ -732,6 +779,9 @@ def status(mid, flags):
 def with_record(mid, flags):
     """A mod's status, its Played column and note from its spec record when it has one: a played
     or ⚠️ spec ran it in a colony, so Loads and Colony are ✅."""
+    if ON_U60 and mid in broken_u60:
+        mark, note = broken_u60[mid]
+        return mark, mark, N, note
     loads, colony, play, note = status(mid, flags)
     if mid not in results or mid in structural:
         return loads, colony, play, note
@@ -739,7 +789,11 @@ def with_record(mid, flags):
     return (Y, Y, play, note) if play != N else (loads, colony, play, note)
 
 
-rows = [row('–', None, 'Fast Track (GitHub)', Y, Y, Y, 'about 30 fps on a late-game Spaced Out colony, where the original runs 5–6')]
+if ON_U60:
+    fast_track = (X, X, N, 'broken on U60: it calls `LocText.ModifyLinkStrings`, which U60 removed, and fails to load (same in the original)')
+else:
+    fast_track = (Y, Y, Y, 'measured on a heavily modded colony in [PERFORMANCE_CASE_STUDY_4.md](PERFORMANCE_CASE_STUDY_4.md)')
+rows = [row('–', None, 'Fast Track (GitHub)', *fast_track)]
 listed = set()
 for r in cat:
     rank, mid, _, flags, title = int(r[0]), r[1], r[2], r[3], r[4]

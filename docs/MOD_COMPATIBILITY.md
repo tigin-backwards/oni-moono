@@ -25,7 +25,7 @@ installs get developer checks subscribers never see).
 
 | Rank | Mod | Loads | Colony | Played | Notes |
 |---|---|---|---|---|---|
-| – | Fast Track (GitHub) | ✅ | ✅ | ✅ | about 30 fps on a late-game Spaced Out colony, where the original runs 5–6 |
+| – | Fast Track (GitHub) | ✅ | ✅ | ✅ | measured on a heavily modded colony in [PERFORMANCE_CASE_STUDY_4.md](PERFORMANCE_CASE_STUDY_4.md) |
 | 1 | [Bigger Camera Zoom Out](https://steamcommunity.com/sharedfiles/filedetails/?id=1717463209) | ✅ | ✅ | ✅ | spec tests/e2e/mods/1717463209-bigger-camera-zoom-out.yaml: the mouse wheel zooms out past the game's 20, to 200; world shots at three zoom levels within 3.1 % of the original |
 | 2 | [Mod Updater](https://steamcommunity.com/sharedfiles/filedetails/?id=2018291283) | ✅ | ✅ | ✅ | spec tests/e2e/mods/2018291283-mod-updater.yaml: from a colony to the main menu's Mods screen: every (local) mod's row gets its disabled check-mark update button, and no Update All; the row's Options opens its PLib options dialog, which closes on Cancel; the row's and the dialog's layout as in the original |
 | 3 | [[Obsolete] Build Over Plants](https://steamcommunity.com/sharedfiles/filedetails/?id=1835394161) | ✅ | ✅ | ✅ | spec tests/e2e/mods/1835394161-build-over-plants.yaml: obsolete, its build holds no patch: a smaller spec, it loads enabled and the colony runs a minute |
