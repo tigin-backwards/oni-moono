@@ -327,7 +327,12 @@ The 2026-11-06 tables (v2026.11.06.01 on U59) had U57 at about 90 fps with defau
   (default with it: 142 fps, one launch); `sim-step-pace` gave 159 → 170 fps at speed 1 on U57
   (one pair); `off-world-fallers` still makes Gluttony's gap. `fetch-by-cell` alone measured
   below the default on U57 in its one launch (81 fps), which needs an A/B.
-- **Allocations:** see the re-profile page.
+- **Allocations** (Linux, one launch each): at speed 3 Moono hands out less a frame than the
+  original on both colonies and both builds (U59: 309 against 429 KB late-game, 105 against 162
+  mid-game; U60: 223 against 284, 50 against 59), is level a game second on the late-game
+  colony and 1.4–1.9× above it on the mid-game one. U60 is where the tables after allocation
+  batch 6 left it, within the runs' spread; U59's mid-game colony went from 182–199 to 105 KB a
+  frame since its last table (2026-11-10).
 - **On by default since then**, among others: `post-load-gc`, `fast-save-roots`,
   `fast-partitioner-events`, `fast-conduit-sorts`, `shared-duplicates`,
   `compact-report-history`, `lazy-table-refresh` and `loading-animation`.

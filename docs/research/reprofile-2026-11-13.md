@@ -335,11 +335,218 @@ By update section at speed 3 (the largest; the original's counter is process-wid
 | RocketProcessConditionDisplayTarget SIM_1000ms | 31 | 26 | 6.2 | 3.8 |
 | Total | 2,143 | 2,083 | 429 | 309 |
 
-**U59 (v2026.11.13.02, build 744825), mid-game colony, 34 fps cap:** not measured (the launches did not finish).
+**U59 (v2026.11.13.02, build 744825), mid-game colony, 34 fps cap**
 
-**U60 (v2026.11.13.03, build 763023), late-game colony, 20 fps cap:** not measured (the launches did not finish).
+| | Original | Moono |
+|---|---|---|
+| Paused: KB a frame | 9.8 | 13.1 |
+| Paused: fps | 34.0 | 34.5 |
+| Paused: collections in the span | 0 | 0 |
+| Speed 3: fps | 13.9 | 33.8 |
+| Speed 3: frames a game second | 5.2 | 11.3 |
+| Speed 3: KB a frame | 162.2 | 105.4 |
+| Speed 3: MB a game second | 0.84 | 1.19 |
+| Speed 3: MB a real second | 2.26 | 3.56 |
+| Speed 3: the span | 561 s, 7800 frames | 532 s, 18000 frames |
+| Speed 3: collections in the span | 24, 16.1 s of full collections | gen0/gen1/gen2 3/1/0, 195 ms paused in all |
 
-**U60 (v2026.11.13.03, build 763023), mid-game colony, 34 fps cap:** not measured (the launches did not finish).
+By update section, paused, KB a frame:
+
+| Section | Original KB a frame | Moono KB a frame |
+|---|---|---|
+| (other) | 3.3 | 5.1 |
+| OrbitalObject RENDER_EVERY_TICK | 2.3 | 2.8 |
+| BrainScheduler.RenderEveryTick | 0.9 | 0.5 |
+| PropertyTextures.LateUpdate | 0.7 | 0.8 |
+| (other threads) |  | 0.6 |
+| Game.Update | 0.0 | 0.5 |
+| Game.LateUpdate | 0.0 | 0.5 |
+| KScreenManager.Update | 0.5 | 0.4 |
+| MeterScreen RENDER_1000ms | 0.5 | 0.4 |
+| PinnedResourcesPanel RENDER_1000ms | 0.4 | 0.1 |
+| Game.UnsafeSim200ms | 0.3 | 0.4 |
+| GlobalChoreProvider RENDER_200ms | 0.4 | 0.3 |
+| World.LateUpdate | 0.0 | 0.4 |
+| BubbleManager RENDER_EVERY_TICK | 0.2 | 0.1 |
+| Global.Update | 0.2 | 0.0 |
+| Total | 10 | 13 |
+
+By update section at speed 3 (the largest; the original's counter is process-wide, so its other threads are inside its rows):
+
+| Section | Original KB a game s | Moono KB a game s | Original KB a frame | Moono KB a frame |
+|---|---|---|---|---|
+| (other) | 131 | 256 | 25.4 | 22.7 |
+| ChargeSuit | 162 | 166 | 31.5 | 14.7 |
+| Global.Update | 96 | 96 | 18.7 | 8.5 |
+| Game.Update | 48 | 93 | 9.2 | 8.3 |
+| (other threads) | (in the rows) | 83 |  | 7.4 |
+| Work(Pickup) | 51 | 58 | 10.0 | 5.2 |
+| KBatchedAnimUpdater.LateUpdate | 49 | 50 | 9.4 | 4.4 |
+| BrainScheduler.RenderEveryTick | 49 | 36 | 9.5 | 3.2 |
+| CanvasUpdateRegistry.PerformUpdate | 18 | 48 | 3.5 | 4.2 |
+| OrbitalObject RENDER_EVERY_TICK | 12 | 32 | 2.3 | 2.8 |
+| Game.UnsafeSim200ms | 25 | 29 | 4.8 | 2.5 |
+| World.LateUpdate | 0 | 24 | 0.1 | 2.2 |
+| BubbleManager SIM_33ms | 22 | 16 | 4.2 | 1.4 |
+| UpdateNavigator | 16 | 21 | 3.0 | 1.9 |
+| Pathfinding.UpdateNavGrids | 0 | 19 | 0.1 | 1.7 |
+| Total | 837 | 1,191 | 162 | 105 |
+
+**U60 (v2026.11.13.03, build 763023), late-game colony, 20 fps cap**
+
+| | Original | Moono |
+|---|---|---|
+| Paused: KB a frame | 8.6 | 9.1 |
+| Paused: fps | 20.0 | 20.2 |
+| Paused: collections in the span | 0 | 0 |
+| Speed 3: fps | 8.2 | 19.7 |
+| Speed 3: frames a game second | 5.0 | 6.6 |
+| Speed 3: KB a frame | 283.7 | 223.2 |
+| Speed 3: MB a game second | 1.42 | 1.48 |
+| Speed 3: MB a real second | 2.32 | 4.41 |
+| Speed 3: the span | 220 s, 1800 frames | 456 s, 9000 frames |
+| Speed 3: collections in the span | 1, 0.0 s of full collections | gen0/gen1/gen2 2/1/0, 323 ms paused in all |
+
+By update section, paused, KB a frame:
+
+| Section | Original KB a frame | Moono KB a frame |
+|---|---|---|
+| (other) | 4.0 | 4.2 |
+| KBatchedAnimUpdater.LateUpdate | 1.3 | 1.1 |
+| PinnedResourcesPanel RENDER_1000ms | 0.6 | 0.3 |
+| LogicRibbonReader RENDER_200ms | 0.6 | 0.2 |
+| Game.Update | 0.0 | 0.5 |
+| KAnimBatchManager.Render | 0.5 | 0.0 |
+| PropertyTextures.LateUpdate | 0.1 | 0.5 |
+| Game.LateUpdate | 0.0 | 0.5 |
+| (other threads) |  | 0.5 |
+| GlobalChoreProvider RENDER_200ms | 0.4 | 0.2 |
+| BrainScheduler.RenderEveryTick | 0.3 | 0.3 |
+| Game.UnsafeSim200ms | 0.1 | 0.3 |
+| LogicRibbonWriter RENDER_200ms | 0.2 | 0.1 |
+| Global.Update | 0.2 | 0.0 |
+| Global.LateUpdate | 0.0 | 0.1 |
+| Total | 9 | 9 |
+
+By update section at speed 3 (the largest; the original's counter is process-wide, so its other threads are inside its rows):
+
+| Section | Original KB a game s | Moono KB a game s | Original KB a frame | Moono KB a frame |
+|---|---|---|---|---|
+| BrainScheduler.RenderEveryTick | 405 | 33 | 81.1 | 5.0 |
+| (other threads) | (in the rows) | 365 |  | 55.1 |
+| Game.UnsafeSim200ms | 298 | 323 | 59.7 | 48.8 |
+| (other) | 174 | 188 | 34.8 | 28.4 |
+| CanvasUpdateRegistry.PerformUpdate | 107 | 160 | 21.5 | 24.1 |
+| Game.Update | 77 | 95 | 15.4 | 14.4 |
+| Work(Pickup) | 61 | 60 | 12.2 | 9.0 |
+| KBatchedAnimUpdater.LateUpdate | 45 | 23 | 8.9 | 3.5 |
+| SolidTransferArm SIM_1000ms | 41 | 25 | 8.3 | 3.8 |
+| SapTree states | 28 | 17 | 5.6 | 2.5 |
+| HighEnergyParticle states | 24 | 28 | 4.9 | 4.2 |
+| Pathfinding.UpdateNavGrids | 0 | 20 | 0.1 | 3.0 |
+| Global.Update | 19 | 19 | 3.8 | 2.9 |
+| World.LateUpdate | 2 | 15 | 0.5 | 2.3 |
+| Work(ComplexFabricatorWorkable) | 15 | 11 | 2.9 | 1.6 |
+| Total | 1,419 | 1,478 | 284 | 223 |
+
+**U60 (v2026.11.13.03, build 763023), mid-game colony, 34 fps cap**
+
+| | Original | Moono |
+|---|---|---|
+| Paused: KB a frame | 3.1 | 7.6 |
+| Paused: fps | 34.0 | 34.4 |
+| Paused: collections in the span | 0 | 0 |
+| Speed 3: fps | 13.3 | 34.2 |
+| Speed 3: frames a game second | 5.1 | 11.4 |
+| Speed 3: KB a frame | 59.1 | 49.8 |
+| Speed 3: MB a game second | 0.30 | 0.57 |
+| Speed 3: MB a real second | 0.79 | 1.70 |
+| Speed 3: the span | 451 s, 6000 frames | 544 s, 18600 frames |
+| Speed 3: collections in the span | 1, 0.0 s of full collections | gen0/gen1/gen2 3/1/1, 119 ms paused in all |
+
+By update section, paused, KB a frame:
+
+| Section | Original KB a frame | Moono KB a frame |
+|---|---|---|
+| (other) | 1.9 | 4.1 |
+| (other threads) |  | 0.7 |
+| Game.Update | 0.0 | 0.5 |
+| PropertyTextures.LateUpdate | 0.0 | 0.5 |
+| Game.LateUpdate | 0.0 | 0.5 |
+| Game.UnsafeSim200ms | 0.3 | 0.4 |
+| BrainScheduler.RenderEveryTick | 0.2 | 0.3 |
+| PinnedResourcesPanel RENDER_1000ms | 0.3 | 0.1 |
+| Global.Update | 0.2 | 0.0 |
+| GlobalChoreProvider RENDER_200ms | 0.1 | 0.1 |
+| World.LateUpdate | 0.0 | 0.1 |
+| Global.LateUpdate | 0.0 | 0.1 |
+| BrainScheduler RENDER_EVERY_TICK | 0.0 | 0.1 |
+| ColonyAchievementTracker RENDER_EVERY_TICK | 0.1 | 0.0 |
+| World.UpdateCellInfo | 0.0 | 0.0 |
+| Total | 3 | 8 |
+
+By update section at speed 3 (the largest; the original's counter is process-wide, so its other threads are inside its rows):
+
+| Section | Original KB a game s | Moono KB a game s | Original KB a frame | Moono KB a frame |
+|---|---|---|---|---|
+| (other) | 57 | 142 | 11.3 | 12.4 |
+| (other threads) | (in the rows) | 77 |  | 6.8 |
+| CanvasUpdateRegistry.PerformUpdate | 18 | 47 | 3.6 | 4.1 |
+| Game.Update | 21 | 42 | 4.1 | 3.7 |
+| Global.Update | 29 | 31 | 5.8 | 2.7 |
+| BrainScheduler.RenderEveryTick | 24 | 27 | 4.6 | 2.4 |
+| Work(Pickup) | 23 | 26 | 4.4 | 2.2 |
+| KBatchedAnimUpdater.LateUpdate | 25 | 16 | 4.9 | 1.4 |
+| Game.UnsafeSim200ms | 17 | 22 | 3.3 | 1.9 |
+| Pathfinding.UpdateNavGrids | 0 | 20 | 0.1 | 1.7 |
+| UpdateNavigator | 11 | 14 | 2.1 | 1.2 |
+| KComponentsInitializer SIM_200ms | 10 | 11 | 1.9 | 1.0 |
+| World.LateUpdate | 2 | 11 | 0.5 | 0.9 |
+| Game.LateUpdate | 1 | 9 | 0.2 | 0.8 |
+| SolidTransferArm SIM_1000ms | 8 | 6 | 1.6 | 0.5 |
+| Total | 300 | 568 | 59 | 50 |
+
+The spans differ in length: the last five launches (U59's mid-game Moono run and all of U60's)
+were cut to fit 15-minute jobs, so U60's original late-game span is 220 s and holds one
+collection. They ran in the night to 2026-11-14. Counts over spans this short (collections
+above all) are one sample each.
+
+**What the tables say**
+
+- **A frame, Moono allocates less than the original at speed 3 in all four pairs:** 309 against
+  429 KB (U59 late), 105 against 162 (U59 mid), 223 against 284 (U60 late), 50 against 59 (U60
+  mid).
+- **A game second, it is level on the late-game colony** (2.08 against 2.14 MB on U59, 1.48
+  against 1.42 on U60) and above on the mid-game one (1.19 against 0.84 MB on U59, 0.57 against
+  0.30 on U60), where it draws 11 frames to a game second against the original's 5.
+- **Paused**, both hand out little: 23 against 32 KB a frame on U59's late-game colony, and
+  Moono a few KB more than the original elsewhere (13 against 10, 9.1 against 8.6, 7.6 against
+  3.1), in `(other)`, the engine's frame.
+- **Collections:** Moono paused 119–405 ms in all over its 456–626 s spans (2–5 gen0, one gen1
+  in each, one gen2 in U60's mid-game span). The original on U59 spent 5.4 s in 2 full
+  collections on the late-game colony and 16.1 s in 24 on the mid-game one; U60's development
+  build reports no time for its one collection in each span.
+- **Where Moono is above the original, by section:** `CanvasUpdateRegistry.PerformUpdate` a game
+  second (more frames) and `World.LateUpdate` (the anim tweaks' own, 0.9–2.3 KB a frame against
+  0–0.5).
+
+**Against the last published tables**
+
+- **U60** ([allocations-vs-original.md](allocations-vs-original.md), after batch 6, 3904d29b):
+  the late-game colony was 212 KB a frame and 1,426 KB a game second with 3 collections in 600 s
+  (222 ms); now 223 and 1,478 with 2 in 456 s (323 ms). The mid-game colony was 47.0 KB a frame
+  and 516 KB a game second with 1 collection (46 ms); now 49.8 and 568 with 3 in 544 s
+  (119 ms), one of them a gen2. Both are 4–10% up, where single runs moved by up to 7% before:
+  no change that these runs can show. By section, late-game `World.LateUpdate` is 2.3 KB a
+  frame against 0.9 then; `(other)` (28.4 against 27.3, 12.4 against 11.9) and the other
+  threads (55.1 against 57.0, 6.8 against 6.4) are as they were.
+- **U59:** no table was published for master after batch 6 (25361e8e); the last U59 tables are
+  2026-11-10's (master 8392ed3b, uncapped). Against those, the late-game colony went from
+  301–425 KB a frame and 2.49–2.83 MB a game second to 309 and 2.08 (at the 20 fps cap), and
+  the mid-game one from 182–199 KB a frame and 1.49–1.57 MB a game second to 105 and 1.19 (at
+  the 34 fps cap): the batches' gain, as measured on U60. The original measured 429 KB a frame
+  and 2.14 MB a game second (then 437–452 and 2.30–2.34) and 162 and 0.84 (then 178–179 and
+  0.89–0.90).
 
 ## What changed since 2026-11-06
 
