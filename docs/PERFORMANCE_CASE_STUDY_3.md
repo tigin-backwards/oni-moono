@@ -2,8 +2,8 @@
 
 [PERFORMANCE.md](PERFORMANCE.md) follows U57 and [PERFORMANCE_CASE_STUDY_2.md](PERFORMANCE_CASE_STUDY_2.md)
 follows 2minnow. This one follows Gluttony, a colony nearly as old as U57 with almost three
-times as many Duplicants and a far busier simulation, and one odd thing in its save that cost
-more than anything else in its frame.
+times as many Duplicants and a far busier simulation. One odd thing in its save cost more than
+anything else in its frame.
 
 ## The colony
 
@@ -19,21 +19,22 @@ same way.
 ## Objects falling forever
 
 The save holds 17,552 objects that are always falling and never move: 10,317 diamonds and about
-7,200 egg shells, half a cell below the bottom of two rocket interiors, where a conveyor chute
-drops them out through the floor. The game steps every falling object thirty times a game
-second (`GravityComponents.FixedUpdate`). An object's next position here would be outside its
-world, so the step leaves it where it is, still falling, and it is stepped again the next tick,
-forever. That cost about 8.5 ms a frame, the largest single item in the frame, and the original
-pays it too.
+7,200 egg shells. They sit half a cell below the bottom of two rocket interiors, where a
+conveyor chute drops them out through the floor.
+
+The game steps every falling object thirty times a game second
+(`GravityComponents.FixedUpdate`). An object's next position here would be outside its world, so
+the step leaves it where it is, still falling, and steps it again the next tick, forever. That
+cost about 8.5 ms a frame, the largest single item in the frame, and the original pays it too.
 
 Two ways around it were measured:
 - **A cleaned copy of the save**, with those objects destroyed (written by Moono; it loads
   in the original too). This is the colony as it would be without the chute, and the numbers
   below use it unless they say otherwise.
-- **The `off-world-fallers` tweak** (opt-in, **changes gameplay**): an item that falls straight
-  down out of its world and can never move again is landed where it hangs, through the game's
-  own landing for items. It stops counting as falling and stays put; if its rocket interior is
-  destroyed and its items are moved to the world below, it falls from there at rest. On the
+- **The `off-world-fallers` tweak** (opt-in, **changes gameplay**) lands an item that falls
+  straight down out of its world and can never move again. It lands where it hangs, through the
+  game's own landing for items. It stops counting as falling and stays put. If its rocket
+  interior is destroyed and its items are moved to the world below, it falls from there at rest. On the
   original save it takes the gravity step from about 17,570 objects to 33 (railgun payloads in
   flight), and the frame rate from about 18.6 to 25.1 fps.
 
@@ -132,20 +133,23 @@ The state machine sub-ticks are the frame's bulk, and they are spread thin. A pr
 ## What was tried
 
 - **A faster gravity step** (skipping the cleanup set's hashing when it is empty) gave no
-  measurable gain; the stuck objects' cost was reading their scattered transforms, not the
+  measurable gain. The stuck objects' cost was reading their scattered transforms, not the
   bookkeeping.
 
 ## What changed for it
 
-**Each radbolt's colliders are looked up once.** `fast-particle-collision` skips a radbolt's
-collider gather unless another radbolt is registered nearby, and to tell, it checked every other
-live radbolt's colliders, looking them up on the radbolt's GameObject each time. With many
-radbolts in flight that was every radbolt against every other, each frame. A radbolt's colliders
-are its prefab's, so they are now looked up the first time and kept. On Linux the radbolt checks
-went from about 2.9 to 1.5 ms a frame, and the frame rate from about 22.5 to 24.4 fps. The
-Windows numbers above were measured before this change.
+**Each radbolt's colliders are looked up once.**
+
+- **Before:** `fast-particle-collision` skips a radbolt's collider gather unless another radbolt
+  is registered nearby. To tell, it checked every other live radbolt's colliders, looking them
+  up on the radbolt's GameObject each time. With many radbolts in flight that was every radbolt
+  against every other, each frame.
+- **Now:** a radbolt's colliders are its prefab's, so the tweak looks them up the first time and
+  keeps them.
+- **Gain:** on Linux the radbolt checks went from about 2.9 to 1.5 ms a frame, and the frame
+  rate from about 22.5 to 24.4 fps. The Windows numbers above were measured before this change.
 
 ## What's left
 
-At about 32 ms a frame, the simulation's own logic is two thirds of the main thread, spread over
-many small updaters, none of them large enough on its own to be worth a tweak yet.
+At about 32 ms a frame, the simulation's logic is two thirds of the main thread. It is spread
+over many small updaters, none of them large enough alone to be worth a tweak yet.
