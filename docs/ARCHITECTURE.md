@@ -2816,15 +2816,18 @@ HTTP and FMOD threads call into the engine. Our rules:
    `TextAsset.text`/`bytes`; `Resources.Load` (loading is serialized by a lock and completes
    on the calling thread, as the game's lazy `Db.Get` needs); `Debug.Log*`.
 2. **`Debug.Log*` from other threads** invokes `logMessageReceivedThreaded` alone, on the
-   caller, and never `logMessageReceived`, later or queued (measured with UnityProbe's
-   `logthreads` scenario in the original, for a `Thread`, a thread-pool item and a `Task`; so
-   too for an exception nothing catches on a thread, which D16 logs there). A message logged on
-   the main thread invokes `logMessageReceived` and then `logMessageReceivedThreaded`, at once.
-   The callbacks run before the text is written; a handler's exception ends the call (the
-   handlers after it, and after a `logMessageReceived` handler's the threaded event too) and is
-   written as a logged exception's text, ahead of the message's, reaching no callback; a message
-   logged inside a handler is written and reaches no callback. KCrashReporter listens on
-   `logMessageReceived`, so worldgen's errors on its threads open no error dialog.
+   caller, and never `logMessageReceived`, later or queued. That was measured with UnityProbe's
+   `logthreads` scenario in the original, for a `Thread`, a thread-pool item and a `Task`. It
+   holds too for an exception nothing catches on a thread, which D16 logs there.
+   - A message logged on the main thread invokes `logMessageReceived` and then
+     `logMessageReceivedThreaded`, at once.
+   - The callbacks run before the text is written.
+   - A handler's exception ends the call (the handlers after it, and after a
+     `logMessageReceived` handler's the threaded event too). It is written as a logged
+     exception's text, ahead of the message's, and reaches no callback.
+   - A message logged inside a handler is written and reaches no callback.
+   - KCrashReporter listens on `logMessageReceived`, so worldgen's errors on its threads open no
+     error dialog.
 3. **Main thread only** (asserted in all builds, the failure is an exception with a clear
    message, as Unity's "can only be called from the main thread"): structural mutation
    (`Instantiate`, `AddComponent`, `Destroy`, `SetParent`, transform setters, activation),
@@ -2847,25 +2850,31 @@ formatting (D2).
 ## 6. Configuration and paths
 
 `Application.dataPath` = `<game>/OxygenNotIncluded_Data`, `streamingAssetsPath` =
-`<dataPath>/StreamingAssets`, `isEditor` = false, `isPlaying` = true. On Linux,
-`persistentDataPath` = `~/.config/unity3d/Klei/Oxygen Not Included` (Unity's Linux rule:
-`$XDG_CONFIG_HOME/unity3d/<company>/<product>`) and `platform` = `LinuxPlayer`. On Windows the
-player is the Windows one: `platform` = `WindowsPlayer`, `persistentDataPath` =
-`%USERPROFILE%/AppData/LocalLow/<company>/<product>` (the LocalLow known folder),
-`temporaryCachePath` under `%TEMP%`, all paths with forward slashes as Unity reports them; the
-game itself keeps saves, mods and its settings under `Documents\Klei\OxygenNotIncluded`
-(`Environment.GetFolderPath`). The Windows build is the same game build as the Linux one
-(ChangeList 744825) and its shaders carry OpenGL programs next to the Direct3D ones, so the same
-device runs its data. Natives resolve per platform (`Plugins/x86_64/<name>.dll`, then
-`Plugins/<name>.dll`, on Windows; on Linux the first `lib<name>.so` anywhere under `Plugins/` in
-ordinal path order, as Unity's Linux player loads and binds them, so a folder Steam left of
-another branch's build hides nothing (#49); and for the macOS bundle the executable of
-`Contents/PlugIns/<name>.bundle`: `GameLayout`, which tells the layout from the install's files;
-macOS is groundwork only, `docs/research/metal-backend-design.md`); Steamworks.NET is built per runtime identifier (library name
-and callback packing differ); FreeType comes from BRUTAL's package on both. Company/product/version
-come from `globalgamemanagers` PlayerSettings. The host takes `--game <dir>` (default
-`~/projects/oni-linux`), `--headless` (no window, no GL: logic-only frames for tests),
-`--frames N`, `--capture FRAME:PATH` (§7), and `--log <file>`.
+`<dataPath>/StreamingAssets`, `isEditor` = false, `isPlaying` = true.
+
+- **Linux:** `persistentDataPath` = `~/.config/unity3d/Klei/Oxygen Not Included` (Unity's Linux
+  rule: `$XDG_CONFIG_HOME/unity3d/<company>/<product>`) and `platform` = `LinuxPlayer`.
+- **Windows:** the player is the Windows one. `platform` = `WindowsPlayer`,
+  `persistentDataPath` = `%USERPROFILE%/AppData/LocalLow/<company>/<product>` (the LocalLow
+  known folder), `temporaryCachePath` under `%TEMP%`, all paths with forward slashes as Unity
+  reports them. The game itself keeps saves, mods and its settings under
+  `Documents\Klei\OxygenNotIncluded` (`Environment.GetFolderPath`).
+- **The Windows build** is the same game build as the Linux one (ChangeList 744825). Its
+  shaders carry OpenGL programs next to the Direct3D ones, so the same device runs its data.
+- **Natives** resolve per platform (`GameLayout`, which tells the layout from the install's
+  files):
+  - Windows: `Plugins/x86_64/<name>.dll`, then `Plugins/<name>.dll`.
+  - Linux: the first `lib<name>.so` anywhere under `Plugins/` in ordinal path order, as Unity's
+    Linux player loads and binds them. So a folder Steam left of another branch's build hides
+    nothing (#49).
+  - The macOS bundle: the executable of `Contents/PlugIns/<name>.bundle`. macOS is groundwork
+    only (`docs/research/metal-backend-design.md`).
+- **Steamworks.NET** is built per runtime identifier (library name and callback packing
+  differ). FreeType comes from BRUTAL's package on both.
+- **Company/product/version** come from `globalgamemanagers` PlayerSettings.
+- **The host** takes `--game <dir>` (default `~/projects/oni-linux`), `--headless` (no window,
+  no GL: logic-only frames for tests), `--frames N`, `--capture FRAME:PATH` (§7), and
+  `--log <file>`.
 
 The host directory carries a `Restarter` (`Restarter.exe` on Windows, a .NET program), as Klei's
 player directory does: `App.Restart` (language change) starts it with the player's executable
@@ -3279,22 +3288,27 @@ suppressions only), central package versions in `Directory.Packages.props`.
    screenshots of the real game.
 6. **Gameplay soak:** new colony → N cycles → save → reload → continue, no exceptions.
 7. **Offline Steam test double** (`tools/SteamStub`, `scripts/run-offline.sh`). The game
-   requires a logged-in Steam client (`SteamAPI_Init`); on machines without one, test runs
+   requires a logged-in Steam client (`SteamAPI_Init`). On machines without one, test runs
    load a generated stand-in for `libsteam_api.so` through the host's dev-only
    `--native-override steam_api=PATH`. Every entry point Steamworks.NET binds exists and
-   returns zero except a small table describing a logged-in owner of the base game (no DLC,
-   no Workshop items, English); no callback is ever delivered. It is test infrastructure,
-   not part of the product: it lets M4–M6 engine behaviour be exercised; Steam-specific game
+   returns zero, except a small table describing a logged-in owner of the base game (no DLC,
+   no Workshop items, English). No callback is ever delivered. It is test infrastructure,
+   not part of the product. It lets M4–M6 engine behaviour be exercised. Steam-specific game
    behaviour (DLC ownership, Workshop mods, achievements, cloud) is verified only with the
    real client.
 8. **Original-player comparisons on Windows** (`scripts/original-windows.sh`). The original runs
    from a renamed copy of the install where Unity Doorstop starts `tools/OriginalIsolation`
-   before the game's assemblies load. It patches with the game's own 0Harmony (BepInEx's
-   HarmonyX, used before, replaced it and broke mods built against the game's Harmony), redirects
-   the known folders our host's `--run-home` does and sends FMOD's output to a WAV file; the
-   launcher ends the player when the isolation does not confirm itself 3 s after Unity's log
-   appears. Each run sets the copy's product name (PlayerSettings) to its own of the same length,
-   so Unity's registry key and LocalLow folder are the run's, moved into the run home afterwards;
-   the Steam double stands in for Steam. Both players load `tools/PerfProbe`, a game mod that keeps the colony at speed 3 and
-   logs the frame rate from the real-time clock, and resume the save through the game's own
-   `AutoResumeSaveFile` setting (`scripts/windows-run-home.sh`), so the same code measures both.
+   before the game's assemblies load.
+   - It patches with the game's own 0Harmony (BepInEx's HarmonyX, used before, replaced it and
+     broke mods built against the game's Harmony).
+   - It redirects the known folders our host's `--run-home` does, and sends FMOD's output to a
+     WAV file.
+   - The launcher ends the player when the isolation does not confirm itself 3 s after Unity's
+     log appears.
+   - Each run sets the copy's product name (PlayerSettings) to its own of the same length. So
+     Unity's registry key and LocalLow folder are the run's, moved into the run home afterwards.
+   - The Steam double stands in for Steam.
+   - Both players load `tools/PerfProbe`, a game mod that keeps the colony at speed 3 and logs
+     the frame rate from the real-time clock. Both resume the save through the game's own
+     `AutoResumeSaveFile` setting (`scripts/windows-run-home.sh`), so the same code measures
+     both.
