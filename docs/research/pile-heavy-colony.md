@@ -263,6 +263,40 @@ O `off-screen-conveyors`; A all four.
   would leave the game's loop unpatched. It would also take the tweak off the list of patches
   other mods' transpilers of that method have to live with
   ([tweak-step-aside-audit.md](tweak-step-aside-audit.md), rows 14 and 18).
+- **Landed 2026-11-14: the tweak no longer patches the step.** It runs around it, from a
+  prefix and a postfix on `KComponentSpawn.Sim33ms` (the scheduler's call that holds the
+  step): before the step it notes the falling items within 16 cells of the grid's bottom row,
+  after it it lands the noted ones the step left in place for good
+  ([TWEAKS.md](../TWEAKS.md#items-lost-below-a-world)). It now stands down for another mod's
+  prefix, transpiler or finalizer on the step. Measured in launches started without the tweak,
+  patches installed at run time, 10 s blocks after 4 s left out (Windows, speed 3, U60 763023;
+  the step timed in a copy of the scheduler's bucket loop, with no patch on the step or its
+  caller):
+
+  | Pile-heavy colony | Step, ms a call | Step, ms a frame | Frame, ms |
+  |---|---|---|---|
+  | Default, 17,566 falling (3 blocks) | 1.45–1.50 | 4.6–4.9 | 35.0, 35.6, 36.6 |
+  | New hook installed, idle (2) | 1.48, 1.51 | 4.9–5.0 | 36.1, 37.5 |
+  | New tweak on, 17,539 landed (3) | 0.021–0.024 | 0.05–0.06 | 28.0, 26.5, 25.7 |
+  | Old transpiler installed, idle, the items falling again (2) | 1.79, 1.79 | 5.9 | 36.5, 36.5 |
+  | Old tweak on, landed (3) | 0.015–0.016 | 0.03–0.04 | 24.9, 24.3, 23.9 |
+
+  - Patching the step's caller does not slow the step (1.50 against 1.47 ms a call); the
+    transpiled step ran 22% slower here (the study saw 1.9–2.5 against 1.30).
+  - The gain is kept: 35.7 → 26.7 ms, +34% (the study's transpiler: 35.0 → 26.6). With the
+    items landed the passes cost about 6 µs a step over the transpiler's (0.022 against
+    0.016 ms a call for 29 objects), 0.02 ms a frame.
+  - The old blocks came after the new ones and the frame fell block by block throughout, so
+    the 2 ms between them is the launch's drift. A second launch in the order old, new, old
+    (disturbed: outside load median 17%, and its frames rose instead) gave old 31.0 and 33.4,
+    new 30.0 and 31.5, old 32.7 and 33.4 ms. Neither shows the new form slower.
+  - A mid-game colony with 3 such items, same method: step 6.4–6.6 µs a call at default,
+    5.3–6.5 with the hook idle, 7.1–7.3 with the tweak on, 6.3–7.0 with the transpiler; frame
+    9.1–9.5 ms in every block. The loop holds 2 to 16 objects there, so this shows the passes
+    cost under 1 µs a step, not the transpiler's cost for each falling object.
+  - Verify mode (the transpiler installed too, only noting what it would land), Linux, 8,192
+    steps each on U60 763023 and U59 744825: 17,549 items landed, each step's landings the
+    transpiler's in the same order, 0 differences.
 - **For on by default:**
   - It fixes a bug in the game's own code, as the `fix-*` tweaks that are on by default do.
   - Nothing on screen and nothing in the save changes.

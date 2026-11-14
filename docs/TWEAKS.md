@@ -66,6 +66,8 @@ It only shows what it finds. It never turns a tweak on or off. The grades:
   Fast Track, MoreTek, Colony Performance Fixes or Multiplayer Mod is active), `fast-conduit-sorts`
   (the pipe and rail flows' `Sim200ms`; also while those mods are active),
   `fast-conveyor-paths` (`SolidConduitFlow.TryAdd`),
+  `off-world-fallers` (the gravity step, `GravityComponents.FixedUpdate`, for any patch but a
+  postfix; see [Items lost below a world](#items-lost-below-a-world)),
   `fast-overlay-removals` (the Decor overlay's handler for removed objects and its grid's
   `Remove`),
   `direct-rail-bridges` (the conveyor bridge's update, the rails' `AddPickupable` and
@@ -550,6 +552,59 @@ simulation (a dug tile, a built tile, a door) shows when the next step's results
 does below 60 fps. Paused, the game's calls still run, so tools
 used while paused show at once. While another mod patches `Game.SimEveryTick` or
 `Game.UnsafeSim200ms`, the game's own code runs (`sim-step-pace: off (...)` in Player.log).
+
+### Items lost below a world
+
+Off by default (`off-world-fallers`, in the Bug fixes group, not in `exact`).
+
+The game steps every falling object thirty times a game second
+(`GravityComponents.FixedUpdate`). An object that may not leave its world is left where it is
+when its next position would be outside that world, and stays falling. So an item dropped
+through a hole in the bottom of a world (a chute out of a rocket interior) hangs half a cell
+below the grid's bottom row and is stepped forever. A colony with a chute like that collects
+them: 17,539 on a pile-heavy colony, where the step is 4.4 ms of a 35 ms frame.
+
+The tweak lands such an item where it hangs, through the game's own landing for items, once a
+step has left it in place and no later step could move it: it falls straight down, the cell
+under it is below the grid (so no liquid can slow it), and at half its speed its next position
+would still be below the grid. Then it no longer counts as falling. Nothing on screen changes,
+and neither does the save: gravity is not saved, so after a load the items fall again until
+their first step lands them. No Landed event is sent, as none would be in the game. If the
+rocket is taken apart and its items are moved to the world below, a landed item falls from rest
+instead of at the speed it had. An item that hangs with a grid cell still under it is not
+landed: below an interior that is not on the grid's bottom rows, or stopped high enough in the
+bottom row.
+
+The game's step itself is not patched. Until 2026-11-14 the tweak was a transpiler of it, and a
+Harmony-patched copy of that loop runs about half as slow again for every falling object
+(1.79 against 1.47 ms a call for 17,566 objects on that colony, Windows). The tweak now runs around the step, from the scheduler's call that holds
+it (`KComponentSpawn.Sim33ms`; the gravity step is the only work in it):
+
+- **Before the step** it notes the falling items within 16 cells of the grid's bottom row,
+  with their positions. Every falling item is looked at about twice a game second (sooner when
+  one not noted could have fallen into reach), and the ones that just started falling at each
+  step.
+- **After the step** it tests the noted items the step reached and did not move, and lands
+  the ones that hang for good, in the step's order.
+
+These are the items the transpiler landed, after the same step and in the same order (the unit
+tests run both against a copy of the game's step). Two cases land later than they did: an item
+that starts falling during a step already where it hangs (from another object's landing), by
+one step; and one that something else moves to where it hangs, by up to half a game second.
+
+While another mod patches the gravity step with anything but a postfix, the tweak is off for
+the session (`off-world-fallers: off (...)` in Player.log): its tests mirror the game's step.
+The transpiler ran alongside such patches; Bubbles Bathtub, Floating[fix], Cooperative Colonies
+and Fast Track's No Splash patch that step. `ONI_TWEAK_VERIFY=1` installs the transpiler as
+well, only noting what it would land, compares each step's landings with its list, and checks
+each landed item for having stopped falling where it was.
+
+Measured on Windows at speed 3, in one launch started without the tweak, 10 s blocks
+(2026-11-14, U60 763023): on the pile-heavy colony the game's step took 1.47 ms a call, 1.50
+with the tweak's hook installed and idle, and 0.02 once the 17,539 items had landed; the frame
+went from 35.7 to 26.7 ms (28.0 to 37.5 fps). On a mid-game colony with 3 such items the step
+took 6 to 7 µs a call with the tweak off, idle or on. Details in
+[research/pile-heavy-colony.md](research/pile-heavy-colony.md).
 
 ### Animation events
 
