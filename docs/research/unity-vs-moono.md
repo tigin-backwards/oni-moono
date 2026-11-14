@@ -55,7 +55,7 @@ from 0.87 ms to under 0.1 ms a frame on a late-game colony (frame inventory, Oct
 
 ### Garbage collection
 
-Unity's collector on Mono is Boehm's, a non-moving, non-generational collector; in incremental
+Unity's collector on Mono is Boehm's, a non-moving, non-generational collector. In incremental
 mode, which Unity turns on by default, a collection is split into slices of a few milliseconds
 across frames instead of one long pause [2][3]. .NET's collector is generational: most garbage dies young and is
 collected in short gen0 pauses, with the heavy work spread over all cores. On a late-game colony

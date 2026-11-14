@@ -2,12 +2,15 @@
 
 A player reported that "AI frame generation", which they used with the original game, stops
 working when the game runs through Moono. They did not name the tool. This note covers the three
-likely ones (Lossless Scaling, NVIDIA Smooth Motion, AMD Fluid Motion Frames), how each attaches
-to a game, how Moono looks to each, the likely causes, what a player can do now and what Moono
-could change. Nothing was run for it: the Moono side is read from the code, the tool side from
-the vendors' pages and, where those are silent, from secondary sources (marked). No tool was
-tested against Moono, so every "breaks" or "works" below about a tool is an inference until
-someone tries it.
+likely ones (Lossless Scaling, NVIDIA Smooth Motion, AMD Fluid Motion Frames):
+
+- How each attaches to a game, and how Moono looks to each.
+- The likely causes.
+- What a player can do now, and what Moono could change.
+
+Nothing was run for it. The Moono side is read from the code, the tool side from the vendors'
+pages and, where those are silent, from secondary sources (marked). No tool was tested against
+Moono, so every "breaks" or "works" below about a tool is an inference until someone tries it.
 
 ## Summary
 
@@ -93,16 +96,21 @@ Read from the code (master at f4a3a222 for OpenGL, u60 at 4f3e5b7e for Vulkan).
 | Rendering API | D3D11 | OpenGL 4.5 (U59), Vulkan (U60) |
 | Swap chain | D3D11 flip model | D3D11 flip model of a second, copy-only device (below) |
 
-**The swap chain** (`Gl/DxgiSwapChain.cs`, shared by both renderers): a D3D11 device made with
-`D3D11CreateDevice` on the renderer's adapter, default feature levels (11_0 or higher as the
-driver gives; the level is logged). `CreateSwapChainForHwnd` on the visible window:
-`R8G8B8A8_UNORM`, `FLIP_DISCARD`, 2 buffers, `DXGI_SCALING_STRETCH`, the default SDR colour
-space, flags `FRAME_LATENCY_WAITABLE_OBJECT` plus `ALLOW_TEARING` where the system supports it.
-Maximum frame latency 2. `MakeWindowAssociation(NO_WINDOW_CHANGES | NO_ALT_ENTER)`, and never
-`SetFullscreenState`. It is made on the thread that starts the presenter and used by the
-presenter thread alone, inside the `OniMoono.exe` process. `Present(vSyncCount, 0)` with vsync;
-`Present(0, ALLOW_TEARING)` without. The start-up log's `present: DXGI on …` line states all of
-this for a given run.
+**The swap chain** (`Gl/DxgiSwapChain.cs`, shared by both renderers):
+
+- **Device:** a D3D11 device made with `D3D11CreateDevice` on the renderer's adapter, default
+  feature levels (11_0 or higher as the driver gives; the level is logged).
+- **Swap chain:** `CreateSwapChainForHwnd` on the visible window: `R8G8B8A8_UNORM`,
+  `FLIP_DISCARD`, 2 buffers, `DXGI_SCALING_STRETCH`, the default SDR colour space, flags
+  `FRAME_LATENCY_WAITABLE_OBJECT` plus `ALLOW_TEARING` where the system supports it. Maximum
+  frame latency 2.
+- **Window:** `MakeWindowAssociation(NO_WINDOW_CHANGES | NO_ALT_ENTER)`, and never
+  `SetFullscreenState`.
+- **Threads:** it is made on the thread that starts the presenter and used by the presenter
+  thread alone, inside the `OniMoono.exe` process.
+- **Present:** `Present(vSyncCount, 0)` with vsync; `Present(0, ALLOW_TEARING)` without.
+
+The start-up log's `present: DXGI on …` line states all of this for a given run.
 
 **Interop:** the D3D11 device draws nothing. OpenGL renders into a D3D11 texture shared through
 `WGL_NV_DX_interop2` (`Gl/DxgiTarget.cs`); Vulkan into one imported with
