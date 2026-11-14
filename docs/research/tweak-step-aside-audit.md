@@ -4,6 +4,9 @@ Which game methods each game tweak replaces, calls less often, copies or wraps, 
 steps aside when another Harmony owner patches them, and which real mods do. An audit only: no
 tweak changed. Branches: origin/master (U59, 5f945509) and origin/u60 (U60, 2c2c6a7e).
 
+The tweaks added or changed after that are in
+[Tweaks added or changed since](#tweaks-added-or-changed-since-2026-11-14), audited 2026-11-14.
+
 ## Sources and limits
 
 - **Tweaks:** `src/OniMoono.GameTweaks/*.cs` and `src/OniMoono.Host/GameTweaks/*.cs` on both
@@ -343,6 +346,79 @@ prefix is at `Priority.Last` and checks `__runOriginal`.
 | | `SolidConduitFlow.RemovePickupable` | W (prefix) | – | Ronivan's Legacy, Utility Layers, Insulated Solid Conduit |
 | `instant-reachability` | `ReachabilityMonitor.InitializeStates`, `Instance.UpdateReachability`, `MinionGroupProber`'s readers and writers, `Workable.GetCell`/`GetOffsets`/`SetOffsets`/`SetOffsetTable`, `Pickupable.GetCell`/`UpdateCachedCell`, `Diggable.GetCell`, `Unsealable.GetOffsets`, `OffsetTracker.GetOffsets`, `OffsetTableTracker.UpdateOffsets`/`UpdateCell`/`OnCellChanged` | R (prefixes returning false on the writers, root state enter and exit) + W (postfixes) | yes: any other owner's patch on one of them stands it down for the session, checked once when the monitor's states are made | Fast Track *FastReachability* (replaces `InitializeStates`) and *PickupOpts* (`OffsetTracker.GetOffsets`) |
 | `off-world-fallers` | `GravityComponents.FixedUpdate` | R (transpiler: `Grid.IsValidCellInWorld` call site) + W (postfix) | no (#18) | Bubbles Bathtub, Floating[fix], Floatation, Cooperative Colonies, Fast Track |
+
+## Tweaks added or changed since (2026-11-14)
+
+A second pass for MOD_COMPATIBILITY.md's "Known interactions" list, over every tweak added or
+changed after the audit above. Branches: origin/master (U59 744825, e94a0121) and origin/u60
+(U60 763023, b898d481). No tweak changed, and no mod was downloaded or run.
+
+**Method.**
+- **Tweaks:** each tweak's `[GameMember]` declarations (what it prefixes, replaces, transpiles,
+  mirrors or uses, per branch) and its guard code (`Guarded()`, `Foreign()`, `ModStandDown`).
+- **Mods:** `tools/ModTriage` over all 2,898 folders of `out/ws` (Fast Track's GitHub build among
+  them): 19,280 patches on 6,219 targets, joined to the declared members. Then a raw scan of the
+  4,023 DLLs for the members' names, for patches ModTriage cannot follow (ONI Multiplayer builds
+  its targets from strings). The mods are the U59-era Workshop builds unpacked there.
+- **Limits:** no `[Moono] mod overlaps` block from a run with these mods was at hand (the mods'
+  spec records date from 2026-10-24 to 11-01, before that log existed), so "steps aside" below is
+  read from the guard code, not seen in a log. Every guard reads Harmony's patch info at run
+  time, so it also sees patches whose targets are resolved from strings.
+
+**Result.** No new entry for the list: each added tweak that replaces game code steps aside for
+the mods found patching it, and the rest wrap the game's methods.
+
+| Tweak (default; branch) | Replaces or relies on | Guard | Patched by | Result |
+|---|---|---|---|---|
+| `fast-save-roots` (on; both) | `SaveManager.Unregister` (prefix `Last`, `__runOriginal`) | any other owner on it; first call, then every 4,096 | none found | – |
+| `fast-partitioner-events` (on; both) | `ScenePartitioner.TriggerEventInternal` (prefix `Last`); `Insert`, `Remove`, `Sim1000ms` wrapped | any other owner on `TriggerEventInternal`, `TriggerEvent`, `Insert`, `Remove`, `Sim1000ms`; off while Fast Track, MoreTek, Colony Performance Fixes or Multiplayer Mod is active | Colony Performance Fixes (3823893994, `Insert`) | steps aside |
+| `fast-conduit-sorts` (on; both) | transpilers on `ConduitFlow.Sim200ms` and `SolidConduitFlow.Sim200ms` | any other owner on either; the same four mods | Underground Conduit (3347169088), Liquid Pipe Capacity Multiplier (3763112327), Multi Channel Utilities (3821447025) | steps aside |
+| `fast-overlay-removals` (on; both) | `OverlayModes.Decor.OnSaveLoadRootUnregistered` (prefix `Last`); mirrors `UniformGrid.Remove` | any other owner on either | none found (four mods' DLLs hold the handler's name, none as a patch target) | – |
+| `lazy-table-refresh` (on; both; also when a table opens again) | `TableRow.RefreshColumns` (replaced); `TableScreen.RefreshRows`, `ScreenUpdate`, `SortRows` wrapped | any patch of those four or of `TableColumn.Render1000ms`, `MarkDirty`, `MarkClean`; checked once | Fast Track, Skills Master (2965547030), Control your Robots (3086964745), Super Rover (3687352069), ONI Coop (3811893109) | steps aside |
+| `fast-table-rows` (on; both) | `ConsumablesTableScreen.refresh_scrollers` (replaced); mirrors `TableScreen.GetWidgetRow`, `GetWidgetColumn`, `TableRow.ContainsWidget`, `TableColumn.ContainsWidget` | any patch of those five; checked once, at the first row | Preset Manager (2977728791), Colony Cuisine (3799038247) on `refresh_scrollers` | steps aside |
+| `fix-table-scroll` (on; u60) | postfix on Unity UI's `HorizontalOrVerticalLayoutGroup.SetChildrenAlongAxis` | none | none found | – |
+| `compact-report-history` (on; both), with its packed notes | `ReportManager.NoteStorage.NoteEntries.Add`, `IterateNotes` (U60 `CollectNotes`), `Serialize`, `Deserialize` (replaced); `ReportManager.OnNightTime`, `OnDeserialized`, `OnCleanUp` wrapped; the packed write mirrors `IOHelper.WriteSingleFast` | only the packed write: while another owner patches `WriteSingleFast`, each value is written by the game's call | no patch of `NoteEntries`. `OnNightTime`: Fast Save (1867707267), RemoveDailyReports (1870873514), Fixes and Tweaks (2967596358), Lazy Overseer (3756218623); none of their DLLs names `noteStorage` or `NoteEntries`, so past days' notes are kept as in the game. Fast Track reads today's entries, which stay in `entries` | no conflict found |
+| `fast-serialization`'s typed report-history writer and kept plans (on; both) | `dailyReports` and `todaysReport` written without `Helper.WriteValue`; mirrors `SerializeData`, `WriteKleiString`, `WriteSingleFast` | any other owner on those four, on `Manager.GetSerializationTemplate` or on the template's constructor: checked at every save | BetterSave and Festive Halloween Spices (`SerializeData`); Fast Save (`WriteValue`, `GetSerializationTemplate`) | steps aside (the report history takes the game's path); #1 is unchanged for every other object |
+| `background-save`'s colony summary (on; both) | `RetireColonyUtility.SaveColonySummaryData` for a save's call (prefix `Last`): JSON and file on the writer; `LoadRetiredColonies` waits | any other owner on it, or `JsonConvert.DefaultSettings` set | Interstellar (3735115168) | steps aside |
+| `loading-animation` (on; both) | postfixes (`Last`) on `LoadingOverlay.Load` and `Clear`; `SaveManager.Load` and `SaveLoader.DecompressContents` wrapped | its progress reading stands down for a transpiler on `SaveManager.Load` | `LoadingOverlay.Load`: Loading Pip (3408518726, whose art it animates), Egg Cryopreservation, Rebuild Tiles, Interstellar, ONI Together (postfixes, run first); `SaveManager.Load`: Bot Tweaks (3701580252) | no conflict found |
+| `sim-step-pace` (off; both) | `Game.SimEveryTick` (prefix `Last`, replaced) | any other owner on it or on `Game.UnsafeSim200ms`; first frame, then every 4,096 | `SimEveryTick`: U&F-Horizon, Terarara, More Clothing, Cooperative Colonies; `UnsafeSim200ms`: Utility Layers, Stacked Pipes & Rails, Fast Insulated Self Sealing AirLock Continued; ONI Multiplayer names both | steps aside |
+| `fetch-by-cell` (off; both) | `FetchablesByPrefabId.UpdatePickups` (replaced); mirrors `Pickupable.CouldBePickedUpByMinion`, `CouldBePickedUpCommon`, `Navigator.GetNavigationCost` | its three `Guarded*` lists; the world skip alone for patches of path costs | Efficient Supply, Delivery Temperature Limit (three uploads), Sweepn't, Waste Not, Want Not, No Manual Delivery, Forbid Items, Controlled Storage, Applied Logistics Network, Cooperative Colonies, Teleport Suit, Shark | steps aside |
+| `path-probe-repair` (on; both) | the probe and what it relies on (`ProbeRepair.Guarded`) | any counted patch there | Fast Track (Cache Paths), Stairs, Don't Idle in Doors, Door Flight Control, Fear the Darkness, Watch Your Step, GRAVNet, CycleTrim | steps aside. u60's 763023 fix (be4c010e) only changes which `Grid` restriction writers it patches |
+| `brain-rate` (off; both) | as #15 | none | Fast Track, Cooperative Colonies, as #15 | unchanged: listed |
+| `fix-geothermal-vents` (on; master) | `GeothermalVent.unsafeSim200ms`, `OnMassEmitted`, `RecomputeEmissions` (prefixes `Last`, replaced); postfix on `Game.StepTheSim` | by order | none on the vent; `StepTheSim` postfixes (Interstellar, Fusion Energy Project, Extra Twitch Events, Chaos Events, Cooperative Colonies) still run | no conflict found |
+| `fast-load-screen`, `fix-load-screen-clicks` (on; both) | `SaveLoader.LoadHeader`, `RetireColonyUtility.LoadPreviewTexture` (prefix `Last`, `__runOriginal`); `LoadScreen` methods wrapped | by order | Fast Track (`GetColoniesDetails`); Mod Profile Manager, Building Notifications (`LoadScreen.OnActivate`) | wrappers; not determined (below) |
+| `fix-released-sounds`, `fix-sound-piles` (on; both), `fix-endless-sounds` (on; master) | prefixes on FMOD's `EventInstance` calls, `KFMOD.BeginOneShot`, `AudioSheets.CreateSound`; `AmbienceManager.Layer.Stop` and `LoopingSoundManager.StopAllSounds` replaced (`Last`) | by order | Fast Track (`LoopingSoundManager.RenderEveryTick`), HVAC Expansion (`CreateSound`), Pressurized Gas Reservoir (`SoundEvent.PlayOneShot`), Advanced Batteries, Electrolytic Generator (`GameAudioSheets.Initialize`) | no patch of a replaced method |
+| `fix-timelapse-snapshots` (on; both) | `CameraController.RenderForTimelapser` (prefix `Last`, finalizer); prefix on `LightBuffer.LateUpdate` | by order | Rotate Everything (1715709940, `LightBuffer.LateUpdate`); Fast Save, Futur's Timelapser and HD Screenshot call the render methods | not determined (below) |
+| `shared-duplicates` (on; both) | `FastReader.ReadKleiString` (replaced); prefix on `OffsetGroups.BuildReachabilityTable`; `SaveLoader.Load`, `Workable.OnSpawn` wrapped | none | no patch of the two; 35 mods call `ReadKleiString` and 18 `BuildReachabilityTable` | not determined (below) |
+| `compact-nav-links`, `paged-path-grids` (on; both) | load-time rewrites of the game's and the mods' code | run flat for a transpiler they did not review | – | steps aside; mods' code is rewritten with the game's |
+| `post-load-gc`, `exact-worldgen`, `fmod-quarantine`, `fmod-steal-fix` (on; both), `trim-anim-lists` (on; u60) | postfixes on `Game.OnSpawn`, `Assets.OnPrefabInit` and FMOD's start-up; no game method replaced | – | – | – |
+| `fast-pipe-rebuilds` (on; u60) | transpilers on `Conduit.OnSpawn` and `ConduitFlowKAnimVisualizer.OnSpawn` (their subscription); relies on `ConduitFlow.OnUtilityNetworksRebuilt`, `UtilityNetworkManager.Update`, `RemoveFromNetworks` | while another owner patches `Conduit.OnConduitFlowRebuilt`, `RefreshInvalidNetworkStatusItem` or the visualizer's handler, every handler is called | `Conduit.OnSpawn`: Pipe Flow Overlay (2968583663), Mismatched Wire Finder (2607620648), Ronivan's Legacy (3557584850): postfixes, still run; `OnUtilityNetworksRebuilt`: Advanced Flow Management (3028181310, a postfix, still run), Colony Performance Fixes; `UtilityNetworkManager.Update`: Cooperative Colonies | no conflict found; not determined for the last two (below) |
+| `direct-rail-bridges` (off; both) | transpiler on `SolidConduitBridge.ConduitUpdate`; mirrors the rails' `AddPickupable`, `RemovePickupable` and `Pickupable`'s storage methods | any other owner on its `Guarded` list; off while Forbid Items, No Manual Delivery or ONI Multiplayer is active | Ronivan's Legacy (3557584850), Utility Layers (3789151799), Insulated Solid Conduit (3797381549) | steps aside |
+
+**Checked again, unchanged:** #1 (`fast-serialization`'s prefix is still at the default priority),
+#4 (`fast-jobs`), #13 (`no-save-gc`), #15 (`brain-rate`) and #16 (`off-screen-conveyors`) have no
+guard yet, so their mods stay on the list. #2 left it: `fast-anim-events` stands down since
+2026-11-07, and with *Disable sound* on Fast Track fails to load on build 744825
+(fast-track-under-moono.md, "Disable Sound"). Fast Track does not load on U60 at all (it calls
+`LocText.ModifyLinkStrings`, which U60 removed; u60-763023.md), so its entries are U59's.
+
+**Not determined from the data at hand** (none is on the list):
+- `lazy-table-refresh`: a mod that reads a table row's widgets while the row is out of sight,
+  without patching the methods it guards, would read values up to a refresh old. None found;
+  the scan cannot show reads.
+- `compact-report-history`: ONI Multiplayer (3807965885) names `noteStorage`; what it does with
+  it was not read (a session cannot be played here).
+- `background-save`: a mod that reads the colony summary file itself right after a save, without
+  `LoadRetiredColonies`, could read the previous one. Fast Save names the method and the folder;
+  not read. #12 is still untested.
+- `fast-load-screen` with Fast Track's `GetColoniesDetails` patch, and the sound fixes with
+  Fast Track's `LoopingSoundManager.RenderEveryTick` patch: no spec exercises them.
+- `fix-timelapse-snapshots`: how Futur's Timelapser's and HD Screenshot's own shots come out.
+- `shared-duplicates`: a mod that writes into a string's or offset table's shared instance.
+- `fast-pipe-rebuilds`: Colony Performance Fixes' patch of `OnUtilityNetworksRebuilt` and
+  Cooperative Colonies' of `UtilityNetworkManager.Update` were not read; the tweak's skip
+  relies on those methods' bodies and does not guard them.
+- On U60 the mods' patches were not re-read against U60 builds of the mods.
 
 ## Guard shapes
 
