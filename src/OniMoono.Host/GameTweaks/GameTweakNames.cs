@@ -246,6 +246,12 @@ namespace OniMoono.Host.GameTweaks
                 + "The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second.", OnByDefault: true),
             new("off-screen-conveyors", ChangesGameplay, "Lazy unseen conveyor items", "Items riding rails off screen are placed only when they stop or come into view.",
                 "The rails carry exactly the same things, but items' positions lag while off screen."),
+            new("direct-rail-bridges", ChangesGameplay, "Direct conveyor bridge moves", "Conveyor bridges pass an item straight across instead of taking it off the rail and putting it back.",
+                "In the game, each item a bridge moves is told it left storage and, at once, that it is stored again. With this, the item only changes rail tile. "
+                + "The rails carry the same things at the same times, with the same heat, germs, freshness and egg state, and meter valves count the same. "
+                + "What differs is bookkeeping: an item keeps its place in the rails' list, so the Conveyor overlay may draw two overlapping items in the other order, "
+                + "and it is not listed as fetchable for the instant of the crossing. "
+                + "Kinds of item not discovered yet, critters and items a mod has added parts to cross the game's way. Off while another mod changes how items are stored on rails."),
             new(SimStepPace, ChangesGameplay, "Simulation at its own pace", "Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU.",
                 "Between its steps, five a second, the game asks the simulation for its state on every frame with no game time to step, which happens only above 60 fps at normal speed. "
                 + "Each such call makes the frame wait for the step underway and runs a step of no time. With this, the simulation is called only at its steps, as the game already does below 60 fps and at faster speeds. "
@@ -272,7 +278,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, TimelapseSnapshots, SharedDuplicates, LazyTableRefresh, "fast-table-rows", CompactReports, ReleasedSounds, "fast-overlay-removals"];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, TimelapseSnapshots, SharedDuplicates, LazyTableRefresh, "fast-table-rows", CompactReports, ReleasedSounds, "fast-overlay-removals", "direct-rail-bridges"];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem).

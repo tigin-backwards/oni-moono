@@ -52,7 +52,7 @@ namespace OniMoono.Tests
             Assert.Same(GameTweakNames.BugFixes, GameTweakNames.Groups[^1]);
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Groups[^2]);
             Assert.Equal(new[] { "CHANGES_GAMEPLAY", "BUG_FIXES" }, GameTweakNames.Groups.Where(g => g.ChangesGameplay).Select(g => g.Key));
-            Assert.Equal(new[] { "brain-rate", "fetch-by-cell", "fix-endless-sounds", "fix-geothermal-vents", "fix-load-screen-clicks", "fix-sound-piles", "fix-timelapse-snapshots", "instant-reachability", "lazy-table-refresh", "off-screen-conveyors", "off-world-fallers", "path-probe-repair", "sim-step-pace" }, GameTweakNames.ChangingBehaviour.Order());
+            Assert.Equal(new[] { "brain-rate", "direct-rail-bridges", "fetch-by-cell", "fix-endless-sounds", "fix-geothermal-vents", "fix-load-screen-clicks", "fix-sound-piles", "fix-timelapse-snapshots", "instant-reachability", "lazy-table-refresh", "off-screen-conveyors", "off-world-fallers", "path-probe-repair", "sim-step-pace" }, GameTweakNames.ChangingBehaviour.Order());
             // path-probe-repair, instant-reachability, fix-load-screen-clicks, the two sound fixes, fix-geothermal-vents and fix-timelapse-snapshots change behaviour
             // (out of `exact`, in the Changes gameplay and Bug fixes groups) but are on by default
             // (the player's choice); the others are off.

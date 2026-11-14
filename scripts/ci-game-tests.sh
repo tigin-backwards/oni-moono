@@ -36,7 +36,7 @@ echo "== build"
 dotnet_build "$root/src/OniMoono.Host" -c Release -p:OniGameDir="$game"
 # E2eDriver and our test mods (those this branch has), against this game's assemblies: E2eDriver
 # would otherwise look for them in ~/projects/oni-linux.
-for tool in E2eDriver OverlapTestMod SelectCycleTestMod CommandLineTestMod ReachStressTestMod GeoVentProbeTestMod TimelapseProbeTestMod; do
+for tool in E2eDriver OverlapTestMod SelectCycleTestMod CommandLineTestMod ReachStressTestMod RailLoopTestMod GeoVentProbeTestMod TimelapseProbeTestMod; do
     [ -d "$root/tools/$tool" ] || continue
     dotnet_build "$root/tools/$tool" -c Release -p:OniGameDir="$game" -p:OniManaged="$game/OxygenNotIncluded_Data/Managed"
 done

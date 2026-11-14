@@ -215,7 +215,15 @@ TOP_KEYS = {
 # take no image (a shot still moves the pointer away first), so a spec checks its UI dumps,
 # expectations and state only, and no picture of the game is made.
 NO_SHOTS = os.environ.get('E2E_NO_SHOTS') == '1'
-TEST_MODS = ('OverlapTestMod', 'SelectCycleTestMod', 'CommandLineTestMod', 'ReachStressTestMod', 'GeoVentProbeTestMod', 'TimelapseProbeTestMod')
+TEST_MODS = (
+    'OverlapTestMod',
+    'SelectCycleTestMod',
+    'CommandLineTestMod',
+    'ReachStressTestMod',
+    'RailLoopTestMod',
+    'GeoVentProbeTestMod',
+    'TimelapseProbeTestMod',
+)
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 # `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty
 # file (what Steam can leave of another branch's build: #49).

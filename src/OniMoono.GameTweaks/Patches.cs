@@ -45,6 +45,7 @@ namespace OniMoono.GameTweaks
                 case LazyTableRefresh.Name: LazyTableRefresh.Install(harmony); return true;
                 case FastTableRows.Name: FastTableRows.Install(harmony); return true;
                 case FastOverlayRemovals.Name: FastOverlayRemovals.Install(harmony); return true;
+                case DirectRailBridges.Name: DirectRailBridges.Install(harmony); return true;
                 default: return false;
             }
         }
