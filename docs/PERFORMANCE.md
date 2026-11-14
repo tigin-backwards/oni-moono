@@ -539,6 +539,12 @@ Notes on the rows (more in [TWEAKS.md](TWEAKS.md)):
   c100 it took sleeping Duplicants' updates from 0.51 to 0.26 ms a frame, frame rate unchanged
   beyond noise (2026-11-03, U60, Windows).
 - The save tweaks took U57's autosave freeze from 11.7 to 4.8 s (2026-10-20, Linux).
+- The report history's writers (2026-11-13, U60, Windows, one launch before and one after, three
+  autosaves each with stage brackets): the late-game colony's save took 2,046 and 2,136 ms of
+  the main thread before and 1,099 and 1,064 ms after (the launch's first save 2,636 and
+  1,700 ms). `ReportManager`'s object went from 733–846 to 148–159 ms (its notes from 294–304
+  to 71–83 ms) and the colony summary's main-thread part from 118–127 to 46–51 ms
+  ([TWEAKS.md](TWEAKS.md#the-report-history-in-a-save)).
 - `instant-reachability` rechecks where a Duplicant's reach, an object's cell or its work spots
   changed, on the frame they changed, with the game's own check.
 - `brain-rate` spreads the updates over frames, instead of 1 Duplicant and 5 critter brains

@@ -426,6 +426,31 @@ Measured: 1 and the bound for 2. With 1, 6 and 7 the late-game save would be abo
 1.6–1.7 s (estimate); getting towards 1 s needs 3. Not proposed: a collection after the save (tried and rejected,
 gc-pauses.md), and keeping the 777 MB buffer between saves (it would stay resident).
 
+### Landed (2026-11-13)
+
+Rows 1, 3 and 6 of option (c), and the plans kept between saves, as parts of
+`compact-report-history`, `fast-serialization` and `background-save`
+([TWEAKS.md](../TWEAKS.md#the-report-history-in-a-save)). Late-game colony, Windows, the same
+three-autosave scenario with stage brackets, one launch before (u60 8cc79dd8) and one after
+(runq j0000789), ms of the main thread:
+
+| Save of the launch | `SaveLoader.Save` before | after | `ReportManager`'s object before | after | Its notes before | after | Colony summary before | after |
+|---|---|---|---|---|---|---|---|---|
+| 1st | 2,636 | 1,700 | 989 | 438 | 358 | 78 | 222 | 71 |
+| 2nd | 2,046 | 1,099 | 733 | 159 | 294 | 83 | 118 | 46 |
+| 3rd | 2,136 | 1,064 | 846 | 148 | 304 | 71 | 127 | 51 |
+
+A single pair of launches. The other objects were 647–793 ms before and 600–836 after: not
+changed. The first save of a launch compiles 836 plans in 132 ms; later saves compile 2–4.
+In verify mode on Linux (one launch, three saves, j0000790) the report history (304,640,900
+bytes), today's report, the notes (190,868,522 bytes) and the summary's JSON were identical
+to the game's, 0 mismatches, and `ReportManager`'s component (495,550,622 bytes) was the same
+in a save written the game's way and two written with the writers. The rest of those bodies
+differed in 3–9 bytes between any two saves, tweak on or not (the game clock, a setting, three
+state machines started in between). Not done: the state machines' names (row 5), the first
+save's buffer (row 4), the frames after the save (rows 7 and 8); a save written with the
+writers was not loaded in the original game.
+
 ## Part 3: motion that matches the display
 
 ### The mismatch
