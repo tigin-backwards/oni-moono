@@ -55,11 +55,12 @@ log says so in one line:
 **Tests** never reach the real Steam (`tests/OniMoono.UnityEngine.Tests/LaunchTests.cs`).
 Four variables stand in for it:
 
-- `ONI_MOONO_STEAM_ROOTS`: made-up Steam folders in place of the machine's. Their `registry.vdf`
+- `ONI_MOONO_STEAM_ROOTS`: made-up Steam folders to use in place of the machine's. Their `registry.vdf`
   is the client's state.
-- `ONI_MOONO_STEAM_START`: a command run instead of starting Steam. With none, nothing starts.
-- `ONI_MOONO_STEAM_OPENED`: a file the steam:// links go to instead of Steam.
-- `ONI_MOONO_CHOOSE_GAME`: the install chosen.
+- `ONI_MOONO_STEAM_START`: the command to run instead of starting Steam. With none, nothing
+  starts.
+- `ONI_MOONO_STEAM_OPENED`: the file the steam:// links go to instead of Steam.
+- `ONI_MOONO_CHOOSE_GAME`: the install to choose.
 
 ## Versioned install
 
@@ -161,7 +162,7 @@ Windows.
   absolute path of the player setup installed and the icon in
   `~/.local/share/icons/hicolor/96x96/apps/`. A later setup keeps an entry it made up to date.
   `--menu` adds it without asking, `--no-menu` doesn't ask, `--remove-menu` removes both files.
-  Its name is apart from the versioned install's `oni-moono.desktop`.
+  Its name differs from the versioned install's `oni-moono.desktop`.
 - **Messages.** Started without a terminal, Moono would say why it can't start only on stderr,
   where nobody sees it. So `StandaloneLaunch.Tell` also shows it in a dialog when stderr isn't a
   terminal (`src/OniMoono.Host/Launch/DesktopDialog.cs`):
