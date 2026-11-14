@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A test mod (KMod) that builds a closed conveyor loop through two bridges and a meter valve
+       next to the early-base fixture's base and sends items round it, for the
+       direct-rail-bridges game tweak (tests/e2e/direct-rail-bridges.yaml, `test_mods`).
+       OniManaged is the game's Managed folder. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <OniManaged Condition="'$(OniManaged)' == ''">$(OniGameDir)/OxygenNotIncluded_Data/Managed</OniManaged>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(OniManaged)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(OniManaged)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="$(OniManaged)/Assembly-CSharp-firstpass.dll" Private="false" />
+    <Reference Include="$(OniManaged)/0Harmony.dll" Private="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="mod.yaml;mod_info.yaml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

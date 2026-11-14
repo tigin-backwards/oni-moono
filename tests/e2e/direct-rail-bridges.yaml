@@ -1,0 +1,36 @@
+# The direct-rail-bridges game tweak (src/OniMoono.GameTweaks/DirectRailBridges.cs) moves an item
+# across a conveyor bridge without the game's un-store and re-store. Ours only (`--player ours`):
+# the original has no such tweak.
+#
+# Our test mod (tools/RailLoopTestMod) builds a closed conveyor loop beside the early-base
+# fixture's base: two bridges and a meter valve with a limit of 600, and ten items riding it (ores
+# at different temperatures, a ration, meal lice and a hatch egg). Each lap every item crosses
+# both bridges and the valve. After about eleven laps the valve reaches its limit: the item that
+# reaches it is split (the bridge's partial branch, the game's own code), the valve closes and
+# the items queue up behind it. From then on nothing moves, and the loop's digest (every rail
+# tile's item and mass in loop order, and the valve's count) is the same whenever it is read.
+#
+# The digest below is the one a run without the tweak ends with
+# (`E2E_GAME_TWEAKS="exact path-probe-repair -direct-rail-bridges"`, which fails only this
+# spec's checks of the tweak's own counts): the tweak must end with the same items, masses,
+# places and valve count. With ONI_TWEAK_VERIFY=1 every other eligible move is made by the
+# game's round trip, and both kinds are compared with what the round trip is known to leave on
+# the item (docs/research/rail-bridge-moves.md): none may differ.
+from: early-base
+game_tweaks: [direct-rail-bridges]
+test_mods: [RailLoopTestMod]
+env: {ONI_TWEAK_VERIFY: "1"}
+steps:
+  - run: {seconds: 330}
+  - expect_state:
+      "type:RailLoopTestMod.Loop::Failed": false
+      "type:RailLoopTestMod.Loop::Ready": true
+      "type:RailLoopTestMod.Loop::Stalled": true
+      "type:RailLoopTestMod.Loop::ValveAmount": 600
+      "type:RailLoopTestMod.Loop::Items": 11
+      "type:RailLoopTestMod.Loop::TotalMass": 54
+      "type:RailLoopTestMod.Loop::Digest": "== 'Dirt 7;HatchEgg 2;FieldRation 1;IronOre 11;SandStone 4;Cuprite 7;-;-;-;-;-;Cuprite 2;SandStone 6;BasicPlantFood 1;SandStone 8;Cuprite 5;valve 600'"
+      "type:OniMoono.GameTweaks.DirectRailBridges::Moved": "> 100"
+      "type:OniMoono.GameTweaks.DirectRailBridges::Sampled": "> 100"
+      "type:OniMoono.GameTweaks.DirectRailBridges::Checked": "> 200"
+      "type:OniMoono.GameTweaks.DirectRailBridges::Wrong": 0

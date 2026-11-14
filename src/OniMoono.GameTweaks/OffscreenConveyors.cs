@@ -41,7 +41,7 @@ namespace OniMoono.GameTweaks
         /// consumer, bridge or filter, emptied, or dumped when the conveyor is deconstructed): a
         /// skipped item is first placed where the game's last move would have put it, so it does
         /// not leave the rail (or drop into the world) where it was last moved.
-        static void RemovingPickupable(SolidConduitFlow __instance, int cell_idx)
+        internal static void RemovingPickupable(SolidConduitFlow __instance, int cell_idx)
         {
             if (skipped.Count == 0 || !ReferenceEquals(__instance, skippedFor)) return;
             var contents = __instance.GetContents(cell_idx);

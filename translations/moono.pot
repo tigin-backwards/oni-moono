@@ -980,6 +980,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_SCREEN_CONVEYORS.DETAIL"
 msgid "The rails carry exactly the same things, but items' positions lag while off screen."
 msgstr ""
 
+#. Row title (direct-rail-bridges)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.TITLE"
+msgid "Direct conveyor bridge moves"
+msgstr ""
+
+#. The line under the title (direct-rail-bridges)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.EFFECT"
+msgid "Conveyor bridges pass an item straight across instead of taking it off the rail and putting it back."
+msgstr ""
+
+#. Tooltip: how it works (direct-rail-bridges)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.DETAIL"
+msgid "In the game, each item a bridge moves is told it left storage and, at once, that it is stored again. With this, the item only changes rail tile. The rails carry the same things at the same times, with the same heat, germs, freshness and egg state, and meter valves count the same. What differs is bookkeeping: an item keeps its place in the rails' list, so the Conveyor overlay may draw two overlapping items in the other order, and it is not listed as fetchable for the instant of the crossing. Kinds of item not discovered yet, critters and items a mod has added parts to cross the game's way. Off while another mod changes how items are stored on rails."
+msgstr ""
+
 #. Row title (sim-step-pace)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.TITLE"
 msgid "Simulation at its own pace"

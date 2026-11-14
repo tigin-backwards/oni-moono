@@ -56,6 +56,9 @@ step aside. It only shows what it finds; it never turns a tweak on or off.
   `fast-conveyor-paths` (`SolidConduitFlow.TryAdd`),
   `fast-overlay-removals` (the Decor overlay's handler for removed objects and its grid's
   `Remove`),
+  `direct-rail-bridges` (the conveyor bridge's update, the rails' `AddPickupable` and
+  `RemovePickupable`, `Pickupable.OnStore` and what it calls for a rail item, the egg's and the
+  world inventory's store handlers; see [Conveyor bridge moves](#conveyor-bridge-moves)),
   `fast-anim-events` (the animation event loop and what it reads; see
   [Animation events](#animation-events)), `fast-pipe-rebuilds` (the pipes' rebuild handlers and
   `Conduit.RefreshInvalidNetworkStatusItem`; see [Pipe network rebuilds](#pipe-network-rebuilds)),
@@ -273,6 +276,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Incremental path probes** (`path-probe-repair`): Duplicants' path checks redo only what changed in the world, using less CPU. Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may walk the other one, not the original's. Keeps about 0.9 MB a Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths). *On by default.*
 - **Instant reachability checks** (`instant-reachability`): Duplicants notice a newly opened or blocked path at once, using less CPU. Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second. *On by default.*
 - **Lazy unseen conveyor items** (`off-screen-conveyors`): Items riding rails off screen are placed only when they stop or come into view. The rails carry exactly the same things, but items' positions lag while off screen.
+- **Direct conveyor bridge moves** (`direct-rail-bridges`): Conveyor bridges pass an item straight across instead of taking it off the rail and putting it back. In the game, each item a bridge moves is told it left storage and, at once, that it is stored again. With this, the item only changes rail tile. The rails carry the same things at the same times, with the same heat, germs, freshness and egg state, and meter valves count the same. What differs is bookkeeping: an item keeps its place in the rails' list, so the Conveyor overlay may draw two overlapping items in the other order, and it is not listed as fetchable for the instant of the crossing. Kinds of item not discovered yet, critters and items a mod has added parts to cross the game's way. Off while another mod changes how items are stored on rails.
 - **Simulation at its own pace** (`sim-step-pace`): Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU. Between its steps, five a second, the game asks the simulation for its state on every frame with no game time to step, which happens only above 60 fps at normal speed. Each such call makes the frame wait for the step underway and runs a step of no time. With this, the simulation is called only at its steps, as the game already does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later than without it (up to 0.4 s), as below 60 fps. Paused, or while another mod changes these calls, the game's own calls run. *Measured: 112 → 220 fps at normal speed on a large modded colony; a large modded Spaced Out colony, Windows, 2026-11-12.*
 - **Critter and dupe brain updates capped at 30 updates a second** (`brain-rate`): Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps. The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps.
 
@@ -416,6 +420,52 @@ an item now?), each arrow handler skipped against its own condition, and every 6
 registered pipes against the colony's; Player.log reports
 `fast-pipe-rebuilds: N rebuilds, N of N pipe refreshes made, N of N flow-arrow handlers run, 0 mismatches`
 every 200 rebuilds or 30 s, and a line for each mismatch.
+
+### Conveyor bridge moves
+
+When a conveyor bridge (or a conveyor meter, which is one) passes a whole item on, the game takes
+the item off the rail and puts it back: the item is told it left storage and, in the same call,
+that it is stored again. In between it loses and regains its Stored tags, gets a faller, a place
+in its tile's item list, partitioner entries and a place in the save list, and loses them all
+again. On a late-game colony that is about 50 µs for each item a bridge moves.
+
+With `direct-rail-bridges` the item only changes rail tile, as it does between two plain rail
+tiles, and the tweak does by hand the few things the round trip leaves behind: the tile the
+item is filed under, the event that weight plates and other sensors of that tile listen for, the
+conveyor overlay's look, and for an egg its incubation monitor's two notices. A split item (a
+meter reaching its limit) is moved by the game's own code.
+
+What is the same: what the rails carry and when, masses, temperatures and heat exchange, germs,
+freshness, eggs (an egg at 100% still starts hatching at a bridge, as in the game), the meter's
+count, and the save file.
+
+What differs:
+
+- An item keeps its place in the rails' internal list instead of going to its end. With the
+  Conveyor overlay opened or closed while two rail items overlap on screen, they may be drawn in
+  the other order.
+- An item Duplicants can reach is, in the game, listed as fetchable for the instant of the
+  crossing. Nothing can fetch it in that instant; the world inventory keeps empty lists for its
+  tags because of it, and with the tweak those lists are made when an item of that kind is first
+  really fetchable. The amounts shown are the same.
+- Internal handles (the fetch manager's, the partitioner's, the item's status-item order) differ.
+
+What still crosses the game's way: a kind of item the colony has not discovered yet (the
+crossing can be what discovers it), critters, anything with a storage of its own, items a mod has
+added a component or state machine to, and any item not in the state the rails leave items in.
+The tweak turns itself off while another mod patches the bridge's update, the rails' add or
+remove, or the item's and the egg's store handlers.
+
+With `ONI_TWEAK_VERIFY=1` every other eligible move is made by the game's round trip, and the
+item after both kinds of move is compared with what the audit says the round trip leaves (tags,
+storage, parent, position, rotation, filed tile, mass, temperature, germs, sim chunk, overlay
+look, selectable, save list, listeners, faller, reservations, status items, every state machine's
+state, freshness, the egg's amounts, discovered kinds, the rail's contents and handle).
+On a late-game colony, 150 s at speed 3: 12,928 direct moves and 12,928 of the game's round
+trips compared, 0 wrong. On that colony (Linux, speed 3) the bridges' update went from 2.56 to
+1.46 ms a game second and the rails' whole step from 5.72 to 4.35 ms.
+
+The audit, row by row, is [research/rail-bridge-moves.md](research/rail-bridge-moves.md).
 
 ### Simulation at its own pace
 

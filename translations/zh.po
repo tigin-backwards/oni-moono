@@ -566,6 +566,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_SCREEN_CONVEYORS.DETAIL"
 msgid "The rails carry exactly the same things, but items' positions lag while off screen."
 msgstr "轨道运送的东西完全相同，但物品位置在屏幕外会滞后。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.TITLE"
+msgid "Direct conveyor bridge moves"
+msgstr "运输轨桥直接传递物品"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.EFFECT"
+msgid "Conveyor bridges pass an item straight across instead of taking it off the rail and putting it back."
+msgstr "运输轨桥把物品直接送到对面，而不是先从轨道上取下再放回去。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.DETAIL"
+msgid "In the game, each item a bridge moves is told it left storage and, at once, that it is stored again. With this, the item only changes rail tile. The rails carry the same things at the same times, with the same heat, germs, freshness and egg state, and meter valves count the same. What differs is bookkeeping: an item keeps its place in the rails' list, so the Conveyor overlay may draw two overlapping items in the other order, and it is not listed as fetchable for the instant of the crossing. Kinds of item not discovered yet, critters and items a mod has added parts to cross the game's way. Off while another mod changes how items are stored on rails."
+msgstr "在游戏里，轨桥移动的每个物品都会先被告知离开了存储，随即又被告知重新存入。开启后，物品只是换到另一格轨道。轨道运送的东西和时间都相同，热量、病菌、新鲜度和蛋的状态也相同，计量阀的计数不变。不同之处只在内部记录：物品保留它在轨道列表中的位置，因此运输概览里两个重叠的物品可能以相反的先后顺序绘制；过桥的瞬间它也不会被列为可拿取。尚未发现的物品种类、小动物以及被模组加了部件的物品仍按游戏的方式过桥。当有其他模组改变物品在轨道上的存放方式时，此项关闭。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_WORLD_FALLERS.TITLE"
 msgid "Land items lost below a world"
 msgstr "让掉出世界底部的物品落地"

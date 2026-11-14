@@ -213,6 +213,7 @@ namespace OniMoono.GameTweaks
             Add(FastPartitionerEvents.Name, FastPartitionerEvents.Guarded);
             Add(FastConduitSorts.Name, FastConduitSorts.Guarded);
             Add(FastOverlayRemovals.Name, FastOverlayRemovals.Guarded);
+            Add(DirectRailBridges.Name, DirectRailBridges.Guarded);
             return guards;
         }
     }
