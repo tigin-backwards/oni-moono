@@ -424,8 +424,8 @@ namespace OniMoono.Host.GameTweaks
             sinceVerify.Restart();
             var watch = Stopwatch.StartNew();
             int grids = 0, wrong = 0;
-            long links = 0;
-            string? first = null;
+            long links = 0, empty = 0, inPlace = 0, moved = 0, commitsWrong = 0;
+            string? first = null, firstCommit = null;
             foreach (var (id, store) in Stores())
             {
                 grids++;
@@ -433,9 +433,18 @@ namespace OniMoono.Host.GameTweaks
                 links += held;
                 if (differ > 0 && first == null) first = $"{id}: {detail}";
                 wrong += differ;
+                var commits = store.Commits;
+                empty += commits.Empty;
+                inPlace += commits.InPlace;
+                moved += commits.Moved;
+                commitsWrong += commits.Wrong;
+                if (commits.Wrong > 0 && firstCommit == null) firstCommit = $"{id}: {commits.First}";
             }
             EngineLog.Engine($"nav links verify ({when}): {grids} grids, {links:N0} links, {wrong} cell(s) differ from the game's arrays"
-                             + (first != null ? $"; first: {first}" : "") + $" ({watch.ElapsedMilliseconds} ms)");
+                             + (first != null ? $"; first: {first}" : "")
+                             + $"; {empty + inPlace + moved:N0} commits since the grids were made ({empty:N0} of no links, {inPlace:N0} into the cell's block, {moved:N0} into a new block), "
+                             + $"{commitsWrong} differed from the game's array as they ended" + (firstCommit != null ? $"; first: {firstCommit}" : "")
+                             + $" ({watch.ElapsedMilliseconds} ms)");
         }
     }
 }

@@ -27,6 +27,8 @@ the step, about 2–4% fps.
 - **Landed:** candidate 1, as the `fast-save-roots` tweak (on by default, both branches).
   Measured with the tweak itself: hand-offs −19%, rails −9%, the step −3%. Verify: 53,017
   removals, 0 wrong. Candidates 2–4 are parked.
+- **Closed:** item 8, our nav link store's commit. Its time is waiting for cold memory, which
+  a changed commit only moves ([navgrid-links-store.md](navgrid-links-store.md) §7).
 
 ## The step comes in a five-step cycle
 
@@ -84,7 +86,7 @@ U60, speed 3, `StepTheSim` per step, ms):
 | Pipes (`ConduitFlow.Sim200ms`, both) | 16.8% | 4.4 | 2,857 liquid and 915 gas updaters, 1,058 and 295 networks | Its own loop and the main thread's share of the network jobs 13%, dispensers 9%, `UpdateConduit` 8%, consumers' `stored_mass` 7% and `Consume` 6%. `AddElement`/`RemoveElement` P/Invoke into SimDLL for every change | Real work |
 | Power (`EnergySim.EnergySim200ms`) | 14.3% | 3.7 | 214 generators (103 fuel generators, 96 steam turbines), 97 batteries, 1,169 consumers | Its loop over 1,169 consumers (`GetCircuitID`, flags) 21%, fuel generators 13%, steam turbines 10%, `Generator.CheckConnectionStatus` 8%, `GetProperName` for reports 7%, storage events 6% | Real work. Consumer flag reads: candidate 3 |
 | Plant absorbers (`PlantElementAbsorbers.Sim200ms`) | 13.0% | 3.4 | 315 absorbers; 570 consume plans a step (absorbers and the monitors' storage-change handlers) | Its loop with the plans inlined 37%, `IrrigationMonitor.UpdateIrrigation` 24% (attribute lookup by id string, tag scans of the planter's items), event dispatch 14% | Real work. Planner reuse measured at about 4%: dropped |
-| Nav grids (`Pathfinding.UpdateNavGrids`) | 9.7% | 2.5 | dirty cells | `NavLinkStore.Commit` (our compact-nav-links) 20%, `Transition.IsValid` 19%, link creation, flying validator with `HasTag` | Real work. Our store's copy: small item (7) |
+| Nav grids (`Pathfinding.UpdateNavGrids`) | 9.7% | 2.5 | dirty cells | `NavLinkStore.Commit` (our compact-nav-links) 20%, `Transition.IsValid` 19%, link creation, flying validator with `HasTag` | Real work. The store's commits wait for cold memory; they copy no tables (item 8, closed) |
 | Circuits (`CircuitManager.Sim200msLast`) | 7.9% | 2.1 | 1,166 `SetConnectionStatus` calls a step | `SetConnectionStatus` 51%: an `Operational` flag dictionary read per consumer. The circuit loop and its sorts 34% | Real work. Candidate 3 |
 | Spawned items (`Substance.SpawnResource`) | 4.4% | 1.2 | 4.2 a step | Object instantiation (engine clone, awake) | Real work |
 | `ElementConsumer.AddMass` | 3.3% | 0.9 | 135 a step | `Storage.FindPrimaryElement` (a linear scan of storage items) 34%, storage events 26% | Real work, small |
@@ -108,7 +110,7 @@ U60, speed 3, `StepTheSim` per step, ms):
 | 5 | `Storage.FindPrimaryElement` | Same answer needed | Under 1% | perf 2.6% of the step, mostly item reads | Not worth it: P2 showed component lookups are not the cost | — |
 | 6 | Plant absorbers' `Planner` reused per storage version | Yes (verify: 85,475 plans, 0 differences) | **Measured** about 4% of the absorbers, 0.4% of the step | Same A/B as 1 | Dropped: too small | — |
 | 7 | `Singleton<T>.Instance` without its lock (load-time IL rewrite) | Yes | Under 0.27% of the main thread | perf | Dropped: too small | — |
-| 8 | compact-nav-links' `NavLinkStore.Commit` | Ours | Part of its 2% of the step | perf | Look at it with the store's next change | U60 |
+| 8 | compact-nav-links' `NavLinkStore.Commit` | Ours | None found. A commit waits for the cell's head and its block, cold memory it has to touch once a cell; no table is copied | **Measured** (2026-11-14): with the waits moved out of `Commit`, it fell from 17.3% to 1.4% of `UpdateNavGrids`, and the store as a whole stayed at 21.8% and 21.1% (0.75 and 0.78 ms a game second on Linux) | Closed: nothing landed in the commit ([navgrid-links-store.md](navgrid-links-store.md) §7) | — |
 
 Together, 1–4 come to roughly 6–10% of the step. Two of them are designs, not patches. On
 Windows that is about 1.5–2.5 ms a cycle, or 0.5–0.8% fps (estimated).

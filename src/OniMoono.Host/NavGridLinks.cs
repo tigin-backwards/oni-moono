@@ -33,8 +33,13 @@ namespace OniMoono.Host
     /// 2^20 cells and maxLinksPerCell is below 256 (each cell takes at most one block of each
     /// size, as blocks only grow), else 64.
     ///
+    /// What a commit costs is the memory it waits for, not the copy: the cell's head and its
+    /// block, both cold, as an update rewrites a cell once in each grid
+    /// (docs/research/navgrid-links-store.md §7, which also has what did not make it cheaper).
+    ///
     /// With ONI_TWEAK_VERIFY=1 each store also keeps the game's flat array, written as the game
-    /// writes it, and Verify compares every cell's links in both (CompactNavLinks runs it).
+    /// writes it; every commit compares its cell's links in both as it ends, and Verify
+    /// compares every cell's (CompactNavLinks runs it and reports both).
     public static class NavGridLinks
     {
         /// A handle's `link` field: below -1, which the game never stores.
@@ -188,7 +193,16 @@ namespace OniMoono.Host
         bool Wide { get; }
         (long Bytes, long Links, long Slots) Size();
         int Verify(out long links, out string? first);
+        NavLinkCommits Commits { get; }
         void Dump(System.IO.Stream to);
+    }
+
+    /// Verify mode's count of a store's commits (a cell's links ended by -1 at its start), each
+    /// compared with the game's array as it ended: cells left empty, links written into the
+    /// cell's block, links written into a new block, and those that differed.
+    internal record struct NavLinkCommits(long Empty, long InPlace, long Moved, long Wrong, string? First)
+    {
+        public readonly long Checked => Empty + InPlace + Moved;
     }
 
     internal static class NavLinkStores
@@ -237,6 +251,8 @@ namespace OniMoono.Host
         /// Verify mode: the game's array, written as the game writes it.
         internal readonly T[]? Flat;
         int inexact;
+        long emptied, inPlace, moved, commitsWrong;
+        string? firstWrong;
 
         /// The most cells of a store with 32-bit heads (block 0 of each size means none).
         internal const int NarrowCells = (1 << 20) - 2;
@@ -358,11 +374,12 @@ namespace OniMoono.Host
             return count;
         }
 
-        /// Sets a cell's links: in its block when they fit, else in a new one.
-        void Commit(int cell, T[] links, int count)
+        /// Sets a cell's links: in its block when they fit, else in a new one (true then).
+        bool Commit(int cell, T[] links, int count)
         {
             Head(cell, out long block, out int size, out _);
-            if (count > 0 && (block == 0 || count > 1 << size))
+            bool fresh = count > 0 && (block == 0 || count > 1 << size);
+            if (fresh)
             {
                 size = Log2Ceiling(count);
                 while ((block = pools[size].Allocate()) < 0)
@@ -374,6 +391,7 @@ namespace OniMoono.Host
                 for (int k = 0; k < count; k++) slots[offset + k] = links[k];
             }
             Publish(cell, block, size, count);
+            return fresh;
         }
 
         /// The links staged by one thread: a run of slots from Start, not yet ended by -1.
@@ -443,7 +461,8 @@ namespace OniMoono.Host
             int end = start + count, cell = CellOf(start), low = cell * Max;
             if (start == low && count < Max)
             {
-                Commit(cell, run, count);
+                bool fresh = Commit(cell, run, count);
+                if (Flat != null) Committed(cell, count, fresh);
                 return;
             }
             var list = new T[Max];
@@ -479,6 +498,24 @@ namespace OniMoono.Host
             run.Count = 0;
             if (lost) Inexact($"links written at {start}..{end - 1} without a -1 after them");
         }
+
+        /// Verify mode, as a commit ends: the cell's links in the store against the game's array.
+        void Committed(int cell, int count, bool fresh)
+        {
+            Head(cell, out long block, out int size, out int held);
+            int low = cell * Max;
+            bool same = held == count && Unsafe.As<T, int>(ref Flat![low + count]) == -1;
+            if (same && count > 0)
+            {
+                var slots = Slots(block, size, out int offset);
+                for (int k = 0; k < count && same; k++) same = Same(slots[offset + k], Flat![low + k]);
+            }
+            Interlocked.Increment(ref count == 0 ? ref emptied : ref fresh ? ref moved : ref inPlace);
+            if (!same && Interlocked.Increment(ref commitsWrong) == 1)
+                firstWrong = $"cell {cell}: the game's array has {count} link(s), the store {held} in block {block} of size {1 << size}";
+        }
+
+        public NavLinkCommits Commits => new(Interlocked.Read(ref emptied), Interlocked.Read(ref inPlace), Interlocked.Read(ref moved), Interlocked.Read(ref commitsWrong), firstWrong);
 
         void Inexact(string what)
         {
