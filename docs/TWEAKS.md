@@ -1,46 +1,58 @@
 # Tweaks
 
-Moono also speeds up some of the game's own code. Most tweaks don't change gameplay and are on by
+Moono also speeds up some of the game's code. Most tweaks don't change gameplay and are on by
 default. Those that do are off by default: the ones under **changes gameplay** below, and
 incremental path probes, which changes only which of two routes of the same cost a Duplicant
-takes. Toggle any of
-them in **Moono Tweaks** on the main menu. Measured gains are in
+takes. Toggle any of them in **Moono Tweaks** on the main menu. Measured gains are in
 [PERFORMANCE.md](PERFORMANCE.md#the-tweaks).
 
 ## Choosing them
 
 On the main menu, **Moono Tweaks** (under Mods) lists every tweak with an on/off switch, in the
-sections below, each with a line on what it does; hovering a row says how it works, its
-measured gain where it is large enough to notice, and its launch option. A **General** section
-holds eight options of the player's own: the Gassy Moo loading splash (on by default), the
-[update check](#update-check) (on by default), frame stats in the log (off by default), hiding
-personal paths in the log (on by default), for
-laptops with two GPUs, the graphics card the game draws with (default, discrete or integrated;
-default does what the original does), the renderer (auto: Vulkan, or OpenGL when Vulkan can't
-start), on Windows, presenting through Direct3D as the original does (on by default), and
-[garbage collection](#garbage-collection) (fast by default).
-The search box above the list keeps the rows whose title, line, tooltip or tweak name contain
-what you type (in the game's language, any case; each word on its own, as the game's own
-searches match), and the headings of the sections that keep a row.
-**Reset to defaults** sets every row back to its default. Changes apply when the game restarts, which the screen does for you.
+sections below, each with a line on what it does. Hovering a row says how it works, its
+measured gain where it is large enough to notice, and its launch option.
 
-A tweak this build of Moono can't run on your game version (a game update changed the code it
-changes) is off, and its row is greyed out with "Not available on this game version"; the game's
-own code runs instead, and your choice for it is kept for when it is available again.
+A **General** section holds eight options of the player:
 
-Your choices are kept in `oni-moono/settings.json` in the game's own data folder (usually
-`~/.config/unity3d/Klei/Oxygen Not Included` on Linux,
-`%USERPROFILE%\AppData\LocalLow\Klei\Oxygen Not Included` on Windows), which updates never touch.
-The file records only what differs from the defaults, so a default changed by an update still
-reaches you unless you chose otherwise.
+- The Gassy Moo loading splash (on by default).
+- The [update check](#update-check) (on by default).
+- Frame stats in the log (off by default).
+- Hiding personal paths in the log (on by default).
+- For laptops with two GPUs, the graphics card the game draws with (default, discrete or
+  integrated; default does what the original does).
+- The renderer (auto: Vulkan, or OpenGL when Vulkan can't start).
+- On Windows, presenting through Direct3D as the original does (on by default).
+- [Garbage collection](#garbage-collection) (fast by default).
+
+Using the screen:
+
+- **Search.** The search box above the list keeps the rows whose title, line, tooltip or tweak
+  name contain what you type, and the headings of the sections that keep a row. It matches in
+  the game's language, in any case, each word separately, as the game's searches do.
+- **Reset to defaults** sets every row back to its default.
+- **Applying.** Changes apply when the game restarts, which the screen does for you.
+- **Unavailable tweaks.** A tweak this build of Moono can't run on your game version (a game
+  update changed the code it changes) is off. Its row is greyed out with "Not available on this
+  game version", and the game's code runs instead. Your choice for it is kept for when it is
+  available again.
+
+Your choices are kept in `oni-moono/settings.json` in the game's data folder, which updates
+never touch. That folder is usually `~/.config/unity3d/Klei/Oxygen Not Included` on Linux and
+`%USERPROFILE%\AppData\LocalLow\Klei\Oxygen Not Included` on Windows. The file records only
+what differs from the defaults, so a default changed by an update still reaches you unless you
+chose otherwise.
 
 ## Mods that patch the same code
 
 At each main menu, after every mod has made its Harmony patches, Moono looks for mods that patch
-the methods the tweaks you have on change: each tweak's own Harmony patches (each tweak patches
-under its own Harmony ID, `OniMoono.Host.GameTweaks.NAME`), the methods the load-time rewrites of
-`compact-nav-links` and `paged-path-grids` changed, and the methods whose patching makes a tweak
-step aside. It only shows what it finds; it never turns a tweak on or off.
+the methods the tweaks you have on change:
+
+- Each tweak's Harmony patches (each tweak patches under its own Harmony ID,
+  `OniMoono.Host.GameTweaks.NAME`).
+- The methods the load-time rewrites of `compact-nav-links` and `paged-path-grids` changed.
+- The methods whose patching makes a tweak step aside.
+
+It only shows what it finds. It never turns a tweak on or off. The grades:
 
 - **High**: a mod's transpiler on a method a tweak patches or rewrites, or a mod's prefix that
   can skip the original (returns `bool`) on a method a tweak replaces (with a skipping prefix, a
@@ -65,13 +77,17 @@ step aside. It only shows what it finds; it never turns a tweak on or off.
   and the two rewrites for a transpiler they did not
   review. The icon is the grey disabled sign.
 
-An affected row gets the icon beside its switch, and its tooltip names each mod and what it
-patches ("Fast Track also patches KAnimBatch.UpdateDirty (it can skip the game's code). If
-something looks wrong, turn this tweak off."). The search box finds a mod's name, which lists the
-tweaks it overlaps. While a mod has a high-grade overlap, the main menu shows "N overlaps" beside
-**Moono Tweaks** (N counts each tweak and mod once; the update badge moves right of it); clicking
-it opens the screen. `Player.log` gets one block, `[Moono] mod overlaps: ...`, with a line per
-overlap (tweak, method, mod and its Harmony ID, patch kind, grade) and what reading them cost.
+Where overlaps show:
+
+- **The row.** An affected row gets the icon beside its switch, and its tooltip names each mod
+  and what it patches ("Fast Track also patches KAnimBatch.UpdateDirty (it can skip the game's
+  code). If something looks wrong, turn this tweak off.").
+- **Search.** The search box finds a mod's name, which lists the tweaks it overlaps.
+- **The main menu.** While a mod has a high-grade overlap, the main menu shows "N overlaps"
+  beside **Moono Tweaks** (N counts each tweak and mod once; the update badge moves right of
+  it). Clicking it opens the screen.
+- **The log.** `Player.log` gets one block, `[Moono] mod overlaps: ...`, with a line per overlap
+  (tweak, method, mod and its Harmony ID, patch kind, grade) and what reading them cost.
 
 A mod that skips a patch when its own option is off leaves nothing to find. One that patches
 anyway and checks its option while the game runs is flagged whatever the option says: Fast Track
@@ -82,18 +98,23 @@ the `NavGrid` constructor.
 
 ## Update check
 
-With **Update check** on (the default), Moono makes one network request of its own: in the
-background after start-up, a GET of `https://api.github.com/repos/tigin-backwards/oni-moono/releases`
-with a `User-Agent: OniMoono-update-check` header and nothing else (no cookies, IDs or details
-of your game). It waits at most 8 seconds. The answer is kept for 6 hours in
-`oni-moono/update-check.json` beside the settings file, so most launches ask nothing. When a
-newer release for your build is out, a Gassy Moo badge next to **Moono Tweaks** on the main menu
-says so: hovering it lists what changed in each newer release, clicking it opens the release
-page in your browser. A normal build looks at normal releases only, a U60 build at the U60
-pre-releases only; releases marked "Superseded" are skipped. Offline, or when GitHub doesn't
-answer, there is no badge and the log has one line about it. With the check off, Moono makes no
-network requests of its own. A build made without a release tag (a developer build) checks
-nothing.
+With **Update check** on (the default), Moono makes one network request of its own:
+
+- **The request.** In the background after start-up, a GET of
+  `https://api.github.com/repos/tigin-backwards/oni-moono/releases` with a
+  `User-Agent: OniMoono-update-check` header and nothing else (no cookies, IDs or details of
+  your game). It waits at most 8 seconds.
+- **Caching.** The answer is kept for 6 hours in `oni-moono/update-check.json` beside the
+  settings file, so most launches ask nothing.
+- **The badge.** When a newer release for your build is out, a Gassy Moo badge next to **Moono
+  Tweaks** on the main menu says so. Hovering it lists what changed in each newer release.
+  Clicking it opens the release page in your browser.
+- **Which releases.** A normal build looks at normal releases only, a U60 build at the U60
+  pre-releases only. Releases marked "Superseded" are skipped.
+- **Offline,** or when GitHub doesn't answer, there is no badge and the log has one line about
+  it.
+- **Off.** With the check off, Moono makes no network requests of its own. A build made without
+  a release tag (a developer build) checks nothing.
 
 For tests, `ONI_UPDATE_RELEASES_URL` reads the releases list from elsewhere (a `file://` URL, a
 path or an http(s) URL; `none` checks nothing), never cached, and `ONI_UPDATE_TAG` sets the
@@ -117,27 +138,36 @@ Measurements are in [research/gc-modes.md](research/gc-modes.md). With Fast, the
 `post-load-gc` tweak (Saving, below) moves the collection that would pause a large colony about a
 minute into play into the load ([research/gc-pauses.md](research/gc-pauses.md)).
 
-The runtime fixes its GC as it starts, before Moono's code runs. On Windows, OniMoono.exe reads
-the choice itself (`--gc`, else `settings.json`'s `"gc"`) and sets the runtime property
-`System.GC.Server` before starting .NET. On Linux and macOS the player starts through .NET's
-own launcher, which reads only `OniMoono.runtimeconfig.json`: when the runtime started with the
-other GC, the player starts itself again in place (the same process, `execve`) with
-`DOTNET_gcServer=0` or `1`, before it opens the log. A `DOTNET_gcServer` you set yourself wins
-over the option. `Player.log` has a `gc:` line naming the GC in use (Server GC with DATAS,
-Workstation concurrent GC) and why, and a `gc config:` line with the runtime's GC settings.
+The runtime fixes its GC as it starts, before Moono's code runs:
+
+- **Windows:** OniMoono.exe reads the choice itself (`--gc`, else `settings.json`'s `"gc"`) and
+  sets the runtime property `System.GC.Server` before starting .NET.
+- **Linux and macOS:** the player starts through .NET's own launcher, which reads only
+  `OniMoono.runtimeconfig.json`. When the runtime started with the other GC, the player starts
+  itself again in place (the same process, `execve`) with `DOTNET_gcServer=0` or `1`, before it
+  opens the log.
+- A `DOTNET_gcServer` you set yourself wins over the option.
+- `Player.log` has a `gc:` line naming the GC in use (Server GC with DATAS, Workstation
+  concurrent GC) and why, and a `gc config:` line with the runtime's GC settings.
 
 ## When the game crashes
 
 On Windows, when the game closes unexpectedly, a small window says so, with the error from the
-crash. **Show details** lists what a report needs: Moono's version, the game's build, Windows,
-the GPU and its driver, memory, how long you played, how many mods are on, and the files.
-**Report on GitHub** packs `Player.log` and, if ticked, the crash dump into
-`OniMoono-crash-….zip` beside the log, and opens a new GitHub issue in your browser with the
-error, the details and your note filled in. Drag the zip from the window into the issue, then
-submit it. Nothing is sent unless you submit the issue yourself. The dump can hold bits of what
-the game had in memory; untick it to leave it out. The error and the details can be selected and
-copied, and the window follows Windows' dark or light mode and its text size. `--crash-dialog off` turns the window off;
-`Player.log` still records the crash. Linux has no crash window.
+crash.
+
+- **Show details** lists what a report needs: Moono's version, the game's build, Windows, the
+  GPU and its driver, memory, how long you played, how many mods are on, and the files.
+- **Report on GitHub** packs `Player.log` and, if ticked, the crash dump into
+  `OniMoono-crash-….zip` beside the log. It opens a new GitHub issue in your browser with the
+  error, the details and your note filled in. Drag the zip from the window into the issue, then
+  submit it. Nothing is sent unless you submit the issue yourself.
+- **The dump** can hold bits of what the game had in memory. Untick it to leave it out.
+- **The window.** The error and the details can be selected and copied. The window follows
+  Windows' dark or light mode and its text size.
+- **Turning it off.** `--crash-dialog off` turns the window off. `Player.log` still records the
+  crash.
+
+Linux has no crash window.
 
 ## Launch options
 
@@ -175,13 +205,13 @@ launch options:
 - `--gc fast|low-memory`: the [garbage collection](#garbage-collection).
 - `--crash-dialog on|off`: Windows, the [crash window](#when-the-game-crashes).
 
-Arguments for the game itself, a mod's own flags for instance, go after `%command%`:
+Arguments for the game itself, a mod's flags for instance, go after `%command%`:
 `"…\OniMoono.exe" -- %command% -moddev --my-mod-flag=1`. The game and its mods see everything
 after `%command%` as they would in the original player (`Environment.GetCommandLineArgs()`),
-and none of Moono's own options. Started without Steam, `--game-arg ARG` passes one argument to
+and none of Moono's options. Started without Steam, `--game-arg ARG` passes one argument to
 the game, and so does any argument that does not start with `--`.
 
-Older setups put `--game-tweak exact` in the launch options; remove it (the setup prints the new
+Older setups put `--game-tweak exact` in the launch options. Remove it (the setup prints the new
 line) to choose in the game instead.
 
 At start-up the player logs every option it used and where it came from (default, settings file
@@ -189,10 +219,10 @@ or command line).
 
 ## How "exactly the same" is checked
 
-Each exact tweak has a verify mode (`ONI_TWEAK_VERIFY=1`): the tweak still takes its shortcut, but
-the game's own work is done as well and the two are compared, bit for bit where the result is
-data. QA's verify stage runs a late-game colony with every tweak on in this mode, every overlay
-opened in turn, for at least 10 game minutes, and fails on any mismatch.
+Each exact tweak has a verify mode (`ONI_TWEAK_VERIFY=1`). The tweak still takes its shortcut,
+but the game's own work is done as well and the two are compared, bit for bit where the result
+is data. QA's verify stage runs a late-game colony with every tweak on in this mode, every
+overlay opened in turn, for at least 10 game minutes, and fails on any mismatch.
 
 ## Writing a tweak
 
@@ -210,13 +240,13 @@ the game ([ARCHITECTURE.md](ARCHITECTURE.md#6-configuration-and-paths), "How gam
   fingerprint for each frozen build), with `[MirrorsGame("signature")]` on that code.
 
 `scripts/check-tweaks.sh` (in check.sh) fails on a lookup or a mirror that is not declared and
-prints the line to add; `--check-tweaks review` prints the fingerprints. A lookup whose type or
-name is computed is listed as not checked: once you've checked it, mark its method
+prints the line to add. `--check-tweaks review` prints the fingerprints. A lookup whose type or
+name is computed is listed as not checked. Once you've checked it, mark its method
 `[NameLookupReviewed("why")]`.
 
 ## The tweaks
 
-Grouped as on the screen. Names are as used with `--game-tweak`; the gains in the screen's
+Grouped as on the screen. Names are as used with `--game-tweak`. The gains in the screen's
 tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#the-tweaks).
 
 <!-- tweaks:begin: generated from src/OniMoono.Host/GameTweaks/GameTweakNames.cs; ONI_UPDATE_DOCS=1 with the unit tests rewrites it -->
@@ -292,99 +322,129 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 ### Incremental path probes
 
 On by default, though it changes gameplay in one way (it is in the Changes gameplay group and
-not in `exact`): costs and reachable cells are the original's, but where two routes cost the
+not in `exact`). Costs and reachable cells are the original's, but where two routes cost the
 same a Duplicant may walk another one than in the original (Navigator builds the walking path
 from the probe, PathGrid.BuildPath). It keeps about 0.9 MB a Duplicant (four bits of suit flags
 a state, on a 640×404 world). It steps aside while Fast Track's Cache Paths is on (below).
 
-Each Duplicant's path probe (the cost to every cell it can reach, which errands and pathing read
-until its next probe) is redone every few seconds, four Duplicants a frame, on a thread of its
-own. With `path-probe-repair`, a probe from the same cell, nav type, suit flags and abilities as
-the Duplicant's last one repairs that one instead: what changed since (the nav grid's links,
-doors and their permissions, liquid and solid cells, tube entrances, suit checkpoints) is found
-through the game's own writers, the cells whose route changed or got worse are dropped with the
-cells reached through them and found again, and cheaper routes spread as in the game's search.
-Any other probe is the game's search, and so is a repair that would redo half of what the last
-probe reached (a door by the Duplicant's spot): a search costs less then. The probes are not
-delayed; temperature and building checks are untouched.
+**In the game.** Each Duplicant's path probe is the cost to every cell it can reach, which
+errands and pathing read until its next probe. It is redone every few seconds, four Duplicants a
+frame, on a separate thread.
 
-What differs from the original: where two routes to a cell cost the same, the game keeps the one
-its search finds first, the repair the one it had or finds first. A Duplicant can then take the
-other route of the same cost. The route it keeps can also change what lies beyond that cell: when
-the two routes carry different suit flags (one passes a suit checkpoint), the cells past it may
-cost more or less, or be reachable or not, depending on the flags; and a step back the way the
-route came is never searched from a cell, so with the other route a cell next to it can be found
-at another cost. Such a difference is what the game's own search gives with another search order,
-and lasts until the Duplicant's next full search (when it moves). With `ONI_TWEAK_VERIFY=1` every
-repair is checked against a new search, and one that answers otherwise is checked to be a result
-the game's search can give (each cell set from its route, none reachable cheaper); only a repair
-that is not counts as wrong. Every search is also checked against the game's own on the same
-Duplicant. In a 200-Duplicant colony and a late-game base-game colony (U60) none of about
-10,700 repairs and 180 searches checked gave another cost or reachable cell.
+**With `path-probe-repair`,** a probe from the same cell, nav type, suit flags and abilities as
+the Duplicant's last one repairs that one instead:
 
-It stands down for the session, logged once in Player.log (`path-probe-repair: off (...)`), when
-another mod patches the probe or the methods it relies on. Fast Track's **Cache Paths** does:
-turn off Cache Paths to use this. Fast Track's **Background Pathing** only wraps two PathGrid
-methods in locks; the tweak checks that they answer as the game's and runs alongside it. With
-Fast Track's Fast Reachability on and its next chore priority set to Delay, Fast Track also
-patches the probe's work order, and the tweak stands down.
+- What changed since is found through the game's own writers: the nav grid's links, doors and
+  their permissions, liquid and solid cells, tube entrances, suit checkpoints.
+- The cells whose route changed or got worse are dropped with the cells reached through them,
+  and found again.
+- Cheaper routes spread as in the game's search.
+
+Any other probe is the game's search. So is a repair that would redo half of what the last probe
+reached (a door by the Duplicant's spot), because a search costs less then. The probes are not
+delayed, and temperature and building checks are untouched.
+
+**What differs from the original.** Where two routes to a cell cost the same, the game keeps the
+one its search finds first, the repair the one it had or finds first. A Duplicant can then take
+the other route of the same cost. The route it keeps can also change what lies beyond that cell:
+
+- When the two routes carry different suit flags (one passes a suit checkpoint), the cells past
+  it may cost more or less, or be reachable or not, depending on the flags.
+- A step back the way the route came is never searched from a cell, so with the other route a
+  cell next to it can be found at another cost.
+
+Such a difference is what the game's own search gives with another search order, and lasts until
+the Duplicant's next full search (when it moves).
+
+**Verify.** With `ONI_TWEAK_VERIFY=1` every repair is checked against a new search. One that
+answers otherwise is checked to be a result the game's search can give (each cell set from its
+route, none reachable cheaper), and only a repair that is not counts as wrong. Every search is
+also checked against the game's own on the same Duplicant. In a 200-Duplicant colony and a
+late-game base-game colony (U60) none of about 10,700 repairs and 180 searches checked gave
+another cost or reachable cell.
+
+**Other mods.** It stands down for the session, logged once in Player.log
+(`path-probe-repair: off (...)`), when another mod patches the probe or the methods it relies
+on:
+
+- Fast Track's **Cache Paths** does. Turn off Cache Paths to use this.
+- Fast Track's **Background Pathing** only wraps two PathGrid methods in locks. The tweak checks
+  that they answer as the game's and runs alongside it.
+- With Fast Track's Fast Reachability on and its next chore priority set to Delay, Fast Track
+  also patches the probe's work order, and the tweak stands down.
 
 ### Instant reachability
 
 On by default, though it changes timing (it is in the Changes gameplay group and not in `exact`):
 the answers are the original's, but they come sooner.
 
-The game rechecks once a game second, for every errand and item it tracks (tens of thousands in
-a large colony, most of them items in storage), whether a Duplicant can reach it: its cell and
-work spots against the cells the Duplicants can reach. A change, such as a door locked or a tile
-dug, is seen up to a second later, at each one's next check. With `instant-reachability` an
-answer is rechecked only when something it reads changes: a cell becoming reachable or
-unreachable for every Duplicant (found where the game updates its count of Duplicants reaching
-each cell), the object moving, or its work spots changing. The recheck is the game's own, on the
-frame of the change, so the reachable tag, the status items and the fetch lists change as they do
-in the original, up to a second sooner. An object whose cell or work spots come from code it
-does not know (some mods' own) keeps the game's once-a-second check.
+**In the game.** Once a game second, the game rechecks whether a Duplicant can reach each errand
+and item it tracks (tens of thousands in a large colony, most of them items in storage). It
+compares the object's cell and work spots with the cells the Duplicants can reach. A change,
+such as a door locked or a tile dug, is seen up to a second later, at each one's next check.
 
-With `ONI_TWEAK_VERIFY=1` every answer is compared with the counts every few frames
-(`instant-reachability: ... N checks, M mismatches` in Player.log every 30 s). It stands down
-for the session, logged once (`instant-reachability: off (...)`), when another mod patches the
-monitor, the counts or how an object's cell and work spots are read; Fast Track's **Fast
-Reachability** does, and replaces the same check its own way.
+**With `instant-reachability`** an answer is rechecked only when something it reads changes:
+
+- A cell becomes reachable or unreachable for every Duplicant (found where the game updates its
+  count of Duplicants reaching each cell).
+- The object moves.
+- Its work spots change.
+
+The recheck is the game's own, on the frame of the change. So the reachable tag, the status
+items and the fetch lists change as they do in the original, up to a second sooner. An object
+whose cell or work spots come from code the tweak does not know (some mods' own) keeps the
+game's once-a-second check.
+
+**Verify.** With `ONI_TWEAK_VERIFY=1` every answer is compared with the counts every few frames
+(`instant-reachability: ... N checks, M mismatches` in Player.log every 30 s).
+
+**Other mods.** It stands down for the session, logged once (`instant-reachability: off (...)`),
+when another mod patches the monitor, the counts or how an object's cell and work spots are
+read. Fast Track's **Fast Reachability** does, and replaces the same check its own way.
 
 ### Fetch checks by pile
 
 Off by default, as it can change which of two identical items a Duplicant takes (it is left out
 of `exact`).
 
-Each time a Duplicant's brain updates (about 30 times a second in all), the game rechecks every
-item that can be fetched: whether this Duplicant may pick it up, the path cost of its cell, then
-a sort that keeps the best item of each kind and priority. A late-game colony can hold tens of
-thousands of such items in a few thousand piles (one tested colony: 33,600 items in 3,600 cells),
-so most of that work repeats the same answer for every item in a pile. With `fetch-by-cell` each
-pile (the items of one kind, tags and priority in one cell) keeps its best item by the order the
-game uses within a cell (food quality, then freshness), updated as items are added, removed,
-moved, stored, retagged, reserved or spoil. An update checks that best item as the game would,
-finds each pile's path cost once, keeps the cheapest pile of each kind and priority, and writes
-the result in the game's order. Items whose answer can differ from one Duplicant to the next
-(reserved ones, those in conveyor loaders and receptacles) are checked one by one, and a pile
-whose best item fails its check falls back to checking all of its items. A cell whose items
-take their work spots from different places (a bottle filler's stored water beside a loose
-bottle) is costed as the game costs it, through the first item there in the game's list that the
-Duplicant may pick up.
+**In the game.** Each time a Duplicant's brain updates (about 30 times a second in all), the
+game rechecks every item that can be fetched: whether this Duplicant may pick it up, the path
+cost of its cell, then a sort that keeps the best item of each kind and priority. A late-game
+colony can hold tens of thousands of such items in a few thousand piles (one tested colony:
+33,600 items in 3,600 cells), so most of that work repeats the same answer for every item in a
+pile.
+
+**With `fetch-by-cell`** a pile is the items of one kind, tags and priority in one cell:
+
+- Each pile keeps its best item by the order the game uses within a cell (food quality, then
+  freshness), updated as items are added, removed, moved, stored, retagged, reserved or spoil.
+- An update checks that best item as the game would, finds each pile's path cost once, keeps
+  the cheapest pile of each kind and priority, and writes the result in the game's order.
+- Items whose answer can differ from one Duplicant to the next (reserved ones, those in conveyor
+  loaders and receptacles) are checked one by one.
+- A pile whose best item fails its check falls back to checking all of its items.
+- A cell whose items take their work spots from different places (a bottle filler's stored
+  water beside a loose bottle) is costed as the game costs it, through the first item there in
+  the game's list that the Duplicant may pick up.
 
 Piles on worlds the Duplicant can't reach are skipped. A pile at least a few cells inside a world
 (by the largest work-spot offset any item has) on which the Duplicant's last path probe reached
 no cell has no path for any item in it, so the game would drop it too.
 
-The result is the game's except for ties: where two items of one kind have the same tags,
-priority, path cost, food quality and freshness, the game's sort picks either of them and this
-may pick the other. The merged list the Duplicant's errands read keeps the same order.
+**What differs.** The result is the game's except for ties. Where two items of one kind have the
+same tags, priority, path cost, food quality and freshness, the game's sort picks either of them
+and this may pick the other. The merged list the Duplicant's errands read keeps the same order.
 
-It stands down for the session, logged once (`fetch-by-cell: off (...)`), when another mod patches
-the update or what it reads: Efficient Supply, CycleTrim and Fast Track's **Optimize Debris
-Collection** replace the update; Waste Not, Want Not and Delivery Temperature Limit change its
-order; No Manual Delivery, Forbid Items, Controlled Storage and others change who may pick up an
-item. The world skip alone stands down while a mod changes path costs or probes (Teleport Suit,
+**Other mods.** It stands down for the session, logged once (`fetch-by-cell: off (...)`), when
+another mod patches the update or what it reads:
+
+- Efficient Supply, CycleTrim and Fast Track's **Optimize Debris Collection** replace the
+  update.
+- Waste Not, Want Not and Delivery Temperature Limit change its order.
+- No Manual Delivery, Forbid Items, Controlled Storage and others change who may pick up an
+  item.
+
+The world skip alone stands down while a mod changes path costs or probes (Teleport Suit,
 GRAVNet, Fast Track's path cache). With Fast Track's **Reduce Debris Checks** the game's update
 never runs, so neither does this.
 
