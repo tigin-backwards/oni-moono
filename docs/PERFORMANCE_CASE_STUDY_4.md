@@ -28,9 +28,9 @@ schedules need to load at all. It drops the modded buildings.
 
 Measured on Linux under WSL2 (Xvfb, 1280×720), speed 3, 150 s after a 60 s warm-up, every frame
 timed. These show direction, not Windows frame rates (see [the note on measuring under
-WSL](PERFORMANCE_CASE_STUDY_2.md#a-note-on-measuring-under-wsl)): the vanilla runs are limited by
-WSL's GL layer, with the main thread only 75% busy, while the modded runs are limited by the main
-thread on any platform.
+WSL](PERFORMANCE_CASE_STUDY_2.md#a-note-on-measuring-under-wsl)). WSL's GL layer limits the
+vanilla runs, with the main thread only 75% busy. The main thread limits the modded runs on any
+platform.
 
 | Run | fps | Median frame | p99 frame |
 |---|---|---|---|
@@ -72,7 +72,7 @@ By system:
 | Brains | 0.40 | 0.64 | Fast Track moves brains to its own threads |
 | Animation updates | 0.48 | 1.24 | Fast Track's animation changes |
 
-The game's own work is about 5 ms a frame with or without mods. The late-game colony in
+The game's work is about 5 ms a frame with or without mods. The late-game colony in
 [PERFORMANCE.md](PERFORMANCE.md) spends about 14 ms there.
 
 ## What the mods cost
@@ -90,7 +90,7 @@ Fast Track also runs about 6.6 ms a frame on its own worker threads, off the mai
 **Fast Track's "Use Mesh Renderers"** (default "All") replaces the game's per-frame mesh drawing
 with about 20,600 persistent mesh renderers for ground tiles and animation batches. In Unity
 that trades many per-frame draw calls for renderers Unity culls natively. In Moono each draw
-call is cheap and each renderer was culled in managed code, once per camera per frame, so the
+call is cheap and each renderer was culled in managed code, once per camera per frame. So the
 option cost more than it saved: setting it to None took the colony from 48.6 to 68.9 fps.
 
 **Pipe Flow Overlay** keeps one icon per pipe segment active on a world-space canvas and hides
@@ -103,10 +103,10 @@ versions of the same work.
 
 ## What changed for it
 
-**Culling keeps renderer bounds until what they read changes.** Each renderer's world bounds were
-found every frame through its components, filter and mesh, several dependent memory reads per
-renderer per camera. They are now kept in flat arrays and reset only when the transform, mesh,
-mesh bounds or bounds overrides change. On this colony with Fast Track's mesh renderers on:
+**Culling keeps renderer bounds until what they read changes.** Culling used to find each
+renderer's world bounds every frame through its components, filter and mesh: several dependent
+memory reads per renderer per camera. It now keeps them in flat arrays and resets them only when
+the transform, mesh, mesh bounds or bounds overrides change. On this colony with Fast Track's mesh renderers on:
 
 | | Before | After |
 |---|---|---|
