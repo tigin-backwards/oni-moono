@@ -1,9 +1,9 @@
 # Moono for Oxygen Not Included
 
 Moono runs Oxygen Not Included on its own engine (unofficial). This folder holds Moono's
-players and a small loader mod, `MoonoLoader.dll`: on the game's U60 update, the game shows a
+players and a small loader mod, `MoonoLoader.dll`. On the game's U60 update, the game shows a
 dialog at the main menu that installs Moono and copies the line for ONI's launch options in
-Steam (the item's row in the Mods screen shows it again). Disable the mod to stop it.
+Steam. The item's row in the Mods screen shows it again. Disable the mod to stop it.
 
 - **Install from the game:** press Copy in that dialog, then in Steam: right-click Oxygen Not
   Included → Properties → Launch Options, paste, then restart the game.
