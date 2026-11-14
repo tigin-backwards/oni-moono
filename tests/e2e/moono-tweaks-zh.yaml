@@ -21,7 +21,7 @@ steps:
   - scroll: {at: "**/MoonoTweaksScreen/**/gpu/**/ManageButton", notches: 0}
   - shot: {name: choice-tip, pointer: stay}
   # The list's end: the gameplay-changing section, its note, a measured gain's tooltip.
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -100}
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -200}
   # KScrollRect keeps scrolling for a few frames after the wheel (its inertia): wait for the
   # list to settle before a shot or a hover.
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
