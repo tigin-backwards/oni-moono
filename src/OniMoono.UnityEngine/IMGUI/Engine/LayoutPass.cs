@@ -39,7 +39,10 @@ namespace OniMoono.Engine.IMGUI
         public void BeginRecord(GUIStyle style)
         {
             root = new LayoutGroup(true, style, null);
-            areas = new LayoutGroup(true, GUIStyle.none, null);
+            // The list of areas is only its entries and cursor: an empty one serves again (most
+            // OnGUI calls begin no area).
+            if (areas.Entries.Count > 0) areas = new LayoutGroup(true, GUIStyle.none, null);
+            areas.Cursor = 0;
             Reset(root);
             recording = true;
         }

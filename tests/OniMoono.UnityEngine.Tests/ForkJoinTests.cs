@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using OniMoono.Desktop.Gl;
 using Xunit;
@@ -28,6 +29,21 @@ namespace OniMoono.Tests
                 });
                 foreach (int h in hits) Assert.Equal(1, h);
             }
+        }
+
+        /// A run object serves the next For once nothing holds it: without helpers always, with
+        /// them unless one is still on its way out of the last run.
+        [Theory]
+        [InlineData(0)]
+        [InlineData(3)]
+        public void RunsAreUsedAgain(int helpers)
+        {
+            var forkJoin = new ForkJoin(helpers);
+            int total = 0;
+            for (int run = 0; run < 2000; run++) forkJoin.For(1 + run % 7, i => Interlocked.Increment(ref total));
+            Assert.Equal(Enumerable.Range(0, 2000).Sum(run => 1 + run % 7), total);
+            if (helpers == 0) Assert.Equal(1, forkJoin.RunsMade);
+            else Assert.True(forkJoin.RunsMade < 2000, $"{forkJoin.RunsMade} runs made");
         }
     }
 }

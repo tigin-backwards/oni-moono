@@ -32,6 +32,29 @@ namespace OniMoono.Tests
             Assert.Same(near.transform, hit.transform);
         }
 
+        /// Queries read one copy of the colliders until one is added or destroyed.
+        [Fact]
+        public void TheCollidersSnapshotLastsUntilTheyChange()
+        {
+            var first = Sphere(new Vector3(0f, 0f, 5f));
+            var snapshot = PhysicsWorld.Snapshot();
+            Assert.Same(snapshot, PhysicsWorld.Snapshot());
+            Assert.True(Physics.Raycast(new Ray(Vector3.zero, Vector3.forward), out _, float.PositiveInfinity, ~0));
+            Assert.Same(snapshot, PhysicsWorld.Snapshot());
+            var second = Sphere(new Vector3(0f, 0f, 3f));
+            var grown = PhysicsWorld.Snapshot();
+            Assert.NotSame(snapshot, grown);
+            Assert.Equal(snapshot.Length + 1, grown.Length);
+            Assert.True(Physics.Raycast(new Ray(Vector3.zero, Vector3.forward), out var hit, float.PositiveInfinity, ~0));
+            Assert.Same(second, hit.collider);
+            Object.DestroyImmediate(second.gameObject);
+            var shrunk = PhysicsWorld.Snapshot();
+            Assert.NotSame(grown, shrunk);
+            Assert.Equal(snapshot.Length, shrunk.Length);
+            Assert.True(Physics.Raycast(new Ray(Vector3.zero, Vector3.forward), out hit, float.PositiveInfinity, ~0));
+            Assert.Same(first, hit.collider);
+        }
+
         [Fact]
         public void RespectsLayerMaskDistanceAndEnabled()
         {

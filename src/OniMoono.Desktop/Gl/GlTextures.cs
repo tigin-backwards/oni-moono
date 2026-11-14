@@ -28,6 +28,8 @@ namespace OniMoono.Desktop.Gl
         /// Main thread: the render target last recorded for this texture alone, and as its own
         /// depth too (GlDevice.SetRenderTarget).
         public GlDevice.BoundTarget BoundAlone, BoundWithDepth;
+        /// The last target of several colour textures recorded with this one first (main thread).
+        public GlDevice.BoundTarget BoundFirst;
 
         public uint Id;
         public uint Target = TexTarget2D;

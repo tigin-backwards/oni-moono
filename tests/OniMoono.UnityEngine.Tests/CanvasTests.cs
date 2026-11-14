@@ -10,6 +10,46 @@ namespace OniMoono.Tests
 {
     public class CanvasTests : EngineTest
     {
+        /// Clear leaves no material; the materialCount after it starts from nulls, in the array
+        /// Clear emptied when the count is the same (the game's anim renderer on a canvas, every
+        /// frame).
+        [Fact]
+        public void ClearAndMaterialCountUseTheMaterialArrayAgain()
+        {
+            var go = new GameObject("Element", typeof(RectTransform));
+            try
+            {
+                var renderer = go.AddComponent<CanvasRenderer>();
+                var data = (OniMoono.Engine.UI.CanvasRendererNative)renderer.Native;
+                var material = new Material(Shader.Find("UI/Default"));
+                renderer.materialCount = 1;
+                renderer.SetMaterial(material, 0);
+                var first = data.Materials;
+                renderer.Clear();
+                Assert.Equal(0, renderer.materialCount);
+                Assert.Null(renderer.GetMaterial(0));
+                renderer.materialCount = 1;
+                Assert.Same(first, data.Materials);
+                Assert.Null(renderer.GetMaterial(0));
+                renderer.SetMaterial(material, 0);
+                Assert.Same(material, renderer.GetMaterial(0));
+
+                renderer.Clear();
+                renderer.materialCount = 2;
+                Assert.NotSame(first, data.Materials);
+                Assert.Null(renderer.GetMaterial(0));
+                Assert.Null(renderer.GetMaterial(1));
+                // Without a Clear between, a count keeps what is set, as before.
+                renderer.SetMaterial(material, 1);
+                renderer.materialCount = 3;
+                Assert.Same(material, renderer.GetMaterial(1));
+                renderer.materialCount = 0;
+                renderer.materialCount = 3;
+                Assert.Null(renderer.GetMaterial(1));
+            }
+            finally { Object.DestroyImmediate(go); }
+        }
+
         /// SetMesh copies the mesh as it is then: a later change shows only with the next
         /// SetMesh, and setting the same mesh again unchanged (the game's UI animations, every
         /// frame) takes the same copy.
