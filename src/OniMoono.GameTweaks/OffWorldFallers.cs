@@ -24,13 +24,34 @@ namespace OniMoono.GameTweaks
     /// still be below the grid's bottom row, and so would the cell under it (later steps are no slower; a step's time is fixed for
     /// its update rate). Only items are landed: objects whose landing is the item one.
     ///
+    /// The game's step is not patched: a Harmony-patched copy of that loop runs about half as
+    /// slow again for every falling object. The tweak runs around the step instead, from
+    /// KComponentSpawn.Sim33ms (its KComponents.Sim33ms calls every component manager's
+    /// FixedUpdate, and the gravity step is the only one there is). Before the step, the falling
+    /// items near the grid's bottom row are noted with their positions (FallerCandidates: every
+    /// falling item is looked at about twice a game second, the ones that just started falling
+    /// at each step). After it, the noted ones the step reached and did not move are tested
+    /// (OffWorldFallersCore.Lands) and landed in the step's order. Those are the objects the
+    /// transpiler this replaces landed, after the same step, in the same order. Two cases land
+    /// later than they did: an object that starts falling during a step, in place to hang at
+    /// once, by one step; one that another system moves to where it hangs, by up to half a game
+    /// second.
+    ///
     /// What changes: the object stops counting as falling (GameComps.Gravities.Has) and no Landed
     /// event is sent (an item's handler would only play a sound, or delete one landing outside the
     /// grid). It stays where it was. If its rocket interior is destroyed and its items are moved to
     /// the world below, it falls from there at rest instead of at the speed it had. Gravity is not
     /// saved: after a load the object falls again until its first step lands it.
+    ///
+    /// Off for the session while another mod patches the step with anything but a postfix (the
+    /// tests mirror the step's own; checked at the first step and every 256). With
+    /// ONI_TWEAK_VERIFY=1 the transpiler is installed as well, only noting what it would land:
+    /// each step's landings are compared with its list (the same objects in the same order), and
+    /// each landed object is checked for having stopped falling where it was.
     [GameMember(GameUse.Uses, "System.Action`1<UnityEngine.Transform> FallerComponents::OnLandedAction")]
-    [GameMember(GameUse.Postfix | GameUse.Transpiler, "System.Void GravityComponents::FixedUpdate(System.Single)", "740814f5168a2a2f linux-744825 win-744825", "8ae11e603474819f linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023", Rewrites = 1)]
+    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Mirrors, "System.Void KComponentSpawn::Sim33ms(System.Single)", "74ea4782a52fac80 linux-744825 win-744825", "ec3fbbeed101a661 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
+    [GameMember(GameUse.Mirrors, "System.Void KComponents::Sim33ms(System.Single)", "c9d0da7c6bd7583c linux-744825 win-744825", "c1a5748c67d71b42 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
+    [GameMember(GameUse.Transpiler | GameUse.Mirrors, "System.Void GravityComponents::FixedUpdate(System.Single)", "740814f5168a2a2f linux-744825 win-744825", "8ae11e603474819f linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023", Rewrites = 1)]
     [GameMember(GameUse.Uses, "System.Boolean Grid::IsValidCellInWorld(System.Int32,System.Int32)")]
     [GameMember(GameUse.Uses, "UnityEngine.Vector3 TransformExtensions::GetPosition(UnityEngine.Transform)")]
     [GameMember(GameUse.Uses, "System.Single GravityComponent::GetGroundOffset(GravityComponent)")]
@@ -39,84 +60,290 @@ namespace OniMoono.GameTweaks
     {
         public const string Name = "off-world-fallers";
 
-        static readonly List<Transform> landing = new List<Transform>();
+        static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
+
+        /// Test infrastructure (PerfProbe): true leaves both passes out, for an A/B in one run.
+        public static bool Bypass;
+
+        static readonly FallerCandidates<Transform> candidates = new FallerCandidates<Transform>();
+        static readonly List<(int Index, Transform Key)> landing = new List<(int, Transform)>();
         static Action<Transform> itemLanding;
-        static bool loggedOnce;
+        static GravityComponents watching;
+        static bool off, loggedOnce;
+        static long steps;
+
+        /// For tests (E2eDriver's state reads) and the verify log: the objects landed, the steps
+        /// compared with the transpiler's list and the differences found.
+        public static long Landed, Compared, Differed;
 
         public static void Install(Harmony harmony)
         {
             itemLanding = FallerComponents.OnLandedAction;
-            var fixedUpdate = AccessTools.Method(typeof(GravityComponents), nameof(GravityComponents.FixedUpdate));
-            harmony.Patch(fixedUpdate, transpiler: new HarmonyMethod(typeof(OffWorldFallers), nameof(Transpiler)),
-                postfix: new HarmonyMethod(typeof(OffWorldFallers), nameof(Land)));
+            harmony.Patch(Hook(), prefix: new HarmonyMethod(typeof(OffWorldFallers), nameof(Before)),
+                postfix: new HarmonyMethod(typeof(OffWorldFallers), nameof(After)));
+            if (verify) Transpiled.Install(harmony, lands: false);
         }
 
-        /// The step's last test, `Grid.IsValidCellInWorld(next, world)` (false: the object is left
-        /// in place), becomes `InWorld(next, world, component, position, groundOffset, dt)`.
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase original)
+        /// The scheduler's call of every component manager's FixedUpdate: the gravity step.
+        [MirrorsGame("System.Void KComponentSpawn::Sim33ms(System.Single)")]
+        [MirrorsGame("System.Void KComponents::Sim33ms(System.Single)")]
+        static MethodBase Hook() => AccessTools.Method(typeof(KComponentSpawn), nameof(KComponentSpawn.Sim33ms));
+
+        /// The methods another owner's patch makes this tweak stand down (ModOverlaps): the step
+        /// whose tests it mirrors.
+        internal static IEnumerable<MethodBase> Guarded() => new MethodBase[]
         {
-            var list = new List<CodeInstruction>(instructions);
-            var inWorld = AccessTools.Method(typeof(Grid), nameof(Grid.IsValidCellInWorld));
-            var getPosition = AccessTools.Method(typeof(TransformExtensions), nameof(TransformExtensions.GetPosition), [typeof(Transform)]);
-            var groundOffset = AccessTools.Method(typeof(GravityComponent), nameof(GravityComponent.GetGroundOffset), [typeof(GravityComponent)]);
-            var mayLeaveWorld = AccessTools.Field(typeof(GravityComponent), nameof(GravityComponent.mayLeaveWorld));
-            int calls = list.FindAll(i => i.Calls(inWorld)).Count;
-            int at = list.FindIndex(i => i.Calls(inWorld));
-            int position = list.FindIndex(i => i.Calls(getPosition));
-            int offset = list.FindIndex(i => i.Calls(groundOffset));
-            int component = list.FindIndex(i => i.LoadsField(mayLeaveWorld));
-            if (calls != 1 || position < 0 || offset < 0 || component < 1)
-                throw new InvalidOperationException($"{Name}: GravityComponents.FixedUpdate is not as expected ({calls} IsValidCellInWorld calls)");
-            list[at].operand = AccessTools.Method(typeof(OffWorldFallers), nameof(InWorld));
-            list.InsertRange(at, new[]
+            AccessTools.Method(typeof(GravityComponents), nameof(GravityComponents.FixedUpdate)),
+        };
+
+        /// Which patches of the step count: a postfix runs after the game's step as before.
+        internal static ProbeRepairPolicy.GuardedKinds KindsOf(MethodBase m) => ProbeRepairPolicy.GuardedKinds.AllButPostfixes;
+
+        static bool Foreign()
+        {
+            foreach (var method in Guarded())
             {
-                list[component - 1].Clone(),
-                LoadOf(list[position + 1]),
-                LoadOf(list[offset + 1]),
-                new CodeInstruction(OpCodes.Ldarg_1),
-            });
-            OniMoono.Tweaks.TranspilerCounts.Report(Name, original, 1);
-            return list;
-        }
-
-        /// The load of the local that `store` stores to.
-        static CodeInstruction LoadOf(CodeInstruction store)
-        {
-            if (store.opcode == OpCodes.Stloc_0) return new CodeInstruction(OpCodes.Ldloc_0);
-            if (store.opcode == OpCodes.Stloc_1) return new CodeInstruction(OpCodes.Ldloc_1);
-            if (store.opcode == OpCodes.Stloc_2) return new CodeInstruction(OpCodes.Ldloc_2);
-            if (store.opcode == OpCodes.Stloc_3) return new CodeInstruction(OpCodes.Ldloc_3);
-            if (store.opcode == OpCodes.Stloc_S || store.opcode == OpCodes.Stloc) return new CodeInstruction(OpCodes.Ldloc, store.operand);
-            throw new InvalidOperationException($"{Name}: expected a local store after a call in GravityComponents.FixedUpdate, found {store.opcode}");
-        }
-
-        static bool InWorld(int cell, int world, GravityComponent component, Vector3 position, float groundOffset, float dt)
-        {
-            if (Grid.IsValidCellInWorld(cell, world)) return true;
-            if (component.onLanded == itemLanding && component.velocity.x == 0f && component.velocity.y < 0f
-                && !Grid.IsValidCell(Grid.PosToCell((Vector2)position - new Vector2(0f, groundOffset))))
-            {
-                var slowest = (Vector2)position + new Vector2(0f, component.velocity.y * 0.5f) * dt;
-                if (Grid.PosToCell(slowest) < 0 && Grid.PosToCell(slowest - new Vector2(0f, groundOffset)) < 0) landing.Add(component.transform);
+                var info = Harmony.GetPatchInfo(method);
+                if (info == null) continue;
+                var owners = ProbeRepairPolicy.Counted(KindsOf(method), Owners(info.Prefixes), Owners(info.Postfixes),
+                    Owners(info.Transpilers), Owners(info.Finalizers), Array.Empty<string>());
+                string name = $"{method.DeclaringType?.Name}.{method.Name}";
+                if (ProbeRepairPolicy.Foreign(new[] { new KeyValuePair<string, IEnumerable<string>>(name, owners) }) is { } foreign)
+                {
+                    global::Debug.Log($"[engine] {Name}: off ({foreign})");
+                    return true;
+                }
             }
             return false;
         }
 
-        /// After the steps: the objects left in place for good land.
-        static void Land()
+        static IEnumerable<string> Owners(IEnumerable<Patch> patches)
         {
+            foreach (var p in patches) yield return p.owner;
+        }
+
+        /// GameComps.Gravities and Grid, as the passes read them.
+        struct Fallers : IFallerWorld<Transform>
+        {
+            public GravityComponents Gravities;
+            public List<GravityComponent> Data;
+
+            public int PosToCell(float x, float y) => Grid.PosToCell(new Vector2(x, y));
+            public bool IsValidCell(int cell) => Grid.IsValidCell(cell);
+            public byte World(int cell) => Grid.WorldIdx[cell];
+            public int Count => Data.Count;
+            public float Elapsed(int i) => Data[i].elapsedTime;
+            public float MaxVelocity => TuningData<GravityComponents.Tuning>.Get().maxVelocity;
+
+            public bool Item(int i, out Transform key, out Faller faller)
+            {
+                var component = Data[i];
+                key = component.transform;
+                faller = default;
+                if (component.onLanded != itemLanding || component.mayLeaveWorld || key == null) return false;
+                faller = Read(component, i);
+                return true;
+            }
+
+            public bool Find(Transform key, bool falling, out Faller faller)
+            {
+                faller = default;
+                if (key == null) return false;
+                var go = key.gameObject;
+                var handle = Gravities.GetHandle(go);
+                if (!handle.IsValid() || (falling && !Gravities.Has(go))) return false;
+                int index = Gravities.ComputeIndex(handle);
+                faller = Read(Data[index], index);
+                return true;
+            }
+
+            static Faller Read(GravityComponent component, int index)
+            {
+                var position = component.transform.GetPosition();
+                return new Faller
+                {
+                    X = position.x, Y = position.y, VelocityX = component.velocity.x, VelocityY = component.velocity.y, Elapsed = component.elapsedTime,
+                    GroundOffset = GravityComponent.GetGroundOffset(component), MayLeaveWorld = component.mayLeaveWorld,
+                    ItemLanding = component.onLanded == itemLanding, Index = index,
+                };
+            }
+        }
+
+        static Fallers Watching() => new Fallers { Gravities = watching, Data = watching.GetDataList() };
+
+        /// Before the step: the objects to test after it, as they are now.
+        static void Before(float dt)
+        {
+            if (off || Bypass) return;
+            if ((steps++ & 0xFF) == 0 && (off = Foreign()))
+            {
+                candidates.Clear();
+                return;
+            }
+            var gravities = GameComps.Gravities;
+            if (!ReferenceEquals(gravities, watching))
+            {
+                watching = gravities;
+                candidates.Clear();
+            }
+            if (gravities == null) return;
+            var world = Watching();
+            OffWorldFallersCore.Before(candidates, ref world, dt);
+        }
+
+        /// After the step: the watched objects it left in place for good land, in its order.
+        static void After(float dt)
+        {
+            if (off || Bypass || watching == null || !ReferenceEquals(GameComps.Gravities, watching))
+            {
+                Transpiled.Landing.Clear();
+                return;
+            }
+            var world = Watching();
+            OffWorldFallersCore.After(candidates, ref world, dt, landing);
+            if (verify) Compare();
             if (landing.Count == 0) return;
             int count = 0;
-            foreach (var transform in landing)
+            try
             {
-                if (transform == null || !GameComps.Gravities.Has(transform.gameObject)) continue;
-                itemLanding(transform);
-                count++;
+                foreach (var (_, transform) in landing)
+                {
+                    if (transform == null || !watching.Has(transform.gameObject)) continue;
+                    var was = verify ? transform.GetPosition() : default;
+                    itemLanding(transform);
+                    count++;
+                    if (verify && (watching.Has(transform.gameObject) || transform.GetPosition() != was))
+                    {
+                        Differed++;
+                        global::Debug.Log($"[engine] {Name}: {transform.name} still falls or moved when landed ({Differed})");
+                    }
+                }
             }
-            landing.Clear();
+            finally
+            {
+                landing.Clear();
+            }
+            Landed += count;
             // Logged for the first landing and for large batches (a save's objects, after a load).
             if (count > 0 && (!loggedOnce || count >= 100)) Debug.Log($"[engine] {Name}: {count} objects landed below their worlds");
             loggedOnce |= count > 0;
+        }
+
+        /// ONI_TWEAK_VERIFY: this step's landings against the transpiler's list for it, which is
+        /// what the game's own test left in place for good (the objects still falling, as its
+        /// postfix landed them).
+        static void Compare()
+        {
+            var theirs = Transpiled.Landing;
+            theirs.RemoveAll(t => t == null || !GameComps.Gravities.Has(t.gameObject));
+            Compared++;
+            bool same = theirs.Count == landing.Count;
+            for (int i = 0; same && i < theirs.Count; i++) same = ReferenceEquals(theirs[i], landing[i].Key);
+            if (!same)
+            {
+                Differed++;
+                string first = "";
+                for (int i = 0; i < Math.Max(theirs.Count, landing.Count); i++)
+                    if (i >= theirs.Count || i >= landing.Count || !ReferenceEquals(theirs[i], landing[i].Key))
+                    {
+                        var t = i < theirs.Count ? theirs[i] : null;
+                        var l = i < landing.Count ? landing[i].Key : null;
+                        first = $", first at {i}: the transpiler's {(t != null ? t.name + " " + t.GetPosition() : "none")}, this one's {(l != null ? l.name + " " + l.GetPosition() : "none")}";
+                        break;
+                    }
+                global::Debug.Log($"[engine] {Name}: step {Compared} differs from the transpiler's: it lands {landing.Count} objects, the transpiler {theirs.Count}{first}");
+            }
+            if (theirs.Count > 0 || (Compared & 0x3FF) == 0)
+                global::Debug.Log($"[engine] {Name}: {Compared} steps compared with the transpiler, {Landed + landing.Count} objects landed, {Differed} differed");
+            theirs.Clear();
+        }
+
+        /// The tweak as it was until 2026-11-14: a transpiler of the game's step and a postfix
+        /// landing what it found. Kept for ONI_TWEAK_VERIFY (`lands` false: it only notes what it
+        /// would land, in Landing) and for measuring against (PerfProbe installs it whole).
+        public static class Transpiled
+        {
+            internal static readonly List<Transform> Landing = new List<Transform>();
+
+            /// Test infrastructure (PerfProbe): true notes and lands nothing, for an A/B in one run.
+            public static bool Idle;
+
+            public static void Install(Harmony harmony, bool lands)
+            {
+                itemLanding = FallerComponents.OnLandedAction;
+                var fixedUpdate = AccessTools.Method(typeof(GravityComponents), nameof(GravityComponents.FixedUpdate));
+                harmony.Patch(fixedUpdate, transpiler: new HarmonyMethod(typeof(Transpiled), nameof(Transpiler)),
+                    postfix: lands ? new HarmonyMethod(typeof(Transpiled), nameof(Land)) : null);
+            }
+
+            /// The step's last test, `Grid.IsValidCellInWorld(next, world)` (false: the object is left
+            /// in place), becomes `InWorld(next, world, component, position, groundOffset, dt)`.
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase original)
+            {
+                var list = new List<CodeInstruction>(instructions);
+                var inWorld = AccessTools.Method(typeof(Grid), nameof(Grid.IsValidCellInWorld));
+                var getPosition = AccessTools.Method(typeof(TransformExtensions), nameof(TransformExtensions.GetPosition), [typeof(Transform)]);
+                var groundOffset = AccessTools.Method(typeof(GravityComponent), nameof(GravityComponent.GetGroundOffset), [typeof(GravityComponent)]);
+                var mayLeaveWorld = AccessTools.Field(typeof(GravityComponent), nameof(GravityComponent.mayLeaveWorld));
+                int calls = list.FindAll(i => i.Calls(inWorld)).Count;
+                int at = list.FindIndex(i => i.Calls(inWorld));
+                int position = list.FindIndex(i => i.Calls(getPosition));
+                int offset = list.FindIndex(i => i.Calls(groundOffset));
+                int component = list.FindIndex(i => i.LoadsField(mayLeaveWorld));
+                if (calls != 1 || position < 0 || offset < 0 || component < 1)
+                    throw new InvalidOperationException($"{Name}: GravityComponents.FixedUpdate is not as expected ({calls} IsValidCellInWorld calls)");
+                list[at].operand = AccessTools.Method(typeof(Transpiled), nameof(InWorld));
+                list.InsertRange(at, new[]
+                {
+                    list[component - 1].Clone(),
+                    LoadOf(list[position + 1]),
+                    LoadOf(list[offset + 1]),
+                    new CodeInstruction(OpCodes.Ldarg_1),
+                });
+                OniMoono.Tweaks.TranspilerCounts.Report(Name, original, 1);
+                return list;
+            }
+
+            /// The load of the local that `store` stores to.
+            static CodeInstruction LoadOf(CodeInstruction store)
+            {
+                if (store.opcode == OpCodes.Stloc_0) return new CodeInstruction(OpCodes.Ldloc_0);
+                if (store.opcode == OpCodes.Stloc_1) return new CodeInstruction(OpCodes.Ldloc_1);
+                if (store.opcode == OpCodes.Stloc_2) return new CodeInstruction(OpCodes.Ldloc_2);
+                if (store.opcode == OpCodes.Stloc_3) return new CodeInstruction(OpCodes.Ldloc_3);
+                if (store.opcode == OpCodes.Stloc_S || store.opcode == OpCodes.Stloc) return new CodeInstruction(OpCodes.Ldloc, store.operand);
+                throw new InvalidOperationException($"{Name}: expected a local store after a call in GravityComponents.FixedUpdate, found {store.opcode}");
+            }
+
+            static bool InWorld(int cell, int world, GravityComponent component, Vector3 position, float groundOffset, float dt)
+            {
+                if (Grid.IsValidCellInWorld(cell, world)) return true;
+                if (Idle) return false;
+                if (component.onLanded == itemLanding && component.velocity.x == 0f && component.velocity.y < 0f
+                    && !Grid.IsValidCell(Grid.PosToCell((Vector2)position - new Vector2(0f, groundOffset))))
+                {
+                    var slowest = (Vector2)position + new Vector2(0f, component.velocity.y * 0.5f) * dt;
+                    if (Grid.PosToCell(slowest) < 0 && Grid.PosToCell(slowest - new Vector2(0f, groundOffset)) < 0) Landing.Add(component.transform);
+                }
+                return false;
+            }
+
+            /// After the steps: the objects left in place for good land.
+            static void Land()
+            {
+                if (Landing.Count == 0) return;
+                int count = 0;
+                foreach (var transform in Landing)
+                {
+                    if (transform == null || !GameComps.Gravities.Has(transform.gameObject)) continue;
+                    itemLanding(transform);
+                    count++;
+                }
+                Landing.Clear();
+                // Logged for the first landing and for large batches (a save's objects, after a load).
+                if (count > 0 && (!loggedOnce || count >= 100)) Debug.Log($"[engine] {Name}: {count} objects landed below their worlds (transpiler)");
+                loggedOnce |= count > 0;
+            }
         }
     }
 }

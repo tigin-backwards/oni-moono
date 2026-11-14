@@ -218,7 +218,7 @@ def image(reference, new, diff, *options):
 # A summary is a line of a check's name whose report counts what must be zero ("0 wrong");
 # compact-nav-links and paged-path-grids name the moment ("nav links verify (in play)").
 VERIFY_NAMES = (
-    r'(fast-[a-z-]+|path-probe-repair|instant-reachability|trim-anim-lists|nav links verify(?: \([a-z ]+\))?|path grids verify'
+    r'(fast-[a-z-]+|path-probe-repair|instant-reachability|off-world-fallers|trim-anim-lists|nav links verify(?: \([a-z ]+\))?|path grids verify'
     r'|canvas skips?|canvas products|component layouts|texel copies|partial uploads|parallel draws|bindless handles'
     r'|bundle blocks|vulkan draws|raw texture loads|raycast cache|cull cache|fetch-by-cell|canvas cull|mesh reuse|property sheets|pass states|child lists)'
 )

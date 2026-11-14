@@ -214,6 +214,7 @@ namespace OniMoono.GameTweaks
             Add(FastConduitSorts.Name, FastConduitSorts.Guarded);
             Add(FastOverlayRemovals.Name, FastOverlayRemovals.Guarded);
             Add(DirectRailBridges.Name, DirectRailBridges.Guarded);
+            Add(OffWorldFallers.Name, OffWorldFallers.Guarded, OffWorldFallers.KindsOf);
             return guards;
         }
     }
