@@ -132,6 +132,19 @@ class VerifySummary(unittest.TestCase):
         )
         self.assertVerdicts(result, 1, 'FAIL nav links verify (in play):', 'FAIL path grids verify:')
 
+    def test_off_world_fallers(self):
+        landed = '[engine] off-world-fallers: 17539 objects landed below their worlds'
+        clean = '[engine] off-world-fallers: 2048 steps compared with the transpiler, 17539 objects landed, 0 differed'
+        self.assertVerdicts(verify(landed, clean), 0, 'ok   off-world-fallers:')
+        result = verify(
+            landed,
+            "[engine] off-world-fallers: step 7 differs from the transpiler's: it lands 0 objects, the transpiler 1, "
+            "first at 0: the transpiler's Diamond (29.5, -0.9, 0.0), this one's none",
+            '[engine] off-world-fallers: Diamond still falls or moved when landed (2)',
+            '[engine] off-world-fallers: 2048 steps compared with the transpiler, 17539 objects landed, 2 differed',
+        )
+        self.assertVerdicts(result, 1, 'FAIL off-world-fallers:', 'FAIL incident off-world-fallers: step 7', 'FAIL incident off-world-fallers: Diamond')
+
     def test_trim_and_load_screen_differ(self):
         result = verify(
             '[18:42:40.000] [1] [INFO] trim-anim-lists: 5923 lists trimmed, 66.5 MB freed, 4 differed',
