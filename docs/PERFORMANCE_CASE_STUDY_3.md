@@ -61,6 +61,17 @@ On the original save, with the stuck objects:
 | Frame rate, `exact` tweaks | about 6.1&nbsp;fps (5.9–6.2) | about 18.6&nbsp;fps (16.5–19.3) | about 3× |
 | Frame rate, every tweak (with `off-world-fallers`) | | about 25&nbsp;fps (24.4–26.0) | about 4.1× |
 
+The same save on 2026-11-13 (v2026.11.13.02 on U59, one launch of the original and two of each
+Moono configuration; v2026.11.13.03 on U60, one launch each;
+[research/reprofile-2026-11-13.md](research/reprofile-2026-11-13.md)):
+
+| | Original | Moono | |
+|---|---|---|---|
+| U59: frame rate, default tweaks | 6.1&nbsp;fps | about 29&nbsp;fps (27.9–29.2) | about 4.7× |
+| U59: frame rate, every tweak (with `off-world-fallers`) | | about 49&nbsp;fps (47.4–49.7) | about 8× |
+| U60: frame rate, default tweaks | 4.7&nbsp;fps | 28.7&nbsp;fps | about 6.2× |
+| U60: frame rate, every tweak (with `off-world-fallers`) | | 52.9&nbsp;fps | about 11× |
+
 ## How it differs from U57
 
 - **The gain is smaller:** about 3× against U57's 7×. U57's frame had a few large costs the
