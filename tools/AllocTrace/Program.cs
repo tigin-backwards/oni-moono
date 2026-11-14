@@ -19,6 +19,9 @@ if (args.Length != 2)
 string etlx = TraceLog.CreateFromEventPipeDataFile(args[0]);
 using var log = new TraceLog(etlx);
 using var output = new StreamWriter(args[1], false, new UTF8Encoding(false));
+// A first line of two fields (skipped by readers of samples): the trace's start, UTC, for lining
+// the samples' times up with a log's.
+output.Write("# start\t" + log.SessionStartTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) + "\n");
 var source = log.Events.GetSource();
 long samples = 0;
 var frames = new List<string>();

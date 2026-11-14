@@ -45,7 +45,6 @@ namespace PerfProbe
         static readonly List<Site> stack = new List<Site>();
         static readonly Site other = new Site { Name = "(other)" };
         static readonly List<Site> all = new List<Site> { other };
-        static readonly Dictionary<MethodBase, Site> byMethod = new Dictionary<MethodBase, Site>();
         static readonly Dictionary<StateMachineUpdater.BaseUpdateBucket, Site> byBucket = new Dictionary<StateMachineUpdater.BaseUpdateBucket, Site>();
         static readonly Dictionary<string, Site> byName = new Dictionary<string, Site>();
         static AccessTools.FieldRef<StateMachineUpdater.BucketGroup, List<List<StateMachineUpdater.BaseUpdateBucket>>> bucketFrames;
@@ -68,7 +67,6 @@ namespace PerfProbe
                 kind = "the main thread's own";
             }
             mainThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
-            var enter = new HarmonyMethod(typeof(AllocSites), nameof(Enter));
             var leave = new HarmonyMethod(typeof(AllocSites), nameof(Leave));
             int patched = 0;
             foreach (var entry in Methods)
@@ -83,8 +81,9 @@ namespace PerfProbe
                         if (method.Name != name || method.IsAbstract || method.ContainsGenericParameters) continue;
                         try
                         {
-                            harmony.Patch(method, prefix: enter, finalizer: leave);
-                            byMethod[method] = Named(label);
+                            if (patched >= Hooks) throw new InvalidOperationException("no hook left");
+                            hookSites[patched] = Named(label);
+                            harmony.Patch(method, prefix: new HarmonyMethod(typeof(AllocSites), "E" + patched), finalizer: leave);
                             found = true;
                             patched++;
                         }
@@ -132,13 +131,62 @@ namespace PerfProbe
             stack.RemoveAt(stack.Count - 1);
         }
 
-        static void Enter(MethodBase __originalMethod, out bool __state)
+        /// A patched method's prefix, one method each (E0, E1, ...): it knows its section without
+        /// Harmony's `__originalMethod`, which .NET hands out anew at each call (a method
+        /// handle's stub, 48 B for the prefix and again for the finalizer: 2.2 KB a frame over
+        /// these methods, counted as the sections' own; Mono hands out none). In this class, as
+        /// Leave: Harmony shares `__state` among one class's patches.
+        const int Hooks = 40;
+        static readonly Site[] hookSites = new Site[Hooks];
+
+        static void Enter(int hook, out bool __state)
         {
             __state = false;
-            if (!OnMain || !byMethod.TryGetValue(__originalMethod, out var site)) return;
-            Push(site);
+            if (!OnMain) return;
+            Push(hookSites[hook]);
             __state = true;
         }
+
+        static void E0(out bool __state) => Enter(0, out __state);
+        static void E1(out bool __state) => Enter(1, out __state);
+        static void E2(out bool __state) => Enter(2, out __state);
+        static void E3(out bool __state) => Enter(3, out __state);
+        static void E4(out bool __state) => Enter(4, out __state);
+        static void E5(out bool __state) => Enter(5, out __state);
+        static void E6(out bool __state) => Enter(6, out __state);
+        static void E7(out bool __state) => Enter(7, out __state);
+        static void E8(out bool __state) => Enter(8, out __state);
+        static void E9(out bool __state) => Enter(9, out __state);
+        static void E10(out bool __state) => Enter(10, out __state);
+        static void E11(out bool __state) => Enter(11, out __state);
+        static void E12(out bool __state) => Enter(12, out __state);
+        static void E13(out bool __state) => Enter(13, out __state);
+        static void E14(out bool __state) => Enter(14, out __state);
+        static void E15(out bool __state) => Enter(15, out __state);
+        static void E16(out bool __state) => Enter(16, out __state);
+        static void E17(out bool __state) => Enter(17, out __state);
+        static void E18(out bool __state) => Enter(18, out __state);
+        static void E19(out bool __state) => Enter(19, out __state);
+        static void E20(out bool __state) => Enter(20, out __state);
+        static void E21(out bool __state) => Enter(21, out __state);
+        static void E22(out bool __state) => Enter(22, out __state);
+        static void E23(out bool __state) => Enter(23, out __state);
+        static void E24(out bool __state) => Enter(24, out __state);
+        static void E25(out bool __state) => Enter(25, out __state);
+        static void E26(out bool __state) => Enter(26, out __state);
+        static void E27(out bool __state) => Enter(27, out __state);
+        static void E28(out bool __state) => Enter(28, out __state);
+        static void E29(out bool __state) => Enter(29, out __state);
+        static void E30(out bool __state) => Enter(30, out __state);
+        static void E31(out bool __state) => Enter(31, out __state);
+        static void E32(out bool __state) => Enter(32, out __state);
+        static void E33(out bool __state) => Enter(33, out __state);
+        static void E34(out bool __state) => Enter(34, out __state);
+        static void E35(out bool __state) => Enter(35, out __state);
+        static void E36(out bool __state) => Enter(36, out __state);
+        static void E37(out bool __state) => Enter(37, out __state);
+        static void E38(out bool __state) => Enter(38, out __state);
+        static void E39(out bool __state) => Enter(39, out __state);
 
         static void Leave(bool __state)
         {
