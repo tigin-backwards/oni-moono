@@ -19,7 +19,15 @@ namespace OniMoono.Engine
 
         public TransformNative this[int index] => (uint)index < (uint)count ? items[index] : throw new IndexOutOfRangeException();
 
-        public int IndexOf(TransformNative child) => Array.IndexOf(items, child, 0, count);
+        /// By reference (a TransformNative is equal only to itself): Array.IndexOf would call
+        /// Equals on every child before it.
+        public int IndexOf(TransformNative child)
+        {
+            var list = items;
+            for (int i = 0; i < count && i < list.Length; i++)
+                if (ReferenceEquals(list[i], child)) return i;
+            return -1;
+        }
 
         public TransformNative[] ToArray() => items.AsSpan(0, count).ToArray();
 
