@@ -1923,6 +1923,25 @@ namespace OniMoono.Engine.UI
         static bool IsOverlay(CanvasNative root) => root.RenderMode == RenderMode.ScreenSpaceOverlay
                                                      || (root.RenderMode == RenderMode.ScreenSpaceCamera && root.WorldCamera == null);
 
+        /// The camera an overlay canvas draws with, for `projection` (screen pixels to clip
+        /// space): the projection takes the canvas's units, a pixel over its scale factor, and
+        /// the view takes screen pixels (overlay world space) to those units, so every vertex
+        /// lands where `projection` alone puts it. Shaders that size a pixel from the projection
+        /// and _ScreenParams then count the scale factor in, as TextMesh Pro's do for a glyph's
+        /// edge and a clip rect's, and UI/Default for a clip rect's: TextMesh Pro leaves the
+        /// factor out of an overlay text's SDF scale for that reason (TextMeshProUGUI's
+        /// SdfScaleFactor). Without it a glyph's edge was the factor wider than the original's
+        /// (measured at 3840x2160, 132% UI scale, factor 1.7556). A canvas that is an overlay
+        /// only for want of its camera has the plain camera.
+        internal static CameraConstants OverlayCamera(CanvasNative root, Matrix4x4 projection, Vector2 targetSize)
+        {
+            float scale = root.RenderMode == RenderMode.ScreenSpaceOverlay ? root.ScaleFactor : 1f;
+            if (!(scale > 0f) || float.IsInfinity(scale) || scale == 1f)
+                return new CameraConstants(Matrix4x4.identity, projection, Vector3.zero, -1000f, 1000f, true, targetSize);
+            var view = Matrix4x4.Scale(new Vector3(1f / scale, 1f / scale, 1f));
+            return new CameraConstants(view, projection * Matrix4x4.Scale(new Vector3(scale, scale, 1f)), Vector3.zero, -1000f, 1000f, true, targetSize);
+        }
+
         /// Overlay canvases draw after every camera, in render order, in screen pixels, over a
         /// depth buffer cleared once before the first of them. Measured in the original
         /// (UnityProbe UiZTest): a shader that tests depth itself (the Colony Summary's chart lines,
@@ -1945,6 +1964,7 @@ namespace OniMoono.Engine.UI
                     device.Clear(false, true, default, 1f);
                     bound = true;
                 }
+                device.SetCamera(OverlayCamera(b.Root, FrameRenderer.ScreenProjection(Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f)), size));
                 // Canvas items name no pass (-1).
                 FrameRenderer.DrawQueue(device, Batched(b, overlay: true));
             }
@@ -1966,12 +1986,16 @@ namespace OniMoono.Engine.UI
             device.SetViewport(new Rect(tile.x, tile.y, tile.width, tile.height));
             // The target's size is the area's, as the projection's: shaders that size pixels from
             // both (TextMesh Pro's SDF edges, pixel snapping) see the screen's pixels.
-            device.SetCamera(new CameraConstants(Matrix4x4.identity, Matrix4x4.Ortho(area.xMin, area.xMax, area.yMin, area.yMax, -1000f, 1000f), Vector3.zero, -1000f, 1000f, true, new Vector2(area.width, area.height)));
+            var projection = Matrix4x4.Ortho(area.xMin, area.xMax, area.yMin, area.yMax, -1000f, 1000f);
             freshMeshes = true;
             try
             {
                 foreach (var b in batches)
-                    if (IsOverlay(b.Root) && b.Draws.Count > 0) FrameRenderer.DrawQueue(device, Batched(b, overlay: true));
+                {
+                    if (!IsOverlay(b.Root) || b.Draws.Count == 0) continue;
+                    device.SetCamera(OverlayCamera(b.Root, projection, new Vector2(area.width, area.height)));
+                    FrameRenderer.DrawQueue(device, Batched(b, overlay: true));
+                }
             }
             finally
             {
@@ -2053,7 +2077,11 @@ namespace OniMoono.Engine.UI
                     // overlap changes it.
                     device.Clear(true, true, new Color(0.3f, 0.55f, 0.7f, 0.6f), 1f);
                     foreach (var b in batches)
-                        if (IsOverlay(b.Root) && b.Draws.Count > 0) FrameRenderer.DrawQueue(device, Batched(b, overlay: true));
+                    {
+                        if (!IsOverlay(b.Root) || b.Draws.Count == 0) continue;
+                        device.SetCamera(OverlayCamera(b.Root, Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f), size));
+                        FrameRenderer.DrawQueue(device, Batched(b, overlay: true));
+                    }
                     device.ReadPixelsRgba8(target, new RectInt(0, 0, w, h), pass == 0 ? pixelsOff : pixelsOn, 0, w * 4);
                 }
             }
