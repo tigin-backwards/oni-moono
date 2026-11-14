@@ -20,57 +20,75 @@ The raw working notes, dead ends included, are in
 
 ## How it's measured
 
-On native Windows 11: a Ryzen 7 9800X3D (8 cores, 16 threads), an RTX 3090 with NVIDIA's own
-OpenGL driver. Both players load the same save at 1280×720, windowed, with the same probe mod
+**The machine.** Native Windows 11: a Ryzen 7 9800X3D (8 cores, 16 threads), an RTX 3090 with
+NVIDIA's own OpenGL driver.
+
+**The players.** Both load the same save at 1280×720, windowed, with the same probe mod
 (`tools/PerfProbe`) holding speed 3 and logging the frame rate every 600 frames. The probe also
 turns vsync off and keeps the game from sleeping when its window loses focus (the game slows
 itself down then), the same in both players. The original runs as an isolated copy of the
-installed game; neither touches the user's own saves or Steam account.
+installed game. Neither touches the user's own saves or Steam account.
 
-The tables' figures are from 2026-11-13: releases v2026.11.13.02 (master 01c5dc35) on the game's
-U59 build 744825 and v2026.11.13.03 (u60 77a54e7b) on U60 build 763023, with every DLC, each
-against the original of the same build measured the same day. Each launch is the second in a
-fresh run home (a warm-up launch to the main menu first), unfocused on the second monitor at
-High priority, with no autosaves and the colony's victory sequence held off (PerfProbe's
-`noautosave.txt` and `novictory.txt`), and with each frame's time logged (`frametimes.txt`).
-Moono runs 9 windows of 600 frames, the first 3 left out (warm-up); the original, windows of 200
-frames for up to 240 s, the first 2 left out. A launch's frame rate is the mean of its kept
-windows, and p50 and p99 are over all their frames. A configuration ran once or twice: a cell
-with a range is the median of two launches with both, a cell without is one launch. Runs on a
-desktop move when something else wakes up; on 2026-11-13 two launches of one configuration
-differed by up to 43%. "Default tweaks" is what a player gets with no settings changed
-([TWEAKS.md](TWEAKS.md)); "every tweak" is `--game-tweak all`, which adds `fetch-by-cell`,
-`off-screen-conveyors`, `sim-step-pace`, `brain-rate` and `off-world-fallers`. The launches ran
-without `--frame-stats`, whose timing patches cost up to about 15% of the frame rate with every
-tweak. Nothing records the screen during these runs. The full method, every launch and the
-controls are in [research/reprofile-2026-11-13.md](research/reprofile-2026-11-13.md).
+**The tables' figures** are from 2026-11-13: releases v2026.11.13.02 (master 01c5dc35) on the
+game's U59 build 744825 and v2026.11.13.03 (u60 77a54e7b) on U60 build 763023, with every DLC,
+each against the original of the same build measured the same day.
 
-The rows kept from 2026-11-06 (release v2026.11.06.01, master 4f383caa, U59) ran three launches
-each, with 15 windows of 600 frames and then three autosaves, the victory sequence left on, and
-the working set sampled every second; the original's figures there are from 2026-10-22. The
-breakdown in [Where a frame goes now](#where-a-frame-goes-now) and the tweaks' leave-one-out
+- **A launch** is the second in a fresh run home (a warm-up launch to the main menu first),
+  unfocused on the second monitor at High priority. It has no autosaves and the colony's victory
+  sequence held off (PerfProbe's `noautosave.txt` and `novictory.txt`), and each frame's time
+  is logged (`frametimes.txt`).
+- **Windows.** Moono runs 9 windows of 600 frames, the first 3 left out (warm-up). The original
+  runs windows of 200 frames for up to 240 s, the first 2 left out.
+- **Figures.** A launch's frame rate is the mean of its kept windows, and p50 and p99 are over
+  all their frames.
+- **Launches.** A configuration ran once or twice. A cell with a range is the median of two
+  launches with both, a cell without is one launch.
+- **Spread.** Runs on a desktop move when something else wakes up. On 2026-11-13 two launches of
+  one configuration differed by up to 43%.
+- **"Default tweaks"** is what a player gets with no settings changed ([TWEAKS.md](TWEAKS.md)).
+  **"Every tweak"** is `--game-tweak all`, which adds `fetch-by-cell`, `off-screen-conveyors`,
+  `sim-step-pace`, `brain-rate` and `off-world-fallers`.
+- **No frame stats.** The launches ran without `--frame-stats`, whose timing patches cost up to
+  about 15% of the frame rate with every tweak.
+- Nothing records the screen during these runs.
+
+The full method, every launch and the controls are in
+[research/reprofile-2026-11-13.md](research/reprofile-2026-11-13.md).
+
+**The rows kept from 2026-11-06** (release v2026.11.06.01, master 4f383caa, U59) ran three
+launches each, with 15 windows of 600 frames and then three autosaves, the victory sequence left
+on, and the working set sampled every second. The original's figures there are from 2026-10-22.
+The breakdown in [Where a frame goes now](#where-a-frame-goes-now) and the tweaks' leave-one-out
 figures are also from 2026-11-06.
 
-Earlier numbers were taken on Linux under WSL2, where OpenGL goes through Mesa's Direct3D 12
+**Earlier numbers** were taken on Linux under WSL2, where OpenGL goes through Mesa's Direct3D 12
 backend. That layer makes some driver calls far more expensive than on a native driver (a small
-texture upload cost about 75 µs there against about 2.5 µs on Windows), and the game's own code
+texture upload cost about 75 µs there against about 2.5 µs on Windows), and the game's code
 also ran about half as fast. The case studies' deep dives that still come from Linux say so.
 
 ## Frame stats in a player's log
 
 A player who reports slowness can turn on **Frame stats in the log** (Moono Tweaks, General) or
-start with `--frame-stats`. Player.log then gets, every 60 frames, the frame's phases (`frame
-stats`), the device's counts (`frame counts`: the GL thread's time, draws, uploads, the
-presenter's time per picture) and any frame over 250 ms (`slow frame`). Every 600 frames come
-the scripts' update times (`script time`), memory (`memory:`: the working set and its peak, the
-managed heap, collections; `video memory:`), and these lines,
-all in ms a frame over the window unless they say otherwise. `video memory:` is also logged at
-the main menu, after each scene load and after `Resources.UnloadUnusedAssets`: the driver's free
-memory (NVIDIA's evictions since the device started, and those the whole system saw), the
-device memory asked for by kind (textures by format, render target colour, depth and
-multisampled surfaces, mesh and stream buffers) with each kind's peak since the last line, the CPU memory uploads go through (pooled
-texel copies, texels read ahead of background uploads, all texel memory) and the engine's live
-textures ([research/vram-startup.md](research/vram-startup.md)).
+start with `--frame-stats`. Player.log then gets:
+
+- **Every 60 frames:** the frame's phases (`frame stats`), the device's counts (`frame counts`:
+  the GL thread's time, draws, uploads, the presenter's time per picture) and any frame over
+  250 ms (`slow frame`).
+- **Every 600 frames:** the scripts' update times (`script time`), memory (`memory:`: the
+  working set and its peak, the managed heap, collections; `video memory:`), and the lines
+  listed below.
+- **`video memory:`** also at the main menu, after each scene load and after
+  `Resources.UnloadUnusedAssets`
+  ([research/vram-startup.md](research/vram-startup.md)). It gives:
+  - The driver's free memory (NVIDIA's evictions since the device started, and those the whole
+    system saw).
+  - The device memory asked for by kind (textures by format, render target colour, depth and
+    multisampled surfaces, mesh and stream buffers), with each kind's peak since the last line.
+  - The CPU memory uploads go through (pooled texel copies, texels read ahead of background
+    uploads, all texel memory).
+  - The engine's live textures.
+
+The 600-frame lines, all in ms a frame over the window unless they say otherwise:
 
 - `game speed`: the speed setting, game seconds a real second (what the game asked for, and what
   it got), the sim's 200 ms steps and its calls a frame, how many frames hit the game's limit of
@@ -96,14 +114,18 @@ textures ([research/vram-startup.md](research/vram-startup.md)).
   its rated one. Windows often reports the rated clock as the current one; a `limit` below it
   means the CPU is held back.
 
-The game's parts are timed by patches made at start-up only with frame stats on (a prefix first
-and a postfix last, so mods' patches of a method count in its time). SimDLL's time is that of
-the game's calls of its P/Invokes (the sim's messages, among them the step itself, and the
-conduit temperature update), timed at each call site in Sim, SimMessages and
-ConduitTemperatureManager. With frame stats off none of it is installed or counted. The patches
-cost frame rate where the frame is short: on Windows (2026-11-06) U57 ran at 129 fps with every
-tweak and frame stats on, against 144 with them off, and at 47 against 51 with no tweaks; with
-the default tweaks the two were within the runs' spread (91 and 90). 2minnow lost 6–7% in each.
+How it is timed:
+
+- Patches made at start-up, only with frame stats on, time the game's parts (a prefix first and
+  a postfix last, so mods' patches of a method count in its time).
+- SimDLL's time is that of the game's calls of its P/Invokes (the sim's messages, among them
+  the step itself, and the conduit temperature update), timed at each call site in Sim,
+  SimMessages and ConduitTemperatureManager.
+- With frame stats off none of it is installed or counted.
+- The patches cost frame rate where the frame is short. On Windows (2026-11-06) U57 ran at
+  129 fps with every tweak and frame stats on, against 144 with them off, and at 47 against 51
+  with no tweaks. With the default tweaks the two were within the runs' spread (91 and 90).
+  2minnow lost 6–7% in each.
 
 Two settings for test runs go with frame stats:
 - `ONI_BUCKET_PROFILE=1`: the state machine buckets' loop runs with each bucket timed (the same
@@ -118,24 +140,28 @@ Two settings for test runs go with frame stats:
 ## Perf spread on CI's runners
 
 The **Perf spread** workflow (`.github/workflows/perf-spread.yml`, by hand only) measures how
-steady GitHub's runners are, before any perf number goes into the nightly. Each of its three jobs
-builds the last release (A) and the commit (B) against the stripped game, launches each once to
-warm up, then A and B in turn, five times each, on the same save (early-base by default) under
-Xvfb with Mesa's software renderer, at 960x540. That renderer is slow: early-base runs at about
-6 fps, 2minnow at about 1. Each launch (`scripts/perf-spread.py run`) holds the colony paused for
-three windows of 300 frames (PerfProbe's `pausefirst.txt` and `window.txt`), then runs it at
-speed 3 for four, with `alloc.txt`, `sites.txt` and `--frame-stats`, and stops after 14 minutes
-with what it has; a launch that falls short prints its last error lines. The first window of
-each phase is left out. Each launch's `result.json` is kept as it ends, so a job cut short still
-has a summary. `args` and `b_args` add player arguments to both or to B alone (a tweak the
-release lacks can only be named for B). The job summary and the artifact give, for each label, the
-spread of the counts (allocations per frame paused and per game second running, by update
-section too, collections, draws, texture uploads) and, for each A/B pair, the ratio of the
-medians of main-thread ms a frame and the sim's ms a frame, with the runner's CPU model. The
-times table also has the median frame, the p99 frame and the 1% low (1,000 / the p99 frame, in
-fps), taken over every frame of a launch's measured running windows (PerfProbe's
-`frametimes.txt`); see [research/one-percent-lows.md](research/one-percent-lows.md).
-`scripts/perf-spread.py jobs` sets several jobs' summaries side by side.
+steady GitHub's runners are, before any perf number goes into the nightly.
+
+- **Jobs.** Each of its three jobs builds the last release (A) and the commit (B) against the
+  stripped game. It launches each once to warm up, then A and B in turn, five times each, on the
+  same save (early-base by default) under Xvfb with Mesa's software renderer, at 960x540. That
+  renderer is slow: early-base runs at about 6 fps, 2minnow at about 1.
+- **A launch** (`scripts/perf-spread.py run`) holds the colony paused for three windows of 300
+  frames (PerfProbe's `pausefirst.txt` and `window.txt`), then runs it at speed 3 for four, with
+  `alloc.txt`, `sites.txt` and `--frame-stats`. It stops after 14 minutes with what it has, and
+  a launch that falls short prints its last error lines. The first window of each phase is left
+  out. Each launch's `result.json` is kept as it ends, so a job cut short still has a summary.
+- **Arguments.** `args` and `b_args` add player arguments to both or to B alone (a tweak the
+  release lacks can only be named for B).
+- **Results.** The job summary and the artifact give, for each label, the spread of the counts
+  (allocations per frame paused and per game second running, by update section too, collections,
+  draws, texture uploads). For each A/B pair they give the ratio of the medians of main-thread
+  ms a frame and the sim's ms a frame, with the runner's CPU model.
+- **Frame times.** The times table also has the median frame, the p99 frame and the 1% low
+  (1,000 / the p99 frame, in fps), taken over every frame of a launch's measured running windows
+  (PerfProbe's `frametimes.txt`); see
+  [research/one-percent-lows.md](research/one-percent-lows.md).
+- `scripts/perf-spread.py jobs` sets several jobs' summaries side by side.
 
 ## Perf gates in the nightly
 
@@ -466,20 +492,25 @@ ones marked on by default in [TWEAKS.md](TWEAKS.md); `--game-tweak NAME` names t
 line. The last column says whether the game's results stay exactly the same; those that don't
 are left out of `--game-tweak exact`.
 
-The measured figures are leave-one-out runs on Linux under WSL2 (2026-11-06, v2026.11.06.01),
-which gives the CPU side's direction rather than player-facing frame rates: U57 at speed 3 with
-`--game-tweak all` against `--game-tweak all --game-tweak -NAME`, three runs of 9,000 frames
-each, with `--frame-stats` and `ONI_BUCKET_PROFILE=1`, interleaved over two lanes and over time
-(with three or four lanes each run fell to about 15 fps). "Before" is the runs without the tweak,
-"after" those with every tweak; the ranges are the three runs' means over their steady windows,
-in ms a frame, of the system the tweak targets (from the bucket profile or the frame stats line
-it shows in) and of the whole frame. These runs ran at 27–32 fps, where the whole frame moves by
-about ±2.5 ms from run to run, so a frame difference under that is noise; `brain-rate` does
-nothing below 30 fps. The tweaks whose effect depends on the frame rate or on what's on screen
-were also measured on Windows the same way, three runs each without frame stats (U57, every
-tweak: 143.7–151.4 fps). The tweaks on overlays aren't exercised here (no overlay is open).
-Older measurements that still add something, on other colonies or for tweaks these runs don't
-exercise, are in the notes under the tables, with their dates.
+The measured figures are leave-one-out runs on Linux under WSL2 (2026-11-06, v2026.11.06.01).
+That gives the CPU side's direction, not player-facing frame rates.
+
+- **Runs:** U57 at speed 3 with `--game-tweak all` against `--game-tweak all --game-tweak
+  -NAME`, three runs of 9,000 frames each, with `--frame-stats` and `ONI_BUCKET_PROFILE=1`,
+  interleaved over two lanes and over time (with three or four lanes each run fell to about
+  15 fps).
+- **Before and after:** "before" is the runs without the tweak, "after" those with every tweak.
+  The ranges are the three runs' means over their steady windows, in ms a frame, of the system
+  the tweak targets (from the bucket profile or the frame stats line it shows in) and of the
+  whole frame.
+- **Noise:** these runs ran at 27–32 fps, where the whole frame moves by about ±2.5 ms from run
+  to run, so a frame difference under that is noise. `brain-rate` does nothing below 30 fps.
+- **Windows:** the tweaks whose effect depends on the frame rate or on what's on screen were
+  also measured on Windows the same way, three runs each without frame stats (U57, every tweak:
+  143.7–151.4 fps).
+- **Overlays:** the tweaks on overlays aren't exercised here (no overlay is open).
+- **Older measurements** that still add something, on other colonies or for tweaks these runs
+  don't exercise, are in the notes under the tables, with their dates.
 
 ### On by default, exact
 
@@ -740,17 +771,21 @@ isn't the bottleneck: compiling ahead of time (ReadyToRun) saved nothing measura
 
 ## Start-up
 
-On Windows, every DLC, 1280×720 on the second display, both players with a warm-up launch in the
-same run home first (a second launch: Moono's first launch after a new build also rewrites the
-game's assemblies, about 2.3 s, then cached), priority raised, the machine quiet: the original
-reached the main menu in 17.41 s (2026-10-25) and Moono in 10.4 s with the default tweaks
-(9.9–11.0 s over six launches, 2026-11-06, v2026.11.06.01), about 1.7× faster. With no tweaks it
-was 9.1–10.3 s, and with every tweak 10.05–11.9 s: the tweaks add about a second. These are the
-launches of the tables above (`ONI_STARTUP_STATS=1` on, frame stats off); on 2026-10-25 (master
-ab5b342) Moono took 9.79 s. Recording the screen added about 0.2 s to each (2026-10-25: original
-17.44, 17.61, 17.71 s; Moono 10.90, 10.02, 9.94 s). Moono's window appears after about 1.3 s, the
-original's after 0.45 s; the biggest single wait in both is the game's own FMOD bank loading
-(about 2.8 s).
+**How it was measured:** on Windows, every DLC, 1280×720 on the second display, priority
+raised, the machine quiet. Both players had a warm-up launch in the same run home first, so
+these are second launches. (Moono's first launch after a new build also rewrites the game's
+assemblies, about 2.3 s, then cached.)
+
+- **To the main menu:** the original in 17.41 s (2026-10-25), Moono in 10.4 s with the default
+  tweaks (9.9–11.0 s over six launches, 2026-11-06, v2026.11.06.01), about 1.7× faster.
+- **Tweaks:** with no tweaks Moono took 9.1–10.3 s, and with every tweak 10.05–11.9 s. The
+  tweaks add about a second.
+- **Which launches:** these are the launches of the tables above (`ONI_STARTUP_STATS=1` on,
+  frame stats off). On 2026-10-25 (master ab5b342) Moono took 9.79 s.
+- **Recording the screen** added about 0.2 s to each (2026-10-25: original 17.44, 17.61,
+  17.71 s; Moono 10.90, 10.02, 9.94 s).
+- **The window:** Moono's appears after about 1.3 s, the original's after 0.45 s.
+- **The biggest single wait** in both is the game's own FMOD bank loading (about 2.8 s).
 
 The Linux breakdown below is older and taken differently (first launches, page cache warm):
 
