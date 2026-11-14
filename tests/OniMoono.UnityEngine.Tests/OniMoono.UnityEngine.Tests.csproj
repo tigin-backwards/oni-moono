@@ -110,6 +110,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/SaveRootsCore.cs" Link="GameTweaks/SaveRootsCore.cs" />
     <!-- The fast-partitioner-cleanup and fast-partitioner-events game tweaks' node walks (PartitionerWalkTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/PartitionerWalkCore.cs" Link="GameTweaks/PartitionerWalkCore.cs" />
+    <!-- The fast-overlay-removals game tweak's grid removal (GridRemovalTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/GridRemovalCore.cs" Link="GameTweaks/GridRemovalCore.cs" />
     <!-- The fast-conduit-sorts game tweak's replay (SortReplayTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/SortReplayCore.cs" Link="GameTweaks/SortReplayCore.cs" />
     <!-- The fast-load-screen game tweak's header memo and read-ahead (HeaderReadsTests). -->

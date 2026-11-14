@@ -53,6 +53,8 @@ step aside. It only shows what it finds; it never turns a tweak on or off.
   Fast Track, MoreTek, Colony Performance Fixes or Multiplayer Mod is active), `fast-conduit-sorts`
   (the pipe and rail flows' `Sim200ms`; also while those mods are active),
   `fast-conveyor-paths` (`SolidConduitFlow.TryAdd`),
+  `fast-overlay-removals` (the Decor overlay's handler for removed objects and its grid's
+  `Remove`),
   `fast-overlays` (the overlay methods each of its parts stands in for),
   `fast-overlay-textures` (`MultipleRenderTargetProxy.CreateRenderTarget`), `fast-anim-events`
   (the animation event loop and what it reads; see [Animation events](#animation-events)),
@@ -260,6 +262,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Fewer animation uploads** (`fast-symbol-overrides`): Swapped animation parts are re-sent to the graphics card only when they change. Unchanged symbol-override blocks of Duplicants and buildings aren't uploaded again.
 - **Faster overlays** (`fast-overlays`): Overlays skip rereading what can't have changed since the last frame. Temperature passes over buildings out of view without reading them, power asks each circuit's load once a frame, the rest keep what their targets' visits read. *Measured: temperature overlay ~40% cheaper; a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, 2026-10-24.*
 - **Overlay texture cleanup** (`fast-overlay-textures`): Opening and closing overlays no longer piles up video memory. The screen-sized textures the game remakes on each coloured overlay toggle are freed, instead of kept until the next load (about 18 MB a toggle at 1024×768).
+- **Smoother decor overlay** (`fast-overlay-removals`): The Decor overlay no longer stutters when items are stored or used up. While the Decor overlay is open, the game takes each stored or removed item out of the overlay's index by comparing it with every entry; this compares references instead, which finds the same entries.
 
 ### Changes gameplay (off by default but where marked)
 

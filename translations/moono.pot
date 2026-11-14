@@ -885,6 +885,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_TEXTURES.DETAIL"
 msgid "The screen-sized textures the game remakes on each coloured overlay toggle are freed, instead of kept until the next load (about 18 MB a toggle at 1024×768)."
 msgstr ""
 
+#. Row title (fast-overlay-removals)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.TITLE"
+msgid "Smoother decor overlay"
+msgstr ""
+
+#. The line under the title (fast-overlay-removals)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.EFFECT"
+msgid "The Decor overlay no longer stutters when items are stored or used up."
+msgstr ""
+
+#. Tooltip: how it works (fast-overlay-removals)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.DETAIL"
+msgid "While the Decor overlay is open, the game takes each stored or removed item out of the overlay's index by comparing it with every entry; this compares references instead, which finds the same entries."
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.CHANGES_GAMEPLAY"
 msgid "Changes gameplay"
