@@ -34,6 +34,23 @@ namespace E2eDriver
             }
         }
 
+        /// ReportManager's whole component as a save writes it (Serializer.SerializeTypeless: every
+        /// day's report and today's through the serializer, then the custom serializer's notes):
+        /// "bytes=N fnv=HEX". The templates it makes on the way are dropped by the next save.
+        public static string Object
+        {
+            get
+            {
+                var manager = ReportManager.Instance ?? throw new DriverError("no ReportManager");
+                var ms = new MemoryStream();
+                // Not a save: `reports.watch`'s count and bytes stay as they were.
+                var (saved, saves) = (Saved, Saves);
+                using (var w = new BinaryWriter(ms, Encoding.UTF8, true)) KSerialization.Serializer.SerializeTypeless(manager, w);
+                (Saved, Saves) = (saved, saves);
+                return Digest(ms.GetBuffer(), 0, (int)ms.Length);
+            }
+        }
+
         /// Every report's entries, the days before today and then today, each entry with its
         /// context entries after it: day, depth, type, context, note storage id, and its notes in
         /// the order the game reads them (value bits and text), hashed as they are read:

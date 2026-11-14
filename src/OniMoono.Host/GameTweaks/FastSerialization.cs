@@ -21,6 +21,10 @@ namespace OniMoono.Host.GameTweaks
     /// every other field is boxed and handed to Helper.WriteValue as before. The callbacks, the
     /// properties, the custom serializer and the error reporting are the template's own, in its
     /// order. The bytes written are the game's (checked: SaveTest).
+    ///
+    /// A field can have a writer of its own (UseFieldWriter): OniMoono.GameTweaks registers typed
+    /// ones for ReportManager's report history (ReportEntries), in place of Helper.WriteValue's
+    /// walk over its lists.
     [GameMember(GameUse.Uses, "System.Void Debug::LogError(System.Object)")]
     [GameMember(GameUse.Mirrors, "System.Void KSerialization.Helper::WriteValue(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Object)", "2ae90126aff89120 linux-744825 win-744825", "dd15fef912b3eb70 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Uses, "System.Void KSerialization.IOHelper::WriteSingleFast(System.IO.BinaryWriter,System.Single)")]
@@ -57,6 +61,17 @@ namespace OniMoono.Host.GameTweaks
         }
 
         static readonly ConditionalWeakTable<object, Plan> plans = new();
+
+        /// Fields written by a method of their own, `static void (BinaryWriter, KSerialization.TypeInfo,
+        /// object value)` as Helper.WriteValue is, which must write WriteValue's bytes.
+        static readonly Dictionary<FieldInfo, MethodInfo> fieldWriters = new();
+
+        /// OniMoono.GameTweaks' typed writers (by reflection: it has no reference to the host).
+        /// A type's next plan is compiled with it.
+        public static void UseFieldWriter(FieldInfo field, MethodInfo writer)
+        {
+            lock (fieldWriters) fieldWriters[field] = writer;
+        }
 
         public static void Install(Harmony harmony)
         {
@@ -128,6 +143,32 @@ namespace OniMoono.Host.GameTweaks
             return new ArgumentException(text, cause);
         }
 
+        /// A type's compiled field writer and what it was compiled from. The game makes every
+        /// template anew for each save (Manager.Clear), from the type alone, so the next save's
+        /// template of a type has the same fields: its writer is kept instead of compiled again,
+        /// 700 or so a save on a large colony.
+        sealed class Compiled
+        {
+            public FieldInfo[] Fields = [];
+            public object[] TypeInfos = [];
+            public MethodInfo?[] Writers = [];
+            public Action<object, BinaryWriter> Write = null!;
+        }
+
+        static readonly Dictionary<Type, Compiled> compiled = new();
+
+        /// Plans compiled and the time it took, since the last call (PerfProbe's save table).
+        public static (int Count, double Ms) TakeCompileStats()
+        {
+            var stats = (compiledCount, compiledTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+            compiledCount = 0;
+            compiledTicks = 0;
+            return stats;
+        }
+
+        static int compiledCount;
+        static long compiledTicks;
+
         static Plan MakePlan(object template)
         {
             var type = (Type)serializableTypeField.GetValue(template)!;
@@ -136,7 +177,7 @@ namespace OniMoono.Host.GameTweaks
                 properties.Add(((PropertyInfo)propertyOfEntry.GetValue(entry)!, typeInfoOfPropertyEntry.GetValue(entry)!));
             return new Plan
             {
-                Fields = CompileFields(type, (IEnumerable)fieldsField.GetValue(template)!),
+                Fields = FieldsWriter(type, (IEnumerable)fieldsField.GetValue(template)!),
                 Properties = properties.ToArray(),
                 OnSerializing = (MethodInfo?)onSerializingField.GetValue(template),
                 OnSerialized = (MethodInfo?)onSerializedField.GetValue(template),
@@ -145,7 +186,46 @@ namespace OniMoono.Host.GameTweaks
             };
         }
 
-        static Action<object, BinaryWriter> CompileFields(Type type, IEnumerable fields)
+        /// The writer for a template's fields: the one kept for its type when this template has
+        /// the same fields in the same order, each with an equal type info (TypeInfo.Equals
+        /// compares the kinds all the way down: they differ after an old save's load masks them,
+        /// Helper.SetTypeInfoMask) and the same writer of its own; else a new one.
+        static Action<object, BinaryWriter> FieldsWriter(Type type, IEnumerable entries)
+        {
+            var fields = new List<FieldInfo>();
+            var typeInfos = new List<object>();
+            var writers = new List<MethodInfo?>();
+            foreach (var entry in entries)
+            {
+                var field = (FieldInfo)fieldInfoOfEntry.GetValue(entry)!;
+                fields.Add(field);
+                typeInfos.Add(typeInfoOfEntry.GetValue(entry)!);
+                MethodInfo? own;
+                lock (fieldWriters) fieldWriters.TryGetValue(field, out own);
+                writers.Add(own);
+            }
+            lock (compiled)
+            {
+                if (compiled.TryGetValue(type, out var kept) && Same(kept, fields, typeInfos, writers)) return kept.Write;
+                long start = System.Diagnostics.Stopwatch.GetTimestamp();
+                kept = new Compiled { Fields = fields.ToArray(), TypeInfos = typeInfos.ToArray(), Writers = writers.ToArray() };
+                kept.Write = CompileFields(type, kept.Fields, kept.TypeInfos, kept.Writers);
+                compiled[type] = kept;
+                compiledCount++;
+                compiledTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
+                return kept.Write;
+            }
+        }
+
+        static bool Same(Compiled kept, List<FieldInfo> fields, List<object> typeInfos, List<MethodInfo?> writers)
+        {
+            if (kept.Fields.Length != fields.Count) return false;
+            for (int i = 0; i < fields.Count; i++)
+                if (kept.Fields[i] != fields[i] || kept.Writers[i] != writers[i] || !kept.TypeInfos[i].Equals(typeInfos[i])) return false;
+            return true;
+        }
+
+        static Action<object, BinaryWriter> CompileFields(Type type, FieldInfo[] fields, object[] typeInfos, MethodInfo?[] writers)
         {
             var objArg = Expression.Parameter(typeof(object), "obj");
             var writerArg = Expression.Parameter(typeof(BinaryWriter), "writer");
@@ -160,14 +240,14 @@ namespace OniMoono.Host.GameTweaks
             }
             Expression Self() => type.IsValueType ? target : local!;
             var failure = typeof(FastSerialization).GetMethod(nameof(Failure), BindingFlags.Static | BindingFlags.NonPublic)!;
-            foreach (var entry in fields)
+            for (int i = 0; i < fields.Length; i++)
             {
-                var field = (FieldInfo)fieldInfoOfEntry.GetValue(entry)!;
-                var typeInfo = typeInfoOfEntry.GetValue(entry)!;
+                var field = fields[i];
+                var typeInfo = typeInfos[i];
                 int kind = Convert.ToInt32(infoOfTypeInfo.GetValue(typeInfo)) & 63;
                 var read = Expression.Field(field.IsStatic ? null : Self(), field);
                 var write = PlainWrite(kind, field.FieldType, read, writerArg)
-                            ?? Expression.Call(writeValue, writerArg, Expression.Constant(typeInfo, typeInfoType), Expression.Convert(read, typeof(object)));
+                            ?? Expression.Call(writers[i] ?? writeValue, writerArg, Expression.Constant(typeInfo, typeInfoType), Expression.Convert(read, typeof(object)));
                 var caught = Expression.Parameter(typeof(Exception), "e");
                 body.Add(Expression.TryCatch(Expression.Block(typeof(void), write),
                     Expression.Catch(caught, Expression.Throw(Expression.Call(failure, Expression.Constant("field"), Expression.Constant(field.Name), Expression.Constant(type.Name), caught)))));
