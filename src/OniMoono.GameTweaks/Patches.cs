@@ -44,6 +44,7 @@ namespace OniMoono.GameTweaks
                 case TableScrollJumps.Name: TableScrollJumps.Install(harmony); return true;
                 case LazyTableRefresh.Name: LazyTableRefresh.Install(harmony); return true;
                 case FastOverlayRemovals.Name: FastOverlayRemovals.Install(harmony); return true;
+                case FastTableRows.Name: FastTableRows.Install(harmony); return true;
                 default: return false;
             }
         }
