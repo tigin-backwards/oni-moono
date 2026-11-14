@@ -57,7 +57,12 @@ namespace OniMoono.Host.GameTweaks
             // compressing, with .NET's zlib when fast-save-compression is on too.
             bool fastCompression = on(FastSaveCompression.Name);
             if (fastCompression) yield return (FastSaveCompression.Name, h => FastSaveCompression.Install(h, compress: !on(BackgroundSave.Name)), true);
-            if (on(BackgroundSave.Name)) yield return (BackgroundSave.Name, h => BackgroundSave.Install(h, fastCompression), true);
+            if (on(BackgroundSave.Name))
+                yield return (BackgroundSave.Name, h =>
+                {
+                    BackgroundSave.Install(h, fastCompression);
+                    SummaryWriter(h);
+                }, true);
             if (on(FmodQuarantine.Name)) yield return (FmodQuarantine.Name, FmodQuarantine.Install, true);
             if (on(FmodStealFix.Name)) yield return (FmodStealFix.Name, FmodStealFix.Install, true);
             if (on(NoSaveGc.Name)) yield return (NoSaveGc.Name, NoSaveGc.Install, true);
@@ -109,6 +114,23 @@ namespace OniMoono.Host.GameTweaks
             {
                 var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
                 EngineLog.Engine($"{FastSerialization.Name}: the report history keeps the game's writer: {cause.GetType().Name}: {cause.Message}");
+            }
+        }
+
+        /// background-save's colony summary, built against the game's types
+        /// (OniMoono.GameTweaks.ColonySummaryWrite): a save's summary file is made on
+        /// BackgroundSave's writer. Without it the game writes the file on the main thread.
+        static void SummaryWriter(Harmony harmony)
+        {
+            try
+            {
+                var summary = TypedAssembly.GetType("OniMoono.GameTweaks.ColonySummaryWrite", throwOnError: true)!;
+                summary.GetMethod("Install")!.Invoke(null, [harmony, (Action<Action>)BackgroundSave.Enqueue, (Action)BackgroundSave.WaitAll]);
+            }
+            catch (Exception e)
+            {
+                var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
+                EngineLog.Engine($"{BackgroundSave.Name}: the colony summary stays on the main thread: {cause.GetType().Name}: {cause.Message}");
             }
         }
 
