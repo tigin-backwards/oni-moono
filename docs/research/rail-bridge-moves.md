@@ -221,3 +221,56 @@ more (0.06 K in the sum) than on differs from off, so the differences are run to
 off run's per-item values were not logged, so whether two off runs agree to the last digit is
 not known. An item's sim chunk follows its transform's cell at the next rendered frame, in
 both paths, so the heat exchanged depends on frame timing.
+
+## Partial moves (measured and code reading, 2026-11-14)
+
+A partial move is a meter valve passing less than the stack in its input tile: the bridge calls
+`Pickupable.Take(amount)`, which makes a new item of that amount, and adds the new item to the
+output tile; the rest stays in the input tile. Only `LimitValve` sets a bridge's
+`desiredMassTransfer` in the game (the conveyor meter; the gas and liquid meters use the pipes'
+bridges).
+
+**On the late-game colony** (one launch, 540 game seconds, per-valve counts): 13 conveyor meters
+are asked, 10 of them make partial moves, 5.9 a game second in all. They are dosing valves: a
+limit far below the stack, reset by automation about every second.
+
+| Valve (limit) | Partial moves of 540 game seconds | Asked, kg | Of a stack of, kg | Item |
+|---|---|---|---|---|
+| 0.04 | 539 | 0.040 | 10.3 | diamond |
+| 0.06 | 538 | 0.060 | 11.1 | diamond |
+| 2 | 471 | 1.97 | 11.2 | igneous rock |
+| 1 | 356 | 0.99 | 10.6 | aluminium |
+| 4 | 323 | 4.00 | 14.0 | sulfur |
+| 1 | 279 | 0.97 | 10.7 | tungsten |
+| 1 | 268 | 0.98 | 10.7 | tungsten |
+| 1 | 231 | 0.99 | 10.0 | tungsten |
+| 1 | 171 | 0.97 | 9.7 | iron |
+| 0.5 | 26 | 0.49 | 1.7 | omelette |
+
+**Where the time goes.** `Take` is 72 µs a call here (91 µs in the earlier launch), and the
+piece's `AddPickupable` 3.9 µs. All but 26 of the 3,202 splits are ore: `ElementSplitterComponents.OnTake`
+→ `Substance.SpawnResource` → `GameUtil.KInstantiate` of the element's prefab, its components'
+`Awake`/`OnPrefabInit` on activation, mass and temperature, the split event, the anim's overlay
+colour. The 26 food splits (`EntitySplitter.Split`, bracketed by step) cost 173 µs each: the
+instantiate 38 µs, `GetComponent` and `SetActive` (every component's `Awake` and `OnPrefabInit`)
+125 µs, three `TotalAmount` sets 1.2 µs, the temperature 0.1 µs, the rest (the split event,
+`GetComponents<IExtendSplitting>`) 9 µs. The piece's `Pickupable.OnSpawn` runs in the next
+frame, outside the bridge's time: 10.8 µs. The ore path's steps were not bracketed one by one;
+by its total it is the same shape with fewer components.
+
+**No round trip to remove.** The piece is stored on the rail in the call that makes it, before
+it has spawned: its listeners for the Stored tags are not subscribed yet and its save root is
+not registered, so `AddPickupable`'s store is a tag write, and at its spawn it registers
+directly as a stored item (the path a save's rail items take when loading). Nothing is set up
+as a loose item and taken down again.
+
+**What could be cheaper.**
+
+| Option | Saves (estimate) | Changes |
+|---|---|---|
+| The engine's `Instantiate` and component activation, if a profile finds slack there | part of ~65 µs a split: up to ~0.3 ms a game second here, and every other object the game creates | nothing (exact) |
+| A pool of pieces, or reusing objects | most of a split | object identity: `KPrefabID.InstanceID`, the components' and state machines' fresh state, anything a mod attached; not provably invisible |
+| Passing the stack and leaving the new object behind | nothing: one new object either way | which of the two is new |
+
+No game-side change is proposed. The lead is the engine's cost of creating an object, which
+needs its own profile (instantiate against component `Awake`, ours against the game's code).
