@@ -5,10 +5,8 @@ would help? Four parts: a census of hitches (frames over 50 ms), the autosave fr
 motion against the display, and input latency. This is a measurement and design study.
 **Nothing landed.** The probes and prototypes are on the local branch `feel-u60`.
 
-**Status: preliminary (2026-11-13, 22:40 UTC).** Three runs are still queued: the notes left
-to the save's worker (a measurement of the bound), a split of `ReportManager`'s time, and a
-Linux perf profile of the save. The places they will fill are marked "queued". Every figure
-below is measured unless it says estimate.
+Every figure below is measured unless it says estimate. The runs, builds and times are listed
+at the end.
 
 Earlier work this builds on: [frame-pacing-and-jank.md](frame-pacing-and-jank.md) (the sim-step
 frame; time-step smoothing, UI-only frames and queue depth rejected),
@@ -25,11 +23,12 @@ wait), [sim-step-cost.md](sim-step-cost.md).
   after an autosave, GC pauses, and overlay switches. The sim-step frame of the earlier study is
   not a hitch source at 60 Hz: 6 frames over 50 ms in 46 minutes.
 - **Autosave.** On the late-game colony 1.0–1.2 s of the 2.0–2.4 s is one component,
-  `ReportManager`: 17,077 days of reports, 496 MB of the 707 MB the save writes. Writing its
-  notes packed (the same bytes) took 0.25 s off in a prototype; the rest of it needs the
-  profile that is still queued. Serialising on a worker thread is not feasible as the game
-  stands. The presenter could pan the last picture during the freeze, but it is the weakest
-  of the three options.
+  `ReportManager`: 17,077 days of reports, 496 MB of the 707 MB the save writes. Its notes
+  are 0.30–0.37 s of that, and writing them packed (the same bytes) took 0.25 s off in a
+  prototype; the report entries, written through the serializer's boxed path, are 0.66–0.72 s
+  and the next target. Serialising on a worker thread is not feasible as the game stands. The
+  presenter could pan the last picture during the freeze, but it is the weakest of the three
+  options.
 - **Camera motion.** With vsync, 1–3% of pictures are shown for a time other than the delta the
   camera moved by. A camera delta predicted from the display's grid recovers a third to a half
   of the little that is left on one colony and nothing on the others. Not worth building.
@@ -229,9 +228,11 @@ are upper bounds.
 | Part | ms | Bytes | Calls | Notes |
 |---|---|---|---|---|
 | `SaveLoader.Save` in all | 2,032 | 706.7 MB | | 2.08–2.60 s in the census runs |
-| **`ReportManager`: 17,077 days of reports** | **965–1,182** | **495.6 MB** | 1 | 70% of the bytes: each day's report entries through the serializer's templates, and their notes through `NoteStorage.Serialize` (three writes a note); the split is queued |
+| **`ReportManager`: 17,077 days of reports** | **965–1,182** | **495.6 MB** | 1 | 70% of the bytes |
+| · its report entries (`dailyReports`: lists of `ReportEntry` through `Helper.WriteValue`) | 656–716 | | | measured as the component less its notes, second launch (j0000560); 990 in a launch's first save |
+| · its notes (`NoteStorage.Serialize`, three writes a note) | 300–370 | | 1 | bracket on `ReportManager.CustomSerialize`, four saves |
 | The other 85,560 saved objects | about 840 | 211 MB | | |
-| · `StateMachineController.Serialize` | 182–191 | 152.8 MB | 90,800 | type, suffix and state names as strings for every running state machine, 1.7 KB an object |
+| · `StateMachineController.Serialize` | 182–191 (`StateMachineSerializer.Serialize` alone 195–220 with stage brackets only) | 152.8 MB | 90,800 | type, suffix and state names as strings for every running state machine, 1.7 KB an object |
 | · the loop per object (`GetComponents`, type checks, type names, lengths) | 356–408 with brackets | | 91,000 | an upper bound: it carries the brackets' own cost for 19 calls an object |
 | · component data through the templates (752 types) | about 500 with brackets | 18 MB | 1.75 million | `fast-serialization`'s path |
 | · `[OnSerializing]` and `[OnSerialized]` callbacks, all 26 that ran | 38 | | 251,316 | `PrimaryElement` 25, `Repairable` 8.5, `Operational` 2.5 |
@@ -257,6 +258,8 @@ autosaves a launch, 25 s apart; the first of a launch is slower):
 | Default tweaks (j0000475) | 1st with brackets (2nd of the launch) | 2,032 | 1,030 | 842 | 126 | 0 | 3 |
 | `--game-tweak exact` (j0000523) | 1 / 2 / 3 | 2,560 / 1,982 / 2,126 | 1,337 / 1,026 / 1,157 | 956 / 811 / 829 | 210 / 114 / 112 | 0 | 8 / 3 / 2 |
 | exact, packed notes, `ONI_FAST_NOTES=1` (j0000522) | 1 / 2 / 3 | 2,233 / 1,707 / 1,896 | 989 / 755 / 924 | 986 / 811 / 822 | 202 / 111 / 117 | 0 | 8 / 3 / 2 |
+| exact, notes skipped, `ONI_FAST_NOTES=2` (j0000557) | 1 / 2 / 3 | 2,310 / 1,722 / 1,840 | 966 / 694 / 826 | 779 / 672 / 646 | 254 / 106 / 126 | 0 | 8 / 3 / 2 |
+| Default tweaks, notes bracketed (j0000560) | 1 / 2 | 2,650 / 1,957 | 1,369 / 1,003 (notes 370 / 311) | | | 0 | |
 | exact without `fast-serialization` (j0000524) | 1 / 2 / 3 | 2,984 / 2,447 / 2,447 | 1,878 / 1,544 / 1,554 | 863 / 758 / 759 | 197 / 121 / 108 | 0 | 5 / 1 / 1 |
 | exact without `fast-save-type-checks` (j0000525) | 1 / 2 / 3 | 2,898 / 2,356 / 2,500 | 1,303 / 1,004 / 1,153 | 1,346 / 1,199 / 1,194 | 194 / 121 / 122 | 0 | 8 / 3 / 2 |
 | exact without `background-save` (j0000526) | 1 / 2 / 3 | 3,605 / 3,127 / 3,226 | 1,285 / 1,014 / 1,176 | 941 / 833 / 804 | 196 / 128 / 116 | 1,126 / 1,121 / 1,099 | 8 / 3 / 2 |
@@ -269,7 +272,32 @@ alone means no tweaks at all, so they are two launches of the same thing. A laun
 leave all five out (j0000476) failed in its script and measured nothing. The saved body was
 498.63–498.66 MB for the `SaveGame` object in every launch.
 
-The profile of the save (Linux perf, queued) goes here.
+**The profile.** Linux, `perf record -e cpu-clock:u -F 999 -g` over six autosaves in a row,
+no brackets (j0000558; 205 s of outside load during it, which changes times, not shares).
+12,373 main-thread samples under `SaveLoader.Save`; inclusive shares of them:
+
+| What | Share |
+|---|---|
+| `SaveManager.Save` (the objects) | 94.4% |
+| `RetireColonyUtility.SaveColonySummaryData` (`RetiredColonyData`'s constructor, JSON) | 2.8% |
+| `Helper.WriteValue`, the serializer's boxed path: the report entries' lists, mostly | 35.5% |
+| `MemoryStream` and `BinaryWriter` calls, wherever from | 27.1% |
+| `Storage.Serialize` (stored items, each a whole object) | 15.3% |
+| `StateMachineSerializer` and `StateMachineController.Serialize` | 11.6% |
+| `Manager.GetSerializationTemplate` (a dictionary lookup per object written) | 6.9% |
+| `GetComponents` (the engine's `Components.All`) | 5.8% |
+| `WriteKleiString` and UTF-8 encoding | 5.7% |
+| The notes store's `Write`, its own loop | 3.5% |
+| Every `[OnSerializing]` and `[OnSerialized]` method | 3.2% (`PrimaryElement` 1.3%) |
+| `MethodInfo.Invoke` | 2.5% |
+| `fast-save-type-checks`' lookup (a `ConcurrentDictionary` keyed by a tuple) and the attribute reads it leaves | 2.8% |
+| `Sim.Save`, `Game.Save`, `PrepSaveFile`, the directory | under 0.1% |
+
+Leaves: `MemoryStream.Write` 8.1%, `IOHelper.WriteSingleFast` 6.8% (a float through a shared
+four-byte buffer), `BinaryWriter.Write` 5.2%, `Memmove` 5.1%, `Components.All` 4.5%,
+`Helper.WriteValue` 4.4%, `fast-serialization`'s `SerializeData` 4.1%. Transform reads and
+Unity null checks do not show (under 0.1%). The profile agrees with the brackets: no callback
+or engine call stands out, and the report history is the largest single piece.
 
 ### What the save tweaks already cover
 
@@ -386,16 +414,16 @@ Static review of the U60 763023 code and of 2,275 decompiled Workshop mods. What
 | # | Change | Exact? | Saving on the late-game colony | Evidence |
 |---|---|---|---|---|
 | 1 | The report notes written packed: `compact-report-history`'s arrays into a buffer, 9 bytes a note, in blocks | Yes: the same bytes; the tweak's verify mode compares them with the game's | **250 ms, 12% of the save**: `ReportManager`'s object 755–924 ms against 1,026–1,157 (second and third saves); the first save 989 against 1,337 | **Measured**, prototype behind `ONI_FAST_NOTES=1`, one launch of three saves each |
-| 2 | The notes not written on the main thread at all: the save leaves their bytes out of the buffer (it only moves the position), and `background-save`'s worker fills them in from the store before it compresses; when a mod takes the body or `background-save` is off, they are filled in before `CompressContents` | Yes if the worker reads a snapshot of the store's records (its note arrays only grow) | Queued: a launch that skips the notes on the main thread (`ONI_FAST_NOTES=2`, its saves not valid) to measure the bound | Design; estimate until that run |
-| 3 | The report entries of past days (the rest of `ReportManager`'s 0.75–0.9 s) | To be designed: they are game objects (`DailyReport`, `ReportEntry`) written through templates; a day that has ended does not change | Not known | Needs the profile; `fast-serialization` already takes 0.4 s off them |
+| 2 | The notes not written on the main thread at all: the save leaves their bytes out and `background-save`'s worker fills them in before it compresses | Yes with a snapshot of the store's records | **About 330 ms, 80 more than 1**: with the notes skipped (`ONI_FAST_NOTES=2`, saves not valid) `ReportManager`'s object took 694–826 ms | **Measured** as a bound (j0000557); not worth its complexity over 1 |
+| 3 | The report entries of past days (656–716 ms): a compiled writer for `DailyReport` and `ReportEntry` as `fast-serialization` has for plain fields, in place of `Helper.WriteValue`'s boxed walk over lists (`Array.GetValue`, a template lookup and a type name per element) | Yes if it writes the same bytes; a verify mode as the other save tweaks have | Not measured. `fast-serialization` took 0.45 s off the same data by typing its plain fields; the boxed path is 35.5% of the save's samples | Brackets and profile; to be prototyped |
 | 4 | The first save's buffer sized from the loaded file (the body's length is known at load) instead of grown by doubling | Yes | Part of the first save's extra 430–580 ms | Estimate from the first save against the later ones |
-| 5 | State machine entries: the type, suffix and state names' encoded bytes kept per name instead of encoded per write | Yes: the same bytes | Part of 182–191 ms | Estimate; needs the profile |
+| 5 | State machine entries: the type, suffix and state names' encoded bytes kept per name instead of encoded per write | Yes: the same bytes | Part of 182–220 ms; string writes and encoding are 5.7% of the save's samples (about 110 ms) across all writers | Estimate from the profile |
 | 6 | The colony summary (`SaveColonySummaryData`) written on the save's worker, its data gathered on the main thread | Yes if the file ends the same | Up to 100–126 ms | Bracket; not prototyped |
 | 7 | The freeze frame without a synchronous read-back (a GPU copy of the screen instead of `ReadPixels`) | Yes: the same picture shown | 54–88 ms of the save's frame | Phase marks; not prototyped |
 | 8 | The preview's view rendered once: the game's own cameras skipped for the frame the freeze picture covers | The picture on screen is the same; the animation updates the preview relies on must still run | Part of 25–50 ms and of the device wait after | Estimate |
 
-Measured so far: 1. With 1, 6 and 7 the late-game save would be about 1.6–1.7 s; getting to
-about 1 s needs 2 and 3. Not proposed: a collection after the save (tried and rejected,
+Measured: 1 and the bound for 2. With 1, 6 and 7 the late-game save would be about
+1.6–1.7 s (estimate); getting towards 1 s needs 3. Not proposed: a collection after the save (tried and rejected,
 gc-pauses.md), and keeping the 777 MB buffer between saves (it would stay resident).
 
 ## Part 3: motion that matches the display
@@ -594,7 +622,7 @@ Present times on the refresh grid:
 | # | Work | Kind | Expected effect | Basis |
 |---|---|---|---|---|
 | 1 | The queued-frames wait stops flipping (hysteresis in `QueuedFrames`) | Exact, small | On colonies near the line: repeated refreshes 4.7–5.4% to about 1.8%, 1.5 fps more, latency steady at 48 ms instead of moving between 48 and 80 | Measured with the wait held on |
-| 2 | Autosave, main thread: packed notes; then the notes filled in by the save's worker; then the report entries after a profile; the colony summary on the worker; the first save's buffer | Exact tweaks | Late-game save 2.05 s to 1.8 s with the first step (measured), about 1.0–1.3 s with all of them (estimated) | Brackets; one prototype measured |
+| 2 | Autosave, main thread: packed notes; a compiled writer for the report entries; the colony summary on the worker; the first save's buffer | Exact tweaks | Late-game save 2.05 s to 1.8 s with the first step (measured), about 1.1–1.4 s with all of them (estimated: the entries' 0.66–0.72 s halved or better) | Brackets, profile; one prototype measured |
 | 3 | The frames after an autosave: the freeze frame as a GPU copy, the preview's view rendered once | Exact | 400–750 ms of slow frames to perhaps 250–450 ms (estimated) | Phase marks |
 | 4 | The Decor overlay's sim step on the late-game colony: profile it first | Unknown | A 115–155 ms frame once a game second while the overlay is open | Measured, cause not known |
 | 5 | Management screens on colonies with many Duplicants (the table screens' work goes on): Consumables 1.7 s on first opening and 0.4–0.5 s every time after with 200 Duplicants | Tweaks, as `lazy-table-refresh` | The largest interaction hitch after the autosave | Measured |
@@ -609,7 +637,7 @@ the freeze, until the save is as short as (2) can make it.
 
 ## Builds, commits and runs
 
-- **Date:** 2026-11-13, 17:28–22:36 UTC, on the test machine (Windows 11, Ryzen 7 9800X3D,
+- **Date:** 2026-11-13, 17:28 UTC to 00:02 UTC the next day, on the test machine (Windows 11, Ryzen 7 9800X3D,
   RTX 3090; monitor 2 at 59.951 Hz, refresh measured 16.681 ms).
 - **Moono:** u60 at 77a54e7b, release, built in the worktree `out/feel-u60` (branch
   `feel-u60`: 77a54e7b plus the jank probe's commit and uncommitted probe and prototype
@@ -647,6 +675,9 @@ the freeze, until the save is as short as (2) can make it.
 | j0000523–j0000527 | 21:48–22:03 | save, exact; without fast-serialization; without fast-save-type-checks; without background-save; without no-save-gc | 0 |
 | j0000529, j0000530 | 22:09–22:18 | camera prototype A/B: late-game, 200 Duplicants | 0 |
 | j0000532–j0000536 | 22:19–22:36 | the wait held on, drop threshold 30, the rule: late-game; held on, the rule: 200 Duplicants | 0 |
+| j0000557 | 23:51–23:55 | save, the notes skipped on the main thread (bound) | 0 |
+| j0000558 | 23:55–23:58 | Linux: perf profile of six autosaves, late-game | 205 s |
+| j0000560 | 23:58–00:02 | save brackets with the notes apart | 0 |
 
 runq keeps a job's folder for 14 days; the per-frame CSVs and logs are copied to
 `out/feel/win` in the worktree.
