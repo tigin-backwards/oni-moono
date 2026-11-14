@@ -164,6 +164,7 @@ namespace OniMoono.Engine
             get => parent;
             set
             {
+                if (ReferenceEquals(parent, value)) return;
                 parent = value;
                 RectTransformNative.RectEpoch++;
             }

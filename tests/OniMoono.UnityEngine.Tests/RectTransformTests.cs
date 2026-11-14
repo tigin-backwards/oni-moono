@@ -114,5 +114,39 @@ namespace OniMoono.Tests
             leaf.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 30);
             Assert.Equal(new Rect(0, 0, 30, 20), leaf.rect);
         }
+
+        /// A write of the value a rect already has (a layout group placing its children where
+        /// they are) starts no new rect epoch; a value that differs does.
+        [Fact]
+        public void WritingTheValueThereKeepsTheKeptRects()
+        {
+            var rect = new GameObject("Rect", typeof(RectTransform)).GetComponent<RectTransform>();
+            var parent = new GameObject("Parent", typeof(RectTransform)).GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.sizeDelta = new Vector2(10, 20);
+            long epoch = OniMoono.Engine.RectTransformNative.RectEpoch;
+            rect.sizeDelta = new Vector2(10, 20);
+            rect.anchorMin = rect.anchorMin;
+            rect.anchorMax = rect.anchorMax;
+            rect.pivot = rect.pivot;
+            rect.SetParent(parent, false);
+            Assert.Equal(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
+            Assert.Equal(new Rect(-5, -10, 10, 20), rect.rect);
+
+            rect.sizeDelta = new Vector2(0, 20);
+            Assert.NotEqual(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
+            Assert.Equal(new Rect(0, -10, 0, 20), rect.rect);
+            epoch = OniMoono.Engine.RectTransformNative.RectEpoch;
+            // A layout group pins a child by its edge (the anchors and the size written each time).
+            rect.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 3, 7);
+            Assert.NotEqual(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
+            epoch = OniMoono.Engine.RectTransformNative.RectEpoch;
+            rect.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 3, 7);
+            Assert.Equal(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
+            Assert.Equal(7f, rect.rect.width);
+            rect.pivot = new Vector2(0.5f, 1f);
+            Assert.NotEqual(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
+            Assert.Equal(-20f, rect.rect.y);
+        }
     }
 }
