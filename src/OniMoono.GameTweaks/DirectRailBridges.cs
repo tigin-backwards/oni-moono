@@ -9,7 +9,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `direct-rail-bridges` (opt-in; see "What differs"). A conveyor bridge that
+    /// Game tweak `direct-rail-bridges` (on by default, left out of `exact`; see "What differs"). A conveyor bridge that
     /// moves a whole item calls SolidConduitFlow.RemovePickupable for its input cell and then
     /// AddPickupable for its output cell: the item is told it left storage and, at once, that it
     /// is stored again. In between it loses and regains the Stored tags (four TagsChanged
