@@ -117,6 +117,45 @@ class PerfSpreadTests(unittest.TestCase):
         # The main thread's time only warns.
         self.assertIn('| ⚠️ | Main-thread ms a frame, running (B/A) |', report)
 
+    def test_frame_percentiles(self):
+        """The median and p99 frame and the 1% low, over a launch's measured running windows:
+        reported in the times table, no gate reads them."""
+        runs = []
+        for i, (label, slow) in enumerate((('A', 40.0), ('B', 50.0), ('A', 40.0), ('B', 50.0))):
+            d = os.path.join(self.dir, str(i))
+            os.makedirs(d)
+            log = os.path.join(d, 'Player.log')
+            launch_log(log, 10.0)
+            # Windows of 300 frames: a line holds 600 values, the last 300 another window's.
+            csv = os.path.join(d, 'frametimes.csv')
+            with open(csv, 'w') as f:
+                for w in range(5):
+                    own = [10.0] * 294 + [slow] * 6
+                    f.write(' '.join([str(1000 + 600 * w)] + [f'{t:.2f}' for t in own + [999.0] * 300]) + '\n')
+            times = ps.frame_times(csv, 300)
+            self.assertEqual(len(times[1000]), 300)
+            r = ps.parse(log, 2, times)
+            self.assertEqual(len(r['windows'][-1]['frame_times_ms']), 300)
+            r.update(label=label, status='ok', seconds=1, to_colony_s=1)
+            with open(os.path.join(d, 'result.json'), 'w') as f:
+                json.dump(r, f)
+            runs.append(d)
+        out = os.path.join(self.dir, 'sum')
+        with contextlib.redirect_stdout(io.StringIO()):
+            ps.summary([out, *runs])
+        with open(os.path.join(out, 'summary.json')) as f:
+            s = json.load(f)
+        t = s['timing']['running']
+        self.assertEqual((t['p50_ms']['A_median'], t['p99_ms']['A_median'], t['p99_ms']['B_median']), (10.0, 40.0, 50.0))
+        self.assertAlmostEqual(t['low1_fps']['ratio_of_medians'], 0.8)
+        report = self.report(os.path.join(out, 'summary.json'))
+        self.assertIn('| p99 frame, ms | 40 | 50 | 1.250 |', report)
+        self.assertIn('| 1% low, fps (1,000 / the p99 frame) | 25 | 20 | 0.800 |', report)
+        # No gate reads them, and a launch without the file reports none.
+        self.assertFalse(any('p99' in c['name'] or '1% low' in c['name'] for c in s['checks']))
+        self.assertEqual(ps.frame_times(os.path.join(self.dir, 'none.csv'), 300), {})
+        self.assertNotIn('p99_ms', ps.launch_metrics(ps.parse(os.path.join(runs[0], 'Player.log'), 2))['running']['times'])
+
     def test_section_names(self):
         self.assertEqual(ps.section_parts('bucket OrbitalObject RENDER_1000ms'), ('OrbitalObject', 'bucket, render 1,000 ms'))
         self.assertEqual(ps.section_parts('bucket DiagnosticRow SIM_4000ms'), ('DiagnosticRow', 'bucket, sim 4,000 ms'))
