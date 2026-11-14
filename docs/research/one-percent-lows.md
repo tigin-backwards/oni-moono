@@ -5,11 +5,14 @@ pull the mean up. What are Moono's slowest 1% of frames made of during steady pl
 exact changes (the same results in the same order) would raise the "1% low"?
 
 Earlier work this builds on and does not repeat:
-[frame-pacing-and-jank.md](frame-pacing-and-jank.md) (the two-level frame, the sim-step frame as
-84–85% of spike time), [sim-step-cost.md](sim-step-cost.md) (the five-step cycle),
-[conduit-updates.md](conduit-updates.md) (pipes and rails),
-[perceived-smoothness.md](perceived-smoothness.md) (hitches over 50 ms, the autosave, vsync) and [reprofile-2026-11-13.md](reprofile-2026-11-13.md)
-(the launches whose frame logs Part 1 reads).
+
+- [frame-pacing-and-jank.md](frame-pacing-and-jank.md): the two-level frame, the sim-step frame
+  as 84–85% of spike time.
+- [sim-step-cost.md](sim-step-cost.md): the five-step cycle.
+- [conduit-updates.md](conduit-updates.md): pipes and rails.
+- [perceived-smoothness.md](perceived-smoothness.md): hitches over 50 ms, the autosave, vsync.
+- [reprofile-2026-11-13.md](reprofile-2026-11-13.md): the launches whose frame logs Part 1
+  reads.
 
 **Definitions.** Tools differ, so both are given throughout:
 - **1% low** = 1,000 / the p99 frame time: the frame rate that 1% of frames are slower than.
@@ -26,15 +29,22 @@ Earlier work this builds on and does not repeat:
   slowest 1% of frames take 1.9–3.5% of the time.
 - **On the late-game colony the slowest 1% are one thing: the sim step that carries the liquid
   pipes and the conveyor rails**, once a game second, three times a real second at speed 3
-  (measured, Part 2). 69% of the slowest 1% are that step's frame, 9% the frame right after it,
-  18% another sim step's frame, 1% a GC pause. It is not a pile-up of periodic work: once-a-second
-  render updates fall on 3% of them and collections on 1%.
+  (measured, Part 2).
+  - 69% of the slowest 1% are that step's frame.
+  - 9% are the frame right after it.
+  - 18% are another sim step's frame.
+  - 1% are a GC pause.
+
+  It is not a pile-up of periodic work: once-a-second render updates fall on 3% of them and
+  collections on 1%.
 - **It is the same batch every time, on a slower frame under it.** A median frame with that step
-  takes 26.7 ms against 9.9 ms without a step: 11.2 ms is the step (pipes 4.4, rails 3.9, power,
-  plants and the rest 2.9), and about 5.5 ms more comes with it in the same frame (1,000 ms sim
-  buckets that always fall on that step's sub-tick, more animation and LateUpdate work). The
-  frames that reach the slowest 1% are the fifth of those where everything else in the frame is
-  slow too (2.5 sub-ticks against 1.5, Duplicant and critter brains 2.6 ms against 1.6).
+  takes 26.7 ms against 9.9 ms without a step.
+  - 11.2 ms is the step: pipes 4.4, rails 3.9, power, plants and the rest 2.9.
+  - About 5.5 ms more comes with it in the same frame: 1,000 ms sim buckets that always fall on
+    that step's sub-tick, more animation and LateUpdate work.
+  - The frames that reach the slowest 1% are the fifth of those where everything else in the
+    frame is slow too (2.5 sub-ticks against 1.5, Duplicant and critter brains 2.6 ms against
+    1.6).
 - **Why the 1% low hardly moves when the average does:** that step is a fixed 3 frames a real
   second, 3–4% of frames at 80–100 fps, so the p99 frame always sits inside its frames (at
   their 81st percentile in the profiled run). Tweaks that shorten every frame move it by their
@@ -44,14 +54,14 @@ Earlier work this builds on and does not repeat:
   +1.5 fps. A millisecond off every frame is worth +1.3 fps of 1% low, a millisecond off that
   step +0.7.
 - **Moving the coinciding work apart is possible but not exact.** The liquid pipes and the rails
-  share a step because Klei starts both timers at 0.75 s; the 1,000 ms sim buckets that follow
+  share a step because Klei starts both timers at 0.75 s. The 1,000 ms sim buckets that follow
   are tied to the same phase. Moving either changes the order of updates. Estimated for
   reference only: +1.6 and +1.2 fps of 1% low.
 - **The 0.1% low** (24–35 fps) is the same step on the busiest frames, plus one event class of
   its own: a GC pause of 34–37 ms and the catch-up frames after it (8 of the 24 slowest frames
   in 295 s came from three collections).
 - **With vsync at 60 Hz** the 1% low is 30–37 fps on every colony (a frame of two refreshes),
-  and stays there until that step's frame fits one refresh; with every tweak its p99 is
+  and stays there until that step's frame fits one refresh. With every tweak its p99 is
   17–21 ms, still over.
 - **Tracking:** `scripts/perf-spread.py` now reports the median frame, the p99 frame and the 1%
   low with B/A, never judged (Part 4). The nightly's summary table carries them.
@@ -279,13 +289,13 @@ study's hitches, not steady play.
   - WSL side: a headless browser used 2–4 cores for the last 60 s and in three short bursts
     (93 s in all). Frames then were 10% slower (average 75.8 against 84.0 fps, p99 32.7 against
     30.1 ms). The span without brackets (80 s) had two such bursts.
-  - So the launch was **mildly disturbed**: levels are about 10% low for a third of it; the
+  - So the launch was **mildly disturbed**: levels are about 10% low for a third of it. The
     make-up of the slow frames is the same inside and outside the disturbed spans (heavy-step
     frames are 3.6% and 4.0% of the frames, and the run's slowest 1% hold 0.8% of the quiet
-    frames and 1.5% of the disturbed ones). It was not repeated: the make-up is what the run
-    was for, and
-    it agrees with the jank study's bracketed launch of 2026-11-12 (2,401 frames at 109 fps,
-    U60 762230), where 23 of the slowest 24 frames were this step and one a collection.
+    frames and 1.5% of the disturbed ones).
+  - It was not repeated. The make-up is what the run was for, and it agrees with the jank
+    study's bracketed launch of 2026-11-12 (2,401 frames at 109 fps, U60 762230), where 23 of
+    the slowest 24 frames were this step and one a collection.
 
 ### The launch's frame rates
 
@@ -396,12 +406,15 @@ the other rows add up to the frame).
   for the whole session, gas two steps away.
 - **1,000 ms sim buckets follow it at a fixed phase.** The `SIM_1000ms` group has 60 buckets,
   one a sub-tick, and the heavy step comes every 60 sub-ticks, so the same buckets always run
-  on the step's own sub-tick and right after it. Measured on frames of one sub-tick: 1.28 ms of
-  `SIM_1000ms` time on the heavy step's sub-tick against 0.05–0.5 ms on the others; and the frame
-  after a heavy step spends 3.0 ms there in its 4.9 sub-ticks (1.2 ms would be average). A
-  heavy-step frame has 1.58 ms of it on average, three times a frame's usual 0.53. Which
-  updaters these are was not recorded
-  (`ONI_BUCKET_PROFILE=1` with `--frame-stats` would name them).
+  on the step's own sub-tick and right after it. Measured:
+  - On frames of one sub-tick: 1.28 ms of `SIM_1000ms` time on the heavy step's sub-tick
+    against 0.05–0.5 ms on the others.
+  - The frame after a heavy step spends 3.0 ms there in its 4.9 sub-ticks (1.2 ms would be
+    average).
+  - A heavy-step frame has 1.58 ms of it on average, three times a frame's usual 0.53.
+
+  Which updaters these are was not recorded (`ONI_BUCKET_PROFILE=1` with `--frame-stats` would
+  name them).
 - **The frame after gets the sub-ticks.** A 27 ms frame is 4.9 sub-ticks of game time at speed
   3, so the next frame runs them: 15.6 ms at the median, the second-slowest kind of frame.
 - **Not coinciding:** render 1,000 ms groups (3% of the slowest 1%, as often as chance),
@@ -489,11 +502,14 @@ after the save, Satori.
 ## Part 4: tracking
 
 - **`scripts/perf-spread.py`** (the nightly's perf job and the by-hand A/B with `args` and
-  `b_args`, which is how a tweak is compared): a launch now writes PerfProbe's
-  `frametimes.txt`, keeps each window's frame times in `result.json`, and the summary's times
-  table has three more rows with A, B and B/A: **the median frame, the p99 frame and the 1%
-  low** (1,000 / the p99 frame), over every frame of a launch's measured running windows. Each
-  launch's row lists its p99 frame and 1% low. No gate reads them.
+  `b_args`, which is how a tweak is compared):
+  - A launch now writes PerfProbe's `frametimes.txt` and keeps each window's frame times in
+    `result.json`.
+  - The summary's times table has three more rows with A, B and B/A: **the median frame, the
+    p99 frame and the 1% low** (1,000 / the p99 frame), over every frame of a launch's measured
+    running windows.
+  - Each launch's row lists its p99 frame and 1% low.
+  - No gate reads them.
 - **The nightly's table** (`game-nightly.yml` calls `perf-spread.yml`) carries the rows with no
   change to the workflows. With its settings (three running windows of 300 frames, the first
   left out) the p99 frame is the sixth-slowest of 600 a launch, and on CI's software renderer
