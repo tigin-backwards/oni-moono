@@ -29,6 +29,10 @@ namespace OniMoono.Engine
             return layout;
         }
 
+        /// The object's component layout (shared by every object with the same component types
+        /// in the same order), for what the UI package keeps with it (LayoutKinds).
+        internal static ComponentLayout LayoutFor(GameObjectNative go) => LayoutOf(go, go.Components);
+
         /// First component, in component order, assignable to `type` (classes or interfaces).
         public static object First(GameObjectNative go, Type type)
         {
@@ -283,6 +287,9 @@ namespace OniMoono.Engine
         internal sealed record Cached(Component[] Source, ComponentLayout Layout);
 
         readonly Type[] types;
+        /// UnityEngine.UI's LayoutRebuilder: 0 until asked, 1 when every component type here
+        /// with layout members has only the UI packages' own, 2 when one has its own.
+        internal byte LayoutKinds;
         /// By query id: matching indices in component order, or null until first asked.
         int[][] matches = Array.Empty<int[]>();
 
