@@ -644,6 +644,55 @@ Present times on the refresh grid:
   to a pause or speed change in the census. What makes a menu feel late is the cost of
   opening it (Part 1) and the queue (above).
 
+### Follow-up, 2026-11-14: the hysteresis, the run-ahead wait and the cap
+
+One launch a configuration, borderless at 60 Hz, Vulkan unless said; outside load logged every
+5 s. Another project's builds ran on the WSL side during most of these launches, so several
+are disturbed and say so.
+
+**The frame cap (done).** `FramePace` paces the cap against a running deadline with at most one
+period of debt. Late-game colony, speed 3, no vsync, a clean launch: caps of 30, 60 and 120 give
+30.0, 59.7 and 113.1 fps (before: 57.0 and 93.8 for 60 and 120).
+
+**The hysteresis (written, not landed).** The rule tried: on as before; off once the misses of
+six seconds are more than 10% of the frames six seconds hold (36 at 60 Hz) in place of 10% of
+two seconds; after a turn-off the next turn-on waits 4 s, then 8, up to 64, and 2 s again after
+a wait that lasted a minute. It is on the local branches `qwait-u60` and `qwait-master` with
+its unit tests.
+
+| Launch | Wait changes | Speed 1: on, fps, repeats | Speed 3: on, fps, repeats, Update to Present | Outside load over 2 cores |
+|---|---|---|---|---|
+| 200 Duplicants, old rule | 18 | 88%, 58.6, 2.6% | 46%, 57.7, 5.4%, 32.9 ms | 25 s of 215, late |
+| 200 Duplicants, new rule | 8 | 58%, 57.6, 6.2% | 16%, 57.1, 6.4%, 33.3 ms | 155 s, up to 10.9 cores: disturbed |
+| 200 Duplicants, old rule, first pair | 8 | 88%, 58.6, 0.8% | 9%, 58.1, 3.0%, 33.4 ms | 100 s: disturbed |
+| 200 Duplicants, new rule, first pair | 8 | 50%, 57.9, 3.0% | 0%, 55.0, 4.0%, 33.3 ms | 105 s: disturbed |
+| Late-game, new rule | 4, all at speed 1 | 50%, 58.3, 3.2% | 0%, 58.9, 2.2%, 33.3 ms | 30 s |
+
+- **No clean before-and-after pair exists.** Both launches with the new rule on the
+  200-Duplicant colony ran under outside load, so their frame rates and repeats are not
+  comparable with the old rule's. The one clean launch is the old rule's: 18 changes in 3.5
+  minutes, as the study found.
+- **The late-game colony at speed 3 is unchanged:** the wait stays off, no change of state.
+- **The off line may be too low.** It was drawn from bursts recorded under the old rule, which
+  ended each burst itself by turning the wait off at 12 misses; the count of 6 to 28 is
+  cut short by that. In both disturbed launches every turn-off came at exactly 36 misses in
+  six seconds. Whether a quiet machine reaches 36 is not known.
+- **OpenGL with DXGI:** two short u60 launches never turned the wait on (stages 12 to 20 ms
+  under outside load); on master the wait turned on once and held for 7,800 paused frames.
+  The transitions under load were not exercised on OpenGL.
+- **Next:** one quiet before-and-after pair on the 200-Duplicant colony decides it.
+
+**A "lower input delay" setting, or a wait that runs ahead before sim-step frames (not built).**
+- The plain setting is the study's held-on measurement: on the late-game colony at speed 3 a
+  refresh less to the Present for three times the repeated refreshes. No configuration
+  measured is a clear win, so it is not a setting.
+- Running ahead only before a slow frame needs the slow frames predicted. In the recorded
+  held-on run 86% of main-thread frames over 16 ms fall where game time crosses a 0.2 s grid,
+  but only 38% of crossings are slow, and crossings are a quarter of all frames at speed 3. A
+  prototype that skipped the wait before predicted frames ran once, under outside load, at
+  54.1 fps with 12.4% repeats, and predicted 549 of the 2,190 frames it counted as slow: no
+  sign of a win, and not a fair test either. Left as an idea.
+
 ## Recommended order of work
 
 | # | Work | Kind | Expected effect | Basis |
@@ -654,7 +703,7 @@ Present times on the refresh grid:
 | 4 | The Decor overlay's sim step on the late-game colony: profile it first | Unknown | A 115–155 ms frame once a game second while the overlay is open | Measured, cause not known |
 | 5 | Management screens on colonies with many Duplicants (the table screens' work goes on): Consumables 1.7 s on first opening and 0.4–0.5 s every time after with 200 Duplicants | Tweaks, as `lazy-table-refresh` | The largest interaction hitch after the autosave | Measured |
 | 6 | Overlay switches that cost every time (Temperature 78–111 ms, liquid pipes 87–236 ms, Decor 243–288 ms late-game) | Tweaks | 2–5 frames over 50 ms per 10 minutes of overlay use | Measured |
-| 7 | The frame cap paced against a running deadline | Exact, small | A cap of 60 gives 60.0 instead of 57.0 fps | Measured (the shortfall), the fix estimated |
+| 7 | The frame cap paced against a running deadline | Exact, small | Done (`FramePace`): a cap of 60 gives 59.7 instead of 57.0 fps, 120 gives 113.1 instead of 93.8, 30 gives 30.0 | Measured, one launch |
 | 8 | A "lower input delay" setting (the wait held on), or the wait run ahead only before sim-step frames | Behaviour of presentation only | Late-game at speed 3: about 33 ms less latency; with the plain setting three times the repeated refreshes | Measured for the plain setting, estimated for the predictive one |
 
 Not worth doing: a camera delta from the predicted display time (measured, no gain); polling
