@@ -13,7 +13,7 @@ commit of `master` (or `u60` for a U60 beta):
 | `.github/workflows/build.yml` | On every push to `master` and `u60` (and when run by hand): the Linux archive on Ubuntu, the Windows archive natively on Windows (MSVC builds `OniMoono.exe`), and the unit tests that need no game. Both archives come from `scripts/release.sh` (`MOONO_PLATFORMS` picks one), so they are the archives a local `release.sh` makes. |
 | `.github/workflows/release.yml` | Run by hand with the release's tag. Calls `build.yml` without caches, checks each archive against its manifest, has `attest.yml` sign provenance for the archives, the manifests and every file in the archives, and creates a **draft** release with the archives and manifests. It never publishes. |
 | `.github/workflows/attest.yml` | Signs SLSA build provenance for the digests it is given, and does nothing else. |
-| `.github/workflows/workshop.yml` | Run by hand with a master and a u60 release tag (or, for a dry run, the release.yml runs that built them). Downloads both releases' assets and verifies their provenance and branch, lays out the Workshop item (`scripts/workshop-item.py`, [INSTALL-MODES.md](INSTALL-MODES.md#workshop-item)), has `attest.yml` attest its `SHA256SUMS` and every file in it, puts the bundle for `SHA256SUMS` in the item (`attestation/`), checks it with gh, and keeps it as the `workshop-item` artifact. Nothing is uploaded to Steam. |
+| `.github/workflows/workshop.yml` | Run by hand with a u60 release tag (or, for a dry run, the release.yml run that built it). Downloads the release's assets and verifies their provenance from u60, lays out the Workshop item (the U60 build alone) (`scripts/workshop-item.py`, [INSTALL-MODES.md](INSTALL-MODES.md#workshop-item)), has `attest.yml` attest its `SHA256SUMS` and every file in it, puts the bundle for `SHA256SUMS` in the item (`attestation/`), checks it with gh, and keeps it as the `workshop-item` artifact. Nothing is uploaded to Steam. |
 | `.github/workflows/workshop-upload.yml` | Run by hand with a `workshop.yml` run's number. Checks that run's item as `verify.sh` does and that its attestation is that run's, writes the VDF, and (mode `upload`, in the `steam-workshop` environment, which alone holds the Steam secrets) signs in with a cached steamcmd session and uploads it to the Steam Workshop. [WORKSHOP-UPLOAD.md](WORKSHOP-UPLOAD.md). |
 
 `<version>` in the archives' names is the release tag's date, as `oni-moono-2026.11.10-…` for
@@ -190,9 +190,8 @@ advice in the item or its Workshop description to run anything from it; whoever 
 item writes both.
 
 **By hand,** check the item with `verify.sh` or `verify.ps1` from GitHub, not the copies inside the
-item, which its uploader can change. They check each version's release manifest by its provenance
-from `release.yml` on its branch (u60 for the root, master for `archived_versions/u59`) and every
-player file against it, then the item's `SHA256SUMS` by its provenance from `workshop.yml`
+item, which its uploader can change. They check each release manifest by its provenance from
+`release.yml` on u60 and every player file against it (the item has the U60 build alone), then the item's `SHA256SUMS` by its provenance from `workshop.yml`
 (looked up, and the bundle in `attestation/`), every file against it, and that nothing else is in
 the folder. They need the GitHub CLI:
 

@@ -84,7 +84,9 @@ the player reads:
    `archived_versions\*` with a `mod_info.yaml`, those whose DLC restrictions allow (the DLC
    isn't known before the game starts, so as for none; Moono's name none) and whose
    `APIVersion` is 2 or 0, the highest `minimumSupportedBuild` at or below the build; with no
-   `archived_versions`, the root. When that version isn't installed yet, its player is copied
+   `archived_versions`, the root. A version for a newer game than the installed one is never
+   installed ([A game older than the item](#a-game-older-than-the-item)). When the version
+   isn't installed yet, its player is copied
    into `player\.incoming-…`, every file hashed as it is read and checked against the version's
    `SHA256SUMS` manifest, then moved to `player\<version>\`
    ([What the installer verifies](#what-the-installer-verifies)). A file missing or not
@@ -153,8 +155,9 @@ executable (`scripts/check-linux-archive.py` checks the archive in `scripts/rele
 
 ## Workshop item
 
-The Workshop item carries both branches in the game's `archived_versions` convention, so the
-same rule gives each game build its Moono:
+The Workshop item carries the U60 build alone. U59 players install Moono from a
+[GitHub release](https://github.com/tigin-backwards/oni-moono/releases): the original U59 game
+takes a Workshop item only as a zip, so it lists this folder item as failed to download.
 
 ```
 <item>/                         the u60 build: minimumSupportedBuild 763023
@@ -164,14 +167,14 @@ same rule gives each game build its Moono:
   MoonoLoader.dll               the loader mod, which the original game loads (below)
   verify.ps1  verify.sh  README.md  SHA256SUMS
   attestation/SHA256SUMS.sigstore.json   SHA256SUMS's provenance, for checks by hand (not listed in it)
-  archived_versions/u59/        the master build: minimumSupportedBuild 744825, laid out the same
 ```
 
-- **The original game loads only the loader mod from it** (below). Each version's
-  `mod_info.yaml` has `APIVersion: 2`, `minimumSupportedBuild` and empty DLC lists, and nothing
-  else at a version's top is content the game scans for (no other `.dll`, no `.po`, `strings`,
-  `anim` and the like). U59 has no loader: its mod manager takes a Workshop item only as a zip,
-  and lists this folder item as failed to download.
+- **The original game loads only the loader mod from it** (below). Its `mod_info.yaml` has
+  `APIVersion: 2`, `minimumSupportedBuild` and empty DLC lists, and nothing else at the top is
+  content the game scans for (no other `.dll`, no `.po`, `strings`, `anim` and the like).
+- **No archived versions.** Until November 2026 the item also had the U59 build in
+  `archived_versions/u59`. The installer, `scripts/workshop-item.py` (`--master`) and the verify
+  scripts still handle an `archived_versions` folder, so a version can be added again.
 - **Under Moono, the mod manager skips it** (`OniMoono.GameTweaks.OwnWorkshopItem`, a guarded
   patch of `KMod.Steam.MakeModAndReportOutcome`, declared and checked as every game tweak is,
   always on): no mod, no broken-mod entry, no download-failed event. A mod the profile's
@@ -184,8 +187,8 @@ same rule gives each game build its Moono:
   entry point. The item's folder itself never runs, so Steam can always update it; later starts
   install each update from it. The bootstrap copy checks the files as every start does, so a
   download Steam hasn't finished installs nothing even on the first start.
-- **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a master and a u60 release
-  tag): the releases' assets are downloaded and verified against their provenance and branch,
+- **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a u60 release tag): the
+  release's assets are downloaded and verified against their provenance from u60,
   `scripts/workshop-item.py` checks each archive against its manifest while laying them out,
   and `attest.yml` attests the item's `SHA256SUMS` and every file in it. The Sigstore bundle of
   the attestation naming `SHA256SUMS` goes into the item as `attestation/SHA256SUMS.sigstore.json`,
@@ -193,9 +196,33 @@ same rule gives each game build its Moono:
   `ci/workshop/verify.sh` or `verify.ps1`, taken from GitHub, checks the item against the
   attested release manifests and its own attested `SHA256SUMS`, the bundle included
   ([RELEASES.md](RELEASES.md#verifying-the-workshop-item)).
+- **Size:** about 230 MB in about 610 files (about 404 MB with the U59 build).
 - **Uninstall:** clear Oxygen Not Included's launch options in Steam, then delete
   `%LOCALAPPDATA%\oni-moono` (Linux: `~/.local/share/oni-moono`, or the sandboxed Steam's folder
   above).
+
+### A game older than the item
+
+The item has no version for a U59 game. The installer installs nothing from it then, deletes
+nothing, and says so (`VersionedStart`, `VersionedInstall.SourceNeedsBuild`;
+`InstallTests.ItemWithoutAVersionForTheGame`):
+
+- **An install that already has a U59 version** keeps playing it. Player.log says at each start
+  that the item has no version for the game's build and where the releases are. The player is
+  told once per game build (`state\no-updates`), in a message box (Windows) or desktop dialog
+  (Linux): "Moono's Workshop item is for the U60 update (build …) of Oxygen Not Included and
+  later. Your game is the U59 update (build 744825). Version … plays on, without updates from
+  the Workshop. Newer versions for your game are on GitHub: …/releases". `ONI_HOST_NO_DIALOG=1`
+  keeps the dialog away, as for every message.
+- **When that game updates to U60,** the next start installs the item's version and switches to
+  it, as before.
+- **A first start from the item on a U59 game** (`OniMoono.exe` or `OniMoono.sh` there) installs
+  nothing and says: "Moono's Workshop item is for the U60 update … Your game is the U59 update
+  (build 744825). Install Moono for your game from a GitHub release instead: …/releases".
+- **U59 versions installed from the item** predate this and don't know it. With the
+  U60-only item they install the U60 version beside their own (about 105 MB on Windows, unused
+  until the game updates), keep playing the U59 version, and say nothing. They update with a
+  U59 release's setup.
 
 ## What the installer verifies
 

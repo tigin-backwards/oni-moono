@@ -45,9 +45,15 @@ prepare() {
         || fail "the item's attestation is not run $run's: $uris"
     echo "run $run ($branch): the item is as attested"
     # The change note: the notes of each version's release, read from its attested moono.json.
+    # (The root's, and an archived version's when the item has one.)
     mkdir -p "$dir/notes"
-    for tag in $(python3 -I -c 'import json, sys; print(*(json.load(open(p))["tag"] for p in sys.argv[1:]))' \
-                 "$dir/item/moono.json" "$dir"/item/archived_versions/*/moono.json); do
+    local markers=("$dir/item/moono.json") marker tags
+    for marker in "$dir"/item/archived_versions/*/moono.json; do
+        [ ! -f "$marker" ] || markers+=("$marker")
+    done
+    tags="$(python3 -I -c 'import json, sys; print(*(json.load(open(p))["tag"] for p in sys.argv[1:]))' "${markers[@]}")" \
+        || fail "the item's moono.json can't be read"
+    for tag in $tags; do
         [[ "$tag" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]] || fail "unexpected tag '$tag' in the item"
         gh release view "$tag" -R "$GH_REPO" --json tagName,name,url,body,isDraft > "$dir/notes/$tag.json" || rm -f "$dir/notes/$tag.json"
     done

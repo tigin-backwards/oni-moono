@@ -61,6 +61,11 @@ namespace OniMoono.Host.Install
         /// Why InstallFrom last refused a source's version, in a line for the player; null when it didn't.
         public string? Refusal { get; private set; }
 
+        /// The lowest game build the source has a version for, when InstallFrom last found none
+        /// for the game's build because the game is older than every version there (the Workshop
+        /// item carries the U60 build alone); else null.
+        public int? SourceNeedsBuild { get; private set; }
+
         /// This machine's platform folder name in a source version: windows-x64 or linux-x64.
         public static string ThisPlatform => OperatingSystem.IsWindows() ? "windows-x64" : OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";
 
@@ -170,6 +175,9 @@ namespace OniMoono.Host.Install
                 .FirstOrDefault(); // InstalledVersions is newest first, and the order is stable
         }
 
+        /// Where the builds for a game the Workshop item doesn't carry are (as GameVersionCheck's).
+        public const string ReleasesUrl = "https://github.com/tigin-backwards/oni-moono/releases";
+
         /// The outcome of looking at the source folder.
         public enum SourceResult { NoSource, NoMatch, AlreadyInstalled, Installed, Failed, Refused }
 
@@ -180,6 +188,7 @@ namespace OniMoono.Host.Install
         {
             version = null;
             Refusal = null;
+            SourceNeedsBuild = null;
             try { return InstallFromSource(source, gameBuild, subscribedDlc, ref version); }
             catch (Exception e)
             {
@@ -193,9 +202,15 @@ namespace OniMoono.Host.Install
         {
             if (!Directory.Exists(source)) return SourceResult.NoSource;
             var chosen = ArchiveChoice.MostSuitable(source, gameBuild, subscribedDlc);
-            if (chosen == null)
+            // The game takes a root without archived_versions whatever its build. A version for
+            // a newer game can't play this one (Choose never picks it), so it isn't installed.
+            if (chosen == null || chosen.Info.MinimumSupportedBuild > gameBuild)
             {
-                log($"install: {source} has no version for game build {gameBuild}");
+                var newer = ArchiveChoice.Versions(source).Where(v => v.Info.MinimumSupportedBuild > gameBuild).Select(v => v.Info.MinimumSupportedBuild).ToList();
+                if (newer.Count > 0) SourceNeedsBuild = newer.Min();
+                log(SourceNeedsBuild is { } needs
+                    ? $"install: {source} has no version for game build {gameBuild}: it is for build {needs} and later. Nothing installed from it; versions for this game are at {ReleasesUrl}"
+                    : $"install: {source} has no version for game build {gameBuild}");
                 return SourceResult.NoMatch;
             }
             // This version's moono.json and mod_info.yaml, read once (capped), and those bytes used.

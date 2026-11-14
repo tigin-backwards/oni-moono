@@ -324,6 +324,83 @@ namespace OniMoono.Tests
             Assert.Equal(["2026.11.08.01-u60"], Install().InstalledVersions().Select(v => v.Name).ToArray());
         }
 
+        /// The item without a U59 build (the U60 build alone, as it is since U59 left it): an
+        /// install on a U59 game keeps playing its U59 version, installs nothing from the item,
+        /// and is told once where its updates are; when the game updates to U60 it takes the
+        /// item's version as before. A first start from that item on a U59 game installs nothing
+        /// and says where Moono for U59 is.
+        [Fact]
+        public void ItemWithoutAVersionForTheGame()
+        {
+            var game = Game((uint)U59);
+            Workshop();
+            var told = new List<(string Message, bool Error)>();
+            var bootstrap = Path.Combine(Root, "player", VersionedInstall.BootstrapPrefix + "1");
+            Directory.CreateDirectory(bootstrap);
+            int? Start(string playerDir, bool fromItem = false)
+            {
+                Environment.SetEnvironmentVariable(VersionedInstall.SourceVariable, fromItem ? Source : null);
+                try { return VersionedStart.Run(Install(), game, null, log, playerDir, (m, e) => told.Add((m, e))); }
+                finally { Environment.SetEnvironmentVariable(VersionedInstall.SourceVariable, null); }
+            }
+            string[] Versions() => Install().InstalledVersions().Select(v => v.Name).ToArray();
+            void U60Only(string version)
+            {
+                Directory.Delete(Source, true);
+                Version("", version, U60);
+            }
+
+            // Installed from the item while it had a U59 build.
+            Assert.Equal(VersionedInstall.SwitchExitCode, Start(bootstrap, fromItem: true));
+            var u59 = Path.Combine(Root, "player", "2026.11.08.01");
+            Assert.Null(Start(u59));
+            Assert.Empty(told);
+            string before = Hashes(u59);
+
+            // The item is the U60 build alone: U59 plays on, nothing is installed, told once.
+            U60Only("2026.11.14.01-u60");
+            log.Clear();
+            Assert.Null(Start(u59));
+            var (message, error) = Assert.Single(told);
+            Assert.False(error);
+            Assert.Equal("Moono's Workshop item is for the U60 update (build 762230) of Oxygen Not Included and later. Your game is the U59 update (build 744825). " +
+                "Version 2026.11.08.01 plays on, without updates from the Workshop. Newer versions for your game are on GitHub: https://github.com/tigin-backwards/oni-moono/releases", message);
+            Assert.Equal(["2026.11.08.01"], Versions());
+            Assert.Equal(before, Hashes(u59));
+            Assert.Equal("2026.11.08.01", Install().ReadState("current"));
+            Assert.Contains(log, l => l.Contains("has no version for game build 744825: it is for build 762230 and later") && l.Contains(VersionedInstall.ReleasesUrl));
+            Assert.Empty(Directory.GetDirectories(Path.Combine(Root, "player"), ".incoming-*"));
+            // Later starts and later items: logged, not told again; folders Steam left empty change nothing.
+            U60Only("2026.11.15.01-u60");
+            Directory.CreateDirectory(Path.Combine(Source, "archived_versions", "u59"));
+            log.Clear();
+            Assert.Null(Start(u59));
+            Assert.Single(told);
+            Assert.Equal(["2026.11.08.01"], Versions());
+            Assert.Contains(log, l => l.Contains("has no version for game build 744825"));
+
+            // The game updates to U60: the item's version is installed and switched to.
+            told.Clear();
+            game = Game((uint)U60);
+            Assert.Equal(VersionedInstall.SwitchExitCode, Start(u59));
+            Assert.Empty(told);
+            Assert.Equal("2026.11.15.01-u60", Install().ReadState("current"));
+            Assert.Equal(["2026.11.15.01-u60", "2026.11.08.01"], Versions());
+            Assert.Null(Start(Path.Combine(Root, "player", "2026.11.15.01-u60")));
+            Assert.Null(Install().ReadState("no-updates"));
+            Assert.Empty(told);
+
+            // A first start from the U60-only item on a U59 game: nothing installed, and where to go.
+            game = Game((uint)U59);
+            Directory.Delete(Root, true);
+            Directory.CreateDirectory(bootstrap);
+            Assert.Equal(2, Start(bootstrap, fromItem: true));
+            Assert.Equal(("Moono's Workshop item is for the U60 update (build 762230) of Oxygen Not Included and later. Your game is the U59 update (build 744825). " +
+                "Install Moono for your game from a GitHub release instead: https://github.com/tigin-backwards/oni-moono/releases", true), Assert.Single(told));
+            Assert.Empty(Versions());
+            Assert.False(File.Exists(Entry.PathIn(Root)));
+        }
+
         /// The release manifest is kept in the installed version's folder, and each start checks
         /// that every player file it lists is there (existence only): none missing plays, some
         /// missing doesn't start and says which (five at most, Player.log all), and a version

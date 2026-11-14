@@ -167,7 +167,8 @@ def item_releases(item, notes_dir):
     NOTES-DIR/TAG.json. A tag without a published release is refused: the item would be a dry
     run's."""
     out = []
-    versions = ["."] + sorted(os.path.join("archived_versions", d) for d in os.listdir(os.path.join(item, "archived_versions")))
+    archived = os.path.join(item, "archived_versions")  # none today: the item is the U60 build alone
+    versions = ["."] + (sorted(os.path.join("archived_versions", d) for d in os.listdir(archived)) if os.path.isdir(archived) else [])
     for version in versions:
         with open(os.path.join(item, version, "moono.json"), encoding="utf-8") as f:
             meta = json.load(f)
