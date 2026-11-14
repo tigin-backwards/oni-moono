@@ -19,10 +19,11 @@ Moono runs Klei's original DLLs, patched at load where Mono and .NET
 ## Setup
 
 You need your own copy of the game on Steam, on Linux or Windows (no macOS). Epic Games Store
-and WeGame (China) are not currently supported. Because this replaces
-the engine rather than patching the game, it can't ship as an ordinary Harmony mod. Instead, a
-setup script hooks it into the game's Steam launch options, so you still start the game from
-Steam as usual.
+and WeGame (China) are not currently supported.
+
+Moono replaces the engine instead of patching the game, so it can't ship as an ordinary Harmony
+mod. A setup script hooks it into the game's Steam launch options, and you still start the game
+from Steam as usual.
 
 ### Easy installation
 
@@ -35,31 +36,33 @@ Steam as usual.
    - Windows: double-click `setup.cmd` (it runs `setup.ps1` and keeps the window open)
    - Linux: `./setup.sh`
 
-   It finds your Oxygen Not Included install through Steam, and prints one line for the game's
+   It finds your Oxygen Not Included install through Steam, prints one line for the game's
    launch options, and puts it on your clipboard where it can.
 3. In Steam, right-click Oxygen Not Included → Properties → Launch Options, and paste that line.
 
    ![Steam's Properties dialog with the Launch Options box](docs/images/steam-launch-options.png)
 
-Then press Play in Steam as usual. The optional tweaks (below) are chosen in the game: **Moono
-Tweaks** on the main menu, under Mods. To update, get the new version and run the setup again; the
-launch options stay the same, and so do your tweak choices. To go back to the original game, clear
-the launch options.
+Then press Play in Steam as usual.
+
+- **Tweaks:** choose the optional tweaks (below) in the game, in **Moono Tweaks** on the main
+  menu, under Mods.
+- **Updating:** get the new version and run the setup again. The launch options and your tweak
+  choices stay the same.
+- **Going back:** clear the launch options to return to the original game.
 
 On Linux, Steam installed as a Flatpak or a snap runs games in a sandbox that can't see most of
-your home folder; the setup notices and installs the player inside the sandbox's own folder.
-(Snap is tested; Flatpak isn't yet.)
+your home folder. The setup notices and installs the player inside the sandbox's folder. Snap is
+tested, Flatpak isn't yet.
 
 You'll need an OpenGL 4.5 graphics driver. The game uses your normal Steam account, DLCs, saves,
 settings and mods.
 
 ### Manual installation
 
-The setup script (see above) is the easiest installation on most systems. If you want more
-control, need to customize the installation, or run a sandboxed environment and prefer not to run
-a script outside of that, follow these manual steps. They don't include instructions on how to
-build the player from scratch; see the setup scripts for the build steps, or
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+The setup script above is the easiest installation on most systems. Follow these manual steps if
+you want more control, need to customize the installation, or run a sandboxed environment and
+prefer not to run a script outside it. They don't cover building the player from scratch. For the
+build steps, see the setup scripts or [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 <details>
 <summary>Linux</summary>
@@ -240,7 +243,7 @@ For a more detailed breakdown, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
 ### Tweaks
 
-Moono also speeds up some of the game's own code. Most tweaks don't change gameplay and are on by
+Moono also speeds up some of the game's code. Most tweaks don't change gameplay and are on by
 default; four do, and are off. Toggle them in **Moono Tweaks** on the main menu. Full list:
 [docs/TWEAKS.md](docs/TWEAKS.md).
 
