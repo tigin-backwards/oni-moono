@@ -9,11 +9,12 @@ U60 Windows build (`out/local-tools/win761015/Managed`). Line numbers are U60's.
 
 `src/OniMoono.GameTweaks` builds against U60 with no errors and no obsolete-API warnings.
 
-**Result: all seven are unchanged.** Every game member they patch, reflect on or
-reimplement has the same behaviour in U60; the U60 diffs in those members are the newer
-compiler's shapes (locals split out, ternaries, field initialisers) or the event-system
-move, which they do not depend on. None is a retire candidate: Klei's U60 changes do not
-touch what any of them speeds up. No code change was needed.
+**Result: all seven are unchanged.** No code change was needed.
+
+- Every game member they patch, reflect on or reimplement has the same behaviour in U60. The
+  U60 diffs in those members are the newer compiler's shapes (locals split out, ternaries,
+  field initialisers) or the event-system move, which they do not depend on.
+- None is a retire candidate: Klei's U60 changes do not touch what any of them speeds up.
 
 ## FastSublimation (`fast-sublimation`)
 

@@ -2,10 +2,13 @@
 
 Is the Duplicant and critter brains' main-thread cost only a matter of how many there are, with
 path probes on worker threads, so that a smaller reachable area does not change the frame time?
-Mostly, but not only: the path probes never hold up the main thread, but part of the brains' own
-work shrinks when less is reachable. With cores to spare that change is within the runs' noise
-on the frame time; on 2 cores the probe thread takes CPU the rest of the frame needs, and a
-smaller area shortened U57's frame by a fifth.
+Mostly, but not only:
+
+- The path probes never hold up the main thread.
+- Part of the brains' own work shrinks when less is reachable.
+- With cores to spare that change is within the runs' noise on the frame time.
+- On 2 cores the probe thread takes CPU the rest of the frame needs, and a smaller area
+  shortened U57's frame by a fifth.
 
 ## How the game runs them
 

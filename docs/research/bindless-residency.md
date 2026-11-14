@@ -3,22 +3,29 @@
 2026-11-03, on master (U59). Issue #50 is a garbled screen and then a frozen PC on an RTX 5070
 Ti Laptop GPU (NVIDIA 610.47) with bindless textures, True Tiles and VisualFixesNTweaks. The GPU
 hang audit (branch `worktree-agent-aaffb34b163efa719`, `docs/research/gpu-hang-risks.md`) ranked
-two bindless hazards first: residency was never limited or checked, and handles were made
-non-resident, and textures deleted, mid-frame with no fence. This note checks the premise of the
-first, measures what colonies keep resident, and records what changed.
+two bindless hazards first:
+
+- Residency was never limited or checked.
+- Handles were made non-resident, and textures deleted, mid-frame with no fence.
+
+This note checks the premise of the first, measures what colonies keep resident, and records
+what changed.
 
 ## The claimed limit
 
 The audit cited a Khronos forum thread (https://community.khronos.org/t/bindless-textures-resident-textures-limits/109122,
-October 2022, an NVIDIA GPU with 16 GB on Windows, driver not given): residency failed at 1,639
-resident textures of 4 MiB and at about 5,600 of 1 MiB, by about 1.6 GB, silently or with
-`GL_OUT_OF_MEMORY ... Exceeded buffer residency limits` in KHR_debug output only; others saw it
-just under 4,000. The posters suspected WDDM's limit of 4,096 allocations.
+October 2022, an NVIDIA GPU with 16 GB on Windows, driver not given). There, residency failed at
+1,639 resident textures of 4 MiB and at about 5,600 of 1 MiB, by about 1.6 GB. It failed
+silently, or with `GL_OUT_OF_MEMORY ... Exceeded buffer residency limits` in KHR_debug output
+only. Others saw it just under 4,000. The posters suspected WDDM's limit of 4,096 allocations.
 
 `ONI_BINDLESS_STRESS=COUNT[:SIZE[:MIB[:CHECKMIB]]]` (GlBindlessStress.cs) tests it at start-up:
-it makes COUNT white RGBA8 textures of SIZE x SIZE, makes each handle resident and reads
-`glGetError`, `glIsTextureHandleResidentARB` and the debug messages after each, and every 1,024
-handles one draw samples every handle reported resident and counts those that do not read white.
+
+- It makes COUNT white RGBA8 textures of SIZE x SIZE.
+- It makes each handle resident, and reads `glGetError`, `glIsTextureHandleResidentARB` and the
+  debug messages after each.
+- Every 1,024 handles, one draw samples every handle reported resident and counts those that do
+  not read white.
 
 RTX 3090, NVIDIA 610.88, Windows 11, with `--gl-debug`:
 
@@ -72,28 +79,34 @@ every colony that saved passed the forum's 4,000 then. Nothing ever failed here.
   two frames) go non-resident, down to 7/8 of it, and resident again when next sampled.
   `ONI_BINDLESS_IDLE_FRAMES=N` stays opt-in: since the limit did not reproduce, idle eviction is
   not on by default; the cap is the safety net, and trims what an autosave preview leaves.
-- **Validation** (`ONI_VERIFY_BINDLESS=1`): before each draw, every handle it samples belongs to
-  its texture, the texture is not deleted, and the handle is resident by our count and GL's; a
-  texture with handles never has its image or parameters specified; a mip generation on one
-  gives no GL error. `bindless handles: N draws verified, M wrong` every 100,000 draws, read by
+- **Validation** (`ONI_VERIFY_BINDLESS=1`) checks:
+  - Before each draw: every handle it samples belongs to its texture, the texture is not
+    deleted, and the handle is resident by our count and GL's.
+  - A texture with handles never has its image or parameters specified.
+  - A mip generation on one gives no GL error.
+
+  It logs `bindless handles: N draws verified, M wrong` every 100,000 draws, read by
   `qa-tools.py verify` (qa.sh's verify stage sets it).
 
 ## Evidence
 
 - **Unit tests** (BindlessResidencyTests, a fake GL that fails residency and holds fences back):
-  a failed handle is bound instead and tried again after 64 frames; a failed wake leaves nothing
-  resident; released names wait for their frame's fence; an idle texture sampled before its
-  fence stays resident, and a later eviction is not ended by the old fence; the cap evicts the
-  least recently sampled; a failure caps the count; nothing is made non-resident twice or
-  deleted while resident.
-- **Validation on Windows** (`ONI_VERIFY_BINDLESS=1`, NVIDIA 610.88): DeCrew 6,000 frames with
-  everything resident (14.5 M draws, 0 wrong); c100 paused with idle eviction after 4 frames and
-  a cap of 64 (3.6 M draws, 0 wrong; the paused colony samples its 2,160 textures every frame,
-  so little went); DeCrew with the default cap, 5,400 frames (13.0 M draws, 0 wrong): its first
-  sweep made 12,949 of 20,117 textures non-resident, then 5 to 82 came back per 600 frames,
-  and the count settled at 7,261 to 7,527 with 4,100 to 4,160 sampled per 60 frames. Frame rates
-  were those of the uncapped run (33-54 against 31-40 fps; one run each, not an interleaved
-  comparison).
+  - A failed handle is bound instead and tried again after 64 frames.
+  - A failed wake leaves nothing resident.
+  - Released names wait for their frame's fence.
+  - An idle texture sampled before its fence stays resident, and a later eviction is not ended
+    by the old fence.
+  - The cap evicts the least recently sampled.
+  - A failure caps the count.
+  - Nothing is made non-resident twice or deleted while resident.
+- **Validation on Windows** (`ONI_VERIFY_BINDLESS=1`, NVIDIA 610.88):
+  - DeCrew, 6,000 frames with everything resident: 14.5 M draws, 0 wrong.
+  - c100 paused, with idle eviction after 4 frames and a cap of 64: 3.6 M draws, 0 wrong. The
+    paused colony samples its 2,160 textures every frame, so little went.
+  - DeCrew with the default cap, 5,400 frames: 13.0 M draws, 0 wrong. Its first sweep made
+    12,949 of 20,117 textures non-resident, then 5 to 82 came back per 600 frames, and the count
+    settled at 7,261 to 7,527 with 4,100 to 4,160 sampled per 60 frames. Frame rates were those
+    of the uncapped run (33-54 against 31-40 fps; one run each, not an interleaved comparison).
 - **Soak**, c100 with the three True Tiles mods, Windows, speed 3, validation and frame stats on,
   the default cap, 30 minutes (the cap the plateau rule allowed; VRAM free, shared with other
   test players, never settled within its 256 MiB band): 117.4 M draws verified, 0 wrong, no

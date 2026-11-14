@@ -1,15 +1,19 @@
 # U60 review: animation tweaks
 
 This is a static review of `fast-anim-batches`, `fast-anim-cleanup`, `fast-anim-events` and
-`fast-symbol-overrides` against U60 (761015). It was not checked in a player. The
-Assembly-CSharp members come from Klei's decompiled source
-(`/mnt/e/Development/oni-versioning`, U59 `aa9baa00`, U60 `4a63c523`). Line numbers are U60
-lines under `OxygenNotIncluded/`. That repo does not include the firstpass classes
-(KAnimBatch, KAnimBatchManager, BatchSet, KAnimBatchGroup, SymbolOverrideInfoGpuData,
-SymbolInstanceGpuData, KBatchedAnimInstanceData, KAnimConverter, KAnim, TransformExtensions).
-For those, `Assembly-CSharp-firstpass.dll` was decompiled with ilspycmd, from the U59 Linux
-install and from the U60 Windows build, and the two were diffed. The tweaks build against
-U60 with no errors.
+`fast-symbol-overrides` against U60 (761015). It was not checked in a player. The tweaks build
+against U60 with no errors.
+
+Sources:
+
+- The Assembly-CSharp members come from Klei's decompiled source
+  (`/mnt/e/Development/oni-versioning`, U59 `aa9baa00`, U60 `4a63c523`). Line numbers are U60
+  lines under `OxygenNotIncluded/`.
+- That repo does not include the firstpass classes (KAnimBatch, KAnimBatchManager, BatchSet,
+  KAnimBatchGroup, SymbolOverrideInfoGpuData, SymbolInstanceGpuData, KBatchedAnimInstanceData,
+  KAnimConverter, KAnim, TransformExtensions). For those, `Assembly-CSharp-firstpass.dll` was
+  decompiled with ilspycmd, from the U59 Linux install and from the U60 Windows build, and the
+  two were diffed.
 
 ## Summary
 

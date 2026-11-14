@@ -149,14 +149,22 @@ check. `resonanceaudio` and `fmod_haptics` are not P/Invoked: FMOD loads them it
 ### 2.5 Mac host paths
 
 `GameLayout.Find(--game)` takes a folder with `OxygenNotIncluded_Data`, an `.app`, or a folder
-holding one `.app` (the Steam install). For the bundle: data in `Contents/Resources/Data`,
-`Application.dataPath` = `Contents`, plugins `PlugIns/<name>.bundle/Contents/MacOS/<CFBundleExecutable>`,
-then `PlugIns/lib<name>.dylib`. `MacUserFolders`: persistent data
-`~/Library/Application Support/<CFBundleIdentifier>` (`unity.Klei.Oxygen Not Included`), caches
-`~/Library/Caches/<id>`, log `~/Library/Logs/Klei/Oxygen Not Included/Player.log` (Unity's
-documented Mac behaviour, **to verify on a Mac**). Steam's `%command%` may name the `.app` or its
-executable `Contents/MacOS/Oxygen Not Included`; the default install is
-`~/Library/Application Support/Steam/steamapps/common/OxygenNotIncluded` (**to verify**).
+holding one `.app` (the Steam install). For the bundle:
+
+- Data is in `Contents/Resources/Data`, and `Application.dataPath` = `Contents`.
+- Plugins are `PlugIns/<name>.bundle/Contents/MacOS/<CFBundleExecutable>`, then
+  `PlugIns/lib<name>.dylib`.
+
+`MacUserFolders` (Unity's documented Mac behaviour, **to verify on a Mac**):
+
+- Persistent data: `~/Library/Application Support/<CFBundleIdentifier>`
+  (`unity.Klei.Oxygen Not Included`).
+- Caches: `~/Library/Caches/<id>`.
+- Log: `~/Library/Logs/Klei/Oxygen Not Included/Player.log`.
+
+Steam's `%command%` may name the `.app` or its executable `Contents/MacOS/Oxygen Not Included`.
+The default install is `~/Library/Application Support/Steam/steamapps/common/OxygenNotIncluded`
+(**to verify**).
 
 ---
 
@@ -374,13 +382,17 @@ or buffer the GPU is still reading races with it. The design keeps GL's semantic
   per-size pool) for the later draws, the renaming GL drivers do; the old version returns to the
   pool when its frame completes. `GlTextures.UploadChanged`'s row diffing carries over.
 - **Shared, managed, private.** The primary build is native arm64 on Apple Silicon; the fallback
-  is an x86_64 process under Rosetta. On Apple Silicon all storage is unified memory; `Shared` buffers are CPU-visible without copies and
-  `Managed` behaves as `Shared` (its `didModifyRange` costs nothing). On Intel Macs with discrete
-  GPUs, `Shared` textures are not allowed and `Managed` costs a transfer. So: `Shared` for the ring
-  and readback buffers on both; `Private` + blit for textures on both (no per-architecture paths).
-  Under Rosetta (the fallback), the x86_64 slices of Apple's frameworks are translated too, so each
-  Metal call costs more than natively: the design minimises calls per draw (offset rebinding, state caching, one encoder
-  per pass), and the frame counters (`TakeFrameCounters`) count them.
+  is an x86_64 process under Rosetta.
+  - On Apple Silicon all storage is unified memory. `Shared` buffers are CPU-visible without
+    copies and `Managed` behaves as `Shared` (its `didModifyRange` costs nothing).
+  - On Intel Macs with discrete GPUs, `Shared` textures are not allowed and `Managed` costs a
+    transfer.
+  - So: `Shared` for the ring and readback buffers on both; `Private` + blit for textures on
+    both (no per-architecture paths).
+  - Under Rosetta (the fallback), the x86_64 slices of Apple's frameworks are translated too, so
+    each Metal call costs more than natively. The design minimises calls per draw (offset
+    rebinding, state caching, one encoder per pass), and the frame counters
+    (`TakeFrameCounters`) count them.
 
 ---
 

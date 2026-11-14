@@ -5,12 +5,15 @@ decompiled game code (U59 = `aa9baa00`, U60 = `4a63c523` in oni-versioning, path
 `OxygenNotIncluded/`) and the U60 assemblies. Static review and a U60 compile only: no player ran.
 
 Short version: Klei's U60 rewrite of the overlays does what each part of both tweaks did, or
-removes what it patches. Before this review, turning `fast-overlays` on under U60 would have
-stopped the game starting. `AccessTools.Method(Mode, "AddTargetIfVisible")` throws
-AmbiguousMatchException (U60 has four overloads), and the type initializer throws (the
-`OnTemperatureOverlayInfraredUpdate` delegate and the `layerTargets` field ref). Both tweaks now
-check for the U59 shape of each target. On U60 they install nothing and log why. They are retire
-candidates, to retire after the U60 perf measurement.
+removes what it patches.
+
+- Before this review, turning `fast-overlays` on under U60 would have stopped the game
+  starting. `AccessTools.Method(Mode, "AddTargetIfVisible")` throws AmbiguousMatchException
+  (U60 has four overloads), and the type initializer throws (the
+  `OnTemperatureOverlayInfraredUpdate` delegate and the `layerTargets` field ref).
+- Both tweaks now check for the U59 shape of each target. On U60 they install nothing and log
+  why.
+- They are retire candidates, to retire after the U60 perf measurement.
 
 ## `fast-overlays`
 

@@ -10,17 +10,22 @@ GitHub issue #51 (2026-11-04) reports a freeze with 1,500 voles **in one cell**,
 runs did not try: [that case reproduces](#issue-51-1500-voles-in-one-cell) in both players, as
 below.
 
-**Verdict for the save above: not reproduced, and audio is not where Moono differs.** A 1,500-vole save loads and
-plays at speed 3 in Moono and in the original, U59 and U60, with and without Fast Track on U59,
-with FMOD mixing in real time. Moono runs the game's own FMOD code and native library unchanged,
-with the same settings as the original. 1,500 active voles create about 900 FMOD event instances
-a second. FMOD does have a ceiling: 2,088,960 live handles. Both players reach it only at about
-30,000 instances a second, some 30 times what the voles make. At the ceiling, U59 throws a
-NullReferenceException for every sound it can't create, which ONI shows as a crash. U60 skips
-those sounds without an error, so U60 is safer, but nothing in these runs comes close to the
-ceiling. The author's claim that Fast Track leaves audio alone is wrong: by default it updates
-looping sounds every other frame and ambience and the mix at 5 Hz. Neither change touches the
-critter one-shots, though. Fast Track 0.18.6 doesn't load on U60 in either player.
+**Verdict for the save above: not reproduced, and audio is not where Moono differs.**
+
+- A 1,500-vole save loads and plays at speed 3 in Moono and in the original, U59 and U60, with
+  and without Fast Track on U59, with FMOD mixing in real time.
+- Moono runs the game's own FMOD code and native library unchanged, with the same settings as
+  the original.
+- 1,500 active voles create about 900 FMOD event instances a second. FMOD does have a ceiling:
+  2,088,960 live handles. Both players reach it only at about 30,000 instances a second, some
+  30 times what the voles make.
+- At the ceiling, U59 throws a NullReferenceException for every sound it can't create, which
+  ONI shows as a crash. U60 skips those sounds without an error, so U60 is safer, but nothing
+  in these runs comes close to the ceiling.
+- The author's claim that Fast Track leaves audio alone is wrong: by default it updates looping
+  sounds every other frame and ambience and the mix at 5 Hz. Neither change touches the critter
+  one-shots, though.
+- Fast Track 0.18.6 doesn't load on U60 in either player.
 
 ## How audio runs in Moono
 

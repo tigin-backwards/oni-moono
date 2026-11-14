@@ -5,9 +5,11 @@ and if so, where do the extra frames wait? The frame-timing research
 (docs/research/frame-timing.md) saw, at each Present, the picture on screen 4 presents behind
 ours and 2-3 behind the original. Players say Moono feels choppier when panning.
 
-**Verdict: yes, by one to two refreshes, from the main → device → presenter pipeline. Fixed by
-waiting on the main thread before a frame, as Unity does, while the frame's stages fit a
-refresh; when that holds is decided by Android Frame Pacing's (Swappy's) pipeline-mode rule.**
+**Verdict: yes, by one to two refreshes, from the main → device → presenter pipeline.**
+
+- **Fix:** the main thread waits before a frame, as Unity does, while the frame's stages fit a
+  refresh.
+- **When that holds** is decided by Android Frame Pacing's (Swappy's) pipeline-mode rule.
 
 ## How it was measured
 
@@ -46,16 +48,17 @@ slowest 1%. Runs with another game process on the machine were left out.
 | Ours U59, OpenGL+DXGI (master of today) | 59.0 | 33.4 ms | 2.0 | 66 ms |
 | Ours U60, Vulkan+DXGI | 59.5 | 32.9 ms | 3.0 | 84 ms |
 
-- The original presents 3-5 ms after its `Update`: Unity's render thread executes the frame's
+- The original presents 3-5 ms after its `Update`. Unity's render thread executes the frame's
   commands as the main thread issues them and presents at once; its main thread then waits
-  before the next frame. Ours presents two refreshes after `Update`: the main thread hands a
-  whole frame to the device thread once the device thread has executed the previous one, and
-  the device thread hands it to the presenter once the presenter has presented and waited out
-  the one before. With vsync each of the three holds a frame.
+  before the next frame.
+- Ours presents two refreshes after `Update`. The main thread hands a whole frame to the device
+  thread once the device thread has executed the previous one. The device thread hands it to
+  the presenter once the presenter has presented and waited out the one before. With vsync each
+  of the three holds a frame.
 - After the presenter, DXGI's own queue was as deep as the original's or one picture deeper
   (its maximum frame latency 2 lets the presenter keep two pictures in flight). Which of the two
-  depths a run settles into varied between runs and builds; master's hidden-window change
-  (279c793f) left OpenGL+DXGI at 2 refreshes, Vulkan+DXGI stayed at 3.
+  depths a run settles into varied between runs and builds. Master's hidden-window change
+  (279c793f) left OpenGL+DXGI at 2 refreshes; Vulkan+DXGI stayed at 3.
 - Unity's `QualitySettings.maxQueuedFrames`, measured in the original (default read back: 2):
   1 gave 27 ms at 52 fps, 2 gave 48 ms at 59.4 fps, 3 gave 67 ms at 59.3 fps. Each queued frame
   is a refresh of latency, and 1 costs frames.
@@ -95,16 +98,21 @@ slowest 1%. Runs with another game process on the machine were left out.
 ## The change
 
 With vsync the main thread waits, after handing frame n over, until frame n + 1 −
-`maxQueuedFrames` has been through the presenter (`QueuedFrames`), which takes the main thread
-out of the pipeline in front of the presenter as Unity's does. Always on, it cost frames where
-a frame's stages together exceed a refresh: a 200-Duplicant colony at about 50 fps fell to
-38-47 fps in five runs (base 49-51). So it follows Swappy's pipeline-mode rule: on while
-(the frame's stages summed + 1 ms) × 1.5 fits the refresh over 2 s of frames, off once more
-than 10% of the frames miss their refresh, judged over a sliding 2 s window cleared at each
-change. The stages: the main thread's time from the frame's start to its present, the device
-thread's executing it and the presenter's until it issues the picture (which includes waiting
-for the GPU). A heuristic of our own came first (no frame of the last 120 over three quarters
-of a refresh, with a back-off after misses); Swappy's rule replaced it.
+`maxQueuedFrames` has been through the presenter (`QueuedFrames`). That takes the main thread
+out of the pipeline in front of the presenter, as Unity's does.
+
+Always on, it cost frames where a frame's stages together exceed a refresh: a 200-Duplicant
+colony at about 50 fps fell to 38-47 fps in five runs (base 49-51). So it follows Swappy's
+pipeline-mode rule:
+
+- On while (the frame's stages summed + 1 ms) × 1.5 fits the refresh over 2 s of frames.
+- Off once more than 10% of the frames miss their refresh.
+- Judged over a sliding 2 s window, cleared at each change.
+
+The stages: the main thread's time from the frame's start to its present, the device thread's
+executing it and the presenter's until it issues the picture (which includes waiting for the
+GPU). A heuristic of our own came first (no frame of the last 120 over three quarters of a
+refresh, with a back-off after misses); Swappy's rule replaced it.
 
 When the wait turns on, DXGI's next present first waits for one more picture to retire, once,
 so the picture DXGI queued while it was off is shed: without it, a run that turned the wait on
