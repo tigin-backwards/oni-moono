@@ -260,6 +260,14 @@ namespace UnityEngine
         {
             var d = Data;
             d.Geometry = null;
+            // The array, emptied, serves the next materialCount of its length: the game's anim
+            // renderer on a canvas clears and sets one material every frame (1.9 KB a frame with
+            // the vitals screen's portraits). Nothing else holds the array.
+            if (d.Materials.Length > 0)
+            {
+                Array.Clear(d.Materials);
+                d.SpareMaterials = d.Materials;
+            }
             d.Materials = Array.Empty<Material>();
             d.PopMaterials = Array.Empty<Material>();
             d.Texture = null;
@@ -285,7 +293,12 @@ namespace UnityEngine
             {
                 var d = Data;
                 var m = d.Materials;
-                Array.Resize(ref m, Math.Max(0, value));
+                if (m.Length == 0 && value > 0 && d.SpareMaterials is { } spare && spare.Length == value)
+                {
+                    m = spare;
+                    d.SpareMaterials = null;
+                }
+                else Array.Resize(ref m, Math.Max(0, value));
                 d.Materials = m;
                 d.Changed();
             }
@@ -885,6 +898,8 @@ namespace OniMoono.Engine.UI
         public Matrix4x4 BakedToSpace;
         public Color BakedColor;
         public Material[] Materials = Array.Empty<Material>();
+        /// The array Clear emptied, all nulls, for the next materialCount of its length.
+        public Material[] SpareMaterials;
         public Material[] PopMaterials = Array.Empty<Material>();
         public bool HasPopInstruction;
         public Texture Texture;

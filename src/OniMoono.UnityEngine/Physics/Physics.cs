@@ -284,15 +284,23 @@ namespace OniMoono.Engine
         /// ones are dropped on the next query.
         public static void Register(ComponentNative collider)
         {
-            lock (colliders) colliders.Add(collider);
+            lock (colliders)
+            {
+                colliders.Add(collider);
+                snapshot = null;
+            }
         }
 
-        static ComponentNative[] Snapshot()
+        /// The colliders as of the last change (never written after it is made): a query a
+        /// frame (the game's cursor raycast) made a copy each (0.15 KB a frame).
+        static ComponentNative[] snapshot;
+
+        internal static ComponentNative[] Snapshot()
         {
             lock (colliders)
             {
-                colliders.RemoveAll(c => c.Destroyed);
-                return colliders.ToArray();
+                if (colliders.RemoveAll(c => c.Destroyed) > 0) snapshot = null;
+                return snapshot ??= colliders.ToArray();
             }
         }
 

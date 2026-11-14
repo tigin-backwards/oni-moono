@@ -384,9 +384,26 @@ namespace OniMoono.Desktop.Gl
 
         /// A render target as recorded: the device textures (null colours: the back buffer, of
         /// the window's framebuffer size when recorded).
-        /// Never written once made: the GL thread only reads it, so one with the same values can
-        /// be recorded again (DeviceTexture.BoundAlone, backBufferTarget).
-        internal sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int BackBufferWidth, int BackBufferHeight);
+        /// Its values are never written once made: the GL thread only reads them, so one with
+        /// the same values can be recorded again (DeviceTexture.BoundAlone and BoundFirst,
+        /// backBufferTarget).
+        internal sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int BackBufferWidth, int BackBufferHeight)
+        {
+            /// The framebuffer last bound for it, of several colour textures (GL thread).
+            internal MrtFramebuffer Mrt;
+
+            /// Whether it is a target of these textures, in this order, at this size.
+            internal bool Is(DeviceTexture[] colors, int count, DeviceTexture depth, int width, int height)
+            {
+                if (Colors == null || Colors.Length != count || Depth != depth || BackBufferWidth != width || BackBufferHeight != height) return false;
+                for (int i = 0; i < count; i++)
+                    if (Colors[i] != colors[i]) return false;
+                return true;
+            }
+        }
+
+        /// The textures of a target of several, while it is looked up (main thread).
+        DeviceTexture[] targetScratch = new DeviceTexture[8];
 
         /// The back buffer as the last target recorded for it (main thread).
         BoundTarget backBufferTarget;
@@ -419,11 +436,22 @@ namespace OniMoono.Desktop.Gl
             }
             else
             {
-                colors = new DeviceTexture[binding.Colors.Length];
+                int count = binding.Colors.Length;
+                if (targetScratch.Length < count) targetScratch = new DeviceTexture[count];
+                var scratch = targetScratch;
                 // A null target after the first (a destroyed buffer) leaves its attachment empty.
-                for (int i = 0; i < colors.Length; i++) colors[i] = binding.Colors[i] == null ? null : GlTextures.Prepare(worker, binding.Colors[i]);
-                if (binding.Depth != null) depth = binding.Depth == binding.Colors[0] ? colors[0] : GlTextures.Prepare(worker, binding.Depth);
-                bound = new BoundTarget(colors, depth, width, height);
+                for (int i = 0; i < count; i++) scratch[i] = binding.Colors[i] == null ? null : GlTextures.Prepare(worker, binding.Colors[i]);
+                if (binding.Depth != null) depth = binding.Depth == binding.Colors[0] ? scratch[0] : GlTextures.Prepare(worker, binding.Depth);
+                // The target recorded last with this first texture, when the same (a camera
+                // drawing into the same textures every frame made an array and a target each).
+                bound = scratch[0].BoundFirst;
+                if (bound == null || !bound.Is(scratch, count, depth, width, height))
+                {
+                    colors = new DeviceTexture[count];
+                    Array.Copy(scratch, colors, count);
+                    scratch[0].BoundFirst = bound = new BoundTarget(colors, depth, width, height);
+                }
+                Array.Clear(scratch, 0, count);
             }
             recorder.RenderTexture = bound.Colors != null;
             worker.Post(worker.Arena.Command(setTargetNow ??= SetTargetNow, bound));
@@ -454,6 +482,18 @@ namespace OniMoono.Desktop.Gl
         {
             public string Key;
             public uint Name;
+            /// The key's numbers: the colour textures' names, then the depth buffer's.
+            public uint[] Ids;
+            /// Deleted with one of its textures (ForgetFramebuffers).
+            public bool Deleted;
+
+            public bool IsOf(BoundTarget t)
+            {
+                if (Deleted || Ids.Length != t.Colors.Length + 1) return false;
+                for (int i = 0; i < t.Colors.Length; i++)
+                    if (Ids[i] != (t.Colors[i]?.Id ?? 0)) return false;
+                return Ids[t.Colors.Length] == (t.Depth?.DepthRenderbuffer ?? 0);
+            }
             public List<DeviceTexture> Attached = new();
         }
 
@@ -472,6 +512,7 @@ namespace OniMoono.Desktop.Gl
             foreach (var fb in new List<MrtFramebuffer>(texture.MrtFramebuffers))
             {
                 mrtFramebuffers.Remove(fb.Key);
+                fb.Deleted = true;
                 GlApi.DeleteFramebuffer(fb.Name);
                 foreach (var t in fb.Attached) t.MrtFramebuffers?.Remove(fb);
                 OniMoono.Engine.EngineLog.Engine($"multi-target framebuffer deleted with its textures; {mrtFramebuffers.Count} kept");
@@ -500,7 +541,15 @@ namespace OniMoono.Desktop.Gl
                 return;
             }
             // Multiple render targets: a framebuffer combining the colour textures with the depth
-            // buffer of the depth target.
+            // buffer of the depth target. The one bound last for this target, while it is of
+            // the same names (looking it up by its key made the key's string at every bind).
+            if (t.Mrt is { } last && last.IsOf(t))
+            {
+                foreach (var c in t.Colors)
+                    if (c != null) c.Dirty = true;
+                GlApi.BindFramebuffer(Framebuffer, last.Name);
+                return;
+            }
             var key = new System.Text.StringBuilder();
             foreach (var c in t.Colors)
             {
@@ -510,7 +559,9 @@ namespace OniMoono.Desktop.Gl
             key.Append(t.Depth?.DepthRenderbuffer ?? 0);
             if (!mrtFramebuffers.TryGetValue(key.ToString(), out var mrt))
             {
-                mrt = new MrtFramebuffer { Key = key.ToString(), Name = GlApi.GenFramebuffer() };
+                mrt = new MrtFramebuffer { Key = key.ToString(), Name = GlApi.GenFramebuffer(), Ids = new uint[t.Colors.Length + 1] };
+                for (int i = 0; i < t.Colors.Length; i++) mrt.Ids[i] = t.Colors[i]?.Id ?? 0;
+                mrt.Ids[t.Colors.Length] = t.Depth?.DepthRenderbuffer ?? 0;
                 uint fb = mrt.Name;
                 GlApi.BindFramebuffer(Framebuffer, fb);
                 var buffers = stackalloc GlEnum[t.Colors.Length];
@@ -533,6 +584,7 @@ namespace OniMoono.Desktop.Gl
                 mrtFramebuffers[mrt.Key] = mrt;
                 OniMoono.Engine.EngineLog.Engine($"multi-target framebuffer for {t.Colors.Length} colour targets made; {mrtFramebuffers.Count} kept");
             }
+            t.Mrt = mrt;
             GlApi.BindFramebuffer(Framebuffer, mrt.Name);
         }
 
@@ -1261,30 +1313,38 @@ namespace OniMoono.Desktop.Gl
             int frame = Time.frameCount;
             long started = PlayerLoop.FrameStartedAt;
             long mainBusy = GlTimings.Now - started;
-            worker.Post(() =>
-            {
-                presenter.Frame = frame;
-                presenter.FrameStarted = started;
-                if (gpuTiming) EndGpuTiming();
-                uniformStream?.FenceFrame();
-                if (GlGpuProfile.Enabled) GlGpuProfile.FrameEnd();
-                if (GlBindless.Enabled) GlBindless.EndFrame();
-                // The back buffer is not allocated anew here for a window whose size changed
-                // since the frame drew: that would present undefined content (black) in place of
-                // the frame. The presenter scales the frame to the window instead.
-                long t = GlTimings.Now;
-                presenter.Present(interval, width, height, mainBusy + worker.TakeFrameBusy());
-                worker.NotBusy();
-                presenter.Frame = frame + 1;
-                GlTimings.Present += GlTimings.Now - t;
-                framebufferValid = false;
-                gpuTimingArmed = gpuTiming;
-            });
+            worker.Post(worker.Arena.Command(presentNow ??= PresentNow, new PresentState(interval, width, height, frame, started, mainBusy)));
             worker.Submit();
             // With vsync, while frames leave time to spare, the next frame starts once this one's
             // predecessor (at the default of two queued frames) has been presented, as in Unity's
             // player (QueuedFrames).
             if (interval > 0) WaitForQueuedFrames(presenter.Presented, frame, interval);
+        }
+
+        /// A frame's presentation as recorded (a StateCommand: a closure and its delegate were
+        /// made each frame).
+        readonly record struct PresentState(int Interval, int Width, int Height, int Frame, long Started, long MainBusy);
+
+        Action<PresentState> presentNow;
+
+        void PresentNow(PresentState p)
+        {
+            presenter.Frame = p.Frame;
+            presenter.FrameStarted = p.Started;
+            if (gpuTiming) EndGpuTiming();
+            uniformStream?.FenceFrame();
+            if (GlGpuProfile.Enabled) GlGpuProfile.FrameEnd();
+            if (GlBindless.Enabled) GlBindless.EndFrame();
+            // The back buffer is not allocated anew here for a window whose size changed
+            // since the frame drew: that would present undefined content (black) in place of
+            // the frame. The presenter scales the frame to the window instead.
+            long t = GlTimings.Now;
+            presenter.Present(p.Interval, p.Width, p.Height, p.MainBusy + worker.TakeFrameBusy());
+            worker.NotBusy();
+            presenter.Frame = p.Frame + 1;
+            GlTimings.Present += GlTimings.Now - t;
+            framebufferValid = false;
+            gpuTimingArmed = gpuTiming;
         }
 
         /// The main thread's wait before the next frame (QueuedFrames), counted in frame stats.

@@ -20,10 +20,18 @@ namespace OniMoono.Desktop.Gl
             public int Count;
             public int Next = -1;
             public int Remaining;
+            /// The caller and the helpers that took the run and are not done with it (under
+            /// `gate`). At zero nothing reads the run, and the next For takes it again.
+            public int Holders;
         }
 
         readonly object gate = new();
         Run current;
+        /// A run of an earlier For, used again once nothing holds it (a For made a new one
+        /// each time).
+        Run spare;
+        /// Runs made (tests).
+        internal int RunsMade;
         int generation;
 
         /// The caller's time spent waiting for helpers' items, since the last call (diagnostics).
@@ -40,19 +48,35 @@ namespace OniMoono.Desktop.Gl
 
         public void For(int count, Action<int> body)
         {
-            var run = new Run { Body = body, Count = count, Remaining = count };
+            Run run;
             lock (gate)
             {
+                // Helpers take a run and give it back under the gate, so a spare without
+                // holders is read by no one.
+                if (spare is { Holders: 0 }) run = spare;
+                else { spare = run = new Run(); RunsMade++; }
+                run.Body = body;
+                run.Count = count;
+                run.Next = -1;
+                run.Remaining = count;
+                run.Holders = 1;
                 current = run;
                 generation++;
                 Monitor.PulseAll(gate);
             }
-            Work(run);
-            if (Volatile.Read(ref run.Remaining) == 0) return;
-            long start = System.Diagnostics.Stopwatch.GetTimestamp();
-            lock (run)
-                while (run.Remaining > 0) Monitor.Wait(run);
-            WaitTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
+            try
+            {
+                Work(run);
+                if (Volatile.Read(ref run.Remaining) == 0) return;
+                long start = System.Diagnostics.Stopwatch.GetTimestamp();
+                lock (run)
+                    while (run.Remaining > 0) Monitor.Wait(run);
+                WaitTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
+            }
+            finally
+            {
+                lock (gate) run.Holders--;
+            }
         }
 
         static void Work(Run run)
@@ -83,8 +107,16 @@ namespace OniMoono.Desktop.Gl
                     while (generation == seen) Monitor.Wait(gate);
                     seen = generation;
                     run = current;
+                    run.Holders++;
                 }
-                Work(run);
+                try
+                {
+                    Work(run);
+                }
+                finally
+                {
+                    lock (gate) run.Holders--;
+                }
             }
         }
     }
