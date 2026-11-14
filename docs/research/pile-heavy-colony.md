@@ -2,17 +2,28 @@
 
 Gluttony (the uncleaned save of [case study 3](../PERFORMANCE_CASE_STUDY_3.md)) runs at about
 29 fps with default settings and about 53 with every tweak, where the other colonies run at
-100–180. The questions: where a default frame goes, what each opt-in tweak buys alone, whether
-the big ones could be on by default, what is left after every tweak, and whether the colony is
-like anything players hit. A study: nothing was built beyond probes.
+100–180. The questions:
+
+- Where does a default frame go?
+- What does each opt-in tweak buy alone?
+- Could the big ones be on by default?
+- What is left after every tweak?
+- Is the colony like anything players hit?
+
+A study: nothing was built beyond probes.
 
 **Verdict.**
 - **Two opt-in tweaks make the gap, and they add up.** In one launch, alternating blocks
-  (Windows, speed 3): default 28.6 fps (35.0 ms a frame); `off-world-fallers` alone 37.7 fps
-  (−8.4 ms); `fetch-by-cell` alone 34.4 fps (−5.5 ms); both 49.2 fps (−14.6 ms); every tweak
-  53.8 fps (18.6 ms). The re-profile's guess that `off-world-fallers` is most of the gap is half
-  right: it is 8.4 of the 16.4 ms, `fetch-by-cell` 5.5–5.9, `brain-rate` 1.4 (only once the
-  colony is above 30 fps), `off-screen-conveyors` nothing measurable.
+  (Windows, speed 3):
+  - Default: 28.6 fps (35.0 ms a frame).
+  - `off-world-fallers` alone: 37.7 fps (−8.4 ms).
+  - `fetch-by-cell` alone: 34.4 fps (−5.5 ms).
+  - Both: 49.2 fps (−14.6 ms).
+  - Every tweak: 53.8 fps (18.6 ms).
+
+  The re-profile's guess that `off-world-fallers` is most of the gap is half right. It is 8.4
+  of the 16.4 ms, `fetch-by-cell` 5.5–5.9, `brain-rate` 1.4 (only once the colony is above
+  30 fps), `off-screen-conveyors` nothing measurable.
 - **Each saving counts about twice at speed 3.** Sim work is paid per game second, so a shorter
   frame also carries less of it. The gravity step is 4.4 ms of a default frame, and landing the
   objects takes 8.4 ms off it.
@@ -22,15 +33,15 @@ like anything players hit. A study: nothing was built beyond probes.
   the objects from a pass of its own would leave the game's loop untouched.
 - **`fetch-by-cell` differs from the game only by ties, and often.** In verify mode on this
   colony, of 715,889 results for a kind, 40,649 (5.7%) named another of several tied items and
-  none differed otherwise; 96% of the fetch updates held at least one such tie. An exact form
-  (the game's own pass for a kind whose best items tie) would keep the whole gain for the 86%
-  of results with no tie and lose it where the 20,545 missiles tie: half the gain or more
-  (estimated).
+  none differed otherwise. 96% of the fetch updates held at least one such tie. An exact form
+  would run the game's own pass for a kind whose best items tie. It would keep the whole gain
+  for the 86% of results with no tie and lose it where the 20,545 missiles tie: half the gain
+  or more (estimated).
 - **`brain-rate` has no exact form.** The game ties brain updates to rendered frames; the tweak
   holds them to what the game does at 30 fps. On this colony Moono's default already updates
   brains five times as often as the original player does.
 - **After every tweak nothing large is left.** 36% of the main thread is sim work at 120 ms a
-  game second over several hundred kinds of update, the largest 0.7 ms a frame; the rest is
+  game second over several hundred kinds of update, the largest 0.7 ms a frame. The rest is
   12 ms a frame of rendering, animation, brains and UI. It is the frame the 2026-10-22
   inventory describes.
 - **What is extreme about the colony** is 40,500 loose items in eight cells: 17,539 objects
@@ -77,13 +88,12 @@ merge.
   switch, then 10 s measured.
 - **`off-world-fallers` cannot be switched that way,** and the first attempt showed why. A
   Harmony-patched method runs as a rebuilt copy of the game's, and a hot loop in one is slower
-  (PerfProbe's `WallTime` notes the same): with the tweak installed and its landing switched
+  (PerfProbe's `WallTime` notes the same). With the tweak installed and its landing switched
   off, the gravity step cost 1.9–2.5 ms a call against 1.30 for the game's own code, and the
-  colony ran at 18–24 fps. So the tweak was
-  left out of the launch and installed at run time, once: the default blocks run the game's
-  unpatched step, and every block after the install has the tweak on. That half is one-way; the
-  four default blocks before it (33.6–36.0 ms) and the four every-tweak blocks after it
-  (18.2–18.8 ms) show how steady the launch was.
+  colony ran at 18–24 fps. So the tweak was left out of the launch and installed at run time,
+  once. The default blocks run the game's unpatched step, and every block after the install
+  has the tweak on. That half is one-way. The four default blocks before it (33.6–36.0 ms)
+  and the four every-tweak blocks after it (18.2–18.8 ms) show how steady the launch was.
 - **Exact brackets** are the engine's `--frame-stats` with `ONI_BUCKET_PROFILE=1`, in launches
   of their own (one at default, one with every tweak). Frame stats cost about 8% here (26.5
   against 28.6 fps at default), so those launches give the split, not the frame rate.
@@ -175,7 +185,7 @@ tweak.
 
 At speed 3 a real second carries three game seconds, and the sim's work is paid per game
 second: 90 sub-ticks and 15 sim steps, whatever the frame rate. On Windows that is about 117 ms
-a game second without the gravity step and 39 ms for it, so at default 47% of the main thread
+a game second without the gravity step and 39 ms for it. So at default 47% of the main thread
 goes to work a shorter frame does not shrink, and the per-frame rest is about 19 ms. A frame is
 then the per-frame work over the share the sim leaves:
 
@@ -244,17 +254,18 @@ O `off-screen-conveyors`; A all four.
   unchanged), adding only the step's time to its `elapsedTime`. It would need a mirror of the
   game's step and invalidation from our transform and the grid, for the same gain as the
   landing. Not designed.
-- **A cost of the current form.** The tweak transpiles the step, and so does any patch of it:
-  the game's method then runs as Harmony's copy, measured here at 1.9–2.5 ms a call for 17,566
+- **A cost of the current form.** The tweak transpiles the step, and so does any patch of it.
+  The game's method then runs as Harmony's copy, measured here at 1.9–2.5 ms a call for 17,566
   objects against 1.30 ms unpatched. With the objects landed the loop has 30 objects and the
-  cost is nil; on a colony with many objects falling for real it is 35–70 ns an object a
+  cost is nil. On a colony with many objects falling for real it is 35–70 ns an object a
   step. A landing pass of its own (once a second over `GameComps.Gravities`, the same test)
-  would leave the game's loop unpatched and take the tweak off the list of patches other mods'
-  transpilers of that method have to live with
+  would leave the game's loop unpatched. It would also take the tweak off the list of patches
+  other mods' transpilers of that method have to live with
   ([tweak-step-aside-audit.md](tweak-step-aside-audit.md), rows 14 and 18).
-- **For on by default:** it fixes a bug in the game's own code, as the `fix-*` tweaks that are
-  on by default do; nothing on screen and nothing in the save changes; the largest single gain
-  on a colony that has the objects.
+- **For on by default:**
+  - It fixes a bug in the game's own code, as the `fix-*` tweaks that are on by default do.
+  - Nothing on screen and nothing in the save changes.
+  - It is the largest single gain on a colony that has the objects.
 - **Against:** it is the one bug fix that changes an object's simulation state rather than a
   screen or a sound, and its gain is nil without the bug.
 
