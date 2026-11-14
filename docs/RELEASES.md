@@ -16,27 +16,36 @@ commit of `master` (or `u60` for a U60 beta):
 | `.github/workflows/workshop.yml` | Run by hand with a u60 release tag (or, for a dry run, the release.yml run that built it). Downloads the release's assets and verifies their provenance from u60, lays out the Workshop item (the U60 build alone) (`scripts/workshop-item.py`, [INSTALL-MODES.md](INSTALL-MODES.md#workshop-item)), has `attest.yml` attest its `SHA256SUMS` and every file in it, puts the bundle for `SHA256SUMS` in the item (`attestation/`), checks it with gh, and keeps it as the `workshop-item` artifact. Nothing is uploaded to Steam. |
 | `.github/workflows/workshop-upload.yml` | Run by hand with a `workshop.yml` run's number. Checks that run's item as `verify.sh` does and that its attestation is that run's, writes the VDF, and (mode `upload`, in the `steam-workshop` environment, which alone holds the Steam secrets) signs in with a cached steamcmd session and uploads it to the Steam Workshop. [WORKSHOP-UPLOAD.md](WORKSHOP-UPLOAD.md). |
 
-`<version>` in the archives' names is the release tag's date, as `oni-moono-2026.11.10-…` for
-`v2026.11.10.01` (`-u60` follows it for the u60 branch); a build of a plain push is named by its
+`<version>` in the archives' names is the release tag's date: `oni-moono-2026.11.10-…` for
+`v2026.11.10.01`. `-u60` follows it for the u60 branch. A build of a plain push is named by its
 commit's date (`scripts/release-version.sh`).
 
 Each archive comes with a manifest, `oni-moono-<version>-windows-x64.SHA256SUMS` or
-`…-linux-x64.SHA256SUMS`: the SHA-256 of every file in the archive, with paths relative to its
-`oni-moono` folder, in `sha256sum`'s format. `release.sh` writes it from the staged folder just
-before archiving.
+`…-linux-x64.SHA256SUMS`. It lists the SHA-256 of every file in the archive, with paths relative
+to its `oni-moono` folder, in `sha256sum`'s format. `release.sh` writes it from the staged
+folder just before archiving.
 
 The release is published by hand: write its notes in the draft on GitHub and press Publish.
-Publishing creates the tag at the built commit and, as the repository has immutable releases on,
-locks the release: its assets and tag cannot change afterwards, and GitHub adds a release
-attestation of its own. The draft's notes start with where it was built and how to verify it;
-keep that paragraph.
+Publishing:
 
-`dry_run` (on by default) runs everything up to the draft, then downloads the draft's assets
-again, verifies them and a few single files from the extracted Windows archive (and checks that
-a changed file fails), and deletes the draft. Its draft is tagged `vtest-<tag>-<run id>` and
-titled `TEST …`; a draft's tag is only made when it is published, and the workflow checks that
-none is left. Dry runs do sign provenance, so their attestations stay in the repository's
-attestation list and in the public Sigstore log; keep them few.
+- Creates the tag at the built commit.
+- Locks the release, as the repository has immutable releases on. Its assets and tag cannot
+  change afterwards.
+- Makes GitHub add a release attestation of its own.
+
+The draft's notes start with where it was built and how to verify it. Keep that paragraph.
+
+`dry_run` (on by default) runs everything up to the draft, then:
+
+1. Downloads the draft's assets again.
+2. Verifies them and a few single files from the extracted Windows archive, and checks that a
+   changed file fails.
+3. Deletes the draft.
+
+Its draft is tagged `vtest-<tag>-<run id>` and titled `TEST …`. A draft's tag is only made when
+it is published, and the workflow checks that none is left. Dry runs do sign provenance, so
+their attestations stay in the repository's attestation list and in the public Sigstore log.
+Keep them few.
 
 ### SLSA Build Level 3
 
@@ -44,65 +53,85 @@ attestation list and in the public Sigstore log; keep them few.
   runs.
 - The build jobs have only `contents: read`. The signing identity (`id-token: write`,
   `attestations: write`) exists only in `attest.yml`'s job, a separate reusable workflow on a
-  fresh runner that receives nothing but names and digests: the archives' and manifests', and
-  the manifests' lines. Before signing it checks the archive and manifest names, rejects any
-  path that is not a plain relative one, and checks that the lines hash to the manifests'
-  digests, so each file it signs is one a manifest lists. It signs one attestation per archive
-  (the archive, its manifest and its files: about 290 subjects, where the action takes up to
-  1024). A compromised build step cannot sign anything, and the provenance names `attest.yml`
-  as its signer, which is what verification checks.
+  fresh runner. That job:
+  - Receives nothing but names and digests: the archives' and manifests', and the manifests'
+    lines.
+  - Before signing, checks the archive and manifest names, rejects any path that is not a plain
+    relative one, and checks that the lines hash to the manifests' digests. So each file it
+    signs is one a manifest lists.
+  - Signs one attestation per archive (the archive, its manifest and its files: about 290
+    subjects, where the action takes up to 1024).
+
+  A compromised build step cannot sign anything, and the provenance names `attest.yml` as its
+  signer, which is what verification checks.
 - Every action is pinned to a full commit SHA. Workflows run only on pushes to `master`/`u60`
   and by hand, never on pull requests, so a fork's code never sees the secret.
 
 ### The game's assemblies
 
-The build compiles against the game's assemblies (`OniMoono.GameTweaks` against Assembly-CSharp and
-the Unity modules it uses, the host against 0Harmony, Ionic.Zip and FMODUnity), but nothing of the
-game goes into the archives. CI gets them as **reference assemblies**: metadata only, every method
-body removed (private members kept: `OniMoono.GameTweaks` compiles against publicized copies and
-uses them directly), made with JetBrains Refasmer by `scripts/make-refs.sh` and kept in the private
-repository `tigin-backwards/oni-moono-refs`, one folder per game build with a `SHA256SUMS`, and a
-LICENSE.txt naming each library's licence (the game's own code is used under Klei's mod
-guidelines).
+The build compiles against the game's assemblies, but nothing of the game goes into the
+archives:
+
+- `OniMoono.GameTweaks` compiles against Assembly-CSharp and the Unity modules it uses.
+- The host compiles against 0Harmony, Ionic.Zip and FMODUnity.
+
+CI gets them as **reference assemblies**: metadata only, every method body removed. Private
+members are kept, because `OniMoono.GameTweaks` compiles against publicized copies and uses them
+directly. `scripts/make-refs.sh` makes them with JetBrains Refasmer. They are kept in the
+private repository `tigin-backwards/oni-moono-refs`: one folder per game build with a
+`SHA256SUMS`, and a LICENSE.txt naming each library's licence (the game's own code is used
+under Klei's mod guidelines).
 
 `ci/game-refs.json` lists each game build the branch supports, where its files come from and
-the SHA-256 of every file; `default_build` is the one the release builds against (U59 744825 on
-`master`, U60 763023 on `u60`). `scripts/fetch-game-refs.py OUT` fetches one build into
-`OUT/OxygenNotIncluded_Data/Managed`, a folder that works as `ONI_GAME_DIR`. It checks every file
-against the manifest before writing any, refuses hosts other than GitHub's, and never runs
-anything it fetched (from git it reads blobs out of a bare repository, with hooks off). A source
-is `git` (repository, commit and folder), `url` (a base URL on an allowed host) or `local` (a
-folder), so the files can move without touching the scripts.
+the SHA-256 of every file. `default_build` is the one the release builds against (U59 744825 on
+`master`, U60 763023 on `u60`).
+
+`scripts/fetch-game-refs.py OUT` fetches one build into `OUT/OxygenNotIncluded_Data/Managed`, a
+folder that works as `ONI_GAME_DIR`. It:
+
+- Checks every file against the manifest before writing any.
+- Refuses hosts other than GitHub's.
+- Never runs anything it fetched (from git it reads blobs out of a bare repository, with hooks
+  off).
+
+A source is `git` (repository, commit and folder), `url` (a base URL on an allowed host) or
+`local` (a folder), so the files can move without touching the scripts.
 
 Actions reads the refs repository with a GitHub App, oni-moono-refs-reader, installed on that
 repository alone with read-only Contents. Its ID is the repository variable `REFS_APP_ID` and its
-private key the secret `REFS_APP_KEY`; `.github/actions/game-refs` mints a short-lived token with
-`actions/create-github-app-token` for each fetch, and the fetch passes it to git in its
-environment only. The fetch is a partial clone: it takes the commit's trees and only the blobs it
-reads.
+private key the secret `REFS_APP_KEY`. For each fetch, `.github/actions/game-refs` mints a
+short-lived token with `actions/create-github-app-token`, and the fetch passes it to git in its
+environment only. The fetch is a partial clone: it takes the commit's trees and only the blobs
+it reads.
 
 ### Caches
 
-Pushes restore and save the NuGet packages (keyed by `global.json`, `Directory.Packages.props`
-and the project files) and the reference assemblies (keyed by build and `ci/game-refs.json`; a
-restored copy is checked file by file like a fetch). Release builds use no cache at all, so
-nothing another run wrote reaches a release.
+Pushes restore and save two caches:
+
+- The NuGet packages, keyed by `global.json`, `Directory.Packages.props` and the project files.
+- The reference assemblies, keyed by build and `ci/game-refs.json`. A restored copy is checked
+  file by file like a fetch.
+
+Release builds use no cache at all, so nothing another run wrote reaches a release.
 
 ### Unit tests in CI
 
 `scripts/ci-unit-tests.sh` runs every unit test suite against the reference assemblies, with
 `ONI_TESTS_NO_GAME=1`. A test that needs the game's data, or its runnable Harmony, Ionic.Zip or
-Newtonsoft.Json, skips itself without them, with a reason that starts `needs game data:` or
+Newtonsoft.Json, skips itself without them. The skip's reason starts `needs game data:` or
 `needs game assembly:`, and the run ends with the skips listed by reason
 (`scripts/test-skips.py`). `scripts/check.sh` runs the same suites with the game and fails on any
 such skip, naming the tests.
 
 A new test gets the skip by reaching the game through `tests/Shared/GameInstall.cs`:
-`GameInstall.DataDir` (or the helpers built on it, such as `TmpTestSupport.LoadGameData`) for
-the data, and `[NeedsGameAssembly("0Harmony")]` on a test that uses one of the game's
-assemblies. In a run without the game, a test that misses them still skips: a failure on a
-missing file under the game folder, or on loading a reference assembly, is reported as one of
-those skips (`NoGameSkips`, `ONI_TESTS_NO_GAME=1` only). Any other failure fails the build.
+
+- For the data: `GameInstall.DataDir`, or the helpers built on it, such as
+  `TmpTestSupport.LoadGameData`.
+- For one of the game's assemblies: `[NeedsGameAssembly("0Harmony")]` on the test.
+
+In a run without the game, a test that misses them still skips. A failure on a missing file
+under the game folder, or on loading a reference assembly, is reported as one of those skips
+(`NoGameSkips`, `ONI_TESTS_NO_GAME=1` only). Any other failure fails the build.
 
 ## Writing the release notes
 
@@ -167,9 +196,9 @@ gh attestation verify oni-moono-YYYY.MM.DD-linux-x64.SHA256SUMS -R tigin-backwar
 (cd oni-moono && sha256sum -c ../oni-moono-YYYY.MM.DD-linux-x64.SHA256SUMS)
 ```
 
-Verification shows the commit and workflow run a file was built by; `--source-ref
-refs/heads/master` (or `refs/heads/u60`) also checks the branch. A published release also has GitHub's immutable
-release attestation:
+Verification shows the commit and workflow run that built a file. `--source-ref
+refs/heads/master` (or `refs/heads/u60`) also checks the branch. A published release also has
+GitHub's immutable release attestation:
 
 ```sh
 gh release verify vYYYY.MM.DD.NN -R tigin-backwards/oni-moono
@@ -182,18 +211,24 @@ have neither. Releases before the manifests were added have provenance for their
 ### Verifying the Workshop item
 
 **Moono checks no signature on the item.** It checks each player file against its release's
-manifest as it installs it, which catches a download Steam hasn't finished, not a forged item:
+manifest as it installs it. That catches a download Steam hasn't finished, not a forged item:
 like any mod, the item is trusted as Steam delivers it ([INSTALL-MODES.md](INSTALL-MODES.md#what-the-installer-verifies)).
+
 For an install you can be sure of, install from a GitHub release (setup,
-[Verifying a release](#verifying-a-release)): the releases are the root of trust. Don't follow
-advice in the item or its Workshop description to run anything from it; whoever controls the
+[Verifying a release](#verifying-a-release)). The releases are the root of trust. Don't follow
+advice in the item or its Workshop description to run anything from it: whoever controls the
 item writes both.
 
 **By hand,** check the item with `verify.sh` or `verify.ps1` from GitHub, not the copies inside the
-item, which its uploader can change. They check each release manifest by its provenance from
-`release.yml` on u60 and every player file against it (the item has the U60 build alone), then the item's `SHA256SUMS` by its provenance from `workshop.yml`
-(looked up, and the bundle in `attestation/`), every file against it, and that nothing else is in
-the folder. They need the GitHub CLI:
+item, which its uploader can change. They check:
+
+1. Each release manifest, by its provenance from `release.yml` on u60, and every player file
+   against it (the item has the U60 build alone).
+2. The item's `SHA256SUMS`, by its provenance from `workshop.yml` (looked up, and the bundle in
+   `attestation/`), and every file against it.
+3. That nothing else is in the folder.
+
+They need the GitHub CLI:
 
 ```sh
 gh api -H 'Accept: application/vnd.github.raw' repos/tigin-backwards/oni-moono/contents/ci/workshop/verify.sh > verify.sh
@@ -259,10 +294,13 @@ How close the builds are to reproducible, as checked on the first dry run (2026-
   install instead of the reference assemblies, they differ only in their IDs (MVID, PE
   timestamp, PDB ID), which hash the referenced assemblies; the IL is the same.
 - **The Windows archive** has the same files, but a WSL build (`release.sh` as it was run before)
-  is not the same as GitHub's Windows one: on Windows the SDK writes its generated files with
-  CRLF and records the native files' versions in `OniMoono.deps.json`, and `OniMoono.exe` comes
-  from the runner image's MSVC toolset, which changes as GitHub updates the image. Reproducing it
-  takes a Windows machine with the same toolset. `OniMoono.exe` is built with `/Brepro`, so it
-  holds no timestamps; it embeds the commit.
+  is not the same as GitHub's Windows one:
+  - On Windows the SDK writes its generated files with CRLF and records the native files'
+    versions in `OniMoono.deps.json`.
+  - `OniMoono.exe` comes from the runner image's MSVC toolset, which changes as GitHub updates
+    the image.
+
+  Reproducing it takes a Windows machine with the same toolset. `OniMoono.exe` is built with
+  `/Brepro`, so it holds no timestamps; it embeds the commit.
 - **The archives themselves** record file times (the tar.gz also its owner and gzip time), so
   two builds of the same files give different archives. Compare their contents.
