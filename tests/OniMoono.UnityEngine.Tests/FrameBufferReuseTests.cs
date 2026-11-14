@@ -125,6 +125,57 @@ namespace OniMoono.Tests
             }
         }
 
+        sealed class Subscriber(List<int> calls, int id)
+        {
+            public void First() => calls.Add(id);
+            public void Second() => calls.Add(-id);
+        }
+
+        /// The same over many targets (a removal finds its entry through the delegate's target):
+        /// 4,000 random adds and removes of single and multicast delegates of 40 objects' two
+        /// methods and a static one, removals of delegates never added among them.
+        [Fact]
+        public void ADelegateListOfManyTargetsCallsAsAMulticastDelegateWould()
+        {
+            var calls = new List<int>();
+            var subscribers = new Subscriber[40];
+            for (int i = 0; i < subscribers.Length; i++) subscribers[i] = new Subscriber(calls, i + 1);
+            Action still = () => calls.Add(0);
+            var random = new System.Random(20261113);
+            Action Pick()
+            {
+                int k = random.Next(subscribers.Length + 1);
+                if (k == subscribers.Length) return still;
+                return random.Next(2) == 0 ? subscribers[k].First : subscribers[k].Second;
+            }
+            var list = new DelegateList<Action>();
+            Action multicast = null;
+            for (int step = 0; step < 4000; step++)
+            {
+                Action value = Pick();
+                if (random.Next(8) == 0) value += Pick();
+                if (random.Next(5) < 3)
+                {
+                    list.Add(value);
+                    multicast += value;
+                }
+                else
+                {
+                    list.Remove(value);
+                    multicast -= value;
+                }
+                if (step % 7 != 0 && step < 3990) continue;
+                Assert.Equal(multicast?.GetInvocationList().Length ?? 0, list.Count);
+                calls.Clear();
+                multicast?.Invoke();
+                var expected = calls.ToArray();
+                calls.Clear();
+                using (var s = list.Take())
+                    foreach (var d in s.Items) d();
+                Assert.Equal(expected, calls);
+            }
+        }
+
         /// Canvas.willRenderCanvases calls the handlers there were when the call began: one added
         /// by a handler waits for the next call, one removed by a handler is still called.
         [Fact]
