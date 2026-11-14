@@ -62,7 +62,12 @@ namespace OniMoono.Host.GameTweaks
             if (on(FmodStealFix.Name)) yield return (FmodStealFix.Name, FmodStealFix.Install, true);
             if (on(NoSaveGc.Name)) yield return (NoSaveGc.Name, NoSaveGc.Install, true);
             if (on(PostLoadGc.Name)) yield return (PostLoadGc.Name, PostLoadGc.Install, true);
-            if (on(FastSerialization.Name)) yield return (FastSerialization.Name, FastSerialization.Install, true);
+            if (on(FastSerialization.Name))
+                yield return (FastSerialization.Name, h =>
+                {
+                    FastSerialization.Install(h);
+                    ReportWriters();
+                }, true);
             if (on(FastParticleCollision.Name)) yield return (FastParticleCollision.Name, FastParticleCollision.Install, true);
             // Enabled at start-up (CompactNavLinks.Enable); this adds the load's summary.
             if (on(CompactNavLinks.Name)) yield return (CompactNavLinks.Name, CompactNavLinks.Install, true);
@@ -84,6 +89,26 @@ namespace OniMoono.Host.GameTweaks
                 {
                     if (!(bool)typedInstall.Invoke(null, [h, name])!) throw new InvalidOperationException($"OniMoono.GameTweaks has no tweak {name}");
                 }, true);
+            }
+        }
+
+        /// fast-serialization's writers for the report history, built against the game's types
+        /// (OniMoono.GameTweaks.ReportEntries): each field and its writer, for the plans.
+        /// Without them those fields go to Helper.WriteValue, as every field without a direct
+        /// write does.
+        static void ReportWriters()
+        {
+            try
+            {
+                var entries = TypedAssembly.GetType("OniMoono.GameTweaks.ReportEntries", throwOnError: true)!;
+                var writers = (object[])entries.GetMethod("FieldWriters")!.Invoke(null, [typeof(FastSerialization).GetField(nameof(FastSerialization.Enabled))])!;
+                for (int i = 0; i + 1 < writers.Length; i += 2)
+                    FastSerialization.UseFieldWriter((System.Reflection.FieldInfo)writers[i], (System.Reflection.MethodInfo)writers[i + 1]);
+            }
+            catch (Exception e)
+            {
+                var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
+                EngineLog.Engine($"{FastSerialization.Name}: the report history keeps the game's writer: {cause.GetType().Name}: {cause.Message}");
             }
         }
 
