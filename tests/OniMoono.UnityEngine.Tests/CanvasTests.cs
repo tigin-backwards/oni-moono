@@ -16,6 +16,9 @@ namespace OniMoono.Tests
         [Fact]
         public void ClearAndMaterialCountUseTheMaterialArrayAgain()
         {
+            // The material's shader is the game's.
+            AssetSystem.Initialize(GameInstall.DataDir);
+            ProjectSettings.Load();
             var go = new GameObject("Element", typeof(RectTransform));
             try
             {
