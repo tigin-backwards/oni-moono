@@ -9,12 +9,14 @@ runners"). Linux, under the X display in DISPLAY.
         One launch of WORKTREE's release build: SAVE loaded with PerfProbe (alloc.txt, sites.txt,
         no autosaves), paused for --pause-windows windows of --window frames, then at speed 3
         for --run-windows, in a --size window; stopped after --timeout seconds whatever it has.
-        Writes OUT/result.json: each window's counts and times, no log text.
+        Writes OUT/result.json: each window's counts and times (every frame's time with
+        them), no log text.
     scripts/perf-spread.py summary [--a NAME] [--b NAME] [--save NAME] OUT RUN...
         The runs' report (OUT/summary.md, the job summary as is, and OUT/summary.json): a header
         line (A and B by name, the save, the CPU model, the pairs), each gate's verdict, then
-        tables of the counts and sections paused and running and of the times' A/B ratios, and
-        each launch's numbers and every section folded away last.
+        tables of the counts and sections paused and running and of the times' A/B ratios (the
+        median and p99 frame and the 1% low among them, reported and never judged), and each
+        launch's numbers and every section folded away last.
     scripts/perf-spread.py jobs SUMMARY.json...
         Several jobs' summaries side by side: the between-job spread of the absolute times.
     scripts/perf-spread.py gate SUMMARY.json
@@ -72,6 +74,7 @@ def prepare_home(out, save, probe, pause_windows, window, size):
         'alloc.txt': '',
         'sites.txt': '',
         'novictory.txt': '',
+        'frametimes.txt': '',
         'speed.txt': '2\n',
     }
     if pause_windows:
@@ -183,7 +186,7 @@ def run(argv):
     took = time.time() - started
     if proc.poll() is None:
         stop(home, proc)
-    result = parse(log, a.pause_windows)
+    result = parse(log, a.pause_windows, frame_times(os.path.join(home, GAME_DIR, 'mods', 'Local', 'PerfProbe', 'frametimes.csv'), a.window))
     result.update(
         label=a.label,
         worktree=os.path.basename(worktree),
@@ -231,10 +234,31 @@ def failure_lines(paths, home, most=12):
 NUM = r'(-?[\d.]+)'
 
 
-def parse(log, pause_windows):
+def frame_times(path, window):
+    """PerfProbe's frametimes.csv (`frametimes.txt`): {a window's last frame: its frames' times in
+    ms, in order}. A line holds 600 values whatever the window; the first `window` are its own."""
+    times = {}
+    try:
+        with open(path) as f:
+            for line in f:
+                a = line.split()
+                if len(a) > 1:
+                    times[int(a[0])] = [float(x) for x in a[1 : 1 + min(window, 600)]]
+    except (OSError, ValueError):
+        pass
+    return times
+
+
+def percentile(ordered, q):
+    """The value q of the way through a sorted list (0.99: the frame 1% of frames are slower than)."""
+    return ordered[min(len(ordered) - 1, int(len(ordered) * q))]
+
+
+def parse(log, pause_windows, times=None):
     """Each 600-frame window after the colony is up: PerfProbe's counters (cumulative, so taken
     as differences) and the frame stats lines logged within it. A window's `PERF f` line comes
-    first, then its `PERF alloc` and `PERF sites` lines; frame stats lines before it are its own."""
+    first, then its `PERF alloc` and `PERF sites` lines; frame stats lines before it are its own.
+    `times` (frame_times) gives each window its frames' times."""
     windows, pending = [], None
     prev_alloc, prev_sites = None, None
     try:
@@ -315,6 +339,8 @@ def parse(log, pause_windows):
             rec['sim_ms'] = round(statistics.mean(sum(x) for x in w['sim']), 3)
         if w['speed']:
             rec['game_s_per_s'] = w['speed'][-1]
+        if times and times.get(w.get('frame')):
+            rec['frame_times_ms'] = times[w['frame']]
         rec['sites'] = w.get('sites') or {}
         out.append(rec)
     return {'windows': out}
@@ -379,8 +405,20 @@ def launch_metrics(result):
             vals = [w[key] for w in ws if w.get(key) is not None]
             if vals:
                 times[key] = statistics.median(vals)
+        # Over every frame of the measured windows together: the median and p99 frame, and the
+        # 1% low (1,000 / p99, the frame rate 1% of frames are slower than).
+        frames = sorted(t for w in ws for t in w.get('frame_times_ms') or ())
+        if frames:
+            times['p50_ms'] = percentile(frames, 0.5)
+            times['p99_ms'] = percentile(frames, 0.99)
+            if times['p99_ms'] > 0:
+                times['low1_fps'] = 1000.0 / times['p99_ms']
         m[phase] = {'counts': counts, 'totals': totals, 'sites': sites, 'times': times}
     return m
+
+
+# The times a summary pairs up; the frame percentiles and the 1% low are reported, never judged.
+TIME_KEYS = ('main_ms', 'frame_ms', 'step_ms', 'sim_ms', 'game_s_per_s', 'p50_ms', 'p99_ms', 'low1_fps')
 
 
 def rel_spread(values):
@@ -447,7 +485,7 @@ def summary(argv):
     for phase in ('paused', 'running'):
         a = [l['metrics'].get(phase, {}).get('times', {}) for l in launches if l['label'] == 'A']
         b = [l['metrics'].get(phase, {}).get('times', {}) for l in launches if l['label'] == 'B']
-        for key in ('main_ms', 'frame_ms', 'step_ms', 'sim_ms', 'game_s_per_s'):
+        for key in TIME_KEYS:
             av = [t[key] for t in a if key in t]
             bv = [t[key] for t in b if key in t]
             pairs = [y / x for x, y in zip(av, bv) if x]
@@ -551,6 +589,9 @@ TIME_ROWS = (
     ('step_ms', 'Sim step, ms a frame'),
     ('sim_ms', 'Sim in all, ms a frame'),
     ('frame_ms', 'Frame, ms (the software renderer)'),
+    ('p50_ms', 'Median frame, ms'),
+    ('p99_ms', 'p99 frame, ms'),
+    ('low1_fps', '1% low, fps (1,000 / the p99 frame)'),
 )
 
 
@@ -614,6 +655,11 @@ def markdown(s):
         out += ['### Times while running (not judged, but the main thread warns)', '']
         out += table(['Time', 'A', 'B', 'B/A', 'Pairs sd', 'Detectable'], rows) + ['']
         out += ['Times differ by 20–40% between runner machines: only B/A, measured in turn on one machine, compares.', '']
+        if timing.get('p99_ms'):
+            out += [
+                'The p99 frame is the frame 1% of the running frames are slower than, over a launch\'s measured windows; with the software renderer it is mostly the renderer\'s.',
+                '',
+            ]
     out += ['<details><summary>Each launch, and every section</summary>', '']
     rows = []
     for i, l in enumerate(s['launches'], 1):
@@ -631,9 +677,27 @@ def markdown(s):
                 num(r.get('totals', {}).get('draws a frame')),
                 num(r.get('times', {}).get('main_ms')),
                 num(r.get('times', {}).get('step_ms')),
+                num(r.get('times', {}).get('p99_ms')),
+                num(r.get('times', {}).get('low1_fps')),
             ]
         )
-    out += table(['#', 'Build', 'Status', 'To colony', 'Windows', 'Paused B a frame', 'Paused draws', 'Running draws', 'Main ms', 'Step ms'], rows) + ['']
+    out += table(
+        [
+            '#',
+            'Build',
+            'Status',
+            'To colony',
+            'Windows',
+            'Paused B a frame',
+            'Paused draws',
+            'Running draws',
+            'Main ms',
+            'Step ms',
+            'p99 frame ms',
+            '1% low fps',
+        ],
+        rows,
+    ) + ['']
     for phase in ('paused', 'running'):
         secs = counts.get(phase, {}).get('sections', {})
         if secs:
@@ -664,7 +728,7 @@ def jobs(argv):
             ss.append(json.load(f))
     print('CPUs: ' + '; '.join(s['cpu'] for s in ss))
     for phase in ('paused', 'running'):
-        for key in ('main_ms', 'frame_ms', 'step_ms', 'sim_ms', 'game_s_per_s'):
+        for key in TIME_KEYS:
             vals = [s['timing'].get(phase, {}).get(key, {}) for s in ss]
             a = [v['A_median'] for v in vals if 'A_median' in v]
             r = [v['ratio_of_medians'] for v in vals if v.get('ratio_of_medians')]

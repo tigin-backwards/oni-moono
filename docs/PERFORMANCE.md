@@ -132,7 +132,10 @@ has a summary. `args` and `b_args` add player arguments to both or to B alone (a
 release lacks can only be named for B). The job summary and the artifact give, for each label, the
 spread of the counts (allocations per frame paused and per game second running, by update
 section too, collections, draws, texture uploads) and, for each A/B pair, the ratio of the
-medians of main-thread ms a frame and the sim's ms a frame, with the runner's CPU model.
+medians of main-thread ms a frame and the sim's ms a frame, with the runner's CPU model. The
+times table also has the median frame, the p99 frame and the 1% low (1,000 / the p99 frame, in
+fps), taken over every frame of a launch's measured running windows (PerfProbe's
+`frametimes.txt`); see [research/one-percent-lows.md](research/one-percent-lows.md).
 `scripts/perf-spread.py jobs` sets several jobs' summaries side by side.
 
 ## Perf gates in the nightly
@@ -152,7 +155,9 @@ what moved by a few percent between launches has a tolerance, and the times only
   number (about 3–6% on these runners).
 - Not judged: frame rates and absolute times, which differ by 20–40% between runners (the
   renderer is Mesa's software one), and running allocations, which move by up to a third between
-  launches.
+  launches. The p99 frame and the 1% low are reported with B/A and never judged: with three
+  running windows of 300 frames, two of them measured, the p99 frame is a launch's sixth-slowest
+  of 600, and on the software renderer most of it is the renderer's.
 
 Each run logs the runner's CPU model. A rise against the release that is meant (a new feature
 that draws more) fails until the next release becomes A; a fall is noted. When A measures nothing
