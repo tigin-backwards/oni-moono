@@ -5,12 +5,14 @@ the [re-profile](reprofile-2026-11-13.md#managed-allocations) showed Moono above
 there (7.6 against 3.1 KB a frame on U60's mid-game colony), and what was changed. KB and MB are
 powers of 1,000.
 
-**In short:** 2.2 of Moono's 7.3 KB a frame were the measurement's own (PerfProbe's section
-counters under .NET), 1.4 were two game tweaks', 1.6 the engine's, 2.1 the game's own code. After
-the fixes Moono hands out 2.8 KB a frame on that colony with the default HUD, against the
-original's 3.2, and less than the original with a management screen or an overlay open too. In a
-player's terms it never mattered: before the fixes, a paused colony at 60 fps reached one gen0
-collection about every quarter of an hour.
+**In short:**
+- **Where Moono's 7.3 KB a frame went:** 2.2 were the measurement's own (PerfProbe's section
+  counters under .NET), 1.4 were two game tweaks', 1.6 the engine's, 2.1 the game's own code.
+- **After the fixes** Moono hands out 2.8 KB a frame on that colony with the default HUD,
+  against the original's 3.2, and less than the original with a management screen or an overlay
+  open too.
+- **In a player's terms it never mattered.** Before the fixes, a paused colony at 60 fps reached
+  one gen0 collection about every quarter of an hour.
 
 ## Method
 

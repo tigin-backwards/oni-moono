@@ -5,10 +5,13 @@ The question: a conveyor bridge that moves a whole item un-stores it and stores 
 50 µs a move). Does that round trip leave anything behind that a plain move of the item from the
 input rail tile to the output rail tile would not? If not, can a game tweak make the plain move?
 
-**Verdict.** The round trip ends where it began, apart from eight things it leaves behind, all
-cheap to make by hand, and four pieces of bookkeeping that no gameplay reads. `direct-rail-bridges`
-(on by default since 2026-11-14, outside `exact`) makes the move directly for the items the audit covers and leaves the rest to the
-game. Sections: the audit, what the tweak does, verification, cost.
+**Verdict.**
+- The round trip ends where it began, apart from eight things it leaves behind, all cheap to
+  make by hand, and four pieces of bookkeeping that no gameplay reads.
+- `direct-rail-bridges` (on by default since 2026-11-14, outside `exact`) makes the move
+  directly for the items the audit covers and leaves the rest to the game.
+
+Sections: the audit, what the tweak does, verification, cost.
 
 ## Method
 
