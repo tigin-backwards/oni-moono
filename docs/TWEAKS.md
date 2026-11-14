@@ -54,6 +54,8 @@ step aside. It only shows what it finds; it never turns a tweak on or off.
   Fast Track, MoreTek, Colony Performance Fixes or Multiplayer Mod is active), `fast-conduit-sorts`
   (the pipe and rail flows' `Sim200ms`; also while those mods are active),
   `fast-conveyor-paths` (`SolidConduitFlow.TryAdd`),
+  `fast-overlay-removals` (the Decor overlay's handler for removed objects and its grid's
+  `Remove`),
   `fast-anim-events` (the animation event loop and what it reads; see
   [Animation events](#animation-events)), `fast-pipe-rebuilds` (the pipes' rebuild handlers and
   `Conduit.RefreshInvalidNetworkStatusItem`; see [Pipe network rebuilds](#pipe-network-rebuilds)),
@@ -263,6 +265,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Parallel animation uploads** (`fast-anim-batches`): Animation data for the graphics card is prepared on several threads. Animation batches write their instance and symbol data on worker threads, the rest in the game's order.
 - **Fewer animation uploads** (`fast-symbol-overrides`): Swapped animation parts are re-sent to the graphics card only when they change. Unchanged symbol-override blocks of Duplicants and buildings aren't uploaded again.
 - **Trimmed animation lists** (`trim-anim-lists`): The game's animation data takes about 65 MB less memory. Once the animations are loaded, the lists of their frames and frame parts give back the room they grew into but don't use; the game reads the same data.
+- **Smoother decor overlay** (`fast-overlay-removals`): The Decor overlay no longer stutters when items are stored or used up. While the Decor overlay is open, the game takes each stored or removed item out of the overlay's index by comparing it with every entry; this compares references instead, which finds the same entries.
 
 ### Changes gameplay (off by default but where marked)
 

@@ -459,6 +459,8 @@ stage_verify()
         [ "$tweak" = "vulkan draws" ] && ! grep -aq "renderer: Vulkan" "$out/stdout.txt" && { note "verify: vulkan draws not checked on OpenGL"; continue; }
         echo "$report" | grep -q "$tweak:" || fail "verify: no report from $tweak"
     done
+    # The Decor overlay is opened only in the full run.
+    if [ "${QA_VERIFY_FULL:-0}" = 1 ]; then echo "$report" | grep -q "fast-overlay-removals:" || fail "verify: no report from fast-overlay-removals"; fi
     local part
     # The canvas skips: the walk's, the rect masks' and the raycasts'.
     for part in "verified" "graphics skipped by masks" "graphics left out of raycasts"; do

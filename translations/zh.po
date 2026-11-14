@@ -762,6 +762,18 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.DETAIL"
 msgid "Once the animations are loaded, the lists of their frames and frame parts give back the room they grew into but don't use; the game reads the same data."
 msgstr "动画加载完成后，其帧和帧部件的列表会交还增长时多占却不用的空间；游戏读取的数据不变。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.TITLE"
+msgid "Smoother decor overlay"
+msgstr "更流畅的装饰叠加层"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.EFFECT"
+msgid "The Decor overlay no longer stutters when items are stored or used up."
+msgstr "物品被存放或用完时，装饰叠加层不再卡顿。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.DETAIL"
+msgid "While the Decor overlay is open, the game takes each stored or removed item out of the overlay's index by comparing it with every entry; this compares references instead, which finds the same entries."
+msgstr "装饰叠加层打开时，游戏会把每个被存放或移除的物品与叠加层索引中的每一个条目逐一比较，以将它取出；此项改为比较引用，找到的是相同的条目。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.TITLE"
 msgid "Memory cleanup during loading"
 msgstr "加载时清理内存"

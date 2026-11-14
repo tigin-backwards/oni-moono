@@ -900,6 +900,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.DETAIL"
 msgid "Once the animations are loaded, the lists of their frames and frame parts give back the room they grew into but don't use; the game reads the same data."
 msgstr ""
 
+#. Row title (fast-overlay-removals)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.TITLE"
+msgid "Smoother decor overlay"
+msgstr ""
+
+#. The line under the title (fast-overlay-removals)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.EFFECT"
+msgid "The Decor overlay no longer stutters when items are stored or used up."
+msgstr ""
+
+#. Tooltip: how it works (fast-overlay-removals)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.DETAIL"
+msgid "While the Decor overlay is open, the game takes each stored or removed item out of the overlay's index by comparing it with every entry; this compares references instead, which finds the same entries."
+msgstr ""
+
 #. Section heading (shown in capitals)
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.CHANGES_GAMEPLAY"
 msgid "Changes gameplay"

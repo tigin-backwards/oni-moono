@@ -212,6 +212,7 @@ namespace OniMoono.GameTweaks
             Add(SimStepPace.Name, SimStepPace.Guarded);
             Add(FastPartitionerEvents.Name, FastPartitionerEvents.Guarded);
             Add(FastConduitSorts.Name, FastConduitSorts.Guarded);
+            Add(FastOverlayRemovals.Name, FastOverlayRemovals.Guarded);
             return guards;
         }
     }

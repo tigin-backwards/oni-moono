@@ -3,7 +3,9 @@
 The question: beyond the average frame rate, what makes Moono feel uneven in play, and what
 would help? Four parts: a census of hitches (frames over 50 ms), the autosave freeze, camera
 motion against the display, and input latency. This is a measurement and design study.
-**Nothing landed.** The probes and prototypes are on the local branch `feel-u60`.
+Nothing landed with the study; the probes and prototypes are on the local branch `feel-u60`.
+Landed since: the Decor overlay's sim step and part of the first overlay switch
+([below](#landed-the-overlay-hitches-2026-11-13)).
 
 Every figure below is measured unless it says estimate. The runs, builds and times are listed
 at the end.
@@ -659,6 +661,57 @@ Not worth doing: a camera delta from the predicted display time (measured, no ga
 input later in the frame (0.7–4.5 ms of 48–81); serialising on a worker (not feasible);
 `maxQueuedFrames` 1 (slower and later). Parked: the presenter panning the last picture during
 the freeze, until the save is as short as (2) can make it.
+
+## Landed: the overlay hitches (2026-11-13)
+
+Items 4 and 6 of the table above, profiled (`perf record -e cpu-clock:u -g` on Linux, brackets
+on Windows) on the late-game colony.
+
+- **The Decor step: cause.** It is game code. While the Decor overlay is open it keeps every
+  object with a `DecorProvider`, loose items included, in a `UniformGrid`, and each saved
+  object that leaves the save list (an item stored by a conveyor bridge or consumer, or
+  destroyed) goes through `OverlayModes.Decor.OnSaveLoadRootUnregistered` to
+  `UniformGrid.Remove`, whose `List.Remove` calls search the grid's list of all entries from
+  its start with `Object.Equals`. In the Linux profile 91% of `StepTheSim`'s samples with the
+  overlay open are under that `Remove`, reached from `SolidConduitFlow.Sim200ms`
+  (`Pickupable.OnStore`); another part, outside the step, comes from destroyed objects.
+- **The Decor step: fix.** Game tweak `fast-overlay-removals` (exact, on by default, both
+  branches): the same handler with the grid's removal by reference. Its verify mode replays the
+  game's removal on copies: 0 wrong in 9,217 removals on Linux, 5,488 on Windows with Vulkan
+  and 4,272 with OpenGL (U60), and 56,577 on Linux on U59.
+- **Switches: cause.** The first switch to an overlay with port icons (pipes, power, rails,
+  Temperature) makes an icon for every port in the colony in `Game.UpdateOverlayScreen`
+  (`EntityCellVisualizer.DrawIcons`): 220 ms for liquid pipes in the bracketed run. Half of it
+  in the Linux profile was ours: each new icon is sent to the front of the world canvas
+  (`SetAsFirstSibling`), which copied the canvas's child list twice and searched it with
+  `Equals`. A repeat switch re-activates those icons (13–17 ms for pipes), rebuilds the mode's
+  grid of targets (`PopulatePartition`, 3–16 ms; Decor 32–60 ms each time, as its grid holds
+  every item), rebuilds the legend (Temperature 22–52 ms) and resets the canvas depths under
+  the name-tag canvas the game turns off and on.
+- **Switches: fix.** The engine's sibling move is one copy with a reference search. Nothing
+  else landed for switches: the icons could be made ahead and Decor's grid kept between
+  switches, but neither was built or measured.
+- **Measured, Windows, Vulkan, vsync at 60 Hz, one off/on pair** (jobs j0000631 and j0000632;
+  the census's overlay steps at speeds 1 and 3 and 20 s of Decor at speed 3, 182 s). The off
+  run had outside load for 140 of its 290 s, the on run for 40 s, so differences other than the
+  Decor step's are indicative only.
+
+  | | Off | On |
+  |---|---|---|
+  | Frames over 50 ms / over 100 ms | 214 / 65 | 18 / 4 |
+  | Worst frame, ms | 315 | 125 |
+  | Sim steps over 50 ms with Decor open (36 s) | 57 | 0 |
+  | Worst sim step with Decor open, ms | 254 | 23 |
+  | First switch to liquid pipes: icons / time lost in four frames, ms | 220 / 376 | 49 / 156 |
+  | First switch to Temperature: icons / time lost, ms | 72 / 333 | 22 / 143 |
+  | Second switch to Temperature, time lost, ms | 65 | 77 |
+  | Switch to Decor at speed 3, time lost, ms | 300–321 | 86–91 |
+
+- **Pictures.** Screenshot pairs could not show identity: with the game paused two shots of one
+  run already differ (329 pixels on Vulkan, 1,612 on OpenGL: animations run while paused), and
+  off/on pairs differ by as much in the same places. What stands for it is the verify mode
+  above on both presenters, and the sibling move's unit test (every from/to pair leaves the
+  order a removal and an insertion do).
 
 ## Builds, commits and runs
 
