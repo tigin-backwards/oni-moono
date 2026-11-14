@@ -832,6 +832,82 @@ Schedule's nested canvas, whose shared mesh is rebuilt every frame its content m
 reuse of all mesh arrays from 93.5% to 96% but left that screen's allocations as they were, so it
 was not kept.
 
+### Opening a table screen
+
+On a 200-Duplicant colony, where a table has 64,000 objects (Consumables), 21,000 (Priorities) or
+6,600 (Vitals), opening one was the largest interaction hitch after the autosave
+([research/perceived-smoothness.md](research/perceived-smoothness.md)). Where the six frames from
+the click went before this work, ms, from exact brackets on Windows (Vulkan, speed 3, one run
+with PerfProbe's brackets, which add some time of their own; "again" is the mean of the second
+and third openings):
+
+| | Vitals first / again | Consumables first / again | Priorities first / again | Schedule first / again | Skills first / again |
+|---|---|---|---|---|---|
+| The six frames | 425 / 262 | 1,878 / 929 | 684 / 356 | 466 / 314 | 646 / 430 |
+| Game: the cells' load actions | 16 / 4 | 701 / 74 | 47 / 18 | 0 / 0 | 11 / 5 |
+| Game: other screen code | 11 / 6 | 22 / 11 | 31 / 21 | 8 / 2 | 31 / 16 |
+| `ShowOptimizedKScreen`'s walk and what it enables | 1 / 5 | 1 / 58 | 1 / 12 | 2 / 1 | 1 / 2 |
+| Engine: instantiate | 69 / 0 | 158 / 0 | 84 / 0 | 19 / 0 | 35 / 15 |
+| Engine: activation (`SetActive`) | 3 / 1 | 106 / 3 | 3 / 1 | 39 / 16 | 98 / 70 |
+| Engine: layout rebuilds | 38 / 37 | 394 / 318 | 85 / 47 | 29 / 9 | 17 / 16 |
+| Engine: text meshes | 7 / 1 | 5 / 0 | 5 / 0 | 3 / 2 | 13 / 12 |
+| Engine: clipping (`RectMask2D`) | 8 / 7 | 68 / 85 | 40 / 35 | 6 / 6 | 7 / 9 |
+| Engine: canvas build | 13 / 31 | 81 / 104 | 68 / 43 | 30 / 29 | 14 / 17 |
+| The frames' ordinary work (the sim) | 72 / 75 | 78 / 91 | 107 / 75 | 79 / 93 | 20 / 23 |
+| Not bracketed (drawing, uploads, the rest) | 187 / 94 | 265 / 187 | 215 / 103 | 251 / 156 | 400 / 246 |
+
+What that was, from `perf` samples on Linux, and what changed:
+
+- **The load actions were two searches.** Each cell asks the table for its widget's row and
+  column, found by searching every row and column built so far (870 of the 2,240 ms of
+  main-thread time in the frame that builds Consumables), and each food cell goes through every
+  row's scroll bar (`refresh_scrollers`, 76 ms, and most of a reopening's load actions). The
+  `fast-table-rows` tweak (exact) enters each widget as its row is built and runs the scroll bar
+  pass once a row ([TWEAKS.md](TWEAKS.md#table-rows-as-they-are-built)).
+- **A reopening loaded every row again.** `TableScreen.RefreshRows` runs each time the screen
+  shows. `lazy-table-refresh` now loads only the rows near sight then too
+  ([TWEAKS.md](TWEAKS.md#table-rows-in-sight); its documented difference, on by default).
+- **Layout walked each table three times a pass.** The screen, its scroll view and the rows'
+  content are three layout roots, one inside the other; a pass rebuilt each over nearly the
+  whole table. A rebuild run by the pass now leaves a nested root that is still queued to that
+  root's own rebuild (only where every layout component below is uGUI's or TextMeshPro's own,
+  whose calculations read direct children only), and the walks read typed component lists.
+  Layout on a later opening of Consumables, Linux: 143–194 ms in the click's frame to 47–60,
+  175–177 to 84–115 in the next, 140–173 to 48–55 on closing.
+- **Three smaller searches.** A behaviour enabled and disabled within a frame searched the list
+  of those waiting to join the update pass (113 ms building Consumables); every text enabled
+  searched `Canvas.willRenderCanvases`' subscribers for itself (46 ms of each Skills opening);
+  and a layout group writing a child's unchanged anchors and size dropped every kept rect.
+
+One run before and one after on Windows (Vulkan, speed 3, unfocused at High priority, default
+tweaks, 2026-11-13): time lost in the four frames from the click, ms, as the hitch census counts
+it, with the longest frame in brackets. A single pair: the run before had other work on the
+machine's Linux side during most openings (up to 6.5 cores busy) and the run after did not, so
+part of each difference is that; differences under about 100 ms (Vitals, Schedule) are within
+what that could explain.
+
+| Screen | First opening, before → after | Opened again (second, third), before → after | Closing (mean of three) |
+|---|---|---|---|
+| Consumables | 1,990 (1,503) → 897 (578) | 703, 612 → 286, 332 | 266 → 110 |
+| Skills | 763 (632) → 627 (470) | 234, 309 → 175, 168 | 33 → 24 |
+| Priorities | 514 (348) → 419 (256) | 377, 237 → 172, 183 | 93 → 31 |
+| Vitals | 326 (173) → 409 (224) | 118, 109 → 86, 81 | 14 → 11 |
+| Schedule | 273 (109) → 243 (93) | 233, 153 → 186, 131 | 34 → 22 |
+
+The screens draw the same: on Linux (OpenGL), with the colony paused and the pointer held in
+place, 14 pictures of the five screens (first opening, scrolled, opened again) were the same
+pixel for pixel inside each screen's panel before and after, but for 13 to 42 pixels one or two
+levels apart in one picture of Consumables and one of Vitals, which differ as much between two
+runs of the same build. The pictures were not taken on Vulkan.
+
+Not done: building the rows ahead of the first opening. A table has no rows until
+`ScreenUpdate` first runs for the shown screen, and a mod's rows and columns join in that same
+pass; doing it earlier needs the screen activated early (`KScreen.Activate` registers it with
+the screen manager, and Consumables alone adds 64,000 objects (the managed heap grew by about 370 MB across that opening, on Linux, before any collection) to
+every colony whether or not the screen is ever opened), which is observable. What is left of a
+first opening is instantiating and activating the widgets, and the frames after it (new meshes
+drawn and uploaded for the first time).
+
 ### What Klei changed in U60
 
 - `ShowOptimizedKScreen` (Vitals, Consumables and Priorities, and the resources and diagnostics

@@ -725,6 +725,15 @@ its unit tests.
 | 7 | The frame cap paced against a running deadline | Exact, small | Done (`FramePace`): a cap of 60 gives 59.7 instead of 57.0 fps, 120 gives 113.1 instead of 93.8, 30 gives 30.0 | Measured, one launch |
 | 8 | A "lower input delay" setting (the wait held on), or the wait run ahead only before sim-step frames | Behaviour of presentation only | Late-game at speed 3: about 33 ms less latency; with the plain setting three times the repeated refreshes | Measured for the plain setting, estimated for the predictive one |
 
+**Landed, 2026-11-13 (row 5, in part).** The table screens open with less work: the game's two
+searches while a table builds its rows (`fast-table-rows`, exact), rows out of sight left for
+later on reopening (`lazy-table-refresh`), and in the engine one layout walk of a table a pass
+instead of three and three smaller searches. One pair of runs on the 200-Duplicant colony
+(Windows, Vulkan): Consumables' first opening 1,990 → 897 ms lost, later openings 612–703 →
+286–332; the other screens' first openings moved little. Building rows ahead of the first
+opening was not done. Numbers and what is left:
+[PERFORMANCE.md](../PERFORMANCE.md#opening-a-table-screen).
+
 Not worth doing: a camera delta from the predicted display time (measured, no gain); polling
 input later in the frame (0.7–4.5 ms of 48–81); serialising on a worker (not feasible);
 `maxQueuedFrames` 1 (slower and later). Parked: the presenter panning the last picture during
