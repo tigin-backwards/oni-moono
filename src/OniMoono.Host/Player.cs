@@ -251,17 +251,20 @@ namespace OniMoono.Host
         /// Frame pacing as in Unity's desktop player: with vSync the swap paces frames (the
         /// presenter's wait for the previous frame), otherwise Application.targetFrameRate when
         /// set, otherwise none. Without a display there is no swap; frames are paced at
-        /// targetFrameRate or 60 Hz. --max-frame-rate bounds the rate in any case.
+        /// targetFrameRate or 60 Hz. --max-frame-rate bounds the rate in any case. The cap is
+        /// paced against a running deadline (FramePace).
         static void Throttle(Stopwatch clock, double frameStart, bool display, int maxFrameRate)
         {
             int target = PlayerLoop.TargetFrameRate;
             if (display && QualitySettings.vSyncCount > 0) target = 0;
             else if (!display && target <= 0) target = 60;
             if (maxFrameRate > 0 && (target <= 0 || target > maxFrameRate)) target = maxFrameRate;
-            if (target <= 0) return;
-            double remaining = 1.0 / target - (clock.Elapsed.TotalSeconds - frameStart);
+            // (Called without a cap too: the next capped frame then counts from its own start.)
+            double remaining = pace.Remaining(clock.Elapsed.TotalSeconds, frameStart, target);
             if (remaining > 0.001) FrameSleep.For(remaining);
         }
+
+        static FramePace pace;
     }
 
     /// The frame cap's sleep. Windows' Sleep ends on the system timer's tick, 15.6 ms unless a
