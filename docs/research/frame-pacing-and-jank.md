@@ -141,13 +141,15 @@ Game speed reached at speed 3 (game seconds a real second, from the frames' time
 | | paused, scrolling | 68 | 14.5 | 17.6 | 19.2 | 22 | 0.0% | 0.0% |
 | | autosave | 24 | 34.2 | 47.5 | 54.6 | 4,880 | 0.3% | 57% |
 
-The 105 ms frame in ours at speed 3 is a 92 ms gen0 collection. On Windows the original keeps
-speed 3 on this colony (2.99×), at 29 fps; scrolling the table costs it 11 ms a frame against
-Moono's 2.8 ms. A second Moono launch with the brackets ran at speed 3 with p50 8.5, p99 15.4 and max
-44 ms (the runs differ by about 20% in their medians, as Windows runs on this machine do): its
-frames over 2× the median add up to 255 ms in all phases together, a sim-step frame there costing 3.3 ms
-more than another (2.1 ms in StepTheSim). Spikes on this colony are small on Windows: sim-step frames 35% of
-that, canvas rebuilds 22%, a GC 14%.
+- The 105 ms frame in ours at speed 3 is a 92 ms gen0 collection.
+- On Windows the original keeps speed 3 on this colony (2.99×), at 29 fps. Scrolling the table
+  costs it 11 ms a frame against Moono's 2.8 ms.
+- A second Moono launch with the brackets ran at speed 3 with p50 8.5, p99 15.4 and max 44 ms.
+  The runs differ by about 20% in their medians, as Windows runs on this machine do.
+- In that launch, frames over 2× the median add up to 255 ms in all phases together. A sim-step
+  frame there costs 3.3 ms more than another (2.1 ms in StepTheSim).
+- Spikes on this colony are small on Windows: sim-step frames 35% of that, canvas rebuilds 22%,
+  a GC 14%.
 
 ### What the distributions say
 
@@ -222,13 +224,15 @@ one also gets more sub-ticks: 2.75 against 1.65 on average, +2.3 ms).
 
 ### The rest
 
-- **Autosave:** 2.4–3.0 s on the main thread inside `SaveLoader.Save` on the late-game colony
-  (background-save already moves compression and the write off it); 0.9–1.1 s on the mid-game one.
-  The original: 25 s on Windows, 46 s on Linux, including its forced full collection. The
-  three frames after it are 375–385 ms each on Windows: the frame after the freeze has the
-  game's full 12 sub-ticks and a step, animation catch-up (`KBatchedAnimUpdater.LateUpdate`
-  60–80 ms), and the next a 260 ms wait after present while the colony snapshot the autosave
-  asks for is rendered and read back.
+- **Autosave:**
+  - Ours: 2.4–3.0 s on the main thread inside `SaveLoader.Save` on the late-game colony
+    (background-save already moves compression and the write off it); 0.9–1.1 s on the mid-game
+    one.
+  - The original: 25 s on Windows, 46 s on Linux, including its forced full collection.
+  - The three frames after it are 375–385 ms each on Windows. The frame after the freeze has
+    the game's full 12 sub-ticks and a step, and animation catch-up
+    (`KBatchedAnimUpdater.LateUpdate` 60–80 ms). The next has a 260 ms wait after present while
+    the colony snapshot the autosave asks for is rendered and read back.
 - **GC (ours):**
   - Late-game colony: one collection in 70–160 s of play; a gen0 of 34–36 ms on Windows, 100–135 ms on Linux.
   - Mid-game colony: a gen0 of 92 ms on Windows; gen1s of 42–56 ms on Linux.
@@ -236,9 +240,9 @@ one also gets more sub-ticks: 2.75 against 1.65 on average, +2.3 ms).
     post-load hitch was seen.
 - **GC (original):** Boehm's full collections, one every few minutes, at 190–760 ms frames.
 - **Device wait (Linux):** on the mid-game colony while scrolling at speed 3, slow frames waited
-  15 ms after present against 2 ms in the others: the GL thread draws the rows that come into
-  view slowly under Mesa's Direct3D 12 layer, and the main thread waits for it to take the next frame.
-  Windows shows no such wait. Linux only, and WSL's layer at that (docs/PERFORMANCE.md).
+  15 ms after present against 2 ms in the others. The GL thread draws the rows that come into
+  view slowly under Mesa's Direct3D 12 layer, and the main thread waits for it to take the next
+  frame. Windows shows no such wait. Linux only, and WSL's layer at that (docs/PERFORMANCE.md).
 
 ## Options
 
@@ -256,13 +260,15 @@ one also gets more sub-ticks: 2.75 against 1.65 on average, +2.3 ms).
 Klei already spreads the state machine sim buckets over the 12 sub-ticks of a 200 ms step (and
 the 1000 ms and 4000 ms ones over 60 and 240). Two kinds of batch remain:
 
-- **The step's systems** (`StepTheSim` and the nav grid update): they read the sim's results of that
-  step and must run before the next sub-tick's buckets, which read what they write (pipe contents,
-  stored items, power). Running any of them a sub-tick later changes the order of updates;
-  running them on other threads at the same time needs each system's callbacks into game code
-  (conduit updaters, storage events, status items) proved independent. Neither is exact in
-  general. The fork-join route (as fast-anim-batches) is open inside one system where the
-  work items touch disjoint state, which is a per-system study.
+- **The step's systems** (`StepTheSim` and the nav grid update) read the sim's results of that
+  step. They must run before the next sub-tick's buckets, which read what they write (pipe
+  contents, stored items, power).
+  - Running any of them a sub-tick later changes the order of updates.
+  - Running them on other threads at the same time needs each system's callbacks into game code
+    (conduit updaters, storage events, status items) proved independent.
+
+  Neither is exact in general. The fork-join route (as fast-anim-batches) is open inside one
+  system where the work items touch disjoint state, which is a per-system study.
 - **Render 200 ms and 1000 ms groups** (`StateMachineUpdater.Render`; `useSubticks` off, one
   bucket list): every updater of the group runs in one frame each 1000 ms of real time. On these
   colonies they cost 1.0–1.6 ms in that frame, below the spike threshold. On an open table screen,
@@ -271,11 +277,16 @@ the 1000 ms and 4000 ms ones over 60 and 240). Two kinds of batch remain:
 
 ### (b) Sim pacing
 
-What the original does is the game's own code: `Time.deltaTime` is the real delta clamped to
-`Time.maximumDeltaTime` (1/3 s in both players) times `timeScale` (3 at speed 3); the game clamps
-that to 0.2 s and runs one sub-tick per 1/60 s. There is no catch-up: game time beyond 0.2 s a
-frame is dropped, and the game slows (the original at 2.3× on Windows). Several sub-ticks run in
-one frame whenever a frame is longer than 1/180 s at speed 3. Unity's engine adds nothing to this.
+What the original does is the game's own code:
+
+- `Time.deltaTime` is the real delta clamped to `Time.maximumDeltaTime` (1/3 s in both players)
+  times `timeScale` (3 at speed 3).
+- The game clamps that to 0.2 s and runs one sub-tick per 1/60 s.
+- There is no catch-up. Game time beyond 0.2 s a frame is dropped, and the game slows (the
+  original at 2.3× on Windows).
+- Several sub-ticks run in one frame whenever a frame is longer than 1/180 s at speed 3.
+
+Unity's engine adds nothing to this.
 
 A per-frame sim budget, carrying the rest over, can only be built by handing the game a
 smoothed `Time.deltaTime` (and `Time.time`). Every script then sees one consistent delta, and
@@ -319,10 +330,10 @@ GC is 1–7% of Moono's spike time here, so it comes after the step batch.
 With vsync, what the player sees is the presents' cadence, not the frames' cost. Since
 docs/research/input-latency.md the main thread waits before the next frame until frame n + 1 −
 `QualitySettings.maxQueuedFrames` (2) has been presented, while Swappy's rule (`QueuedFrames`)
-says the frame's stages fit a refresh; it turns the wait off only when more than 10% of the frames
-over 2 s miss their refresh. On the late-game colony 4–8% of frames are over 16.7 ms with vsync
-off, all sim-step frames, so the question was whether a deeper queue (or the wait off) would
-absorb them.
+says the frame's stages fit a refresh. The rule turns the wait off only when more than 10% of
+the frames over 2 s miss their refresh. On the late-game colony 4–8% of frames are over 16.7 ms
+with vsync off, all sim-step frames. So the question was whether a deeper queue (or the wait
+off) would absorb them.
 
 Measured with vsync on (`vsync.txt`: the PerfProbe `queued N` command sets
 `QualitySettings.maxQueuedFrames`), late-game colony, Windows, windowed on the 59.95 Hz monitor
