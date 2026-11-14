@@ -2218,7 +2218,10 @@ drawing into it again. Back-buffer reads (`ReadPixels` of the screen,
 captures) read the offscreen buffer of the current frame. Pacing follows Unity's desktop
 player: with vSync the swap paces frames; otherwise `Application.targetFrameRate` when set;
 otherwise none. Without a display (`--headless`, `--batchmode`) frames are paced at
-`targetFrameRate` or 60 Hz.
+`targetFrameRate` or 60 Hz. A cap is paced against a running deadline (`FramePace`): each
+frame is due a period after the one before was due, so a frame over the period is made up for
+by the next ones, with at most one period of debt carried (a cap of 60 ran at 57.0 fps on a
+late-game colony when each frame slept for the rest of its own period; 59.7 now).
 
 The CPU's fence waits (the presenter's for a frame, the one after a vsynced swap, the stream
 buffer's for a ring region; on Vulkan, `VkFenceWait`'s for a frame slot, a presenter slot and the
