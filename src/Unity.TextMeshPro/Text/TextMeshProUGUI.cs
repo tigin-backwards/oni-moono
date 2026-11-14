@@ -428,6 +428,8 @@ namespace TMPro
         // The SDF scale of the vertices includes the text's lossy scale: in a screen space
         // overlay canvas relative to the canvas's scale factor (1 for a text scaled only by its
         // canvas), in camera and world space canvases as it is (measured on the shipped package).
+        // The shader gets the canvas's scale factor from the projection an overlay canvas draws
+        // with (CanvasSystem.OverlayCamera).
         private protected override float SdfScaleFactor()
         {
             var c = CanvasCache;

@@ -402,6 +402,61 @@ namespace OniMoono.Tests
             }
         }
 
+        /// An overlay canvas draws with its scale factor in the projection and out of the view:
+        /// vertices land where the screen's projection puts them, and a shader that sizes a
+        /// pixel from the projection (TextMesh Pro's glyph edges, clip rect edges) counts the
+        /// factor in, which TextMesh Pro leaves out of an overlay text's SDF scale. At factor 1
+        /// the camera is the plain one.
+        [Fact]
+        public void AnOverlayCanvasDrawsWithItsScaleFactorInTheProjection()
+        {
+            AssetSystem.Initialize(GameInstall.DataDir);
+            ProjectSettings.Load();
+            FrameRenderer.Install();
+            OniMoono.Engine.UI.CanvasSystem.Install();
+            var device = new RecordingDevice();
+            var previous = GraphicsDevice.Current;
+            GraphicsDevice.Install(device);
+            var canvasGo = new GameObject("Overlay", typeof(RectTransform));
+            try
+            {
+                var canvas = canvasGo.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                var element = new GameObject("Element", typeof(RectTransform));
+                element.transform.SetParent(canvasGo.transform, false);
+                var renderer = element.AddComponent<CanvasRenderer>();
+                renderer.SetMesh(new Mesh { vertices = [Vector3.zero, new Vector3(0f, 100f), new Vector3(100f, 0f)], triangles = [0, 1, 2] });
+                renderer.materialCount = 1;
+                renderer.SetMaterial(new Material(Shader.Find("UI/Default")), 0);
+                Frame();
+                var plain = device.MeshDraws[^1];
+                Assert.Equal(Matrix4x4.identity, plain.View);
+
+                // 3840x2160 at 132% UI scale: 1.33 * 1.32.
+                const float Factor = 1.7556f;
+                canvas.scaleFactor = Factor;
+                device.MeshDraws.Clear();
+                Frame();
+                var scaled = device.MeshDraws[^1];
+                Assert.Equal(plain.Projection.m00 * Factor, scaled.Projection.m00, 5e-7f * MathF.Abs(plain.Projection.m00 * Factor));
+                Assert.Equal(plain.Projection.m11 * Factor, scaled.Projection.m11, 5e-7f * MathF.Abs(plain.Projection.m11 * Factor));
+                var product = scaled.Projection * scaled.View;
+                for (int i = 0; i < 16; i++)
+                    Assert.Equal(plain.Projection[i], product[i], 5e-7f * MathF.Max(1e-3f, MathF.Abs(plain.Projection[i])));
+
+                canvas.scaleFactor = 1f;
+                device.MeshDraws.Clear();
+                Frame();
+                Assert.Equal(plain.View, device.MeshDraws[^1].View);
+                Assert.Equal(plain.Projection, device.MeshDraws[^1].Projection);
+            }
+            finally
+            {
+                Object.DestroyImmediate(canvasGo);
+                GraphicsDevice.Install(previous);
+            }
+        }
+
         /// Elements of a nested canvas are drawn from one mesh in the nested canvas's space, a
         /// submesh each, through the canvas's transform: moving or scaling the canvas (the
         /// research screen's zoom, observed in Unity's player at the frame time of a still
