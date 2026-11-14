@@ -8,49 +8,58 @@ How Moono starts and where it is installed. Three ways exist side by side:
 | Standalone | `OniMoono.exe` itself (Explorer, a shortcut, a terminal; Linux: the launcher `oni-moono.desktop`) | the same, or a versioned install | as the folder it runs from |
 | Versioned install | its entry point, `…\oni-moono\versioned\OniMoono.exe` (a shortcut you make, a non-Steam game in Steam, Steam's launch options) | `versioned\player\<version>\` | from its source folder (a Workshop item) at each start |
 
-The launch-options route is unchanged by the other two: with `-- %command%` Moono takes the game
-folder from Steam's command, as before.
+The other two don't change the launch-options route. With `-- %command%`, Moono still takes the
+game folder from Steam's command.
 
 ## Standalone launch
 
 Started without Steam's `-- %command%` and without `--game` (`src/OniMoono.Host/Launch`):
 
-1. **The game** is found through Steam's libraries: Steam's install folder (Windows: the
-   registry's `HKCU\Software\Valve\Steam\SteamPath`; Linux: `~/.steam/steam`,
-   `~/.local/share/Steam`, the snap's and the Flatpak's, the places setup uses), each one's
-   `steamapps/libraryfolders.vdf`, then app 457140's `appmanifest_457140.acf` in a library
-   (`installdir`), or the library's `steamapps/common/OxygenNotIncluded`. With several installs
-   the player is asked once (a message box per install on Windows; on Linux the terminal, or
-   without one a desktop dialog, see [Linux launcher](#linux-launcher)), and
-   the choice is kept in `oni-moono/launch.json` beside the other Moono data
-   (`%LOCALAPPDATA%` or `~/.local/share`).
-2. **An install Steam hasn't finished**, with an update pending or not fully installed
-   (`StateFlags` other than 4, or no appmanifest), isn't started: Steam opens on the game's page
-   (`steam://nav/games/details/457140`) to finish it. Never `steam://rungameid/457140`: Steam
-   would start whatever the launch options say, the original game included, and Moono's start-up
-   never starts the original game.
-3. **Steam** must be running with an account logged in: it is started (`-silent`) and waited for
-   up to 90 seconds when it isn't.
-4. **`SteamAppId=457140`** is set for the process (and its native environment), so the game's
-   `SteamAPI.RestartAppIfNecessary(457140)` in `SteamManager.Awake` returns false, as the shipped
-   `steam_appid.txt` makes it when the game's own folder is the working directory.
+1. **The game.** Moono finds it through Steam's libraries:
+   - Steam's install folder. Windows: the registry's `HKCU\Software\Valve\Steam\SteamPath`.
+     Linux: `~/.steam/steam`, `~/.local/share/Steam`, the snap's and the Flatpak's (the places
+     setup uses).
+   - Each one's `steamapps/libraryfolders.vdf`.
+   - In a library, app 457140's `appmanifest_457140.acf` (`installdir`), or the library's
+     `steamapps/common/OxygenNotIncluded`.
+
+   With several installs, Moono asks the player once and keeps the choice in
+   `oni-moono/launch.json` beside the other Moono data (`%LOCALAPPDATA%` or `~/.local/share`).
+   On Windows it asks with a message box per install. On Linux it asks on the terminal, or
+   without one in a desktop dialog (see [Linux launcher](#linux-launcher)).
+2. **An install Steam hasn't finished** isn't started. That is an install with an update pending
+   or not fully installed (`StateFlags` other than 4, or no appmanifest). Steam opens on the
+   game's page (`steam://nav/games/details/457140`) to finish it. Moono never uses
+   `steam://rungameid/457140`: Steam would start whatever the launch options say, the original
+   game included, and Moono's start-up never starts the original game.
+3. **Steam** must be running with an account logged in. When it isn't, Moono starts it
+   (`-silent`) and waits up to 90 seconds.
+4. **`SteamAppId=457140`** is set for the process (and its native environment). The game's
+   `SteamAPI.RestartAppIfNecessary(457140)` in `SteamManager.Awake` then returns false, as the
+   shipped `steam_appid.txt` makes it when the game's folder is the working directory.
 
 The log says how a start came about: `launch: from Steam's launch options (-- %command%)`,
 `launch: direct (--game)`, or `launch: standalone: the game at …`.
 
-**Steam Cloud.** The game's saves sync through Steam Auto-Cloud: the game writes plain files
-(`cloud_save_files/<account>/` under its save folder), and Steam syncs them before and after the
-sessions it starts (the account's `userdata/<id>/457140/remotecache.vdf` lists them with
-`root 2`, the Documents folder; there is no `remote/` folder of ISteamRemoteStorage files). A
-standalone start is not one Steam started, so its saves sync on the next start from Steam. The
+**Steam Cloud.** The game's saves sync through Steam Auto-Cloud:
+
+- The game writes plain files (`cloud_save_files/<account>/` under its save folder).
+- Steam syncs them before and after the sessions it starts.
+- The account's `userdata/<id>/457140/remotecache.vdf` lists them with `root 2`, the Documents
+  folder. There is no `remote/` folder of ISteamRemoteStorage files.
+
+A standalone start is not one Steam started, so its saves sync on the next start from Steam. The
 log says so in one line:
 `started directly, not by Steam: Steam Cloud syncs on the next start from Steam`.
 
-**Tests** never reach the real Steam: `ONI_MOONO_STEAM_ROOTS` names made-up Steam folders in
-place of the machine's (their `registry.vdf` is the client's state), `ONI_MOONO_STEAM_START` a
-command run instead of starting Steam (none: nothing starts), `ONI_MOONO_STEAM_OPENED` a file
-the steam:// links go to instead of Steam, and `ONI_MOONO_CHOOSE_GAME` the install chosen
-(`tests/OniMoono.UnityEngine.Tests/LaunchTests.cs`).
+**Tests** never reach the real Steam (`tests/OniMoono.UnityEngine.Tests/LaunchTests.cs`).
+Four variables stand in for it:
+
+- `ONI_MOONO_STEAM_ROOTS`: made-up Steam folders in place of the machine's. Their `registry.vdf`
+  is the client's state.
+- `ONI_MOONO_STEAM_START`: a command run instead of starting Steam. With none, nothing starts.
+- `ONI_MOONO_STEAM_OPENED`: a file the steam:// links go to instead of Steam.
+- `ONI_MOONO_CHOOSE_GAME`: the install chosen.
 
 ## Versioned install
 
@@ -69,41 +78,50 @@ On Linux a Flatpak or snap Steam can't see `~/.local/share`, so the folder is th
 (`~/.var/app/com.valvesoftware.Steam/data/oni-moono/versioned`,
 `~/snap/steam/common/oni-moono/versioned`), as setup does for the player.
 
-**The entry point** picks the version before the .NET runtime loads, because a process can host
-only one runtime and each version carries its own (self-contained): on Windows it is the native
-host itself (no `OniMoono.dll` beside it, a `player\` folder instead), which runs
-`player\<state\current>\OniMoono.dll` in its own process with `ONI_MOONO_INSTALL_ROOT` set, so
-the GPU exports and the crash records work as from any player folder; on Linux the shell script
-does the same. The choice itself needs the game's build and the versions' `mod_info.yaml`, which
-the player reads:
+**The entry point** picks the version before the .NET runtime loads. A process can host only one
+runtime, and each version carries its own (self-contained).
+
+- **Windows:** the entry point is the native host itself (no `OniMoono.dll` beside it, a
+  `player\` folder instead). It runs `player\<state\current>\OniMoono.dll` in its own process
+  with `ONI_MOONO_INSTALL_ROOT` set, so the GPU exports and the crash records work as from any
+  player folder.
+- **Linux:** the shell script does the same.
+
+The choice needs the game's build and the versions' `mod_info.yaml`, which the player reads:
 
 1. The game's build: `KleiVersion.ChangeList` in its `Assembly-CSharp.dll`, read from the
    metadata without loading it (744825 for U59, 762230 for U60).
 2. From the source folder (`state\source`), the version the game itself would load
-   (`ArchiveChoice`, the game's `KMod.Mod.GetMostSuitableArchive`): of the root and
-   `archived_versions\*` with a `mod_info.yaml`, those whose DLC restrictions allow (the DLC
-   isn't known before the game starts, so as for none; Moono's name none) and whose
-   `APIVersion` is 2 or 0, the highest `minimumSupportedBuild` at or below the build; with no
-   `archived_versions`, the root. A version for a newer game than the installed one is never
-   installed ([A game older than the item](#a-game-older-than-the-item)). When the version
-   isn't installed yet, its player is copied
-   into `player\.incoming-…`, every file hashed as it is read and checked against the version's
-   `SHA256SUMS` manifest, then moved to `player\<version>\`
+   (`ArchiveChoice`, the game's `KMod.Mod.GetMostSuitableArchive`):
+   - The candidates are the root and `archived_versions\*` with a `mod_info.yaml`.
+   - Their DLC restrictions must allow it. The DLC isn't known before the game starts, so they
+     are checked as for none; Moono's name none.
+   - Their `APIVersion` must be 2 or 0.
+   - Of those, the highest `minimumSupportedBuild` at or below the build wins. With no
+     `archived_versions`, the root.
+   - A version for a newer game than the installed one is never installed
+     ([A game older than the item](#a-game-older-than-the-item)).
+
+   When the version isn't installed yet, Moono copies its player into `player\.incoming-…`,
+   hashes every file as it reads it, checks it against the version's `SHA256SUMS` manifest, then
+   moves the copy to `player\<version>\`
    ([What the installer verifies](#what-the-installer-verifies)). A file missing or not
-   matching, or any error while reading the item, ends the install, deletes the copy, and the
-   current version plays on.
-3. Of the installed versions the same rule picks the one to play (newest of equals), unless
-   `--use-version VERSION` pinned one (`--use-version latest` unpins): a rollback by hand to a
-   kept version.
+   matching, or any error while reading the item, ends the install and deletes the copy, and
+   the current version plays on.
+3. The same rule picks which installed version plays (newest of equals), unless
+   `--use-version VERSION` pinned one. That is a rollback by hand to a kept version.
+   `--use-version latest` unpins.
 4. When that is not the running version, `state\current` names it and the player exits with code
    77 (`state\switch` written): the entry point starts again on it. A game update from U59 to
    U60 switches this way, once.
 5. Otherwise it plays, holding `player\<version>\.in-use` open, and prunes: the current version,
    the two newest others and a pinned one stay, and nothing held open is removed.
 
-The entry point updates itself from the chosen version: on Windows the running `OniMoono.exe` is
-renamed to `OniMoono.exe.old` (a running exe can be renamed, not replaced) and the new one put in
-place; the next start deletes the `.old`. On Linux the script is replaced by a rename.
+The entry point updates itself from the chosen version:
+
+- **Windows:** the running `OniMoono.exe` is renamed to `OniMoono.exe.old` (a running exe can be
+  renamed, not replaced) and the new one put in place. The next start deletes the `.old`.
+- **Linux:** a rename replaces the script.
 
 Moono makes no shortcut. After the first start, start Moono through the entry point,
 `%LOCALAPPDATA%\oni-moono\versioned\OniMoono.exe` (Linux: `versioned/OniMoono`, as above), in
@@ -118,40 +136,45 @@ one of these ways:
 
 The Workshop item's `OniMoono.exe` is for the first start only.
 
-**Tests** of the native host set `ONI_HOST_NO_DIALOG=1`: a failure to start then shows no
-message box and touches no Player.log; its line goes to stderr, and to `ONI_HOST_MESSAGES`' file
+**Tests** of the native host set `ONI_HOST_NO_DIALOG=1`. A failure to start then shows no
+message box and touches no Player.log. Its line goes to stderr, and to `ONI_HOST_MESSAGES`' file
 when set. Without a redirected stderr, a failure is a message box on the desktop.
 
 ## Linux launcher
 
-The Linux archive has `oni-moono.desktop` beside `setup.sh`: double-clicked in a file manager,
+The Linux archive has `oni-moono.desktop` beside `setup.sh`. Double-clicked in a file manager,
 it starts `player/OniMoono` as a standalone launch, as double-clicking `OniMoono.exe` does on
-Windows. A desktop entry's `Exec` can't be relative, so it runs
-`sh -c '… exec "$(dirname "$1")/player/OniMoono"' oni-moono %k`: `%k` is the entry's own path,
-which GNOME's (GLib's) and KDE's launchers, the Steam Deck's desktop mode included, fill in. From
-a clone of the repository it runs `out/player/OniMoono`, which setup builds. The archive keeps it
-executable (`scripts/check-linux-archive.py` checks the archive in `scripts/release.sh`).
+Windows.
 
+- **`Exec`.** A desktop entry's `Exec` can't be relative, so it runs
+  `sh -c '… exec "$(dirname "$1")/player/OniMoono"' oni-moono %k`. `%k` is the entry's path.
+  GNOME's (GLib's) and KDE's launchers fill it in, the Steam Deck's desktop mode included.
+- **From a clone** of the repository it runs `out/player/OniMoono`, which setup builds.
+- **Executable bit.** The archive keeps it executable (`scripts/check-linux-archive.py` checks the archive in
+  `scripts/release.sh`).
 - **Untrusted launchers.** A file manager may ask once before it runs a launcher it didn't
-  install: Dolphin (KDE, Steam Deck) asks to execute it; on GNOME, right-click it and choose
+  install. Dolphin (KDE, Steam Deck) asks to execute it. On GNOME, right-click it and choose
   *Allow Launching* where offered. GNOME Files may open it as text instead; the menu entry below
   works there.
-- **The applications menu.** `./setup.sh` asks on a terminal whether to add Moono to it:
-  `~/.local/share/applications/oni-moono-player.desktop` (`XDG_DATA_HOME`), with the absolute path
-  of the player setup installed and the icon in `~/.local/share/icons/hicolor/96x96/apps/`. A
-  later setup keeps an entry it made up to date. `--menu` adds it without asking, `--no-menu`
-  doesn't ask, `--remove-menu` removes both files. Its name is apart from the versioned
-  install's `oni-moono.desktop`.
+- **The applications menu.** `./setup.sh` asks on a terminal whether to add Moono to it. The
+  entry is `~/.local/share/applications/oni-moono-player.desktop` (`XDG_DATA_HOME`), with the
+  absolute path of the player setup installed and the icon in
+  `~/.local/share/icons/hicolor/96x96/apps/`. A later setup keeps an entry it made up to date.
+  `--menu` adds it without asking, `--no-menu` doesn't ask, `--remove-menu` removes both files.
+  Its name is apart from the versioned install's `oni-moono.desktop`.
 - **Messages.** Started without a terminal, Moono would say why it can't start only on stderr,
   where nobody sees it. So `StandaloneLaunch.Tell` also shows it in a dialog when stderr isn't a
-  terminal: the first of `zenity`, `kdialog` and `notify-send` that runs (an exit code of 0, or
-  1 for a dialog closed; anything else tries the next), else stderr alone
-  (`src/OniMoono.Host/Launch/DesktopDialog.cs`). With several installs of the game and no
-  terminal to ask on, the choice is a zenity list or a kdialog menu (cancelled: none chosen,
-  Moono says so); with neither, the first install.
-- **No dialogs** in test runs (`ONI_MOONO_STEAM_ROOTS` set), with `ONI_HOST_NO_DIALOG=1` (as the
-  Windows host reads it; on Windows it now also keeps the player's own message boxes away, and
-  e2e runs set it), or without `DISPLAY` and `WAYLAND_DISPLAY`.
+  terminal (`src/OniMoono.Host/Launch/DesktopDialog.cs`):
+  - It uses the first of `zenity`, `kdialog` and `notify-send` that runs. An exit code of 0, or
+    1 for a dialog closed, counts; anything else tries the next. With none, stderr alone.
+  - With several installs of the game and no terminal to ask on, the choice is a zenity list or
+    a kdialog menu. Cancelled means none chosen, and Moono says so. With neither, Moono takes
+    the first install.
+- **No dialogs** in three cases:
+  - In test runs (`ONI_MOONO_STEAM_ROOTS` set).
+  - With `ONI_HOST_NO_DIALOG=1`, as the Windows host reads it. On Windows it now also keeps the
+    player's own message boxes away, and e2e runs set it.
+  - Without `DISPLAY` and `WAYLAND_DISPLAY`.
 
 ## Workshop item
 
@@ -175,27 +198,33 @@ takes a Workshop item only as a zip, so it lists this folder item as failed to d
 - **No archived versions.** Until November 2026 the item also had the U59 build in
   `archived_versions/u59`. The installer, `scripts/workshop-item.py` (`--master`) and the verify
   scripts still handle an `archived_versions` folder, so a version can be added again.
-- **Under Moono, the mod manager skips it** (`OniMoono.GameTweaks.OwnWorkshopItem`, a guarded
-  patch of `KMod.Steam.MakeModAndReportOutcome`, declared and checked as every game tweak is,
-  always on): no mod, no broken-mod entry, no download-failed event. A mod the profile's
-  `mods.json` has for it (the original game keeps one) is dropped from the list without an
-  event. The item is told by `moono.json`'s `"workshopItem": "oni-moono"`, not by an ID.
-- **The first start** from the item (`OniMoono.exe` there, which has `moono.json` and
-  `windows-x64\player` beside it and no player of its own) copies the root's Windows player to
-  `versioned\player\.bootstrap-<pid>` and starts the copy with the item as its source; it installs
-  the version for the game as above, and the entry point, then hands over to the
-  entry point. The item's folder itself never runs, so Steam can always update it; later starts
-  install each update from it. The bootstrap copy checks the files as every start does, so a
-  download Steam hasn't finished installs nothing even on the first start.
-- **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a u60 release tag): the
-  release's assets are downloaded and verified against their provenance from u60,
-  `scripts/workshop-item.py` checks each archive against its manifest while laying them out,
-  and `attest.yml` attests the item's `SHA256SUMS` and every file in it. The Sigstore bundle of
-  the attestation naming `SHA256SUMS` goes into the item as `attestation/SHA256SUMS.sigstore.json`,
-  and gh checks it before the item becomes the `workshop-item` artifact. Nothing goes to Steam.
-  `ci/workshop/verify.sh` or `verify.ps1`, taken from GitHub, checks the item against the
-  attested release manifests and its own attested `SHA256SUMS`, the bundle included
-  ([RELEASES.md](RELEASES.md#verifying-the-workshop-item)).
+- **Under Moono, the mod manager skips it:** no mod, no broken-mod entry, no download-failed
+  event. The patch is `OniMoono.GameTweaks.OwnWorkshopItem`, a guarded patch of
+  `KMod.Steam.MakeModAndReportOutcome`, declared and checked as every game tweak is, and always
+  on. A mod the profile's `mods.json` has for it (the original game keeps one) is dropped from
+  the list without an event. Moono recognises the item by `moono.json`'s
+  `"workshopItem": "oni-moono"`, not by an ID.
+- **The first start** from the item runs `OniMoono.exe` there, which has `moono.json` and
+  `windows-x64\player` beside it and no player of its own:
+  1. It copies the root's Windows player to `versioned\player\.bootstrap-<pid>` and starts the
+     copy with the item as its source.
+  2. The copy installs the version for the game as above, and the entry point.
+  3. The copy hands over to the entry point.
+
+  The item's folder itself never runs, so Steam can always update it. Later starts install each
+  update from it. The bootstrap copy checks the files as every start does, so a download Steam
+  hasn't finished installs nothing even on the first start.
+- **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a u60 release tag):
+  - The release's assets are downloaded and verified against their provenance from u60.
+  - `scripts/workshop-item.py` checks each archive against its manifest while laying them out.
+  - `attest.yml` attests the item's `SHA256SUMS` and every file in it.
+  - The Sigstore bundle of the attestation naming `SHA256SUMS` goes into the item as
+    `attestation/SHA256SUMS.sigstore.json`, and gh checks it before the item becomes the
+    `workshop-item` artifact.
+  - Nothing goes to Steam.
+  - `ci/workshop/verify.sh` or `verify.ps1`, taken from GitHub, checks the item against the
+    attested release manifests and its own attested `SHA256SUMS`, the bundle included
+    ([RELEASES.md](RELEASES.md#verifying-the-workshop-item)).
 - **Size:** about 230 MB in about 610 files (about 404 MB with the U59 build).
 - **Uninstall:** clear Oxygen Not Included's launch options in Steam, then delete
   `%LOCALAPPDATA%\oni-moono` (Linux: `~/.local/share/oni-moono`, or the sandboxed Steam's folder
@@ -226,29 +255,38 @@ nothing, and says so (`VersionedStart`, `VersionedInstall.SourceNeedsBuild`;
 
 ## What the installer verifies
 
-**File hashes, for integrity.** Before a version from the item counts as installed, every file of
-its player is hashed as it is copied and checked against the version's release manifest
-(`oni-moono-…-<platform>.SHA256SUMS`); `moono.json`, `mod_info.yaml` and the manifest are read
-once, capped (64 KB for the metadata, 16 MB for the manifest), and the bytes read are the ones
-used. A file missing or not matching, a manifest path outside the folder, or any error while
-reading the item installs nothing: the copy is deleted, the current version plays on, and the
-log says why. When the item can't be read at all, the player is told once, in a message box
-(Windows) or desktop dialog (Linux): "Moono did not install version … from the Workshop item: the
+**File hashes, for integrity.** Before a version from the item counts as installed:
+
+- Moono hashes every file of its player as it copies it, and checks it against the version's
+  release manifest (`oni-moono-…-<platform>.SHA256SUMS`).
+- It reads `moono.json`, `mod_info.yaml` and the manifest once, capped (64 KB for the metadata,
+  16 MB for the manifest), and uses the bytes it read.
+
+A file missing or not matching, a manifest path outside the folder, or any error while reading
+the item installs nothing. Moono deletes the copy, the current version plays on, and the log
+says why.
+
+When the item can't be read at all, Moono tells the player once, in a message box (Windows) or
+desktop dialog (Linux): "Moono did not install version … from the Workshop item: the
 Workshop item could not be read. Version … plays on; Player.log says why." On a first start with
 nothing installed yet, it says "Moono could not be installed: …" and exits.
 
 **Missing files at start.** The installed version keeps its release manifest (`SHA256SUMS` in
-`player\<version>\`), and before it starts, every player file the manifest lists must be there
-(existence only, nothing hashed or repaired). If any is missing, it doesn't start: a message box
-(Windows) or desktop dialog (Linux) names up to five of them, and says to delete the version's
-folder (`%LOCALAPPDATA%\oni-moono\versioned\player\<version>`) and start the game again;
-Player.log lists them all. Versions installed before Moono kept the manifest aren't checked.
+`player\<version>\`). Before it starts, every player file the manifest lists must be there
+(existence only, nothing hashed or repaired). If any is missing, it doesn't start:
 
-**No signature check.** This guards against a download Steam hasn't finished or a corrupt file,
-not against a forged item: the manifests come from the same item. Moono trusts the Workshop item
-as Steam delivers it, as the game trusts any mod: whoever controls the Steam account that uploads
-it controls what Moono installs from it. Versions aren't compared either: an older item installs
-as any other.
+- A message box (Windows) or desktop dialog (Linux) names up to five of them, and says to delete
+  the version's folder (`%LOCALAPPDATA%\oni-moono\versioned\player\<version>`) and start the
+  game again.
+- Player.log lists them all.
+
+Versions installed before Moono kept the manifest aren't checked.
+
+**No signature check.** The hashes guard against a download Steam hasn't finished or a corrupt
+file. They don't guard against a forged item, because the manifests come from the same item.
+Moono trusts the Workshop item as Steam delivers it, as the game trusts any mod. Whoever
+controls the Steam account that uploads it controls what Moono installs from it. Versions aren't
+compared either: an older item installs as any other.
 
 **Checking by hand.** The item and every file in it have SLSA provenance from this repository's
 `workshop.yml` (`attestation/SHA256SUMS.sigstore.json` in the item, and GitHub's attestations),
@@ -264,37 +302,45 @@ there.
 
 ## The loader mod
 
-`MoonoLoader.dll` at the item's root (`src/MoonoLoader`) is a plain `KMod.UserMod2`, with the
-game's Harmony and nothing else, that the original U60 game loads like any mod while the item
-is enabled. Under Moono it does nothing: Moono's player runs the game on .NET with its own
-`OniMoono*` assemblies, so the loader returns at once (and Moono leaves the item out of its mod
-list anyway).
+`MoonoLoader.dll` at the item's root (`src/MoonoLoader`) is a plain `KMod.UserMod2` with the
+game's Harmony and nothing else. The original U60 game loads it like any mod while the item is
+enabled. Under Moono it does nothing. Moono's player runs the game on .NET with its own
+`OniMoono*` assemblies, so the loader returns at once, and Moono leaves the item out of its mod
+list anyway.
 
 - **At the main menu,** once each start, it shows the game's info dialog "Play with Moono?"
-  (`MoonoDialog`): "Moono makes Oxygen Not Included run faster. To play with it:", three
-  numbered steps (click Copy launch option; in Steam, paste it into the game's launch options;
-  quit the game and press Play), the launch-option line under step 1 in the box of the game's
-  own text field (one line, shortened in the middle when long:
-  `"…\oni-moono\versioned\OniMoono.exe" -- %command%`), and a muted line: "To stop seeing this,
-  disable the Moono mod." It stays open until **Not now** (or Escape); the game carries on.
-  Nothing is added to the main menu itself.
-- **Copy launch option** installs Moono for this game build, in the game's own process: the version the game
-  loaded the loader from is copied into `versioned\player\<version>\` with the installer's own
-  code (`src/OniMoono.Host/Install/PlayerFiles.cs`, compiled into both), every file checked
-  against the version's manifest; the entry point is put in place, and `state\source` names the
-  item, so Moono updates from it at each start as above. An installed version is left as it is.
+  (`MoonoDialog`). The dialog has:
+  - The text "Moono makes Oxygen Not Included run faster. To play with it:".
+  - Three numbered steps: click Copy launch option; in Steam, paste it into the game's launch
+    options; quit the game and press Play.
+  - The launch-option line under step 1, in the box of the game's text field. It is one line,
+    shortened in the middle when long: `"…\oni-moono\versioned\OniMoono.exe" -- %command%`.
+  - A muted line: "To stop seeing this, disable the Moono mod."
+
+  It stays open until **Not now** (or Escape), and the game carries on. Nothing is added to the
+  main menu itself.
+- **Copy launch option** installs Moono for this game build, in the game's own process:
+  - It copies the version the game loaded the loader from into `versioned\player\<version>\`
+    with the installer's code (`src/OniMoono.Host/Install/PlayerFiles.cs`, compiled into both),
+    and checks every file against the version's manifest.
+  - It puts the entry point in place, and `state\source` names the item, so Moono updates from
+    it at each start as above.
+  - It leaves an installed version as it is.
+
   Like the installer, the loader checks no signature: it is code from that same item, which the
   game runs as it runs any mod. The GitHub releases stay the root of trust, as for the first
   install above.
+
   Then the whole line goes on the clipboard, the button says "Copied ✓" and step 1 says "Moono
   installed. Launch option copied." (or why it could not be installed), so the player can switch
   to Steam, paste and come back. The line is the entry point with its full path, as setup uses:
   `"C:\Users\<you>\AppData\Local\oni-moono\versioned\OniMoono.exe" -- %command%` (Linux:
   `"/home/<you>/.local/share/oni-moono/versioned/OniMoono" -- %command%`, the sandboxed Steam's
   folder for a Flatpak or snap Steam, as `OniMoono.sh` picks it; `ONI_MOONO_INSTALL_ROOT` moves it).
+
   Steam's properties can be changed while the game runs. No helper process is started and
   Steam's configuration is not touched: the player pastes the line.
-- **The Mods screen:** the item's own row has a **Play with Moono** button beside its Manage
+- **The Mods screen:** the item's row has a **Play with Moono** button beside its Manage
   button, which shows the same dialog.
 - **Translations:** its text is in the game's language where Moono has a translation: the
   `STRINGS.MOONO.LOADER.*` strings of `translations/CODE.po` (`LoaderStrings`, listed in
