@@ -32,11 +32,11 @@ its own copy of the engine, so after changing the engine, rebuild the host too.
 without the host), which the API conformance check reads. `scripts/build-packages.sh` builds our
 uGUI, TextMeshPro and Timeline into `out/packages`.
 
-Test players and builds run through `scripts/contain.sh CMD...`, which starts them in the
+Test players and builds run through `scripts/contain.sh CMD...`. It starts them in the
 memory-capped systemd user slice `oni-tests.slice` (`scripts/oni-tests.slice`, installed into
 `~/.config/systemd/user` when it changes) as preferred OOM victims, so a player that over-commits
-is killed instead of your session or WSL. `run.sh`, `check.sh`, `qa.sh` and `e2e.py` use it on
-their own; use it for builds started by hand too: `scripts/contain.sh dotnet build …`.
+is killed instead of your session or WSL. `run.sh`, `check.sh`, `qa.sh` and `e2e.py` use it
+themselves. Use it for builds started by hand too: `scripts/contain.sh dotnet build …`.
 
 ## Run
 
@@ -47,30 +47,42 @@ ONI_CONFIG=release scripts/run.sh
 ```
 
 Both scripts keep saves, settings and mods in `out/run-home` (or `ONI_RUN_HOME`), away from your
-real profile in `~/.config/unity3d`. Any other arguments go to the host. Useful ones for testing
-are `--log FILE`, `--headless --frames N`, `--capture FRAME:PATH` and `--max-frame-rate N`.
-Unity's `-screen-width`, `-screen-height`, `-screen-fullscreen`, `-window-mode`, `-monitor` and
-`-logFile` work too. Unity's other player arguments (`-popupwindow`, `-force-d3d11`…), and a
-malformed value for one of these, are noted in the log and ignored, as Unity's player ignores
-what it does not know. An unknown `--` option, such as `scripts/run.sh --help`, prints the host's
-usage line with every option.
+real profile in `~/.config/unity3d`. Any other arguments go to the host:
 
-The player's options come from built-in defaults, then the settings file
-`<persistentDataPath>/oni-moono/settings.json` that the main menu's Moono Tweaks screen writes,
-then the command line: `--game-tweak exact|all|none|NAME|-NAME` (repeatable; any of them sets the
-whole set), `--splash moo|none`, `--frame-stats` and `--log-paths hidden|full`.
-`--no-tweaks-menu` leaves the Moono Tweaks button off the main menu, as in the original. [TWEAKS.md](TWEAKS.md) lists the tweaks and their
-verify mode (`ONI_TWEAK_VERIFY=1`).
+- **Useful for testing:** `--log FILE`, `--headless --frames N`, `--capture FRAME:PATH` and
+  `--max-frame-rate N`.
+- **Unity's arguments that work:** `-screen-width`, `-screen-height`, `-screen-fullscreen`,
+  `-window-mode`, `-monitor` and `-logFile`.
+- **Unity's other player arguments** (`-popupwindow`, `-force-d3d11`…), and a malformed value
+  for one of these, are noted in the log and ignored, as Unity's player ignores what it does not
+  know.
+- **An unknown `--` option,** such as `scripts/run.sh --help`, prints the host's usage line with
+  every option.
 
-These runs have no game tweaks and no splash, and log full paths, unless they name otherwise:
-the scripts pass `--game-tweak none --splash none --log-paths full` first, so neither the
-player's defaults nor a settings file in the run home changes what a test measures. `ONI_TWEAK_SETTINGS=1` leaves that out, to try the
-Moono Tweaks screen as a player has it.
+The player's options come from three places, in this order:
 
-`Player.log` keeps its first 20 MB and its last 20 MB or so, cut with a banner between them;
-`ONI_LOG_FULL=1` keeps all of it. `ONI_LOG_ERRORS=FILE` also writes the first line of each logged
-error to FILE (`scripts/qa.sh` reads it: the log writes such errors as plain lines). More diagnostics (`--trace-exceptions`, `--dump-hierarchy`,
-`ONI_OBJECT_CENSUS`, …) are in [ARCHITECTURE.md](ARCHITECTURE.md) §7.
+1. Built-in defaults.
+2. The settings file `<persistentDataPath>/oni-moono/settings.json`, which the main menu's Moono
+   Tweaks screen writes.
+3. The command line: `--game-tweak exact|all|none|NAME|-NAME` (repeatable; any of them sets the
+   whole set), `--splash moo|none`, `--frame-stats` and `--log-paths hidden|full`.
+
+`--no-tweaks-menu` leaves the Moono Tweaks button off the main menu, as in the original.
+[TWEAKS.md](TWEAKS.md) lists the tweaks and their verify mode (`ONI_TWEAK_VERIFY=1`).
+
+These runs have no game tweaks and no splash, and log full paths, unless they name otherwise.
+The scripts pass `--game-tweak none --splash none --log-paths full` first, so neither the
+player's defaults nor a settings file in the run home changes what a test measures.
+`ONI_TWEAK_SETTINGS=1` leaves that out, to try the Moono Tweaks screen as a player has it.
+
+Logs and diagnostics:
+
+- `Player.log` keeps its first 20 MB and its last 20 MB or so, cut with a banner between them.
+  `ONI_LOG_FULL=1` keeps all of it.
+- `ONI_LOG_ERRORS=FILE` also writes the first line of each logged error to FILE
+  (`scripts/qa.sh` reads it: the log writes such errors as plain lines).
+- More diagnostics (`--trace-exceptions`, `--dump-hierarchy`, `ONI_OBJECT_CENSUS`, …) are in
+  [ARCHITECTURE.md](ARCHITECTURE.md) §7.
 
 The offline stub says you own the base game, with no DLC and no Workshop items. It's for testing
 on machines without Steam, not for playing.
@@ -78,12 +90,15 @@ on machines without Steam, not for playing.
 ## Setup
 
 To play through Steam like a player does, run `./setup.sh` (Linux) or `setup.cmd` (Windows, which
-runs `setup.ps1`). From a clone they build a self-contained player first (`setup.sh` into
-`out/player`); from a release they use the archive's `player/`, after deleting the `OniBrutal`
-and `OniBrutal.*` files an older release extracted there may have left. `setup.ps1` installs the
-player into `%LOCALAPPDATA%\oni-moono\player`. Both print the launch options line
-(`OniMoono -- %command%`), or say that every Steam account already has it. On Linux,
-`ONI_STEAM_SANDBOX=flatpak|snap|none` overrides the guess of how Steam is sandboxed.
+runs `setup.ps1`):
+
+- From a clone they build a self-contained player first (`setup.sh` into `out/player`).
+- From a release they use the archive's `player/`, after deleting the `OniBrutal` and
+  `OniBrutal.*` files an older release extracted there may have left.
+- `setup.ps1` installs the player into `%LOCALAPPDATA%\oni-moono\player`.
+- Both print the launch options line (`OniMoono -- %command%`), or say that every Steam account
+  already has it.
+- On Linux, `ONI_STEAM_SANDBOX=flatpak|snap|none` overrides the guess of how Steam is sandboxed.
 
 ## Releases
 
@@ -99,13 +114,17 @@ gh workflow run release.yml --ref master -f tag=vYYYY.MM.DD.NN -f dry_run=false
 ```
 
 It builds both archives on GitHub's runners, signs their provenance and leaves a **draft**
-release with them, titled `YYYY.MM.DD.NN` (`YYYY.MM.DD.NN (U60 Beta)`, a pre-release, from
-`u60`), whose notes start with where it was built and how to verify it. Write the notes in the
-draft on GitHub, then publish it there: publishing creates the tag and makes the release
-immutable. The workflow never publishes. The tag adds a two-digit counter for the day (`.01` for
-its first release), so releases sort as text; the archives are named by the date of the commit
-(`-u60` on `u60`). [RELEASES.md](RELEASES.md) has how the pipeline works, how to verify a
-release, how to add a new game build's reference assemblies and how reproducible the builds are.
+release with them:
+
+- The draft is titled `YYYY.MM.DD.NN` (`YYYY.MM.DD.NN (U60 Beta)`, a pre-release, from `u60`).
+  Its notes start with where it was built and how to verify it.
+- Write the notes in the draft on GitHub, then publish it there. Publishing creates the tag and
+  makes the release immutable. The workflow never publishes.
+- The tag adds a two-digit counter for the day (`.01` for its first release), so releases sort
+  as text. The archives are named by the date of the commit (`-u60` on `u60`).
+
+[RELEASES.md](RELEASES.md) has how the pipeline works, how to verify a release, how to add a new
+game build's reference assemblies and how reproducible the builds are.
 
 `scripts/release.sh` still builds the same archives locally, against your game install:
 
@@ -113,14 +132,15 @@ release, how to add a new game build's reference assemblies and how reproducible
 MOONO_RELEASE=vYYYY.MM.DD.NN scripts/release.sh   # out/release: the Windows zip and the Linux tar.gz
 ```
 
-`release.sh [VERSION]` names the archives by VERSION, by default the date of HEAD's commit.
-`MOONO_RELEASE` is the tag the release will get: the player compares it with the releases on
-GitHub for the main menu's update badge ([TWEAKS.md](TWEAKS.md#update-check)), and `release.sh`
-fails without it (`MOONO_RELEASE=none` builds a development player, which checks for no
-updates). `MOONO_PLATFORMS=linux` or `windows` builds one archive. Each archive holds an
-`oni-moono` folder with the setup script, the README, `NOTICE.txt` and the self-contained player
-in `player/`; the setups install a release's player without building. Nothing of the game goes
-into them.
+- `release.sh [VERSION]` names the archives by VERSION, by default the date of HEAD's commit.
+- `MOONO_RELEASE` is the tag the release will get. The player compares it with the releases on
+  GitHub for the main menu's update badge ([TWEAKS.md](TWEAKS.md#update-check)). `release.sh`
+  fails without it. `MOONO_RELEASE=none` builds a development player, which checks for no
+  updates.
+- `MOONO_PLATFORMS=linux` or `windows` builds one archive.
+- Each archive holds an `oni-moono` folder with the setup script, the README, `NOTICE.txt` and
+  the self-contained player in `player/`. The setups install a release's player without
+  building. Nothing of the game goes into them.
 
 ## Windows
 
@@ -130,19 +150,23 @@ scripts/run-windows.sh         # from WSL: a test run on the Windows install
 ```
 
 `OniMoono.exe` is our native host (`src/OniMoono.NativeHost`, [ARCHITECTURE.md](ARCHITECTURE.md)
-§2), built by `scripts/build-native-host.sh` with MSVC through `cmd.exe` (`VCVARS64` names
-`vcvars64.bat` when vswhere can't find it), or from Git Bash on Windows, as the release workflow's
-Windows runner does. `release.sh` builds it the same way. `scripts/check-windows-host.py EXE [--like OTHER.exe]` checks a built one from its
-PE file (the two GPU exports present, writable and 1; the icon, manifest, version and subsystem);
-`build-windows.sh` and `release.sh` run it, and `check.sh` runs it on `out/win/host` when
-there is one. `scripts/check-native-crash.sh` (also in `check.sh`) crashes the player on purpose
-with `--test-native-crash WHERE` and checks the crash lines and minidump in its log
-(ARCHITECTURE §7, "Native crashes"): on Linux, and on Windows with `out/win/host`, in run homes
-under `%TEMP%`, before any window opens (`ONI_WIN_GAME_DIR` names the game, as for
-`run-windows.sh`). On Windows it also checks the crash window offscreen (`--crash-dialog-render`
-PNGs, its zip and issue link) and that no crash case leaves one open.
+§2):
 
-The Windows player uses the Windows build's own data, whose shaders include OpenGL programs
+- **Build.** `scripts/build-native-host.sh` builds it with MSVC through `cmd.exe` (`VCVARS64`
+  names `vcvars64.bat` when vswhere can't find it), or from Git Bash on Windows, as the release
+  workflow's Windows runner does. `release.sh` builds it the same way.
+- **PE check.** `scripts/check-windows-host.py EXE [--like OTHER.exe]` checks a built one from
+  its PE file (the two GPU exports present, writable and 1; the icon, manifest, version and
+  subsystem). `build-windows.sh` and `release.sh` run it, and `check.sh` runs it on
+  `out/win/host` when there is one.
+- **Crash check.** `scripts/check-native-crash.sh` (also in `check.sh`) crashes the player on
+  purpose with `--test-native-crash WHERE` and checks the crash lines and minidump in its log
+  (ARCHITECTURE §7, "Native crashes"). It runs on Linux, and on Windows with `out/win/host`, in
+  run homes under `%TEMP%`, before any window opens (`ONI_WIN_GAME_DIR` names the game, as for
+  `run-windows.sh`). On Windows it also checks the crash window offscreen
+  (`--crash-dialog-render` PNGs, its zip and issue link) and that no crash case leaves one open.
+
+The Windows player uses the Windows build's data, whose shaders include OpenGL programs
 alongside the Direct3D ones. `run-windows.sh` copies `out/win` to `%TEMP%\oni-brutal` and starts
 it on the Steam install (`ONI_WIN_GAME_DIR` to change that). Test runs stay away from your game
 data, Steam account and speakers:
@@ -164,20 +188,27 @@ player's `--no-focus`; `ONI_WIN_MONITOR` picks another). Focus one only through
 `out/local-tools/win-run.ps1 -Match RUN_HOME -Action focus`, and act on Windows game processes
 only through it, never by name.
 
-`windows-run-home.sh` prepares a run home with a single colony, which the main menu resumes on
-its own, and mods enabled (`tools/PerfProbe` holds speed 3 and logs frame rates). The original
-runs from a renamed copy of the install (`ORIG_DIR`, default `E:\Development\BrutalNotIncluded`;
-the frozen builds' copies are `E:\oni-builds\BrutalNotIncluded-BUILD`), where Unity Doorstop
-starts `tools/OriginalIsolation`. It gives the original the same separate data folders and audio
-file, and each run its own Unity registry key and LocalLow folder (a product name of its own,
-moved into the run home afterwards). The player ends when the isolation has not confirmed itself
-in `RUN_HOME\original-isolation.txt` 3 s after Unity's log appears. There is no BepInEx, so mods
-use the game's own Harmony, as for players: with BepInEx 6, its HarmonyX replaced it, and mods that
-call newer Harmony APIs (Bitshifter, Rocketry Expanded) failed. A copy set up with BepInEx before
-is converted on its next run (its `BepInEx` folder becomes `BepInEx.unused`). A first setup copies
-Unity Doorstop 4's `winhttp.dll` from `ONI_DOORSTOP_SOURCE`, a folder that holds it (another copy,
-or a BepInEx 6 install). One copy runs one player at a time: runq's Windows slot holds it (outside runq, hold
-`windows-game.lock` for the whole run). The script has the details.
+`windows-run-home.sh` prepares a run home with a single colony, which the main menu resumes by
+itself, and mods enabled (`tools/PerfProbe` holds speed 3 and logs frame rates).
+
+The original runs from a renamed copy of the install (`ORIG_DIR`, default
+`E:\Development\BrutalNotIncluded`; the frozen builds' copies are
+`E:\oni-builds\BrutalNotIncluded-BUILD`), where Unity Doorstop starts `tools/OriginalIsolation`:
+
+- **Isolation.** It gives the original the same separate data folders and audio file, and each
+  run its own Unity registry key and LocalLow folder (a product name of its own, moved into the
+  run home afterwards). The player ends when the isolation has not confirmed itself in
+  `RUN_HOME\original-isolation.txt` 3 s after Unity's log appears.
+- **No BepInEx.** Mods use the game's own Harmony, as for players. With BepInEx 6, its HarmonyX
+  replaced it, and mods that call newer Harmony APIs (Bitshifter, Rocketry Expanded) failed. A
+  copy set up with BepInEx before is converted on its next run (its `BepInEx` folder becomes
+  `BepInEx.unused`).
+- **First setup.** It copies Unity Doorstop 4's `winhttp.dll` from `ONI_DOORSTOP_SOURCE`, a
+  folder that holds it (another copy, or a BepInEx 6 install).
+- **One player at a time per copy.** runq's Windows slot holds it (outside runq, hold
+  `windows-game.lock` for the whole run).
+
+The script has the details.
 
 ## Testing
 
@@ -191,9 +222,9 @@ scripts/e2e.py --status        # what runs, holds and waits on the machine: look
 scripts/runq status            # runq's jobs: what runs, what waits and why
 ```
 
-On the shared test machine these scripts, and `run.sh`, `run-windows.sh`, `original-windows.sh`
-and `alloc-compare.py run`, queue themselves through runq ([RUNQ.md](RUNQ.md)), which starts
-each when the machine has room for it and holds the locks below for it; anything else that
+On the shared test machine these scripts queue themselves through runq ([RUNQ.md](RUNQ.md)), as
+do `run.sh`, `run-windows.sh`, `original-windows.sh` and `alloc-compare.py run`. runq starts
+each when the machine has room for it and holds the locks below for it. Anything else that
 loads the machine goes through `scripts/runq run --kind KIND -- CMD`. `RUNQ=off` runs them the
 old way, directly with the locks.
 
@@ -202,54 +233,74 @@ old way, directly with the locks.
 against the engine's API, and runs the host's type, asset, binding and native checks against the
 installed game. Some tests read shaders and fonts from the game, so it needs to be installed.
 
-`qa.sh` runs four stages, all by default: `unit` (the build and `check.sh`), `dogfood` (scripted
-play sessions compared against reference captures: menu, new game, colony, every main screen and
-overlay, typing, save, load, resize), `verify` (a large colony with every tweak in verify mode)
-and `perf` (its frame rate and memory against the reference). `--bless` stores a run's results as
-the references once they have been looked at. The large-colony stages need local setup in
-`out/local-tools/qa.env`, and are skipped without it. A large-colony run that logs no frame rate
-for `QA_HANG_MIN` minutes (default 5) is hung: its stacks go to the stage's `hang` folder
-(`scripts/hang-dump.sh`) before it is killed; `ONI_TEST_HANG=FRAME[:spin|wait]` hangs one on
-purpose. The `memory` stage (`--memory`, or `QA_MEMORY_ONLY=1`, runs it alone) measures the
-large colony's peak memory only: it takes no perf lock and waits for no quiet machine (memory
-does not depend on the load), and stops once the first autosave has passed and memory has not
-risen for `QA_MEMORY_SETTLE_FRAMES` frames, reporting the peak, its frame and the RssAnon/RssFile
-split. A player of `qa.sh` or `e2e.py` ends with its run, however that ends, and so does its Xvfb.
-A player is stopped with SIGTERM, which quits ours at the next frame boundary with its GPU work
-done (within `ONI_QUIT_DEADLINE` seconds, default 8; a quit that misses it logs each thread's
-state and wait channel first), and killed only when it still runs `E2E_QUIT_GRACE` seconds
-(default 10) later.
+`qa.sh` runs four stages, all by default:
+
+- `unit`: the build and `check.sh`.
+- `dogfood`: scripted play sessions compared against reference captures (menu, new game, colony,
+  every main screen and overlay, typing, save, load, resize).
+- `verify`: a large colony with every tweak in verify mode.
+- `perf`: its frame rate and memory against the reference.
+
+Details:
+
+- **References.** `--bless` stores a run's results as the references once they have been looked
+  at.
+- **Local setup.** The large-colony stages need local setup in `out/local-tools/qa.env`, and are
+  skipped without it.
+- **Hangs.** A large-colony run that logs no frame rate for `QA_HANG_MIN` minutes (default 5) is
+  hung. Its stacks go to the stage's `hang` folder (`scripts/hang-dump.sh`) before it is killed.
+  `ONI_TEST_HANG=FRAME[:spin|wait]` hangs one on purpose.
+- **Memory.** The `memory` stage (`--memory`, or `QA_MEMORY_ONLY=1`, runs it alone) measures the
+  large colony's peak memory only. It takes no perf lock and waits for no quiet machine (memory
+  does not depend on the load). It stops once the first autosave has passed and memory has not
+  risen for `QA_MEMORY_SETTLE_FRAMES` frames, and reports the peak, its frame and the
+  RssAnon/RssFile split.
+- **Ending a player.** A player of `qa.sh` or `e2e.py` ends with its run, however that ends, and
+  so does its Xvfb. A player is stopped with SIGTERM, which quits ours at the next frame
+  boundary with its GPU work done (within `ONI_QUIT_DEADLINE` seconds, default 8; a quit that
+  misses it logs each thread's state and wait channel first). It is killed only when it still
+  runs `E2E_QUIT_GRACE` seconds (default 10) later.
 
 `e2e.py` plays a spec (a fixture save, Workshop mods, orders and UI input) in our player, the
-original or both, and checks what came of it. Runners in every worktree share lanes (ports and
-an Xvfb display each), a players' memory budget and locks in `~/.cache/oni-brutal-e2e`
-(`E2E_LOCK_DIR`); `scripts/e2e.py --status` shows them, with who waits on what and what dead
-runners left (`--clean` cleans that). `qa.sh`'s perf stage writes `perf.wanted`
-there, so no new spec starts, and takes `perf.lock` exclusively once the running ones finish;
-other perf jobs can do the same with `flock -x ~/.cache/oni-brutal-e2e/perf.lock CMD`.
-[tests/e2e/README.md](../tests/e2e/README.md) describes specs, lanes and verdicts. Its fixture saves are not in
-git: `tests/e2e/fixtures.json` lists them by hash, and `scripts/fixtures.py` fetches them into a
-worktree from the shared cache `~/.cache/oni-brutal-e2e/fixtures` or the private refs
-repository's releases (with your `gh` login), as `e2e.py` and `qa.sh` do before a run;
-`scripts/fixtures.py bless PATH` uploads a new or re-blessed one and updates the manifest.
-`scripts/mod-sweep.py NAME` runs Workshop mods in batches through the same machinery, in both
-players, and bisects failing batches; `scripts/modtable.py > docs/MOD_COMPATIBILITY.md`
-regenerates the compatibility table from the results.
+original or both, and checks what came of it.
+[tests/e2e/README.md](../tests/e2e/README.md) describes specs, lanes and verdicts.
+
+- **Shared lanes.** Runners in every worktree share lanes (ports and an Xvfb display each), a
+  players' memory budget and locks in `~/.cache/oni-brutal-e2e` (`E2E_LOCK_DIR`).
+  `scripts/e2e.py --status` shows them, with who waits on what and what dead runners left
+  (`--clean` cleans that).
+- **Perf lock.** `qa.sh`'s perf stage writes `perf.wanted` there, so no new spec starts, and
+  takes `perf.lock` exclusively once the running ones finish. Other perf jobs can do the same
+  with `flock -x ~/.cache/oni-brutal-e2e/perf.lock CMD`.
+- **Fixtures.** The fixture saves are not in git. `tests/e2e/fixtures.json` lists them by hash,
+  and `scripts/fixtures.py` fetches them into a worktree from the shared cache
+  `~/.cache/oni-brutal-e2e/fixtures` or the private refs repository's releases (with your `gh`
+  login), as `e2e.py` and `qa.sh` do before a run. `scripts/fixtures.py bless PATH` uploads a
+  new or re-blessed one and updates the manifest.
+- **Mod sweeps.** `scripts/mod-sweep.py NAME` runs Workshop mods in batches through the same
+  machinery, in both players, and bisects failing batches.
+  `scripts/modtable.py > docs/MOD_COMPATIBILITY.md` regenerates the compatibility table from the
+  results.
 
 Both install Workshop mods only through the mod gate (`scripts/mod-gate.py`, run by `ws-mods.py
 profile`): a mod is played only when onimaxxing has reviewed the exact upload SteamCMD fetched.
-Its upload handle (the `ugchandle` in SteamCMD's `appworkshop_457140.acf`, signed, taken mod
-2^64) must be the `file` of a version with `reviewed: true` in onimaxxing's
-`mods-data/BUILD/mod/ID/index.json`; the unpacked DLLs in `out/ws/ID` must include every
-`managed[].sha256` of that version's facts (`mod/ID/FILE.json`), compared by hash because a
-zip's non-ASCII names unpack under another encoding; and the catalog row must carry no
-`malware`, `credentials`, `chatWebhook` or `obfuscated` flag. A mod with no binaries needs only
-the last. Any other mod is skipped, with the reason ("not reviewed by onimaxxing yet: upload N
-is not analysed"), and waits for onimaxxing's review: `e2e.py` reports its spec as skipped, and
-`mod-sweep.py` records it as not run. `scripts/mod-gate.py ID...` checks mods without playing
-them. onimaxxing's data is cached in `out/modgate/cache/BUILD/` with its fetch time, for an
-hour; the build is the game folder's (763023 for `oni-linux-763023`, else U59's 744825), or
-`ONI_GAME_BUILD`.
+Three things must hold:
+
+1. Its upload handle (the `ugchandle` in SteamCMD's `appworkshop_457140.acf`, signed, taken mod
+   2^64) must be the `file` of a version with `reviewed: true` in onimaxxing's
+   `mods-data/BUILD/mod/ID/index.json`.
+2. The unpacked DLLs in `out/ws/ID` must include every `managed[].sha256` of that version's
+   facts (`mod/ID/FILE.json`). They are compared by hash because a zip's non-ASCII names unpack
+   under another encoding.
+3. The catalog row must carry no `malware`, `credentials`, `chatWebhook` or `obfuscated` flag.
+
+A mod with no binaries needs only the last. Any other mod is skipped, with the reason ("not
+reviewed by onimaxxing yet: upload N is not analysed"), and waits for onimaxxing's review:
+`e2e.py` reports its spec as skipped, and `mod-sweep.py` records it as not run.
+
+`scripts/mod-gate.py ID...` checks mods without playing them. onimaxxing's data is cached in
+`out/modgate/cache/BUILD/` with its fetch time, for an hour. The build is the game folder's
+(763023 for `oni-linux-763023`, else U59's 744825), or `ONI_GAME_BUILD`.
 
 ### Game tests in CI
 
@@ -263,12 +314,16 @@ dotnet out/bin/GameStrip/release/GameStrip.dll strip GAMEDIR OUT    # the stripp
 ```
 
 The copy keeps every serialized file and header, and the game's assemblies, plugins and
-StreamingAssets. It drops the texture and video payloads, which are only ever drawn or played,
-the FMOD banks' sample data (FMOD still loads every event, which plays silently), and Unity's
-player and Mono. Code reads texels only from readable textures, and all of those are stored
-inline, so they stay. `OUT/OxygenNotIncluded_Data/moono-stripped.txt` lists what was kept. A U59
-copy is about 820 MB, and 110 MB with zstd. Make a U59 copy with master's tool and a U60 copy with
-u60's: the tool reads Unity's type trees for that game update.
+StreamingAssets. It drops:
+
+- The texture and video payloads, which are only ever drawn or played.
+- The FMOD banks' sample data (FMOD still loads every event, which plays silently).
+- Unity's player and Mono.
+
+Code reads texels only from readable textures, and all of those are stored inline, so they stay.
+`OUT/OxygenNotIncluded_Data/moono-stripped.txt` lists what was kept. A U59 copy is about 820 MB,
+and 110 MB with zstd. Make a U59 copy with master's tool and a U60 copy with u60's: the tool
+reads Unity's type trees for that game update.
 
 The player runs a copy only in no-content mode, `ONI_NO_CONTENT=1`. A dropped texture keeps its
 declared size, the GL device draws a 1×1 grey placeholder for it, and a dropped video plays black
@@ -276,9 +331,9 @@ for its length. Without the mode, a dropped payload is an error that names the v
 normal play never shows a placeholder.
 
 The copies are release assets of the private refs repository, one release per build and
-archive hash (tag `game/BUILD-SHA16`, the archive's SHA-256 to 16 digits), each holding the zstd
+archive hash (tag `game/BUILD-SHA16`, the archive's SHA-256 to 16 digits). Each holds the zstd
 archive `oni-BUILD.tar.zst` and its `SHA256SUMS`. `ci/game-content.json` names this branch's tag,
-asset, size and SHA-256; the fixture saves come from their own `saves/` releases through
+asset, size and SHA-256. The fixture saves come from their own `saves/` releases through
 `tests/e2e/fixtures.json`. `scripts/fetch-game-content.py` fetches and checks both with
 `gh release download`, which uses `GH_TOKEN` when it is set (as in CI) and your gh login
 otherwise.
@@ -303,13 +358,15 @@ scripts/ci-game-tests.sh push OUT                 # what the game job runs (QA_U
 The verify runs set only the verify modes that check without drawing, which a headless player (no
 GL device, as in the push run) reports: `ONI_TWEAK_VERIFY`'s game tweaks,
 `ONI_VERIFY_FETCH_BY_CELL`, `_CANVAS_CULL`, `_CANVAS_PRODUCTS`, `_COMPONENT_LAYOUTS` and
-`_RAW_LOADS`. `ci/game-tests/verify/SPEC.txt` lists the checks each run must report, and a check
-that reports nothing fails the run, as a wrong answer does: silence is not zero wrong. CI does not
-cover the modes that need drawing, input or a GPU: `ONI_VERIFY_CANVAS_SKIPS`, `_RAYCAST_CACHE`,
-`_CULL_CACHE`, `_MESH_REUSE`, `_TEXEL_COPIES`, `_PARTIAL_UPLOADS`, `_PARALLEL_DRAWS`, `_BINDLESS`,
-`_PASS_STATES`, `_PROPERTY_SHEETS` and `_VK_DRAWS`. Headless, these report nothing or check
-nothing; run them with `scripts/qa.sh verify` on a real display. Nor does it cover
-`ONI_BUNDLE_BLOCKS_VERIFY`: a stripped copy's bundles are not read by blocks, so it checks nothing.
+`_RAW_LOADS`. `ci/game-tests/verify/SPEC.txt` lists the checks each run must report. A check
+that reports nothing fails the run, as a wrong answer does: silence is not zero wrong.
+
+CI does not cover the modes that need drawing, input or a GPU: `ONI_VERIFY_CANVAS_SKIPS`,
+`_RAYCAST_CACHE`, `_CULL_CACHE`, `_MESH_REUSE`, `_TEXEL_COPIES`, `_PARTIAL_UPLOADS`,
+`_PARALLEL_DRAWS`, `_BINDLESS`, `_PASS_STATES`, `_PROPERTY_SHEETS` and `_VK_DRAWS`. Headless,
+these report nothing or check nothing; run them with `scripts/qa.sh verify` on a real display.
+Nor does it cover `ONI_BUNDLE_BLOCKS_VERIFY`: a stripped copy's bundles are not read by blocks,
+so it checks nothing.
 
 Each run is checked against its log-signature budget, `ci/game-tests/budget/BUILD.txt`: a run
 fails on an error or exception the budget lacks. `E2E_NO_SHOTS=1` keeps specs from taking
@@ -350,14 +407,17 @@ code that recognizes older players).
 
 [ARCHITECTURE.md](ARCHITECTURE.md) §2.1 lists where Mono and .NET, or Unity's player and ours,
 differ in ways game or mod code notices (D1–D55), each with how the host resolves it or why it is
-kept. The host patches a few game methods (D1, D3, D11, D26), rewrites game and mod IL as it
-loads where it depends on Mono (D29–D31 and D47 for both; mods' alone in D22, D23, D27, D28, D32,
-D40, D42, D50 and D51), and adjusts the game's Harmony where patches would run differently
-(D12–D14, D17–D21, D33, D34, D43).
+kept. The host:
+
+- Patches a few game methods (D1, D3, D11, D26).
+- Rewrites game and mod IL as it loads where it depends on Mono (D29–D31 and D47 for both; mods'
+  alone in D22, D23, D27, D28, D32, D40, D42, D50 and D51).
+- Adjusts the game's Harmony where patches would run differently (D12–D14, D17–D21, D33, D34,
+  D43).
 
 Float arithmetic in game code rounds as .NET does, not as Unity's Mono (D25), except in
-worldgen under the `exact-worldgen` tweak; the engine's own math follows the original bit for bit
-where that was measured.
+worldgen under the `exact-worldgen` tweak. The engine's own math follows the original bit for
+bit where that was measured.
 
 ## Documents
 
