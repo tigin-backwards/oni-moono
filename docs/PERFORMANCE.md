@@ -27,23 +27,29 @@ turns vsync off and keeps the game from sleeping when its window loses focus (th
 itself down then), the same in both players. The original runs as an isolated copy of the
 installed game; neither touches the user's own saves or Steam account.
 
-Moono's figures are from 2026-11-06: release v2026.11.06.01 (master 4f383caa) on the game's U59
-build 744825 with every DLC. Each configuration ran three times with nothing else running
-(2minnow with every tweak a fourth time, as one run was far from the others). Each launch is the
-second in a fresh run home (a warm-up launch to the main menu first), unfocused on the second
-monitor at High priority, and measures everything once: the time to the main menu, the save's
-load, 15 windows of 600 frames, then three autosaves, with the working set sampled every second.
-A launch's frame rate is the mean of its windows, leaving out the first three (warm-up) and those
-holding an autosave; the tables give the median of the launches and, in brackets, the lowest and
-highest. Runs on a desktop move by up to a quarter when something else wakes up, and U57 also
-runs faster once its cycle ends partway through the windows. The tables' launches ran without
-`--frame-stats`, whose timing patches cost up to about 15% of the frame rate with every tweak
-(U57: 144 fps without them, 129 with); a second set of launches with it gives the breakdown in
-[Where a frame goes now](#where-a-frame-goes-now). "Default tweaks" is what a player gets with no
-settings changed: every exact tweak, `path-probe-repair`, `instant-reachability` and the bug
-fixes marked on by default ([TWEAKS.md](TWEAKS.md)). The original's figures are from 2026-10-22:
-the median of at least two runs, the ranges its 600-frame windows. Nothing records the screen
-during these runs.
+The tables' figures are from 2026-11-13: releases v2026.11.13.02 (master 01c5dc35) on the game's
+U59 build 744825 and v2026.11.13.03 (u60 77a54e7b) on U60 build 763023, with every DLC, each
+against the original of the same build measured the same day. Each launch is the second in a
+fresh run home (a warm-up launch to the main menu first), unfocused on the second monitor at
+High priority, with no autosaves and the colony's victory sequence held off (PerfProbe's
+`noautosave.txt` and `novictory.txt`), and with each frame's time logged (`frametimes.txt`).
+Moono runs 9 windows of 600 frames, the first 3 left out (warm-up); the original, windows of 200
+frames for up to 240 s, the first 2 left out. A launch's frame rate is the mean of its kept
+windows, and p50 and p99 are over all their frames. A configuration ran once or twice: a cell
+with a range is the median of two launches with both, a cell without is one launch. Runs on a
+desktop move when something else wakes up; on 2026-11-13 two launches of one configuration
+differed by up to 43%. "Default tweaks" is what a player gets with no settings changed
+([TWEAKS.md](TWEAKS.md)); "every tweak" is `--game-tweak all`, which adds `fetch-by-cell`,
+`off-screen-conveyors`, `sim-step-pace`, `brain-rate` and `off-world-fallers`. The launches ran
+without `--frame-stats`, whose timing patches cost up to about 15% of the frame rate with every
+tweak. Nothing records the screen during these runs. The full method, every launch and the
+controls are in [research/reprofile-2026-11-13.md](research/reprofile-2026-11-13.md).
+
+The rows kept from 2026-11-06 (release v2026.11.06.01, master 4f383caa, U59) ran three launches
+each, with 15 windows of 600 frames and then three autosaves, the victory sequence left on, and
+the working set sampled every second; the original's figures there are from 2026-10-22. The
+breakdown in [Where a frame goes now](#where-a-frame-goes-now) and the tweaks' leave-one-out
+figures are also from 2026-11-06.
 
 Earlier numbers were taken on Linux under WSL2, where OpenGL goes through Mesa's Direct3D 12
 backend. That layer makes some driver calls far more expensive than on a native driver (a small
@@ -201,41 +207,130 @@ The results, by colony, game version and update section, are in
 
 ## The numbers
 
+Measured on 2026-11-13: release v2026.11.13.02 (master 01c5dc35) on the game's U59 build 744825
+and v2026.11.13.03 (u60 77a54e7b) on U60 build 763023, each against the original of the same
+build, every DLC. A frame-rate cell with a range is the median of two launches with the lower
+and higher one; a cell without is one launch. Every launch, the frame times, the memory census,
+the allocation tables and the controls are in
+[research/reprofile-2026-11-13.md](research/reprofile-2026-11-13.md). Two launches of one Moono
+configuration differed by up to 43% that day, so differences under about 30% between Moono rows
+are unresolved.
+
 **U57**, a Spaced Out colony with every DLC at cycle 17,077: 24 Duplicants, 1,186 critters, about
 62,000 buildings and 90,000 animated objects.
 
-| | Original | Moono | |
+| U59 (744825) | Original | Moono | |
 |---|---|---|---|
-| Frame rate, no tweaks | about 11.4&nbsp;fps (11.3–11.5) | about 51&nbsp;fps (47.1–51.7) | about 4.5× |
-| Frame rate, default tweaks | | about 90&nbsp;fps (88.9–90.2) | about 7.9× |
-| Frame rate, every tweak | | about 144&nbsp;fps (143.7–151.4) | about 12.7× |
-| Loading the save | 2&nbsp;min&nbsp;22&nbsp;s | 25–26&nbsp;s | about 5.5× faster |
-| Autosave freeze, no tweaks | 26.1–26.4&nbsp;s | 7.6–8.2&nbsp;s | about 3.4× shorter |
-| Autosave freeze, default tweaks | | 2.0–2.4&nbsp;s | about 12× shorter |
-| Peak memory | 12.5&nbsp;GB | 16.2–16.8&nbsp;GB | about 1.3× |
+| Frame rate, default tweaks | about 11.6&nbsp;fps (11.6–11.7) | about 103&nbsp;fps (94.1–112.2) | about 8.9× |
+| Frame rate, every tweak | | about 141&nbsp;fps (116.0–165.8) | about 12.1× |
+| Frame time, p50 / p99, default tweaks | 76 / 128&nbsp;ms | 9.0 / 23.6&nbsp;ms | |
+| Frame time, p50 / p99, every tweak | | 6.3 / 19.8&nbsp;ms | |
+| Loading the save | 2&nbsp;min&nbsp;12&nbsp;s – 2&nbsp;min&nbsp;37&nbsp;s | 24&nbsp;s (one launch of four 31&nbsp;s) | about 6× faster |
+| Peak working set | 10.7–10.8&nbsp;GB | 13.6–14.4&nbsp;GB | about 1.3× |
+| Peak private bytes | 15.4–15.5&nbsp;GB | 14.2–14.8&nbsp;GB | about 0.95× |
+
+| U60 (763023) | Original | Moono | |
+|---|---|---|---|
+| Frame rate, default tweaks | about 11.2&nbsp;fps | about 98&nbsp;fps (94.8–100.6) | about 8.7× |
+| Frame rate, every tweak | | about 154&nbsp;fps (136.1–172.5) | about 13.7× |
+| Frame time, p50 / p99, default tweaks | 82 / 139&nbsp;ms | 9.2 / 24.6&nbsp;ms | |
+| Frame time, p50 / p99, every tweak | | 5.5 / 19.0&nbsp;ms | |
+| Loading the save | 1&nbsp;min&nbsp;21&nbsp;s | 24–25&nbsp;s | about 3.3× faster |
+| Peak working set | 14.6&nbsp;GB | 11.4–12.5&nbsp;GB | about 0.8× |
+| Peak private bytes | 19.4&nbsp;GB | 12.7–13.8&nbsp;GB | about 0.7× |
 
 **2minnow**, a Spaced Out colony with every DLC at cycle 1,990, with 50 Duplicants.
 
+| U59 (744825) | Original | Moono | |
+|---|---|---|---|
+| Frame rate, default tweaks | about 27&nbsp;fps (26.4–27.6) | about 99&nbsp;fps (88.0–110.7) | about 3.7× |
+| Frame rate, every tweak | | about 112&nbsp;fps (100.8–123.4) | about 4.2× |
+| Frame time, p50 / p99, default tweaks | 33 / 57&nbsp;ms | 9.4 / 23.3&nbsp;ms | |
+| Frame time, p50 / p99, every tweak | | 8.6 / 17.7&nbsp;ms | |
+| Loading the save | 44&nbsp;s | 18–20&nbsp;s | about 2.3× faster |
+| Peak working set | 6.8&nbsp;GB | 10.4–10.6&nbsp;GB | about 1.5× |
+| Peak private bytes | 11.3&nbsp;GB | 10.6–10.8&nbsp;GB | about 0.95× |
+
+| U60 (763023) | Original | Moono | |
+|---|---|---|---|
+| Frame rate, default tweaks | about 24.7&nbsp;fps | about 111&nbsp;fps (108.3–113.7) | about 4.5× |
+| Frame rate, every tweak | | about 95&nbsp;fps (85.9–103.3) | about 3.8× |
+| Frame time, p50 / p99, default tweaks | 39 / 70&nbsp;ms | 8.6 / 17.3&nbsp;ms | |
+| Frame time, p50 / p99, every tweak | | 10.3 / 20.4&nbsp;ms | |
+| Loading the save | 34&nbsp;s | 18–20&nbsp;s | about 1.8× faster |
+| Peak working set | 7.7&nbsp;GB | 8.3–8.5&nbsp;GB | about 1.1× |
+| Peak private bytes | 12.2&nbsp;GB | 9.6–9.8&nbsp;GB | about 0.8× |
+
+On 2minnow the every-tweak rows are not resolved from the default ones (on U60 they came out
+lower), and its rows are not comparable with 2026-11-06's, which ran with the colony's victory
+sequence on.
+
+**The other colonies**: Gluttony (the uncleaned save), c100 and DeCrew. Frame rates in fps, one
+launch each but U59's Gluttony (two):
+
+| | Original | Moono, default tweaks | | Moono, every tweak | |
+|---|---|---|---|---|---|
+| Gluttony, U59 | 6.1 | 28.6 (27.9–29.2) | 4.7× | 48.5 (47.4–49.7) | 8.0× |
+| Gluttony, U60 | 4.7 | 28.7 | 6.2× | 52.9 | 11.3× |
+| c100, U59 | 22.0 | 126.4 | 5.7× | 188.7 | 8.6× |
+| c100, U60 | 18.2 | 117.4 | 6.5× | 172.6 | 9.5× |
+| DeCrew, U59 | 31.9 | 177.1 | 5.6× | 206.1 | 6.5× |
+| DeCrew, U60 | 25.5 | 157.7 | 6.2× | 195.2 | 7.6× |
+
+Loading is timed as in the original, from the log's first line to the colony (Moono's start-up
+included). Memory is the process's, sampled every second through the load and the play, with
+default tweaks and every tweak together; these launches make no autosave. In private bytes Moono
+is now below the original on both builds; its working set is higher on U59, where the original
+keeps several GB committed but not in memory.
+
+Not measured again, from 2026-11-06 (v2026.11.06.01, U59, three launches; the original
+2026-10-22), with the colony's autosaves on:
+
 | | Original | Moono | |
 |---|---|---|---|
-| Frame rate, no tweaks | about 26&nbsp;fps (25.2–26.3) | about 84&nbsp;fps (77.1–87.2) | about 3.2× |
-| Frame rate, default tweaks | | about 133&nbsp;fps (127.1–135.0) | about 5.1× |
-| Frame rate, every tweak | | about 160&nbsp;fps (132.5–183.6) | about 6.2× |
-| Loading the save | 49&nbsp;s | 18–19&nbsp;s | about 2.6× faster |
-| Autosave freeze, no tweaks | about 5&nbsp;s | 1.5–1.6&nbsp;s | about 3× shorter |
-| Autosave freeze, default tweaks | | 0.53–0.62&nbsp;s | about 9× shorter |
-| Peak memory | 7.0&nbsp;GB | 10.8–11.0&nbsp;GB | about 1.5× |
+| U57: frame rate, no tweaks | about 11.4&nbsp;fps (11.3–11.5) | about 51&nbsp;fps (47.1–51.7) | about 4.5× |
+| U57: autosave freeze, no tweaks | 26.1–26.4&nbsp;s | 7.6–8.2&nbsp;s | about 3.4× shorter |
+| U57: autosave freeze, default tweaks | | 2.0–2.4&nbsp;s | about 12× shorter |
+| 2minnow: frame rate, no tweaks | about 26&nbsp;fps (25.2–26.3) | about 84&nbsp;fps (77.1–87.2) | about 3.2× |
+| 2minnow: autosave freeze, no tweaks | about 5&nbsp;s | 1.5–1.6&nbsp;s | about 3× shorter |
+| 2minnow: autosave freeze, default tweaks | | 0.53–0.62&nbsp;s | about 9× shorter |
 
 With no tweaks it's the same game code doing the same work, so those rows are the engine and
-runtime alone. Loading is timed as in the original, from the log's first line to the colony
-(Moono's start-up included; the save itself takes 18 s of U57's 26 and 11 s of 2minnow's 19).
-The autosave rows time the game's own autosave (what it runs at a cycle's end), three times in a
-row, as the longest frame it stalls; the first one in each player is slower (as code warms up)
-and is left out, and the ranges are the other two over the three launches. The loading, autosave
-and memory rows with no tier named are with the default tweaks. Peak memory is the process's
-working set, sampled every second through the load, the play and the autosaves. Ours keeps more:
-the garbage collector keeps a heap per core so it can collect in parallel, and the engine keeps
-caches that make it faster.
+runtime alone. The autosave rows time the game's own autosave (what it runs at a cycle's end),
+three times in a row, as the longest frame it stalls; the first one in each player is slower (as
+code warms up) and is left out.
+
+### What changed since 2026-11-06
+
+The 2026-11-06 tables (v2026.11.06.01 on U59) had U57 at about 90 fps with default tweaks and
+144 with every tweak, 2minnow at 133 and 160, and Moono's peak working set on U57 at
+16.2–16.8 GB.
+
+- **U57, default tweaks:** 90 → 94–112 fps on U59 (two launches). The 2026-11-06 release,
+  launched once on 2026-11-13 the same way, measured 105 fps, so the rise is as much the day and
+  the method as the build. **Every tweak:** 144 → 116–166 fps, the two launches on either side
+  of the old figure (the old release that day: 124). No regression shows on U57; a change under
+  about 30% either way would not.
+- **Gluttony** (the uncleaned save, U59): 18.6 → 28–29 fps with default tweaks and 25 → 47–50
+  with every tweak, the original unchanged at 6.1. The largest gain of the week; which changes
+  made it was not measured.
+- **2minnow:** not comparable: 2026-11-06 ran with the colony's victory sequence on, which
+  measures about 136 fps with default tweaks on the new release too. Without it, the new
+  release measured 88–111 fps (default) and 101–123 (every tweak), and single launches of the
+  2026-11-06 release 116 and 156. Not a shown regression at that day's spread, but the one
+  colony where the old release came out ahead in every pairing.
+- **Memory:** Moono's peak working set on U57 went from 16.2–16.8 GB to 13.6–14.4 GB, and its
+  private bytes are now below the original's on both builds (U57 settled: 14.0 against 15.4 GB
+  on U59, 13.1 against 18.1 GB on U60).
+- **Frame times** are new: p50 and p99 for every configuration.
+- **Opt-in tweaks:** `brain-rate` still makes most of U57's gap between default and every tweak
+  (default with it: 142 fps, one launch); `sim-step-pace` gave 159 → 170 fps at speed 1 on U57
+  (one pair); `off-world-fallers` still makes Gluttony's gap. `fetch-by-cell` alone measured
+  below the default on U57 in its one launch (81 fps), which needs an A/B.
+- **Allocations:** see the re-profile page.
+- **On by default since then**, among others: `post-load-gc`, `fast-save-roots`,
+  `fast-partitioner-events`, `fast-conduit-sorts`, `shared-duplicates`,
+  `compact-report-history`, `lazy-table-refresh` and `loading-animation`.
 
 ## Why the engine alone is faster
 
