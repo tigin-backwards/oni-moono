@@ -374,6 +374,90 @@ Design A as above, as the game tweak `compact-nav-links` (TWEAKS.md):
 
 Verification and Windows numbers are in perf-wins.md's verdicts.
 
+## 7. What a commit costs (2026-11-14)
+
+[sim-step-cost.md](sim-step-cost.md) found `NavLinkStore.Commit` at 20% of
+`Pathfinding.UpdateNavGrids` on a late-game colony (about 1,200 critters) and asked whether the
+store copies more than an update needs. It does not, and the commit is as it was: the one build
+that moved its cost did not lower it.
+
+**What a commit does.** One commit for each cell an update rewrites, in each of the 19 grids:
+read the cell's head, store the cell's links (a few, 8 bytes each) into its block, or into a new
+block when they no longer fit, and write the head. No table is copied, nothing is allocated,
+and nothing is done per grid or per update. An update rewrites the cells around each changed
+cell (`NavGrid.UpdateGraph`), so its commits are as many as its dirty cells.
+
+**Where its time goes (measured).** Linux, `perf record -e cpu-clock:u -F 999 -g`, 60 s at
+speed 3 (181 game seconds), default tweaks, u60 d25d1b4e; sample addresses read against the
+JIT's code for `Commit`.
+
+| | Samples | Share of `UpdateNavGrids` |
+|---|---|---|
+| `UpdateNavGrids` (1.14% of the main thread, 3.4 ms a game second) | 620 | |
+| `Commit` | 107 | 17.3% |
+| · waiting at the read of the cell's head | 57 | |
+| · waiting at the read of the chunk's length (the bounds check of the first link's store) | 34 | |
+| · the stores of the links and of the head, and the rest | 16 | |
+| Every store frame (`Commit`, `StoreOne`, `StoreLinkOne`, `Find`, `LoadOne`) | 135 | 21.8% (0.75 ms a game second) |
+
+The step study's profile splits the same way: 86 and 62 of `Commit`'s 190 samples at those two
+reads. Both are cold memory. A cell is rewritten once an update in each grid, a grid's heads
+are 0.6 MB on this map (3.7 MB on the largest), the blocks lie elsewhere, and 200 ms of the
+game's other work passes between updates.
+
+**How many (measured, verify run).** 992,421 commits in play on that colony: 60% leave the
+cell without links, 38% store links into the cell's block, 1.6% into a new block.
+
+**What was tried.** One build, with the same writes in the same order:
+
+1. A cell left without links has only its head's count set to 0 (a one-byte store), without
+   reading the head.
+2. The links are stored without the chunk's bounds check, so the chunk's header is not read.
+3. Prefetch hints: the heads of an update's next row at each row's start, and a cell's block
+   when the cell's first link is staged.
+
+| | Before | With 1–3 |
+|---|---|---|
+| `UpdateNavGrids`, samples (ms a game second) | 620 (3.4) | 665 (3.7) |
+| `Commit` | 107, 17.3% | 9, 1.4% |
+| `StoreOne` (stages a link; with 3, reads the head) | 4 | 59 |
+| `StoreLinkOne` (ends a cell; with 1, the store of the count) | 9 | 42 |
+| `Find`, `LoadOne` | 14 | 29 |
+| Every store frame | 135, 21.8%, 0.75 ms a game second | 140, 21.1%, 0.78 ms a game second |
+
+`Commit` itself nearly vanished, and the store as a whole cost the same: the waits moved to
+whichever instruction first touched the memory. The two runs are within each other's noise (the
+second ran on a busier machine, 27–33 fps against 35–45). The build was dropped.
+
+**Why (reasoned, not measured).**
+- The memory has to be touched once for each cell, and it is cold. A store to a cold page
+  waits for its address translation as a read does, so storing blind (1) saved nothing.
+- The hints (3) guessed rows wrongly. `UpdateGraph`'s list holds the changed cells first and
+  then the cells around each one less those already listed, so the rows around a changed cell
+  are split and the stride between them is not the one before.
+- The game's own array pays the same kind of wait: each cell's -1 goes into a line of its own
+  in a 221.6 MB array.
+
+**What is left.** A predictor that knows the map's width could ask for the heads around each
+changed cell early. At best it hides part of 0.75 ms a game second on Linux, about 0.6 ms on
+Windows (estimated: 21.8% of the 2.9 ms measured there). Not pursued.
+
+**What readers rely on, unchanged.** Readers take no lock and no snapshot of a grid (the
+path prober's worker walks links while the main thread rewrites cells, as in the game):
+- A reader takes a cell's head with one read: the block and the count together.
+- A head names a block that exists and holds at least `count` links. Blocks are never freed
+  or given to another cell while the store lives, so a walk that holds a block
+  (`NavLinkCursor`) stays in range and in its own cell's links.
+- The head is written after the links. A walk opened before a cell was emptied or moved to a
+  larger block goes on reading the list it opened; after a rewrite in place it reads the new
+  links in the slots it has not passed, the mix a reader of the game's array sees too.
+
+**Landed instead** (both branches): verify mode compares each commit's cell with the game's
+array as the commit ends and counts the commits by kind (above: 3,646,433 commits from the
+load on, 0 differed; 19 grids, 1,598,762 links, 0 cells differ), and tests for updates in rows
+at the map's edges, cells emptied and refilled, a new grid after another, and a walk held
+across commits (`NavGridLinksTests`).
+
 ## Files
 
 Not committed (the worktree's `out/`): `out/navscan` (NavScan, the IL scan of the game and

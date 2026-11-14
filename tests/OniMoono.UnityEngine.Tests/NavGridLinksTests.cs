@@ -330,6 +330,216 @@ namespace OniMoono.Tests
             Assert.True(NavGridLinks.StoreOf(Store(10, 300)).Wide);
         }
 
+        /// NavGrid.UpdateGraph's rewrite of the cells around a changed cell (x-r .. x+r of each
+        /// row y-r .. y+r, clamped to the map), the links from `lists`.
+        static void Update(Link[] links, int width, int height, int max, int x, int y, int range, Func<int, Link[]> lists)
+        {
+            for (int j = Math.Max(0, y - range); j <= Math.Min(height - 1, y + range); j++)
+                for (int i = Math.Max(0, x - range); i <= Math.Min(width - 1, x + range); i++)
+                    CreateLinks(links, j * width + i, max, lists(j * width + i));
+        }
+
+        /// The updates' commits, row by row: at the map's corners and edges, on cells with and
+        /// without links, the same cells again and again, and an update of no cells; each
+        /// commit is compared as it ends (verify mode) and the grid after each update. Narrow
+        /// and wide heads.
+        [Theory]
+        [InlineData(40, 30, 12)]
+        [InlineData(40, 30, 300)]
+        public void UpdatesInRowsReadAsTheFlatArray(int width, int height, int max)
+        {
+            NavGridLinks.Verify = true;
+            try
+            {
+                int cells = width * height;
+                var flat = new Link[cells * max];
+                var handle = Store(cells, max);
+                var store = NavGridLinks.StoreOf(handle);
+                Assert.Equal(max > 255, store.Wide);
+                var random = new Random(max);
+                int version = 0;
+                // A third of the cells have links, as many as 9; the rest none.
+                Link[] List(int cell) => random.Next(3) > 0 ? [] : Enumerable.Range(0, 1 + random.Next(9)).Select(k => Make(cell, version, k)).ToArray();
+                void Both(int x, int y, int range)
+                {
+                    version++;
+                    var lists = new Dictionary<int, Link[]>();
+                    Link[] Lists(int cell) => lists.TryGetValue(cell, out var l) ? l : lists[cell] = List(cell);
+                    Update(flat, width, height, max, x, y, range, Lists);
+                    Update(handle, width, height, max, x, y, range, Lists);
+                    Same(flat, handle, cells, max, $"update {version} at {x},{y}");
+                }
+                for (int c = 0; c < cells; c++)
+                {
+                    var list = List(c);
+                    CreateLinks(flat, c, max, list);
+                    CreateLinks(handle, c, max, list);
+                }
+                long built = store.Commits.Checked;
+                Assert.Equal(cells, built);
+                (int X, int Y)[] places = [(0, 0), (width - 1, 0), (0, height - 1), (width - 1, height - 1), (width / 2, 0), (0, height / 2), (width - 1, height / 2), (width / 2, height - 1), (width / 2, height / 2)];
+                foreach (var (x, y) in places)
+                    foreach (int range in new[] { 0, 1, 2, 5 })
+                        for (int again = 0; again < 3; again++) Both(x, y, range);
+                for (int n = 0; n < 300; n++) Both(random.Next(width), random.Next(height), random.Next(4));
+                // An update of no cells commits nothing.
+                long before = store.Commits.Checked;
+                Update(handle, width, height, max, 3, 3, -1, _ => []);
+                Assert.Equal(before, store.Commits.Checked);
+                // Rows written upwards and single cells far apart, as other callers may.
+                for (int y = height - 1; y >= 0; y -= 7)
+                    for (int x = 0; x < 3; x++)
+                    {
+                        var list = List(y * width + x);
+                        CreateLinks(flat, y * width + x, max, list);
+                        CreateLinks(handle, y * width + x, max, list);
+                    }
+                Same(flat, handle, cells, max, "upwards");
+                var commits = store.Commits;
+                Assert.Equal(0, commits.Wrong);
+                Assert.True(commits.Empty > 0 && commits.InPlace > 0 && commits.Moved > 0, $"{commits}");
+                Assert.Equal(0, store.Verify(out _, out _));
+            }
+            finally
+            {
+                NavGridLinks.Verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
+            }
+        }
+
+        /// A cell left without links keeps its block: the links it gets later go into it when
+        /// they fit, and the store takes no more memory.
+        [Theory]
+        [InlineData(12)]
+        [InlineData(300)]
+        public void ACellLeftEmptyKeepsItsBlock(int max)
+        {
+            NavGridLinks.Verify = true;
+            try
+            {
+                var handle = Store(50, max);
+                var store = NavGridLinks.StoreOf(handle);
+                var cursor = new NavLinkCursor<Link>();
+                Link[] List(int count, int version) => Enumerable.Range(0, count).Select(k => Make(7, version, k)).ToArray();
+                CreateLinks(handle, 7, max, List(5, 1)); // a block of 8
+                long bytes = store.Size().Bytes;
+                for (int round = 2; round < 50; round++)
+                {
+                    CreateLinks(handle, 7, max, []);
+                    Assert.Empty(Bounded(handle, 7, max, walk: round % 2 == 0, ref cursor));
+                    CreateLinks(handle, 7, max, []); // empty again
+                    var list = List(1 + round % 8, round);
+                    CreateLinks(handle, 7, max, list);
+                    Assert.Equal(list, Bounded(handle, 7, max, walk: round % 2 == 0, ref cursor));
+                }
+                Assert.Equal(new NavLinkCommits(Empty: 96, InPlace: 48, Moved: 1, Wrong: 0, First: null), store.Commits);
+                Assert.Equal(bytes, store.Size().Bytes);
+                // Never written, then emptied: still no block; its neighbours untouched.
+                CreateLinks(handle, 8, max, []);
+                Assert.Empty(Bounded(handle, 8, max, walk: true, ref cursor));
+                Assert.Equal(1 + 49 % 8, Bounded(handle, 7, max, walk: true, ref cursor).Count);
+                Assert.Equal(bytes, store.Size().Bytes);
+            }
+            finally
+            {
+                NavGridLinks.Verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
+            }
+        }
+
+        /// What a reader in the middle of a cell keeps across commits. A walk holds the cell's
+        /// block and the count it opened with; a commit publishes the head after the links. So
+        /// a walk that opened before the cell was emptied, or before its links moved to a larger
+        /// block, goes on reading the list it opened; after a rewrite in place it reads the new
+        /// links in the slots it has not passed (the mix a reader of the game's array sees
+        /// too); and the next walk reads the new list.
+        [Fact]
+        public void AWalkAcrossCommitsReadsTheListItOpened()
+        {
+            const int max = 12;
+            var handle = Store(20, max);
+            Link[] List(int count, int version) => Enumerable.Range(0, count).Select(k => Make(3, version, k)).ToArray();
+            var fresh = new NavLinkCursor<Link>();
+            var first = List(4, 1);
+            CreateLinks(handle, 3, max, first);
+
+            // Emptied under the walk.
+            var held = new NavLinkCursor<Link>();
+            Assert.Equal(first[0], NavGridLinks.Walk(handle, 3 * max, ref held));
+            CreateLinks(handle, 3, max, []);
+            for (int k = 1; k < 4; k++) Assert.Equal(first[k], NavGridLinks.Walk(handle, 3 * max + k, ref held));
+            Assert.Equal(-1, NavGridLinks.Walk(handle, 3 * max + 4, ref held).link);
+            Assert.Empty(Bounded(handle, 3, max, walk: true, ref fresh));
+            Assert.Equal(-1, NavGridLinks.Load(handle, 3 * max).link);
+
+            // Rewritten in place (the block of 4 again), one link fewer.
+            CreateLinks(handle, 3, max, first);
+            held = new NavLinkCursor<Link>();
+            Assert.Equal(first[0], NavGridLinks.Walk(handle, 3 * max, ref held));
+            var second = List(3, 2);
+            CreateLinks(handle, 3, max, second);
+            Assert.Equal(second[1], NavGridLinks.Walk(handle, 3 * max + 1, ref held));
+            Assert.Equal(second[2], NavGridLinks.Walk(handle, 3 * max + 2, ref held));
+            Assert.Equal(first[3], NavGridLinks.Walk(handle, 3 * max + 3, ref held)); // the slot the rewrite left
+            Assert.Equal(-1, NavGridLinks.Walk(handle, 3 * max + 4, ref held).link);
+            Assert.Equal(second, Bounded(handle, 3, max, walk: true, ref fresh));
+
+            // Moved to a larger block: the walk stays in the old one.
+            held = new NavLinkCursor<Link>();
+            Assert.Equal(second[0], NavGridLinks.Walk(handle, 3 * max, ref held));
+            var third = List(9, 3);
+            CreateLinks(handle, 3, max, third);
+            Assert.Equal(second[1], NavGridLinks.Walk(handle, 3 * max + 1, ref held));
+            Assert.Equal(second[2], NavGridLinks.Walk(handle, 3 * max + 2, ref held));
+            Assert.Equal(-1, NavGridLinks.Walk(handle, 3 * max + 3, ref held).link);
+            Assert.Equal(third, Bounded(handle, 3, max, walk: true, ref fresh));
+            Assert.Equal(third, Bounded(handle, 3, max, walk: false, ref fresh));
+            // And a walk that starts the cell again reads the new list.
+            Assert.Equal(third, Bounded(handle, 3, max, walk: true, ref held));
+        }
+
+        /// Each load makes new grids, of another size when the map is: a thread that committed
+        /// rows in one store commits in the next (its staging buffer is the same), while the old
+        /// one is still read and written.
+        [Fact]
+        public void ANewGridAfterAnotherReadsAsTheFlatArray()
+        {
+            const int max = 10;
+            var random = new Random(11);
+            Link[] List(int cell) => Enumerable.Range(0, random.Next(4)).Select(k => Make(cell, 1, k)).ToArray();
+            Link[] oldFlat = null, oldStore = null;
+            int oldCells = 0;
+            foreach (var (width, height) in new[] { (64, 64), (8, 4), (128, 16), (3, 3), (64, 64) })
+            {
+                int cells = width * height;
+                var flat = new Link[cells * max];
+                var store = Store(cells, max);
+                for (int y = 0; y < height; y++) // the rows from the top down, as the last update's of the grid before
+                    for (int x = 0; x < width; x++)
+                    {
+                        var list = List(y * width + x);
+                        CreateLinks(flat, y * width + x, max, list);
+                        CreateLinks(store, y * width + x, max, list);
+                    }
+                for (int n = 0; n < 50; n++)
+                {
+                    int x = random.Next(width), y = random.Next(height);
+                    var lists = new Dictionary<int, Link[]>();
+                    Link[] Lists(int cell) => lists.TryGetValue(cell, out var l) ? l : lists[cell] = List(cell);
+                    Update(flat, width, height, max, x, y, 2, Lists);
+                    Update(store, width, height, max, x, y, 2, Lists);
+                    if (oldStore != null && n % 10 == 0)
+                    {
+                        // The grid before is rewritten between this one's rows.
+                        var list = List(n);
+                        CreateLinks(oldFlat, n % oldCells, max, list);
+                        CreateLinks(oldStore, n % oldCells, max, list);
+                    }
+                }
+                Same(flat, store, cells, max, $"{width}x{height}");
+                if (oldStore != null) Same(oldFlat, oldStore, oldCells, max, $"the grid before {width}x{height}");
+                (oldFlat, oldStore, oldCells) = (flat, store, cells);
+            }
+        }
+
         /// Verify mode's comparison finds a difference between the store and the array.
         [Fact]
         public void VerifyComparesWithTheFlatArray()
@@ -342,9 +552,18 @@ namespace OniMoono.Tests
                 for (int c = 0; c < 100; c++) CreateLinks(handle, c, 8, Enumerable.Range(0, c % 8).Select(k => Make(c, 1, k)).ToArray());
                 Assert.Equal(0, store.Verify(out long links, out _));
                 Assert.Equal(Enumerable.Range(0, 100).Sum(c => c % 8), links);
+                Assert.Equal(new NavLinkCommits(Empty: 13, InPlace: 0, Moved: 87, Wrong: 0, First: null), store.Commits);
                 store.Flat![5 * 8 + 1].cost = 99;
                 Assert.Equal(1, store.Verify(out _, out var first));
                 Assert.Contains("cell 5 slot 1", first);
+                // A commit that ends with other links than the array has is counted as it ends.
+                NavGridLinks.Store(handle, 9 * 8, Make(9, 2, 0));
+                NavGridLinks.Store(handle, 9 * 8 + 1, Make(9, 2, 1));
+                store.Flat[9 * 8 + 1].cost = 77;
+                NavGridLinks.StoreLink(handle, 9 * 8 + 2, -1);
+                var commits = store.Commits;
+                Assert.Equal((1L, 88L), (commits.Wrong, commits.Moved));
+                Assert.Contains("cell 9", commits.First);
             }
             finally
             {
