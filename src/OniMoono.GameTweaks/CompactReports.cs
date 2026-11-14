@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using HarmonyLib;
 using KSerialization;
 using OniMoono.Tweaks;
@@ -36,7 +37,8 @@ namespace OniMoono.GameTweaks
     /// - reading an entry's notes reads the store in its order, the dictionary's;
     /// - NoteEntries.Serialize writes every entry in the order the game's dictionary holds them
     ///   (the order they were first added: it never removes one), each from the store or from
-    ///   `entries`: the same bytes.
+    ///   `entries`: the same bytes. The store's notes are packed into blocks of the bytes the
+    ///   game's three writes a note make, instead of three calls of the writer for every note.
     /// Code that reads `entries` directly sees only today's entries and those written since the
     /// load; no Workshop mod scanned reads or writes a past day's there.
     ///
@@ -46,6 +48,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::Serialize(System.IO.BinaryWriter)", "43e9a157bd003c88 linux-744825 win-744825")]
     [GameMember(GameUse.Prefix | GameUse.Mirrors, "System.Void ReportManager/NoteStorage/NoteEntries::Add(System.Int32,System.Single,System.Int32)", "145c8fcc41656c48 linux-744825 win-744825")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::IterateNotes(ReportManager/NoteStorage/StringTable,System.Int32,System.Action`1<ReportManager/ReportEntry/Note>)", "1146f9bad7aa0187 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void KSerialization.IOHelper::WriteSingleFast(System.IO.BinaryWriter,System.Single)", "06b887c62310083b linux-744825 win-744825")]
     [GameMember(GameUse.Postfix, "System.Void ReportManager::OnDeserialized()")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void ReportManager::OnNightTime(System.Object)")]
     [GameMember(GameUse.Postfix, "System.Void ReportManager::OnCleanUp()")]
@@ -229,22 +232,49 @@ namespace OniMoono.GameTweaks
             if (!same) Mismatch($"entry {id}'s notes");
         }
 
+        /// Test infrastructure (PerfProbe's savetest.txt): true writes each note with the game's
+        /// calls, for comparing saves in one run.
+        public static bool Unpacked;
+
+        static MethodBase writeSingleFast;
+        static bool loggedForeign;
+
+        /// Whether the store's notes go out in blocks: not while another mod patches the game's
+        /// WriteSingleFast, which then writes each value.
+        static bool Packed()
+        {
+            if (Unpacked || !BitConverter.IsLittleEndian) return false;
+            writeSingleFast ??= AccessTools.Method(typeof(IOHelper), nameof(IOHelper.WriteSingleFast), new[] { typeof(BinaryWriter), typeof(float) });
+            var info = Harmony.GetPatchInfo(writeSingleFast);
+            if (info != null)
+                foreach (var owner in info.Owners)
+                    if (!ModOverlapsCore.IsOurs(owner))
+                    {
+                        if (!loggedForeign) global::Debug.Log($"{Name}: the notes are written one value at a time ({owner} patches IOHelper.WriteSingleFast)");
+                        loggedForeign = true;
+                        return false;
+                    }
+            return true;
+        }
+
         /// NoteEntries.Serialize: the game's bytes, in the order of its dictionary.
+        [MirrorsGame("System.Void KSerialization.IOHelper::WriteSingleFast(System.IO.BinaryWriter,System.Single)")]
         static bool Serializing(NoteEntries __instance, BinaryWriter writer)
         {
             var s = StoreOf(__instance);
             if (s == null) return true;
+            bool packed = Packed();
             if (shadow != null)
             {
                 var ours = new MemoryStream();
                 var game = new MemoryStream();
-                using (var w = new BinaryWriter(ours, System.Text.Encoding.UTF8, true)) s.Write(w, __instance.entries);
+                using (var w = new BinaryWriter(ours, System.Text.Encoding.UTF8, true)) s.Write(w, __instance.entries, packed);
                 using (var w = new BinaryWriter(game, System.Text.Encoding.UTF8, true)) shadow.Serialize(w);
                 verifiedSaves++;
                 if (!ours.ToArray().AsSpan().SequenceEqual(game.ToArray())) Mismatch($"the saved notes ({ours.Length:N0} bytes against {game.Length:N0})");
                 else global::Debug.Log($"{Name}: verify: saved notes identical ({ours.Length:N0} bytes; {verifiedSaves} saves, {verifiedReads} reads, {mismatches} mismatches)");
             }
-            s.Write(writer, __instance.entries);
+            s.Write(writer, __instance.entries, packed);
             return false;
         }
     }
