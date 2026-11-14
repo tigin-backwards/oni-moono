@@ -58,12 +58,13 @@ OniMoono.Host (exe OniMoono)             entry point; ALC setup; main loop; CLI 
 **Why facades.** Game IL binds to `[UnityEngine.CoreModule]UnityEngine.GameObject`,
 `[UnityEngine.UIModule]UnityEngine.Canvas`, and so on. CoreCLR follows `TypeForwardedTo`, so a
 facade named `UnityEngine.CoreModule` that forwards to `OniMoono.UnityEngine` binds every
-reference exactly as compiled, while the implementation lives in one assembly with ordinary
-`internal` access between subsystems (Unity itself relies on `InternalsVisibleTo` between its
-modules; we avoid needing that). The facade sources are **generated** by `tools/FacadeGen` from
-the original module assemblies (to learn which type lives in which module) intersected with the
-types we implement. A facade `UnityEngine.dll` (forwarding everything) is also generated for
-completeness.
+reference exactly as compiled. The implementation lives in one assembly with ordinary
+`internal` access between subsystems. (Unity itself relies on `InternalsVisibleTo` between its
+modules; we avoid needing that.)
+
+`tools/FacadeGen` **generates** the facade sources from the original module assemblies (to
+learn which type lives in which module), intersected with the types we implement. It also
+generates a facade `UnityEngine.dll` (forwarding everything) for completeness.
 
 **Assembly identity.** Unity assemblies are referenced as version `0.0.0.0`, no public key.
 Our facades carry the same names and version `0.0.0.0`.
@@ -90,83 +91,111 @@ as the player does.
 
 **Native libraries.** A per-assembly `SetDllImportResolver` (`GamePlugins`) maps the game's
 `DllImport` names (`SimDLL`, `fmodstudio`, `resonanceaudio`, `steam_api`, `cimgui`, …) to
-`OxygenNotIncluded_Data/Plugins/lib*.so` (Windows: `Plugins/x86_64/*.dll`) on every assembly
-but the framework's and BRUTAL's, so the game's file binds before the runtime's own probing,
-as in Unity's player. That probing (the importing assembly's folder, then the system's search:
-System32, the working directory, PATH, LD_LIBRARY_PATH) found any other copy of the name first
-when only `ResolvingUnmanagedDll` mapped them: #74, an older `steam_api64.dll` elsewhere on the
-Windows search bound in place of the game's, and Steam never initialised. `ResolvingUnmanagedDll`
-remains for what the resolver leaves (a plugin missing or not loading: D59's messages). BRUTAL
-installs its own per-assembly resolvers; we never call `SetDllImportResolver` on BRUTAL
-assemblies. Brutal.Vulkan asks for `vulkan`, which on Linux only the loader's -dev package
-provides (`libvulkan.so`); the default ALC's `ResolvingUnmanagedDll` maps that name, for
-Brutal.Vulkan only, to `libvulkan.so.1` (`VkContext.LoaderPresent`).
+`OxygenNotIncluded_Data/Plugins/lib*.so` (Windows: `Plugins/x86_64/*.dll`). It is set on every
+assembly but the framework's and BRUTAL's, so the game's file binds before the runtime's own
+probing, as in Unity's player.
+
+- **Why not `ResolvingUnmanagedDll` alone.** The runtime's probing looks in the importing
+  assembly's folder, then the system's search (System32, the working directory, PATH,
+  LD_LIBRARY_PATH). When only `ResolvingUnmanagedDll` mapped the names, that probing found any
+  other copy of the name first. In #74, an older `steam_api64.dll` elsewhere on the Windows
+  search bound in place of the game's, and Steam never initialised.
+- **`ResolvingUnmanagedDll` remains** for what the resolver leaves (a plugin missing or not
+  loading: D59's messages).
+- **BRUTAL** installs its own per-assembly resolvers. We never call `SetDllImportResolver` on
+  BRUTAL assemblies.
+- **Vulkan.** Brutal.Vulkan asks for `vulkan`, which on Linux only the loader's -dev package
+  provides (`libvulkan.so`). The default ALC's `ResolvingUnmanagedDll` maps that name, for
+  Brutal.Vulkan only, to `libvulkan.so.1` (`VkContext.LoaderPresent`).
 
 **The Windows executable.** On Windows `OniMoono.exe` is our own native host
 (`src/OniMoono.NativeHost/host.c`, about 150 lines of C), not the .NET SDK's apphost, which
-can't export data. The drivers of hybrid-graphics laptops (NVIDIA Optimus, AMD PowerXpress) read
-two DWORD exports of the process's main executable, `NvOptimusEnablement` and
-`AmdPowerXpressRequestHighPerformance`, and pick the discrete GPU when they are nonzero. The
-original `OxygenNotIncluded.exe` exports both with the value 1, so ours does too. Otherwise it
-does what the apphost did, the documented way (dotnet/runtime's
-`docs/design/features/native-hosting.md`): `hostfxr.dll` from its own folder when it's there (the
-self-contained player of setups and releases, as the apphost looks first), else the installed
-.NET's through nethost's `get_hostfxr_path` (the framework-dependent `scripts/build-windows.sh`
-player); then `hostfxr_initialize_for_dotnet_command_line` with `OniMoono.dll` and the process's
-arguments as the C runtime split them, `hostfxr_run_app`, `hostfxr_close`, and the app's exit
-code. A failure to start goes to stderr when that is redirected, else to a message box and a
-line in the game's `Player.log`. It keeps the apphost's resources: the icon as resource 32512
-(`GlfwPlatform.SetClassIcon` loads it), the SDK's manifest (`asInvoker` only; GLFW sets the DPI
-awareness), the version information and the GUI subsystem. It is built with MSVC and the static C
-runtime by `build.cmd`, driven from WSL by `scripts/build-native-host.sh` (`build-windows.sh` and
-`release.sh` call it); `setup.ps1` builds it when the Visual Studio C++ build tools are installed
-and otherwise keeps the SDK's apphost, with a warning (that player starts the same but gives no
-GPU hint). `scripts/check-windows-host.py EXE [--like OTHER]` checks a built exe from its PE file
-alone: both exports present, writable and 1, the icon, manifest, version and subsystem. It also
-starts a second copy of itself as the crash watcher before the runtime starts (`crash.c`; §7,
-"Native crashes").
+can't export data.
+
+- **GPU exports.** The drivers of hybrid-graphics laptops (NVIDIA Optimus, AMD PowerXpress) read
+  two DWORD exports of the process's main executable, `NvOptimusEnablement` and
+  `AmdPowerXpressRequestHighPerformance`, and pick the discrete GPU when they are nonzero. The
+  original `OxygenNotIncluded.exe` exports both with the value 1, so ours does too.
+- **Starting .NET.** Otherwise it does what the apphost did, the documented way (dotnet/runtime's
+  `docs/design/features/native-hosting.md`):
+  1. It takes `hostfxr.dll` from its own folder when it's there (the self-contained player of
+     setups and releases, as the apphost looks first). Else it takes the installed .NET's
+     through nethost's `get_hostfxr_path` (the framework-dependent `scripts/build-windows.sh`
+     player).
+  2. It calls `hostfxr_initialize_for_dotnet_command_line` with `OniMoono.dll` and the
+     process's arguments as the C runtime split them, then `hostfxr_run_app` and
+     `hostfxr_close`, and returns the app's exit code.
+- **Failures.** A failure to start goes to stderr when that is redirected, else to a message box
+  and a line in the game's `Player.log`.
+- **Resources.** It keeps the apphost's resources: the icon as resource 32512
+  (`GlfwPlatform.SetClassIcon` loads it), the SDK's manifest (`asInvoker` only; GLFW sets the DPI
+  awareness), the version information and the GUI subsystem.
+- **Build.** `build.cmd` builds it with MSVC and the static C runtime, driven from WSL by
+  `scripts/build-native-host.sh` (`build-windows.sh` and `release.sh` call it). `setup.ps1`
+  builds it when the Visual Studio C++ build tools are installed. Otherwise it keeps the SDK's
+  apphost, with a warning: that player starts the same but gives no GPU hint.
+- **Check.** `scripts/check-windows-host.py EXE [--like OTHER]` checks a built exe from its PE
+  file alone: both exports present, writable and 1, the icon, manifest, version and subsystem.
+- **Crash watcher.** It also starts a second copy of itself as the crash watcher before the
+  runtime starts (`crash.c`; §7, "Native crashes").
 
 **The GPU option** (`GpuChoice`; Moono Tweaks' "Graphics card", settings.json `"gpu"`, `--gpu
 default|discrete|integrated`) is applied in `Program.Main` before the window opens, so before
-anything loads the OpenGL driver. On Windows it changes nothing: the two exports stay at the 1
-they're compiled with, as the original has them (the documented form: NVIDIA's Optimus guide and
-AMD's GPUOpen say the driver looks them up in the executable), so `default` and `discrete` are the
-same, and Windows' Graphics settings page overrides them. `integrated` can't be asked for on
-Windows' OpenGL: no driver documents seeing a value written at run time, and 0 would only withdraw
-the request, not ask for the integrated GPU. The log says to choose it in Windows' Graphics
-settings. Unity's
-Linux player sets no GPU hints, and `-force-device-index` covers Direct3D, Metal and Vulkan only,
-not ONI's OpenGL build, so on Linux `default` sets nothing. `discrete` asks for PRIME render
-offload: `__NV_PRIME_RENDER_OFFLOAD=1` and `__GLX_VENDOR_LIBRARY_NAME=nvidia` when NVIDIA's
-proprietary driver is there (`/proc/driver/nvidia/version` and a loadable `libGLX_nvidia.so.0`),
-else Mesa's `DRI_PRIME=1`; `integrated` sets `DRI_PRIME=0`. Mesa's default GPU is "the one used
-by Wayland/Xorg or the one connected to a display", and `DRI_PRIME=N` selects the Nth other one
-(Mesa's envvars documentation, which documents only N > 0): `DRI_PRIME=0` asks for no other GPU,
-so it gets that default, which is the integrated one only when the display runs on it. They go into the native environment
-with libc's `setenv` (.NET's `Environment.SetEnvironmentVariable` changes only .NET's copy on
-Unix, which libGL never reads) and into .NET's, for processes the player starts. A variable the
-user set is left alone; those Moono set are listed in `ONI_MOONO_GPU_ENV`, so the run
-`App.Restart` starts replaces them with its own choice. On a desktop whose display is on the
-discrete card, `DRI_PRIME=1` may pick the integrated GPU. The log has a `gpu:` line with what was
-set, then the `OpenGL:` line naming the renderer.
+anything loads the OpenGL driver.
+
+On Windows it changes nothing:
+
+- The two exports stay at the 1 they're compiled with, as the original has them. That is the
+  documented form: NVIDIA's Optimus guide and AMD's GPUOpen say the driver looks them up in the
+  executable. So `default` and `discrete` are the same, and Windows' Graphics settings page
+  overrides them.
+- `integrated` can't be asked for on Windows' OpenGL. No driver documents seeing a value written
+  at run time, and 0 would only withdraw the request, not ask for the integrated GPU. The log
+  says to choose it in Windows' Graphics settings.
+
+On Linux:
+
+- `default` sets nothing. Unity's Linux player sets no GPU hints, and `-force-device-index`
+  covers Direct3D, Metal and Vulkan only, not ONI's OpenGL build.
+- `discrete` asks for PRIME render offload: `__NV_PRIME_RENDER_OFFLOAD=1` and
+  `__GLX_VENDOR_LIBRARY_NAME=nvidia` when NVIDIA's proprietary driver is there
+  (`/proc/driver/nvidia/version` and a loadable `libGLX_nvidia.so.0`), else Mesa's
+  `DRI_PRIME=1`. On a desktop whose display is on the discrete card, `DRI_PRIME=1` may pick the
+  integrated GPU.
+- `integrated` sets `DRI_PRIME=0`. Mesa's default GPU is "the one used by Wayland/Xorg or the
+  one connected to a display", and `DRI_PRIME=N` selects the Nth other one (Mesa's envvars
+  documentation, which documents only N > 0). `DRI_PRIME=0` asks for no other GPU, so it gets
+  that default, which is the integrated one only when the display runs on it.
+- The variables go into the native environment with libc's `setenv`, and into .NET's for
+  processes the player starts. (.NET's `Environment.SetEnvironmentVariable` changes only .NET's
+  copy on Unix, which libGL never reads.)
+- A variable the user set is left alone. Those Moono set are listed in `ONI_MOONO_GPU_ENV`, so
+  the run `App.Restart` starts replaces them with its own choice.
+
+The log has a `gpu:` line with what was set, then the `OpenGL:` line naming the renderer.
 
 The Vulkan device (§3.5) picks its GPU itself among those Vulkan lists (`VkContext.Choose`),
 never one that lacks a requirement, and a software one only with `--renderer vulkan`.
-`integrated` takes an integrated GPU and `discrete` a discrete one, the first listed of that
-type, else the other kind, then a virtual GPU. `default` matches the original on each system: on
-Windows a discrete GPU, as the exports ask the drivers; on Linux, where the original sets
-nothing and OpenGL draws on the driver's default GPU, the first GPU the driver lists. The log
-names the devices Vulkan lists and the one taken (`vulkan: using NVIDIA GeForce RTX 3090
-(discrete, gpu option default)`, `…; gpu option integrated prefers an integrated GPU, and none is
-usable`, or on Linux `…: the first GPU the driver lists`). The exports and Windows' Graphics
-settings page do not change the Vulkan device's choice; they steer the OpenGL fallback as
-before. On Linux the PRIME variables also reach Vulkan, where they only order the list: Mesa's
-device-select layer puts the `DRI_PRIME` GPU first, and NVIDIA's `__NV_PRIME_RENDER_OFFLOAD=1`
-loads its `VK_LAYER_NV_optimus` layer, which puts NVIDIA's GPUs first (NVIDIA's README, "PRIME
-Render Offload"). That decides `default` on a hybrid laptop, as it decides OpenGL's GPU; the
-other choices pick by type whatever the order. NVIDIA's finer `__VK_LAYER_NV_optimus` setting
-is not set: it applies only with the layer loaded, and its values hide the other vendor's GPUs
-on older drivers and sort them on newer ones, neither of which the choice by type needs.
+
+- `integrated` takes an integrated GPU and `discrete` a discrete one: the first listed of that
+  type, else the other kind, then a virtual GPU.
+- `default` matches the original on each system. On Windows it takes a discrete GPU, as the
+  exports ask the drivers. On Linux, where the original sets nothing and OpenGL draws on the
+  driver's default GPU, it takes the first GPU the driver lists.
+- The log names the devices Vulkan lists and the one taken (`vulkan: using NVIDIA GeForce RTX
+  3090 (discrete, gpu option default)`, `…; gpu option integrated prefers an integrated GPU, and
+  none is usable`, or on Linux `…: the first GPU the driver lists`).
+- The exports and Windows' Graphics settings page do not change the Vulkan device's choice.
+  They steer the OpenGL fallback as before.
+- On Linux the PRIME variables also reach Vulkan, where they only order the list. Mesa's
+  device-select layer puts the `DRI_PRIME` GPU first, and NVIDIA's `__NV_PRIME_RENDER_OFFLOAD=1`
+  loads its `VK_LAYER_NV_optimus` layer, which puts NVIDIA's GPUs first (NVIDIA's README, "PRIME
+  Render Offload"). That decides `default` on a hybrid laptop, as it decides OpenGL's GPU. The
+  other choices pick by type whatever the order.
+- NVIDIA's finer `__VK_LAYER_NV_optimus` setting is not set. It applies only with the layer
+  loaded, and its values hide the other vendor's GPUs on older drivers and sort them on newer
+  ones, neither of which the choice by type needs.
+
 Verified on the Windows desktop: `--gpu integrated` renders on the AMD Radeon iGPU, `default`
 and `discrete` on the RTX 3090.
 
@@ -175,16 +204,21 @@ and `discrete` on the RTX 3090.
 Binding and JIT are clean: every BCL reference in the game resolves on .NET 10 and all ~82k
 game methods JIT. The differences that remain are behaviours Mono's class libraries provided
 and .NET 10 ships out-of-band. The host restores them the way .NET documents for
-.NET Framework-era code where it can. Game methods are patched at run time only where they
-persist or depend on runtime-specific values: two serialization paths (D1 state-machine
-parameter names, D3 a local mod's version stamp), mods' loading (D11) and the bubble manager's
-one use of a struct's hash as an identity (D26). The game's conversions of floats to integers
-are rewritten as its assemblies load (D29), in the same pass as its directory listings (D30),
-the double close in 0Harmony's MonoMod (D31) and its thread aborts (D47). The game's Harmony is
-adjusted where patches would run differently on CoreCLR (D12–D14, D17–D21, D33, D34, D43), and
-mods' assemblies are rewritten as they load where their IL relies on Mono (D11, D22, D23,
-D27–D32, D40, D42, D47, D50, D51, D57). No other game IL
-is touched.
+.NET Framework-era code where it can. Beyond that:
+
+- **Game methods are patched at run time** only where they persist or depend on
+  runtime-specific values: two serialization paths (D1 state-machine parameter names, D3 a
+  local mod's version stamp), mods' loading (D11) and the bubble manager's one use of a
+  struct's hash as an identity (D26).
+- **The game's IL is rewritten as its assemblies load:** its conversions of floats to integers
+  (D29), in the same pass as its directory listings (D30), the double close in 0Harmony's
+  MonoMod (D31) and its thread aborts (D47).
+- **The game's Harmony is adjusted** where patches would run differently on CoreCLR (D12–D14,
+  D17–D21, D33, D34, D43).
+- **Mods' assemblies are rewritten as they load** where their IL relies on Mono (D11, D22, D23,
+  D27–D32, D40, D42, D47, D50, D51, D57).
+
+No other game IL is touched.
 
 | Mono provided | Host provides | Needed by |
 |---|---|---|
@@ -1689,11 +1723,15 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
 The public surface is **exactly** what the consumers reference, with Unity's names, member
 kinds, signatures, `virtual`/`sealed`-ness, and base types, verified by `tools/ApiCheck`
 (conformance gate, §9). We do not add public API Unity doesn't have. Internals are free-form.
-Mods may call Unity API the game never does; types they are known to need are listed in
-`engine-required-types.tsv`, and running `tools/ApiCheck` over a profile's mod assemblies finds
-the members they reference that the engine lacks. `scripts/apisurface.sh` (`ApiCheck --surface`)
-lists every public type and member of the shipped Unity assemblies that the engine and our
-packages lack, and which of them the Workshop builds in `out/ws` reference.
+
+Mods may call Unity API the game never does:
+
+- Types they are known to need are listed in `engine-required-types.tsv`.
+- Running `tools/ApiCheck` over a profile's mod assemblies finds the members they reference
+  that the engine lacks.
+- `scripts/apisurface.sh` (`ApiCheck --surface`) lists every public type and member of the
+  shipped Unity assemblies that the engine and our packages lack, and which of them the
+  Workshop builds in `out/ws` reference.
 
 The consumer set is: `Assembly-CSharp`, `Assembly-CSharp-firstpass`, `UnityEngine.UI`,
 `Unity.TextMeshPro`, `Unity.Timeline`, `FMODUnity*`, `ImGui.NET`, Steamworks.NET.
@@ -1713,7 +1751,7 @@ citing why.
   engine classes (`GameObject`, `Component`, `Transform`, `Behaviour`, `MonoBehaviour`, …)
   declare **no other instance fields** unless Unity's own class declares them (e.g. the
   managed fields of `MonoBehaviour`). Reason: game code reflects over the full field set of
-  components — `Localization.SetFont` walks `Instance|Public|NonPublic` fields recursively and
+  components. `Localization.SetFont` walks `Instance|Public|NonPublic` fields recursively and
   follows `GameObject` fields into `GetComponents()` (*runtime §7.4*), and KSerialization builds
   templates over `Object`/`Component`/`Behaviour` fields with `GetCustomAttributes`. Managed
   back-references there would recurse forever or be serialized.
@@ -1737,15 +1775,16 @@ citing why.
     per type **by name, most-derived declaration only, any accessibility**, and bound once into
     open delegates. A base implementation runs only if the derived one calls it.
   - `Awake` runs when a component's GameObject first becomes active in hierarchy (or at
-    load/instantiate time if already active), then `OnEnable`; `Start` runs before that
+    load/instantiate time if already active), then `OnEnable`. `Start` runs before that
     component's first update callback, at the next Start pass or that callback, whichever
-    comes first (§3.3). Activation and deactivation
-    recurse in Unity's order (Awake/OnEnable for the whole subtree, parent first; OnDisable
-    children-first when deactivating). Deactivation, and the same step of a destruction, walks
-    the subtree: an object's `activeInHierarchy` turns false when the walk reaches it, then its
-    children are walked, then its own `OnDisable`s run. While one object's `OnDisable` runs, its
-    later siblings still read active, and deactivating one of them disables it there and then
-    (UnityProbe's deactorder; the details panel's storage rows, issue #23).
+    comes first (§3.3).
+  - Activation and deactivation recurse in Unity's order (Awake/OnEnable for the whole subtree,
+    parent first; OnDisable children-first when deactivating). Deactivation, and the same step
+    of a destruction, walks the subtree: an object's `activeInHierarchy` turns false when the
+    walk reaches it, then its children are walked, then its own `OnDisable`s run. While one
+    object's `OnDisable` runs, its later siblings still read active, and deactivating one of
+    them disables it there and then (UnityProbe's deactorder; the details panel's storage rows,
+    issue #23).
   - `Destroy` is deferred to the end of the frame; `DestroyImmediate` is synchronous,
     children first, with `OnDisable` then `OnDestroy`. The GameObject passed to either turns
     inactive itself (`activeSelf` false) before its subtree's callbacks, its descendants keeping
@@ -1756,12 +1795,12 @@ citing why.
   - Exceptions in a message are logged through `Debug.LogException` and do not stop the frame,
     as in Unity.
 - **Script execution order** comes from `MonoScript.m_ExecutionOrder` in
-  `globalgamemanagers.assets`, and for a type no MonoScript describes (a mod's) from its
-  `[DefaultExecutionOrder]`, inherited, as Unity's player applies it (UnityProbe's execorder);
-  within one order, update order is the order components' activation
-  began (or they were enabled later), matching Unity's behaviour list. Pending `Start` calls are not sorted by it: they run in
-  the order the behaviours were scheduled (became active and enabled), as Unity's delayed-call
-  queue does.
+  `globalgamemanagers.assets`. For a type no MonoScript describes (a mod's), it comes from its
+  `[DefaultExecutionOrder]`, inherited, as Unity's player applies it (UnityProbe's execorder).
+  Within one order, update order is the order components' activation began (or they were
+  enabled later), matching Unity's behaviour list. Pending `Start` calls are not sorted by it:
+  they run in the order the behaviours were scheduled (became active and enabled), as Unity's
+  delayed-call queue does.
 - `ScriptableObject` and `MonoBehaviour` instances are created with
   `RuntimeHelpers.GetUninitializedObject` + the parameterless constructor, as Unity does
   (field initializers run, then deserialization overwrites serialized fields). A class without
@@ -1770,28 +1809,36 @@ citing why.
   a constructor taking a state).
 - **Costs at ONI's scale.** A late-game colony holds hundreds of thousands of objects, most of
   them scene roots (buildings, items, critters), and creates, destroys and re-parents them
-  constantly (an item stored is parented to its storage). Scene roots are therefore an ordered
-  slot list (`SceneRoots`: constant-time removal, compaction into a new array, enumeration
-  safe against it), and per-frame walks cache what they look up per GameObject against its
-  copy-on-write component array (`UiParts` for the canvas walk). A transform's child list is
-  copy-on-write too, but with spare slots once a parent grows at run time: an append fills the
-  next spare slot, which no list read before has, so the game's popup texts (a parent of
-  thousands of children, one added per new popup) no longer copy the list each time. Searches
-  by type (`FindObjectsByType`) walk the scenes and skip inactive subtrees when inactive objects
-  are not asked for.
+  constantly (an item stored is parented to its storage). Therefore:
+  - Scene roots are an ordered slot list (`SceneRoots`: constant-time removal, compaction into
+    a new array, enumeration safe against it).
+  - Per-frame walks cache what they look up per GameObject against its copy-on-write component
+    array (`UiParts` for the canvas walk).
+  - A transform's child list is copy-on-write too, but with spare slots once a parent grows at
+    run time. An append fills the next spare slot, which no list read before has. So the
+    game's popup texts (a parent of thousands of children, one added per new popup) no longer
+    copy the list each time.
+  - Searches by type (`FindObjectsByType`) walk the scenes and skip inactive subtrees when
+    inactive objects are not asked for.
 - **Per-frame allocation.** ONI issues ~1,700 draws a frame (most through `Graphics.DrawMesh`) and
   rebuilds several meshes every frame, so the render path allocates almost nothing per draw:
-  draw items, draw lists and canvas batches are reused frame to frame (`FrameRenderer.NewDrawItem`,
-  `NewDrawList`; valid until `EndFrame`); queued meshes are values; `DrawMesh` shares the property
-  block's sheet with the queued draw until the frame renders, a later change moving the block to a
-  copy (`PropertySheet.SharedEpoch`); the device's per-draw inputs come from the recording frame's
-  arena (`FrameArena.Next`) with their command delegate made once; mesh uploads hold the mesh's own
-  arrays, which are never written once published (`MeshNative`); colours given as bytes stay bytes.
-- **Resolved once, not per draw.** Program variants are selected once per material, pass and draw
-  keyword list while keywords are unchanged (`MaterialNative.Variants`); what a material and the
-  global properties give a program (uniform values, block bytes, sampler textures, pass state) is
-  resolved once per their versions (`MaterialValues`), a draw resolving only its per-draw values
-  and what its own block overrides; render queues and `_ST` property ids are parsed once.
+  - Draw items, draw lists and canvas batches are reused frame to frame
+    (`FrameRenderer.NewDrawItem`, `NewDrawList`; valid until `EndFrame`).
+  - Queued meshes are values.
+  - `DrawMesh` shares the property block's sheet with the queued draw until the frame renders.
+    A later change moves the block to a copy (`PropertySheet.SharedEpoch`).
+  - The device's per-draw inputs come from the recording frame's arena (`FrameArena.Next`),
+    with their command delegate made once.
+  - Mesh uploads hold the mesh's own arrays, which are never written once published
+    (`MeshNative`).
+  - Colours given as bytes stay bytes.
+- **Resolved once, not per draw.**
+  - Program variants are selected once per material, pass and draw keyword list while keywords
+    are unchanged (`MaterialNative.Variants`).
+  - What a material and the global properties give a program (uniform values, block bytes,
+    sampler textures, pass state) is resolved once per their versions (`MaterialValues`). A
+    draw resolves only its per-draw values and what its own block overrides.
+  - Render queues and `_ST` property ids are parsed once.
 
 ### 3.3 Player loop
 
@@ -1811,19 +1858,24 @@ PostLateUpdate  Canvas.willRenderCanvases (uGUI layout/graphic rebuild) → rend
                 → screen-space-overlay canvases → WaitForEndOfFrame coroutines → present
 ```
 
-Quit (`Application.Quit`, closing the window, or `--frames N` in test runs): a requested quit is
-put to `Application.wantsToQuit` at the end of its frame, after WaitForEndOfFrame, each handler in
-turn (one that answers false cancels it and the rest are not asked; one that throws is logged and
-counts as agreeing); then `OnApplicationQuit` to every active behaviour, `Application.quitting`
-(a handler's exception ends it), every scene unloaded (OnDisable/OnDestroy), the graphics device
-and window closed,
-the log closed, then the process ends with `_exit(code)`: game threads may still be inside
-native plugins (SimDLL worldgen), and running the plugins' static destructors under them crashes
-or deadlocks. The game registers no `ProcessExit` handlers.
+Quit (`Application.Quit`, closing the window, or `--frames N` in test runs) runs in this order:
 
-Pending Starts run in the order they were queued, as Unity's delayed-call queue does: a
-behaviour is queued when its activation begins, before its Awake (or when it is enabled later),
-not by script execution order. Both were measured in the original player: a large save's World
+1. A requested quit is put to `Application.wantsToQuit` at the end of its frame, after
+   WaitForEndOfFrame, each handler in turn. One that answers false cancels it and the rest are
+   not asked. One that throws is logged and counts as agreeing.
+2. `OnApplicationQuit` goes to every active behaviour.
+3. `Application.quitting` runs (a handler's exception ends it).
+4. Every scene is unloaded (OnDisable/OnDestroy).
+5. The graphics device and window are closed, then the log.
+6. The process ends with `_exit(code)`: game threads may still be inside native plugins
+   (SimDLL worldgen), and running the plugins' static destructors under them crashes or
+   deadlocks.
+
+The game registers no `ProcessExit` handlers.
+
+Pending Starts run in the order they were queued, as Unity's delayed-call queue does, not by
+script execution order. A behaviour is queued when its activation begins, before its Awake (or
+when it is enabled later). Both were measured in the original player: a large save's World
 (order 6) starts before Game (order -10), and an object an Awake creates starts after its creator
 although it is enabled first. (Loading a save, Game's Awake creates the screens, among them the
 new-colony screen; Game starts first and destroys that screen, whose Start would otherwise name
@@ -1842,26 +1894,33 @@ restores the Dead tag, and that removal reorders the list.
 
 Destroy is carried out at three points, measured in the original (UnityProbe's destroy phases
 and scenario 20): after the fixed steps, after the Start pass that follows Update, and after
-LateUpdate's; a call made later in the frame waits for the next frame's Update. The Start pass
+LateUpdate's. A call made later in the frame waits for the next frame's Update. The Start pass
 comes first, so its Starts still find what Update destroyed, and a pending Start runs on a
 descendant that Destroy left enabled before its OnDestroy. Loading a save, Game's Start (just
 before its first Update) destroys the new-colony screen, whose CharacterContainers register in
 their Start and unregister in OnDestroy.
 
 An Awake that destroys its own GameObject while the object activates leaves nothing of it to
-start, measured in the original (UnityProbe's `PROBE_SCENARIO=awakedestroy`): that behaviour and
-the ones awake before it get OnDisable at once (the destroying one without an OnEnable), the ones
-not awake yet, the object's and its direct children's, still get Awake reporting `enabled =
-false`, no OnEnable or Start follows, and all of them get OnDestroy. An object destroyed while
-inactive and activated before its destruction gets the same: Awake, disabled, then OnDestroy.
-The game depends on it: PlantBranch, from KPrefabID's Awake, destroys a tree branch whose cell
-is taken, and a started KPrefabID would start the branch's other state machines without it
-(issue #45).
+start, measured in the original (UnityProbe's `PROBE_SCENARIO=awakedestroy`):
 
-Coroutines are Unity's state machine: an `IEnumerator` is advanced immediately by
-`StartCoroutine`; nested `IEnumerator`/`Coroutine` yields wait for the child;
-`CustomYieldInstruction` is re-polled each frame via `keepWaiting` (the shared cached
-`WaitForSecondsRealtime` instance must behave exactly as Unity's managed implementation does).
+- That behaviour and the ones awake before it get OnDisable at once (the destroying one without
+  an OnEnable).
+- The ones not awake yet, the object's and its direct children's, still get Awake reporting
+  `enabled = false`.
+- No OnEnable or Start follows, and all of them get OnDestroy.
+
+An object destroyed while inactive and activated before its destruction gets the same: Awake,
+disabled, then OnDestroy. The game depends on it: PlantBranch, from KPrefabID's Awake, destroys
+a tree branch whose cell is taken, and a started KPrefabID would start the branch's other state
+machines without it (issue #45).
+
+Coroutines are Unity's state machine:
+
+- `StartCoroutine` advances an `IEnumerator` immediately.
+- Nested `IEnumerator`/`Coroutine` yields wait for the child.
+- `CustomYieldInstruction` is re-polled each frame via `keepWaiting` (the shared cached
+  `WaitForSecondsRealtime` instance must behave exactly as Unity's managed implementation
+  does).
 
 ### 3.4 Serialization and assets
 
@@ -1880,28 +1939,38 @@ exactly its byte size; a mismatch is an error, never ignored.
 
 **Script classes (MonoBehaviour / ScriptableObject payloads)** have no type tree. We build the
 layout from the **actual managed type** following Unity's serialization rules:
-serializable fields are instance fields that are public or `[SerializeField]`, not
-`[NonSerialized]`, not static/const/readonly, of a serializable type (primitives, enums by
-underlying type, `string`, `UnityEngine.Object` subclasses as PPtr, `[Serializable]`
-non-abstract classes/structs (generic allowed), arrays and `List<T>` of these (no nested
-collections), and Unity's built-in serializable structs: Vector2/3/4(Int), Quaternion,
-Matrix4x4, Color, Color32, Rect(Int), Bounds(Int), LayerMask, AnimationCurve, Gradient,
-RectOffset, GUIStyle, Hash128, …); depth limit 10; `[FormerlySerializedAs]` irrelevant for
-reading (names come from our layout, the data has none). Alignment follows Unity's rules
-(4-byte align after bool/byte/char/short runs, after strings and arrays). The exact-size
-check over all ~18.8k MonoBehaviours in the build is the proof that the rules are right.
+
+- Serializable fields are instance fields that are public or `[SerializeField]`, not
+  `[NonSerialized]`, not static/const/readonly, and of a serializable type.
+- Serializable types are primitives, enums by underlying type, `string`, `UnityEngine.Object`
+  subclasses as PPtr, `[Serializable]` non-abstract classes/structs (generic allowed), arrays
+  and `List<T>` of these (no nested collections), and Unity's built-in serializable structs:
+  Vector2/3/4(Int), Quaternion, Matrix4x4, Color, Color32, Rect(Int), Bounds(Int), LayerMask,
+  AnimationCurve, Gradient, RectOffset, GUIStyle, Hash128, ….
+- The depth limit is 10.
+- `[FormerlySerializedAs]` is irrelevant for reading (names come from our layout, the data has
+  none).
+- Alignment follows Unity's rules (4-byte align after bool/byte/char/short runs, after strings
+  and arrays).
+
+The exact-size check over all ~18.8k MonoBehaviours in the build is the proof that the rules
+are right.
 
 The layout builder is shared by three users: **file deserialization, `Object.Instantiate`
-cloning, and `JsonUtility`**. Cloning is serialization-shaped, not a shallow copy: only
-serialized fields are copied; references to objects inside the cloned hierarchy are remapped
-to the clones; external references are kept; the serializer has no null, so a null string,
-array, list or serializable class is `""`, empty or a new instance in the clone (measured in the
-original player; issue #17); `ISerializationCallbackReceiver` hooks run
-(`OnBeforeSerialize` on the source, `OnAfterDeserialize` on the clone). Non-serialized fields
-of the clone keep their constructor/initializer values.
+cloning, and `JsonUtility`**. Cloning is serialization-shaped, not a shallow copy:
+
+- Only serialized fields are copied. Non-serialized fields of the clone keep their
+  constructor/initializer values.
+- References to objects inside the cloned hierarchy are remapped to the clones. External
+  references are kept.
+- The serializer has no null, so a null string, array, list or serializable class is `""`,
+  empty or a new instance in the clone (measured in the original player; issue #17).
+- `ISerializationCallbackReceiver` hooks run (`OnBeforeSerialize` on the source,
+  `OnAfterDeserialize` on the clone).
+
 A script's field copy is compiled once per type, as is the copy of each serializable struct
-or class and of each array or list element type (`Cloner.CompositeCopier`, `ElementCopier`):
-the game's structs (`Tag`, `HashedString`, `CellOffset`) are copied as values, without the
+or class and of each array or list element type (`Cloner.CompositeCopier`, `ElementCopier`).
+The game's structs (`Tag`, `HashedString`, `CellOffset`) are copied as values, without the
 boxes and reflection the clones of resource chunks spent most of their copying on. A struct's
 callbacks are called on the struct itself; the copy keeps their changes and the source does
 not, as with the box they used to run on.
