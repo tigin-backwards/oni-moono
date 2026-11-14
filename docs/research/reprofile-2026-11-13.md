@@ -521,7 +521,9 @@ above all) are one sample each.
   0.30 on U60), where it draws 11 frames to a game second against the original's 5.
 - **Paused**, both hand out little: 23 against 32 KB a frame on U59's late-game colony, and
   Moono a few KB more than the original elsewhere (13 against 10, 9.1 against 8.6, 7.6 against
-  3.1), in `(other)`, the engine's frame.
+  3.1), in `(other)`, the engine's frame. [paused-allocations.md](paused-allocations.md) has
+  where that went (2.2 KB a frame of Moono's were the section counters' own under .NET) and
+  what was changed since: 2.8 against 3.2 on U60's mid-game colony.
 - **Collections:** Moono paused 119–405 ms in all over its 456–626 s spans (2–5 gen0, one gen1
   in each, one gen2 in U60's mid-game span). The original on U59 spent 5.4 s in 2 full
   collections on the late-game colony and 16.1 s in 24 on the mid-game one; U60's development
