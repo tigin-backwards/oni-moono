@@ -888,6 +888,64 @@ files and what the game shows of them are the game's own; only when they are rea
 `tests/e2e/timelapse-background-writes.yaml` holds a preview's write back 8 s and opens the Load
 screen right after the save: the preview shows.
 
+### The report history in a save
+
+A colony keeps every day's report for its whole life, and each save writes all of them: on a
+late-game colony (cycle 17,000) about 4 million report entries and their notes, 496 MB of the 707 MB
+a save writes before compression and half of the time the game stands still for it. Two of the
+Saving and Simulation tweaks write that history with code of its own, and the same bytes:
+
+- **The entries** (`fast-serialization`). The game's serializer writes each day and each entry
+  as an object of unknown type: for every one it looks the type's template up, calls it through
+  a boxed reference, writes a length, and seeks back in the stream twice to fill it in; an
+  entry's name and its list of per-Duplicant entries (a struct, boxed, with an array read one
+  element at a time) go through the same steps again. `fast-serialization`'s compiled plans
+  covered a template's plain fields, which left these lists to the game's walk. Now the two
+  fields that hold the history (`ReportManager.dailyReports` and `todaysReport`) have a writer
+  compiled for their types: it reads each field directly, builds a day's bytes in a buffer with
+  the lengths filled in there, and hands the buffer to the save in blocks. The plans are also
+  kept from one save to the next: the game makes every type's template anew for each save, and
+  a plan was compiled for each again (about 750 types on a large colony).
+- **The notes** (`compact-report-history`). The tweak keeps past days' notes in flat arrays; a
+  save now packs them into blocks of the bytes the game's three writes a note make, instead of
+  three calls of the writer for every note.
+
+What the game's serializer does besides writing bytes is kept: the three types' templates enter
+the save's directory at the same first use and in the same order, and a name of 1,024 bytes or
+more logs the game's warning. The typed writer writes only when the three types are exactly the
+fields it knows (checked at start-up: no callback, property or custom serializer among them);
+otherwise the game's walk writes them, as it does for every other type. It also steps aside,
+with a line in `Player.log` (`fast-serialization: the report history keeps the game's writer
+(...)`), while another mod patches a method it stands in for: `Helper.WriteValue`,
+`SerializationTemplate.SerializeData` or its constructor, `Manager.GetSerializationTemplate`,
+`IOHelper.WriteKleiString` or `IOHelper.WriteSingleFast` (Fast Save's Use Delegates and
+BetterSave patch the first three). The notes go out one value at a time while a mod patches
+`WriteSingleFast`.
+
+With `ONI_TWEAK_VERIFY=1` each save writes the history both ways into memory, the game's with
+`fast-serialization`'s plans off, and compares the bytes (`fast-serialization: verify: the
+report history identical (N bytes against N; ...)`, and the same for today's report and for
+`compact-report-history`'s notes).
+
+### The colony summary a save writes
+
+Before its own file, every save rewrites the colony's summary (`RetiredColonies/NAME/NAME.json`,
+what the main menu's Colony Summaries shows): the Duplicants, the buildings and 16 statistics
+with a point for every cycle, gathered from the game, turned into JSON and written, all on the
+main thread. With `background-save` on, a save still gathers the data on the main thread, and
+the JSON and the file are made on the save's writer, ahead of the save's own write. The gathered
+data is a snapshot (strings, numbers and collections made for it, nothing of the live game), and
+the file's bytes are the same.
+
+The game's reader of those files (`RetireColonyUtility.LoadRetiredColonies`, the Colony
+Summaries screen) waits for the writer first, as the next save, a load and the end of the run
+do. Every other caller of `SaveColonySummaryData` (an achievement, retiring the colony) gets the
+game's method. So does a save while another mod patches that method or
+`JsonConvert.DefaultSettings` is set, with a line in `Player.log` (`background-save: the colony
+summary is written on the main thread (...)`). With `ONI_TWEAK_VERIFY=1` the JSON is made on
+the main thread too and compared (`background-save: verify: the colony summary's JSON
+identical`).
+
 ## Translating Moono Tweaks
 
 The screen shows the game's language when the player has a translation for it, and English
