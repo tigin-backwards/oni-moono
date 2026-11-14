@@ -1,47 +1,64 @@
 # Perceived smoothness: hitches, the autosave, camera motion and latency (2026-11-13)
 
 The question: beyond the average frame rate, what makes Moono feel uneven in play, and what
-would help? Four parts: a census of hitches (frames over 50 ms), the autosave freeze, camera
-motion against the display, and input latency. This is a measurement and design study.
-Nothing landed with the study; the probes and prototypes are on the local branch `feel-u60`.
+would help? This is a measurement and design study in four parts:
+
+- A census of hitches (frames over 50 ms).
+- The autosave freeze.
+- Camera motion against the display.
+- Input latency.
+
+Nothing landed with the study. The probes and prototypes are on the local branch `feel-u60`.
 Landed since: the Decor overlay's sim step and part of the first overlay switch
 ([below](#landed-the-overlay-hitches-2026-11-13)).
 
 Every figure below is measured unless it says estimate. The runs, builds and times are listed
 at the end.
 
-Earlier work this builds on: [frame-pacing-and-jank.md](frame-pacing-and-jank.md) (the sim-step
-frame; time-step smoothing, UI-only frames and queue depth rejected),
-[gc-pauses.md](gc-pauses.md) (no collection after a save), [frame-timing.md](frame-timing.md)
-(deltas rounded to whole refreshes), [input-latency.md](input-latency.md) (the queued-frames
-wait), [sim-step-cost.md](sim-step-cost.md).
+Earlier work this builds on:
+
+- [frame-pacing-and-jank.md](frame-pacing-and-jank.md): the sim-step frame; time-step
+  smoothing, UI-only frames and queue depth rejected.
+- [gc-pauses.md](gc-pauses.md): no collection after a save.
+- [frame-timing.md](frame-timing.md): deltas rounded to whole refreshes.
+- [input-latency.md](input-latency.md): the queued-frames wait.
+- [sim-step-cost.md](sim-step-cost.md).
 
 ## Verdict
 
 - **Hitches.** With vsync at 60 Hz a clean run has 37–74 frames over 50 ms per 10 minutes on the
-  late-game and 200-Duplicant colonies and 11–32 on the mid-game one (the original there: 109–258). Almost all of them
-  come from six sources, in order of time lost: the autosave, management screens opening (first
-  time and every time after), the Decor overlay's sim step on the late-game colony, the frames
-  after an autosave, GC pauses, and overlay switches. The sim-step frame of the earlier study is
-  not a hitch source at 60 Hz: 6 frames over 50 ms in 46 minutes.
+  late-game and 200-Duplicant colonies and 11–32 on the mid-game one (the original there:
+  109–258). Almost all of them come from six sources, in order of time lost:
+  1. The autosave.
+  2. Management screens opening (first time and every time after).
+  3. The Decor overlay's sim step on the late-game colony.
+  4. The frames after an autosave.
+  5. GC pauses.
+  6. Overlay switches.
+
+  The sim-step frame of the earlier study is not a hitch source at 60 Hz: 6 frames over 50 ms
+  in 46 minutes.
 - **Autosave.** On the late-game colony 1.0–1.2 s of the 2.0–2.4 s is one component,
-  `ReportManager`: 17,077 days of reports, 496 MB of the 707 MB the save writes. Its notes
-  are 0.30–0.37 s of that, and writing them packed (the same bytes) took 0.25 s off in a
-  prototype; the report entries, written through the serializer's boxed path, are 0.66–0.72 s
-  and the next target. Serialising on a worker thread is not feasible as the game stands. The
-  presenter could pan the last picture during the freeze, but it is the weakest of the three
-  options.
+  `ReportManager`: 17,077 days of reports, 496 MB of the 707 MB the save writes.
+  - Its notes are 0.30–0.37 s of that. Writing them packed (the same bytes) took 0.25 s off in
+    a prototype.
+  - The report entries, written through the serializer's boxed path, are 0.66–0.72 s and the
+    next target.
+  - Serialising on a worker thread is not feasible as the game stands.
+  - The presenter could pan the last picture during the freeze, but it is the weakest of the
+    three options.
 - **Camera motion.** With vsync, 1–3% of pictures are shown for a time other than the delta the
   camera moved by. A camera delta predicted from the display's grid recovers a third to a half
   of the little that is left on one colony and nothing on the others. Not worth building.
 - **Frame cap.** No cap without vsync pans as evenly as vsync does (per-refresh step spread
   40–48% against 16–20%). The cap itself runs slow: a cap of 60 gives 57.0 fps.
 - **Latency.** A frame's start reaches the screen in 48–49 ms when the queued-frames wait is on
-  and 79–83 ms when it is off, on Vulkan and on OpenGL alike. On the late-game colony at speed 3
-  the wait is always off; on lighter colonies it flips every 10–40 s, and each turn-on repeats
-  two pictures. With the wait held on by a test switch both colonies keep 59.5 fps: the
-  200-Duplicant colony pans more evenly than under the rule's flipping, and the late-game
-  colony presents a refresh earlier for three times the repeated refreshes.
+  and 79–83 ms when it is off, on Vulkan and on OpenGL alike.
+  - On the late-game colony at speed 3 the wait is always off.
+  - On lighter colonies it flips every 10–40 s, and each turn-on repeats two pictures.
+  - With the wait held on by a test switch both colonies keep 59.5 fps. The 200-Duplicant
+    colony pans more evenly than under the rule's flipping. The late-game colony presents a
+    refresh earlier for three times the repeated refreshes.
 
 ## Method
 
@@ -247,9 +264,9 @@ Callbacks against plain data writing: callbacks are 38 ms of 2,032 (2%). The sav
 writing, and half of it is the report history, which no longer changes once its day has
 ended.
 
-The buffer matters too: `SaveLoader.Save` makes a new `MemoryStream` of the last save's size
+The buffer matters too. `SaveLoader.Save` makes a new `MemoryStream` of the last save's size
 plus a tenth (777 MB here) for every save, so each save writes into memory the system has
-not handed out yet; the first save of a session starts from nothing and grows by doubling
+not handed out yet. The first save of a session starts from nothing and grows by doubling
 (2.56 s against 1.98–2.13 s for the next two).
 
 Every save measured, `SaveLoader.Save` in ms by stage (stage and tag brackets only; three
@@ -332,10 +349,12 @@ The same on all three colonies (late-game figures; 200 Duplicants and mid-game i
 | +3, +4 | 33–164 | 12 sub-ticks each (the game's catch-up after a long frame), a device wait of 50–90 ms in some runs |
 
 About 400–750 ms after the freeze. The preview's read-back is asynchronous in U60
-(`AsyncGPUReadback`) and its PNG is encoded on a task; what is left is the freeze frame's
-synchronous `ReadPixels`, a whole-colony view rendered twice (once by the game's own cameras
-behind the freeze picture, once by `RenderForTimelapser`), and every animation in that view
-updated in two frames.
+(`AsyncGPUReadback`) and its PNG is encoded on a task. What is left:
+
+- The freeze frame's synchronous `ReadPixels`.
+- A whole-colony view rendered twice: once by the game's own cameras behind the freeze
+  picture, once by `RenderForTimelapser`.
+- Every animation in that view updated in two frames.
 
 ### Option (a): the presenter pans the last picture during the freeze
 
@@ -442,16 +461,19 @@ three-autosave scenario with stage brackets, one launch before (u60 8cc79dd8) an
 | 2nd | 2,046 | 1,099 | 733 | 159 | 294 | 83 | 118 | 46 |
 | 3rd | 2,136 | 1,064 | 846 | 148 | 304 | 71 | 127 | 51 |
 
-A single pair of launches. The other objects were 647–793 ms before and 600–836 after: not
-changed. The first save of a launch compiles 836 plans in 132 ms; later saves compile 2–4.
-In verify mode on Linux (one launch, three saves, j0000790) the report history (304,640,900
-bytes), today's report, the notes (190,868,522 bytes) and the summary's JSON were identical
-to the game's, 0 mismatches, and `ReportManager`'s component (495,550,622 bytes) was the same
-in a save written the game's way and two written with the writers. The rest of those bodies
-differed in 3–9 bytes between any two saves, tweak on or not (the game clock, a setting, three
-state machines started in between). Not done: the state machines' names (row 5), the first
-save's buffer (row 4), the frames after the save (rows 7 and 8); a save written with the
-writers was not loaded in the original game.
+A single pair of launches.
+
+- **The other objects** were 647–793 ms before and 600–836 after: not changed.
+- **Plans.** The first save of a launch compiles 836 plans in 132 ms; later saves compile 2–4.
+- **Verify mode** on Linux (one launch, three saves, j0000790): the report history
+  (304,640,900 bytes), today's report, the notes (190,868,522 bytes) and the summary's JSON
+  were identical to the game's, 0 mismatches. `ReportManager`'s component (495,550,622 bytes)
+  was the same in a save written the game's way and two written with the writers. The rest of
+  those bodies differed in 3–9 bytes between any two saves, tweak on or not (the game clock, a
+  setting, three state machines started in between).
+- **Not done:** the state machines' names (row 5), the first save's buffer (row 4), the frames
+  after the save (rows 7 and 8). A save written with the writers was not loaded in the
+  original game.
 
 **The frames after the save (2026-11-14).** From the same pair of launches (the "after" host
 also read the screen by bytes on Vulkan, row 7's read-back made cheaper, not a GPU copy):
@@ -463,14 +485,17 @@ also read the screen by bytes on Vulkan, row 7's read-back made cheaper, not a G
 | Frame +2: `LateUpdate` / device wait | 69, 61 / 91, 0 ms | 76, 75 / 19, 0 ms |
 | Frames +1 to +5 over five median frames | 374, 220 ms | 249, 238 ms |
 
-A single pair; the device wait varies from save to save (218 and 239 ms after each launch's
-first save), so the last row shows no change that can be told from it. Row 8 does not hold as
-written: `CameraController.RenderForTimelapser` renders `baseCamera`, whose culling mask is
-empty; it draws a quad of the textures the frame's own "MRT" camera rendered
-(`MultipleRenderTarget.OnPreCull`), so the preview needs the frame's render and the world is
-drawn once. What is left is the game's `LateUpdate` in the two frames (the animations of the
-whole-colony view made active, then the view going back), 60–97 ms each, and the device wait.
-Neither was changed.
+A single pair. The device wait varies from save to save (218 and 239 ms after each launch's
+first save), so the last row shows no change that can be told from it.
+
+Row 8 does not hold as written. `CameraController.RenderForTimelapser` renders `baseCamera`,
+whose culling mask is empty. It draws a quad of the textures the frame's own "MRT" camera
+rendered (`MultipleRenderTarget.OnPreCull`), so the preview needs the frame's render and the
+world is drawn once.
+
+What is left is the game's `LateUpdate` in the two frames (the animations of the whole-colony
+view made active, then the view going back), 60–97 ms each, and the device wait. Neither was
+changed.
 
 ## Part 3: motion that matches the display
 
@@ -673,11 +698,15 @@ are disturbed and say so.
 period of debt. Late-game colony, speed 3, no vsync, a clean launch: caps of 30, 60 and 120 give
 30.0, 59.7 and 113.1 fps (before: 57.0 and 93.8 for 60 and 120).
 
-**The hysteresis (written, not landed).** The rule tried: on as before; off once the misses of
-six seconds are more than 10% of the frames six seconds hold (36 at 60 Hz) in place of 10% of
-two seconds; after a turn-off the next turn-on waits 4 s, then 8, up to 64, and 2 s again after
-a wait that lasted a minute. It is on the local branches `qwait-u60` and `qwait-master` with
-its unit tests.
+**The hysteresis (written, not landed).** The rule tried:
+
+- On as before.
+- Off once the misses of six seconds are more than 10% of the frames six seconds hold (36 at
+  60 Hz), in place of 10% of two seconds.
+- After a turn-off the next turn-on waits 4 s, then 8, up to 64, and 2 s again after a wait
+  that lasted a minute.
+
+It is on the local branches `qwait-u60` and `qwait-master` with its unit tests.
 
 | Launch | Wait changes | Speed 1: on, fps, repeats | Speed 3: on, fps, repeats, Update to Present | Outside load over 2 cores |
 |---|---|---|---|---|
@@ -725,19 +754,27 @@ its unit tests.
 | 7 | The frame cap paced against a running deadline | Exact, small | Done (`FramePace`): a cap of 60 gives 59.7 instead of 57.0 fps, 120 gives 113.1 instead of 93.8, 30 gives 30.0 | Measured, one launch |
 | 8 | A "lower input delay" setting (the wait held on), or the wait run ahead only before sim-step frames | Behaviour of presentation only | Late-game at speed 3: about 33 ms less latency; with the plain setting three times the repeated refreshes | Measured for the plain setting, estimated for the predictive one |
 
-**Landed, 2026-11-13 (row 5, in part).** The table screens open with less work: the game's two
-searches while a table builds its rows (`fast-table-rows`, exact), rows out of sight left for
-later on reopening (`lazy-table-refresh`), and in the engine one layout walk of a table a pass
-instead of three and three smaller searches. One pair of runs on the 200-Duplicant colony
-(Windows, Vulkan): Consumables' first opening 1,990 → 897 ms lost, later openings 612–703 →
-286–332; the other screens' first openings moved little. Building rows ahead of the first
-opening was not done. Numbers and what is left:
+**Landed, 2026-11-13 (row 5, in part).** The table screens open with less work:
+
+- The game's two searches while a table builds its rows (`fast-table-rows`, exact).
+- Rows out of sight left for later on reopening (`lazy-table-refresh`).
+- In the engine, one layout walk of a table a pass instead of three, and three smaller
+  searches.
+
+One pair of runs on the 200-Duplicant colony (Windows, Vulkan): Consumables' first opening
+1,990 → 897 ms lost, later openings 612–703 → 286–332; the other screens' first openings moved
+little. Building rows ahead of the first opening was not done. Numbers and what is left:
 [PERFORMANCE.md](../PERFORMANCE.md#opening-a-table-screen).
 
-Not worth doing: a camera delta from the predicted display time (measured, no gain); polling
-input later in the frame (0.7–4.5 ms of 48–81); serialising on a worker (not feasible);
-`maxQueuedFrames` 1 (slower and later). Parked: the presenter panning the last picture during
-the freeze, until the save is as short as (2) can make it.
+Not worth doing:
+
+- A camera delta from the predicted display time (measured, no gain).
+- Polling input later in the frame (0.7–4.5 ms of 48–81).
+- Serialising on a worker (not feasible).
+- `maxQueuedFrames` 1 (slower and later).
+
+Parked: the presenter panning the last picture during the freeze, until the save is as short
+as (2) can make it.
 
 ## Landed: the overlay hitches (2026-11-13)
 
@@ -745,13 +782,13 @@ Items 4 and 6 of the table above, profiled (`perf record -e cpu-clock:u -g` on L
 on Windows) on the late-game colony.
 
 - **The Decor step: cause.** It is game code. While the Decor overlay is open it keeps every
-  object with a `DecorProvider`, loose items included, in a `UniformGrid`, and each saved
-  object that leaves the save list (an item stored by a conveyor bridge or consumer, or
-  destroyed) goes through `OverlayModes.Decor.OnSaveLoadRootUnregistered` to
-  `UniformGrid.Remove`, whose `List.Remove` calls search the grid's list of all entries from
-  its start with `Object.Equals`. In the Linux profile 91% of `StepTheSim`'s samples with the
-  overlay open are under that `Remove`, reached from `SolidConduitFlow.Sim200ms`
-  (`Pickupable.OnStore`); another part, outside the step, comes from destroyed objects.
+  object with a `DecorProvider`, loose items included, in a `UniformGrid`. Each saved object
+  that leaves the save list (an item stored by a conveyor bridge or consumer, or destroyed)
+  goes through `OverlayModes.Decor.OnSaveLoadRootUnregistered` to `UniformGrid.Remove`. Its
+  `List.Remove` calls search the grid's list of all entries from its start with
+  `Object.Equals`. In the Linux profile 91% of `StepTheSim`'s samples with the overlay open
+  are under that `Remove`, reached from `SolidConduitFlow.Sim200ms` (`Pickupable.OnStore`).
+  Another part, outside the step, comes from destroyed objects.
 - **The Decor step: fix.** Game tweak `fast-overlay-removals` (exact, on by default, both
   branches): the same handler with the grid's removal by reference. Its verify mode replays the
   game's removal on copies: 0 wrong in 9,217 removals on Linux, 5,488 on Windows with Vulkan
@@ -761,10 +798,12 @@ on Windows) on the late-game colony.
   (`EntityCellVisualizer.DrawIcons`): 220 ms for liquid pipes in the bracketed run. Half of it
   in the Linux profile was ours: each new icon is sent to the front of the world canvas
   (`SetAsFirstSibling`), which copied the canvas's child list twice and searched it with
-  `Equals`. A repeat switch re-activates those icons (13–17 ms for pipes), rebuilds the mode's
-  grid of targets (`PopulatePartition`, 3–16 ms; Decor 32–60 ms each time, as its grid holds
-  every item), rebuilds the legend (Temperature 22–52 ms) and resets the canvas depths under
-  the name-tag canvas the game turns off and on.
+  `Equals`. A repeat switch:
+  - Re-activates those icons (13–17 ms for pipes).
+  - Rebuilds the mode's grid of targets (`PopulatePartition`, 3–16 ms; Decor 32–60 ms each
+    time, as its grid holds every item).
+  - Rebuilds the legend (Temperature 22–52 ms).
+  - Resets the canvas depths under the name-tag canvas the game turns off and on.
 - **Switches: fix.** The engine's sibling move is one copy with a reference search. Nothing
   else landed for switches: the icons could be made ahead and Decor's grid kept between
   switches, but neither was built or measured.
