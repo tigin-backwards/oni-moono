@@ -633,6 +633,69 @@ namespace OniMoono.Desktop.Vulkan
         /// Pixels of a render texture (or the back buffer) as OpenGL's ReadPixels(RGBA, FLOAT)
         /// gives them, rows from the bottom; texels outside the image read 0. Submits what was
         /// recorded and waits for the GPU.
+        /// ReadNow for an image of 8-bit RGBA or BGRA texels: its bytes as RGBA rows, bottom
+        /// row first, into `into` (w * h * 4 bytes, zeroed by the caller: what lies outside the
+        /// image stays zero, and all of it once the device is lost, as ReadNow's floats do).
+        /// False for any other image: nothing was read.
+        bool ReadBytesNow(DeviceTexture device, bool autoMips, int x, int y, int w, int h, int fbWidth, int fbHeight, byte* into)
+        {
+            if (deviceLost) return true;
+            var cb = OutsideRendering();
+            VkImageResource image;
+            if (device != null)
+            {
+                var vt = device.Vk;
+                if (vt?.Image == null || vt.DepthOnly) return true;
+                if (vt.Image.Format is not (VkFormat.R8G8B8A8UNorm or VkFormat.B8G8R8A8UNorm)) return false;
+                PrepareForSampling(cb, vt, autoMips);
+                image = vt.Image;
+            }
+            else image = presenter.ReadBuffer(fbWidth, fbHeight, frames).Color;
+            if (image.Format is not (VkFormat.R8G8B8A8UNorm or VkFormat.B8G8R8A8UNorm)) return false;
+            int x0 = Math.Max(0, x), y0 = Math.Max(0, y), x1 = Math.Min(image.Width, x + w), y1 = Math.Min(image.Height, y + h);
+            if (x1 <= x0 || y1 <= y0) return true;
+            int rw = x1 - x0, rh = y1 - y0;
+            // The back buffer is stored top row first: its rows are read turned over.
+            bool turned = device == null;
+            var buffer = VkBufferAlloc.Create(vk, (long)rw * rh * 4, VkBufferUsageFlags.TransferDstBit, hostWrite: false, readback: true, kind: "readback buffers");
+            try
+            {
+                image.ForTransferRead(cb);
+                var region = new VkBufferImageCopy
+                {
+                    ImageSubresource = new VkImageSubresourceLayers { AspectMask = VkImageAspectFlags.ColorBit, LayerCount = 1 },
+                    ImageOffset = new VkOffset3D(x0, turned ? image.Height - y1 : y0, 0),
+                    ImageExtent = new VkExtent3D(rw, rh, 1),
+                };
+                vk.Device.PInvoke.vkCmdCopyImageToBuffer.Invoke(cb.Handle, image.Image, VkImageLayout.TransferSrcOptimal, buffer.Buffer, 1, &region);
+                FlushStreams();
+                frames.Submit(endFrame: false);
+                vk.Queue.WaitIdle();
+                buffer.Invalidate(vk);
+                bool swap = image.Format == VkFormat.B8G8R8A8UNorm;
+                for (int row = 0; row < rh; row++)
+                {
+                    int glRow = turned ? y1 - 1 - row : y0 + row;
+                    byte* from = (byte*)buffer.Mapped + (long)row * rw * 4;
+                    byte* to = into + ((long)(glRow - y) * w + (x0 - x)) * 4;
+                    if (!swap) System.Buffer.MemoryCopy(from, to, (long)rw * 4, (long)rw * 4);
+                    else
+                        for (int col = 0; col < rw; col++)
+                        {
+                            to[col * 4] = from[col * 4 + 2];
+                            to[col * 4 + 1] = from[col * 4 + 1];
+                            to[col * 4 + 2] = from[col * 4];
+                            to[col * 4 + 3] = from[col * 4 + 3];
+                        }
+                }
+            }
+            finally
+            {
+                buffer.Destroy(vk);
+            }
+            return true;
+        }
+
         float[] ReadNow(DeviceTexture device, bool autoMips, int x, int y, int w, int h, int fbWidth, int fbHeight)
         {
             var read = new float[w * h * 4];

@@ -453,6 +453,25 @@ state machines started in between). Not done: the state machines' names (row 5),
 save's buffer (row 4), the frames after the save (rows 7 and 8); a save written with the
 writers was not loaded in the original game.
 
+**The frames after the save (2026-11-14).** From the same pair of launches (the "after" host
+also read the screen by bytes on Vulkan, row 7's read-back made cheaper, not a GPU copy):
+
+| | Before, saves 2 and 3 | After, saves 2 and 3 |
+|---|---|---|
+| The save's frame, end of frame (`ReadPixels` into the freeze texture, 1280×720) | 61, 44 ms | 25, 24 ms |
+| Frame +1: `LateUpdate` / cameras | 87, 88 / 19, 20 ms | 97, 94 / 21, 19 ms |
+| Frame +2: `LateUpdate` / device wait | 69, 61 / 91, 0 ms | 76, 75 / 19, 0 ms |
+| Frames +1 to +5 over five median frames | 374, 220 ms | 249, 238 ms |
+
+A single pair; the device wait varies from save to save (218 and 239 ms after each launch's
+first save), so the last row shows no change that can be told from it. Row 8 does not hold as
+written: `CameraController.RenderForTimelapser` renders `baseCamera`, whose culling mask is
+empty; it draws a quad of the textures the frame's own "MRT" camera rendered
+(`MultipleRenderTarget.OnPreCull`), so the preview needs the frame's render and the world is
+drawn once. What is left is the game's `LateUpdate` in the two frames (the animations of the
+whole-colony view made active, then the view going back), 60–97 ms each, and the device wait.
+Neither was changed.
+
 ## Part 3: motion that matches the display
 
 ### The mismatch

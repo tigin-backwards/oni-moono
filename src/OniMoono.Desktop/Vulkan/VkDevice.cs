@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Brutal.GlfwApi;
 using Brutal.VulkanApi;
 using Brutal.VulkanApi.Vma;
@@ -418,6 +419,13 @@ namespace OniMoono.Desktop.Vulkan
             var device = source != null ? GlTextures.Prepare(worker, source) : null;
             bool autoMips = source?.AutoGenerateMips ?? false;
             int fbWidth = platform.FramebufferWidth, fbHeight = platform.FramebufferHeight;
+            // An 8-bit image into an 8-bit texture (the Timelapser's freeze frame: the screen into
+            // an ARGB32 texture, at every save): its bytes as they are, as GlDevice reads them.
+            // The texels are the same as through floats (b / 255f rounds back to b); the floats
+            // cost a 16-byte array entry, a Color and an Encode for every pixel of the screen.
+            // (The present trace logs the screen's reads from the float path.)
+            if (TextureFormats.ReadPixelsBytes(destination.Format) && (source == null ? !PresentTrace.Enabled : GlReadback.EightBit(source))
+                && ReadPixelsBytes(device, autoMips, rect, w, h, destination, destX, destY, fbWidth, fbHeight)) return;
             // A band of rows at a time (about a million pixels, as GlDevice reads), so a large
             // read needs no float array of its size.
             int band = Math.Clamp((1 << 20) / w, 1, h);
@@ -433,6 +441,33 @@ namespace OniMoono.Desktop.Vulkan
                         TextureFormats.Encode(destination.Format, mip, destination.Width, destX + x, destY + y0 + y,
                             new Color(pixels[o], pixels[o + 1], pixels[o + 2], pixels[o + 3]));
                     }
+            }
+        }
+
+        /// ReadPixels by bytes, a band of rows at a time (four million pixels: 720p in one
+        /// submit, 4K in three). False when the image is not 8-bit RGBA or BGRA (nothing was
+        /// stored: the float path reads it).
+        bool ReadPixelsBytes(DeviceTexture device, bool autoMips, RectInt rect, int w, int h, Texture2DNative destination, int destX, int destY, int fbWidth, int fbHeight)
+        {
+            int band = Math.Clamp((1 << 22) / w, 1, h);
+            var bytes = (byte*)NativeMemory.Alloc((nuint)((long)w * band * 4));
+            try
+            {
+                for (int y0 = 0; y0 < h; y0 += band)
+                {
+                    int rows = Math.Min(band, h - y0), bandY = y0;
+                    // Texels outside the image read as zeros, as the float path's do.
+                    NativeMemory.Clear(bytes, (nuint)((long)w * rows * 4));
+                    nint at = (nint)bytes;
+                    if (!worker.Call(() => ReadBytesNow(device, autoMips, rect.x, rect.y + bandY, w, rows, fbWidth, fbHeight, (byte*)at))) return false;
+                    TextureFormats.StoreRgba8(destination.Format, destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0)), destination.Width,
+                        destX, destY + y0, new ReadOnlySpan<byte>(bytes, w * rows * 4), w, rows);
+                }
+                return true;
+            }
+            finally
+            {
+                NativeMemory.Free(bytes);
             }
         }
 
