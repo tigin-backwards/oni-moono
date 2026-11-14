@@ -185,10 +185,16 @@ namespace OniMoono.Engine
         // The rect (ComputeRect) reads these, the parent's and the parents' above: each write of
         // one, and each change of any transform's parent (TransformNative.Parent), starts a new
         // rect epoch, and a rect computed in the current epoch is returned as it was computed.
-        public UnityEngine.Vector2 AnchorMin { get => anchorMin; set { anchorMin = value; RectEpoch++; } }
-        public UnityEngine.Vector2 AnchorMax { get => anchorMax; set { anchorMax = value; RectEpoch++; } }
-        public UnityEngine.Vector2 SizeDelta { get => sizeDelta; set { sizeDelta = value; RectEpoch++; } }
-        public UnityEngine.Vector2 Pivot { get => pivot; set { pivot = value; RectEpoch++; } }
+        // A write of the value already there (the same bits: a layout group placing its children
+        // where they are) changes no rect and keeps the epoch.
+        public UnityEngine.Vector2 AnchorMin { get => anchorMin; set { if (!SameBits(anchorMin, value)) { anchorMin = value; RectEpoch++; } } }
+        public UnityEngine.Vector2 AnchorMax { get => anchorMax; set { if (!SameBits(anchorMax, value)) { anchorMax = value; RectEpoch++; } } }
+        public UnityEngine.Vector2 SizeDelta { get => sizeDelta; set { if (!SameBits(sizeDelta, value)) { sizeDelta = value; RectEpoch++; } } }
+        public UnityEngine.Vector2 Pivot { get => pivot; set { if (!SameBits(pivot, value)) { pivot = value; RectEpoch++; } } }
+
+        static bool SameBits(UnityEngine.Vector2 a, UnityEngine.Vector2 b) =>
+            System.BitConverter.SingleToInt32Bits(a.x) == System.BitConverter.SingleToInt32Bits(b.x)
+            && System.BitConverter.SingleToInt32Bits(a.y) == System.BitConverter.SingleToInt32Bits(b.y);
         public UnityEngine.Vector2 AnchoredPosition;
 
         /// The rect epoch: any write that can change any rect takes a new one (main thread only).
