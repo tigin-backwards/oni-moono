@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 
@@ -14,6 +15,7 @@ namespace OniMoono.GameTweaks
         int Hash(TKey key);
         bool Positive(TKey key);
         IEqualityComparer<TKey> Comparer { get; }
+        /// The game's IOHelper.WriteSingleFast.
         void WriteValue(BinaryWriter writer, float value);
     }
 
@@ -269,7 +271,13 @@ namespace OniMoono.GameTweaks
         /// NoteEntries.Serialize's bytes: every entry in its record's place, from `entries` when it
         /// is there, else from the store; then any entry only `entries` knows (one put there by
         /// code other than NoteEntries.Add), in its order there.
-        public void Write(BinaryWriter writer, Dictionary<int, Dictionary<TKey, float>> entries)
+        ///
+        /// `packed`: the store's entries go to the writer in blocks, built as the game's three
+        /// writes a note make them (the hash as an int32, the sign as a byte, 1 or 0, and the
+        /// value's bits, all little-endian: BinaryWriter's and IOHelper.WriteSingleFast's bytes),
+        /// 9 bytes a note after the entry's id and count. Not packed, each value goes through
+        /// the game's WriteSingleFast (INoteKeys.WriteValue), for when a mod patches it.
+        public void Write(BinaryWriter writer, Dictionary<int, Dictionary<TKey, float>> entries, bool packed = true)
         {
             int stray = 0;
             foreach (var id in entries.Keys)
@@ -278,24 +286,77 @@ namespace OniMoono.GameTweaks
             for (int r = 0; r < records; r++)
                 if (recCount[r] >= 0 || entries.ContainsKey(recId[r])) count++;
             writer.Write(count);
-            for (int r = 0; r < records; r++)
-            {
-                if (entries.TryGetValue(recId[r], out var d)) WriteEntry(writer, recId[r], d);
-                else if (recCount[r] >= 0)
+            if (packed) WritePacked(writer, entries);
+            else
+                for (int r = 0; r < records; r++)
                 {
-                    writer.Write(recId[r]);
-                    writer.Write(recCount[r]);
-                    for (int i = recStart[r], end = recStart[r] + recCount[r]; i < end; i++)
+                    if (entries.TryGetValue(recId[r], out var d)) WriteEntry(writer, recId[r], d);
+                    else if (recCount[r] >= 0)
                     {
-                        writer.Write(noteHash[i]);
-                        writer.Write(notePositive[i] != 0);
-                        keys.WriteValue(writer, noteValue[i]);
+                        writer.Write(recId[r]);
+                        writer.Write(recCount[r]);
+                        for (int i = recStart[r], end = recStart[r] + recCount[r]; i < end; i++)
+                        {
+                            writer.Write(noteHash[i]);
+                            writer.Write(notePositive[i] != 0);
+                            keys.WriteValue(writer, noteValue[i]);
+                        }
                     }
                 }
-            }
             if (stray > 0)
                 foreach (var entry in entries)
                     if (!TryFind(entry.Key, out _)) WriteEntry(writer, entry.Key, entry.Value);
+        }
+
+        const int NoteBytes = 9;
+        byte[] block;
+
+        void WritePacked(BinaryWriter writer, Dictionary<int, Dictionary<TKey, float>> entries)
+        {
+            var buf = block ??= new byte[1 << 17];
+            int n = 0;
+            // With nothing in `entries` (a paused colony has today's there) no record needs a lookup.
+            bool some = entries.Count > 0;
+            for (int r = 0; r < records; r++)
+            {
+                if (some && entries.TryGetValue(recId[r], out var d))
+                {
+                    if (n > 0) writer.Write(buf, 0, n);
+                    n = 0;
+                    WriteEntry(writer, recId[r], d);
+                    continue;
+                }
+                if (recCount[r] < 0) continue;
+                if (n + 8 > buf.Length)
+                {
+                    writer.Write(buf, 0, n);
+                    n = 0;
+                }
+                BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan(n), recId[r]);
+                BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan(n + 4), recCount[r]);
+                n += 8;
+                int i = recStart[r], end = i + recCount[r];
+                while (i < end)
+                {
+                    int room = (buf.Length - n) / NoteBytes;
+                    if (room == 0)
+                    {
+                        writer.Write(buf, 0, n);
+                        n = 0;
+                        continue;
+                    }
+                    int stop = Math.Min(end, i + room);
+                    var span = buf.AsSpan(n, (stop - i) * NoteBytes);
+                    for (int o = 0; i < stop; i++, o += NoteBytes)
+                    {
+                        BinaryPrimitives.WriteInt32LittleEndian(span.Slice(o), noteHash[i]);
+                        span[o + 4] = notePositive[i] != 0 ? (byte)1 : (byte)0;
+                        BinaryPrimitives.WriteInt32LittleEndian(span.Slice(o + 5), BitConverter.SingleToInt32Bits(noteValue[i]));
+                    }
+                    n += span.Length;
+                }
+            }
+            if (n > 0) writer.Write(buf, 0, n);
         }
 
         void WriteEntry(BinaryWriter writer, int id, Dictionary<TKey, float> d)

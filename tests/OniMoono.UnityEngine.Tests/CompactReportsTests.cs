@@ -170,6 +170,10 @@ namespace OniMoono.Tests
                 if (Store == null) return Game.Save();
                 var ms = new MemoryStream();
                 using (var w = new BinaryWriter(ms)) Store.Write(w, Game.entries);
+                // Packed into blocks (the default) and a value at a time: the same bytes.
+                var plain = new MemoryStream();
+                using (var w = new BinaryWriter(plain)) Store.Write(w, Game.entries, packed: false);
+                Assert.True(plain.ToArray().AsSpan().SequenceEqual(ms.ToArray()), "the packed notes differ from the notes written one value at a time");
                 return ms.ToArray();
             }
         }
@@ -225,6 +229,37 @@ namespace OniMoono.Tests
             // The game's own save of what it read reads back the same way.
             var again = Tweaked.Load(game.Save(), Array.Empty<int>());
             Same(game, again, new[] { 7, 9, 11, 13 });
+        }
+
+        /// More notes than one block of the packed write holds (131,072 bytes, 9 a note): entries
+        /// that end exactly at a block's end, one longer than a block, entries still in `entries`
+        /// between the store's, and values whose bits a float comparison would not tell apart.
+        [Fact]
+        public void PackedNotesAcrossBlocks()
+        {
+            var random = new Random(9);
+            float Value(int i) => i % 97 == 0 ? -0f : i % 89 == 0 ? BitConverter.Int32BitsToSingle(unchecked((int)0xFFC00000) + i) : (float)(random.NextDouble() * 200 - 100);
+            (int, bool, float)[] Notes(int count, int seed) => Enumerable.Range(0, count).Select(i => (seed * 100000 + i, i % 2 == 0, Value(i))).ToArray();
+            var list = new List<(int, (int, bool, float)[])>();
+            // (131072 - 8) / 9 = 14562 notes fill the first block with 6 bytes to spare.
+            list.Add((1, Notes(14562, 1)));
+            list.Add((2, Notes(0, 2)));
+            list.Add((3, Notes(1, 3)));
+            list.Add((4, Notes(40000, 4)));
+            for (int id = 5; id < 4000; id++) list.Add((id, Notes(id % 23, id)));
+            var bytes = Bytes(list.ToArray());
+            var game = GameNotes.Load(bytes);
+            var today = new[] { 3, 700, 701, 3999 };
+            var tweaked = Tweaked.Load(bytes, today);
+            Same(game, tweaked, new[] { 1, 2, 3, 4, 700, 3999 });
+            game.Add(5000, 1.5f, 77);
+            tweaked.Add(5000, 1.5f, 77);
+            game.Add(700, -2f, 78);
+            tweaked.Add(700, -2f, 78);
+            Same(game, tweaked, new[] { 700, 5000 });
+            tweaked.Night(today.Append(5000));
+            Assert.Empty(tweaked.Game.entries);
+            Same(game, tweaked, new[] { 1, 4, 700, 5000 });
         }
 
         [Fact]
