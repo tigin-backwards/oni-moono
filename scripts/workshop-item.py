@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Lays out Moono's Workshop item from two releases' assets (docs/INSTALL-MODES.md).
+"""Lays out Moono's Workshop item from the u60 release's assets (docs/INSTALL-MODES.md).
 
-    python3 -I scripts/workshop-item.py --u60 DIR --u60-tag vYYYY.MM.DD.NN \
-        --master DIR --master-tag vYYYY.MM.DD.NN --loader MoonoLoader.dll OUT
+    python3 -I scripts/workshop-item.py --u60 DIR --u60-tag vYYYY.MM.DD.NN --loader MoonoLoader.dll OUT
 
-Each DIR holds one release's assets as downloaded (and verified: .github/workflows/workshop.yml
+DIR holds the release's assets as downloaded (and verified: .github/workflows/workshop.yml
 checks their attestations first): its Windows zip, Linux tarball and their SHA256SUMS manifests.
-Each archive is extracted with every file checked against its manifest, and laid out as one
-version of a mod in the game's archived_versions convention (KMod.Mod.GetMostSuitableArchive):
+Each archive is extracted with every file checked against its manifest, and laid out as a mod's
+one version:
 
     OUT/                         the U60 build (minimumSupportedBuild 762230)
       mod_info.yaml  moono.json  oni-moono-*-windows-x64.SHA256SUMS  oni-moono-*-linux-x64.SHA256SUMS
@@ -16,7 +15,11 @@ version of a mod in the game's archived_versions convention (KMod.Mod.GetMostSui
       MoonoLoader.dll            the loader mod (src/MoonoLoader, built by workshop.yml; root only)
       SHA256SUMS                 every other file of OUT (root only)
       attestation/               added by workshop.yml once SHA256SUMS is attested: its Sigstore bundle
-      archived_versions/u59/     the U59 build (minimumSupportedBuild 744825), laid out the same
+
+The item has no U59 build: the original U59 game lists a folder item as failed to download, so
+U59 players install Moono from a GitHub release. `--master DIR --master-tag TAG` still lays a
+master release out as archived_versions/u59 (minimumSupportedBuild 744825, the game's
+archived_versions convention, KMod.Mod.GetMostSuitableArchive); workshop.yml doesn't pass them.
 
 Of what the original game loads, a version's top has only the loader at the root: no other DLL,
 no .po or content folder. Nothing is run from the archives.
@@ -142,17 +145,22 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--u60", required=True)
     parser.add_argument("--u60-tag", required=True)
-    parser.add_argument("--master", required=True)
-    parser.add_argument("--master-tag", required=True)
+    parser.add_argument("--master", help="a master release's assets, laid out as archived_versions/u59 (not in the item today)")
+    parser.add_argument("--master-tag")
     parser.add_argument("--loader", required=True, help="the loader mod's MoonoLoader.dll, put at the root")
     parser.add_argument("out")
     args = parser.parse_args()
+    if bool(args.master) != bool(args.master_tag):
+        fail("--master and --master-tag go together")
     if os.path.exists(args.out):
         fail(f"{args.out} exists already")
     final, args.out = args.out, args.out + ".partial"
     shutil.rmtree(args.out, ignore_errors=True)
+    versions = [args.out]
     version_folder(args.u60, args.u60_tag, "u60", args.out)
-    version_folder(args.master, args.master_tag, "master", os.path.join(args.out, "archived_versions", "u59"))
+    if args.master:
+        versions.append(os.path.join(args.out, "archived_versions", "u59"))
+        version_folder(args.master, args.master_tag, "master", versions[-1])
     shutil.copyfile(os.path.join(args.out, "windows-x64", "player", "OniMoono.exe"), os.path.join(args.out, "OniMoono.exe"))
     for name in ("OniMoono.sh", "verify.sh", "verify.ps1", "README.md"):
         shutil.copyfile(os.path.join(STATIC, name), os.path.join(args.out, name))
@@ -162,7 +170,7 @@ def main():
         fail(f"the loader is {LOADER}, not {args.loader}")
     shutil.copyfile(args.loader, os.path.join(args.out, LOADER))
     # The game looks only at a version's top: nothing there may be content but the loader.
-    for version in (args.out, os.path.join(args.out, "archived_versions", "u59")):
+    for version in versions:
         for name in os.listdir(version):
             lower = name.lower()
             if version == args.out and name == LOADER:

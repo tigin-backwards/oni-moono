@@ -1,10 +1,9 @@
 # Makes Moono's Workshop item as a workflow artifact, never uploaded anywhere else
-# (docs/INSTALL-MODES.md): the assets of a master release and a u60 release (or, for a dry run,
-# of a release.yml run's build, whose draft was deleted: its archives are attested all the
-# same), downloaded and
-# checked against their SLSA provenance (signed by attest.yml, built from the right branch),
-# laid out by scripts/workshop-item.py (U60 at the root, U59 in archived_versions/u59) with the
-# loader mod (src/MoonoLoader, built here from this run's commit against U60's reference
+# (docs/INSTALL-MODES.md): the assets of a u60 release (or, for a dry run, of a release.yml
+# run's build, whose draft was deleted: its archives are attested all the same), downloaded and
+# checked against their SLSA provenance (signed by attest.yml, built from u60), laid out by
+# scripts/workshop-item.py (the U60 build alone; U59 players install from a GitHub release) with
+# the loader mod (src/MoonoLoader, built here from this run's commit against U60's reference
 # assemblies), and the item's SHA256SUMS and every file in it attested by attest.yml in turn. The
 # Sigstore bundle naming SHA256SUMS goes into the item as attestation/SHA256SUMS.sigstore.json,
 # for anyone to check the item by hand (ci/workshop/verify.sh, docs/RELEASES.md); Moono's
@@ -15,20 +14,12 @@ name: Workshop item
 on:
   workflow_dispatch:
     inputs:
-      master_tag:
-        description: The master release's tag (the U59 build), vYYYY.MM.DD.NN.
-        type: string
-        required: true
       u60_tag:
         description: The u60 release's tag (the U60 build), vYYYY.MM.DD.NN.
         type: string
         required: true
-      master_run:
-        description: Dry runs; a release.yml run on master whose build to take instead of master_tag's release (master_tag names its version).
-        type: string
-        default: ""
       u60_run:
-        description: Dry runs; a release.yml run on u60 whose build to take instead of u60_tag's release.
+        description: Dry runs; a release.yml run on u60 whose build to take instead of u60_tag's release (u60_tag names its version).
         type: string
         default: ""
 
@@ -51,41 +42,33 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       SIGNER: ${{ github.repository }}/.github/workflows/attest.yml
-      MASTER_TAG: ${{ inputs.master_tag }}
       U60_TAG: ${{ inputs.u60_tag }}
-      MASTER_RUN: ${{ inputs.master_run }}
       U60_RUN: ${{ inputs.u60_run }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # Each release's archives and manifests, each verified against its provenance from the
-      # branch it must come from: master for the U59 build, u60 for the U60 one.
-      - name: Download and verify the releases' assets
+      # The release's archives and manifests, each verified against its provenance from u60, the
+      # branch the U60 build must come from.
+      - name: Download and verify the release's assets
         run: |
-          for tag in "$MASTER_TAG" "$U60_TAG"; do
-            [[ "$tag" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]] || { echo "::error::a tag must be vYYYY.MM.DD.NN, not '$tag'"; exit 1; }
-          done
-          for branch in master u60; do
-            tag="$MASTER_TAG"; run="$MASTER_RUN"
-            [ "$branch" = master ] || { tag="$U60_TAG"; run="$U60_RUN"; }
-            dir="$RUNNER_TEMP/assets-$branch"; mkdir "$dir"
-            if [ -n "$run" ]; then
-              [[ "$run" =~ ^[0-9]+$ ]] || { echo "::error::a run is its number, not '$run'"; exit 1; }
-              [ "$(gh api "repos/$GH_REPO/actions/runs/$run" --jq '"\(.path) \(.head_branch) \(.conclusion)"')" = ".github/workflows/release.yml $branch success" ] \
-                || { echo "::error::run $run is not a successful release.yml run on $branch"; exit 1; }
-              gh run download "$run" -n release-windows -n release-linux -D "$RUNNER_TEMP/run-$branch"
-              find "$RUNNER_TEMP/run-$branch" -type f -name 'oni-moono-*' -exec mv -t "$dir" {} +
-              source="run $run"
-            else
-              gh release download "$tag" -D "$dir" -p 'oni-moono-*'
-              source="$tag"
-            fi
-            [ "$(ls "$dir" | wc -l)" -eq 4 ] || { echo "::error::$source should have 4 oni-moono-* assets: $(ls "$dir")"; exit 1; }
-            for f in "$dir"/*; do
-              gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" --source-ref "refs/heads/$branch" > /dev/null
-              echo "$source: $(basename "$f") attested, built from $branch"
-            done
+          [[ "$U60_TAG" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]] || { echo "::error::a tag must be vYYYY.MM.DD.NN, not '$U60_TAG'"; exit 1; }
+          dir="$RUNNER_TEMP/assets-u60"; mkdir "$dir"
+          if [ -n "$U60_RUN" ]; then
+            [[ "$U60_RUN" =~ ^[0-9]+$ ]] || { echo "::error::a run is its number, not '$U60_RUN'"; exit 1; }
+            [ "$(gh api "repos/$GH_REPO/actions/runs/$U60_RUN" --jq '"\(.path) \(.head_branch) \(.conclusion)"')" = ".github/workflows/release.yml u60 success" ] \
+              || { echo "::error::run $U60_RUN is not a successful release.yml run on u60"; exit 1; }
+            gh run download "$U60_RUN" -n release-windows -n release-linux -D "$RUNNER_TEMP/run-u60"
+            find "$RUNNER_TEMP/run-u60" -type f -name 'oni-moono-*' -exec mv -t "$dir" {} +
+            source="run $U60_RUN"
+          else
+            gh release download "$U60_TAG" -D "$dir" -p 'oni-moono-*'
+            source="$U60_TAG"
+          fi
+          [ "$(ls "$dir" | wc -l)" -eq 4 ] || { echo "::error::$source should have 4 oni-moono-* assets: $(ls "$dir")"; exit 1; }
+          for f in "$dir"/*; do
+            gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" --source-ref refs/heads/u60 > /dev/null
+            echo "$source: $(basename "$f") attested, built from u60"
           done
       # The loader mod the original game loads from the item's U60 root, built against that
       # game build's reference assemblies (ci/game-refs.json; the U60 root's minimumSupportedBuild).
@@ -114,7 +97,6 @@ jobs:
       - name: Lay out the item
         run: |
           python3 -I scripts/workshop-item.py --u60 "$RUNNER_TEMP/assets-u60" --u60-tag "$U60_TAG" \
-            --master "$RUNNER_TEMP/assets-master" --master-tag "$MASTER_TAG" \
             --loader out/bin/MoonoLoader/release/MoonoLoader.dll workshop-item
       - id: sums
         run: |
@@ -210,9 +192,11 @@ jobs:
         run: |
           cmp ci/workshop/verify.sh workshop-item/verify.sh
           sh ci/workshop/verify.sh workshop-item
+          # The U60 build alone: U59 players install from a GitHub release.
+          [ ! -e workshop-item/archived_versions ] || { echo "::error::the item has archived_versions"; exit 1; }
       - name: Verify single files, and refuse a changed one
         run: |
-          for f in workshop-item/OniMoono.exe workshop-item/mod_info.yaml workshop-item/archived_versions/u59/mod_info.yaml \
+          for f in workshop-item/OniMoono.exe workshop-item/mod_info.yaml workshop-item/moono.json \
                    workshop-item/linux-x64/player/OniMoono.dll workshop-item/MoonoLoader.dll; do
             gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" --source-ref "refs/heads/$GITHUB_REF_NAME" > /dev/null
             echo "$f attested"

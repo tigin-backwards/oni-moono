@@ -13,8 +13,8 @@ Steam (the item's row in the Mods screen shows it again). Disable the mod to sto
   `OniMoono.exe` in that folder, not this one: from a shortcut you make to it, as a non-Steam
   game in Steam, or from ONI's Steam launch options (see the install guide). Steam updates this
   folder, and Moono installs each update the next time it starts.
-- **Versions:** the root is the build for the game's U60 update; `archived_versions/u59` is the
-  build for U59. Moono picks the one for your game's build, as the game picks a mod's version.
+- **U60 only:** this folder has Moono for the game's U60 update. For U59, install Moono from a
+  GitHub release: https://github.com/tigin-backwards/oni-moono/releases
 - **Checked files:** Moono and the loader mod check each player file against its release's
   manifest as they copy it, so a download Steam hasn't finished installs nothing. That is for
   integrity, not a signature check: like any mod, this folder is trusted as Steam delivers it.

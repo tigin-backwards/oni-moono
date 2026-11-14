@@ -2,9 +2,9 @@
 # from GitHub, not one inside the item: whoever controls the item can change that one.
 #   gh api -H 'Accept: application/vnd.github.raw' repos/tigin-backwards/oni-moono/contents/ci/workshop/verify.ps1 > verify.ps1
 #   powershell -ExecutionPolicy Bypass -File verify.ps1 ITEM-FOLDER
-# 1. Each version's release manifest (oni-moono-*.SHA256SUMS) by its SLSA provenance, from
-#    release.yml on its branch (u60 for the root, master for archived_versions\u59), and every file
-#    of its player against it.
+# 1. The release manifests (oni-moono-*.SHA256SUMS) by their SLSA provenance, from release.yml
+#    on u60, and every file of each player against its manifest. (An archived_versions folder,
+#    which the item no longer has, would be checked the same against master.)
 # 2. The item's SHA256SUMS by its provenance from workshop.yml (looked up, and the bundle in
 #    attestation\), every file against it, and that no file is here that SHA256SUMS doesn't list.
 # Needs the GitHub CLI (gh). Windows PowerShell 5.1 or PowerShell 7.

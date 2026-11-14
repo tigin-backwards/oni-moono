@@ -58,19 +58,40 @@ namespace OniMoono.Host.Install
             if (fromSource) install.WriteState("source", Path.GetFullPath(source!));
             else source = install.ReadState("source");
             string? refused = null;
+            int? needsBuild = null;
             if (!string.IsNullOrEmpty(source))
             {
                 var result = install.InstallFrom(source!, build.Value, NoDlc, out var version);
                 if (result == VersionedInstall.SourceResult.NoSource) log.Add($"install: the source folder {source} is gone; no updates from it");
                 if (result == VersionedInstall.SourceResult.Refused) refused = $"Moono did not install {(version != null ? $"version {version}" : "an update")} from the Workshop item: {install.Refusal}.";
+                needsBuild = install.SourceNeedsBuild;
             }
 
             var chosen = install.Choose(build.Value, NoDlc);
             if (chosen == null)
             {
                 log.Add($"install: no installed version is for game build {build}; playing {running}");
-                return bootstrap ? Fail(log, tell, refused != null ? $"{install.Refusal}" : $"no version for game build {build}") : null;
+                if (!bootstrap) return null;
+                // A first start from an item that is for a newer game: where this game's Moono is.
+                if (needsBuild != null)
+                {
+                    tell($"{OlderGame(build.Value, needsBuild.Value)} Install Moono for your game from a GitHub release instead: {VersionedInstall.ReleasesUrl}", true);
+                    return 2;
+                }
+                return Fail(log, tell, refused != null ? $"{install.Refusal}" : $"no version for game build {build}");
             }
+            // The item no longer has a version for this game (it carries the U60 build alone):
+            // the installed version plays on, and the player is told once per game build
+            // (state/no-updates) where its updates are. A game update to the item's build clears it.
+            if (needsBuild != null)
+            {
+                if (install.ReadState("no-updates") != build.Value.ToString())
+                {
+                    install.WriteState("no-updates", build.Value.ToString());
+                    tell($"{OlderGame(build.Value, needsBuild.Value)} Version {chosen.Name} plays on, without updates from the Workshop. Newer versions for your game are on GitHub: {VersionedInstall.ReleasesUrl}", false);
+                }
+            }
+            else if (install.ReadState("no-updates") != null) install.WriteState("no-updates", null);
             // A refused version is told once (state/refused), as the version installed plays on.
             if (refused != null && install.ReadState("refused") != refused)
             {
@@ -109,6 +130,19 @@ namespace OniMoono.Host.Install
             lines.Add($"To repair, delete {Path.GetFullPath(versionDir)} and start the game again.");
             return string.Join("\n", lines);
         }
+
+        /// What a player whose game is older than every version in the Workshop item is told first.
+        static string OlderGame(uint build, int needsBuild) =>
+            $"Moono's Workshop item is for {Update(needsBuild)} of Oxygen Not Included and later. Your game is {Update((int)build)}.";
+
+        /// A game build as players know it: its update's name and the number (GameBuild: U59 is
+        /// 744825, U60 starts at 762230; a later update needs its line here).
+        static string Update(int build) => build switch
+        {
+            >= 762230 => $"the U60 update (build {build})",
+            >= 744825 => $"the U59 update (build {build})",
+            _ => $"build {build}",
+        };
 
         static int Fail(List<string> log, Action<string, bool> tell, string why)
         {

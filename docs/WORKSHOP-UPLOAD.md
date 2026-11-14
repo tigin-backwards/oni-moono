@@ -17,13 +17,13 @@ gh workflow run workshop-upload.yml -r master -f run=RUN_ID -f mode=upload
 
 1. Checks that the run is a successful `workshop.yml` run on master or u60 and downloads its
    `workshop-item` artifact.
-2. Checks the item with `ci/workshop/verify.sh` from the checkout: each version's release
-   manifest by its provenance from `release.yml`, the item's `SHA256SUMS` by its provenance from
+2. Checks the item with `ci/workshop/verify.sh` from the checkout: the U60 release's
+   manifests by their provenance from `release.yml`, the item's `SHA256SUMS` by its provenance from
    `workshop.yml` on master or u60, every file against it, and nothing extra. It also checks
    that the attestation was signed by that same run.
 3. Writes the VDF (`scripts/workshop-upload.py`):
    - **description:** master's `ci/workshop/description.bbcode`, as written;
-   - **change note:** the notes of the releases whose tags are in the item. A tag without a
+   - **change note:** the notes of the u60 release whose tag is in the item. A tag without a
      published release is refused, so an item built from a dry run is never uploaded;
    - **preview:** master's `ci/workshop/preview.gif`, only with `-f preview=true`;
    - **visibility:** left out by default, so Steam keeps the item's current visibility.

@@ -2,7 +2,7 @@
 a double quote refused, visibility left out to keep it), the change note from the releases'
 notes, Steam Guard's code from a shared_secret, and the login script."""
 
-import json, os, stat, subprocess, sys, tempfile, unittest
+import json, os, shutil, stat, subprocess, sys, tempfile, unittest
 from unittest import mock
 
 import helpers
@@ -177,6 +177,9 @@ class ChangeNoteTests(unittest.TestCase):
             self.assertEqual(
                 [(l, r['tagName']) for l, r in upload.item_releases(item, notes)], [('U60 build', 'v2026.11.10.06'), ('U59 build', 'v2026.11.10.05')]
             )
+            # The item as it is built: the U60 build alone, no archived_versions folder.
+            shutil.rmtree(os.path.join(item, 'archived_versions'))
+            self.assertEqual([(l, r['tagName']) for l, r in upload.item_releases(item, notes)], [('U60 build', 'v2026.11.10.06')])
 
 
 class LoginTests(unittest.TestCase):
