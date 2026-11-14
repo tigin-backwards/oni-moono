@@ -23,6 +23,9 @@ namespace OniMoono.Host.GameTweaks
     /// tests/e2e/overlap-manual.yaml).
     /// A failed write is logged; the game's own failure dialog does not appear for it. A run that
     /// ends by an unhandled exception waits for the write too.
+    ///
+    /// The colony summary file a save rewrites first is made on the same writer, ahead of the
+    /// save's write (OniMoono.GameTweaks.ColonySummaryWrite, built against the game's types).
     [GameMember(GameUse.Prefix, "System.Void LoadScreen::CheckCloudLocalOverlap()")]
     [GameMember(GameUse.Prefix, "System.Boolean LoadScreen::ConvertToLocalOrCloud(System.String,System.String,System.String)")]
     [GameMember(GameUse.Prefix, "System.Void LoadScreen::DeleteFileAndEmptyFolder(System.String)")]
@@ -30,7 +33,8 @@ namespace OniMoono.Host.GameTweaks
     [GameMember(GameUse.Prefix, "System.Boolean LoadScreen::MigrateSave(System.String,System.String,System.Boolean,System.String&)")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SaveLoader::CompressContents(System.IO.BinaryWriter,System.Byte[],System.Int32)", "7027ce9ea9fd4d7b linux-744825 win-744825")]
     [GameMember(GameUse.Prefix, "System.Boolean SaveLoader::Load(System.String)")]
-    [GameMember(GameUse.Prefix, "System.String SaveLoader::Save(System.String,System.Boolean,System.Boolean)")]
+    // The finalizer is OniMoono.GameTweaks.ColonySummaryWrite's (it marks a save's end).
+    [GameMember(GameUse.Prefix | GameUse.Finalizer, "System.String SaveLoader::Save(System.String,System.Boolean,System.Boolean)")]
     internal static class BackgroundSave
     {
         public const string Name = GameTweakNames.BackgroundSave;
@@ -76,6 +80,18 @@ namespace OniMoono.Host.GameTweaks
             lock (gate) t = pending;
             if (!t.IsCompleted) EngineLog.Engine("waiting for a save being written");
             t.Wait();
+        }
+
+        /// Work for the writer, after the writes in flight and before those queued later: the
+        /// colony summary a save writes (OniMoono.GameTweaks.ColonySummaryWrite). What it throws
+        /// is logged, and never faults the chain.
+        public static void Enqueue(Action work)
+        {
+            lock (gate) pending = pending.ContinueWith(_ =>
+            {
+                try { work(); }
+                catch (Exception e) { EngineLog.Engine($"background save's queued work: {e}"); }
+            }, TaskScheduler.Default);
         }
 
         /// SaveLoader.CompressContents(BinaryWriter, byte[], int): the header is in the file; the
