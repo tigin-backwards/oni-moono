@@ -43,6 +43,7 @@ namespace OniMoono.GameTweaks
                 case ReleasedSounds.Name: ReleasedSounds.Install(harmony); return true;
                 case OwnWorkshopItem.Name: OwnWorkshopItem.Install(harmony); return true;
                 case LazyTableRefresh.Name: LazyTableRefresh.Install(harmony); return true;
+                case FastTableRows.Name: FastTableRows.Install(harmony); return true;
                 default: return false;
             }
         }

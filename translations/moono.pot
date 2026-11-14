@@ -767,12 +767,27 @@ msgstr ""
 
 #. The line under the title (lazy-table-refresh)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.EFFECT"
-msgid "Consumables, Vitals, Priorities and the other tables update only the rows on screen each second."
+msgid "Consumables, Vitals, Priorities and the other tables update only the rows on screen."
 msgstr ""
 
 #. Tooltip: how it works (lazy-table-refresh)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.DETAIL"
-msgid "Once a second the game updates every row of an open table in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update."
+msgid "Once a second, and each time a table is opened, the game updates every row of it in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update."
+msgstr ""
+
+#. Row title (fast-table-rows)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.TITLE"
+msgid "Tables open sooner"
+msgstr ""
+
+#. The line under the title (fast-table-rows)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.EFFECT"
+msgid "Consumables, Vitals and Priorities open much sooner on colonies with many Duplicants."
+msgstr ""
+
+#. Tooltip: how it works (fast-table-rows)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.DETAIL"
+msgid "As a table builds its rows, the game finds each cell's row and column by searching every row and column built so far, and Consumables goes through every row's scroll bar again for each cell. With this, a row's cells are noted as the row is built and the scroll bars are set once a row; the table comes out the same."
 msgstr ""
 
 #. Row title (fast-anim-events)

@@ -212,10 +212,14 @@ namespace OniMoono.Host.GameTweaks
                 + "Within a pile of items that are the same in every way the game compares, a Duplicant may take another one than in the original. "
                 + "Off while a mod changes how Duplicants choose what to fetch.", FetchGain, ChangesBehaviour: true),
 
-            new(LazyTableRefresh, Graphics, "Update only the table rows in sight", "Consumables, Vitals, Priorities and the other tables update only the rows on screen each second.",
-                "Once a second the game updates every row of an open table in one frame: a stutter with many Duplicants. "
+            new(LazyTableRefresh, Graphics, "Update only the table rows in sight", "Consumables, Vitals, Priorities and the other tables update only the rows on screen.",
+                "Once a second, and each time a table is opened, the game updates every row of it in one frame: a stutter with many Duplicants. "
                 + "With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. "
                 + "Off while a mod changes how tables update.", ChangesBehaviour: true, OnByDefault: true),
+            new("fast-table-rows", Graphics, "Tables open sooner", "Consumables, Vitals and Priorities open much sooner on colonies with many Duplicants.",
+                "As a table builds its rows, the game finds each cell's row and column by searching every row and column built so far, "
+                + "and Consumables goes through every row's scroll bar again for each cell. "
+                + "With this, a row's cells are noted as the row is built and the scroll bars are set once a row; the table comes out the same."),
 
             new("fast-anim-events", Graphics, "Faster animation events", "Animations check their sound and effect cues with less work.",
                 "Keeps a compact copy of what each playing animation's per-frame event check reads."),
@@ -265,7 +269,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, TimelapseSnapshots, SharedDuplicates, LazyTableRefresh, CompactReports, ReleasedSounds];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-overlays", "fast-conveyor-paths", "fast-overlay-textures", "brain-rate", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", EndlessSounds, SoundPiles, FetchByCell, GeothermalVents, TimelapseSnapshots, SharedDuplicates, LazyTableRefresh, "fast-table-rows", CompactReports, ReleasedSounds];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem).

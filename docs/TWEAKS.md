@@ -252,7 +252,8 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 
 ### Graphics & overlays (on by default)
 
-- **Update only the table rows in sight** (`lazy-table-refresh`): Consumables, Vitals, Priorities and the other tables update only the rows on screen each second. Once a second the game updates every row of an open table in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update. *On by default; left out of `exact`.*
+- **Update only the table rows in sight** (`lazy-table-refresh`): Consumables, Vitals, Priorities and the other tables update only the rows on screen. Once a second, and each time a table is opened, the game updates every row of it in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update. *On by default; left out of `exact`.*
+- **Tables open sooner** (`fast-table-rows`): Consumables, Vitals and Priorities open much sooner on colonies with many Duplicants. As a table builds its rows, the game finds each cell's row and column by searching every row and column built so far, and Consumables goes through every row's scroll bar again for each cell. With this, a row's cells are noted as the row is built and the scroll bars are set once a row; the table comes out the same.
 - **Faster animation events** (`fast-anim-events`): Animations check their sound and effect cues with less work. Keeps a compact copy of what each playing animation's per-frame event check reads.
 - **Faster animation cleanup** (`fast-anim-cleanup`): Removed animations are swept out only where one was removed. The sweep for destroyed animations skips grid chunks that can't hold any.
 - **Parallel animation uploads** (`fast-anim-batches`): Animation data for the graphics card is prepared on several threads. Animation batches write their instance and symbol data on worker threads, the rest in the game's order.
@@ -810,16 +811,24 @@ every stale row up to date, with the load actions each missed, in the same order
 changing lays the whole table out again, so catching rows up one or two a frame while a list
 scrolls would lay it out every frame. While the list is being scrolled (it moved within the last
 1.5 seconds) the update is the game's own, of every row, as that lays the table out once a second
-and no more. Sorting the rows first brings every stale row up to date, and a frame in which the
-table builds its rows updates every row, as the game does.
+and no more. Sorting the rows first brings every stale row up to date.
+
+The same goes for the frame in which a table goes through its rows (`TableScreen.RefreshRows`:
+each time it is opened, and when a Duplicant is added or removed). The game then runs every load
+action of every row it already has, 17,000 of them for Consumables on a colony of 200
+Duplicants. With the tweak a row the table already had runs them only when it is near sight,
+before the rows are sorted and laid out or, when that brought it near, right after; the others
+are marked stale for every column and caught up as above. A row made in that frame is loaded as
+the game loads it, and a table opened for the first time is the game's throughout.
 
 A row scrolled into view then shows values read as it comes into view, at most a second newer
 than the game would show; a mod reading the text of widgets out of sight would read older
 values. Every row and object stays as the game made it. With `ONI_TWEAK_VERIFY=1` each update
 also runs the game's own, of every row, and the widgets of the rows in sight must read the same
 after both (texts, sprites, colours, toggles' states, active objects); and no stale row may lie in
-the view in any frame. The tweak stands down when another mod patches the table's `ScreenUpdate`
-or `SortRows`, or the columns' `Render1000ms`, `MarkDirty` or `MarkClean`.
+the view in any frame. The tweak stands down when another mod patches the table's `ScreenUpdate`,
+`SortRows` or `RefreshRows`, a row's `RefreshColumns`, or the columns' `Render1000ms`, `MarkDirty`
+or `MarkClean`.
 
 Measured on Windows (Vulkan, speed 3, exact tweaks with and without it, two launches each,
 2026-11-13), the once-a-second update's cost over the two frames around it, and the mean frame,
@@ -833,6 +842,34 @@ off → on:
 
 The other figures moved within the launches' spread (about 2 ms on this machine that day); the
 Schedule screen, which is not a table of this kind, ran the same with and without it.
+
+### Table rows as they are built
+
+`fast-table-rows` (Graphics & overlays, exact, on by default) takes two searches out of the
+frame in which a table screen builds its rows, the first time it is opened.
+
+Every cell's load action asks the table which row and which column its widget belongs to
+(`TableScreen.GetWidgetRow`, `GetWidgetColumn`). The table remembers each answer, but finds it
+the first time by going through its rows, or its columns, in order and searching each one's
+widgets for this one. For R rows of C columns that compares widgets about R²C² / 2 times for the
+rows and R²C² / 4 for the columns; Consumables has some 80 columns. With the tweak, before a
+row's cells are loaded (`TableRow.RefreshColumns`), each of its widgets is entered in the table's
+two dictionaries with the row and the column it was made for, so the game's lookups find every
+answer at once. The answers are the game's: the first row of the table's list that holds the
+widget and the first of its columns that does.
+
+Each of Consumables' food cells also ends its load action with
+`ConsumablesTableScreen.refresh_scrollers`, which counts the discovered foods and then shows or
+hides the scroll bar and border of every row of the table: every row, for each cell of every row.
+Nothing a load action does changes what it reads or writes, so with the tweak it runs for the
+first cell of each row a table loads and is skipped for that row's other cells (unless the table
+has more rows by then). Outside a row's load it runs every time.
+
+With `ONI_TWEAK_VERIFY=1` each entry is also found the game's way and must be the same, and each
+`refresh_scrollers` call that would be skipped runs after all and must leave every row's scroll
+bar, border and scroller as they were. The tweak stands down when another mod patches
+`GetWidgetRow`, `GetWidgetColumn`, either `ContainsWidget` or `refresh_scrollers`. Measurements are
+in [PERFORMANCE.md](PERFORMANCE.md#opening-a-table-screen).
 
 ### Colony images written in the background
 

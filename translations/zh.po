@@ -499,12 +499,24 @@ msgid "Update only the table rows in sight"
 msgstr "只更新可见的表格行"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.EFFECT"
-msgid "Consumables, Vitals, Priorities and the other tables update only the rows on screen each second."
-msgstr "消耗品、体征、优先度等表格每秒只更新可见的行。"
+msgid "Consumables, Vitals, Priorities and the other tables update only the rows on screen."
+msgstr "消耗品、体征、优先度等表格只更新可见的行。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.DETAIL"
-msgid "Once a second the game updates every row of an open table in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update."
-msgstr "游戏每秒一次在同一帧内更新已打开表格的每一行：复制人多时会造成卡顿。开启后，看不到的行会在滚动进入视野之前才更新，因此它们显示的是那时读取的数值，而不是上一次更新时的数值。当有模组改变表格的更新方式时，此项关闭。"
+msgid "Once a second, and each time a table is opened, the game updates every row of it in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update."
+msgstr "游戏每秒一次、以及每次打开表格时，都在同一帧内更新表格的每一行：复制人多时会造成卡顿。开启后，看不到的行会在滚动进入视野之前才更新，因此它们显示的是那时读取的数值，而不是上一次更新时的数值。当有模组改变表格的更新方式时，此项关闭。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.TITLE"
+msgid "Tables open sooner"
+msgstr "表格更快打开"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.EFFECT"
+msgid "Consumables, Vitals and Priorities open much sooner on colonies with many Duplicants."
+msgstr "复制人很多的殖民地里，消耗品、体征和优先度界面打开得快得多。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.DETAIL"
+msgid "As a table builds its rows, the game finds each cell's row and column by searching every row and column built so far, and Consumables goes through every row's scroll bar again for each cell. With this, a row's cells are noted as the row is built and the scroll bars are set once a row; the table comes out the same."
+msgstr "表格建立各行时，游戏要在已建好的每一行、每一列里查找，才知道每个单元格属于哪一行哪一列；消耗品表格还会为每个单元格把每一行的滚动条重新检查一遍。开启后，建立一行时就记下它的单元格，滚动条每行只设置一次；表格内容完全相同。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_EVENTS.TITLE"
 msgid "Faster animation events"
