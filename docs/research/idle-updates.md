@@ -71,8 +71,12 @@ changes nearly every update) and gas/liquid exposure (reads the cell above).
 cost. The kinds above add up to at most 1.0 ms (late) and 0.6 ms (mid); after tracking, about
 0.5-0.8 and 0.3-0.5 ms, 2-4% of a frame.
 
-**Worth a prototype**, in this order: RequireInputs (power-only buildings need only the circuit
-manager's change), FindRanachable and EggProtectionMonitor (scans of several µs per call, so
-tracking is cheap by comparison), and ChoreDriver on critters (an exact no-op). Each must wake
-on the same sub-tick the game would have seen the change: no temperature or building check may
-run late.
+**Worth a prototype**, in this order:
+
+1. RequireInputs (power-only buildings need only the circuit manager's change).
+2. FindRanachable and EggProtectionMonitor (scans of several µs per call, so tracking is cheap
+   by comparison).
+3. ChoreDriver on critters (an exact no-op).
+
+Each must wake on the same sub-tick the game would have seen the change: no temperature or
+building check may run late.

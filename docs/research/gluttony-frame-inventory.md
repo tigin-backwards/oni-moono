@@ -67,12 +67,18 @@ By player-loop entry: `Game.Update` 19.7 ms, rendering 5.7 ms, `Game.LateUpdate`
 
 U57's frame had a handful of large systems the tweaks could cut exactly or by timing:
 reachability 2.5 ms, sublimation 2.4, animation events 2.5, conveyor items 2.9, radbolt
-collisions 0.9, all with tens of thousands of objects doing the same cheap thing. Gluttony's
-sim sub-ticks are 13 ms spread over 386 distinct systems (update callbacks of state machines
-and components): the largest is 1.3 ms, only 13 are above 0.2 ms, and together those 13 make
-6 ms. The other 7 ms is 370 systems below 0.2 ms each: critter and Duplicant monitors, machines'
-state checks, ranching, rot, breathing, exposure. That is ordinary game logic, which CoreCLR runs
-faster than Mono but which offers no single place to skip work.
+collisions 0.9. Each had tens of thousands of objects doing the same cheap thing.
+
+Gluttony's sim sub-ticks are 13 ms spread over 386 distinct systems (update callbacks of state
+machines and components):
+
+- The largest is 1.3 ms.
+- Only 13 are above 0.2 ms, and together those 13 make 6 ms.
+- The other 7 ms is 370 systems below 0.2 ms each: critter and Duplicant monitors, machines'
+  state checks, ranching, rot, breathing, exposure.
+
+That is ordinary game logic, which CoreCLR runs faster than Mono but which offers no single
+place to skip work.
 
 ## System by system
 
@@ -150,11 +156,14 @@ much.
 1. **Radbolt gathers decided from the live radbolts (A, ~0.7 ms).** `CheckCollision` merges with
    the first gathered radbolt that is collideable and that it and the other intersect both ways.
    `AnotherParticleIn` already knows which other radbolts are registered in the 3×3 area. Test
-   those directly: if none passes the merge test, the gather cannot change anything and is
-   skipped (now it runs whenever one is merely nearby); if exactly one passes, the outcome is
-   that one, whatever the gather's order; only with two or more does the real gather decide
-   the order. Also make `ParticleOf` a dictionary lookup by GameObject instead of a scan of the
-   live list. Removes most of the gather (0.52) and the scans (0.21).
+   those directly:
+   - If none passes the merge test, the gather cannot change anything and is skipped (now it
+     runs whenever one is merely nearby).
+   - If exactly one passes, the outcome is that one, whatever the gather's order.
+   - Only with two or more does the real gather decide the order.
+
+   Also make `ParticleOf` a dictionary lookup by GameObject instead of a scan of the live list.
+   Removes most of the gather (0.52) and the scans (0.21).
 2. **Draw recording's uniform lookups (A, engine, ~0.3–0.5 ms).** `GlUniforms.Sets` and
    `ResolveProperty` look each uniform up in the property sheet's `Dictionary<int, Vector4>` and
    `Dictionary<int, float>` per draw (0.48 together). An array slot per property id, assigned

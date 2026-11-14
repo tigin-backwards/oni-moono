@@ -207,19 +207,21 @@ Server GC with DATAS. Labels: [doc] official documentation, [src] read in source
 commit, [claim] unverified community statement, [inf] inference. Runtime source is
 dotnet/runtime v10.0.0, `src/coreclr/gc/`.
 
-**Unity's incremental GC doesn't carry over.** [doc] Unity's collector is Boehm: non-generational,
-non-compacting. Its incremental mode marks in per-frame slices (default 3 ms, "only a guideline,
-not a hard cap"), adds write barriers to reference stores, and falls back to a full collection
-when references change faster than it can mark
-([manual](https://docs.unity3d.com/Manual/performance-incremental-garbage-collection.html),
-[time slice](https://docs.unity3d.com/ScriptReference/Scripting.GarbageCollector-incrementalTimeSliceNanoseconds.html)).
-Unity itself is moving to CoreCLR's precise, generational, compacting GC
-([blog](https://unity.com/blog/engine-platform/porting-unity-to-coreclr)). [doc] CoreCLR's
-background GC covers gen2 only; gen0 and gen1 always stop every managed thread
-([background GC](https://learn.microsoft.com/dotnet/standard/garbage-collection/background-gc)).
-[inf] Slicing helps a collector that marks the whole heap each time. Our young collections
-never mark gen2, and their cost is the card scan plus copying, which only a concurrent-copying
-collector (Satori, ruled out above) could spread over frames.
+**Unity's incremental GC doesn't carry over.**
+
+- [doc] Unity's collector is Boehm: non-generational, non-compacting. Its incremental mode marks
+  in per-frame slices (default 3 ms, "only a guideline, not a hard cap"), adds write barriers to
+  reference stores, and falls back to a full collection when references change faster than it
+  can mark
+  ([manual](https://docs.unity3d.com/Manual/performance-incremental-garbage-collection.html),
+  [time slice](https://docs.unity3d.com/ScriptReference/Scripting.GarbageCollector-incrementalTimeSliceNanoseconds.html)).
+  Unity itself is moving to CoreCLR's precise, generational, compacting GC
+  ([blog](https://unity.com/blog/engine-platform/porting-unity-to-coreclr)).
+- [doc] CoreCLR's background GC covers gen2 only; gen0 and gen1 always stop every managed thread
+  ([background GC](https://learn.microsoft.com/dotnet/standard/garbage-collection/background-gc)).
+- [inf] Slicing helps a collector that marks the whole heap each time. Our young collections
+  never mark gen2, and their cost is the card scan plus copying, which only a
+  concurrent-copying collector (Satori, ruled out above) could spread over frames.
 
 **.NET knobs under Server GC with DATAS on .NET 10:**
 
@@ -335,12 +337,16 @@ Each gen1 cost about 90-120 ms of frame time with 2x against about 80-110 ms as 
 - **`GCGen1MaxBudget` cap:** inconclusive; every launch had heavy other load.
 
 **What it shows.** Under DATAS the young budget only trades how often against how long: gen0
-promotion grows with the budget, so each collection copies more. 2x cuts the time spent in GC
-frames by about a fifth on Linux and over a quarter on Windows, for about 0.5 GB more memory
-and hitches 10-20 ms longer. 4x halves it, but its gen0 hitches are about 80-90 ms and it costs
-about 1.5 GB; DATAS also doesn't always use the larger budget. Neither changes the count of
-frames over 50 ms. If a default is to change, 2x
+promotion grows with the budget, so each collection copies more.
+
+- **2x** cuts the time spent in GC frames by about a fifth on Linux and over a quarter on
+  Windows, for about 0.5 GB more memory and hitches 10-20 ms longer.
+- **4x** halves it, but its gen0 hitches are about 80-90 ms and it costs about 1.5 GB. DATAS
+  also doesn't always use the larger budget.
+- Neither changes the count of frames over 50 ms.
+
+If a default is to change, 2x
 (`DOTNET_GCGen0MaxBudget=0x8000000`, `DOTNET_GCDGen0GrowthPercent=0x96`, or the matching
 runtimeconfig properties) is the only candidate. Windows fps with 2x (92-101) was below the
-one clean as-shipped launch (112); the other as-shipped launch ran under heavy load, so whether
+one clean as-shipped launch (112). The other as-shipped launch ran under heavy load, so whether
 2x costs frame rate is open.

@@ -519,11 +519,14 @@ threads (`RemoteChore.CollectChores`, 20.7 on the late-game colony), then the GL
 texture uploads and screenshot read-backs (1.5 and 5.5) and `Parallel.For`'s own state on the
 thread pool (about 2).
 
-After batch 4 (same method and base), the engine's own sites above come to 0.9 KB a frame
-in `(other)` on both colonies (from 18.8 and 22.8) and 5.6 and 3.1 in the canvas sites (from 32.6
-and 17.8). 600 s meter runs on the mid-game colony, at 34 fps both: 159 → 109 KB a frame, 1.81 →
-1.26 MB a game second, the canvas rebuilds 17.7 → 3.5 KB a frame and `(other)` 53.9 → 26.4; 5 → 4
-collections in 600 s. On the late-game colony held at 20 fps (uncapped runs drew 28–40 fps on a
-busy machine, too far apart to compare): 381 → 309 KB a frame, 2.46 → 2.06 MB a game second, the
-canvas rebuilds 48.8 → 18.2 KB a frame (most of the rest is a chart's `UILineRenderer`, game code)
-and `(other)` 78 → 50; 5 → 4 collections.
+After batch 4 (same method and base):
+
+- The engine's own sites above come to 0.9 KB a frame in `(other)` on both colonies (from 18.8
+  and 22.8) and 5.6 and 3.1 in the canvas sites (from 32.6 and 17.8).
+- 600 s meter runs on the mid-game colony, at 34 fps both: 159 → 109 KB a frame, 1.81 →
+  1.26 MB a game second, the canvas rebuilds 17.7 → 3.5 KB a frame and `(other)` 53.9 → 26.4;
+  5 → 4 collections in 600 s.
+- On the late-game colony held at 20 fps (uncapped runs drew 28–40 fps on a busy machine, too
+  far apart to compare): 381 → 309 KB a frame, 2.46 → 2.06 MB a game second, the canvas
+  rebuilds 48.8 → 18.2 KB a frame (most of the rest is a chart's `UILineRenderer`, game code)
+  and `(other)` 78 → 50; 5 → 4 collections.

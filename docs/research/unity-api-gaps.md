@@ -7,74 +7,93 @@ player with UnityProbe's `apigaps` scenario (`tools/UnityProbe/ApiGaps.cs`,
 
 ## How the gaps were found
 
-`scripts/apisurface.sh` (`tools/ApiCheck --surface`) compares, by name and signature from metadata
-only, every public type and member of the Unity assemblies the game ships (the frozen U59 install,
-`~/projects/oni-linux`; U60's, `~/projects/oni-linux-761211`, gives the same mod-referenced list)
-with the engine and our UI packages, then reads the IL of the Workshop corpus in `out/ws` (2,898
-items, static metadata reading only; nothing is loaded or run). A mod's DLLs are those
-`KMod.DLLLoader` could load: the top of the mod's folder and of each `archived_versions/*`
-folder, without copies of Unity's or the game's assemblies. Scanning every DLL under a mod
-instead finds 456 gaps (268 types), almost all in copies of `UnityEngine.*Module.dll` left in
-mods' `bin/` folders, which the game never loads.
+`scripts/apisurface.sh` (`tools/ApiCheck --surface`) works in two steps, from metadata only:
 
-Unity's surface: 3,490 public types and 37,061 members in 75 assemblies. Ours lacked 2,749 types
-(22,201 members) and 5,704 members of types it has (515 of them `[Obsolete]`). The game's own
-assemblies use none of them (`scripts/apicheck.sh`: 0 missing). Workshop mods referenced 62 of
-them (19 types) from 24 mods; 21 more references name members the shipped assemblies do not have
-either (built against older game versions: TMP's `FaceInfo`, `TMP_FontAsset.fontInfo`), which
-fail in the original too.
+1. It compares, by name and signature, every public type and member of the Unity assemblies the
+   game ships with the engine and our UI packages. The assemblies are the frozen U59 install's
+   (`~/projects/oni-linux`). U60's (`~/projects/oni-linux-761211`) give the same mod-referenced
+   list.
+2. It reads the IL of the Workshop corpus in `out/ws` (2,898 items, static metadata reading
+   only; nothing is loaded or run).
+
+A mod's DLLs are those `KMod.DLLLoader` could load: the top of the mod's folder and of each
+`archived_versions/*` folder, without copies of Unity's or the game's assemblies. Scanning every
+DLL under a mod instead finds 456 gaps (268 types), almost all in copies of
+`UnityEngine.*Module.dll` left in mods' `bin/` folders, which the game never loads.
+
+Unity's surface: 3,490 public types and 37,061 members in 75 assemblies.
+
+- Ours lacked 2,749 types (22,201 members) and 5,704 members of types it has (515 of them
+  `[Obsolete]`).
+- The game's own assemblies use none of them (`scripts/apicheck.sh`: 0 missing).
+- Workshop mods referenced 62 of them (19 types) from 24 mods.
+- 21 more references name members the shipped assemblies do not have either (built against
+  older game versions: TMP's `FaceInfo`, `TMP_FontAsset.fontInfo`). Those fail in the original
+  too.
 
 String literals naming a missing member of a type the same mod references (a hint of reflection
-by name) matched 145 members; the ones looked at are common words (`Scale`, `Invoke`, `Update`,
+by name) matched 145 members. The ones looked at are common words (`Scale`, `Invoke`, `Update`,
 `identifier`, `Assert`) in Harmony patches and logging, not reflection on Unity members. The list
 is in the surface report's `MOD STRINGS` section and its JSON's `modReflection`.
 
 ## The three known gaps
 
-- `RenderTexture.active = rt` now binds rt as `Graphics.SetRenderTarget` does. Measured: GL.Clear,
-  GL immediate drawing and ReadPixels after it go to rt, also when another target was bound with
-  SetRenderTarget; the viewport covers the whole target (also when rt was active already, after a
-  2 × 2 `GL.Viewport`); a texture not created is created; null is the back buffer. `active` is
-  the target after `Graphics.SetRenderTarget` and after `Graphics.Blit` (with or without a
-  material); inside a camera's `onPostRender` it is the camera's target texture; after
-  `Camera.Render()` it is what it was before (null or a texture), and GL.Clear goes there; the
-  next frame it is null. Ours differed only inside `onPostRender` (it kept the previous target)
-  and in binding nothing on a set. The binding is the engine's, so GL, Metal and u60's Vulkan
-  device all follow it.
-- Shader property introspection: `FindPropertyIndex`, `GetPropertyNameId`, `GetPropertyFlags`,
-  `GetPropertyDescription`, `GetPropertyAttributes`, `GetPropertyDefaultFloatValue`,
-  `GetPropertyDefaultVectorValue`, `GetPropertyDefaultIntValue`, `GetPropertyRangeLimits`,
-  `GetPropertyTextureDimension` and `GetPropertyTextureDefaultName`, from the parsed property
-  block. Measured on the 82 shaders the original has loaded at the main menu: every getter on
-  every property of the 77 both players load gives the same value or the same exception (the
-  typed getters throw ArgumentException "Property type is not Float or Range." / "Color or
-  Vector." / "Range." / "TexEnv." / "Texture." / "Int."; an index out of range
-  ArgumentOutOfRangeException for `propertyIndex`); `FindPropertyIndex` is case-sensitive and -1
-  for unknown names, "" and null; the default texture name is as declared ("grey" stays "grey").
+- `RenderTexture.active = rt` now binds rt as `Graphics.SetRenderTarget` does. Measured:
+  - GL.Clear, GL immediate drawing and ReadPixels after it go to rt, also when another target
+    was bound with SetRenderTarget.
+  - The viewport covers the whole target (also when rt was active already, after a 2 × 2
+    `GL.Viewport`).
+  - A texture not created is created. Null is the back buffer.
+  - `active` is the target after `Graphics.SetRenderTarget` and after `Graphics.Blit` (with or
+    without a material).
+  - Inside a camera's `onPostRender` it is the camera's target texture.
+  - After `Camera.Render()` it is what it was before (null or a texture), and GL.Clear goes
+    there. The next frame it is null.
+
+  Ours differed only inside `onPostRender` (it kept the previous target) and in binding nothing
+  on a set. The binding is the engine's, so GL, Metal and u60's Vulkan device all follow it.
+- Shader property introspection, from the parsed property block: `FindPropertyIndex`,
+  `GetPropertyNameId`, `GetPropertyFlags`, `GetPropertyDescription`, `GetPropertyAttributes`,
+  `GetPropertyDefaultFloatValue`, `GetPropertyDefaultVectorValue`, `GetPropertyDefaultIntValue`,
+  `GetPropertyRangeLimits`, `GetPropertyTextureDimension` and `GetPropertyTextureDefaultName`.
+  Measured on the 82 shaders the original has loaded at the main menu:
+  - Every getter on every property of the 77 both players load gives the same value or the same
+    exception.
+  - The typed getters throw ArgumentException "Property type is not Float or Range." / "Color or
+    Vector." / "Range." / "TexEnv." / "Texture." / "Int.". An index out of range throws
+    ArgumentOutOfRangeException for `propertyIndex`.
+  - `FindPropertyIndex` is case-sensitive and -1 for unknown names, "" and null.
+  - The default texture name is as declared ("grey" stays "grey").
 - RenderTexture constructors: `(w, h, depth, RenderTextureFormat, RenderTextureReadWrite)`,
   `(w, h, depth, RenderTextureFormat, int mipCount)`, `(w, h, depth, DefaultFormat)`,
   `(w, h, depth, GraphicsFormat)`, `(w, h, depth, GraphicsFormat, int mipCount)`,
   `(w, h, GraphicsFormat, GraphicsFormat)` and `(w, h, GraphicsFormat, GraphicsFormat, int)`, with
   `depthStencilFormat`, `stencilFormat`, `dimension` (and `Texture.dimension`) and
-  `SystemInfo.GetGraphicsFormat(DefaultFormat)`. Measured (gamma colour space): none of them
-  checks its arguments; readWrite sRGB gives sRGB false; BGRA32 falls back to ARGB32 with a
-  warning; a depth format as the colour is an error and R8G8B8A8_UNorm; B8G8R8A8, compressed
-  formats and YUV2 (DefaultFormat.Video) are an error and a destroyed object; an invalid depth
-  format is an error and D24_UNorm_S8_UInt (D16_UNorm_S8_UInt silently so); DepthStencil and
-  Shadow use 24 and 16 bits whatever the depth; mipCount is the descriptor's (-1 for 0 or less)
-  and `useMipMap` keeps it; Create fails, with the original's errors, for a size of 0, a mip
-  count over the full chain and no format at all; an sRGB GraphicsFormat warns at Create. Found
-  on the way and fixed: runtime render textures (constructed, from a descriptor, temporary) clamp
-  (ours repeated), read `isReadable` true, temporaries have anisoLevel 0, and the descriptor's
-  mipCount is -1 without a request (ours: 1).
+  `SystemInfo.GetGraphicsFormat(DefaultFormat)`. Measured (gamma colour space):
+  - None of them checks its arguments.
+  - readWrite sRGB gives sRGB false.
+  - BGRA32 falls back to ARGB32 with a warning.
+  - A depth format as the colour is an error and R8G8B8A8_UNorm.
+  - B8G8R8A8, compressed formats and YUV2 (DefaultFormat.Video) are an error and a destroyed
+    object.
+  - An invalid depth format is an error and D24_UNorm_S8_UInt (D16_UNorm_S8_UInt silently so).
+  - DepthStencil and Shadow use 24 and 16 bits whatever the depth.
+  - mipCount is the descriptor's (-1 for 0 or less) and `useMipMap` keeps it.
+  - Create fails, with the original's errors, for a size of 0, a mip count over the full chain
+    and no format at all.
+  - An sRGB GraphicsFormat warns at Create.
+
+  Found on the way and fixed: runtime render textures (constructed, from a descriptor,
+  temporary) clamp (ours repeated), read `isReadable` true, temporaries have anisoLevel 0, and
+  the descriptor's mipCount is -1 without a request (ours: 1).
 
 ## Mod-referenced gaps
 
 Count is the mods referencing the member from a loadable DLL (the game itself uses none). After
-this work 42 of the 62 references (10 types) remain, from 13 of the 24 mods; Mod Manager, bottle
-emptier extend, telescope auto research, generic fabricator, starship, Support Package+,
-UpgradeConduits, Lightning fast Menus, Futur's Timelapser, Clean Memory & Performance Capture and
-God Tools reference none.
+this work 42 of the 62 references (10 types) remain, from 13 of the 24 mods. These reference
+none: Mod Manager, bottle emptier extend, telescope auto research, generic fabricator, starship,
+Support Package+, UpgradeConduits, Lightning fast Menus, Futur's Timelapser, Clean Memory &
+Performance Capture and God Tools.
 
 | Member | Mods | Mods (rank in the catalog) | Done |
 |---|---|---|---|
@@ -98,21 +117,23 @@ God Tools reference none.
 | `Rigidbody2D.AddForce`, `AddTorque`, `angularVelocity` | 2 | Extra Twitch Events, Chaos Events for Twitch Integration (#1817) | open: no 2D physics simulation |
 | `TrailRenderer`, `ParticleSystem.Particle` triggers | 1 | Extra Twitch Events | open: no trail rendering, no particle collision |
 
-Smaller differences the probe showed and that were left: PhysX widens 3D collider bounds by a few
-ulps (1.3660257 against 1.3660254); a render texture asked for D16_UNorm_S8_UInt gets
-D24_UNorm_S8_UInt but its descriptor reports the request (ours reports what it got); a sprite
-renderer's bounds have a z extent of 0.1 in the
-original (0 here); the original logs "ReadPixels was called to read pixels from system frame
-buffer, while not inside drawing frame." and "Releasing render texture that is set to be
-RenderTexture.active!", and warns that a tight-mesh sprite may not tile well; Mono prints `R`
-floats with nine digits (the same floats).
+Smaller differences the probe showed and that were left:
+
+- PhysX widens 3D collider bounds by a few ulps (1.3660257 against 1.3660254).
+- A render texture asked for D16_UNorm_S8_UInt gets D24_UNorm_S8_UInt, but its descriptor
+  reports the request (ours reports what it got).
+- A sprite renderer's bounds have a z extent of 0.1 in the original (0 here).
+- The original logs "ReadPixels was called to read pixels from system frame buffer, while not
+  inside drawing frame." and "Releasing render texture that is set to be RenderTexture.active!",
+  and warns that a tight-mesh sprite may not tile well.
+- Mono prints `R` floats with nine digits (the same floats).
 
 ## Unreferenced gaps
 
-Nothing in the game or the corpus references the rest; it is not implemented. By assembly,
-before this work (types missing, their members, members missing from present types; after it,
-2,736 types with 22,123 members and 5,649 members of present types remain, the open rows above
-included):
+Nothing in the game or the corpus references the rest, and it is not implemented. After this
+work, 2,736 types with 22,123 members and 5,649 members of present types remain, the open rows
+above included. By assembly, before this work (types missing, their members, members missing
+from present types):
 
 | Assembly | Missing types | Their members | Missing members |
 |---|---|---|---|

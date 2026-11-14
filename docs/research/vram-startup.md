@@ -1,11 +1,18 @@
 # Video memory at start-up and on big saves: four levers checked
 
-Measured 2026-11-03. The question came from issue #48's reporter (GTX 1650, 4 GB, OpenGL), whose
-log showed about 150,000 driver evictions (1.1 TB moved) and a 36 s first frame before the main
-menu, and from our U60 baseline of 3.9-4.8 GB dedicated video memory on big saves (RTX 3090).
+Measured 2026-11-03. Two things raised the question:
+
+- Issue #48's reporter (GTX 1650, 4 GB, OpenGL), whose log showed about 150,000 driver evictions
+  (1.1 TB moved) and a 36 s first frame before the main menu.
+- Our U60 baseline of 3.9-4.8 GB dedicated video memory on big saves (RTX 3090).
+
 Compressed textures already stay compressed, and lazy uploads are not wanted. Four exact levers
-were checked: render textures allocated earlier or held longer than Unity's player does, freed
-textures released late, transient upload memory, and mip chains longer than asked for.
+were checked:
+
+- Render textures allocated earlier or held longer than Unity's player does.
+- Freed textures released late.
+- Transient upload memory.
+- Mip chains longer than asked for.
 
 **Verdicts.**
 
@@ -16,20 +23,22 @@ textures released late, transient upload memory, and mip chains longer than aske
    frames in flight).
 3. **Upload staging: Vulkan's was unbounded.** A start-up frame staged 3.1 GiB of host-visible
    memory, 3.3 GB of "shared" video memory that the original never uses (283 MB at most). A
-   64 MiB bound (u60) brings the process's shared peak to 245-373 MB on Windows; the load costs
-   1-2.5 s more in one run each (noise not separated). OpenGL's
-   is bounded (background reads 256 MiB, the copy pool 128 MiB). The copy pool is too small for
-   c100: it allocates 5.8-7.5 GiB per 600 frames in new buffers.
+   64 MiB bound (u60) brings the process's shared peak to 245-373 MB on Windows. The load costs
+   1-2.5 s more in one run each (noise not separated). OpenGL's is bounded (background reads
+   256 MiB, the copy pool 128 MiB). The copy pool is too small for c100: it allocates
+   5.8-7.5 GiB per 600 frames in new buffers.
 4. **Mip chains: one case, fixed.** Textures get exactly their asset's mip count. A render texture
    with mipmaps got the full chain whatever its descriptor's `mipCount` asked for. The game makes
    none; mods may.
 
-The whole-process difference is small at the menu and moderate on c100. Ours uses 3,163-3,290 MB
-dedicated at the menu against the original's 3,147 MB, and 4,285 (OpenGL) and 4,410 MB (Vulkan)
-against 4,053 MB in c100's last minute. The OpenGL texture ledger matches Unity's own texture
-counter within 1% at the menu. One more finding: NVIDIA's eviction counter counts every eviction
-on the system, so #48's 150,000 cannot be read as our own. The frame stats now give the count
-since our device started.
+The whole-process difference is small at the menu and moderate on c100:
+
+- **Menu:** ours uses 3,163-3,290 MB dedicated against the original's 3,147 MB.
+- **c100's last minute:** 4,285 (OpenGL) and 4,410 MB (Vulkan) against 4,053 MB.
+
+The OpenGL texture ledger matches Unity's own texture counter within 1% at the menu. One more
+finding: NVIDIA's eviction counter counts every eviction on the system, so #48's 150,000 cannot
+be read as our own. The frame stats now give the count since our device started.
 
 ## Method
 
@@ -156,11 +165,16 @@ The change (u60, `vulkan: texture uploads stage at most 64 MiB at a time`): befo
 that would take the frame's staging past `ONI_VULKAN_STAGING_MB` (default 64; 0 turns the bound
 off), the device submits what is recorded and waits for the queue to go idle, as a readback
 does. It then takes the frame's staging chunks again from their start. Only a load's burst
-reaches the bound (c100's frames stage a few MiB), so steady frames are unchanged. On Linux, c100
-from the menu: staging peak 3,148 → 298 MiB, 58 waits in the load, the colony loaded in 43 s
-unbounded and 44 s bounded, and the two slowest frames 10.5 → 11.4 s and 16.1 → 17.1 s. The
-peak stays above 64 MiB because a texture larger than a chunk gets a chunk of its own, and the
-chunks made before the bound took effect stay until they go idle.
+reaches the bound (c100's frames stage a few MiB), so steady frames are unchanged.
+
+On Linux, c100 from the menu:
+
+- **Staging peak:** 3,148 → 298 MiB, with 58 waits in the load.
+- **Load:** the colony loaded in 43 s unbounded and 44 s bounded.
+- **The two slowest frames:** 10.5 → 11.4 s and 16.1 → 17.1 s.
+
+The peak stays above 64 MiB because a texture larger than a chunk gets a chunk of its own, and
+the chunks made before the bound took effect stay until they go idle.
 
 On Windows (one run each, same machine and settings):
 

@@ -137,13 +137,16 @@ Exact by construction, each part with a verify mode (`ONI_TWEAK_VERIFY=1`):
   computed again, bit for bit.
 - **Targets** (every mode with targets): the modes' calls to `AddTargetIfVisible`,
   `RemoveOffscreenTargets` and `UpdateHighlightTypeOverlay` go to the tweak's versions, the same
-  loops with the same effects in the same order. An object already among the targets is passed
-  at once (the game's method does nothing more for it, after reading its bounds); materials
-  skips its element's filter tests for such an object; each target's transform, controller and
-  (if it cannot move) position are kept by place in the target set's order; an unused
-  `KPrefabID` lookup is left out. Verify: every kept position, transform and controller against
-  the object's own, and an object already among the targets runs the game's method, which must
-  leave the targets as they were.
+  loops with the same effects in the same order. What differs:
+  - An object already among the targets is passed at once (the game's method does nothing more
+    for it, after reading its bounds).
+  - Materials skips its element's filter tests for such an object.
+  - Each target's transform, controller and (if it cannot move) position are kept by place in
+    the target set's order.
+  - An unused `KPrefabID` lookup is left out.
+
+  Verify: every kept position, transform and controller against the object's own, and an object
+  already among the targets runs the game's method, which must leave the targets as they were.
 
 Each part steps aside for the frame when another Harmony owner patches what it replaces (the
 patched method then runs).

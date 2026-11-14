@@ -764,24 +764,29 @@ steps:
   not supported"?
 - **Not covered:** multiplayer sessions (two Steam accounts). These rows stay ⬜ with their
   current notes.
-- **Translations** were first left out as applied only from a Steam subscription; they are not.
-  The Translations screen (`LanguageOptionsScreen`) lists every installed mod with a `.po`
-  file, whatever its distribution platform, Local ones too, enabled or not; picking one saves
-  `SelectedLanguageType: UGC` and `InstalledLanguage: ID` (the mod's label id, its Workshop ID
-  as a Local mod) and restarts, and `Localization.Initialize` loads that mod's `strings.po`
-  at the next start. Only the Workshop button, the unsubscribe and update notices and
-  `VerifyTranslationModSubscription` need Steam. A translation must stay disabled, as a
-  subscription leaves it: KMod loads no content of an enabled one (`LoadTranslations` returns
-  false), marks it failed and opens a load error dialog. So a spec installs it as e2e installs
-  every mod, and `translation: ID` writes the two prefs (tests/e2e/README.md);
-  `tests/e2e/translation-screen.yaml` drives the screen to its restart dialog, and clicking
-  restart by hand wrote the same two prefs in both players before each quit. Each translation's
-  spec checks a colony's research and priorities screens and pause menu, then the main menu,
-  the options menu and its Game options screen, dumped and shot (a main menu shot reads the
-  lane's display). Of the 51 translations in the top 750, 49 play as in the original (the
-  Japanese, Korean and some Chinese ones since text heights follow the shipped package's
-  hundredth rule, docs/cleanroom/textmeshpro.md; their Game options headers' layout was 0.01
-  taller before), and 2 name their file Strings.po, which neither player finds on Linux.
+- **Translations** were first left out as applied only from a Steam subscription. They are not:
+  - The Translations screen (`LanguageOptionsScreen`) lists every installed mod with a `.po`
+    file, whatever its distribution platform, Local ones too, enabled or not.
+  - Picking one saves `SelectedLanguageType: UGC` and `InstalledLanguage: ID` (the mod's label
+    id, its Workshop ID as a Local mod) and restarts. `Localization.Initialize` loads that
+    mod's `strings.po` at the next start.
+  - Only the Workshop button, the unsubscribe and update notices and
+    `VerifyTranslationModSubscription` need Steam.
+  - A translation must stay disabled, as a subscription leaves it. KMod loads no content of an
+    enabled one (`LoadTranslations` returns false), marks it failed and opens a load error
+    dialog.
+
+  So a spec installs it as e2e installs every mod, and `translation: ID` writes the two prefs
+  (tests/e2e/README.md). `tests/e2e/translation-screen.yaml` drives the screen to its restart
+  dialog, and clicking restart by hand wrote the same two prefs in both players before each
+  quit. Each translation's spec checks a colony's research and priorities screens and pause
+  menu, then the main menu, the options menu and its Game options screen, dumped and shot (a
+  main menu shot reads the lane's display).
+
+  Of the 51 translations in the top 750, 49 play as in the original, and 2 name their file
+  Strings.po, which neither player finds on Linux. The Japanese, Korean and some Chinese ones
+  play as in the original since text heights follow the shipped package's hundredth rule
+  (docs/cleanroom/textmeshpro.md). Their Game options headers' layout was 0.01 taller before.
 - **Worldgen mods** are classed by their code like any other and get specs, with functional
   expectations: the mod's worlds or clusters are offered and generate, its biomes, traits,
   templates and POIs appear, and generation ends without errors. The generated layout need not

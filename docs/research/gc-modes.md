@@ -4,13 +4,17 @@ The question: what do the garbage collection option's two modes cost and save in
 capped Server GC heap count do better, and is a device heuristic (by RAM or cores) justified?
 The option is in Moono Tweaks, General ([TWEAKS.md](../TWEAKS.md#garbage-collection)).
 
-**Verdict: no heuristic; Fast stays the default for everyone.** Low memory saves 0.8-0.9 GB of
-settled working set on both colonies (about 8%), but only 0.3-0.4 GB at the peak, which comes
-during the load and decides whether a PC short on RAM pages. It costs 4-8 s more GC pause while
-loading (the load takes 8-13 s longer) and about ten times as many collections in play, though those
-stay below 1% of the time and its longest pauses were no longer than Fast's. Six cores and
-twelve threads change nothing: DATAS sizes the Server GC for them, and the numbers match those
-on all sixteen threads. A capped heap count (4) saves nothing and pauses up to five times longer.
+**Verdict: no heuristic; Fast stays the default for everyone.**
+
+- **Low memory saves** 0.8-0.9 GB of settled working set on both colonies (about 8%), but only
+  0.3-0.4 GB at the peak. The peak comes during the load and decides whether a PC short on RAM
+  pages.
+- **It costs** 4-8 s more GC pause while loading (the load takes 8-13 s longer) and about ten
+  times as many collections in play. Those stay below 1% of the time, and its longest pauses
+  were no longer than Fast's.
+- **Six cores and twelve threads change nothing.** DATAS sizes the Server GC for them, and the
+  numbers match those on all sixteen threads.
+- **A capped heap count (4)** saves nothing and pauses up to five times longer.
 
 A later look at Fast's pauses in play found one large one, about a minute after each load of a
 large colony, and moved it into the load: [gc-pauses.md](gc-pauses.md) (the `post-load-gc`

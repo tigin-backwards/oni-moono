@@ -8,11 +8,15 @@ batch writes "not candidates" in the sense of skipping work; this note asks whet
 work can run in parallel. The rules are the tweaks' rules: the same results by construction,
 proved by a verify mode.
 
-Two shapes are possible here. Klei's `GlobalJobManager.Run` is fork-join: the main thread hands
-out items and waits, so only the time the items take together comes back. `AsyncPathProber`
-runs on threads of its own and the main thread never waits for it. Everything below is
-fork-join; nothing found could run truly asynchronously, because the frame needs each result
-before it goes on.
+Two shapes are possible here:
+
+- **Fork-join.** Klei's `GlobalJobManager.Run`: the main thread hands out items and waits, so
+  only the time the items take together comes back.
+- **Asynchronous.** `AsyncPathProber` runs on threads of its own and the main thread never waits
+  for it.
+
+Everything below is fork-join. Nothing found could run truly asynchronously, because the frame
+needs each result before it goes on.
 
 ## Method
 
@@ -84,14 +88,18 @@ and stay before it; O comes after A, and stays after it.
 
 ### The engine calls
 
-`Texture2D.GetRawTextureData<T>` (a view of the texture's memory; it first waits for the GL
-device's snapshot of that texture, if one is still copying), `NativeArray.Copy` (a span copy),
-`Texture2D.Apply` (bumps the content version; no mip levels to rebuild here; nothing reads the
-memory until the frame is drawn), `Transform.position`/`rotation`/`localScale`,
-`Component.transform` (a cached reference), and Unity's null test (a volatile read). None
-asserts the main thread. All are per-object except the transform caches: a world matrix or
+- `Texture2D.GetRawTextureData<T>`: a view of the texture's memory. It first waits for the GL
+  device's snapshot of that texture, if one is still copying.
+- `NativeArray.Copy`: a span copy.
+- `Texture2D.Apply`: bumps the content version. There are no mip levels to rebuild here, and
+  nothing reads the memory until the frame is drawn.
+- `Transform.position`/`rotation`/`localScale`.
+- `Component.transform`: a cached reference.
+- Unity's null test: a volatile read.
+
+None asserts the main thread. All are per-object except the transform caches: a world matrix or
 rotation is computed on first read after a change and kept with a dirty flag. Two threads
-reading the same transform both compute the same value; the flag is now written with release
+reading the same transform both compute the same value. The flag is now written with release
 and read with acquire semantics (plain moves on x64), so a reader that finds it clear also sees
 the stored value (`TransformConcurrentReadTests`).
 

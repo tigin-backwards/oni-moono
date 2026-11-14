@@ -80,13 +80,17 @@ main menu start and after loads, conversions and deletions.
 
 **A game bug that multiplies the colony cost.** `AddColonyToList` adds its `ShowColony` handler
 to the pooled row's button with `+=` and never clears it. The row's cloud and local buttons are
-cleared; `Button` is not. Every `RefreshColonyList` within one opening of the screen (each Load
-more, a conversion between cloud and local) adds another handler to the same rows. After k
-Load more clicks, clicking a colony on an earlier page runs `ShowColony` k + 1 times in that
-frame: (k + 1) x 715 rows are instantiated, and all but the last set are destroyed at the end
-of the frame, after that frame's layout has already processed all of them. Closing the screen
-destroys it (`KScreen.Deactivate`), so the next opening starts again with one handler. The
-cost is measured below. To reach the user's tenth page takes nine Load more clicks.
+cleared; `Button` is not.
+
+- Every `RefreshColonyList` within one opening of the screen (each Load more, a conversion
+  between cloud and local) adds another handler to the same rows.
+- After k Load more clicks, clicking a colony on an earlier page runs `ShowColony` k + 1 times
+  in that frame. (k + 1) x 715 rows are instantiated, and all but the last set are destroyed at
+  the end of the frame, after that frame's layout has already processed all of them.
+- Closing the screen destroys it (`KScreen.Deactivate`), so the next opening starts again with
+  one handler.
+
+The cost is measured below. To reach the user's tenth page takes nine Load more clicks.
 
 ## Method
 
@@ -384,16 +388,24 @@ decodes them; the corpus test also ran over the user's previews, read only (belo
 
 ### The memos' exactness
 
-With `ONI_TWEAK_VERIFY=1` every header served from the memo or parsed from the read-ahead is
-checked against the game's own `LoadHeader`, and every kept downscaled preview against the
-game's own `LoadPreviewTexture` of the same bytes: 0 of 92,720 headers (5 refreshes of 18,544
-reads: 13,908 from the memo and 4,638 read ahead each) and 0 of 64 previews differed. The log's
-warnings (`Corrupted save file`, twice a refresh for the empty save) are the same lines in the
-same order. `HeaderReadsTests` model the refresh with the game's parse and warnings: the same
-colonies, order and log lines with and without the tweak over a tree with an empty file, a
-truncated header, a header of size 0, negative and huge sizes, a too-old save, bad JSON and
-pre-7.14 world traits; each caller's own copy; files rewritten between passes and between
-refreshes read again.
+With `ONI_TWEAK_VERIFY=1`, two checks run:
+
+- Every header served from the memo or parsed from the read-ahead is checked against the game's
+  own `LoadHeader`. 0 of 92,720 headers differed (5 refreshes of 18,544 reads: 13,908 from the
+  memo and 4,638 read ahead each).
+- Every kept downscaled preview is checked against the game's own `LoadPreviewTexture` of the
+  same bytes. 0 of 64 previews differed.
+
+The log's warnings (`Corrupted save file`, twice a refresh for the empty save) are the same
+lines in the same order.
+
+`HeaderReadsTests` model the refresh with the game's parse and warnings. They cover:
+
+- The same colonies, order and log lines with and without the tweak, over a tree with an empty
+  file, a truncated header, a header of size 0, negative and huge sizes, a too-old save, bad
+  JSON and pre-7.14 world traits.
+- Each caller's own copy.
+- Files rewritten between passes and between refreshes, which are read again.
 
 ### Timings
 
@@ -471,20 +483,25 @@ colony view is static between scrolls). The merge cache (`merged`, keyed by a ru
 renderer) would key on the run's members instead.
 
 **Why it stops here.** This changes the order of every canvas's draws on every screen, the
-in-game UI included, so its proof is screenshots of every UI spec against the original's and
-the frame-time cost of the layering on the busiest screens; and the gain is the colony view of
-very large colonies (ours 34-47 ms a frame there on the WSL GPU, 4-12 ms in the list). It is a
-large engine change for its own branch, not part of this one.
+in-game UI included. Its proof is screenshots of every UI spec against the original's, and the
+frame-time cost of the layering on the busiest screens. The gain is the colony view of very
+large colonies (ours 34-47 ms a frame there on the WSL GPU, 4-12 ms in the list). It is a large
+engine change for its own branch, not part of this one.
 
 **Built (2026-11-11).** `CanvasLayering` and `CanvasSystem.OrderFor` (ARCHITECTURE, "UI
-rendering"), with these changes to the design: a draw's pixels are the pixel centres its bounds
-reach on the screen, so a draw off the screen (most of the 715 rows, under a stencil Mask, are
-drawn and not culled) reaches none and joins the first draw of its state; the grid's cells hold
-the draws themselves and each overlap is tested exactly (a cell's highest layer per state would
-make neighbouring rows overlap); clip rects do not narrow the bounds (a clipped fragment of
-alpha 0 still runs); nested canvas spaces are part of the state rather than barriers; the kept
-order is checked against each draw's mesh bounds, not its version (a hovered row is baked again
-every frame). Same tree, U60 762230, ours on Mesa d3d12, a stopwatch hold of 120 frames:
+rendering"), with these changes to the design:
+
+- A draw's pixels are the pixel centres its bounds reach on the screen. So a draw off the screen
+  reaches none and joins the first draw of its state. Most of the 715 rows, under a stencil
+  Mask, are such draws: drawn and not culled.
+- The grid's cells hold the draws themselves, and each overlap is tested exactly. A cell's
+  highest layer per state would make neighbouring rows overlap.
+- Clip rects do not narrow the bounds: a clipped fragment of alpha 0 still runs.
+- Nested canvas spaces are part of the state rather than barriers.
+- The kept order is checked against each draw's mesh bounds, not its version: a hovered row is
+  baked again every frame.
+
+Same tree, U60 762230, ours on Mesa d3d12, a stopwatch hold of 120 frames:
 
 | screen | draws, hierarchy order | draws, reordered | frame, in order | frame, reordered |
 |---|---|---|---|---|
