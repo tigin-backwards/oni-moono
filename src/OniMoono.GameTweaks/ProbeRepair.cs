@@ -81,7 +81,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "System.Void Grid::UnregisterTubeEntrance(System.Int32)")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void Grid::UpdateBuildMask(System.Int32,Grid/BuildFlags,System.Boolean)")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void Grid::UpdateNavMask(System.Int32,Grid/NavFlags,System.Boolean)")]
-    [GameMember(GameUse.Postfix, "System.Void Grid::UpdateSuitMarker(System.Int32,System.Int32,System.Int32,Grid/SuitMarker/Flags,PathFinder/PotentialPath/Flags)")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void Grid::UpdateSuitMarker(System.Int32,System.Int32,System.Int32,Grid/SuitMarker/Flags,PathFinder/PotentialPath/Flags)")]
     [GameMember(GameUse.Uses, "System.Collections.Concurrent.ConcurrentDictionary`2<System.Int32,Grid/Restriction> Grid::restrictions")]
     [GameMember(GameUse.Uses, "System.Collections.Concurrent.ConcurrentDictionary`2<System.Int32,Grid/SuitMarker> Grid::suitMarkers")]
     [GameMember(GameUse.Uses, "System.Collections.Concurrent.ConcurrentDictionary`2<System.Int32,Grid/TubeEntrance> Grid::tubeEntrances")]
@@ -178,9 +178,9 @@ namespace OniMoono.GameTweaks
                 harmony.Patch(AccessTools.Method(typeof(Grid), name), postfix: M(nameof(DoorPost)));
             foreach (var name in new[] { nameof(Grid.RegisterTubeEntrance), nameof(Grid.UnregisterTubeEntrance), nameof(Grid.ReserveTubeEntrance),
                          nameof(Grid.SetTubeEntranceReservationCapacity), nameof(Grid.SetTubeEntranceOperational),
-                         nameof(Grid.RegisterSuitMarker), nameof(Grid.UnregisterSuitMarker), nameof(Grid.ReserveSuit), nameof(Grid.ReserveEmptyLocker),
-                         nameof(Grid.UpdateSuitMarker) })
+                         nameof(Grid.RegisterSuitMarker), nameof(Grid.UnregisterSuitMarker), nameof(Grid.ReserveSuit), nameof(Grid.ReserveEmptyLocker) })
                 harmony.Patch(AccessTools.Method(typeof(Grid), name), postfix: M(nameof(SourcePost)));
+            harmony.Patch(AccessTools.Method(typeof(Grid), nameof(Grid.UpdateSuitMarker)), prefix: M(nameof(SuitMarkerPre)), postfix: M(nameof(SuitMarkerPost)));
             harmony.Patch(AccessTools.Method(typeof(Game), "StepTheSim"), postfix: M(nameof(StepTheSimPost)));
         }
 
@@ -695,6 +695,35 @@ namespace OniMoono.GameTweaks
         }
 
         static void SourcePost(int cell) => feed?.Add(ProbeChange.Src, cell);
+
+        /// Grid.UpdateSuitMarker: every suit marker calls it every frame (SuitMarker.Update),
+        /// paused too, mostly with the values the marker already has. A call that leaves the
+        /// marker as it was changes nothing a probe reads and is no change; recorded, each made
+        /// a batch of its own for the next probe (0.5 KB a frame on a paused colony with one
+        /// checkpoint). The marker is compared whole, before and after the call, whatever the
+        /// call writes; a marker with other fields than the six compared (a later game build)
+        /// is recorded at every call, as before.
+        static readonly bool suitMarkerComparable = typeof(Grid.SuitMarker).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Length == 6;
+
+        static void SuitMarkerPre(int cell, out Grid.SuitMarker __state)
+        {
+            __state = default;
+            if (feed != null && suitMarkerComparable) Grid.suitMarkers.TryGetValue(cell, out __state);
+        }
+
+        static void SuitMarkerPost(int cell, Grid.SuitMarker __state)
+        {
+            var f = feed;
+            if (f == null) return;
+            if (suitMarkerComparable && Grid.suitMarkers.TryGetValue(cell, out var now)
+                && now.suitCount == __state.suitCount && now.lockerCount == __state.lockerCount && now.flags == __state.flags && now.pathFlags == __state.pathFlags
+                && ReferenceEquals(now.minionIDsWithSuitReservations, __state.minionIDsWithSuitReservations)
+                && ReferenceEquals(now.minionIDsWithEmptyLockerReservations, __state.minionIDsWithEmptyLockerReservations)
+                // No marker before the call (the default, without its sets): a change.
+                && now.minionIDsWithSuitReservations != null)
+                return;
+            f.Add(ProbeChange.Src, cell);
+        }
 
         static unsafe void StepTheSimPost(Sim.GameDataUpdate* __result)
         {
