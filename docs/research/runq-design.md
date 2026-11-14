@@ -23,16 +23,26 @@ days:
 | check.sh tests were flaky under CPU load from perf runs | check.sh is not scheduled against anything |
 | Agents killed their own shells with `pkill -f` | Killing by pattern is the only tool they have |
 
-**Proposal.** One small daemon, `runqd`, owns every shared resource. Agents never take locks:
-they hand a command to `scripts/runq`, which queues it, starts it when its resources are free,
-isolates it, kills it by its cgroup and run home when it ends or hangs, and wakes the caller on
-completion. Resources are granted all at once, so no job ever holds one lock while waiting for
-another. Python 3 standard library only (sqlite3, socket, selectors, json, subprocess); systemd
-user units for supervision.
+**Proposal.** One small daemon, `runqd`, owns every shared resource. Agents never take locks.
+They hand a command to `scripts/runq`, which:
 
-**Phases.** (1) core: run/submit/wait, resources, priorities, leases, isolation, status, legacy
-bridge, migration shims: about 6 agent-days. (2) status page and history: 1 day. (3) worktree
-registry: 1.5 days. (4) release freeze and merge queue: 1.5 days. Section 13 has the details.
+- Queues it.
+- Starts it when its resources are free.
+- Isolates it.
+- Kills it by its cgroup and run home when it ends or hangs.
+- Wakes the caller on completion.
+
+Resources are granted all at once, so no job ever holds one lock while waiting for another.
+Python 3 standard library only (sqlite3, socket, selectors, json, subprocess); systemd user
+units for supervision.
+
+**Phases.** Section 13 has the details.
+
+1. Core (run/submit/wait, resources, priorities, leases, isolation, status, legacy bridge,
+   migration shims): about 6 agent-days.
+2. Status page and history: 1 day.
+3. Worktree registry: 1.5 days.
+4. Release freeze and merge queue: 1.5 days.
 
 ## 2. What exists now
 
@@ -165,9 +175,16 @@ runq beat                              inside a job: a heartbeat (6.3)
 dies can `runq wait ID` later. A client that disconnects does not cancel the job unless it
 passed `--cancel-on-detach`.
 
-Exit codes: the command's own code, or 124 timeout, 137 killed (cancel or idle), 75 refused at
-submit (a cap, 4.3), 76 lost (a WSL restart, 10), 69 no daemon. The output folder is
-`~/oni-runs/<id>/out`, exported as `RUNQ_OUT`.
+Exit codes:
+
+- The command's own code.
+- 124: timeout.
+- 137: killed (cancel or idle).
+- 75: refused at submit (a cap, 4.3).
+- 76: lost (a WSL restart, 10).
+- 69: no daemon.
+
+The output folder is `~/oni-runs/<id>/out`, exported as `RUNQ_OUT`.
 
 ### 4.2 Options
 
@@ -215,8 +232,9 @@ direction, which fixes the flaky CPU-sensitive tests (section 9.1).
 
 ### 4.4 Phases
 
-Some runs need different resources in different stages: qa.sh needs a player for dogfood and
-the whole machine for its perf stage; alloc-compare.py needs the perf queue only for its launch.
+Some runs need different resources in different stages. qa.sh needs a player for dogfood and
+the whole machine for its perf stage. alloc-compare.py needs the perf queue only for its launch.
+
 A job may call `runq phase NEEDS` from inside. The daemon releases everything the job holds,
 then queues the new request with the job's priority and its original submit time, so it keeps
 its place in line. The job's process waits holding nothing. This is the only way to change
@@ -349,10 +367,14 @@ runq wt import                       record existing worktrees as state legacy
 - States: `active`, `released`, `legacy` (found by `import`, owner unknown), `missing` (the
   folder is gone; `git worktree prune` candidate).
 - A worktree is **pinned** while any queued or running job has its cwd inside it.
-- `gc` removes a worktree only when all hold: state `released`; not pinned; `git status
-  --porcelain` empty (ignored `out/` content aside); HEAD reachable from a ref that outlives it
-  (a remote-tracking branch, or a local branch that `git worktree remove` keeps). It never
-  touches `legacy` worktrees, the main checkouts (`oni-brutal`, `oni-brutal-u60`,
+- `gc` removes a worktree only when all hold:
+  - Its state is `released`.
+  - It is not pinned.
+  - `git status --porcelain` is empty (ignored `out/` content aside).
+  - HEAD is reachable from a ref that outlives it (a remote-tracking branch, or a local branch
+    that `git worktree remove` keeps).
+
+  It never touches `legacy` worktrees, the main checkouts (`oni-brutal`, `oni-brutal-u60`,
   `oni-brutal-qa`), or `.claude/worktrees/` (the Agent harness manages those). It lists what it
   skipped and why.
 - Both repositories: `oni-brutal-u60` and `oni-brutal-qa` are worktrees of the same repository
