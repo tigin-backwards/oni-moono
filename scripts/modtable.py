@@ -838,15 +838,17 @@ Worldgen mods are checked for working content, not identical layouts.
 **Columns:**
 - **Loads:** reaches the main menu with no error of ours.
 - **Colony:** loaded with its batch of about 25 mods and played 90 seconds of a Spaced Out colony,
-  with no error of ours: a late-game colony with every DLC (cycle 17,000+) for ranks 1–500, a
-  mid-game colony from 501.
+  with no error of ours. Ranks 1–500 use a late-game colony with every DLC (cycle 17,000+),
+  ranks from 501 a mid-game colony.
 - **Played:** a save played with the mod, its screens and logs compared with the original player.
   ⚠️ means played with a small known difference, its issue linked.
 
-"No error of ours" means no error that the original player's log lacks. ❌ means the mod fails the
-same way in the original player (it needs an update from its author). Every run uses the
-Workshop build of each mod, installed as a local mod (the closest to a subscription; Dev-folder
-installs get developer checks subscribers never see).
+**Reading the table:**
+- **"No error of ours"** means no error that the original player's log lacks.
+- **❌** means the mod fails the same way in the original player. It needs an update from its
+  author.
+- **Installs:** every run uses the Workshop build of each mod, installed as a local mod. That is
+  the closest to a subscription: Dev-folder installs get developer checks subscribers never see.
 
 | Rank | Mod | Loads | Colony | Played | Notes |
 |---|---|---|---|---|---|
@@ -857,25 +859,26 @@ installs get developer checks subscribers never see).
 ## Known differences
 
 - **Particle features no game data uses** (collision, lights, noise, clamp velocity, sub
-  emitters, some shapes) are not simulated, and are logged; mods' effects (Capsule 2.0) look
+  emitters, some shapes) are not simulated, and are logged. Mods' effects (Capsule 2.0) look
   simpler.
 - **LineRenderer:** rounded corners and caps are drawn square.
 - **A mod class missing a method of a game interface** (built for an older game) loads, as on
-  Mono; where Mono fails as soon as the game checks the class against the interface, ours fails
-  only when the missing method is called (ARCHITECTURE D22).
-- **A game class's nested type a mod names that the game no longer has.** Mono binds it to the
-  class's last nested type when something listed that class's nested types before (its log says
-  "TypeRef ResolutionScope not yet handled") and fails it otherwise. The game lists those of its
-  strings (STRINGS) before it loads mods, and ours binds a missing one there as Mono does
-  (ARCHITECTURE D32: U&F-Translate Fix); elsewhere ours fails it, where Mono binds it only after
-  something (a mod's reflection, say) listed the class's nested types.
+  Mono. Mono fails as soon as the game checks the class against the interface. Ours fails only
+  when the missing method is called (ARCHITECTURE D22).
+- **A game class's nested type a mod names that the game no longer has:**
+  - Mono binds it to the class's last nested type when something listed that class's nested
+    types before (its log says "TypeRef ResolutionScope not yet handled"), and fails it
+    otherwise.
+  - The game lists those of its strings (STRINGS) before it loads mods, and ours binds a missing
+    one there as Mono does (ARCHITECTURE D32: U&F-Translate Fix).
+  - Elsewhere ours fails it, where Mono binds it only after something (a mod's reflection, say)
+    listed the class's nested types.
 - **Transpilers on Unity's UI code** (uGUI, TextMeshPro) are not supported: they need the exact
   IL of Unity's builds, which ours does not have. Ordinary Harmony patches on those classes
   work. Text Input Hotkeys transpiles TMP_InputField.Backspace.
-- **Out-of-range NativeArray access:** a write is dropped and a read gives the default value,
-  and copies and sub-arrays keep to the part within the arrays, where Unity's release player
-  reads or writes the memory before or past them (ARCHITECTURE D46). Affected: Zoned Auto
-  Sweeper.
+- **Out-of-range NativeArray access:** a write is dropped, a read gives the default value, and
+  copies and sub-arrays keep to the part within the arrays. Unity's release player reads or
+  writes the memory before or past them (ARCHITECTURE D46). Affected: Zoned Auto Sweeper.
 
 ## Known interactions with Moono's game tweaks
 
