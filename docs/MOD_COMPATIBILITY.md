@@ -1,14 +1,19 @@
 # Mod compatibility
 
-Which Workshop mods have been tried in this player, by popularity in
-[onimaxxing's catalog](https://onimaxxing.com/mods): the 750 most-subscribed, then down to
-rank 2274 those the catalog flags neither as broken (not loading, crashing at startup) nor
-as malware, the 2000 that work in the original game by the catalog's analysis; and mods players
-reported. The rest of the U60 catalog is listed with its U60 ranks, tried on U60 (builds 761015
-and 761211), less the mods it flags as malware; those it flags as broken by the update are listed
-from its analysis, not run here.
-Worldgen mods are played with functional expectations (their worlds generate with their content),
-not identical layouts.
+Workshop mods tried in this player, ranked by subscribers in
+[onimaxxing's catalog](https://onimaxxing.com/mods).
+
+- **Ranks 1–750:** every mod.
+- **Ranks 751–2274:** every mod the catalog doesn't flag as broken or as malware. With the
+  first 750, that is about 2,000 mods that work in the original game.
+- **Mods players reported.**
+- **U60 public test:** the rest of its catalog, by U60 rank, tried on builds 761015 and 761211
+  (not run again on 763023). Mods the catalog flags as malware are left out; those it flags as
+  broken by the update are listed from its analysis, not run.
+- **Broken by U60:** Fast Track (GitHub) and 14 Workshop mods use game code U60 removed
+  (`LocText.ModifyLinkStrings`, `PlantAttributes.YieldAmount`). Their notes say so.
+
+Worldgen mods are checked for working content, not identical layouts.
 
 **Columns:**
 - **Loads:** reaches the main menu with no error of ours.
@@ -3115,29 +3120,22 @@ installs get developer checks subscribers never see).
 
 ## Known interactions with Moono's game tweaks
 
-Some of Moono's [tweaks](TWEAKS.md) do work the game's code would otherwise do, and a few mods
-patch that same code. With these mods the game behaves differently from the original unless you
-turn the named tweak off in **Moono Tweaks** on the main menu. Each applies on U59 and U60. The
-full audit, per tweak and per patched method, is in
+A few mods patch game code that one of Moono's [tweaks](TWEAKS.md) replaces. With these, the mod
+behaves differently unless you turn the tweak off in **Moono Tweaks** on the main menu. No other
+conflict is known: most tweaks turn themselves off when a mod patches the same code, and
+**Moono Tweaks** marks the rows a mod overlaps
+([details](TWEAKS.md#mods-that-patch-the-same-code)). The audit behind this list is
 [research/tweak-step-aside-audit.md](research/tweak-step-aside-audit.md).
 
-- **Festive Halloween Spices** with *Faster save writing* (on by default): the Halloween spices
-  are written into the save, which the mod keeps out of it so the save still loads without the
-  mod. Turn off *Faster save writing*.
-- **更好的存档 (BetterSave)** with *Faster save writing*: the mod's own save writer is not used
-  (the save is the same). With *No cleanup pause when saving* (on by default), its option to
-  clean up memory after a save has no effect. Turn off the tweak if you want that part of the
-  mod.
-- **Fast Track** (GitHub) with its *Disable sound* option on, and *Faster animation events* (on
-  by default): sound stays off, but the animations' sound events still run, costing the time the
-  option saves. Turn off *Faster animation events*.
-- **Debug Console** with *Faster worker threads* (on by default): errors in the game's worker
-  threads go to the game's log, not to the mod's console. Turn off *Faster worker threads*.
-- **系统性能观察器 (OniPerformanceObserver)** with *Faster worker threads*: the mod measures no
-  worker-thread jobs. Turn off *Faster worker threads* while profiling.
-- **Fast Track** with *Critter and dupe brain updates capped* (off by default): Fast Track's own
-  faster brain updates (part of its pickup optimisations, on by default) do not run; the tweak's
-  run instead. Leave the tweak off with Fast Track.
-- **Cooperative Colonies** with *Critter and dupe brain updates capped* or *Lazy unseen conveyor
-  items* (both off by default): the mod's lockstep timing of brain updates and of conveyor items
-  is skipped, so a session can fall out of step. Leave both tweaks off in a session.
+- **Festive Halloween Spices:** its spices are written into the save; the mod keeps them out so
+  the save loads without it. Turn off *Faster save writing*.
+- **更好的存档 (BetterSave):** the mod's save writer isn't used (the save is the same), and its
+  option to clean up memory after a save does nothing. Turn off *Faster save writing* for the
+  first, *No cleanup pause when saving* for the second.
+- **Debug Console:** errors on the game's worker threads go to the game's log, not the mod's
+  console. Turn off *Faster worker threads*.
+- **系统性能观察器 (OniPerformanceObserver):** it measures no worker-thread jobs. Turn off
+  *Faster worker threads* while profiling.
+- **Cooperative Colonies:** with *Critter and dupe brain updates capped at 30 updates a second*
+  or *Lazy unseen conveyor items* on, its lockstep timing is skipped and a session can fall out
+  of step. Leave both off (the default).
