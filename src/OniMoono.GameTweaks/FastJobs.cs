@@ -36,12 +36,13 @@ namespace OniMoono.GameTweaks
             => harmony.Patch(AccessTools.Method(typeof(JobManager), nameof(JobManager.Run)), prefix: new HarmonyMethod(typeof(FastJobs), nameof(Run)));
 
         /// One Run: its items, the next index to take and how many have not finished.
-        sealed class Batch
+        sealed class Batch : HeldBatch
         {
             public IWorkItemCollection Items;
             public int Count, Next = -1, Remaining;
             public int[] Ran; // verify mode: runs per index
-            /// Set by whichever thread finishes the last item (one per run, so a late signal
+            /// Set by whichever thread finishes the last item (a batch serves one run at a time
+            /// and the next takes it only when nothing holds it, BatchHandOver, so a late signal
             /// from an earlier run cannot end this one).
             public readonly ManualResetEventSlim Done = new ManualResetEventSlim(false);
         }
@@ -50,12 +51,13 @@ namespace OniMoono.GameTweaks
         {
             readonly WorkerWakes wakes;
             public readonly int Workers;
-            volatile Batch current;
+            readonly BatchHandOver<Batch> batches;
 
             public Scheduler(int workers)
             {
                 Workers = workers;
                 wakes = new WorkerWakes(workers);
+                batches = new BatchHandOver<Batch>(workers);
                 for (int i = 0; i < workers; i++)
                 {
                     int index = i + 1; // the caller is index 0, as in JobManager
@@ -69,8 +71,10 @@ namespace OniMoono.GameTweaks
                 while (true)
                 {
                     wakes.Wait(index - 1);
-                    var batch = current;
-                    if (batch != null) Work(batch, index);
+                    var batch = batches.Take(index - 1);
+                    if (batch == null) continue;
+                    Work(batch, index);
+                    batches.Release(batch);
                 }
             }
 
@@ -102,23 +106,37 @@ namespace OniMoono.GameTweaks
             {
                 int count = items.Count;
                 if (count <= 0) return;
-                var batch = new Batch { Items = items, Count = count, Remaining = count, Ran = verify ? new int[count] : null };
-                current = batch;
                 int helpers = Math.Min(Workers, count - 1);
+                var batch = batches.Spare();
+                if (batch == null) batch = new Batch();
+                else batch.Done.Reset();
+                batch.Items = items;
+                batch.Count = count;
+                batch.Next = -1;
+                batch.Ran = verify ? new int[count] : null;
+                Volatile.Write(ref batch.Remaining, count);
+                batches.Hand(batch, helpers);
                 if (helpers > 0) wakes.Wake(helpers);
-                Work(batch, 0);
-                if (Volatile.Read(ref batch.Remaining) != 0)
+                try
                 {
-                    // Frame stats: the caller's wait for the workers (GameFrameStats).
-                    long waiting = GameFrameStats.OnMain ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
-                    batch.Done.Wait();
-                    if (waiting != 0) GameFrameStats.AddJobWait(waiting);
+                    Work(batch, 0);
+                    if (Volatile.Read(ref batch.Remaining) != 0)
+                    {
+                        // Frame stats: the caller's wait for the workers (GameFrameStats).
+                        long waiting = GameFrameStats.OnMain ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+                        batch.Done.Wait();
+                        if (waiting != 0) GameFrameStats.AddJobWait(waiting);
+                    }
+                    if (batch.Ran == null) return;
+                    runs++;
+                    for (int k = 0; k < count; k++)
+                        if (batch.Ran[k] != 1) { global::Debug.Log($"{Name}: item {k} of a {items.GetType().Name} ran {batch.Ran[k]} times ({++wrong})"); break; }
+                    if (runs % 20000 == 0) global::Debug.Log($"{Name}: {runs} runs checked, {wrong} wrong");
                 }
-                if (batch.Ran == null) return;
-                runs++;
-                for (int k = 0; k < count; k++)
-                    if (batch.Ran[k] != 1) { global::Debug.Log($"{Name}: item {k} of a {items.GetType().Name} ran {batch.Ran[k]} times ({++wrong})"); break; }
-                if (runs % 20000 == 0) global::Debug.Log($"{Name}: {runs} runs checked, {wrong} wrong");
+                finally
+                {
+                    batches.Release(batch);
+                }
             }
         }
 
