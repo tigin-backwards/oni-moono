@@ -185,8 +185,14 @@ namespace OniMoono.Engine
                 int current = parent.Children.IndexOf(t);
                 index = Math.Clamp(index, 0, parent.Children.Length - 1);
                 if (current == index) return;
-                RemoveChild(parent, t);
-                InsertChild(parent, t, index);
+                // One copy of the parent's list, not the two a removal and an insertion make
+                // (a world-space canvas with thousands of icons, each sent to the front as it
+                // is made); the rest as those two leave it.
+                parent.MoveChild(current, index);
+                RectTransformNative.RectEpoch += 2; // as the two parent links did
+                Touch(parent);
+                Touch(parent);
+                ChildrenRestructured(parent, t);
                 t.SiblingOrderChangedInternal();
                 Messages.SendToComponents(parent.GameObject, s => s.OnTransformChildrenChanged);
                 return;

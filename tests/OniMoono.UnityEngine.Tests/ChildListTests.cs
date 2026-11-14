@@ -19,6 +19,39 @@ namespace OniMoono.Tests
             return names;
         }
 
+        /// A sibling move is one copy of the list: every from/to pair leaves the order a removal
+        /// and an insertion would, and a list read before the move keeps what it had.
+        [Fact]
+        public void SiblingMovesKeepTheOrderOfRemoveAndInsert()
+        {
+            for (int n = 1; n <= 9; n++)
+                for (int from = 0; from < n; from++)
+                    for (int to = 0; to < n; to++)
+                    {
+                        var parent = new GameObject("parent").transform;
+                        var expected = new List<string>();
+                        Transform moved = null;
+                        for (int i = 0; i < n; i++)
+                        {
+                            var t = new GameObject("c" + i).transform;
+                            t.SetParent(parent, false);
+                            expected.Add(t.name);
+                            if (i == from) moved = t;
+                        }
+                        var before = parent.TransformNative.Children;
+                        var beforeNames = expected.ToArray();
+                        moved.SetSiblingIndex(to);
+                        expected.RemoveAt(from);
+                        expected.Insert(to, moved.name);
+                        Assert.Equal(expected.ToArray(), Names(parent));
+                        Assert.Equal(to, moved.GetSiblingIndex());
+                        Assert.Same(parent, moved.parent);
+                        Assert.Equal(n, before.Length);
+                        for (int i = 0; i < n; i++) Assert.Equal(beforeNames[i], before[i].GameObject.Name);
+                        Object.DestroyImmediate(parent.gameObject);
+                    }
+        }
+
         [Fact]
         public void AppendsInsertsAndRemovalsKeepSiblingOrder()
         {

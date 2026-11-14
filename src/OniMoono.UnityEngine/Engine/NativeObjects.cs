@@ -238,6 +238,31 @@ namespace OniMoono.Engine
             childCount = n - 1;
         }
 
+        /// Moves the child at `from` to `to` (both 0 to Children.Length - 1) in one new array:
+        /// what RemoveChildAt and InsertChildAt make of it, with one copy instead of two.
+        public void MoveChild(int from, int to)
+        {
+            int n = childCount;
+            var items = childArray;
+            if (VerifyingChildLists) childListCopies++;
+            var moved = new TransformNative[items.Length];
+            var child = items[from];
+            if (from < to)
+            {
+                System.Array.Copy(items, 0, moved, 0, from);
+                System.Array.Copy(items, from + 1, moved, from, to - from);
+                System.Array.Copy(items, to + 1, moved, to + 1, n - to - 1);
+            }
+            else
+            {
+                System.Array.Copy(items, 0, moved, 0, to);
+                System.Array.Copy(items, to, moved, to + 1, from - to);
+                System.Array.Copy(items, from + 1, moved, from + 1, n - from - 1);
+            }
+            moved[to] = child;
+            childArray = moved;
+        }
+
         /// Puts `replacement` in `child`'s place.
         public void ReplaceChild(TransformNative child, TransformNative replacement)
         {
