@@ -48,14 +48,24 @@ namespace UnityEngine.UI
             inLayout = true;
             layoutQueue.Iterating = true;
             layoutQueue.SortBy(Depth);
-            for (int phase = (int)CanvasUpdate.Prelayout; phase <= (int)CanvasUpdate.PostLayout; phase++)
-                for (int i = 0; i < layoutQueue.Count; i++)
-                {
-                    var e = layoutQueue[i];
-                    if (e == null) continue;
-                    try { e.Rebuild((CanvasUpdate)phase); }
-                    catch (Exception ex) { Debug.LogException(ex, e.transform); }
-                }
+            // The queued layout roots, for the rebuilds of the roots above them (LayoutRebuilder).
+            var outerRoots = LayoutRebuilder.BeginPass(layoutQueue);
+            try
+            {
+                for (int phase = (int)CanvasUpdate.Prelayout; phase <= (int)CanvasUpdate.PostLayout; phase++)
+                    for (int i = 0; i < layoutQueue.Count; i++)
+                    {
+                        var e = layoutQueue[i];
+                        if (e == null) continue;
+                        try
+                        {
+                            if (phase == (int)CanvasUpdate.Layout && e is LayoutRebuilder rebuilder) rebuilder.RebuildQueued();
+                            else e.Rebuild((CanvasUpdate)phase);
+                        }
+                        catch (Exception ex) { Debug.LogException(ex, e.transform); }
+                    }
+            }
+            finally { LayoutRebuilder.EndPass(outerRoots); }
             for (int i = 0; i < layoutQueue.Count; i++)
                 layoutQueue[i]?.LayoutComplete();
             layoutQueue.Iterating = false;

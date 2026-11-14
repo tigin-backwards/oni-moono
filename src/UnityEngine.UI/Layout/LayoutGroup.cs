@@ -12,7 +12,7 @@ namespace UnityEngine.UI
         protected DrivenRectTransformTracker m_Tracker;
         Vector2 totalMin, totalPreferred, totalFlexible;
         [System.NonSerialized] readonly List<RectTransform> children = new();
-        static readonly List<Component> ignorers = new();
+        static readonly List<ILayoutIgnorer> ignorers = new();
 
         protected LayoutGroup()
         {
@@ -44,10 +44,10 @@ namespace UnityEngine.UI
             for (int i = 0; i < rt.childCount; i++)
             {
                 if (rt.GetChild(i) is not RectTransform child || !child.gameObject.activeInHierarchy) continue;
-                child.GetComponents(typeof(ILayoutIgnorer), ignorers);
+                child.GetComponents(ignorers);
                 bool included = ignorers.Count == 0;
                 foreach (var c in ignorers)
-                    if (!((ILayoutIgnorer)c).ignoreLayout)
+                    if (!c.ignoreLayout)
                     {
                         included = true;
                         break;
@@ -81,9 +81,23 @@ namespace UnityEngine.UI
 
         protected override void OnDidApplyAnimationProperties() => SetDirty();
 
-        protected float GetTotalMinSize(int axis) => totalMin[axis];
-        protected float GetTotalPreferredSize(int axis) => totalPreferred[axis];
-        protected float GetTotalFlexibleSize(int axis) => totalFlexible[axis];
+        protected float GetTotalMinSize(int axis)
+        {
+            if (LayoutRebuilder.Verifying) LayoutRebuilder.VerifyRead(rectTransform);
+            return totalMin[axis];
+        }
+
+        protected float GetTotalPreferredSize(int axis)
+        {
+            if (LayoutRebuilder.Verifying) LayoutRebuilder.VerifyRead(rectTransform);
+            return totalPreferred[axis];
+        }
+
+        protected float GetTotalFlexibleSize(int axis)
+        {
+            if (LayoutRebuilder.Verifying) LayoutRebuilder.VerifyRead(rectTransform);
+            return totalFlexible[axis];
+        }
 
         /// Where content of the given size starts on the axis: after the leading padding, plus
         /// the alignment's share of the space left over.
