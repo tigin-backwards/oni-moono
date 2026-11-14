@@ -138,9 +138,8 @@ still calls.
   `tools/RailLoopTestMod`): ten items (ores, a ration, meal lice, a hatch egg) round a closed
   loop through two bridges and a meter valve with a limit of 600. Both runs stall at 170 game
   seconds with the same 11 items (one ore split by the valve) on the same tiles with the same
-  masses (54 kg), and the valve at 600. The items' temperatures sum to 3,242.42 K without the
-  tweak and 3,242.36 K with it (0.005 K an item; whether two runs without the tweak differ as
-  much was not measured). With the tweak and verify: 173 direct moves, 172 round trips, 0 wrong.
+  masses (54 kg), and the valve at 600. The items' temperatures differ run to run in the
+  fourth decimal (below). With the tweak and verify: 173 direct moves, 172 round trips, 0 wrong.
 - **Unit tests** (`RailHandOffTests`): the hand-off on a fake rail.
 
 ## Cost (measured)
@@ -157,3 +156,68 @@ stopwatches around `SolidConduitFlow.Sim200ms` and `SolidConduitBridge.ConduitUp
 
 The bridge time left includes the 367 idle calls and their brackets. No Windows run was made,
 and no frame-rate claim: this is about 1.4 ms of each game second's heavy step.
+
+## Where the remaining bridge time goes (measured)
+
+One more launch with the tweak on, the same colony and brackets, plus stopwatches inside the
+tweak (local, not landed) and around what the bridges call. A stopwatch pair costs 0.09 µs. Per
+game second, 422 bridge calls:
+
+| Part | Calls a game second | µs each | ms a game second |
+|---|---|---|---|
+| Idle bridge calls (the game's checks; includes the bracket) | 367 | 0.62 | 0.23 |
+| Direct moves | 49 | 15.3 | 0.75 |
+| Partial moves, the game's path: `Pickupable.Take` splits an item (a new object) | 5.9 | 91 | 0.54 |
+| ... and their `AddPickupable` | 5.9 | 5.3 | 0.03 |
+| `LimitValve.OnMassTransfer` (meter valves' counts and meters) | 27 | 7.5 | 0.20 |
+| Moves left to the game's round trip (not eligible, undiscovered, unusual state) | 0 | | 0 |
+
+A direct move's 15.3 µs:
+
+| Step | µs |
+|---|---|
+| `Pickupable.UpdateCachedCell`: the stored-items partitioner entry, the offset table's two partitioner entries and its offsets for the new cell, instant-reachability's index | 8.8 |
+| `SetContents` (parent, position, scene layer) | 1.9 |
+| The egg's two notices (averaged over all moves; none for other items) | 1.5 |
+| `NotifyChanged` (the pickupables-changed event) | 0.9 |
+| Whether the item is in the rails' usual state | 0.7 |
+| Cell-change monitor's two calls | 0.4 |
+| Emptying the cell, the overlay look | 0.4 |
+| Kind eligible and discovered (one dictionary lookup by prefab) | 0.3 |
+| Rotation | 0.1 |
+
+Nothing here was cut. Eligibility is already one lookup per prefab, the egg's handler runs only
+for eggs, and the overlay look is applied only with the overlay open. What is left is the
+filed cell:
+- Plain rail flow never updates it. Between hand-offs a rail item's `cachedCell`, its
+  partitioner entry and its offset table stay where the last hand-off left them, and only its
+  transform (and through the cell-change monitor its sim chunk) follows the rail.
+- A hand-off is different because the game's round trip files the item anew, and that state
+  stays: sweepers scan the stored-items partitioner by it, the reachability check and
+  instant-reachability's index read it.
+- Leaving out only the offset table's part would not save its work: the next reachability
+  check of the item computes the same table for the new cell.
+
+So the floor of a direct move is about 15 µs, against a liquid packet's array write: a rail item
+is a game object the rest of the game files by cell. The other 1 ms of the bridges' update is
+the game's own: idle checks, meter valves' counting, and partial moves that create an object.
+
+## The loop's temperatures, run to run
+
+The loop spec's sum of the eleven items' temperatures at the stall, U60 763023:
+
+| Run | Sum, K |
+|---|---|
+| off | 3,242.42 |
+| off again | 3,242.42 |
+| on (verify) | 3,242.36 |
+| on again (verify) | 3,242.42 |
+| on, U59 | 3,242.42 |
+
+Per item, for "off again" and "on again" (the test mod logs them since then): nine of the
+eleven are equal to the last digit; the 4 kg sandstone reads 294.86008 K off and 294.85992 K
+on, the 6 kg sandstone 294.75922 K and 294.75925 K. The two on runs differ from each other by
+more (0.06 K in the sum) than on differs from off, so the differences are run to run; the first
+off run's per-item values were not logged, so whether two off runs agree to the last digit is
+not known. An item's sim chunk follows its transform's cell at the next rendered frame, in
+both paths, so the heat exchanged depends on frame timing.

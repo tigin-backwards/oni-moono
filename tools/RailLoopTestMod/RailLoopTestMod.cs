@@ -53,6 +53,8 @@ namespace RailLoopTestMod
         public static int Items;
         public static float TotalMass, TemperatureSum, ValveAmount;
         public static string Digest = "";
+        /// Every rail tile's item and temperature, in loop order (logged with the digest; not part of it).
+        public static string Temperatures = "";
         internal static GameObject Valve;
 
         readonly List<int> cells = new List<int>();
@@ -194,6 +196,7 @@ namespace RailLoopTestMod
         void Read(SolidConduitFlow flow)
         {
             var text = new StringBuilder();
+            var temperatures = new StringBuilder();
             int items = 0;
             float mass = 0, temperature = 0;
             foreach (int cell in cells)
@@ -204,6 +207,7 @@ namespace RailLoopTestMod
                 items++;
                 mass += pe.Mass;
                 temperature += pe.Temperature;
+                temperatures.Append(pickupable.KPrefabID.PrefabTag.Name).Append(' ').Append(pe.Temperature.ToString("R", CultureInfo.InvariantCulture)).Append(';');
                 text.Append(pickupable.KPrefabID.PrefabTag.Name).Append(' ').Append(pe.Mass.ToString("R", CultureInfo.InvariantCulture)).Append(';');
             }
             ValveAmount = Valve.GetComponent<LimitValve>().Amount;
@@ -212,11 +216,12 @@ namespace RailLoopTestMod
             TotalMass = mass;
             TemperatureSum = temperature;
             Digest = text.ToString();
+            Temperatures = temperatures.ToString();
             unchanged = Digest == last ? unchanged + 1 : 0;
             last = Digest;
             bool stalled = unchanged >= 10 && ValveAmount >= ValveLimit;
             if (stalled && !Stalled)
-                global::Debug.Log($"[RailLoopTestMod] stalled after {GameClock.Instance.GetTime() - start:F0} s: {items} items, {mass.ToString("R", CultureInfo.InvariantCulture)} kg, temperatures {temperature:F2}, digest {Digest}");
+                global::Debug.Log($"[RailLoopTestMod] stalled after {GameClock.Instance.GetTime() - start:F0} s: {items} items, {mass.ToString("R", CultureInfo.InvariantCulture)} kg, temperatures {temperature:F2}, digest {Digest}; each: {Temperatures}");
             Stalled = stalled;
         }
     }
