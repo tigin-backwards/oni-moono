@@ -7,7 +7,7 @@ input rail tile to the output rail tile would not? If not, can a game tweak make
 
 **Verdict.** The round trip ends where it began, apart from eight things it leaves behind, all
 cheap to make by hand, and four pieces of bookkeeping that no gameplay reads. `direct-rail-bridges`
-(off by default) makes the move directly for the items the audit covers and leaves the rest to the
+(on by default since 2026-11-14, outside `exact`) makes the move directly for the items the audit covers and leaves the rest to the
 game. Sections: the audit, what the tweak does, verification, cost.
 
 ## Method
