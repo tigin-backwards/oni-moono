@@ -12,7 +12,8 @@ namespace PerfProbe
     /// button for NAME (its field name without `Info`: consumables, vitals, jobs, research,
     /// schedule, skills, reports, codex, starmap, clusterMap) and waits 300 frames; `close`
     /// closes the open one (as clicking its button again) and waits 60; `wait overlays` waits
-    /// for the overlay sweep (Overlays) to end, as opening a screen closes the overlay.
+    /// for the overlay sweep (Overlays) to end, as opening a screen closes the overlay;
+    /// `overlay NAME` switches to that overlay (`None` for none) and waits 300.
     static class Screens
     {
         /// Closes the dialogs in the way (KModalScreens), but not the management menu's own
@@ -65,6 +66,11 @@ namespace PerfProbe
                         break;
                     case "wait":
                         while (Overlays.Started && !Overlays.Done) yield return null;
+                        break;
+                    case "overlay":
+                        OverlayScreen.Instance.ToggleOverlay(words[1] == "None" ? OverlayModes.None.ID : new HashedString(words[1]), false);
+                        Debug.Log($"PERF screens overlay {words[1]} f{Time.frameCount}");
+                        for (int i = 0; i < 300; i++) yield return null;
                         break;
                     case "close":
                         ManagementMenu.Instance.CloseAll();
