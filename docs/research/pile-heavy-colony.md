@@ -104,7 +104,8 @@ merge.
   are read within the sim and within the rest, not across them.
 - **Every tweak** here is the re-profile's set: the defaults plus `fetch-by-cell`,
   `off-screen-conveyors`, `sim-step-pace`, `brain-rate` and `off-world-fallers`.
-  `direct-rail-bridges`, opt-in since, was left out.
+  `direct-rail-bridges` was left out: it came after the re-profile, opt-in at first and on by
+  default since 2026-11-14.
 - **Launches:** two on Linux and five on Windows, each once.
 - **Outside load** was sampled every 2 s (the machine's CPU less the game's). The first matrix
   launch was disturbed: 23–51% of the machine's cores were busy outside the game for its first
