@@ -93,8 +93,13 @@ namespace OniMoono.Engine
             /// sorted dictionary allocated its enumerator's stack every phase).
             List<BehaviourNative>[] ordered = [];
             Predicate<BehaviourNative> removing;
+            /// The behaviours added since the last Integrate, in order; a null is one removed
+            /// again before it (a table screen's rows enable and then disable thousands of
+            /// widgets' parts in the frame that builds them, and a search of this list for each
+            /// took 113 ms of that frame on a colony of 200 Duplicants).
             readonly List<BehaviourNative> pendingAdd = new();
-            readonly HashSet<BehaviourNative> pendingAddSet = new();
+            /// Each pending behaviour's place in pendingAdd.
+            readonly Dictionary<BehaviourNative, int> pendingAddAt = new();
             readonly HashSet<BehaviourNative> members = new();
             readonly HashSet<BehaviourNative> pendingRemove = new();
             readonly List<List<BehaviourNative>> touched = new();
@@ -103,15 +108,15 @@ namespace OniMoono.Engine
             {
                 if (MessageOf(b.Script) == null) return;
                 pendingRemove.Remove(b);
-                if (members.Contains(b) || !pendingAddSet.Add(b)) return;
+                if (members.Contains(b) || !pendingAddAt.TryAdd(b, pendingAdd.Count)) return;
                 pendingAdd.Add(b);
             }
 
             public void Remove(BehaviourNative b)
             {
-                if (pendingAddSet.Remove(b))
+                if (pendingAddAt.Remove(b, out int at))
                 {
-                    pendingAdd.Remove(b);
+                    pendingAdd[at] = null;
                     return;
                 }
                 if (members.Contains(b)) pendingRemove.Add(b);
@@ -135,6 +140,7 @@ namespace OniMoono.Engine
                 }
                 foreach (var b in pendingAdd)
                 {
+                    if (b == null) continue;
                     if (!byOrder.TryGetValue(b.ExecutionOrder, out var list))
                     {
                         byOrder[b.ExecutionOrder] = list = new();
@@ -144,7 +150,7 @@ namespace OniMoono.Engine
                     members.Add(b);
                 }
                 pendingAdd.Clear();
-                pendingAddSet.Clear();
+                pendingAddAt.Clear();
             }
 
             int depth;
