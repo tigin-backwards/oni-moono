@@ -61,7 +61,13 @@ namespace OniMoono.GameTweaks
             int at = list.FindIndex(entries + 1, i => i.Calls(count));
             int layer = list.FindIndex(i => i.LoadsField(AccessTools.Field(dirtyNode, "layer")));
             if (entries < 0 || at < 0 || layer < 1 || list.FindAll(i => i.Calls(count)).Count != 1)
-                throw new InvalidOperationException($"{Name}: ScenePartitioner.Sim1000ms is not as expected");
+            {
+                // Not as expected: the game's scan stays. Never thrown: Harmony runs this again
+                // inside a mod's later Patch of the method, where an exception would fail the mod.
+                // The count turns the tweak off at install (TweakInstall).
+                OniMoono.Tweaks.TranspilerCounts.Report(Name, original, 0);
+                return list;
+            }
             var loadNode = list[layer - 1];
             list[at].opcode = OpCodes.Call;
             list[at].operand = AccessTools.Method(typeof(FastPartitionerCleanup), nameof(Clean));

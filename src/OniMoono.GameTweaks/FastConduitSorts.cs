@@ -74,7 +74,9 @@ namespace OniMoono.GameTweaks
                 else if (ci.Calls(railSort)) { ci.opcode = OpCodes.Call; ci.operand = AccessTools.Method(typeof(FastConduitSorts), nameof(SortRails)); n++; }
                 yield return ci;
             }
-            if (n != 1) throw new InvalidOperationException($"{Name}: {original.DeclaringType?.Name}.Sim200ms is not as expected ({n} sorts)");
+            // Never thrown: Harmony runs this again inside a mod's later Patch of the method, where
+            // an exception would fail the mod. A wrong count turns the tweak off at install
+            // (TweakInstall); a sort a mod's transpiler took is the mod's.
             TranspilerCounts.Report(Name, original, n);
         }
 

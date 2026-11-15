@@ -147,7 +147,13 @@ namespace OniMoono.GameTweaks
                 else if (list[i].Calls(add)) adds.Add(i);
             }
             if (removes.Count != 2 || adds.Count != 2 || !(removes[0] < adds[0] && adds[0] < removes[1] && removes[1] < adds[1]))
-                throw new InvalidOperationException($"{Name}: SolidConduitBridge.ConduitUpdate is not as expected ({removes.Count} removes, {adds.Count} adds)");
+            {
+                // Not as expected: the game's moves stay. Never thrown: Harmony runs this again
+                // inside a mod's later Patch of the method, where an exception would fail the mod.
+                // The count turns the tweak off at install (TweakInstall).
+                TranspilerCounts.Report(Name, original, 0);
+                return list;
+            }
             list[removes[1]].opcode = OpCodes.Call;
             list[removes[1]].operand = AccessTools.Method(typeof(DirectRailBridges), nameof(Remove));
             list[adds[1]].opcode = OpCodes.Call;
