@@ -548,10 +548,11 @@ That gives the CPU side's direction, not player-facing frame rates.
 
 | Tweak | Measured | Results |
 |---|---|---|
-| `brain-rate`<br>at most 30 Duplicant and 150 critter brain updates a second of real time; more in a large colony at a high game speed, so every brain gets a turn within 15 game seconds, and never under the game's own slowest rate (its count every 0.2 game seconds) | brains 2.91–3.06 → 2.85–3.04 ms (does nothing below 30 fps)<br>Windows, measured with the plain cap, before the 15-second floor: 89.6–112.7 → 143.7–151.4 fps (+40%), the frame 9.7 → 6.9 ms (medians) | changes timing |
+| `brain-rate`<br>at most 30 Duplicant brain updates a second of real time; more with hundreds of Duplicants at a high game speed, so each gets a turn within 15 game seconds; critters run as in the game | brains 2.91–3.06 → 2.85–3.04 ms (does nothing below 30 fps)<br>Windows, measured while it also capped critters at 150 a second: 89.6–112.7 → 143.7–151.4 fps (+40%), the frame 9.7 → 6.9 ms (medians)<br>Windows, one pair, late-game colony at speed 3: 148 fps with the critter cap (windows 127–158), 135 without it (86–142); the same capped build measured 132 in an earlier launch, so the pair shows no more than a direction | changes timing |
 | `off-screen-conveyors`<br>items on rails off screen are placed when they stop or come into view | animation updates (`Global.LateUpdate`) 2.32–2.50 → 1.78–1.83 ms; the conveyor items' colliders 0.34–0.40 → 0.08 ms<br>frame 36.4–42.2 → 32.8–36.1 ms (+6%)<br>Windows: 126.8–133.6 → 143.7–151.4 fps (+11%), about 0.8 ms a frame | changes positions while off screen |
 | `fetch-by-cell`<br>each pile of identical items is checked once in a Duplicant's fetch update, not item by item | Windows, a late-game colony with 33,600 fetchable items in 3,600 piles, 3 alternating launches each, about 30 fetch updates a second: the update 3.1–3.4 → 0.39–0.40 ms of the main thread each, its workers' CPU 6.3–6.8 → 2.1 ms each; frame 9.9–14.3 → 8.2–9.1 ms (71–101 → 110–124 fps)<br>Linux: U57 (21,000 items in 3,900 piles) the update's workers 5.6 → 3.1 ms each, frame unchanged; a mid-game colony (4,400 items in 2,700 piles) unchanged<br>the mirror: about 5.1 MB managed for 33,600 items | the same results but for ties: of identical items in one pile a Duplicant may take another |
 | `off-world-fallers`<br>bug fix for items stuck falling below a world; faster only on colonies that have them | no measurable effect on U57 (3 objects landed)<br>frame 34.6–36.0 → 32.8–36.1 ms, within noise<br>Windows: 124.7–138.8 → 143.7–151.4 fps, within the runs' noise | bug fix: such items are landed where they hang |
+| `critter-needs-first`<br>a critter ready to inhale its food or to excrete takes one of the frame's brain turns ahead of the others | adds no turn and no measurable time: it hooks two moments and polls nothing<br>2,400 critters at 20 and 30 fps: 8 Slicksters went from no excretion in 600 game seconds to 85 and 89; the other critters' turns came 1–3% later ([research/brain-probes.md](research/brain-probes.md)) | bug fix: gas-eaters in huge colonies keep excreting at low frame rates |
 
 Notes on the rows (more in [TWEAKS.md](TWEAKS.md)):
 - `fast-symbol-overrides` also re-applies Duplicants' overrides only where they changed. On c100,
@@ -589,8 +590,9 @@ Notes on the rows (more in [TWEAKS.md](TWEAKS.md)):
   ([TWEAKS.md](TWEAKS.md#the-report-history-in-a-save)).
 - `instant-reachability` rechecks where a Duplicant's reach, an object's cell or its work spots
   changed, on the frame they changed, with the game's own check.
-- `brain-rate` spreads the updates over frames, instead of 1 Duplicant and 5 critter brains
-  every rendered frame.
+- `brain-rate` spreads the Duplicants' brain updates over frames, instead of 1 every rendered
+  frame. Critter brains run as in the game: their turns are about 2% of the main thread at 40 fps,
+  and more at higher frame rates, as the game gives 5 a frame.
 - `off-world-fallers` speeds up only colonies with objects stuck falling forever. On Gluttony,
   a colony with 17,552 of them (10,317 diamonds and about 7,200 egg shells below two rocket
   interiors, fed by a conveyor chute), the game steps every falling object 30 times a game

@@ -38,10 +38,10 @@ namespace OniMoono.Tests
             var taken = Run(30, 1, 120, 1200);
             var at = Enumerable.Range(0, taken.Length).Where(i => taken[i] == 1).ToArray();
             for (int i = 1; i < at.Length; i++) Assert.Equal(4, at[i] - at[i - 1]);
-            // Critters at 60 fps, 150 a second: 2 or 3 every frame, 5 every two frames.
-            var critters = Run(150, 5, 60, 600);
-            Assert.All(critters.Skip(1), n => Assert.InRange(n, 2, 3));
-            for (int i = 1; i + 1 < critters.Length; i += 2) Assert.Equal(5, critters[i] + critters[i + 1]);
+            // A count of 5 a frame at 60 fps, 150 a second: 2 or 3 every frame, 5 every two frames.
+            var five = Run(150, 5, 60, 600);
+            Assert.All(five.Skip(1), n => Assert.InRange(n, 2, 3));
+            for (int i = 1; i + 1 < five.Length; i += 2) Assert.Equal(5, five[i] + five[i + 1]);
         }
 
         [Theory]
@@ -127,7 +127,7 @@ namespace OniMoono.Tests
         [InlineData(10, 1600)]
         public void EveryBrainGetsATurnWithinFifteenGameSeconds(double timeScale, double wanted)
         {
-            // 2,400 critters at 400 fps, where the game's 5 a frame (2,000 a second) never binds.
+            // 2,400 brains at 400 fps, where the game's 5 a frame (2,000 a second) never binds.
             wanted = Math.Max(wanted, 160 * timeScale);
             int sum = Sum(150, 5, 400, 10, 2400, timeScale);
             Assert.InRange(sum, wanted * 10 - 6, wanted * 10 + 6);
@@ -142,7 +142,7 @@ namespace OniMoono.Tests
         [InlineData(12, 1)]
         public void TheFloorNeverGivesMoreThanTheGamesCountAFrame(double fps, double timeScale)
         {
-            // 2,400 critters want 480 a second at speed 3: at 40 fps the game's 5 a frame, 200.
+            // 2,400 brains want 480 a second at speed 3: at 40 fps the game's 5 a frame, 200.
             var allowance = new BrainRateAllowance(150);
             for (int i = 0; i < 2000; i++) Assert.Equal(5, allowance.Take(1 / fps, 5, 2400, timeScale));
         }
@@ -165,7 +165,7 @@ namespace OniMoono.Tests
         [Fact]
         public void TheFloorsCreditCarriesItsFraction()
         {
-            // 1,070 critters at speed 3: 214 a second. At 60 fps 3.57 a frame: 3 or 4, evenly.
+            // 1,070 brains at speed 3: 214 a second. At 60 fps 3.57 a frame: 3 or 4, evenly.
             var allowance = new BrainRateAllowance(150);
             var taken = Enumerable.Range(0, 601).Select(_ => allowance.Take(1 / 60.0, 5, 1070, 3)).ToArray().Skip(1).ToArray();
             Assert.All(taken, n => Assert.InRange(n, 3, 4));
@@ -176,7 +176,7 @@ namespace OniMoono.Tests
         public void TheGamesSlowestRateIsAFloorAtHighSpeeds()
         {
             // The game gives its count every 0.2 game seconds at least: 5 / 0.2 × 10 = 250 a second
-            // at speed 10 for critters, 50 for Duplicants, however few there are.
+            // at speed 10 for a count of 5, 50 for the Duplicants' 1, however few there are.
             Assert.Equal(250, new BrainRateAllowance(150).RateFor(5, 10, 10));
             Assert.Equal(50, new BrainRateAllowance(30).RateFor(1, 10, 10));
             Assert.Equal(150, new BrainRateAllowance(150).RateFor(5, 10, 3));
