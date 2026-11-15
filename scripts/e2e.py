@@ -221,6 +221,7 @@ TEST_MODS = (
     'CommandLineTestMod',
     'ReachStressTestMod',
     'RailLoopTestMod',
+    'CritterTurnsTestMod',
     'GeoVentProbeTestMod',
     'TimelapseProbeTestMod',
 )

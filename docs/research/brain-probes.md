@@ -317,3 +317,6 @@ saves nothing worth having (the section above), so only the reordering was kept.
   above). The 2% measured on Linux was at 40–50 fps.
 - The floor stops the cap binding from `25 × fps` critters at speed 3: 3,000 at 120 fps. A
   critter-heavy colony gains nothing from the cap; its critters still get needs first.
+- `tests/e2e/issue-85-critters-excrete.yaml` guards it: 8 Slicksters and 8 Pufts among 1,300
+  critters with nothing to inhale, the frame rate held to 15, so a round of turns takes 53 game
+  seconds. With `brain-rate` all 16 excrete within 450 game seconds; without its hooks none does.

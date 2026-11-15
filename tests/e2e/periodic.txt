@@ -43,6 +43,7 @@ issue-45-space-tree-branch          # 81+50: a load crash
 issue-54-debug-element-filter       # 95+59: sandbox-search covers the same fields
 issue-69-care-package-load          # -: a save with an unopened care package loads (#69)
 issue-71-space-overlay              # gas under the temperature overlay in space cells (#71)
+issue-85-critters-excrete ours      # ours only, ~4 min: gas-eaters excrete under brain-rate when brain turns are scarce (#85)
 stray-plugin-folder                 # 66+43: a Steam leftover Plugins folder (#49)
 
 # One-off verification

@@ -1,0 +1,34 @@
+# Issue #85: with the brain-rate game tweak, gas-eating critters must keep excreting when brain
+# turns are scarce. Ours only (`--player ours`): the original has no such tweak.
+#
+# The game gives 5 critters a brain turn a frame. A critter that inhales its food starts one meal
+# a turn; once its turns come further apart than a meal lasts it (45 game seconds for a
+# Slickster, 18 for a Puft) it is hungry on every turn, eats, and never excretes. brain-rate
+# therefore installs critter-needs-first's hooks for its critter turns: a critter ready to
+# inhale or to excrete goes first (src/OniMoono.GameTweaks/BrainRate.cs,
+# docs/research/brain-probes.md). The critter-needs-first tweak itself stays off here.
+#
+# Our test mod (tools/CritterTurnsTestMod) builds three sealed rooms in the fixture's rock: 8
+# tame Molten Slicksters in carbon dioxide, 8 tame Pufts in polluted oxygen, and 1,300 wild
+# Molten Slicksters with nothing to inhale, which only take turns. It holds the frame rate to 15,
+# where a frame advances the game's most (0.2 game seconds), so a round of turns takes
+# `critters / 25` game seconds on any machine: about 53. `RoundSeconds` is the round as measured;
+# the spec fails when it is under 48, as the run would then prove nothing.
+#
+# Measured on Linux at 450 game seconds: 57 Slickster and 13 Puft excretions, every one of the 16
+# at least once. Without the hooks (a local build with BrainRate's CritterNeedsFirst.Install
+# removed): none by then; the Pufts each excrete once after about 500.
+from: early-base
+game_tweaks: [brain-rate]
+test_mods: [CritterTurnsTestMod]
+steps:
+  - wait_state: {state: {"type:CritterTurnsTestMod.Rooms::Ready": true}, seconds: 120}
+  - run: {seconds: 450}
+  - expect_state:
+      "type:CritterTurnsTestMod.Rooms::Failed": false
+      "type:CritterTurnsTestMod.Rooms::CritterBrains": ">= 1300"
+      "type:CritterTurnsTestMod.Rooms::RoundSeconds": ">= 48"
+      "type:CritterTurnsTestMod.Rooms::SlickstersExcreting": 8
+      "type:CritterTurnsTestMod.Rooms::PuftsExcreting": 8
+      "type:CritterTurnsTestMod.Rooms::SlicksterExcretions": ">= 24"
+      "type:CritterTurnsTestMod.Rooms::PuftExcretions": ">= 8"
