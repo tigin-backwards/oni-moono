@@ -200,9 +200,9 @@ with them. Three things do it:
 - **An engine built around how ONI uses it.** The game makes over a million small engine calls
   every frame: looking up an object's position, its components, or whether it still exists.
   Moono answers these calls about 15 times faster than Unity.
-- **CoreCLR instead of the very garbage Mono runtime that Unity ships.** The runtime's
-  overhead is about 5 times lower.
-- **Over 40 tweaks** that replace slow parts of the game's own code. Most give exactly the same
+- **CoreCLR instead of the very garbage Mono runtime that Unity ships.** Memory handling and the
+  built-in libraries take about 5 times less time.
+- **Over 40 tweaks** that replace slow parts of the game's code. Most give exactly the same
   results; a few differ in ways you won't see.
 
 On a late-game Spaced Out colony with every DLC (cycle 17,000+), on Windows, on the same machine, back to back, with every Moono tweak on:
