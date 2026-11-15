@@ -972,11 +972,16 @@ static int find_live(void *user, int mark, const uint32_t *resize, place *at)
     return 0;
 }
 
+static fh_atomic leaving;
+
+FH_EXPORT void moono_fmod_heap_leave(void) { fh_store(&leaving, 1); }
+
 static void release_live(void *user)
 {
     place at;
+    int left = fh_load(&leaving) != 0;
     if (!find_live(user, 1, NULL, &at)) return;
-    check_canary((uint8_t *)user, at.size, at.bytes, at.type);
+    if (!left) check_canary((uint8_t *)user, at.size, at.bytes, at.type);
     fh_add(&live_bytes, -(int64_t)at.size);
     fh_add(&live_blocks, -1);
     fh_add(&bytes_freed, at.size);
@@ -985,6 +990,8 @@ static void release_live(void *user)
         fh_add(&small_frees, 1);
         fh_add(&small_bytes_freed, at.size);
     }
+    /* Leaving: marked free (find_live), and left as it is. */
+    if (left) return;
     quarantine(at.s != NONE ? &small_q : &large_q, (uint8_t *)user, at.bytes, at.size, at.type);
 }
 

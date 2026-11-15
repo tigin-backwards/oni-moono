@@ -161,6 +161,9 @@ namespace OniMoono.Host.GameTweaks
             EngineLog.Engine("fetch stats on");
         }
 
+        /// The quit begins: it cannot be called off any more.
+        public static void Quitting() => FmodQuarantine.Leaving();
+
         /// The quit, before the window goes: saves still being written are finished, with
         /// `whileWaiting` called every 100 ms meanwhile.
         public static void FinishSaves(Action? whileWaiting)

@@ -790,6 +790,12 @@ With the tweak, FMOD allocates through `src/OniMoono.NativeHost/fmod_heap.c`, gi
   too (a write just before a block lands in the slot before it, and is noted against that one);
   so are a double free and a pointer FMOD's allocator never returned. Slab memory is never given
   back, only reused, so a late write never faults.
+- Once the player quits, a freed block is left as it is: not filled, checked, reused or
+  unmapped. The game releases FMOD at the quit, and FMOD then frees all it holds (about 325 MB
+  on a late-game colony, mostly sample data). Filling and checking that touches every page of
+  it, which a system short of memory first reads back from its page file. A late write during
+  the release still lands in memory that stays FMOD's. `ONI_FMOD_QUARANTINE_AT_QUIT=1` keeps the
+  quarantine and its checks to the end.
 
 What to look for in Player.log: a line per problem found, such as
 

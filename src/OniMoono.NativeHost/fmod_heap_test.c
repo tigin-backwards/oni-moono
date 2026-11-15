@@ -612,6 +612,39 @@ static void replay_steal(void)
            kinds[FH_WRITE_AFTER_FREE] + kinds[FH_WRITE_TO_FREE] + kinds[FH_OVERRUN]);
 }
 
+/* The quit: freed blocks are left as they are (no fill, no check, no reuse), and still counted;
+ * a double free is still found. */
+static void leave(void)
+{
+    enum { SMALL = 600, LARGE = 300000 };
+    unsigned char *s = (unsigned char *)moono_fmod_alloc(SMALL, 0, "test");
+    unsigned char *l = (unsigned char *)moono_fmod_alloc(LARGE, 0, "test");
+    memset(s, 0x5A, SMALL);
+    memset(l, 0x5A, LARGE);
+    moono_fmod_heap_flush();
+    drain(seen);
+    moono_fmod_heap_counters before = stats();
+    moono_fmod_heap_leave();
+    moono_fmod_free(s, 0, "test");
+    moono_fmod_free(l, 0, "test");
+    moono_fmod_heap_counters after = stats();
+    CHECK(s[0] == 0x5A && s[SMALL - 1] == 0x5A && l[0] == 0x5A && l[LARGE - 1] == 0x5A, "freed blocks keep their bytes");
+    CHECK(after.frees == before.frees + 2 && after.live_blocks == before.live_blocks - 2 && after.live_bytes == before.live_bytes - SMALL - LARGE,
+          "counted: %llu frees, %llu live", (unsigned long long)(after.frees - before.frees), (unsigned long long)after.live_blocks);
+    CHECK(after.checked_bytes == before.checked_bytes && after.quarantined_blocks == before.quarantined_blocks, "nothing quarantined or checked");
+    /* A late write lands in memory that is still there, and nothing reports it. */
+    memset(s + 100, 0, 4);
+    memset(l + 100, 0, 4);
+    unsigned char *again = (unsigned char *)moono_fmod_alloc(SMALL, 0, "test");
+    CHECK(again != NULL && again != s, "a freed slot is not reused");
+    moono_fmod_heap_flush();
+    CHECK(drain(seen) == 0, "no events");
+    moono_fmod_free(s, 0, "test");
+    CHECK(drain(seen) == 1 && seen[0].kind == FH_DOUBLE_FREE, "a double free is still found");
+    moono_fmod_free(again, 0, "test");
+    printf("leave: frees after the quit began leave blocks as they are, counted, never reused\n");
+}
+
 int main(int argc, char **argv)
 {
     if (!moono_fmod_heap_init(LIMIT))
@@ -632,6 +665,8 @@ int main(int argc, char **argv)
     replay_78();
     replay_steal();
     if (argc > 1 && strcmp(argv[1], "--bench") == 0) bench();
+    /* After everything: there is no way back. */
+    leave();
     printf(failures ? "fmod_heap: %d failed\n" : "fmod_heap: all passed\n", failures);
     return failures ? 1 : 0;
 }
