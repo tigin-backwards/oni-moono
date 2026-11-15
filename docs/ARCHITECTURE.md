@@ -1996,56 +1996,70 @@ same either way; `ONI_BUNDLE_BLOCKS=0` decompresses every bundle whole, and
 **Devices: Vulkan 1.3 by default, OpenGL 4.5 core as the fallback, both via BRUTAL + GLFW.**
 Every shader ships as GLSL 150 text produced by Unity's HLSLcc and as SPIR-V for Unity's Vulkan
 player, each with per-variant parameter tables (*assets §5*). The OpenGL device runs the GLSL
-text and the Vulkan device the SPIR-V (D54): no shader is hand-ported or recompiled, so every
+text and the Vulkan device the SPIR-V (D54). No shader is hand-ported or recompiled, so every
 Klei visual effect keeps its exact logic, and the Vulkan device renders the OpenGL device's
 pixels. Only mods' shaders without SPIR-V U60 reads are compiled from their GLSL (*Shaders
 without U60's Vulkan programs* below).
+
 The renderer option (`--renderer auto|vulkan|opengl`, settings.json's `renderer`, the Moono
-Tweaks screen's "Renderer" row; `Renderers.Open`) picks one: auto and vulkan try Vulkan first,
-and any failure to start it (no loader, no GPU with dynamic rendering and synchronization2, no
-surface or swapchain for the window) releases what was made and opens an OpenGL window
-instead. Player.log names the renderer and why (`renderer: Vulkan (auto, default)`,
-`renderer: OpenGL (Vulkan unavailable: …)`). Auto also refuses software Vulkan devices (Mesa's
-lavapipe: the OpenGL driver is hardware there, under WSLg Mesa's d3d12), the drivers on a short
-deny list and a start the guard below recorded as crashed; `--renderer vulkan` takes all of
-them. Unity's launch options choose too, as the U60 player reads them (measured on 761211,
-Linux, U60 QA spec P2): `-force-glcore` and `-force-opengl` are `--renderer opengl`,
-`-force-vulkan` is `--renderer vulkan`; the later of these and `--renderer` wins. Unity's player
-also refuses a CPU Vulkan device ("Vulkan detection: 0", then OpenGL Core), as auto does. One
-difference is deliberate: where the only Vulkan device is a software one, Unity's player given
-`-force-vulkan` exits ("Forced renderer 21 is not supported, exiting"), while ours runs on that
-device, as the option asks.
+Tweaks screen's "Renderer" row; `Renderers.Open`) picks one:
+
+- **auto and vulkan** try Vulkan first. Any failure to start it (no loader, no GPU with dynamic
+  rendering and synchronization2, no surface or swapchain for the window) releases what was
+  made and opens an OpenGL window instead. Player.log names the renderer and why
+  (`renderer: Vulkan (auto, default)`, `renderer: OpenGL (Vulkan unavailable: …)`).
+- **auto also refuses** software Vulkan devices (Mesa's lavapipe: the OpenGL driver is hardware
+  there, under WSLg Mesa's d3d12), the drivers on a short deny list and a start the guard below
+  recorded as crashed. `--renderer vulkan` takes all of them.
+- **Unity's launch options** choose too, as the U60 player reads them (measured on 761211,
+  Linux, U60 QA spec P2): `-force-glcore` and `-force-opengl` are `--renderer opengl`,
+  `-force-vulkan` is `--renderer vulkan`. The later of these and `--renderer` wins.
+- **Software devices.** Unity's player also refuses a CPU Vulkan device ("Vulkan detection: 0",
+  then OpenGL Core), as auto does. One difference is deliberate: where the only Vulkan device
+  is a software one, Unity's player given `-force-vulkan` exits ("Forced renderer 21 is not
+  supported, exiting"), while ours runs on that device, as the option asks.
 
 **Starting** (`VkStartGuard`, `VkDenyList`, as Firefox's DriverCrashGuard and Unreal's
-DriverDenyList). Once the GPU is chosen and before its device is made, a line `starting KEY`
-goes into `vulkan-start-guard.txt` in the player's cache folder, KEY naming the GPU (vendor and
-device ids), the driver's version and Moono's build (the host's informational version). When
-the first 60 frames are presented (the first pipelines built and presents done), or the game
-ends cleanly before that, the key's lines go. A `starting` line found at the next launch is a
-start that never got there (a crash, or a hang the user ended): it becomes `crashed KEY`, and
-auto starts that key on OpenGL with the reason in the log, for as long as the GPU, driver and
-build stay the same; another one tries Vulkan again. `--renderer vulkan` always tries Vulkan,
-and its clean start clears the key. A start that falls back cleanly (Vulkan unavailable) leaves
-no line. The guard is not consulted for anything that happens later: a device lost in play, or
-presenting that fails for good, quits the game with an error naming Vulkan, Moono Tweaks'
-"Renderer" row and `--renderer opengl` and giving the log's path, and the next start tries
-Vulkan as before. The deny list, under auto only: Intel's Windows drivers older than 101.5333
-(the threshold Unreal's DriverDenyList uses; Intel's Windows `driverVersion` is
-`major << 14 | build` of the driver's last two version fields, as vulkan.gpuinfo.org decodes
-it), and Mesa's Dozen (Vulkan over Direct3D 12) on any system. GL 4.5 is available on
-Linux drivers and on WSLg hardware via Mesa d3d12 (verified: GL 4.6 core on an RTX 3090 with
-`GALLIUM_DRIVER=d3d12`).
+DriverDenyList).
 
-**Shader runtime (`OniMoono.Graphics`).** From `SerializedShader`: properties, subshaders,
-passes, tags, render state (blend/ZTest/ZWrite/Cull/ColorMask/Stencil/Offset — each either a
-constant or a reference to a material property, e.g. `[_SrcAlpha]`), keyword space, and the
-platform-15 program blobs (LZ4). For each pass, variant selection matches Unity's
-(local+global enabled keywords → best matching subprogram). Programs are compiled and linked
-on first use and cached by (shader, pass, variant). Uniform binding follows the subprogram's
-`SerializedProgramParameters` (vector/matrix params by name and array size, textures by name
-→ sampler unit, constant buffers with member offsets, built-in `unity_*`/`hlslcc_mtx4x4*`
-matrices). Fixed-function GLSL helpers Unity injects (`#ifdef VERTEX`/`FRAGMENT` sections) are
-split exactly as Unity's GL device does.
+- **The guard's line.** Once the GPU is chosen and before its device is made, a line
+  `starting KEY` goes into `vulkan-start-guard.txt` in the player's cache folder. KEY names the
+  GPU (vendor and device ids), the driver's version and Moono's build (the host's informational
+  version).
+- **A good start.** When the first 60 frames are presented (the first pipelines built and
+  presents done), or the game ends cleanly before that, the key's lines go.
+- **A bad start.** A `starting` line found at the next launch is a start that never got there
+  (a crash, or a hang the user ended). It becomes `crashed KEY`, and auto starts that key on
+  OpenGL with the reason in the log, for as long as the GPU, driver and build stay the same.
+  Another one tries Vulkan again.
+- **`--renderer vulkan`** always tries Vulkan, and its clean start clears the key.
+- **A clean fallback** (Vulkan unavailable) leaves no line.
+- **Later failures.** The guard is not consulted for anything that happens later. A device lost
+  in play, or presenting that fails for good, quits the game with an error naming Vulkan, Moono
+  Tweaks' "Renderer" row and `--renderer opengl` and giving the log's path, and the next start
+  tries Vulkan as before.
+- **The deny list,** under auto only: Intel's Windows drivers older than 101.5333 (the
+  threshold Unreal's DriverDenyList uses; Intel's Windows `driverVersion` is
+  `major << 14 | build` of the driver's last two version fields, as vulkan.gpuinfo.org decodes
+  it), and Mesa's Dozen (Vulkan over Direct3D 12) on any system.
+
+GL 4.5 is available on Linux drivers and on WSLg hardware via Mesa d3d12 (verified: GL 4.6 core
+on an RTX 3090 with `GALLIUM_DRIVER=d3d12`).
+
+**Shader runtime (`OniMoono.Graphics`).**
+
+- **Read from `SerializedShader`:** properties, subshaders, passes, tags, render state
+  (blend/ZTest/ZWrite/Cull/ColorMask/Stencil/Offset, each either a constant or a reference to a
+  material property, e.g. `[_SrcAlpha]`), keyword space, and the platform-15 program blobs
+  (LZ4).
+- **Variants.** For each pass, variant selection matches Unity's (local+global enabled keywords
+  → best matching subprogram).
+- **Programs** are compiled and linked on first use and cached by (shader, pass, variant).
+- **Uniform binding** follows the subprogram's `SerializedProgramParameters`: vector/matrix
+  params by name and array size, textures by name → sampler unit, constant buffers with member
+  offsets, built-in `unity_*`/`hlslcc_mtx4x4*` matrices.
+- **Fixed-function GLSL helpers** Unity injects (`#ifdef VERTEX`/`FRAGMENT` sections) are split
+  exactly as Unity's GL device does.
 
 **Engine renderer (`OniMoono.UnityEngine`, Rendering namespace).** Unity's built-in forward
 renderer, restricted to what the game uses (*usage §1*):
