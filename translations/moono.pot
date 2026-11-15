@@ -1035,6 +1035,21 @@ msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.BUG_FIXES"
 msgid "Bug fixes"
 msgstr ""
 
+#. Row title (critter-needs-first)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.TITLE"
+msgid "Critters ready to eat or excrete get the next turn"
+msgstr ""
+
+#. The line under the title (critter-needs-first)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.EFFECT"
+msgid "In huge colonies, Slicksters and Pufts no longer stop excreting at low frame rates."
+msgstr ""
+
+#. Tooltip: how it works (critter-needs-first)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.DETAIL"
+msgid "The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters and a low frame rate, a critter that inhales its food gets too few turns to stay fed, so it stays hungry and never excretes: its stomach fills for cycles and empties all at once after a load. With this, a critter that is ready to inhale or to excrete takes one of the frame's turns ahead of the others. No turns are added; the other critters wait slightly longer."
+msgstr ""
+
 #. Row title (off-world-fallers)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_WORLD_FALLERS.TITLE"
 msgid "Land items lost below a world"
