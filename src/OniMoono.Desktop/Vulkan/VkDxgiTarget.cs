@@ -92,6 +92,7 @@ namespace OniMoono.Desktop.Vulkan
             // the device's own presentation is not reliably shown on it.
             chain = DxgiSwapChain.Open(vk.Luid, out string reason);
             if (chain == null) return reason;
+            chain.Sharing = "the swap chain's D3D11 device shares its texture with Vulkan by an NT handle and a keyed mutex (no OpenGL interop)";
             if (!MakeShared(w, h)) return Failure;
             reason = chain.AttachWindow(hwnd, w, h);
             if (reason != null) return reason;

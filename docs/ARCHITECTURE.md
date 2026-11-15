@@ -2491,7 +2491,11 @@ Server takes a process that has called SwapBuffers for an OpenGL one, skips its 
 windows are made (measured with RTSS 7.3.7 through its shared memory: before, it attached to
 OpenGL on a 120x1 hidden window and showed no overlay, #64; after, to our swap chain at the
 window's size; Vulkan, whose window has no context and which loads no OpenGL, was attached to
-DXGI before). With that setting DXGI then started and presented. The window gets a pixel format,
+DXGI before; a player's RTSS then counted OpenGL's DXGI presents and still drew nothing, #86:
+what its hook goes by is not known, and the log's `present: DXGI picture N presented on thread`
+lines, at pictures 1 and 1000, say what a hook can see: the presenting thread, whether an OpenGL
+context is current on it, how the picture reaches the swap chain's D3D11 device, and the graphics
+and hook modules loaded). With that setting DXGI then started and presented. The window gets a pixel format,
 double-buffered, and a context of its own sharing the presenter's (with the hidden window's pixel
 format and the presenter's context itself when that window is double-buffered: WGL takes any
 window with the context's pixel format, `Win32GlWindow`), only once DXGI is given up: it could not start, or no restart is left.
