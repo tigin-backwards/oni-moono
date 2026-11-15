@@ -52,14 +52,14 @@ namespace OniMoono.Tests
             Assert.Same(GameTweakNames.BugFixes, GameTweakNames.Groups[^1]);
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Groups[^2]);
             Assert.Equal(new[] { "CHANGES_GAMEPLAY", "BUG_FIXES" }, GameTweakNames.Groups.Where(g => g.ChangesGameplay).Select(g => g.Key));
-            Assert.Equal(new[] { "brain-rate", "direct-rail-bridges", "fetch-by-cell", "fix-endless-sounds", "fix-geothermal-vents", "fix-load-screen-clicks", "fix-sound-piles", "fix-timelapse-snapshots", "instant-reachability", "lazy-table-refresh", "off-screen-conveyors", "off-world-fallers", "path-probe-repair", "sim-step-pace" }, GameTweakNames.ChangingBehaviour.Order());
+            Assert.Equal(new[] { "brain-rate", "critter-needs-first", "direct-rail-bridges", "fetch-by-cell", "fix-endless-sounds", "fix-geothermal-vents", "fix-load-screen-clicks", "fix-sound-piles", "fix-timelapse-snapshots", "instant-reachability", "lazy-table-refresh", "off-screen-conveyors", "off-world-fallers", "path-probe-repair", "sim-step-pace" }, GameTweakNames.ChangingBehaviour.Order());
             // path-probe-repair, instant-reachability, fix-load-screen-clicks, the two sound fixes, fix-geothermal-vents and fix-timelapse-snapshots change behaviour
             // (out of `exact`, in the Changes gameplay and Bug fixes groups) but are on by default
             // (the player's choice); the others are off.
             Assert.Equal(GameTweakNames.ChangingBehaviour.Where(n => n is not ("path-probe-repair" or "instant-reachability" or "fix-load-screen-clicks" or "fix-endless-sounds" or "fix-sound-piles" or "fix-geothermal-vents" or "fix-timelapse-snapshots" or "lazy-table-refresh" or "direct-rail-bridges")).Order(),
                 GameTweakNames.OffByDefault.Order());
             Assert.Same(GameTweakNames.ChangesGameplay, GameTweakNames.Rows.Single(r => r.Id == "path-probe-repair").Group);
-            Assert.Equal(new[] { "off-world-fallers", "fix-load-screen-clicks", "fix-endless-sounds", "fix-sound-piles", "fix-geothermal-vents", "fix-timelapse-snapshots" }, GameTweakNames.Rows.Where(r => r.Group == GameTweakNames.BugFixes).Select(r => r.Id));
+            Assert.Equal(new[] { "critter-needs-first", "off-world-fallers", "fix-load-screen-clicks", "fix-endless-sounds", "fix-sound-piles", "fix-geothermal-vents", "fix-timelapse-snapshots" }, GameTweakNames.Rows.Where(r => r.Group == GameTweakNames.BugFixes).Select(r => r.Id));
             // Every typed tweak is a row; the options that aren't tweaks aren't `--game-tweak` names.
             Assert.All(GameTweakNames.Typed, n => Assert.Contains(n, GameTweakNames.All));
             Assert.DoesNotContain(GameTweakNames.SplashRow, GameTweakNames.All);

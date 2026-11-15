@@ -256,3 +256,43 @@ Per-launch frame rates differed between the blocks (37–53 fps) by far more tha
 does (0.4–0.6 ms a frame), so they say nothing about the rules. No `perf` profile was taken: the
 parts above are bracketed once a turn, where the brackets add about 1%.
 
+## Low frame rates: critters with a need go first (`critter-needs-first`, issue #85)
+
+At 30 fps or below the game's 5 critter turns a frame are all there are, so with enough critters
+a gas-eater stops excreting in the original, in Moono, and with `brain-rate` (which adds
+nothing below 30 fps): 2,400 critters get a turn every 48 game seconds at 30 fps and every 73
+at 20. The opt-in tweak `critter-needs-first` (`src/OniMoono.GameTweaks/CritterNeedsFirst.cs`)
+adds no turn. It asks the game's own priority queue for a critter's turn when its inhaling
+monitor's wait after a meal is over and it is hungry, and when its excrete condition can first
+hold (checked once, the game's minimum time after each meal or excretion). It hooks those two
+moments; it polls nothing.
+
+Measured on the reproduction world (8 Slicksters and 8 Pufts in their gases, 2,400 hungry
+Slicksters with no gas, speed 3, 600 game seconds, Linux, default tweaks):
+
+| Frame rate | Tweak | Turns a real second | The 16's turn (median) | The others' turn (median, p95) | Slickster excretions, calories | Puft excretions, calories |
+|---|---|---|---|---|---|---|
+| 20 fps | off | 99.5 | 72.6 s | 72.6, 72.8 s | 0, 82% | 0, 78% |
+| 20 fps | on | 99.4 | 13.5 s | 74.5, 82.3 s | 85, 91% | 23, 88–90% |
+| 30 fps | off | 149.1 | 48.5 s | 48.4, 48.6 s | 0, 88% | 8, 79% |
+| 30 fps | on | 148.8 | 12.8 s | 49.3, 56.1 s | 89, 90–91% | 23, 90% |
+| 40 fps | on | 198.8 | 11.1 s | 36.8, 43.3 s | 92, 90.5% | 22–25, 90% |
+
+- Off, the Slicksters' stomachs held 74–108 kcal each after 600 game seconds and grew; on, a
+  meal's worth or nothing.
+- The turns a second are the game's 5 a frame in every row: who gets them changes, not how many.
+  The other critters wait 1–3% longer at the median.
+- At the start every hungry inhaler asks once, the 2,400 with no gas too: their turns find
+  nothing, they stay in the monitor's `looking` state and are not asked for again. That first
+  queue takes 2,400 / 5 frames to serve, in order, with the 16's first requests among them.
+- With `ONI_TWEAK_VERIFY=1` (the 30 fps launch) each asked turn is followed: 2,901 asked (2,783 to
+  inhale, 118 to excrete), each taken within its place in the queue plus 2 frames, none later.
+- Late-game colony (1,070 critters, 600 game seconds, 43–47 fps), off against on: 239 and 249
+  excretions, 400 and 403 solid meals, 46 and 44 eggs, 58 and 60 deaths, 39 and 39 grown up, 96
+  and 113 ranch visits, 3,329 and 3,370 emotes, 9,726 and 9,953 idle starts, 263 and 248 sleeps,
+  13 and 11 flights. The tweak asked for 272 turns there; the game itself for 279.
+
+An earlier local branch did this by checking every critter each 2 game seconds, with a rate cap
+and backstops on top; the check alone cost 1.7–3.3 ms a real second, and capping critter turns
+saves nothing worth having (the section above), so only the reordering was kept.
+
