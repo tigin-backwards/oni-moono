@@ -91,8 +91,8 @@ namespace OniMoono.GameTweaks
         public const string Name = "instant-reachability";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
-        /// Objects verified a frame (ONI_REACH_VERIFY_SLICE, default 4,000).
-        static readonly int verifySlice = int.TryParse(Environment.GetEnvironmentVariable("ONI_REACH_VERIFY_SLICE"), out var s) && s > 0 ? s : 4000;
+        /// Objects verified a frame.
+        const int verifySlice = 4000;
 
 
         sealed class Entry : IRosterItem
@@ -535,6 +535,22 @@ namespace OniMoono.GameTweaks
         // ---- Once a frame ----
 
         static readonly List<Entry> batch = new List<Entry>();
+        static int drainFailures;
+
+        /// Off for the session, in play: every object answered by events goes back to the game's poll.
+        static void StandDown(string why)
+        {
+            int handed = ReachSession.HandBack(covered.Items,
+                e => !e.Removed && parked != null && monitor != null && e.Master != null && e.Smi.IsRunning(),
+                e => Unpark(e.Smi),
+                e => e.Removed = true,
+                (e, ex) => global::Debug.LogWarning($"{Name}: {e.Master?.name} not handed back to the game's polling: {ex}"));
+            byMaster.Clear();
+            pending.Clear();
+            EngineMoves.Clear();
+            state = State.Off;
+            global::Debug.Log($"{Name}: off ({why}); {handed} objects back to the game's polling");
+        }
 
         static void GameUpdatePost()
         {
@@ -548,6 +564,8 @@ namespace OniMoono.GameTweaks
             catch (Exception e)
             {
                 global::Debug.LogException(e);
+                // A drain that keeps failing would log every frame and answer nothing.
+                if (++drainFailures >= 8) StandDown($"{drainFailures} drains failed, the last with {e.GetType().Name}: {e.Message}");
             }
             drainTicks += Stopwatch.GetTimestamp() - start;
             Drains++;
@@ -596,8 +614,6 @@ namespace OniMoono.GameTweaks
                 }
             }
         }
-
-        static readonly List<string> firstMismatches = new List<string>();
 
         static void Verify()
         {
