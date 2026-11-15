@@ -1146,6 +1146,8 @@ class Daemon:
         p = sched.plan(state)
         for jid, t in p.quiet_started.items():
             self.store.update(jid, quiet_since=t)
+        for jid in p.quiet_ended:
+            self.store.update(jid, quiet_since=None)
         self.reasons.update(p.reasons)
         self.starts = p.starts
         self.order = p.order

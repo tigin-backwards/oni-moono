@@ -196,6 +196,31 @@ class Reservations(unittest.TestCase):
         p = sched.plan(state([job('perf2', kind='linux-perf')], ext_cpu=0.5))
         self.assertEqual([(g.id, g.noisy) for g in p.grants], [('perf2', False)])
 
+    def test_quiet_wait_starts_anew_after_another_wait(self):
+        # It waited for quiet from 100, then for the user's game to end: at 7300 the machine is
+        # busy again, and the job waits its 15 minutes from then, not from 100.
+        wp = job('wp', kind='win-perf', quiet_since=100)
+        p = sched.plan(state([wp], ext_cpu=5.0, user_in_oni=True, now=200))
+        self.assertEqual((granted(p), p.quiet_ended), ([], ['wp']))
+        wp.quiet_since = None  # as the daemon stores it
+        p = sched.plan(state([wp], ext_cpu=5.0, now=7300))
+        self.assertEqual((granted(p), p.quiet_started), ([], {'wp': 7300}))
+        wp.quiet_since = 7300
+        p = sched.plan(state([wp], ext_cpu=5.0, now=7300 + 60))
+        self.assertEqual((granted(p), p.quiet_ended, 'starts noisy in 14 min' in p.reasons['wp']), ([], [], True))
+        p = sched.plan(state([wp], ext_cpu=5.0, now=7300 + 15 * 60))
+        self.assertEqual([(g.id, g.noisy) for g in p.grants], [('wp', True)])
+        self.assertEqual(p.quiet_ended, ['wp'])  # it started: a later phase's wait starts anew
+
+    def test_quiet_wait_ends_behind_a_resource_or_a_cap(self):
+        perf = job('perf', kind='linux-perf', quiet_since=100)
+        busy = run('chk', owner='b', kind='check')
+        self.assertEqual(sched.plan(state([perf], [busy], ext_cpu=5.0, now=200)).quiet_ended, ['perf'])
+        mine = [run('x', needs={'cpu': 1}), run('y', needs={'cpu': 1})]  # the owner's cap of 2
+        self.assertEqual(sched.plan(state([perf], mine, ext_cpu=5.0, now=200)).quiet_ended, ['perf'])
+        quiet = sched.plan(state([perf], ext_cpu=0.5, now=200))  # it starts
+        self.assertEqual((granted(quiet), quiet.quiet_ended), (['perf'], ['perf']))
+
     def test_win_perf_never_starts_beside_the_users_game_and_holds_nothing(self):
         wp = job('wp', 'a', level='issue', kind='win-perf')
         other = job('chk', 'b', kind='check', order=1)

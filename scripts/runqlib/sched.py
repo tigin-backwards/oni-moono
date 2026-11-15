@@ -16,7 +16,8 @@ between owners by their service over the last 24 h, then by submit time) and wal
 Resources: lane (count of lane numbers), mem (GB), cpu (cores), players (count), windows (the
 slot), perf (exclusive timing: while one runs, no other job that loads the machine runs; a job
 with no resources at all, kind light, still does). quiet is a flag on perf: the external CPU must
-be under the configured cores, waited for at most quiet_wait_minutes, then the job starts noisy.
+be under the configured cores, waited for at most quiet_wait_minutes in one stretch, then the job
+starts noisy.
 No job that needs the Windows slot starts while the user is in ONI or the slot is held for them
 (`runq hold windows`); such a job holds no reservation meanwhile (others keep running)."""
 
@@ -95,6 +96,7 @@ class Plan:
     quiet_started: dict  # job id -> now, for jobs that began waiting for quiet in this pass
     drain: bool  # a perf job waits for load to end: legacy spec runners should not start more
     order: list  # the queued jobs' ids in start order
+    quiet_ended: list = dataclasses.field(default_factory=list)  # ids whose wait for quiet is over (see plan)
 
 
 def capacity(cfg, lanes_total):
@@ -243,7 +245,7 @@ def plan(state):
     running_per_owner = {}
     for r in state.running:
         running_per_owner[r.owner] = running_per_owner.get(r.owner, 0) + 1
-    grants, reasons, starts, quiet_started = [], {}, {}, {}
+    grants, reasons, starts, quiet_started, quiet_ended = [], {}, {}, {}, []
     reservations = []
     drain = False
     order = ordered(state)
@@ -251,6 +253,10 @@ def plan(state):
     quiet_wait = float(cfg['quiet_wait_minutes']) * 60
     for job in order:
         u = usage(job.needs, cap)
+        # The wait for quiet is one stretch: once the job starts, or anything else holds it up,
+        # its clock ends, so that a later wait for quiet is bounded anew and not already spent.
+        if job.quiet_since is not None:
+            quiet_ended.append(job.id)
         # A phase request's job already counts as running: its old holds are released before the
         # request queues (the daemon removes them), so only the cap is not counted again.
         if not job.phase:
@@ -285,6 +291,8 @@ def plan(state):
                 noisy = True
             else:
                 gate = 'quiet'
+                if job.quiet_since is not None:
+                    quiet_ended.remove(job.id)
         if not blocked and not gate:
             lanes = tuple(lanes_free[: int(u[LANE])])
             del lanes_free[: int(u[LANE])]
@@ -335,4 +343,4 @@ def plan(state):
             fits_alone = fits_window(u, now, end, entries, cap) is None
             if fits_alone and fits_window(u, now, end, entries, cap, ext, now):
                 drain = True
-    return Plan(grants, reasons, starts, quiet_started, drain, [j.id for j in order])
+    return Plan(grants, reasons, starts, quiet_started, drain, [j.id for j in order], quiet_ended)

@@ -101,7 +101,8 @@ Windows slot, one perf slot.
   part of them. A later job may start ahead of a waiting one only when it fits beside that one's
   reservation for its whole timeout.
 - **Quiet.** `quiet` waits at most 15 minutes for the CPU outside runq to go under 2 cores, then
-  starts the job flagged noisy (`RUNQ_NOISY=1`, and `noisy` in its record).
+  starts the job flagged noisy (`RUNQ_NOISY=1`, and `noisy` in its record). The 15 minutes start
+  again when something else held the job up in between (the user's game, a hold, a resource).
 - **The user's game.** No job that needs the Windows slot starts while the user is in ONI, or
   while the slot is held for them (`runq hold windows [--for 3h]`, `runq release windows`;
   `runq status` shows the hold). Such a job waits holding nothing, and others run meanwhile. The
