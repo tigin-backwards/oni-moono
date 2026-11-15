@@ -194,8 +194,16 @@ options in Steam.
 
 ## Performance
 
-The biggest change is swapping the very garbage Mono runtime that Unity ships for CoreCLR. On
-top of that there are optimizations tuned to the way Oxygen Not Included uses the engine.
+Moono runs the same game code 3 to 4.5 times faster before any tweaks, and up to 13 times faster
+with them. Three things do it:
+
+- **An engine built around how ONI uses it.** The game makes over a million small engine calls
+  every frame: looking up an object's position, its components, or whether it still exists. Each
+  one is about 15 times cheaper in Moono than in Unity.
+- **CoreCLR instead of the very garbage Mono runtime that Unity ships.** The runtime's own
+  overhead is about 5 times lower.
+- **Over 40 tweaks** that replace slow parts of the game's own code. Most give exactly the same
+  results; a few differ in ways you won't see. Each can be turned off.
 
 On a late-game Spaced Out colony with every DLC (cycle 17,000+), on Windows, on the same machine, back to back, with every Moono tweak on:
 
