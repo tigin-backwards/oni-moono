@@ -1,23 +1,20 @@
 #!/usr/bin/env bash
-# Development/test runs of the Windows player from WSL: stages out/win (scripts/build-windows.sh)
-# in %TEMP%\oni-brutal\host (ONI_WIN_STAGE names another folder) and starts OniMoono.exe on the
-# Windows side with the Windows game install. Test runs never touch the user's own game data,
-# Steam account or speakers: the run home (ONI_RUN_HOME, default %TEMP%\oni-brutal\run-home)
-# takes the place of Documents, AppData and LocalLow (--run-home), the offline Steam double
-# replaces steam_api64.dll, and the game's audio goes to <run home>\fmodoutput.wav (--audio-wav).
-# Extra arguments go to the host.
-# As scripts/run.sh, `--game-tweak none --splash none --log-paths full` come first: no tweaks, no
-# loading splash and the log's paths as logged unless the run names them.
+# Development and test runs of the Windows player from WSL: stages out/win
+# (scripts/build-windows.sh) in %TEMP%\oni-brutal\host (ONI_WIN_STAGE names another folder) and
+# starts OniMoono.exe with the Windows game install. Extra arguments go to the host:
+#   scripts/run-windows.sh --frames 600 --capture 590:C:/path/shot.png
+# A test run never touches the user's game data, Steam account or speakers:
+# - the run home (ONI_RUN_HOME, default %TEMP%\oni-brutal\run-home) takes the place of
+#   Documents, AppData and LocalLow (--run-home);
+# - the offline Steam double replaces steam_api64.dll;
+# - the game's audio goes to <run home>\fmodoutput.wav (--audio-wav).
+# As scripts/run.sh, `--game-tweak none --splash none --log-paths full` come first.
 # The window opens windowed on the second monitor without taking the focus (`-screen-fullscreen 0
 # -monitor 2 --no-focus`; ONI_WIN_MONITOR=N picks another monitor), so a test never covers or
-# takes over the user's main one. Focus it only through out/local-tools/win-run.ps1 -Match RUN_HOME
-# -Action focus, and act on its process only through win-run.ps1 (by its run home, never by name).
-#   scripts/run-windows.sh --frames 600 --capture 590:C:/path/shot.png
-# It runs as a runq job (docs/RUNQ.md) of kind windows, or RUNQ_KIND (win-perf for frame-rate
-# runs): runq holds the Windows slot (and windows-game.lock for the old scripts), and gives the run
-# a stage folder and run home of its own, %TEMP%\oni-runq\JOB\stage and \home (ONI_WIN_STAGE,
-# ONI_RUN_HOME unless set), whose volume settings it sets to 0; it kills the game by that run home
-# when the job ends. Inside a job, with RUNQ=off or without a daemon it runs directly.
+# takes over the user's main one. Focus it, and act on its process, only through
+# out/local-tools/win-run.ps1 -Match RUN_HOME (by its run home, never by name).
+# Queues itself through runq as kind windows, or RUNQ_KIND (win-perf for frame-rate runs):
+# docs/RUNQ.md, "What each job gets", has the job's stage folder, run home and cleanup.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 source "$root/scripts/runq-submit.sh"

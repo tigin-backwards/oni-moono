@@ -1,45 +1,42 @@
 #!/usr/bin/env bash
-# Comparison runs of the ORIGINAL Windows player from WSL, isolated as our own test runs are
-# (scripts/run-windows.sh). Not part of the product.
+# Comparison runs of the ORIGINAL Windows player from WSL, isolated as the test runs of
+# scripts/run-windows.sh are. Not part of the product.
+#   ONI_RUN_HOME='C:\...\orig-home' scripts/original-windows.sh -screen-width 1024 -screen-height 768 -screen-fullscreen 0
 #
 # The original runs from a renamed copy of the install (ORIG_DIR, default
-# E:\Development\BrutalNotIncluded; the frozen builds' copies are E:\oni-builds\BrutalNotIncluded-BUILD):
-# Unity finds its data folder by the executable's name, so NAME.exe + NAME_Data run beside any
-# other copy, and the Steam install is never run or written: a copy is made once from
-# ONI_WIN_GAME_DIR (files, no links) and a copy inside a Steam library is refused. In the copy:
+# E:\Development\BrutalNotIncluded; the frozen builds' copies are
+# E:\oni-builds\BrutalNotIncluded-BUILD). Unity finds its data folder by the executable's name,
+# so NAME.exe + NAME_Data run beside any other copy. The Steam install is never run or written:
+# the copy is made once from ONI_WIN_GAME_DIR (files, no links), and a copy inside a Steam
+# library is refused. In the copy:
 # - Unity Doorstop 4 (winhttp.dll, copied once from ONI_DOORSTOP_SOURCE: a folder holding it, a
-#   BepInEx 6 install or another copy) starts tools/OriginalIsolation before the game's own
+#   BepInEx 6 install or another copy) starts tools/OriginalIsolation before the game's
 #   assemblies load. No BepInEx: its HarmonyX would replace the game's 0Harmony, and mods built
-#   against the game's Harmony then fail. OriginalIsolation patches with the game's 0Harmony:
-#   Documents, the local and roaming application data folders and the working folder answer the
-#   run home (saves, settings, mods), the game's audio goes to <run home>\fmodoutput.wav, and
-#   without a run home, or when a redirection fails, the player ends before reading any user
-#   data. It confirms in <run home>\original-isolation.txt; when the confirmation is not there 3 s
-#   after Unity's log appears (60 s after the start without a log), the launcher ends the player
-#   and this script exits 3;
-# - the offline Steam double replaces steam_api64.dll (ONI_STEAM_STUB=PATH: another one, a local
-#   test setup's), so no Steam client or account is involved;
-# - ignorekcrashreporter.txt keeps crash reports local;
-# - the product name in globalgamemanagers (PlayerSettings) is set for each run to "Moono Orig
-#   XXXXXXXX" (random, the same length as "Oxygen Not Included"), so Unity's own per-user data
-#   (the registry key HKCU\Software\Klei\PRODUCT, LocalLow\Klei\PRODUCT) is the run's own and
-#   never the installed game's or another run's. After the run the key is exported to
-#   <run home>\unity-prefs.reg and deleted, and LocalLow\Klei\PRODUCT moves to <run home>\LocalLow.
-#   The game's code does not read the product name. TEMP and TMP are <run home>\Temp.
+#   against the game's Harmony then fail.
+# - OriginalIsolation patches with the game's 0Harmony: Documents, the local and roaming
+#   application data folders and the working folder answer the run home (saves, settings,
+#   mods), and the game's audio goes to <run home>\fmodoutput.wav. Without a run home, or when a
+#   redirection fails, the player ends before reading any user data.
+# - It confirms in <run home>\original-isolation.txt. Without the confirmation 3 s after Unity's
+#   log appears (60 s after the start without a log), the launcher ends the player and this
+#   script exits 3.
+# - The offline Steam double replaces steam_api64.dll (ONI_STEAM_STUB=PATH: another one, a local
+#   test setup's), so no Steam client or account is involved.
+# - ignorekcrashreporter.txt keeps crash reports local.
+# - The product name in globalgamemanagers (PlayerSettings) is set for each run to "Moono Orig
+#   XXXXXXXX" (random, as long as "Oxygen Not Included"), so Unity's per-user data (the registry
+#   key HKCU\Software\Klei\PRODUCT, LocalLow\Klei\PRODUCT) is never the installed game's or
+#   another run's. After the run the key is exported to <run home>\unity-prefs.reg and deleted,
+#   and LocalLow\Klei\PRODUCT moves to <run home>\LocalLow. The game's code does not read the
+#   product name. TEMP and TMP are <run home>\Temp.
 # Unity's log goes to <run home>\Player.log. The run ends after ORIG_SECONDS (default 600), the
-# process killed. A copy runs one player at a time: the Windows slot (runq's, or windows-game.lock).
-# As scripts/run-windows.sh's, the window opens windowed on the second monitor (`-screen-fullscreen
-# 0 -monitor 2` first, so the run's own arguments win; ONI_WIN_MONITOR=N picks another monitor),
-# and when it takes the focus as it opens, the window that had it gets it back (in its first
-# minute; Windows may refuse that). Focus it only through out/local-tools/win-run.ps1 -Match
-# RUN_HOME -Action focus.
-#
-#   ONI_RUN_HOME='C:\...\orig-home' scripts/original-windows.sh -screen-width 1024 -screen-height 768 -screen-fullscreen 0
-# It runs as a runq job (docs/RUNQ.md) of kind windows, or RUNQ_KIND (win-perf for frame-rate
-# runs): runq holds the Windows slot (and windows-game.lock for the old scripts), sets ONI_RUN_HOME
-# to %TEMP%\oni-runq\JOB\home when it is unset, sets the run home's volumes to 0, and kills the game
-# by its run home when the job ends. Inside a job, with RUNQ=off or without a daemon it runs
-# directly (then take windows-game.lock yourself).
+# process killed. A copy runs one player at a time.
+# The window opens windowed on the second monitor (`-screen-fullscreen 0 -monitor 2` first, so
+# the run's arguments win; ONI_WIN_MONITOR=N picks another monitor). When it takes the focus as
+# it opens, the window that had it gets it back (in its first minute; Windows may refuse that).
+# Focus it only through out/local-tools/win-run.ps1 -Match RUN_HOME -Action focus.
+# Queues itself through runq as kind windows, or RUNQ_KIND (win-perf for frame-rate runs):
+# docs/RUNQ.md. Run directly (RUNQ=off, no daemon), take windows-game.lock yourself.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 source "$root/scripts/runq-submit.sh"
@@ -92,7 +89,7 @@ config="$(mktemp)"
 printf '[General]\r\nenabled = true\r\ntarget_assembly = OriginalIsolation.dll\r\nredirect_output_log = false\r\nboot_config_override =\r\nignore_disable_switch = true\r\n\r\n[UnityMono]\r\ndll_search_path_override =\r\ndebug_enabled = false\r\ndebug_address = 127.0.0.1:10000\r\ndebug_suspend = false\r\n' > "$config"
 put "$config" "$orig/doorstop_config.ini"; rm -f "$config"
 
-# The run's own product name, so Unity's registry key and LocalLow folder are the run's.
+# A product name for this run alone, so Unity's registry key and LocalLow folder are the run's.
 product="Moono Orig $(od -An -tx1 -N4 /dev/urandom | tr -d ' \n')"
 python3 -I - "$orig/${name}_Data/globalgamemanagers" "$product" <<'PY'
 import sys

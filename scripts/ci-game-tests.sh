@@ -62,7 +62,7 @@ fi
 echo "== e2e ($list)"
 # References for ours-alone runs: each spec's log-signature budget, the build's (e2e.py compares a
 # run of ours with out/e2e-refs/SPEC/signatures.json). No UI dump or screenshot reference: the
-# specs check their own expectations, and E2E_NO_SHOTS takes no picture.
+# specs check their expectations, and E2E_NO_SHOTS takes no picture.
 export E2E_OUT="$root/out/e2e" E2E_NO_SHOTS=1 E2E_MEMORY_GB="${E2E_MEMORY_GB:-12}" E2E_DRIVER="$root/out/bin/E2eDriver/release"
 refs="$E2E_OUT-refs"
 rm -rf "$refs"

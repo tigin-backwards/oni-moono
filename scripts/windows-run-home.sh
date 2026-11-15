@@ -15,7 +15,7 @@ rm -rf "$home"
 mkdir -p "$d/cloud_save_files/76561197960265729/$name"
 cp "$save" "$d/cloud_save_files/76561197960265729/$name/$name.sav"
 file="$(wslpath -w "$d/cloud_save_files/76561197960265729/$name/$name.sav")"
-# Spaced Out is active when the save is a Spaced Out one: the resumed save skips the menu's own
+# Spaced Out is active when the save is a Spaced Out one: the resumed save skips the menu's
 # check, and a save of the other mode would load into a game set up without its content (its
 # sound banks, for one: Spaced Out's music events then fail when the colony starts).
 expansion1=$(python3 -I - "$save" <<'PY'

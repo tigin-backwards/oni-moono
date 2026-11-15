@@ -609,7 +609,7 @@ not_run_in_ours |= {
     '3807856018',
     '3180371600',
 }
-# Not installed: the user's rule (2026-10-31) plays only uploads onimaxxing has reviewed, as the
+# Not installed: the user's rule plays only uploads onimaxxing has reviewed, as the
 # interim hashcheck.py finds them (id -> its reason); revisited once onimaxxing reviews them.
 skipped = {
     '3827209375': 'upload analysed by onimaxxing (version 1.2.0) but not reviewed',

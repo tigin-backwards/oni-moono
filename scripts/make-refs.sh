@@ -6,7 +6,7 @@
 # manifest entry it prints into ci/game-refs.json.
 #   scripts/make-refs.sh GAME_DIR BUILD OUT
 # writes OUT/BUILD/*.dll and OUT/BUILD/SHA256SUMS, and OUT/BUILD/ORIGINALS.sha256 (the hashes of
-# the game's own files they were made from). Nothing here runs the game's code.
+# the game's files they were made from). Nothing here runs the game's code.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 [ $# -eq 3 ] || { sed -n '2,10p' "$0" >&2; exit 2; }
