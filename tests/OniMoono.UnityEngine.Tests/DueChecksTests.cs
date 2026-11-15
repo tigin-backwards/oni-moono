@@ -52,5 +52,17 @@ namespace OniMoono.Tests
             checks.Set("z", 5f);
             Assert.Equal(new[] { "z" }, checks.Take(5f));
         }
+
+        [Fact]
+        public void ASharedInstallRunsOnce()
+        {
+            // brain-rate and critter-needs-first both ask for the hooks: the first one installs.
+            var install = new Once();
+            int installs = 0;
+            for (int i = 0; i < 3; i++)
+                if (install.First()) installs++;
+            Assert.Equal(1, installs);
+            Assert.True(new Once().First());
+        }
     }
 }

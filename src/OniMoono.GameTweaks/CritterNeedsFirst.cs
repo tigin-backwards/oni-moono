@@ -33,6 +33,9 @@ namespace OniMoono.GameTweaks
     /// 2,400 at 30 fps, every 49.3 game seconds instead of 48.4). Critters that eat solids take a
     /// stomach's worth a meal and are asked for only to excrete.
     ///
+    /// `brain-rate` installs the same hooks for its critter cap, where turns are scarce at any
+    /// frame rate; with both tweaks on they are installed once.
+    ///
     /// With ONI_TWEAK_VERIFY=1 each asked turn is followed: it must come within as many frames as
     /// brains were queued before it, plus 2 (the queue is served in order, at least one a frame);
     /// the count and those over are logged every 600 game seconds.
@@ -61,8 +64,12 @@ namespace OniMoono.GameTweaks
         /// For tests (E2eDriver's state reads): the turns asked for, by need.
         public static long ToInhale, ToExcrete;
 
+        static readonly Once install = new Once();
+
+        /// Installs the hooks once: `brain-rate` installs them too, for its critter cap.
         public static void Install(Harmony harmony)
         {
+            if (!install.First()) return;
             harmony.Patch(AccessTools.Method(typeof(GasAndLiquidConsumerMonitor), nameof(GasAndLiquidConsumerMonitor.InitializeStates)), postfix: new HarmonyMethod(typeof(CritterNeedsFirst), nameof(InhalerStates)));
             var instance = typeof(CreatureCalorieMonitor.Instance);
             var meal = new HarmonyMethod(typeof(CritterNeedsFirst), nameof(MealOrExcretion));

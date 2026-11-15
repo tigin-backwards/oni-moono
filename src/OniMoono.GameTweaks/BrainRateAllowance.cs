@@ -10,17 +10,20 @@ namespace OniMoono.GameTweaks
     /// frames of uneven length still average the rate; as no frame gets more than `perFrame`, at
     /// `rate / perFrame` frames a second or fewer the game's own count runs every frame.
     ///
-    /// The rate has two floors in game time, so a large group at a high game speed is not held to
-    /// turns rarer than the game would give it at a low frame rate:
+    /// The rate has two floors in game time (issue #85), so a large group at a high game speed is
+    /// not held to turns rarer than its brains need:
     /// - every brain gets a turn within MaxTurnSeconds of game time: `brains × timeScale /
-    ///   MaxTurnSeconds` a second (more than 30 a second from 150 Duplicants at speed 3);
+    ///   MaxTurnSeconds` a second. A critter that inhales its food (Pufts, Slicksters) gets one
+    ///   meal a turn, and stays hungry, and so never excretes, once its turns are rarer than a
+    ///   meal lasts it: 18 game seconds for a Puft (1.5 kg a meal of 50 kg a cycle), 30 for a
+    ///   Puft Prince and 45 for a Slickster;
     /// - the game's own slowest rate, its count for every GameFrameSeconds of game time (a
     ///   frame's game time is clamped to that): `perFrame × timeScale / GameFrameSeconds`.
     /// Plain .NET (no game types): the unit tests compile it in.
     public sealed class BrainRateAllowance
     {
         /// The longest a brain waits for its turn, in game seconds, while the game's own count a
-        /// frame allows it.
+        /// frame allows it: under the 18 a Puft's meal lasts.
         public const double MaxTurnSeconds = 15;
         /// The most game time a frame advances (Game.SimEveryTick's clamp).
         public const double GameFrameSeconds = 0.2;
