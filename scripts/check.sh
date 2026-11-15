@@ -6,9 +6,7 @@
 # this project's UI packages.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
-# It runs as a runq job of kind check (docs/RUNQ.md): never beside a perf run, its 8 cores
-# counted against the machine's. Inside a job (RUNQ_JOB), with RUNQ=off or without a daemon it
-# runs directly.
+# Queues itself through runq as kind check (docs/RUNQ.md): never beside a perf run.
 source "$root/scripts/runq-submit.sh"
 runq_self_submit --kind check --label "check.sh${*:+ $*}" -- "$root/scripts/check.sh" "$@"
 # Its builds and tests run in the memory-capped test slice (scripts/contain.sh).
@@ -112,7 +110,7 @@ if [ -z "${ONI_NAVLINKS_MODS:-}" ]; then
     export ONI_NAVLINKS_MODS
 fi
 "$root/out/bin/OniMoono.Host/debug/OniMoono" --game "$game" --check-types --log "$root/out/check-types.log" | grep -vE '^(ok   [A-Za-z0-9.-]+ +[0-9]+ types|from )'
-# Again on the release build, which releases ship: the host's own code is compiled optimized
+# Again on the release build, which releases ship: the host's code is compiled optimized
 # there, as the game's is, and not in the debug build.
 dotnet build "$root/src/OniMoono.Host" -c Release -v q -nologo "-clp:ErrorsOnly;NoSummary"
 types=$("$root/out/bin/OniMoono.Host/release/OniMoono" --game "$game" --check-types --log "$root/out/check-types-release.log") || failed+=(check-types-release)

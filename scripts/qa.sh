@@ -23,28 +23,26 @@
 # Steam double owning the DLC) and may set QA_U57_SAVE (default: the e2e fixture U57,
 # fetched like the scenarios' saves); without it those stages are skipped.
 # It can also export the machine's GL settings for Xvfb (e.g. GALLIUM_DRIVER), which every run uses.
-# A U57 run that logs no PERF line (PerfProbe's, every 600 frames) for QA_HANG_MIN minutes (default
-# 5; the slowest legitimate gaps are about 140 s of load before the first and 110 s between two in
-# the overlay sweep) is hung: scripts/hang-dump.sh takes the managed stacks of every thread,
-# per-thread CPU and wait states and the log's tail into STAGE/hang, the player is stopped and the
-# stage fails, naming that folder. ONI_TEST_HANG=FRAME[:spin|wait] (src/OniMoono.Host/TestHang.cs)
-# hangs a player on purpose, to try it.
+# A U57 run that logs no PERF line (PerfProbe's, every 600 frames) for QA_HANG_MIN minutes
+# (default 5; the longest normal gaps are about 140 s of load before the first and 110 s between
+# two in the overlay sweep) is hung: scripts/hang-dump.sh writes every thread's managed stack,
+# CPU and wait state and the log's tail to STAGE/hang, the player is stopped and the stage fails,
+# naming that folder. ONI_TEST_HANG=FRAME[:spin|wait] (src/OniMoono.Host/TestHang.cs) hangs a
+# player on purpose, to try it.
 # --bless stores this run's captures, signatures and frame rate as the references
 # (out/qa/reference), once they have been looked at; --bless-from=RUN stores a past run's.
-# Players end with qa.sh, however it ends (a `timeout`, ^C, kill -9): each runs in a systemd scope
-# of its own that qa.sh stops on exit, and a watcher stops when qa.sh is killed outright (see
-# "the players' teardown"). scripts/e2e.py --status shows what runs and who waits for whom.
-# A player is stopped with SIGTERM, which quits it at a frame boundary with its GPU work done (a
-# player killed in a GPU wait on WSL was followed by a kernel soft lockup), and with SIGKILL only
-# when it still runs E2E_QUIT_GRACE seconds (default 10) later. A stage's `timeout` runs inside
-# its xvfb-run, so that it signals the player, not the wrapper that stops the X server.
+# Players end with qa.sh, however it ends (see "the players' teardown"). scripts/e2e.py --status
+# shows what runs and who waits for whom.
+# A player is stopped with SIGTERM, which quits it at a frame boundary with its GPU work done,
+# and with SIGKILL only when it still runs E2E_QUIT_GRACE seconds (default 10) later: a player
+# killed in a GPU wait on WSL can soft-lock the kernel. A stage's `timeout` runs inside its
+# xvfb-run, so that it signals the player, not the wrapper that stops the X server.
 # SC2329: the stages and their helpers run by name ("stage_$s").
 # shellcheck disable=SC2329
 set -uo pipefail
 source "$(dirname "$0")/env.sh"
-# It runs as a runq job of kind qa (docs/RUNQ.md), and each stage asks runq for its own resources
-# (`runq phase --kind qa-STAGE`: the perf stage gets the machine to itself, quiet). Inside a job
-# (RUNQ_JOB), with RUNQ=off or without a daemon it runs directly, with the old locks.
+# Queues itself through runq as kind qa; each stage asks for its resources with `runq phase
+# --kind qa-STAGE` (docs/RUNQ.md).
 source "$root/scripts/runq-submit.sh"
 runq_self_submit --kind qa --label "qa.sh${*:+ $*}" -- "$root/scripts/qa.sh" "$@"
 # Its builds, players and tests run in the memory-capped test slice (scripts/contain.sh).
@@ -135,8 +133,8 @@ trap on_exit EXIT
 trap 'exit 143' TERM; trap 'exit 130' INT; trap 'exit 129' HUP
 
 # ---- build ----
-# The release player every stage runs: the engine, the UI packages and the host, which carries its
-# own copy of the engine (a build of the engine alone does not reach the player). Once a run.
+# The release player every stage runs: the engine, the UI packages and the host, which carries a
+# copy of the engine (a build of the engine alone does not reach the player). Once a run.
 built=0
 build_release()
 {
@@ -213,7 +211,7 @@ run_scenario() # NAME
     wait "$player_pid"
     local status=$?
     rm -f "$out/audio.raw"
-    # The game's own log (Debug.Log, exceptions) goes to stdout with the engine's.
+    # The game's log (Debug.Log, exceptions) goes to stdout with the engine's.
     { echo "exit $status"; python3 "$tools" signatures "$out/stdout.txt" "$out/errors.txt"; } > "$out/signatures.txt"
     local rdir="$ref/dogfood/$name"
     if [ "$bless" -eq 1 ]; then
@@ -388,7 +386,7 @@ u57_run()
 }
 
 # u57_check STAGE OUT: the run ended normally, and logged no exception or error the reference for
-# STAGE lacks (the game's own known ones are in it).
+# STAGE lacks (the game's known ones are in it).
 u57_check()
 {
     local stage=$1 out=$2 status; status=$(cat "$out/exit")
@@ -433,7 +431,7 @@ stage_verify()
     for part in "verified" "graphics skipped by masks" "graphics left out of raycasts"; do
         echo "$report" | grep -q "canvas skips: .*$part" || fail "verify: no canvas skips report on $part"
     done
-    # The radbolt tweak checks two things, each with its own report.
+    # The radbolt tweak checks two things, with a report each.
     echo "$report" | grep -q "fast-particle-collision: .*mismatches" || fail "verify: no lookup report from fast-particle-collision"
     echo "$report" | grep -q "fast-particle-collision: .*wrong skips" || fail "verify: no gather report from fast-particle-collision"
     read -r fps span windows <<< "$(python3 "$tools" perf "$out/stdout.txt")"

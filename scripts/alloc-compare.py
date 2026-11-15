@@ -9,10 +9,10 @@ AllocSites). Linux, on Xvfb, players through scripts/contain.sh.
         1280x720, measured for --secs after --warm s past the first frame-rate window. Moono gets a
         warm-up launch first and runs with its default tweaks. --fps caps the frame rate (both
         players, vsync off); --sites adds the per-section counters; --trace (Moono only) records
-        an allocation trace with stacks and thread ids for `split`. Runs as a runq job of kind
-        linux-perf (docs/RUNQ.md); with RUNQ=off or no daemon it holds the perf queue
-        (perf.wanted and perf.lock, as qa.sh's perf stage) and a player's place in scripts/e2e.py's
-        memory budget for the launch, and gives both back after it. --uilists gives PerfProbe FILE as
+        an allocation trace with stacks and thread ids for `split`. Queues itself through runq as
+        kind linux-perf (docs/RUNQ.md); run directly, it holds the perf queue (perf.wanted and
+        perf.lock) and a player's place in scripts/e2e.py's memory budget. --uilists gives
+        PerfProbe FILE as
         its uilists.txt (the long-list screens' scenario, tools/PerfProbe/UiLists.cs) and measures
         until it logs `PERF ui done` instead of for --secs; --frame-stats and --env NAME=VALUE (ours
         only) add the frame-stats lines and engine settings.
@@ -570,7 +570,7 @@ SECTIONS = [
     'Pathfinding.UpdateNavGrids',
 ]
 SECTION_RX = [(s, re.compile(r'(^|[.!])' + re.escape(s) + r'(_Patch[0-9]+)?\(')) for s in SECTIONS]
-# The engine's own sites in `(other)` and the canvas rebuilds (allocation batch 4's groups), by the
+# The engine's sites in `(other)` and the canvas rebuilds (allocation batch 4's groups), by the
 # first two frames from the innermost OniMoono frame that isn't a tweak.
 ENGINE_SITES = [
     ('canvas copies (CanvasGeometry.From)', r'CanvasGeometry\.(From|CopyColors)|CanvasArrays.*<- OniMoono.Engine.UI.CanvasGeometry'),
