@@ -126,6 +126,12 @@ How it is timed:
   129 fps with every tweak and frame stats on, against 144 with them off, and at 47 against 51
   with no tweaks. With the default tweaks the two were within the runs' spread (91 and 90).
   2minnow lost 6–7% in each.
+- Until 2026-11-15 frame stats also turned `fast-anim-events` off (its check took the timing
+  patches for a mod's), so those figures with tweaks and frame stats on were measured without
+  that tweak. With that fixed, one pair on Windows on 2026-11-15 (a late-game colony, default
+  tweaks, speed 3, one launch each, `fast-anim-events` on in both): 76.5 fps with frame stats
+  off and 91.4 with them on. The launch without them had two slow windows, and launches differ
+  by more than that, so this one pair shows no cost.
 
 Two settings for test runs go with frame stats:
 - `ONI_BUCKET_PROFILE=1`: the state machine buckets' loop runs with each bucket timed (the same
