@@ -60,19 +60,9 @@ namespace OniMoono.GameTweaks
 
         static bool Foreign()
         {
-            foreach (var method in guarded)
-            {
-                if (method == null) continue;
-                var info = Harmony.GetPatchInfo(method);
-                if (info == null) continue;
-                foreach (var o in info.Owners)
-                    if (!ModOverlapsCore.IsTweakOwner(o))
-                    {
-                        global::Debug.Log($"{Name}: off ({o} patches {method.DeclaringType.Name}.{method.Name})");
-                        return true;
-                    }
-            }
-            return false;
+            if (ForeignPatches.Find(guarded) is not { } why) return false;
+            global::Debug.Log($"{Name}: off ({why})");
+            return true;
         }
 
         /// OverlayModes.Decor.OnSaveLoadRootUnregistered, with the grid's removal by reference.

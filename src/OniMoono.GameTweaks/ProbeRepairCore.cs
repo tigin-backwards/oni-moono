@@ -1406,22 +1406,11 @@ namespace OniMoono.GameTweaks
         }
     }
 
-    /// When the tweak stands down: another Harmony owner patches a method it replaces or relies on
-    /// (PerfProbe's stopwatches, test infrastructure, only time them).
+    /// Which patches make a tweak stand down (ForeignPatches reads them from Harmony).
     public static class ProbeRepairPolicy
     {
-        /// This tweak's own Harmony ID (each tweak patches under its own, ModOverlapsCore.OwnerOf).
+        /// This tweak's Harmony ID (each tweak patches under one of its own, ModOverlapsCore.OwnerOf).
         public const string Owner = ModOverlapsCore.TweakOwnerPrefix + ".path-probe-repair";
-
-        /// The first foreign patch, as "OWNER patches METHOD", or null.
-        public static string Foreign(IEnumerable<KeyValuePair<string, IEnumerable<string>>> patchOwnersByMethod)
-        {
-            foreach (var kv in patchOwnersByMethod)
-                foreach (var o in kv.Value)
-                    if (!ModOverlapsCore.IsTweakOwner(o) && o != "PerfProbe" && !o.StartsWith("PerfProbe.", StringComparison.Ordinal))
-                        return $"{o} patches {kv.Key}";
-            return null;
-        }
 
         /// Which kinds of another owner's patch of a guarded method make a tweak stand down.
         /// `AllButPostfixes`: a postfix there runs after the game's code as before. `Finalizers`:
@@ -1430,27 +1419,7 @@ namespace OniMoono.GameTweaks
         /// that skipped it, counts.
         public enum GuardedKinds { All, AllButPostfixes, Finalizers }
 
-        /// The owners of one method's patches that count under `kinds` (inner patches change calls
-        /// inside the body, as a transpiler does).
-        public static List<string> Counted(GuardedKinds kinds, IEnumerable<string> prefixes, IEnumerable<string> postfixes,
-            IEnumerable<string> transpilers, IEnumerable<string> finalizers, IEnumerable<string> inner)
-        {
-            var counted = new List<string>();
-            void Add(IEnumerable<string> owners)
-            {
-                foreach (var o in owners)
-                    if (!counted.Contains(o)) counted.Add(o);
-            }
-            Add(finalizers);
-            if (kinds == GuardedKinds.Finalizers) return counted;
-            Add(prefixes);
-            Add(transpilers);
-            Add(inner);
-            if (kinds == GuardedKinds.All) Add(postfixes);
-            return counted;
-        }
-
-        /// Whether a patch of `kind` counts under `kinds` (as Counted, for the overlaps screen).
+        /// Whether a patch of `kind` counts under `kinds`.
         public static bool Counts(GuardedKinds kinds, PatchKind kind) =>
             kinds == GuardedKinds.All || kind == PatchKind.Finalizer || (kinds == GuardedKinds.AllButPostfixes && kind != PatchKind.Postfix);
     }

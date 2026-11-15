@@ -142,25 +142,7 @@ namespace OniMoono.GameTweaks
             _ => ProbeRepairPolicy.GuardedKinds.AllButPostfixes,
         };
 
-        static IEnumerable<string> Owners(IEnumerable<Patch> patches)
-        {
-            foreach (var p in patches) yield return p.owner;
-        }
-
-        static string Foreign()
-        {
-            var owners = new List<KeyValuePair<string, IEnumerable<string>>>();
-            foreach (var m in Guarded())
-            {
-                if (m == null) return "a method it relies on was not found";
-                var info = Harmony.GetPatchInfo(m);
-                if (info == null) continue;
-                var counted = ProbeRepairPolicy.Counted(KindsOf(m), Owners(info.Prefixes), Owners(info.Postfixes), Owners(info.Transpilers), Owners(info.Finalizers),
-                    System.Linq.Enumerable.Concat(Owners(info.InnerPrefixes), Owners(info.InnerPostfixes)));
-                owners.Add(new KeyValuePair<string, IEnumerable<string>>($"{m.DeclaringType?.Name}.{m.Name}", counted));
-            }
-            return ProbeRepairPolicy.Foreign(owners);
-        }
+        static string Foreign() => ForeignPatches.Find(Guarded(), KindsOf, "a method it relies on was not found");
 
         /// Once, at the first update in a game (every mod has patched by then; the main menu's few
         /// animations run the game's loop until then).

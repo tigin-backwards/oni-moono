@@ -37,6 +37,7 @@ namespace OniMoono.GameTweaks
         public static bool Bypass = Environment.GetEnvironmentVariable("ONI_CONDUIT_SORTS_BYPASS") == "1";
 
         static readonly string[] standDownMods = { "PeterHan.FastTrack", "MoreTek", "SaitoColonyPerf", "multiplayerMod" };
+        static MethodBase[] guarded;
         static bool off;
         static long calls;
         public static long Wrong;
@@ -48,6 +49,7 @@ namespace OniMoono.GameTweaks
 
         public static void Install(Harmony harmony)
         {
+            guarded = new List<MethodBase>(Guarded()).ToArray();
             var transpiler = new HarmonyMethod(typeof(FastConduitSorts), nameof(Transpiler));
             harmony.Patch(AccessTools.Method(typeof(ConduitFlow), nameof(ConduitFlow.Sim200ms)), transpiler: transpiler);
             harmony.Patch(AccessTools.Method(typeof(SolidConduitFlow), nameof(SolidConduitFlow.Sim200ms)), transpiler: transpiler);
@@ -83,18 +85,9 @@ namespace OniMoono.GameTweaks
                 global::Debug.Log($"{Name}: off ({mod} is active)");
                 return true;
             }
-            foreach (var method in Guarded())
-            {
-                var info = Harmony.GetPatchInfo(method);
-                if (info == null) continue;
-                foreach (var o in info.Owners)
-                    if (!ModOverlapsCore.IsTweakOwner(o) && !ModOverlapsCore.IsOurs(o))
-                    {
-                        global::Debug.Log($"{Name}: off ({o} patches {method.DeclaringType?.Name}.Sim200ms)");
-                        return true;
-                    }
-            }
-            return false;
+            if (ForeignPatches.Find(guarded) is not { } why) return false;
+            global::Debug.Log($"{Name}: off ({why})");
+            return true;
         }
 
         /// Whether to replay: on, not stood down, and `compare` the game's own lambda of `flow`.

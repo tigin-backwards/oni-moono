@@ -8,9 +8,8 @@ namespace OniMoono.Tests
 {
     /// The fast-anim-events game tweak's stand-down: the game's Harmony (2.4.2) skips every later
     /// prefix that can affect the original once one returned false, so a mod's bool prefix on the
-    /// loop the tweak replaces never runs while the tweak's does; and the policy that decides when
-    /// the tweak leaves the game's loop in place (ProbeRepairPolicy.Counted and Foreign,
-    /// src/OniMoono.GameTweaks/ProbeRepairCore.cs, compiled in here).
+    /// loop the tweak replaces never runs while the tweak's does. Which patches make it leave
+    /// the game's loop in place: ForeignPatchesTests.
     public class FastAnimEventsTests
     {
         /// Stands in for AnimEventManager's three-argument Update.
@@ -68,55 +67,6 @@ namespace OniMoono.Tests
                 mod.UnpatchAll(mod.Id);
                 tweak.UnpatchAll(tweak.Id);
             }
-        }
-
-        const string Ours = "OniMoono.Host.GameTweaks.fast-anim-events";
-        static readonly string[] None = new string[0];
-
-        static string Foreign(ProbeRepairPolicy.GuardedKinds kinds, string[] prefixes = null, string[] postfixes = null, string[] transpilers = null,
-            string[] finalizers = null, string[] inner = null, string method = "AnimEventManager.Update") =>
-            ProbeRepairPolicy.Foreign(new[]
-            {
-                new KeyValuePair<string, IEnumerable<string>>(method,
-                    ProbeRepairPolicy.Counted(kinds, prefixes ?? None, postfixes ?? None, transpilers ?? None, finalizers ?? None, inner ?? None)),
-            });
-
-        [Fact]
-        public void OurPatchesAndPerfProbeNeverCount()
-        {
-            Assert.Null(Foreign(ProbeRepairPolicy.GuardedKinds.All, prefixes: new[] { Ours, "PerfProbe.Frames" },
-                postfixes: new[] { "OniMoono.Host.GameTweaks.frame-stats", "PerfProbe" }));
-        }
-
-        [Fact]
-        public void TheLoopCountsAllButPostfixes()
-        {
-            var kinds = ProbeRepairPolicy.GuardedKinds.AllButPostfixes;
-            // Advanced Batteries' postfix on the public Update.
-            Assert.Null(Foreign(kinds, prefixes: new[] { Ours }, postfixes: new[] { "Advanced.Batteries" }));
-            // ONI Multiplayer's bool prefix (its asteroid freeze).
-            Assert.Equal("OniMp patches AnimEventManager.Update", Foreign(kinds, prefixes: new[] { Ours, "OniMp" }));
-            // Cooperative Colonies' transpiler; a mod's postfix and inner patch.
-            Assert.Equal("coop patches AnimEventManager.Update", Foreign(kinds, transpilers: new[] { "coop" }, postfixes: new[] { "coop" }));
-            Assert.Equal("some.mod patches AnimEventManager.Update", Foreign(kinds, inner: new[] { "some.mod" }));
-            Assert.Equal("some.mod patches AnimEventManager.Update", Foreign(kinds, finalizers: new[] { "some.mod" }));
-        }
-
-        [Fact]
-        public void CopiedMethodsCountEveryPatch()
-        {
-            Assert.Equal("some.mod patches AnimEventManager.PlayEvents",
-                Foreign(ProbeRepairPolicy.GuardedKinds.All, postfixes: new[] { "some.mod" }, method: "AnimEventManager.PlayEvents"));
-        }
-
-        [Fact]
-        public void FlaggedMethodsCountOnlyFinalizers()
-        {
-            var kinds = ProbeRepairPolicy.GuardedKinds.Finalizers;
-            // Fast Track's transpiler on StartQueuedAnim; ONI Together's prefix on Queue.
-            Assert.Null(Foreign(kinds, transpilers: new[] { "PeterHan.FastTrack" }, postfixes: new[] { Ours }, method: "KAnimControllerBase.StartQueuedAnim"));
-            Assert.Null(Foreign(kinds, prefixes: new[] { "ONI_Together" }, inner: new[] { "x" }, method: "KAnimControllerBase.Queue"));
-            Assert.Equal("some.mod patches KAnimControllerBase.Queue", Foreign(kinds, finalizers: new[] { "some.mod" }, method: "KAnimControllerBase.Queue"));
         }
     }
 }

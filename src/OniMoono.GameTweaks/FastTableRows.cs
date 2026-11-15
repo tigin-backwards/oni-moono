@@ -117,10 +117,16 @@ namespace OniMoono.GameTweaks
             else global::Debug.Log($"{Name}: Consumables' scroller refresh is left as it is (this build has no refresh_scrollers)");
         }
 
-        static IEnumerable<string> Owners(IEnumerable<Patch> patches)
+        /// The methods another owner's patch makes this tweak stand down (ModOverlaps); one this
+        /// build lacks is null.
+        internal static IEnumerable<MethodBase> Guarded() => new MethodBase[]
         {
-            foreach (var p in patches) yield return p.owner;
-        }
+            AccessTools.Method(typeof(TableScreen), "GetWidgetRow", new[] { typeof(GameObject) }),
+            AccessTools.Method(typeof(TableScreen), "GetWidgetColumn", new[] { typeof(GameObject) }),
+            AccessTools.Method(typeof(TableRow), "ContainsWidget", new[] { typeof(GameObject) }),
+            AccessTools.Method(typeof(TableColumn), "ContainsWidget", new[] { typeof(GameObject) }),
+            AccessTools.Method(typeof(ConsumablesTableScreen), "refresh_scrollers", Type.EmptyTypes),
+        };
 
         /// Once, at the first row loaded (every mod has patched by then).
         static void Check()
@@ -128,24 +134,7 @@ namespace OniMoono.GameTweaks
             string why;
             try
             {
-                var owners = new List<KeyValuePair<string, IEnumerable<string>>>();
-                foreach (var m in new MethodBase[]
-                         {
-                             AccessTools.Method(typeof(TableScreen), "GetWidgetRow", new[] { typeof(GameObject) }),
-                             AccessTools.Method(typeof(TableScreen), "GetWidgetColumn", new[] { typeof(GameObject) }),
-                             AccessTools.Method(typeof(TableRow), "ContainsWidget", new[] { typeof(GameObject) }),
-                             AccessTools.Method(typeof(TableColumn), "ContainsWidget", new[] { typeof(GameObject) }),
-                             AccessTools.Method(typeof(ConsumablesTableScreen), "refresh_scrollers", Type.EmptyTypes),
-                         })
-                {
-                    if (m == null) continue;
-                    var info = Harmony.GetPatchInfo(m);
-                    if (info == null) continue;
-                    owners.Add(new KeyValuePair<string, IEnumerable<string>>($"{m.DeclaringType?.Name}.{m.Name}",
-                        ProbeRepairPolicy.Counted(ProbeRepairPolicy.GuardedKinds.All, Owners(info.Prefixes), Owners(info.Postfixes), Owners(info.Transpilers),
-                            Owners(info.Finalizers), System.Linq.Enumerable.Concat(Owners(info.InnerPrefixes), Owners(info.InnerPostfixes)))));
-                }
-                why = ProbeRepairPolicy.Foreign(owners);
+                why = ForeignPatches.Find(Guarded());
             }
             catch (Exception e)
             {

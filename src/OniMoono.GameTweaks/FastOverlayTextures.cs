@@ -31,8 +31,8 @@ namespace OniMoono.GameTweaks
     /// CreateRenderTarget with the new copies, has run in a frame's rendering and set the shader
     /// globals to them. A texture still found then among the proxy's textures, as a shader global
     /// under its name or the copies' names, as a camera's target or as the active render texture
-    /// is kept (the game's own behaviour). While another Harmony owner patches CreateRenderTarget
-    /// (a mod freeing these itself), the tweak frees nothing.
+    /// is kept (the game's own behaviour). Off for the session once another Harmony owner patches
+    /// CreateRenderTarget (a mod freeing these itself): the tweak frees nothing.
     ///
     /// With ONI_TWEAK_VERIFY=1, before each release every material's textures (those its shader
     /// declares), every component's fields holding textures (or arrays or lists of them) and the
@@ -71,17 +71,21 @@ namespace OniMoono.GameTweaks
         /// The method another owner's patch makes this tweak stand down (ModOverlaps).
         internal static MethodBase Guarded() => createRenderTarget;
 
+        static bool off;
+
+        /// Checked at each CreateRenderTarget and each release (a few an overlay toggle).
         static bool Foreign()
         {
-            var info = Harmony.GetPatchInfo(createRenderTarget);
-            if (info == null) return false;
-            foreach (var owner in info.Owners)
-                if (!ModOverlapsCore.IsTweakOwner(owner)) return true;
-            return false;
+            if (off) return true;
+            if (ForeignPatches.Find(createRenderTarget) is not { } why) return false;
+            off = true;
+            pending.Clear();
+            global::Debug.Log($"{Name}: off ({why})");
+            return true;
         }
 
         static void Before(MultipleRenderTargetProxy __instance, out RenderTexture[] __state)
-            => __state = (RenderTexture[])__instance.TexturesCopies.Clone();
+            => __state = off ? null : (RenderTexture[])__instance.TexturesCopies.Clone();
 
         static void After(MultipleRenderTargetProxy __instance, RenderTexture[] __state)
         {

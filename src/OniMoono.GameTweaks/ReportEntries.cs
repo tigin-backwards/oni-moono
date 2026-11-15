@@ -153,31 +153,18 @@ namespace OniMoono.GameTweaks
         }
 
         static MethodBase[] guarded;
-        static string loggedForeign;
+        static bool foreign;
 
-        /// Whether another owner patches a guarded method now, logged when it changes.
+        /// Whether another owner patches a guarded method: checked at each save's two writes,
+        /// off for the session once one does.
         static bool Foreign()
         {
+            if (foreign) return true;
             guarded ??= new List<MethodBase>(Guarded()).ToArray();
-            string found = null;
-            foreach (var method in guarded)
-            {
-                var info = method == null ? null : Harmony.GetPatchInfo(method);
-                if (info == null) continue;
-                foreach (var owner in info.Owners)
-                    if (!ModOverlapsCore.IsOurs(owner))
-                    {
-                        found = $"{owner} patches {method.DeclaringType.Name}.{method.Name}";
-                        break;
-                    }
-                if (found != null) break;
-            }
-            if (found != loggedForeign)
-            {
-                loggedForeign = found;
-                global::Debug.Log(found != null ? $"{Name}: the report history keeps the game's writer ({found})" : $"{Name}: the report history has its typed writer back");
-            }
-            return found != null;
+            if (ForeignPatches.Find(guarded) is not { } why) return false;
+            foreign = true;
+            global::Debug.Log($"{Name}: the report history keeps the game's writer ({why})");
+            return true;
         }
 
         static long verifiedWrites, mismatches;

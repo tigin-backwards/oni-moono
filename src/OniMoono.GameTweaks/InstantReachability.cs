@@ -194,17 +194,7 @@ namespace OniMoono.GameTweaks
             yield return AccessTools.Method(typeof(OffsetTableTracker), "OnCellChanged");
         }
 
-        static string Foreign()
-        {
-            var owners = new List<KeyValuePair<string, IEnumerable<string>>>();
-            foreach (var m in Guarded())
-            {
-                if (m == null) return "a method it relies on was not found";
-                var info = Harmony.GetPatchInfo(m);
-                if (info != null) owners.Add(new KeyValuePair<string, IEnumerable<string>>($"{m.DeclaringType?.Name}.{m.Name}", info.Owners));
-            }
-            return ProbeRepairPolicy.Foreign(owners);
-        }
+        static string Foreign() => ForeignPatches.Find(Guarded(), missing: "a method it relies on was not found");
 
         /// Once, when the monitor's states are made (the first monitored object of the session,
         /// with every mod's patches made).

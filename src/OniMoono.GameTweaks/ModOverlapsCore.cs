@@ -70,13 +70,26 @@ namespace OniMoono.GameTweaks
             owner != null && owner.Length > TweakOwnerPrefix.Length + 1 && owner.StartsWith(TweakOwnerPrefix + ".", StringComparison.Ordinal)
                 ? owner.Substring(TweakOwnerPrefix.Length + 1) : null;
 
-        /// A tweak's own patch (the tweaks' checks for other owners' patches use this).
+        /// A tweak's patch.
         public static bool IsTweakOwner(string owner) => owner == TweakOwnerPrefix || TweakOf(owner) != null;
 
-        /// Ours, never an overlap: the host's patches (OniMoono.*) and the perf tool's
-        /// stopwatches (PerfProbe, as path-probe-repair ignores them).
+        /// Ours, never an overlap: the tweaks' and the host's patches (OniMoono.*, frame stats
+        /// among them) and the perf tool's stopwatches (PerfProbe).
         public static bool IsOurs(string owner) =>
             owner == null || owner.StartsWith("OniMoono.", StringComparison.Ordinal) || owner == "PerfProbe" || owner.StartsWith("PerfProbe.", StringComparison.Ordinal);
+
+        /// Test infrastructure's Harmony IDs, left out like ours (ONI_MOD_OVERLAPS_IGNORE,
+        /// comma-separated: scripts/e2e.py names OniMcp's, which every spec loads).
+        static readonly HashSet<string> ignored = Ignored(Environment.GetEnvironmentVariable("ONI_MOD_OVERLAPS_IGNORE"));
+
+        public static HashSet<string> Ignored(string ids) =>
+            new HashSet<string>((ids ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
+
+        /// A mod's owner: neither ours nor test infrastructure's. The one test for the overlaps
+        /// screen and for every tweak's stand-down check (ForeignPatches).
+        public static bool IsForeign(string owner) => IsForeign(owner, ignored);
+
+        public static bool IsForeign(string owner, HashSet<string> ignore) => !IsOurs(owner) && !ignore.Contains(owner);
 
         /// How a mod's patch on a method meets a tweak's use of it:
         /// - steps aside: the tweak guards the method against that kind of patch (it turns itself
@@ -108,7 +121,7 @@ namespace OniMoono.GameTweaks
                 foreach (var use in m.Uses)
                     foreach (var p in m.Patches)
                     {
-                        if (IsOurs(p.Owner)) continue;
+                        if (!IsForeign(p.Owner)) continue;
                         bool known = p.Kind == PatchKind.Transpiler && reviewed != null && reviewed(use.Tweak, m.Method, p.PatchClass);
                         found.Add(new Overlap
                         {

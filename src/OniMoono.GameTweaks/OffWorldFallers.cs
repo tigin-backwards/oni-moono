@@ -69,6 +69,7 @@ namespace OniMoono.GameTweaks
         static readonly List<(int Index, Transform Key)> landing = new List<(int, Transform)>();
         static Action<Transform> itemLanding;
         static GravityComponents watching;
+        static MethodBase[] guarded;
         static bool off, loggedOnce;
         static long steps;
 
@@ -79,6 +80,7 @@ namespace OniMoono.GameTweaks
         public static void Install(Harmony harmony)
         {
             itemLanding = FallerComponents.OnLandedAction;
+            guarded = new List<MethodBase>(Guarded()).ToArray();
             harmony.Patch(Hook(), prefix: new HarmonyMethod(typeof(OffWorldFallers), nameof(Before)),
                 postfix: new HarmonyMethod(typeof(OffWorldFallers), nameof(After)));
             if (verify) Transpiled.Install(harmony, lands: false);
@@ -101,25 +103,9 @@ namespace OniMoono.GameTweaks
 
         static bool Foreign()
         {
-            foreach (var method in Guarded())
-            {
-                var info = Harmony.GetPatchInfo(method);
-                if (info == null) continue;
-                var owners = ProbeRepairPolicy.Counted(KindsOf(method), Owners(info.Prefixes), Owners(info.Postfixes),
-                    Owners(info.Transpilers), Owners(info.Finalizers), Array.Empty<string>());
-                string name = $"{method.DeclaringType?.Name}.{method.Name}";
-                if (ProbeRepairPolicy.Foreign(new[] { new KeyValuePair<string, IEnumerable<string>>(name, owners) }) is { } foreign)
-                {
-                    global::Debug.Log($"[engine] {Name}: off ({foreign})");
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        static IEnumerable<string> Owners(IEnumerable<Patch> patches)
-        {
-            foreach (var p in patches) yield return p.owner;
+            if (ForeignPatches.Find(guarded, ProbeRepairPolicy.GuardedKinds.AllButPostfixes) is not { } why) return false;
+            global::Debug.Log($"[engine] {Name}: off ({why})");
+            return true;
         }
 
         /// GameComps.Gravities and Grid, as the passes read them.

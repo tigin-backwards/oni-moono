@@ -151,18 +151,9 @@ namespace OniMoono.GameTweaks
 
         static void CheckPatches()
         {
-            foreach (var method in KeptCalls())
-            {
-                var info = Harmony.GetPatchInfo(method);
-                if (info == null) continue;
-                foreach (var owner in info.Owners)
-                    if (!ModOverlapsCore.IsTweakOwner(owner))
-                    {
-                        off = true;
-                        global::Debug.Log($"{Name}: applications run in full ({owner} patches {method.DeclaringType?.Name}.{method.Name})");
-                        return;
-                    }
-            }
+            if (ForeignPatches.Find(KeptCalls()) is not { } why) return;
+            off = true;
+            global::Debug.Log($"{Name}: applications run in full ({why})");
         }
 
         /// The anim data's generation: kept calls name its batch group data and textures.

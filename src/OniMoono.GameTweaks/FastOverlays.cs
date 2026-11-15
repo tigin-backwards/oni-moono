@@ -93,6 +93,8 @@ namespace OniMoono.GameTweaks
             removeOffscreen = AccessTools.GetDeclaredMethods(typeof(OverlayModes.Mode)).First(m => m.Name == "RemoveOffscreenTargets" && m.GetParameters().Length == 4);
             highlight = AccessTools.Method(typeof(OverlayModes.Mode), "UpdateHighlightTypeOverlay");
             clearOutside = AccessTools.GetDeclaredMethods(typeof(OverlayModes.Mode)).First(m => m.Name == "ClearOutsideViewObjects" && m.GetParameters().Length == 5 && m.GetParameters()[1].ParameterType == typeof(Vector2I));
+            targetsPatched = new System.Reflection.MethodBase[] { addTarget };
+            rowsPatched = new System.Reflection.MethodBase[] { removeOffscreen, highlight, clearOutside };
             var reroute = CallSiteReroute.Transpiler(typeof(FastOverlays), nameof(RerouteAddTarget));
             foreach (var (type, method) in new[] { (typeof(OverlayModes.ConduitMode), "Update"), (typeof(OverlayModes.Crop), "Update"), (typeof(OverlayModes.Harvest), "Update"),
                          (typeof(OverlayModes.Decor), "Update"), (typeof(OverlayModes.Logic), "Update"), (typeof(OverlayModes.Power), "Update"),
@@ -115,6 +117,7 @@ namespace OniMoono.GameTweaks
         // ---- Targets already shown ----
 
         static System.Reflection.MethodInfo addTarget;
+        static System.Reflection.MethodBase[] targetsPatched, rowsPatched;
         static bool targetsForeign;
         static int targetChecks;
         static long targetsKept, targetsChecked, targetsWrong;
@@ -136,7 +139,7 @@ namespace OniMoono.GameTweaks
         static void AddTarget<T>(OverlayModes.Mode mode, T instance, Vector2I visMin, Vector2I visMax, ICollection<T> targets, int layer, Action<T> onAdded, Func<KMonoBehaviour, bool> shouldAdd)
             where T : IUniformGridObject
         {
-            if (targetChecks++ % 100000 == 0) targetsForeign = Foreign(new System.Reflection.MethodBase[] { addTarget }, out _);
+            if (!targetsForeign && targetChecks++ % 100000 == 0) targetsForeign = Foreign(targetsPatched, "targets already shown");
             if ((object)instance != null && !targetsForeign && targets.Contains(instance))
             {
                 targetsKept++;
@@ -176,8 +179,7 @@ namespace OniMoono.GameTweaks
         /// Whether another owner patches a helper the kept rows stand in for (checked now and then).
         static bool RowsForeign()
         {
-            if (rowChecks++ % 3000 == 0)
-                rowsForeign = Foreign(new System.Reflection.MethodBase[] { removeOffscreen, highlight, clearOutside }, out _);
+            if (!rowsForeign && rowChecks++ % 3000 == 0) rowsForeign = Foreign(rowsPatched, "kept rows");
             return rowsForeign;
         }
 
@@ -379,7 +381,7 @@ namespace OniMoono.GameTweaks
             if (nextPlace < placesUsed) Array.Clear(places, nextPlace, placesUsed - nextPlace);
             placesUsed = nextPlace;
             nextPlace = 0;
-            if (__runOriginal && infraredUpdates++ % 3000 == 0) infraredForeign = Foreign(infraredPatched, out _);
+            if (__runOriginal && !infraredForeign && infraredUpdates++ % 3000 == 0) infraredForeign = Foreign(infraredPatched, "kept positions");
         }
 
         /// The visualizers' handler (the game's dispatcher, replaced): the game's test, with the
@@ -460,8 +462,8 @@ namespace OniMoono.GameTweaks
         static void PowerBegin(bool __runOriginal)
         {
             if (!__runOriginal) return;
-            // Mods patch while loading; checked again now and then for late ones.
-            if (powerUpdates++ % 3000 == 0) powerForeign = Foreign(powerPatched, out _);
+            // Mods patch while loading; checked again now and then for late ones, until one is found.
+            if (!powerForeign && powerUpdates++ % 3000 == 0) powerForeign = Foreign(powerPatched, "power answers");
             wattsNeeded.Clear();
             inPowerUpdate = !powerForeign;
         }
@@ -506,21 +508,14 @@ namespace OniMoono.GameTweaks
 
         /// The methods another owner's patch makes a part of this tweak stand down (ModOverlaps).
         internal static IEnumerable<System.Reflection.MethodBase> Guarded() =>
-            powerPatched.Concat(infraredPatched).Concat(new System.Reflection.MethodBase[] { addTarget, removeOffscreen, highlight, clearOutside });
+            powerPatched.Concat(infraredPatched).Concat(targetsPatched).Concat(rowsPatched);
 
-        /// Whether a Harmony owner other than the tweaks patches one of the methods.
-        static bool Foreign(System.Reflection.MethodBase[] methods, out string owner)
+        /// Whether a mod patches one of a part's methods: that part is off for the session.
+        static bool Foreign(System.Reflection.MethodBase[] methods, string part)
         {
-            owner = null;
-            foreach (var method in methods)
-            {
-                var info = Harmony.GetPatchInfo(method);
-                if (info == null) continue;
-                // PerfProbe's stopwatch (test infrastructure) only times the methods it wraps.
-                foreach (var o in info.Owners)
-                    if (!ModOverlapsCore.IsTweakOwner(o) && o != "PerfProbe.WallTime") { owner = o; return true; }
-            }
-            return false;
+            if (ForeignPatches.Find(methods) is not { } why) return false;
+            global::Debug.Log($"{Name}: {part} off ({why})");
+            return true;
         }
     }
 }

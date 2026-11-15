@@ -22,11 +22,7 @@ namespace OniMoono.GameTweaks
     public static class ModOverlaps
     {
         static HashSet<string> enabled = new HashSet<string>(StringComparer.Ordinal);
-        /// Test infrastructure's Harmony IDs, left out like ours (ONI_MOD_OVERLAPS_IGNORE,
-        /// comma-separated: scripts/e2e.py names OniMcp's, which every spec loads).
-        static readonly HashSet<string> ignored = new HashSet<string>(
-            (Environment.GetEnvironmentVariable("ONI_MOD_OVERLAPS_IGNORE") ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
-        static bool Ours(string owner) => ModOverlapsCore.IsOurs(owner) || ignored.Contains(owner);
+        static bool Ours(string owner) => !ModOverlapsCore.IsForeign(owner);
         static Func<MethodBase, string> rewrittenBy;
         static HashSet<string> reviewed = new HashSet<string>(StringComparer.Ordinal);
         static string lastLog;
