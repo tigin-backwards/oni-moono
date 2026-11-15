@@ -615,6 +615,21 @@ class WindowsInterop(unittest.TestCase):
         self.assertEqual(r.stdout.strip(), 'OFF')
 
 
+class Cli(unittest.TestCase):
+    def test_a_daemon_of_another_version_is_said(self):
+        import importlib.machinery, importlib.util
+
+        loader = importlib.machinery.SourceFileLoader('runq_cli', RUNQ)
+        cli = importlib.util.module_from_spec(importlib.util.spec_from_loader('runq_cli', loader))
+        loader.exec_module(cli)
+        self.assertIsNone(cli.stale_daemon(cli.version()))
+        self.assertIsNone(cli.stale_daemon('dev'))  # a daemon run from a checkout (the tests')
+        self.assertIsNone(cli.stale_daemon(None))
+        line = cli.stale_daemon('0123456789ab')
+        self.assertIn('the daemon runs runq 0123456789ab', line)
+        self.assertIn(cli.version(), line)
+
+
 class Rules(unittest.TestCase):
     """runq's sources never kill by pattern or name, never move the pointer, never pass the
     flag that pins the pointer over a Windows game."""
