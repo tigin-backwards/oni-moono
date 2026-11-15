@@ -184,3 +184,75 @@ with 2,400). At speeds 1 and 2 a colony of 1,070 critters keeps 150 a second.
 With the floors, the 2,400 brains at 40 fps get the game's own 5 a frame, a turn every 36.2 game
 seconds, and the 8 Slicksters excreted 19 times in 600 game seconds. The 1,070-brain colony at 42
 fps and speed 3 runs as without the tweak (200 updates a second, a turn every 15.2).
+
+## What a critter brain turn costs (2026-11-14)
+
+Measured on Linux at speed 3 with default tweaks and `brain-rate`, a probe timing every critter
+brain update whole (`Brain.UpdateBrain`: the monitors' searches, the chore search, starting the
+chosen chore) and its once-a-turn parts. The probe switched the critter group's rule every 60
+game seconds in one launch, four blocks each: the game's count (off), the plain 150 a second
+(the cap before #85), the shipped 15-second floor, and a local branch that also gives priority
+turns to critters ready to inhale or excrete. Not landed.
+
+Late-game colony, 1,070 critter brains:
+
+| Rule | Turns a real second | Mean turn | Critter turn time |
+|---|---|---|---|
+| off | 191 | 117 µs | 22.4 ms a real second |
+| plain cap | 154 | 137 µs | 21.0 |
+| 15-second floor | 217 | 105 µs | 22.7 |
+| priority turns | 145 | 129 µs | 18.7, and 1.7 for its check of every critter each 2 game seconds |
+
+- **Critter turns are about 2% of the main thread** whatever the rule: 20–23 ms a real second.
+  The whole scheduler measured 2.06 ms a frame at 42 fps in another launch (87 ms a second), so
+  about three quarters of brain time is the Duplicant group's (24 Duplicants, a turn about 2 ms).
+  `brain-rate`'s gain is its Duplicant cap.
+- **Fewer turns cost more each.** The work is what the critters have to do, not the turns: with
+  fewer turns, more of them find a chore that has ended (11% of turns off, 17% with the plain
+  cap) and fewer find an idle critter with nothing new (41% → 32%).
+- **By outcome, off** (share of turns, mean, share of time):
+
+| Outcome | Turns | Mean | p95 | Time |
+|---|---|---|---|---|
+| no chore: starts idling | 26.1% | 98 µs | 283 µs | 21.9% |
+| idling, searches ran, nothing new | 40.8% | 57 | 171 | 19.8% |
+| a robot's fetch or sweep chore continues | 1.3% | 1,396 | 2,106 | 15.1% |
+| chore ended, none picked | 11.1% | 141 | 385 | 13.3% |
+| starts an emote | 8.4% | 113–168 | 380 | 9.3% |
+| idling, no search | 3.0% | 205 | 1,471 | 5.2% |
+| no chore before or after | 2.4% | 182 | 567 | 3.7% |
+| starts eating | 1.0% | 226–259 | 671 | 2.1% |
+| every other chore start (excrete, ranch, call adult, lay egg, flee…) | under 1% each | 100–330 | | about 6% |
+
+- **By part, off** (inclusive; a part runs at most once a turn):
+
+| Part | Turns it runs in | Mean | Time |
+|---|---|---|---|
+| chore search (`ChoreConsumer.FindNextChore`) | 99.8% | 31 µs | 26.1% |
+| starting the chore (`ChoreDriver.SetChore`) | 53.1% | 47 | 21.4% |
+| search for solid food | 37.1% | 48 | 15.2% |
+| path probe (`Navigator.UpdateProbe`) | all | 7 | 6.4% |
+| search for a critter condo | 76.8% | 6 | 3.7% |
+| threat search | 8.5% | 29 | 2.1% |
+| mosquito's victim search | 1.0% | 173 | 1.4% |
+| search for a milk feeder | 82.3% | 2 | 1.3% |
+| search for a lure | 46.3% | 1 | 0.5% |
+| the rest (the robots' fetch searches among them) | | | about 21% |
+
+- **Idle turns are cheap** (57–98 µs), and the search that costs is for solid food: hungry
+  critters that find none, 15% of critter turn time (3.4 ms a real second). The milk feeder and
+  lure searches that nearly every critter runs cost 2 µs and 1 µs.
+- **What could be saved, at most:** skipping the milk, lure and condo searches where the world
+  holds no such building, 5.5% of critter turn time (1.2 ms a real second); keeping a failed
+  food search until food can have changed, 15% (3.4 ms); the three robots' turns, 15%. None is
+  worth a tweak on this colony: all of the critters' turns together are 0.6 ms of a 27 ms frame.
+
+The reproduction world of the section above (2,400 hungry Slicksters with no gas, speed 3, 40
+fps): 12–15 ms a real second under every rule, a turn 63–85 µs, 56–59% of it starting the idle
+chore again; the gas search is 3 µs. The priority branch's check of every critter costs 3.3 ms a
+real second there, a quarter of what the turns cost: it would have to be driven by events.
+
+Per-launch frame rates differed between the blocks (37–53 fps) by far more than the brain time
+does (0.4–0.6 ms a frame), so they say nothing about the rules. No `perf` profile was taken: the
+parts above are bracketed once a turn, where the brackets add about 1%.
+
