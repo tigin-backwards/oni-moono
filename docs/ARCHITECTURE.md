@@ -2373,341 +2373,449 @@ read within 0.05 ms of one, two or three refreshes.
 
 **Presentation on Windows (DXGI).** On Windows the presenter shows the picture through a
 Direct3D 11 flip-model swap chain (`DxgiSwapChain`, `DxgiTarget`), on by default (Moono Tweaks'
-"Present through Direct3D on Windows", settings.json `"dxgi"`, `--dxgi on|off`). The original
-(Unity on D3D11) presents through an 8-bit flip-model DXGI swap chain in the default sRGB colour
-space, so Windows knows its frames are SDR. OpenGL presents through WGL with no swap chain
-Windows can see; NVIDIA's "Vulkan/OpenGL present method" (Auto by default) may layer it on DXGI,
-and Auto HDR or RTX HDR can then take the game for HDR content and push the brightness up (a
-user's report: fullscreen forced HDR and maximum brightness). The window is the same in both (a
-borderless popup the monitor's size, measured); only the presentation differed. The swap chain:
-a D3D11 device on the GL context's adapter (by its LUID: `EXT_external_objects_win32` when DXGI
-knows that LUID, else `GL_VENDOR`/`GL_RENDERER` against the DXGI adapters' descriptions; the GPU
-option's choice is the GL driver's), `R8G8B8A8_UNORM`, `FLIP_DISCARD`, two buffers, the default
-colour space (`RGB_FULL_G22_NONE_P709`), `DXGI_SCALING_STRETCH`, a frame-latency waitable object
-at a maximum latency of 2, and `ALLOW_TEARING` when the system supports it, used only without
-vsync. The presenter renders the picture into one D3D11 texture, made anew (a quarter larger)
-only when the window outgrows it, registered with GL once through `WGL_NV_DX_interop2` for
-reading and writing (the splash blends) and locked while the presenter's blit fills it, flipped
-(Direct3D's rows run top-down; the splash is drawn flipped too). The swap chain's own buffers are
-never registered with GL (re-registering them after a resize is suspected of a use-after-free in
-NVIDIA's driver, Godot PR #94503). `CopySubresourceRegion` copies the texture into the back
-buffer before `Present` at `QualitySettings.vSyncCount` (0 to 4); with vsync the presenter then
-waits on the waitable object until the picture before it retires, two pictures in flight as
-Unity's default of two queued frames (with one, a 60 Hz game lost frames on a GPU whose picture
-is copied to a monitor on another). Without vsync it does not wait, as SwapBuffers does not:
-retiring a picture can take a frame or two (29 ms a picture measured on an AMD iGPU whose picture
-is copied to a monitor on the NVIDIA card), which would cap the frame rate; the interop lock
-bounds what is in flight.
+"Present through Direct3D on Windows", settings.json `"dxgi"`, `--dxgi on|off`).
 
-A size change calls `ResizeBuffers` before the next picture; between the window's resize and that
-picture DXGI stretches the last one. A minimized window keeps its framebuffer size (§3.6), so the
-buffers keep theirs. Microsoft documents that a flip-model swap chain never returns
-`DXGI_STATUS_OCCLUDED`; should one anyway, the picture is taken as not shown and not waited for.
-Exclusive fullscreen stays the window's (GLFW sets the display mode, a monitor-sized window), not
-DXGI's `SetFullscreenState`, and DXGI is told to leave the window alone
-(`DXGI_MWA_NO_WINDOW_CHANGES | NO_ALT_ENTER`). Microsoft's multithreading notes for DXGI list a
-DXGI call on a thread other than the window's as a deadlock risk: `Present` may send the window a
-message, which the main thread (which may be waiting on the GL thread, which may be waiting on
-the presenter) would have to answer; their example is a fullscreen swap chain's mode change,
-which never happens here. That `Present` and `ResizeBuffers` send no such message is not
-documented; the evidence is measured: the resizes and window switches below (150 each, with 150
-minimize/restore cycles) never hung. After start-up every DXGI, D3D11 and interop object is used
-and released on the presenter thread alone, and the waits on the waitable object are not
-alertable. Start-up makes everything that can fail (the interop extension, the adapter, the
-D3D11 device, the registration and a first lock) before it gives the window a swap chain, and a
-failure there leaves SwapBuffers in use, with one `present:` log line saying why. A window can
-have only one flip-model swap chain at a time (Microsoft's `CreateSwapChainForHwnd` remarks,
-which list no error for it); Windows 11 returned `E_ACCESSDENIED` (0x80070005) when it already
-had one (`occupied`, measured), and a player's log showed that error at start-up, before any swap
-chain of ours, on a laptop with a Ryzen 5600H's iGPU and a GTX 1650, whose built-in screen is
-most likely the iGPU's, and in later players' logs on NVIDIA GPUs (#56). The holder was the OpenGL
-driver presenting through DXGI itself: with NVIDIA's "Vulkan/OpenGL present method" at "Prefer
-layered on DXGI swapchain", set for a test executable alone through an NVAPI driver profile, a
-window with our OpenGL context refused our swap chain with that error at start-up on this
-machine's RTX 3090 too (measured, 2026-11-05). So on Windows with DXGI on, the visible window is
-made without an OpenGL context or pixel format (`GLFW_NO_API`) and only DXGI presents to it; the
-presenter thread's context lives on a hidden 1x1 window instead, shared with the GL thread's as
-before (the interop registers textures with a context and a D3D11 device, never with a window).
-The hidden windows are single-buffered (double-buffered only when the driver has no such pixel
-format; nothing presents from them, and OpenGL's SwapBuffers on the visible window stays
-double-buffered, the log's `present:` line saying so), and d3d11.dll and dxgi.dll are loaded before them: GLFW clears and swaps a double-buffered
-window once as it makes its context, and RivaTuner Statistics Server takes a process that has
-called SwapBuffers for an OpenGL one, skips its DXGI presents (its `IgnoreDXGIInterop` default)
-and hooks only the Direct3D runtimes loaded when it injects, as windows are made (measured with
-RTSS 7.3.7 through its shared memory: before, it attached to OpenGL on a 120x1 hidden window and
-showed no overlay, #64; after, to our swap chain at the window's size).
-With that setting DXGI then started and presented. The window gets a pixel format, double-buffered,
-and a context of its own sharing the presenter's (with the hidden window's pixel format and the
-presenter's context itself when that window is double-buffered: WGL takes any window with the
-context's pixel format, `Win32GlWindow`), only once DXGI is given up: it could not start, or no
-restart is left. Not sooner: a window's pixel format cannot be changed once set, and with that
-setting a SwapBuffers on the window gave it the driver's swap chain, after which every restart was
-refused with `E_ACCESSDENIED` (measured). While restarts are pending the presenter's pictures go
-nowhere (paced by `DwmFlush` with vsync) and the window keeps its last picture. `--dxgi off`,
-Linux and macOS keep the context on the visible window, as before. A refused swap chain's log
-line names the window's owner thread and process, its styles and size, the adapter showing its
-monitor against the device's, and the graphics runtimes and hooks
-(overlays, capture, a proxy `dxgi.dll`) loaded before DXGI started. Once the window has a swap
-chain, a failure (the chain's own set-up at start-up; while running a lost
-device: `DXGI_ERROR_DEVICE_REMOVED`/`RESET`/`HUNG`, a failed lock, resize or present) releases
-everything DXGI held and starts it anew. Restarts come in bursts of ten tries, 1, 2, 4 then 8 s apart
-(about a minute, outlasting a slow driver reset); a restart that presents for 60 s ends its
-burst, so a later failure gets ten tries again. Until a restart succeeds the window keeps its last
-picture; once none is left SwapBuffers stands in, which does not reach the screen on a window
-whose flip-model swap chain has presented (measured: the window kept DXGI's last picture while
-frames went on) unless the driver presents OpenGL through DXGI itself (measured with NVIDIA's
-layered present), so a DXGI that cannot restart usually leaves the window still. The `present:`
-line at start-up names the adapter and the swap chain's settings; `--dxgi-fault STEP[,STEP]` makes
-up a failure at one step, once, for testing
-the ways back: at start-up `extension` (no `WGL_NV_DX_interop2`), `adapter`, `device`,
-`register`, `swapchain`, `occupied` (not made up: a second D3D11 device gives the window a
-flip-model swap chain first) and `association` (the last after the swap chain is made, so DXGI is
-restarted); while running `lock:N`, `resize:N` and `removed:N` (the Nth interop lock, resize or
-`Present`); `norestart` makes every restart fail too. The host refuses any other step (the
-shared `DxgiSwapChain` also lists the Vulkan branch's); with `--frame-stats` the frame counts include the
-presenter's time per picture by step, the time from a game frame's start to its picture's
-present, and, every 600 frames, the process's video memory on the adapter as DXGI counts it
-(only while DXGI presents). Captures and `ReadPixels` read the offscreen back buffers, never the
-window, so they are the same either way. With DXGI off, and off Windows, the presenter swaps as
-before.
+Why:
+
+- The original (Unity on D3D11) presents through an 8-bit flip-model DXGI swap chain in the
+  default sRGB colour space, so Windows knows its frames are SDR.
+- OpenGL presents through WGL with no swap chain Windows can see. NVIDIA's "Vulkan/OpenGL
+  present method" (Auto by default) may layer it on DXGI, and Auto HDR or RTX HDR can then take
+  the game for HDR content and push the brightness up (a user's report: fullscreen forced HDR
+  and maximum brightness).
+- The window is the same in both (a borderless popup the monitor's size, measured). Only the
+  presentation differed.
+
+The swap chain:
+
+- **Device.** A D3D11 device on the GL context's adapter. The adapter is found by its LUID:
+  `EXT_external_objects_win32` when DXGI knows that LUID, else `GL_VENDOR`/`GL_RENDERER` against
+  the DXGI adapters' descriptions. The GPU option's choice is the GL driver's.
+- **Settings.** `R8G8B8A8_UNORM`, `FLIP_DISCARD`, two buffers, the default colour space
+  (`RGB_FULL_G22_NONE_P709`), `DXGI_SCALING_STRETCH`, a frame-latency waitable object at a
+  maximum latency of 2, and `ALLOW_TEARING` when the system supports it, used only without
+  vsync.
+- **The shared texture.** The presenter renders the picture into one D3D11 texture, made anew
+  (a quarter larger) only when the window outgrows it. It is registered with GL once through
+  `WGL_NV_DX_interop2` for reading and writing (the splash blends) and locked while the
+  presenter's blit fills it, flipped (Direct3D's rows run top-down; the splash is drawn flipped
+  too). The swap chain's own buffers are never registered with GL (re-registering them after a
+  resize is suspected of a use-after-free in NVIDIA's driver, Godot PR #94503).
+- **Present.** `CopySubresourceRegion` copies the texture into the back buffer before `Present`
+  at `QualitySettings.vSyncCount` (0 to 4).
+  - With vsync the presenter then waits on the waitable object until the picture before it
+    retires, two pictures in flight as Unity's default of two queued frames (with one, a 60 Hz
+    game lost frames on a GPU whose picture is copied to a monitor on another).
+  - Without vsync it does not wait, as SwapBuffers does not. Retiring a picture can take a
+    frame or two (29 ms a picture measured on an AMD iGPU whose picture is copied to a monitor
+    on the NVIDIA card), which would cap the frame rate. The interop lock bounds what is in
+    flight.
+
+Resizes, fullscreen and threads:
+
+- **Resize.** A size change calls `ResizeBuffers` before the next picture. Between the window's
+  resize and that picture DXGI stretches the last one. A minimized window keeps its framebuffer
+  size (§3.6), so the buffers keep theirs.
+- **Occlusion.** Microsoft documents that a flip-model swap chain never returns
+  `DXGI_STATUS_OCCLUDED`. Should one anyway, the picture is taken as not shown and not waited
+  for.
+- **Fullscreen.** Exclusive fullscreen stays the window's (GLFW sets the display mode, a
+  monitor-sized window), not DXGI's `SetFullscreenState`, and DXGI is told to leave the window
+  alone (`DXGI_MWA_NO_WINDOW_CHANGES | NO_ALT_ENTER`).
+- **Threads.** Microsoft's multithreading notes for DXGI list a DXGI call on a thread other
+  than the window's as a deadlock risk: `Present` may send the window a message, which the main
+  thread (which may be waiting on the GL thread, which may be waiting on the presenter) would
+  have to answer. Their example is a fullscreen swap chain's mode change, which never happens
+  here. That `Present` and `ResizeBuffers` send no such message is not documented. The evidence
+  is measured: the resizes and window switches below (150 each, with 150 minimize/restore
+  cycles) never hung. After start-up every DXGI, D3D11 and interop object is used and released
+  on the presenter thread alone, and the waits on the waitable object are not alertable.
+- **Start-up** makes everything that can fail (the interop extension, the adapter, the D3D11
+  device, the registration and a first lock) before it gives the window a swap chain. A failure
+  there leaves SwapBuffers in use, with one `present:` log line saying why.
+
+One swap chain a window (#56):
+
+- **The rule.** A window can have only one flip-model swap chain at a time (Microsoft's
+  `CreateSwapChainForHwnd` remarks, which list no error for it). Windows 11 returned
+  `E_ACCESSDENIED` (0x80070005) when it already had one (`occupied`, measured).
+- **The reports.** A player's log showed that error at start-up, before any swap chain of ours,
+  on a laptop with a Ryzen 5600H's iGPU and a GTX 1650, whose built-in screen is most likely
+  the iGPU's, and later players' logs showed it on NVIDIA GPUs.
+- **The cause.** The holder was the OpenGL driver presenting through DXGI itself. With NVIDIA's
+  "Vulkan/OpenGL present method" at "Prefer layered on DXGI swapchain", set for a test
+  executable alone through an NVAPI driver profile, a window with our OpenGL context refused
+  our swap chain with that error at start-up on this machine's RTX 3090 too (measured,
+  2026-11-05).
+- **The fix.** On Windows with DXGI on, the visible window is made without an OpenGL context or
+  pixel format (`GLFW_NO_API`) and only DXGI presents to it. The presenter thread's context
+  lives on a hidden 1x1 window instead, shared with the GL thread's as before (the interop
+  registers textures with a context and a D3D11 device, never with a window). With that
+  setting DXGI then started and presented.
+- **The hidden windows** are single-buffered (double-buffered only when the driver has no such
+  pixel format; nothing presents from them, and OpenGL's SwapBuffers on the visible window
+  stays double-buffered, the log's `present:` line saying so). d3d11.dll and dxgi.dll are
+  loaded before them. The reason is RivaTuner Statistics Server (#64): GLFW clears and swaps a
+  double-buffered window once as it makes its context, and RTSS takes a process that has called
+  SwapBuffers for an OpenGL one, skips its DXGI presents (its `IgnoreDXGIInterop` default) and
+  hooks only the Direct3D runtimes loaded when it injects, as windows are made. Measured with
+  RTSS 7.3.7 through its shared memory: before, it attached to OpenGL on a 120x1 hidden window
+  and showed no overlay; after, to our swap chain at the window's size.
+- **When the window gets a context.** The window gets a pixel format, double-buffered, and a
+  context of its own sharing the presenter's, only once DXGI is given up: it could not start,
+  or no restart is left. (With the hidden window's pixel format and the presenter's context
+  itself when that window is double-buffered: WGL takes any window with the context's pixel
+  format, `Win32GlWindow`.) Not sooner: a window's pixel format cannot be changed once set, and
+  with that setting a SwapBuffers on the window gave it the driver's swap chain, after which
+  every restart was refused with `E_ACCESSDENIED` (measured). While restarts are pending the
+  presenter's pictures go nowhere (paced by `DwmFlush` with vsync) and the window keeps its
+  last picture.
+- `--dxgi off`, Linux and macOS keep the context on the visible window, as before.
+- **The log.** A refused swap chain's log line names the window's owner thread and process, its
+  styles and size, the adapter showing its monitor against the device's, and the graphics
+  runtimes and hooks (overlays, capture, a proxy `dxgi.dll`) loaded before DXGI started.
+
+Failures and restarts:
+
+- Once the window has a swap chain, a failure releases everything DXGI held and starts it anew.
+  A failure is the chain's own set-up at start-up, or while running a lost device
+  (`DXGI_ERROR_DEVICE_REMOVED`/`RESET`/`HUNG`), a failed lock, resize or present.
+- Restarts come in bursts of ten tries, 1, 2, 4 then 8 s apart (about a minute, outlasting a
+  slow driver reset). A restart that presents for 60 s ends its burst, so a later failure gets
+  ten tries again.
+- Until a restart succeeds the window keeps its last picture. Once none is left SwapBuffers
+  stands in. It does not reach the screen on a window whose flip-model swap chain has presented
+  (measured: the window kept DXGI's last picture while frames went on), unless the driver
+  presents OpenGL through DXGI itself (measured with NVIDIA's layered present). So a DXGI that
+  cannot restart usually leaves the window still.
+
+Diagnostics:
+
+- The `present:` line at start-up names the adapter and the swap chain's settings.
+- `--dxgi-fault STEP[,STEP]` makes up a failure at one step, once, for testing the ways back:
+  - At start-up: `extension` (no `WGL_NV_DX_interop2`), `adapter`, `device`, `register`,
+    `swapchain`, `occupied` (not made up: a second D3D11 device gives the window a flip-model
+    swap chain first) and `association` (the last after the swap chain is made, so DXGI is
+    restarted).
+  - While running: `lock:N`, `resize:N` and `removed:N` (the Nth interop lock, resize or
+    `Present`).
+  - `norestart` makes every restart fail too.
+  - The host refuses any other step (the shared `DxgiSwapChain` also lists the Vulkan
+    branch's).
+- With `--frame-stats` the frame counts include the presenter's time per picture by step, the
+  time from a game frame's start to its picture's present, and, every 600 frames, the process's
+  video memory on the adapter as DXGI counts it (only while DXGI presents).
+- Captures and `ReadPixels` read the offscreen back buffers, never the window, so they are the
+  same either way.
+
+With DXGI off, and off Windows, the presenter swaps as before.
 
 Measured on Windows 11 with an RTX 3090 and an AMD iGPU on U60 (761015, 2026-10-30, the monitor
-captured through Desktop Duplication), where this path was built: a paused colony on screen
-differed from the original's by 0.29% of pixels through DXGI and 0.31% through SwapBuffers; the
-presenter was busy 0.3 to 0.6 ms a picture through DXGI against 0.1 to 0.2 through SwapBuffers; a
-light colony without vsync ran at 159 fps through DXGI against 102 through SwapBuffers, and both
-held 60 Hz with vsync. With every restart failing (`norestart`), SwapBuffers showed new frames
-when the fault came at start-up after the swap chain was made but before it presented
-(`association,norestart`), and not when DXGI had presented first (`removed:300,norestart`). On a
-530-nit HDR monitor, fullscreen at the menu (tools/HdrCheck), with Windows' HDR on the original
-and OpenGL through DXGI left the monitor in HDR, composited as SDR at at most SDR white (240
-nits), while OpenGL through WGL switched the monitor out of HDR while fullscreen, a display mode
-change the original does not make. With HDR off, Desktop Duplication (which OBS's display
-capture uses) lost OpenGL through WGL (`DXGI_ERROR_ACCESS_LOST`) but captured OpenGL through
-DXGI. Not measured: Intel GPUs, click-to-photon latency.
+captured through Desktop Duplication), where this path was built:
+
+- A paused colony on screen differed from the original's by 0.29% of pixels through DXGI and
+  0.31% through SwapBuffers.
+- The presenter was busy 0.3 to 0.6 ms a picture through DXGI against 0.1 to 0.2 through
+  SwapBuffers.
+- A light colony without vsync ran at 159 fps through DXGI against 102 through SwapBuffers, and
+  both held 60 Hz with vsync.
+- With every restart failing (`norestart`), SwapBuffers showed new frames when the fault came
+  at start-up after the swap chain was made but before it presented (`association,norestart`),
+  and not when DXGI had presented first (`removed:300,norestart`).
+- On a 530-nit HDR monitor, fullscreen at the menu (tools/HdrCheck), with Windows' HDR on: the
+  original and OpenGL through DXGI left the monitor in HDR, composited as SDR at at most SDR
+  white (240 nits). OpenGL through WGL switched the monitor out of HDR while fullscreen, a
+  display mode change the original does not make.
+- With HDR off, Desktop Duplication (which OBS's display capture uses) lost OpenGL through WGL
+  (`DXGI_ERROR_ACCESS_LOST`) but captured OpenGL through DXGI.
+- Not measured: Intel GPUs, click-to-photon latency.
 
 Measured again on U59 (744825, 2026-10-31, the same machine, windowed on the second monitor,
-captured through Desktop Duplication, which captured every DXGI picture): the paused DeCrew
-colony differed from the original U59's by 0.08% of pixels through DXGI and 0.37% through
-SwapBuffers (two captures of one run differ by up to 0.07%); the menu differs from the original's
-by our own UI only (the Moono Tweaks button, the BRUTAL notice), DXGI's and SwapBuffers' by 2%,
-as two captures of the moving menu do. At the menu with vsync the presenter was busy about 0.35
-ms a picture through DXGI against 0.05 to 0.1 through SwapBuffers, and a frame's start to its
-present took 35 to 36 ms either way. Every `--dxgi-fault` step ended as above: the start-up ones
-before the swap chain with SwapBuffers showing frames, `association` and the running ones
-(`lock:200`, `resize:1`, `removed:300`) with DXGI restarted on the first try and frames on
-screen, `association,norestart` with SwapBuffers showing frames while every restart failed, and
-`removed:300,norestart` and `lock:200,norestart` with the window kept on DXGI's last picture.
-150 resizes with 150 minimize/restore cycles, and 150 scripted switches between windowed sizes
-and a maximized window, showed no failure, no picture the presenter's probe found black and no
-growth in the process's video memory. OpenGL stays on the RTX 3090 with `--gpu integrated` here
-(both monitors are on it), so the AMD iGPU is not reached through OpenGL on this machine.
+captured through Desktop Duplication, which captured every DXGI picture):
+
+- The paused DeCrew colony differed from the original U59's by 0.08% of pixels through DXGI and
+  0.37% through SwapBuffers (two captures of one run differ by up to 0.07%).
+- The menu differs from the original's by our own UI only (the Moono Tweaks button, the BRUTAL
+  notice), DXGI's and SwapBuffers' by 2%, as two captures of the moving menu do.
+- At the menu with vsync the presenter was busy about 0.35 ms a picture through DXGI against
+  0.05 to 0.1 through SwapBuffers, and a frame's start to its present took 35 to 36 ms either
+  way.
+- Every `--dxgi-fault` step ended as above:
+  - The start-up ones before the swap chain: SwapBuffers showing frames.
+  - `association` and the running ones (`lock:200`, `resize:1`, `removed:300`): DXGI restarted
+    on the first try and frames on screen.
+  - `association,norestart`: SwapBuffers showing frames while every restart failed.
+  - `removed:300,norestart` and `lock:200,norestart`: the window kept on DXGI's last picture.
+- 150 resizes with 150 minimize/restore cycles, and 150 scripted switches between windowed
+  sizes and a maximized window, showed no failure, no picture the presenter's probe found black
+  and no growth in the process's video memory.
+- OpenGL stays on the RTX 3090 with `--gpu integrated` here (both monitors are on it), so the
+  AMD iGPU is not reached through OpenGL on this machine.
 
 Measured with the context off the window (U59 744825 and U60 761654, 2026-11-05, the same
 machine, NVIDIA's driver 610.88, a test executable under its own driver profile with "Prefer
-layered on DXGI swapchain"): before the change DXGI was refused at start-up (`E_ACCESSDENIED`),
-after it DXGI presented (U60's Vulkan, whose window never had a context, presented through
-DXGI under the profile too). Under that profile every start-up `--dxgi-fault` step ended with
-SwapBuffers showing frames on the window; `association`, `lock:200` and `removed:300` restarted
-DXGI on the first try; a restart after two failed ones (a one-off build) started too; with
-`norestart` the window kept its last picture until the tenth try, then showed SwapBuffers'
-frames. Without the profile, `removed:300,norestart` left the window still, as before. Loading a
-colony, panning, fullscreen and back, resizes and minimize/restore cycles showed no failure and
-frames after each; `--dxgi off` swapped on the window as before.
+layered on DXGI swapchain"):
+
+- Before the change DXGI was refused at start-up (`E_ACCESSDENIED`). After it DXGI presented
+  (U60's Vulkan, whose window never had a context, presented through DXGI under the profile
+  too).
+- Under that profile every start-up `--dxgi-fault` step ended with SwapBuffers showing frames
+  on the window. `association`, `lock:200` and `removed:300` restarted DXGI on the first try. A
+  restart after two failed ones (a one-off build) started too. With `norestart` the window kept
+  its last picture until the tenth try, then showed SwapBuffers' frames.
+- Without the profile, `removed:300,norestart` left the window still, as before.
+- Loading a colony, panning, fullscreen and back, resizes and minimize/restore cycles showed no
+  failure and frames after each. `--dxgi off` swapped on the window as before.
 
 **Repeats while no frame comes (DXGI).** A variable-refresh display (G-Sync, FreeSync)
-refreshes when a picture is presented, so while the main thread stalls (an autosave, a load
+refreshes when a picture is presented. So while the main thread stalls (an autosave, a load
 hitch) its refresh rate falls towards nothing, and such panels flicker or dim as it does (#60).
 With DXGI presenting, the presenter shows the last frame again while none comes (`StallRepeats`;
 Moono Tweaks' "Steady display during saves and loads", settings.json `"stallRepeats"`,
-`--stall-repeats on|off`, on by default): the first repeat once no frame has been presented for
-three times the usual time between frames (a moving average of the intervals between frames,
-each counted up to four times the average, stalls left out), and at least 50 ms; then one every
-usual frame time, kept between 1/60 and 1/30 s, until a frame comes, so the display keeps about
-the rate it had while the game ran. Three times the usual time, and 50 ms, lie beyond the spread
-of frames in play (on a 200-Duplicant colony at about 95 fps 16 of 26,398 frames took longer, each
-a hitch already), so frames that come as usual never meet one, a display's own low-framerate
-compensation covers shorter gaps, and the presenter's wait for the next frame, untimed
-before, is only timed. A repeat goes only when the frame-latency waitable says the last picture
-has retired (else it is tried again 2 ms on), so it never queues behind a picture nor blocks in
-`Present`; it is the shown back buffer blitted into the shared texture again and presented at sync
-interval 0 without `ALLOW_TEARING`, which the flip model discards when a newer picture is queued
-before it is shown (`IDXGISwapChain::Present`: "discard this frame if a newer frame is queued"),
-so a frame that comes just after one is shown at the vertical blank it would have had. Nothing
-waits after a repeat; the next frame's `Present` counts it as in flight while it has not retired,
-waiting after its own `Present` (at most a refresh) as frames wait for their predecessor, so as
-many pictures are in flight as without repeats. A frame handed over during a repeat is not held
-back (a repeat does not count as queued); the GL thread only never moves on to the buffer a repeat
-reads, which would take two frames handed over during one. Repeats are kept out of frame pacing,
-`QueuedFrames`, the present count, the frame stats' pictures (counted on their own as repeats),
-the present trace's probe and the `--dxgi-fault` steps. The waits between them need a 1 ms timer
-resolution (Windows' default is 15.6 ms), raised with `timeBeginPeriod` for a run of repeats only.
-OpenGL's SwapBuffers has no repeat: a swap there cannot be discarded by the next, so a frame
-right after one would wait a refresh.
-Measured on Windows (a 200-Duplicant colony at speed 3, vsync on at 60 Hz, five launches with
-repeats and five without, 165 s of play each from 35 s after the load): no repeat in frames that
-came as usual, one at most a launch, each in a hitch of 70 ms or more; game pictures 56.6 to
-59.0 a second with repeats and 53.7 to 59.1 without (one launch in each a slower 53.7), the
-slowest 1% of frame intervals 33 to 35 ms against 31 to 34 (42 in both slow launches), and
-`Present` 0.045 ms either way. Under five forced 1.5 s stalls and three autosaves, the longest
-time without a picture went from 1.5 s to 55 to 93 ms (repeats every 17 to 28 ms after the
-first), at vsync 1 and 0 alike, and the first frame after a stall was presented 23 ms after it
-on average with repeats and 22 ms without. A garbage collection still leaves a gap: it stops the
-presenter thread too: a 0.33 s collection in play left a 0.33 s gap, and the load, whose
-collections pause 3.6 s in all, gaps of up to 0.87 s.
+`--stall-repeats on|off`, on by default).
 
-**Loading splash (`--splash moo`, on by default; `--splash none` or Moono Tweaks turns it off).** The player's own presentation, not the
-game's: the presenter thread draws Gassy Moo comets (the game's `meteor_gassymoo` kanim, its
-`fall_loop`, read from `sharedassets0.assets` on a worker thread at start-up) over whatever the
-window last showed, redrawing about 60 times a second while no game frame comes, so the window
-keeps moving while the main and GL threads load. Game frames are not changed: the comets are
-drawn into the window after a frame is copied there. Once 30 frames in a row arrive within
-100 ms of each other (the main menu), the rain fades out for good. A thin bar under it shows how
-far start-up is (`StartupProgress`): it passes checkpoints, the engine's own (window, first scene,
-first frame, each content bundle, the asset unload, the menu) and the game's, recognized from its
-log lines (Steam ready, `Global`'s start, the mod system, localization). The checkpoint times of
-each launch are kept in the player's cache folder. Between two checkpoints the bar eases towards
-the next at the last launch's pace (about 80% of the way by the expected time, then creeping on,
-never reaching it before it is passed), and while the first scene loads it moves by the objects
-loaded; the drawn bar follows that with a 0.25 s smoothing, so it never stalls or jumps.
+- **When.** The first repeat comes once no frame has been presented for three times the usual
+  time between frames, and at least 50 ms. The usual time is a moving average of the intervals
+  between frames, each counted up to four times the average, stalls left out. Then one repeat
+  comes every usual frame time, kept between 1/60 and 1/30 s, until a frame comes. So the
+  display keeps about the rate it had while the game ran.
+- **Why those thresholds.** Three times the usual time, and 50 ms, lie beyond the spread of
+  frames in play (on a 200-Duplicant colony at about 95 fps 16 of 26,398 frames took longer,
+  each a hitch already). So frames that come as usual never meet a repeat, a display's own
+  low-framerate compensation covers shorter gaps, and the presenter's wait for the next frame,
+  untimed before, is only timed.
+- **What a repeat is.** It goes only when the frame-latency waitable says the last picture has
+  retired (else it is tried again 2 ms on), so it never queues behind a picture nor blocks in
+  `Present`. It is the shown back buffer blitted into the shared texture again and presented at
+  sync interval 0 without `ALLOW_TEARING`. The flip model discards that when a newer picture is
+  queued before it is shown (`IDXGISwapChain::Present`: "discard this frame if a newer frame is
+  queued"), so a frame that comes just after a repeat is shown at the vertical blank it would
+  have had.
+- **Pictures in flight.** Nothing waits after a repeat. The next frame's `Present` counts it as
+  in flight while it has not retired, waiting after its own `Present` (at most a refresh) as
+  frames wait for their predecessor. So as many pictures are in flight as without repeats.
+- **Frames during a repeat.** A frame handed over during a repeat is not held back (a repeat
+  does not count as queued). The GL thread only never moves on to the buffer a repeat reads,
+  which would take two frames handed over during one.
+- **Kept out of the counts.** Repeats are kept out of frame pacing, `QueuedFrames`, the present
+  count, the frame stats' pictures (counted separately as repeats), the present trace's probe
+  and the `--dxgi-fault` steps.
+- **Timer.** The waits between them need a 1 ms timer resolution (Windows' default is 15.6 ms),
+  raised with `timeBeginPeriod` for a run of repeats only.
+- **OpenGL's SwapBuffers has no repeat.** A swap there cannot be discarded by the next, so a
+  frame right after one would wait a refresh.
+
+Measured on Windows (a 200-Duplicant colony at speed 3, vsync on at 60 Hz, five launches with
+repeats and five without, 165 s of play each from 35 s after the load):
+
+- **In play:** no repeat in frames that came as usual, one at most a launch, each in a hitch of
+  70 ms or more. Game pictures were 56.6 to 59.0 a second with repeats and 53.7 to 59.1 without
+  (one launch in each a slower 53.7), the slowest 1% of frame intervals 33 to 35 ms against 31
+  to 34 (42 in both slow launches), and `Present` 0.045 ms either way.
+- **Under five forced 1.5 s stalls and three autosaves,** the longest time without a picture
+  went from 1.5 s to 55 to 93 ms (repeats every 17 to 28 ms after the first), at vsync 1 and 0
+  alike. The first frame after a stall was presented 23 ms after it on average with repeats and
+  22 ms without.
+- **A garbage collection still leaves a gap,** because it stops the presenter thread too. A
+  0.33 s collection in play left a 0.33 s gap, and the load, whose collections pause 3.6 s in
+  all, gaps of up to 0.87 s.
+
+**Loading splash (`--splash moo`, on by default; `--splash none` or Moono Tweaks turns it off).**
+The player's own presentation, not the game's:
+
+- **The comets.** The presenter thread draws Gassy Moo comets (the game's `meteor_gassymoo`
+  kanim, its `fall_loop`, read from `sharedassets0.assets` on a worker thread at start-up) over
+  whatever the window last showed. It redraws about 60 times a second while no game frame
+  comes, so the window keeps moving while the main and GL threads load.
+- **Game frames are not changed.** The comets are drawn into the window after a frame is copied
+  there. Once 30 frames in a row arrive within 100 ms of each other (the main menu), the rain
+  fades out for good.
+- **The bar.** A thin bar under it shows how far start-up is (`StartupProgress`). It passes
+  checkpoints: the engine's own (window, first scene, first frame, each content bundle, the
+  asset unload, the menu) and the game's, recognized from its log lines (Steam ready,
+  `Global`'s start, the mod system, localization). The checkpoint times of each launch are kept
+  in the player's cache folder.
+- **How the bar moves.** Between two checkpoints the bar eases towards the next at the last
+  launch's pace (about 80% of the way by the expected time, then creeping on, never reaching it
+  before it is passed). While the first scene loads it moves by the objects loaded. The drawn
+  bar follows that with a 0.25 s smoothing, so it never stalls or jumps.
 
 **Loading screen during a save load (game tweak `loading-animation`, in `exact`).** A save load
 runs inside one engine frame (the scene, `SaveLoader`, `Game.OnSpawn`, every object's `OnSpawn`),
 so no frame is presented for up to half a minute
-([research](research/save-load-and-loading-screen.md)). The presenter thread then shows the last
-frame again 30 times a second (kanims' own rate; each redraw is a full copy and swap; on Windows
-the timer resolution is raised meanwhile, as for StallRepeats) with a progress bar over it in the
-start-up bar's place and colours, fading in after 0.15 s (`GlLoadAnimation`; a pulse when no scene
-load follows the overlay). The bar (`LoadProgress`) has seven phases, each weighted by what it took
-the last time the same save was loaded (`LoadTimes`, `oni-moono/load-times.json`). The main thread
-only marks phase starts, each a timestamp and an int: the engine's SceneLoader, and prefixes and
-postfixes on `SaveLoader.DecompressContents` and `SaveManager.Load` that change nothing. Within a
-phase the presenter reads engine and .NET state: the zlib stream's position in the compressed
-bytes (`fast-save-compression`'s decompression), the
-`FastReader`'s position in the decompressed body (not when a mod transpiles `SaveManager.Load`),
-and the Start pass's count (`BehaviourManager.RunStarts`, an int written per behaviour); without a
-count, the time against the expected time. The drawn bar eases towards that with a quarter-second
-smoothing and never goes back. It is armed
-by main-thread frame numbers (`LoadingScreen`): a scene load that starts while `LoadingOverlay` is
-up (`SceneLoader.LoadStarting`, before the old scenes go) arms it over every frame from before the
-load's own; with the overlay up and no scene load, a frame that no frame follows for 250 ms starts
-it. The first frame of the load's own frame or later (the colony) ends it, and nothing is ever
-drawn over a game frame. A kanim the overlay plays (a mod's: Pip Licks Butt) keeps playing: at the
-scene load's start the overlay canvases are drawn once per frame of its anim into tiles of one
-render texture (`CanvasSystem.RenderOverlaysInto`), as the last frame drew them with only the
-frame number in the kanim batch's instance data changed and then put back, so the controller,
-its time, flags and events are untouched; the GL thread renders them in order with the rest, a
-fence follows, and the presenter blits the tile due at the anim's frame rate over the area (looping
-a loop, holding the last frame otherwise). The rendering is bounded (50 ms of main-thread time,
-64 MB, tiles at a lower resolution past it) and logged. A garbage collection still stops the
-presenter: the log's `loading animation:` line gives the redraws, the longest gap between them
-and how much of the long gaps was spent presenting rather than stopped.
+([research](research/save-load-and-loading-screen.md)).
+
+- **What is shown.** The presenter thread shows the last frame again 30 times a second (kanims'
+  own rate; each redraw is a full copy and swap; on Windows the timer resolution is raised
+  meanwhile, as for StallRepeats). A progress bar is drawn over it in the start-up bar's place
+  and colours, fading in after 0.15 s (`GlLoadAnimation`; a pulse when no scene load follows
+  the overlay).
+- **The bar** (`LoadProgress`) has seven phases, each weighted by what it took the last time
+  the same save was loaded (`LoadTimes`, `oni-moono/load-times.json`). The main thread only
+  marks phase starts, each a timestamp and an int: the engine's SceneLoader, and prefixes and
+  postfixes on `SaveLoader.DecompressContents` and `SaveManager.Load` that change nothing.
+- **Within a phase** the presenter reads engine and .NET state:
+  - The zlib stream's position in the compressed bytes (`fast-save-compression`'s
+    decompression).
+  - The `FastReader`'s position in the decompressed body (not when a mod transpiles
+    `SaveManager.Load`).
+  - The Start pass's count (`BehaviourManager.RunStarts`, an int written per behaviour).
+  - Without a count, the time against the expected time.
+
+  The drawn bar eases towards that with a quarter-second smoothing and never goes back.
+- **Arming.** It is armed by main-thread frame numbers (`LoadingScreen`). A scene load that
+  starts while `LoadingOverlay` is up (`SceneLoader.LoadStarting`, before the old scenes go)
+  arms it over every frame from before the load's own. With the overlay up and no scene load, a
+  frame that no frame follows for 250 ms starts it. The first frame of the load's own frame or
+  later (the colony) ends it, and nothing is ever drawn over a game frame.
+- **Kanims.** A kanim the overlay plays (a mod's: Pip Licks Butt) keeps playing. At the scene
+  load's start the overlay canvases are drawn once per frame of its anim into tiles of one
+  render texture (`CanvasSystem.RenderOverlaysInto`), as the last frame drew them with only the
+  frame number in the kanim batch's instance data changed and then put back. So the controller,
+  its time, flags and events are untouched. The GL thread renders them in order with the rest,
+  a fence follows, and the presenter blits the tile due at the anim's frame rate over the area
+  (looping a loop, holding the last frame otherwise). The rendering is bounded (50 ms of
+  main-thread time, 64 MB, tiles at a lower resolution past it) and logged.
+- **Collections.** A garbage collection still stops the presenter. The log's
+  `loading animation:` line gives the redraws, the longest gap between them and how much of the
+  long gaps was spent presenting rather than stopped.
 
 **Window messages during long frames.** The frame polls the window's messages at its start, as
-Unity does, but a start-up frame takes seconds, and Windows marks a window that has not taken its
-messages for 5 s as not responding. Long engine steps (loading an object, instantiating, adding a
-component, a log line, recording uploads, waiting for a bundle's decode) therefore pump them at
-most every 100 ms on the main thread (`MainThreadPump`, `ONI_PUMP_EVENTS=0` turns it off).
-Nothing a pump receives reaches the engine or the game within the frame: GLFW's callbacks (keys,
-characters, mouse buttons, movement, scroll, cursor entering, close, framebuffer size, window
-position, monitors) are kept in order and replayed at the start of the next frame's poll, just
-before the messages that came since, so input state, `Event`s, `Screen` sizes and focus change
-only at frame start, as before. The pump calls no game code, and no engine code but GLFW's own.
-Native work inside game code (FMOD loading its banks) cannot be interrupted: those stretches stay
-unpumped.
+Unity does. But a start-up frame takes seconds, and Windows marks a window that has not taken
+its messages for 5 s as not responding.
+
+- Long engine steps (loading an object, instantiating, adding a component, a log line,
+  recording uploads, waiting for a bundle's decode) therefore pump them at most every 100 ms on
+  the main thread (`MainThreadPump`, `ONI_PUMP_EVENTS=0` turns it off).
+- Nothing a pump receives reaches the engine or the game within the frame. GLFW's callbacks
+  (keys, characters, mouse buttons, movement, scroll, cursor entering, close, framebuffer size,
+  window position, monitors) are kept in order and replayed at the start of the next frame's
+  poll, just before the messages that came since. So input state, `Event`s, `Screen` sizes and
+  focus change only at frame start, as before.
+- The pump calls no game code, and no engine code but GLFW's own.
+- Native work inside game code (FMOD loading its banks) cannot be interrupted: those stretches
+  stay unpumped.
 
 Textures loaded from asset files are uploaded as part of loading, as in Unity, not on first
-draw: first draws of screens with many textures (the research tree) would otherwise hitch for a
-second and throw off the game's time-based UI animation. A non-readable texture loaded on the main
-thread is handed to the background uploads (`GlBackgroundUploads`) as it loads: worker threads
-read its texels from the asset file, and the GL thread uploads one texture at a time whenever it
-has no frame to execute, in load order, with a fence keeping the GPU no more than 34 MB behind.
-A frame therefore waits at most for one texture's upload, and loading goes on meanwhile (the first
-scene's 2.1 GB of animation textures go up while the game starts up; a DLC bundle's while the next
-bundles load). A draw that samples a texture still queued takes it back and records its upload
-into the frame ahead of the draw, as every upload was recorded before; so does a change to the
-texture, and a release drops it. The texture gives up its texels when queued (a non-readable
-texture keeps no CPU copy once uploaded, and the game cannot read it). Readable textures, and
-textures loaded on other threads, are uploaded by the main thread before the next frame renders;
-when many are pending at once their texels are read on worker threads first and the uploads go
-to the GL thread in batches. `ONI_BACKGROUND_UPLOADS=0` turns the background uploads off.
+draw. First draws of screens with many textures (the research tree) would otherwise hitch for a
+second and throw off the game's time-based UI animation.
 
-What scripts make is put on the device ahead of its first draw (`GlAhead`): a script's new
-texture's storage (`new Texture2D`, up to 16 MB) and the buffers and data of a mesh given data
-that no draw has used yet, on the GL thread while it has no frame to execute, or for a
-millisecond before each frame when it never runs out. A texture's first upload then fills that
-storage (or makes it, if it comes first); a mesh's first draw posts the queued upload into its
-frame ahead of the draw when it has not run, so it runs once and before any later upload, and a
-released mesh's never runs. A texture made ahead records its first upload when the script applies
-it (as Unity uploads at `Apply`). With `ONI_UPLOAD_FLUSH=1` (off by default since #82), once 32 MB
-of uploads are recorded the frame so far goes to the GL thread if it has nothing left to execute,
-so a view's first sight of much (a colony preview after a load) uploads while the main thread goes
-on. Mesh buffers up to 64 KB take the
-dynamic usage hint: Mesa's D3D12 driver took about 0.3 ms to make a small static one.
-`ONI_AHEAD_OF_USE=0` turns making ahead off.
+- **Background uploads.** A non-readable texture loaded on the main thread is handed to the
+  background uploads (`GlBackgroundUploads`) as it loads. Worker threads read its texels from
+  the asset file, and the GL thread uploads one texture at a time whenever it has no frame to
+  execute, in load order, with a fence keeping the GPU no more than 34 MB behind. A frame
+  therefore waits at most for one texture's upload, and loading goes on meanwhile (the first
+  scene's 2.1 GB of animation textures go up while the game starts up; a DLC bundle's while the
+  next bundles load).
+- **A texture still queued.** A draw that samples it takes it back and records its upload into
+  the frame ahead of the draw, as every upload was recorded before. So does a change to the
+  texture, and a release drops it. The texture gives up its texels when queued (a non-readable
+  texture keeps no CPU copy once uploaded, and the game cannot read it).
+- **Other textures.** Readable textures, and textures loaded on other threads, are uploaded by
+  the main thread before the next frame renders. When many are pending at once their texels are
+  read on worker threads first and the uploads go to the GL thread in batches.
+- `ONI_BACKGROUND_UPLOADS=0` turns the background uploads off.
+
+What scripts make is put on the device ahead of its first draw (`GlAhead`):
+
+- **What.** A script's new texture's storage (`new Texture2D`, up to 16 MB), and the buffers
+  and data of a mesh given data that no draw has used yet.
+- **When.** On the GL thread while it has no frame to execute, or for a millisecond before each
+  frame when it never runs out.
+- **Textures.** A texture's first upload then fills that storage (or makes it, if it comes
+  first). A texture made ahead records its first upload when the script applies it (as Unity
+  uploads at `Apply`).
+- **Meshes.** A mesh's first draw posts the queued upload into its frame ahead of the draw when
+  it has not run, so it runs once and before any later upload. A released mesh's never runs.
+- **Mid-frame hand-over.** With `ONI_UPLOAD_FLUSH=1` (off by default since #82), once 32 MB of
+  uploads are recorded the frame so far goes to the GL thread if it has nothing left to
+  execute. So a view's first sight of much (a colony preview after a load) uploads while the
+  main thread goes on.
+- **Usage hint.** Mesh buffers up to 64 KB take the dynamic usage hint: Mesa's D3D12 driver
+  took about 0.3 ms to make a small static one.
+- `ONI_AHEAD_OF_USE=0` turns making ahead off.
 
 `Shader.WarmupAllShaders` (the game calls it once a load, in `Game.OnPrefabInit`) queues every
-variant of every loaded shader for the GL thread and returns (`GlWarmup`): the GL thread builds
-them one at a time while it has no frame to execute, after the uploads and the work ahead of use,
-and the main thread goes on loading the colony. Unity's returns once they are built, which no
-script can observe but by the time it takes; with an empty driver cache it held a save load's
-main thread 1.8 s on Linux. A program the warm-up builds is kept apart until the main thread adds
-it to its shader's programs (at the next present, or when a draw finds one missing), so the main
-thread and the draw recorders read a shader's programs while nothing writes them, as before; a
-draw whose program is not built yet builds it at first use, as for any program, and the warm-up
-then skips it. `ONI_WARMUP_AHEAD=0` waits for them all, as before; `--check-shaders` always does.
+variant of every loaded shader for the GL thread and returns (`GlWarmup`):
+
+- The GL thread builds them one at a time while it has no frame to execute, after the uploads
+  and the work ahead of use, and the main thread goes on loading the colony.
+- Unity's returns once they are built, which no script can observe but by the time it takes.
+  With an empty driver cache it held a save load's main thread 1.8 s on Linux.
+- A program the warm-up builds is kept apart until the main thread adds it to its shader's
+  programs (at the next present, or when a draw finds one missing). So the main thread and the
+  draw recorders read a shader's programs while nothing writes them, as before.
+- A draw whose program is not built yet builds it at first use, as for any program, and the
+  warm-up then skips it.
+- `ONI_WARMUP_AHEAD=0` waits for them all, as before. `--check-shaders` always does.
 
 Per-draw uniform blocks are streamed through a ring buffer that stays persistently mapped for the
-device's lifetime (`GlStreamBuffer`, ARB_buffer_storage): data is copied into the mapping, blocks
+device's lifetime (`GlStreamBuffer`, ARB_buffer_storage). Data is copied into the mapping, blocks
 are bound by range, and a fence per frame keeps a region from being reused before the GPU has
-consumed it; the storage is never respecified (no orphaning). Texture content updates into
-storage of unchanged size and format (`Apply` on the game's per-frame property textures) use
-`glTexSubImage2D` from client memory. Routing them through a pixel-unpack buffer (orphaned or
-persistently mapped) halved their cost but corrupted textures on Mesa's d3d12 driver in long runs
-(white sprite-atlas pages, world-sized garbage triangles, device removal), so it is not used.
+consumed it. The storage is never respecified (no orphaning).
+
+Texture content updates into storage of unchanged size and format (`Apply` on the game's
+per-frame property textures) use `glTexSubImage2D` from client memory. Routing them through a
+pixel-unpack buffer (orphaned or persistently mapped) halved their cost but corrupted textures on
+Mesa's d3d12 driver in long runs (white sprite-atlas pages, world-sized garbage triangles, device
+removal), so it is not used.
 
 **UI rendering.** `Canvas` implements Unity's canvas batching: per root canvas, walk
 `CanvasRenderer`s in hierarchy order, apply `CanvasGroup` alpha, `RectMask2D` clip rects
 (`_ClipRect` + `UNITY_UI_CLIP_RECT`) and stencil masks (materials from uGUI's own
 `StencilMaterial`), and merge draws of the same state into one mesh.
+
 An overlay canvas's draws are first reordered as Unity's batcher orders them, where it cannot
-change a pixel (`CanvasLayering`): each draw gets a layer above the earlier draws of other
-states whose pixel centres it shares, or the layer of an earlier draw of its own state it
-overlaps; then a stable sort by layer and by the state's first appearance in it, then the
-merge. Two draws that share no pixel can swap, since blending, depth and stencil act per pixel;
-two that share one keep their order. A draw's pixels are its baked mesh's bounds on the screen
-(pixel centres, an eighth of a pixel of slack); a draw off the screen reaches none and joins the
-first draw of its state. Only shaders whose vertex programs place each vertex where the mesh
-puts it (UI/Default, Klei's UI/Default Desat and chart lines, and TextMesh Pro's, read in the
-game's programs; TextMesh Pro's `_VertexOffsetX/Y` set makes a barrier) may move; a stencil write (a `Mask`'s graphic), a pop
-and any other shader are barriers that nothing crosses. Draws in a nested canvas's space join
-only each other. Overlap tests go through a grid of 64-pixel cells, and the order is kept on the
-canvas while every draw's mesh bounds, material, sheet and transform stand.
-Camera and world-space canvases, and super-sized captures, keep the hierarchy order.
-`--no-ui-reorder` or `ONI_CANVAS_REORDER=0` turns it off; `ONI_VERIFY_CANVAS_ORDER=1` checks
-every pair of draws that share a pixel by their vertices, every 60th order a canvas uses, and
-that a kept order matches a new one; `ONI_VERIFY_CANVAS_PIXELS=1` draws the overlay canvases
-again into a target of their own, in hierarchy order and reordered, every 120th frame, and
-compares every pixel (with merged meshes made for the check: a kept mesh made again for another
-order within a frame changes under the draws already queued).
+change a pixel (`CanvasLayering`):
+
+- **The order.** Each draw gets a layer above the earlier draws of other states whose pixel
+  centres it shares, or the layer of an earlier draw of its own state it overlaps. Then comes a
+  stable sort by layer and by the state's first appearance in it, then the merge.
+- **Why it is safe.** Two draws that share no pixel can swap, since blending, depth and stencil
+  act per pixel. Two that share one keep their order.
+- **A draw's pixels** are its baked mesh's bounds on the screen (pixel centres, an eighth of a
+  pixel of slack). A draw off the screen reaches none and joins the first draw of its state.
+- **What may move.** Only shaders whose vertex programs place each vertex where the mesh puts
+  it: UI/Default, Klei's UI/Default Desat and chart lines, and TextMesh Pro's, read in the
+  game's programs (TextMesh Pro's `_VertexOffsetX/Y` set makes a barrier). A stencil write (a
+  `Mask`'s graphic), a pop and any other shader are barriers that nothing crosses. Draws in a
+  nested canvas's space join only each other.
+- **Cost.** Overlap tests go through a grid of 64-pixel cells, and the order is kept on the
+  canvas while every draw's mesh bounds, material, sheet and transform stand.
+- **Not reordered.** Camera and world-space canvases, and super-sized captures, keep the
+  hierarchy order.
+- **Switches.** `--no-ui-reorder` or `ONI_CANVAS_REORDER=0` turns it off.
+  `ONI_VERIFY_CANVAS_ORDER=1` checks every pair of draws that share a pixel by their vertices,
+  every 60th order a canvas uses, and that a kept order matches a new one.
+  `ONI_VERIFY_CANVAS_PIXELS=1` draws the overlay canvases again into a target of their own, in
+  hierarchy order and reordered, every 120th frame, and compares every pixel (with merged
+  meshes made for the check: a kept mesh made again for another order within a frame changes
+  under the draws already queued).
+
 A renderer with `cullTransparentMesh` on (the default for one added at run time) whose mesh has
 every vertex alpha below 0.001 is not collected, as measured in the original
-(`docs/cleanroom/ugui.md`, "CanvasRenderer.cullTransparentMesh"): it is still numbered and still
+(`docs/cleanroom/ugui.md`, "CanvasRenderer.cullTransparentMesh"). It is still numbered and still
 takes raycasts, but its geometry is neither baked nor batched. Each geometry `SetMesh` copies
-answers the test once. `ONI_CANVAS_CULL=0` turns it off; `ONI_VERIFY_CANVAS_CULL=1` tests every
+answers the test once. `ONI_CANVAS_CULL=0` turns it off. `ONI_VERIFY_CANVAS_CULL=1` tests every
 vertex again at each build and logs any difference.
 
 **UI raycasts.** A `GraphicRaycaster` tests every raycast target of its canvas each frame: its
 flags, whether it sits under a closed screen, its rect at the pointer, then its raycast filters.
 It keeps the graphics that reach the filters and reuses them while nothing read before the
-filters has changed (`RaycastInputs`): the pointer position, the canvas's graphic list, camera
-mapping and far plane; the canvas object's hierarchy version, RectTransform moves and resizes at
-or below it (counted in `MarkDirty`) and world matrix; each object above it (its own changes and
-the walk's closed-screen mark); the numbering of each sort root above it; and a global version
-for `raycastTarget`, `raycastPadding`, `cull` and the like. Keys are per canvas because the game
-keeps all its UI under one object that changes every frame. A reuse still asks those graphics'
-filters, which may read anything, and sorts by depth as before. `ONI_RAYCAST_CACHE=0` turns it
-off; `ONI_VERIFY_RAYCAST_CACHE=1` makes each reused pass afresh too and logs any difference.
+filters has changed (`RaycastInputs`):
+
+- The pointer position.
+- The canvas's graphic list, camera mapping and far plane.
+- The canvas object's hierarchy version, RectTransform moves and resizes at or below it
+  (counted in `MarkDirty`) and world matrix.
+- Each object above it (its own changes and the walk's closed-screen mark).
+- The numbering of each sort root above it.
+- A global version for `raycastTarget`, `raycastPadding`, `cull` and the like.
+
+Keys are per canvas because the game keeps all its UI under one object that changes every frame.
+A reuse still asks those graphics' filters, which may read anything, and sorts by depth as
+before. `ONI_RAYCAST_CACHE=0` turns it off. `ONI_VERIFY_RAYCAST_CACHE=1` makes each reused pass
+afresh too and logs any difference.
 
 ### 3.6 Platform
 
