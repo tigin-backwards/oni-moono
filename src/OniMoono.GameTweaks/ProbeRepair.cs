@@ -14,53 +14,40 @@ namespace OniMoono.GameTweaks
     using WorkOrder = AsyncPathProber.WorkOrder;
     using WorkResult = AsyncPathProber.WorkResult;
 
-    /// Game tweak `path-probe-repair` (on by default but not in `exact`: it **changes behaviour**
-    /// in one way, between routes of the same cost a Duplicant may take another one). Every
-    /// frame the game probes up to four
-    /// navigators on its path probe thread (AsyncPathProber): a flood from where the Duplicant
-    /// stands over the whole world's nav grid, its cost to every cell it can reach, which errands
-    /// and Duplicants' pathing read until its next probe a few seconds later. A Duplicant's probe
-    /// mostly finds what its last one found: in a large colony the thread spends 0.2–0.3 of a core
-    /// recomputing it (U60, c100 and DeCrew).
+    /// Game tweak `path-probe-repair` (**changes behaviour**: between two routes of the same cost a
+    /// Duplicant may take the other one). Every frame the game probes up to four navigators on its
+    /// path probe thread (AsyncPathProber): a flood over the world's nav grid from where the
+    /// Duplicant stands, its cost to every cell it can reach. A probe mostly finds what the last
+    /// one found: in a large colony the thread spends 0.2–0.3 of a core recomputing it.
     ///
-    /// With the tweak a Duplicant's next probe from the same cell, nav type, path flags and
-    /// abilities repairs its last result instead (ProbeEngine.Repair): from the nav grid's links
-    /// that changed since (NavGrid.UpdateGraph, diffed against a copy of the rows) and the cells
-    /// where the tables a link's evaluation reads changed (doors' permissions and the nav masks,
-    /// liquid and solid as far as they make a cell submerged, tube entrances, suit markers, idle
-    /// traversal, each through the game's writer), the states whose parent link changed or got
-    /// worse are dropped with everything below them and found again from around them, and
-    /// improvements spread as in a flood. Every other probe is a flood, the game's algorithm with
-    /// its queue (ProbeEngine.Flood), which also keeps each state's path flags for the next
-    /// repair. Costs, the reachable cells and each state's flags come out as a flood's, except
-    /// where two routes cost the same: a flood keeps the first it finds, a repair the one it had
-    /// or finds first, so BuildPath may return the other route of the same cost (and which cell's
-    /// cheapest nav type a tie picks). Temperature and building checks are untouched; no probe is
-    /// delayed.
+    /// A Duplicant's next probe from the same cell, nav type, path flags and abilities repairs its
+    /// last result instead (ProbeEngine.Repair). The changes come from the nav grid's links
+    /// (NavGrid.UpdateGraph, diffed against a copy of the rows) and from the cells where the tables
+    /// a link's evaluation reads changed, each through the game's writer: doors' permissions, the
+    /// nav masks, submerged cells, tube entrances, suit markers, idle traversal. States whose
+    /// parent link changed or got worse are dropped with everything below them and found again;
+    /// improvements spread as in a flood. Every other probe is a flood (ProbeEngine.Flood, the
+    /// game's algorithm), which keeps each state's path flags for the next repair.
     ///
-    /// The repaired result is written into the navigator's own PathGrid on the main thread when
-    /// the game takes the result (Navigator.TakeResult), so what the main thread reads between
-    /// probes is never half repaired; a flood fills the pooled grid as the game's does. Each
-    /// navigator also keeps four bits of path flags a state (ProbeFlags; a 640×404 world with 7
-    /// nav types: 0.9 MB a Duplicant), and the probe thread a copy of the rows and a
-    /// 25-byte-a-state scratch.
+    /// Costs, reachable cells and flags come out as a flood's, except at a tie: a flood keeps the
+    /// first route it finds, a repair the one it had. Temperature and building checks are
+    /// untouched; no probe is delayed.
     ///
-    /// Stands down for the session (logged once) when another Harmony owner patches the probe
-    /// (PathProber.Run, WorkOrder.Execute, PathFinder.AddPotentials/AddPotential, PathGrid.SetCell),
-    /// the result's hand-over (Navigator.TakeResult), the nav grid's update (NavGrid.UpdateGraph)
-    /// or the rules it relies on (MinionPathFinderAbilities.TraversePath and
-    /// GetSubmergedPathCostPenalty), or when the game's arrays don't answer as expected through
-    /// PathGrid's own methods (BeginUpdate, GetCell and GetCost, whatever patches them). Fast
-    /// Track's Cache Paths patches the first ones.
+    /// Threads: a repair's result is written into the navigator's PathGrid on the main thread when
+    /// the game takes it (Navigator.TakeResult), so the main thread never reads a half-repaired
+    /// grid. Memory: four bits of path flags a state for each navigator (0.9 MB a Duplicant on a
+    /// 640×404 world with 7 nav types), and on the probe thread a copy of the rows and 25 bytes a
+    /// state.
     ///
-    /// ONI_TWEAK_VERIFY=1 floods after every repair too, and counts the repairs whose costs or
-    /// reachable cells differ from the flood's: wrong when the repair is not what a flood can
-    /// leave (ProbeEngine.Fixpoint), else parting at a tie (above). It also audits the change
-    /// feed every frame (FeedAudit). ONI_PROBE_DIGEST=FILE writes a line per result
-    /// taken (frame, navigator, root, nav type, flags, reachable cells, a digest of them and one
-    /// with their costs); with ONI_PROBE_REPAIR_OFF=1 only that, of the game's own probes.
-    /// ONI_PROBE_REPAIR_SWITCH=FILE turns the repairs off while the file reads `off` (checked every
-    /// 30 frames; the change feed keeps running), for measuring both in one run.
+    /// Off for the session (logged once) when another Harmony owner patches the probe, the result's
+    /// hand-over, the nav grid's update or the rules it relies on (Guarded), or when PathGrid's
+    /// methods don't answer as its arrays do (SelfTest). Fast Track's Cache Paths patches the
+    /// probe.
+    ///
+    /// ONI_TWEAK_VERIFY=1 floods after every repair and counts the repairs that differ: wrong when
+    /// the result is not one a flood can leave (ProbeEngine.Fixpoint), else a tie. It also audits
+    /// the change feed every frame (FeedAudit). The measurement switches (ONI_PROBE_DIGEST,
+    /// ONI_PROBE_REPAIR_OFF, ONI_PROBE_REPAIR_SWITCH, ONI_PROBE_STATS) are in docs/PERFORMANCE.md.
     [GameMember(GameUse.Prefix, "System.Void AsyncPathProber/Manager::TickFrame()")]
     [GameMember(GameUse.Postfix, "System.Void AsyncPathProber/Manager::Unregister(Navigator)")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AsyncPathProber/WorkOrder::Execute(PathFinder/PotentialList,PathFinder/PotentialScratchPad,AsyncPathProber/WorkResult&)", "a14abd02779d17f6 linux-744825 win-744825", "2c62aa768ec41321 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
@@ -249,7 +236,7 @@ namespace OniMoono.GameTweaks
             });
         }
 
-        /// The tweak's own tables (ProbePages.Paged) make their pages on the pinned object heap
+        /// The tweak's tables (ProbePages.Paged) make their pages on the pinned object heap
         /// where the runtime has one (GC.AllocateArray, beyond netstandard2.1).
         static void PinnedPages<T>() where T : struct
         {
@@ -1057,7 +1044,7 @@ namespace OniMoono.GameTweaks
             ushort gameSerial;
             public long floodsVerified, floodsWrong, gameFloods, gameFloodTicks, ourFloodTicks;
 
-            /// The flood against the game's own PathProber.Run on the same order (verify), when
+            /// The flood against the game's PathProber.Run on the same order (verify), when
             /// the worker's rows were the nav grid's and nothing changed meanwhile.
             void VerifyFlood(Field f, ref WorkOrder order, bool synced, long added, long took)
             {
@@ -1122,7 +1109,7 @@ namespace OniMoono.GameTweaks
             }
             catch (Exception e)
             {
-                // The game's own probe from here on, from a clean grid.
+                // The game's probe from here on, from a clean grid.
                 // Repairs already done are still taken (TakeResultPre).
                 StandDown($"{e.GetType().Name}: {e.Message}");
                 global::Debug.LogException(e);

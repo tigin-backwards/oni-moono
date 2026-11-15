@@ -9,26 +9,25 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-offset-tables`. Each Duplicant's fetch update (once a frame in
-    /// U57) first makes sure every fetchable item's work offsets are current: a job over every
-    /// prefab's items (U57: about 27,000 in 211 groups) in which the workers check each item's
-    /// offset tracker (its cell is the item's cell and its offsets are set) and the main thread
-    /// recomputes the items that fail, in group order then list order. Almost all pass: the job
-    /// is a cache miss or three per item, about 0.75 ms a frame of the main thread's time.
+    /// Game tweak `fast-offset-tables`. Each Duplicant's fetch update (once a frame on a late-game
+    /// colony) first makes sure every fetchable item's work offsets are current: a job over every
+    /// prefab's items (a late-game colony: about 27,000 in 211 groups) in which the workers check
+    /// each item's offset tracker (its cell is the item's cell and its offsets are set) and the
+    /// main thread recomputes the items that fail, in group order then list order. Almost all pass:
+    /// the job is a cache miss or three per item, about 0.75 ms a frame of the main thread's time.
     ///
     /// An item's offsets go stale only through a few transitions, all in the game's code: the
     /// tracker's cell changes (OffsetTracker.UpdateCell, on any GetOffsets for another cell), a
     /// solid or navigable cell in its extents changes (OffsetTableTracker.OnCellChanged clears the
     /// offsets), the item gets a new tracker (Workable's four assignments of offsetTracker), or it
     /// becomes fetchable (FetchManager.Add). The tweak marks the item at each, and replaces the job
-    /// with a pass over the marked items that are fetchable: the same check, and the same
-    /// recompute for those that fail, in the same group-then-list order (a schedule the game's job
-    /// can take, its main thread taking only the first group). An item that passes, or is not
-    /// fetchable, is unmarked; one that still fails stays marked, as the game would retry it
-    /// every update.
+    /// with a pass over the marked items that are fetchable: the same check, and the same recompute
+    /// for those that fail, in the same group-then-list order (a schedule the game's job can take,
+    /// its main thread taking only the first group). An item that passes, or is not fetchable, is
+    /// unmarked; one that still fails stays marked, as the game would retry it every update.
     ///
-    /// With ONI_TWEAK_VERIFY=1 every update also checks every fetchable item as the game does,
-    /// and logs any that fails without being marked (and fixes it).
+    /// With ONI_TWEAK_VERIFY=1 every update also checks every fetchable item as the game does, and
+    /// logs any that fails without being marked (and fixes it).
     [GameMember(GameUse.Postfix, "HandleVector`1/Handle<System.Int32> FetchManager::Add(Pickupable)")]
     [GameMember(GameUse.Prefix, "System.Void FetchManager::Remove(Tag,HandleVector`1/Handle<System.Int32>)")]
     [GameMember(GameUse.Transpiler, "System.Void FetchManager::UpdatePickups(Navigator,WorkerBase)", "c99d507490e92722 linux-744825 win-744825", "5c631d5233025d1f linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023", Rewrites = 1)]
@@ -255,7 +254,7 @@ namespace OniMoono.GameTweaks
             return hv.Items[slot];
         }
 
-        /// The game's own pass, on the main thread: every fetchable checked, in group then list
+        /// The game's pass, on the main thread: every fetchable checked, in group then list
         /// order; fix recomputes the stale ones, otherwise they are reported (verify mode).
         static void CheckAll(FetchManager manager, bool fix)
         {

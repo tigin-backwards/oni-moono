@@ -1414,7 +1414,7 @@ namespace OniMoono.GameTweaks
 
         /// Which kinds of another owner's patch of a guarded method make a tweak stand down.
         /// `AllButPostfixes`: a postfix there runs after the game's code as before. `Finalizers`:
-        /// the tweak's own postfix there runs after any prefix (even one that skips the body), the
+        /// the tweak's postfix there runs after any prefix (even one that skips the body), the
         /// transpiled body and other postfixes, so only a finalizer, which can swallow an exception
         /// that skipped it, counts.
         public enum GuardedKinds { All, AllButPostfixes, Finalizers }

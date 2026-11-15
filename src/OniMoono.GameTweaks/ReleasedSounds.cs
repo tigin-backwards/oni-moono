@@ -10,46 +10,40 @@ namespace OniMoono.GameTweaks
 {
     using Sound = LoopingSoundManager.Sound;
 
-    /// Game tweak `fix-released-sounds` (Bug fixes, on by default; left out of `exact`): the game
-    /// clears its copy of an FMOD event instance's handle when it releases the instance, at the
-    /// two places where it keeps the handle and goes on using it (docs/TWEAKS.md, "The released
-    /// sounds fix"; issues #78, #72, #73 and #58).
+    /// Game tweak `fix-released-sounds` (Bug fixes; left out of `exact`): the game's copy of an
+    /// FMOD event instance's handle is cleared when the game releases the instance, at the two
+    /// places where it keeps the handle and goes on using it (docs/TWEAKS.md, "The released sounds
+    /// fix"; issues #78, #72, #73 and #58).
     ///
     /// An FMOD Studio handle carries an 11-bit serial that goes up each time its slot is freed and
-    /// wraps after 2,047. A handle kept after release() is refused by FMOD until then; once its
-    /// slot has come round, it resolves to whatever object holds the slot now, and the game's call
-    /// writes into it (EventInstance::stop's command on an object of another kind is the pair of
-    /// writes behind #78's `fmod heap:` lines). In U59 and U60:
+    /// wraps after 2,047. FMOD refuses a handle kept after release() until then; once its slot has
+    /// come round, it resolves to whatever object holds the slot now, and the game's call writes
+    /// into it (#78's `fmod heap:` lines). In U59 and U60:
     ///
     /// - AmbienceManager.Layer.Stop stops and releases the layer's instance but keeps the handle,
-    ///   and Quadrant.Update calls Stop on every looping layer not among the top three each
-    ///   update: an isValid() on a released handle each time, and stop() and release() on
-    ///   whatever it resolves to once it wraps. Here Stop runs as the game's, then clears the
-    ///   handle (EventInstance.clearHandle, as the game's own SpeechMonitor and MainMenu do after
-    ///   a release). isValid() is then false without asking FMOD, as it is for a layer never
-    ///   started; Start makes a new instance as before.
+    ///   and Quadrant.Update calls Stop on every looping layer not among the top three each update.
+    ///   The tweak runs Stop as the game's, then clears the handle (EventInstance.clearHandle, as
+    ///   the game's SpeechMonitor and MainMenu do after a release). isValid() is then false without
+    ///   asking FMOD, as for a layer never started.
     /// - LoopingSoundManager.StopAllSounds (a world switch, and Game.StopBE as a scene unloads)
     ///   stops and releases every playing loop but leaves it flagged as playing with its handle:
     ///   RenderEveryTick goes on setting its position, the parameter updaters its parameters, and
-    ///   once it leaves the view it is stopped and released again. Here each playing loop is
-    ///   stopped and released as the game does, taken off the parameter updaters as StopSound
-    ///   does (they hold their own copy of the handle and find it by it), and its handle cleared.
-    ///   It stays flagged as playing, as in the game: the calls the game goes on making on it
-    ///   carry the null handle, which FMOD refuses (ERR_INVALID_HANDLE) whatever it has made since,
-    ///   and the loop is restarted, stopped or freed just when the game's would be. Clearing the
-    ///   flag too (as the fix sent to Klei does) restarts the loops in the frame of the switch,
+    ///   once it leaves the view it is stopped and released again. The tweak stops and releases
+    ///   each playing loop as the game does, takes it off the parameter updaters as StopSound does,
+    ///   and clears its handle. The loop stays flagged as playing: the game's later calls carry the
+    ///   null handle, which FMOD refuses, and the loop is restarted, stopped or freed when the
+    ///   game's would be. Clearing the flag too restarts the loops in the frame of the switch,
     ///   while the sound culler still has the old view, and stops them a frame later.
     ///
     /// Nothing audible changes: every call that no longer reaches FMOD is one FMOD refused before
-    /// the wrap, and nothing is started or stopped that the game would not have.
+    /// the wrap.
     ///
-    /// With ONI_TWEAK_VERIFY=1 (or ONI_VERIFY_RELEASED_SOUNDS=1) the handles released here are
-    /// kept, and any later call on one of FMODUnity's EventInstance methods the game uses is
-    /// counted and logged with its caller (VerifyStaleCalls must stay 0), until FMOD hands out
-    /// that handle again. The first call on a cleared loop logs FMOD's answer, and after each
-    /// StopAllSounds its loops are followed for 300 frames: one that gets a new instance in that
-    /// time before the game stopped it is logged (VerifyRestarted, 0 when the game's own timing
-    /// holds; a loop the game stops out of view and starts again back in view does not count).
+    /// ONI_TWEAK_VERIFY=1 (or ONI_VERIFY_RELEASED_SOUNDS=1): the handles released here are kept,
+    /// and any later call on one through the EventInstance methods the game uses is counted and
+    /// logged with its caller (VerifyStaleCalls must stay 0), until FMOD hands that handle out
+    /// again. After each StopAllSounds its loops are followed for 300 frames: one that gets a new
+    /// instance before the game stopped it is logged (VerifyRestarted, 0 when the game's timing
+    /// holds).
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AmbienceManager/Layer::Stop()", "2f74965174a7ee20 linux-744825 win-744825", "15c1f2ba0af14d7b linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void LoopingSoundManager::StopAllSounds()", "db3b86cb9239e9a2 linux-744825 win-744825", "a1ba518f98eb9619 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Postfix, "System.Void LoopingSoundManager::RenderEveryTick(System.Single)", Conditional = true)]
@@ -240,7 +234,7 @@ namespace OniMoono.GameTweaks
                 if (!followed.TryGetValue(new Key(s), out var f)) continue;
                 if (!answerLogged && s.IsPlaying && s.ev.handle == IntPtr.Zero)
                 {
-                    // The game's own next call on a cleared loop, made here once to log FMOD's answer.
+                    // The game's next call on a cleared loop, made here once to log FMOD's answer.
                     answerLogged = true;
                     var ev = s.ev;
                     global::Debug.Log($"{Name}: a call on a cleared loop's handle: FMOD answers {ev.set3DAttributes(default)}");

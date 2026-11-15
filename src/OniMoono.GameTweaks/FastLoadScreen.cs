@@ -32,13 +32,13 @@ namespace OniMoono.GameTweaks
     ///   whose bytes do not parse, is read by the game's own LoadHeader, which throws and logs
     ///   as it would.
     ///
-    /// The bytes are read after the listing, as the game's own reads are; a file rewritten
+    /// The bytes are read after the listing, as the game's reads are; a file rewritten
     /// during a refresh is a race in the game too (its four reads can disagree). Mods' prefixes
     /// on LoadHeader run as before (this one runs last); a mod watching SaveGame.GetHeader or
     /// GetGameInfo sees one call a file a refresh instead of four.
     ///
     /// With ONI_TWEAK_VERIFY=1 each header served from the memo or parsed from bytes read ahead
-    /// is checked against the game's own LoadHeader of the same file, and each refresh logs how
+    /// is checked against the game's LoadHeader of the same file, and each refresh logs how
     /// many were checked and how many differed.
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Collections.Generic.Dictionary`2<System.String,System.Collections.Generic.List`1<LoadScreen/SaveGameFileDetails>> LoadScreen::GetColoniesDetails(System.Collections.Generic.List`1<SaveLoader/SaveFileEntry>)")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void LoadScreen::RefreshColonyList()")]
@@ -141,7 +141,7 @@ namespace OniMoono.GameTweaks
                 }
                 catch (Exception)
                 {
-                    // The game's own read throws (and its callers log) as it would.
+                    // The game's read throws (and its callers log) as it would.
                     __state = true;
                     return true;
                 }
@@ -153,7 +153,7 @@ namespace OniMoono.GameTweaks
             return true;
         }
 
-        /// After the game's own read (only when the prefix let it run): kept for the refresh.
+        /// After the game's read (only when the prefix let it run): kept for the refresh.
         static void LoadedHeader(string filename, SaveGame.Header header, SaveGame.GameInfo __result, bool __runOriginal, bool __state)
         {
             if (__state && __runOriginal && reads != null && !bypass) reads.Store(filename, header, __result);
@@ -171,7 +171,7 @@ namespace OniMoono.GameTweaks
             return info;
         }
 
-        /// ONI_TWEAK_VERIFY: the game's own read of the file must give the same header.
+        /// ONI_TWEAK_VERIFY: the game's read of the file must give the same header.
         static void Check(string filename, SaveGame.Header header, SaveGame.GameInfo info)
         {
             if (!verify) return;

@@ -9,46 +9,37 @@ using UnityEngine.UI;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `lazy-table-refresh` (it changes what the game does a little, so it is left out
-    /// of `exact`): an open table screen refreshes, once a second, only the rows in sight.
+    /// Game tweak `lazy-table-refresh` (left out of `exact`): an open table screen refreshes, once
+    /// a second, only the rows in sight.
     ///
     /// The render 1000 ms bucket marks every table column dirty each second
     /// (TableColumn.Render1000ms), and the open table's next ScreenUpdate runs each dirty column's
-    /// load action on the widget of every row: on a colony of 200 Duplicants, thousands of
-    /// widgets in one frame, most of them scrolled out of sight. Here that frame refreshes the
-    /// widgets of the rows that lie within the table's scroll view or within one view's height of
-    /// it (in the game's order, columns as the game keeps them, rows within each), and marks the
-    /// other rows' widgets stale. Each frame, before the canvases are laid out and drawn
-    /// (Canvas.preWillRenderCanvases), once any stale row has come that close (scrolled, the view
-    /// resized, the rows laid out again) every stale row gets the load actions it missed, in the
-    /// same order, in one go (a table laid out again once, not every frame of a scroll); a frame
-    /// that sorts the rows refreshes every stale row first. While the list is being scrolled (it
-    /// moved within the last 1.5 s) the refresh is the game's, of every row: rows coming into
-    /// sight one after another would otherwise be caught up more often than once a second.
+    /// load action on the widget of every row: on a colony of 200 Duplicants, thousands of widgets
+    /// in one frame, most of them scrolled out of sight. The tweak refreshes, in the game's order,
+    /// the rows within the scroll view or within one view's height of it, and marks the others
+    /// stale. Before the canvases are laid out (Canvas.preWillRenderCanvases), once any stale row
+    /// has come that close, every stale row gets the load actions it missed, in the same order, in
+    /// one go (a table is laid out again once, not on every frame of a scroll). A frame that sorts
+    /// the rows refreshes every stale row first. While the list moved within the last 1.5 s the
+    /// refresh is the game's: rows coming into sight one by one would be caught up more than once a
+    /// second.
     ///
-    /// The same goes for the frame in which the table goes through its rows (TableScreen.RefreshRows:
-    /// each time it opens, and when a Duplicant is added or removed): the game runs every load
-    /// action of every row it already has (TableRow.RefreshColumns), 17,000 of them for
-    /// Consumables on a colony of 200 Duplicants, each time the screen is opened. Here a row the
-    /// table already had runs them only when it is near sight, before the rows are sorted and
-    /// laid out or, when that brought it near, right after; the other rows are marked stale for
-    /// every column, and caught up as above. A row made in that frame is loaded as the game
-    /// loads it, and a table opened for the first time is the game's throughout. The columns the
-    /// last second marked dirty are clean after such a pass: every row has either just run their
-    /// load actions or is stale for them.
+    /// The same goes when the table goes through its rows (TableScreen.RefreshRows: each time it
+    /// opens, and when a Duplicant is added or removed), where the game runs every load action of
+    /// every row (TableRow.RefreshColumns: 17,000 for Consumables with 200 Duplicants). A row the
+    /// table already had runs them only when near sight; the others are marked stale for every
+    /// column. A row made in that frame, and a table opened for the first time, are the game's.
+    /// After such a pass the columns are clean: every row has run their load actions or is stale
+    /// for them.
     ///
-    /// What differs from the game: a row out of sight shows, once scrolled in, values read then
-    /// rather than at the last refresh (at most a second newer), and the load actions of rows out
-    /// of sight run later or not at all (a mod reading their widgets' text off screen would read
-    /// older values). Every row and object stays as the game made it.
+    /// What differs: a row out of sight shows, once scrolled in, values read then (at most a second
+    /// newer), and its load actions run later or not at all (a mod reading its widgets off screen
+    /// reads older values).
     ///
-    /// ONI_TWEAK_VERIFY=1: each refresh also runs the game's own (every row), and the widgets of
-    /// the rows in sight must read the same after both (their text, sprites, colours, toggles'
-    /// states and which of their objects are active); a line every 60 refreshes and one for each
-    /// difference, and each frame no stale row may lie within the view once the stale rows near
-    /// it are caught up; after the table went through its rows the game's own pass (every row)
-    /// runs too, with the same comparison. The tweak stands down, leaving the game's refresh, when another mod patches the
-    /// table's ScreenUpdate, SortRows or RefreshRows, a row's RefreshColumns, or the columns'
+    /// ONI_TWEAK_VERIFY=1: each refresh also runs the game's, and the widgets of the rows in sight
+    /// must read the same after both (text, sprites, colours, toggles, active objects); no stale
+    /// row may lie within the view after a catch-up. Off for the session when another mod patches
+    /// the table's ScreenUpdate, SortRows or RefreshRows, a row's RefreshColumns, or the columns'
     /// Render1000ms, MarkDirty or MarkClean.
     [GameMember(GameUse.Prefix, "System.Void TableScreen::ScreenUpdate(System.Boolean)")]
     [GameMember(GameUse.Prefix, "System.Void TableScreen::SortRows()")]
@@ -238,7 +229,7 @@ namespace OniMoono.GameTweaks
             var t = tables.GetValue(__instance, _ => new Table());
             // A table whose list moved within the last second is being scrolled: its rows come
             // into sight one after another, and bringing them up to date as they do would lay
-            // the table out more often than the game's own refresh, once a second. So while it
+            // the table out more often than the game's refresh, once a second. So while it
             // scrolls, the refresh is the game's, of every row.
             var content = __instance.scroll_content_transform;
             float now = Time.unscaledTime;
@@ -396,7 +387,7 @@ namespace OniMoono.GameTweaks
             }
         }
 
-        /// The game's own TableRow.RefreshColumns for each row.
+        /// The game's TableRow.RefreshColumns for each row.
         static void Load(List<TableRow> rows, Dictionary<string, TableColumn> columns)
         {
             if (rows.Count == 0) return;
@@ -444,7 +435,7 @@ namespace OniMoono.GameTweaks
                 // load actions change its texts, which lays the whole table out again, so rows
                 // caught up one or two a frame while a list scrolls would lay it out every frame
                 // (Vitals on a 200-Duplicant colony: 22 to 32 ms a frame scrolling); all at once
-                // costs one layout, as the game's own refresh does once a second.
+                // costs one layout, as the game's refresh does once a second.
                 bool any = false;
                 foreach (var row in t.Stale.Keys)
                     if (row == null || Near(screen, t, row))
@@ -487,7 +478,7 @@ namespace OniMoono.GameTweaks
         {
             var before = new List<string>(refreshed.Count);
             foreach (var (_, w) in refreshed) before.Add(StateOf(w));
-            // The game's own refresh: every row of every column, in its order.
+            // The game's refresh: every row of every column, in its order.
             foreach (var column in columns.Values)
             {
                 if (column.on_load_action == null) continue;

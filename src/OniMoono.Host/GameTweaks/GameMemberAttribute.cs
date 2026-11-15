@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-// Compiled into OniMoono.Host and OniMoono.GameTweaks alike: each assembly has its own copy, and
+// Compiled into OniMoono.Host and OniMoono.GameTweaks alike: each assembly has its copy, and
 // the host reads both assemblies' declarations from their metadata (TweakChecks), never through
 // these types.
 namespace OniMoono.Tweaks
@@ -35,7 +35,7 @@ namespace OniMoono.Tweaks
     /// every declared member must be in the game with that signature (TweakChecks).
     ///
     /// `Fingerprints`: for a member it transpiles, replaces or mirrors, the accepted hashes of
-    /// the game's own IL for it (TweakMetadata.Fingerprint), one per game build that has a
+    /// the game's IL for it (TweakMetadata.Fingerprint), one per game build that has a
     /// different body, each followed by the builds it was taken from ("3f2a… 744825"); any
     /// other body turns the tweak off until it is reviewed (`--check-tweaks --review`).
     /// `Rewrites`: for a transpiler, the sites it rewrites in that body (TranspilerCounts).

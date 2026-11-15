@@ -7,33 +7,33 @@ namespace OniMoono.GameTweaks
 {
     using Conduit = SolidConduitFlow.Conduit;
 
-    /// Game tweak `fast-conveyor-paths`: the conveyor rails' network rebuild, the same
-    /// paths.
+    /// Game tweak `fast-conveyor-paths`: the conveyor rails' network rebuild, the same paths.
     ///
     /// Every change to the rails (one built, removed or reconnected, and the load) rebuilds the
     /// whole conveyor network: SolidConduitFlow walks from every source to every sink and keeps
     /// each source-to-sink path it finds in a list (TryAdd). For each new path TryAdd asks three
     /// things of every path already kept, each by searching the paths through: whether one of them
     /// already holds the new one (then the new one is dropped), which of them the new one holds
-    /// (they are dropped), and, for each rail of the new path, whether any remaining path has it
-    /// (a rail with only one way to go is then left out of the new path). The cost grows with the
-    /// paths kept times their lengths, for every path found: U57 (447 paths kept out of 735
-    /// found) spends 76–770 ms of each rebuild there, on the main thread, a hitch on every edit.
+    /// (they are dropped), and, for each rail of the new path, whether any remaining path has it (a
+    /// rail with only one way to go is then left out of the new path). The cost grows with the
+    /// paths kept times their lengths, for every path found: a late-game colony (447 paths kept out
+    /// of 735 found) spends 76–770 ms of each rebuild there, on the main thread, a hitch on every
+    /// edit.
     ///
     /// The tweak keeps an index of the kept paths beside the game's list: for each rail, the paths
     /// that have it and its place in each, how many of them there are, and the paths starting with
     /// it. The three questions are then asked only of the paths that can answer yes: those having
     /// the new path's first rail; those starting with one of its rails; the counts. Each answer is
-    /// the game's own test, with the same places compared, so the list ends up the same, in the
-    /// same order (paths dropped are taken out of the list keeping the others' order, as the
-    /// game's removals one by one do). The index follows the game's list: when the list is not
-    /// what the index last left it (cleared by the rebuild, or changed by anyone else), it is
-    /// made again from the list. Off for the session once another Harmony owner patches TryAdd
-    /// (checked at the first path, then every 256).
+    /// the game's test, with the same places compared, so the list ends up the same, in the same
+    /// order (paths dropped are taken out of the list keeping the others' order, as the game's
+    /// removals one by one do). The index follows the game's list: when the list is not what the
+    /// index last left it (cleared by the rebuild, or changed by anyone else), it is made again
+    /// from the list. Off for the session once another Harmony owner patches TryAdd (checked at the
+    /// first path, then every 256).
     ///
     /// With ONI_TWEAK_VERIFY=1 the game's TryAdd also runs on a copy of the list and of the new
-    /// path, and both lists must end up the same: the same paths, in the same order, with the
-    /// same rails.
+    /// path, and both lists must end up the same: the same paths, in the same order, with the same
+    /// rails.
     [GameMember(GameUse.Postfix, "System.Void SolidConduitFlow::OnUtilityNetworksRebuilt(System.Collections.Generic.IList`1<UtilityNetwork>,System.Collections.Generic.ICollection`1<System.Int32>)", Conditional = true)]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SolidConduitFlow::TryAdd(System.Collections.Generic.List`1<SolidConduitFlow/Conduit>)", "72811b7834149aa6 linux-744825 win-744825", "b01ca6c8268d3622 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     public static class FastConveyorPaths

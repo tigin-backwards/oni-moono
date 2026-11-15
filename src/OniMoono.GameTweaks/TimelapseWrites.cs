@@ -15,7 +15,7 @@ namespace OniMoono.GameTweaks
     /// deleting a save deletes its preview. Here each of those first waits for the pending
     /// read-backs and writes (FlushPendingScreenshots, which does nothing when there are none).
     /// The files and what the game shows of them are the game's; only when they are read
-    /// changes. The game's own HasPendingScreenshotWrites, which no code reads, says so.
+    /// changes. The game's HasPendingScreenshotWrites, which no code reads, says so.
     [GameMember(GameUse.Prefix, "UnityEngine.Sprite RetireColonyUtility::LoadColonyPreview(System.String,System.String,System.Boolean)")]
     [GameMember(GameUse.Prefix, "UnityEngine.Sprite RetireColonyUtility::LoadRetiredColonyPreview(System.String,System.String)")]
     [GameMember(GameUse.Prefix, "UnityEngine.Sprite[] RetireColonyUtility::LoadColonySlideshow(System.String)")]

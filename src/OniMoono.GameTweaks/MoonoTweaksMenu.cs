@@ -22,7 +22,7 @@ namespace OniMoono.GameTweaks
     ///
     /// Its text is in the game's language: each string has a key (STRINGS.MOONO.TWEAKS....,
     /// OniMoono.Host.GameTweaks.TweakStrings), and Localize reads the player's
-    /// translations/CODE.po for the game's locale with the game's own reader, as a mod reads its
+    /// translations/CODE.po for the game's locale with the game's reader, as a mod reads its
     /// translations, falling back to English string by string, and puts the result in the game's
     /// string table (Strings).
     ///
@@ -117,7 +117,7 @@ namespace OniMoono.GameTweaks
 
         /// The translation for the game's language: translations/CODE.po for its locale's code
         /// (Localization.GetLocale().Code: "zh" for the game's Simplified Chinese, zh_klei, and
-        /// for any translation mod whose language contains "zh"; a mod's own code for a language
+        /// for any translation mod whose language contains "zh"; a mod's code for a language
         /// the game does not know), else for the code's language part ("pt" for "pt_BR"); null
         /// in English (no locale) or when there is none.
         static string TranslationFile()
@@ -475,7 +475,7 @@ namespace OniMoono.GameTweaks
             return string.Join("\n", parts).ToLowerInvariant();
         }
 
-        /// Whether a row's text matches a search as the game's own searches match a list
+        /// Whether a row's text matches a search as the game's searches match a list
         /// (StringSearchableListUtil.DoAnyTagsMatchFilter): it contains the whole query, or every
         /// word of it; an empty query matches every row.
         static bool Matches(string text, string query)
@@ -537,7 +537,7 @@ namespace OniMoono.GameTweaks
         /// The search box above the list: a copy of the Supply Closet's (KleiInventoryScreen's
         /// search field, in the locker prefab the main menu opens, without its clear button),
         /// with the game's "Search" placeholder. While it has the keyboard the screen is editing, as
-        /// the game's own search fields make their screens (KScreen.isEditing): its keys type
+        /// the game's search fields make their screens (KScreen.isEditing): its keys type
         /// and reach no hotkey. Left out, with a log line, when the game has no such field.
         void SearchBox()
         {
@@ -693,7 +693,7 @@ namespace OniMoono.GameTweaks
             var entry = Entry(MoonoTweaksMenu.Ids[i]);
             bool locked = MoonoTweaksMenu.Locked[i];
             var title = entry.GetReference<LocText>("Title");
-            // The Mods screen's title font, GRAYSTROKE REGULAR SDF: its own glyph for "f" is a
+            // The Mods screen's title font, GRAYSTROKE REGULAR SDF: its glyph for "f" is a
             // narrow, cap-height F (the original shows "conFiguration" on that screen too), and
             // "%" overhangs its advance by about a third of a space, so "% " looks unspaced.
             title.text = MoonoTweaksMenu.Titles[i];

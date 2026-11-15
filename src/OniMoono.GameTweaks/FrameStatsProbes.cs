@@ -241,7 +241,7 @@ namespace OniMoono.GameTweaks
             return rate >= 0 && rate < G.Buckets ? rate : G.Buckets - 1;
         }
 
-        /// The game's own JobManager.Run (fast-jobs off): the main thread found no item left, and
+        /// The game's JobManager.Run (fast-jobs off): the main thread found no item left, and
         /// waits for the workers from here until Run returns.
         static long workDone;
 

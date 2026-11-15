@@ -75,7 +75,7 @@ namespace OniMoono.GameTweaks
 
         static void Reading() => wait();
 
-        /// Why a save's call is the game's own now, or null.
+        /// Why a save's call is the game's now, or null.
         static string Off()
         {
             if (Bypass) return "bypassed";

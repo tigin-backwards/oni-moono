@@ -8,22 +8,21 @@ namespace OniMoono.GameTweaks
 {
     using Handle = HandleVector<int>.Handle;
 
-    /// Game tweak `fast-partitioner-cleanup`. Once a game second ScenePartitioner.Sim1000ms
-    /// goes through every node marked dirty since its last run and looks up every entry of each, to
-    /// drop those whose handle has been freed. Every insertion marks its nodes dirty too, so nearly
-    /// every node an object moved through is looked through in full (Gluttony: about 0.36 ms a
-    /// frame on Linux; with 10,000 items stuck in two nodes, about 1.6 ms on Windows).
+    /// Game tweak `fast-partitioner-cleanup`. Once a game second ScenePartitioner.Sim1000ms goes
+    /// through every node marked dirty since its last run and looks up every entry of each, to drop
+    /// those whose handle has been freed. Every insertion marks its nodes dirty too, so nearly
+    /// every node an object moved through is looked through in full (a pile-heavy colony: about
+    /// 0.36 ms a frame on Linux; with 10,000 items stuck in two nodes, about 1.6 ms on Windows).
     ///
     /// A handle is freed only through GameScenePartitioner.Free, which first removes it from the
     /// partitioner: ScenePartitioner.Remove, which marks the nodes it is in dirty. So the handles
     /// removed since the last run are recorded with those nodes (PartitionerFreed, shared with
-    /// fast-partitioner-events), and each node's scan looks up only
-    /// those still in it, dropping the ones whose lookup fails in descending order of their place
-    /// in the node's list. That is the game's descending scan: each removal swaps the list's last
-    /// entry into the freed place, and every entry after that place has been kept, so the list ends
-    /// up the same. The dirty flags are cleared by the game's own code. With ONI_TWEAK_VERIFY=1 each
-    /// node is also looked through in full afterwards, and any entry left failing its lookup is
-    /// logged and dropped.
+    /// fast-partitioner-events), and each node's scan looks up only those still in it, dropping the
+    /// ones whose lookup fails in descending order of their place in the node's list. That is the
+    /// game's descending scan: each removal swaps the list's last entry into the freed place, and
+    /// every entry after that place has been kept, so the list ends up the same. The dirty flags
+    /// are cleared by the game's own code. With ONI_TWEAK_VERIFY=1 each node is also looked through
+    /// in full afterwards, and any entry left failing its lookup is logged and dropped.
     [GameMember(GameUse.Uses, "System.Int32 ScenePartitioner/DirtyNode::layer")]
     [GameMember(GameUse.Uses, "System.Int32 ScenePartitioner/DirtyNode::x")]
     [GameMember(GameUse.Uses, "System.Int32 ScenePartitioner/DirtyNode::y")]

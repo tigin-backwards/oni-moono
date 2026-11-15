@@ -22,9 +22,9 @@ namespace OniMoono.Host.GameTweaks
     /// FMOD.Studio.System.create in FMODUnity's RuntimeManager.Initialize, the same method in
     /// U59 and U60 (before it only RuntimeUtils.EnforceLibraryOrder's Memory.GetStats and
     /// Util.parseID, which create none): this prefix calls it first, through the game's own
-    /// wrapper (so through its own library, fmodstudio or fmodstudioL), with delegates over the
+    /// wrapper (so through its library, fmodstudio or fmodstudioL), with delegates over the
     /// native functions, which marshal back to the native pointers themselves. FMOD calls them on
-    /// its own threads, never into managed code. Off: nothing is patched or called, and FMOD
+    /// its threads, never into managed code. Off: nothing is patched or called, and FMOD
     /// allocates as it always has. A prefix that runs the method as it is: no fingerprint.
     ///
     /// The functions are OniMoono.exe's exports (Windows; built by build.cmd), or a

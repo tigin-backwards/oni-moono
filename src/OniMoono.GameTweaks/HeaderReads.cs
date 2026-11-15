@@ -11,7 +11,7 @@ namespace OniMoono.GameTweaks
     ///
     /// - A memo of each file's parsed header, kept for the refresh. An entry is used only for a
     ///   path in the listing being read now, and only while that listing's last write time is the
-    ///   one the entry was read under; each use returns its own copy (`clone`). Failed reads are
+    ///   one the entry was read under; each use returns its copy (`clone`). Failed reads are
     ///   never kept: whoever asks again reads the file again.
     /// - The raw headers (the 16-byte prefix and the header it sizes, read as the game reads them)
     ///   of a listing's files, read ahead on worker threads. Each is taken once, in whatever order
@@ -21,7 +21,7 @@ namespace OniMoono.GameTweaks
     {
         /// Files read ahead on this many threads (the reads wait on the file system, not the CPU).
         public const int Threads = 8;
-        /// Raw headers larger than this are not read ahead: the game's own read decides (real
+        /// Raw headers larger than this are not read ahead: the game's read decides (real
         /// headers are under 1 KB; a corrupt size field can claim gigabytes).
         public const int MaxHeader = 1 << 20;
 
@@ -72,7 +72,7 @@ namespace OniMoono.GameTweaks
             listing = null;
         }
 
-        /// The memo's header of `path`, for the listing being read: its own copy of the info.
+        /// The memo's header of `path`, for the listing being read: its copy of the info.
         public bool TryGet(string path, out THeader header, out TInfo info)
         {
             if (listing != null && listing.TryGetValue(path, out var l) && memo.TryGetValue(path, out var e) && e.Stamp == l.Stamp)

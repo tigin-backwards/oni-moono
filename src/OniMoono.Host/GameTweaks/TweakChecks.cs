@@ -59,7 +59,7 @@ namespace OniMoono.Host.GameTweaks
     /// The checks a tweak passes before it patches anything (GameTweaks.Install; ARCHITECTURE
     /// "How game tweaks install"), read from metadata alone: the game's files as they are on disk
     /// and the tweaks' assemblies. A tweak that fails one is off for the run: none of its code
-    /// runs, the game's own does, and the Moono Tweaks screen shows its row greyed out.
+    /// runs, the game's does, and the Moono Tweaks screen shows its row greyed out.
     ///
     /// 1. Every member it declares (GameMemberAttribute) is in the game with that signature.
     /// 2. Every game type and member the code of its classes refers to (OniMoono.GameTweaks is

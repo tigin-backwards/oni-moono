@@ -10,7 +10,7 @@ namespace OniMoono.GameTweaks
     /// chunks of its grid of animation controllers (the grid is swept round and round), testing
     /// every controller in them for having been destroyed, to drop those entries. Controllers
     /// normally leave the grid when disabled, so the sweeps nearly always find nothing; but each
-    /// test reads the controller (U57: about 0.5 ms a frame over 90,000 controllers).
+    /// test reads the controller (a late-game colony: about 0.5 ms a frame over 90,000 controllers).
     ///
     /// A destroyed controller is null from the moment it is destroyed, and only destroyed ones
     /// are dropped. So the ids of controllers destroyed recently are kept, and a chunk is swept

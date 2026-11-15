@@ -20,7 +20,7 @@ namespace OniMoono.Host.GameTweaks
 
     /// One row of the Moono Tweaks screen and of docs/TWEAKS.md: `Title` in sentence case,
     /// `Effect` one short line on what a player gets from it, `Detail` (optional) how it does it,
-    /// for the row's tooltip and the docs. `IsTweak` is false for the player's own options (the
+    /// for the row's tooltip and the docs. `IsTweak` is false for the player's options (the
     /// splash, frame stats, log paths and the GPU), which are rows but not `--game-tweak` names.
     /// `Choices`: a row with more values than on and off (the GPU's), in the order its button
     /// steps through them; null for a toggle. `ChangesBehaviour`: a tweak outside the groups
@@ -99,7 +99,7 @@ namespace OniMoono.Host.GameTweaks
         public static readonly TweakGroup Saving = new("SAVING", "Saving", SaveGain);
         public static readonly TweakGroup Simulation = new("SIMULATION", "Simulation");
         public static readonly TweakGroup Graphics = new("GRAPHICS", "Graphics & overlays");
-        /// The tweaks that change what the game does for speed: their own group, in the warning colour.
+        /// The tweaks that change what the game does for speed: their group, in the warning colour.
         public static readonly TweakGroup ChangesGameplay = new("CHANGES_GAMEPLAY", "Changes gameplay", ChangesGameplay: true);
         /// The tweaks that fix bugs in Klei's game: they change what the original does too, so
         /// they are left out of `exact` as Changes gameplay's are; last, in the warning colour.

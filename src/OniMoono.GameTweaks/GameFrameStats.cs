@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace OniMoono.GameTweaks
 {
-    /// Frame stats (`--frame-stats`): the game's own update, timed on the main thread by
+    /// Frame stats (`--frame-stats`): the game's update, timed on the main thread by
     /// FrameStatsProbes' patches and logged with the engine's other 600-frame lines: game speed
     /// and sim steps, the sim step's time in SimDLL against the managed rest, and Game.Update's
     /// main parts. Plain .NET (no game types): the unit tests compile it in.

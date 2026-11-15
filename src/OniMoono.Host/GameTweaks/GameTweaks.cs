@@ -6,7 +6,7 @@ using OniMoono.Engine;
 
 namespace OniMoono.Host.GameTweaks
 {
-    /// Optional changes to the game's own code, kept apart from the engine: the engine reproduces
+    /// Optional changes to the game's code, kept apart from the engine: the engine reproduces
     /// Unity, while these change how Klei's code does something, mostly without changing what it
     /// produces. Each is documented in its class with what it changes and what was measured. Which
     /// are on comes from the Moono Tweaks screen's settings file or the command line
@@ -15,7 +15,7 @@ namespace OniMoono.Host.GameTweaks
     {
         static bool backgroundSave;
 
-        /// OniMoono.GameTweaks.dll beside the host: the tweaks built against the game's own types,
+        /// OniMoono.GameTweaks.dll beside the host: the tweaks built against the game's types,
         /// and the main menu's Moono Tweaks screen (MoonoTweaksMenu).
         public static System.Reflection.Assembly TypedAssembly => typed ??= System.Reflection.Assembly.LoadFrom(System.IO.Path.Combine(AppContext.BaseDirectory, "OniMoono.GameTweaks.dll"));
         internal static System.Reflection.Assembly? typed;
@@ -83,7 +83,7 @@ namespace OniMoono.Host.GameTweaks
             if (on(LoadingAnimation.Name)) yield return (LoadingAnimation.Name, LoadingAnimation.Install, true);
             // fast-load-screen's engine side; its game side is a typed tweak (below), which logs it.
             if (on(LoadScreenPreviews.Name)) yield return (LoadScreenPreviews.Name, LoadScreenPreviews.Install, false);
-            // The tweaks built against the game's own types (src/OniMoono.GameTweaks).
+            // The tweaks built against the game's types (src/OniMoono.GameTweaks).
             System.Reflection.MethodInfo? install = null;
             foreach (var name in GameTweakNames.Typed.Concat(GameTweakNames.AlwaysOn))
             {

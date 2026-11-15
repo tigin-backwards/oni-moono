@@ -12,9 +12,9 @@ namespace OniMoono.Host.GameTweaks
 {
     /// Game tweak `post-load-gc`: once a colony has loaded, while the game is still paused, two
     /// blocking non-compacting gen1 collections. Under Server GC with DATAS the young generations'
-    /// budgets are gigabytes, so the 1.6 GiB a large colony's load allocates after its own forced
+    /// budgets are gigabytes, so the 1.7 GB a large colony's load allocates after its forced
     /// collections is still young when play starts; about a minute in, the first gen1 copies about
-    /// 1 GiB of it into gen2, a 283-344 ms pause (docs/research/gc-pauses.md). A collection moves
+    /// 1.1 GB of it into gen2, a 283-344 ms pause (docs/research/gc-pauses.md). A collection moves
     /// survivors up one generation, so two move it into gen2 at the end of the load instead: about
     /// 0.4 s on the paused frame, in place of the gen0 that runs there anyway. One gen1 or one
     /// gen2 only moves the pause later. It changes no game state (only when collections run).

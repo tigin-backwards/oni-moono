@@ -9,27 +9,27 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-sublimation`. Every sublimating item (polluted dirt, bleach
-    /// stone, oxylite…) runs Sublimates.Sim200ms five times a game second. In a large colony
-    /// most of them lie loose in cells already full of gas and are already marked blocked: the
-    /// call changes nothing, but it reads the item, its transform, tags, element and
-    /// temperature, scattered objects that cost about 1.8 ms a frame in U57 (1,880 of 2,450
-    /// items in that state).
+    /// Game tweak `fast-sublimation`. Every sublimating item (polluted dirt, bleach stone,
+    /// oxylite…) runs Sublimates.Sim200ms five times a game second. In a large colony most of them
+    /// lie loose in cells already full of gas and are already marked blocked: the call changes
+    /// nothing, but it reads the item, its transform, tags, element and temperature, scattered
+    /// objects that cost about 1.8 ms a frame on a late-game colony (1,880 of 2,450 items in that
+    /// state).
     ///
     /// The game's update buckets for Sublimates get a batch function (the scheduler's
     /// batch_update_delegate) that runs the same items, in the same order, with the same time
-    /// steps, at the same sub-ticks. For each item it keeps, from its last full update, what
-    /// that update read: its cell, its transform, its temperature source (the sim's element
-    /// chunk), its element's lowest temperature and the cell's mass limit. An item is skipped
-    /// only when its full update would change nothing: it is not sealed and has no tag changed
-    /// since (watched through its own tag-change event), it is in the same cell (read from its
-    /// transform), its temperature in the sim's chunk is above the limit, its cell is still full,
-    /// and it was left blocked on pressure. The skipped update's one side effect, the
-    /// temperature read copying the chunk's heat delta onto the item's SimTemperatureTransfer,
-    /// is made too. Every other item runs Sublimates.Sim200ms as before.
+    /// steps, at the same sub-ticks. For each item it keeps, from its last full update, what that
+    /// update read: its cell, its transform, its temperature source (the sim's element chunk), its
+    /// element's lowest temperature and the cell's mass limit. An item is skipped only when its
+    /// full update would change nothing: it is not sealed and has no tag changed since (watched
+    /// through its tag-change event), it is in the same cell (read from its transform), its
+    /// temperature in the sim's chunk is above the limit, its cell is still full, and it was left
+    /// blocked on pressure. The skipped update's one side effect, the temperature read copying the
+    /// chunk's heat delta onto the item's SimTemperatureTransfer, is made too. Every other item
+    /// runs Sublimates.Sim200ms as before.
     ///
-    /// With ONI_TWEAK_VERIFY=1 the items that would be skipped run their full update instead,
-    /// and any change it makes (state, sublimated mass, the item's mass) is logged.
+    /// With ONI_TWEAK_VERIFY=1 the items that would be skipped run their full update instead, and
+    /// any change it makes (state, sublimated mass, the item's mass) is logged.
     [GameMember(GameUse.Uses, "StateMachineUpdater/BaseUpdateBucket[] SimAndRenderScheduler/Entry::buckets")]
     [GameMember(GameUse.Uses, "System.Collections.Generic.Dictionary`2<System.String,SimAndRenderScheduler/Entry> SimAndRenderScheduler::bucketTable")]
     [GameMember(GameUse.Prefix, "System.Void Sublimates::OnCleanUp()")]

@@ -8,7 +8,7 @@ namespace OniMoono.GameTweaks
     /// the fraction carries over, so the updates spread evenly over frames (at 120 fps and 30 a
     /// second, one every fourth frame). Up to a second's worth of credit is carried over, so
     /// frames of uneven length still average the rate; as no frame gets more than `perFrame`, at
-    /// `rate / perFrame` frames a second or fewer the game's own count runs every frame.
+    /// `rate / perFrame` frames a second or fewer the game's count runs every frame.
     ///
     /// The rate has two floors in game time (issue #85), so a large group at a high game speed is
     /// not held to turns rarer than its brains need:
@@ -17,12 +17,12 @@ namespace OniMoono.GameTweaks
     ///   meal a turn, and stays hungry, and so never excretes, once its turns are rarer than a
     ///   meal lasts it: 18 game seconds for a Puft (1.5 kg a meal of 50 kg a cycle), 30 for a
     ///   Puft Prince and 45 for a Slickster;
-    /// - the game's own slowest rate, its count for every GameFrameSeconds of game time (a
+    /// - the game's slowest rate, its count for every GameFrameSeconds of game time (a
     ///   frame's game time is clamped to that): `perFrame × timeScale / GameFrameSeconds`.
     /// Plain .NET (no game types): the unit tests compile it in.
     public sealed class BrainRateAllowance
     {
-        /// The longest a brain waits for its turn, in game seconds, while the game's own count a
+        /// The longest a brain waits for its turn, in game seconds, while the game's count a
         /// frame allows it: under the 18 a Puft's meal lasts.
         public const double MaxTurnSeconds = 15;
         /// The most game time a frame advances (Game.SimEveryTick's clamp).
@@ -48,7 +48,7 @@ namespace OniMoono.GameTweaks
             return Math.Max(rate, Math.Max(turns, games));
         }
 
-        /// Brains this frame may update, 0 to `perFrame` (the game's own count, returned as it is
+        /// Brains this frame may update, 0 to `perFrame` (the game's count, returned as it is
         /// when not positive). `realDt`: the frame's real time in seconds. `brains`: the group's
         /// size; `timeScale`: the game's speed (0 while paused). The first frame gets `perFrame`.
         public int Take(double realDt, int perFrame, int brains = 0, double timeScale = 1)

@@ -8,51 +8,39 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-symbol-overrides`. An animation batch writes a controller's
-    /// symbol-override block (12 floats per symbol frame of its build) into its texture whenever
-    /// the block's version changed. The controller re-applies its overrides when they change, and
-    /// Duplicants (and the foreground layers of layered animations) on every dirty mark: their
-    /// SymbolOverrideController has applySymbolOverridesEveryFrame, because FaceGraph draws the
-    /// face (eyes, mouth, speech) into the block after the overrides on each application. Both
-    /// SymbolOverrideInfoGpuData.SetSymbolOverrideInfo overloads raise the version even when they
-    /// store the values already there.
+    /// Game tweak `fast-symbol-overrides`. An animation batch writes a controller's symbol-override
+    /// block (12 floats per symbol frame of its build) into its texture whenever the block's
+    /// version changed. Duplicants (and the foreground layers of layered animations) re-apply their
+    /// overrides on every dirty mark, because FaceGraph draws the face into the block after each
+    /// application. Both SymbolOverrideInfoGpuData.SetSymbolOverrideInfo overloads raise the
+    /// version even when they store the values already there.
     ///
-    /// 1. Unchanged values. A setter call that would store only the values already held is
-    ///    skipped: the block stays the same and its version is not raised. Exact by construction:
-    ///    a skipped call would have written each field's current value.
+    /// 1. Unchanged values. A setter call that would store only the values already held is skipped:
+    ///    the block stays the same and its version is not raised.
     ///
-    /// 2. Applications whose inputs did not change (Duplicants, about every frame each). The
-    ///    application (SymbolOverrideController.ApplyOverrides) resolves the override list by
-    ///    priority, looks up each source build's atlas and data and each target symbol, rebuilds
-    ///    the controller's atlas list, writes each resolved override's frames into the block,
-    ///    then calls FaceGraph.ApplyShape. What it writes depends only on: the override list
-    ///    (changed only through the controller's methods, each raising its version), the batch
-    ///    and its atlas list, the controller's batch group and its symbols, the block itself and
-    ///    the anim data loaded (KAnimBatchManager's instance). The tweak keeps, per controller,
-    ///    the calls the last application made (atlas adds and block writes, in order) with those
-    ///    inputs. When they are the same, it makes the same atlas calls, then rewrites only the
-    ///    block entries someone else wrote since (the setters are the block's only writers, and
-    ///    the tweak logs every entry they write outside an application), so the block ends as a
-    ///    full rewrite leaves it; then FaceGraph.ApplyShape runs as before. Any other input,
-    ///    a sort pending, more than OverrideBlockLog.MaxWritten such entries, or an exception
-    ///    in the lookups: the application is made in full, in the game's order (the lookups
-    ///    first, then its calls), or by the game's own code.
+    /// 2. Applications whose inputs did not change (Duplicants, about every frame each). What
+    ///    SymbolOverrideController.ApplyOverrides writes depends only on: the override list (each
+    ///    change raises its version), the batch and its atlas list, the controller's batch group
+    ///    and symbols, the block and the anim data loaded. The tweak keeps, per controller, the
+    ///    calls the last application made (atlas adds and block writes, in order) with those
+    ///    inputs. While they are the same it makes the same atlas calls and rewrites only the block
+    ///    entries a setter wrote since (it logs every entry written outside an application), so the
+    ///    block ends as a full rewrite leaves it; then FaceGraph.ApplyShape runs as in the game. On
+    ///    any other input, a pending sort, more than OverrideBlockLog.MaxWritten such entries or an
+    ///    exception in the lookups, the application runs in full.
     ///
-    /// 3. Applications that leave the block as they found it. The face is drawn over the
-    ///    entries the overrides just wrote, so each application changed the block twice and
-    ///    raised its version, and the batch uploaded the whole block every frame for every
-    ///    Duplicant. The tweak keeps the bytes of each entry an application writes (before its
-    ///    first write); when at the end every one holds its old bytes again, the version is put
-    ///    back to what it was before the application. Nothing reads the version in between (the
-    ///    batch's write check runs after the application), and the version had not been seen
-    ///    with any other bytes, so the batch's check gives the same answer for the same bytes.
+    /// 3. Applications that leave the block as they found it. The face is drawn over the entries
+    ///    the overrides just wrote, so each application raised the version and the batch uploaded
+    ///    the whole block every frame for every Duplicant. The tweak keeps the bytes of each entry
+    ///    an application writes; when every one holds its old bytes again at the end, the version
+    ///    is put back. Nothing reads the version in between (the batch's write check runs after the
+    ///    application), and the version was never seen with other bytes.
     ///
-    /// Parts 2 and 3 only for controllers with applySymbolOverridesEveryFrame, and only while no
-    /// other Harmony owner patches the methods the kept calls stand for. ONI_SYMBOL_PLANS=0 leaves
-    /// only part 1 (with ONI_TWEAK_TIMING, the applications are still timed and classified).
-    /// With ONI_TWEAK_VERIFY=1 each shortened application is checked against a full one: the
-    /// lookups are redone and must give the same calls, and every entry the calls write must hold
-    /// what they write.
+    /// Parts 2 and 3 only for controllers with applySymbolOverridesEveryFrame, and only until
+    /// another Harmony owner patches the methods the kept calls stand for. ONI_SYMBOL_PLANS=0
+    /// leaves only part 1. ONI_TWEAK_VERIFY=1 checks each shortened application against a full one:
+    /// the lookups are redone and must give the same calls, and every entry the calls write must
+    /// hold what they write.
     [GameMember(GameUse.Postfix, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)", Conditional = true)]
     [GameMember(GameUse.Postfix, "System.Void KAnimBatchManager::CreateInstance()")]
     [GameMember(GameUse.Postfix, "System.Void KAnimBatchManager::DestroyInstance()")]

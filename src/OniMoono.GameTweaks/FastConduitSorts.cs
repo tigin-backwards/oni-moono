@@ -93,7 +93,7 @@ namespace OniMoono.GameTweaks
             return true;
         }
 
-        /// Whether to replay: on, not stood down, and `compare` the game's own lambda of `flow`.
+        /// Whether to replay: on, not stood down, and `compare` the game's lambda of `flow`.
         static bool Replays(Delegate compare, Type flow)
         {
             if (off || Bypass) return false;

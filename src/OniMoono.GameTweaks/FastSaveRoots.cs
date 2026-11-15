@@ -16,7 +16,7 @@ namespace OniMoono.GameTweaks
     /// For a root that is alive, Object.Equals is reference equality, so the tweak finds the
     /// same index by comparing references and removes it with RemoveAt, as List.Remove does.
     /// Everything else runs as in the game, in the game's order: the onUnregister event (behind
-    /// the game's own check of onRegister), the list lookup (which makes a missing list), and
+    /// the game's check of onRegister), the list lookup (which makes a missing list), and
     /// for a destroyed root the game's List.Remove (whose Equals then matches the first
     /// destroyed root instead). With ONI_TWEAK_VERIFY=1 every index is checked against
     /// List.IndexOf and the counts logged every 4,096 removals.

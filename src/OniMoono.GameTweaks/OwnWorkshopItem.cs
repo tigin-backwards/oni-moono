@@ -43,7 +43,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// Null for Moono's item, as the game returns for an item it makes no mod of (its caller
-        /// subscribes nothing then); the game's own code for any other.
+        /// subscribes nothing then); the game's code for any other.
         static bool MakeMod(SteamUGCService.Mod subscribed, ref Mod __result)
         {
             if (subscribed == null) return true;

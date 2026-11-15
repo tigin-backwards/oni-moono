@@ -122,7 +122,7 @@ namespace OniMoono.GameTweaks
             }
             catch (Exception)
             {
-                // Not an event FMOD knows: the game's own path fails it as it would.
+                // Not an event FMOD knows: the game's path fails it as it would.
             }
             counted[guid] = path;
             return path;

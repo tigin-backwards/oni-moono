@@ -8,8 +8,8 @@ using OniMoono.Tweaks;
 namespace OniMoono.GameTweaks
 {
     /// Game tweak `shared-duplicates` (exact): identical copies the game makes of the same
-    /// immutable data become one object. On a late-game colony (cycle 17,000) about 0.3 GiB of
-    /// its 6.5 GiB heap was such copies (docs/research/heap-reduction-designs.md §4):
+    /// immutable data become one object. On a late-game colony (cycle 17,000) about 0.3 GB of
+    /// its 7.0 GB heap was such copies (docs/research/heap-reduction-designs.md §4):
     ///
     /// - Strings read while a save loads. The serializer reads every string with
     ///   FastReader.ReadKleiString, which decodes a new string each time: the colony's report
@@ -17,9 +17,9 @@ namespace OniMoono.GameTweaks
     ///   contexts (about 107,000 copies of each name). While SaveLoader.Load(string) runs, the
     ///   loading thread keeps a pool keyed by the string's UTF-8 bytes, and a read of bytes
     ///   already seen returns the string decoded from them the first time (the same decoder,
-    ///   the same bytes: the same characters). The pool keeps its own copy of the bytes and is
+    ///   the same bytes: the same characters). The pool keeps its copy of the bytes and is
     ///   dropped when the load ends, so it keeps nothing alive. Strings over 512 bytes, empty
-    ///   or null ones and reads that would fail are left to the game's own code.
+    ///   or null ones and reads that would fail are left to the game's code.
     /// - Reach tables. OffsetGroups.BuildReachabilityTable caches its table by the array of
     ///   placement offsets it is given, but Deconstructable, Demolishable and rotated
     ///   Constructables pass a new array for every building, so each building got its own
@@ -27,7 +27,7 @@ namespace OniMoono.GameTweaks
     ///   distinct content before the call, so buildings of the same footprint share the table
     ///   the game builds for it: the same rows in the same order, as the table depends only on
     ///   the offsets' values.
-    /// - Default work animations. Every Workable carries its own arrays {working_pre,
+    /// - Default work animations. Every Workable carries its arrays {working_pre,
     ///   working_loop} and {working_pst} (workAnims, workingPstComplete, workingPstFailed;
     ///   copied for every clone). When a Workable spawns, arrays holding exactly those
     ///   defaults are replaced with one shared copy each.
@@ -36,7 +36,7 @@ namespace OniMoono.GameTweaks
     /// mods; heap-reduction-designs.md §4.2): strings are immutable, and nothing locks on a
     /// string, keys an identity table with one, mutates one through unsafe code or compares
     /// two read strings by reference (the few mods that compare strings by reference use it as
-    /// a fast path before comparing values, or for their own payloads over 512 bytes); a
+    /// a fast path before comparing values, or for their payloads over 512 bytes); a
     /// Duplicant renamed after the load gets a new string, and its old report entries keep the
     /// old name, as before. No code writes into the reach tables, their rows or the default
     /// animation arrays: the game and mods only read them, or replace the whole array.
@@ -53,7 +53,7 @@ namespace OniMoono.GameTweaks
     {
         public const string Name = "shared-duplicates";
 
-        /// Longer strings are rarely repeated, and some mods keep their own state in one.
+        /// Longer strings are rarely repeated, and some mods keep their state in one.
         const int MaxPooledBytes = 512;
 
         public static void Install(Harmony harmony)
@@ -82,7 +82,7 @@ namespace OniMoono.GameTweaks
             pool = null;
             if (done != null)
                 global::Debug.Log($"{Name}: {done.Reads:N0} strings read while loading, {done.Count:N0} distinct; "
-                                  + $"{done.SavedBytes / (1024.0 * 1024.0):F1} MiB of copies not made");
+                                  + $"{done.SavedBytes / 1e6:F1} MB of copies not made");
             return __exception;
         }
 

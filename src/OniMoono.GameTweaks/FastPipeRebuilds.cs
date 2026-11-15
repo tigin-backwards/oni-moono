@@ -12,46 +12,42 @@ namespace OniMoono.GameTweaks
     /// networks, ConduitFlow.OnUtilityNetworksRebuilt triggers ConduitFlowRebuilt (2038377759) on
     /// Game with the rebuilt ConduitType. Since U60 every pipe segment subscribes to it on Game
     /// twice: Conduit (OnSpawn) for the "requires building intake" status item, and, on the pipes
-    /// that have one, ConduitFlowKAnimVisualizer (OnSpawn) for the Pipe Flow overlay's arrows.
-    /// So each rebuild calls every gas and liquid pipe's handlers. Conduit's ignores the type and
-    /// runs RefreshInvalidNetworkStatusItem: its own network (gas or liquid) looked up, then
-    /// LiquidPipeNetworkNoSink or GasPipeNetworkNoSink added (a network without sinks) or both
-    /// removed. The visualizer's updates its directions only while the player looks at the Pipe
-    /// Flow overlay of the rebuilt type.
+    /// that have one, ConduitFlowKAnimVisualizer (OnSpawn) for the Pipe Flow overlay's arrows. So
+    /// each rebuild calls every gas and liquid pipe's handlers. Conduit's ignores the type and runs
+    /// RefreshInvalidNetworkStatusItem: its network looked up, then LiquidPipeNetworkNoSink or
+    /// GasPipeNetworkNoSink added (a network without sinks) or both removed.
     ///
     /// The tweak gives those subscriptions to one subscriber on Game: each OnSpawn's Subscribe of
-    /// its own handler becomes a registration here (returning -1, so OnCleanUp skips its
-    /// Unsubscribe; a prefix on OnCleanUp unregisters instead). On each trigger it runs the
-    /// game's RefreshInvalidNetworkStatusItem for:
+    /// its handler becomes a registration here (returning -1, so OnCleanUp skips its Unsubscribe; a
+    /// prefix on OnCleanUp unregisters instead). On each trigger it runs the game's
+    /// RefreshInvalidNetworkStatusItem for:
     /// - every conduit whose network manager is the rebuilt one;
     /// - every conduit of the other manager while that manager is dirty;
     /// - every conduit not refreshed since it spawned.
-    /// A conduit of the other manager that it skips would come out unchanged in the original:
-    /// the refresh reads only its manager's state (its network list, its grid's network index
-    /// at the cell, the networks' sinks), which changes only in that manager's Update (a rebuild,
-    /// after which every conduit of it was refreshed) and in RemoveFromNetworks, which marks the
-    /// manager dirty first; a refresh it already made against the same state adds and removes
-    /// nothing (AddStatusItem of an item present and RemoveStatusItem of one absent do nothing).
+    ///
+    /// Why a skipped conduit is unchanged in the game too: the refresh reads only its manager's
+    /// state (its network list, its grid's network index at the cell, the networks' sinks). That
+    /// state changes only in the manager's Update (a rebuild, after which every conduit of it was
+    /// refreshed) and in RemoveFromNetworks, which marks the manager dirty first. A refresh against
+    /// the same state adds and removes nothing.
+    ///
     /// Visualizers: UpdateDirections only on those whose conduit has the rebuilt type, only while
     /// the player looks at that type's Pipe Flow overlay, as their handler does. Each object's
-    /// status items and anim parameters go through the game's own code, so they come out as the
-    /// original's after every trigger; the order between objects changes, and nothing reads one
-    /// object's from another's handler.
+    /// status items and anim parameters go through the game's code; the order between objects
+    /// changes, and nothing reads one object's from another's handler.
     ///
-    /// Left to the game's own subscriptions: a Conduit or visualizer whose handler is another
-    /// method (a subclass's override). Once another Harmony owner patches a handler,
+    /// Left to the game's subscriptions: a Conduit or visualizer whose handler is another method (a
+    /// subclass's override). Once another Harmony owner patches a handler,
     /// RefreshInvalidNetworkStatusItem, ConduitFlow.OnUtilityNetworksRebuilt or the network
     /// managers' Update or RemoveFromNetworks (checked at each colony's first trigger, then every
-    /// 64), every registered handler is called on every trigger for the rest of the session, as
-    /// the game's subscriptions would. A trigger whose data
-    /// is not a gas or liquid ConduitType (a mod's) refreshes every conduit and calls every
-    /// visualizer's handler.
+    /// 64), every registered handler is called on every trigger for the rest of the session. A
+    /// trigger whose data is not a gas or liquid ConduitType (a mod's) refreshes every conduit and
+    /// calls every visualizer's handler.
     ///
-    /// ONI_VERIFY_PIPE_NETWORK_STATUS=1 (or ONI_TWEAK_VERIFY=1): after each trigger, every
-    /// registered conduit is checked against the original's refresh run as a shadow (would it
-    /// add or remove an item now?), every skipped visualizer against its handler's condition,
-    /// and every 64th trigger the registrations against the colony's spawned conduits;
-    /// mismatches are logged, with a summary every 200 triggers.
+    /// ONI_VERIFY_PIPE_NETWORK_STATUS=1 (or ONI_TWEAK_VERIFY=1): after each trigger every
+    /// registered conduit is checked against the game's refresh run as a shadow, every skipped
+    /// visualizer against its handler's condition, and every 64th trigger the registrations against
+    /// the colony's spawned conduits. Mismatches are logged, with a summary every 200 triggers.
     [GameMember(GameUse.Transpiler, "System.Void Conduit::OnSpawn()", "cebec800f1b22dc4 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761654 win-762107 win-762230 win-763023", Rewrites = 1)]
     [GameMember(GameUse.Prefix, "System.Void Conduit::OnCleanUp()")]
     [GameMember(GameUse.Mirrors, "System.Void Conduit::OnConduitFlowRebuilt(System.Object)", "d039a0aa9bb0a24e linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761654 win-762107 win-762230 win-763023")]

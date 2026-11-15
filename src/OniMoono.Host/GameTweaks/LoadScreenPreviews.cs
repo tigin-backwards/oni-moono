@@ -99,7 +99,7 @@ namespace OniMoono.Host.GameTweaks
             return false;
         }
 
-        /// ONI_TWEAK_VERIFY: the game's own LoadPreviewTexture of the same bytes reads back the
+        /// ONI_TWEAK_VERIFY: the game's LoadPreviewTexture of the same bytes reads back the
         /// same texels.
         static void Check(byte[] bytes, Downscaled d)
         {
