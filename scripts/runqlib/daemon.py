@@ -58,7 +58,7 @@ class Worker(threading.Thread):
         self.d = daemon
         self.lock = threading.Lock()
         self.want_windows = threading.Event()
-        self.games, self.games_at, self.user_in_oni = [], 0.0, False
+        self.games, self.games_at = [], 0.0
         self.ext_cpu, self.win_temp = 0.0, None
         self.cgroups = []  # the cgroup folders of the runq jobs' units and players' scopes, set by the loop
         self.boost_matches = []  # (job id, ('match', text) or ('pid', pid, created), priority), set by the loop
@@ -140,9 +140,8 @@ class Worker(threading.Thread):
                     self.want_windows.clear()
                     last_win = now
                     games = w.games()
-                    in_oni = w.user_in_oni()
                     with self.lock:
-                        self.games, self.games_at, self.user_in_oni = games, time.time(), in_oni
+                        self.games, self.games_at = games, time.time()
                         boosts = list(self.boost_matches)
                     for job_id, target, priority in boosts:
                         for g in games:
@@ -186,6 +185,7 @@ class Daemon:
         self.external, self.lanes_free = sched.External(), ()
         self.retention_at = 0.0
         self.windows_relevant = False
+        self.user_in_oni = False  # a game of the user's runs (winenv.user_playing), as of the last pass
         self.windows_running = False
         self.wake_r, self.wake_w = os.pipe()
         os.set_blocking(self.wake_r, False)
@@ -1247,7 +1247,7 @@ class Daemon:
                 'players_cap': c['players'],
                 'ext_cpu': self.worker.ext_cpu,
                 'interop': self.worker.interop,
-                'user_in_oni': getattr(self, 'user_in_oni', False),
+                'user_in_oni': self.user_in_oni,
             },
             'running': running,
             'queued': queued,
