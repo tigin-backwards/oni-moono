@@ -22,7 +22,8 @@
 OPTIONS
   --owner NAME      who asks (default $RUNQ_OWNER, else the worktree's folder name)
   --level LEVEL     issue, release, user, study, burndown (default $RUNQ_LEVEL, else study)
-  --kind KIND       light, generic, build, check, linux-player, e2e, windows, win-perf, linux-perf, qa
+  --kind KIND       light, generic, build, check, linux-player, e2e, windows, win-perf, linux-perf,
+                    perf, qa
   --needs R=N,...   resources beyond the kind's: lane, mem (GB), cpu, players, windows, perf, quiet
   --timeout DUR     hard limit (90s, 45m, 2h; default the kind's; at most 6 h)
   --expect DUR      expected duration, for the slot-hours cap

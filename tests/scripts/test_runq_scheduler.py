@@ -115,6 +115,18 @@ class Resources(unittest.TestCase):
         p = sched.plan(state([job('c', kind='check')], running=[run('perf', 'b', kind='linux-perf')]))
         self.assertEqual(granted(p), [])
 
+    def test_perf_without_a_player(self):
+        # The perf slot and a quiet machine, alone as any perf job, with no player and no lane.
+        needs = config.kind_needs(CFG, 'perf')
+        self.assertEqual((needs.get('perf'), needs.get('quiet'), needs.get('players', 0), needs.get('lane', 0)), (1, True, 0, 0))
+        self.assertEqual(granted(sched.plan(state([job('p', kind='perf')]))), ['p'])
+        p = sched.plan(state([job('p', kind='perf')], [run('e', owner='b', kind='e2e', lanes=(1,))]))
+        self.assertEqual((granted(p), p.drain), ([], True))
+        p = sched.plan(state([job('p', kind='perf')], ext_cpu=5.0))
+        self.assertEqual((granted(p), 'quiet is under' in p.reasons['p']), ([], True))
+        p = sched.plan(state([job('c', owner='b', kind='check'), job('l', owner='c', kind='light', order=1)], [run('p', kind='perf')]))
+        self.assertEqual(granted(p), ['l'])
+
     def test_light_jobs_run_beside_perf(self):
         p = sched.plan(state([job('git', kind='light')], running=[run('perf', 'b', kind='win-perf')]))
         self.assertEqual(granted(p), ['git'])
