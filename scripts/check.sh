@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# The project's verification gate (ARCHITECTURE §9): build everything, unit tests, API
-# conformance summary, and the host's type-load / runtime-services check against the game, with
+# The project's verification gate (ARCHITECTURE §9): build everything, the linters, the unit and
+# script tests, the macOS publishes and their shader and native checks, the API conformance
+# summary, and the host's checks against the game (types on the debug and release builds, the
+# game tweaks, assets, binding, natives, the Windows host's PE file, native crash records), with
 # this project's UI packages.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
@@ -99,7 +101,10 @@ else
     echo "macOS data not found: its shader and native checks skipped (set ONI_MAC_APP)"
 fi
 "$root/scripts/build-engine.sh" >/dev/null
+# ApiCheck's counts are a summary here: it exits 1 while any member is missing (13 are known),
+# and scripts/qa.sh's unit stage gates the count. A run that printed no count has crashed.
 "$root/scripts/apicheck.sh" > "$root/out/apicheck-summary.txt" || true; head -2 "$root/out/apicheck-summary.txt"
+grep -qE 'missing members: [0-9]+' "$root/out/apicheck-summary.txt" || { failed+=(apicheck); echo "apicheck printed no counts: out/apicheck-summary.txt"; }
 # compact-nav-links' check applies the four reviewed transpilers of the methods that touch nav
 # links when their mods are at hand (the Workshop copies, ONI_WS, and Fast Track's local build).
 if [ -z "${ONI_NAVLINKS_MODS:-}" ]; then
