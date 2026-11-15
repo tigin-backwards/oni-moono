@@ -70,14 +70,18 @@ class PerfSpreadTests(unittest.TestCase):
         self.assertAlmostEqual(main['ratio_of_medians'], 19.51 / 18.51, places=4)
         self.assertEqual(main['pair_ratio_sd_pct'], 0.0)
 
-    def summarise(self, launches):
+    def summarise(self, launches, statuses=None):
+        """STATUSES: {launch index: its status when not 'ok'} ('no windows': it measured none)."""
+        statuses = statuses or {}
         runs = []
         for i, (label, ms, draws) in enumerate(launches):
             d = os.path.join(self.dir, str(i))
             os.makedirs(d)
             launch_log(os.path.join(d, 'Player.log'), ms, draws=draws)
             r = ps.parse(os.path.join(d, 'Player.log'), 2)
-            r.update(label=label, status='ok', seconds=1, to_colony_s=1)
+            r.update(label=label, status=statuses.get(i, 'ok'), seconds=1, to_colony_s=1)
+            if statuses.get(i) == 'no windows':
+                r['windows'] = []
             with open(os.path.join(d, 'result.json'), 'w') as f:
                 json.dump(r, f)
             runs.append(d)
@@ -116,6 +120,30 @@ class PerfSpreadTests(unittest.TestCase):
         self.assertIn('| ❌ | Draws a frame, paused | 75 | 76 | no more than A | Hard gate |', report)
         # The main thread's time only warns.
         self.assertIn('| ⚠️ | Main-thread ms a frame, running (B/A) |', report)
+
+    def test_gate_fails_when_a_launch_of_b_did_not_finish(self):
+        same = [('A', 10.0, 75), ('B', 10.0, 75), ('A', 10.0, 75), ('B', 10.0, 75)]
+        summary = self.summarise(same, {3: 'exited 134'})
+        status, text = self.gate(summary)
+        self.assertEqual(status, 1, text)
+        self.assertIn('| ❌ | This commit (B): every launch finished | – | – | 1 of 2 did not finish (exited 134) | Hard gate |', self.report(summary))
+
+    def test_gate_notes_a_launch_of_a_that_did_not_finish(self):
+        same = [('A', 10.0, 75), ('B', 10.0, 75), ('A', 10.0, 75), ('B', 10.0, 75)]
+        summary = self.summarise(same, {0: 'timed out'})
+        self.assertEqual(self.gate(summary)[0], 0)
+        self.assertIn('| ℹ️ | The release (A): every launch finished | – | – | 1 of 2 did not finish (timed out) | Hard gate |', self.report(summary))
+
+    def test_gate_without_a_release_judges_only_bs_launches(self):
+        same = [('A', 10.0, 75), ('B', 10.0, 75), ('A', 10.0, 75), ('B', 10.0, 75)]
+        no_a = {0: 'no windows', 2: 'no windows'}
+        summary = self.summarise(same, no_a)
+        self.assertEqual(self.gate(summary)[0], 0)  # as documented: a release that cannot run here
+        self.assertIn('nothing to compare', self.report(summary))
+        shutil.rmtree(os.path.join(self.dir, 'sum'))
+        for i in range(4):
+            shutil.rmtree(os.path.join(self.dir, str(i)))
+        self.assertEqual(self.gate(self.summarise(same, {**no_a, 3: 'exited 134'}))[0], 1)
 
     def test_frame_percentiles(self):
         """The median and p99 frame and the 1% low, over a launch's measured running windows:
