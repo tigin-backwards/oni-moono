@@ -340,6 +340,78 @@ class Warnings(unittest.TestCase):
         self.assertEqual(self.h.show(job)['warnings'], [])
 
 
+class InProcess(unittest.TestCase):
+    """The daemon's bookkeeping on a Daemon object in this process: no socket, no systemd (a
+    job's unit is a name only), a store in a temporary folder."""
+
+    def setUp(self):
+        from unittest import mock
+
+        from runqlib import daemon, sched
+
+        self.sched = sched
+        self.tmp = tempfile.mkdtemp(prefix='rqi')
+        env = {
+            'RUNQ_STATE_DIR': os.path.join(self.tmp, 'state'),
+            'RUNQ_RUNS_DIR': os.path.join(self.tmp, 'runs'),
+            'E2E_LOCK_DIR': os.path.join(self.tmp, 'locks'),
+            'RUNQ_SOCKET': os.path.join(self.tmp, 's'),
+        }
+        self.environ = mock.patch.dict(os.environ, env)
+        self.environ.start()
+        self.quiet = mock.patch.object(daemon, 'log', lambda *parts: None)
+        self.quiet.start()
+        self.d = daemon.Daemon(windows=None)
+        self.d.start_unit = lambda job, attempt: self.d.unit_name(job['id'], attempt)
+        self.d.stop_unit = lambda unit: None
+        self.d.unit_cgroup = lambda unit: os.path.join(self.tmp, 'cgroup', unit)
+
+    def tearDown(self):
+        self.d.store.close()
+        for fd in (self.d.wake_r, self.d.wake_w):
+            os.close(fd)
+        self.quiet.stop()
+        self.environ.stop()
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def queue(self, job_id='j0000001', kind='linux-perf', **fields):
+        from runqlib import config, shim
+
+        folder = os.path.join(self.d.runs_dir, job_id)
+        os.makedirs(folder)
+        job = dict(
+            id=job_id, owner='o', level='study', label='l', kind=kind, needs=config.kind_needs(self.d.cfg, kind), timeout=3600.0,
+            cwd='/', argv=['true'], dir=folder, after=[], submit=time.time(), ord=time.time(), state='queued',
+        )  # fmt: skip
+        job.update(fields)
+        shim.write_json(os.path.join(folder, 'job.json'), dict(job, caller_env={}))
+        self.d.store.insert(job)
+        return job_id
+
+    def start(self, job_id):
+        self.d.grant(self.d.store.get(job_id), self.sched.Grant(job_id, ()))
+        return self.d.store.get(job_id)
+
+    def test_a_requeued_job_drops_its_first_attempts_cgroup(self):
+        from runqlib import shim
+
+        job_id = self.queue()
+        job = self.start(job_id)
+        self.d.check_idle(time.monotonic())
+        first = self.d.store.get(job_id)['cgroup']
+        self.assertTrue(first.endswith(job['unit']))
+        # The shim lost the race for a legacy lock: the job is queued again, then starts again.
+        shim.write_json(os.path.join(job['dir'], 'result.json'), {'lost_race': 'perf.lock', 'attempt': job['attempt']})
+        self.d.finish(self.d.store.get(job_id))
+        self.assertEqual(self.d.store.get(job_id)['state'], 'queued')
+        job = self.start(job_id)
+        self.assertEqual((job['attempt'], job['cgroup']), (2, None))
+        self.d.check_idle(time.monotonic())
+        second = self.d.store.get(job_id)['cgroup']
+        self.assertTrue(second.endswith(job['unit']))
+        self.assertNotEqual(first, second)
+
+
 @unittest.skipUnless(systemd_ok(), 'needs a systemd user manager')
 class Restarts(unittest.TestCase):
     """A daemon of their own: they kill it."""
