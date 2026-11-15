@@ -296,3 +296,19 @@ An earlier local branch did this by checking every critter each 2 game seconds, 
 and backstops on top; the check alone cost 1.7–3.3 ms a real second, and capping critter turns
 saves nothing worth having (the section above), so only the reordering was kept.
 
+## `brain-rate` caps Duplicants only (2026-11-15, issue #85)
+
+- `brain-rate` no longer touches the critter group: critters get the game's 5 turns a frame.
+- The critter cap caused #85: 150 turns a second gave 2,400 critters a turn every 48 game
+  seconds at any frame rate, and gas-eaters stopped excreting.
+- At 40 fps it saved almost nothing: critter turns are about 2% of the main thread with or
+  without it (the cost section above), and most of the tweak's gain is the Duplicant cap.
+- At higher frame rates the uncapped turns cost more, as the game gives 5 a frame: 740 a second
+  at 148 fps against the cap's 214. One Windows pair on the late-game colony at speed 3
+  (unfocused, 20,000 frames each): 148 fps with the cap (600-frame windows 127–158), 135 without
+  it (86–142). The same capped build measured 132 in an earlier launch, so one pair shows a
+  direction at most.
+- The Duplicant cap is unchanged: 30 a second, with its 15-second and game-rate floors.
+- `critter-needs-first` stays off by default, for colonies where the game's own count is too
+  few.
+
