@@ -151,3 +151,36 @@ and the rest of the frame got its core back.
 - With few cores it does change the frame time: on 2 cores the probe thread's work (about 37% of
   the frame on U57) competes with the main thread's job threads, and the smaller area made U57's
   frame 21% shorter.
+
+## How rarely a brain may get its turn (issue #85)
+
+A critter that inhales its food gets one meal a brain turn: eating waits 5 s after a meal, and
+the next turn starts the next meal. Eating ranks above excreting, and excreting waits 10 s after a
+meal, so a hungry critter never excretes. It stays hungry once its turns are rarer than a meal
+lasts it: 3 s of inhaling at 0.5 kg/s is 1.5 kg, which a Slickster (20 kg a cycle) burns in 45
+game seconds, a Puft Prince (30 kg) in 30 and a Puft (50 kg) in 18. Its stomach then fills for as
+long as that lasts and empties at once after the next load, when excreting is the first chore
+ready. Critters that eat solids take a whole stomach's worth a meal and are not affected.
+
+The game gives 5 critter turns a frame, and a frame advances at most 0.2 game seconds, so a turn
+comes every `brains × game seconds a frame / 5`: at speed 3, `0.6 × brains / fps` above 15 fps
+and `brains / 25` below. Measured on Linux at speed 3 with 1,070 critter brains: the original at
+4.1 fps a turn every 42.8 game seconds (median), ours at 39 fps every 15.3, ours with
+`brain-rate` (150 a second of real time) every 21.5. With 2,400 brains at 40 fps: 36.3 without
+`brain-rate` and 48.3 with it, where 8 Slicksters in carbon dioxide ate 66 times in 600 game
+seconds and never excreted.
+
+The original does the same when its frames are slow: with those 2,400 brains at 5.6 fps a turn
+came every 96 game seconds, and the 8 Slicksters ate 32 times in 470 game seconds and never
+excreted; with 619 brains a turn came every 24.6 and they excreted 64 times.
+
+`brain-rate` therefore has two floors in game time (`BrainRateAllowance`): each group's rate is at
+least `brains × speed / 15` a second, a turn within 15 game seconds, under the Puft's 18; and at
+least the game's own slowest rate, its count every 0.2 game seconds. Neither gives a frame more
+than the game's count. At speed 3 the cap is above 150 a second from 750 critters up, and the
+tweak saves nothing at `critters / 25` frames a second or fewer (43 fps with 1,070 critters, 96
+with 2,400). At speeds 1 and 2 a colony of 1,070 critters keeps 150 a second.
+
+With the floors, the 2,400 brains at 40 fps get the game's own 5 a frame, a turn every 36.2 game
+seconds, and the 8 Slicksters excreted 19 times in 600 game seconds. The 1,070-brain colony at 42
+fps and speed 3 runs as without the tweak (200 updates a second, a turn every 15.2).
