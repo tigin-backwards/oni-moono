@@ -47,6 +47,19 @@ namespace OniMoono.GameTweaks
             return null;
         }
 
+        /// Whether `method` has a prefix or postfix of `hooks`' now. Hooks several tweaks share
+        /// (MainThread, PartitionerFreed, CritterNeedsFirst) are patched under the Harmony ID of
+        /// the first tweak that installs them, and go with it if its install is taken back: the
+        /// next tweak asks this and installs them again.
+        public static bool Hooked(MethodBase method, System.Type hooks)
+        {
+            var info = Harmony.GetPatchInfo(method);
+            if (info == null) return false;
+            foreach (var p in info.Prefixes) if (p.PatchMethod.DeclaringType == hooks) return true;
+            foreach (var p in info.Postfixes) if (p.PatchMethod.DeclaringType == hooks) return true;
+            return false;
+        }
+
         static string First(IReadOnlyList<Patch> patches, PatchKind kind, ProbeRepairPolicy.GuardedKinds kinds)
         {
             if (!ProbeRepairPolicy.Counts(kinds, kind)) return null;

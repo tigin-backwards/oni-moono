@@ -42,18 +42,4 @@ namespace OniMoono.GameTweaks
             return ready;
         }
     }
-
-    /// True the first time it is asked, false after: an install two tweaks share runs once
-    /// (CritterNeedsFirst's hooks, which `brain-rate` installs too).
-    public sealed class Once
-    {
-        bool done;
-
-        public bool First()
-        {
-            if (done) return false;
-            done = true;
-            return true;
-        }
-    }
 }

@@ -9,15 +9,15 @@ namespace OniMoono.GameTweaks
     public static class MainThread
     {
         static int id = -1;
-        static bool installed;
 
         public static bool Is => Environment.CurrentManagedThreadId == id;
 
         public static void Install(Harmony harmony)
         {
-            if (installed) return;
-            installed = true;
-            harmony.Patch(AccessTools.Method(typeof(Game), "OnPrefabInit"), postfix: new HarmonyMethod(typeof(MainThread), nameof(Started)));
+            var started = AccessTools.Method(typeof(Game), "OnPrefabInit");
+            // Under the first caller's Harmony ID; again if that tweak's install was taken back.
+            if (ForeignPatches.Hooked(started, typeof(MainThread))) return;
+            harmony.Patch(started, postfix: new HarmonyMethod(typeof(MainThread), nameof(Started)));
         }
 
         static void Started() => id = Environment.CurrentManagedThreadId;

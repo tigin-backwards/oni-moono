@@ -17,8 +17,6 @@ namespace OniMoono.GameTweaks
     /// dirty node's freed handles are among those recorded here for it.
     internal static class PartitionerFreed
     {
-        static bool installed;
-
         /// The partitioner the records are for (each colony load makes a new one): the records
         /// are complete for it alone, from its first removal on.
         public static ScenePartitioner Owner { get; private set; }
@@ -31,9 +29,10 @@ namespace OniMoono.GameTweaks
 
         public static void Install(Harmony harmony)
         {
-            if (installed) return;
-            installed = true;
-            harmony.Patch(AccessTools.Method(typeof(ScenePartitioner), nameof(ScenePartitioner.Remove)), prefix: new HarmonyMethod(typeof(PartitionerFreed), nameof(Removing)) { priority = Priority.First });
+            var remove = AccessTools.Method(typeof(ScenePartitioner), nameof(ScenePartitioner.Remove));
+            // Under the first caller's Harmony ID; again if that tweak's install was taken back.
+            if (ForeignPatches.Hooked(remove, typeof(PartitionerFreed))) return;
+            harmony.Patch(remove, prefix: new HarmonyMethod(typeof(PartitionerFreed), nameof(Removing)) { priority = Priority.First });
             harmony.Patch(AccessTools.Method(typeof(ScenePartitioner), nameof(ScenePartitioner.Sim1000ms)), postfix: new HarmonyMethod(typeof(PartitionerFreed), nameof(Scanned)) { priority = Priority.Last });
         }
 
