@@ -1027,7 +1027,7 @@ msgstr ""
 
 #. Tooltip: how it works (brain-rate)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
-msgid "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps."
+msgid "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. With many critters or Duplicants the cap rises with the game speed, so each still gets an update within 15 seconds of game time. Saves time only above 30 fps."
 msgstr ""
 
 #. Section heading (shown in capitals)

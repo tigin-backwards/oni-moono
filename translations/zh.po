@@ -599,8 +599,8 @@ msgid "Critters and dupes would otherwise update on every frame. This trims that
 msgstr "小动物和复制人原本每帧都会更新。此项在 30 fps 以上削减这部分簿记开销。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
-msgid "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. Saves time only above 30 fps."
-msgstr "游戏每渲染帧更新 1 个复制人和 5 个小动物的脑；此项将其限制为每秒 30 和 150 次，并分摊到各帧。刚完成任务或受到威胁的个体仍会立即获得下一次更新。仅在 30 fps 以上节省时间。"
+msgid "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update. With many critters or Duplicants the cap rises with the game speed, so each still gets an update within 15 seconds of game time. Saves time only above 30 fps."
+msgstr "游戏每渲染帧更新 1 个复制人和 5 个小动物的脑；此项将其限制为每秒 30 和 150 次，并分摊到各帧。刚完成任务或受到威胁的个体仍会立即获得下一次更新。小动物或复制人很多时，上限会随游戏速度提高，使每个个体仍能在 15 秒游戏时间内获得一次更新。仅在 30 fps 以上节省时间。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.RENDERER.TITLE"
 msgid "Renderer"

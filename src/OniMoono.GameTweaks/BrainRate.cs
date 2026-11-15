@@ -28,6 +28,13 @@ namespace OniMoono.GameTweaks
     /// (idle Duplicants, threatened critters) are still served first. A group of a mod's is left
     /// as it is.
     ///
+    /// The rate rises with the group's size and the game's speed (BrainRateAllowance's floors,
+    /// issue #85): every brain gets a turn within 15 game seconds while the game's own count a
+    /// frame allows it. At speed 3 that is more than 150 a second from 750 critters up, and the
+    /// game's own count from `critters / 25` frames a second down. Without it, 2,400 critters at
+    /// speed 3 got a turn every 48 game seconds whatever the frame rate, Slicksters stayed hungry
+    /// and none excreted (a hungry critter eats before it excretes).
+    ///
     /// What changes: above 30 fps a Duplicant re-evaluates its errands, and a critter its
     /// behaviours, less often per real second than without the tweak, as often as the game would
     /// at 30 fps (and still more often per game second than the original at U57's 11 fps).
@@ -36,6 +43,7 @@ namespace OniMoono.GameTweaks
     /// 2.7–2.8 → 2.2–2.45 ms; 2minnow at 42–45 fps, 6.0 → 4.1–4.3 and 1.82 → 1.35–1.45 ms;
     /// Gluttony at 14 fps unchanged. The gain grows with the frame rate (at 79 fps, 2.3 a frame).
     [GameMember(GameUse.Uses, "System.Int32 BrainScheduler/BrainGroup::InitialProbeCount()")]
+    [GameMember(GameUse.Uses, "System.Int32 BrainScheduler/BrainGroup::get_BrainCount()")]
     [GameMember(GameUse.Postfix, "System.Int32 BrainScheduler/CreatureBrainGroup::InitialProbeCount()")]
     [GameMember(GameUse.Postfix, "System.Int32 BrainScheduler/DupeBrainGroup::InitialProbeCount()")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void BrainScheduler::RenderEveryTick(System.Single)", "6014ab20d776bb7b linux-744825 win-744825", "0eafd0e3e60c8f62 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
@@ -79,7 +87,7 @@ namespace OniMoono.GameTweaks
                 {
                     if (!allowances.TryGetValue(group, out var allowance))
                         allowances[group] = allowance = new BrainRateAllowance(type == dupeGroup ? DuplicantRate : CritterRate);
-                    allowed = allowance.Take(real, probeCount(group));
+                    allowed = allowance.Take(real, probeCount(group), group.BrainCount, Time.timeScale);
                     if (allowed == 0) continue;
                 }
                 current = allowed;
