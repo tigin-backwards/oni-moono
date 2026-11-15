@@ -426,7 +426,19 @@ namespace OniMoono.Engine
             Hierarchy.Touch(bn.GameObject.Transform);
             if (bn.Script != null) BehaviourManager.Unregister(bn);
             c.EngineOnDisable();
-            if (bn.Script?.OnDisable != null) Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
+            if (bn.Script?.OnDisable != null)
+            {
+                if (!QuitStats.On) Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
+                else
+                {
+                    long start = QuitStats.Now;
+                    Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
+                    long took = QuitStats.Now - start;
+                    QuitStats.DisableTicks += took;
+                    QuitStats.Disables++;
+                    QuitStats.Script(c.GetType(), "OnDisable", took);
+                }
+            }
         }
 
         /// Coroutines stop when their GameObject is deactivated (not when the behaviour is disabled).
@@ -642,9 +654,12 @@ namespace OniMoono.Engine
                     }
                 foreach (var child in go.Transform.Children) Callbacks(child.GameObject);
                 released.Add(go.Managed);
+                if (QuitStats.On) QuitStats.GameObjects++;
             }
             Callbacks(root);
+            long releasing = QuitStats.On ? QuitStats.Now : 0;
             foreach (var o in released) o.Unbind();
+            if (QuitStats.On) QuitStats.ReleaseTicks += QuitStats.Now - releasing;
             ScratchList<Object>.Return(released);
         }
 
@@ -658,10 +673,29 @@ namespace OniMoono.Engine
                 {
                     if (bn.Coroutines is { Count: > 0 }) Coroutines.StopAll(mb, bn);
                     BehaviourManager.CancelStart(bn);
-                    if (bn.AwakeCalled && bn.Script?.OnDestroy != null) Invoke(bn.Script.OnDestroy, mb);
+                    if (bn.AwakeCalled && bn.Script?.OnDestroy != null)
+                    {
+                        if (!QuitStats.On) Invoke(bn.Script.OnDestroy, mb);
+                        else
+                        {
+                            long start = QuitStats.Now;
+                            Invoke(bn.Script.OnDestroy, mb);
+                            long took = QuitStats.Now - start;
+                            QuitStats.DestroyTicks += took;
+                            QuitStats.Destroys++;
+                            QuitStats.Script(c.GetType(), "OnDestroy", took);
+                        }
+                    }
                 }
             }
-            c.EngineOnDestroy();
+            if (!QuitStats.On) c.EngineOnDestroy();
+            else
+            {
+                long start = QuitStats.Now;
+                c.EngineOnDestroy();
+                QuitStats.EngineTicks += QuitStats.Now - start;
+                QuitStats.Components++;
+            }
             if (detach)
             {
                 var go = native.GameObject;

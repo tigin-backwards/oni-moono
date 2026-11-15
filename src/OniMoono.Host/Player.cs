@@ -100,27 +100,49 @@ namespace OniMoono.Host
                 Throttle(clock, now, platform != null, frame <= options.MaxFrameRateFrames ? options.MaxFrameRate : 0);
             }
 
-            // Unity's quit: OnApplicationQuit, then every object is destroyed, then the process
-            // ends (threads the game started do not keep it alive).
+            // Unity's quit: OnApplicationQuit, then every object is destroyed (OnDisable,
+            // OnDestroy), then the process ends (threads the game started do not keep it alive).
+            // Ours runs the same callbacks in the same order. The window leaves the screen as
+            // soon as OnApplicationQuit has run and the saves in flight are written, so nothing
+            // stays on screen unresponsive while the objects are destroyed. The device stops
+            // there too: nothing is drawn any more, and destroying an object releases no GPU
+            // object. GPU objects, contexts, swap chains and windows are not released one by
+            // one: the process ends without exit handlers (ProcessExit), and the system takes
+            // them back.
             if (options.BuiltinReport != null)
                 File.WriteAllLines(options.BuiltinReport, OniMoono.Engine.Assets.ObjectLoader.BuiltinLoads()
                     .Select(b => $"{b.File}\t{b.PathId}\t{b.ClassId}\t{b.Type}\t{b.Name}"));
             var quitClock = Stopwatch.StartNew();
+            QuitStats.Start();
             PlayerLoop.SendApplicationQuit();
-            double quitEvents = quitClock.Elapsed.TotalMilliseconds;
-            SceneLoader.UnloadAll();
-            Lifecycle.ProcessDestroyQueue();
-            double unload = quitClock.Elapsed.TotalMilliseconds;
-            // The graphics device and window go before the process exits, as in Unity's player
-            // (a GL context left current into process exit can hang driver exit handlers).
+            QuitStats.Mark("OnApplicationQuit");
+            // The window answers the system while a save is written (PumpEvents).
+            GameTweaks.GameTweaks.FinishSaves(platform == null ? null : () =>
+            {
+                try { platform.PumpEvents(); }
+                catch (Exception) { }
+            });
+            QuitStats.Mark("saves");
             if (platform != null)
             {
+                platform.HideForQuit();
+                QuitStats.Mark("hiding the window");
+                double hidden = quitClock.Elapsed.TotalMilliseconds;
+                EngineLog.Engine($"Quit: the window left the screen {hidden:0} ms after the last frame");
+                // The device's threads end with their work done: a thread cut off inside a GPU
+                // wait by the process's end has been followed by a kernel soft lockup on WSL.
+                OniMoono.Engine.Rendering.GraphicsDevice.Current.StopForQuit();
                 OniMoono.Engine.Rendering.GraphicsDevice.Install(new OniMoono.Engine.Rendering.NullRenderDevice());
-                platform.Dispose();
             }
+            SceneLoader.UnloadAll();
+            Lifecycle.ProcessDestroyQueue();
+            QuitStats.Mark("unloading");
+            // A save an OnDestroy started is finished too.
             GameTweaks.GameTweaks.Shutdown();
+            QuitStats.Mark("tweaks");
             double total = quitClock.Elapsed.TotalMilliseconds;
-            EngineLog.Engine($"Quit took {total:0} ms: OnApplicationQuit {quitEvents:0}, unloading {unload - quitEvents:0}, device and window {total - unload:0}");
+            EngineLog.Engine($"Quit took {total:0} ms");
+            foreach (var line in QuitStats.Lines()) EngineLog.Engine(line);
             EngineLog.Engine($"Exiting after {frame} frames with code {PlayerLoop.ExitCode}");
             EngineLog.Close();
             Console.Out.Flush();

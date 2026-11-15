@@ -1001,7 +1001,7 @@ def running(pid, start=None):
 
 
 # A player stops gracefully on SIGTERM. Ours (src/OniMoono.Host/QuitSignals.cs) quits at the next
-# frame boundary as Application.Quit does, its graphics device and window going first, and exits
+# frame boundary as Application.Quit does, its graphics device stopping first, and exits
 # within 8 s whatever happens. A player killed in the middle of a GPU wait (on WSL, a wait on
 # /dev/dxg through Mesa's d3d12 driver) was followed by a kernel soft lockup that hung WSL
 # (2026-11-02), so a teardown signals the players first, alone (their X servers still up), waits

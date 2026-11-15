@@ -1811,12 +1811,24 @@ Quit (`Application.Quit`, closing the window, or `--frames N` in test runs) runs
    WaitForEndOfFrame, each handler in turn. One that answers false cancels it and the rest are
    not asked. One that throws is logged and counts as agreeing.
 2. `OnApplicationQuit` goes to every active behaviour.
-3. `Application.quitting` runs (a handler's exception ends it).
-4. Every scene is unloaded (OnDisable/OnDestroy).
-5. The graphics device and window are closed, then the log.
-6. The process ends with `_exit(code)`: game threads may still be inside native plugins
-   (SimDLL worldgen), and running the plugins' static destructors under them crashes or
-   deadlocks.
+3. `Application.quitting` runs (a handler's exception ends it), and unsaved PlayerPrefs are
+   written.
+4. Saves still being written in the background are finished. The window answers the system
+   meanwhile.
+5. The window is hidden, and the graphics device's threads finish what they were handed and
+   stop. Nothing is drawn after this.
+6. Every scene is unloaded (OnDisable/OnDestroy), as in Unity's player. The null device stands
+   in for the graphics device, so destroying an object releases no GPU object.
+7. A save one of those callbacks started is finished, then the log is closed.
+8. The process ends with `_exit(code)` (`TerminateProcess` on Windows): game threads may still
+   be inside native plugins (SimDLL worldgen), and running the plugins' static destructors
+   under them crashes or deadlocks.
+
+GPU objects, contexts, swap chains and windows are not released one by one at a quit: the
+system takes them back when the process ends, and releasing them only made the quit longer
+(the window sat unresponsive meanwhile). The log's `Quit` lines give each step's time, the
+callbacks' share and the process's memory (`ONI_QUIT_STATS=1` adds the script types whose
+OnDisable and OnDestroy took longest).
 
 The game registers no `ProcessExit` handlers.
 

@@ -48,6 +48,26 @@ namespace OniMoono.Tests
             Assert.Equal(6, writer.BaseStream.Length);
         }
 
+        /// The quit waits for the writes in flight with a callback (the window answers the
+        /// system meanwhile), and returns only once they are done.
+        [Fact]
+        public void TheQuitsWaitCallsBackUntilTheWritesAreDone()
+        {
+            bool written = false;
+            BackgroundSave.Enqueue(() =>
+            {
+                System.Threading.Thread.Sleep(400);
+                written = true;
+            });
+            int calls = 0;
+            BackgroundSave.WaitAll(() => calls++);
+            Assert.True(written);
+            Assert.InRange(calls, 2, 40);
+            // Nothing in flight: no callback.
+            BackgroundSave.WaitAll(() => calls = -1);
+            Assert.NotEqual(-1, calls);
+        }
+
         /// A colony's serialized body: compressible, as a save is, and different per seed.
         static byte[] Body(int seed, int length = 24 << 20)
         {
