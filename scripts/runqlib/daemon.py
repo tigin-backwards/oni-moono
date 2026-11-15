@@ -13,6 +13,7 @@ Protocol: one JSON object a line each way. Requests carry "op":
   status {owner?}                 -> {ok, status}
   history {owner?, since?}        -> {ok, jobs}
   phase {id, needs, kind, token}  -> {ok, env} once the new grant holds (from inside a job)
+  hold {resource, seconds?, reason?, by} -> {ok, until}; release {resource, by} -> {ok, released}
   ping                            -> {ok, version, pid}
 """
 
@@ -131,6 +132,7 @@ class Worker(threading.Thread):
                 with self.lock:
                     self.ext_cpu = max(0.0, busy - ours)
                 now = time.monotonic()
+                # The socket in use is probed again every 5 minutes (a PowerShell start each time).
                 if w is not None and (self.interop is None or not os.path.exists(self.interop) or now - self.interop_at >= 300):
                     self.pick_interop(w, now)
                 # While a Windows job runs, often: a game that breaks the Windows rules is stopped
@@ -329,7 +331,7 @@ class Daemon:
             '-p',
             'CollectMode=inactive-or-failed',
             '-p',
-            f'RuntimeMaxSec={int(job["timeout"]) + 120}',
+            f'RuntimeMaxSec={int(job["timeout"]) + 120}',  # systemd's stop when no daemon runs; the daemon's comes first
             '-p',
             f'ExecStopPost={py} -I {self.runq} _cleanup {job["dir"]}',
             f'--working-directory={job["dir"]}',
@@ -1034,6 +1036,7 @@ class Daemon:
                 why.append(
                     'no WSL session interop socket that starts Windows processes without PreferSystem32Images (being checked; a WSL terminal provides one)'
                 )
+            # 90 s: the worker lists the games every 30 s while a job wants the slot.
             if wants_windows and now - games_at > 90:
                 ext.windows = True
                 why.append('the Windows side is being checked')

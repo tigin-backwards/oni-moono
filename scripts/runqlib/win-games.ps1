@@ -3,8 +3,8 @@
 # list: every game process as JSON lines (pid, name, command line), read-only. kill and boost act
 # only on games whose command line contains MATCH (a runq job's run home folder): never by name, as
 # the user may be playing the same executables. A game process is our host (OniMoono.exe,
-# OniBrutal.exe) or any Unity player (an executable with its NAME_Data folder beside it), as in
-# out/local-tools/win-run.ps1. boost (by -Match, or -Id and -Created) gives the game the -Priority
+# OniBrutal.exe) or any Unity player (an executable with its NAME_Data folder beside it).
+# boost (by -Match, or -Id and -Created) gives the game the -Priority
 # class (Normal, AboveNormal or High; default High) and turns Windows' power throttling (EcoQoS)
 # off for it. killpid kills one game a runq job started (seen while the
 # job held the Windows slot, under a run home of its own), by its pid and its start time (a pid

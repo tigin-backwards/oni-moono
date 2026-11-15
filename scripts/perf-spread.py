@@ -168,6 +168,7 @@ def run(argv):
     ]
     started = time.time()
     with open(os.path.join(out, 'stdout.txt'), 'w') as sink:
+        # The loop below stops the player at --timeout; `timeout` only ends one this script left.
         proc = subprocess.Popen(['timeout', '-k', '10', str(a.timeout + 60), *cmd], cwd=worktree, env=env, stdout=sink, stderr=subprocess.STDOUT)
     wanted = a.pause_windows + a.run_windows
     colony = None

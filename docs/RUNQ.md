@@ -40,7 +40,8 @@ Exit codes:
 
 - The command's own.
 - 124: timeout.
-- 137: cancelled, idle-held, no heartbeat, or a self-deadlock.
+- 137: cancelled, idle-held, no heartbeat, a self-deadlock, `windows-rules` or `steam-contact`
+  (`runq show ID` gives the reason).
 - 75: refused at submit (a cap, an unknown level or kind).
 - 76: lost to a WSL restart.
 - 69: no daemon.

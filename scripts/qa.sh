@@ -2,8 +2,8 @@
 # The QA harness: exercises what the engine and the game tweaks do, and fails on a regression.
 #   scripts/qa.sh [--bless] [STAGE...]        (stages default to all of them, in this order)
 # Stages:
-#   unit     the build, both test suites and scripts/check.sh (API conformance, type loading,
-#            assets, binding).
+#   unit     the release build and scripts/check.sh (the unit and script tests, API conformance,
+#            type loading, assets, binding).
 #   dogfood  scripted sessions through the game, each a scenario (scripts/qa-scenarios, or a
 #            scripts/m9-scenarios name): the menu, a new game to embark, a colony's screens and
 #            overlays, typing, save and load, a window resize, clicks within one frame. Fails on a
@@ -297,7 +297,7 @@ quiet_begin() # STAGE
         [ "$waited" -eq 0 ] && [ -n "$win" ] && note "$1: waiting while a game runs on Windows ($win), whose load WSL can't see"
         [ "$waited" -eq 0 ] && note "$1: waiting for the machine to go quiet ($busy cores busy; most: $(ps -eo pid=,pcpu=,comm= --sort=-pcpu | head -3 | xargs -L1 echo | paste -sd';' -))"
         if [ "$waited" -ge "$max" ]; then note "$1: still $busy cores busy after ${QA_QUIET_MAX_MIN:-30} min; measuring anyway"; break; fi
-        sleep 15; waited=$((waited + 20))
+        sleep 15; waited=$((waited + 20)) # 20: the sleep and cores_busy's 5 s sample
     done
 }
 windows_game() # a game running on the Windows side (the user playing, or a Windows test run): its names

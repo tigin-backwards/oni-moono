@@ -1,7 +1,8 @@
 """The scheduler: plan(state) -> Plan, a pure function of the machine's state (§6).
 
-Each pass orders the queued jobs (due jobs first by submit time, then by level, then round-robin
-between owners by their service over the last 24 h, then by submit time) and walks them:
+Each pass orders the queued jobs (due jobs first, by level, then by submit time; the rest by
+level, then the owner with the least service over the last 24 h, then by submit time) and walks
+them:
 
 - a job starts only when every resource it needs is free now, counting the runq jobs running and
   the occupants outside runq (the legacy locks' holders), all or nothing;
