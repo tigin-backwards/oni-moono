@@ -15,21 +15,33 @@ import os, re, subprocess, time
 from . import legacy, shim, winenv
 
 
+def scope_of(pid):
+    """The cgroup path of the systemd scope PID runs in (/.../oni-tests.slice/NAME.scope), or None."""
+    try:
+        with open(f'/proc/{pid}/cgroup') as f:
+            text = f.read()
+    except OSError:
+        return None
+    match = re.search(r'^\d+:[^:]*:(\S*/[^/\s]+\.scope)\s*$', text, re.M)
+    return match.group(1) if match else None
+
+
+def job_scope_paths(procs=None, job_of=legacy.job_env_of, scope=scope_of):
+    """{job id: the cgroup paths of the scopes its players run in}, from one look at every
+    process: those that carry RUNQ_JOB and run in a scope (a job's other processes are in its
+    unit)."""
+    found = {}
+    for pid, _ in legacy.processes() if procs is None else procs:
+        job_id = job_of(pid)
+        path = scope(pid) if job_id else None
+        if path:
+            found.setdefault(job_id, set()).add(path)
+    return {job_id: sorted(paths) for job_id, paths in found.items()}
+
+
 def job_scopes(job_id, procs=None):
     """The systemd scope units whose processes carry RUNQ_JOB=JOB_ID."""
-    scopes = set()
-    for pid, _ in legacy.processes() if procs is None else procs:
-        if legacy.job_env_of(pid) != job_id:
-            continue
-        try:
-            with open(f'/proc/{pid}/cgroup') as f:
-                text = f.read()
-        except OSError:
-            continue
-        match = re.search(r'/([^/\s]+\.scope)\s*$', text, re.M)
-        if match:
-            scopes.add(match.group(1))
-    return sorted(scopes)
+    return sorted(os.path.basename(path) for path in job_scope_paths(procs).get(job_id, []))
 
 
 def stop_scopes(scopes, log):
