@@ -128,10 +128,6 @@ def usage(needs, cap):
     return tuple(u)
 
 
-def is_light(needs):
-    return not any(float(needs.get(r, 0) or 0) > 0 for r in RESOURCES)
-
-
 def add(a, b):
     return tuple(x + y for x, y in zip(a, b))
 
