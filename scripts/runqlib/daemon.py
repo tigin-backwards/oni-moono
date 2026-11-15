@@ -67,17 +67,29 @@ class Worker(threading.Thread):
         # The WSL interop socket jobs use (winenv.choose_interop), and when it was chosen.
         self.interop, self.interop_at = None, 0.0
 
-    def cgroup_usec(self, paths):
-        total = 0
+    @staticmethod
+    def cgroup_usecs(paths):
+        """{cgroup folder: its CPU time in microseconds} of the PATHS that still exist."""
+        found = {}
         for path in paths:
             try:
                 with open(os.path.join(path, 'cpu.stat')) as f:
                     for line in f:
                         if line.startswith('usage_usec'):
-                            total += int(line.split()[1])
-            except OSError:
+                            found[path] = int(line.split()[1])
+            except (OSError, ValueError, IndexError):
                 pass
-        return total
+        return found
+
+    def cgroup_usec(self, paths):
+        return sum(self.cgroup_usecs(paths).values())
+
+    @staticmethod
+    def spent_usec(before, after):
+        """The CPU time the cgroups in both samples (cgroup_usecs) spent between them. A cgroup
+        that ended in between is left out: its whole lifetime would otherwise count against the
+        sample, and the cores busy outside runq would read hundreds for one sample."""
+        return sum(after[path] - usec for path, usec in before.items() if path in after)
 
     def pick_interop(self, w, now):
         if self.interop and os.path.exists(self.interop) and w.prefers_system32(self.interop) is False:
@@ -107,15 +119,15 @@ class Worker(threading.Thread):
                 with self.lock:
                     paths = list(self.cgroups)
                 b0, t0 = legacy.machine_busy_sample()
-                c0 = self.cgroup_usec(paths)
+                c0 = self.cgroup_usecs(paths)
                 start = time.monotonic()
                 self.want_windows.wait(2 if self.d.windows_running else 5)
                 b1, t1 = legacy.machine_busy_sample()
-                c1 = self.cgroup_usec(paths)
+                c1 = self.cgroup_usecs(paths)
                 secs = max(time.monotonic() - start, 0.1)
                 ncpu = os.cpu_count() or 1
                 busy = ncpu * (b1 - b0) / max(t1 - t0, 1)
-                ours = (c1 - c0) / 1e6 / secs
+                ours = self.spent_usec(c0, c1) / 1e6 / secs
                 with self.lock:
                     self.ext_cpu = max(0.0, busy - ours)
                 now = time.monotonic()

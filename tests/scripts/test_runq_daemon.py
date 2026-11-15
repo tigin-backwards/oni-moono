@@ -392,6 +392,24 @@ class InProcess(unittest.TestCase):
         self.d.grant(self.d.store.get(job_id), self.sched.Grant(job_id, ()))
         return self.d.store.get(job_id)
 
+    def cgroup(self, name, usec):
+        folder = os.path.join(self.tmp, 'cgroup', name)
+        os.makedirs(folder, exist_ok=True)
+        with open(os.path.join(folder, 'cpu.stat'), 'w') as f:
+            f.write(f'usage_usec {usec}\nuser_usec {usec}\nsystem_usec 0\n')
+        return folder
+
+    def test_a_cgroup_that_ended_mid_sample_is_left_out_of_the_cpu_spent(self):
+        worker = self.d.worker
+        stays, ends = self.cgroup('stays', 5_000_000), self.cgroup('ends', 2_000_000_000)
+        before = worker.cgroup_usecs([stays, ends])
+        self.cgroup('stays', 8_000_000)
+        shutil.rmtree(ends)  # its job ended
+        after = worker.cgroup_usecs([stays, ends])
+        self.assertEqual(after, {stays: 8_000_000})
+        self.assertEqual(worker.spent_usec(before, after), 3_000_000)  # not 3 s less 2,000 s
+        self.assertEqual(worker.cgroup_usec([stays, ends]), 8_000_000)
+
     def test_a_requeued_job_drops_its_first_attempts_cgroup(self):
         from runqlib import shim
 
