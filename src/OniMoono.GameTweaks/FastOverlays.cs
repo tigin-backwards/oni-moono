@@ -6,7 +6,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-overlays` (opt-in): the overlays' per-frame work, the same results.
+    /// Game tweak `fast-overlays`: the overlays' per-frame work, the same results.
     ///
     /// Power: OverlayModes.Power.Update tints every power building in view by its circuit's
     /// load, and for each one asks CircuitManager.GetWattsNeededWhenActive for its circuit: a
@@ -93,8 +93,9 @@ namespace OniMoono.GameTweaks
             removeOffscreen = AccessTools.GetDeclaredMethods(typeof(OverlayModes.Mode)).First(m => m.Name == "RemoveOffscreenTargets" && m.GetParameters().Length == 4);
             highlight = AccessTools.Method(typeof(OverlayModes.Mode), "UpdateHighlightTypeOverlay");
             clearOutside = AccessTools.GetDeclaredMethods(typeof(OverlayModes.Mode)).First(m => m.Name == "ClearOutsideViewObjects" && m.GetParameters().Length == 5 && m.GetParameters()[1].ParameterType == typeof(Vector2I));
-            targetsPatched = new System.Reflection.MethodBase[] { addTarget };
-            rowsPatched = new System.Reflection.MethodBase[] { removeOffscreen, highlight, clearOutside };
+            // The instantiations the modes use join these as they are first called (Closed).
+            targetsPatched = new System.Reflection.MethodBase[0];
+            rowsPatched = new System.Reflection.MethodBase[0];
             var reroute = CallSiteReroute.Transpiler(typeof(FastOverlays), nameof(RerouteAddTarget));
             foreach (var (type, method) in new[] { (typeof(OverlayModes.ConduitMode), "Update"), (typeof(OverlayModes.Crop), "Update"), (typeof(OverlayModes.Harvest), "Update"),
                          (typeof(OverlayModes.Decor), "Update"), (typeof(OverlayModes.Logic), "Update"), (typeof(OverlayModes.Power), "Update"),
@@ -158,7 +159,28 @@ namespace OniMoono.GameTweaks
             public static readonly Action<OverlayModes.Mode, T, Vector2I, Vector2I, ICollection<T>, int, Action<T>, Func<KMonoBehaviour, bool>> AddTarget =
                 (Action<OverlayModes.Mode, T, Vector2I, Vector2I, ICollection<T>, int, Action<T>, Func<KMonoBehaviour, bool>>)Delegate.CreateDelegate(
                     typeof(Action<OverlayModes.Mode, T, Vector2I, Vector2I, ICollection<T>, int, Action<T>, Func<KMonoBehaviour, bool>>),
-                    addTarget.MakeGenericMethod(typeof(T)));
+                    Closed(ref targetsPatched, ref targetChecks, addTarget, typeof(T)));
+        }
+
+        /// `definition` for `type`, added to a part's guarded methods (with `also` for it, where
+        /// the type fits): Harmony keeps a generic method's patches by instantiation, so the
+        /// guard reads those the modes use. The part's next call checks again.
+        static System.Reflection.MethodInfo Closed(ref System.Reflection.MethodBase[] guarded, ref int checks, System.Reflection.MethodInfo definition, Type type,
+            System.Reflection.MethodInfo also = null)
+        {
+            var closed = definition.MakeGenericMethod(type);
+            var list = new List<System.Reflection.MethodBase>(guarded) { closed };
+            try
+            {
+                if (also != null) list.Add(also.MakeGenericMethod(type));
+            }
+            catch (ArgumentException)
+            {
+                // The type does not fit `also`'s constraints: the modes never call it so.
+            }
+            guarded = list.ToArray();
+            checks = 0;
+            return closed;
         }
 
         /// The game's helpers the kept rows stand in for, for when another owner patches them.
@@ -166,11 +188,11 @@ namespace OniMoono.GameTweaks
         {
             public static readonly Action<ICollection<T>, Vector2I, Vector2I, Action<T>> RemoveOffscreen =
                 (Action<ICollection<T>, Vector2I, Vector2I, Action<T>>)Delegate.CreateDelegate(
-                    typeof(Action<ICollection<T>, Vector2I, Vector2I, Action<T>>), removeOffscreen.MakeGenericMethod(typeof(T)));
+                    typeof(Action<ICollection<T>, Vector2I, Vector2I, Action<T>>), Closed(ref rowsPatched, ref rowChecks, removeOffscreen, typeof(T), clearOutside));
             public static readonly Action<OverlayModes.Mode, Vector2I, Vector2I, ICollection<T>, ICollection<Tag>, OverlayModes.ColorHighlightCondition[], OverlayModes.BringToFrontLayerSetting, int> Highlight =
                 (Action<OverlayModes.Mode, Vector2I, Vector2I, ICollection<T>, ICollection<Tag>, OverlayModes.ColorHighlightCondition[], OverlayModes.BringToFrontLayerSetting, int>)Delegate.CreateDelegate(
                     typeof(Action<OverlayModes.Mode, Vector2I, Vector2I, ICollection<T>, ICollection<Tag>, OverlayModes.ColorHighlightCondition[], OverlayModes.BringToFrontLayerSetting, int>),
-                    highlight.MakeGenericMethod(typeof(T)));
+                    Closed(ref rowsPatched, ref rowChecks, highlight, typeof(T)));
         }
 
         static bool rowsForeign;
@@ -506,9 +528,10 @@ namespace OniMoono.GameTweaks
             }
         }
 
-        /// The methods another owner's patch makes a part of this tweak stand down (ModOverlaps).
+        /// The methods another owner's patch makes a part of this tweak stand down (ModOverlaps,
+        /// which finds a generic helper's instantiations by its definition).
         internal static IEnumerable<System.Reflection.MethodBase> Guarded() =>
-            powerPatched.Concat(infraredPatched).Concat(targetsPatched).Concat(rowsPatched);
+            powerPatched.Concat(infraredPatched).Concat(new System.Reflection.MethodBase[] { addTarget, removeOffscreen, highlight, clearOutside });
 
         /// Whether a mod patches one of a part's methods: that part is off for the session.
         static bool Foreign(System.Reflection.MethodBase[] methods, string part)
