@@ -53,7 +53,7 @@ namespace OniMoono.GameTweaks
     /// With ONI_TWEAK_VERIFY=1 each shortened application is checked against a full one: the
     /// lookups are redone and must give the same calls, and every entry the calls write must hold
     /// what they write.
-    [GameMember(GameUse.Postfix, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
+    [GameMember(GameUse.Postfix, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)", Conditional = true)]
     [GameMember(GameUse.Postfix, "System.Void KAnimBatchManager::CreateInstance()")]
     [GameMember(GameUse.Postfix, "System.Void KAnimBatchManager::DestroyInstance()")]
     [GameMember(GameUse.Uses, "KAnimBatchManager KAnimBatchManager::Instance()")]

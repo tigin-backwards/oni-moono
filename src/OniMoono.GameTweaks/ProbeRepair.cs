@@ -108,6 +108,10 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Mirrors, "System.Int32 PathFinder/PotentialList/PriorityQueue`1::HeapifyFromEndToBeginning(System.Int32)", "a3a83b5407d4ba75 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList/PriorityQueue`1::DeleteRoot()", "6adbcf1ef65d43d5 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList/PriorityQueue`1::HeapifyFromBeginningToEnd(System.Int32)", "d36bceabc142f3e6 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761654 win-762107 win-762230 win-763023")]
+    // The digests' and the stats' patches (ONI_PROBE_DIGEST, ONI_PROBE_STATS).
+    [GameMember(GameUse.Postfix, "PathGrid Navigator::TakeResult(AsyncPathProber/WorkResult&)", Conditional = true)]
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void AsyncPathProber/WorkOrder::Execute(PathFinder/PotentialList,PathFinder/PotentialScratchPad,AsyncPathProber/WorkResult&)", Conditional = true)]
+    [GameMember(GameUse.Postfix, "System.Void AsyncPathProber/Manager::TickFrame()", Conditional = true)]
     public static class ProbeRepair
     {
         public const string Name = "path-probe-repair";

@@ -51,7 +51,8 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "CreatureCalorieMonitor/PauseStates CreatureCalorieMonitor::pause")]
     [GameMember(GameUse.Postfix, "System.Void BrainScheduler::RenderEveryTick(System.Single)")]
     [GameMember(GameUse.Uses, "System.Void BrainScheduler::PrioritizeBrain(Brain)")]
-    [GameMember(GameUse.Uses, "System.Void Brain::UpdateBrain()")]
+    // Verify mode's count of the turns that followed.
+    [GameMember(GameUse.Postfix, "System.Void Brain::UpdateBrain()", Conditional = true)]
     [GameMember(GameUse.Uses, "BrainScheduler Game::BrainScheduler")]
     public static class CritterNeedsFirst
     {

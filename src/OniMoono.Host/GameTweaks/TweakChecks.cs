@@ -9,7 +9,7 @@ using OniMoono.Tweaks;
 namespace OniMoono.Host.GameTweaks
 {
     /// A tweak's GameMemberAttribute, as read from its assembly's metadata.
-    internal sealed record GameMemberDeclaration(string Tweak, GameUse Use, string Member, string[] Fingerprints, int Rewrites, bool Optional = false)
+    internal sealed record GameMemberDeclaration(string Tweak, GameUse Use, string Member, string[] Fingerprints, int Rewrites, bool Optional = false, bool Conditional = false)
     {
         public bool Fingerprinted => (Use & (GameUse.Transpiler | GameUse.Replaces | GameUse.Mirrors)) != 0;
         public bool IsMethod => Member.Contains('(');
@@ -96,14 +96,15 @@ namespace OniMoono.Host.GameTweaks
                     var member = (string)value.FixedArguments[1].Value!;
                     var prints = ImmutableArrayOf.TryFrom(value.FixedArguments[2].Value, out var list) ? list.Strings : Array.Empty<string>();
                     int rewrites = -1;
-                    bool optional = false;
+                    bool optional = false, conditional = false;
                     foreach (var named in value.NamedArguments)
                     {
                         if (named.Name == nameof(GameMemberAttribute.Rewrites)) rewrites = (int)named.Value!;
                         if (named.Name == nameof(GameMemberAttribute.Optional)) optional = (bool)named.Value!;
+                        if (named.Name == nameof(GameMemberAttribute.Conditional)) conditional = (bool)named.Value!;
                     }
                     if (!result.TryGetValue(tweak, out var members)) result[tweak] = members = new List<GameMemberDeclaration>();
-                    members.Add(new GameMemberDeclaration(tweak, use, member, prints, rewrites, optional));
+                    members.Add(new GameMemberDeclaration(tweak, use, member, prints, rewrites, optional, conditional));
                 }
             }
             return result;

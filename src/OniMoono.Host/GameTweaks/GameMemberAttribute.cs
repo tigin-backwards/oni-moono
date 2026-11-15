@@ -42,6 +42,8 @@ namespace OniMoono.Tweaks
     /// `Optional`: a member only some game builds have (the tweak checks for it itself); when
     /// it is there, it must match. For a method, an overload only some builds have beside others
     /// of its name is optional too; those others need declarations of their own.
+    /// `Conditional`: a patch the tweak makes only on some runs (a verify mode's, a measurement's);
+    /// every other declared patch must be made (`--check-tweaks`).
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
     internal sealed class GameMemberAttribute : Attribute
     {
@@ -57,6 +59,9 @@ namespace OniMoono.Tweaks
         public string[] Fingerprints { get; }
         public int Rewrites { get; set; } = -1;
         public bool Optional { get; set; }
+        /// A patch not made on every run: only under a verify or measurement switch, or only
+        /// without another tweak.
+        public bool Conditional { get; set; }
     }
 
     /// On the code that reimplements a game method without patching it: `Member` is the method's
@@ -86,8 +91,8 @@ namespace OniMoono.Tweaks
     }
 
     /// Each transpiler's count of the sites it rewrote, for the host's check after a tweak
-    /// installs (GameTweaks.Install): more than declared fails, fewer passes only when another
-    /// Harmony owner transpiles the method too (its change ran first, issue #41).
+    /// installs: more than declared fails, fewer passes only when another
+    /// Harmony owner transpiles the method too (its change ran first, issue #41): TweakInstall.Guarded.
     internal static class TranspilerCounts
     {
         static readonly List<(string Tweak, MethodBase Original, int Count)> counts = new();
