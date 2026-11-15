@@ -129,6 +129,17 @@ def install(restart=True, quiet=False):
     return ver
 
 
+def stale_daemon(running):
+    """A line saying the daemon runs other code than this checkout's (a change to scripts/runq or
+    scripts/runqlib is live only after `runq install`), or None. A test daemon ('dev') and a
+    checkout whose runq is the installed one say nothing."""
+    mine = version()
+    if not running or running in ('dev', mine):
+        return None
+    # No "run install" here: an older checkout would put its old code back.
+    return f'the daemon runs runq {running}, this checkout has {mine}: one of them is older (docs/RUNQ.md, "The daemon": the user installs from master)'
+
+
 # ---------------------------------------------------------------- the socket
 
 
@@ -460,6 +471,9 @@ def cmd_status(argv):
         + (', the user is in ONI' if m.get('user_in_oni') else '')
         + (f', Windows processes through {m["interop"]}' if m.get('interop') else '')
     )
+    stale = stale_daemon(st['version'])
+    if stale:
+        print(f'WARNING: {stale}')
     print('RUNNING')
     for d in st['running'] or []:
         ran = now - (d['start'] or now)
@@ -644,7 +658,11 @@ def cmd_doctor():
     print(f'{UNIT}: {r.stdout.strip()}')
     print(f'this checkout\'s version: {version()}')
     c = try_connect()
-    print(f'daemon: {c.call({"op": "ping"}) if c else "not answering"}')
+    reply = c.call({'op': 'ping'}) if c else None
+    print(f'daemon: {reply or "not answering"}')
+    stale = stale_daemon((reply or {}).get('version'))
+    if stale:
+        print(f'WARNING: {stale}')
     return 0
 
 

@@ -257,7 +257,8 @@ slot_hours_per_owner = 6.0
 ```
 
 `runq install` again after a change to `scripts/runq` or `scripts/runqlib` (on master) installs
-the new version and restarts the daemon; running jobs go on.
+the new version and restarts the daemon; running jobs go on. Until then the daemon runs the old
+code, and `runq status` and `runq doctor` say so in a WARNING line.
 
 ## For agent briefs
 
