@@ -20,6 +20,7 @@ namespace PerfProbe
             var keeper = new GameObject("PerfProbe");
             Object.DontDestroyOnLoad(keeper);
             keeper.AddComponent<Runner>().Path = path;
+            QuitProbe.Install(keeper, path);
         }
     }
 
