@@ -758,12 +758,18 @@ class Daemon:
     def ended_files(self, job):
         return os.path.exists(os.path.join(job['dir'], 'cleanup.json'))
 
+    def forget(self, job_id):
+        """Drops what the daemon keeps in memory about a job that no longer runs: a warning
+        outlives its job otherwise, and `runq status` shows it until the daemon restarts."""
+        self.idle.pop(job_id, None)
+        self.warnings.pop(job_id, None)
+
     def finish(self, job):
         result = shim.read_json(os.path.join(job['dir'], 'result.json'), {}) or {}
         cleanup = shim.read_json(os.path.join(job['dir'], 'cleanup.json'), {}) or {}
         now = time.time()
         self.deadlines.pop(job['id'], None)
-        self.idle.pop(job['id'], None)
+        self.forget(job['id'])
         if result.get('lost_race') and result.get('attempt') == job['attempt']:
             log(f'{job["id"]}: lost the race for {result["lost_race"]} to an old script; requeued ahead')
             self.store.hold_end(job['id'], now)
@@ -806,6 +812,7 @@ class Daemon:
             return
         self.store.hold_end(job['id'], now)
         self.deadlines.pop(job['id'], None)
+        self.forget(job['id'])
         if job['retry_on_lost']:
             log(f'{job["id"]}: lost ({why}); requeued (--retry-on-lost)')
             first = (shim.read_json(os.path.join(job['dir'], 'job.json'), {}) or {}).get('needs', job['needs'])  # before any phase
@@ -881,7 +888,9 @@ class Daemon:
                 paths.append(job['cgroup'])
             needs = job['needs'] or {}
             if not (needs.get('windows') or needs.get('perf')):
-                self.idle.pop(job['id'], None)
+                self.idle.pop(job['id'], None)  # a phase gave the slot back: its idle warning goes too
+                if job['id'] in self.warnings:
+                    self.warnings[job['id']] = [w for w in self.warnings[job['id']] if not w.startswith('idle')]
                 continue
             env = shim.read_json(os.path.join(job['dir'], 'env.json'), {}) or {}
             has_game = any(m in g.get('cmdline', '') for g in games for m in winenv.run_home_matches(job['id'], env))
@@ -1232,7 +1241,7 @@ class Daemon:
             'queued': queued,
             'external': list(ext.why),
             'holds': self.holds(),
-            'warnings': {k: v for k, v in self.warnings.items() if v},
+            'warnings': {j['id']: self.warnings[j['id']] for j in running if self.warnings.get(j['id'])},
             'owners': holds,
         }
 
