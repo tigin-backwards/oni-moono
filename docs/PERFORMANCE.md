@@ -561,8 +561,8 @@ Notes on the rows (more in [TWEAKS.md](TWEAKS.md)):
   in the game's order. On Gluttony, a very late colony with 67 Duplicants, it took them from
   1.9–2.0 to 1.5–1.65 ms a frame (2026-10-23, Linux).
 - `fast-conveyor-paths`: the rails' network is rebuilt on every rail built, removed or
-  reconnected, and at the load; its path searches are answered from an index of the kept paths
-  instead of searching every kept path for every path found. On U57 it took a rebuild after an
+  reconnected, and at the load. The tweak answers its path searches from an index of the kept
+  paths instead of searching every kept path for every path found. On U57 it took a rebuild after an
   edit from 50–510 to 2–14 ms, and the load's from 840–850 to 14 ms (2026-10-25).
 - `fast-pipe-rebuilds`: since U60 every gas and liquid pipe handles every pipe network rebuild,
   twice for pipes with Pipe Flow arrows. On a late-game base-game colony with 27,349 pipes
@@ -607,8 +607,9 @@ measured 89.7 fps. `off-world-fallers` lands only 3 objects on U57, so it's left
 
 The exact tweaks that skip work each have a verify mode, which recomputes whatever was skipped
 and counts disagreements. `scripts/qa.sh` runs them all on U57 for at least 10 game minutes,
-opening every overlay in turn, and requires zero. `fast-symbol-overrides`' skipped setter calls need none (they would only
-write values already there); its kept override applications have one.
+opening every overlay in turn, and requires zero. `fast-symbol-overrides`' skipped setter calls
+need none (they would only write values already there). Its kept override applications have
+one.
 
 ## Tried and dropped
 
@@ -621,8 +622,8 @@ Measured ideas that didn't pay off, so nobody needs to try them again:
   it saves. Queued draws have no game code between them and are now recorded on workers (see
   [research/parallel-main-thread.md](research/parallel-main-thread.md)).
 - Recording draw queues with `Parallel.For`: on a busy machine the thread pool's workers spin
-  for work after each one, taking the cores of the GL thread and the game's job threads (U57
-  with 12 of 16 cores busy: 14.3 fps against 17.5 serial). Helper threads that sleep give
+  for work after each one, taking the cores of the GL thread and the game's job threads. U57
+  with 12 of 16 cores busy ran at 14.3 fps against 17.5 serial. Helper threads that sleep give
   19.2.
 - Building navigation links on worker threads: exact, but each update is too small (about
   40 µs) for a fork and join to pay.
@@ -634,55 +635,58 @@ Measured ideas that didn't pay off, so nobody needs to try them again:
   per-camera times at speed 3), each too cheap here or not exact:
   - Property textures refilled only on a sim tick or a view change: `PropertyTextures.LateUpdate`
     is 0.5–0.9 ms in all, and what it reads also changes between sim ticks (revealed cells,
-    lights); the engine already skips uploading rows that did not change.
+    lights). The engine already skips uploading rows that did not change.
   - The hover card reused while nothing visible changed: building it is about 0.3 ms
     (`InterfaceTool.LateUpdate` with the card), and it shows live values (a cell's mass and
     temperature) that change in between.
   - The timelapse camera and the sim overlay camera off when unused, the six texture lerpers as
     blits: together under 0.25 ms of the main thread (each lerper 0.01–0.04 ms).
   - Idle workers' and outfits' updates (0.02–0.06 ms), the heat effects' (0.04–0.12 ms, about
-    1,300 of them in U57), progress bars (0.02 ms); the pipe contents and per-Duplicant passes
+    1,300 of them in U57), progress bars (0.02 ms). The pipe contents and per-Duplicant passes
     cached while paused only help a paused game.
   - The liquid and gas networks' flow pass (ConduitFlow's BuildNetworkTask, linear searches over
-    each network's edges): every network takes under 0.1 ms on the job threads; a rebuild's
+    each network's edges): every network takes under 0.1 ms on the job threads. A rebuild's
     3–12 ms is the connections pass on the main thread.
   - The load's garbage collections: U57's load pauses for 3.2–3.9 s of its 26–28 s in 34–41
-    full collections; a larger gen0 budget (2.0–2.6 s paused) loaded in 27.7–32.0 s and the
+    full collections. A larger gen0 budget (2.0–2.6 s paused) loaded in 27.7–32.0 s and the
     non-concurrent collector in 26.6–26.8 s, no shorter. Holding collections off for the load
     would keep its garbage too (2minnow allocates 12 GB by the time its colony starts).
 - Closed screens' game scripts (toggles' and Duplicant portraits' updates): about 0.7 ms a
   frame on 2minnow after three table screens were opened, once their masks and raycasts are
-  skipped; only disabling the game's own components (not exact) would remove it.
+  skipped. Only disabling the game's components (not exact) would remove it.
 - The rest of the [performance mods' shortlist](research/perf-mods-inventory.md#shortlist)
   (2026-10-25; Linux, a quiet machine, U57, 2minnow and Gluttony at speed 3 with the exact
   tweaks, PerfProbe's stopwatches; `brain-rate` is the one kept):
   - Switched-off effects left out of the cell-change monitor and the animation updater (ONI
-    Perf's `markSkip` and `parkAnims`). Counted on Gluttony, a frame: 3,860 `MarkDirty` calls
-    on 726 transforms (a moving one is marked about five times); 175 of those have no cell-change
-    or movement handler (134 of them switched off), and 15–21 switched-off ones only their
-    animation's movement handler. `CellChangeMonitor.RenderEveryTick` is 2.4 ms there (1.2–1.3
-    on U57, 0.65 on 2minnow), mostly the handlers of objects that did change cell. Skipping the
-    handler-less transforms exactly would still have to answer `IsMoving` for them and put them
-    back in the game's order when a handler is registered on one (about 54 registrations a frame
-    land on one), and telling them apart costs as many lookups at each of the five marks as the
-    skip saves. The animation half isn't exact: a switched-off controller that once played keeps
-    its movement handler, which puts it on the update list while its Duplicant moves (142 of
-    2,700 `UpdateAnim` calls a frame on Gluttony, each returning at once); leaving it off
-    changes the list's swap-removal order, and with it the order other animations' events fire.
+    Perf's `markSkip` and `parkAnims`):
+    - **Counted on Gluttony, a frame:** 3,860 `MarkDirty` calls on 726 transforms (a moving one
+      is marked about five times). 175 of those have no cell-change or movement handler (134 of
+      them switched off), and 15–21 switched-off ones only their animation's movement handler.
+    - **The cost:** `CellChangeMonitor.RenderEveryTick` is 2.4 ms there (1.2–1.3 on U57, 0.65 on
+      2minnow), mostly the handlers of objects that did change cell.
+    - **The monitor half saves nothing.** Skipping the handler-less transforms exactly would
+      still have to answer `IsMoving` for them and put them back in the game's order when a
+      handler is registered on one (about 54 registrations a frame land on one). Telling them
+      apart costs as many lookups at each of the five marks as the skip saves.
+    - **The animation half isn't exact.** A switched-off controller that once played keeps its
+      movement handler, which puts it on the update list while its Duplicant moves (142 of
+      2,700 `UpdateAnim` calls a frame on Gluttony, each returning at once). Leaving it off
+      changes the list's swap-removal order, and with it the order other animations' events
+      fire.
   - A one-pass irrigation update (Fast Track's FlattenAverages): `IrrigationMonitor.UpdateIrrigation`
     is 0.31 ms a frame on Gluttony (about 275 calls, 1.1 µs each), 0.11–0.12 ms on U57 and
-    0.08–0.09 ms on 2minnow; the absorbers' whole update, its storage events included, 0.9 ms on
-    Gluttony. One scan of a planter's one or two items instead of two saves part of that 1 µs.
+    0.08–0.09 ms on 2minnow. The absorbers' whole update, its storage events included, is 0.9 ms
+    on Gluttony. One scan of a planter's one or two items instead of two saves part of that 1 µs.
   - Steam polled less often (ONI Perf's `steamPoll`): `SteamManager.Update` (`SteamAPI.RunCallbacks`)
     takes 0.004 ms and `GameInputManager.Update` (`SteamInput.RunFrame` within) 0.012–0.018 ms
-    here, but against the Steam stub; with real Steam on Windows the bound is `Global.Update`'s
+    here, but against the Steam stub. With real Steam on Windows the bound is `Global.Update`'s
     0.3 ms in all, and callbacks run less often would arrive later.
   - The achievement tracker (0.006–0.010 ms a frame), `TrackerTool.Update` (0.04–0.07 ms) and
     `SuitMarker.Update` (0.05–0.10 ms, for 1 checkpoint on U57 and 5 on 2minnow and Gluttony).
   - The colony preview read back asynchronously and encoded in the background (Fast Save's
     Background Save). After U57's autosave (a 3.0–3.2 s frame) the preview takes one frame of
-    260–420 ms (the first after the load 6.4 s); encoding its PNG is 18 ms of that, and nearly
-    all the rest is `ReadPixels` waiting for the GL thread to draw the whole colony into the
+    260–420 ms (the first after the load 6.4 s). Encoding its PNG is 18 ms of that. Nearly all
+    the rest is `ReadPixels` waiting for the GL thread to draw the whole colony into the
     preview's target, uploading the animation batches that come into view. A version that read
     the target in the frame's GL work and encoded and wrote the PNG on another thread (the same
     bytes, checked) only moved that wait into the next frame's present.
