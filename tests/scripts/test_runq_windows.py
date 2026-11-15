@@ -371,5 +371,42 @@ class Bridge(unittest.TestCase):
                     p.wait()
 
 
+class SharedWithE2e(unittest.TestCase):
+    """runqlib copies e2e.py's view of the lock directory, lanes and budget (it must not import
+    e2e.py: the daemon runs from its installed copy). A change to one side fails here until the
+    other follows."""
+
+    def test_constants(self):
+        import e2e
+
+        cap = CFG['capacity']
+        self.assertEqual(CFG['legacy_perf_patterns'], e2e.PERF_JOBS)
+        self.assertEqual(CFG['legacy_qa_gb'], e2e.QA_GB)
+        self.assertEqual((cap['lane_first'], cap['lane_last']), (e2e.FIRST_LANE, e2e.LAST_LANE))
+        self.assertEqual((cap['mem_gb'], cap['players']), (e2e.MEMORY_GB, e2e.MAX_PLAYERS))
+        self.assertEqual(config.legacy_dir(), e2e.shared_dir())
+
+    def test_lanes_ranges_and_processes(self):
+        import inspect
+
+        import e2e
+
+        for lane in (e2e.FIRST_LANE, 7, e2e.LAST_LANE):
+            self.assertEqual(legacy.lane_ports(lane), e2e.lane_ports(lane))
+            self.assertEqual(f':{legacy.lane_display(lane)}', e2e.lane_display(lane))
+        text = '8788, 8820-8831 :80-:85'
+        self.assertEqual(legacy.parse_ranges(text), e2e.parse_ranges(text))
+        reserved = 'ports 8788 8820-8831;displays :80-:85 :91  # theirs'
+        with tempfile.TemporaryDirectory() as locks:
+            self.assertEqual(legacy.reservations(locks, reserved), e2e.reservations(locks, reserved))
+            with open(os.path.join(locks, 'perf.lock'), 'a') as f:
+                fcntl.flock(f, fcntl.LOCK_SH)
+                path = os.path.join(locks, 'perf.lock')
+                self.assertEqual(legacy.flock_holders(path), e2e.flock_holders(path))
+                self.assertEqual(legacy.flock_holders(path), [(os.getpid(), 'shared')])
+        self.assertEqual(legacy.process_start(os.getpid()), e2e.process_start(os.getpid()))
+        self.assertIn(f"r'{e2e.QA_JOBS[0]}'", inspect.getsource(legacy.scan))  # scan's qa.sh pattern
+
+
 if __name__ == '__main__':
     unittest.main()
