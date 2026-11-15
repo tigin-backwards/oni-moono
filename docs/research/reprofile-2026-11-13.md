@@ -200,6 +200,25 @@ with one opt-in tweak added, one launch each (the rows above):
   U57. On Gluttony `off-world-fallers` is most of the gap (default 27.9–29.2, every tweak
   47.4–49.7 fps on U59).
 
+### Follow-up, 2026-11-15: the two open results were the day's spread
+
+Both were settled by one alternating pair on the same harness and the same release archives,
+the launches two minutes apart, the Linux side quiet and the Windows side beside the game at
+9–13% of its processors.
+
+- **The old release ahead on the mid-game colony: not a regression.** With every tweak,
+  v2026.11.13.02 measured 128.7 fps (118.5–138.8, p50 7.4 ms, p99 16.8) and v2026.11.06.01
+  136.9 (121.9–153.8, p50 6.9, p99 16.9). The 27–55% gap of 2026-11-13 (156.1 against 100.8
+  and 123.4) is 6% here, inside either launch's windows. A lead that small is not excluded.
+- **Not the pop-up.** Every launch of both releases logged the victory sequence as skipped, so
+  the controls ran alike. The sequence accounts only for the 2026-11-06 table's 133 fps
+  (136.5 today with it running), as said above.
+- **`fetch-by-cell` below the default on the late-game colony: noise.** Default tweaks measured
+  111.3 fps (100.4–120.4, p50 8.0 ms, p99 22.2), default with `fetch-by-cell` 114.7
+  (95.3–122.8, p50 7.6, p99 22.7). The 80.9 fps of 2026-11-13 was that launch: its slow windows
+  had 1,200–1,600 lock contentions each against 900–1,000 in its fast ones, as the slow
+  windows of the default's second launch had.
+
 ## Memory
 
 U57 with default tweaks, no mods but PerfProbe (speed 3) and the census mod, 1280×720 on the
