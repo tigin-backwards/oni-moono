@@ -1934,21 +1934,27 @@ referenced, with its dependencies. `Resources.Load` uses the `ResourceManager.m_
 OpenGLCore, and every shader ships as GLSL 150 text produced by Unity's HLSLcc, with
 per-variant parameter tables (*assets §5*). Executing those programs directly on GL is the most
 faithful possible renderer: no shader is hand-ported, so every Klei visual effect keeps its
-exact logic. (Vulkan is the alternative BRUTAL emphasises; it would require compiling this
-GLSL with relaxed default-uniform-block rules and re-deriving Unity's GL binding model on top.
-GL 4.5 is available on Linux drivers and on WSLg hardware via Mesa d3d12 (verified: GL 4.6 core
-on an RTX 3090 with `GALLIUM_DRIVER=d3d12`).)
+exact logic.
 
-**Shader runtime (`OniMoono.Graphics`).** From `SerializedShader`: properties, subshaders,
-passes, tags, render state (blend/ZTest/ZWrite/Cull/ColorMask/Stencil/Offset — each either a
-constant or a reference to a material property, e.g. `[_SrcAlpha]`), keyword space, and the
-platform-15 program blobs (LZ4). For each pass, variant selection matches Unity's
-(local+global enabled keywords → best matching subprogram). Programs are compiled and linked
-on first use and cached by (shader, pass, variant). Uniform binding follows the subprogram's
-`SerializedProgramParameters` (vector/matrix params by name and array size, textures by name
-→ sampler unit, constant buffers with member offsets, built-in `unity_*`/`hlslcc_mtx4x4*`
-matrices). Fixed-function GLSL helpers Unity injects (`#ifdef VERTEX`/`FRAGMENT` sections) are
-split exactly as Unity's GL device does.
+- Vulkan is the alternative BRUTAL emphasises. It would require compiling this GLSL with
+  relaxed default-uniform-block rules and re-deriving Unity's GL binding model on top.
+- GL 4.5 is available on Linux drivers and on WSLg hardware via Mesa d3d12 (verified: GL 4.6
+  core on an RTX 3090 with `GALLIUM_DRIVER=d3d12`).
+
+**Shader runtime (`OniMoono.Graphics`).**
+
+- **Read from `SerializedShader`:** properties, subshaders, passes, tags, render state
+  (blend/ZTest/ZWrite/Cull/ColorMask/Stencil/Offset, each either a constant or a reference to a
+  material property, e.g. `[_SrcAlpha]`), keyword space, and the platform-15 program blobs
+  (LZ4).
+- **Variants.** For each pass, variant selection matches Unity's (local+global enabled keywords
+  → best matching subprogram).
+- **Programs** are compiled and linked on first use and cached by (shader, pass, variant).
+- **Uniform binding** follows the subprogram's `SerializedProgramParameters`: vector/matrix
+  params by name and array size, textures by name → sampler unit, constant buffers with member
+  offsets, built-in `unity_*`/`hlslcc_mtx4x4*` matrices.
+- **Fixed-function GLSL helpers** Unity injects (`#ifdef VERTEX`/`FRAGMENT` sections) are split
+  exactly as Unity's GL device does.
 
 **Engine renderer (`OniMoono.UnityEngine`, Rendering namespace).** Unity's built-in forward
 renderer, restricted to what the game uses (*usage §1*):
@@ -1959,43 +1965,50 @@ renderer, restricted to what the game uses (*usage §1*):
   their `CameraEvent`s → draw → `OnRenderImage` chain (component order, temporary RTs) →
   `OnPostRender`.
 - Culling walks the cull candidates (enabled renderers on active objects, one list per layer)
-  of the layers in the camera's mask. Beside each candidate the list keeps its world bounds
-  (`CullCache`), made at its first visit and kept until something they were made from changes:
-  bounds or local bounds assigned to the renderer, the transform's world matrix (marked in
-  `MarkDirty`, so a parent's move counts), the GameObject's components (a filter added or
-  removed), the filter's mesh, and that mesh's bounds (to other bits) or destruction; each mesh
-  keeps the renderers that read its bounds. Joining the candidates or another layer's list makes
-  them again. Renderers whose geometry does not notify (sprites, particles, lines, text meshes)
-  have theirs made at every visit, as before. A pass over kept bounds reads the lists' arrays
-  alone and looks at a renderer (its flags, then its draws) only when its box is in view; the
-  same renderers are drawn in the same order. `ONI_CULL_CACHE=0` makes every visit make them;
-  `ONI_VERIFY_CULL_CACHE=1` makes them afresh at each visit too and logs any difference.
+  of the layers in the camera's mask.
+  - Beside each candidate the list keeps its world bounds (`CullCache`), made at its first
+    visit and kept until something they were made from changes: bounds or local bounds assigned
+    to the renderer, the transform's world matrix (marked in `MarkDirty`, so a parent's move
+    counts), the GameObject's components (a filter added or removed), the filter's mesh, and
+    that mesh's bounds (to other bits) or destruction. Each mesh keeps the renderers that read
+    its bounds.
+  - Joining the candidates or another layer's list makes them again.
+  - Renderers whose geometry does not notify (sprites, particles, lines, text meshes) have
+    theirs made at every visit, as before.
+  - A pass over kept bounds reads the lists' arrays alone and looks at a renderer (its flags,
+    then its draws) only when its box is in view. The same renderers are drawn in the same
+    order.
+  - `ONI_CULL_CACHE=0` makes every visit make them. `ONI_VERIFY_CULL_CACHE=1` makes them afresh
+    at each visit too and logs any difference.
 - Per-frame buffers are reused only under an owner's rule, each with a verify mode (qa.sh's
   verify stage runs them):
-  - A mesh's channel and index arrays are the mesh's own; one it has published is never written
-    until the device has run every upload that could hold it, and only then reused. A setter's
-    array can be longer than the data (a mesh rebuilt each frame with another vertex count keeps
-    its larger arrays, new ones at a size class): `VertexCount` and each submesh's `IndexCount`
-    say how much is the mesh's, every reader goes by them, and the getters copy exactly that
-    many. `ONI_VERIFY_MESH_REUSE=1` checksums each upload's data when it is recorded and again on
-    the GL thread before it is copied. A mesh never drawn (uGUI's shared worker mesh, a
-    TextMeshPro text's) keeps up to 32 spares for 120 frames, others 16 for 4: its fills
-    alternate between elements of every size. `Clear` keeps the submesh list and its first
-    submesh, emptied as a new one is.
-  - A canvas renderer's copy of its mesh (`SetMesh`) is the renderer's; its UV, normal,
-    tangent and index arrays are also its baked mesh's channels. The copy is let go of when the
-    baked mesh moves on to a newer one, and at once when it was never baked (so in no upload);
-    never the copy the renderer still has, which a later `SetMesh` of the same mesh unchanged
-    takes again. Its arrays, and the baked positions and colours a rebake replaces, go to a
-    pool every canvas renderer shares (`CanvasArrays`, by element type and length): a later
-    copy of that length, any element's, takes one once every upload of the mesh it was baked
-    into, posted by then, has run; one unused for 120 frames is dropped. Most elements rebuild
-    less often than the 4 frames a mesh keeps its own spares, or at another length. A channel
-    whose values all have the same bits (uGUI's unused UV sets, its default normal and
-    tangent, a plain image's colour) is one array that every copy of its length and value
-    shares, and never goes back to the pool. The copy is emptied, so a stale reader fails
-    rather than read reused arrays, and is the renderer's next copy (only the renderer's
-    current and baked copies are compared by reference).
+  - A mesh's channel and index arrays are the mesh's own. One it has published is never written
+    until the device has run every upload that could hold it, and only then reused.
+    - A setter's array can be longer than the data (a mesh rebuilt each frame with another
+      vertex count keeps its larger arrays, new ones at a size class). `VertexCount` and each
+      submesh's `IndexCount` say how much is the mesh's, every reader goes by them, and the
+      getters copy exactly that many.
+    - `ONI_VERIFY_MESH_REUSE=1` checksums each upload's data when it is recorded and again on
+      the GL thread before it is copied.
+    - A mesh never drawn (uGUI's shared worker mesh, a TextMeshPro text's) keeps up to 32 spares
+      for 120 frames, others 16 for 4: its fills alternate between elements of every size.
+    - `Clear` keeps the submesh list and its first submesh, emptied as a new one is.
+  - A canvas renderer's copy of its mesh (`SetMesh`) is the renderer's. Its UV, normal,
+    tangent and index arrays are also its baked mesh's channels.
+    - The copy is let go of when the baked mesh moves on to a newer one, and at once when it
+      was never baked (so in no upload). The copy the renderer still has is never let go of: a
+      later `SetMesh` of the same mesh unchanged takes it again.
+    - Its arrays, and the baked positions and colours a rebake replaces, go to a pool every
+      canvas renderer shares (`CanvasArrays`, by element type and length). A later copy of that
+      length, any element's, takes one once every upload of the mesh it was baked into, posted
+      by then, has run. One unused for 120 frames is dropped. Most elements rebuild less often
+      than the 4 frames a mesh keeps its own spares, or at another length.
+    - A channel whose values all have the same bits (uGUI's unused UV sets, its default normal
+      and tangent, a plain image's colour) is one array that every copy of its length and value
+      shares, and never goes back to the pool.
+    - The copy is emptied, so a stale reader fails rather than read reused arrays, and is the
+      renderer's next copy (only the renderer's current and baked copies are compared by
+      reference).
   - A merged canvas batch (a run of draws of the same state, a nested canvas's shared mesh)
     writes into arrays of its mesh's own, from its spares: every value up to the counts is
     written, zeros where a part lacks a UV set the others have.
@@ -2022,23 +2035,27 @@ renderer, restricted to what the game uses (*usage §1*):
     to the same bits; `ONI_VERIFY_PASS_STATES=1` resolves each kept one afresh and compares.
   - Passes over a list their callbacks may change (particle systems, cameras, canvases, moved
     rects, pending Starts) copy it into an array the pass keeps (`ListSnapshot`), cleared after
-    it; a pass started from inside one gets its own. The phase delegates' invocation lists are
-    made once per delegate, the update phases iterate an array of their execution-order lists,
-    coroutine waiter lists swap rather than being made anew, and a camera's image-effect list,
-    the canvas batcher's run list, the canvas walk's mask renderers and a nested canvas's
-    submeshes are kept. `Canvas.willRenderCanvases` and `preWillRenderCanvases` keep their
-    handlers in a list (`DelegateList`) with a multicast delegate's rules (append, remove the
-    last matching run, call those there were when the call began, stop at an exception):
-    every TextMeshPro text joins the first when enabled and leaves it when disabled, which
-    copied every other text's handler each time. `GetTemporary` looks its pool up with a
-    description it keeps, making one only for a texture it creates. A render texture's
-    single-target array is its own (`RenderTargetBinding.Of`), and the GL device records the
-    same target object again for the same texture or the back buffer at the same size: the GL
-    thread only reads them.
+    it. A pass started from inside one gets its own. Also kept or made once:
+    - The phase delegates' invocation lists are made once per delegate.
+    - The update phases iterate an array of their execution-order lists.
+    - Coroutine waiter lists swap rather than being made anew.
+    - A camera's image-effect list, the canvas batcher's run list, the canvas walk's mask
+      renderers and a nested canvas's submeshes are kept.
+    - `Canvas.willRenderCanvases` and `preWillRenderCanvases` keep their handlers in a list
+      (`DelegateList`) with a multicast delegate's rules (append, remove the last matching run,
+      call those there were when the call began, stop at an exception). Every TextMeshPro text
+      joins the first when enabled and leaves it when disabled, which copied every other text's
+      handler each time.
+    - `GetTemporary` looks its pool up with a description it keeps, making one only for a
+      texture it creates.
+    - A render texture's single-target array is its own (`RenderTargetBinding.Of`), and the GL
+      device records the same target object again for the same texture or the back buffer at
+      the same size: the GL thread only reads them.
 - Draw sources: `MeshRenderer`+`MeshFilter`, `SpriteRenderer`, `ParticleSystemRenderer`,
   `LineRenderer` (mods' lines: its strip as Unity's BakeMesh measures it, corners mitered; rounded
-  corners and caps are drawn square), `CanvasRenderer` (world-space and screen-space-camera canvases), and the per-frame
-  `Graphics.DrawMesh` queue (cleared after the frame; `camera` argument restricts it).
+  corners and caps are drawn square), `CanvasRenderer` (world-space and screen-space-camera
+  canvases), and the per-frame `Graphics.DrawMesh` queue (cleared after the frame; `camera`
+  argument restricts it).
 - Unity's built-in shader constants are maintained per draw/camera (`unity_ObjectToWorld`,
   `unity_MatrixVP`, `_ProjectionParams`, `_ScreenParams`, `_Time`, `_ZBufferParams`, …) with GL
   clip-space conventions as Unity's GLCore device sets them.
@@ -2102,199 +2119,257 @@ renderer, restricted to what the game uses (*usage §1*):
   (`Hidden/BlitCopy` from `unity_builtin_extra`), `GL` immediate mode, `CommandBuffer`.
 - Gamma colour space (`m_ActiveColorSpace=0`): no sRGB conversions.
 
-**Textures for sampling.** Where the driver has `GL_ARB_bindless_texture` (NVIDIA's, for one),
-sampler uniforms are set to resident handles of (texture, sampler object) pairs and draws change
-no texture bindings: on NVIDIA's OpenGL driver a draw whose vertex stage reads other textures
-than the previous draw's waits for it (the game's animation batches each have their own data
-textures; in a large colony that was ~33 of 46 GPU ms per frame, 2.5 with handles). Programs are
-compiled with `#extension GL_ARB_bindless_texture` and the default `layout(bindless_sampler)`
-qualifier ahead of their uniforms; sampling state then lives in sampler objects, and a texture
-whose image is specified again is recreated under a new name (a handle fixes its layout).
-Elsewhere (Mesa's d3d12 driver under WSL) textures are bound to units, and so they are on AMD's
-Windows driver (`GL_VENDOR` "ATI Technologies Inc."), which lists the extension but charges a flat
-~0.25 ms of GPU time per draw and per texture upload with handles resident, against
-0.001-0.009 ms bound to units (an RX 9070 XT: 270-570 GPU ms per frame on a loaded colony,
-26-30 with units; issue #27). Mesa's AMD driver (radeonsi, `GL_VENDOR` "AMD") binds as well:
-it adds every resident handle's buffer to each command submission, so the cost grows with the
-textures ever sampled, and a save's colony preview, which samples about 4.5 times a normal
-frame's textures, left an RX 9070 colony at 20-25 fps from 40-50, paused or not (issue #43).
+**Textures for sampling.** Two ways, by driver:
+
+- **Bindless handles,** where the driver has `GL_ARB_bindless_texture` (NVIDIA's, for one).
+  Sampler uniforms are set to resident handles of (texture, sampler object) pairs and draws
+  change no texture bindings. On NVIDIA's OpenGL driver a draw whose vertex stage reads other
+  textures than the previous draw's waits for it (the game's animation batches each have their
+  own data textures; in a large colony that was ~33 of 46 GPU ms per frame, 2.5 with handles).
+  Programs are compiled with `#extension GL_ARB_bindless_texture` and the default
+  `layout(bindless_sampler)` qualifier ahead of their uniforms. Sampling state then lives in
+  sampler objects, and a texture whose image is specified again is recreated under a new name
+  (a handle fixes its layout).
+- **Bound to units** elsewhere (Mesa's d3d12 driver under WSL), and on two AMD drivers:
+  - AMD's Windows driver (`GL_VENDOR` "ATI Technologies Inc.") lists the extension but charges
+    a flat ~0.25 ms of GPU time per draw and per texture upload with handles resident, against
+    0.001-0.009 ms bound to units (an RX 9070 XT: 270-570 GPU ms per frame on a loaded colony,
+    26-30 with units; issue #27).
+  - Mesa's AMD driver (radeonsi, `GL_VENDOR` "AMD") adds every resident handle's buffer to each
+    command submission, so the cost grows with the textures ever sampled. A save's colony
+    preview, which samples about 4.5 times a normal frame's textures, left an RX 9070 colony at
+    20-25 fps from 40-50, paused or not (issue #43).
+
 `--no-bindless` binds on any driver; `--bindless` uses handles on AMD's too. A texture without an
 image (zero width or height) is sampled as no texture, (0, 0, 0, 1).
 
-Handle residency (`BindlessResidency`, issue #50): a handle is made resident when a draw first
-samples it, and checked (`glGetError`, `glIsTextureHandleResidentARB`); one that fails is never
-sampled, and its texture is bound to the sampler's unit with its sampler object instead (a
-`bindless_sampler` uniform takes a unit as well as a handle), the same pixels. A failure's
-resident count becomes a cap. A texture deleted or given a new name while resident keeps its old
-name and resident handles until a fence placed after the frame has signalled, since the
-extension leaves open whether making a handle non-resident waits for draws already issued.
-Past 8,192 resident textures (`ONI_BINDLESS_MAX_RESIDENT`), the least recently sampled go
-non-resident the same way, after a fence, and resident again when next sampled;
-`ONI_BINDLESS_IDLE_FRAMES=N` also does that to any texture not sampled for N frames.
-`ONI_VERIFY_BINDLESS=1` checks every handle a draw samples and every texture specification
-(`bindless handles:` lines, `qa-tools.py verify`); `ONI_BINDLESS_STRESS` measures the driver's
-residency limit at start-up. Measurements: [research/bindless-residency.md](research/bindless-residency.md).
+Handle residency (`BindlessResidency`, issue #50):
 
-`ONI_VERIFY_RAW_LOADS=1` (`RawTextureLoads`, qa.sh's verify stage) checks each
-`LoadRawTextureData` against a full copy and each upload it skipped against the texels last
-uploaded (`raw texture loads:` summary, every 3,000 loads); `ONI_RAW_LOADS_ALT=1` (measurement
-only, with `--frame-stats`) runs every other 60-frame window as before (a full copy and an
-upload at every `Apply`), its `raw texture loads` line ending in `variant=0` or `variant=1`;
-`ONI_CAPTURE_TWICE=full-uploads` renders each super-sized capture again after every texture
-loaded this way is uploaded in full.
+- A handle is made resident when a draw first samples it, and checked (`glGetError`,
+  `glIsTextureHandleResidentARB`). One that fails is never sampled. Its texture is bound to the
+  sampler's unit with its sampler object instead (a `bindless_sampler` uniform takes a unit as
+  well as a handle), the same pixels. A failure's resident count becomes a cap.
+- A texture deleted or given a new name while resident keeps its old name and resident handles
+  until a fence placed after the frame has signalled, since the extension leaves open whether
+  making a handle non-resident waits for draws already issued.
+- Past 8,192 resident textures (`ONI_BINDLESS_MAX_RESIDENT`), the least recently sampled go
+  non-resident the same way, after a fence, and resident again when next sampled.
+  `ONI_BINDLESS_IDLE_FRAMES=N` also does that to any texture not sampled for N frames.
+- `ONI_VERIFY_BINDLESS=1` checks every handle a draw samples and every texture specification
+  (`bindless handles:` lines, `qa-tools.py verify`). `ONI_BINDLESS_STRESS` measures the driver's
+  residency limit at start-up.
+- Measurements: [research/bindless-residency.md](research/bindless-residency.md).
+
+Raw texture loads (`RawTextureLoads`):
+
+- `ONI_VERIFY_RAW_LOADS=1` (qa.sh's verify stage) checks each `LoadRawTextureData` against a
+  full copy and each upload it skipped against the texels last uploaded (`raw texture loads:`
+  summary, every 3,000 loads).
+- `ONI_RAW_LOADS_ALT=1` (measurement only, with `--frame-stats`) runs every other 60-frame
+  window as before (a full copy and an upload at every `Apply`), its `raw texture loads` line
+  ending in `variant=0` or `variant=1`.
+- `ONI_CAPTURE_TWICE=full-uploads` renders each super-sized capture again after every texture
+  loaded this way is uploaded in full.
 
 **Super-sized captures.** `ScreenCapture.CaptureScreenshot(path, superSize)` renders the frame
 again as a screen `superSize` times larger would show it (`FrameRenderer.Capture`), the cameras
 only: the original's super-sized captures leave out the overlay UI and IMGUI, even when they fit
-one render target. The game renders its world into render textures it makes the screen's size
-(the MRT camera's `MRT0`/`MRT1` and their copies, the light buffer, `_LitTex`); for the capture
-each such texture gets a device texture of the capture's size (its own is kept aside and put
-back afterwards), and the cameras still see the screen's size
-(`RenderTextureNative.CaptureLogicalSize`), so the world is drawn at the capture's resolution.
-A capture larger than the GPU's textures or than `WindowPixels` renders in windows: bands of the
-capture's width a few hundred rows tall, each window's cameras rendered with their projections
-narrowed to it (`CaptureWindow.Clip`), the screen-sized textures the window's size, and 64 pixels
-around each window rendered and cropped, so that kernels reading neighbours (bloom, the water's
-refraction, bilinear reads) see what one target would give them. A band is read into one buffer
-and written through `PngWriter` (at level 6: a capture is written in the frame it is taken)
-before the next. What the windows need
-from the game's shaders is in `CaptureTiles`: `oni_ScreenTile` maps the whole capture's texture
-coordinates to the window's. `Klei/Liquid`, which reads `MRT0_Copy`/`MRT1_Copy` where its world
-position, `_CameraZoomInfo` and the camera put it on the screen, reads them through it; the
-programs that derive screen-space patterns or pixel sizes from their clip position (`Klei/Stars`,
-`Klei/Substance`, `Klei/BatchedAnimationShine`, `Klei/PostFX/LightBufferCompositor`'s noise,
-TextMeshPro, `UI/Default`) place their vertices in the whole capture and move them into the
-window after their own main. The light buffer is rendered once for the whole capture (at most
-`LightPixels`), since kanims read it at their anchor, which can lie far outside the window
-drawing them, and every `_LightBufferTex` read is moved into it. The game's screen-to-world
-vectors of its full-screen passes (`_WsToCs`, `_WsToCcs`) are narrowed to each window.
+one render target.
+
+- **Screen-sized textures.** The game renders its world into render textures it makes the
+  screen's size (the MRT camera's `MRT0`/`MRT1` and their copies, the light buffer, `_LitTex`).
+  For the capture each such texture gets a device texture of the capture's size (its own is
+  kept aside and put back afterwards). The cameras still see the screen's size
+  (`RenderTextureNative.CaptureLogicalSize`), so the world is drawn at the capture's resolution.
+- **Windows.** A capture larger than the GPU's textures or than `WindowPixels` renders in
+  windows: bands of the capture's width a few hundred rows tall. Each window's cameras are
+  rendered with their projections narrowed to it (`CaptureWindow.Clip`), and the screen-sized
+  textures are the window's size. 64 pixels around each window are rendered and cropped, so
+  that kernels reading neighbours (bloom, the water's refraction, bilinear reads) see what one
+  target would give them. A band is read into one buffer and written through `PngWriter` (at
+  level 6: a capture is written in the frame it is taken) before the next.
+- **Shaders.** What the windows need from the game's shaders is in `CaptureTiles`:
+  `oni_ScreenTile` maps the whole capture's texture coordinates to the window's.
+  - `Klei/Liquid`, which reads `MRT0_Copy`/`MRT1_Copy` where its world position,
+    `_CameraZoomInfo` and the camera put it on the screen, reads them through it.
+  - The programs that derive screen-space patterns or pixel sizes from their clip position
+    (`Klei/Stars`, `Klei/Substance`, `Klei/BatchedAnimationShine`,
+    `Klei/PostFX/LightBufferCompositor`'s noise, TextMeshPro, `UI/Default`) place their vertices
+    in the whole capture and move them into the window after their own main.
+- **The light buffer** is rendered once for the whole capture (at most `LightPixels`), since
+  kanims read it at their anchor, which can lie far outside the window drawing them. Every
+  `_LightBufferTex` read is moved into it.
+- **Full-screen passes.** The game's screen-to-world vectors of its full-screen passes
+  (`_WsToCs`, `_WsToCcs`) are narrowed to each window.
 `ONI_CAPTURE_TWICE=tiles:WxH` renders each super-sized capture again in windows of that size,
 for a pixel comparison of the two.
 
 **PNG encoding.** `EncodeToPNG`, `EncodeArrayToPNG` and captures write through `PngWriter`
-(`Engine/PngWriter.cs`): each row gets libpng's filter choice (the filter whose output, its bytes
-taken signed, sums to the least in absolute value), and the rows are deflated with zlib's
-filtered strategy: at level 6 (`PngWriter.FrameLevel`) for captures and for `EncodeTo*` on the
-main thread, whose file is written in the frame (U59's Timelapser encodes so), and at level 9
-off it (U60's Timelapser encodes on a task). The rows are cut into bands of
-about 2 MB, each filtered and deflated on its own pool thread (half the cores, at most 8) and
-written as one IDAT ending in a sync flush, so a band's output follows the last one's in the
-zlib stream; the Adler-32 is combined from the bands' and written in a last IDAT. Bands fall by
-the image's width alone, so the same texels give the same bytes on any machine and thread. An
-8-bit RGBA texture or array whose every alpha is 255 is written as RGB (colour type 2): the
-original writes RGBA there, but `LoadImage` gives the same texels for both, as does any other
-reader. `EncodeArrayToPNG` reads the caller's rows where they are (pinned), with no copy of the
-image.
+(`Engine/PngWriter.cs`):
+
+- **Filter.** Each row gets libpng's filter choice (the filter whose output, its bytes taken
+  signed, sums to the least in absolute value).
+- **Deflate.** The rows are deflated with zlib's filtered strategy. Level 6
+  (`PngWriter.FrameLevel`) is for captures and for `EncodeTo*` on the main thread, whose file is
+  written in the frame (U59's Timelapser encodes so). Level 9 is for off the main thread (U60's
+  Timelapser encodes on a task).
+- **Bands.** The rows are cut into bands of about 2 MB, each filtered and deflated on its own
+  pool thread (half the cores, at most 8) and written as one IDAT ending in a sync flush, so a
+  band's output follows the last one's in the zlib stream. The Adler-32 is combined from the
+  bands' and written in a last IDAT. Bands fall by the image's width alone, so the same texels
+  give the same bytes on any machine and thread.
+- **Opaque images.** An 8-bit RGBA texture or array whose every alpha is 255 is written as RGB
+  (colour type 2). The original writes RGBA there, but `LoadImage` gives the same texels for
+  both, as does any other reader.
+- **No copy.** `EncodeArrayToPNG` reads the caller's rows where they are (pinned), with no copy
+  of the image.
 
 **Render thread, presentation and frame pacing.** Unity's player records rendering on the main
 thread and executes it on a render thread (`kGfxThreadingModeClientWorkerJobs` on GLCore), and
-presents from there, so GL work and a swap that blocks — vsync, or a display path that reads the
-frame back, as Mesa's d3d12 driver does under X11 — overlap the next frame's game work. We do
-the same (`GlWorker`): the device's methods run on the main thread and record commands; a GL
-thread that owns the rendering context (a hidden window's, shared with the visible one)
-executes them. Recording resolves everything a draw reads from engine objects, so the main
-thread can change them while the GL thread works: the program variant, the pass state with its
-property references, every uniform value (into a per-frame arena), the textures each sampler
-gets, and the mesh's layout and submesh range; changed texels and vertex data are copied when
-recorded (a non-readable texture hands over its memory, as it keeps no CPU copy). `Present`
-hands the frame to the GL thread once the previous frame has been executed, so one frame is in
-flight. Work whose result the main thread needs waits for the GL thread: `ReadPixels` and
-captures, compiling a program variant the first time it is used, diagnostics.
-`Shader.WarmupAllShaders` does not wait (`GlWarmup`, below). `AsyncGPUReadback` of a render texture does not (`GlReadback`): its
-`glReadPixels` goes into a pixel buffer with the frame's work, a fence after it; once a frame
-the GL thread looks at the fence, and when the GPU has passed it maps the buffer, whose bytes
-are the request's data (an 8-bit target read as RGBA32; any other read is read as floats and
-converted on a pool thread). A read past 32 MB is first copied on the GPU, the target as it is
-then, and the copy read a band of 32 MB a frame: on Mesa's D3D12 driver 400 MB in one piece
-held the GL thread about 230 ms. The request is done three frames on, as measured in the
-original, or once the texels are there if that takes longer. U59's own code makes no such
-request; mods do (Fast Save's timelapse images). `ReadPixels` from an 8-bit target into an
-8-bit texture reads bytes, not floats (U59's Timelapser reads its snapshots so). A command
-that throws is logged and the frame goes on, as an exception in a draw
-used to unwind only that draw. The GL thread renders into an offscreen back buffer (colour
-texture + depth-stencil); at present it fences the frame and hands it to a presenter thread
-current on the window's context, which waits for the fence on its own thread (neither context's
-GPU queue waits on the other's), blits to the window, fences the copy and swaps with
-`QualitySettings.vSyncCount` as the interval. Without vSync up to `QualitySettings.maxQueuedFrames`
-frames are queued for presentation, at most two (2 by default on PC, as the original reads it,
-though Unity documents it for Direct3D 11 and 12 only). With vSync one is, and it counts as queued until a fence placed
-after the swap has signalled: the driver returned from `SwapBuffers` at once and queued frames of
-its own on top. That fence waiting for the swap is driver behaviour, not a GL guarantee; with it a
-key press reached the screen in 50 ms instead of 83, as in the original (19827d58: Windows 11, 60
-Hz, windowed, an RTX 3090 on NVIDIA's driver 610.88; other drivers and compositors unmeasured).
-With vSync the main thread also waits, after handing a frame over, until the frame
-`QualitySettings.maxQueuedFrames - 1` before it (2 by default, as in the original) has been
-through the presenter (`QueuedFrames`), as Unity's main thread waits before a frame for frame
-*n − maxQueuedFrames* to appear. Without that wait the main thread, the GL thread and the
-presenter each held a frame, and a frame's start reached the screen one or two refreshes later
-than in the original (docs/research/input-latency.md: 66-85 ms against 48-50 on a small colony
-at 60 Hz; 47 with the wait). The wait serializes a frame's stages, so it is on only while they
-fit a refresh one after the other, by the pipeline-mode rule of Android's Frame Pacing library
-(Swappy): over a sliding two seconds of frames, on once the stages' mean plus 1 ms, and half
-again, fits the refresh; off once more than 10% of the frames miss their refresh; the samples
-start anew at each change. The stages: the main thread's time to its present, the GL thread's on
-the frame and the presenter's until it issues the picture; the refresh is the display's through
-DXGI, else the mean time between frames. Always on, it cost a 200-Duplicant colony at about 50
-fps 6-25% of its frames in four runs of five. When it turns on, DXGI's next present first waits for one
-more picture to retire, once, shedding the picture DXGI queued while it was off.
-Three back buffers rotate; the GL thread waits (on the GPU) for a buffer's copy fence before
-drawing into it again. Back-buffer reads (`ReadPixels` of the screen,
-captures) read the offscreen buffer of the current frame. Pacing follows Unity's desktop
-player: with vSync the swap paces frames; otherwise `Application.targetFrameRate` when set;
-otherwise none. Without a display (`--headless`, `--batchmode`) frames are paced at
-`targetFrameRate` or 60 Hz. A cap is paced against a running deadline (`FramePace`): each
-frame is due a period after the one before was due, so a frame over the period is made up for
-by the next ones, with at most one period of debt carried (a cap of 60 ran at 57.0 fps on a
-late-game colony when each frame slept for the rest of its own period; 59.7 now).
+presents from there. So GL work and a swap that blocks (vsync, or a display path that reads the
+frame back, as Mesa's d3d12 driver does under X11) overlap the next frame's game work. We do
+the same (`GlWorker`):
+
+- **Recording.** The device's methods run on the main thread and record commands. A GL thread
+  that owns the rendering context (a hidden window's, shared with the visible one) executes
+  them. Recording resolves everything a draw reads from engine objects, so the main thread can
+  change them while the GL thread works: the program variant, the pass state with its property
+  references, every uniform value (into a per-frame arena), the textures each sampler gets, and
+  the mesh's layout and submesh range. Changed texels and vertex data are copied when recorded
+  (a non-readable texture hands over its memory, as it keeps no CPU copy).
+- **One frame in flight.** `Present` hands the frame to the GL thread once the previous frame
+  has been executed.
+- **Waits.** Work whose result the main thread needs waits for the GL thread: `ReadPixels` and
+  captures, compiling a program variant the first time it is used, diagnostics.
+  `Shader.WarmupAllShaders` does not wait (`GlWarmup`, below).
+- **`AsyncGPUReadback`** of a render texture does not wait (`GlReadback`):
+  - Its `glReadPixels` goes into a pixel buffer with the frame's work, a fence after it. Once a
+    frame the GL thread looks at the fence, and when the GPU has passed it maps the buffer,
+    whose bytes are the request's data (an 8-bit target read as RGBA32; any other read is read
+    as floats and converted on a pool thread).
+  - A read past 32 MB is first copied on the GPU, the target as it is then, and the copy read a
+    band of 32 MB a frame: on Mesa's D3D12 driver 400 MB in one piece held the GL thread about
+    230 ms.
+  - The request is done three frames on, as measured in the original, or once the texels are
+    there if that takes longer.
+  - U59's own code makes no such request; mods do (Fast Save's timelapse images).
+- **`ReadPixels`** from an 8-bit target into an 8-bit texture reads bytes, not floats (U59's
+  Timelapser reads its snapshots so).
+- **Errors.** A command that throws is logged and the frame goes on, as an exception in a draw
+  used to unwind only that draw.
+
+Presenting:
+
+- **The presenter thread.** The GL thread renders into an offscreen back buffer (colour texture
+  + depth-stencil). At present it fences the frame and hands it to a presenter thread current
+  on the window's context. That thread waits for the fence itself (neither context's GPU queue
+  waits on the other's), blits to the window, fences the copy and swaps with
+  `QualitySettings.vSyncCount` as the interval.
+- **Without vSync** up to `QualitySettings.maxQueuedFrames` frames are queued for presentation,
+  at most two (2 by default on PC, as the original reads it, though Unity documents it for
+  Direct3D 11 and 12 only).
+- **With vSync** one is, and it counts as queued until a fence placed after the swap has
+  signalled: the driver returned from `SwapBuffers` at once and queued frames of its own on
+  top. That fence waiting for the swap is driver behaviour, not a GL guarantee. With it a key
+  press reached the screen in 50 ms instead of 83, as in the original (19827d58: Windows 11,
+  60 Hz, windowed, an RTX 3090 on NVIDIA's driver 610.88; other drivers and compositors
+  unmeasured).
+- **The queued-frames wait.** With vSync the main thread also waits, after handing a frame
+  over, until the frame `QualitySettings.maxQueuedFrames - 1` before it (2 by default, as in
+  the original) has been through the presenter (`QueuedFrames`), as Unity's main thread waits
+  before a frame for frame *n − maxQueuedFrames* to appear. Without that wait the main thread,
+  the GL thread and the presenter each held a frame, and a frame's start reached the screen one
+  or two refreshes later than in the original (docs/research/input-latency.md: 66-85 ms against
+  48-50 on a small colony at 60 Hz; 47 with the wait).
+- **When the wait is on.** The wait serializes a frame's stages, so it is on only while they
+  fit a refresh one after the other, by the pipeline-mode rule of Android's Frame Pacing
+  library (Swappy), over a sliding two seconds of frames:
+  - On once the stages' mean plus 1 ms, and half again, fits the refresh.
+  - Off once more than 10% of the frames miss their refresh.
+  - The samples start anew at each change.
+  - The stages are the main thread's time to its present, the GL thread's on the frame and the
+    presenter's until it issues the picture. The refresh is the display's through DXGI, else
+    the mean time between frames.
+  - Always on, it cost a 200-Duplicant colony at about 50 fps 6-25% of its frames in four runs
+    of five.
+  - When it turns on, DXGI's next present first waits for one more picture to retire, once,
+    shedding the picture DXGI queued while it was off.
+- **Back buffers.** Three back buffers rotate. The GL thread waits (on the GPU) for a buffer's
+  copy fence before drawing into it again. Back-buffer reads (`ReadPixels` of the screen,
+  captures) read the offscreen buffer of the current frame.
+
+Pacing follows Unity's desktop player:
+
+- With vSync the swap paces frames. Otherwise `Application.targetFrameRate` does when set.
+  Otherwise nothing does.
+- Without a display (`--headless`, `--batchmode`) frames are paced at `targetFrameRate` or
+  60 Hz.
+- A cap is paced against a running deadline (`FramePace`). Each frame is due a period after the
+  one before was due, so a frame over the period is made up for by the next ones, with at most
+  one period of debt carried (a cap of 60 ran at 57.0 fps on a late-game colony when each frame
+  slept for the rest of its own period; 59.7 now).
 
 The CPU's fence waits (the presenter's for a frame, the one after a vsynced swap, the stream
-buffer's for a ring region) wait 100 ms at a time until the fence signals. A wait still going
-after 10 s is logged, and again each minute, as one `[engine] long wait:` line naming the site,
-the sync object, the frame where known, the thread and its kernel ID (`LongWaits`); the wait
-itself does not change, and one that ends at its first slice costs nothing more. A player once
-stopped in a fence wait on WSL's `/dev/dxg` with no word of which. `ONI_TEST_STALL_FENCE=1` makes
-the presenter's wait never end, to see the lines. When a SIGTERM's quit misses its deadline
-(`QuitSignals`), the log gets each thread's state before the exit (`ThreadDump`, at most 400 ms):
-the long waits going on, then each `/proc/self/task` entry's name, state and kernel wait channel.
+buffer's for a ring region) wait 100 ms at a time until the fence signals.
+
+- A wait still going after 10 s is logged, and again each minute, as one `[engine] long wait:`
+  line naming the site, the sync object, the frame where known, the thread and its kernel ID
+  (`LongWaits`). The wait itself does not change, and one that ends at its first slice costs
+  nothing more. A player once stopped in a fence wait on WSL's `/dev/dxg` with no word of
+  which.
+- `ONI_TEST_STALL_FENCE=1` makes the presenter's wait never end, to see the lines.
+- When a SIGTERM's quit misses its deadline (`QuitSignals`), the log gets each thread's state
+  before the exit (`ThreadDump`, at most 400 ms): the long waits going on, then each
+  `/proc/self/task` entry's name, state and kernel wait channel.
 
 **Frame deltas with vsync.** Unity (2020.2 on) times a vsynced frame by its presentation, so its
-`Time.unscaledDeltaTime` is a whole number of refreshes: in the original on Windows (U59 and U60,
-windowed at 59.95 Hz, panning a small colony with the keyboard) 98.7% and 99.3% of 1,199 frames read
-within 0.05 ms of one, two or three refreshes. The wall clock between our frames' starts varied by
-about ±0.5 ms around the refresh (sd 0.24-0.46 ms against the original's 0.01-0.09), and
-`CameraController` moves the view by `unscaledDeltaTime`, so the pan's steps were uneven (sd
-0.6-1.1% of a step in steady panning against 0.05-0.3%) over a display that showed every picture for
-one refresh. With vsync, `FramePacing` now rounds the wall-clock time since the last frame, plus
-what earlier rounding left over, to whole refreshes (at least one), so the deltas still add up to
-the wall clock within half a refresh, and `Time.unscaledTime`, `time` and `realtimeSinceStartup`
-keep the sums the original's do (its `unscaledTime` is the sum of its deltas; `realtimeSinceStartup`
-the wall clock). The refresh period is that of the current mode of the display the swap chain is on
-(`DxgiSwapChain`, OpenGL and Vulkan alike: its containing output, matched by GDI name in
-`QueryDisplayConfig`'s active paths), looked up again every 300 pictures off the presenter thread,
-so a move to another monitor or a mode change is followed within seconds. DXGI's frame statistics
-would give the measured period, but Windows updates them only now and then for a windowed swap chain
-(in some 20 s runs they stayed on one picture throughout); where they did update, the period they
-gave (16.6807 ms) agreed with the mode's 59.951 Hz to 0.003%. The wall clock is used as before
-without vsync, without a known period (Linux, OpenGL without DXGI), when nothing has been presented
-for a quarter second, for a frame over a second (a hitch or a resume keeps its length and drops the
-rounding's remainder; `deltaTime` is capped by `maximumDeltaTime` as before) or under a millisecond
-(vsync off whatever the game asked for), both as Godot's DeltaSmoother does, and when eight frames
-in a row come in under half a refresh (a faster monitor not looked up yet). Measured after
-the change, the same runs (OpenGL on U59, Vulkan on U60): deltas within 0.05 ms of a whole refresh
-in 100% of frames, the pan's steady steps even to 0.00%. Below 60 fps the original's deltas are not
-a model: on a 200-Duplicant colony (about 21-25 fps in U59's original) they read one refresh for
-most frames of 40-47 ms, so the view panned at about 40% of its speed, with deltas of up to 5.9 s
-now and then (the step capped at ten times its size); U60's original, at about 15 fps, gave the wall
-clock. Ours there (about 38 fps) keeps whole refreshes adding up to the wall clock; how long each
-picture stays on screen still depends on when its frame reaches the GPU, which the delta cannot
-know: a frame's delta and its picture's time on screen differed by a refresh or more in 24-31% of
-the sampled frames before the change and 19-26% after, and the on-screen speed was more than 10% off
-in 53-75% of them before and 35-46% after. Variable refresh (G-Sync, FreeSync) gets the same
-rounding: measured with G-Sync engaged on a 144 Hz mode (focused, borderless, the 200-Duplicant
-colony at 92-103 fps), frames more than 10% off the pan's speed fell from 47-53% with the wall clock
-to 32-37% with rounding, and the steady spread from 11-14% to 7%; at a 60 Hz mode the two were within
-noise ([research/frame-timing.md](research/frame-timing.md)). Rounding to the refresh's quanta errs
-by less than our frame starts jitter, so no variable-refresh guard is needed.
+`Time.unscaledDeltaTime` is a whole number of refreshes. In the original on Windows (U59 and U60,
+windowed at 59.95 Hz, panning a small colony with the keyboard) 98.7% and 99.3% of 1,199 frames
+read within 0.05 ms of one, two or three refreshes.
+
+- **Before.** The wall clock between our frames' starts varied by about ±0.5 ms around the
+  refresh (sd 0.24-0.46 ms against the original's 0.01-0.09). `CameraController` moves the view
+  by `unscaledDeltaTime`, so the pan's steps were uneven (sd 0.6-1.1% of a step in steady
+  panning against 0.05-0.3%) over a display that showed every picture for one refresh.
+- **Now.** With vsync, `FramePacing` rounds the wall-clock time since the last frame, plus what
+  earlier rounding left over, to whole refreshes (at least one). So the deltas still add up to
+  the wall clock within half a refresh, and `Time.unscaledTime`, `time` and
+  `realtimeSinceStartup` keep the sums the original's do (its `unscaledTime` is the sum of its
+  deltas; `realtimeSinceStartup` the wall clock).
+- **The refresh period** is that of the current mode of the display the swap chain is on
+  (`DxgiSwapChain`, OpenGL and Vulkan alike: its containing output, matched by GDI name in
+  `QueryDisplayConfig`'s active paths). It is looked up again every 300 pictures off the
+  presenter thread, so a move to another monitor or a mode change is followed within seconds.
+  DXGI's frame statistics would give the measured period, but Windows updates them only now and
+  then for a windowed swap chain (in some 20 s runs they stayed on one picture throughout).
+  Where they did update, the period they gave (16.6807 ms) agreed with the mode's 59.951 Hz to
+  0.003%.
+- **The wall clock is used as before** in these cases:
+  - Without vsync.
+  - Without a known period (Linux, OpenGL without DXGI).
+  - When nothing has been presented for a quarter second.
+  - For a frame over a second (a hitch or a resume keeps its length and drops the rounding's
+    remainder; `deltaTime` is capped by `maximumDeltaTime` as before) or under a millisecond
+    (vsync off whatever the game asked for), both as Godot's DeltaSmoother does.
+  - When eight frames in a row come in under half a refresh (a faster monitor not looked up
+    yet).
+- **Measured after the change,** the same runs (OpenGL on U59, Vulkan on U60): deltas within
+  0.05 ms of a whole refresh in 100% of frames, the pan's steady steps even to 0.00%.
+- **Below 60 fps the original's deltas are not a model.** On a 200-Duplicant colony (about
+  21-25 fps in U59's original) they read one refresh for most frames of 40-47 ms, so the view
+  panned at about 40% of its speed, with deltas of up to 5.9 s now and then (the step capped at
+  ten times its size). U60's original, at about 15 fps, gave the wall clock. Ours there (about
+  38 fps) keeps whole refreshes adding up to the wall clock.
+- **What the delta cannot know.** How long each picture stays on screen still depends on when
+  its frame reaches the GPU. A frame's delta and its picture's time on screen differed by a
+  refresh or more in 24-31% of the sampled frames before the change and 19-26% after, and the
+  on-screen speed was more than 10% off in 53-75% of them before and 35-46% after.
+- **Variable refresh** (G-Sync, FreeSync) gets the same rounding. Measured with G-Sync engaged
+  on a 144 Hz mode (focused, borderless, the 200-Duplicant colony at 92-103 fps), frames more
+  than 10% off the pan's speed fell from 47-53% with the wall clock to 32-37% with rounding,
+  and the steady spread from 11-14% to 7%. At a 60 Hz mode the two were within noise
+  ([research/frame-timing.md](research/frame-timing.md)). Rounding to the refresh's quanta errs
+  by less than our frame starts jitter, so no variable-refresh guard is needed.
 
 **Presentation on Windows (DXGI).** On Windows the presenter shows the picture through a
 Direct3D 11 flip-model swap chain (`DxgiSwapChain`, `DxgiTarget`), on by default (Moono Tweaks'
