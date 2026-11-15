@@ -350,3 +350,43 @@ If a default is to change, 2x
 runtimeconfig properties) is the only candidate. Windows fps with 2x (92-101) was below the
 one clean as-shipped launch (112). The other as-shipped launch ran under heavy load, so whether
 2x costs frame rate is open.
+
+## The first full collection after an autosave (2026-11-15)
+
+A player reported the game going "Not responding" 0.2 to 0.4 of a cycle after the morning
+autosave, after long sessions. The daily colony snapshot (at 0.5 of a cycle, on some cycles)
+does not stall for seconds: on Windows with Vulkan its longest frame was 0.41 s on the same
+colony (u60's PERFORMANCE.md, "Snapshots on Vulkan, on a late-game colony"). The first full
+collection after the save falls in that window.
+
+Method: u60 at bf58cddf, release, Windows, Vulkan, a late-game Spaced Out colony (14 GB working
+set, 7 GB managed heap), a player's default tweaks (`no-save-gc` and `background-save` among
+them), speed 3, `--frame-stats`, played across one morning autosave and 0.5 of a cycle on. One
+launch each. The machine has 100 GB of RAM, so nothing was paged out.
+
+| | As shipped | `DOTNET_GCHighMemPercent=0x14` (the collector sees memory as short) |
+|---|---|---|
+| Collections in the 4 minutes before the save | none | one gen0 (163 ms) |
+| The autosave's frame | 3.4 s (a 105 ms gen0 in its window) | 2.1 s |
+| Collections after the save, until the full one | none | none |
+| The first full collection after the save | 0.38–0.45 of a cycle on (90–107 s) | 0.33 of a cycle on (78 s) |
+| Its pause | 24 ms (a background collection) | 1,040 ms in one frame (a blocking one) |
+
+- The save's allocations bring the next full collection, a third to half a cycle later at
+  speed 3.
+- With memory to spare it runs in the background. At a high memory load (90% of RAM on most
+  PCs) the collector makes it blocking and compacting, as the 974 ms pause above was: about a
+  second for this heap when all of it is in RAM.
+- **Not measured:** the same collection on a PC where part of the process is paged out. It then
+  has to read those pages back, which would take far longer than a second. That would be a
+  freeze at this point of the cycle that grows with the session's memory.
+
+In a player's log with frame stats on, the 600-frame window of the freeze shows it:
+`main thread waits` has `gen2 1` or more with `longest pause` and `most in a frame` in seconds,
+`machine` has little RAM available and many hard fault reads, and the `slow frame` line has the
+time in one phase. A snapshot's freeze instead comes with `Saving screenshot to` for a
+`RetiredColonies` file, at 0.5 of a cycle.
+
+No collection is added after the save: a forced one there pauses every save
+(`no-save-gc` removes the game's), and under a high memory load it would be this same blocking
+collection, only sooner.
