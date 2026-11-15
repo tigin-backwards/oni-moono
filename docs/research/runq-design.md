@@ -469,7 +469,7 @@ To paste into briefs that run anything on the machine:
 
 > Run every player, build, check.sh, e2e, perf or Windows run through runq. Never take
 > perf.lock, perf.wanted or windows-game.lock yourself, and never start players outside it.
-> - `scripts/runq run --owner NAME --priority LEVEL --kind KIND --timeout DUR -- CMD` runs CMD
+> - `scripts/runq run --owner NAME --level LEVEL --kind KIND --timeout DUR -- CMD` runs CMD
 >   when the machine has room and returns its exit code. Its output folder is printed first
 >   (`~/oni-runs/ID/out`, also `$RUNQ_OUT`). Put scripts in the worktree, not /tmp, or pass
 >   `--script FILE` so runq keeps a copy.
