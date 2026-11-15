@@ -198,8 +198,8 @@ Moono runs the same game code 3 to 4.5 times faster before any tweaks, and up to
 with them. Three things do it:
 
 - **An engine built around how ONI uses it.** The game makes over a million small engine calls
-  every frame: looking up an object's position, its components, or whether it still exists. Each
-  one is about 15 times cheaper in Moono than in Unity.
+  every frame: looking up an object's position, its components, or whether it still exists.
+  Moono answers these calls about 15 times faster than Unity.
 - **CoreCLR instead of the very garbage Mono runtime that Unity ships.** The runtime's own
   overhead is about 5 times lower.
 - **Over 40 tweaks** that replace slow parts of the game's own code. Most give exactly the same
