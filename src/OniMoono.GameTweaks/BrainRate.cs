@@ -60,6 +60,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "System.Void CreatureCalorieMonitor/Instance::OnCaloriesConsumed(System.Object)")]
     [GameMember(GameUse.Postfix, "System.Void CreatureCalorieMonitor/Instance::Poop(PoopData)")]
     [GameMember(GameUse.Postfix, "System.Void CreatureCalorieMonitor/Instance::StartSM()")]
+    [GameMember(GameUse.Postfix, "System.Void Brain::UpdateBrain()", Conditional = true)]
     [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "System.Void BrainScheduler::RenderEveryTick(System.Single)", "6014ab20d776bb7b linux-744825 win-744825")]
     public static class BrainRate
     {

@@ -52,17 +52,17 @@ namespace OniMoono.GameTweaks
     /// holds; a loop the game stops out of view and starts again back in view does not count).
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AmbienceManager/Layer::Stop()", "2f74965174a7ee20 linux-744825 win-744825", "15c1f2ba0af14d7b linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void LoopingSoundManager::StopAllSounds()", "db3b86cb9239e9a2 linux-744825 win-744825", "a1ba518f98eb9619 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230")]
-    [GameMember(GameUse.Postfix, "System.Void LoopingSoundManager::RenderEveryTick(System.Single)")]
-    [GameMember(GameUse.Postfix, "FMOD.RESULT FMOD.Studio.EventDescription::createInstance(FMOD.Studio.EventInstance&)")]
-    [GameMember(GameUse.Prefix, "System.Boolean FMOD.Studio.EventInstance::isValid()")]
-    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::start()")]
-    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::stop(FMOD.Studio.STOP_MODE)")]
-    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::release()")]
-    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::setPaused(System.Boolean)")]
-    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::setVolume(System.Single)")]
-    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::set3DAttributes(FMOD.ATTRIBUTES_3D)")]
-    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::setParameterByID(FMOD.Studio.PARAMETER_ID,System.Single,System.Boolean)")]
-    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::setParameterByName(System.String,System.Single,System.Boolean)")]
+    [GameMember(GameUse.Postfix, "System.Void LoopingSoundManager::RenderEveryTick(System.Single)", Conditional = true)]
+    [GameMember(GameUse.Postfix, "FMOD.RESULT FMOD.Studio.EventDescription::createInstance(FMOD.Studio.EventInstance&)", Conditional = true)]
+    [GameMember(GameUse.Prefix, "System.Boolean FMOD.Studio.EventInstance::isValid()", Conditional = true)]
+    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::start()", Conditional = true)]
+    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::stop(FMOD.Studio.STOP_MODE)", Conditional = true)]
+    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::release()", Conditional = true)]
+    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::setPaused(System.Boolean)", Conditional = true)]
+    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::setVolume(System.Single)", Conditional = true)]
+    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::set3DAttributes(FMOD.ATTRIBUTES_3D)", Conditional = true)]
+    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::setParameterByID(FMOD.Studio.PARAMETER_ID,System.Single,System.Boolean)", Conditional = true)]
+    [GameMember(GameUse.Prefix, "FMOD.RESULT FMOD.Studio.EventInstance::setParameterByName(System.String,System.Single,System.Boolean)", Conditional = true)]
     public static class ReleasedSounds
     {
         public const string Name = "fix-released-sounds";

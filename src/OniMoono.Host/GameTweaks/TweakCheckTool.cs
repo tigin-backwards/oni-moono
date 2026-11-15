@@ -136,6 +136,8 @@ namespace OniMoono.Host.GameTweaks
             var installed = new HashSet<string>(StringComparer.Ordinal);
             int off = 0;
             var problems = new List<string>();
+            // A tweak's patches over its installs (fast-load-screen has two).
+            var made = new Dictionary<string, Dictionary<string, GameUse>>(StringComparer.Ordinal);
             foreach (var (name, install, _) in GameTweaks.Installers(TweakInstall.Available))
             {
                 var harmony = new Harmony("OniMoono.Host.GameTweaks." + name);
@@ -146,8 +148,13 @@ namespace OniMoono.Host.GameTweaks
                     continue;
                 }
                 installed.Add(name);
-                AsDeclared(name, harmony, problems);
+                if (!made.TryGetValue(name, out var patches)) made[name] = patches = new Dictionary<string, GameUse>(StringComparer.Ordinal);
+                AsDeclared(name, harmony, problems, patches);
+                // Taken back before the next installs, so a hook two tweaks share (MainThread,
+                // PartitionerFreed, CritterNeedsFirst) is patched, and checked, for each.
+                harmony.UnpatchAll(harmony.Id);
             }
+            foreach (var (name, patches) in made) AllMade(name, patches, problems);
             // The Moono Tweaks menu as in play, with the default options and no settings file.
             var options = EffectiveOptions.Resolve(GameTweakNames.All, GameTweakNames.ChangingBehaviour, [], null, false, new PlayerSettings(),
                 offByDefault: GameTweakNames.OffByDefault);
@@ -155,24 +162,71 @@ namespace OniMoono.Host.GameTweaks
             if (menu) AsDeclared(GameTweakNames.Menu, new Harmony(MoonoTweaksMenu.HarmonyId), problems);
             else Console.WriteLine($"  off {GameTweakNames.Menu}: {TweakInstall.Unavailable[GameTweakNames.Menu]}");
             foreach (var problem in problems) Console.WriteLine("  " + problem);
-            Console.WriteLine($"check-tweaks {label} installs: {installed.Count} installed, {off} off, the Moono Tweaks menu {(menu ? "installed" : "off")}; {(problems.Count == 0 ? "every patch declared" : $"{problems.Count} patches not as declared")}");
+            Console.WriteLine($"check-tweaks {label} installs{(verifying ? " (ONI_TWEAK_VERIFY=1)" : "")}: {installed.Count} installed, {off} off, the Moono Tweaks menu {(menu ? "installed" : "off")}; {(problems.Count == 0 ? "every patch declared" : $"{problems.Count} patches not as declared")}");
             if ((off > 0 || !menu || problems.Count > 0) && mode == "check") failed = true;
+            if (mode == "check" && !verifying && label.StartsWith("linux-", StringComparison.Ordinal) && !VerifyPass()) failed = true;
         }
 
-        /// Each patch `harmony` made must be one `name` declares, of that kind.
-        static void AsDeclared(string name, Harmony harmony, List<string> problems)
+        /// The installs again in a process with ONI_TWEAK_VERIFY=1, where tweaks patch more (their
+        /// verify modes' hooks): on the Linux builds, as check.sh's runs are. Its lines from the
+        /// installs on are printed. False when it fails.
+        static bool VerifyPass()
+        {
+            // The process's arguments as started (the host hides its options from GetCommandLineArgs).
+            if (!File.Exists("/proc/self/cmdline")) return true;
+            var args = File.ReadAllText("/proc/self/cmdline").Split('\0', StringSplitOptions.RemoveEmptyEntries).Skip(1).ToList();
+            int log = args.IndexOf("--log");
+            if (log >= 0 && log + 1 < args.Count) args[log + 1] += ".verify";
+            var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { RedirectStandardOutput = true, UseShellExecute = false };
+            foreach (var arg in args) start.ArgumentList.Add(arg);
+            start.Environment["ONI_TWEAK_VERIFY"] = "1";
+            using var process = System.Diagnostics.Process.Start(start)!;
+            bool installs = false;
+            while (process.StandardOutput.ReadLine() is { } line)
+            {
+                if (installs && (line.StartsWith("check-tweaks", StringComparison.Ordinal) || line.StartsWith("  ", StringComparison.Ordinal))) Console.WriteLine(line);
+                else if (line.Contains("the Moono Tweaks menu") && line.Contains("the file checks")) installs = true;
+            }
+            process.WaitForExit();
+            return process.ExitCode == 0;
+        }
+
+        static readonly bool verifying = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
+        const GameUse Patching = GameUse.Prefix | GameUse.Postfix | GameUse.Transpiler | GameUse.Finalizer;
+
+        /// Each patch `name` declares must be among those its installs made (`made`, by
+        /// signature), but an Optional or Conditional member's.
+        static void AllMade(string name, Dictionary<string, GameUse> made, List<string> problems)
+        {
+            foreach (var member in TweakInstall.Declared(name))
+            {
+                var wanted = member.Use & Patching;
+                if (wanted == 0 || member.Optional || member.Conditional) continue;
+                made.TryGetValue(member.Member, out var uses);
+                if ((uses & wanted) != wanted) problems.Add($"{name} declares {member.Member} as {member.Use}, but patches it as {uses & Patching}");
+            }
+        }
+
+        /// Each patch `harmony` made must be one `name` declares, of that kind. They are noted in `made`.
+        static void AsDeclared(string name, Harmony harmony, List<string> problems, Dictionary<string, GameUse>? made = null)
         {
             var declared = TweakInstall.Declared(name);
-            foreach (var method in harmony.GetPatchedMethods().ToList())
+            var patched = harmony.GetPatchedMethods().ToList();
+            foreach (var method in patched)
             {
                 var info = Harmony.GetPatchInfo(method);
                 if (info == null) continue;
                 var uses = Uses(info, harmony.Id);
                 if (uses == GameUse.Uses) continue;
                 string signature = TweakChecks.Signature(method);
-                var member = declared.FirstOrDefault(m => m.Member == signature);
-                if (member == null) problems.Add($"{name} patches {signature} ({uses}), which it does not declare");
-                else if ((member.Use & uses) != uses) problems.Add($"{name} declares {signature} as {member.Use}, but its patches are {uses}");
+                if (made != null) made[signature] = (made.TryGetValue(signature, out var before) ? before : GameUse.Uses) | uses;
+                // A member may be declared twice: its patches of every run and its Conditional ones.
+                GameUse declares = GameUse.Uses;
+                bool any = false;
+                foreach (var m in declared)
+                    if (m.Member == signature) { declares |= m.Use; any = true; }
+                if (!any) problems.Add($"{name} patches {signature} ({uses}), which it does not declare");
+                else if ((declares & uses) != uses) problems.Add($"{name} declares {signature} as {declares}, but its patches are {uses}");
             }
         }
 

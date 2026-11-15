@@ -107,6 +107,10 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Mirrors, "System.Int32 PathFinder/PotentialList/PriorityQueue`1::HeapifyFromEndToBeginning(System.Int32)", "5ce5ef8cb114e509 linux-744825 win-744825")]
     [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList/PriorityQueue`1::DeleteRoot()", "0876982196746de7 linux-744825 win-744825")]
     [GameMember(GameUse.Mirrors, "System.Void PathFinder/PotentialList/PriorityQueue`1::HeapifyFromBeginningToEnd(System.Int32)", "5adc8d43adb98df3 linux-744825 win-744825")]
+    // The digests' and the stats' patches (ONI_PROBE_DIGEST, ONI_PROBE_STATS).
+    [GameMember(GameUse.Postfix, "PathGrid Navigator::TakeResult(AsyncPathProber/WorkResult&)", Conditional = true)]
+    [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void AsyncPathProber/WorkOrder::Execute(PathFinder/PotentialList,PathFinder/PotentialScratchPad,AsyncPathProber/WorkResult&)", Conditional = true)]
+    [GameMember(GameUse.Postfix, "System.Void AsyncPathProber/Manager::TickFrame()", Conditional = true)]
     public static class ProbeRepair
     {
         public const string Name = "path-probe-repair";

@@ -34,7 +34,7 @@ namespace OniMoono.GameTweaks
     /// With ONI_TWEAK_VERIFY=1 the game's TryAdd also runs on a copy of the list and of the new
     /// path, and both lists must end up the same: the same paths, in the same order, with the
     /// same rails.
-    [GameMember(GameUse.Postfix, "System.Void SolidConduitFlow::OnUtilityNetworksRebuilt(System.Collections.Generic.IList`1<UtilityNetwork>,System.Collections.Generic.ICollection`1<System.Int32>)")]
+    [GameMember(GameUse.Postfix, "System.Void SolidConduitFlow::OnUtilityNetworksRebuilt(System.Collections.Generic.IList`1<UtilityNetwork>,System.Collections.Generic.ICollection`1<System.Int32>)", Conditional = true)]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SolidConduitFlow::TryAdd(System.Collections.Generic.List`1<SolidConduitFlow/Conduit>)", "72811b7834149aa6 linux-744825 win-744825")]
     public static class FastConveyorPaths
     {

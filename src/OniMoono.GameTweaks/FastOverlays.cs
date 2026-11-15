@@ -64,7 +64,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Transpiler, "System.Void OverlayModes/Suit::Update()", "6e727b1ea78e102d linux-744825 win-744825", Rewrites = 2)]
     [GameMember(GameUse.Prefix | GameUse.Transpiler | GameUse.Replaces, "System.Void OverlayModes/TileMode::TryAddObject(PrimaryElement,Vector2I,Vector2I)", "79afac687a86706f linux-744825 win-744825", Rewrites = 1)]
     [GameMember(GameUse.Transpiler, "System.Void OverlayModes/TileMode::Update()", "d9b384516d2e22ef linux-744825 win-744825", Rewrites = 2)]
-    [GameMember(GameUse.Prefix, "System.Void OverlayScreen::ToggleOverlay(HashedString,System.Boolean)")]
+    [GameMember(GameUse.Prefix, "System.Void OverlayScreen::ToggleOverlay(HashedString,System.Boolean)", Conditional = true)]
     [GameMember(GameUse.Mirrors, "System.Void TemperatureOverlayInfraredVisualizerBase::OnTemperatureOverlayInfraredUpdate(System.Object)", "bdb63565d9e72b7f linux-744825 win-744825")]
     [GameMember(GameUse.Uses, "System.Action`2<System.Object,System.Object> TemperatureOverlayInfraredVisualizerBase::OverlayInfraredUpdateDispatcher")]
     [GameMember(GameUse.Uses, "System.Void TemperatureOverlayInfraredVisualizerBase::TemperatureOverlayInfraredUpdate(Infrared/TemperatureOverlayInfraredData)")]

@@ -19,7 +19,7 @@ namespace OniMoono.Host.GameTweaks
     [GameMember(GameUse.Postfix, "System.Void Pathfinding::FlushNavGridsOnLoad()")]
     [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<NavGrid> Pathfinding::GetNavGrids()")]
     [GameMember(GameUse.Uses, "Pathfinding Pathfinding::Instance")]
-    [GameMember(GameUse.Postfix, "System.Void Pathfinding::UpdateNavGrids(System.Boolean)")]
+    [GameMember(GameUse.Postfix, "System.Void Pathfinding::UpdateNavGrids(System.Boolean)", Conditional = true)]
     [GameMember(GameUse.Uses, "System.Int32 NavGrid::get_maxLinksPerCell()")]
     [GameMember(GameUse.Uses, "KMod.LoadedModData KMod.DLLLoader::LoadDLLs(KMod.Mod,System.String,System.String,System.Boolean)")]
     internal static class CompactNavLinks
