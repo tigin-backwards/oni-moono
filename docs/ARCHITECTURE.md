@@ -3599,41 +3599,57 @@ Test runs (not the product):
 `Debug.Log*` and the logger/handler surface behave as Unity's (the game replaces the handler).
 Our engine logs through `Brutal.Logging` into the same Player.log-style file
 (`~/.config/unity3d/Klei/Oxygen Not Included/Player.log`), with engine messages tagged
-`[engine]`. GL debug output is enabled in debug builds. As the original release player does
-(UnityProbe's logging scenario), a message of any type (Log, Warning, Error) is written with no
-stack trace, and its callbacks get an empty one, although `Application.GetStackTraceLogType`
-reports ScriptOnly for each type. An exception gets its own frames, innermost exception first, in
-Mono's format (`  at A.B (System.String s) [0x0001f] in <mvid>:0`), then the managed frames of the
-`LogException` call in Unity's (`A:B(String)`), the engine's frames left out where the original's
-are native (`Engine/LogTraces.cs`). The call's frames are the original's: Unity's logging frames
-(`DebugLogHandler`, the handler's, `Logger:LogException`), and for an exception the player caught
-(from Update or a coroutine) `Debug:CallOverridenDebugHandler` when the game replaced the handler,
-none with the default one. A coroutine step's exception ends at Unity's stepper
-(`UnityEngine.SetupCoroutine.InvokeMoveNext`), and a first step's has StartCoroutine's frames and
-its callers after it. The callbacks get the same frames without each UnityEngine frame called by
-another (UnityProbe's cotraces scenario). Unlike Unity's, the file is capped at about 60 MB (D36).
+`[engine]`. GL debug output is enabled in debug builds. Unlike Unity's, the file is capped at
+about 60 MB (D36).
 
-Personal paths (`--log-paths hidden`, the default; `LogScrubber`): what goes to Player.log and to
-stdout has the profile folder replaced by `%USERPROFILE%` (Windows, any case and slash) or `~`,
-the Documents folder outside it by `%DOCUMENTS%`, and the user name as a path segment by
-`<user>`. The accounts go too: any individual account's SteamID64 standing as a whole number
-(17 digits, 76561197960265729 to 76561202255233023, so no mod or Workshop ID; a save path's
-folder, a multiplayer mod's other players) by `<steam id>`; in the game's login line
-(`Logged into Steam with ID:…, NAME:…`, Global) the ID and the persona name by `<steam id>`
-and `<name>`, the name nowhere else, since it can be any word; in KleiAccount's lines the Klei
-user ID (`[Account] Got login for user <klei id>`) and the auth ticket of a failed login
-(`for ticket=<ticket>`). The original writes them all as they are. The path rules are built at
-start-up from those known values (~2 ms; a Regex of them cost ~10 ms); the account rules hold
-no state, so every thread shares them, and need no Steamworks call (the format covers the lines
-before `SteamAPI.Init` and other players). A line is scanned only for the rules whose words it
-has: a slash and a folder's or the user's name, or `76561`, `Logged into ` or `[Account] `
-(vectorized searches; on WSL, release build: ~25 ns a line without a slash, ~55 ns one with a
-path that names no one, ~750 ns one with a save path replaced, against ~5, ~40 and ~420 ns
-before the account rules). The log callbacks (`Application.logMessageReceived*`) get the text
-as logged: mods and the game's crash reporter read it there. The console writer holds a
-partial line until its line break (or a flush, or other output, which writes it first, so the
-order stays), so a path written in pieces is replaced too. The settings are read before the
-log opens, so its first lines are covered.
+Stack traces follow the original release player (UnityProbe's logging scenario):
+
+- **Messages.** A message of any type (Log, Warning, Error) is written with no stack trace, and
+  its callbacks get an empty one, although `Application.GetStackTraceLogType` reports
+  ScriptOnly for each type.
+- **Exceptions.** An exception gets its own frames, innermost exception first, in Mono's format
+  (`  at A.B (System.String s) [0x0001f] in <mvid>:0`), then the managed frames of the
+  `LogException` call in Unity's (`A:B(String)`), the engine's frames left out where the
+  original's are native (`Engine/LogTraces.cs`).
+- **The call's frames** are the original's: Unity's logging frames (`DebugLogHandler`, the
+  handler's, `Logger:LogException`), and for an exception the player caught (from Update or a
+  coroutine) `Debug:CallOverridenDebugHandler` when the game replaced the handler, none with
+  the default one.
+- **Coroutines.** A coroutine step's exception ends at Unity's stepper
+  (`UnityEngine.SetupCoroutine.InvokeMoveNext`), and a first step's has StartCoroutine's frames
+  and its callers after it.
+- **Callbacks** get the same frames without each UnityEngine frame called by another
+  (UnityProbe's cotraces scenario).
+
+Personal paths (`--log-paths hidden`, the default; `LogScrubber`). What goes to Player.log and
+to stdout has these replaced:
+
+- **Paths.** The profile folder by `%USERPROFILE%` (Windows, any case and slash) or `~`, the
+  Documents folder outside it by `%DOCUMENTS%`, and the user name as a path segment by `<user>`.
+- **SteamIDs.** Any individual account's SteamID64 standing as a whole number by `<steam id>`
+  (17 digits, 76561197960265729 to 76561202255233023, so no mod or Workshop ID; a save path's
+  folder, a multiplayer mod's other players).
+- **The login line.** In the game's login line (`Logged into Steam with ID:…, NAME:…`, Global)
+  the ID and the persona name by `<steam id>` and `<name>`. The name is replaced nowhere else,
+  since it can be any word.
+- **KleiAccount's lines.** The Klei user ID (`[Account] Got login for user <klei id>`) and the
+  auth ticket of a failed login (`for ticket=<ticket>`).
+
+The original writes them all as they are. How it works:
+
+- **Rules.** The path rules are built at start-up from those known values (~2 ms; a Regex of
+  them cost ~10 ms). The account rules hold no state, so every thread shares them, and need no
+  Steamworks call (the format covers the lines before `SteamAPI.Init` and other players).
+- **Cost.** A line is scanned only for the rules whose words it has: a slash and a folder's or
+  the user's name, or `76561`, `Logged into ` or `[Account] `. The searches are vectorized. On
+  WSL, release build: ~25 ns a line without a slash, ~55 ns one with a path that names no one,
+  ~750 ns one with a save path replaced, against ~5, ~40 and ~420 ns before the account rules.
+- **Callbacks.** The log callbacks (`Application.logMessageReceived*`) get the text as logged:
+  mods and the game's crash reporter read it there.
+- **Partial lines.** The console writer holds a partial line until its line break (or a flush,
+  or other output, which writes it first, so the order stays), so a path written in pieces is
+  replaced too.
+- **Start.** The settings are read before the log opens, so its first lines are covered.
 
 **Native crashes** (Windows; `src/OniMoono.NativeHost/crash.c`, `NativeCrashes.cs`). A crash in
 native code (the GPU driver, Klei's SimDLL, a mod's library, the runtime) has no managed
@@ -3675,142 +3691,197 @@ of GPU memory, residency limits overflowed), the text ending in `(pid=N ...)` (r
 events for the game's process from the last 10 minutes, oldest first, after any crash:
 `native crash: NVIDIA's OpenGL driver, S s before the end: TEXT`.
 
-The record is written by a watcher: OniMoono.exe starts a second copy of itself (`--crash-watch`,
-with inherited handles: no paths on its command line, so `win-run.ps1 -Match RUN_HOME` finds only
-the game) before the runtime, sharing a page of memory with the game. The watcher waits for the
-game to end, and when it ends without the player's own exit (`Player.ProcessExit`, `Main`'s
-return and `AppDomain.ProcessExit` say so, with their exit code) it appends the record. It writes
-after the end because the log's own writer writes at its own offset and would write over lines
-added while the game runs. In the game, a vectored handler added after the runtime's notes a
-fault the runtime left alone (so not one in managed code); native code may still handle it then,
-so the note is used only when the game then ends with that fault's code. The unhandled-exception
-filter, set over the runtime's once it is up, notes a fault and calls the runtime's after. A
-note copies the fault into the shared page and a thread made at start formats it there (the
-faulting thread may have no stack left; nothing allocates; a structured exception handler covers
-a broken stack). Standard error goes to the watcher through a pipe with no buffer and from there
-to where it went before, if anywhere; when the runtime's `Fatal error.` text starts, the watcher
-suspends the game, writes the minidump and lets it go on (the runtime's next write waits for the
-watcher's next read, so the game can't end first). A player started from a terminal keeps its
-console, so a P/Invoke fault there gets no runtime text and no dump. The watcher costs about
-5 ms at start and 1.8 MB (7 MB working set); `ONI_MOONO_CRASH_WATCH=off` leaves it out. To
-Steam it is a child process that ends with the game; the game is still the process Steam started.
+The record is written by a watcher. OniMoono.exe starts a second copy of itself
+(`--crash-watch`, with inherited handles: no paths on its command line, so
+`win-run.ps1 -Match RUN_HOME` finds only the game) before the runtime, sharing a page of memory
+with the game.
 
-The dump (MiniDumpNormal with thread information, unloaded modules and indirectly referenced
+- **When it writes.** The watcher waits for the game to end. When it ends without the player's
+  own exit (`Player.ProcessExit`, `Main`'s return and `AppDomain.ProcessExit` say so, with their
+  exit code) it appends the record. It writes after the end because the log's own writer writes
+  at its own offset and would write over lines added while the game runs.
+- **Noting a fault.** In the game, a vectored handler added after the runtime's notes a fault
+  the runtime left alone (so not one in managed code). Native code may still handle it then, so
+  the note is used only when the game then ends with that fault's code. The
+  unhandled-exception filter, set over the runtime's once it is up, notes a fault and calls the
+  runtime's after.
+- **Formatting.** A note copies the fault into the shared page and a thread made at start
+  formats it there (the faulting thread may have no stack left; nothing allocates; a structured
+  exception handler covers a broken stack).
+- **Standard error** goes to the watcher through a pipe with no buffer and from there to where
+  it went before, if anywhere. When the runtime's `Fatal error.` text starts, the watcher
+  suspends the game, writes the minidump and lets it go on (the runtime's next write waits for
+  the watcher's next read, so the game can't end first). A player started from a terminal keeps
+  its console, so a P/Invoke fault there gets no runtime text and no dump.
+- **Cost.** The watcher costs about 5 ms at start and 1.8 MB (7 MB working set).
+  `ONI_MOONO_CRASH_WATCH=off` leaves it out.
+- **Steam.** To Steam it is a child process that ends with the game. The game is still the
+  process Steam started.
+
+The dump is MiniDumpNormal with thread information, unloaded modules and indirectly referenced
 memory: about 0.6 MB at start-up, 4.6 MB at the main menu, 5.7 MB in a 200-Duplicant colony,
-written in under a second) holds the threads' registers and stacks, the module list with full
-paths and 1 KB of memory around each value on a stack that points into memory, so the heap
-blocks and objects the threads were using are in it. For a heap corruption (0xC0000374) it also
-holds ntdll's record of the failure, which the exception points at, with 1 KB around the damaged
-block it names and the start of its heap. These are small pieces of the game's memory, so the
-dump can hold whatever the game had in them: parts of file paths, names, text. The rest of the
-heap is left out. It is written only on a crash and never sent anywhere; it is on by
-default, as a player sends it only by attaching it to a report, and `--crash-dumps off` leaves it
-out. The watcher keeps the two newest dumps, full ones included: before it writes one, it
-deletes all but the newest of the older `crash-*.dmp` files beside the log. Module paths in the
-crash line are hidden as the log's are (`--log-paths`).
+written in under a second.
+
+- **What it holds.** The threads' registers and stacks, the module list with full paths and
+  1 KB of memory around each value on a stack that points into memory, so the heap blocks and
+  objects the threads were using are in it. For a heap corruption (0xC0000374) it also holds
+  ntdll's record of the failure, which the exception points at, with 1 KB around the damaged
+  block it names and the start of its heap.
+- **Privacy.** These are small pieces of the game's memory, so the dump can hold whatever the
+  game had in them: parts of file paths, names, text. The rest of the heap is left out. It is
+  written only on a crash and never sent anywhere. It is on by default, as a player sends it
+  only by attaching it to a report, and `--crash-dumps off` leaves it out.
+- **Kept dumps.** The watcher keeps the two newest dumps, full ones included: before it writes
+  one, it deletes all but the newest of the older `crash-*.dmp` files beside the log.
+- Module paths in the crash line are hidden as the log's are (`--log-paths`).
 
 `--crash-dumps full` (or `ONI_CRASH_DUMPS=full`, which takes the place of the option for test
-runs) writes a dump with memory, for diagnosing heap corruption (issue #56): the process's private
-read-write memory, which holds every heap (the game's, the drivers', the runtime's managed heap),
-with the modules' data sections (ntdll's heap globals and its record of the heap failure, which
-`!heap` needs to decode the heaps) and the layout of all memory (`!address`). Mapped images and
-files are left out (the debugger reads them from disk), which is what makes it smaller than a
-full-memory dump; private read-only regions are left out too (two 24 KB heaps at start-up).
-`!heap -s` then names the damaged block, the failure's type and its stack, and `!heap -x` the
-block's heap and segment (`--test-native-crash heap`: 20 MB at start-up). Its size is about the
-game's private memory, several GB in a colony, and it holds everything the game had in memory
-(the colony, text, file paths and whatever else the process read), so it is for test runs and for
-a player who agrees to send it; the default stays the small dump.
+runs) writes a dump with memory, for diagnosing heap corruption (issue #56):
+
+- **What it holds.** The process's private read-write memory, which holds every heap (the
+  game's, the drivers', the runtime's managed heap), with the modules' data sections (ntdll's
+  heap globals and its record of the heap failure, which `!heap` needs to decode the heaps) and
+  the layout of all memory (`!address`).
+- **What it leaves out.** Mapped images and files (the debugger reads them from disk), which is
+  what makes it smaller than a full-memory dump. Private read-only regions are left out too
+  (two 24 KB heaps at start-up).
+- **Reading it.** `!heap -s` then names the damaged block, the failure's type and its stack,
+  and `!heap -x` the block's heap and segment (`--test-native-crash heap`: 20 MB at start-up).
+- **Size and privacy.** Its size is about the game's private memory, several GB in a colony,
+  and it holds everything the game had in memory (the colony, text, file paths and whatever
+  else the process read). So it is for test runs and for a player who agrees to send it. The
+  default stays the small dump.
 
 **The crash window** (`crash_dialog.cpp`). Once the watcher has written a crash record it shows
-a window, the onimaxxing site's dialog in its light or dark palette: "The game closed
-unexpectedly", the error line taken from the record (the fault's code, its name and module, as
-`0xC0000005 (access violation) in nvoglv64.dll`, a fast fail's module from Windows Error Reporting
-as `0xC0000409 (fast fail) in SimDLL.dll`; an unhandled managed exception's type, method and
-message; or the exit code and its name, as `0xC0000409 (fast fail)`), **Show details** (Moono's
-release, the game's build, Windows, the GPU and its driver, installed memory, the session's
-length, the enabled mods, the files), a box for what the player was doing, a check box to include
-the dump (its size; left out when there is none, greyed over 96 MB), **Close** and **Report on
-GitHub**. Reporting packs `Player.log` (a log over 32 MB keeps its first 4 and last 28 MB, with a
-line between) and the dump if ticked into `OniMoono-crash-YYYYMMDD-hhmm.zip` beside the log (our
-own deflate; under 24 MB, else without the dump: GitHub takes no `.dmp` and files up to 25 MB),
-opens `issues/new` of this repository in the default browser with the title `Crash: <error>` and
-the note, the details and a line asking for the zip as the body (under 7,500 characters; a long
-note is cut with "…"), and then shows the zip as a chip to drag into the page (a shell data object,
-as Explorer drags a file; clicking it shows it in Explorer). Nothing is sent by the window: the
-player submits the issue, or not. The game gives the watcher what only it knows through
+a window, the onimaxxing site's dialog in its light or dark palette. It has:
+
+- The heading "The game closed unexpectedly".
+- The error line taken from the record: the fault's code, its name and module, as
+  `0xC0000005 (access violation) in nvoglv64.dll`, a fast fail's module from Windows Error
+  Reporting as `0xC0000409 (fast fail) in SimDLL.dll`; an unhandled managed exception's type,
+  method and message; or the exit code and its name, as `0xC0000409 (fast fail)`.
+- **Show details:** Moono's release, the game's build, Windows, the GPU and its driver,
+  installed memory, the session's length, the enabled mods, the files.
+- A box for what the player was doing.
+- A check box to include the dump (its size; left out when there is none, greyed over 96 MB).
+- **Close** and **Report on GitHub**.
+
+Reporting:
+
+1. It packs `Player.log` (a log over 32 MB keeps its first 4 and last 28 MB, with a line
+   between) and the dump if ticked into `OniMoono-crash-YYYYMMDD-hhmm.zip` beside the log (our
+   own deflate; under 24 MB, else without the dump: GitHub takes no `.dmp` and files up to
+   25 MB).
+2. It opens `issues/new` of this repository in the default browser with the title
+   `Crash: <error>` and the note, the details and a line asking for the zip as the body (under
+   7,500 characters; a long note is cut with "…").
+3. It shows the zip as a chip to drag into the page (a shell data object, as Explorer drags a
+   file; clicking it shows it in Explorer).
+
+Nothing is sent by the window: the player submits the issue, or not.
+
+Where the details come from: the game gives the watcher what only it knows through
 `moono_crash_describe` (`NativeCrashes.Describe`): its release, its window (the crash window opens
 centred on that monitor), the GPU's renderer string, and from the main menu the game's build, its
-language (English, or Simplified Chinese for `zh`) and the mods' count; the watcher adds Windows'
-version, the driver version (DXGI) and the memory itself. The window is drawn without the GPU, as
-the driver may be what crashed: Direct2D into a WIC bitmap through a software render target, with
-DirectWrite text in Gabarito and Red Hat Mono (the site's fonts, SIL OFL 1.1, embedded and loaded
-from memory; CJK and other missing characters fall back to the system's fonts). Its controls are
-standard ones (buttons, a check box, an edit box, through comctl32 v6 in an activation context of
-its own, so the process's manifest is unchanged), each painting its part of the drawing, so Tab,
-Enter (Report on GitHub), Esc and screen readers work as in any dialog. The error line and the
-details are read-only rich edit controls over their drawn text, in the same fonts, colours and
-line spacing, so they can be selected and copied with the mouse or the keyboard and read by
-screen readers (rich edit also picks a font for characters ours lack); where rich edit wraps a
-line more than DirectWrite, the box grows. Each control's MSAA role and state come from a
-Dynamic Annotation server that reads them when asked (button, check box and whether it is
-checked, focus, enabled, the default button, and for "Show details" expanded or collapsed, whose
-name is "Hide details" when open). Its theme follows Windows' app mode (high contrast: the system's colours), with a dark or
-light title bar coloured as the palette's on Windows 11. Every size is in DIPs times the monitor's
-scale, the watcher's thread per-monitor DPI aware (v2), relaid out on `WM_DPICHANGED`; lines are
-whole pixels. Text and what holds it (lines, buttons, the check box, the icons) also scale by
-Windows' text size (Accessibility > Text size, `TextScaleFactor`, 100 to 225%), re-read on
-`WM_SETTINGCHANGE`; the window widens by half as much and grows as the text wraps. The executable's
-manifest still declares no DPI awareness, so the game's process is as before (GLFW sets its
-own). `--crash-dialog off` or `ONI_MOONO_CRASH_DIALOG=off` leaves the window out (the record and
-the dump stay), and so does `ONI_MOONO_CRASH_WATCH=off`, which leaves out the watcher; a run with
-`--run-home` (every test run) shows none unless `--crash-dialog on`, so a crash in a test never
-leaves a window waiting. `ONI_MOONO_CRASH_DIALOG=inactive` shows it without taking the focus (to
-look at it in a test run), and an end by Ctrl+C, by Windows shutting down or from outside with
-exit code -1 shows none. While it is
-open the watcher is still running, so Steam counts the game as running until it closes.
+language (English, or Simplified Chinese for `zh`) and the mods' count. The watcher adds Windows'
+version, the driver version (DXGI) and the memory itself.
+
+How it is drawn:
+
+- **Without the GPU,** as the driver may be what crashed: Direct2D into a WIC bitmap through a
+  software render target, with DirectWrite text in Gabarito and Red Hat Mono (the site's fonts,
+  SIL OFL 1.1, embedded and loaded from memory; CJK and other missing characters fall back to
+  the system's fonts).
+- **Controls** are standard ones (buttons, a check box, an edit box, through comctl32 v6 in an
+  activation context of its own, so the process's manifest is unchanged), each painting its
+  part of the drawing. So Tab, Enter (Report on GitHub), Esc and screen readers work as in any
+  dialog.
+- **Selectable text.** The error line and the details are read-only rich edit controls over
+  their drawn text, in the same fonts, colours and line spacing, so they can be selected and
+  copied with the mouse or the keyboard and read by screen readers (rich edit also picks a font
+  for characters ours lack). Where rich edit wraps a line more than DirectWrite, the box grows.
+- **Accessibility.** Each control's MSAA role and state come from a Dynamic Annotation server
+  that reads them when asked (button, check box and whether it is checked, focus, enabled, the
+  default button, and for "Show details" expanded or collapsed, whose name is "Hide details"
+  when open).
+- **Theme.** It follows Windows' app mode (high contrast: the system's colours), with a dark or
+  light title bar coloured as the palette's on Windows 11.
+- **Scaling.** Every size is in DIPs times the monitor's scale, the watcher's thread
+  per-monitor DPI aware (v2), relaid out on `WM_DPICHANGED`; lines are whole pixels. Text and
+  what holds it (lines, buttons, the check box, the icons) also scale by Windows' text size
+  (Accessibility > Text size, `TextScaleFactor`, 100 to 225%), re-read on `WM_SETTINGCHANGE`;
+  the window widens by half as much and grows as the text wraps. The executable's manifest
+  still declares no DPI awareness, so the game's process is as before (GLFW sets its own).
+
+When it shows:
+
+- `--crash-dialog off` or `ONI_MOONO_CRASH_DIALOG=off` leaves the window out (the record and
+  the dump stay), and so does `ONI_MOONO_CRASH_WATCH=off`, which leaves out the watcher.
+- A run with `--run-home` (every test run) shows none unless `--crash-dialog on`, so a crash in
+  a test never leaves a window waiting.
+- `ONI_MOONO_CRASH_DIALOG=inactive` shows it without taking the focus (to look at it in a test
+  run).
+- An end by Ctrl+C, by Windows shutting down or from outside with exit code -1 shows none.
+- While it is open the watcher is still running, so Steam counts the game as running until it
+  closes.
+- Linux has no crash window (no native host).
+
 `OniMoono.exe --crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--text-size T]
 [--sample gpu|managed|fastfail] [--language zh] [--details-open] [--reported]` draws it to a PNG from sample
-facts, with a drawn title bar, showing nothing; `check-native-crash.sh` checks such renders, the zip
-(with Python's `zipfile`) and the issue link, and that no crash case leaves a watcher running.
-Linux has no crash window (no native host).
+facts, with a drawn title bar, showing nothing. `check-native-crash.sh` checks such renders, the
+zip (with Python's `zipfile`) and the issue link, and that no crash case leaves a watcher
+running.
 
-On Linux nothing is recorded: the Linux player is the SDK's apphost, with no native code of ours
+On Linux nothing is recorded. The Linux player is the SDK's apphost, with no native code of ours
 to install a signal handler, and the runtime reads its own dump settings only from the environment
 at start. A player can set them in the launch options, before the command:
 `DOTNET_DbgEnableMiniDump=1 DOTNET_DbgMiniDumpType=1 DOTNET_EnableCrashReport=1 "…/OniMoono" --
 %command%` writes a dump and a `.crashreport.json` (each thread's frames, with modules) to `/tmp`,
-or to `DOTNET_DbgMiniDumpName`. `scripts/check-native-crash.sh` (in `check.sh`) runs every case
-above on Windows, as Steam starts the player and with standard error redirected, and on Linux the
-caught null reference and that recipe.
+or to `DOTNET_DbgMiniDumpName`.
 
-Development diagnostics (host options, never needed by players): `--trace-exceptions` logs every
-first-chance exception with per-frame IL offsets (the game ships without symbols; the offset
-and `ilspycmd -il` locate the throwing instruction); `--capture FRAME:PATH[:SCALE]` writes a
-screenshot through `ScreenCapture.CaptureScreenshot`; `--input FRAME:ACTION[:ARGS]` feeds scripted
-mouse/keyboard/wheel/text input through the window's input path (held keys for chords such as
-Ctrl+F4); `--dump-render-textures FRAME:DIR` writes
-the screen and every live render texture as PNG at the end of a frame; `--dump-shader NAME:DIR`
-writes a shader's GLCore variants and pass state; `--frame-stats` logs per-phase frame times
-and the GPU time per frame (timer queries), any frame over 250 ms with its own breakdown, and every 600 frames the process memory and the managed heap, the game's speed, sim step and update parts (patches of the game's methods made only with frame stats on), the main thread's waits, the runtime's counts and the machine's state (PERFORMANCE.md, "Frame stats in a player's log"); `--max-frame-rate N[:FRAMES]` bounds the frame rate
-(for the first FRAMES frames) so scripted schedules that count frames hold on unpaced displays;
-`--probe-ui FRAME:X,Y` logs the canvas elements drawn at a window point with their hierarchy
-path, material, texture, colour and group alpha; `--dump-hierarchy FRAME:PATH` logs a subtree's
-active flags, rects and components; `--dump-component FRAME:PATH|TYPE` logs a component's serialized fields;
-`--report-builtin-assets FILE` writes the objects a run loaded
-from Unity's built-in resource files (docs/LICENSING.md); `--check-*` run the corpus gates.
-`ONI_OBJECT_CENSUS=N[:MARK]` logs every N frames the live render textures (how many, how many
-allocated on the device, their estimated bytes), textures, meshes, materials and sprites, each
-against the census at frame MARK; with `ONI_OBJECT_SITES=1` it also lists the creation sites
-(the game or mod methods) holding most of the objects made since then: what piles up until
-Resources.UnloadUnusedAssets (ObjectCensus).
+`scripts/check-native-crash.sh` (in `check.sh`) runs every case above on Windows, as Steam
+starts the player and with standard error redirected, and on Linux the caught null reference
+and that recipe.
 
-CPU profiles: `perf record -e cpu-clock:u -g` (user-mode sampling needs no privileges at the
-default `perf_event_paranoid` 2) with `DOTNET_PerfMapEnabled=1`; the runtime maps JIT code twice
-(W^X), so samples fall in a `memfd:doublemapper` mapping and are resolved against
-`/tmp/perf-PID.map` by address. `dotnet-trace`'s thread-time sampling stops threads at GC safe
-points and charges the time before a safe point to the method that reaches it (it showed lock
-and GC-poll time that perf does not), so it is not used for self time. Locks show worst: while
+Development diagnostics (host options, never needed by players):
+
+- `--trace-exceptions` logs every first-chance exception with per-frame IL offsets (the game
+  ships without symbols; the offset and `ilspycmd -il` locate the throwing instruction).
+- `--capture FRAME:PATH[:SCALE]` writes a screenshot through `ScreenCapture.CaptureScreenshot`.
+- `--input FRAME:ACTION[:ARGS]` feeds scripted mouse/keyboard/wheel/text input through the
+  window's input path (held keys for chords such as Ctrl+F4).
+- `--dump-render-textures FRAME:DIR` writes the screen and every live render texture as PNG at
+  the end of a frame.
+- `--dump-shader NAME:DIR` writes a shader's GLCore variants and pass state.
+- `--frame-stats` logs per-phase frame times and the GPU time per frame (timer queries), any
+  frame over 250 ms with its own breakdown, and every 600 frames the process memory and the
+  managed heap, the game's speed, sim step and update parts (patches of the game's methods made
+  only with frame stats on), the main thread's waits, the runtime's counts and the machine's
+  state (PERFORMANCE.md, "Frame stats in a player's log").
+- `--max-frame-rate N[:FRAMES]` bounds the frame rate (for the first FRAMES frames) so scripted
+  schedules that count frames hold on unpaced displays.
+- `--probe-ui FRAME:X,Y` logs the canvas elements drawn at a window point with their hierarchy
+  path, material, texture, colour and group alpha.
+- `--dump-hierarchy FRAME:PATH` logs a subtree's active flags, rects and components.
+- `--dump-component FRAME:PATH|TYPE` logs a component's serialized fields.
+- `--report-builtin-assets FILE` writes the objects a run loaded from Unity's built-in resource
+  files (docs/LICENSING.md).
+- `--check-*` run the corpus gates.
+- `ONI_OBJECT_CENSUS=N[:MARK]` logs every N frames the live render textures (how many, how many
+  allocated on the device, their estimated bytes), textures, meshes, materials and sprites,
+  each against the census at frame MARK. With `ONI_OBJECT_SITES=1` it also lists the creation
+  sites (the game or mod methods) holding most of the objects made since then: what piles up
+  until Resources.UnloadUnusedAssets (ObjectCensus).
+
+CPU profiles:
+
+- **perf:** `perf record -e cpu-clock:u -g` (user-mode sampling needs no privileges at the
+  default `perf_event_paranoid` 2) with `DOTNET_PerfMapEnabled=1`. The runtime maps JIT code
+  twice (W^X), so samples fall in a `memfd:doublemapper` mapping and are resolved against
+  `/tmp/perf-PID.map` by address.
+- **dotnet-trace** is not used for self time. Its thread-time sampling stops threads at GC safe
+  points and charges the time before a safe point to the method that reaches it (it showed lock
+  and GC-poll time that perf does not). Locks show worst: while
 a suspension is pending, CoreCLR's Monitor.Enter fast path declines (CatchAtSafePoint) and the
 thread stops in Monitor.Enter_Slowpath, so a frequently taken uncontended lock looks like
 spinning (U57 on U60, Windows: 4.5 s in 30 s under the game's Singleton.Instance, which perf puts at 0.1 ms
