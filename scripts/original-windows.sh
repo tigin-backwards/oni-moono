@@ -15,7 +15,8 @@
 #   run home (saves, settings, mods), the game's audio goes to <run home>\fmodoutput.wav, and
 #   without a run home, or when a redirection fails, the player ends before reading any user
 #   data. It confirms in <run home>\original-isolation.txt; when the confirmation is not there 3 s
-#   after Unity's log appears (60 s after the start without a log), the launcher ends the player;
+#   after Unity's log appears (60 s after the start without a log), the launcher ends the player
+#   and this script exits 3;
 # - the offline Steam double replaces steam_api64.dll (ONI_STEAM_STUB=PATH: another one, a local
 #   test setup's), so no Steam client or account is involved;
 # - ignorekcrashreporter.txt keeps crash reports local;
@@ -173,5 +174,7 @@ foreach (\$pair in @(@("\$env:USERPROFILE\\AppData\\LocalLow\\Klei\\\$product", 
   }
 }
 \$result
+if (\$why) { exit 3 }
 EOF
+# Its exit code is the launcher's (pipefail): 3 when the isolation failed.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w "$ps1")" | tr -d '\r'
