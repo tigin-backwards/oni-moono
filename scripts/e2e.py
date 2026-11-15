@@ -230,6 +230,7 @@ TEST_MODS = (
     'CommandLineTestMod',
     'ReachStressTestMod',
     'RailLoopTestMod',
+    'CritterTurnsTestMod',
     'TimelapseProbeTestMod',
     'TimelapseTimingTestMod',
 )
