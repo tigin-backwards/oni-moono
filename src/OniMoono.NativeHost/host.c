@@ -351,6 +351,15 @@ int wmain(int argc, wchar_t **argv)
 {
     if (argc >= 2 && wcscmp(argv[1], L"--crash-watch") == 0) return crash_watch(argc, argv);
     if (argc >= 2 && wcscmp(argv[1], L"--crash-dialog-render") == 0) return crash_dialog_render(argc, argv);
+    /* ONI_AFFINITY=HEXMASK (tests of small machines): the logical processors this process may
+       run on, set before the runtime starts so that it counts only those (its processor
+       count, the GC's heaps, every pool sized by them). */
+    wchar_t affinity[32];
+    if (GetEnvironmentVariableW(L"ONI_AFFINITY", affinity, _countof(affinity)))
+    {
+        DWORD_PTR mask = (DWORD_PTR)_wcstoui64(affinity, NULL, 16);
+        if (mask) SetProcessAffinityMask(GetCurrentProcess(), mask);
+    }
     static wchar_t exe[LONG_PATH], dir[LONG_PATH], app[LONG_PATH], fxr[LONG_PATH];
     DWORD length = GetModuleFileNameW(NULL, exe, LONG_PATH);
     if (length == 0 || length >= LONG_PATH) return fail((int)GetLastError(), L"the executable's own path is unknown", NULL);

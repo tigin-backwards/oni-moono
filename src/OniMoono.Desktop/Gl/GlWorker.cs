@@ -143,6 +143,7 @@ namespace OniMoono.Desktop.Gl
                 finished = null;
                 spare = null;
                 submitted = recording;
+                submittedAt = GlTimings.Now;
                 Monitor.PulseAll(gate);
             }
             recording = next ?? new Frame();
@@ -161,6 +162,22 @@ namespace OniMoono.Desktop.Gl
 
         // The executed frame, returned to the main thread for reuse.
         Frame finished;
+
+        // When `submitted` was handed over (under the gate).
+        long submittedAt;
+
+        /// When the frame (or call) that waits for the GL thread was handed over; 0 with none
+        /// waiting. GL thread, from idle work: how long its piece of work has held a frame up.
+        public long WaitingSince
+        {
+            get
+            {
+                lock (gate) return submitted != null ? submittedAt : 0;
+            }
+        }
+
+        /// Frames and calls the GL thread has executed (GL thread).
+        public long Batches;
 
         /// Runs `work` on the GL thread after everything recorded so far and returns its result.
         /// Throws GlDeviceStoppedException once the GL thread has stopped (the window closed),
@@ -262,6 +279,7 @@ namespace OniMoono.Desktop.Gl
                     busyBefore += GlTimings.Now - busyFrom;
                     System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.GlBusyTicks, GlTimings.Now - start);
                     frame.Reset();
+                    Batches++;
                     lock (gate)
                     {
                         submitted = null;

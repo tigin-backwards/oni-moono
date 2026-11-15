@@ -195,6 +195,10 @@ namespace OniMoono.Desktop.Gl
             return shader.Id;
         }
 
+        /// The last LinkProgram's read of the link status (GL thread): a driver that links
+        /// later has to finish there.
+        public static long LinkStatusTicks;
+
         public static uint LinkProgram(uint vertex, uint fragment, uint geometry, out string log)
         {
             var program = N.glCreateProgram();
@@ -206,7 +210,9 @@ namespace OniMoono.Desktop.Gl
             N.glDetachShader(program, new GlShader(fragment));
             if (geometry != 0) N.glDetachShader(program, new GlShader(geometry));
             int ok = 0, logLength = 0;
+            long statusStart = System.Diagnostics.Stopwatch.GetTimestamp();
             N.glGetProgramiv(program, GlConst.LinkStatus, &ok);
+            LinkStatusTicks = System.Diagnostics.Stopwatch.GetTimestamp() - statusStart;
             N.glGetProgramiv(program, GlConst.InfoLogLength, &logLength);
             log = "";
             if (logLength > 1)
