@@ -66,6 +66,9 @@ namespace OniMoono.GameTweaks
                 prefix: new HarmonyMethod(typeof(ColonySummaryWrite), nameof(Reading)));
         }
 
+        /// The method another owner's patch makes a save's call the game's (ModOverlaps).
+        internal static MethodBase Guarded() => target ?? AccessTools.Method(typeof(RetireColonyUtility), nameof(RetireColonyUtility.SaveColonySummaryData));
+
         static void SaveStarting() => saving++;
 
         static void SaveEnded() => saving = Math.Max(0, saving - 1);

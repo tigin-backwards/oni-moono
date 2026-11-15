@@ -75,7 +75,16 @@ It only shows what it finds. It never turns a tweak on or off. The grades:
   `fast-overlays` (the overlay methods each of its parts stands in for),
   `fast-overlay-textures` (`MultipleRenderTargetProxy.CreateRenderTarget`), `fast-anim-events`
   (the animation event loop and what it reads; see [Animation events](#animation-events)),
+  `sim-step-pace` (`Game.SimEveryTick` and `UnsafeSim200ms`),
+  `instant-reachability` (the reachability monitor, the Duplicants' reach table, work cells and
+  offsets), `fetch-by-cell` (the fetch groups' update and lists, what makes an item pickable and
+  the fetch order; for path costs and probes only its skip of unreachable worlds),
+  `fast-table-rows` (the tables' widget lookups and Consumables' scroller refresh),
+  `lazy-table-refresh` (the tables' update, sort and row refresh and the columns' dirty marks),
+  `fast-serialization` (for the report history only: the serializer's writers),
+  `background-save` (for the colony summary only: `RetireColonyUtility.SaveColonySummaryData`),
   and the two rewrites for a transpiler they did not review. The icon is the grey disabled sign.
+  A tweak that steps aside stays off until the game restarts.
 
 Where overlaps show:
 

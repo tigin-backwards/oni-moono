@@ -212,6 +212,13 @@ namespace OniMoono.GameTweaks
             Add(FastOverlayRemovals.Name, FastOverlayRemovals.Guarded);
             Add(DirectRailBridges.Name, DirectRailBridges.Guarded);
             Add(OffWorldFallers.Name, OffWorldFallers.Guarded, OffWorldFallers.KindsOf);
+            Add(InstantReachability.Name, InstantReachability.Guarded);
+            Add(FetchByCell.Name, FetchByCell.Guarded);
+            Add(FastTableRows.Name, FastTableRows.Guarded);
+            Add(LazyTableRefresh.Name, LazyTableRefresh.Guarded);
+            // fast-serialization's report writer and background-save's colony summary.
+            Add(ReportEntries.Name, ReportEntries.Guarded);
+            Add(ColonySummaryWrite.Name, () => new[] { ColonySummaryWrite.Guarded() });
             return guards;
         }
     }
