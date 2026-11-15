@@ -11,9 +11,9 @@ holds the Windows slot also gets:
 - ONI_WIN_MONITOR=2 (win_monitor), whatever the caller set: test windows never go on monitor 1;
 - a run home whose game settings have every volume at 0 (mute_prefs).
 
-The Windows backend lists game processes (read-only), and kills or boosts only the games whose
-command line contains a job's run home. It never acts by process name, never focuses a window
-and never moves the pointer. FakeWindows stands in for it in tests."""
+The Windows backend lists game processes (read-only), and kills or boosts only a job's games:
+those whose command line contains its run home, and those recorded for it, by pid and start time.
+It never acts by process name, never focuses a window and never moves the pointer. FakeWindows stands in for it in tests."""
 
 import json, os, re, subprocess
 
@@ -370,7 +370,6 @@ class Windows:
         self.ps1 = ps1
         self.powershell = windows_exe('powershell.exe', 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0')
         self.cmd = windows_exe('cmd.exe')
-        self.reg = windows_exe('reg.exe')
 
     def _ps(self, *args, timeout=60):
         win = subprocess.run(['wslpath', '-w', self.ps1], capture_output=True, text=True).stdout.strip()
@@ -439,19 +438,6 @@ class Windows:
         answer = r.stdout.strip().upper()
         return {'ON': True, 'OFF': False}.get(answer)
 
-    def user_in_oni(self):
-        """Steam's RunningAppID is ONI's (read-only)."""
-        r = subprocess.run(
-            [self.reg, 'query', r'HKCU\Software\Valve\Steam', '/v', 'RunningAppID'],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            stdin=subprocess.DEVNULL,
-            cwd='/mnt/c',
-        )
-        match = re.search(r'RunningAppID\s+REG_DWORD\s+0x([0-9a-fA-F]+)', r.stdout)
-        return bool(match) and int(match.group(1), 16) == STEAM_APP
-
     def remove(self, win_path):
         """Removes a job's Windows folder (rm -rf of its WSL path: links are removed, not followed)."""
         import shutil
@@ -466,7 +452,7 @@ class FakeWindows:
     """Records every call; games are what the test puts in .procs ({pid, name, cmdline})."""
 
     def __init__(self, temp='C:\\Users\\test\\AppData\\Local\\Temp', root=None):
-        self.calls, self.procs, self.in_oni, self._temp, self.root = [], [], False, temp, root
+        self.calls, self.procs, self._temp, self.root = [], [], temp, root
         self.policy = {}  # interop socket -> prefers System32 (True/False)
 
     def available(self):
@@ -496,9 +482,6 @@ class FakeWindows:
         self.calls.append(('killpid', pid, created))
         self.procs = [p for p in self.procs if not (p['pid'] == pid and p.get('created') == created)]
         return ''
-
-    def user_in_oni(self):
-        return self.in_oni
 
     def prefers_system32(self, interop):
         self.calls.append(('probe', interop))
