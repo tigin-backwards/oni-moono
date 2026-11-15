@@ -74,15 +74,9 @@ namespace OniMoono.GameTweaks
 
         static bool Foreign()
         {
-            var info = Harmony.GetPatchInfo(target);
-            if (info == null) return false;
-            foreach (var o in info.Owners)
-                if (!ModOverlapsCore.IsTweakOwner(o))
-                {
-                    global::Debug.Log($"{Name}: off ({o} patches StateMachineController.GetSMI)");
-                    return true;
-                }
-            return false;
+            if (ForeignPatches.Find(target) is not { } why) return false;
+            global::Debug.Log($"{Name}: off ({why})");
+            return true;
         }
 
         /// StateMachineController.GetSMI(Type), from the kept answers.

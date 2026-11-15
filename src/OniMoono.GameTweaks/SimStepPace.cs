@@ -24,8 +24,8 @@ namespace OniMoono.GameTweaks
     /// liquid change callbacks arrive with the next step, up to 0.2 s later than without the
     /// tweak; as the game does below 60 fps and at speeds 2 and 3.
     ///
-    /// While another Harmony owner patches SimEveryTick or UnsafeSim200ms (checked at the first
-    /// frame and every 4,096 frames), the game's method runs.
+    /// Off for the session once another Harmony owner patches SimEveryTick or UnsafeSim200ms
+    /// (checked at the first frame, then every 4,096).
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void Game::SimEveryTick(System.Single)", "0339e1b13ef02096 linux-744825 win-744825", "5c36683191300649 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761211 win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Uses, "System.Void Game::UnsafeSim200ms(System.Single)")]
     [GameMember(GameUse.Uses, "System.Single Game::simDt")]
@@ -36,6 +36,7 @@ namespace OniMoono.GameTweaks
         public const string Name = "sim-step-pace";
 
         static MethodBase everyTick, sim200ms;
+        static MethodBase[] guarded;
         static AccessTools.FieldRef<Game, float> simDt;
         static AccessTools.FieldRef<Game, int> simSubTick;
         static AccessTools.FieldRef<Game, bool> hasFirstSimTickRun;
@@ -55,6 +56,7 @@ namespace OniMoono.GameTweaks
         {
             everyTick = AccessTools.Method(typeof(Game), "SimEveryTick");
             sim200ms = AccessTools.Method(typeof(Game), "UnsafeSim200ms");
+            guarded = new[] { everyTick, sim200ms };
             simDt = AccessTools.FieldRefAccess<Game, float>("simDt");
             simSubTick = AccessTools.FieldRefAccess<Game, int>("simSubTick");
             hasFirstSimTickRun = AccessTools.FieldRefAccess<Game, bool>("hasFirstSimTickRun");
@@ -68,18 +70,9 @@ namespace OniMoono.GameTweaks
 
         static bool Foreign()
         {
-            foreach (var m in new[] { everyTick, sim200ms })
-            {
-                var info = Harmony.GetPatchInfo(m);
-                if (info == null) continue;
-                foreach (var o in info.Owners)
-                    if (!ModOverlapsCore.IsOurs(o) && !ModOverlapsCore.IsTweakOwner(o))
-                    {
-                        global::Debug.Log($"{Name}: off ({o} patches Game.{m.Name})");
-                        return true;
-                    }
-            }
-            return false;
+            if (ForeignPatches.Find(guarded) is not { } why) return false;
+            global::Debug.Log($"{Name}: off ({why})");
+            return true;
         }
 
         struct Ticks : ISimTicks
@@ -93,8 +86,8 @@ namespace OniMoono.GameTweaks
         static bool SimEveryTick(Game __instance, float dt, bool __runOriginal)
         {
             if (!__runOriginal) return false;
-            if ((frames++ & 0xFFF) == 0) off = Foreign();
             if (off || Bypass) return true;
+            if ((frames++ & 0xFFF) == 0 && (off = Foreign())) return true;
             var ticks = new Ticks { Game = __instance };
             if (SimStepPaceCore.Frame(ref simDt(__instance), ref simSubTick(__instance), ref hasFirstSimTickRun(__instance), dt, ref ticks)) Skipped++;
             else if (dt <= 0f) Paused++;

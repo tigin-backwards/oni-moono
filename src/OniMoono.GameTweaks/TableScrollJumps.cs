@@ -100,10 +100,13 @@ namespace OniMoono.GameTweaks
             return table == null ? none : new Placed { Scroller = scroller, Table = table };
         }
 
-        static IEnumerable<string> Owners(IEnumerable<Patch> patches)
+        /// The methods another owner's patch makes this tweak stand down (ModOverlaps).
+        internal static IEnumerable<MethodBase> Guarded() => new MethodBase[]
         {
-            foreach (var p in patches) yield return p.owner;
-        }
+            AccessTools.Method(typeof(TableScreen), "SetScrollersDirty", new[] { typeof(float) }),
+            AccessTools.Method(typeof(TableScreen), "PositionScrollers"),
+            placeChildren,
+        };
 
         /// Once, at the first table row laid out (every mod has patched by then): another owner's
         /// patch of the methods that keep the rows in step, or of the layout groups' placing,
@@ -113,21 +116,7 @@ namespace OniMoono.GameTweaks
             string why;
             try
             {
-                var owners = new List<KeyValuePair<string, IEnumerable<string>>>();
-                foreach (var m in new MethodBase[]
-                         {
-                             AccessTools.Method(typeof(TableScreen), "SetScrollersDirty", new[] { typeof(float) }),
-                             AccessTools.Method(typeof(TableScreen), "PositionScrollers"),
-                             placeChildren,
-                         })
-                {
-                    var info = Harmony.GetPatchInfo(m);
-                    if (info == null) continue;
-                    owners.Add(new KeyValuePair<string, IEnumerable<string>>($"{m.DeclaringType?.Name}.{m.Name}",
-                        ProbeRepairPolicy.Counted(ProbeRepairPolicy.GuardedKinds.All, Owners(info.Prefixes), Owners(info.Postfixes), Owners(info.Transpilers),
-                            Owners(info.Finalizers), System.Linq.Enumerable.Concat(Owners(info.InnerPrefixes), Owners(info.InnerPostfixes)))));
-                }
-                why = ProbeRepairPolicy.Foreign(owners);
+                why = ForeignPatches.Find(Guarded());
             }
             catch (Exception e)
             {

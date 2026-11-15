@@ -49,6 +49,7 @@ namespace OniMoono.GameTweaks
 
         /// The layers (ScenePartitionerLayer.layer) an entry with a callback has been put in.
         static readonly bool[] hadCallback = new bool[256];
+        static MethodBase[] guarded;
         static bool off;
         static long calls;
 
@@ -57,6 +58,7 @@ namespace OniMoono.GameTweaks
 
         public static void Install(Harmony harmony)
         {
+            guarded = new List<MethodBase>(Guarded()).ToArray();
             PartitionerFreed.Install(harmony);
             harmony.Patch(AccessTools.Method(typeof(ScenePartitioner), nameof(ScenePartitioner.Insert)), postfix: new HarmonyMethod(typeof(FastPartitionerEvents), nameof(Inserted)));
             harmony.Patch(AccessTools.Method(typeof(ScenePartitioner), nameof(ScenePartitioner.TriggerEventInternal)),
@@ -89,18 +91,9 @@ namespace OniMoono.GameTweaks
                 global::Debug.Log($"{Name}: off ({mod} is active)");
                 return true;
             }
-            foreach (var method in Guarded())
-            {
-                var info = Harmony.GetPatchInfo(method);
-                if (info == null) continue;
-                foreach (var o in info.Owners)
-                    if (!ModOverlapsCore.IsTweakOwner(o) && !ModOverlapsCore.IsOurs(o))
-                    {
-                        global::Debug.Log($"{Name}: off ({o} patches ScenePartitioner.{method.Name})");
-                        return true;
-                    }
-            }
-            return false;
+            if (ForeignPatches.Find(guarded) is not { } why) return false;
+            global::Debug.Log($"{Name}: off ({why})");
+            return true;
         }
 
         static readonly List<Handle> replay = new();

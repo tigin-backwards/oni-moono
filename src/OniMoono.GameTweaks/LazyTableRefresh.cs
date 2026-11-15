@@ -138,36 +138,25 @@ namespace OniMoono.GameTweaks
             Canvas.preWillRenderCanvases += CatchUp;
         }
 
-        static IEnumerable<string> Owners(IEnumerable<Patch> patches)
+        /// The methods another owner's patch makes this tweak stand down (ModOverlaps); one this
+        /// build lacks is null.
+        internal static IEnumerable<MethodBase> Guarded() => new MethodBase[]
         {
-            foreach (var p in patches) yield return p.owner;
-        }
+            AccessTools.Method(typeof(TableScreen), "ScreenUpdate", new[] { typeof(bool) }),
+            AccessTools.Method(typeof(TableScreen), "SortRows"),
+            AccessTools.Method(typeof(TableScreen), "RefreshRows"),
+            AccessTools.Method(typeof(TableRow), "RefreshColumns", new[] { typeof(Dictionary<string, TableColumn>) }),
+            AccessTools.Method(typeof(TableColumn), "Render1000ms"),
+            AccessTools.Method(typeof(TableColumn), "MarkDirty"),
+            AccessTools.Method(typeof(TableColumn), "MarkClean"),
+        };
 
         static void Check()
         {
             string why;
             try
             {
-                var owners = new List<KeyValuePair<string, IEnumerable<string>>>();
-                foreach (var m in new MethodBase[]
-                         {
-                             AccessTools.Method(typeof(TableScreen), "ScreenUpdate", new[] { typeof(bool) }),
-                             AccessTools.Method(typeof(TableScreen), "SortRows"),
-                             AccessTools.Method(typeof(TableScreen), "RefreshRows"),
-                             AccessTools.Method(typeof(TableRow), "RefreshColumns", new[] { typeof(Dictionary<string, TableColumn>) }),
-                             AccessTools.Method(typeof(TableColumn), "Render1000ms"),
-                             AccessTools.Method(typeof(TableColumn), "MarkDirty"),
-                             AccessTools.Method(typeof(TableColumn), "MarkClean"),
-                         })
-                {
-                    if (m == null) continue;
-                    var info = Harmony.GetPatchInfo(m);
-                    if (info == null) continue;
-                    owners.Add(new KeyValuePair<string, IEnumerable<string>>($"{m.DeclaringType?.Name}.{m.Name}",
-                        ProbeRepairPolicy.Counted(ProbeRepairPolicy.GuardedKinds.All, Owners(info.Prefixes), Owners(info.Postfixes), Owners(info.Transpilers),
-                            Owners(info.Finalizers), System.Linq.Enumerable.Concat(Owners(info.InnerPrefixes), Owners(info.InnerPostfixes)))));
-                }
-                why = ProbeRepairPolicy.Foreign(owners);
+                why = ForeignPatches.Find(Guarded());
             }
             catch (Exception e)
             {

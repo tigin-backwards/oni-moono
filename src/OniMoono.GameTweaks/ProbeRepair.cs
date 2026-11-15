@@ -304,17 +304,7 @@ namespace OniMoono.GameTweaks
             yield return AccessTools.Method(typeof(MinionPathFinderAbilities), nameof(MinionPathFinderAbilities.GetSubmergedPathCostPenalty));
         }
 
-        static string Foreign()
-        {
-            var owners = new List<KeyValuePair<string, IEnumerable<string>>>();
-            foreach (var m in Guarded())
-            {
-                if (m == null) return "a method it replaces was not found";
-                var info = Harmony.GetPatchInfo(m);
-                if (info != null) owners.Add(new KeyValuePair<string, IEnumerable<string>>($"{m.DeclaringType?.Name}.{m.Name}", info.Owners));
-            }
-            return ProbeRepairPolicy.Foreign(owners);
-        }
+        static string Foreign() => ForeignPatches.Find(Guarded(), missing: "a method it replaces was not found");
 
         /// PathGrid's own methods (with any patches) answer what this tweak's views of its arrays
         /// hold, and the nav grid's links read the same through the view.

@@ -291,22 +291,5 @@ namespace OniMoono.Tests
             d.ApplyTo(new List<int> { 2, 3, 8, 10 }, into);
             Assert.Equal(new[] { 1, 3, 5, 9, 10 }, into);
         }
-
-        [Fact]
-        public void StandsDownForAnotherOwnersPatch()
-        {
-            IEnumerable<string> Owners(params string[] o) => o;
-            Assert.Null(ProbeRepairPolicy.Foreign(new[]
-            {
-                new KeyValuePair<string, IEnumerable<string>>("AsyncPathProber.WorkOrder.Execute", Owners(ProbeRepairPolicy.Owner)),
-                new KeyValuePair<string, IEnumerable<string>>("NavGrid.UpdateGraph", Owners(ProbeRepairPolicy.Owner, "PerfProbe", "PerfProbe.Frames")),
-                new KeyValuePair<string, IEnumerable<string>>("PathProber.Run", Owners()),
-            }));
-            Assert.Equal("PeterHan.FastTrack patches Navigator.TakeResult", ProbeRepairPolicy.Foreign(new[]
-            {
-                new KeyValuePair<string, IEnumerable<string>>("AsyncPathProber.WorkOrder.Execute", Owners(ProbeRepairPolicy.Owner)),
-                new KeyValuePair<string, IEnumerable<string>>("Navigator.TakeResult", Owners(ProbeRepairPolicy.Owner, "PeterHan.FastTrack")),
-            }));
-        }
     }
 }

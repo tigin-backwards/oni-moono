@@ -205,15 +205,9 @@ namespace OniMoono.GameTweaks
 
         static bool Foreign(MethodBase method)
         {
-            var info = Harmony.GetPatchInfo(method);
-            if (info == null) return false;
-            foreach (var o in info.Owners)
-                if (!ModOverlapsCore.IsTweakOwner(o) && !ModOverlapsCore.IsOurs(o))
-                {
-                    global::Debug.Log($"{Name}: {o} patches {method.DeclaringType?.Name}.{method.Name}: every pipe's handler runs on each rebuild");
-                    return true;
-                }
-            return false;
+            if (ForeignPatches.Find(method) is not { } why) return false;
+            global::Debug.Log($"{Name}: {why}: every pipe's handler runs on each rebuild");
+            return true;
         }
 
         [MirrorsGame("System.Void ConduitFlow::OnUtilityNetworksRebuilt(System.Collections.Generic.IList`1<UtilityNetwork>,System.Collections.Generic.ICollection`1<System.Int32>)")]

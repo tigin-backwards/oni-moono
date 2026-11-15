@@ -49,7 +49,7 @@ namespace OniMoono.GameTweaks
         static System.Action wait;
         static MethodBase target;
         static int saving;
-        static string loggedOff;
+        static string loggedOff, foreign;
         static long verified, mismatches;
 
         /// From the host's BackgroundSave: its writer's queue (work runs after the writes in
@@ -77,11 +77,8 @@ namespace OniMoono.GameTweaks
         {
             if (Bypass) return "bypassed";
             if (JsonConvert.DefaultSettings != null) return "JsonConvert.DefaultSettings is set";
-            var info = Harmony.GetPatchInfo(target);
-            if (info != null)
-                foreach (var owner in info.Owners)
-                    if (!ModOverlapsCore.IsOurs(owner)) return $"{owner} patches RetireColonyUtility.SaveColonySummaryData";
-            return null;
+            // Latched: once a mod patches the method, a save's call stays the game's.
+            return foreign ??= ForeignPatches.Find(target);
         }
 
         /// RetireColonyUtility.SaveColonySummaryData, for a save: its JSON and its file on the writer.

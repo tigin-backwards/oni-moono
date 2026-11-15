@@ -278,17 +278,7 @@ namespace OniMoono.GameTweaks
             yield return AccessTools.Method(AccessTools.Inner(typeof(FetchManager), "PickupComparerNoPriority"), "Compare");
         }
 
-        static string Foreign(IEnumerable<MethodBase> methods)
-        {
-            var owners = new List<KeyValuePair<string, IEnumerable<string>>>();
-            foreach (var m in methods)
-            {
-                if (m == null) return "a method it relies on was not found";
-                var info = Harmony.GetPatchInfo(m);
-                if (info != null) owners.Add(new KeyValuePair<string, IEnumerable<string>>($"{m.DeclaringType?.Name}.{m.Name}", info.Owners));
-            }
-            return ProbeRepairPolicy.Foreign(owners);
-        }
+        static string Foreign(IEnumerable<MethodBase> methods) => ForeignPatches.Find(methods, missing: "a method it relies on was not found");
 
         static void Check()
         {

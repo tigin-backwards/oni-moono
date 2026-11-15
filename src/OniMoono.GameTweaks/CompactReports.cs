@@ -238,24 +238,19 @@ namespace OniMoono.GameTweaks
         public static bool Unpacked;
 
         static MethodBase writeSingleFast;
-        static bool loggedForeign;
+        static bool foreign;
 
-        /// Whether the store's notes go out in blocks: not while another mod patches the game's
-        /// WriteSingleFast, which then writes each value.
+        /// Whether the store's notes go out in blocks: not once a mod patches the game's
+        /// WriteSingleFast (off for the session), which then writes each value.
         static bool Packed()
         {
             if (Unpacked || !BitConverter.IsLittleEndian) return false;
+            if (foreign) return false;
             writeSingleFast ??= AccessTools.Method(typeof(IOHelper), nameof(IOHelper.WriteSingleFast), new[] { typeof(BinaryWriter), typeof(float) });
-            var info = Harmony.GetPatchInfo(writeSingleFast);
-            if (info != null)
-                foreach (var owner in info.Owners)
-                    if (!ModOverlapsCore.IsOurs(owner))
-                    {
-                        if (!loggedForeign) global::Debug.Log($"{Name}: the notes are written one value at a time ({owner} patches IOHelper.WriteSingleFast)");
-                        loggedForeign = true;
-                        return false;
-                    }
-            return true;
+            if (ForeignPatches.Find(writeSingleFast) is not { } why) return true;
+            foreign = true;
+            global::Debug.Log($"{Name}: the notes are written one value at a time ({why})");
+            return false;
         }
 
         /// NoteEntries.Serialize: the game's bytes, in the order of its dictionary.

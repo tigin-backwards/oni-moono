@@ -207,17 +207,10 @@ namespace OniMoono.GameTweaks
 
         static void CheckPatches()
         {
-            IEnumerable<MethodBase> path;
-            try { path = new List<MethodBase>(WritePath()); }
-            catch (MissingMethodException e) { Disable(e.Message); return; }
-            foreach (var method in path)
-            {
-                if (method == null) { Disable("a write-path method was not found"); return; }
-                var info = Harmony.GetPatchInfo(method);
-                if (info == null) continue;
-                foreach (var owner in info.Owners)
-                    if (!ModOverlapsCore.IsTweakOwner(owner)) { Disable($"{owner} patches {method.DeclaringType?.Name}.{method.Name}"); return; }
-            }
+            string why;
+            try { why = ForeignPatches.Find(WritePath(), missing: "a write-path method was not found"); }
+            catch (MissingMethodException e) { why = e.Message; }
+            if (why != null) Disable(why);
         }
 
         static void Disable(string why)

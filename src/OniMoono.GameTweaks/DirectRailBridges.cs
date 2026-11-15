@@ -83,6 +83,7 @@ namespace OniMoono.GameTweaks
         /// Mods whose handlers for the store events come with no patch to find: Forbid Items and
         /// No Manual Delivery listen on every item, Oxygen Multiplayer writes the rails itself.
         static readonly string[] standDownMods = { "PeterHan.ForbidItems", "Sanchozz.ONIMods.NoManualDelivery", "OniMp" };
+        static MethodBase[] guarded;
         static bool off;
         static long calls;
 
@@ -103,6 +104,7 @@ namespace OniMoono.GameTweaks
 
         public static void Install(Harmony harmony)
         {
+            guarded = new List<MethodBase>(Guarded()).ToArray();
             harmony.Patch(AccessTools.Method(typeof(SolidConduitBridge), nameof(SolidConduitBridge.ConduitUpdate)),
                 transpiler: new HarmonyMethod(typeof(DirectRailBridges), nameof(Transpiler)));
         }
@@ -161,19 +163,9 @@ namespace OniMoono.GameTweaks
                 global::Debug.Log($"{Name}: off ({mod} is active)");
                 return true;
             }
-            foreach (var method in Guarded())
-            {
-                if (method == null) continue;
-                var info = Harmony.GetPatchInfo(method);
-                if (info == null) continue;
-                foreach (var o in info.Owners)
-                    if (!ModOverlapsCore.IsTweakOwner(o) && !ModOverlapsCore.IsOurs(o))
-                    {
-                        global::Debug.Log($"{Name}: off ({o} patches {method.DeclaringType?.Name}.{method.Name})");
-                        return true;
-                    }
-            }
-            return false;
+            if (ForeignPatches.Find(guarded) is not { } why) return false;
+            global::Debug.Log($"{Name}: off ({why})");
+            return true;
         }
 
         /// In place of the whole-item branch's `flowManager.RemovePickupable(inputCell)`.

@@ -28,7 +28,8 @@ namespace OniMoono.GameTweaks
     /// same order (paths dropped are taken out of the list keeping the others' order, as the
     /// game's removals one by one do). The index follows the game's list: when the list is not
     /// what the index last left it (cleared by the rebuild, or changed by anyone else), it is
-    /// made again from the list. While another Harmony owner patches TryAdd, the game's runs.
+    /// made again from the list. Off for the session once another Harmony owner patches TryAdd
+    /// (checked at the first path, then every 256).
     ///
     /// With ONI_TWEAK_VERIFY=1 the game's TryAdd also runs on a copy of the list and of the new
     /// path, and both lists must end up the same: the same paths, in the same order, with the
@@ -156,8 +157,8 @@ namespace OniMoono.GameTweaks
         static bool TryAdd(SolidConduitFlow __instance, List<Conduit> new_path)
         {
             if (bypass || new_path == null || new_path.Count == 0) return true;
-            if (checks++ % 256 == 0) foreign = Foreign();
             if (foreign) return true;
+            if (checks++ % 256 == 0 && (foreign = Foreign())) return true;
             var paths = __instance.pathList;
             Follow(__instance, paths);
             List<List<Conduit>> before = null;
@@ -272,16 +273,13 @@ namespace OniMoono.GameTweaks
         static void Report() => global::Debug.Log($"{Name}: {pathsChecked} paths checked, {pathsWrong} wrong");
 
         /// The method another owner's patch makes this tweak stand down (ModOverlaps).
-        internal static System.Reflection.MethodBase Guarded() => AccessTools.Method(typeof(SolidConduitFlow), "TryAdd");
+        internal static System.Reflection.MethodBase Guarded() => tryAdd ?? AccessTools.Method(typeof(SolidConduitFlow), "TryAdd");
 
         static bool Foreign()
         {
-            var info = Harmony.GetPatchInfo(tryAdd);
-            if (info == null) return false;
-            // PerfProbe's stopwatches (test infrastructure) only time the method.
-            foreach (var o in info.Owners)
-                if (!ModOverlapsCore.IsTweakOwner(o) && o != "PerfProbe" && !o.StartsWith("PerfProbe.", StringComparison.Ordinal)) return true;
-            return false;
+            if (ForeignPatches.Find(tryAdd) is not { } why) return false;
+            global::Debug.Log($"{Name}: off ({why})");
+            return true;
         }
     }
 }

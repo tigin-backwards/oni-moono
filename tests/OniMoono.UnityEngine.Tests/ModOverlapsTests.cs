@@ -96,7 +96,17 @@ namespace OniMoono.Tests
             Assert.False(ModOverlapsCore.IsOurs("OniMooner"));
             // path-probe-repair's own check knows its ID.
             Assert.Equal(ProbeRepairPolicy.Owner, ModOverlapsCore.OwnerOf("path-probe-repair"));
-            Assert.Null(ProbeRepairPolicy.Foreign(new[] { new KeyValuePair<string, IEnumerable<string>>("Navigator.TakeResult", new[] { ModOverlapsCore.OwnerOf("brain-rate") }) }));
+            // The one test for the screen and the tweaks' stand-down checks: a mod's owner.
+            Assert.False(ModOverlapsCore.IsForeign(ModOverlapsCore.OwnerOf("brain-rate")));
+            Assert.False(ModOverlapsCore.IsForeign("OniMoono.Host.FrameStats"));
+            Assert.False(ModOverlapsCore.IsForeign("PerfProbe.WallTime"));
+            Assert.True(ModOverlapsCore.IsForeign("PeterHan.FastTrack"));
+            // The test harness's IDs (ONI_MOD_OVERLAPS_IGNORE) are no mod's.
+            var ignore = ModOverlapsCore.Ignored("OniMcp,other.tool");
+            Assert.False(ModOverlapsCore.IsForeign("OniMcp", ignore));
+            Assert.False(ModOverlapsCore.IsForeign("other.tool", ignore));
+            Assert.True(ModOverlapsCore.IsForeign("OniMcp2", ignore));
+            Assert.True(ModOverlapsCore.IsForeign("OniMcp", ModOverlapsCore.Ignored(null)));
         }
 
         static List<Overlap> Sample()
