@@ -730,6 +730,34 @@ It is on the local branches `qwait-u60` and `qwait-master` with its unit tests.
   The transitions under load were not exercised on OpenGL.
 - **Next:** one quiet before-and-after pair on the 200-Duplicant colony decides it.
 
+**The quiet pair (2026-11-15): not landed.** One launch each of u60 83e757c8 and of the same
+commit with the hysteresis, 200-Duplicant colony, speed 3, 180 s of panning (10,800 frames),
+Vulkan, borderless at 60 Hz. No sample of the WSL side over 2 cores in either launch; the
+Windows side beside the game averaged 13% and 14% of its 16 processors.
+
+| | Old rule | Hysteresis |
+|---|---|---|
+| Wait changes | 12 | 8, all in the first 63 s |
+| Frames with the wait on | 22% | 17% |
+| Mean fps | 58.5 | 58.7 |
+| Median fps | 60.1 | 60.2 |
+| 1% low (p99 frame) | 30.0 fps (33.3 ms) | 29.9 fps (33.5 ms) |
+| Repeated refreshes | 3.1% | 3.2% |
+| Per-refresh step spread | 23.5% | 19.3% |
+| Tracking error | 7.0 px | 6.7 px |
+| Update to Present call | 33.4 ms | 33.4 ms |
+| Update to display, median | 64.2 ms | 64.7 ms |
+
+- **A quiet machine reaches 36.** Each of the four turn-offs came at 36 misses in six seconds,
+  3 to 14 s after the turn-on. The colony's bursts are real overload by the rule's line, so the
+  hysteresis does not hold the wait on; it only tries less often (4, 8, 16, then 32 s).
+- **Nothing a player sees changed.** Frame rate, 1% low, repeated refreshes and latency are the
+  same within a launch's spread. The steadier step and tracking figures are one pair's; two
+  launches of one build were not compared.
+- **The held-on figures are out of reach of a rule like this.** They need the wait kept through
+  bursts of 36 and more misses, which costs frames where they do not fit.
+- The branches `qwait-u60` and `qwait-master` stay local, rebased on 83e757c8 and 822f7040.
+
 **A "lower input delay" setting, or a wait that runs ahead before sim-step frames (not built).**
 - The plain setting is the study's held-on measurement: on the late-game colony at speed 3 a
   refresh less to the Present for three times the repeated refreshes. No configuration
@@ -745,7 +773,7 @@ It is on the local branches `qwait-u60` and `qwait-master` with its unit tests.
 
 | # | Work | Kind | Expected effect | Basis |
 |---|---|---|---|---|
-| 1 | The queued-frames wait stops flipping (hysteresis in `QueuedFrames`) | Exact, small | On colonies near the line: repeated refreshes 4.7–5.4% to about 1.8%, 1.5 fps more, latency steady at 48 ms instead of moving between 48 and 80 | Measured with the wait held on |
+| 1 | The queued-frames wait stops flipping (hysteresis in `QueuedFrames`) | Exact, small | On colonies near the line: repeated refreshes 4.7–5.4% to about 1.8%, 1.5 fps more, latency steady at 48 ms instead of moving between 48 and 80 | Measured with the wait held on; the hysteresis as written did not reach it (follow-up, 2026-11-15) |
 | 2 | Autosave, main thread: packed notes; a compiled writer for the report entries; the colony summary on the worker; the first save's buffer | Exact tweaks | Late-game save 2.05 s to 1.8 s with the first step (measured), about 1.1–1.4 s with all of them (estimated: the entries' 0.66–0.72 s halved or better) | Brackets, profile; one prototype measured |
 | 3 | The frames after an autosave: the freeze frame as a GPU copy, the preview's view rendered once | Exact | 400–750 ms of slow frames to perhaps 250–450 ms (estimated) | Phase marks |
 | 4 | The Decor overlay's sim step on the late-game colony: profile it first | Unknown | A 115–155 ms frame once a game second while the overlay is open | Measured, cause not known |
