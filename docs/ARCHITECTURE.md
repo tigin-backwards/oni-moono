@@ -3393,31 +3393,37 @@ formatting (D2).
 
 The host directory carries a `Restarter` (`Restarter.exe` on Windows, a .NET program), as Klei's
 player directory does: `App.Restart` (language change) starts it with the player's executable
-path and quits. Ours waits for the player to exit and starts it again with the arguments it was
-started with (recorded by the host in `ONI_MOONO_RESTART_ARGS`, shell-quoted, and
-`ONI_MOONO_RESTART_ARGV`, JSON, with `ONI_MOONO_RESTART_PID`). From U60-761654 the Windows
-`App.Restart` also passes the player's arguments (`Environment.GetCommandLineArgs()[1..]`, each in
-quotes as it is, so one holding a quote or ending in a backslash does not survive); Klei's
-761654 `Restarter.exe`, measured, starts the executable with them at once (no wait for the old
-process), in the executable's folder, with .NET's quoting (`ArgumentList`). Ours takes
-`EXECUTABLE [ARGUMENT...]`: the recorded arguments win, the command line's are used without them
-(`RestartCommand`, quoting as Klei's does), and it keeps the player's working folder, so a
-relative `--game` still resolves. The Linux `App.Restart` still passes only the executable.
-Since the game's `GetCommandLineArgs()` gives the game's arguments (below), the arguments
-`App.Restart` passes are those; the recorded ones, the host's whole command line, start the
-player again with the same options and the same game arguments.
+path and quits.
+
+- **Ours** waits for the player to exit and starts it again with the arguments it was started
+  with (recorded by the host in `ONI_MOONO_RESTART_ARGS`, shell-quoted, and
+  `ONI_MOONO_RESTART_ARGV`, JSON, with `ONI_MOONO_RESTART_PID`).
+- **From U60-761654** the Windows `App.Restart` also passes the player's arguments
+  (`Environment.GetCommandLineArgs()[1..]`, each in quotes as it is, so one holding a quote or
+  ending in a backslash does not survive). Klei's 761654 `Restarter.exe`, measured, starts the
+  executable with them at once (no wait for the old process), in the executable's folder, with
+  .NET's quoting (`ArgumentList`).
+- **Ours takes `EXECUTABLE [ARGUMENT...]`.** The recorded arguments win, and the command line's
+  are used without them (`RestartCommand`, quoting as Klei's does). It keeps the player's
+  working folder, so a relative `--game` still resolves.
+- **Linux.** The Linux `App.Restart` still passes only the executable.
+- **Which arguments.** Since the game's `GetCommandLineArgs()` gives the game's arguments
+  (below), the arguments `App.Restart` passes are those. The recorded ones, the host's whole
+  command line, start the player again with the same options and the same game arguments.
 
 **The game's command line (#53).** In the original player `Environment.GetCommandLineArgs()`
 gives the game's executable (its full path) followed by every argument the player was started
 with, in order: Unity's own (`-screen-width`, `-logFile`) and ones it does not know (`-foo bar
---baz=1 -moddev`) alike, so mods read flags of their own there (measured with
+--baz=1 -moddev`) alike. So mods read their own flags there (measured with
 `tools/CommandLineTestMod` in the 761654 Linux and Windows players,
 `tests/e2e/issue-53-command-line.yaml`). Neither 744825's nor 761654's Assembly-CSharp reads it;
-761654's firstpass reads it for `App.Restart` only. Ours used to give the host's: `OniMoono.dll`
-and our own options, `-- %command%` included, and stopped at an unknown `--` option after the
-game's executable. Now the host sets the runtime's command line (`GameCommandLine`, through
-Environment's `s_commandLineArgs`, which `Environment.CommandLine` is built from too) to the
-game's before any game code runs (`Options.GameArguments`):
+761654's firstpass reads it for `App.Restart` only.
+
+Ours used to give the host's: `OniMoono.dll` and our own options, `-- %command%` included, and
+stopped at an unknown `--` option after the game's executable. Now the host sets the runtime's
+command line (`GameCommandLine`, through Environment's `s_commandLineArgs`, which
+`Environment.CommandLine` is built from too) to the game's before any game code runs
+(`Options.GameArguments`):
 - the executable: the one Steam's command names after `--`, else the game folder's
   (`OxygenNotIncluded.exe`, `OxygenNotIncluded`, or the Mac bundle's);
 - in the Steam form, every argument after the game's executable, as it is. Ours and Unity's
@@ -3430,33 +3436,49 @@ game's before any game code runs (`Options.GameArguments`):
 The log has a `game arguments:` line with the list.
 
 **Player options (Moono Tweaks).** The game tweaks (`GameTweakNames`), the loading splash, frame
-stats and the log's paths come from three places, later ones winning: built-in defaults (every tweak
-but `ChangingBehaviour`'s, as `--game-tweak exact`; the moo splash; no frame stats; personal paths
-hidden in the log), the settings file `<persistentDataPath>/oni-moono/settings.json`
-(`PlayerSettings`: only the choices that differ from the defaults, so a default changed by an update
-reaches everyone who has not chosen otherwise; a run home has its own), and the command line
-(`EffectiveOptions`). A command line with any `--game-tweak` value sets the whole set of tweaks for
-the run (`exact`, `all`, `none`, names, `-NAME`), `--splash moo|none` the splash, `--frame-stats`
-the frame stats, `--log-paths hidden|full` the log's paths. They are read before the log opens,
-which needs the last; the start of the log names the file and each option with where it came from.
+stats and the log's paths come from three places, later ones winning:
+
+1. Built-in defaults: every tweak but `ChangingBehaviour`'s, as `--game-tweak exact`; the moo
+   splash; no frame stats; personal paths hidden in the log.
+2. The settings file `<persistentDataPath>/oni-moono/settings.json` (`PlayerSettings`). It holds
+   only the choices that differ from the defaults, so a default changed by an update reaches
+   everyone who has not chosen otherwise. A run home has its own.
+3. The command line (`EffectiveOptions`). Any `--game-tweak` value sets the whole set of tweaks
+   for the run (`exact`, `all`, `none`, names, `-NAME`), `--splash moo|none` the splash,
+   `--frame-stats` the frame stats, `--log-paths hidden|full` the log's paths.
+
+They are read before the log opens, which needs the last. The start of the log names the file
+and each option with where it came from.
+
 The main menu's **Moono Tweaks** button, directly below Mods, opens a screen
 (`src/OniMoono.GameTweaks/MoonoTweaksMenu.cs`) made of the game's own UI: the Mods screen's prefab
 instantiated inactive, its `ModsScreen` swapped for `MoonoTweaksScreen` before it wakes, and the
-menu's button prefab and style for the button. It lists every option from that list with a toggle
-and a line on what it does, the tweaks that change gameplay labelled so, and rows the command line
-set dimmed and fixed; "Restart to apply" writes the file and restarts through `App.Restart` (the
-Restarter above), and the restarted player reads it with the same command line. `--no-tweaks-menu`
-leaves the button out, as in the original's menu (e2e runs compared with it). Test runs pin the
-options: `scripts/run.sh` and `scripts/run-windows.sh` pass `--game-tweak none --splash none
---log-paths full` first, so a run has exactly the tweaks, splash and log paths its own arguments
-name (`--log-paths full`: the test tools read the run home's paths in log lines).
+menu's button prefab and style for the button.
+
+- It lists every option from that list with a toggle and a line on what it does, the tweaks
+  that change gameplay labelled so, and rows the command line set dimmed and fixed.
+- "Restart to apply" writes the file and restarts through `App.Restart` (the Restarter above),
+  and the restarted player reads it with the same command line.
+- `--no-tweaks-menu` leaves the button out, as in the original's menu (e2e runs compared with
+  it).
+- Test runs pin the options: `scripts/run.sh` and `scripts/run-windows.sh` pass `--game-tweak
+  none --splash none --log-paths full` first, so a run has exactly the tweaks, splash and log
+  paths its own arguments name (`--log-paths full`: the test tools read the run home's paths in
+  log lines).
 
 **How game tweaks install** (`src/OniMoono.Host/GameTweaks/TweakInstall.cs`, `TweakChecks.cs`).
-A tweak written for one game version must not crash another's start-up or misbehave in it, so
+A tweak written for one game version must not crash another's start-up or misbehave in it. So
 each is checked against the game before it patches anything, and one that fails is off for the
-run: a no-op, the game's own code runs, the log says why in one line (`game tweak NAME: off,
-`Type.Method` changed in this game version`), the others install, and its Moono Tweaks row is
-greyed out with "Not available on this game version", its setting left as the file has it.
+run:
+
+- It is a no-op, and the game's own code runs.
+- The log says why in one line (`game tweak NAME: off, `Type.Method` changed in this game
+  version`).
+- The others install.
+- Its Moono Tweaks row is greyed out with "Not available on this game version", its setting
+  left as the file has it.
+
+How the checks work:
 - *Declarations.* Each tweak's class declares the game members it relies on with
   `[GameMember(use, "System.Void KAnimBatch::UpdateDirty(System.Int32)", fingerprints…)]`
   (`GameMemberAttribute.cs`, one source compiled into the host and `OniMoono.GameTweaks`): each
@@ -3470,85 +3492,107 @@ greyed out with "Not available on this game version", its setting left as the fi
   `GameMemberAttribute.cs`).
 - *Checks, from metadata alone* (`System.Reflection.Metadata` over the game's files as they are
   on disk, before any load-time rewrite, and over the tweak assemblies; nothing is JIT-compiled or
-  run): (1) every declared member is there with that signature; (2) every type and member reference
-  from the code of a tweak's classes into an assembly the game ships (Assembly-CSharp,
-  firstpass, FMODUnity, Harmony…) resolves, attributed per tweak by following the code from the
-  class whose `Name` constant is its name through every class it uses, nested ones (lambdas,
-  closures, iterators) included: `OniMoono.GameTweaks` is built against the game's types, and a
-  changed member would otherwise throw only when its code first runs in play; (3) every member
-  it transpiles, replaces or mirrors has a body whose fingerprint is one it declares as reviewed.
-  A fingerprint is a hash of the method's IL with every token written as the member or type it
-  names (tokens renumber between builds), branches as instruction counts, and its locals and
-  exception clauses by type (`Fingerprints.Of`); each build with another body adds its hash, with
-  the builds' names after it. The checks run on a worker from start-up (tens of ms) and the
-  tweaks' install waits for them; compact-nav-links and paged-path-grids, whose rewrites run as
-  the assemblies load, take the verdict at their first grid (`Decide`): off, the session keeps
-  the game's flat arrays behind the rewritten accesses, as when a mod's access can't be rewritten.
-- *All or nothing* (`TweakInstall.Guarded`): each tweak patches under its own Harmony ID; when
-  its install throws, every patch of that ID is taken back. (4) Each transpiler reports the sites
-  it rewrote (`TranspilerCounts`) and declares how many (`Rewrites`): more fails, fewer only
-  passes when another owner transpiles the method too, its transpiler having run first (#41,
-  `CallSiteReroute`); an undeclared transpiler fails. The counts are checked at install, when
-  no mod has patched yet; a mod's later patch reruns the transpilers without a check.
+  run):
+  - (1) Every declared member is there with that signature.
+  - (2) Every type and member reference from the code of a tweak's classes into an assembly the
+    game ships (Assembly-CSharp, firstpass, FMODUnity, Harmony…) resolves. References are
+    attributed per tweak by following the code from the class whose `Name` constant is its name
+    through every class it uses, nested ones (lambdas, closures, iterators) included.
+    `OniMoono.GameTweaks` is built against the game's types, and a changed member would
+    otherwise throw only when its code first runs in play.
+  - (3) Every member it transpiles, replaces or mirrors has a body whose fingerprint is one it
+    declares as reviewed. A fingerprint is a hash of the method's IL with every token written
+    as the member or type it names (tokens renumber between builds), branches as instruction
+    counts, and its locals and exception clauses by type (`Fingerprints.Of`). Each build with
+    another body adds its hash, with the builds' names after it.
+
+  The checks run on a worker from start-up (tens of ms) and the tweaks' install waits for them.
+  compact-nav-links and paged-path-grids, whose rewrites run as the assemblies load, take the
+  verdict at their first grid (`Decide`): off, the session keeps the game's flat arrays behind
+  the rewritten accesses, as when a mod's access can't be rewritten.
+- *All or nothing* (`TweakInstall.Guarded`): each tweak patches under its own Harmony ID. When
+  its install throws, every patch of that ID is taken back.
+  - (4) Each transpiler reports the sites it rewrote (`TranspilerCounts`) and declares how many
+    (`Rewrites`). More fails. Fewer passes only when another owner transpiles the method too,
+    its transpiler having run first (#41, `CallSiteReroute`). An undeclared transpiler fails.
+    The counts are checked at install, when no mod has patched yet; a mod's later patch reruns
+    the transpilers without a check.
 - *The Moono Tweaks menu* (`OniMoono.GameTweaks.MoonoTweaksMenu`, `GameTweakNames.Menu`) is
-  checked and installed the same way, though it is no tweak (no row, no `--game-tweak` name): its
-  class declares its postfix of `MainMenu.OnPrefabInit` and the fields it reads by name
-  (MainMenu's button prefab, parent and style, the Mods screen's parts; the Supply Closet's search
-  field `Optional`, as the screen leaves its search box out without it), 1 and 2 run on its code
-  with the tweaks', and its install is all or nothing under its own Harmony ID. Its reference
-  scan stops at the tweaks' classes, which it reaches only to read what each guards
-  (`ModOverlaps.Guards`, each in its own try): a tweak that fails turns off that tweak, not the
-  menu. What it takes by name at run time is checked when the first main menu is made, before the
-  button is (`MoonoTweaksMenu.Problem`): the main menu's parts, the Mods screen's prefab and parts,
-  and its rows' references (`BG`, `Title`, `Description`, `EnabledToggle`, `Version`,
-  `ManageButton`), each of its type; the sprites and text style it looks up by name are left out
-  of that, as a missing one only leaves an icon blank or the body text in the label's style. Off
-  either way, the main menu has no Moono Tweaks entry (nor the overlap and update badges beside
-  it), one log line says why (`Moono Tweaks menu: off, …`), and the game and the tweaks run as
-  without it: the settings file and the tweaks it chose are read before, without the menu.
-  `ONI_TWEAK_TEST_MISSING=NAME` (test runs) takes the declared members of a tweak or the menu as
-  gone; `ONI_TWEAK_TEST_MENU_MISSING=PART` a part the menu takes at run time
-  (`tests/e2e/moono-tweaks-menu-off.yaml`, `moono-tweaks-menu-ui-off.yaml`).
+  checked and installed the same way, though it is no tweak (no row, no `--game-tweak` name):
+  - **Declared.** Its class declares its postfix of `MainMenu.OnPrefabInit` and the fields it
+    reads by name (MainMenu's button prefab, parent and style, the Mods screen's parts; the
+    Supply Closet's search field `Optional`, as the screen leaves its search box out without
+    it). 1 and 2 run on its code with the tweaks', and its install is all or nothing under its
+    own Harmony ID.
+  - **Apart from the tweaks.** Its reference scan stops at the tweaks' classes, which it
+    reaches only to read what each guards (`ModOverlaps.Guards`, each in its own try). A tweak
+    that fails turns off that tweak, not the menu.
+  - **At run time.** What it takes by name at run time is checked when the first main menu is
+    made, before the button is (`MoonoTweaksMenu.Problem`): the main menu's parts, the Mods
+    screen's prefab and parts, and its rows' references (`BG`, `Title`, `Description`,
+    `EnabledToggle`, `Version`, `ManageButton`), each of its type. The sprites and text style
+    it looks up by name are left out of that, as a missing one only leaves an icon blank or the
+    body text in the label's style.
+  - **Off either way,** the main menu has no Moono Tweaks entry (nor the overlap and update
+    badges beside it), one log line says why (`Moono Tweaks menu: off, …`), and the game and
+    the tweaks run as without it. The settings file and the tweaks it chose are read before,
+    without the menu.
+  - **Tests.** `ONI_TWEAK_TEST_MISSING=NAME` (test runs) takes the declared members of a tweak
+    or the menu as gone; `ONI_TWEAK_TEST_MENU_MISSING=PART` a part the menu takes at run time
+    (`tests/e2e/moono-tweaks-menu-off.yaml`, `moono-tweaks-menu-ui-off.yaml`).
 - *The declarations against the code* (`TweakDrift.cs`, offline only: they hold for the code
   whatever the build, so start-up does not pay for them). The code is each tweak's classes and
-  what they use, as in 2, stopping at other tweaks' classes. (5) Each game member it reaches by
-  name is declared: `AccessTools.Field/Method/Property/PropertyGetter/PropertySetter/Inner/
-  TypeByName/FieldRefAccess` (the `"Type:member"` form too), `Traverse`, `Type.GetField/GetMethod/
-  GetProperty/GetNestedType/GetMember`, `Type.GetType` and `Assembly.GetType` with a game type's
-  name, and `[HarmonyPatch]` attributes. A name is no member reference, so 2 misses it and a
-  rename would fail only as the code runs. The IL is followed from each `ldstr` and `typeof`
-  through the stack, locals, fields (one holding one value wherever it is stored, closures'
-  captures included), constant arrays of names (a `foreach` over them) and `string.Concat`, to
-  the lookup's arguments; `Traverse.Create(x)` and `x.GetType()` take `x`'s static type. A
-  lookup with a game type and a constant name must find the member in this build and be
-  declared: any declaration of it, on the type that has it (a base type's member there), a type
-  by any declaration naming it. Its failure names the site (`Type.Method (src/…:LINE)`, from the
-  PDB) and the line to paste, with each overload when the name has several. A name spelt
-  `nameof(…)` compiles to the same constant and needs the same declaration: the compiler
-  checked only that the name exists in the build it compiled with, not the member's signature
-  or what it does. A lookup whose type or name the IL does not give, or a walk over a game type's members
-  (`GetFields`, `GetDeclaredMethods`), is a warning listing the site, a note once its method or
-  class is `NameLookupReviewed`. Not followed: names built any other way, a lambda's parameters,
-  tuples, `Expression.Field(x, "name")`. (6) Each `MirrorsGame` marker in that code has a
-  `Mirrors` declaration of the member, with its fingerprint for each build (the failure prints the
-  line with this build's), and each `Mirrors` declaration a marker.
+  what they use, as in 2, stopping at other tweaks' classes.
+  - (5) Each game member it reaches by name is declared: `AccessTools.Field/Method/Property/
+    PropertyGetter/PropertySetter/Inner/TypeByName/FieldRefAccess` (the `"Type:member"` form
+    too), `Traverse`, `Type.GetField/GetMethod/GetProperty/GetNestedType/GetMember`,
+    `Type.GetType` and `Assembly.GetType` with a game type's name, and `[HarmonyPatch]`
+    attributes. A name is no member reference, so 2 misses it and a rename would fail only as
+    the code runs.
+    - **How names are followed.** The IL is followed from each `ldstr` and `typeof` through
+      the stack, locals, fields (one holding one value wherever it is stored, closures'
+      captures included), constant arrays of names (a `foreach` over them) and `string.Concat`,
+      to the lookup's arguments. `Traverse.Create(x)` and `x.GetType()` take `x`'s static type.
+    - **What must hold.** A lookup with a game type and a constant name must find the member in
+      this build and be declared: any declaration of it, on the type that has it (a base type's
+      member there), a type by any declaration naming it. Its failure names the site
+      (`Type.Method (src/…:LINE)`, from the PDB) and the line to paste, with each overload when
+      the name has several.
+    - **`nameof`.** A name spelt `nameof(…)` compiles to the same constant and needs the same
+      declaration. The compiler checked only that the name exists in the build it compiled
+      with, not the member's signature or what it does.
+    - **Warnings.** A lookup whose type or name the IL does not give, or a walk over a game
+      type's members (`GetFields`, `GetDeclaredMethods`), is a warning listing the site, a note
+      once its method or class is `NameLookupReviewed`.
+    - **Not followed:** names built any other way, a lambda's parameters, tuples,
+      `Expression.Field(x, "name")`.
+  - (6) Each `MirrorsGame` marker in that code has a `Mirrors` declaration of the member, with
+    its fingerprint for each build (the failure prints the line with this build's), and each
+    `Mirrors` declaration a marker.
 - Nothing is checked in play: no patch carries a guard or a finalizer for this.
 - *Offline* (`OniMoono --game DIR --check-tweaks check|review|declare`, `TweakCheckTool.cs`;
   `scripts/check-tweaks.sh`, run by check.sh over the frozen builds in `/mnt/e/oni-builds`):
-  check runs 1–3, 5 and 6 on a build of this branch's game update and then installs every tweak and the
-  menu as in play (4, and every patch made must be declared), failing on any tweak or the menu
-  off or anything undeclared (5's warnings do not fail it); review runs 1–3, 5 and 6 on
-  any build (a newly downloaded one) and prints each body to review with the fingerprint to add
-  once it is, and `--tweak-listings DIR` writes the normalised bodies for diffing two builds;
-  declare prints each tweak's patches as `GameMember` lines (`ONI_TWEAK_DESCRIBE=Type::name,…`
-  adds members it reaches by name). `ONI_TWEAK_TEST_UNREVIEWED=NAME` (test runs) ignores a
-  tweak's reviewed fingerprints, as on a build nobody reviewed.
+  - **check** runs 1–3, 5 and 6 on a build of this branch's game update, then installs every
+    tweak and the menu as in play (4, and every patch made must be declared). It fails on any
+    tweak or the menu off or anything undeclared (5's warnings do not fail it).
+  - **review** runs 1–3, 5 and 6 on any build (a newly downloaded one) and prints each body to
+    review with the fingerprint to add once it is. `--tweak-listings DIR` writes the normalised
+    bodies for diffing two builds.
+  - **declare** prints each tweak's patches as `GameMember` lines
+    (`ONI_TWEAK_DESCRIBE=Type::name,…` adds members it reaches by name).
+  - `ONI_TWEAK_TEST_UNREVIEWED=NAME` (test runs) ignores a tweak's reviewed fingerprints, as on
+    a build nobody reviewed.
 
-Test runs (not the product): `--run-home DIR` keeps a run's per-user data under DIR (Unity's
-paths, and on Windows the Documents and local application data folders the game asks .NET for),
-`--audio-wav DIR` sends the game's audio to `DIR/fmodoutput.wav` (FMOD's WAV writer) instead of
-the sound device, and the offline Steam double (`tools/SteamStub`, an ELF library or a PE DLL
-written directly) stands in for the Steam client. `scripts/run-windows.sh` uses all three.
+Test runs (not the product):
+
+- `--run-home DIR` keeps a run's per-user data under DIR (Unity's paths, and on Windows the
+  Documents and local application data folders the game asks .NET for).
+- `--audio-wav DIR` sends the game's audio to `DIR/fmodoutput.wav` (FMOD's WAV writer) instead
+  of the sound device.
+- The offline Steam double (`tools/SteamStub`, an ELF library or a PE DLL written directly)
+  stands in for the Steam client.
+
+`scripts/run-windows.sh` uses all three.
 
 ## 7. Logging and diagnostics
 
