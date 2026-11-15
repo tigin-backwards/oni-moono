@@ -3,7 +3,7 @@ jobs as systemd user units under a test prefix in a test slice, running true, fa
 job that ignores SIGTERM. Skipped without a systemd user manager. The Windows side is off here
 (RUNQ_WINDOWS=off); test_runq_windows.py covers it with a fake backend."""
 
-import json, os, shutil, signal, subprocess, sys, tempfile, time, unittest
+import fcntl, json, os, shutil, signal, subprocess, sys, tempfile, time, unittest
 
 import helpers
 
@@ -168,8 +168,7 @@ class Daemon(unittest.TestCase):
 
     def test_cancel_a_queued_job(self):
         a = self.h.submit('--owner', 'o1', '--kind', 'windows', '--', 'true')  # no Windows backend: waits
-        time.sleep(1)
-        self.assertIn('Windows', self.h.show(a)['waits'] or '')
+        self.h.wait_for(lambda: 'Windows' in (self.h.show(a)['waits'] or ''), what='the reason it waits')
         self.h.runq('cancel', a)
         self.assertEqual(self.h.show(a)['state'], 'cancelled')
 
@@ -207,17 +206,17 @@ class Daemon(unittest.TestCase):
 
     def test_legacy_flock_holder_blocks_then_frees(self):
         lock = os.path.join(self.h.env['E2E_LOCK_DIR'], 'perf.lock')
-        holder = subprocess.Popen(['flock', '-x', lock, 'sleep', '4'])
-        try:
-            time.sleep(0.5)
+        # This process holds it, as an old script would, until the daemon has seen it.
+        with open(lock, 'a') as holder:
+            fcntl.flock(holder, fcntl.LOCK_EX)
             job = self.h.submit('--kind', 'linux-perf', '--', 'sh', '-c', 'cat "$E2E_LOCK_DIR/perf.wanted"')
-            time.sleep(1.5)
-            d = self.h.show(job)
-            self.assertEqual(d['state'], 'queued')
-            st = json.loads(self.h.runq('status', '--json').stdout)
-            self.assertTrue(any('perf.lock held exclusively' in x for x in st['external']), st['external'])
-        finally:
-            holder.wait(10)
+
+            def seen():
+                st = json.loads(self.h.runq('status', '--json').stdout)
+                return any('perf.lock held exclusively' in x for x in st['external']) and self.h.show(job)['waits']
+
+            self.h.wait_for(seen, what='the daemon to see the lock held')
+            self.assertEqual(self.h.show(job)['state'], 'queued')
         self.assertEqual(self.h.runq('wait', job).returncode, 0)
         # While it ran, perf.wanted named its shim (a runq unit), and it is gone now.
         self.assertFalse(os.path.exists(os.path.join(self.h.env['E2E_LOCK_DIR'], 'perf.wanted')))
@@ -265,9 +264,8 @@ class Daemon(unittest.TestCase):
         b = self.h.submit('--owner', 'busy', '--kind', 'light', '--', 'sleep', '30')
         c = self.h.submit('--owner', 'busy', '--kind', 'light', '--', 'true')
         self.h.wait_for(lambda: self.h.show(b)['state'] == 'running', what='two jobs running')
-        time.sleep(1)
+        self.h.wait_for(lambda: 'cap 2' in (self.h.show(c)['waits'] or ''), what='the third to wait for the cap')
         self.assertEqual(self.h.show(c)['state'], 'queued')
-        self.assertIn('cap 2', self.h.show(c)['waits'])
         self.h.runq('cancel', a, b)
         self.assertEqual(self.h.runq('wait', c).returncode, 0)
         r = self.h.runq('submit', '--level', 'issue', '--kind', 'light', '--', 'true')
@@ -478,7 +476,8 @@ class Restarts(unittest.TestCase):
         job = self.h.submit('--kind', 'light', '--', 'sh', '-c', 'sleep 3; exit 5')
         self.h.wait_for(lambda: self.h.show(job)['state'] == 'running', what='the start')
         self.h.kill_daemon()
-        time.sleep(4)
+        # The job ends while no daemon runs: its cleanup's record is the last file it writes.
+        self.h.wait_for(lambda: os.path.exists(os.path.join(self.h.jobdir(job), 'cleanup.json')), what='the job to end without a daemon')
         self.h.start()
         self.assertEqual(self.h.runq('wait', job).returncode, 5)
 

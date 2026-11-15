@@ -346,7 +346,10 @@ class Bridge(unittest.TestCase):
             try:
                 import time
 
-                time.sleep(0.5)
+                deadline = time.time() + 20  # until each flock holds its lock
+                names = ('perf.lock', 'lane-102.lock', 'windows-game.lock')
+                while not all(legacy.flock_holders(os.path.join(locks, n)) for n in names) and time.time() < deadline:
+                    time.sleep(0.05)
                 procs = [(1, 'sleep 4242'), (2, '/bin/bash scripts/qa.sh perf')]
                 ext, free = legacy.scan(cfg, locks, procs=procs, port_busy=lambda p: False, display_busy=lambda d: False)
                 self.assertEqual(ext.perf_shared, 1)
