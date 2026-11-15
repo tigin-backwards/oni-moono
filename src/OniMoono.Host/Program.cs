@@ -87,6 +87,8 @@ namespace OniMoono.Host
                 gcOutcome == GcMode.Outcome.Relaunch ? GcMode.Outcome.NotApplied : gcOutcome, Environment.GetEnvironmentVariable)
                 + (gcRelaunchProblem != null ? $" ({gcRelaunchProblem})" : ""));
             EngineLog.Engine(GcMode.ConfigLine(gcConfig));
+            System.Threading.ThreadPool.GetMinThreads(out int poolWorkers, out _);
+            EngineLog.Engine(GcMode.ProcessorsLine(Environment.ProcessorCount, poolWorkers, global::OniMoono.GameTweaks.WorkerLoop.MaxHelpers, OniMoono.Desktop.Gl.ForkJoin.DefaultHelpers));
             GcMode.ForgetRelaunch();
             foreach (var note in options.ArgumentNotes) EngineLog.Engine("arguments: " + note);
             EngineLog.Engine(gameCommandLineSet

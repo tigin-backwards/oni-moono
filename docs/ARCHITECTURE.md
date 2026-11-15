@@ -2819,6 +2819,16 @@ variant of every loaded shader for the GL thread and returns (`GlWarmup`):
 - A draw whose program is not built yet builds it at first use, as for any program, and the
   warm-up then skips it.
 - `ONI_WARMUP_AHEAD=0` waits for them all, as before. `--check-shaders` always does.
+- A finished warm-up logs where its time went (`ProgramBuildLog`): the GL thread's wall and CPU
+  time; the preparation before the driver, each stage's compile, the link, the read of the link
+  status and the reflection; the three slowest programs; the frames handed over during a build
+  and their wait; and the process's CPU time over the warm-up. A third line gives the same split
+  for the programs built at first use since the last warm-up. A build at first use of 100 ms or
+  more logs a line at once (the first ten of a run). At start, the `OpenGL programs:` line says
+  whether the driver offers program binaries and parallel compile, and the `processors:` line
+  how many logical processors the process has and the helper threads sized by them.
+- `ONI_AFFINITY=HEXMASK` (Windows, tests of small machines) limits the player to those logical
+  processors before the runtime starts, as `taskset` does on Linux.
 
 Per-draw uniform blocks are streamed through a ring buffer that stays persistently mapped for the
 device's lifetime (`GlStreamBuffer`, ARB_buffer_storage). Data is copied into the mapping, blocks

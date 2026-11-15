@@ -67,6 +67,9 @@ namespace OniMoono.Tests
             Assert.Equal("gc: Workstation concurrent GC: the gc option is low-memory (the command line); started again with DOTNET_gcServer=0 to apply it",
                 GcMode.LogLine("Workstation concurrent GC", "low-memory", "the command line", GcMode.Outcome.Relaunched, Env()));
             Assert.Equal("gc config: ConcurrentGC=True, HeapCount=4", GcMode.ConfigLine(new Dictionary<string, object> { ["HeapCount"] = 4, ["ConcurrentGC"] = true }));
+            Assert.Equal("processors: 2 logical for this process (the game starts one job thread fewer); thread pool starts 2 workers at once, "
+                + "game tweak loops use up to 1 of them, draw recording 0 helper threads", GcMode.ProcessorsLine(2, 2, 1, 0));
+            Assert.EndsWith("draw recording 1 helper thread", GcMode.ProcessorsLine(4, 4, 3, 1));
         }
 
         [Fact]

@@ -99,6 +99,12 @@ namespace OniMoono.Host
             => "gc config: " + string.Join(", ", config.OrderBy(p => p.Key, StringComparer.Ordinal)
                 .Select(p => p.Key + "=" + Convert.ToString(p.Value, System.Globalization.CultureInfo.InvariantCulture)));
 
+        /// The processors this process may run on and the helper threads sized by them, for the
+        /// log (the GC's heaps, one thread each, are in the gc lines).
+        public static string ProcessorsLine(int processors, int poolWorkers, int tweakHelpers, int drawHelpers)
+            => $"processors: {processors} logical for this process (the game starts one job thread fewer); thread pool starts {poolWorkers} workers at once, "
+               + $"game tweak loops use up to {tweakHelpers} of them, draw recording {drawHelpers} helper thread{(drawHelpers == 1 ? "" : "s")}";
+
         /// The environment of the run started again for `choice`: this one's, with the GC
         /// variable and the marker.
         public static string[] RelaunchEnvironment(System.Collections.IDictionary current, string choice)

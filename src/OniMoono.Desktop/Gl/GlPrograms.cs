@@ -158,18 +158,29 @@ namespace OniMoono.Desktop.Gl
             if (!GlWarmup.Take(shader, blobIndex, out p))
             {
                 p = BuildVariant(shader, blobIndex);
-                GlWarmup.NoteBuilt(shader, blobIndex);
+                GlWarmup.NoteBuilt(shader, blobIndex, LastBuild);
             }
             set.Programs[blobIndex] = p;
             return p;
         }
 
+        /// Where the last BuildVariant's time went (GL thread).
+        internal static ProgramBuildSplit LastBuild;
+
         /// GL thread: a variant's program, not added to its shader's set (Get, GlWarmup).
         internal static DeviceProgram BuildVariant(ShaderNative shader, int blobIndex)
         {
+            long cpuStart = ThreadCpuTime.Now;
             long buildStart = System.Diagnostics.Stopwatch.GetTimestamp();
-            var p = Build(shader, shader.Programs.Variant(blobIndex));
-            System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.ProgramTicks, System.Diagnostics.Stopwatch.GetTimestamp() - buildStart);
+            LastBuild = default;
+            var variant = shader.Programs.Variant(blobIndex);
+            LastBuild.Prepare = System.Diagnostics.Stopwatch.GetTimestamp() - buildStart;
+            var p = Build(shader, variant);
+            long total = System.Diagnostics.Stopwatch.GetTimestamp() - buildStart;
+            LastBuild.Total = total;
+            long cpu = ThreadCpuTime.Now;
+            LastBuild.Cpu = cpuStart < 0 || cpu < 0 ? -1 : cpu - cpuStart;
+            System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.ProgramTicks, total);
             System.Threading.Interlocked.Increment(ref OniMoono.Engine.StartupStats.Programs);
             return p;
         }
@@ -238,16 +249,32 @@ namespace OniMoono.Desktop.Gl
         {
             var program = new DeviceProgram();
             if (!Supported(variant)) return program;
+            long t0 = System.Diagnostics.Stopwatch.GetTimestamp();
             bool direct3D = Direct3DClip.Applies(shader.ShaderName);
             var vertexSource = direct3D ? Direct3DClip.Vertex(variant.VertexSource) : variant.VertexSource;
             var fragmentSource = AnimationLight.Applies(shader.ShaderName) ? AnimationLight.Fragment(shader.ShaderName, variant.FragmentSource) : variant.FragmentSource;
             bool wholeCapture = CaptureTiles.Apply(shader.ShaderName, ref vertexSource, ref fragmentSource);
-            uint vs = GlApi.CompileShader(VertexShader, Prepare(vertexSource), out var vlog);
-            uint fs = GlApi.CompileShader(FragmentShader, Prepare(fragmentSource), out var flog);
+            vertexSource = Prepare(vertexSource);
+            fragmentSource = Prepare(fragmentSource);
+            var geometrySource = variant.GeometrySource != null ? Prepare(variant.GeometrySource) : null;
             program.Outputs = OutputLocations(variant.FragmentSource);
+            long t1 = System.Diagnostics.Stopwatch.GetTimestamp();
+            LastBuild.Prepare += t1 - t0;
+            uint vs = GlApi.CompileShader(VertexShader, vertexSource, out var vlog);
+            long t2 = System.Diagnostics.Stopwatch.GetTimestamp();
+            LastBuild.Vertex = t2 - t1;
+            uint fs = GlApi.CompileShader(FragmentShader, fragmentSource, out var flog);
+            long t3 = System.Diagnostics.Stopwatch.GetTimestamp();
+            LastBuild.Fragment = t3 - t2;
             uint gs = 0;
             string glog = "";
-            if (variant.GeometrySource != null) gs = GlApi.CompileShader(GeometryShader, Prepare(variant.GeometrySource), out glog);
+            if (geometrySource != null)
+            {
+                gs = GlApi.CompileShader(GeometryShader, geometrySource, out glog);
+                long compiled = System.Diagnostics.Stopwatch.GetTimestamp();
+                LastBuild.Geometry = compiled - t3;
+                t3 = compiled;
+            }
             if (vs == 0 || fs == 0 || (variant.GeometrySource != null && gs == 0))
             {
                 Debug.LogError($"Shader '{shader.ShaderName}' variant {variant.BlobIndex} [{string.Join(" ", variant.Keywords)}] failed to compile:\n{vlog}\n{flog}\n{glog}");
@@ -256,6 +283,9 @@ namespace OniMoono.Desktop.Gl
                 return program;
             }
             program.Id = GlApi.LinkProgram(vs, fs, gs, out var llog);
+            long t4 = System.Diagnostics.Stopwatch.GetTimestamp();
+            LastBuild.LinkStatus = GlApi.LinkStatusTicks;
+            LastBuild.Link = t4 - t3 - GlApi.LinkStatusTicks;
             foreach (var id in new[] { vs, fs, gs })
                 if (id != 0) N.glDeleteShader(new GlShader(id));
             if (program.Id == 0)
@@ -267,6 +297,7 @@ namespace OniMoono.Desktop.Gl
             var layout = string.Join(",", program.Attributes);
             if (!layouts.TryGetValue(layout, out program.LayoutId)) layouts[layout] = program.LayoutId = layouts.Count;
             Reflect(program);
+            LastBuild.Reflect = System.Diagnostics.Stopwatch.GetTimestamp() - t4;
             foreach (var u in program.Uniforms)
             {
                 u.Direct3DClip = direct3D;

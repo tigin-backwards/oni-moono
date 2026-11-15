@@ -37,6 +37,9 @@ run_home="${ONI_RUN_HOME:-$win_temp\\oni-brutal\\run-home}"
 # In a runq job, the run's game settings have every volume at 0 (the run home may have been
 # prepared after runq set it up, by scripts/windows-run-home.sh).
 [ -z "${RUNQ_JOB:-}" ] || python3 -I "$root/scripts/runqlib/winenv.py" mute "$(wslpath "$run_home")"
+# ONI_AFFINITY=HEXMASK: the logical processors the player may run on (3: the first two), which
+# OniMoono.exe sets on itself before the runtime starts.
+[ -z "${ONI_AFFINITY:-}" ] || export WSLENV="${WSLENV:+$WSLENV:}ONI_AFFINITY"
 game="${ONI_WIN_GAME_DIR:-C:\\Program Files (x86)\\Steam\\steamapps\\common\\OxygenNotIncluded}"
 exec "$stage/host/OniMoono.exe" --game "$game" --run-home "$run_home" --audio-wav "$run_home" --game-tweak none --splash none --log-paths full \
   --native-override "steam_api64=$stage_win\\$stub\\steam_api64.dll" -screen-fullscreen 0 -monitor "${ONI_WIN_MONITOR:-2}" --no-focus "$@"

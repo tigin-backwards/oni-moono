@@ -34,9 +34,22 @@ namespace OniMoono.Desktop.Gl
         static readonly HashSet<(ShaderNative, int)> built = new();
         static GlWorker worker;
 
-        // Diagnostics: built here since the queue was last empty, and the GL thread's time on them.
+        // Diagnostics, GL thread: the warm-up's builds since the queue was last empty, and those
+        // at first use since the last line about them.
+        static readonly ProgramBuildLog warmed = new(), firstUse = new();
         static long ticks, ran, skipped;
         static long queuedAt;
+        // The frames and calls handed over while a build ran, and their wait for it to end.
+        static long heldFrames, heldTicks;
+        // At the warm-up's first build: the time, the frames executed and the process's CPU time.
+        static long startedAt, startBatches;
+        static TimeSpan startProcessCpu;
+        static int slowLines;
+
+        /// A build at first use this slow gets a line of its own (the first SlowLines of a run):
+        /// the main thread waited for it.
+        const double SlowFirstUseMs = 100;
+        const int SlowLines = 10;
 
         public static bool HasWork => !pending.IsEmpty;
 
@@ -70,10 +83,17 @@ namespace OniMoono.Desktop.Gl
         {
             if (!pending.TryDequeue(out var v)) return;
             long start = GlTimings.Now;
+            if (startedAt == 0)
+            {
+                startedAt = start;
+                startBatches = worker.Batches;
+                startProcessCpu = Environment.CpuUsage.TotalTime;
+            }
             try
             {
                 if (v.Shader.Destroyed || v.Shader.DestroyRequested || !built.Add((v.Shader, v.Blob))) { skipped++; return; }
                 var program = GlPrograms.BuildVariant(v.Shader, v.Blob);
+                warmed.Add(v.Shader.ShaderName, v.Blob, GlPrograms.LastBuild);
                 unpublished[(v.Shader, v.Blob)] = program;
                 toPublish.Enqueue((v.Shader, v.Blob, program));
                 ran++;
@@ -84,22 +104,58 @@ namespace OniMoono.Desktop.Gl
             }
             finally
             {
-                ticks += GlTimings.Now - start;
+                long now = GlTimings.Now;
+                ticks += now - start;
+                // A frame handed over meanwhile has waited since then for this build.
+                long waiting = worker.WaitingSince;
+                if (waiting != 0)
+                {
+                    heldFrames++;
+                    heldTicks += now - Math.Max(waiting, start);
+                }
                 if (pending.IsEmpty && ran + skipped > 0)
                 {
-                    EngineLog.Engine($"shader warm-up: {ran} programs built in {ticks * 1000.0 / Stopwatch.Frequency:F0} ms on the GL thread while it was idle, "
-                        + $"{skipped} built at first use already, done {Stopwatch.GetElapsedTime(queuedAt).TotalMilliseconds:F0} ms after the warm-up was asked");
-                    ticks = ran = skipped = 0;
+                    foreach (var line in Summary(ran, skipped, ticks, Stopwatch.GetElapsedTime(queuedAt).TotalMilliseconds, warmed, firstUse, heldFrames, heldTicks,
+                                 worker.Batches - startBatches, now - startedAt, (Environment.CpuUsage.TotalTime - startProcessCpu).TotalMilliseconds, Environment.ProcessorCount))
+                        EngineLog.Engine(line);
+                    warmed.Reset();
+                    firstUse.Reset();
+                    ticks = ran = skipped = heldFrames = heldTicks = startedAt = 0;
                 }
             }
+        }
+
+        /// The lines of a finished warm-up: the builds and where their time went; what they cost
+        /// the frames; and the builds at first use since the last warm-up, when there were any.
+        internal static IEnumerable<string> Summary(long ran, long skipped, long ticks, double sinceAskedMs, ProgramBuildLog warmed, ProgramBuildLog firstUse,
+            long heldFrames, long heldTicks, long batches, long spanTicks, double processCpuMs, int processors)
+        {
+            static string Ms(long t) => ProgramBuildLog.Ms(t);
+            var c = System.Globalization.CultureInfo.InvariantCulture;
+            yield return $"shader warm-up: {ran} programs built in {Ms(ticks)} ms on the GL thread while it was idle ({warmed.Sum.CpuText()} on that thread), "
+                + $"{skipped} queued twice or built at first use already, done {sinceAskedMs.ToString("F0", c)} ms after the warm-up was asked";
+            if (ran > 0)
+                yield return $"shader warm-up: {warmed.Describe()}; {heldFrames} frames or calls were handed over during a build and waited {Ms(heldTicks)} ms in all; "
+                    + $"over the warm-up's {Ms(spanTicks)} ms the GL thread executed {batches} frames or calls and the process used {processCpuMs.ToString("F0", c)} ms of CPU on {processors} logical processors";
+            if (firstUse.Count > 0)
+                yield return $"shader programs at first use: {firstUse.Count} built in {Ms(firstUse.Sum.Total)} ms while the main thread waited ({firstUse.Sum.CpuText()} on the GL thread): {firstUse.Describe()}";
         }
 
         /// GL thread, from GlPrograms.Get (the main thread waits): a variant built here and not yet
         /// published.
         public static bool Take(ShaderNative shader, int blob, out DeviceProgram program) => unpublished.TryRemove((shader, blob), out program);
 
-        /// GL thread, from GlPrograms.Get: a variant built at its first use.
-        public static void NoteBuilt(ShaderNative shader, int blob) => built.Add((shader, blob));
+        /// GL thread, from GlPrograms.Get: a variant built at its first use, and where the
+        /// build's time went.
+        public static void NoteBuilt(ShaderNative shader, int blob, in ProgramBuildSplit split)
+        {
+            built.Add((shader, blob));
+            firstUse.Add(shader.ShaderName, blob, split);
+            if (split.Total * 1000.0 / Stopwatch.Frequency < SlowFirstUseMs || slowLines >= SlowLines) return;
+            slowLines++;
+            EngineLog.Engine($"shader program at first use: {shader.ShaderName.Trim()} variant {blob} took {ProgramBuildLog.Ms(split.Total)} ms ({split.CpuText()}): {split.Describe()}"
+                + (slowLines == SlowLines ? "; no more such lines this run" : ""));
+        }
 
         /// Main thread, while no draw recorder runs: the programs built since, into their shaders'
         /// sets. A shader destroyed meanwhile has its program deleted on the GL thread.

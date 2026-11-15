@@ -147,6 +147,8 @@ namespace OniMoono.Desktop.Gl
             EngineLog.Engine(GlBindless.Enabled ? "textures: bindless (ARB_bindless_texture)" : $"textures: bound to units ({GlBindless.Reason})");
             if (DebugOutput) EnableDebugOutput();
             EngineLog.Engine($"OpenGL: {caps.VersionString} / {caps.Name} / {caps.Vendor}");
+            EngineLog.Engine(ProgramSupport(GlApi.GetInteger(0x87FE), GlPrograms.Extensions.Contains("GL_KHR_parallel_shader_compile"),
+                GlPrograms.Extensions.Contains("GL_ARB_parallel_shader_compile"), GlApi.GetInteger));
 
             GlVertexArray vao = default;
             N.glGenVertexArrays(1, &vao);
@@ -190,6 +192,20 @@ namespace OniMoono.Desktop.Gl
                 presenter.Dispose();
             };
         }
+
+        /// The log's line on what the driver offers for building programs: binary formats
+        /// (GL_NUM_PROGRAM_BINARY_FORMATS; none: programs cannot be saved and loaded) and compiling
+        /// on its own threads (KHR or ARB parallel_shader_compile, with its thread limit).
+        internal static string ProgramSupport(int binaryFormats, bool khrParallel, bool arbParallel, Func<uint, int> getInteger)
+        {
+            const uint MaxShaderCompilerThreads = 0x91B0;
+            string parallel = !khrParallel && !arbParallel ? "not offered"
+                : $"offered ({(khrParallel ? "KHR" : "")}{(khrParallel && arbParallel ? ", " : "")}{(arbParallel ? "ARB" : "")}; compiler thread limit {FormatThreads(getInteger(MaxShaderCompilerThreads))})";
+            return $"OpenGL programs: {binaryFormats} program binary format{(binaryFormats == 1 ? "" : "s")} ({(binaryFormats > 0 ? "programs can be saved and loaded" : "programs cannot be saved")}), parallel compile {parallel}";
+        }
+
+        // 0xFFFFFFFF: the driver chooses.
+        static string FormatThreads(int threads) => threads == -1 ? "the driver's choice" : threads.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         readonly GlPresenter presenter;
 
