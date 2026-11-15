@@ -2491,11 +2491,17 @@ Server takes a process that has called SwapBuffers for an OpenGL one, skips its 
 windows are made (measured with RTSS 7.3.7 through its shared memory: before, it attached to
 OpenGL on a 120x1 hidden window and showed no overlay, #64; after, to our swap chain at the
 window's size; Vulkan, whose window has no context and which loads no OpenGL, was attached to
-DXGI before; a player's RTSS then counted OpenGL's DXGI presents and still drew nothing, #86:
-what its hook goes by is not known, and the log's `present: DXGI picture N presented on thread`
-lines, at pictures 1 and 1000, say what a hook can see: the presenting thread, whether an OpenGL
-context is current on it, how the picture reaches the swap chain's D3D11 device, and the graphics
-and hook modules loaded). With that setting DXGI then started and presented. The window gets a pixel format,
+DXGI before; RTSS then counted OpenGL's DXGI presents and still drew nothing, #86. The cause,
+measured with RTSS 7.3.5 on an RTX 3090 (driver 610.88): once `wglDXOpenDeviceNV` has opened our
+D3D11 device, the device answers `QueryInterface` for `ID3D10Device` too (`E_NOINTERFACE` before
+the call, `S_OK` after); RTSS asks for Direct3D 10 first, takes the swap chain for a Direct3D 10
+one (its shared memory's API flag 6, not 7) and draws nothing. `IgnoreDXGIInterop` 0 and 2 changed
+nothing; `D3D1xDevicePriority=1` under `[Hooking]` in RTSS's profile for `OniMoono.exe` made it
+draw (flag 7). Vulkan's device is never opened for OpenGL, and RTSS draws its overlay there
+(measured). The log's `present: DXGI picture N presented on thread` lines, at pictures 1 and
+1000, say what a hook can see: the presenting thread, whether an OpenGL context is current on
+it, how the picture reaches the swap chain's D3D11 device, whether that device answers as a
+Direct3D 10 device, and the graphics and hook modules loaded). With that setting DXGI then started and presented. The window gets a pixel format,
 double-buffered, and a context of its own sharing the presenter's (with the hidden window's pixel
 format and the presenter's context itself when that window is double-buffered: WGL takes any
 window with the context's pixel format, `Win32GlWindow`), only once DXGI is given up: it could not start, or no restart is left.

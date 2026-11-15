@@ -44,8 +44,12 @@ namespace OniMoono.Desktop.Gl
         /// The log line about a DXGI present as a hook in the process (an overlay: RivaTuner
         /// Statistics Server, #86) can observe it: the thread, whether an OpenGL context is
         /// current on it, how the picture reaches the swap chain's device (`sharing`), and the
-        /// graphics and hook modules loaded by now. Never throws.
-        public static string DescribePresent(IntPtr hwnd, int presents, string sharing)
+        /// graphics and hook modules loaded by now, and whether the swap chain's D3D11 `device`
+        /// answers as a Direct3D 10 device too. It does once NVIDIA's wglDXOpenDeviceNV has
+        /// opened it (measured, driver 610.88: E_NOINTERFACE before the call, S_OK after), and
+        /// RTSS, which asks for Direct3D 10 first, then takes the swap chain for a Direct3D 10
+        /// one and draws nothing. Never throws.
+        public static string DescribePresent(IntPtr hwnd, int presents, string sharing, void* device)
         {
             try
             {
@@ -54,7 +58,10 @@ namespace OniMoono.Desktop.Gl
                 bool? current = null;
                 if (opengl != IntPtr.Zero && NativeLibrary.TryGetExport(opengl, "wglGetCurrentContext", out IntPtr get))
                     current = ((delegate* unmanaged<IntPtr>)get)() != IntPtr.Zero;
-                return FormatPresent(presents, GetCurrentThreadId(), windowThread, current, sharing,
+                void* d10 = null;
+                bool asD3D10 = device != null && !Dxgi.Failed(Dxgi.QueryInterface(device, Dxgi.IIDD3D10Device, &d10));
+                Dxgi.Release(ref d10);
+                return FormatPresent(presents, GetCurrentThreadId(), windowThread, current, sharing, asD3D10,
                     LoadedModules([.. Runtimes, .. OpenGlAndOlder]), LoadedModules(Hooks));
             }
             catch (Exception e)
@@ -64,10 +71,10 @@ namespace OniMoono.Desktop.Gl
         }
 
         /// DescribePresent's text (pure). `glCurrent`: null when opengl32.dll is not loaded.
-        internal static string FormatPresent(int presents, uint thread, uint windowThread, bool? glCurrent, string sharing, string modules, string hooks)
+        internal static string FormatPresent(int presents, uint thread, uint windowThread, bool? glCurrent, string sharing, bool asD3D10, string modules, string hooks)
             => $"present: DXGI picture {presents} presented on thread {thread} (the window's: {windowThread}), "
                + (glCurrent switch { null => "OpenGL not loaded", true => "an OpenGL context current on it", false => "no OpenGL context current on it" })
-               + $"; {sharing}; graphics modules loaded: {modules}; overlay and capture hooks loaded: {hooks}";
+               + $"; {sharing}; the device {(asD3D10 ? "answers as a Direct3D 10 device too (ID3D10Device)" : "is Direct3D 11 only (no ID3D10Device)")}; graphics modules loaded: {modules}; overlay and capture hooks loaded: {hooks}";
 
         /// The watched modules loaded now, once: called as DXGI first starts, before its own DLLs
         /// are loaded.

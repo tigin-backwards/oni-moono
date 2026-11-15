@@ -44,6 +44,7 @@ namespace OniMoono.Desktop.Gl
         // ----- Interface IDs -----
         public static readonly Guid IIDFactory2 = new("50c83a1c-e072-4c48-87b0-3630fa36a6d0");
         public static readonly Guid IIDFactory4 = new("1bc6ea02-ef36-464f-bf0c-21ca39e5168a");
+        public static readonly Guid IIDD3D10Device = new("9b7e4c0f-342c-4106-a19f-4f2704f689f0");
         public static readonly Guid IIDFactory5 = new("7632e1f5-ee65-4dca-87fd-84cd75f8838d");
         public static readonly Guid IIDAdapter1 = new("29038f61-3839-4626-91fd-086879011a05");
         public static readonly Guid IIDAdapter3 = new("645967a4-1392-4310-a798-8053ce3e93fd");

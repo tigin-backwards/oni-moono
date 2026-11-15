@@ -130,10 +130,11 @@ namespace OniMoono.Tests
         {
             Assert.Equal(
                 "present: DXGI picture 1 presented on thread 9 (the window's: 7), an OpenGL context current on it; shared through interop; "
-                + "graphics modules loaded: dxgi.dll, d3d11.dll, opengl32.dll; overlay and capture hooks loaded: RTSSHooks64.dll",
-                DxgiWindowReport.FormatPresent(1, 9, 7, true, "shared through interop", "dxgi.dll, d3d11.dll, opengl32.dll", "RTSSHooks64.dll"));
-            Assert.Contains("(the window's: 7), no OpenGL context current on it; ", DxgiWindowReport.FormatPresent(1000, 9, 7, false, "s", "none", "none"));
-            Assert.Contains("(the window's: 7), OpenGL not loaded; ", DxgiWindowReport.FormatPresent(1000, 9, 7, null, "s", "none", "none"));
+                + "the device answers as a Direct3D 10 device too (ID3D10Device); graphics modules loaded: dxgi.dll, d3d11.dll, opengl32.dll; overlay and capture hooks loaded: RTSSHooks64.dll",
+                DxgiWindowReport.FormatPresent(1, 9, 7, true, "shared through interop", true, "dxgi.dll, d3d11.dll, opengl32.dll", "RTSSHooks64.dll"));
+            Assert.Contains("(the window's: 7), no OpenGL context current on it; ", DxgiWindowReport.FormatPresent(1000, 9, 7, false, "s", false, "none", "none"));
+            Assert.Contains("(the window's: 7), OpenGL not loaded; ", DxgiWindowReport.FormatPresent(1000, 9, 7, null, "s", false, "none", "none"));
+            Assert.Contains("; s; the device is Direct3D 11 only (no ID3D10Device); ", DxgiWindowReport.FormatPresent(1000, 9, 7, null, "s", false, "none", "none"));
         }
 
         [Fact]

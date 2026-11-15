@@ -365,7 +365,7 @@ namespace OniMoono.Desktop.Gl
             if (nowOccluded != occluded && PresentTrace.Enabled) PresentTrace.Log($"dxgi: present {presents}: {(nowOccluded ? "occluded (not shown)" : "shown again")}");
             occluded = nowOccluded;
             if (Dxgi.Failed(hr)) return Fail($"Present failed ({Dxgi.Hr(hr)}{DeviceState(hr)})");
-            if (presents is 1 or DescribedLater) EngineLog.Engine(DxgiWindowReport.DescribePresent(window, presents, Sharing));
+            if (presents is 1 or DescribedLater) EngineLog.Engine(DxgiWindowReport.DescribePresent(window, presents, Sharing, device));
             // Without vsync nothing waits, as on the swapchain paths: retiring can take a frame or
             // two (measured on the AMD iGPU, its picture copied to a monitor on another GPU: 29 ms
             // a picture), which would cap the frame rate. The next Present resyncs the count; the
