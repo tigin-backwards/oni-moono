@@ -111,11 +111,11 @@ namespace OniMoono.Host.GameTweaks
             new(SplashRow, General, "Gassy Moo loading splash", "Gassy Moos rain over the window while the game starts, with a progress bar.", IsTweak: false),
             // (Not "Check for updates": the title font draws a lowercase f as a capital.)
             new(UpdateCheckRow, General, "Update check", "The main menu shows when a newer Moono is out.",
-                "Asks GitHub for Moono's list of releases (api.github.com) at most once every 6 hours, in the background, sending nothing about you or your game. "
-                + "The answer is kept in the oni-moono data folder. Off: Moono makes no network requests of its own.", IsTweak: false),
+                "Asks GitHub (api.github.com) for Moono's releases at most once every 6 hours, in the background. Nothing about you or your game is sent. "
+                + "The answer is kept in the oni-moono data folder. Off: Moono makes no network requests.", IsTweak: false),
             new(FrameStatsRow, General, "Frame stats in the log", "Notes where the frame time goes in Player.log, for reporting slowness.",
                 "Every 60 frames.", IsTweak: false),
-            new(LogPathsRow, General, "Hide personal paths in the log", "Your user folder reads %USERPROFILE% or ~ in Player.log, and your account IDs and name are hidden.",
+            new(LogPathsRow, General, "Hide personal paths in the log", "Player.log shows your user folder as %USERPROFILE% or ~ and hides your account IDs and name.",
                 "Mods still get the full text.", IsTweak: false),
             new(GpuRow, General, "Graphics card", "For laptops with two GPUs: which one the game draws with. Needs a restart.",
                 "Default: as the original game (on Windows the faster, discrete GPU; on Linux the system's choice). Discrete: the faster GPU. "
@@ -123,12 +123,13 @@ namespace OniMoono.Host.GameTweaks
                 + "On Linux, on a desktop whose display is on the discrete card, discrete may pick the integrated GPU.",
                 IsTweak: false, Choices: [OniMoono.Host.GpuChoice.Default, OniMoono.Host.GpuChoice.Discrete, OniMoono.Host.GpuChoice.Integrated]),
             new(DxgiRow, General, "Present through Direct3D on Windows", "Windows shows the game as it shows the original: no forced HDR or brightness. Needs a restart.",
-                "Frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through OpenGL's own presentation, "
-                + "which Auto HDR or RTX HDR can take for HDR. If it can't start, OpenGL's own is used and Player.log says why. No effect on Linux.",
+                "Frames reach the screen through a Direct3D 11 swap chain, as in the original. Off: "
+                + "OpenGL presents them, and Auto HDR or RTX HDR can force HDR on the game. If Direct3D can't start, OpenGL presents and Player.log says why. "
+                + "No effect on Linux.",
                 IsTweak: false),
             new(StallRepeatsRow, General, "Steady display during saves and loads", "G-Sync and FreeSync monitors don't flicker while the game saves or loads.",
-                "While no new frame comes for a moment, the last one is shown again at about the game's frame rate (30 to 60 times a second), "
-                + "so the monitor's refresh rate doesn't drop. Nothing changes while frames come as usual. Windows, with Direct3D presentation on.",
+                "When no new frame arrives, the last one is shown again 30 to 60 times a second, so the monitor's refresh rate doesn't drop. "
+                + "Windows only, with Direct3D presentation on.",
                 IsTweak: false),
             new(GcRow, General, "Garbage collection", "How the game frees memory it no longer uses. Needs a restart.",
                 "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. "
@@ -136,23 +137,23 @@ namespace OniMoono.Host.GameTweaks
                 + "Only worth changing if your PC is short on RAM.",
                 IsTweak: false, Choices: [OniMoono.Host.GcMode.Fast, OniMoono.Host.GcMode.LowMemory]),
             new("fast-load-screen", General, "Faster Load screen", "With many saves, the Load screen opens and loads more colonies sooner.",
-                "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. "
+                "Each save's details are read once per refresh instead of four times, several files at a time, and previews already shown are not made again. "
                 + "The colonies, their order, the previews and the log are the same.", LoadScreenGain),
             new(LoadingAnimation, General, "Moving loading screen", "The loading screen keeps moving while a colony loads.",
-                "A save loads in one long step during which the game shows no new picture, for half a minute on a large colony. "
-                + "Meanwhile Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. "
-                + "The load itself is the same and takes as long."),
+                "While a save loads, the game shows no new picture, for half a minute on a large colony. "
+                + "Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. "
+                + "Loading takes as long as before."),
             new(FmodQuarantine, General, "Sound memory guard", "Guards against a bug in the game's sound engine that can crash the game.",
-                "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. "
-                + "With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, "
-                + "and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."),
+                "FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some \"heap corruption\" crashes. "
+                + "This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. "
+                + "Uses about 90 MB more memory on a large colony. Windows only for now."),
             new(FmodStealFix, General, "Stolen sound crash guard", "Fixes a bug in the game's sound engine that can crash the game when many sounds play at once.",
-                "When too many copies of a sound play, FMOD, the sound engine, stops the oldest; if that one is still loading, FMOD frees it and then writes to it. "
-                + "With this, that one write is skipped, in FMOD's code in memory, only for the exact FMOD files the game ships; anything else is left as it is. Nothing you hear changes."),
+                "When too many copies of a sound play, FMOD, the sound engine, stops the oldest. If that one is still loading, FMOD frees it and then writes to it. "
+                + "This skips that write by patching FMOD's code in memory, only for the exact FMOD files the game ships. Nothing you hear changes."),
             new(ReleasedSounds, General, "Forget released sounds", "The game stops changing sounds it is done with, which after hours of play could crash it.",
-                "A bug in the game's own code: background sounds, and looping sounds after a switch to another asteroid, keep the sound engine's number for a sound the game is done with, and go on using it. "
-                + "After a couple of hours on a large colony the sound engine gives that number to something else, and the game's change lands there, sometimes not on a sound at all. "
-                + "With this, the number is forgotten when the sound is let go. Nothing you hear changes."),
+                "A bug in the game: background sounds, and looping sounds after a switch to another asteroid, keep using a sound's handle after the game releases it. "
+                + "After a couple of hours on a large colony the sound engine reuses the handle, and the game's change lands on something else, sometimes not a sound at all. "
+                + "This forgets the handle when the sound is released. Nothing you hear changes."),
             new(ExactWorldgen, General, "Worldgen as in the original", "A seed makes the same map as in the original game, so shared seeds match.",
                 "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. "
                 + "Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."),
@@ -162,13 +163,13 @@ namespace OniMoono.Host.GameTweaks
             new("fast-save-type-checks", Saving, "Faster save checks", "Autosaves skip repeating the same checks for every object.",
                 "Remembers what saving asks about each kind of component instead of asking again for every object."),
             new(FastSaveCompression, Saving, "Faster save compression", "Saving and loading take seconds less; files stay compatible, a little larger.",
-                "Compresses with .NET's zlib instead of the game's own; the files are about 14% larger."),
+                "Compresses with .NET's zlib instead of the game's; the files are about 14% larger."),
             new(BackgroundSave, Saving, "Background saving", "The save is compressed and written to disk while the game plays on.",
                 "Compression and the file write move to another thread; quitting waits for them."),
-            new(NoSaveGc, Saving, "No cleanup pause when saving", "Skips the memory cleanup the game forces after each save, a pause of its own.",
+            new(NoSaveGc, Saving, "No cleanup pause when saving", "Skips the memory cleanup the game forces after each save, which pauses the game.",
                 "Skips the full garbage collection the game asks for after saving."),
             new(PostLoadGc, Saving, "Memory cleanup during loading", "Collects garbage during the loading screen, avoiding a large hitch shortly after the game starts.",
-                "Runs the memory cleanup that would otherwise pause the game about a minute into play at the end of the load, while the game is still paused. "
+                "The memory cleanup that would pause the game about a minute into play runs at the end of the load instead, while the game is still paused. "
                 + "Only with Fast garbage collection (the default).", PostLoadGain),
 
             new("fast-jobs", Simulation, "Faster worker threads", "Less time lost waking idle worker threads every frame.",
@@ -182,8 +183,8 @@ namespace OniMoono.Host.GameTweaks
             new("fast-partitioner-cleanup", Simulation, "Faster spatial index cleanup", "The once-a-second tidy-up of what is where looks only at what was removed.",
                 "The spatial index's cleanup visits only the entries that were removed."),
             new("fast-partitioner-events", Simulation, "Faster item moves on the map", "An item changing tile no longer looks through every item near it.",
-                "When an item moves or is stored, the game tells the spatial index's listeners for that tile by looking through every item in the surrounding area; "
-                + "items have no listeners, so this skips the look and tidies up the removed entries it would have."),
+                "When an item moves or is stored, the game looks through every item nearby for listeners on that tile. "
+                + "Items have no listeners, so this skips the search and keeps only its cleanup of removed entries."),
             new("fast-conduit-sorts", Simulation, "Faster pipe and rail updates", "Pipes and rails no longer re-sort every building's update each second.",
                 "Each second the game sorts the list of pipe and rail buildings by priority again; this repeats the reordering its last sort made "
                 + "while the priorities are the same, which gives the same order."),
@@ -198,34 +199,34 @@ namespace OniMoono.Host.GameTweaks
                 "When an item is stored, the game takes it out of its list of things to save by comparing it with every item of its kind; "
                 + "this compares references instead, which finds the same entry."),
             new(PagedPathGrids, Simulation, "Paged path grids", "Each Duplicant's map of path costs takes memory only where it can walk.",
-                "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, "
-                + "and the parts never written read as the empty grid did. The pathfinder reads the same values."),
+                "A Duplicant's path grid covers the whole map. This keeps it in small pages, each made the first time a path probe writes there. "
+                + "The pathfinder reads the same values."),
             new(SharedDuplicates, Simulation, "Share identical data", "Names repeated across a colony's reports and other identical data are kept once, using less memory.",
-                "While a save loads, every copy of the same text (Duplicants' and critters' names in each day's report) becomes one; "
-                + "buildings with the same footprint share one table of the spots they are worked from, and work animations left at their defaults share one list. "
-                + "Nothing is written into them, so the game reads the same values.", SharedGain),
+                "While a save loads, copies of the same text (Duplicants' and critters' names in each day's report) become one. "
+                + "Buildings with the same footprint share one table of work spots, and work animations left at their defaults share one list. "
+                + "The game never writes to these, so it reads the same values.", SharedGain),
             new(CompactReports, Simulation, "Compact report history", "Past days' reports take a fraction of the memory.",
                 "The notes of every day's report but today's are kept in flat arrays instead of a table for each entry; "
                 + "the reports screen and saves read the same notes in the same order.", ReportsGain),
             new(FetchByCell, Simulation, "Fetch checks by pile", "Duplicants looking for things to fetch check each pile of identical items once, not item by item.",
-                "Keeps the best item of each pile up to date as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. "
-                + "Within a pile of items that are the same in every way the game compares, a Duplicant may take another one than in the original. "
+                "Tracks the best item of each pile as items move, are reserved or spoil, and finds the path to each pile once. "
+                + "Items on worlds a Duplicant can't reach are skipped. "
+                + "Among items in a pile that the game ranks as equal, a Duplicant may take a different one than in the original. "
                 + "Off while a mod changes how Duplicants choose what to fetch.", FetchGain, ChangesBehaviour: true),
             new("direct-rail-bridges", Simulation, "Direct conveyor bridge moves", "Conveyor bridges pass an item straight across instead of taking it off the rail and putting it back.",
-                "In the game, each item a bridge moves is told it left storage and, at once, that it is stored again. With this, the item only changes rail tile. "
-                + "The rails carry the same things at the same times, with the same heat, germs, freshness and egg state, and meter valves count the same. "
-                + "What differs is bookkeeping: an item keeps its place in the rails' list, so the Conveyor overlay may draw two overlapping items in the other order, "
-                + "and it is not listed as fetchable for the instant of the crossing. "
-                + "Kinds of item not discovered yet, critters and items a mod has added parts to cross the game's way. Off while another mod changes how items are stored on rails.", ChangesBehaviour: true, OnByDefault: true),
+                "The item only changes rail tile. What the rails carry and when, heat, germs, freshness, egg state and Conveyor Meter counts are the same. "
+                + "Two things differ: "
+                + "the Conveyor overlay may draw two overlapping items in the other order, and an item is no longer listed as fetchable for the instant it crosses. "
+                + "Undiscovered kinds of item, critters and items a mod has added components to cross the game's way. "
+                + "Off while another mod changes how items are stored on rails.", ChangesBehaviour: true, OnByDefault: true),
 
             new(LazyTableRefresh, Graphics, "Update only the table rows in sight", "Consumables, Vitals, Priorities and the other tables update only the rows on screen.",
-                "Once a second, and each time a table is opened, the game updates every row of it in one frame: a stutter with many Duplicants. "
-                + "With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. "
+                "The game updates every row of a table in one frame, once a second and each time it opens, which stutters with many Duplicants. "
+                + "Rows out of sight are updated just before they scroll into view instead, so they show values read at that moment. "
                 + "Off while a mod changes how tables update.", ChangesBehaviour: true, OnByDefault: true),
             new("fast-table-rows", Graphics, "Tables open sooner", "Consumables, Vitals and Priorities open much sooner on colonies with many Duplicants.",
-                "As a table builds its rows, the game finds each cell's row and column by searching every row and column built so far, "
-                + "and Consumables goes through every row's scroll bar again for each cell. "
-                + "With this, a row's cells are noted as the row is built and the scroll bars are set once a row; the table comes out the same."),
+                "For each cell of a table, the game searches every row and column built so far, and Consumables also goes through every row's scroll bar. "
+                + "This notes a row's cells as the row is built and sets the scroll bars once a row. The table comes out the same."),
 
             new("fast-anim-events", Graphics, "Faster animation events", "Animations check their sound and effect cues with less work.",
                 "Keeps a compact copy of what each playing animation's per-frame event check reads."),
@@ -236,7 +237,7 @@ namespace OniMoono.Host.GameTweaks
             new("fast-symbol-overrides", Graphics, "Fewer animation uploads", "Swapped animation parts are re-sent to the graphics card only when they change.",
                 "Unchanged symbol-override blocks of Duplicants and buildings aren't uploaded again."),
             new("fast-overlays", Graphics, "Faster overlays", "Overlays skip rereading what can't have changed since the last frame.",
-                "Temperature passes over buildings out of view without reading them, power asks each circuit's load once a frame, the rest keep what their targets' visits read.", OverlaysGain),
+                "Temperature skips buildings out of view without reading them, Power asks each circuit's load once a frame, and the other overlays keep what they read about each object they show.", OverlaysGain),
             new("fast-overlay-textures", Graphics, "Overlay texture cleanup", "Opening and closing overlays no longer piles up video memory.",
                 "The screen-sized textures the game remakes on each coloured overlay toggle are freed, instead of kept until the next load (about 18 MB a toggle at 1024×768)."),
             new("fast-overlay-removals", Graphics, "Smoother decor overlay", "The Decor overlay no longer stutters when items are stored or used up.",
@@ -244,40 +245,49 @@ namespace OniMoono.Host.GameTweaks
                 + "this compares references instead, which finds the same entries."),
 
             new("path-probe-repair", ChangesGameplay, "Incremental path probes", "Duplicants' path checks redo only what changed in the world, using less CPU.",
-                "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. "
-                + "Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may walk the other one, not the original's. "
-                + "Keeps about 0.9 MB a Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths).", OnByDefault: true),
+                "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of redone from scratch. "
+                + "Costs and reachable cells stay the same, but where two routes cost the same a Duplicant may walk a different one than in the original. "
+                + "Uses about 0.9 MB per Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths).", OnByDefault: true),
             new(InstantReachability, ChangesGameplay, "Instant reachability checks", "Duplicants notice a newly opened or blocked path at once, using less CPU.",
-                "Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. "
-                + "The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second.", OnByDefault: true),
+                "Errands and items are rechecked where and when a Duplicant's reach changes, instead of all of them once a second. "
+                + "The answers are the same, up to 1 s sooner. Items it can't track (from some mods) are still checked every second.", OnByDefault: true),
             new("off-screen-conveyors", ChangesGameplay, "Lazy unseen conveyor items", "Items riding rails off screen are placed only when they stop or come into view.",
                 "The rails carry exactly the same things, but items' positions lag while off screen."),
             new(SimStepPace, ChangesGameplay, "Simulation at its own pace", "Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU.",
-                "Between its steps, five a second, the game asks the simulation for its state on every frame with no game time to step, which happens only above 60 fps at normal speed. "
-                + "Each such call makes the frame wait for the step underway and runs a step of no time. With this, the simulation is called only at its steps, as the game already does below 60 fps and at faster speeds. "
-                + "Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later than without it (up to 0.4 s), as below 60 fps. Paused, or while another mod changes these calls, the game's own calls run.", PaceGain),
-            new("brain-rate", ChangesGameplay, "Critter and dupe brain updates capped at 30 updates a second", "Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps.",
-                "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale its food or to excrete goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with the game speed, so each still gets an update within 15 seconds of game time. Saves time only above 30 fps."),
+                "Above 60 fps at normal speed, the game calls the simulation on every frame between its five steps a second, and each call waits for the step underway. "
+                + "This skips those calls, as the game does below 60 fps and at faster speeds. "
+                + "Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later (up to 0.4 s), as below 60 fps. "
+                + "Off while paused, or while another mod changes these calls.", PaceGain),
+            new("brain-rate", ChangesGameplay, "Cap critter and dupe brain updates", "Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps.",
+                "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. "
+                + "One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food or excrete goes ahead of the others, so critters act at other moments than without this. "
+                + "With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time."),
             new("critter-needs-first", BugFixes, "Critters ready to eat or excrete get the next turn", "In huge colonies, Slicksters and Pufts no longer stop excreting at low frame rates.",
-                "The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters and a low frame rate, a critter that inhales its food gets too few turns to stay fed, so it stays hungry and never excretes: its stomach fills for cycles and empties all at once after a load. "
-                + "With this, a critter that is ready to inhale or to excrete takes one of the frame's turns ahead of the others. No turns are added; the other critters wait slightly longer."),
+                "The game lets 5 critters decide what to do each frame, in a fixed order. "
+                + "With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: "
+                + "its stomach fills for cycles and empties all at once after a load. "
+                + "This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others. "
+                + "No turns are added, so other critters wait slightly longer."),
             new("off-world-fallers", BugFixes, "Land items lost below a world", "Items that fall out the bottom of a world (a rocket's chute) stop falling forever.",
                 "A bug in the game: they hang just below the world, stepped as falling every tick. This lands them where they hang."),
             new("fix-load-screen-clicks", BugFixes, "Open a colony once on the Load screen", "After Load more, a click on a colony no longer builds its list of saves again for every refresh.",
-                "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, "
-                + "and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same.", OnByDefault: true),
+                "A bug in the game: "
+                + "each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh. "
+                + "This builds it once and logs once; the screen ends up the same.", OnByDefault: true),
             new(EndlessSounds, BugFixes, "Stop sounds that never end", "An eating Pip no longer leaves sounds playing forever, which in time froze the game.",
-                "A bug in the game's sound data: the adult Pip's eating loop, and the debris left by a self-destructed rocket, start a new copy of a looping sound on every loop "
-                + "and never stop one. With this they play as the baby Pip's does: one copy while the animation runs, stopped when it ends.", OnByDefault: true),
+                "A bug in the game's sound data: "
+                + "the adult Pip's eating loop, and the debris left by a self-destructed rocket, start a new copy of a looping sound on every loop and never stop one. "
+                + "This plays them as the Pipsqueak's: one copy while the animation runs, stopped when it ends.", OnByDefault: true),
             new(SoundPiles, BugFixes, "Cap repeated sounds in one tile", "Hundreds of critters in one tile no longer freeze the game with their sounds.",
                 "When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. "
                 + "A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped.", OnByDefault: true),
             new(GeothermalVents, BugFixes, "Count all a geothermal vent emits", "A geothermal vent's kg remaining goes down as it vents, instead of stalling while it keeps emitting.",
-                "A bug in the game's own code, fixed in its next update: a vent reads what it emitted at a time of its own, and at high frame rates it often reads nothing, "
-                + "so it vents on and on and clogs its pipes. With this, as in that update, it counts what it emits after every step of the simulation.", OnByDefault: true),
+                "A bug in the game, fixed in its next update: "
+                + "at high frame rates a vent often reads that it emitted nothing, so it vents on and on and clogs its pipes. "
+                + "As in that update, this counts what it emits after every step of the simulation.", OnByDefault: true),
             new(TimelapseSnapshots, BugFixes, "Correct daily colony snapshots", "Colony snapshots saved each cycle no longer get vertical stripes, squeezed lights or stray effects.",
-                "A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. "
-                + "With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view.", OnByDefault: true),
+                "A bug in the game: the build grid, the lights and the heat, cold and dust effects are set up for the screen's view, which is wider than a snapshot's. "
+                + "With a building picked for placement, the grid draws stripes over the left of the image. This sets them up for the snapshot's view.", OnByDefault: true),
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
