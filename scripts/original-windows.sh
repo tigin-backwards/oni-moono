@@ -58,7 +58,7 @@ shopt -u nocasematch
 [ "$(realpath -m "$orig")" != "$(realpath -m "$source")" ] || { echo "ORIG_DIR is the game folder itself" >&2; exit 1; }
 
 if [ ! -d "$orig/${name}_Data" ]; then
-  doorstop="${ONI_DOORSTOP_SOURCE:-${ONI_BEPINEX_SOURCE:-}}"
+  doorstop="${ONI_DOORSTOP_SOURCE:-}"
   : "${doorstop:?set ONI_DOORSTOP_SOURCE to a folder with the winhttp.dll of Unity Doorstop 4 (a BepInEx 6 install, another copy), for the first setup}"
   [ -f "$doorstop/winhttp.dll" ] || { echo "no winhttp.dll in $doorstop" >&2; exit 1; }
   if [ -f "$doorstop/.doorstop_version" ] && ! grep -q '^4\.' "$doorstop/.doorstop_version"; then

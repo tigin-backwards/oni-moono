@@ -1,7 +1,7 @@
 """A job's environment, and its Windows side: run home, stage folder, the Windows backend (§5).
 
-Every job gets RUNQ_JOB, RUNQ_DIR, RUNQ_OUT, RUNQ_OWNER, RUNQ_LEVEL, RUNQ_LANES (and RUNQ_PRIORITY,
-the design's name for the level), E2E_MEMORY_GB and E2E_MAX_PLAYERS from its grant,
+Every job gets RUNQ_JOB, RUNQ_DIR, RUNQ_OUT, RUNQ_OWNER, RUNQ_LEVEL, RUNQ_KIND, RUNQ_LANES,
+E2E_MEMORY_GB and E2E_MAX_PLAYERS from its grant,
 ONI_CONTAINED=1, ONI_HOST_NO_DIALOG=1 listed in WSLENV, no sound (PULSE_SERVER to nothing,
 SDL_AUDIODRIVER=dummy), no desktop display (DISPLAY and WAYLAND_DISPLAY dropped). A job that
 holds the Windows slot also gets:
@@ -82,7 +82,6 @@ def job_env(base, job, grant, cfg, win_temp=None):
         RUNQ_OUT=os.path.join(job['dir'], 'out'),
         RUNQ_OWNER=job['owner'],
         RUNQ_LEVEL=level,
-        RUNQ_PRIORITY=level,
         RUNQ_KIND=job['kind'],
         RUNQ_LANES=','.join(str(x) for x in lanes),
         ONI_CONTAINED='1',

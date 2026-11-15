@@ -243,7 +243,6 @@ def parse_job(argv):
     takes = {
         '--owner': 'owner',
         '--level': 'level',
-        '--priority': 'level',
         '--kind': 'kind',
         '--needs': 'needs',
         '--timeout': 'timeout',
