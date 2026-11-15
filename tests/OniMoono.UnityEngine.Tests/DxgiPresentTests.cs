@@ -123,6 +123,19 @@ namespace OniMoono.Tests
             Assert.Equal("window 0x1A2B: not a window", DxgiWindowReport.Format(0x1A2B, Laptop with { IsWindow = false }, "none"));
         }
 
+        /// What an overlay's hook sees of a present (#86): the thread, OpenGL on it, how the
+        /// picture reaches the swap chain's device, the modules.
+        [Fact]
+        public void APresentIsDescribedAsAHookSeesIt()
+        {
+            Assert.Equal(
+                "present: DXGI picture 1 presented on thread 9 (the window's: 7), an OpenGL context current on it; shared through interop; "
+                + "graphics modules loaded: dxgi.dll, d3d11.dll, opengl32.dll; overlay and capture hooks loaded: RTSSHooks64.dll",
+                DxgiWindowReport.FormatPresent(1, 9, 7, true, "shared through interop", "dxgi.dll, d3d11.dll, opengl32.dll", "RTSSHooks64.dll"));
+            Assert.Contains("(the window's: 7), no OpenGL context current on it; ", DxgiWindowReport.FormatPresent(1000, 9, 7, false, "s", "none", "none"));
+            Assert.Contains("(the window's: 7), OpenGL not loaded; ", DxgiWindowReport.FormatPresent(1000, 9, 7, null, "s", "none", "none"));
+        }
+
         [Fact]
         public void TheAdapterDescriptionIsReadUpToItsNul()
         {

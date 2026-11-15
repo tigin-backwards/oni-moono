@@ -2460,7 +2460,11 @@ One swap chain a window (#56):
   SwapBuffers for an OpenGL one, skips its DXGI presents (its `IgnoreDXGIInterop` default) and
   hooks only the Direct3D runtimes loaded when it injects, as windows are made. Measured with
   RTSS 7.3.7 through its shared memory: before, it attached to OpenGL on a 120x1 hidden window
-  and showed no overlay; after, to our swap chain at the window's size.
+  and showed no overlay; after, to our swap chain at the window's size. A player's RTSS then
+  counted our presents and still drew nothing (#86): what its hook goes by is not known. The
+  log's `present: DXGI picture N presented on thread` lines (pictures 1 and 1000) say what a
+  hook can see: the presenting thread, whether an OpenGL context is current on it, that the swap
+  chain's D3D11 device is the one opened for OpenGL, and the graphics and hook modules loaded.
 - **When the window gets a context.** The window gets a pixel format, double-buffered, and a
   context of its own sharing the presenter's, only once DXGI is given up: it could not start,
   or no restart is left. (With the hidden window's pixel format and the presenter's context

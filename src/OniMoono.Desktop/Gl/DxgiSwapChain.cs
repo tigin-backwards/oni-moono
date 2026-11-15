@@ -191,6 +191,7 @@ namespace OniMoono.Desktop.Gl
         /// WindowTouched says whether the failure came after the swap chain was made.
         public string AttachWindow(IntPtr hwnd, int w, int h)
         {
+            window = hwnd;
             w = Math.Max(1, w);
             h = Math.Max(1, h);
             swapFlags = Dxgi.SwapChainFlagFrameLatencyWaitable | (tearing ? Dxgi.SwapChainFlagAllowTearing : 0);
@@ -221,6 +222,15 @@ namespace OniMoono.Desktop.Gl
             if (!GetBackBuffer()) return Failure;
             return null;
         }
+
+        IntPtr window;
+        /// How the device's picture reaches the swap chain's D3D11 device, for the log's line
+        /// about what a hook sees of a present (DxgiWindowReport.DescribePresent); set by the
+        /// target.
+        public string Sharing = "";
+        /// The presents that line is logged at: the first, and one some seconds into play, by
+        /// when an overlay's hook has been loaded.
+        const int DescribedLater = 1000;
 
         // `--dxgi-fault occupied`: a second D3D11 device and its flip-model swap chain, made on the
         // window before ours, as another presenter in the process would hold one (released with
@@ -357,6 +367,7 @@ namespace OniMoono.Desktop.Gl
             if (nowOccluded != occluded && PresentTrace.Enabled) PresentTrace.Log($"dxgi: present {presents}: {(nowOccluded ? "occluded (not shown)" : "shown again")}");
             occluded = nowOccluded;
             if (Dxgi.Failed(hr)) return Fail($"Present failed ({Dxgi.Hr(hr)}{DeviceState(hr)})");
+            if (presents is 1 or DescribedLater) EngineLog.Engine(DxgiWindowReport.DescribePresent(window, presents, Sharing));
             // Without vsync nothing waits, as on the swapchain paths: retiring can take a frame or
             // two (measured on the AMD iGPU, its picture copied to a monitor on another GPU: 29 ms
             // a picture), which would cap the frame rate. The next Present resyncs the count; the

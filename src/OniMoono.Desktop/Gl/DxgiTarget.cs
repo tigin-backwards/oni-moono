@@ -100,6 +100,7 @@ namespace OniMoono.Desktop.Gl
             chain = DxgiSwapChain.Open(luid, out string reason);
             if (chain == null) return reason;
 
+            chain.Sharing = "the swap chain's D3D11 device is the one opened for OpenGL (wglDXOpenDeviceNV), its texture registered with the context";
             interopDevice = dxOpenDevice(chain.Device);
             if (interopDevice == IntPtr.Zero) return $"wglDXOpenDeviceNV failed (error 0x{Dxgi.GetLastError():X})";
             if (!MakeShared(w, h)) return Failure;

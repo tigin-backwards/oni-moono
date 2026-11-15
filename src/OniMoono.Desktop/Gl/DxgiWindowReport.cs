@@ -31,18 +31,54 @@ namespace OniMoono.Desktop.Gl
             "graphics-hook64.dll", "ReShade64.dll", "SpecialK64.dll", "OWClient.dll", "overlay64.dll",
         ];
 
+        /// What a presentation hook may tell an OpenGL process, or one whose OpenGL driver
+        /// presents through DXGI, by (#86): OpenGL's runtime and drivers, and Direct3D 10's.
+        internal static readonly string[] OpenGlAndOlder =
+        [
+            "opengl32.dll", "nvoglv64.dll", "atio6axx.dll", "atig6pxx.dll", "ig9icd64.dll", "igxelpicd64.dll",
+            "d3d10.dll", "d3d10_1.dll", "d3d10core.dll",
+        ];
+
         static string modulesBefore;
+
+        /// The log line about a DXGI present as a hook in the process (an overlay: RivaTuner
+        /// Statistics Server, #86) can observe it: the thread, whether an OpenGL context is
+        /// current on it, how the picture reaches the swap chain's device (`sharing`), and the
+        /// graphics and hook modules loaded by now. Never throws.
+        public static string DescribePresent(IntPtr hwnd, int presents, string sharing)
+        {
+            try
+            {
+                uint process = 0, windowThread = GetWindowThreadProcessId(hwnd, &process);
+                IntPtr opengl = GetModuleHandleW("opengl32.dll");
+                bool? current = null;
+                if (opengl != IntPtr.Zero && NativeLibrary.TryGetExport(opengl, "wglGetCurrentContext", out IntPtr get))
+                    current = ((delegate* unmanaged<IntPtr>)get)() != IntPtr.Zero;
+                return FormatPresent(presents, GetCurrentThreadId(), windowThread, current, sharing,
+                    LoadedModules([.. Runtimes, .. OpenGlAndOlder]), LoadedModules(Hooks));
+            }
+            catch (Exception e)
+            {
+                return $"present: DXGI picture {presents}: not described ({e.GetType().Name})";
+            }
+        }
+
+        /// DescribePresent's text (pure). `glCurrent`: null when opengl32.dll is not loaded.
+        internal static string FormatPresent(int presents, uint thread, uint windowThread, bool? glCurrent, string sharing, string modules, string hooks)
+            => $"present: DXGI picture {presents} presented on thread {thread} (the window's: {windowThread}), "
+               + (glCurrent switch { null => "OpenGL not loaded", true => "an OpenGL context current on it", false => "no OpenGL context current on it" })
+               + $"; {sharing}; graphics modules loaded: {modules}; overlay and capture hooks loaded: {hooks}";
 
         /// The watched modules loaded now, once: called as DXGI first starts, before its own DLLs
         /// are loaded.
-        public static void NoteModulesBeforeDxgi() => modulesBefore ??= LoadedModules();
+        public static void NoteModulesBeforeDxgi() => modulesBefore ??= LoadedModules([.. Runtimes, .. Hooks]);
 
-        static string LoadedModules()
+        static string LoadedModules(string[] names)
         {
             var found = new List<string>();
             string system = Environment.SystemDirectory;
             char* path = stackalloc char[1024];
-            foreach (var name in (string[])[.. Runtimes, .. Hooks])
+            foreach (var name in names)
             {
                 IntPtr module = GetModuleHandleW(name);
                 if (module == IntPtr.Zero) continue;
