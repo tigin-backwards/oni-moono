@@ -971,8 +971,8 @@ namespace OniMoono.GameTweaks
 
         static void CellChanged(Pickupable __instance)
         {
-            if (boundTo == null || byItem.Count == 0 || !byItem.TryGetValue(__instance, out var item)) return;
-            if (!OnMain()) return;
+            // The thread first: the mirror's tables are the main thread's alone.
+            if (boundTo == null || !OnMain() || byItem.Count == 0 || !byItem.TryGetValue(__instance, out var item)) return;
             int cell = __instance.cachedCell;
             if (cell == item.Cell) return;
             Leave(item);
@@ -984,8 +984,7 @@ namespace OniMoono.GameTweaks
 
         static void ReservationsChanged(Pickupable __instance)
         {
-            if (boundTo == null || !byItem.TryGetValue(__instance, out var item)) return;
-            if (!OnMain()) return;
+            if (boundTo == null || !OnMain() || !byItem.TryGetValue(__instance, out var item)) return;
             bool special = IsSpecial(__instance);
             if (special == item.Special) return;
             Leave(item);
@@ -995,20 +994,17 @@ namespace OniMoono.GameTweaks
 
         static void TrackerChanged(Workable __instance)
         {
-            if (boundTo == null || !(__instance is Pickupable p) || !byItem.TryGetValue(p, out var item)) return;
+            if (boundTo == null || !(__instance is Pickupable p) || !OnMain() || !byItem.TryGetValue(p, out var item)) return;
             SeeRadius(p);
-            if (OnMain())
+            var source = SourceOf(p, item);
+            if (!Equals(source, item.Source) && item.Key != null)
             {
-                var source = SourceOf(p, item);
-                if (!Equals(source, item.Source) && item.Key != null)
-                {
-                    Leave(item);
-                    item.Source = source;
-                    Join(item);
-                }
-                else item.Source = source;
+                Leave(item);
+                item.Source = source;
+                Join(item);
             }
-            if (needRecount && OnMain()) Recount();
+            else item.Source = source;
+            if (needRecount) Recount();
         }
 
         /// Every few seconds: the mirror against the groups' own data. Drift is logged and the
