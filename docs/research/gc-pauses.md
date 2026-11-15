@@ -390,3 +390,69 @@ time in one phase. A snapshot's freeze instead comes with `Saving screenshot to`
 No collection is added after the save: a forced one there pauses every save
 (`no-save-gc` removes the game's), and under a high memory load it would be this same blocking
 collection, only sooner.
+
+## What a save allocates, and its buffer in native memory (2026-11-15)
+
+The save serializes the colony into one `MemoryStream` and hands its array to the compression.
+Would keeping that buffer out of the managed heap spare the full collection after the save?
+Measured: no.
+
+**What one autosave allocates** (the late-game colony, default tweaks, u60; the runtime's
+allocation ticks and `GC.GetAllocatedBytesForCurrentThread` around `SaveLoader.Save` and its
+stages, on Linux and again on Windows, the same within 2 MB):
+
+| | Main thread, MB | Of it large objects |
+|---|---|---|
+| The serialization buffer, one `byte[]` of 1.1 times the last save's 711 MB | 782 (759 on the first save after a load) | all |
+| The saved objects (`SaveManager.Save`): `KMonoBehaviour[]` 70, strings 30, boxed floats and ints 30, `char[]` 15–19, `StringBuilder` 7 | 112–133 | 3 |
+| The colony summary's data (`background-save` writes its file on the writer) | 102–103 | 29 (a 19 MB string, a 9.5 MB `byte[]`) |
+| Sim, game data, header, the rest | 5 | – |
+| In all | 1,001–1,003 | 794–817 |
+
+The buffer is 78% of the save's bytes and 96–98% of its large objects. Until the file was
+written the other threads allocated 14–18 MB of large `byte[]`s (none over 4 MB) and about
+23 MB of small objects, play's included. The buffer does not grow: it is made at 1.1 times
+the last size, which a load sets too.
+
+**The prototype** (local branch, not landed; `ONI_NATIVE_SAVE_BUFFER=1` with
+`background-save`): `SaveLoader.Save` is transpiled in two places. Its
+`new MemoryStream(int)` becomes a `MemoryStream` subclass over native memory, and the
+`GetBuffer()` it passes to `CompressContents` becomes a marker for which background-save's
+prefix takes the stream's memory, compresses from it and frees it when the file is written. A
+save that fails before that frees it when the stream is disposed. When anything else patches
+`CompressContents`, or the file is not the game's, the bytes are copied into an array as
+before. With `ONI_TWEAK_VERIFY=1` every write also went to a `MemoryStream`: two saves of 711 MB
+had the same bytes, and unit tests compare the stream call for call and the written file byte
+for byte.
+
+**Off against on**, Windows, Vulkan, one launch each, across one morning autosave and 0.7–0.9
+of a cycle on; another player ran on the machine during three of them, and 0.6–3.6 cores were
+busy besides:
+
+| | As shipped, managed | As shipped, native | Memory seen as short, managed | Memory seen as short, native |
+|---|---|---|---|---|
+| The save allocated (large objects) | 1,003 MB (794) | 244 MB (35) | 1,003 MB (794) | 244 MB (35) |
+| The save's frame | 1.9 s | 2.1 s | 2.0 s | 2.2 s |
+| Collections in the 4 minutes before | one gen0 | one gen0 | one gen0 | one gen0 |
+| Full collections after the save | 2, background, at the save and 19 s on | 1, background, 14 s on | 1, blocking, 40 s on (0.18 of a cycle) | 1, blocking, 46 s on (0.20 of a cycle); 1 background at 0.68 |
+| Longest pause of a full collection | 26 ms | 33 ms | 836 ms | 746 ms |
+| Large objects after it | 3,130 MB, the buffer among them | 1,855 MB | 2,405 MB | 2,284 MB |
+| Peak working set | 13.8 GB | 13.6 GB | 13.9 GB | 13.4 GB |
+
+- **The blocking collection is not the buffer's.** With memory seen as short it came at the
+  same point with the same pause, native buffer or not. The runtime gives its reason as the
+  small-object budget, not a large allocation: the young collection that comes due after the
+  save is made a full blocking one under a high memory load. The save still hands out 210 MB of
+  small objects, and play goes on.
+- **As shipped** the buffer's allocation brought one background collection at the save itself,
+  which the native buffer spares. Another followed within 20 s either way. All pauses were
+  under 35 ms.
+- **What the native buffer does give:** 780 MB that is freed when the file is written, not at
+  the next full collection. It did not shorten the save.
+- **Not shown:** whether a full collection would come at that point with no save at all. No
+  launch here ran without one. None came in the 4 minutes before a save in six launches, and
+  one came within 0.2 of a cycle after in the four of today.
+
+So this is a memory change, not a fix for the freeze. The freeze under a high memory load
+needs the collector's choice changed there (its high-memory threshold) or less memory in use,
+measured on a PC that pages.
