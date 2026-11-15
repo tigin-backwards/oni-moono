@@ -203,7 +203,7 @@ with them. Three things do it:
 - **CoreCLR instead of the very garbage Mono runtime that Unity ships.** The runtime's own
   overhead is about 5 times lower.
 - **Over 40 tweaks** that replace slow parts of the game's own code. Most give exactly the same
-  results; a few differ in ways you won't see. Each can be turned off.
+  results; a few differ in ways you won't see.
 
 On a late-game Spaced Out colony with every DLC (cycle 17,000+), on Windows, on the same machine, back to back, with every Moono tweak on:
 
