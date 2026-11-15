@@ -13,64 +13,14 @@
                                              what, and what dead runners left (look here first when a
                                              run waits)
   scripts/e2e.py --clean                     clean what dead runners left on lanes no runner holds
-A spec (tests/e2e/NAME.yaml; tests/e2e/README.md describes every step) starts from a fixture save
-(tests/e2e/fixtures), installs Workshop mods, gives orders through OniMcp's tools (an in-game MCP
-server), drives the UI with real X11 input (XTEST) located through E2eDriver (our test mod, a
-JSON-lines server in the game), runs the game and checks what came of it. The simulation is not
-deterministic, so a spec checks outcomes and invariants, never a trajectory, and --repeat runs it
-several times. --player both runs it in the original Unity player first: a spec passes there
-first, and then our player is compared with it (docs/research/mod-play-testing.md §5): new log
-signatures, required log lines, UI dumps (ui-diff.py), cropped and masked screenshots
-(qa-tools.py image) and values a spec compares with the original's. --bless copies an original
-run's saves into tests/e2e/fixtures and its evidence into out/e2e-refs/SPEC, which a run of ours
-alone compares against.
+A spec (tests/e2e/NAME.yaml) starts from a fixture save, installs Workshop mods, gives orders
+through OniMcp (an in-game MCP server), drives the UI with real X11 input located through
+E2eDriver (our test mod), runs the game and checks what came of it. The simulation is not
+deterministic, so a spec checks outcomes and invariants, never a trajectory. --player both runs
+it in the original Unity player first, then compares ours with it.
 
-Runners in every worktree meet in one lock directory (E2E_LOCK_DIR, default
-~/.cache/oni-brutal-e2e). Lanes are machine-wide: --lanes N runs specs from a queue on N lanes at
-once, taken from --first-lane (1) to --last-lane (19). Lane L's OniMcp listens on 8800 + 10 L,
-its E2eDriver on 8801 + 10 L (E2E_DRIVER_PORT), and its display is an Xvfb on :(300 + L)
-(--xvfb-run: xvfb-run -a; --displays: those). A lane holds lane-L.lock there, and is skipped
-while its ports or display are in use or reserved (the directory's `reserved` file and
-E2E_RESERVED). Each player is counted for its memory in the machine's players' budget
-(E2E_MEMORY_GB, default 40; E2E_MAX_PLAYERS, default 4). A run holds perf.lock shared, so a perf
-job taking it exclusively (`flock -x -o ~/.cache/oni-brutal-e2e/perf.lock CMD`) keeps specs from
-starting; specs also wait while ps shows a perf job. With runq's daemon up (docs/RUNQ.md), a run
-queues itself as a runq job of kind e2e instead and, inside it, uses the lanes runq granted
-(RUNQ_LANES) with neither the perf wait nor the budget; RUNQ=off keeps the old path. Each wait
-says what it waits for, and
---max-wait (or E2E_MAX_WAIT) fails the run after that many minutes. A run's players and Xvfbs end
-with it however it ends (a watcher, e2e.py --reap-after, sees to a kill -9), and a runner taking a
-lane whose last holder died first cleans what that holder left (see "leftovers" below).
-
-Needs, in the environment or out/local-tools/qa.env: QA_U57_GAME and QA_U57_STEAM (the DLC
-content and a Steam double owning it, as for qa.sh's U57 stages), E2E_ONIMCP (a build of
-OniMcp's mod folder at the commit scripts/onimcp.py pins and builds; its licence does not
-allow vendoring it), E2E_DRIVER (E2eDriver's mod
-folder; default out/bin/E2eDriver/release) for specs that use it and, for --player original or
-both, E2E_ORIGINAL (the original player's executable, with a DLC-owning Steam double in its
-Plugins); E2E_ORIGINAL_ENV holds NAME=VALUE settings for the original player only (on WSL,
-`GALLIUM_DRIVER=llvmpipe` with a shared MESA_SHADER_CACHE_DIR runs it 3-4 times faster; see
-tests/e2e/README.md, "Run time"). --player both refuses to start when QA_U57_GAME
-and the original's install differ in game build or in DLC content (StreamingAssets/dlc).
-Our player runs with `--game-tweak exact --game-tweak
-path-probe-repair` (the users' default tweaks but the Bug fixes on by default), or with E2E_GAME_TWEAKS,
-space-separated `--game-tweak` values (default `exact path-probe-repair`; `none`, `exact`, `exact
--no-save-gc`); E2E_PLAYER_ARGS adds host arguments (`--renderer vulkan`), E2E_ORIGINAL_ARGS the
-original's (`-force-glcore`). E2E_SCREEN=WxH and E2E_UI_SCALE=PERCENT run both players at another
-screen size and UI scale, for a look at a layout there (comparisons with references want the
-default 1280x720 at 100). E2E_CLOUD_SAVES=DIR gives each player's profile DIR's tree as its
-cloud saves, hard-linked (load-screen-many-saves.yaml; never a real saves folder). Each invocation
-has a run id; each run's log, results and evidence are in
-out/e2e/SPEC/RUN_ID/PLAYER-N, and out/e2e/runs/RUN_ID.json holds one record per spec run.
---record writes tests/e2e/results/SPEC.json, the committed record of the spec's verdict (played,
-warning, failed or pending), which scripts/modtable.py reads. ONI_RESULTS_DIR (absolute, or
-relative to the checkout) writes the records elsewhere: tests/e2e/results-u60 holds those played
-on another game update, beside the main ones, and modtable.py reads both. ui_dump differences
-that tests/e2e/known-findings.yaml explains make a run of ours a warning, not a failure.
-
---hold keeps each player running after its steps (--hold-on-fail: after a failing step) until
-the hold file in its run folder is removed, for a look through OniMcp and E2eDriver while
-writing a spec; a QA perf stage waiting to start ends it 10 minutes later.
+tests/e2e/README.md has the rest: every step, how a run goes (lanes, locks, the players' budget,
+waits, teardown, output), the settings in the environment, verdicts and the results record.
 """
 
 import contextlib, ctypes, fcntl, glob, hashlib, importlib.util, itertools, json, os, re, shlex, shutil, signal, socket, subprocess, sys

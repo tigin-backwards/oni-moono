@@ -151,6 +151,30 @@ load at all, in both players, comes first from [Load sweeps](#load-sweeps).
   blessed it. `E2E_OUT` moves `out/e2e` elsewhere, and the references beside it
   (`$E2E_OUT-refs`).
 
+## Settings
+
+In the environment, or in `out/local-tools/qa.env`:
+
+| Setting | What it is |
+|---|---|
+| `QA_U57_GAME`, `QA_U57_STEAM` | The game folder with the DLC content and a Steam double owning it, as for `qa.sh`'s U57 stages. |
+| `E2E_ONIMCP` | A build of OniMcp's mod folder at the commit `scripts/onimcp.py` pins and builds (its licence does not allow vendoring it). |
+| `E2E_DRIVER` | E2eDriver's mod folder (default `out/bin/E2eDriver/release`), for specs that use it. |
+| `E2E_ORIGINAL` | The original player's executable, with a DLC-owning Steam double in its Plugins, for `--player original` or `both`. |
+| `E2E_ORIGINAL_ENV` | `NAME=VALUE` settings for the original player only ([Run time](#run-time)). |
+| `E2E_ORIGINAL_ARGS` | More Unity player arguments for the original (`-force-glcore`). |
+| `E2E_PLAYER_ARGS` | More host arguments for ours (`--renderer vulkan`). |
+| `E2E_SCREEN=WxH`, `E2E_UI_SCALE=PERCENT` | Another screen size and UI scale for both players, for a look at a layout there. Comparisons with references want the default 1280x720 at 100. |
+| `E2E_CLOUD_SAVES=DIR` | Each player's profile gets DIR's tree as its cloud saves, hard-linked (`load-screen-many-saves.yaml`). Never a real saves folder. |
+| `ONI_RESULTS_DIR` | Where `--record` writes (absolute, or relative to the checkout). `tests/e2e/results-u60` holds the records played on another game update; `scripts/modtable.py` reads both. |
+
+- `--player both` refuses to start when `QA_U57_GAME` and the original's install differ in game
+  build or in DLC content (`StreamingAssets/dlc`).
+- A `--list` file names one spec a line: `SPEC [ours] [player-args='ARGS']  # comment`. `ours`
+  runs that spec in ours only, even under `--player both`; `player-args` adds host arguments to
+  our player for it.
+- A QA perf stage waiting to start ends a held player (`--hold`) 10 minutes later.
+
 ## Top-level keys
 
 ```yaml
