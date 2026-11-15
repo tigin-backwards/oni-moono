@@ -38,12 +38,12 @@ lane_last = 104
 class Harness:
     count = 0
 
-    def __init__(self, extra=''):
+    def __init__(self, extra='', config=CONFIG):
         Harness.count += 1
         self.tmp = tempfile.mkdtemp(prefix='rq', dir='/tmp')
         self.prefix = f'runqt{os.getpid()}n{Harness.count}'
         with open(os.path.join(self.tmp, 'config.toml'), 'w') as f:
-            f.write(CONFIG + extra)
+            f.write(config + extra)
         self.env = {k: v for k, v in os.environ.items() if not k.startswith(('RUNQ', 'E2E_'))}
         self.env.update(
             RUNQ_STATE_DIR=os.path.join(self.tmp, 'state'),
@@ -313,6 +313,31 @@ class Daemon(unittest.TestCase):
     def test_heartbeat(self):
         r = self.h.runq('run', '--kind', 'light', '--heartbeat', '2s', '--', 'sleep', '60')
         self.assertEqual(r.returncode, 137)
+
+
+@unittest.skipUnless(systemd_ok(), 'needs a systemd user manager')
+class Warnings(unittest.TestCase):
+    """A daemon that flags an idle slot holder early and stops it late."""
+
+    def setUp(self):
+        self.h = Harness(config=CONFIG.replace('idle_stop_minutes = 0.08', 'idle_stop_minutes = 5'))
+        self.h.start()
+
+    def tearDown(self):
+        self.h.close()
+        no_real_daemon(self)
+
+    def warned(self):
+        return json.loads(self.h.runq('status', '--json').stdout)['warnings']
+
+    def test_a_warning_ends_with_its_job(self):
+        job = self.h.submit('--kind', 'linux-perf', '--', 'sleep', '300')
+        self.h.wait_for(lambda: job in self.warned(), what='the idle warning')
+        self.assertTrue(self.h.show(job)['warnings'])
+        self.h.runq('cancel', job)
+        self.assertEqual(self.h.runq('wait', job).returncode, 137)
+        self.assertNotIn(job, self.warned())
+        self.assertEqual(self.h.show(job)['warnings'], [])
 
 
 @unittest.skipUnless(systemd_ok(), 'needs a systemd user manager')
