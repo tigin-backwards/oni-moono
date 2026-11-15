@@ -582,7 +582,7 @@ In `tests/scripts/`, so `check.sh` runs them (`python3 -m unittest discover`):
 The user's answers to section 14, each a value in `~/.config/oni-runq/config.toml` (defaults in
 `scripts/runqlib/config.py`), and where phase 1 differs from the text above:
 
-- **Levels:** the agent passes its own, `--level` (`--priority` is the same option), default
+- **Levels:** the agent passes its own, `--level` (not the design's `--priority` and `RUNQ_PRIORITY`), default
   `study`; `issue` and `release` are allowed and logged to `levels.log`. No owner registry yet;
   the owner defaults to the worktree's folder name instead of being refused.
 - **Commands run as transient systemd units** in `oni-tests.slice`, as in 3.4. `TimeoutStopSec`
@@ -594,7 +594,7 @@ The user's answers to section 14, each a value in `~/.config/oni-runq/config.tom
 - **No linger:** the CLI installs and starts `oni-runqd.service` when the daemon does not answer
   (3.3 had it exit 69 instead). Inside a job, or with a test daemon (`RUNQ_STATE_DIR`), it starts
   none.
-- **Status page** (phase 2): `status_port = 8777`, localhost only, not served yet.
+- **Status page** (phase 2): not built, and no setting for it yet.
 - **Legacy bridge:** a lock or ledger entry counts as runq's only when the daemon or a job's shim
   holds it; an old script run inside a job still counts as an occupant. A job whose own process
   blocks on a legacy lock its shim holds is stopped at once (`self-deadlock`).

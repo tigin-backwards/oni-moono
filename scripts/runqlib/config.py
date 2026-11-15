@@ -97,8 +97,6 @@ DEFAULTS = {
     'retention_days': 14,
     'retention_failed_days': 30,
     'retention_total_gb': 50,
-    # Phase 2 (not served yet): the status page, localhost only.
-    'status_port': 8777,
     # The old locks: runq jobs take them, and their holders outside runq count as occupants.
     'legacy_bridge': True,
     # Processes outside runq that count as a perf job (e2e.py's PERF_JOBS, matched on ps args).
