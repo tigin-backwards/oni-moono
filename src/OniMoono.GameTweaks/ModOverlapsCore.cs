@@ -12,7 +12,7 @@ namespace OniMoono.GameTweaks
     /// tweak turns itself off for that patch, so it is no conflict.
     public enum OverlapGrade { Low, High, StepsAside }
 
-    /// How one tweak touches one method: its own Harmony patches (`SkipPrefix`: a prefix that
+    /// How one tweak touches one method: its Harmony patches (`SkipPrefix`: a prefix that
     /// returns bool, so it can skip the original), the host's IL rewrite of it, and `Guard`: the
     /// tweak steps aside when another owner patches it. `StepsAsideOnTranspiler`: a rewrite whose
     /// tweak runs flat when an unreviewed transpiler changes the method (compact-nav-links).
@@ -59,7 +59,7 @@ namespace OniMoono.GameTweaks
     /// Plain .NET with no game types (the tests compile it in).
     public static class ModOverlapsCore
     {
-        /// Each tweak patches under its own Harmony ID, "OniMoono.Host.GameTweaks.NAME"
+        /// Each tweak patches under its Harmony ID, "OniMoono.Host.GameTweaks.NAME"
         /// (OniMoono.Host.GameTweaks.GameTweaks makes them).
         public const string TweakOwnerPrefix = "OniMoono.Host.GameTweaks";
 

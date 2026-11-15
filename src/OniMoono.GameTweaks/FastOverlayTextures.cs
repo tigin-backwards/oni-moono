@@ -7,31 +7,31 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-overlay-textures`: the render textures the coloured overlays
-    /// drop are freed, instead of staying allocated until the next load.
+    /// Game tweak `fast-overlay-textures`: the render textures the coloured overlays drop are
+    /// freed, instead of staying allocated until the next load.
     ///
-    /// The main camera renders into screen-sized targets (MultipleRenderTargetProxy.Textures),
-    /// and the liquid pass reads copies of two of them (TexturesCopies, blitted into by the
-    /// command buffer MRTLiquidInterception records on the base camera, and set as the shader
-    /// globals MRT0_Copy and MRT1_Copy). Every CreateRenderTarget, which runs each time a
-    /// coloured overlay (temperature, germs, ...) is opened or closed, its legend filter is
-    /// changed, and on a resize, keeps the targets when their size is right but makes new copies
-    /// (two, and a third for the overlay buffer while one is shown) and drops the old ones
-    /// without destroying them. As in Unity, a dropped texture stays allocated until
-    /// Resources.UnloadUnusedAssets, which the game calls only when a colony is loaded or quit:
-    /// opening and closing the temperature overlay once (two to four CreateRenderTargets)
-    /// leaves eight textures behind, four of them allocated on the device, about
-    /// 18 MB of video memory at 1024×768 (U57: 100 openings, 45 → 846 live render textures and
-    /// about 1.8 GB; the germ overlay the same); at 1920×1080 that is about 50 MB an opening.
+    /// The main camera renders into screen-sized targets (MultipleRenderTargetProxy.Textures), and
+    /// the liquid pass reads copies of two of them (TexturesCopies, blitted into by the command
+    /// buffer MRTLiquidInterception records on the base camera, and set as the shader globals
+    /// MRT0_Copy and MRT1_Copy). Every CreateRenderTarget, which runs each time a coloured overlay
+    /// (temperature, germs, ...) is opened or closed, its legend filter is changed, and on a
+    /// resize, keeps the targets when their size is right but makes new copies (two, and a third
+    /// for the overlay buffer while one is shown) and drops the old ones without destroying them.
+    /// As in Unity, a dropped texture stays allocated until Resources.UnloadUnusedAssets, which the
+    /// game calls only when a colony is loaded or quit: opening and closing the temperature overlay
+    /// once (two to four CreateRenderTargets) leaves eight textures behind, four of them allocated
+    /// on the device, about 18 MB of video memory at 1024×768 (a late-game colony: 100 openings, 45
+    /// → 846 live render textures and about 1.8 GB; the germ overlay the same); at 1920×1080 that
+    /// is about 50 MB an opening.
     ///
     /// The tweak notes the copies before the game's CreateRenderTarget and, after it, takes those
-    /// the method replaced and that are neither among the proxy's textures nor its new copies.
-    /// They are released and destroyed two frames later, as the game's RenderTextureDestroyer
-    /// does for the targets it replaces itself: by then the command buffer, recorded again by
+    /// the method replaced and that are neither among the proxy's textures nor its new copies. They
+    /// are released and destroyed two frames later, as the game's RenderTextureDestroyer does for
+    /// the targets it replaces itself: by then the command buffer, recorded again by
     /// CreateRenderTarget with the new copies, has run in a frame's rendering and set the shader
     /// globals to them. A texture still found then among the proxy's textures, as a shader global
-    /// under its name or the copies' names, as a camera's target or as the active render texture
-    /// is kept (the game's own behaviour). Off for the session once another Harmony owner patches
+    /// under its name or the copies' names, as a camera's target or as the active render texture is
+    /// kept (the game's behaviour). Off for the session once another Harmony owner patches
     /// CreateRenderTarget (a mod freeing these itself): the tweak frees nothing.
     ///
     /// With ONI_TWEAK_VERIFY=1, before each release every material's textures (those its shader

@@ -7,41 +7,33 @@ using UnityEngine;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-table-rows` (exact): a table screen (Consumables, Vitals, Priorities)
-    /// knows each cell's row and column from the moment the row is built.
+    /// Game tweak `fast-table-rows` (exact): a table screen (Consumables, Vitals, Priorities) knows
+    /// each cell's row and column from the moment the row is built.
     ///
     /// Every cell's load action asks the table which row and which column its widget belongs to
-    /// (TableScreen.GetWidgetRow, GetWidgetColumn). The table remembers each answer
-    /// (known_widget_rows, known_widget_columns), but finds it the first time by going through
-    /// its rows, or its columns, in order and searching each one's widgets for this one: for the
-    /// cells of the row just built, every row before it, and for each cell every column before
-    /// its own with every row's widget in that column. Building R rows of C columns compares
-    /// widgets about R²C² / 2 times for the rows and R²C² / 4 for the columns; Consumables has
-    /// some 80 columns, so with 200 Duplicants its first opening spent most of its time there.
+    /// (TableScreen.GetWidgetRow, GetWidgetColumn). The table remembers each answer, but finds it
+    /// the first time by searching every row's, or every column's, widgets in order. Building R
+    /// rows of C columns compares widgets about R²C² / 2 times for the rows and R²C² / 4 for the
+    /// columns; Consumables has some 80 columns, so with 200 Duplicants its first opening spent
+    /// most of its time there.
     ///
-    /// Here, before a row's cells are loaded (TableRow.RefreshColumns, which ConfigureContent
-    /// calls once the row has its widgets), each of its widgets is entered in the table's two
-    /// dictionaries with the row and the column it was made for, unless it is already there. The
-    /// game's lookups then find every answer at once. The answers are the game's: the first row
-    /// of the table's list that holds the widget (world dividers left out), and the first column
-    /// of the table's that holds it; a widget made for one cell is in one row and one column.
-    /// A row is entered once (again when the table has more columns than it had then).
+    /// Before a row's cells are loaded (TableRow.RefreshColumns), the tweak enters each of its
+    /// widgets in the table's two dictionaries with the row and column it was made for, unless it
+    /// is already there. The answers are the game's: the first row of the table's list that holds
+    /// the widget (world dividers left out) and the first column that holds it; a widget made for
+    /// one cell is in one row and one column. A row is entered once, and again when the table has
+    /// more columns than it had then.
     ///
-    /// Consumables' cells have a second search of the same kind: each food cell's load action
-    /// ends with ConsumablesTableScreen.refresh_scrollers, which counts the discovered foods and
-    /// then shows or hides the scroll bar and border of every row of the table, for each of a
-    /// row's 80 cells. Its answer is the same for every cell of a row (nothing a load action does
-    /// changes what it reads or writes), so here it runs for the first cell of each row a table
-    /// loads (one TableRow.RefreshColumns call) and is skipped for the others, unless the table
-    /// has more rows than at that first call. Outside a row's load (a column the game marked
-    /// dirty) it runs every time.
+    /// Consumables has a second search of the same kind: each food cell's load action ends with
+    /// ConsumablesTableScreen.refresh_scrollers, which shows or hides the scroll bar and border of
+    /// every row of the table. Its answer is the same for every cell of a row, so it runs for the
+    /// first cell of each row a table loads and is skipped for the others, unless the table has
+    /// more rows than at that first call. Outside a row's load it runs every time.
     ///
-    /// ONI_TWEAK_VERIFY=1: each entry is also found the game's way (the rows and then the columns
-    /// searched in order) and must be the same, and each refresh_scrollers call that would be
-    /// skipped runs after all and must leave every row's scroll bar, border and scroller as
-    /// they were; a line for each difference, and a count now and then. The tweak stands down,
-    /// leaving the game's code, when another mod patches GetWidgetRow, GetWidgetColumn, either
-    /// ContainsWidget or refresh_scrollers.
+    /// ONI_TWEAK_VERIFY=1: each entry is also found the game's way and must be the same, and each
+    /// refresh_scrollers call that would be skipped runs after all and must leave every row's
+    /// scroll bar, border and scroller as they were. Off for the session when another mod patches
+    /// GetWidgetRow, GetWidgetColumn, either ContainsWidget or refresh_scrollers.
     [GameMember(GameUse.Prefix | GameUse.Finalizer, "System.Void TableRow::RefreshColumns(System.Collections.Generic.Dictionary`2<System.String,TableColumn>)")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ConsumablesTableScreen::refresh_scrollers()", "385691b5697d46c4 linux-744825 win-744825", "9d5ecb53860d4f3f linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Uses, "UnityEngine.GameObject TableRow::GetScroller(System.String)")]
@@ -251,7 +243,7 @@ namespace OniMoono.GameTweaks
             {
                 before.Clear();
                 foreach (var row in table.rows) before.Add(StateOf(row));
-                // Harmony's patched method is what Invoke reaches too; the game's own body is
+                // Harmony's patched method is what Invoke reaches too; the game's body is
                 // run with this prefix letting it through (loads is 0 for the call).
                 scrollersMethod ??= AccessTools.Method(typeof(ConsumablesTableScreen), "refresh_scrollers", Type.EmptyTypes);
                 int kept = loads;
@@ -274,7 +266,7 @@ namespace OniMoono.GameTweaks
             }
         }
 
-        /// The game's own search for the widget's row and column must find the ones entered.
+        /// The game's search for the widget's row and column must find the ones entered.
         static void Verify(TableScreen screen, Dictionary<string, TableColumn> columns, GameObject widget, TableRow row, TableColumn column)
         {
             if (row != null)

@@ -8,46 +8,42 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `off-world-fallers` (a fix of the game's bug: in the Bug fixes group,
-    /// out of `exact`). GravityComponents.FixedUpdate
-    /// steps every falling object thirty times a game second. An object falling through a hole in
-    /// the bottom of a world (a chute out of a rocket interior) is never moved again: each step's
-    /// next position would leave its world, so the step leaves it where it is, half a cell below
-    /// the grid's bottom row, still falling. It is stepped forever, reading its scattered transform
-    /// and GameObject each time: Gluttony has 17,552 such objects (10,317 diamonds and about 7,200
-    /// egg shells below two rocket interiors), about 8.5 ms a frame.
+    /// Game tweak `off-world-fallers` (a fix of the game's bug; out of `exact`).
+    /// GravityComponents.FixedUpdate steps every falling object thirty times a game second. An
+    /// object falling through a hole in the bottom of a world (a chute out of a rocket interior) is
+    /// never moved again: each step's next position would leave its world, so the step leaves it
+    /// half a cell below the grid's bottom row, still falling. It is stepped forever: a pile-heavy
+    /// colony has 17,552 such objects (diamonds and egg shells below two rocket interiors), about
+    /// 8.5 ms a frame.
     ///
-    /// Such an object is landed where it is instead, through the game's own landing for items
-    /// (FallerComponents.OnLanded, as when one lands on a tile), once a step has left it in place
-    /// and no later step could move it: it falls straight down (no sideways speed), the cell under
-    /// it is off the grid (no liquid can slow it), and at half its speed the next position would
-    /// still be below the grid's bottom row, and so would the cell under it (later steps are no slower; a step's time is fixed for
-    /// its update rate). Only items are landed: objects whose landing is the item one.
+    /// Such an object is landed where it is, through the game's landing for items
+    /// (FallerComponents.OnLanded), once a step has left it in place and no later step could move
+    /// it: it falls straight down, the cell under it is off the grid (no liquid can slow it), and
+    /// at half its speed the next position and the cell under it would still be below the grid's
+    /// bottom row (later steps are no slower; a step's time is fixed for its update rate). Only
+    /// items are landed: objects whose landing is the item one.
     ///
-    /// The game's step is not patched: a Harmony-patched copy of that loop runs about half as
-    /// slow again for every falling object. The tweak runs around the step instead, from
-    /// KComponentSpawn.Sim33ms (its KComponents.Sim33ms calls every component manager's
-    /// FixedUpdate, and the gravity step is the only one there is). Before the step, the falling
-    /// items near the grid's bottom row are noted with their positions (FallerCandidates: every
-    /// falling item is looked at about twice a game second, the ones that just started falling
-    /// at each step). After it, the noted ones the step reached and did not move are tested
-    /// (OffWorldFallersCore.Lands) and landed in the step's order. Those are the objects the
-    /// transpiler this replaces landed, after the same step, in the same order. Two cases land
-    /// later than they did: an object that starts falling during a step, in place to hang at
-    /// once, by one step; one that another system moves to where it hangs, by up to half a game
-    /// second.
+    /// The game's step is not patched: a Harmony-patched copy of that loop runs about half as slow
+    /// again for every falling object. The tweak runs around the step, from KComponentSpawn.Sim33ms
+    /// (whose KComponents.Sim33ms calls every component manager's FixedUpdate; the gravity step is
+    /// the only one). Before the step, the falling items near the grid's bottom row are noted with
+    /// their positions (FallerCandidates: every falling item is looked at about twice a game
+    /// second, those that just started falling at each step). After it, the noted ones the step
+    /// reached and did not move are tested (OffWorldFallersCore.Lands) and landed in the step's
+    /// order. An object that starts falling during a step lands one step late; one that another
+    /// system moves to where it hangs, up to half a game second late.
     ///
-    /// What changes: the object stops counting as falling (GameComps.Gravities.Has) and no Landed
+    /// What differs: the object stops counting as falling (GameComps.Gravities.Has) and no Landed
     /// event is sent (an item's handler would only play a sound, or delete one landing outside the
-    /// grid). It stays where it was. If its rocket interior is destroyed and its items are moved to
-    /// the world below, it falls from there at rest instead of at the speed it had. Gravity is not
-    /// saved: after a load the object falls again until its first step lands it.
+    /// grid). It stays where it was. If its rocket interior is destroyed and its items move to the
+    /// world below, it falls from there at rest. Gravity is not saved: after a load the object
+    /// falls again until its first step lands it.
     ///
-    /// Off for the session while another mod patches the step with anything but a postfix (the
-    /// tests mirror the step's own; checked at the first step and every 256). With
-    /// ONI_TWEAK_VERIFY=1 the transpiler is installed as well, only noting what it would land:
-    /// each step's landings are compared with its list (the same objects in the same order), and
-    /// each landed object is checked for having stopped falling where it was.
+    /// Off for the session once another mod patches the step with anything but a postfix (checked
+    /// at the first step, then every 256). ONI_TWEAK_VERIFY=1 also installs a transpiler of the
+    /// step that notes what the step's test leaves in place: each step's landings are compared with
+    /// its list (the same objects in the same order), and each landed object is checked for having
+    /// stopped falling where it was.
     [GameMember(GameUse.Uses, "System.Action`1<UnityEngine.Transform> FallerComponents::OnLandedAction")]
     [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Mirrors, "System.Void KComponentSpawn::Sim33ms(System.Single)", "74ea4782a52fac80 linux-744825 win-744825")]
     [GameMember(GameUse.Mirrors, "System.Void KComponents::Sim33ms(System.Single)", "c9d0da7c6bd7583c linux-744825 win-744825")]
@@ -218,7 +214,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// ONI_TWEAK_VERIFY: this step's landings against the transpiler's list for it, which is
-        /// what the game's own test left in place for good (the objects still falling, as its
+        /// what the game's test left in place for good (the objects still falling, as its
         /// postfix landed them).
         static void Compare()
         {

@@ -11,7 +11,7 @@ namespace OniMoono.Host.GameTweaks
     /// its English and a note for translators on where it shows.
     internal sealed record TweakString(string Key, string English, string Note);
 
-    /// Every string the Moono Tweaks screen shows, keyed as the game keys its own (STRINGS.…),
+    /// Every string the Moono Tweaks screen shows, keyed as the game keys its (STRINGS.…),
     /// for translations in the game's .po format: the screen's own labels (Ui) and the catalog's
     /// text (GameTweakNames: groups, rows, measured gains, choices). English is the catalog's;
     /// translations/moono.pot is generated from All (GameTweakCatalogTests,

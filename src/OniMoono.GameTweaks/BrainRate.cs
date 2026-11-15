@@ -8,49 +8,38 @@ namespace OniMoono.GameTweaks
 {
     using BrainGroup = BrainScheduler.BrainGroup;
 
-    /// Game tweak `brain-rate` (**changes behaviour**): brain updates held to a rate of
-    /// real time instead of one batch per rendered frame.
+    /// Game tweak `brain-rate` (**changes behaviour**): brain updates held to a rate of real time
+    /// instead of one batch per rendered frame.
     ///
-    /// BrainScheduler updates one Duplicant brain and five critter brains every rendered frame
-    /// (its groups' InitialProbeCount, with no time term: its own constants state a 30 fps frame),
-    /// so how often each Duplicant re-evaluates its errands, and each critter its behaviours,
-    /// grows with the frame rate. A brain update runs its sensors and, when they ask, a chore
-    /// search; Moono runs U57 at about 7 times the original's frame rate, so about 7 times as many
-    /// a game second (1.4 ms of a 12.6 ms frame on U57, 2.4 ms on Gluttony).
+    /// BrainScheduler updates one Duplicant brain and five critter brains every rendered frame (its
+    /// groups' InitialProbeCount has no time term: its constants state a 30 fps frame), so how
+    /// often each brain re-evaluates grows with the frame rate. A brain update runs its sensors
+    /// and, when they ask, a chore search: 1.4 ms of a 12.6 ms frame on a late-game colony, 2.4 ms
+    /// on a pile-heavy one.
     ///
-    /// With the tweak each group may update at most 30 Duplicant brains or 150 critter brains a
-    /// second of real time (BrainRateAllowance), spread evenly over frames, and never more than
-    /// the game's own count in a frame: at 30 fps or below nothing changes; at 120 fps the
-    /// Duplicant group runs every fourth frame and the critter group gets one or two brains a
-    /// frame. A frame whose allowance is 0 skips the group altogether (BrainGroup.RenderEveryTick
-    /// and PostRenderEveryTick), so the Duplicant group's alternation between its priority queue
-    /// and its round robin counts only the frames it runs, and the brains asking for priority
-    /// (idle Duplicants, threatened critters) are still served first. A group of a mod's is left
-    /// as it is.
+    /// Each group may update at most 30 Duplicant brains or 150 critter brains a second of real
+    /// time (BrainRateAllowance), spread evenly over frames, and never more than the game's count
+    /// in a frame: at 30 fps or below nothing changes. A frame whose allowance is 0 skips the group
+    /// (BrainGroup.RenderEveryTick and PostRenderEveryTick), so the Duplicant group's alternation
+    /// between its priority queue and its round robin counts only the frames it runs. A mod's group
+    /// is left as it is.
     ///
     /// The rate rises with the group's size and the game's speed (BrainRateAllowance's floors,
-    /// issue #85): every brain gets a turn within 15 game seconds while the game's own count a
-    /// frame allows it. At speed 3 that is more than 150 a second from 750 critters up, and the
-    /// game's own count from `critters / 25` frames a second down. Without it, 2,400 critters at
-    /// speed 3 got a turn every 48 game seconds whatever the frame rate, Slicksters stayed hungry
-    /// and none excreted (a hungry critter eats before it excretes).
+    /// issue #85): every brain gets a turn within 15 game seconds while the game's count a frame
+    /// allows it. Without the floors, 2,400 critters at speed 3 got a turn every 48 game seconds:
+    /// Slicksters stayed hungry and none excreted.
     ///
-    /// Within the critters' capped turns, one that is ready to inhale its food or to excrete goes
-    /// first: the tweak installs CritterNeedsFirst's hooks (the `critter-needs-first` tweak's,
-    /// once, whether or not that tweak is on), which ask the game's priority queue for those
-    /// turns. With the cap alone a gas-eater in a large colony got too few turns to stay fed
-    /// (issue #85); and without the cap critter turns grow with the frame rate, 740 a second at
-    /// 148 fps (docs/research/brain-probes.md).
+    /// Within the capped turns a critter ready to inhale its food or to excrete goes first: the
+    /// tweak installs CritterNeedsFirst's hooks, whether or not that tweak is on. With the cap
+    /// alone a gas-eater in a large colony got too few turns to stay fed (issue #85).
     ///
-    /// What changes: above 30 fps a Duplicant re-evaluates its errands, and a critter its
-    /// behaviours, less often per real second than without the tweak, as often as the game would
-    /// at 30 fps (and still more often per game second than the original at U57's 11 fps); and
-    /// critters ready to inhale or excrete act sooner than the game's order has them, the others
-    /// that much later.
+    /// What differs: above 30 fps a Duplicant re-evaluates its errands, and a critter its
+    /// behaviours, as often per real second as the game would at 30 fps; critters ready to inhale
+    /// or excrete act sooner than the game's order has them, the others that much later.
     ///
-    /// Measured (Linux, 2026-10-25): U57 at 35–39 fps, 6.0 → 4.7–5.1 brain updates a frame and
-    /// 2.7–2.8 → 2.2–2.45 ms; 2minnow at 42–45 fps, 6.0 → 4.1–4.3 and 1.82 → 1.35–1.45 ms;
-    /// Gluttony at 14 fps unchanged. The gain grows with the frame rate (at 79 fps, 2.3 a frame).
+    /// Measured (Linux, 2026-10-25): a late-game colony at 35–39 fps, 6.0 → 4.7–5.1 brain updates a
+    /// frame and 2.7–2.8 → 2.2–2.45 ms; a mid-game colony at 42–45 fps, 6.0 → 4.1–4.3 and 1.82 →
+    /// 1.35–1.45 ms; a pile-heavy colony at 14 fps unchanged. The gain grows with the frame rate.
     [GameMember(GameUse.Uses, "System.Int32 BrainScheduler/BrainGroup::InitialProbeCount()")]
     [GameMember(GameUse.Uses, "System.Int32 BrainScheduler/BrainGroup::get_BrainCount()")]
     [GameMember(GameUse.Postfix, "System.Int32 BrainScheduler/CreatureBrainGroup::InitialProbeCount()")]

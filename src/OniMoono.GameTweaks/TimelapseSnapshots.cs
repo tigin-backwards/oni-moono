@@ -23,7 +23,7 @@ namespace OniMoono.GameTweaks
     ///   the grid, where its fmod keeps the sign and every column draws the full grid colour:
     ///   the vertical stripes, whenever a building is picked for placement (BuildTool and
     ///   PlaceTool turn the grid on; the Timelapser waits only for no drag).
-    /// - The light buffer (LightBuffer, its own camera into a screen-sized texture) is drawn
+    /// - The light buffer (LightBuffer, its camera into a screen-sized texture) is drawn
     ///   for the screen's frame and sampled with the snapshot's UV: lights are squeezed 2.67
     ///   times sideways.
     /// The building preview (layer Place, which the snapshot's culling mask keeps) did not show

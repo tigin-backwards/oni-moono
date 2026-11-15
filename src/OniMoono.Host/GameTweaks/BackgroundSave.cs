@@ -21,7 +21,7 @@ namespace OniMoono.Host.GameTweaks
     /// So overlapping saves (a pause-menu save or Save and Quit during an autosave's write) are
     /// written whole and in order, as the game writes them one after another (BackgroundSaveTests,
     /// tests/e2e/overlap-manual.yaml).
-    /// A failed write is logged; the game's own failure dialog does not appear for it. A run that
+    /// A failed write is logged; the game's failure dialog does not appear for it. A run that
     /// ends by an unhandled exception waits for the write too.
     ///
     /// The colony summary file a save rewrites first is made on the same writer, ahead of the
@@ -50,7 +50,7 @@ namespace OniMoono.Host.GameTweaks
             fast = fastCompression;
             // A run ending by an unhandled exception still finishes the save in flight (the game
             // has already truncated its file to the header). A hard kill during the write loses
-            // it, as killing the game during its own in-place write does.
+            // it, as killing the game during its in-place write does.
             AppDomain.CurrentDomain.UnhandledException += (_, _) =>
             {
                 Task t;

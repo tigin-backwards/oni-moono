@@ -7,21 +7,21 @@ using OniMoono.Tweaks;
 namespace OniMoono.GameTweaks
 {
     /// Game tweak `fast-anim-events` (on by default). Every frame AnimEventManager's loop visits
-    /// each playing animation (U57: about 6,450), and for each reads its controller: whether it
-    /// was destroyed, its frame index for the elapsed time (from its current animation and play
-    /// mode), and its play speed. Those reads are a cache miss per controller and most of the
-    /// loop's 2 ms; the loop's own entries are compact structs.
+    /// each playing animation (a late-game colony: about 6,450), and for each reads its controller:
+    /// whether it was destroyed, its frame index for the elapsed time (from its current animation
+    /// and play mode), and its play speed. Those reads are a cache miss per controller and most of
+    /// the loop's 2 ms; the loop's own entries are compact structs.
     ///
-    /// The tweak runs the same loop, entry by entry in the same order with the same arithmetic,
-    /// but takes those three inputs from a mirror kept per entry: the controller's current
-    /// animation (frame count, total time, frame rate), play mode and speed, and whether it is
-    /// destroyed. A mirror row is refreshed from the controller when its entry holds a different
-    /// controller (a reference compare) or when the controller was flagged: every method that
-    /// changes those inputs (StartQueuedAnim, Queue, the PlayMode setter, SwapAnims, OnDestroy)
-    /// flags it, as does AnimEventManager.PlayAnim (an entry started anew, for a mod that sets
-    /// the controller's animation by reflection and then restarts its events). Frame events,
-    /// completions and everything else run as in the game. A mod that writes those fields
-    /// directly and does not restart the events is read stale until the next flag.
+    /// The tweak runs the same loop, entry by entry in the same order with the same arithmetic, but
+    /// takes those three inputs from a mirror kept per entry: the controller's current animation
+    /// (frame count, total time, frame rate), play mode and speed, and whether it is destroyed. A
+    /// mirror row is refreshed from the controller when its entry holds a different controller (a
+    /// reference compare) or when the controller was flagged: every method that changes those
+    /// inputs (StartQueuedAnim, Queue, the PlayMode setter, SwapAnims, OnDestroy) flags it, as does
+    /// AnimEventManager.PlayAnim (an entry started anew, for a mod that sets the controller's
+    /// animation by reflection and then restarts its events). Frame events, completions and
+    /// everything else run as in the game. A mod that writes those fields directly and does not
+    /// restart the events is read stale until the next flag.
     ///
     /// Stands down for the session (logged once) when another Harmony owner patches what the loop
     /// replaces or relies on (Guarded, which kinds count by KindsOf), checked at the first update

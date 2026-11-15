@@ -10,43 +10,41 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-anim-batches`. Every frame KAnimBatchManager.UpdateDirty walks
-    /// the visible batch sets, and each batch with dirty controllers writes, per dirty
-    /// controller and in order: its instance data (frame, position, transform, colours: 112
-    /// bytes into the batch's data texture), its symbol instance block (into the batch's symbol
-    /// texture, when its version changed), then applies its symbol overrides (game code with side
-    /// effects: SymbolOverrideController, FaceGraph, the batch's atlases and property block) and
-    /// writes the override block. Gluttony: about 1.9 ms a frame on Linux, spent reading
+    /// Game tweak `fast-anim-batches`. Every frame KAnimBatchManager.UpdateDirty walks the visible
+    /// batch sets, and each batch with dirty controllers writes, per dirty controller and in order:
+    /// its instance data (112 bytes into the batch's data texture), its symbol instance block (when
+    /// its version changed), then applies its symbol overrides (game code with side effects) and
+    /// writes the override block. A pile-heavy colony: about 1.9 ms a frame on Linux, spent reading
     /// scattered controllers and copying blocks.
     ///
-    /// The tweak does the first two writes for every dirty batch beforehand, on worker threads
-    /// (one batch to a worker at a time, the main thread waiting), then lets the game's loop run
-    /// as before, with those two calls replaced by a check that skips a controller already
-    /// written. The override block write, which must follow the controller's own override
-    /// application, is answered in the loop (written or not, by the game's own slot test) and
-    /// its copy made after the loop, again on workers. Everything else (applying overrides,
-    /// texture creation, Apply, the dirty bookkeeping) runs in the game's own order on the main
-    /// thread; an override texture whose blocks were written after the loop in the pass after it
-    /// was made is applied again after them (its first Apply started its upload). Each batch's
-    /// writes touch only its own textures and slots, and the controllers registered with it (a
-    /// controller is in one batch). What the writes read (frame, visibility, position,
-    /// transforms, the symbol instance and override blocks) is not changed by applying another
-    /// controller's overrides, so writing them earlier or later gives the same bytes. The
-    /// engine's transform caches are safe for concurrent readers.
+    /// The tweak does the first two writes for every dirty batch beforehand, on worker threads (one
+    /// batch to a worker at a time, the main thread waiting). The game's loop then runs with those
+    /// two calls replaced by a check that skips a controller already written. The override block
+    /// write must follow the controller's override application: the loop answers it (written or
+    /// not, by the game's slot test) and the copy is made after the loop, again on workers.
+    /// Everything else (applying overrides, texture creation, Apply, the dirty bookkeeping) runs in
+    /// the game's order on the main thread.
     ///
-    /// Written on the main thread in the game's order as before: batches being set up (Init),
-    /// UI batches (their transform reads UI layout), controllers that are not exactly a
-    /// KBatchedAnimController, and those whose position comes from a delegate other than
-    /// KBatchedAnimTracker's. Frames with few dirty controllers are left to the game. If another
-    /// Harmony owner patches any method on the write path, the tweak stays off.
+    /// Why the bytes are the same: each batch's writes touch only its textures and slots and the
+    /// controllers registered with it (a controller is in one batch), and what they read (frame,
+    /// visibility, position, transforms, the symbol and override blocks) is not changed by applying
+    /// another controller's overrides. The engine's transform caches are safe for concurrent
+    /// readers.
     ///
-    /// With ONI_TWEAK_VERIFY=1 each skipped write is redone at its original place into scratch
-    /// memory and compared byte for byte with what the worker wrote, the symbol slot's version is
-    /// checked against the controller's, a written controller the game's loop never reached
-    /// counts as a mismatch, and each override block written after the loop must still have the
-    /// version it had when the loop reached it. Gluttony (Linux, stopwatch, steady windows):
-    /// 1.92–2.01 → 1.49–1.65 ms a frame; what stays on the main thread is mostly applying the
-    /// overrides (SymbolOverrideController, FaceGraph), which is game logic with side effects.
+    /// Left to the main thread, in the game's order: batches being set up, UI batches (their
+    /// transform reads UI layout), controllers that are not exactly a KBatchedAnimController, those
+    /// whose position comes from a delegate other than KBatchedAnimTracker's, and frames with few
+    /// dirty controllers. Off for the session once another Harmony owner patches a method on the
+    /// write path.
+    ///
+    /// ONI_TWEAK_VERIFY=1: each skipped write is redone at its place into scratch memory and
+    /// compared byte for byte with the worker's; the symbol slot's version is checked against the
+    /// controller's; a written controller the game's loop never reached is a mismatch; each
+    /// override block written after the loop must still have the version it had when the loop
+    /// reached it.
+    ///
+    /// Measured (a pile-heavy colony, Linux, steady windows): 1.92–2.01 → 1.49–1.65 ms a frame.
+    /// What stays on the main thread is mostly applying the overrides.
     [GameMember(GameUse.Transpiler, "System.Int32 KAnimBatch::UpdateDirty(System.Int32)", "179b53cbc38cbf63 linux-744825 win-744825", Rewrites = 3)]
     [GameMember(GameUse.Uses, "System.Void KAnimBatch::WriteBatchedAnimInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
     [GameMember(GameUse.Uses, "System.Boolean KAnimBatch::WriteSymbolInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]

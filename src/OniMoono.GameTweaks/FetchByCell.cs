@@ -11,46 +11,48 @@ using Pickup = FetchManager.Pickup;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fetch-by-cell`. Each Duplicant's fetch update (FetchManager.UpdatePickups,
-    /// about 30 a second with brain-rate) runs, for every prefab group, FetchablesByPrefabId.UpdatePickups:
-    /// CouldBePickedUpByMinion on every item, the path cost of each distinct cell (through the first
-    /// item there that passed), a sort by (tag bits, priority desc, cost, quality desc, freshness desc)
-    /// and a dedup to the first item of each (tag bits, priority). A late-game colony keeps tens of
-    /// thousands of items in a few thousand piles (one with 33,600 items in 3,600 cells), so most of
-    /// that work is the same item over again.
+    /// Game tweak `fetch-by-cell`. Each Duplicant's fetch update (FetchManager.UpdatePickups, about
+    /// 30 a second with brain-rate) runs FetchablesByPrefabId.UpdatePickups for every prefab group:
+    /// CouldBePickedUpByMinion on every item, the path cost of each distinct cell (through the
+    /// first item there that passed), a sort by (tag bits, priority desc, cost, quality desc,
+    /// freshness desc) and a dedup to the first item of each (tag bits, priority). A late-game
+    /// colony keeps tens of thousands of items in a few thousand piles (one: 33,600 items in 3,600
+    /// cells), so most of that work is the same item over again.
     ///
-    /// A mirror kept by the group's own updates (add, remove, storage, tags, freshness), the items'
-    /// cell changes and their reservations holds, per (tag bits, priority, cell) key, the key's best
-    /// item by the game's order within one cell (quality desc, freshness desc). An update costs each
-    /// key's cell once, as the game does, keeps for each (tag bits, priority) the cheapest key, and
-    /// writes the group's result in the game's order; the manager's merge and sort are the game's.
-    /// The best item is still checked with CouldBePickedUpByMinion (a key whose best fails checks
-    /// all of its items), and so is every item whose answer can differ by Duplicant: those with
-    /// reservations, and those in a storage with an Automatable (conveyor loaders and receptacles).
-    /// A cell whose items take their work spots from different sources (CellSources: a bottle
-    /// filler's stored water, given the filler's work cell, beside loose water) is costed as the
-    /// game costs it, through the first item there in the group's list that passes.
+    /// A mirror, kept by the group's updates (add, remove, storage, tags, freshness), the items'
+    /// cell changes and their reservations, holds per (tag bits, priority, cell) key the key's best
+    /// item by the game's order within one cell (quality desc, freshness desc). An update costs
+    /// each key's cell once, keeps for each (tag bits, priority) the cheapest key, and writes the
+    /// group's result in the game's order; the manager's merge and sort are the game's. The best
+    /// item is still checked with CouldBePickedUpByMinion (a key whose best fails checks all of its
+    /// items), and so is every item whose answer can differ by Duplicant: those with reservations,
+    /// and those in a storage with an Automatable. A cell whose items take their work spots from
+    /// different sources (CellSources) is costed as the game costs it, through the first item in
+    /// the group's list that passes.
     ///
-    /// Keys on worlds the Duplicant cannot reach are left out: a cell at least R cells inside a
-    /// world's rectangle (R: the largest offset any fetchable's tracker can return) on a world none
-    /// of the Duplicant's probed cells (Navigator.occupiedCells, exactly the cells PathGrid.GetCost
-    /// answers for) lies on has no path cost through any item there, so the game drops it too.
+    /// Keys on worlds the Duplicant cannot reach are left out. A cell at least R cells inside a
+    /// world's rectangle (R: the largest offset any fetchable's tracker can return), on a world
+    /// none of the Duplicant's probed cells lies on (Navigator.occupiedCells, the cells
+    /// PathGrid.GetCost answers for), has no path cost through any item there, so the game drops it
+    /// too.
     ///
     /// Equal to the game's but for ties: where two items of one prefab have the same tag bits,
-    /// priority, cost, quality and freshness, the game's unstable sort picks one of them and this
-    /// may pick the other. The merged list's order is the same (its sort compares only those).
+    /// priority, cost, quality and freshness, the game's unstable sort picks one and this may pick
+    /// the other. The merged list's order is the same.
     ///
-    /// Off while another mod patches what it replaces or relies on (Guarded*): Efficient Supply,
-    /// CycleTrim and Fast Track's Optimize Debris Collection replace the group's update; Waste Not,
-    /// Want Not and Delivery Temperature Limit change its order; No Manual Delivery, Forbid Items,
-    /// Controlled Storage and others change CouldBePickedUpByMinion. The world skip alone is off
-    /// while another mod changes path costs or probes (Teleport Suit, GRAVNet, Fast Track's paths).
-    /// Fast Track's Reduce Debris Checks never runs the manager's update, so this never starts.
+    /// Off for the session when another mod patches what it replaces or relies on (Guarded):
+    /// Efficient Supply, CycleTrim and Fast Track's Optimize Debris Collection replace the group's
+    /// update; Waste Not, Want Not and Delivery Temperature Limit change its order; No Manual
+    /// Delivery, Forbid Items, Controlled Storage and others change CouldBePickedUpByMinion. The
+    /// world skip alone is off when another mod changes path costs or probes (Teleport Suit,
+    /// GRAVNet, Fast Track's paths). Fast Track's Reduce Debris Checks never runs the manager's
+    /// update, so this never starts.
     ///
     /// ONI_VERIFY_FETCH_BY_CELL=1 (or ONI_TWEAK_VERIFY=1) keeps the game's pass and runs this one
-    /// beside it, logging any result that differs other than by a tie, any item in a left-out cell
-    /// that had a path cost, and the mirror's drift from the game's lists, checked every few
-    /// seconds in this mode (in play only after one of its hooks ran off the main thread). ONI_FETCH_STATS=1 times the update.
+    /// beside it. It logs any result that differs other than by a tie, any item in a left-out cell
+    /// that had a path cost, and the mirror's drift from the game's lists (checked every 5 s in
+    /// this mode; in play only after a hook ran off the main thread). ONI_FETCH_STATS=1 times the
+    /// update.
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void FetchManager::UpdatePickups(Navigator,WorkerBase)")]
     [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<FetchManager/Pickup> FetchManager::pickups")]
     [GameMember(GameUse.Postfix, "HandleVector`1/Handle<System.Int32> FetchManager/FetchablesByPrefabId::AddPickupable(Pickupable)")]
@@ -200,14 +202,6 @@ namespace OniMoono.GameTweaks
         {
             if (installed) return;
             installed = true;
-            InstallShared(harmony);
-        }
-
-        static HarmonyMethod M(string name, int priority = -1) =>
-            priority < 0 ? new HarmonyMethod(typeof(FetchByCell), name) : new HarmonyMethod(typeof(FetchByCell), name) { priority = priority };
-
-        static void InstallShared(Harmony harmony)
-        {
             MainThread.Install(harmony);
             compareWithPriority = (Comparison<Pickup>)AccessTools.Field(AccessTools.Inner(typeof(FetchManager), "PickupComparerIncludingPriority"), "CompareInst").GetValue(null);
             compareNoPriority = (Comparison<Pickup>)AccessTools.Field(AccessTools.Inner(typeof(FetchManager), "PickupComparerNoPriority"), "CompareInst").GetValue(null);
@@ -226,6 +220,9 @@ namespace OniMoono.GameTweaks
             harmony.Patch(AccessTools.Method(typeof(Workable), nameof(Workable.SetOffsetTable)), postfix: M(nameof(TrackerChanged)));
         }
 
+        static HarmonyMethod M(string name, int priority = -1) =>
+            priority < 0 ? new HarmonyMethod(typeof(FetchByCell), name) : new HarmonyMethod(typeof(FetchByCell), name) { priority = priority };
+
         /// ONI_FETCH_STATS=1: times the update and its groups, with fetch-by-cell on or off.
         public static void InstallStats(Harmony harmony)
         {
@@ -243,12 +240,12 @@ namespace OniMoono.GameTweaks
         /// or, for GuardedSkip's, its skip of unreachable worlds.
         internal static IEnumerable<MethodBase> Guarded()
         {
-            foreach (var m in GuardedBoth()) yield return m;
+            foreach (var m in GuardedUpdate()) yield return m;
             foreach (var m in GuardedCell()) yield return m;
             foreach (var m in GuardedSkip()) yield return m;
         }
 
-        static IEnumerable<MethodBase> GuardedBoth()
+        static IEnumerable<MethodBase> GuardedUpdate()
         {
             var g = typeof(Group);
             foreach (var name in new[] { "UpdatePickups", "GatherPickupablesWhichCanBePickedUp", "GatherReachablePickups", "AddPickupable", "RemovePickupable", "UpdateStorage", "UpdateTags", "Sim1000ms" })
@@ -281,7 +278,7 @@ namespace OniMoono.GameTweaks
             yield return AccessTools.Method(typeof(Pickupable), nameof(Pickupable.Reserve));
             yield return AccessTools.Method(typeof(Pickupable), nameof(Pickupable.Unreserve));
             yield return AccessTools.Method(typeof(Pickupable), nameof(Pickupable.ClearReservations));
-            // Its own order in a cell and across cells (Waste Not, Want Not and Delivery Temperature
+            // Its order in a cell and across cells (Waste Not, Want Not and Delivery Temperature
             // Limit transpile these).
             yield return AccessTools.Method(AccessTools.Inner(typeof(FetchManager), "PickupComparerIncludingPriority"), "Compare");
             yield return AccessTools.Method(AccessTools.Inner(typeof(FetchManager), "PickupComparerNoPriority"), "Compare");
@@ -292,7 +289,7 @@ namespace OniMoono.GameTweaks
         static void Check()
         {
             string why;
-            try { why = Foreign(GuardedBoth()) ?? Foreign(GuardedCell()); }
+            try { why = Foreign(GuardedUpdate()) ?? Foreign(GuardedCell()); }
             catch (Exception e) { why = "its methods could not be read: " + e.Message; }
             state = why == null ? State.On : State.Off;
             if (why != null)
@@ -737,7 +734,7 @@ namespace OniMoono.GameTweaks
             long with = Live();
             int items = 0, keys = 0;
             foreach (var gm in groups.Values) { items += gm.ByHandle.Count; keys += gm.KeyList.Count; }
-            global::Debug.Log($"FETCHSTATS mirror: {groups.Count} groups, {items} items, {keys} keys: {(with - without) / 1024} KiB live, {allocated / 1024} KiB allocated building it");
+            global::Debug.Log($"FETCHSTATS mirror: {groups.Count} groups, {items} items, {keys} keys: {(with - without) / 1000} KB live, {allocated / 1000} KB allocated building it");
         }
 
         static long Live()
@@ -1092,7 +1089,7 @@ namespace OniMoono.GameTweaks
             if (frames < 600) return;
             double f = Stopwatch.Frequency / 1000.0;
             global::Debug.Log($"FETCHSTATS f{frame}: {calls / (double)frames:F2} calls a frame; main wall {mainTicks / f / frames:F3} ms a frame ({mainTicks / f / Math.Max(1, calls):F3} a call); "
-                + $"group items {Interlocked.Read(ref workerTicks) / f / frames:F3} ms a frame ({Interlocked.Read(ref workerTicks) / f / Math.Max(1, calls):F3} a call); frame {(now - windowStartTime) * 1000 / frames:F2} ms; managed heap {GC.GetTotalMemory(false) >> 20} MiB");
+                + $"group items {Interlocked.Read(ref workerTicks) / f / frames:F3} ms a frame ({Interlocked.Read(ref workerTicks) / f / Math.Max(1, calls):F3} a call); frame {(now - windowStartTime) * 1000 / frames:F2} ms; managed heap {GC.GetTotalMemory(false) / 1000000} MB");
             windowStartFrame = frame;
             windowStartTime = now;
             mainTicks = calls = 0;

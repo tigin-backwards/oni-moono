@@ -13,7 +13,7 @@ namespace OniMoono.Host.GameTweaks
     /// calls GetComponent&lt;HighEnergyParticle&gt;() on each one's GameObject to find other
     /// radbolts. A colony has tens of thousands of colliders (every stored item) and only a handful
     /// of radbolts, so nearly all of those lookups scan an item's components and find nothing
-    /// (U57: 0.9 ms a frame for 4 radbolts).
+    /// (a late-game colony: 0.9 ms a frame for 4 radbolts).
     ///
     /// Two changes, each giving the method the same outcome:
     /// - The gather is skipped unless another radbolt has a collider registered in those cells (the

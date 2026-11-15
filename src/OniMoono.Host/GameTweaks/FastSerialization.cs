@@ -44,7 +44,7 @@ namespace OniMoono.Host.GameTweaks
     {
         public const string Name = GameTweakNames.FastSerialization;
 
-        /// Test runs only: off restores the game's own path at run time (for comparing saves).
+        /// Test runs only: off restores the game's path at run time (for comparing saves).
         public static bool Enabled = true;
 
         static Type templateType = null!, helperType = null!, ioHelperType = null!, typeInfoType = null!;
@@ -203,7 +203,7 @@ namespace OniMoono.Host.GameTweaks
         {
             var objArg = Expression.Parameter(typeof(object), "obj");
             var writerArg = Expression.Parameter(typeof(BinaryWriter), "writer");
-            // The object as its own type: a struct is read in its box, not copied.
+            // The object as its type: a struct is read in its box, not copied.
             var target = type.IsValueType ? (Expression)Expression.Unbox(objArg, type) : Expression.Convert(objArg, type);
             var body = new List<Expression>();
             ParameterExpression? local = null;

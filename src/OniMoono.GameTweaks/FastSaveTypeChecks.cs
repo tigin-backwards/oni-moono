@@ -17,7 +17,7 @@ namespace OniMoono.GameTweaks
     /// Both answers depend only on the type, so they are kept per type: the same booleans and the
     /// same name are used, from the first time each type is asked. Only those two calls in that
     /// method are replaced. Mods' transpilers of the method run first and see the game's calls
-    /// (Better Save replaces the same IsDefined calls with its own cache, and gave up when it
+    /// (Better Save replaces the same IsDefined calls with its cache, and gave up when it
     /// found ours); what they leave of them is replaced.
     [GameMember(GameUse.Transpiler, "System.Void SaveLoadRoot::SaveWithoutTransform(System.IO.BinaryWriter)", "4847188af20e37a7 linux-744825 win-744825", Rewrites = 3)]
     public static class FastSaveTypeChecks

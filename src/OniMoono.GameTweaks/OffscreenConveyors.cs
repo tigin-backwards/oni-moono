@@ -6,19 +6,19 @@ using OniMoono.Tweaks;
 namespace OniMoono.GameTweaks
 {
     /// Game tweak `off-screen-conveyors` (changes behaviour, see below). Every frame
-    /// SolidConduitFlow.RenderEveryTick moves every item travelling on a conveyor rail a step
-    /// along it (U57: about 950 items a frame, 85% of them off screen), and each move marks the
-    /// item for the cell-change monitor and its animation for an update.
+    /// SolidConduitFlow.RenderEveryTick moves every item travelling on a conveyor rail a step along
+    /// it (a late-game colony: about 950 items a frame, 85% of them off screen), and each move
+    /// marks the item for the cell-change monitor and its animation for an update.
     ///
     /// This makes the same moves, in the same order, for items whose rail section (the chunk of
     /// their cell or the cell they come from) is on screen, and skips them for the rest. An item
     /// skipped while moving is placed at its cell's centre once it stops (where a finished move
     /// leaves it); one that comes on screen moves from there on as before.
     ///
-    /// What changes: while off screen, a travelling item's transform (and with it the cell the
-    /// game files it under for partitioner lookups, decor and radiation) lags behind its place in
-    /// the conveyor's flow until it stops or comes on screen. The flow itself — what is carried
-    /// where, and when it arrives — is the conveyor grid's and is not affected.
+    /// What changes: while off screen, a travelling item's transform (and with it the cell the game
+    /// files it under for partitioner lookups, decor and radiation) lags behind its place in the
+    /// conveyor's flow until it stops or comes on screen. The flow itself — what is carried where,
+    /// and when it arrives — is the conveyor grid's and is not affected.
     [GameMember(GameUse.Prefix, "Pickupable SolidConduitFlow::RemovePickupable(System.Int32)")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SolidConduitFlow::RenderEveryTick(System.Single)", "3b200f787174ece4 linux-744825 win-744825")]
     public static class OffscreenConveyors

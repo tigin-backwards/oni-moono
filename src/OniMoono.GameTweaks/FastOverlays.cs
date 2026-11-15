@@ -8,45 +8,39 @@ namespace OniMoono.GameTweaks
 {
     /// Game tweak `fast-overlays`: the overlays' per-frame work, the same results.
     ///
-    /// Power: OverlayModes.Power.Update tints every power building in view by its circuit's
-    /// load, and for each one asks CircuitManager.GetWattsNeededWhenActive for its circuit: a
-    /// walk over the circuits reachable through transformers that allocates five collections
-    /// and sums every consumer on them. Within one update nothing changes a circuit (the update
-    /// only tints controllers and places labels), so the answer for a circuit is the same for
-    /// each of its buildings; the tweak keeps the first answer per circuit for the rest of that
-    /// update. Any other call (the details screens, a mod) runs the game's method as before, and
-    /// the tweak stays out of the way while another Harmony owner patches either method.
+    /// Power: OverlayModes.Power.Update tints every power building in view by its circuit's load,
+    /// and for each one asks CircuitManager.GetWattsNeededWhenActive: a walk over the circuits
+    /// reachable through transformers that allocates five collections and sums every consumer on
+    /// them. Nothing changes a circuit within one update, so the tweak keeps the first answer per
+    /// circuit for the rest of that update. Any other call (the details screens, a mod) runs the
+    /// game's method.
     ///
-    /// Temperature: Infrared.Update triggers an event on Game every frame that reaches every
-    /// object with a temperature visualizer in every world (U57: tens of thousands), and each
-    /// reads its transform's position to see whether it is in view; only those in view are
-    /// coloured. The tweak lets that event run as before (the same handlers, in the same order),
-    /// but the visualizers' handler (the static delegate they subscribe with) is the tweak's: it
-    /// keeps, by the handler's place in that order, the position read there before when the
-    /// object cannot move (a spawned building other than a rocket module), and passes over a kept
-    /// place out of view without touching the object. A place now held by another visualizer
-    /// (one was added or removed) is read again; objects that can move read their transform
-    /// every time (through the transform kept for them), as before. Those in view are coloured
-    /// by the game's own code. When another Harmony owner patches the game's handler, the
-    /// patched handler runs for every visualizer.
+    /// Temperature: Infrared.Update triggers an event every frame that reaches every object with a
+    /// temperature visualizer in every world (tens of thousands on a late-game colony); each reads
+    /// its transform's position to see whether it is in view. The event runs as in the game (the
+    /// same handlers, in the same order), but the visualizers' handler is the tweak's. By the
+    /// handler's place in that order it keeps the position of an object that cannot move (a spawned
+    /// building other than a rocket module), and passes over a kept place out of view without
+    /// touching the object. A place now held by another visualizer is read again; objects that can
+    /// move read their transform every time. Those in view are coloured by the game's code.
     ///
     /// Targets (the materials, decor, plant, pipe, conveyor, power, automation and exosuit
-    /// overlays): each frame a mode drops the targets now out of view (Mode.RemoveOffscreenTargets),
-    /// adds the objects in view (Mode.AddTargetIfVisible, for each object its partition or the
-    /// scene partitioner holds there) and highlights its targets (UpdateHighlightTypeOverlay).
-    /// The modes' calls to these go through the tweak's versions, which run the same loops in the
-    /// same order with the same effects but keep, by place in the target set's order, what each
-    /// target's visit read: its transform, its controller and, if it cannot move, its position.
-    /// AddTargetIfVisible ends at once for an object already among the targets, so that test
-    /// comes first; TileMode tests an object's element against each filter before adding it, so
-    /// an object already shown skips that too. The KPrefabID lookup RemoveOffscreenTargets
-    /// makes and never uses is left out. While another Harmony owner patches one of the game's
-    /// helpers, the game's (patched) helper runs instead.
+    /// overlays): each frame a mode drops the targets now out of view
+    /// (Mode.RemoveOffscreenTargets), adds the objects in view (Mode.AddTargetIfVisible) and
+    /// highlights its targets (UpdateHighlightTypeOverlay). The modes' calls go through the tweak's
+    /// versions: the same loops in the same order, keeping by place in the target set's order what
+    /// each target's visit read (its transform, its controller and, if it cannot move, its
+    /// position). AddTargetIfVisible ends at once for an object already among the targets, so that
+    /// test comes first; TileMode's filter tests are skipped for such an object too. The KPrefabID
+    /// lookup RemoveOffscreenTargets makes and never uses is left out.
     ///
-    /// With ONI_TWEAK_VERIFY=1 every kept answer is computed again and compared bit for bit,
-    /// every kept position, transform and controller is compared with the object's own, and an
-    /// object already among the targets runs the game's AddTargetIfVisible, which must leave the
-    /// targets as they were.
+    /// Each part is off for the session once another Harmony owner patches the game method it
+    /// stands in for; the game's (patched) method then runs.
+    ///
+    /// ONI_TWEAK_VERIFY=1: every kept answer is computed again and compared bit for bit, every kept
+    /// position, transform and controller is compared with the object's, and an object already
+    /// among the targets runs the game's AddTargetIfVisible, which must leave the targets as they
+    /// were.
     [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "System.Single CircuitManager::GetWattsNeededWhenActive(System.UInt16)", "40cf5a1a193b4807 linux-744825 win-744825")]
     [GameMember(GameUse.Prefix, "System.Void Infrared::Update()")]
     [GameMember(GameUse.Transpiler, "System.Void OverlayModes/ConduitMode::Update()", "3fbe1e9bfa35e929 linux-744825 win-744825", Rewrites = 3)]
@@ -126,7 +120,7 @@ namespace OniMoono.GameTweaks
         /// The modes' calls to Mode.AddTargetIfVisible, RemoveOffscreenTargets (the overload for
         /// components) and UpdateHighlightTypeOverlay go through the tweak's, same arguments.
         /// It runs after every other owner's transpilers (CallSiteReroute): a mod that replaces
-        /// one of these calls with its own (Fast Track's CullConduits) still finds it.
+        /// one of these calls with its (Fast Track's CullConduits) still finds it.
         static IEnumerable<CodeInstruction> RerouteAddTarget(IEnumerable<CodeInstruction> instructions, System.Reflection.MethodBase original)
             => CallSiteReroute.Rewrite(instructions, definition =>
             {
@@ -134,7 +128,7 @@ namespace OniMoono.GameTweaks
                 return ours != null ? AccessTools.Method(typeof(FastOverlays), ours) : null;
             }, Name, original);
 
-        /// The game's AddTargetIfVisible without its own visit to an object already among the
+        /// The game's AddTargetIfVisible without its visit to an object already among the
         /// targets: the method's test for that ends it with nothing done.
         [MirrorsGame("System.Void OverlayModes/Mode::AddTargetIfVisible``1(!!0,Vector2I,Vector2I,System.Collections.Generic.ICollection`1<!!0>,System.Int32,System.Action`1<!!0>,System.Func`2<KMonoBehaviour,System.Boolean>)")]
         static void AddTarget<T>(OverlayModes.Mode mode, T instance, Vector2I visMin, Vector2I visMax, ICollection<T> targets, int layer, Action<T> onAdded, Func<KMonoBehaviour, bool> shouldAdd)

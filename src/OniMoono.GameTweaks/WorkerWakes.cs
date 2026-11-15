@@ -4,7 +4,7 @@ namespace OniMoono.GameTweaks
 {
     /// How the `fast-jobs` scheduler (FastJobs) wakes its workers: a semaphore of each worker's
     /// own, so that a job's helpers wake side by side. One semaphore shared by all of them made
-    /// the woken workers queue for its lock one after another (Windows, U57 on U60: 15 workers,
+    /// the woken workers queue for its lock one after another (Windows, a late-game colony: 15 workers,
     /// each waiting about 0.18 ms for the lock after every wake, the last helpers starting late
     /// while the main thread waited for their items). Wake(n) wakes workers 0..n-1, each once;
     /// a wake given while its worker is still busy is kept for its next Wait, as the shared

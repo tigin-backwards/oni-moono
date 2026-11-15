@@ -17,7 +17,7 @@ namespace OniMoono.Host.GameTweaks
     /// A postfix on FMODUnity's `RuntimeManager.Initialize`, once FMOD Studio is up (its Studio
     /// system valid: Initialize returns its first error even when a retry with no sound output
     /// then succeeded) and before the game has made any event instance (no thread can be in the
-    /// patched code): FMOD's own version (the core system's getVersion), the loaded library's
+    /// patched code): FMOD's version (the core system's getVersion), the loaded library's
     /// file (its SHA-256, one of FmodStealPatch.Known's) and the bytes expected must all be the
     /// ones it was written for, and on Windows the system's unwind lookup must find the
     /// function's own entry for the helper call's return address; any difference (a game update

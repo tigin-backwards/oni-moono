@@ -10,58 +10,41 @@ namespace OniMoono.GameTweaks
 {
     using Instance = ReachabilityMonitor.Instance;
 
-    /// Game tweak `instant-reachability` (on by default, **changes timing**). ReachabilityMonitor
-    /// polls every workable's reachability once a game second, spread over the frames:
-    /// MinionGroupProber.IsAllReachable(its cell, its work offsets), which reads the Duplicants'
-    /// reachable-cell counts (MinionGroupProber.cells). A large colony has tens of thousands of
-    /// monitored workables, mostly items in storage, so the poll costs about 2 ms a frame; and a
-    /// change (a door, a dug tile) is seen up to a second after the counts changed.
+    /// Game tweak `instant-reachability` (**changes timing**). ReachabilityMonitor polls every
+    /// workable's reachability once a game second: MinionGroupProber.IsAllReachable(its cell, its
+    /// work offsets), which reads the Duplicants' reachable-cell counts. A large colony has tens of
+    /// thousands of monitored workables, mostly items in storage: about 2 ms a frame, and a change
+    /// (a door, a dug tile) is seen up to a second late.
     ///
-    /// With the tweak an answer can change only when one of its inputs changes, and each input's
-    /// writer tells it:
-    /// - the counts: every write path (Occupy, OccupyST, Vacate, VacateST) records the cells
-    ///   whose count crosses 0 ↔ 1, race-free on workers (ReachCrossings);
-    /// - the object's cell: Pickupable.GetCell is its cachedCell, written only by
-    ///   UpdateCachedCell; Diggable's is fixed at spawn; the other monitored objects' (storages,
-    ///   constructions, mop and move markers, rocket modules) is their transform's, followed
-    ///   through the engine's per-transform move flag (EngineMoves), set only on these objects:
-    ///   any change of their place, SetPosition or a raw position set, theirs or an ancestor's;
-    /// - the offsets: a tracker's offsets go stale through OffsetTableTracker.OnCellChanged (the
-    ///   game's solid and valid-nav-cell partitioner layers) or ForceRefresh, and change through
-    ///   Workable.SetOffsets and SetOffsetTable (a new tracker). Unsealable's are its facing,
-    ///   which only a template or a save sets, before spawn.
+    /// An answer can change only when one of its inputs does, and each input's writer tells the
+    /// tweak:
+    /// - the counts: Occupy, OccupyST, Vacate and VacateST record the cells whose count crosses 0 ↔
+    ///   1, race-free on workers (ReachCrossings);
+    /// - the object's cell: Pickupable's is its cachedCell, written only by UpdateCachedCell;
+    ///   Diggable's is fixed at spawn; the others' is their transform's, followed through the
+    ///   engine's per-transform move flag (EngineMoves), set only on these objects;
+    /// - the offsets: they go stale through OffsetTableTracker.OnCellChanged or ForceRefresh, and
+    ///   change through Workable.SetOffsets and SetOffsetTable. Unsealable's are its facing, set
+    ///   before spawn.
     ///
-    /// Each monitored object is kept in a per-cell index (ReachIndex) with the rectangle of the
-    /// offsets its tracker can ever give (fixed per table), so offset re-evaluation never moves it
-    /// and only a cell change does. Once a frame, at the end of Game.Update (after the frame's
-    /// path probe results are taken, Navigator.TakeResult in AsyncPathProber.TickFrame), the
-    /// crossed cells are drained, the objects whose reads include them and the objects with a
-    /// changed cell or offsets are rechecked with the game's own UpdateReachability, so the
-    /// Reachable tag and the ReachableChanged event come from the game's state machine as they
-    /// do when it polls. Load does what it did (each monitor checks at construction, and
-    /// WorldInventory rechecks every item a frame after load).
+    /// Each object is in a per-cell index (ReachIndex) with the rectangle of offsets its tracker
+    /// can ever give, so only a cell change moves it. Once a frame, at the end of Game.Update
+    /// (after the frame's probe results are taken), the objects reading a crossed cell and those
+    /// with a changed cell or offsets are rechecked with the game's UpdateReachability: the
+    /// Reachable tag and the ReachableChanged event come from the game's state machine.
     ///
-    /// An object the tweak can't follow keeps the game's polling: a type overriding GetCell or
-    /// GetOffsets with code it doesn't know (mods), or a tracker of a type it doesn't know. The
-    /// others are taken out of the poll's bucket. One whose table tracker answers offsets outside
-    /// the rectangle of its rows' first cells (a mod's postfix on the private
-    /// OffsetTableTracker.UpdateOffsets(int, CellOffset[][]) or IsValidRow, which the tweak does
-    /// not guard) goes back to the poll: its offsets are checked against its bounds when it
-    /// registers and after each recheck that follows a change of its offsets' inputs. A second
-    /// MinionGroupProber in one session (only a mod would make one) hands every object back to
-    /// the poll too.
+    /// The game's poll keeps: a type overriding GetCell or GetOffsets, or a tracker type, the tweak
+    /// doesn't know (mods); an object whose table tracker answers offsets outside its bounds (a
+    /// mod's patch of OffsetTableTracker.UpdateOffsets(int, CellOffset[][]) or IsValidRow, not
+    /// guarded); and every object once a second MinionGroupProber appears in a session.
     ///
-    /// What changes: an answer comes on the frame its input changed, instead of at the object's
-    /// next poll (up to a game second later); a Duplicant can pick up an errand that much sooner.
-    /// The answers themselves are the game's.
+    /// What differs: an answer comes on the frame its input changed, not up to a game second later.
     ///
-    /// Stands down for the session (logged once) when another Harmony owner patches what it
-    /// relies on (Guarded: the monitor's states and update, the prober's table, the offsets and
-    /// cells); Fast Track's FastReachability replaces ReachabilityMonitor.InitializeStates.
+    /// Off for the session (logged once) when another Harmony owner patches what it relies on
+    /// (Guarded); Fast Track's FastReachability replaces ReachabilityMonitor.InitializeStates.
     ///
-    /// ONI_TWEAK_VERIFY=1 compares, every frame after the drain, a slice of the event-driven
-    /// objects (all of them every few frames) with a fresh IsAllReachable of their GetCell and
-    /// GetOffsets, and logs each mismatch and totals every 30 s.
+    /// ONI_TWEAK_VERIFY=1: every frame a slice of the objects is compared with a fresh
+    /// IsAllReachable; mismatches are logged, totals every 30 s.
     [GameMember(GameUse.Mirrors, "System.Int32 Diggable::GetCell()", "663d3493ec9e896a linux-744825 win-744825")]
     [GameMember(GameUse.Postfix, "System.Void Game::Update()")]
     [GameMember(GameUse.Uses, "System.Boolean MinionGroupProber::IsAllReachable(System.Int32,CellOffset[])")]
@@ -318,7 +301,7 @@ namespace OniMoono.GameTweaks
             if (sources.TryGetValue(type, out var found)) return found;
             var getCell = type.GetMethod(nameof(Workable.GetCell), BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
             var getOffsets = type.GetMethod(nameof(Workable.GetOffsets), BindingFlags.Public | BindingFlags.Instance, null, new[] { typeof(int) }, null);
-            // Only the game's own types count as known declarers (a mod's class named the same doesn't).
+            // Only the game's types count as known declarers (a mod's class named the same doesn't).
             string Declarer(MethodInfo m) => m?.DeclaringType?.Assembly == typeof(Workable).Assembly ? m.DeclaringType.Name : null;
             found = (ReachCoverage.Cell(Declarer(getCell)), ReachCoverage.Offsets(Declarer(getOffsets)));
             sources[type] = found;

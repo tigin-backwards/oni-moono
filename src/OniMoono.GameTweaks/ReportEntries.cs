@@ -33,7 +33,7 @@ namespace OniMoono.GameTweaks
     /// directory, in that order), and a string of 1,024 bytes or more logs WriteKleiString's
     /// warning.
     ///
-    /// The game's own path writes instead (Helper.WriteValue, as before) when
+    /// The game's path writes instead (Helper.WriteValue, as before) when
     /// - the three types' templates are not exactly the fields this writes, or have a callback,
     ///   a property or a custom serializer (checked once, at start-up);
     /// - another mod patches a method this stands in for (Guarded: checked at every save).
@@ -188,7 +188,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// Both ways into memory, compared; ours goes to the save. The game's is written with
-        /// fast-serialization's plans off, so it is the game's own code all the way down.
+        /// fast-serialization's plans off, so it is the game's code all the way down.
         static void Verified(BinaryWriter target, TypeInfo typeInfo, object value, Action<BinaryWriter> write, string what)
         {
             var ours = new MemoryStream();

@@ -14,7 +14,7 @@ namespace OniMoono.GameTweaks
     ///
     /// Read at each main menu (MoonoTweaksMenu.AddButton), when every mod has loaded and made
     /// its patches: every patched method Harmony knows, its owners' patches split into a tweak's
-    /// (each tweak patches under its own ID, ModOverlapsCore.OwnerOf) and the others'; the
+    /// (each tweak patches under its ID, ModOverlapsCore.OwnerOf) and the others'; the
     /// methods the host's load-time IL rewrite changed for a tweak (`rewrittenBy`); and the
     /// methods whose patching by another owner makes a tweak step aside (Guards). Graded and
     /// worded by ModOverlapsCore. Player.log gets the block when it differs from the last one.

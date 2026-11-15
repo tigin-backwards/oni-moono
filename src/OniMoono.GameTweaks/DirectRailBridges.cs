@@ -9,51 +9,47 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `direct-rail-bridges` (on by default, left out of `exact`; see "What differs"). A conveyor bridge that
-    /// moves a whole item calls SolidConduitFlow.RemovePickupable for its input cell and then
-    /// AddPickupable for its output cell: the item is told it left storage and, at once, that it
-    /// is stored again. In between it loses and regains the Stored tags (four TagsChanged
-    /// rounds), gets a faller, partitioner entries, a place in the cell's item list and in the
-    /// save list, and loses them all again: about 50 µs a move on a late-game colony, for a state
-    /// that ends where it began (docs/research/rail-bridge-moves.md has the audit).
+    /// Game tweak `direct-rail-bridges` (left out of `exact`; see "What differs"). A conveyor
+    /// bridge that moves a whole item calls SolidConduitFlow.RemovePickupable for its input cell
+    /// and then AddPickupable for its output cell: the item is told it left storage and, at once,
+    /// that it is stored again. In between it loses and regains the Stored tags (four TagsChanged
+    /// rounds), a faller, partitioner entries and its places in the cell's item list and the save
+    /// list: about 50 µs a move on a late-game colony, for a state that ends where it began
+    /// (docs/research/rail-bridge-moves.md has the audit).
     ///
-    /// This moves the item's handle from the input cell to the output cell instead, as the rails'
-    /// own flow moves items between cells, and does by hand what the round trip leaves behind:
+    /// The tweak moves the item's handle from the input cell to the output cell, as the rails' flow
+    /// moves items between cells, and does by hand what the round trip leaves behind:
     /// - the cell the item is filed under (Pickupable.cachedCell and its stored-items partitioner
     ///   entry) becomes the cell it is at, and its rotation is reset;
     /// - the cell-change monitor is told to report its next cell whatever the last one was;
-    /// - the pickupables-changed event of that cell fires (weight plates and other listeners);
-    /// - an egg's incubation monitor is told about the un-store and the re-store, so it passes
-    ///   through its incubating state as in the game;
+    /// - the cell's pickupables-changed event fires (weight plates and other listeners);
+    /// - an egg's incubation monitor is told about the un-store and the re-store;
     /// - the conveyor overlay's look is cleared and, with the overlay open, applied again;
     /// - SolidConduitFlow.SetContents places the item in the output cell.
+    ///
     /// Only SolidConduitBridge.ConduitUpdate's whole-item branch is rewritten (its second
-    /// RemovePickupable and AddPickupable calls); the partial move, the meter valve's callbacks
-    /// and `dispensing` are the game's code.
+    /// RemovePickupable and AddPickupable calls).
     ///
-    /// The game's own round trip runs for: an item whose kind was never discovered (the round
-    /// trip can discover it: WorldInventory.OnAddedFetchable); critters, Duplicants, robots,
-    /// items with a Storage of their own, interplanetary payloads and landers; any item with a
-    /// component or state machine that is not the game's (a mod's may listen for the store
-    /// events); an item not in the state the rails leave items in; an output cell without a
-    /// rail or with an item in it.
+    /// The game's round trip runs for: an item whose kind was never discovered (the round trip can
+    /// discover it); critters, Duplicants, robots, items with a Storage, interplanetary payloads
+    /// and landers; any item with a component or state machine that is not the game's (a mod's may
+    /// listen for the store events); an item not in the state the rails leave items in; an output
+    /// cell without a rail or with an item in it.
     ///
-    /// What differs (the item, the rails' contents, the heat exchange, food, eggs, germs, the
-    /// valve's counts and the save file are the same):
-    /// - the item keeps its rail handle, where the game gives it a new one; the order the
-    ///   conveyor overlay recolours rail items in when it opens or closes follows the handles;
-    /// - a Duplicant-reachable item is not, for an instant, listed as fetchable: the world
-    ///   inventory's per-tag sets of fetchable items are not made for tags that have none yet
-    ///   (empty sets; the amounts are the same), and the fetch manager's and the partitioner's
-    ///   internal handles differ;
-    /// - status items the round trip removes and adds again (marked for compost, an unassigned
-    ///   booster's icon) keep their place in the item's list.
+    /// What differs (the item, the rails' contents, heat, food, eggs, germs, the valve's counts and
+    /// the save file are the same):
+    /// - the item keeps its rail handle, and the conveyor overlay recolours rail items in handle
+    ///   order;
+    /// - for an instant the item is not listed as fetchable: the world inventory makes no per-tag
+    ///   set for a tag that has no fetchable item yet, and the fetch manager's and the
+    ///   partitioner's handles differ;
+    /// - status items the round trip removes and adds again keep their place in the item's list.
     ///
-    /// With ONI_TWEAK_VERIFY=1 every other eligible move is made by the game's round trip, and
-    /// both kinds are compared with what the audit says the round trip leaves (Snapshot); counts
-    /// are logged every 4,096 moves. Off for the session while another Harmony owner patches a
-    /// method this relies on, or while Forbid Items, No Manual Delivery or Oxygen Multiplayer is
-    /// active (checked at the first move and every 256).
+    /// ONI_TWEAK_VERIFY=1: every other eligible move is the game's, and both kinds are compared
+    /// with what the audit says the round trip leaves (Snapshot); counts are logged every 4,096
+    /// moves. Off for the session once another Harmony owner patches a method this relies on, or
+    /// while Forbid Items, No Manual Delivery or Oxygen Multiplayer is active (checked at the first
+    /// move, then every 256).
     [GameMember(GameUse.Transpiler, "System.Void SolidConduitBridge::ConduitUpdate(System.Single)", "4595db52463b16ae linux-744825 win-744825", "4f06992e5537c9f2 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023", Rewrites = 2)]
     [GameMember(GameUse.Mirrors, "Pickupable SolidConduitFlow::RemovePickupable(System.Int32)", "4722b432433214e3 linux-744825 win-744825", "f40f24e523e27f69 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Mirrors, "System.Void SolidConduitFlow::AddPickupable(System.Int32,Pickupable)", "d71b705bc5c98c45 linux-744825 win-744825", "bd5577d4a07edc90 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023")]
@@ -303,7 +299,7 @@ namespace OniMoono.GameTweaks
         static bool movingEgg, sampling;
         static Snapshot before;
 
-        /// Verify: after the game's own round trip of an eligible item.
+        /// Verify: after the game's round trip of an eligible item.
         static void Sample(SolidConduitFlow flow, int cell, Pickupable pickupable)
         {
             sampling = false;
@@ -360,7 +356,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// A kind of item whose listeners for the store events and the Stored tags the audit
-        /// covers: only the game's own components and state machines, and none of those that keep
+        /// covers: only the game's components and state machines, and none of those that keep
         /// something from the round trip (a critter's wrangling, navigation and traps, an item's
         /// own storage, a payload's and a lander's states).
         static bool KindAudited(GameObject go, KPrefabID id, out bool egg)

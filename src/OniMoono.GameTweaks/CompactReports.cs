@@ -17,7 +17,7 @@ namespace OniMoono.GameTweaks
     /// The game keeps every day's report for the colony's life, and each report entry's notes
     /// (what added to or took from its value: "Stress: Ate in the Mess Hall +5") in
     /// ReportManager.NoteStorage.NoteEntries.entries, one Dictionary<NoteEntryKey, float> per
-    /// entry: on a late-game colony (cycle 17,000) 3.9 M dictionaries, 1.15 GiB. Only today's
+    /// entry: on a late-game colony (cycle 17,000) 3.9 M dictionaries, 1.2 GB. Only today's
     /// entries are written (ReportManager.ReportValue* go to TodaysReport); a past day's notes
     /// are read by the reports screen (NoteEntries.IterateNotes; U60 CollectNotes) and written
     /// out by every save.
@@ -42,7 +42,7 @@ namespace OniMoono.GameTweaks
     /// Code that reads `entries` directly sees only today's entries and those written since the
     /// load; no Workshop mod scanned reads or writes a past day's there.
     ///
-    /// ONI_TWEAK_VERIFY=1 keeps the game's own NoteEntries alongside, written as the game
+    /// ONI_TWEAK_VERIFY=1 keeps the game's NoteEntries alongside, written as the game
     /// writes, and compares every read and save with it.
     [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::Deserialize(System.IO.BinaryReader,System.Int32)", "8d4449b45d54a1c5 linux-744825 win-744825")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ReportManager/NoteStorage/NoteEntries::Serialize(System.IO.BinaryWriter)", "43e9a157bd003c88 linux-744825 win-744825")]
@@ -97,7 +97,7 @@ namespace OniMoono.GameTweaks
             shadow = gameCopy;
         }
 
-        /// ONI_TWEAK_VERIFY=1: the game's own NoteEntries kept alongside the store's owner,
+        /// ONI_TWEAK_VERIFY=1: the game's NoteEntries kept alongside the store's owner,
         /// written to as the game writes, and every read and save compared with it.
         static NoteEntries shadow;
         static long verifiedSaves, verifiedReads, mismatches;
@@ -109,7 +109,7 @@ namespace OniMoono.GameTweaks
         }
 
         static string Describe(ReportNoteStore<NoteEntryKey, Keys> s) =>
-            $"{s.Records:N0} entries, {s.Notes:N0} notes, {s.Bytes / (1024.0 * 1024.0):F1} MiB";
+            $"{s.Records:N0} entries, {s.Notes:N0} notes, {s.Bytes / 1e6:F1} MB";
 
         // ---- Loading ----
 
@@ -134,7 +134,7 @@ namespace OniMoono.GameTweaks
             return false;
         }
 
-        /// Older saves: the game's own reading (its Add calls find no store yet), then all of it
+        /// Older saves: the game's reading (its Add calls find no store yet), then all of it
         /// into the store, in the dictionary's order.
         static void Deserialized(NoteEntries __instance, int version)
         {

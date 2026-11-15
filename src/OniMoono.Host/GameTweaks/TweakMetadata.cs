@@ -718,7 +718,7 @@ namespace OniMoono.Host.GameTweaks
                 return reached;
             }
 
-            /// `stop`: types not followed into (their own references are not the roots' problems).
+            /// `stop`: types not followed into (their references are not the roots' problems).
             public List<string> Problems(IEnumerable<TypeDefinitionHandle> roots, IReadOnlySet<TypeDefinitionHandle>? stop = null)
             {
                 var problems = new List<string>();

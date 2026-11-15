@@ -58,7 +58,7 @@ namespace OniMoono.GameTweaks
             var emitted = AccessTools.Method(typeof(GeothermalVent), "OnMassEmitted", [typeof(ushort), typeof(float)]);
             var recompute = AccessTools.Method(typeof(GeothermalVent), "RecomputeEmissions");
             // Called through the methods themselves, so that other mods' patches of them run as
-            // they would for the game's own calls.
+            // they would for the game's calls.
             onMassEmitted = AccessTools.MethodDelegate<Action<GeothermalVent, ushort, float>>(emitted);
             recomputeEmissions = AccessTools.MethodDelegate<Action<GeothermalVent>>(recompute);
             harmony.Patch(AccessTools.Method(typeof(GeothermalVent), "unsafeSim200ms"),

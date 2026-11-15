@@ -21,7 +21,7 @@ namespace OniMoono.GameTweaks
     /// at 30 fps: a turn every 48 game seconds, 8 Slicksters ate 184 times in 600 game seconds
     /// and never excreted.
     ///
-    /// The tweak asks the game's own priority queue (BrainScheduler.PrioritizeBrain, which the
+    /// The tweak asks the game's priority queue (BrainScheduler.PrioritizeBrain, which the
     /// game serves before the round robin, within the frame's count) for a critter's turn:
     /// - when its inhaling monitor's wait after a meal is over and it is hungry (the monitor
     ///   enters its `looking` state): the turn finds a cell and starts the meal. Once per wait:

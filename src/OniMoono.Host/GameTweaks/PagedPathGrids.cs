@@ -130,7 +130,7 @@ namespace OniMoono.Host.GameTweaks
         }
 
         /// --check-types: the loaded game's PathGrid, rewritten, answers as the game's does on a
-        /// small grid written and read through its own methods (SetCell, GetCell, GetCost,
+        /// small grid written and read through its methods (SetCell, GetCell, GetCost,
         /// GetCostIgnoreProberOffset, ResetProberCells), against a model of the game's arrays.
         internal static string SelfCheck()
         {

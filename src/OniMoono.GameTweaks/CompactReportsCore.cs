@@ -20,7 +20,7 @@ namespace OniMoono.GameTweaks
     }
 
     /// compact-report-history's store of report notes (CompactReports): plain .NET, with no game
-    /// types (the tests compile it in), beside the game's own `entries`
+    /// types (the tests compile it in), beside the game's `entries`
     /// (Dictionary<entry id, Dictionary<key, value>>).
     ///
     /// A record per entry: its id, where its notes start and how many there are, or -1 while the
@@ -255,7 +255,7 @@ namespace OniMoono.GameTweaks
         }
 
         /// Where an entry's notes are when the store holds it (false: `entries` has it, or no one
-        /// does; the game's own code reads it).
+        /// does; the game's code reads it).
         public bool TryNotes(int id, Dictionary<int, Dictionary<TKey, float>> entries, out int start, out int count)
         {
             start = count = 0;
