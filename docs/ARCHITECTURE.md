@@ -3128,15 +3128,20 @@ afresh too and logs any difference.
 
 ### 3.6 Platform
 
-`OniMoono.Desktop` wraps `Brutal.Glfw`: one window, with a GL 4.5 core context or for a Vulkan
-surface (made again for OpenGL when Vulkan cannot start on it), vsync,
-resize, fullscreen/windowed modes (`Screen.*`), monitors/resolutions, DPI, keyboard
-(GLFW key → Unity `KeyCode`; character keys through the active layout, as the game's Input
-Manager has "Use Physical Keys" off: `KeyboardLayout`, measured on AZERTY), text input (whole code points through our own GLFW character
-callback, as BRUTAL's cuts them to 16 bits), mouse buttons/position (bottom-left origin)
-and scroll, hardware cursors from `Texture2D`, clipboard, focus events. Legacy Input Manager
-axes/buttons come from `globalgamemanagers` `InputManager` settings, with Unity's gravity /
-sensitivity / dead-zone smoothing.
+`OniMoono.Desktop` wraps `Brutal.Glfw`:
+
+- **Window:** one window, with a GL 4.5 core context or for a Vulkan surface (made again for
+  OpenGL when Vulkan cannot start on it), vsync, resize, fullscreen/windowed modes
+  (`Screen.*`), monitors/resolutions, DPI.
+- **Keyboard:** GLFW key → Unity `KeyCode`. Character keys go through the active layout, as the
+  game's Input Manager has "Use Physical Keys" off (`KeyboardLayout`, measured on AZERTY).
+- **Text input:** whole code points through our own GLFW character callback, as BRUTAL's cuts
+  them to 16 bits.
+- **Mouse:** buttons, position (bottom-left origin) and scroll, and hardware cursors from
+  `Texture2D`.
+- **Clipboard and focus events.**
+- **Legacy Input Manager** axes/buttons come from `globalgamemanagers` `InputManager` settings,
+  with Unity's gravity / sensitivity / dead-zone smoothing.
 
 On X11 a hardware cursor keeps its texture's size, as in Unity's Linux player: with Klei's 32x32
 `cursor_arrow`, XFixes read the shown cursor in both players as 32x32 with its hotspot at (2, 2),
@@ -3147,18 +3152,20 @@ does (issue #18); Wayland compositors are unmeasured.
 On Windows the window takes IME input only when `Input.imeCompositionMode` asks for it
 (`ImeInput`): `On`, which a focused TextMeshPro or uGUI field sets, or `Auto` with an IMGUI text
 field focused. Otherwise its input context is taken away, so an IME such as Microsoft Pinyin
-leaves the game's hotkeys alone (issue #30). Measured in the original with the Chinese layout on
-its window and UnityPlayer.dll's imm32 calls logged: `ImmAssociateContext(hwnd, NULL)` outside
-text fields, `ImmAssociateContextEx(hwnd, NULL, IACE_DEFAULT)` in one, applied at the window's
-next focus, layout or key message; ours applies a changed mode at the start of the next frame's
-event poll, before the messages since are read, and applies it again, changed or not, when the
-window gains the focus or its input language changes (`Win32Ime`: `WM_SETFOCUS`,
-`WM_INPUTLANGCHANGE`). Applied only as it changed, a player with a Chinese IME reported W, A, S
-and D doing nothing until Caps Lock was toggled; the original's re-applying at key messages is
-not copied.
-Committed IME text arrives as typed characters; ours reports no composition string (the
-original's TMP fields show the composition inline, ours leave it to the IME's own window), and
-X11 input methods are untouched (none was available to measure).
+leaves the game's hotkeys alone (issue #30).
+
+- **The original,** measured with the Chinese layout on its window and UnityPlayer.dll's imm32
+  calls logged: `ImmAssociateContext(hwnd, NULL)` outside text fields,
+  `ImmAssociateContextEx(hwnd, NULL, IACE_DEFAULT)` in one, applied at the window's next focus,
+  layout or key message.
+- **Ours** applies a changed mode at the start of the next frame's event poll, before the
+  messages since are read. It applies it again, changed or not, when the window gains the focus
+  or its input language changes (`Win32Ime`: `WM_SETFOCUS`, `WM_INPUTLANGCHANGE`). Applied only
+  as it changed, a player with a Chinese IME reported W, A, S and D doing nothing until Caps
+  Lock was toggled. The original's re-applying at key messages is not copied.
+- **Committed IME text** arrives as typed characters. Ours reports no composition string (the
+  original's TMP fields show the composition inline, ours leave it to the IME's own window).
+- **X11 input methods** are untouched (none was available to measure).
 
 A minimized window keeps the size it had, as in Unity's player: Windows reports its framebuffer
 as 0x0, but `Screen.width`/`height`, `Display.renderingWidth`/`Height` and the cameras' pixel
@@ -3169,29 +3176,36 @@ Windows window sits at -32000,-32000, on no monitor; it keeps the monitor it was
 
 A fullscreen window (`FullScreenWindow`, the game's Fullscreen option) at a resolution smaller
 than the monitor's renders at that resolution and stretches it over the window, as Unity's player
-does. Measured in the original Linux player on a 1280x720 Xvfb screen (`Screen.SetResolution`,
-and the Graphics options' Apply): at 960x720 `Screen.width`/`height` and
-`Display.renderingWidth`/`Height` are 960x720, `systemWidth`/`Height` and
-`Screen.currentResolution` stay 1280x720, `Screen.resolutions` is unchanged, and so were 1024x576
-and 800x600; a size larger than the monitor is cut per axis (1600x600 gave 1280x600). The picture
-fills the whole screen, its aspect not kept (no bars), bilinearly filtered (the screen at
-1024x576 matched a bilinear stretch of the capture to a mean of 0.04 per channel, nearest-pixel
-1.26), and the pointer maps into the rendered frame by the same stretch (`Input.mousePosition`
-was (120.75, 718) with the pointer on the screen's pixel 161,1 at 960x720). Captures and
-`ReadPixels` of the screen return the rendered size. Ours keeps the window the monitor's size
-(`GlfwPlatform.WindowFramebufferWidth`/`Height`, what the presenter fills) and renders at the size
-asked for (`FramebufferWidth`/`Height`, which `Screen` and `Display` report); the presenter's
-copy to the window (OpenGL's blit, into DXGI's shared texture too; Vulkan's `vkCmdBlitImage`)
-stretches it with linear filtering, as it already did for a frame drawn before a resize, and
-`ToPixels` maps the pointer with `WindowToRendering`. On Windows (a 2560x1440 second monitor,
-`SetResolution(1280, 720, FullScreenWindow)`) the original kept its window 2560x1440 and reported
-1280x720 for `Screen.width`/`height` and `renderingWidth`/`Height`, 2560x1440 for
-`systemWidth`/`Height`, and, unlike on Linux, 1280x720 for `Screen.currentResolution`
-(`GlfwPlatform.CurrentResolutionOf`); ours matches, through DXGI and SwapBuffers. A fullscreen
-window opened at start-up renders at the monitor's size (the game applies its saved resolution
-on its first frames). Not measured: the pointer's mapping on Windows, exclusive fullscreen (on Linux the original reported
-`ExclusiveFullScreen` with a centred 960x720 window; ours keeps a fullscreen window there), and
-whether Unity scales a hardware cursor with the picture (ours does not).
+does.
+
+- **Measured in the original Linux player** on a 1280x720 Xvfb screen (`Screen.SetResolution`,
+  and the Graphics options' Apply):
+  - At 960x720 `Screen.width`/`height` and `Display.renderingWidth`/`Height` are 960x720,
+    `systemWidth`/`Height` and `Screen.currentResolution` stay 1280x720, and
+    `Screen.resolutions` is unchanged. So were 1024x576 and 800x600.
+  - A size larger than the monitor is cut per axis (1600x600 gave 1280x600).
+  - The picture fills the whole screen, its aspect not kept (no bars), bilinearly filtered (the
+    screen at 1024x576 matched a bilinear stretch of the capture to a mean of 0.04 per channel,
+    nearest-pixel 1.26).
+  - The pointer maps into the rendered frame by the same stretch (`Input.mousePosition` was
+    (120.75, 718) with the pointer on the screen's pixel 161,1 at 960x720).
+  - Captures and `ReadPixels` of the screen return the rendered size.
+- **Ours** keeps the window the monitor's size (`GlfwPlatform.WindowFramebufferWidth`/`Height`,
+  what the presenter fills) and renders at the size asked for (`FramebufferWidth`/`Height`,
+  which `Screen` and `Display` report). The presenter's copy to the window (OpenGL's blit, into
+  DXGI's shared texture too; Vulkan's `vkCmdBlitImage`) stretches it with linear filtering, as it already did for a frame
+  drawn before a resize, and `ToPixels` maps the pointer with `WindowToRendering`.
+- **On Windows** (a 2560x1440 second monitor, `SetResolution(1280, 720, FullScreenWindow)`) the
+  original kept its window 2560x1440 and reported 1280x720 for `Screen.width`/`height` and
+  `renderingWidth`/`Height`, 2560x1440 for `systemWidth`/`Height`, and, unlike on Linux,
+  1280x720 for `Screen.currentResolution` (`GlfwPlatform.CurrentResolutionOf`). Ours matches,
+  through DXGI and SwapBuffers.
+- **At start-up** a fullscreen window renders at the monitor's size (the game applies its saved
+  resolution on its first frames).
+- **Not measured:** the pointer's mapping on Windows; exclusive fullscreen (on Linux the
+  original reported `ExclusiveFullScreen` with a centred 960x720 window; ours keeps a
+  fullscreen window there); and whether Unity scales a hardware cursor with the picture (ours
+  does not).
 
 Known limitations, not handled:
 - X11 layouts with several groups (us,ru and a group switch) are unmeasured in the original;
@@ -3217,85 +3231,93 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
 (debug/mod screens).
 
 - **FreeType** is BRUTAL's build (`Ahwoo.BRUTAL.FreeType`: `libfreetype.so` / `freetype.dll`)
-  through our own P/Invokes (Unity links FreeType statically; the game ships none); its records'
-  C `long` fields are `CLong`, 64-bit on Linux and 32-bit on Windows. OpenType layout data FreeType does not expose (GPOS
-  `kern`/`mark`/`mkmk`, GSUB `liga`, GDEF classes, legacy `kern`, OS/2) is read from the sfnt
-  tables in managed code.
+  through our own P/Invokes (Unity links FreeType statically; the game ships none). Its
+  records' C `long` fields are `CLong`, 64-bit on Linux and 32-bit on Windows. OpenType layout
+  data FreeType does not expose (GPOS `kern`/`mark`/`mkmk`, GSUB `liga`, GDEF classes, legacy
+  `kern`, OS/2) is read from the sfnt tables in managed code.
 - **Atlases**: Unity's MaxRects packer over TMP's free/used rect lists (glyph + padding on each
-  side); SDF modes rasterize the outline (×8/16/32 supersampled for `SDF8/16/32`) and run
-  Gustavson's anti-aliased EDT; the field is 0.5 on the outline with spread = padding + 1
+  side). SDF modes rasterize the outline (×8/16/32 supersampled for `SDF8/16/32`) and run
+  Gustavson's anti-aliased EDT. The field is 0.5 on the outline with spread = padding + 1
   (TMP's `_GradientScale`), measured against the game's own SDF atlases.
 - **Legacy fonts** (class 128) render glyphs on demand into the font's own `Font Texture`
   (Alpha8, from 256², packed on a skyline, grown when a rebuild with the current frame's glyphs
-  still overflows) and raise `Font.textureRebuilt` on rebuilds. Glyphs come from a chain of
-  faces, each glyph from the first face that has it (`FontNative.Chain`, docs/cleanroom/ugui.md
-  "Legacy Text glyph placement"): a font's own data, else (the built-in `LegacyRuntime`, fonts
-  from `CreateDynamicFontFromOSFont`) the first installed OS font of `m_FontNames`, then on
-  Linux FreeSans, DejaVu Sans and Liberation Sans, as measured; with real bold and italic
-  faces. Off Linux (unmeasured) the last link is the built-in Liberation Sans from the game's
-  own font asset, which the TextCore font engine also loads for data-less fonts. Glyphs are
-  rendered unhinted at whole-pixel sizes, with whole-pixel advances and a one-pixel padded
-  box; the generator rounds line metrics, line starts and the block's top to whole pixels, and
-  kerns by the font's serialized `m_KerningValues`.
-  `Resources.GetBuiltinResource<Font>("Arial.ttf")`, the font's name before Unity renamed it
-  (LegacyRuntime's `m_FontNames` is still `["Arial"]`), gives LegacyRuntime: it is the only font
-  in `unity default resources`, and the original gives mods that ask for Arial (the only built-in
-  name the Workshop builds in `out/ws` ask for) a font without an error. A dynamic font is laid
-  out at the text's size times the canvas scale, rounded down to whole pixels (measured in the
-  original: a 10-point Text on the game's 0.86 canvas is as wide as at 8 pixels).
+  still overflows) and raise `Font.textureRebuilt` on rebuilds.
+  - **Faces.** Glyphs come from a chain of faces, each glyph from the first face that has it
+    (`FontNative.Chain`, docs/cleanroom/ugui.md "Legacy Text glyph placement"): a font's own
+    data, else (the built-in `LegacyRuntime`, fonts from `CreateDynamicFontFromOSFont`) the
+    first installed OS font of `m_FontNames`, then on Linux FreeSans, DejaVu Sans and
+    Liberation Sans, as measured; with real bold and italic faces. Off Linux (unmeasured) the
+    last link is the built-in Liberation Sans from the game's own font asset, which the
+    TextCore font engine also loads for data-less fonts.
+  - **Rendering.** Glyphs are rendered unhinted at whole-pixel sizes, with whole-pixel advances
+    and a one-pixel padded box. The generator rounds line metrics, line starts and the block's
+    top to whole pixels, and kerns by the font's serialized `m_KerningValues`.
+  - **Arial.** `Resources.GetBuiltinResource<Font>("Arial.ttf")`, the font's name before Unity
+    renamed it (LegacyRuntime's `m_FontNames` is still `["Arial"]`), gives LegacyRuntime. It is
+    the only font in `unity default resources`, and the original gives mods that ask for Arial
+    (the only built-in name the Workshop builds in `out/ws` ask for) a font without an error.
+  - **Size.** A dynamic font is laid out at the text's size times the canvas scale, rounded
+    down to whole pixels (measured in the original: a 10-point Text on the game's 0.86 canvas
+    is as wide as at 8 pixels).
 
 ### 3.8 Audio, video, other modules
 
-- Audio: FMOD through the game's own `FMODUnity` + native `libfmodstudio.so`; the engine
-  supplies what FMODUnity needs (paths, Transform, components, Timeline/Playables types). On
-  Windows FMOD allocates through OniMoono.exe's `fmod_heap.c` (game tweak `fmod-quarantine`,
-  on by default): size-class slabs in reserved address space, with every block's state, size
-  and free list in side tables away from the blocks, and a quarantine for freed blocks, against
-  the write to freed memory FMOD's staff acknowledged
-  (qa.fmod.com/t/hard-crash-in-fmodstudiol/24589), the heap corruption of issues #72, #73, #58
-  and #78. A late write can change only FMOD's data or a freed block's fill, never bookkeeping
-  that the allocator or Windows trusts. Native, since FMOD calls it on its own threads; its
-  `fmod heap:` lines in Player.log report each late write it catches (docs/TWEAKS.md, "The
-  sound memory guard").
-  Game tweak `fix-released-sounds` (on by default, managed, every platform) removes
-  the cause found behind #78's writes: the game keeps the handles of event instances it has
-  released at two places (an ambience layer's `Stop`, `LoopingSoundManager.StopAllSounds`) and
-  goes on calling them, FMOD's 11-bit handle serials wrap, and the call lands on whatever object
-  has that handle now. Prefixes replacing those two methods clear the handle as it is released
-  (docs/TWEAKS.md, "The released sounds fix").
-  Game tweak `fmod-steal-fix` patches FMOD's own write to a freed instance (a bus steal of an
-  instance still loading) in memory, after `RuntimeManager.Initialize`, only for the FMOD
-  version, file hash and bytes it was written for (docs/TWEAKS.md, "The FMOD steal fix").
+- Audio: FMOD through the game's own `FMODUnity` + native `libfmodstudio.so`. The engine
+  supplies what FMODUnity needs (paths, Transform, components, Timeline/Playables types). Three
+  game tweaks guard it:
+  - **`fmod-quarantine`** (on by default). On Windows FMOD allocates through OniMoono.exe's
+    `fmod_heap.c`: size-class slabs in reserved address space, with every block's state, size
+    and free list in side tables away from the blocks, and a quarantine for freed blocks. It
+    guards against the write to freed memory FMOD's staff acknowledged
+    (qa.fmod.com/t/hard-crash-in-fmodstudiol/24589), the heap corruption of issues #72, #73,
+    #58 and #78. A late write can change only FMOD's data or a freed block's fill, never
+    bookkeeping that the allocator or Windows trusts. It is native, since FMOD calls it on its
+    own threads. Its `fmod heap:` lines in Player.log report each late write it catches
+    (docs/TWEAKS.md, "The sound memory guard").
+  - **`fix-released-sounds`** (on by default, managed, every platform) removes the cause found
+    behind #78's writes. The game keeps the handles of event instances it has released at two
+    places (an ambience layer's `Stop`, `LoopingSoundManager.StopAllSounds`) and goes on
+    calling them, FMOD's 11-bit handle serials wrap, and the call lands on whatever object has
+    that handle now. Prefixes replacing those two methods clear the handle as it is released
+    (docs/TWEAKS.md, "The released sounds fix").
+  - **`fmod-steal-fix`** patches FMOD's own write to a freed instance (a bus steal of an
+    instance still loading) in memory, after `RuntimeManager.Initialize`, only for the FMOD
+    version, file hash and bytes it was written for (docs/TWEAKS.md, "The FMOD steal fix").
 - Video: `VideoPlayer` decodes VP8 WebM from `resources.resource` with our own EBML demuxer and
-  our own VP8 decoder (`Video/Engine/Vp8`, a port of RFC 6386's reference decoder; VP8 decoding is
-  exact by specification, and every frame of the game's 18 clips decodes to the same planes as
-  libvpx, which the tests use as reference) on a decode thread per player, so no codec library
-  is needed on either platform. Frames are converted to RGBA on the CPU with the exact formula of the build's own
-  `Hidden/VideoDecode` shader (BT.601 limited range, bilinear chroma) into a CPU `Texture2D`
-  that the device uploads; a GPU path running that shader on the planes can replace the
-  converter. The game's clips have no audio tracks (and the game sets `audioOutputMode = None`);
-  video audio is not played.
+  our own VP8 decoder (`Video/Engine/Vp8`, a port of RFC 6386's reference decoder) on a decode
+  thread per player, so no codec library is needed on either platform.
+  - VP8 decoding is exact by specification, and every frame of the game's 18 clips decodes to
+    the same planes as libvpx, which the tests use as reference.
+  - Frames are converted to RGBA on the CPU with the exact formula of the build's own
+    `Hidden/VideoDecode` shader (BT.601 limited range, bilinear chroma) into a CPU `Texture2D`
+    that the device uploads. A GPU path running that shader on the planes can replace the
+    converter.
+  - The game's clips have no audio tracks (and the game sets `audioOutputMode = None`). Video
+    audio is not played.
 - `Animator`: AnimatorController state machine + AnimationClip curve evaluation for the
-  properties the game animates (UI). `ParticleSystem`: the modules the prefabs actually enable,
-  and for systems mods build by script `Emit(EmitParams, count)`, the velocity limit and z
-  rotation over lifetime, as measured (`tools/UnityProbe`, `particleemit`). Features no game data
-  uses (in mods' bundles: clamp velocity, rotation, collision, lights, sub emitters, other shapes
-  and texture-sheet or trail variants…) are not simulated; the system loads without each and logs
-  it once (`[engine] particles: … is not simulated`).
+  properties the game animates (UI).
+- `ParticleSystem`: the modules the prefabs actually enable, and for systems mods build by
+  script `Emit(EmitParams, count)`, the velocity limit and z rotation over lifetime, as
+  measured (`tools/UnityProbe`, `particleemit`). Features no game data uses (in mods' bundles:
+  clamp velocity, rotation, collision, lights, sub emitters, other shapes and texture-sheet or
+  trail variants…) are not simulated. The system loads without each and logs it once
+  (`[engine] particles: … is not simulated`).
 - `UnityWebRequest` → `HttpClient`; `ImageConversion` → stb_image / stb_image_write
   (`Ahwoo.BRUTAL.Stb`); `JsonUtility` → the shared layout builder; `Physics.Raycast` → the
   colliders present in data; IMGUI → clipboard and the event/GUI surface the code paths touch.
 - 2D physics is not simulated: no step moves a `Rigidbody2D` and no contact or trigger message
-  (`OnTriggerEnter2D`…) is sent. The game creates no 2D bodies; for mods that do, the bodies'
-  and colliders' settings are kept as given (`bodyType`, `mass`, `gravityScale`, the dampings,
-  `isTrigger`, `CircleCollider2D.radius`, `Physics2D.IgnoreLayerCollision`'s matrix…), so their
-  prefabs build (Twitch Integration's glitter pufts, Chaos Events for Twitch Integration's Omega
-  Sawblade). `Rigidbody2D.AddForce`, which only a step could honour, is not implemented: Chaos
-  Events' sawblade fails with MissingMethodException once its event homes in. Unity's internal
-  binding attributes (`UnityEngine.Bindings.NativeHeaderAttribute` and the like, in
-  `SharedInternalsModule` and `CoreModule`) exist with Unity's constructors, so a mod that merges
-  copies of Unity's modules into its own assembly (Twitch Integration carries
-  `InputLegacyModule` and `TextRenderingModule`) has its types' attributes resolve; before, the
+  (`OnTriggerEnter2D`…) is sent.
+  - The game creates no 2D bodies. For mods that do, the bodies' and colliders' settings are
+    kept as given (`bodyType`, `mass`, `gravityScale`, the dampings, `isTrigger`,
+    `CircleCollider2D.radius`, `Physics2D.IgnoreLayerCollision`'s matrix…), so their prefabs
+    build (Twitch Integration's glitter pufts, Chaos Events for Twitch Integration's Omega
+    Sawblade).
+  - `Rigidbody2D.AddForce`, which only a step could honour, is not implemented: Chaos Events'
+    sawblade fails with MissingMethodException once its event homes in.
+- Unity's internal binding attributes (`UnityEngine.Bindings.NativeHeaderAttribute` and the
+  like, in `SharedInternalsModule` and `CoreModule`) exist with Unity's constructors. So a mod
+  that merges copies of Unity's modules into its own assembly (Twitch Integration carries
+  `InputLegacyModule` and `TextRenderingModule`) has its types' attributes resolve. Before, the
   first one stopped Harmony's `PatchAll` (TypeLoadException) and KMod disabled the mod.
 
 ## 4. Threading
