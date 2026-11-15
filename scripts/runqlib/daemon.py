@@ -550,6 +550,7 @@ class Daemon:
             return {'ok': False, 'code': 2, 'error': f'no job {job_id}'}
         if job['state'] == 'queued':
             self.store.update(job_id, state='cancelled', end=time.time(), exit=code, reason=reason)
+            self.forget(job_id)
             self.notify(job_id, self.end_event(self.store.get(job_id)))
             self.dirty = True
             return {'ok': True, 'state': 'cancelled'}
@@ -774,10 +775,15 @@ class Daemon:
         return os.path.exists(os.path.join(job['dir'], 'cleanup.json'))
 
     def forget(self, job_id):
-        """Drops what the daemon keeps in memory about a job that no longer runs: a warning
-        outlives its job otherwise, and `runq status` shows it until the daemon restarts."""
+        """Drops what the daemon keeps in memory about a job that no longer runs or waits: a
+        warning or a wait reason outlives its job otherwise, and `runq status` and `runq show`
+        give it until the daemon restarts."""
         self.idle.pop(job_id, None)
         self.warnings.pop(job_id, None)
+        self.reasons.pop(job_id, None)
+        self.starts.pop(job_id, None)
+        for key in [b for b in list(self.worker.boosted) if b[0] == job_id]:
+            self.worker.boosted.discard(key)
 
     def finish(self, job):
         result = shim.read_json(os.path.join(job['dir'], 'result.json'), {}) or {}
@@ -1132,6 +1138,7 @@ class Daemon:
                 self.reasons[j['id']] = blocked
                 if blocked.startswith('cancelled'):
                     self.store.update(j['id'], state='cancelled', end=now, exit=EXIT_KILLED, reason=blocked)
+                    self.forget(j['id'])
                     self.notify(j['id'], self.end_event(self.store.get(j['id'])))
                 continue
             squeued.append(

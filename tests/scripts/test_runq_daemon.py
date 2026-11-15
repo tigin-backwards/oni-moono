@@ -440,6 +440,21 @@ class InProcess(unittest.TestCase):
             with mock.patch('builtins.open', mock.mock_open(read_data=texts[name])):
                 self.assertEqual(cleanup.scope_of(1), want)
 
+    def test_a_wait_reason_and_boosts_end_with_the_job(self):
+        queued, ran = self.queue('j0000001'), self.queue('j0000002')
+        self.d.reasons.update({queued: 'waits for the perf slot', ran: 'waits for memory'})
+        self.d.starts.update({queued: 5.0, ran: 6.0})
+        self.d.worker.boosted |= {(ran, 41), (ran, 42), ('j0000003', 43)}
+        self.assertEqual(self.d.cancel(queued)['state'], 'cancelled')
+        self.assertIsNone(self.d.describe(self.d.store.get(queued))['waits'])
+        job = self.start(ran)
+        self.d.reasons[ran] = 'a phase waits'
+        for name in ('result.json', 'cleanup.json'):
+            with open(os.path.join(job['dir'], name), 'w') as f:
+                f.write('{"exit": 0}')
+        self.d.finish(self.d.store.get(ran))
+        self.assertEqual((self.d.reasons, self.d.starts, self.d.worker.boosted), ({}, {}, {('j0000003', 43)}))
+
     def test_a_requeued_job_drops_its_first_attempts_cgroup(self):
         from runqlib import shim
 
