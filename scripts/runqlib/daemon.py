@@ -18,7 +18,7 @@ Protocol: one JSON object a line each way. Requests carry "op":
 
 import contextlib, fcntl, json, math, os, selectors, shutil, signal, socket, subprocess, sys, threading, time, traceback
 
-from . import config, legacy, sched, shim, store, winenv
+from . import cleanup, config, legacy, sched, shim, store, winenv
 
 EXIT_TIMEOUT, EXIT_KILLED, EXIT_REFUSED, EXIT_LOST, EXIT_NO_DAEMON = 124, 137, 75, 76, 69
 TERMINAL = ('done', 'cancelled', 'lost')
@@ -60,7 +60,7 @@ class Worker(threading.Thread):
         self.want_windows = threading.Event()
         self.games, self.games_at, self.user_in_oni = [], 0.0, False
         self.ext_cpu, self.win_temp = 0.0, None
-        self.cgroups = []  # the runq jobs' cgroup folders, set by the loop
+        self.cgroups = []  # the cgroup folders of the runq jobs' units and players' scopes, set by the loop
         self.boost_matches = []  # (job id, ('match', text) or ('pid', pid, created), priority), set by the loop
         self.boosted = set()
         self.stop = False
@@ -893,14 +893,19 @@ class Daemon:
         with self.worker.lock:
             games = list(self.worker.games)
         paths = []
+        # A job's players run in scopes beside its unit (scripts/contain.sh, ONI_SCOPE): their
+        # CPU is the job's, for the idle check and for what is busy outside runq.
+        # Only scopes in the test slice: a process elsewhere that carries a job's id (a terminal's
+        # session scope) is not the job's load.
+        scopes = {job_id: [f'/sys/fs/cgroup{path}' for path in found if f'/{self.slice}/' in path] for job_id, found in cleanup.job_scope_paths().items()}
         for job in self.store.by_state('running'):
             if not job['cgroup'] and job['unit']:
                 cg = self.unit_cgroup(job['unit'])
                 if cg:
                     self.store.update(job['id'], cgroup=cg)
                     job['cgroup'] = cg
-            if job['cgroup']:
-                paths.append(job['cgroup'])
+            mine = ([job['cgroup']] if job['cgroup'] else []) + scopes.get(job['id'], [])
+            paths += mine
             needs = job['needs'] or {}
             if not (needs.get('windows') or needs.get('perf')):
                 self.idle.pop(job['id'], None)  # a phase gave the slot back: its idle warning goes too
@@ -909,7 +914,7 @@ class Daemon:
                 continue
             env = shim.read_json(os.path.join(job['dir'], 'env.json'), {}) or {}
             has_game = any(m in g.get('cmdline', '') for g in games for m in winenv.run_home_matches(job['id'], env))
-            usec = self.worker.cgroup_usec([job['cgroup']] if job['cgroup'] else []) + self.scope_usec(job['id'])
+            usec = self.worker.cgroup_usec(mine)
             hist = self.idle.setdefault(job['id'], [])
             hist.append((mono, usec, has_game))
             hist[:] = [h for h in hist if mono - h[0] <= stop + 120]
@@ -937,16 +942,6 @@ class Daemon:
             self.warnings[job['id']] = warns
         with self.worker.lock:
             self.worker.cgroups = paths
-
-    def scope_usec(self, job_id):
-        from . import cleanup
-
-        total = 0
-        for scope in cleanup.job_scopes(job_id):
-            cg = self.unit_cgroup(scope)
-            if cg:
-                total += self.worker.cgroup_usec([cg])
-        return total
 
     def retention(self):
         cfg = self.cfg

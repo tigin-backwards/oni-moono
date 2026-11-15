@@ -410,6 +410,38 @@ class InProcess(unittest.TestCase):
         self.assertEqual(worker.spent_usec(before, after), 3_000_000)  # not 3 s less 2,000 s
         self.assertEqual(worker.cgroup_usec([stays, ends]), 8_000_000)
 
+    def test_a_jobs_players_scopes_count_as_its_cpu(self):
+        from unittest import mock
+
+        from runqlib import cleanup
+
+        # Three processes carry the job's id: one in its unit, two players in a scope each; a
+        # fourth is another job's player, a fifth nobody's, a sixth a shell outside the test slice.
+        t = f'/u/{self.d.slice}/oni-test-'
+        jobs = {1: 'j0000001', 2: 'j0000001', 3: 'j0000001', 4: 'j0000009', 5: None, 6: 'j0000001'}
+        cgroups = {1: None, 2: t + 'a.scope', 3: t + 'b.scope', 4: t + 'c.scope', 5: '/session-1.scope', 6: '/init.scope'}
+        found = cleanup.job_scope_paths([(pid, '') for pid in jobs], job_of=jobs.get, scope=cgroups.get)
+        self.assertEqual(found, {'j0000001': ['/init.scope', t + 'a.scope', t + 'b.scope'], 'j0000009': [t + 'c.scope']})
+        job_id = self.queue(kind='e2e')
+        unit = self.start(job_id)['unit']
+        with mock.patch.object(cleanup, 'job_scope_paths', lambda: found):
+            self.d.check_idle(time.monotonic())
+        root = '/sys/fs/cgroup' + t
+        self.assertEqual(self.d.worker.cgroups, [self.d.unit_cgroup(unit), root + 'a.scope', root + 'b.scope'])
+
+    def test_a_scope_is_read_from_a_process_cgroup(self):
+        from unittest import mock
+
+        from runqlib import cleanup
+
+        texts = {
+            'scope': '0::/user.slice/user-1000.slice/user@1000.service/oni-tests.slice/oni-test-7-9-lane3-ours-1.scope\n',
+            'unit': '0::/user.slice/user-1000.slice/user@1000.service/oni-tests.slice/runq-j0000001-1.service\n',
+        }
+        for name, want in (('scope', texts['scope'][3:].strip()), ('unit', None)):
+            with mock.patch('builtins.open', mock.mock_open(read_data=texts[name])):
+                self.assertEqual(cleanup.scope_of(1), want)
+
     def test_a_requeued_job_drops_its_first_attempts_cgroup(self):
         from runqlib import shim
 
