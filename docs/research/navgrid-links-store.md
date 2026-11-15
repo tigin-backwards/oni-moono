@@ -7,22 +7,29 @@ compact store, exactly, and what would it save? The heap study (heap-soggy-lab.m
 (Mono.Cecil) and measured in a loaded colony, not taken from the decompiled C# alone.
 
 **Verdict: feasible, with compressed sparse rows, exactly, for the game and for every mod in
-the workspace including Fast Track.** On soggy lab 2 the links take 2,387.5 MB (19 grids ×
-915,456 cells × up to 56 slots × 8 bytes) and hold 5.35 M links: 1.79 % of the slots. A CSR
-store holds them in about 117 MB, a saving of 2,271 MB (95 %); c100 saves 616 MB and DeCrew
-232 MB. The game touches the array in 28 methods, all by value except one write through a ref
-(the end marker), with one writer; three mods read or pass it, four transpile methods that touch
-it, and all of them keep working if the rewrite (a) keeps `NavGrid.Links` a `Link[]` (a
-one-element handle naming the store) so no signature changes, and (b) changes only the element
-accesses. The packed walk was 8-34 % faster than the game's in a micro-benchmark over the real
-links (an estimate, Linux, shared machine). The bitmask over transitions is exact on every link
-measured but saves less on a large map (183 MB left on soggy lab 2) and is slower to read; it is
-not worth its conditions. Fallback to the flat array (same rewritten code, a real array) is
-needed only for a transpiler not yet reviewed, an assembly the rewriter cannot handle, or a
-ref escape, none of which exists today.
+the workspace including Fast Track.**
 
-Not settled here: the concurrency design (§4) is reasoned, not built; the exact IL-shape
-replacement of the three hot loops is not prototyped; a frame-time effect needs Windows.
+- **Saving.** On soggy lab 2 the links take 2,387.5 MB (19 grids × 915,456 cells × up to 56
+  slots × 8 bytes) and hold 5.35 M links: 1.79 % of the slots. A CSR store holds them in about
+  117 MB, a saving of 2,271 MB (95 %). c100 saves 616 MB and DeCrew 232 MB.
+- **The game** touches the array in 28 methods, all by value except one write through a ref
+  (the end marker), with one writer.
+- **Mods.** Three mods read or pass it, and four transpile methods that touch it. All of them
+  keep working if the rewrite (a) keeps `NavGrid.Links` a `Link[]` (a one-element handle naming
+  the store) so no signature changes, and (b) changes only the element accesses.
+- **Speed.** The packed walk was 8-34 % faster than the game's in a micro-benchmark over the
+  real links (an estimate, Linux, shared machine).
+- **The bitmask over transitions** is exact on every link measured but saves less on a large
+  map (183 MB left on soggy lab 2) and is slower to read. It is not worth its conditions.
+- **Fallback** to the flat array (same rewritten code, a real array) is needed only for a
+  transpiler not yet reviewed, an assembly the rewriter cannot handle, or a ref escape, none of
+  which exists today.
+
+Not settled here:
+
+- The concurrency design (§4) is reasoned, not built.
+- The exact IL-shape replacement of the three hot loops is not prototyped.
+- A frame-time effect needs Windows.
 
 ## 1. Facts
 

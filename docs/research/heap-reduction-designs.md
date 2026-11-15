@@ -2,19 +2,29 @@
 
 Feasibility study, 2026-11-03, on u60 (5964fc9e); master/U59 differences noted where they
 matter. heap-soggy-lab.md measured the managed heap of the #48 reporter's "soggy lab 2" (U59
-data, 38 mods) and named, after NavGrid's links (since done: compact-nav-links,
-navgrid-links-store.md), three owners this study takes in turn: the decompressed AssetBundles
-(1,061-1,092 MB), `PathFinder+Cell[]` (901 MB) and `KAnim+Anim+FrameElement[]` (347 MB). The
-question for each: can it shrink with the game behaving the same and drawing the same pixels,
-how, by how much, at what risk to mods and for what work.
+data, 38 mods). After NavGrid's links (since done: compact-nav-links, navgrid-links-store.md)
+it named three owners, which this study takes in turn:
 
-"MB" here is 10^6 bytes; the heap study's figures are MiB (its 901 "MB" is 945 MB here). The
-evidence: the game's code (U60 761211 and U59 744825 decompiled, the same in what matters
-here unless said), our engine's code, a census of the game's bundles and anim files read with
-our own UnityFS and SerializedFile readers (`out/heapdesign/BundleCensus`), an IL scan of the
-3,547 Workshop DLLs in `out/ws` and Fast Track (`out/heapdesign/ModScan`), and Linux runs of
-soggy lab 2 and c100 with a probe that reads the path grids and the anim groups in the running
-game (`out/heapdesign/HeapProbe`; method in §3.1). No Windows runs.
+- The decompressed AssetBundles (1,061-1,092 MB).
+- `PathFinder+Cell[]` (901 MB).
+- `KAnim+Anim+FrameElement[]` (347 MB).
+
+The question for each: can it shrink with the game behaving the same and drawing the same
+pixels, how, by how much, at what risk to mods and for what work.
+
+"MB" here is 10^6 bytes; the heap study's figures are MiB (its 901 "MB" is 945 MB here).
+
+The evidence:
+
+- The game's code (U60 761211 and U59 744825 decompiled, the same in what matters here unless
+  said), and our engine's code.
+- A census of the game's bundles and anim files read with our own UnityFS and SerializedFile
+  readers (`out/heapdesign/BundleCensus`).
+- An IL scan of the 3,547 Workshop DLLs in `out/ws` and Fast Track (`out/heapdesign/ModScan`).
+- Linux runs of soggy lab 2 and c100 with a probe that reads the path grids and the anim groups
+  in the running game (`out/heapdesign/HeapProbe`; method in §3.1).
+
+No Windows runs.
 
 ## Summary
 
@@ -28,9 +38,9 @@ game (`out/heapdesign/HeapProbe`; method in §3.1). No Windows runs.
 Rejected as not exact: sizing path grids to a world, pooling fewer of them, freeing bundle
 nodes once their textures are read, narrowing FrameElement's fields (§1.2, §2.3, §3.1).
 
-The order is by bytes on the saves that hurt: the path grids grow with the Duplicants (about
-24 MB each on c100's 636×404 map, 84 MB on soggy lab 2's 1192×768 one), the bundles are a
-fixed 1.1 GB on every save. Of the four, 2 and 3 cannot change behaviour at all; 1 cannot
+The order is by bytes on the saves that hurt. The path grids grow with the Duplicants (about
+24 MB each on c100's 636×404 map, 84 MB on soggy lab 2's 1192×768 one). The bundles are a
+fixed 1.1 GB on every save. Of the four, 2 and 3 cannot change behaviour at all. 1 cannot
 either, but it sits on the path prober's innermost calls, so it needs its speed checked.
 
 ## 1. Decompressed AssetBundles
