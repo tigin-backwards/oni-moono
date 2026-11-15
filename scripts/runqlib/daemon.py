@@ -746,7 +746,10 @@ class Daemon:
             self.store.update(job['id'], state='done', exit=EXIT_LOST, reason=f'could not start: {e}', end=now)
             self.notify(job['id'], self.end_event(self.store.get(job['id'])))
             return
-        self.store.update(job['id'], state='running', start=now, lanes=list(g.lanes), attempt=attempt, unit=unit, noisy=1 if g.noisy else 0, boost=0)
+        # cgroup=None: an earlier attempt's unit is gone, and check_idle looks this one's up.
+        self.store.update(
+            job['id'], state='running', start=now, lanes=list(g.lanes), attempt=attempt, unit=unit, cgroup=None, noisy=1 if g.noisy else 0, boost=0
+        )
         self.store.hold_start(job['id'], needs, now)
         self.deadlines[job['id']] = time.monotonic() + job['timeout']
         self.idle.pop(job['id'], None)
