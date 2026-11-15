@@ -1979,10 +1979,10 @@ not, as with the box they used to run on.
 Other files load objects **lazily by PPtr**: an object is materialized the first time it is
 referenced, with its dependencies. `Resources.Load` uses the `ResourceManager.m_Container` map;
 `AssetBundle.LoadFromFile(Async)` mounts a UnityFS archive as additional files. Its nodes
-(`NodeData`) are windows on the archive's data. A bundle of LZ4 blocks (U60's: 128 KiB each) is
+(`NodeData`) are windows on the archive's data. A bundle of LZ4 blocks (U60's: 131 KB each) is
 read as Unity reads one: its file is mapped and each read decodes the blocks it covers
 (`ArchiveBlocks`), a block read whole straight into the reader's buffer, the ends of a read
-through one cache of decoded blocks for all bundles (`BlockCache`: 32 MiB at most, emptied after
+through one cache of decoded blocks for all bundles (`BlockCache`: 33.6 MB at most, emptied after
 10 s without reads). A serialized file's reader copies its object's bytes out; texels are copied
 out as before. Any other bundle (LZMA as U59's, every block stored, one block) and
 LoadFromMemory/LoadFromStream bundles are decompressed whole into one array. The bytes are the
@@ -2440,15 +2440,17 @@ which would cap the frame rate; the interop lock or keyed mutex bounds what is i
   flipped (Direct3D's rows run top-down; the splash is drawn flipped too). The swap chain's own
   buffers are never registered with GL (re-registering them after a resize is suspected of a
   use-after-free in NVIDIA's driver, Godot PR #94503).
-- *Vulkan* (`VkDxgiTarget`): the texture has an NT handle and a keyed mutex and is imported as a
-  Vulkan image (`VK_KHR_external_memory_win32`, a dedicated allocation). The presenter's
-  submission takes it from queue family EXTERNAL, blits the frame in (both APIs store the top
-  row first: no flip), draws the splash, gives it back in `GENERAL` layout and, through
-  `VK_KHR_win32_keyed_mutex`, acquires the mutex with key 0 and releases it with key 1; D3D11
-  acquires key 1, copies, releases key 0 and presents. The mutex orders the two APIs' GPU work
-  both ways; D3D11's `AcquireSync` may hold the presenter thread until Vulkan's release is done
-  (Microsoft: the calling CPU thread stalls while another device owns the surface). No
-  VkSwapchainKHR is made while DXGI presents.
+- *Vulkan* (`VkDxgiTarget`):
+  - The texture has an NT handle and a keyed mutex. Vulkan imports it as an image
+    (`VK_KHR_external_memory_win32`, a dedicated allocation).
+  - The presenter's submission takes it from queue family EXTERNAL, blits the frame in (both APIs
+    store the top row first: no flip), draws the splash and gives it back in `GENERAL` layout.
+  - Through `VK_KHR_win32_keyed_mutex` the submission acquires the mutex with key 0 and releases it
+    with key 1. D3D11 acquires key 1, copies, releases key 0 and presents.
+  - The mutex orders the two APIs' GPU work both ways. D3D11's `AcquireSync` may hold the presenter
+    thread until Vulkan's release is done (Microsoft: the calling CPU thread stalls while another
+    device owns the surface).
+  - No VkSwapchainKHR is made while DXGI presents.
 
 A size change calls `ResizeBuffers` before the next picture; between the window's resize and that
 picture DXGI stretches the last one. A minimized window keeps its framebuffer size (§3.6), so the
@@ -2732,17 +2734,21 @@ so no frame is presented for up to half a minute
   long gaps was spent presenting rather than stopped.
 
 On Vulkan (`VkLoadAnimation`, U60's default renderer) the presenter does the same with its own
-command buffers: the redraw copies the last frame into the swapchain image (or DXGI's shared
-image), blits the kanim tile due from the strip after it (both transfers), then clears the bar's
-rectangles in a rendering scope (opaque, as `VkSplash`'s start-up bar; no fade-in). The arming,
-pacing and bar are OpenGL's (`GlLoadAnimation.Wanted`, `WatchdogDue`, `Advance`; `LoadProgress`).
-The strip is the render thread's: `VkDevice.HandOverLoadingFrames` leaves it in
-`TransferSrcOptimal` after the commands that render it, submits that batch, and only then hands
-it to the presenter, whose blits come after it on the one queue (Brutal's `Queue` takes a lock
-for every submission and present, so the two threads never submit at once). Nothing on the
-render thread touches the strip again; the presenter waits for its own slots' fences before
-handing it back, and only then does the main thread release it. The strip is a render texture,
-stored rows bottom first (OpenGL's layout); the blit turns it over into the swapchain's rows.
+command buffers:
+
+- **The redraw** copies the last frame into the swapchain image (or DXGI's shared image), blits the
+  kanim tile due from the strip after it (both transfers), then clears the bar's rectangles in a
+  rendering scope (opaque, as `VkSplash`'s start-up bar; no fade-in).
+- **The arming, pacing and bar** are OpenGL's (`GlLoadAnimation.Wanted`, `WatchdogDue`, `Advance`;
+  `LoadProgress`).
+- **The strip** is the render thread's. `VkDevice.HandOverLoadingFrames` leaves it in
+  `TransferSrcOptimal` after the commands that render it, submits that batch, and only then hands it
+  to the presenter. The presenter's blits come after it on the one queue: Brutal's `Queue` takes a
+  lock for every submission and present, so the two threads never submit at once.
+- **Handing it back.** Nothing on the render thread touches the strip again. The presenter waits for
+  its slots' fences before handing it back, and only then does the main thread release it.
+- **Rows.** The strip is a render texture, stored rows bottom first (OpenGL's layout). The blit
+  turns it over into the swapchain's rows.
 
 **Window messages during long frames.** The frame polls the window's messages at its start, as
 Unity does. But a start-up frame takes seconds, and Windows marks a window that has not taken
@@ -2767,9 +2773,9 @@ second and throw off the game's time-based UI animation.
 - **Background uploads.** A non-readable texture loaded on the main thread is handed to the
   background uploads (`GlBackgroundUploads`) as it loads. Worker threads read its texels from
   the asset file, and the GL thread uploads one texture at a time whenever it has no frame to
-  execute, in load order, with a fence keeping the GPU no more than 32 MiB behind. A frame
+  execute, in load order, with a fence keeping the GPU no more than 33.6 MB behind. A frame
   therefore waits at most for one texture's upload, and loading goes on meanwhile (the first
-  scene's 2 GiB of animation textures go up while the game starts up; a DLC bundle's while the
+  scene's 2.1 GB of animation textures go up while the game starts up; a DLC bundle's while the
   next bundles load).
 - **A texture still queued.** A draw that samples it takes it back and records its upload into
   the frame ahead of the draw, as every upload was recorded before. So does a change to the
@@ -2826,208 +2832,272 @@ Mesa's d3d12 driver in long runs (white sprite-atlas pages, world-sized garbage 
 removal), so it is not used.
 
 **The Vulkan device (`OniMoono.Desktop.Vulkan`).** Its main-thread side is the OpenGL device's:
-`GlDrawRecorder` records each draw (variant, resolved pass state, uniform values, textures,
-mesh), `GlTextures.Prepare` and `GlMeshes.Prepare` copy changed data, and `GlWorker` hands
-frames to a device thread; only the work posted for resources differs (`IResourceWork`).
 
-- *Programs* (`VulkanProgram`, `SmolV`, `VkPrograms`, `SpirvReflection`). A Vulkan variant is
-  one entry of the shader's platform-18 blob holding every stage as SMOL-V-compressed SPIR-V
-  (decoded with a port of smol-v's decoder; each decoded size is checked against its header,
-  and `tools/ShaderSurvey vulkan` runs all 539 of U60's programs through SPIRV-Tools' validator)
-  and a table mapping mesh channels to vertex input locations. Its parameter table gives each
-  constant buffer, texture and sampler a binding as `stages << 24 | set << 16 | binding`:
-  textures, their separate samplers and storage buffers in set 0, constant buffers in set 1.
-  `GlUniforms` writes each draw's values into the programs' constant buffers at the table's
-  offsets (matrices as four 16-byte columns, arrays at a 16-byte stride: the GLCore programs'
-  layout), and `GlDrawRecorder` resolves textures and selects variants as for OpenGL, from the
-  pass's Vulkan variants. Variants this device does not draw, each logged once per shader:
-  shadow-comparison and multisample textures (shadow and frame-debugger variants), XR stereo
-  (multiview) variants and stages other than vertex and fragment; none is used by the game.
-  A variant that cannot be built (damaged data, a module or pipeline the driver refuses) is
-  logged once per shader and kept as a program that draws nothing, so no exception reaches the
-  game each frame; one that ran out of memory is logged and tried again at its next draw.
-- *Shaders without U60's Vulkan programs.* Mods' AssetBundles built with other Unity versions
-  carry Vulkan programs in another entry layout, or none (docs/research/mod-bundle-shaders.md:
-  13 of the 34 mods with shaders). The route is chosen once per shader and logged
-  (`VkPrograms.PlatformOf`): Unity's Vulkan programs when every pass with programs has Vulkan
-  variants whose first one reads as a U60 entry; else, with GLCore programs, those compiled to
-  SPIR-V at run time (`VkGlsl`, `VkShaderCompiler`, shaderc, as an OpenGL driver compiles the
-  same text); else the shader is not drawn, as on OpenGL. The rewrite lays a program out as
-  Unity's Vulkan programs are (loose uniforms in one std140 block per stage and named blocks in
-  set 1, samplers and storage buffers in set 0, by name and the same in both stages; inputs at
-  their channels' locations; varyings one location map by name). Such a program runs in
-  OpenGL's clip space: it reads OpenGL's projection and `_ProjectionParams` (x 1), and its
-  vertex stage ends by mapping that clip space onto the target as the shipped programs lay it
-  out: depth from [-w, w] to the reversed [w, 0] (the mapping `RenderConventions` puts in the
-  shipped programs' projection), y negated into the back buffer and kept into a render texture
-  (`oni_ClipY`, a vertex constant set per draw). What the camera's projection places lands
-  where the shipped programs put it, so both kinds share targets, depth and pipelines.
-  `_ZBufferParams` keeps the reversed form, which linearises the depth Vulkan stores
-  (1 - OpenGL's) as OpenGL's form does OpenGL's. Render textures hold OpenGL's rows for
-  everything a compiled program draws, including what it writes to clip space directly, so the
-  GLCore text's `UNITY_UV_STARTS_AT_TOP` branches read it back as on OpenGL.
-  Until that, compiled programs ended as the shipped ones do, negating `gl_Position.y` under
-  the shipped projection, and with `ONI_VULKAN_ROUTE=glcore` Klei's world came out black.
-  `Klei/TexturePage` copies each page of the world's property textures (light, dig amount,
-  gas, liquid; `TextureBuffer.Unlock`) by writing clip space directly (`y = 1 - 2v`, the same
-  in its GLCore text and shipped SPIR-V), so the negation stored them turned over, as on
-  Unity's Vulkan. The GLCore text of 16 Klei shaders (`Klei/Lightbuffer`,
-  `Klei/PostFX/LightBufferCompositor`, tiles, liquids, gases, fog of war) reads them at
-  `1 - v`, as OpenGL needs, where the shipped SPIR-V reads `v` (compared in
-  `Klei/Lightbuffer`'s vertex stages). Each cell read the cell mirrored about the world's middle
-  row: the lights discarded themselves on unlit cells (the light buffer dumped empty) and the
-  world was drawn unlit. Content written to clip space directly is where the two kinds still
-  disagree: a texture written so by one kind and read through such a branch by the other is
-  read turned over (no mod's shader met does that). Also still OpenGL's in the compiled text
-  and not matched: `UNITY_REVERSED_Z` branches reading raw depth (Unity's depth-blit and debug
-  shaders, no Klei shader), `gl_FragCoord` in the back buffer (y from the top; none of the
-  game's GLCore programs reads it) and `gl_FragDepth`. `ONI_VULKAN_ROUTE=glcore` sends every
-  shader this way: a diagnostic, and the route a build with only GLCore programs would take
-  (all 517 of Klei's Linux GLCore programs are in the macOS data unchanged). Every QA dogfood
-  scenario then matches OpenGL's references, and the scenario `colony-glcore` checks the
-  world that way; Klei's shaders take the shipped route otherwise.
-- *Conventions.* Unity's Vulkan programs are compiled with reversed Z and UVs starting at the
-  top, as Unity's manual ("Platform-specific rendering differences") describes; the rest was
-  read from the SPIR-V. Each vertex stage ends by negating `gl_Position.y`, so with the camera's
-  projection the back buffer is stored top row first, as the window shows it, and the presenter
-  copies it unflipped. Into a render texture the projection's y is negated as well
-  (`_ProjectionParams.x` -1), which leaves render textures' rows in OpenGL's order, so sampling
-  them reads what OpenGL's do. A program that derives texture coordinates from its clip-space
-  position therefore reads them turned over in a render texture: `Klei/Stars` (the space and
-  nebula background, drawn into the base camera's render texture) takes its UVs from clip y, so
-  its layers sit mirrored about the screen's middle row compared with GLCore. The original
-  shows the same on Direct3D 11 and Vulkan (measured on Windows: its shots match ours on Vulkan
-  and differ from the Linux GLCore original by 12 % of the pixels), so Vulkan lanes compared with
-  the Linux original differ in space (OpenGL draws `Klei/Stars` so on Windows: §3.5,
-  Engine renderer). The projection the programs read (`UNITY_MATRIX_P` and the
-  products with it; `RenderConventions`) maps depth to [1, 0], near to far, `_ZBufferParams`
-  takes the reversed form, and `unity_CameraProjection` keeps the camera's own matrix. Depth
-  tests compare the other way (Less and Greater, LessEqual and GreaterEqual swapped), depth
-  offsets are negated, clears write 1 - the value asked for, and new depth surfaces start at
-  0. Viewport and scissor rectangles keep OpenGL's bottom-left origin: unchanged in a render
-  texture, turned over in the back buffer, as are `ReadPixels` of the screen. Unity's front faces
-  are clockwise on screen, which Vulkan calls clockwise in the back buffer and counter-clockwise
-  in a flipped render texture. Absent mesh channels read OpenGL's constant attributes (white
-  colour, position (0, 0, 0, 1), zero otherwise) from a stride-0 buffer. The OpenGL device keeps
-  its own conventions; the game sees a Vulkan device (D54).
-- *Execution.* A target is a dynamic-rendering pass, begun by its first draw or clear (a clear
-  with nothing drawn yet is the pass's load op) and ended when the target changes, a copy must
-  run outside it, or the frame ends. Pipelines are made on first use per program, resolved pass
-  state, vertex layout, topology and target formats, with the driver's pipeline cache kept in the
-  player's cache folder (`vulkan-pipelines.bin`, written at shutdown to a new file moved over the
-  old; `VkPipelineCacheFile`): the driver's data behind our header with its length and SHA-256,
-  read back only when it is whole and its Vulkan header names this GPU (vendor, device) and
-  driver (pipelineCacheUUID), otherwise discarded and logged, so a damaged or foreign file never
-  reaches the driver (`ONI_VK_PIPELINE_CACHE=0` leaves it unread). On Windows (NVIDIA) a
-  mid-game load's first frames make about 80 pipelines in 67 ms with the cache empty and 10 ms
-  with it read; lavapipe keeps nothing in it. Each draw's key is hashed once and the last draw's
-  pipeline is tried first. Set 0 is pushed (`VK_KHR_push_descriptor`, when the program's bindings fit the device's
-  push limit, 32 on NVIDIA and Mesa), through an update template made with the program (one
-  image or buffer info per slot, no writes built per draw), or, for programs with more (Klei's batched animation shaders
-  bind 39, on about half a colony's draws), taken from a cache of sets kept across frames by the
-  images (by a serial number never reused) and samplers they name: a draw naming what a set
-  already names binds it, found by those identities alone (its descriptor writes are built only
-  for a new set), and sets unused for 60 frames are freed (`VkDescriptorCache`). A texture a
-  draw found ready to sample (no attachment of the pass, in its sampling layout, nothing to
-  resolve) is stamped with the pass's number, so the pass's later draws check it with one
-  compare (`VkReadyStamps`). A draw's vertex buffers are bound in one call (binding
-  i feeds the program's i-th input). A draw's constant buffers are
-  written together to the frame's uniform stream (4 MB chunks kept for the device's life) and
-  bound by dynamic offsets into a set 1 made once per program and chunk. Immediate geometry
-  goes through a host-visible stream per frame and copy sources (texels, staged meshes) through
-  a staging stream in host memory, both in 8 MB chunks: the first two of each frame slot are
-  kept, the others released once unused for eight frames, so a save's burst of uploads does not
-  stay resident. The stream's memory may be device memory the CPU maps (resizable BAR, where
-  VMA puts it on NVIDIA), written across the bus; texels written there took 1.8 ms a frame in
-  U57 against 0.7 in host memory (RTX 3090; `ONI_VULKAN_STAGING=device` stages in the stream
-  again). Memory comes from VMA, and the first buffer of each use logs the memory type it got. Each image tracks its layout
-  and last access, and each use makes the barrier it needs (a render target's colour writes
-  before it is sampled; transfers before and after copies). A pipeline the driver refuses is
-  logged once per program and remembered, so draws with that state are left out without
-  trying again (out of memory is not remembered: the next draw tries again); a command that
-  throws ends the open pass and is logged once per kind. A texture's new storage is made before the
-  old one is retired, so a failed allocation leaves the texture as it was; a mesh whose new
-  buffer cannot be made draws nothing until its next upload (its submeshes' ranges are the new
-  ones), its old buffer retired rather than destroyed under recorded draws.
-- *Frames and uploads.* Two frames are in flight, each with its command pool, fence, stream,
-  descriptor pools and the resources released while it was recorded (destroyed once its fence
-  has signalled). A frame is submitted in batches (at present, and when the main thread needs a
-  result: `ReadPixels`, which then waits for the queue, a band of about a million pixels at a
-  time). `AsyncGPUReadback` of a render texture copies it into a host buffer with the frame's
-  work and waits for nothing: the frame's fence covers the copy, and when the device thread
-  recycles that frame (two frames on) the buffer holds the request's data. Each batch has an upload command buffer
-  submitted ahead of its rendering: a texture the batch has not used yet is updated there, as are
-  new render surfaces (cleared, as OpenGL's device clears them) and staged mesh copies; a texture
-  the batch already sampled is updated at its place in the rendering, ending the pass. A mesh
-  upload never writes a buffer that recorded draws read, so they read their own data without
-  waiting: it goes to one of the mesh's spare buffers (at most two, the buffers it replaced,
-  once their frames are done) when one is large enough, else to a new one, made an eighth
-  larger once the mesh has changed, so a mesh changed every frame takes turns between a few
-  buffers. On a discrete GPU mesh buffers are device memory the CPU does not map, written by a
-  copy from the staging stream ahead of the batch's rendering (0.16 ms of mesh uploads a frame
-  in U57 against 0.74 written across the bus); an integrated GPU's are written directly
-  (`ONI_VULKAN_MESHES=staged|mapped` decides). Re-uploads into unchanged storage send only the changed rows, as on OpenGL.
-- *Presentation.* `VkPresenter` keeps `GlPresenter`'s design: three offscreen back buffers, at
-  most two frames queued (one with vsync), the last frame shown again when one drew nothing or
-  the window's contents were damaged, the splash drawn over the window on the presenter thread
-  (`SplashRain`, shared with `GlSplash`), and a minimized window keeping its size (issue #29)
-  while nothing is presented to its 0x0 surface. Both threads submit to the one graphics queue
-  in order (a frame before the copy that reads it), so no semaphores pass between them; the
-  presenter leaves the back buffer as a colour attachment. The swapchain is made again when the
-  surface's size or the present mode changes or it reports itself out of date; vsync uses FIFO,
-  no vsync IMMEDIATE (else MAILBOX). `vSyncCount` 2 to 4 presents each frame that many times
-  under FIFO, an image per vertical blank, so the game runs at a half (or a third, a quarter)
-  of the refresh rate as OpenGL's swap interval makes it. A swapchain that cannot be made (out
-  of memory during a resize) is tried again after 0.1 s, the delay doubling up to 2 s, with no
-  frames shown meanwhile; presenting is given up only after five failures in a row spanning
-  ten seconds. The old swapchain is destroyed either way. The swapchain format is B8G8R8A8 or
-  R8G8B8A8 UNORM in sRGB non-linear colour space, written as OpenGL's default framebuffer is (no
-  sRGB encoding). On Windows, DXGI presents instead when it starts (*Presentation on Windows*
-  above).
-- *Device loss.* At start-up any failure falls back to OpenGL (*Starting* above). A device
-  lost in play cannot be recovered in place (every texture, mesh and program would have to be
-  made again, and the non-readable textures have no CPU copy), nor switched to OpenGL, which
-  would need the same: the device thread stops recording, the log names the loss, and the game
-  quits with an error saying Vulkan stopped working, that OpenGL can be chosen under Renderer in
-  Moono Tweaks or with `--renderer opengl` if it keeps happening, and where the log is.
-  Presenting that fails for good (a lost surface, a swapchain still not made after its
-  retries, a swapchain format that takes no copies) quits the same way rather than running on
-  with a black window. Neither leaves a mark for the next start.
-  `ONI_VULKAN_FAIL` takes a comma-separated list of faults for tests (`VkFault`): `context`,
-  `device`, `presenter` and `presenter-create` fail start-up at that step; `present-after:N`
-  fails presenting at frame N and `present-oom-after:N` makes three swapchain creations run
-  out of memory from frame N; `alloc-every:N`, `pipeline-every:N` and `program-every:N` make
-  every Nth texture or mesh allocation, pipeline or program build run out of memory;
-  `crash-at:N` ends the process at presented frame N as a crash would, and `guard-build:X`
-  keys the start-up guard to build X.
-- *Diagnostics.* `--vulkan-validation` (or `ONI_VULKAN_VALIDATION=1`) enables the Khronos
-  validation layer, its messages in the log (`ONI_VULKAN_VALIDATION=sync` adds its synchronization
-  checks). Without an installed one,
-  `scripts/get-vulkan-validation.sh` fetches a pinned release (Vulkan-ValidationLayers
-  vulkan-sdk-1.4.363.0 from LunarG's SDK packages, checked by SHA-256; on Linux the distro's
-  `vulkan-validationlayers` is used when installed) into the gitignored
-  out/local-tools/vulkan-validation/{linux,windows}; the player finds it there (or in
-  `vulkan-validation/` beside its executable, where `scripts/run-windows.sh` copies it) and points
-  the loader at it through `VK_ADD_LAYER_PATH`; `--frame-stats` counts draws, pipeline binds,
-  render passes, passes ended by uploads and submits; GPU frame time comes from timestamp queries.
-  `ONI_VK_ALT=NAME,...` (measurement only, with `--frame-stats`; `writes-first`,
-  `prepare-every-texture`, `push-writes`) runs the named draw-path changes as before them in every other
-  60-frame window, each window's counts ending in `variant=0` (before) or `variant=1`, so one
-  run compares both under the same load (`VkDrawAlternation`,
-  docs/research/vulkan-draw-binding.md).
-  `ONI_VERIFY_VK_DRAWS=1` (`VkDrawVerify`, qa.sh's verify stage) runs each draw's full work
-  beside the draw path's shortcuts and counts where they part: textures skipped as found ready
-  in the pass, set 0's identities against those built with its writes, the cached set against
-  the one kept for them, and the pipeline lookup's last-key shortcut against the pipeline kept
-  for the key; a `vulkan draws:` summary every 600 frames, which fails
-  `qa-tools.py verify` on any non-zero count.
-  `ONI_VERIFY_RAW_LOADS=1` (`RawTextureLoads`, qa.sh's verify stage) checks each
-  `LoadRawTextureData` against a full copy and each upload it skipped against the texels last
-  uploaded (`raw texture loads:` summary, every 3,000 loads); `ONI_RAW_LOADS_ALT=1` (measurement
-  only, with `--frame-stats`) runs every other 60-frame window as before (a full copy and an
-  upload at every `Apply`), its `raw texture loads` line ending in `variant=0` or `variant=1`;
-  `ONI_CAPTURE_TWICE=full-uploads` renders each super-sized capture again after every texture
-  loaded this way is uploaded in full.
+- `GlDrawRecorder` records each draw (variant, resolved pass state, uniform values, textures, mesh).
+- `GlTextures.Prepare` and `GlMeshes.Prepare` copy changed data.
+- `GlWorker` hands frames to a device thread.
+
+Only the work posted for resources differs (`IResourceWork`).
+
+- *Programs* (`VulkanProgram`, `SmolV`, `VkPrograms`, `SpirvReflection`).
+  - **A variant** is one entry of the shader's platform-18 blob. It holds every stage as
+    SMOL-V-compressed SPIR-V and a table mapping mesh channels to vertex input locations.
+  - **Decoding.** A port of smol-v's decoder decodes the stages and checks each decoded size against
+    its header. `tools/ShaderSurvey vulkan` runs all 539 of U60's programs through SPIRV-Tools'
+    validator.
+  - **Bindings.** The variant's parameter table gives each constant buffer, texture and sampler a
+    binding as `stages << 24 | set << 16 | binding`: textures, their separate samplers and storage
+    buffers in set 0, constant buffers in set 1.
+  - **Values.** `GlUniforms` writes each draw's values into the programs' constant buffers at the
+    table's offsets (matrices as four 16-byte columns, arrays at a 16-byte stride: the GLCore
+    programs' layout). `GlDrawRecorder` resolves textures and selects variants as for OpenGL, from
+    the pass's Vulkan variants.
+  - **Variants not drawn,** each logged once per shader: shadow-comparison and multisample textures
+    (shadow and frame-debugger variants), XR stereo (multiview) variants and stages other than
+    vertex and fragment. The game uses none.
+  - **Failures.** A variant that cannot be built (damaged data, a module or pipeline the driver
+    refuses) is logged once per shader and kept as a program that draws nothing, so no exception
+    reaches the game each frame. One that ran out of memory is logged and tried again at its next
+    draw.
+- *Shaders without U60's Vulkan programs.* Mods' AssetBundles built with other Unity versions carry
+  Vulkan programs in another entry layout, or none (docs/research/mod-bundle-shaders.md: 13 of the
+  34 mods with shaders).
+  - **The route** is chosen once per shader and logged (`VkPrograms.PlatformOf`):
+    1. Unity's Vulkan programs, when every pass with programs has Vulkan variants whose first one
+       reads as a U60 entry.
+    2. Else, with GLCore programs, those compiled to SPIR-V at run time (`VkGlsl`,
+       `VkShaderCompiler`, shaderc, as an OpenGL driver compiles the same text).
+    3. Else the shader is not drawn, as on OpenGL.
+  - **Layout.** The rewrite lays a compiled program out as Unity's Vulkan programs are:
+    - loose uniforms in one std140 block per stage and named blocks in set 1;
+    - samplers and storage buffers in set 0, by name and the same in both stages;
+    - inputs at their channels' locations;
+    - varyings one location map by name.
+  - **Clip space.** A compiled program runs in OpenGL's clip space: it reads OpenGL's projection and
+    `_ProjectionParams` (x 1). Its vertex stage ends by mapping that clip space onto the target as
+    the shipped programs lay it out:
+    - depth from [-w, w] to the reversed [w, 0] (the mapping `RenderConventions` puts in the shipped
+      programs' projection);
+    - y negated into the back buffer and kept into a render texture (`oni_ClipY`, a vertex constant
+      set per draw).
+
+    What the camera's projection places lands where the shipped programs put it, so both kinds share
+    targets, depth and pipelines.
+  - **Depth.** `_ZBufferParams` keeps the reversed form, which linearises the depth Vulkan stores (1
+    - OpenGL's) as OpenGL's form does OpenGL's.
+  - **Render textures** hold OpenGL's rows for everything a compiled program draws, including what
+    it writes to clip space directly, so the GLCore text's `UNITY_UV_STARTS_AT_TOP` branches read it
+    back as on OpenGL.
+  - **Before that,** compiled programs ended as the shipped ones do, negating `gl_Position.y` under
+    the shipped projection, and with `ONI_VULKAN_ROUTE=glcore` Klei's world came out black:
+    - `Klei/TexturePage` copies each page of the world's property textures (light, dig amount, gas,
+      liquid; `TextureBuffer.Unlock`) by writing clip space directly (`y = 1 - 2v`, the same in its
+      GLCore text and shipped SPIR-V). The negation stored them turned over, as on Unity's Vulkan.
+    - The GLCore text of 16 Klei shaders (`Klei/Lightbuffer`, `Klei/PostFX/LightBufferCompositor`,
+      tiles, liquids, gases, fog of war) reads them at `1 - v`, as OpenGL needs, where the shipped
+      SPIR-V reads `v` (compared in `Klei/Lightbuffer`'s vertex stages).
+    - Each cell read the cell mirrored about the world's middle row: the lights discarded themselves
+      on unlit cells (the light buffer dumped empty) and the world was drawn unlit.
+  - **Where the two kinds still disagree.** Content written to clip space directly: a texture
+    written so by one kind and read through such a branch by the other is read turned over (no mod's
+    shader met does that). Also still OpenGL's in the compiled text and not matched:
+    - `UNITY_REVERSED_Z` branches reading raw depth (Unity's depth-blit and debug shaders, no Klei
+      shader);
+    - `gl_FragCoord` in the back buffer (y from the top; none of the game's GLCore programs reads
+      it);
+    - `gl_FragDepth`.
+  - **`ONI_VULKAN_ROUTE=glcore`** sends every shader this way: a diagnostic, and the route a build
+    with only GLCore programs would take (all 517 of Klei's Linux GLCore programs are in the macOS
+    data unchanged). Every QA dogfood scenario then matches OpenGL's references, and the scenario
+    `colony-glcore` checks the world that way. Klei's shaders take the shipped route otherwise.
+- *Conventions.*
+  - **Reversed Z, UVs from the top.** Unity's Vulkan programs are compiled with reversed Z and UVs
+    starting at the top, as Unity's manual ("Platform-specific rendering differences") describes.
+    The rest was read from the SPIR-V.
+  - **The back buffer.** Each vertex stage ends by negating `gl_Position.y`, so with the camera's
+    projection the back buffer is stored top row first, as the window shows it, and the presenter
+    copies it unflipped.
+  - **Render textures.** Into a render texture the projection's y is negated as well
+    (`_ProjectionParams.x` -1). That leaves render textures' rows in OpenGL's order, so sampling
+    them reads what OpenGL's do.
+  - **`Klei/Stars`.** A program that derives texture coordinates from its clip-space position
+    therefore reads them turned over in a render texture. `Klei/Stars` (the space and nebula
+    background, drawn into the base camera's render texture) takes its UVs from clip y, so its
+    layers sit mirrored about the screen's middle row compared with GLCore. The original shows the
+    same on Direct3D 11 and Vulkan (measured on Windows: its shots match ours on Vulkan and differ
+    from the Linux GLCore original by 12 % of the pixels). Vulkan lanes compared with the Linux
+    original therefore differ in space (OpenGL draws `Klei/Stars` so on Windows: §3.5, Engine
+    renderer).
+  - **Projection and depth.** The projection the programs read (`UNITY_MATRIX_P` and the products
+    with it; `RenderConventions`) maps depth to [1, 0], near to far. `_ZBufferParams` takes the
+    reversed form, and `unity_CameraProjection` keeps the camera's matrix. Depth tests compare the
+    other way (Less and Greater, LessEqual and GreaterEqual swapped), depth offsets are negated,
+    clears write 1 - the value asked for, and new depth surfaces start at 0.
+  - **Rectangles.** Viewport and scissor rectangles keep OpenGL's bottom-left origin: unchanged in a
+    render texture, turned over in the back buffer, as are `ReadPixels` of the screen.
+  - **Front faces.** Unity's front faces are clockwise on screen, which Vulkan calls clockwise in
+    the back buffer and counter-clockwise in a flipped render texture.
+  - **Absent mesh channels** read OpenGL's constant attributes (white colour, position (0, 0, 0, 1),
+    zero otherwise) from a stride-0 buffer.
+  - **The OpenGL device** keeps its conventions; the game sees a Vulkan device (D54).
+- *Execution.*
+  - **Passes.** A target is a dynamic-rendering pass. Its first draw or clear begins it (a clear
+    with nothing drawn yet is the pass's load op). It ends when the target changes, a copy must run
+    outside it, or the frame ends.
+  - **Pipelines** are made on first use per program, resolved pass state, vertex layout, topology
+    and target formats. Each draw's key is hashed once, and the last draw's pipeline is tried first.
+  - **The pipeline cache.** The driver's pipeline cache is kept in the player's cache folder
+    (`vulkan-pipelines.bin`; `VkPipelineCacheFile`):
+    - Shutdown writes it to a new file moved over the old.
+    - The file holds the driver's data behind our header with its length and SHA-256.
+    - It is read back only when it is whole and its Vulkan header names this GPU (vendor, device)
+      and driver (pipelineCacheUUID). Otherwise it is discarded and logged, so a damaged or foreign
+      file never reaches the driver.
+    - `ONI_VK_PIPELINE_CACHE=0` leaves it unread.
+    - On Windows (NVIDIA) a mid-game load's first frames make about 80 pipelines in 67 ms with the
+      cache empty and 10 ms with it read. lavapipe keeps nothing in it.
+  - **Set 0** reaches a draw one of two ways:
+    - Pushed (`VK_KHR_push_descriptor`), when the program's bindings fit the device's push limit (32
+      on NVIDIA and Mesa), through an update template made with the program: one image or buffer
+      info per slot, no writes built per draw.
+    - For programs with more (Klei's batched animation shaders bind 39, on about half a colony's
+      draws), taken from a cache of sets kept across frames (`VkDescriptorCache`). A set is kept by
+      the images (by a serial number never reused) and samplers it names. A draw naming what a set
+      already names binds it, found by those identities alone; descriptor writes are built only for
+      a new set. Sets unused for 60 frames are freed.
+  - **Ready textures.** A texture a draw found ready to sample (no attachment of the pass, in its
+    sampling layout, nothing to resolve) is stamped with the pass's number, so the pass's later
+    draws check it with one compare (`VkReadyStamps`).
+  - **Vertex buffers.** A draw's vertex buffers are bound in one call (binding i feeds the program's
+    i-th input).
+  - **Constant buffers.** A draw's constant buffers are written together to the frame's uniform
+    stream (4.2 MB chunks kept for the device's life) and bound by dynamic offsets into a set 1 made
+    once per program and chunk.
+  - **Streams.** Immediate geometry goes through a host-visible stream per frame, and copy sources
+    (texels, staged meshes) through a staging stream in host memory, both in 8.4 MB chunks. The
+    first two chunks of each frame slot are kept and the others released once unused for eight
+    frames, so a save's burst of uploads does not stay resident.
+  - **Why staging is in host memory.** The per-frame stream's memory may be device memory the CPU
+    maps (resizable BAR, where VMA puts it on NVIDIA), written across the bus. Texels written there
+    took 1.8 ms a frame on a late-game colony against 0.7 in host memory (RTX 3090).
+    `ONI_VULKAN_STAGING=device` stages in that stream again.
+  - **Memory** comes from VMA, and the first buffer of each use logs the memory type it got.
+  - **Barriers.** Each image tracks its layout and last access, and each use makes the barrier it
+    needs (a render target's colour writes before it is sampled; transfers before and after copies).
+  - **Failures.**
+    - A pipeline the driver refuses is logged once per program and remembered, so draws with that
+      state are left out without trying again. Out of memory is not remembered: the next draw tries
+      again.
+    - A command that throws ends the open pass and is logged once per kind.
+    - A texture's new storage is made before the old one is retired, so a failed allocation leaves
+      the texture as it was.
+    - A mesh whose new buffer cannot be made draws nothing until its next upload (its submeshes'
+      ranges are the new ones). Its old buffer is retired rather than destroyed under recorded
+      draws.
+- *Frames and uploads.*
+  - **Frames in flight.** Two frames are in flight, each with its command pool, fence, stream,
+    descriptor pools and the resources released while it was recorded (destroyed once its fence has
+    signalled).
+  - **Batches.** A frame is submitted in batches: at present, and when the main thread needs a
+    result. `ReadPixels` is one: it then waits for the queue, a band of about a million pixels at a
+    time.
+  - **`AsyncGPUReadback`** of a render texture copies it into a host buffer with the frame's work
+    and waits for nothing. The frame's fence covers the copy, and when the device thread recycles
+    that frame (two frames on) the buffer holds the request's data.
+  - **Uploads.** Each batch has an upload command buffer submitted ahead of its rendering. A texture
+    the batch has not used yet is updated there, as are new render surfaces (cleared, as OpenGL's
+    device clears them) and staged mesh copies. A texture the batch already sampled is updated at
+    its place in the rendering, ending the pass.
+  - **Mesh uploads.** A mesh upload never writes a buffer that recorded draws read, so they read
+    their data without waiting. It goes to one of the mesh's spare buffers when one is large enough
+    (at most two: the buffers it replaced, once their frames are done), else to a new one, made an
+    eighth larger once the mesh has changed. A mesh changed every frame therefore takes turns
+    between a few buffers.
+  - **Mesh memory.** On a discrete GPU mesh buffers are device memory the CPU does not map, written
+    by a copy from the staging stream ahead of the batch's rendering (0.16 ms of mesh uploads a
+    frame on a late-game colony against 0.74 written across the bus). An integrated GPU's are
+    written directly. `ONI_VULKAN_MESHES=staged|mapped` decides.
+  - **Partial re-uploads.** Re-uploads into unchanged storage send only the changed rows, as on
+    OpenGL.
+- *Presentation.* `VkPresenter` keeps `GlPresenter`'s design:
+  - three offscreen back buffers;
+  - at most two frames queued (one with vsync);
+  - the last frame shown again when one drew nothing or the window's contents were damaged;
+  - the splash drawn over the window on the presenter thread (`SplashRain`, shared with `GlSplash`);
+  - a minimized window keeping its size (issue #29) while nothing is presented to its 0x0 surface.
+
+  Vulkan's side of it:
+  - **One queue.** Both threads submit to the one graphics queue in order (a frame before the copy
+    that reads it), so no semaphores pass between them. The presenter leaves the back buffer as a
+    colour attachment.
+  - **The swapchain** is made again when the surface's size or the present mode changes or it
+    reports itself out of date. Vsync uses FIFO, no vsync IMMEDIATE (else MAILBOX).
+  - **`vSyncCount` 2 to 4** presents each frame that many times under FIFO, an image per vertical
+    blank, so the game runs at a half (or a third, a quarter) of the refresh rate as OpenGL's swap
+    interval makes it.
+  - **Retries.** A swapchain that cannot be made (out of memory during a resize) is tried again
+    after 0.1 s, the delay doubling up to 2 s, with no frames shown meanwhile. Presenting is given
+    up only after five failures in a row spanning ten seconds. The old swapchain is destroyed either
+    way.
+  - **Format.** The swapchain format is B8G8R8A8 or R8G8B8A8 UNORM in sRGB non-linear colour space,
+    written as OpenGL's default framebuffer is (no sRGB encoding).
+  - **Windows.** DXGI presents instead when it starts (*Presentation on Windows* above).
+- *Device loss.*
+  - **At start-up** any failure falls back to OpenGL (*Starting* above).
+  - **In play** a lost device cannot be recovered in place: every texture, mesh and program would
+    have to be made again, and the non-readable textures have no CPU copy. Switching to OpenGL would
+    need the same. So the device thread stops recording, the log names the loss, and the game quits
+    with an error. The error says that Vulkan stopped working, that OpenGL can be chosen under
+    Renderer in Moono Tweaks or with `--renderer opengl` if it keeps happening, and where the log
+    is.
+  - **Presenting that fails for good** (a lost surface, a swapchain still not made after its
+    retries, a swapchain format that takes no copies) quits the same way rather than running on with
+    a black window.
+  - **The next start.** Neither leaves a mark for it.
+  - **Test faults.** `ONI_VULKAN_FAIL` takes a comma-separated list of faults for tests (`VkFault`):
+    - `context`, `device`, `presenter` and `presenter-create` fail start-up at that step;
+    - `present-after:N` fails presenting at frame N;
+    - `present-oom-after:N` makes three swapchain creations run out of memory from frame N;
+    - `alloc-every:N`, `pipeline-every:N` and `program-every:N` make every Nth texture or mesh
+      allocation, pipeline or program build run out of memory;
+    - `crash-at:N` ends the process at presented frame N as a crash would;
+    - `guard-build:X` keys the start-up guard to build X.
+- *Diagnostics.*
+  - **Validation.** `--vulkan-validation` (or `ONI_VULKAN_VALIDATION=1`) enables the Khronos
+    validation layer, its messages in the log. `ONI_VULKAN_VALIDATION=sync` adds its synchronization
+    checks.
+  - **The layer.** Without an installed one, `scripts/get-vulkan-validation.sh` fetches a pinned
+    release (Vulkan-ValidationLayers vulkan-sdk-1.4.363.0 from LunarG's SDK packages, checked by
+    SHA-256; on Linux the distro's `vulkan-validationlayers` is used when installed) into the
+    gitignored out/local-tools/vulkan-validation/{linux,windows}. The player finds it there (or in
+    `vulkan-validation/` beside its executable, where `scripts/run-windows.sh` copies it) and points
+    the loader at it through `VK_ADD_LAYER_PATH`.
+  - **Counts.** `--frame-stats` counts draws, pipeline binds, render passes, passes ended by uploads
+    and submits. GPU frame time comes from timestamp queries.
+  - **`--check-shaders`** on Vulkan builds every variant and a pipeline for its pass's state, and
+    counts what fails.
+  - **`ONI_VK_ALT=NAME,...`** (measurement only, with `--frame-stats`; `writes-first`,
+    `prepare-every-texture`, `push-writes`) runs the named draw-path changes as before them in every
+    other 60-frame window. Each window's counts end in `variant=0` (before) or `variant=1`, so one
+    run compares both under the same load (`VkDrawAlternation`,
+    docs/research/vulkan-draw-binding.md).
+  - **`ONI_VERIFY_VK_DRAWS=1`** (`VkDrawVerify`, qa.sh's verify stage) runs each draw's full work
+    beside the draw path's shortcuts and counts where they part:
+    - textures skipped as found ready in the pass;
+    - set 0's identities against those built with its writes;
+    - the cached set against the one kept for them;
+    - the pipeline lookup's last-key shortcut against the pipeline kept for the key.
+
+    It logs a `vulkan draws:` summary every 600 frames, and any non-zero count fails `qa-tools.py
+    verify`.
+  - **`ONI_VERIFY_RAW_LOADS=1`** (`RawTextureLoads`, qa.sh's verify stage) checks each
+    `LoadRawTextureData` against a full copy and each upload it skipped against the texels last
+    uploaded (`raw texture loads:` summary, every 3,000 loads).
+  - **`ONI_RAW_LOADS_ALT=1`** (measurement only, with `--frame-stats`) runs every other 60-frame
+    window as before (a full copy and an upload at every `Apply`). Its `raw texture loads` line ends
+    in `variant=0` or `variant=1`.
+  - **`ONI_CAPTURE_TWICE=full-uploads`** renders each super-sized capture again after every texture
+    loaded this way is uploaded in full.
 
 **Super-sized captures.** `ScreenCapture.CaptureScreenshot(path, superSize)` renders the frame
 again as a screen `superSize` times larger would show it (`FrameRenderer.Capture`), the cameras
@@ -3059,11 +3129,15 @@ one render target.
   `_LightBufferTex` read is moved into it.
 - **Full-screen passes.** The game's screen-to-world vectors of its full-screen passes
   (`_WsToCs`, `_WsToCcs`) are narrowed to each window.
-On Vulkan, whose Unity programs cannot take these changes
-(`RenderDevice.CaptureTileShaders`; the GLCore programs compiled instead read the world's property
-textures, drawn by the Vulkan programs, turned over), a capture is one render target up to the
-GPU's texture size, and past it the windows render without the changes, with the original's
-seams in the water and in kanims lit from beyond a window's edge.
+
+On Vulkan, Unity's programs cannot take these changes (`RenderDevice.CaptureTileShaders`), and the
+GLCore programs compiled instead read the world's property textures, which the Vulkan programs draw,
+turned over. So:
+
+- A capture is one render target up to the GPU's texture size.
+- Past that size the windows render without the changes, with the original's seams in the water and
+  in kanims lit from beyond a window's edge.
+
 `ONI_CAPTURE_TWICE=tiles:WxH` renders each super-sized capture again in windows of that size,
 for a pixel comparison of the two.
 
@@ -3084,14 +3158,6 @@ for a pixel comparison of the two.
   both, as does any other reader.
 - **No copy.** `EncodeArrayToPNG` reads the caller's rows where they are (pinned), with no copy
   of the image.
-
-`--check-shaders` on Vulkan builds every variant and a pipeline for its pass's state, and counts
-what fails.
-
-On Windows the Vulkan swapchain is what the paused DXGI presenter (a D3D11 flip-model swapchain
-fed by the GL frame, for correct HDR and flip-model handling) aimed at: a modern, compositor-
-friendly presentation path. With Vulkan the default, that presenter would only matter for the
-OpenGL fallback.
 
 **UI rendering.** `Canvas` implements Unity's canvas batching: per root canvas, walk
 `CanvasRenderer`s in hierarchy order, apply `CanvasGroup` alpha, `RectMask2D` clip rects
