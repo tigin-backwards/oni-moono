@@ -10,7 +10,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-anim-batches` (opt-in). Every frame KAnimBatchManager.UpdateDirty walks
+    /// Game tweak `fast-anim-batches`. Every frame KAnimBatchManager.UpdateDirty walks
     /// the visible batch sets, and each batch with dirty controllers writes, per dirty
     /// controller and in order: its instance data (frame, position, transform, colours: 112
     /// bytes into the batch's data texture), its symbol instance block (into the batch's symbol

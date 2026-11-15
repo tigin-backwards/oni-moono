@@ -10,7 +10,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
-    /// Game tweak `fast-serialization` (opt-in): the game's serializer (KSerialization) writes
+    /// Game tweak `fast-serialization`: the game's serializer (KSerialization) writes
     /// each object through its SerializationTemplate, reading every field with FieldInfo.GetValue.
     /// That boxes every number and struct it saves; in a large colony the boxing alone was 1.3 s
     /// of a 3.5 s save, the main-thread pause of every autosave.
@@ -157,18 +157,6 @@ namespace OniMoono.Host.GameTweaks
 
         static readonly Dictionary<Type, Compiled> compiled = new();
 
-        /// Plans compiled and the time it took, since the last call (PerfProbe's save table).
-        public static (int Count, double Ms) TakeCompileStats()
-        {
-            var stats = (compiledCount, compiledTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
-            compiledCount = 0;
-            compiledTicks = 0;
-            return stats;
-        }
-
-        static int compiledCount;
-        static long compiledTicks;
-
         static Plan MakePlan(object template)
         {
             var type = (Type)serializableTypeField.GetValue(template)!;
@@ -207,12 +195,9 @@ namespace OniMoono.Host.GameTweaks
             lock (compiled)
             {
                 if (compiled.TryGetValue(type, out var kept) && Same(kept, fields, typeInfos, writers)) return kept.Write;
-                long start = System.Diagnostics.Stopwatch.GetTimestamp();
                 kept = new Compiled { Fields = fields.ToArray(), TypeInfos = typeInfos.ToArray(), Writers = writers.ToArray() };
                 kept.Write = CompileFields(type, kept.Fields, kept.TypeInfos, kept.Writers);
                 compiled[type] = kept;
-                compiledCount++;
-                compiledTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
                 return kept.Write;
             }
         }

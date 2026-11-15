@@ -9,7 +9,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-sublimation` (opt-in). Every sublimating item (polluted dirt, bleach
+    /// Game tweak `fast-sublimation`. Every sublimating item (polluted dirt, bleach
     /// stone, oxylite…) runs Sublimates.Sim200ms five times a game second. In a large colony
     /// most of them lie loose in cells already full of gas and are already marked blocked: the
     /// call changes nothing, but it reads the item, its transform, tags, element and

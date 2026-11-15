@@ -8,7 +8,7 @@ namespace OniMoono.GameTweaks
 {
     using Handle = HandleVector<int>.Handle;
 
-    /// Game tweak `fast-partitioner-cleanup` (opt-in). Once a game second ScenePartitioner.Sim1000ms
+    /// Game tweak `fast-partitioner-cleanup`. Once a game second ScenePartitioner.Sim1000ms
     /// goes through every node marked dirty since its last run and looks up every entry of each, to
     /// drop those whose handle has been freed. Every insertion marks its nodes dirty too, so nearly
     /// every node an object moved through is looked through in full (Gluttony: about 0.36 ms a

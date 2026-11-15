@@ -34,8 +34,9 @@ namespace OniMoono.GameTweaks
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
 
         /// Test infrastructure (PerfProbe's ab.txt): true sorts as the game does, for an A/B in one run.
-        public static bool Bypass = Environment.GetEnvironmentVariable("ONI_CONDUIT_SORTS_BYPASS") == "1";
+        public static bool Bypass;
 
+        /// The same four as fast-partitioner-events: keep the two lists alike.
         static readonly string[] standDownMods = { "PeterHan.FastTrack", "MoreTek", "SaitoColonyPerf", "multiplayerMod" };
         static MethodBase[] guarded;
         static bool off;

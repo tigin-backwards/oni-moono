@@ -45,7 +45,7 @@ namespace OniMoono.GameTweaks
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
 
         /// Test infrastructure (PerfProbe's ab.txt): true runs the game's walk, for an A/B in one run.
-        public static bool Bypass = Environment.GetEnvironmentVariable("ONI_PARTITIONER_EVENTS_BYPASS") == "1";
+        public static bool Bypass;
 
         /// The layers (ScenePartitionerLayer.layer) an entry with a callback has been put in.
         static readonly bool[] hadCallback = new bool[256];
@@ -76,7 +76,8 @@ namespace OniMoono.GameTweaks
             AccessTools.Method(typeof(ScenePartitioner), nameof(ScenePartitioner.Sim1000ms)),
         };
 
-        /// The mods whose partitioner work this tweak stands down for, by static ID.
+        /// The mods whose partitioner work this tweak stands down for, by static ID (the same
+        /// four as fast-conduit-sorts: keep the two lists alike).
         static readonly string[] standDownMods = { "PeterHan.FastTrack", "MoreTek", "SaitoColonyPerf", "multiplayerMod" };
 
         static void Inserted(Handle handle)

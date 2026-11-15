@@ -6,7 +6,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-jobs` (opt-in). The game's JobManager runs a collection of work items on
+    /// Game tweak `fast-jobs`. The game's JobManager runs a collection of work items on
     /// its worker threads and the calling thread. Each Run wakes every worker (a kernel semaphore
     /// released once per worker, 15 on a 16-thread machine), works through the items, then
     /// waits until every woken worker has run, found no item left and checked in, however few
@@ -32,6 +32,7 @@ namespace OniMoono.GameTweaks
         static readonly ConditionalWeakTable<JobManager, Scheduler> schedulers = new ConditionalWeakTable<JobManager, Scheduler>();
         static long runs, wrong;
 
+        // Default priority, no stand-down check yet (docs/research/tweak-step-aside-audit.md, #4).
         public static void Install(Harmony harmony)
             => harmony.Patch(AccessTools.Method(typeof(JobManager), nameof(JobManager.Run)), prefix: new HarmonyMethod(typeof(FastJobs), nameof(Run)));
 

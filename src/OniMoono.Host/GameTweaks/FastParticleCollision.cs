@@ -8,7 +8,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
-    /// Game tweak `fast-particle-collision` (opt-in). Every frame, each radbolt
+    /// Game tweak `fast-particle-collision`. Every frame, each radbolt
     /// (HighEnergyParticle.CheckCollision) gathers every collider in the 3×3 cells around it and
     /// calls GetComponent&lt;HighEnergyParticle&gt;() on each one's GameObject to find other
     /// radbolts. A colony has tens of thousands of colliders (every stored item) and only a handful

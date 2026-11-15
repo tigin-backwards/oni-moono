@@ -5,7 +5,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `off-screen-conveyors` (opt-in; changes behaviour, see below). Every frame
+    /// Game tweak `off-screen-conveyors` (changes behaviour, see below). Every frame
     /// SolidConduitFlow.RenderEveryTick moves every item travelling on a conveyor rail a step
     /// along it (U57: about 950 items a frame, 85% of them off screen), and each move marks the
     /// item for the cell-change monitor and its animation for an update.

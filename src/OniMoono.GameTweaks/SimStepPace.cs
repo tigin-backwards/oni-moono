@@ -5,7 +5,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `sim-step-pace` (opt-in, **changes timing**): the native sim is called only at
+    /// Game tweak `sim-step-pace` (**changes timing**): the native sim is called only at
     /// its 200 ms steps, whatever the frame rate.
     ///
     /// Game.SimEveryTick runs a sub-tick for each 1/60 s of game time and steps the sim
@@ -46,7 +46,7 @@ namespace OniMoono.GameTweaks
 
         /// Test infrastructure (PerfProbe's ab.txt and jank `set`): true runs the game's method, for
         /// an A/B in one run.
-        public static bool Bypass = Environment.GetEnvironmentVariable("ONI_SIM_STEP_PACE_BYPASS") == "1";
+        public static bool Bypass;
 
         /// Counts since the start (E2eDriver's state reads, PerfProbe): the game's zero-time calls
         /// left out, and those made (paused frames).

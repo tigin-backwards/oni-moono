@@ -21,8 +21,8 @@ namespace OniMoono.GameTweaks
     /// destroyed root instead). With ONI_TWEAK_VERIFY=1 every index is checked against
     /// List.IndexOf and the counts logged every 4,096 removals.
     ///
-    /// While another Harmony owner patches SaveManager.Unregister (checked at the first call and
-    /// every 4,096 calls), the game's method runs.
+    /// Off for the session once another Harmony owner patches SaveManager.Unregister (checked at
+    /// the first call, then every 4,096).
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void SaveManager::Unregister(SaveLoadRoot)", "a9c1eb3a6c848563 linux-744825 win-744825", "6d8f6b37bb4200dc linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<SaveLoadRoot> SaveManager::GetSaveLoadRootList(SaveLoadRoot)")]
     [GameMember(GameUse.Uses, "System.Action`1<SaveLoadRoot> SaveManager::onRegister")]
@@ -39,7 +39,7 @@ namespace OniMoono.GameTweaks
         static bool off;
 
         /// Test infrastructure (PerfProbe's ab.txt): true runs the game's method, for an A/B in one run.
-        public static bool Bypass = Environment.GetEnvironmentVariable("ONI_SAVE_ROOTS_BYPASS") == "1";
+        public static bool Bypass;
         /// Counts since the start (removals by reference, and those whose index differed from List.IndexOf's).
         public static long Removals, Wrong;
         static long calls;

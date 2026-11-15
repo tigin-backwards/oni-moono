@@ -78,7 +78,7 @@ namespace OniMoono.GameTweaks
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
 
         /// Test infrastructure (PerfProbe's ab.txt): true moves as the game does, for an A/B in one run.
-        public static bool Bypass = Environment.GetEnvironmentVariable("ONI_RAIL_BRIDGES_BYPASS") == "1";
+        public static bool Bypass;
 
         /// Mods whose handlers for the store events come with no patch to find: Forbid Items and
         /// No Manual Delivery listen on every item, Oxygen Multiplayer writes the rails itself.

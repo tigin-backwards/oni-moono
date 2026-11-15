@@ -24,8 +24,8 @@ namespace OniMoono.GameTweaks
     /// game. With ONI_TWEAK_VERIFY=1 every removal is checked against
     /// the game's walk on copies of the lists, and the counts are logged every 256 removals.
     ///
-    /// While another Harmony owner patches the handler or UniformGrid&lt;DecorProvider&gt;.Remove
-    /// (checked at the first call and every 4,096 calls), the game's method runs.
+    /// Off for the session once another Harmony owner patches the handler or
+    /// UniformGrid&lt;DecorProvider&gt;.Remove (checked at the first call, then every 4,096).
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void OverlayModes/Decor::OnSaveLoadRootUnregistered(SaveLoadRoot)", "4f8aa9bbabcfb043 linux-744825 win-744825", "3e7c816f6220e013 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023")]
     [GameMember(GameUse.Mirrors, "System.Void UniformGrid`1::Remove(!0)", "81a124a416e5a0f4 linux-744825 win-744825", "30dd203307616f25 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023")]
     public static class FastOverlayRemovals
@@ -35,7 +35,7 @@ namespace OniMoono.GameTweaks
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1";
 
         /// Test infrastructure (PerfProbe's brackets): true runs the game's method, for an A/B in one run.
-        public static bool Bypass = Environment.GetEnvironmentVariable("ONI_OVERLAY_REMOVALS_BYPASS") == "1";
+        public static bool Bypass;
 
         /// Counts since the start: providers removed by reference, grid entries taken out, and
         /// indices that differed from List.IndexOf's (verify mode).

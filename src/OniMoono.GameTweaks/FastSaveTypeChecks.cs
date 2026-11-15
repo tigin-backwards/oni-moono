@@ -8,7 +8,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-save-type-checks` (opt-in). SaveLoadRoot.SaveWithoutTransform, run for every
+    /// Game tweak `fast-save-type-checks`. SaveLoadRoot.SaveWithoutTransform, run for every
     /// saved object, asks for each of its components twice whether its type carries
     /// [SkipSaveFileSerialization] (Type.IsDefined, which reads the attribute metadata every time)
     /// and writes the type's name (Type.ToString, a new string every time): in a large colony a
