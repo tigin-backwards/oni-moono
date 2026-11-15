@@ -6,7 +6,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-anim-cleanup` (opt-in). Every frame KBatchedAnimUpdater.CleanUp sweeps 16
+    /// Game tweak `fast-anim-cleanup`. Every frame KBatchedAnimUpdater.CleanUp sweeps 16
     /// chunks of its grid of animation controllers (the grid is swept round and round), testing
     /// every controller in them for having been destroyed, to drop those entries. Controllers
     /// normally leave the grid when disabled, so the sweeps nearly always find nothing; but each
@@ -34,6 +34,7 @@ namespace OniMoono.GameTweaks
         public static void Install(Harmony harmony)
         {
             harmony.Patch(AccessTools.Method(typeof(KBatchedAnimController), "OnDestroy"), prefix: new HarmonyMethod(typeof(FastAnimCleanup), nameof(Destroyed)));
+            // Default priority, no stand-down check yet (docs/research/tweak-step-aside-audit.md, #8).
             harmony.Patch(AccessTools.Method(typeof(KBatchedAnimUpdater), "CleanUp"), prefix: new HarmonyMethod(typeof(FastAnimCleanup), nameof(CleanUp)));
         }
 

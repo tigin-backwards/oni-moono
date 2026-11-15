@@ -10,7 +10,7 @@ namespace OniMoono.Host.GameTweaks
     /// Unity, while these change how Klei's code does something, mostly without changing what it
     /// produces. Each is documented in its class with what it changes and what was measured. Which
     /// are on comes from the Moono Tweaks screen's settings file or the command line
-    /// (`--game-tweak`; EffectiveOptions): by default every tweak but those that change behaviour.
+    /// (`--game-tweak`; EffectiveOptions); the defaults are GameTweakNames'.
     internal static class GameTweaks
     {
         static bool backgroundSave;

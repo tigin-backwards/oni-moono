@@ -8,7 +8,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
-    /// Game tweak `background-save` (opt-in): the game serializes the colony into memory and then
+    /// Game tweak `background-save`: the game serializes the colony into memory and then
     /// compresses it into the file on the main thread (5 s for a large colony with Ionic.Zlib,
     /// 1.3 s with fast-save-compression). The serialized bytes are a finished snapshot, so the
     /// compression and the file write run on a background thread instead, and only serializing

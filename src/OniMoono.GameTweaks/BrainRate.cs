@@ -8,7 +8,7 @@ namespace OniMoono.GameTweaks
 {
     using BrainGroup = BrainScheduler.BrainGroup;
 
-    /// Game tweak `brain-rate` (opt-in, **changes behaviour**): brain updates held to a rate of
+    /// Game tweak `brain-rate` (**changes behaviour**): brain updates held to a rate of
     /// real time instead of one batch per rendered frame.
     ///
     /// BrainScheduler updates one Duplicant brain and five critter brains every rendered frame
@@ -81,6 +81,8 @@ namespace OniMoono.GameTweaks
             dupeGroup = typeof(BrainScheduler.DupeBrainGroup);
             critterGroup = typeof(BrainScheduler.CreatureBrainGroup);
             probeCount = AccessTools.MethodDelegate<Func<BrainGroup, int>>(AccessTools.Method(typeof(BrainGroup), "InitialProbeCount"));
+            // Default priority, no stand-down check yet: a mod's later bool prefix is skipped
+            // (docs/research/tweak-step-aside-audit.md, #15).
             harmony.Patch(AccessTools.Method(typeof(BrainScheduler), nameof(BrainScheduler.RenderEveryTick)), prefix: new HarmonyMethod(typeof(BrainRate), nameof(RenderEveryTick)));
             var cap = new HarmonyMethod(typeof(BrainRate), nameof(InitialProbeCount));
             harmony.Patch(AccessTools.Method(dupeGroup, "InitialProbeCount"), postfix: cap);

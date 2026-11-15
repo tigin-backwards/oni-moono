@@ -135,8 +135,6 @@ namespace OniMoono.GameTweaks
         public static long Floods => worker?.floods ?? 0;
         public static long Verified => worker?.verified ?? 0;
         public static long VerifyWrong => worker?.verifyWrong ?? 0;
-        public static long VerifyTies => worker?.verifyTies ?? 0;
-        public static long FloodsVerified => worker?.floodsVerified ?? 0;
         public static long FloodsWrong => worker?.floodsWrong ?? 0;
 
         enum State { Unchecked, On, Off }

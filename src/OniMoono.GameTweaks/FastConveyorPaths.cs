@@ -7,7 +7,7 @@ namespace OniMoono.GameTweaks
 {
     using Conduit = SolidConduitFlow.Conduit;
 
-    /// Game tweak `fast-conveyor-paths` (opt-in): the conveyor rails' network rebuild, the same
+    /// Game tweak `fast-conveyor-paths`: the conveyor rails' network rebuild, the same
     /// paths.
     ///
     /// Every change to the rails (one built, removed or reconnected, and the load) rebuilds the

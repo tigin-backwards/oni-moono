@@ -23,8 +23,8 @@ namespace OniMoono.GameTweaks
     /// where the game's walk runs as before. With ONI_TWEAK_VERIFY=1 every kept answer is
     /// checked against a walk and differences logged.
     ///
-    /// While another Harmony owner patches GetSMI(Type) (checked at the first call and every 2^18
-    /// lookups), the game's method runs.
+    /// Off for the session once another Harmony owner patches GetSMI(Type) (checked at the first
+    /// call, then every 2^18 lookups: a check costs more than a lookup).
     [GameMember(GameUse.Postfix, "System.Void Game::OnPrefabInit()")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "StateMachine/Instance StateMachineController::GetSMI(System.Type)", "d570e9bc4aade1e1 linux-744825 win-744825")]
     public static class FastSmiLookups
@@ -48,7 +48,7 @@ namespace OniMoono.GameTweaks
         static bool off;
 
         /// Test infrastructure (PerfProbe's ab.txt): true runs the game's walk, for an A/B in one run.
-        public static bool Bypass = Environment.GetEnvironmentVariable("ONI_SMI_LOOKUPS_BYPASS") == "1";
+        public static bool Bypass;
         /// Counts since the start (lookups, kept answers returned, kept answers that differed from a walk).
         public static long Lookups, Hits, Wrong;
 

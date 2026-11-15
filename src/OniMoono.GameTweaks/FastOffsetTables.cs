@@ -9,7 +9,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-offset-tables` (opt-in). Each Duplicant's fetch update (once a frame in
+    /// Game tweak `fast-offset-tables`. Each Duplicant's fetch update (once a frame in
     /// U57) first makes sure every fetchable item's work offsets are current: a job over every
     /// prefab's items (U57: about 27,000 in 211 groups) in which the workers check each item's
     /// offset tracker (its cell is the item's cell and its offsets are set) and the main thread

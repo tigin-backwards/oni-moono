@@ -137,6 +137,28 @@ Two settings for test runs go with frame stats:
   window, whose lines end with `frame stats ab: FIELD=VALUE` for the value it ran with: a change
   and itself switched off, alternating in one run.
 
+The tweaks' other settings for measurements and test runs (environment variables, read at
+start-up; none is needed to play):
+- `ONI_TWEAK_VERIFY=1`: every tweak's verify mode ([TWEAKS.md](TWEAKS.md#how-exactly-the-same-is-checked)).
+  `ONI_VERIFY_FETCH_BY_CELL=1` and `ONI_VERIFY_RELEASED_SOUNDS=1` turn on one tweak's alone.
+- `ONI_TWEAK_TIMING=1`: `fast-anim-batches` and `fast-symbol-overrides` log their time a frame
+  every 600 frames.
+- `ONI_FAST_ANIM_BATCHES_SERIAL=1`: `fast-anim-batches` leaves every write to the game's loop.
+- `ONI_SYMBOL_PLANS=0`: `fast-symbol-overrides` only skips unchanged writes, and keeps no
+  applications.
+- `ONI_FETCH_STATS=1`: `FETCHSTATS` lines every 600 frames with the fetch update's time on the
+  main thread and on the workers, with `fetch-by-cell` on or off.
+- `ONI_PROBE_STATS=FILE`: a line every 5 s with the path probes' count and CPU time and the
+  process's CPU and memory. `ONI_PROBE_DIGEST=FILE`: a line for each probe result taken, with
+  digests of its reachable cells and costs. `ONI_PROBE_REPAIR_OFF=1`: the game's probes, with
+  only those two. `ONI_PROBE_REPAIR_SWITCH=FILE`: `path-probe-repair` repairs nothing while the
+  file reads `off`.
+- `ONI_NAVLINKS_DUMP=DIR`: each nav grid's links after a load, one file a grid, with
+  `compact-nav-links` on or off (for comparing the two).
+- `ONI_SOUND_PILE_LIMIT=N`: `fix-sound-piles`' copies of a sound a tile a frame (3).
+- `ONI_FMOD_QUARANTINE_MB`, `ONI_MOD_OVERLAPS_IGNORE`, `ONI_TWEAK_TEST_*` and
+  `ONI_TWEAK_DESCRIBE` are described in TWEAKS.md, `scripts/e2e.py` and ARCHITECTURE.md.
+
 ## Perf spread on CI's runners
 
 The **Perf spread** workflow (`.github/workflows/perf-spread.yml`, by hand only) measures how

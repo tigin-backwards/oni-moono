@@ -125,7 +125,6 @@ namespace OniMoono.GameTweaks
         public object Owner(int slot) => owner[slot];
         public int CellOf(int slot) => cellOf[slot];
         public OffsetBounds BoundsOf(int slot) => bounds[slot];
-        public OffsetBounds Union => union;
 
         /// A slot for `who` at `cell` (an invalid cell is kept unlinked: nothing there is reachable).
         public int Add(object who, int cell, OffsetBounds b)

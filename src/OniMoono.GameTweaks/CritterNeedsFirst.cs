@@ -6,7 +6,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `critter-needs-first` (opt-in, **changes behaviour**; issue #85): a critter that
+    /// Game tweak `critter-needs-first` (**changes behaviour**; issue #85): a critter that
     /// is ready to inhale its food or to excrete takes one of the frame's brain turns ahead of
     /// the round robin.
     ///

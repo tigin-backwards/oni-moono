@@ -5,7 +5,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.Host.GameTweaks
 {
-    /// Game tweak `fast-save-compression` (opt-in, `--game-tweak`): the game compresses and
+    /// Game tweak `fast-save-compression`: the game compresses and
     /// decompresses saves with Ionic.Zlib, a managed deflate; this uses .NET's zlib instead. Both
     /// write the zlib format (RFC 1950), so saves stay readable by the original game and the
     /// original's saves by this one (checked both ways on a 690 MB colony). On that colony saving

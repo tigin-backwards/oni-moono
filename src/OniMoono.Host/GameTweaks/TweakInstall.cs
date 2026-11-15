@@ -13,7 +13,8 @@ namespace OniMoono.Host.GameTweaks
     /// game's files before anything is patched (Check, TweakChecks), then installed all or
     /// nothing (Guarded). A tweak that fails either is off for the run: a no-op, the game's own
     /// code runs, one log line says why, and the Moono Tweaks screen shows its row greyed out.
-    /// Nothing is checked while the game plays: no guard runs in a patched method.
+    /// These checks run once, before anything is patched. A tweak's check for mods' patches
+    /// (ForeignPatches) runs in play.
     internal static class TweakInstall
     {
         static readonly Dictionary<string, string> unavailable = new(StringComparer.Ordinal);

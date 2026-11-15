@@ -8,7 +8,7 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fast-symbol-overrides` (opt-in). An animation batch writes a controller's
+    /// Game tweak `fast-symbol-overrides`. An animation batch writes a controller's
     /// symbol-override block (12 floats per symbol frame of its build) into its texture whenever
     /// the block's version changed. The controller re-applies its overrides when they change, and
     /// Duplicants (and the foreground layers of layered animations) on every dirty mark: their

@@ -11,7 +11,7 @@ using Pickup = FetchManager.Pickup;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `fetch-by-cell` (opt-in). Each Duplicant's fetch update (FetchManager.UpdatePickups,
+    /// Game tweak `fetch-by-cell`. Each Duplicant's fetch update (FetchManager.UpdatePickups,
     /// about 30 a second with brain-rate) runs, for every prefab group, FetchablesByPrefabId.UpdatePickups:
     /// CouldBePickedUpByMinion on every item, the path cost of each distinct cell (through the first
     /// item there that passed), a sort by (tag bits, priority desc, cost, quality desc, freshness desc)
@@ -100,7 +100,7 @@ namespace OniMoono.GameTweaks
         public const string Name = "fetch-by-cell";
 
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_TWEAK_VERIFY") == "1" || Environment.GetEnvironmentVariable("ONI_VERIFY_FETCH_BY_CELL") == "1";
-        static readonly double resyncSeconds = double.TryParse(Environment.GetEnvironmentVariable("ONI_FETCH_RESYNC_S"), out var r) && r > 0 ? r : 5;
+        const double resyncSeconds = 5;
         const int UnknownRadius = 1 << 20;
         const byte NoWorld = byte.MaxValue;
 
@@ -226,7 +226,7 @@ namespace OniMoono.GameTweaks
             harmony.Patch(AccessTools.Method(typeof(Workable), nameof(Workable.SetOffsetTable)), postfix: M(nameof(TrackerChanged)));
         }
 
-        /// ONI_FETCH_STATS=1 (any tweak set, these two on or off): times the update and its groups.
+        /// ONI_FETCH_STATS=1: times the update and its groups, with fetch-by-cell on or off.
         public static void InstallStats(Harmony harmony)
         {
             if (statsInstalled) return;

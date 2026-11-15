@@ -175,8 +175,8 @@ namespace OniMoono.GameTweaks
         }
 
         /// The methods whose patching by another owner makes an enabled tweak step aside (each
-        /// tweak's own list, which its check reads), and which kinds of patch count there
-        /// (`kindsOf`, default all).
+        /// tweak's Guarded list: its check reads the same methods), and which kinds of patch
+        /// count there (`kindsOf`, default all).
         static Dictionary<(Module, int), List<(string, ProbeRepairPolicy.GuardedKinds)>> Guards()
         {
             var guards = new Dictionary<(Module, int), List<(string, ProbeRepairPolicy.GuardedKinds)>>();
