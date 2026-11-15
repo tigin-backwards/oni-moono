@@ -493,11 +493,15 @@ again. On a late-game colony that is about 50 µs for each item a bridge moves.
 
 `direct-rail-bridges` (Simulation) is on by default but left out of `exact`, as the rails'
 internal handles and the world inventory's empty lists differ (below). With it the item only
-changes rail tile, as it does between two plain rail tiles, and the tweak does by hand the few
-things the round trip leaves behind: the tile the
-item is filed under, the event that weight plates and other sensors of that tile listen for, the
-conveyor overlay's look, and for an egg its incubation monitor's two notices. A split item (a
-meter reaching its limit) is moved by the game's own code.
+changes rail tile, as it does between two plain rail tiles. The tweak does by hand the few
+things the round trip leaves behind:
+
+- The tile the item is filed under.
+- The event that weight plates and other sensors of that tile listen for.
+- The conveyor overlay's look.
+- For an egg, its incubation monitor's two notices.
+
+A split item (a meter reaching its limit) is moved by the game's code.
 
 What is the same: what the rails carry and when, masses, temperatures and heat exchange, germs,
 freshness, eggs (an egg at 100% still starts hatching at a bridge, as in the game), the meter's
@@ -509,25 +513,32 @@ What differs:
   Conveyor overlay opened or closed while two rail items overlap on screen, they may be drawn in
   the other order.
 - An item Duplicants can reach is, in the game, listed as fetchable for the instant of the
-  crossing. Nothing can fetch it in that instant; the world inventory keeps empty lists for its
-  tags because of it, and with the tweak those lists are made when an item of that kind is first
-  really fetchable. The amounts shown are the same.
+  crossing. Nothing can fetch it in that instant, but the world inventory keeps empty lists for
+  its tags because of it. With the tweak those lists are made when an item of that kind is
+  first really fetchable. The amounts shown are the same.
 - Internal handles (the fetch manager's, the partitioner's, the item's status-item order) differ.
 
-What still crosses the game's way: a kind of item the colony has not discovered yet (the
-crossing can be what discovers it), critters, anything with a storage of its own, items a mod has
-added a component or state machine to, and any item not in the state the rails leave items in.
+What still crosses the game's way:
+
+- A kind of item the colony has not discovered yet (the crossing can be what discovers it).
+- Critters.
+- Anything with a storage of its own.
+- Items a mod has added a component or state machine to.
+- Any item not in the state the rails leave items in.
+
 The tweak turns itself off while another mod patches the bridge's update, the rails' add or
 remove, or the item's and the egg's store handlers.
 
-With `ONI_TWEAK_VERIFY=1` every other eligible move is made by the game's round trip, and the
-item after both kinds of move is compared with what the audit says the round trip leaves (tags,
-storage, parent, position, rotation, filed tile, mass, temperature, germs, sim chunk, overlay
-look, selectable, save list, listeners, faller, reservations, status items, every state machine's
-state, freshness, the egg's amounts, discovered kinds, the rail's contents and handle).
-On a late-game colony, 150 s at speed 3: 12,928 direct moves and 12,928 of the game's round
-trips compared, 0 wrong. On that colony (Linux, speed 3) the bridges' update went from 2.56 to
-1.46 ms a game second and the rails' whole step from 5.72 to 4.35 ms.
+**Verify.** With `ONI_TWEAK_VERIFY=1` every other eligible move is made by the game's round
+trip. The item after both kinds of move is compared with what the audit says the round trip
+leaves (tags, storage, parent, position, rotation, filed tile, mass, temperature, germs, sim
+chunk, overlay look, selectable, save list, listeners, faller, reservations, status items,
+every state machine's state, freshness, the egg's amounts, discovered kinds, the rail's
+contents and handle). On a late-game colony, 150 s at speed 3: 12,928 direct moves and 12,928
+of the game's round trips compared, 0 wrong.
+
+**Measured.** On that colony (Linux, speed 3) the bridges' update went from 2.56 to 1.46 ms a
+game second and the rails' whole step from 5.72 to 4.35 ms.
 
 The audit, row by row, is [research/rail-bridge-moves.md](research/rail-bridge-moves.md).
 
@@ -535,23 +546,28 @@ The audit, row by row, is [research/rail-bridge-moves.md](research/rail-bridge-m
 
 Off by default (`sim-step-pace`, in the Changes gameplay group, not in `exact`).
 
-The game steps its simulation five times a second, each step 0.2 s of game time
-(`Game.SimEveryTick`). On a frame with no game time to step, which at normal speed happens only
-above 60 fps, it also calls the simulation with no time (`UnsafeSim200ms(0)`). That call reads
-the simulation's state back, so the frame waits for the step still running (a median 25 ms on a
-large modded colony on Windows), and it runs another pass of the simulation, about 10 ms of CPU
-each. Measured on Windows on a large modded colony at 1×, off against on in alternating
-segments of one run: 112 → 220 fps, frame times p50 7.4 → 3.9 ms and p99 34 → 12 ms, the sim's
-CPU about 160 → 38 ms a step.
+**In the game.** The game steps its simulation five times a second, each step 0.2 s of game
+time (`Game.SimEveryTick`). On a frame with no game time to step, which at normal speed happens
+only above 60 fps, it also calls the simulation with no time (`UnsafeSim200ms(0)`). That call
+reads the simulation's state back, so the frame waits for the step still running (a median
+25 ms on a large modded colony on Windows). It also runs another pass of the simulation, about
+10 ms of CPU each.
 
-With the tweak those calls are left out, so the simulation is called only at its steps, as the
-game already does below 60 fps and at speeds 2 and 3. Sub-ticks, errands and the steps themselves
-run as in the game. What changes, above 60 fps at normal speed: a change the game asks of the
-simulation (a dug tile, a built tile, a door) shows when the next step's results come back, about
-0.3 s later than without the tweak (median 27 → 310 ms for a dug tile, at most about 0.4 s), as it
-does below 60 fps. Paused, the game's calls still run, so tools
-used while paused show at once. While another mod patches `Game.SimEveryTick` or
-`Game.UnsafeSim200ms`, the game's own code runs (`sim-step-pace: off (...)` in Player.log).
+**With the tweak** those calls are left out, so the simulation is called only at its steps, as
+the game already does below 60 fps and at speeds 2 and 3. Sub-ticks, errands and the steps
+themselves run as in the game.
+
+**What changes,** above 60 fps at normal speed: a change the game asks of the simulation (a dug
+tile, a built tile, a door) shows when the next step's results come back. That is about 0.3 s
+later than without the tweak (median 27 → 310 ms for a dug tile, at most about 0.4 s), as it is
+below 60 fps. Paused, the game's calls still run, so tools used while paused show at once.
+
+**Other mods.** While another mod patches `Game.SimEveryTick` or `Game.UnsafeSim200ms`, the
+game's code runs (`sim-step-pace: off (...)` in Player.log).
+
+**Measured** on Windows on a large modded colony at 1×, off against on in alternating segments
+of one run: 112 → 220 fps, frame times p50 7.4 → 3.9 ms and p99 34 → 12 ms, the sim's CPU about
+160 → 38 ms a step.
 
 ### Items lost below a world
 
@@ -565,20 +581,27 @@ below the grid's bottom row and is stepped forever. A colony with a chute like t
 them: 17,539 on a pile-heavy colony, where the step is 4.4 ms of a 35 ms frame.
 
 The tweak lands such an item where it hangs, through the game's own landing for items, once a
-step has left it in place and no later step could move it: it falls straight down, the cell
-under it is below the grid (so no liquid can slow it), and at half its speed its next position
-would still be below the grid. Then it no longer counts as falling. Nothing on screen changes,
-and neither does the save: gravity is not saved, so after a load the items fall again until
-their first step lands them. No Landed event is sent, as none would be in the game. If the
-rocket is taken apart and its items are moved to the world below, a landed item falls from rest
-instead of at the speed it had. An item that hangs with a grid cell still under it is not
-landed: below an interior that is not on the grid's bottom rows, or stopped high enough in the
-bottom row.
+step has left it in place and no later step could move it. That is when:
+
+- It falls straight down.
+- The cell under it is below the grid (so no liquid can slow it).
+- At half its speed its next position would still be below the grid.
+
+Then it no longer counts as falling. What that changes and what it doesn't:
+
+- Nothing on screen changes, and neither does the save. Gravity is not saved, so after a load
+  the items fall again until their first step lands them.
+- No Landed event is sent, as none would be in the game.
+- If the rocket is taken apart and its items are moved to the world below, a landed item falls
+  from rest instead of at the speed it had.
+- An item that hangs with a grid cell still under it is not landed: below an interior that is
+  not on the grid's bottom rows, or stopped high enough in the bottom row.
 
 The game's step itself is not patched. Until 2026-11-14 the tweak was a transpiler of it, and a
 Harmony-patched copy of that loop runs about half as slow again for every falling object
-(1.79 against 1.47 ms a call for 17,566 objects on that colony, Windows). The tweak now runs around the step, from the scheduler's call that holds
-it (`KComponentSpawn.Sim33ms`; the gravity step is the only work in it):
+(1.79 against 1.47 ms a call for 17,566 objects on that colony, Windows). The tweak now runs
+around the step, from the scheduler's call that holds it (`KComponentSpawn.Sim33ms`; the
+gravity step is the only work in it):
 
 - **Before the step** it notes the falling items within 16 cells of the grid's bottom row,
   with their positions. Every falling item is looked at about twice a game second (sooner when
@@ -588,23 +611,31 @@ it (`KComponentSpawn.Sim33ms`; the gravity step is the only work in it):
   the ones that hang for good, in the step's order.
 
 These are the items the transpiler landed, after the same step and in the same order (the unit
-tests run both against a copy of the game's step). Two cases land later than they did: an item
-that starts falling during a step already where it hangs (from another object's landing), by
-one step; and one that something else moves to where it hangs, by up to half a game second.
+tests run both against a copy of the game's step). Two cases land later than they did:
 
-While another mod patches the gravity step with anything but a postfix, the tweak is off for
-the session (`off-world-fallers: off (...)` in Player.log): its tests mirror the game's step.
-The transpiler ran alongside such patches; Bubbles Bathtub, Floating[fix], Cooperative Colonies
-and Fast Track's No Splash patch that step. `ONI_TWEAK_VERIFY=1` installs the transpiler as
-well, only noting what it would land, compares each step's landings with its list, and checks
-each landed item for having stopped falling where it was.
+- An item that starts falling during a step already where it hangs (from another object's
+  landing): by one step.
+- An item that something else moves to where it hangs: by up to half a game second.
 
-Measured on Windows at speed 3, in one launch started without the tweak, 10 s blocks
-(2026-11-14, U60 763023): on the pile-heavy colony the game's step took 1.47 ms a call, 1.50
-with the tweak's hook installed and idle, and 0.02 once the 17,539 items had landed; the frame
-went from 35.7 to 26.7 ms (28.0 to 37.5 fps). On a mid-game colony with 3 such items the step
-took 6 to 7 µs a call with the tweak off, idle or on. Details in
-[research/pile-heavy-colony.md](research/pile-heavy-colony.md).
+**Other mods.** While another mod patches the gravity step with anything but a postfix, the
+tweak is off for the session (`off-world-fallers: off (...)` in Player.log), because its tests
+mirror the game's step. The transpiler ran alongside such patches. Bubbles Bathtub,
+Floating[fix], Cooperative Colonies and Fast Track's No Splash patch that step.
+
+**Verify.** `ONI_TWEAK_VERIFY=1` installs the transpiler as well, only noting what it would
+land. It compares each step's landings with its list, and checks each landed item for having
+stopped falling where it was.
+
+**Measured** on Windows at speed 3, in one launch started without the tweak, 10 s blocks
+(2026-11-14, U60 763023):
+
+- On the pile-heavy colony the game's step took 1.47 ms a call, 1.50 with the tweak's hook
+  installed and idle, and 0.02 once the 17,539 items had landed. The frame went from 35.7 to
+  26.7 ms (28.0 to 37.5 fps).
+- On a mid-game colony with 3 such items the step took 6 to 7 µs a call with the tweak off,
+  idle or on.
+
+Details in [research/pile-heavy-colony.md](research/pile-heavy-colony.md).
 
 ### Animation events
 
@@ -614,13 +645,16 @@ its play speed. With `fast-anim-events` the loop is the same, entry by entry, bu
 come from a compact copy, refreshed whenever the game changes them (an animation started, queued
 or swapped, a mode set, a controller destroyed, an animation's events restarted).
 
-It stands down for the session, logged once (`fast-anim-events: off (...)`), when another mod
-patches the loop or the methods it copies or reads (`PlayEvents`, `StopEvents`, the frame index,
-the play speed), checked at the first frame in a colony. A postfix alone keeps it on, except on
-the methods it copies or reads. On the methods whose changes refresh the copy only a finalizer
-counts: the refresh is marked after anything else a mod's patch does there (Fast Track's
-animation options patch one). With `ONI_TWEAK_VERIFY=1` every entry's copy is compared with the
-controller's own, and differences are logged.
+**Other mods.** It stands down for the session, logged once (`fast-anim-events: off (...)`),
+when another mod patches the loop or the methods it copies or reads (`PlayEvents`,
+`StopEvents`, the frame index, the play speed). That is checked at the first frame in a colony.
+
+- A postfix alone keeps it on, except on the methods it copies or reads.
+- On the methods whose changes refresh the copy only a finalizer counts. The refresh is marked
+  after anything else a mod's patch does there (Fast Track's animation options patch one).
+
+**Verify.** With `ONI_TWEAK_VERIFY=1` every entry's copy is compared with the controller's own,
+and differences are logged.
 
 A mod that writes an animation's play speed directly, without restarting the animation, isn't
 seen until the animation next changes. On screen its events stay within 0.01 s of it (each frame
@@ -630,30 +664,37 @@ their timing drifts from the animation until it next changes.
 ### The Load screen
 
 Each refresh of the Load screen (opening it, Load more, a conversion between cloud and local)
-lists every save twice and reads each one's header four times. With `fast-load-screen` a refresh
-reads each header once (a later read of the same file in the refresh, while its listed time is
-the same, gets a copy of the first), reads them ahead on 8 threads, and still parses and logs
-them in the game's order: the colonies, their order and the log are the game's, and a read that
-fails is read and logged again as the game would. While the screen is shown, a preview whose
-file has the same bytes as one already made gets the same pixels without being decoded or, on
-U60, drawn and read back from the GPU again; each preview is still read from its file and is a
-new texture of the game's own. With `ONI_TWEAK_VERIFY=1` each header and preview kept is checked
-against the game's own read ([measurements](research/load-screen-many-saves.md#results-2026-11-03)).
+lists every save twice and reads each one's header four times.
 
-`fix-load-screen-clicks` fixes a bug in the game's own code (U59 and U60). Each refresh adds the
-colony list's click handler to the rows already shown again, without removing the old one, so
-after k Load more clicks one click on a colony of an earlier page builds that colony's list of
-saves k + 1 times in one frame (seconds for a colony of hundreds of saves); the last build stays
-on screen. With the tweak a row keeps only the handler of the refresh that filled it. The screen
-ends up the same; what differs from the original is that the colony is built once a click, so
-the earlier builds' log lines (`Failed to find cluster ...` for a save of an unknown cluster)
-are not written, a mod patching `LoadScreen.ShowColony` sees one call instead of k + 1, and the
-rows those builds made and destroyed within the frame are not made. It is on by default (the
-player's choice), but in the Bug fixes group and left out of `exact`, since the original does
-the repeated work. It installs only where the Load screen still has the bug: when a game update
-changes `LoadScreen.AddColonyToList` or the fields the fix reads, or the method no longer adds
-the handler without clearing the button first, the tweak is left out with one line in
-Player.log (`fix-load-screen-clicks: left out, ...`).
+**`fast-load-screen`:**
+
+- **Headers.** A refresh reads each header once. A later read of the same file in the refresh,
+  while its listed time is the same, gets a copy of the first. Headers are read ahead on 8
+  threads, and still parsed and logged in the game's order. The colonies, their order and the
+  log are the game's, and a read that fails is read and logged again as the game would.
+- **Previews.** While the screen is shown, a preview whose file has the same bytes as one
+  already made gets the same pixels without being decoded or, on U60, drawn and read back from
+  the GPU again. Each preview is still read from its file and is a new texture of the game's.
+- **Verify.** With `ONI_TWEAK_VERIFY=1` each header and preview kept is checked against the
+  game's own read ([measurements](research/load-screen-many-saves.md#results-2026-11-03)).
+
+**`fix-load-screen-clicks`** fixes a bug in the game's code (U59 and U60):
+
+- **The bug.** Each refresh adds the colony list's click handler to the rows already shown
+  again, without removing the old one. After k Load more clicks, one click on a colony of an
+  earlier page builds that colony's list of saves k + 1 times in one frame (seconds for a colony
+  of hundreds of saves). The last build stays on screen.
+- **The fix.** A row keeps only the handler of the refresh that filled it.
+- **What differs from the original.** The screen ends up the same, but the colony is built once
+  a click. So the earlier builds' log lines (`Failed to find cluster ...` for a save of an
+  unknown cluster) are not written, a mod patching `LoadScreen.ShowColony` sees one call instead
+  of k + 1, and the rows those builds made and destroyed within the frame are not made.
+- **Default.** It is on by default (the player's choice), but in the Bug fixes group and left
+  out of `exact`, since the original does the repeated work.
+- **Game updates.** It installs only where the Load screen still has the bug. When a game update
+  changes `LoadScreen.AddColonyToList` or the fields the fix reads, or the method no longer adds
+  the handler without clearing the button first, the tweak is left out with one line in
+  Player.log (`fix-load-screen-clicks: left out, ...`).
 
 ### The loading screen
 
@@ -664,22 +705,26 @@ presenter thread shows the loading screen again 30 times a second with a thin ba
 start-up splash's place and colours, until the colony's first frame, on Vulkan and on OpenGL;
 nothing is drawn over a game frame. A loading overlay that no scene load follows within 250 ms gets a pulse instead.
 
-The bar's phases are the scene switch, the save read, its decompression, the world set up, the
-objects loaded (`SaveManager.Load`), what follows, and the Start pass that spawns every object.
-What moves the bar within a phase is the engine's or .NET's: the zlib stream's position in the
-compressed bytes (with `fast-save-compression`), the reader's position in the decompressed body,
-the engine's Start queue counted. The game's own methods (`SaveLoader.DecompressContents`,
-`SaveManager.Load`) only mark where a phase starts, with prefixes and postfixes that change
-nothing; when one is missing after a game update, or another mod transpiles `SaveManager.Load`,
-that phase moves by time instead, and the load is not affected. Each phase takes the share of
-the bar it took the last time the same save (by path and size) was loaded, kept in
-`oni-moono/load-times.json` (32 saves at most); a save never loaded uses a mid-game colony's.
-Within a phase without a count, the bar moves about 80% of the way by the phase's expected time
-and creeps on after; it never goes back.
+The bar:
 
-A kanim the loading screen plays (Pip Licks Butt's Pip) keeps playing: when the load starts, the
-overlay is drawn once for each frame of the kanim's anim into a texture of its own, with only the
-frame number in the kanim batch's data changed and put back, and the presenter plays them on at
+- **Phases:** the scene switch, the save read, its decompression, the world set up, the objects
+  loaded (`SaveManager.Load`), what follows, and the Start pass that spawns every object.
+- **What moves it within a phase** is the engine's or .NET's: the zlib stream's position in the
+  compressed bytes (with `fast-save-compression`), the reader's position in the decompressed
+  body, the engine's Start queue counted.
+- **The game's methods** (`SaveLoader.DecompressContents`, `SaveManager.Load`) only mark where a
+  phase starts, with prefixes and postfixes that change nothing. When one is missing after a
+  game update, or another mod transpiles `SaveManager.Load`, that phase moves by time instead,
+  and the load is not affected.
+- **Shares.** Each phase takes the share of the bar it took the last time the same save (by path
+  and size) was loaded, kept in `oni-moono/load-times.json` (32 saves at most). A save never
+  loaded uses a mid-game colony's.
+- **Without a count,** the bar moves about 80% of the way through a phase by the phase's
+  expected time and creeps on after. It never goes back.
+
+A kanim the loading screen plays (Pip Licks Butt's Pip) keeps playing. When the load starts, the
+overlay is drawn once for each frame of the kanim's anim into a separate texture, with only the
+frame number in the kanim batch's data changed and put back. The presenter plays them on at
 the anim's rate. That costs 3 to 11 ms (at most 50 ms; past that it is not replayed). With
 `ONI_TWEAK_VERIFY=1` the first frame replayed is compared with the frame the screen shows, pixel
 by pixel, and the log says how many differ.
@@ -691,17 +736,21 @@ instances until its Studio thread runs out of CPU: the game then stalls in an FM
 silent, or freezes for good (issue #51; [measurements](research/vole-audio.md#the-two-sound-fixes-2026-11-04)).
 The tweak is on by default, in the Bug fixes group and left out of `exact`.
 
-`fix-sound-piles` limits how many copies of one sound start in one cell in one frame. A one-shot
-over that limit (3) of the same event, in the same cell, in the same frame, is not made. Only 3D
-one-shot events are counted, played anywhere but the origin, where the game plays its menu, UI
-and screen sounds; looping, 2D and UI sounds are never skipped. What differs from the original:
-where many critters stand in one cell (1,500 Shove Voles in one cell start about 2,400 landing
-sounds a second, all at one point), only the first copies of each frame play, so a pile sounds
-quieter, and the game doesn't freeze. Events that read the game's `objectCount` parameter see
-the copies made. In normal colonies it fires only where critters or Duplicants crowd one cell
-(a ranch, a fish tank), and in the six colonies measured only on sounds whose FMOD event plays
-one copy at a time anyway, so the copies it skipped would not have played. Player.log notes how
-many it skipped, at most once a minute (`fix-sound-piles: skipped ...`).
+**`fix-sound-piles`** limits how many copies of one sound start in one cell in one frame:
+
+- **The limit.** A one-shot over the limit (3) of the same event, in the same cell, in the same
+  frame, is not made.
+- **What counts.** Only 3D one-shot events, played anywhere but the origin, where the game plays
+  its menu, UI and screen sounds. Looping, 2D and UI sounds are never skipped.
+- **What differs from the original.** Where many critters stand in one cell (1,500 Shove Voles
+  in one cell start about 2,400 landing sounds a second, all at one point), only the first
+  copies of each frame play. A pile sounds quieter, and the game doesn't freeze. Events that
+  read the game's `objectCount` parameter see the copies made.
+- **In normal colonies** it fires only where critters or Duplicants crowd one cell (a ranch, a
+  fish tank). In the six colonies measured it fired only on sounds whose FMOD event plays one
+  copy at a time anyway, so the copies it skipped would not have played.
+- **The log.** Player.log notes how many it skipped, at most once a minute
+  (`fix-sound-piles: skipped ...`).
 
 ### The sound memory guard
 
@@ -761,16 +810,20 @@ reach the log through a lock-free queue the main thread empties each frame. Off,
 as it always has: nothing is patched or called.
 
 Measured on a late-game colony of 22 Duplicants with a very large base (Windows, 2026-11-11, at
-speed 3): FMOD made 16,000-19,000 allocations a second, almost all of blocks up to 16 KB (about
-4 MB/s of them, and 1 MB/s of larger ones), and held about 325 MB live in 470,000 blocks. The
-allocator held at most 417 MB: the 32 MB quarantine, 14 MB of side tables, and the rest from
-rounding blocks up to their size class and from slabs not full. That is about 90 MB over what
-FMOD has live, and 38 MB more than with the first version's private heap, which held at most
-379 MB (its 32-byte headers, not Windows' own heap overhead). Freed blocks stayed in the
-quarantine for about 6.4 s (2.5 s on a mid-game colony of 50 Duplicants, where FMOD frees
-12 MB/s). The frame rate was the same with either version (93-100 fps). An allocation and its
-free cost about 140 ns on one thread, as with the private heap; eight threads at once ran 27 %
-faster. No problem was found.
+speed 3):
+
+- **FMOD's load:** 16,000-19,000 allocations a second, almost all of blocks up to 16 KB (about
+  4 MB/s of them, and 1 MB/s of larger ones). It held about 325 MB live in 470,000 blocks.
+- **The allocator** held at most 417 MB: the 32 MB quarantine, 14 MB of side tables, and the
+  rest from rounding blocks up to their size class and from slabs not full. That is about 90 MB
+  over what FMOD has live, and 38 MB more than with the first version's private heap, which
+  held at most 379 MB (its 32-byte headers, not Windows' own heap overhead).
+- **Quarantine time:** freed blocks stayed for about 6.4 s (2.5 s on a mid-game colony of 50
+  Duplicants, where FMOD frees 12 MB/s).
+- **Frame rate:** the same with either version (93-100 fps).
+- **Cost:** an allocation and its free cost about 140 ns on one thread, as with the private
+  heap. Eight threads at once ran 27 % faster.
+- No problem was found.
 
 In a replay of #78's writes (stale writes on 300 freed instances a round, after the quarantine
 has moved on), the first version failed with 0xC0000374 in the first round of every run; this
@@ -893,27 +946,37 @@ such a bus: ten of them started and released in one frame write to freed memory 
   original's `mov edi, eax` kept after the call, and an error sent to the original's logging
   path.
 
-Every other path runs the same instructions on the same state; the STOPPED and DESTROYED callbacks
-come in the same order. It is applied in a postfix on FMODUnity's `RuntimeManager.Initialize` once
-FMOD Studio runs, before the game has made any instance, and only when all three match: FMOD's own
-version (2.03.12 build 160365, as the core library reports it to the core system's getVersion),
-the SHA-256 of the loaded Studio library's file (U59's `fmodstudio.dll` and `libfmodstudio.so`,
-and U60's `fmodstudioL.dll` and `libfmodstudioL.so`, the same in every U60 build so far, 761015 to
-763023), and every byte the patch relies on: the site and what follows it to the epilogue, and the
-destroy's code (on Windows also the slack still empty). Anything else, such as a game update that
-ships another FMOD, and nothing is written: `fmod-steal-fix: not applied, …` names what did not
-match, and `fmod-quarantine` stays the only guard. `fmod-steal-fix: FMOD 2.03.12's store …` says
-it is in; on Windows the line at quit counts the stores skipped.
+Every other path runs the same instructions on the same state, and the STOPPED and DESTROYED
+callbacks come in the same order.
 
-**Measured** (2026-11-11). FMOD's own repro, with the game's banks and library (ten TileSnow
-instances started and released in one batch), on Windows and Linux, synchronous and
-asynchronous update, with U59's libraries and with U60's logging ones: two writes to freed
-memory without the patch, none with it (the Windows counter: 2 stores skipped); with the sample data loaded first (the control) none either way, and
-nothing skipped. The callbacks come in the same order with and without it. In the game on
-Windows the patch is applied at start and the colony plays on; a test that started and released
-ten TileSnow instances every 5 seconds for 50 seconds of a late-game colony stole no loading
-instance (0 skipped), and three sessions of 25 minutes or less without the patch logged none of
-its writes either: on that colony the path is rare.
+**When it applies.** It is applied in a postfix on FMODUnity's `RuntimeManager.Initialize` once
+FMOD Studio runs, before the game has made any instance, and only when all three match:
+
+- FMOD's version (2.03.12 build 160365, as the core library reports it to the core system's
+  getVersion).
+- The SHA-256 of the loaded Studio library's file (U59's `fmodstudio.dll` and
+  `libfmodstudio.so`, and U60's `fmodstudioL.dll` and `libfmodstudioL.so`, the same in every
+  U60 build so far, 761015 to 763023).
+- Every byte the patch relies on: the site and what follows it to the epilogue, and the
+  destroy's code (on Windows also the slack still empty).
+
+With anything else, such as a game update that ships another FMOD, nothing is written.
+`fmod-steal-fix: not applied, …` names what did not match, and `fmod-quarantine` stays the only
+guard. `fmod-steal-fix: FMOD 2.03.12's store …` says it is in. On Windows the line at quit
+counts the stores skipped.
+
+**Measured** (2026-11-11):
+
+- **FMOD's own repro,** with the game's banks and library (ten TileSnow instances started and
+  released in one batch), on Windows and Linux, synchronous and asynchronous update, with U59's libraries
+  and with U60's logging ones: two writes
+  to freed memory without the patch, none with it (the Windows counter: 2 stores skipped). With
+  the sample data loaded first (the control) there were none either way, and nothing skipped.
+  The callbacks come in the same order with and without it.
+- **In the game on Windows** the patch is applied at start and the colony plays on. A test that
+  started and released ten TileSnow instances every 5 seconds for 50 seconds of a late-game
+  colony stole no loading instance (0 skipped). Three sessions of 25 minutes or less without
+  the patch logged none of its writes either. On that colony the path is rare.
 
 ### The colony snapshot fix
 
@@ -935,21 +998,27 @@ set up the post-effects for the screen (16:9), 2.67 times wider than the image:
 - The light buffer, drawn by a camera of its own into a screen-sized texture, covers the screen's
   frame and is read with the image's coordinates: lights are squeezed 2.67 times sideways.
 
-Measured on an early Spaced Out colony whose snapshot frame reaches left of the grid (the
+**Measured** on an early Spaced Out colony whose snapshot frame reaches left of the grid (the
 pod at x = 124, the frame 2 × 170 cells high), in the original and in Moono without the tweak
-(2026-11-10): with a ladder picked, the image's left 150 columns are covered with stripes
-(their brightness steps 15 times more from a column to the next than from a row to the next,
-and they are 119 levels brighter on average than the image); with no tool picked they are not.
-The two players' images agree to under 0.3% of pixels. The building preview (on the `Place`
-layer, which the snapshot's camera draws) did not show in the original's snapshot, nor did
-anything else that follows the pointer.
+(2026-11-10):
 
-With the tweak, for the capture's render only, the grid compositor is off, and `_WsToCs` and
-`_WsToCcs` are set for the image's own frame (the base camera's position and size at the image's
-aspect, with `Game.LateUpdate`'s formulas). In the frame of the capture, the light buffer camera
-draws at the image's aspect; the screen is behind the Timelapser's freeze frame then, so a player
-sees no change. Each of these is set back right after the render, also when it fails. In U60,
-which reads the image back asynchronously, the readback is queued before they are set back.
+- With a ladder picked, the image's left 150 columns are covered with stripes. Their brightness
+  steps 15 times more from a column to the next than from a row to the next, and they are 119
+  levels brighter on average than the image. With no tool picked they are not.
+- The two players' images agree to under 0.3% of pixels.
+- The building preview (on the `Place` layer, which the snapshot's camera draws) did not show in
+  the original's snapshot, nor did anything else that follows the pointer.
+
+**With the tweak,** for the capture's render only:
+
+- The grid compositor is off.
+- `_WsToCs` and `_WsToCcs` are set for the image's frame (the base camera's position and size at
+  the image's aspect, with `Game.LateUpdate`'s formulas).
+- In the frame of the capture, the light buffer camera draws at the image's aspect. The screen
+  is behind the Timelapser's freeze frame then, so a player sees no change.
+
+Each of these is set back right after the render, also when it fails. In U60, which reads the
+image back asynchronously, the readback is queued before they are set back.
 
 ### The table scroll fix
 
@@ -980,35 +1049,44 @@ and checks that they never move back.
 `lazy-table-refresh` (Graphics & overlays) changes when a table screen's rows are brought up to
 date. It is on by default but left out of `exact`, as it changes when the game's code runs.
 
-Once a second the render 1000 ms bucket marks every column of the table screens dirty
-(`TableColumn.Render1000ms`), and the open table's next `ScreenUpdate` runs each column's load
-action on the widget of every row: on a colony of 200 Duplicants, thousands of widgets in one
-frame, most of them scrolled out of sight. With the tweak that frame updates the rows within the
-table's scroll view or within one view's height of it, in the game's order, and marks the others
-stale. Each frame, before the canvases are laid out and drawn (`Canvas.preWillRenderCanvases`), a
-stale row that has come that close (scrolled, the view resized, the rows laid out again) brings
-every stale row up to date, with the load actions each missed, in the same order: a row's texts
-changing lays the whole table out again, so catching rows up one or two a frame while a list
-scrolls would lay it out every frame. While the list is being scrolled (it moved within the last
-1.5 seconds) the update is the game's own, of every row, as that lays the table out once a second
-and no more. Sorting the rows first brings every stale row up to date.
+**The once-a-second update.** Once a second the render 1000 ms bucket marks every column of the
+table screens dirty (`TableColumn.Render1000ms`), and the open table's next `ScreenUpdate` runs
+each column's load action on the widget of every row. On a colony of 200 Duplicants that is
+thousands of widgets in one frame, most of them scrolled out of sight. With the tweak:
 
-The same goes for the frame in which a table goes through its rows (`TableScreen.RefreshRows`:
-each time it is opened, and when a Duplicant is added or removed). The game then runs every load
-action of every row it already has, 17,000 of them for Consumables on a colony of 200
-Duplicants. With the tweak a row the table already had runs them only when it is near sight,
-before the rows are sorted and laid out or, when that brought it near, right after; the others
-are marked stale for every column and caught up as above. A row made in that frame is loaded as
-the game loads it, and a table opened for the first time is the game's throughout.
+- That frame updates the rows within the table's scroll view or within one view's height of it,
+  in the game's order, and marks the others stale.
+- Each frame, before the canvases are laid out and drawn (`Canvas.preWillRenderCanvases`), a
+  stale row that has come that close (scrolled, the view resized, the rows laid out again)
+  brings every stale row up to date, with the load actions each missed, in the same order. A
+  row's texts changing lays the whole table out again, so catching rows up one or two a frame
+  while a list scrolls would lay it out every frame.
+- While the list is being scrolled (it moved within the last 1.5 seconds) the update is the
+  game's, of every row, as that lays the table out once a second and no more.
+- Sorting the rows first brings every stale row up to date.
 
-A row scrolled into view then shows values read as it comes into view, at most a second newer
-than the game would show; a mod reading the text of widgets out of sight would read older
-values. Every row and object stays as the game made it. With `ONI_TWEAK_VERIFY=1` each update
-also runs the game's own, of every row, and the widgets of the rows in sight must read the same
-after both (texts, sprites, colours, toggles' states, active objects); and no stale row may lie in
-the view in any frame. The tweak stands down when another mod patches the table's `ScreenUpdate`,
-`SortRows` or `RefreshRows`, a row's `RefreshColumns`, or the columns' `Render1000ms`, `MarkDirty`
-or `MarkClean`.
+**Opening a table.** The same goes for the frame in which a table goes through its rows
+(`TableScreen.RefreshRows`: each time it is opened, and when a Duplicant is added or removed).
+The game then runs every load action of every row it already has, 17,000 of them for
+Consumables on a colony of 200 Duplicants. With the tweak:
+
+- A row the table already had runs them only when it is near sight, before the rows are sorted
+  and laid out or, when that brought it near, right after.
+- The others are marked stale for every column and caught up as above.
+- A row made in that frame is loaded as the game loads it, and a table opened for the first
+  time is the game's throughout.
+
+**What differs.** A row scrolled into view shows values read as it comes into view, at most a
+second newer than the game would show. A mod reading the text of widgets out of sight would
+read older values. Every row and object stays as the game made it.
+
+**Verify.** With `ONI_TWEAK_VERIFY=1` each update also runs the game's, of every row, and the
+widgets of the rows in sight must read the same after both (texts, sprites, colours, toggles'
+states, active objects). No stale row may lie in the view in any frame.
+
+**Other mods.** The tweak stands down when another mod patches the table's `ScreenUpdate`,
+`SortRows` or `RefreshRows`, a row's `RefreshColumns`, or the columns' `Render1000ms`,
+`MarkDirty` or `MarkClean`.
 
 Measured on Windows (Vulkan, speed 3, exact tweaks with and without it, two launches each,
 2026-11-13), the once-a-second update's cost over the two frames around it, and the mean frame,
@@ -1028,17 +1106,18 @@ Schedule screen, which is not a table of this kind, ran the same with and withou
 `fast-table-rows` (Graphics & overlays, exact, on by default) takes two searches out of the
 frame in which a table screen builds its rows, the first time it is opened.
 
-Every cell's load action asks the table which row and which column its widget belongs to
-(`TableScreen.GetWidgetRow`, `GetWidgetColumn`). The table remembers each answer, but finds it
-the first time by going through its rows, or its columns, in order and searching each one's
-widgets for this one. For R rows of C columns that compares widgets about R²C² / 2 times for the
-rows and R²C² / 4 for the columns; Consumables has some 80 columns. With the tweak, before a
-row's cells are loaded (`TableRow.RefreshColumns`), each of its widgets is entered in the table's
-two dictionaries with the row and the column it was made for, so the game's lookups find every
-answer at once. The answers are the game's: the first row of the table's list that holds the
-widget and the first of its columns that does.
+**The first search.** Every cell's load action asks the table which row and which column its
+widget belongs to (`TableScreen.GetWidgetRow`, `GetWidgetColumn`). The table remembers each
+answer, but finds it the first time by going through its rows, or its columns, in order and
+searching each one's widgets for this one. For R rows of C columns that compares widgets about
+R²C² / 2 times for the rows and R²C² / 4 for the columns. Consumables has some 80 columns.
 
-Each of Consumables' food cells also ends its load action with
+With the tweak, before a row's cells are loaded (`TableRow.RefreshColumns`), each of its widgets
+is entered in the table's two dictionaries with the row and the column it was made for, so the
+game's lookups find every answer at once. The answers are the game's: the first row of the
+table's list that holds the widget and the first of its columns that does.
+
+**The second search.** Each of Consumables' food cells also ends its load action with
 `ConsumablesTableScreen.refresh_scrollers`, which counts the discovered foods and then shows or
 hides the scroll bar and border of every row of the table: every row, for each cell of every row.
 Nothing a load action does changes what it reads or writes, so with the tweak it runs for the
@@ -1070,10 +1149,11 @@ screen right after the save: the preview shows.
 
 ### The report history in a save
 
-A colony keeps every day's report for its whole life, and each save writes all of them: on a
-late-game colony (cycle 17,000) about 4 million report entries and their notes, 496 MB of the 707 MB
-a save writes before compression and half of the time the game stands still for it. Two of the
-Saving and Simulation tweaks write that history with code of its own, and the same bytes:
+A colony keeps every day's report for its whole life, and each save writes all of them. On a
+late-game colony (cycle 17,000) that is about 4 million report entries and their notes: 496 MB
+of the 707 MB a save writes before compression, and half of the time the game stands still for
+it. Two of the Saving and Simulation tweaks write that history with separate code, and the same
+bytes:
 
 - **The entries** (`fast-serialization`). The game's serializer writes each day and each entry
   as an object of unknown type: for every one it looks the type's template up, calls it through
@@ -1090,17 +1170,20 @@ Saving and Simulation tweaks write that history with code of its own, and the sa
   save now packs them into blocks of the bytes the game's three writes a note make, instead of
   three calls of the writer for every note.
 
-What the game's serializer does besides writing bytes is kept: the three types' templates enter
-the save's directory at the same first use and in the same order, and a name of 1,024 bytes or
-more logs the game's warning. The typed writer writes only when the three types are exactly the
-fields it knows (checked at start-up: no callback, property or custom serializer among them);
-otherwise the game's walk writes them, as it does for every other type. It also steps aside,
-with a line in `Player.log` (`fast-serialization: the report history keeps the game's writer
-(...)`), while another mod patches a method it stands in for: `Helper.WriteValue`,
-`SerializationTemplate.SerializeData` or its constructor, `Manager.GetSerializationTemplate`,
-`IOHelper.WriteKleiString` or `IOHelper.WriteSingleFast` (Fast Save's Use Delegates and
-BetterSave patch the first three). The notes go out one value at a time while a mod patches
-`WriteSingleFast`.
+What stays the game's:
+
+- **Side effects.** What the game's serializer does besides writing bytes is kept. The three
+  types' templates enter the save's directory at the same first use and in the same order, and
+  a name of 1,024 bytes or more logs the game's warning.
+- **Unknown fields.** The typed writer writes only when the three types are exactly the fields
+  it knows (checked at start-up: no callback, property or custom serializer among them).
+  Otherwise the game's walk writes them, as it does for every other type.
+- **Other mods.** It also steps aside, with a line in `Player.log` (`fast-serialization: the
+  report history keeps the game's writer (...)`), while another mod patches a method it stands
+  in for: `Helper.WriteValue`, `SerializationTemplate.SerializeData` or its constructor,
+  `Manager.GetSerializationTemplate`, `IOHelper.WriteKleiString` or `IOHelper.WriteSingleFast`
+  (Fast Save's Use Delegates and BetterSave patch the first three). The notes go out one value
+  at a time while a mod patches `WriteSingleFast`.
 
 With `ONI_TWEAK_VERIFY=1` each save writes the history both ways into memory, the game's with
 `fast-serialization`'s plans off, and compares the bytes (`fast-serialization: verify: the
@@ -1111,20 +1194,23 @@ report history identical (N bytes against N; ...)`, and the same for today's rep
 
 Before its own file, every save rewrites the colony's summary (`RetiredColonies/NAME/NAME.json`,
 what the main menu's Colony Summaries shows): the Duplicants, the buildings and 16 statistics
-with a point for every cycle, gathered from the game, turned into JSON and written, all on the
-main thread. With `background-save` on, a save still gathers the data on the main thread, and
-the JSON and the file are made on the save's writer, ahead of the save's own write. The gathered
-data is a snapshot (strings, numbers and collections made for it, nothing of the live game), and
-the file's bytes are the same.
+with a point for every cycle. The game gathers them, turns them into JSON and writes the file,
+all on the main thread.
 
-The game's reader of those files (`RetireColonyUtility.LoadRetiredColonies`, the Colony
-Summaries screen) waits for the writer first, as the next save, a load and the end of the run
-do. Every other caller of `SaveColonySummaryData` (an achievement, retiring the colony) gets the
-game's method. So does a save while another mod patches that method or
-`JsonConvert.DefaultSettings` is set, with a line in `Player.log` (`background-save: the colony
-summary is written on the main thread (...)`). With `ONI_TWEAK_VERIFY=1` the JSON is made on
-the main thread too and compared (`background-save: verify: the colony summary's JSON
-identical`).
+With `background-save` on, a save still gathers the data on the main thread. The JSON and the
+file are made on the save's writer, ahead of the save's own write. The gathered data is a
+snapshot (strings, numbers and collections made for it, nothing of the live game), and the
+file's bytes are the same.
+
+- **Readers wait.** The game's reader of those files (`RetireColonyUtility.LoadRetiredColonies`,
+  the Colony Summaries screen) waits for the writer first, as the next save, a load and the end
+  of the run do.
+- **Other callers** of `SaveColonySummaryData` (an achievement, retiring the colony) get the
+  game's method. So does a save while another mod patches that method or
+  `JsonConvert.DefaultSettings` is set, with a line in `Player.log` (`background-save: the
+  colony summary is written on the main thread (...)`).
+- **Verify.** With `ONI_TWEAK_VERIFY=1` the JSON is made on the main thread too and compared
+  (`background-save: verify: the colony summary's JSON identical`).
 
 ## Translating Moono Tweaks
 
