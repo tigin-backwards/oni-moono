@@ -22,7 +22,8 @@ runners"). Linux, under the X display in DISPLAY.
     scripts/perf-spread.py gate SUMMARY.json
         The verdict line of the nightly's gates (the report shows each); exit 1 when one fails: the
         paused draws and every collection count must not rise, paused allocations (also by
-        section) within 5%, running draws within 3%. The interleaved main-thread ratio only warns.
+        section) within 5%, running draws within 3%, and every launch of B finished. The
+        interleaved main-thread ratio only warns.
 
 Settings (environment): SPREAD_GAME (the game folder), SPREAD_STEAM (the Steam double),
 SPREAD_PROBE (PerfProbe's release build), SPREAD_SAVE (the save, else --save).
@@ -769,10 +770,18 @@ def checks(s):
     has = {lab: any(l['label'] == lab and l['windows'] > 0 for l in s['launches']) for lab in ('A', 'B')}
     if not has['B']:
         return [dict(group='hard', name='This commit (B) measured', a=None, b=None, limit='every launch failed', status='fail')]
+    # A launch that ended early (a crash, a timeout) still has windows, and its counts would be
+    # judged as if it had run: one of B's fails the gate, one of A's is said.
+    for lab, name, status in (('B', 'This commit (B)', 'fail'), ('A', 'The release (A)', 'note')):
+        mine = [l for l in s['launches'] if l['label'] == lab]
+        bad = [l['status'] for l in mine if l['status'] != 'ok']
+        if bad:
+            limit = f'{len(bad)} of {len(mine)} did not finish ({", ".join(sorted(set(bad)))})'
+            out.append(dict(group='hard', name=f'{name}: every launch finished', a=None, b=None, limit=limit, status=status))
     if not has['A']:
-        return [
-            dict(group='hard', name='The release (A) measured', a=None, b=None, limit='nothing to compare (it may not run on this game build)', status='note')
-        ]
+        # Meant to pass (docs/PERFORMANCE.md): after a game update the last release may not run.
+        limit = 'nothing to compare (it may not run on this game build)'
+        return out + [dict(group='hard', name='The release (A) measured', a=None, b=None, limit=limit, status='note')]
     counts = s['counts']
 
     def value(phase, key, lab):

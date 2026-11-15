@@ -174,7 +174,8 @@ what moved by a few percent between launches has a tolerance, and the times only
 - Fails the job: the paused colony's draws a frame and every collection count (gen0, gen1 and
   gen2, paused and running) higher than A's; paused allocations a frame more than 5% over A's,
   and each paused update section over 200 B a frame by more than 5% (or by more than A's own
-  launches spread, when that is wider); running draws a frame more than 3% over A's.
+  launches spread, when that is wider); running draws a frame more than 3% over A's; a launch
+  of B that did not finish (a crash, a timeout), whatever the launches that did measured.
 - Warns: main-thread ms a frame while running, B over A across the interleaved pairs, when it is
   past the larger of 3% and twice the pairs' standard deviation over the square root of their
   number (about 3–6% on these runners).
@@ -187,7 +188,7 @@ what moved by a few percent between launches has a tolerance, and the times only
 Each run logs the runner's CPU model. A rise against the release that is meant (a new feature
 that draws more) fails until the next release becomes A; a fall is noted. When A measures nothing
 (a release that does not run on a newer game build), nothing is compared and the job passes with
-a note.
+a note, unless a launch of B did not finish. A launch of A that did not finish is noted.
 
 ## Managed allocations against the original
 
