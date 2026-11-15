@@ -64,13 +64,13 @@ namespace OniMoono.GameTweaks
         /// For tests (E2eDriver's state reads): the turns asked for, by need.
         public static long ToInhale, ToExcrete;
 
-        static readonly Once install = new Once();
-
-        /// Installs the hooks once: `brain-rate` installs them too, for its critter cap.
+        /// Installs the hooks once: `brain-rate` installs them too, for its critter cap. They go
+        /// under the first caller's Harmony ID, and in again if that tweak's install was taken back.
         public static void Install(Harmony harmony)
         {
-            if (!install.First()) return;
-            harmony.Patch(AccessTools.Method(typeof(GasAndLiquidConsumerMonitor), nameof(GasAndLiquidConsumerMonitor.InitializeStates)), postfix: new HarmonyMethod(typeof(CritterNeedsFirst), nameof(InhalerStates)));
+            var states = AccessTools.Method(typeof(GasAndLiquidConsumerMonitor), nameof(GasAndLiquidConsumerMonitor.InitializeStates));
+            if (ForeignPatches.Hooked(states, typeof(CritterNeedsFirst))) return;
+            harmony.Patch(states, postfix: new HarmonyMethod(typeof(CritterNeedsFirst), nameof(InhalerStates)));
             var instance = typeof(CreatureCalorieMonitor.Instance);
             var meal = new HarmonyMethod(typeof(CritterNeedsFirst), nameof(MealOrExcretion));
             harmony.Patch(AccessTools.Method(instance, nameof(CreatureCalorieMonitor.Instance.OnCaloriesConsumed)), postfix: meal);
