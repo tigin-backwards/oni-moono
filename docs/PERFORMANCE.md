@@ -853,6 +853,36 @@ more, logs where the time went (`gl batch frame F took T ms: ...`): draws, rende
 texture uploads by size and format (made or updated), mesh uploads by name, and within them the
 driver calls (glTexSubImage2D, glNamedBufferData) and the copies kept for partial uploads.
 
+### Snapshots on Vulkan, on a late-game colony
+
+Measured on Windows (Vulkan, an RTX 3090) on a late-game Spaced Out colony (cycle 17,000, 62,000
+buildings, one discovered asteroid) with a player's default tweaks at speed 3, 2026-11-15, one
+launch. The snapshots were asked for one after the other while the game ran
+(`tools/TimelapseTimingTestMod`); the frames before them took 23–37 ms.
+
+| Snapshot | The capture's frames | Encode, on the task |
+|---|---|---|
+| 512×768, the first after the load | 97, 354, 410 ms | 102 ms |
+| 512×768, the next | 61, 205, 127 ms | 93 ms |
+| 8192×12288 | 48, 182, 142 ms, then 345 ms with the callback's copy (69 ms) | 2.8 s |
+
+The first frame reads the screen for the freeze frame and moves the camera out. The second is
+the game's late update with the whole colony in view (177 ms in another launch) and the render.
+The third waits for the device to draw it (250 ms there). No frame reached half a second, at
+the largest size either. A mid-game colony (cycle 2,000, 14,000 buildings) gave 116, 233 and
+380 ms for its first snapshot.
+
+On Linux under WSL the only Vulkan device is Mesa's software rasterizer (lavapipe), which
+`--renderer auto` refuses. With `--renderer vulkan` the late-game colony runs at 195 ms a frame
+there, and its 512×768 snapshot has a frame of 3.9 s, 3.7 s of it waiting for the device. An
+early colony's 8192×12288 snapshot took 10 s the same way (2026-11-14). Those are the
+rasterizer's times, not a GPU's.
+
+In the late game a snapshot comes every tenth cycle, of the starting asteroid only: the
+Timelapser's rule past its list of cycles (to 500) holds only for an asteroid discovered at the
+start. Before that, each discovered asteroid has its snapshot days, and those that fall on
+the same day are taken one after the other, two frames each.
+
 ## Long-list screens (U60)
 
 The management screens that list every Duplicant (Vitals, Consumables, Priorities, Schedule,
