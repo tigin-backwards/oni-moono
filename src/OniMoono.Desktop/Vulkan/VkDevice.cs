@@ -691,6 +691,30 @@ namespace OniMoono.Desktop.Vulkan
 
         // ----- Shutdown -----
 
+        /// The threads stop with their work done and the device idle, and the pipeline cache is
+        /// written for the next launch. No object is destroyed.
+        public override void StopForQuit()
+        {
+            worker.Dispose();
+            QuitStats.Mark("Vulkan thread");
+            // The presenter's thread submits too: it ends before the queue is waited for.
+            presenter?.StopForQuit();
+            QuitStats.Mark("presenter");
+            try
+            {
+                vk.Device.WaitIdle();
+            }
+            catch (VkResultError)
+            {
+                // A lost device.
+            }
+            if (VkDrawVerify.On) EngineLog.Engine(VkDrawVerify.Summary());
+            vk.SavePipelineCache();
+            QuitStats.Mark("pipeline cache");
+            // Ended cleanly before its first frames were all on screen: no crash either.
+            if (!deviceLost) guard?.Clear();
+        }
+
         void Shutdown()
         {
             worker.Dispose();

@@ -978,12 +978,17 @@ namespace OniMoono.Desktop.Vulkan
         /// fails as on a lost surface.
         public volatile bool FailNextRecreate;
 
-        /// Presents what was handed over, stops the thread and releases its objects and the
-        /// back buffers (the device is idle after). Safe to call again.
-        public void Dispose()
+        /// The player quits: presents what was handed over and stops the thread, the queue idle
+        /// after. Its objects, the swapchain and the back buffers are left to the process's end.
+        public void StopForQuit()
         {
             if (disposed) return;
             disposed = true;
+            StopThread();
+        }
+
+        void StopThread()
+        {
             if (thread != null)
             {
                 lock (gate)
@@ -995,6 +1000,15 @@ namespace OniMoono.Desktop.Vulkan
             }
             Presented.Stop();
             try { vk.Queue.WaitIdle(); } catch (VkResultError) { }
+        }
+
+        /// Presents what was handed over, stops the thread and releases its objects and the
+        /// back buffers (the device is idle after). Safe to call again.
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true;
+            StopThread();
             if (ownsSplash) splash?.Dispose();
             if (OperatingSystem.IsWindows()) dxgi?.Dispose();
             dxgi = null;

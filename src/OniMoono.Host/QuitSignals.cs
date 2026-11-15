@@ -7,7 +7,7 @@ namespace OniMoono.Host
 {
     /// SIGTERM and SIGINT (a test runner's teardown, `timeout`, ^C) quit the player the way
     /// Application.Quit does: the frame loop ends at the next frame boundary, OnApplicationQuit
-    /// runs, and the graphics device and window go before the process ends, so no thread is cut
+    /// runs, and the graphics device stops before the process ends, so no thread is cut
     /// off in the middle of a GPU wait. CoreCLR's own handling ends the process from the signal
     /// thread with exit(), under render threads that may be waiting on the GPU (on WSL, a wait
     /// on /dev/dxg cut off that way has been followed by a kernel soft lockup).

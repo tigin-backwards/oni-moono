@@ -53,6 +53,9 @@ namespace OniMoono.Desktop.Gl
 
         public static bool HasWork => !pending.IsEmpty;
 
+        /// Variants queued and not built yet (the quit's log).
+        public static int Pending => pending.Count;
+
         public static void Start(GlWorker glWorker)
         {
             worker = glWorker;

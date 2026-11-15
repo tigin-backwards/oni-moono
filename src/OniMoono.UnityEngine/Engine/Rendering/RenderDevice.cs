@@ -183,6 +183,11 @@ namespace OniMoono.Engine.Rendering
         /// Shows the frame (swap buffers).
         public abstract void Present();
 
+        /// The player quits: the device's threads finish what was handed over and stop, so none
+        /// is cut off inside the driver when the process ends. Nothing is released one by one:
+        /// the system takes back a process's GPU objects and windows when it ends.
+        public virtual void StopForQuit() { }
+
         /// Hands the work recorded so far to the device's thread without ending the frame
         /// (a device that records nothing does nothing).
         public virtual void FlushRecorded() { }

@@ -161,10 +161,20 @@ namespace OniMoono.Host.GameTweaks
             EngineLog.Engine("fetch stats on");
         }
 
+        /// The quit, before the window goes: saves still being written are finished, with
+        /// `whileWaiting` called every 100 ms meanwhile.
+        public static void FinishSaves(Action? whileWaiting)
+        {
+            if (!backgroundSave) return;
+            if (whileWaiting == null) BackgroundSave.WaitAll();
+            else BackgroundSave.WaitAll(whileWaiting);
+        }
+
         /// The end of the run: saves still being written are finished first.
         public static void Shutdown()
         {
             if (backgroundSave) BackgroundSave.WaitAll();
+            QuitStats.Mark("saves after unloading");
             FmodQuarantine.Shutdown();
             FmodStealFix.Shutdown();
         }

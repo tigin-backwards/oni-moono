@@ -860,6 +860,23 @@ namespace OniMoono.Desktop
             set => Glfw.SetClipboard(value ?? "");
         }
 
+        /// The player quits: the window leaves the screen at once, and stays alive (hidden) for
+        /// the code that still runs. The cursor is freed first, and an exclusive fullscreen
+        /// window gives the monitor its desktop mode back (GLFW hides no fullscreen window).
+        public void HideForQuit()
+        {
+            try
+            {
+                window.SetInputMode(GlfwInputMode.Cursor, (int)GlfwCursorMode.Normal);
+                if (mode == FullScreenMode.ExclusiveFullScreen) window.SetWindowed(CurrentMonitor.Position, window.Size);
+                window.Visible = false;
+            }
+            catch (Exception e)
+            {
+                OniMoono.Engine.EngineLog.Engine($"quit: the window could not be hidden ({e.Message})");
+            }
+        }
+
         /// Runs first when the platform is disposed, while the windows still exist.
         public event Action Closing;
 
@@ -872,8 +889,10 @@ namespace OniMoono.Desktop
             if (Api == RenderApi.OpenGl) renderWindow.Dispose();
             presentWindow?.Dispose();
             window.Dispose();
+            OniMoono.Engine.QuitStats.Mark("windows");
             Glfw.Terminate();
             initialized = false;
+            OniMoono.Engine.QuitStats.Mark("GLFW");
         }
 
         // ----- Input -----

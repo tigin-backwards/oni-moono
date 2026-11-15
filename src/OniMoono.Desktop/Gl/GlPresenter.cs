@@ -428,7 +428,7 @@ namespace OniMoono.Desktop.Gl
             {
                 if (timerRaised) _ = Dxgi.timeEndPeriod(1);
                 Presented.Stop();
-                target?.Dispose();
+                if (!quitting) target?.Dispose();
                 target = null;
                 Glfw.PInvoke.MakeContextCurrent(null!);
             }
@@ -778,6 +778,17 @@ namespace OniMoono.Desktop.Gl
         }
 
         double typicalGap;
+
+        // The player quits: the target (DXGI's swap chain and shared texture) is left to the
+        // process's end.
+        volatile bool quitting;
+
+        /// Dispose without releasing the target.
+        public void StopForQuit()
+        {
+            quitting = true;
+            Dispose();
+        }
 
         /// Presents what was handed over, then stops the thread and releases the window's
         /// context.

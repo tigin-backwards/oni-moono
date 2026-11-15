@@ -69,7 +69,7 @@ load at all, in both players, comes first from [Load sweeps](#load-sweeps).
   `qa.sh` does the same for its players (see its header).
 - **Players quit, then are killed.** Every teardown above, a hang watchdog's included, sends a
   player SIGTERM first, alone, while its X server still runs. Ours then quits at the next frame
-  boundary as `Application.Quit` does, its graphics device and window going first, and exits
+  boundary as `Application.Quit` does, its graphics device stopping first, and exits
   within `ONI_QUIT_DEADLINE` seconds (default 8) however the quit goes
   (`src/OniMoono.Host/QuitSignals.cs`); a second signal ends it at once. A player still running
   `E2E_QUIT_GRACE` seconds (default 10) later gets SIGKILL. On WSL a player killed in the middle

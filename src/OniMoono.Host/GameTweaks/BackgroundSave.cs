@@ -74,12 +74,22 @@ namespace OniMoono.Host.GameTweaks
         static void WaitPrefix() => WaitAll();
 
         /// Blocks until every save in flight is on disk.
-        public static void WaitAll()
+        public static void WaitAll() => InFlight().Wait();
+
+        /// WaitAll, with `whileWaiting` run every 100 ms meanwhile: the quit keeps the window
+        /// answering the system.
+        public static void WaitAll(Action whileWaiting)
+        {
+            var t = InFlight();
+            while (!t.Wait(100)) whileWaiting();
+        }
+
+        static Task InFlight()
         {
             Task t;
             lock (gate) t = pending;
             if (!t.IsCompleted) EngineLog.Engine("waiting for a save being written");
-            t.Wait();
+            return t;
         }
 
         /// Work for the writer, after the writes in flight and before those queued later: the

@@ -207,6 +207,30 @@ namespace OniMoono.Desktop.Gl
         // 0xFFFFFFFF: the driver chooses.
         static string FormatThreads(int threads) => threads == -1 ? "the driver's choice" : threads.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
+        public override void StopForQuit()
+        {
+            if (GlWarmup.Pending > 0) EngineLog.Engine($"shader warm-up: {GlWarmup.Pending} programs not built yet at the quit; left unbuilt");
+            // The GPU finishes what the last frames gave it before the thread stops: the
+            // contexts are not destroyed, which waited for it before.
+            try
+            {
+                worker.TryCall(() =>
+                {
+                    var finish = (delegate* unmanaged[Cdecl]<void>)Glfw.GetProcAddress("glFinish"u8);
+                    if (finish != null) finish();
+                    return 0;
+                }, out _);
+            }
+            catch (InvalidOperationException)
+            {
+                // The GL thread had failed: it runs nothing any more.
+            }
+            worker.Dispose();
+            QuitStats.Mark("GL thread");
+            presenter.StopForQuit();
+            QuitStats.Mark("presenter");
+        }
+
         readonly GlPresenter presenter;
 
         /// The art of the player's loading splash (--splash moo), loading; null: no splash.
