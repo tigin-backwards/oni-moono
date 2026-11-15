@@ -29,7 +29,7 @@ steps:
   - scroll: {at: "**/MoonoTweaksScreen/**/fix-load-screen-clicks", notches: 0}
   - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~--game-tweak fix-load-screen-clicks"}
   - expect_ui:
-      "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab": {active: true, text: "/^A bug in the game.s own code[\\s\\S]*--game-tweak fix-load-screen-clicks$/"}
+      "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab": {active: true, text: "/^A bug in the game:[\\s\\S]*--game-tweak fix-load-screen-clicks$/"}
   - shot: {name: bugfix-tip, pointer: stay}
   # The measured gain is on a Simulation row: the search box brings it to the top of the list
   # (wheel notches travel further at a lower frame rate).

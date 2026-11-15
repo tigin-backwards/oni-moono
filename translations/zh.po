@@ -147,8 +147,8 @@ msgid "The main menu shows when a newer Moono is out."
 msgstr "有新版 Moono 时，主菜单会提示。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.DETAIL"
-msgid "Asks GitHub for Moono's list of releases (api.github.com) at most once every 6 hours, in the background, sending nothing about you or your game. The answer is kept in the oni-moono data folder. Off: Moono makes no network requests of its own."
-msgstr "在后台向 GitHub（api.github.com）获取 Moono 的版本列表，最多每 6 小时一次，不会发送任何关于你或你的游戏的信息。结果保存在 oni-moono 数据文件夹中。关闭后，Moono 自身不会发出任何网络请求。"
+msgid "Asks GitHub (api.github.com) for Moono's releases at most once every 6 hours, in the background. Nothing about you or your game is sent. The answer is kept in the oni-moono data folder. Off: Moono makes no network requests."
+msgstr "最多每 6 小时在后台向 GitHub（api.github.com）查询一次 Moono 的版本列表，不发送任何关于你或游戏的信息。结果保存在 oni-moono 数据文件夹中。关闭后，Moono 不发出任何网络请求。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_STATS.TITLE"
 msgid "Frame stats in the log"
@@ -167,8 +167,8 @@ msgid "Hide personal paths in the log"
 msgstr "隐藏日志中的个人路径"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOG_PATHS.EFFECT"
-msgid "Your user folder reads %USERPROFILE% or ~ in Player.log, and your account IDs and name are hidden."
-msgstr "Player.log 中你的用户文件夹会显示为 %USERPROFILE% 或 ~，你的账号 ID 和名称也会被隐藏。"
+msgid "Player.log shows your user folder as %USERPROFILE% or ~ and hides your account IDs and name."
+msgstr "Player.log 中的用户文件夹显示为 %USERPROFILE% 或 ~，账号 ID 和名称也会隐藏。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOG_PATHS.DETAIL"
 msgid "Mods still get the full text."
@@ -239,8 +239,8 @@ msgid "Saving and loading take seconds less; files stay compatible, a little lar
 msgstr "存档和读档快几秒；文件保持兼容，但略大一些。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_COMPRESSION.DETAIL"
-msgid "Compresses with .NET's zlib instead of the game's own; the files are about 14% larger."
-msgstr "改用 .NET 的 zlib 压缩，而不是游戏自带的；文件大约大 14%。"
+msgid "Compresses with .NET's zlib instead of the game's; the files are about 14% larger."
+msgstr "改用 .NET 的 zlib 压缩，不用游戏自带的；文件约大 14%。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BACKGROUND_SAVE.TITLE"
 msgid "Background saving"
@@ -259,8 +259,8 @@ msgid "No cleanup pause when saving"
 msgstr "存档时不再强制清理内存"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.NO_SAVE_GC.EFFECT"
-msgid "Skips the memory cleanup the game forces after each save, a pause of its own."
-msgstr "跳过游戏每次存档后强制进行的内存清理——那本身也是一次卡顿。"
+msgid "Skips the memory cleanup the game forces after each save, which pauses the game."
+msgstr "跳过游戏每次存档后强制进行的内存清理，这次清理会让游戏卡顿。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.NO_SAVE_GC.DETAIL"
 msgid "Skips the full garbage collection the game asks for after saving."
@@ -343,8 +343,8 @@ msgid "An item changing tile no longer looks through every item near it."
 msgstr "物品换格时不再查看附近的每一个物品。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.DETAIL"
-msgid "When an item moves or is stored, the game tells the spatial index's listeners for that tile by looking through every item in the surrounding area; items have no listeners, so this skips the look and tidies up the removed entries it would have."
-msgstr "物品移动或被存放时，游戏会查看周围区域内的每一个物品，以通知空间索引中该格的监听者；物品没有监听者，因此此项跳过这次查看，并清理它原本会清理的已移除条目。"
+msgid "When an item moves or is stored, the game looks through every item nearby for listeners on that tile. Items have no listeners, so this skips the search and keeps only its cleanup of removed entries."
+msgstr "物品移动或被存放时，游戏会查看附近的每一个物品，寻找该格的监听者。物品没有监听者，因此此项跳过这次查看，只保留它附带的已移除条目清理。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.TITLE"
 msgid "Faster pipe and rail updates"
@@ -431,8 +431,8 @@ msgid "Each Duplicant's map of path costs takes memory only where it can walk."
 msgstr "每个复制人的路径消耗地图只在它能走到的地方占用内存。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.DETAIL"
-msgid "A Duplicant's path grid covers the whole map; it is kept in small pages made the first time a probe writes there, and the parts never written read as the empty grid did. The pathfinder reads the same values."
-msgstr "复制人的路径网格覆盖整张地图；它被存放在一个个小页中，某处第一次被寻路探测写入时才创建该页，从未写入的部分读起来和空网格一样。寻路读取到的数值完全相同。"
+msgid "A Duplicant's path grid covers the whole map. This keeps it in small pages, each made the first time a path probe writes there. The pathfinder reads the same values."
+msgstr "复制人的路径网格覆盖整张地图。此项把它分成小页存放，某处第一次被路径探测写入时才创建该页。寻路读到的数值相同。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.TITLE"
 msgid "Fetch checks by pile"
@@ -443,8 +443,8 @@ msgid "Duplicants looking for things to fetch check each pile of identical items
 msgstr "复制人寻找要搬运的物品时，每堆相同的物品只检查一次，而不是逐个检查。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.DETAIL"
-msgid "Keeps the best item of each pile up to date as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. Within a pile of items that are the same in every way the game compares, a Duplicant may take another one than in the original. Off while a mod changes how Duplicants choose what to fetch."
-msgstr "在物品移动、被预定或腐坏时随时更新每堆中最好的那一个，并且每堆只寻路一次。复制人到不了的世界上的物品会被跳过。在一堆游戏比较的各方面都相同的物品中，复制人可能会拿走与原版不同的那一个。当有模组改变复制人选择搬运物品的方式时，此项关闭。"
+msgid "Tracks the best item of each pile as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. Among items in a pile that the game ranks as equal, a Duplicant may take a different one than in the original. Off while a mod changes how Duplicants choose what to fetch."
+msgstr "在物品移动、被预定或腐坏时跟踪每堆中最好的那一个，每堆只寻路一次。复制人到不了的世界上的物品会被跳过。一堆中游戏认为完全等同的物品里，复制人拿走的可能与原版不是同一个。有模组改变复制人选择搬运物品的方式时，此项关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.CONVEYOR"
 msgid "No hitch on rail edits (was 0.05–0.5 s)"
@@ -459,8 +459,8 @@ msgid "Duplicants' path checks redo only what changed in the world, using less C
 msgstr "复制人的寻路检查只重算世界中变化的部分，占用更少的 CPU。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.DETAIL"
-msgid "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of searched again from scratch. Costs and reachable cells stay the same; where two routes cost the same, a Duplicant may walk the other one, not the original's. Keeps about 0.9 MB a Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths)."
-msgstr "每个复制人上一次的路径探测只在变化之处（挖掘、建造、门、液体）修补，而不是从头重新搜索。路径代价和可到达的格子不变；两条路线代价相同时，复制人可能走另一条，而不是原版走的那条。每个复制人约占 0.9 MB 内存。其他模组修改路径探测时（如 Fast Track 的 Cache Paths）不生效。"
+msgid "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of redone from scratch. Costs and reachable cells stay the same, but where two routes cost the same a Duplicant may walk a different one than in the original. Uses about 0.9 MB per Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths)."
+msgstr "每个复制人上一次的路径探测只在变化之处（挖掘、建造、门、液体）修补，而不是从头重算。路径代价和可到达的格子不变，但两条路线代价相同时，复制人走的可能与原版不是同一条。每个复制人约占 0.9 MB 内存。有其他模组修改路径探测时（如 Fast Track 的 Cache Paths），此项关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
 msgid "Graphics & overlays"
@@ -475,8 +475,8 @@ msgid "Consumables, Vitals, Priorities and the other tables update only the rows
 msgstr "饮食、状态、优先级等表格只更新可见的行。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.DETAIL"
-msgid "Once a second, and each time a table is opened, the game updates every row of it in one frame: a stutter with many Duplicants. With this, rows out of sight are updated just before they scroll into view, so they show values read then rather than at the last update. Off while a mod changes how tables update."
-msgstr "游戏每秒一次、以及每次打开表格时，都在同一帧内更新表格的每一行：复制人多时会造成卡顿。开启后，看不到的行会在滚动进入视野之前才更新，因此它们显示的是那时读取的数值，而不是上一次更新时的数值。当有模组改变表格的更新方式时，此项关闭。"
+msgid "The game updates every row of a table in one frame, once a second and each time it opens, which stutters with many Duplicants. Rows out of sight are updated just before they scroll into view instead, so they show values read at that moment. Off while a mod changes how tables update."
+msgstr "游戏每秒一次、以及每次打开表格时，都在同一帧内更新表格的每一行，复制人多时会卡顿。此项让看不到的行在滚动进入视野之前才更新，因此它们显示的是那一刻读取的数值。有模组改变表格的更新方式时，此项关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.TITLE"
 msgid "Tables open sooner"
@@ -487,8 +487,8 @@ msgid "Consumables, Vitals and Priorities open much sooner on colonies with many
 msgstr "复制人很多的殖民地里，饮食、状态和优先级界面打开得快得多。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.DETAIL"
-msgid "As a table builds its rows, the game finds each cell's row and column by searching every row and column built so far, and Consumables goes through every row's scroll bar again for each cell. With this, a row's cells are noted as the row is built and the scroll bars are set once a row; the table comes out the same."
-msgstr "表格建立各行时，游戏要在已建好的每一行、每一列里查找，才知道每个单元格属于哪一行哪一列；饮食表格还会为每个单元格把每一行的滚动条重新检查一遍。开启后，建立一行时就记下它的单元格，滚动条每行只设置一次；表格内容完全相同。"
+msgid "For each cell of a table, the game searches every row and column built so far, and Consumables also goes through every row's scroll bar. This notes a row's cells as the row is built and sets the scroll bars once a row. The table comes out the same."
+msgstr "表格每建立一个单元格，游戏都要搜索已建好的每一行、每一列；饮食表格还会把每一行的滚动条过一遍。此项在建立一行时就记下它的单元格，滚动条每行只设置一次。表格内容相同。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_EVENTS.TITLE"
 msgid "Faster animation events"
@@ -551,8 +551,8 @@ msgid "Duplicants notice a newly opened or blocked path at once, using less CPU.
 msgstr "复制人立即察觉新打开或被阻断的路径，并且占用更少的 CPU。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.INSTANT_REACHABILITY.DETAIL"
-msgid "Which errands and items can be reached is rechecked where and when a Duplicant's reach changes, instead of every one of them once a second. The answers are the game's, up to 1 s sooner. Items it can't follow (some mods' own) are still checked every second."
-msgstr "哪些任务和物品可达，只在复制人可达范围发生变化的地方、变化的那一刻重新检查，而不是每秒把所有任务和物品都检查一遍。结果与游戏本身相同，只是最多提前 1 秒得到。无法跟踪的物品（部分模组自己的）仍每秒检查一次。"
+msgid "Errands and items are rechecked where and when a Duplicant's reach changes, instead of all of them once a second. The answers are the same, up to 1 s sooner. Items it can't track (from some mods) are still checked every second."
+msgstr "任务和物品是否可达，只在复制人可达范围变化的地方和时刻重新检查，而不是每秒全部检查一遍。结果相同，最多提前 1 秒。无法跟踪的物品（来自部分模组）仍每秒检查一次。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_SCREEN_CONVEYORS.TITLE"
 msgid "Lazy unseen conveyor items"
@@ -575,8 +575,8 @@ msgid "Conveyor bridges pass an item straight across instead of taking it off th
 msgstr "运输轨桥把物品直接送到对面，而不是先从轨道上取下再放回去。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.DETAIL"
-msgid "In the game, each item a bridge moves is told it left storage and, at once, that it is stored again. With this, the item only changes rail tile. The rails carry the same things at the same times, with the same heat, germs, freshness and egg state, and meter valves count the same. What differs is bookkeeping: an item keeps its place in the rails' list, so the Conveyor overlay may draw two overlapping items in the other order, and it is not listed as fetchable for the instant of the crossing. Kinds of item not discovered yet, critters and items a mod has added parts to cross the game's way. Off while another mod changes how items are stored on rails."
-msgstr "在游戏里，轨桥移动的每个物品都会先被告知离开了存储，随即又被告知重新存入。开启后，物品只是换到另一格轨道。轨道运送的东西和时间都相同，热量、病菌、新鲜度和蛋的状态也相同，计量阀的计数不变。不同之处只在内部记录：物品保留它在轨道列表中的位置，因此运输概览里两个重叠的物品可能以相反的先后顺序绘制；过桥的瞬间它也不会被列为可拿取。尚未发现的物品种类、小动物以及被模组加了部件的物品仍按游戏的方式过桥。当有其他模组改变物品在轨道上的存放方式时，此项关闭。"
+msgid "The item only changes rail tile. What the rails carry and when, heat, germs, freshness, egg state and Conveyor Meter counts are the same. Two things differ: the Conveyor overlay may draw two overlapping items in the other order, and an item is no longer listed as fetchable for the instant it crosses. Undiscovered kinds of item, critters and items a mod has added components to cross the game's way. Off while another mod changes how items are stored on rails."
+msgstr "物品只是换到另一格轨道。轨道运送的东西和时间、热量、病菌、新鲜度、蛋的状态以及轨道计量器的计数都不变。有两点不同：运输概览中两个重叠的物品可能以相反的顺序绘制；物品过桥的瞬间不再被列为可搬运。尚未发现的物品种类、小动物以及被模组加了组件的物品仍按游戏的方式过桥。有其他模组改变物品在轨道上的存放方式时，此项关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.TITLE"
 msgid "Critters ready to eat or excrete get the next turn"
@@ -587,8 +587,8 @@ msgid "In huge colonies, Slicksters and Pufts no longer stop excreting at low fr
 msgstr "在超大型殖民地里，帧率较低时浮油生物和喷浮飞鱼不再停止排泄。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.DETAIL"
-msgid "The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters and a low frame rate, a critter that inhales its food gets too few turns to stay fed, so it stays hungry and never excretes: its stomach fills for cycles and empties all at once after a load. With this, a critter that is ready to inhale or to excrete takes one of the frame's turns ahead of the others. No turns are added; the other critters wait slightly longer."
-msgstr "游戏每帧按固定顺序让 5 只小动物决定要做什么。小动物有数千只而帧率又低时，靠吸入进食的小动物轮到的次数太少，吃不饱，于是一直处于饥饿状态，从不排泄：它的胃会连续多个周期越积越多，并在读档后一次全部排出。开启后，准备吸入食物或准备排泄的小动物会在这一帧的名额里排到其他小动物前面。总名额不变；其他小动物会稍微多等一会儿。"
+msgid "The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: its stomach fills for cycles and empties all at once after a load. This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others. No turns are added, so other critters wait slightly longer."
+msgstr "游戏每帧按固定顺序让 5 只小动物决定要做什么。小动物有数千只而帧率又低时，靠吸入进食的小动物轮到的次数太少，吃不饱，也就从不排泄：它的胃连续多个周期越积越多，读档后一次全部排出。此项让准备吸入食物或排泄的小动物在这一帧的名额里排到前面。总名额不变，其他小动物会稍微多等一会儿。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_WORLD_FALLERS.TITLE"
 msgid "Land items lost below a world"
@@ -603,16 +603,16 @@ msgid "A bug in the game: they hang just below the world, stepped as falling eve
 msgstr "这是游戏的错误：它们会悬在世界正下方，每个 tick 都按下落步进。开启后让它们停在悬挂处。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.TITLE"
-msgid "Critter and dupe brain updates capped at 30 updates a second"
-msgstr "小动物和复制人脑更新上限为每秒 30 次"
+msgid "Cap critter and dupe brain updates"
+msgstr "限制小动物和复制人的脑更新"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.EFFECT"
-msgid "Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps."
-msgstr "小动物和复制人原本每帧都会更新。此项在 30 fps 以上削减这部分簿记开销。"
+msgid "Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps."
+msgstr "超过 30 fps 时，小动物和复制人做决定的频率与 30 fps 时相同。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
-msgid "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale its food or to excrete goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with the game speed, so each still gets an update within 15 seconds of game time. Saves time only above 30 fps."
-msgstr "游戏每渲染帧更新 1 个复制人和 5 个小动物的脑；此项将其限制为每秒 30 和 150 次，并分摊到各帧。刚完成任务或受到威胁的个体仍会立即获得下一次更新，准备吸入食物或准备排泄的小动物会排到其他小动物前面，因此小动物行动的时刻会与不开启时不同。小动物或复制人很多时，上限会随游戏速度提高，使每个个体仍能在 15 秒游戏时间内获得一次更新。仅在 30 fps 以上节省时间。"
+msgid "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food or excrete goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time."
+msgstr "游戏每帧更新 1 个复制人和 5 只小动物的脑；此项将其限制为每秒 30 次和 150 次。刚完成任务或受到威胁的个体仍会得到下一次更新，准备吸入食物或排泄的小动物排在其他小动物前面，因此小动物行动的时刻与不开启时不同。小动物或复制人很多时，上限随游戏速度提高，每个个体都能在 15 秒游戏时间内更新一次。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.RENDERER.TITLE"
 msgid "Renderer"
@@ -647,8 +647,8 @@ msgid "Windows shows the game as it shows the original: no forced HDR or brightn
 msgstr "Windows 像显示原版一样显示游戏：不会被强制开启 HDR 或调高亮度。需要重启。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DXGI.DETAIL"
-msgid "With Vulkan or OpenGL, frames go to the screen through a Direct3D 11 swap chain, as the original's do. Off: through the renderer's own presentation, which Auto HDR or RTX HDR can take for HDR. If it can't start, the renderer's own is used and Player.log says why. No effect on Linux."
-msgstr "无论使用 Vulkan 还是 OpenGL，画面都像原版一样通过 Direct3D 11 交换链送到屏幕。关闭时使用渲染器自身的呈现方式，可能被自动 HDR 或 RTX HDR 当作 HDR 内容。无法启动时改用渲染器自身的方式，Player.log 会说明原因。在 Linux 上无效。"
+msgid "With Vulkan or OpenGL, frames reach the screen through a Direct3D 11 swap chain, as in the original. Off: the renderer presents them, and Auto HDR or RTX HDR can force HDR on the game. If Direct3D can't start, the renderer presents and Player.log says why. No effect on Linux."
+msgstr "无论使用 Vulkan 还是 OpenGL，画面都像原版一样通过 Direct3D 11 交换链送到屏幕。关闭时由渲染器呈现，自动 HDR 或 RTX HDR 可能强制开启 HDR。Direct3D 无法启动时改由渲染器呈现，Player.log 会说明原因。对 Linux 无效。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.TITLE"
 msgid "Steady display during saves and loads"
@@ -659,8 +659,8 @@ msgid "G-Sync and FreeSync monitors don't flicker while the game saves or loads.
 msgstr "游戏存档或读档时，G-Sync 和 FreeSync 显示器不会闪烁。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.DETAIL"
-msgid "While no new frame comes for a moment, the last one is shown again at about the game's frame rate (30 to 60 times a second), so the monitor's refresh rate doesn't drop. Nothing changes while frames come as usual. Windows, with Direct3D presentation on."
-msgstr "当一段时间没有新画面时，以接近游戏帧率的频率（每秒 30 到 60 次）重复显示上一帧，使显示器的刷新率不会骤降。画面正常到来时不做任何改变。仅限 Windows，且需开启 Direct3D 显示。"
+msgid "When no new frame arrives, the last one is shown again 30 to 60 times a second, so the monitor's refresh rate doesn't drop. Windows only, with Direct3D presentation on."
+msgstr "没有新画面时，以每秒 30 到 60 次重复显示上一帧，显示器的刷新率就不会骤降。仅限 Windows，且需开启 Direct3D 显示。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.TITLE"
 msgid "Garbage collection"
@@ -691,8 +691,8 @@ msgid "With many saves, the Load screen opens and loads more colonies sooner."
 msgstr "存档很多时，加载游戏界面打开和“加载更多”都更快。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.DETAIL"
-msgid "Each save's details are read from its file once a refresh instead of four times, several files at a time, and the previews of pages already shown are not made again. The colonies, their order, the previews and the log are the same."
-msgstr "每次刷新时每个存档的信息只从文件读取一次而不是四次，并且同时读取多个文件；已显示页面的预览图不再重新生成。殖民地、顺序、预览图和日志都不变。"
+msgid "Each save's details are read once per refresh instead of four times, several files at a time, and previews already shown are not made again. The colonies, their order, the previews and the log are the same."
+msgstr "每次刷新时每个存档的信息只读取一次而不是四次，并同时读取多个文件；已显示的预览图不再重新生成。殖民地、顺序、预览图和日志都不变。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.TITLE"
 msgid "Moving loading screen"
@@ -703,8 +703,8 @@ msgid "The loading screen keeps moving while a colony loads."
 msgstr "加载殖民地时，加载画面不再静止不动。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.DETAIL"
-msgid "A save loads in one long step during which the game shows no new picture, for half a minute on a large colony. Meanwhile Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. The load itself is the same and takes as long."
-msgstr "读取存档是一个漫长的步骤，期间游戏不会显示新画面，大型殖民地可长达半分钟。这段时间里 Moono 会让加载画面保持动态并显示进度条，还会播放模组提供的动画加载图（如 Loading Pip）。加载过程本身不变，耗时也相同。"
+msgid "While a save loads, the game shows no new picture, for half a minute on a large colony. Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. Loading takes as long as before."
+msgstr "读取存档期间游戏不显示新画面，大型殖民地可长达半分钟。Moono 会让加载画面保持动态并显示进度条，还会播放模组提供的动态加载图（如 Loading Pip）。加载耗时不变。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.TITLE"
 msgid "Sound memory guard"
@@ -715,8 +715,8 @@ msgid "Guards against a bug in the game's sound engine that can crash the game."
 msgstr "防范游戏音效引擎中一个可能导致游戏崩溃的错误。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.DETAIL"
-msgid "FMOD, the sound engine, can write to memory it has already freed, a bug its makers confirmed, behind some \"heap corruption\" crashes. With this, FMOD gets memory of its own and freed memory waits a while before reuse, so a late write lands where nothing else is, and Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."
-msgstr "游戏的音效引擎 FMOD 可能会写入已经释放的内存，这是其开发者已确认的错误，也是部分“堆损坏”崩溃的原因。开启后，FMOD 使用自己的内存，释放的内存要等一段时间才会被重新使用，因此迟到的写入只会落在无人使用的地方，并且 Player.log 会记录发现的每一次。在大型殖民地上约多用 90 MB 内存。目前仅限 Windows。"
+msgid "FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some \"heap corruption\" crashes. This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."
+msgstr "音效引擎 FMOD 可能写入已释放的内存，这是其开发者已确认的错误，也是部分“堆损坏”崩溃的原因。此项让 FMOD 使用单独的内存，并推迟重用它释放的内存，迟到的写入就不会造成破坏。Player.log 会记录发现的每一次。大型殖民地约多用 90 MB 内存。目前仅限 Windows。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.TITLE"
 msgid "Stolen sound crash guard"
@@ -727,8 +727,8 @@ msgid "Fixes a bug in the game's sound engine that can crash the game when many 
 msgstr "修复游戏音效引擎中一个在同时播放大量声音时可能导致游戏崩溃的错误。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.DETAIL"
-msgid "When too many copies of a sound play, FMOD, the sound engine, stops the oldest; if that one is still loading, FMOD frees it and then writes to it. With this, that one write is skipped, in FMOD's code in memory, only for the exact FMOD files the game ships; anything else is left as it is. Nothing you hear changes."
-msgstr "同一声音播放的份数过多时，音效引擎 FMOD 会停掉最早的那一份；如果那一份还在加载，FMOD 会先释放它，然后又向它写入。开启后会在内存中的 FMOD 代码里跳过这一次写入，且仅针对游戏自带的那几个 FMOD 文件；其他情况一律保持原样。你听到的声音不会有任何变化。"
+msgid "When too many copies of a sound play, FMOD, the sound engine, stops the oldest. If that one is still loading, FMOD frees it and then writes to it. This skips that write by patching FMOD's code in memory, only for the exact FMOD files the game ships. Nothing you hear changes."
+msgstr "同一声音播放的份数过多时，音效引擎 FMOD 会停掉最早的那一份。如果那一份还在加载，FMOD 会先释放它，再向它写入。此项修改内存中的 FMOD 代码来跳过这次写入，仅针对游戏自带的那几个 FMOD 文件。你听到的声音没有变化。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_RELEASED_SOUNDS.TITLE"
 msgid "Forget released sounds"
@@ -739,8 +739,8 @@ msgid "The game stops changing sounds it is done with, which after hours of play
 msgstr "游戏不再改动它已经用完的声音，这在游玩数小时后可能导致崩溃。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_RELEASED_SOUNDS.DETAIL"
-msgid "A bug in the game's own code: background sounds, and looping sounds after a switch to another asteroid, keep the sound engine's number for a sound the game is done with, and go on using it. After a couple of hours on a large colony the sound engine gives that number to something else, and the game's change lands there, sometimes not on a sound at all. With this, the number is forgotten when the sound is let go. Nothing you hear changes."
-msgstr "这是游戏自身代码的错误：背景声音，以及切换到另一颗小行星后的循环声音，会留着音效引擎给某个已用完的声音分配的编号，并继续使用它。在大型殖民地上玩几个小时后，音效引擎会把这个编号分给别的东西，游戏的改动就落到那里，有时根本不是一个声音。开启后，声音被放掉时就忘掉这个编号。你听到的声音不会有任何变化。"
+msgid "A bug in the game: background sounds, and looping sounds after a switch to another asteroid, keep using a sound's handle after the game releases it. After a couple of hours on a large colony the sound engine reuses the handle, and the game's change lands on something else, sometimes not a sound at all. This forgets the handle when the sound is released. Nothing you hear changes."
+msgstr "游戏的错误：背景声音，以及切换到另一颗小行星后的循环声音，在游戏释放某个声音后仍继续使用它的句柄。在大型殖民地上玩几个小时后，音效引擎会重新分配这个句柄，游戏的改动就落到别的东西上，有时根本不是声音。此项在声音释放时丢弃句柄。你听到的声音没有变化。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
 msgid "Worldgen as in the original"
@@ -771,8 +771,8 @@ msgid "After Load more, a click on a colony no longer builds its list of saves a
 msgstr "点击“加载更多”后，点击殖民地不再为每次刷新各重建一遍它的存档列表。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.DETAIL"
-msgid "A bug in the game's own code: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh, and the last one stays on screen. With this, one click builds it once and logs once; the screen ends up the same."
-msgstr "这是游戏自身代码的错误：每次“加载更多”都会给已显示的殖民地再添加一份点击处理，于是一次点击会按刷新次数重复构建殖民地，屏幕上留下最后一次的结果。开启后一次点击只构建一次、只记录一次日志；界面最终相同。"
+msgid "A bug in the game: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh. This builds it once and logs once; the screen ends up the same."
+msgstr "游戏的错误：每次“加载更多”都会给已显示的殖民地再添加一份点击处理，于是一次点击会按刷新次数重复构建殖民地。此项让一次点击只构建一次、只记录一次日志；界面最终相同。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_SOUND_PILES.TITLE"
 msgid "Cap repeated sounds in one tile"
@@ -819,8 +819,8 @@ msgid "Collects garbage during the loading screen, avoiding a large hitch shortl
 msgstr "在加载画面仍显示时回收内存，进入游戏后不久不会出现明显卡顿。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.DETAIL"
-msgid "Runs the memory cleanup that would otherwise pause the game about a minute into play at the end of the load, while the game is still paused. Only with Fast garbage collection (the default)."
-msgstr "在加载结束、游戏仍处于暂停时进行原本会在开始游玩约一分钟后造成卡顿的内存清理。仅在“快速”垃圾回收（默认）下生效。"
+msgid "The memory cleanup that would pause the game about a minute into play runs at the end of the load instead, while the game is still paused. Only with Fast garbage collection (the default)."
+msgstr "原本会在开始游玩约一分钟后造成卡顿的内存清理，改在加载结束、游戏仍暂停时进行。仅在“快速”垃圾回收（默认）下生效。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.FETCH"
 msgid "Fetch updates ~8× shorter on a colony with big piles (3.1–3.4 → 0.4 ms each)"
@@ -839,8 +839,8 @@ msgid "Colony snapshots saved each cycle no longer get vertical stripes, squeeze
 msgstr "每个周期保存的殖民地快照不再出现竖条纹、被挤压的光照或错位的效果。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.DETAIL"
-msgid "A bug in the game's own code: a snapshot is drawn into a narrow image, but the build grid, the lights and the heat, cold and dust effects are set up for the screen's wider view. With a building picked for placement, the grid draws stripes over the left of the image. With this, they are drawn for the snapshot's own view."
-msgstr "这是游戏自身代码的错误：快照绘制在一张较窄的图像中，但建造网格、光照以及热、冷和灰尘效果都是按屏幕较宽的视野设置的。选中建筑准备放置时，网格会在图像左侧画出条纹。开启后，它们按快照自己的视野绘制。"
+msgid "A bug in the game: the build grid, the lights and the heat, cold and dust effects are set up for the screen's view, which is wider than a snapshot's. With a building picked for placement, the grid draws stripes over the left of the image. This sets them up for the snapshot's view."
+msgstr "游戏的错误：建造网格、光照以及热、冷和灰尘效果都是按屏幕的视野设置的，而屏幕的视野比快照宽。选中建筑准备放置时，网格会在图像左侧画出条纹。此项让它们按快照的视野设置。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TABLE_SCROLL.TITLE"
 msgid "Keep table columns where they were scrolled"
@@ -851,8 +851,8 @@ msgid "Scrolled table columns no longer jump back to the first ones every second
 msgstr "滚动过的表格列不再每隔一秒左右跳回最前面的几列。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TABLE_SCROLL.DETAIL"
-msgid "A bug in the game's own code: each row of a table keeps its own scroll position in step with the others, and when the rows are laid out again (as they are every second or so while the columns move), one row's columns go back to the start and the game moves every row there. With this, laying out a row keeps the table's scroll position."
-msgstr "这是游戏自身代码的错误：表格的每一行各自保存滚动位置并与其他行保持同步，当各行重新布局时（列移动期间每隔一秒左右就会发生一次），某一行的列会回到开头，游戏随即把每一行都移到那里。开启后，重新布局某一行时会保持表格的滚动位置。"
+msgid "A bug in the game: each row of a table keeps its scroll position in step with the others. When the rows are laid out again (every second or so while the columns move), one row's columns go back to the start and the game moves every row there. This keeps the table's scroll position when a row is laid out."
+msgstr "游戏的错误：表格的每一行都保存滚动位置，并与其他行保持同步。各行重新布局时（列移动期间每隔一秒左右一次），某一行的列会回到开头，游戏随即把每一行都移到那里。此项在重新布局某一行时保持表格的滚动位置。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.TITLE"
 msgid "Share identical data"
@@ -863,8 +863,8 @@ msgid "Names repeated across a colony's reports and other identical data are kep
 msgstr "殖民地报告中反复出现的名字和其他相同的数据只保留一份，占用更少内存。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.DETAIL"
-msgid "While a save loads, every copy of the same text (Duplicants' and critters' names in each day's report) becomes one; buildings with the same footprint share one table of the spots they are worked from, and work animations left at their defaults share one list. Nothing is written into them, so the game reads the same values."
-msgstr "加载存档时，同一段文字的所有副本（每日报告中复制人和小动物的名字）合并为一份；占地相同的建筑共用一张可操作位置表，保持默认值的工作动画共用一个列表。这些数据从不被写入，因此游戏读到的数值完全相同。"
+msgid "While a save loads, copies of the same text (Duplicants' and critters' names in each day's report) become one. Buildings with the same footprint share one table of work spots, and work animations left at their defaults share one list. The game never writes to these, so it reads the same values."
+msgstr "加载存档时，同一段文字的多个副本（每日报告中复制人和小动物的名字）合并为一份。占地相同的建筑共用一张工作位置表，保持默认值的工作动画共用一个列表。游戏从不写入这些数据，读到的数值相同。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.SHARED"
 msgid "~0.3 GB less memory on a late-game colony"
@@ -947,8 +947,8 @@ msgid "Above 60 fps at normal speed, frames no longer wait for the simulation, a
 msgstr "在正常速度下超过 60 fps 时，帧不再等待模拟，CPU 占用也更少。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.DETAIL"
-msgid "Between its steps, five a second, the game asks the simulation for its state on every frame with no game time to step, which happens only above 60 fps at normal speed. Each such call makes the frame wait for the step underway and runs a step of no time. With this, the simulation is called only at its steps, as the game already does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later than without it (up to 0.4 s), as below 60 fps. Paused, or while another mod changes these calls, the game's own calls run."
-msgstr "在两次模拟步进之间（每秒五次），游戏会在每个没有游戏时间可推进的帧上向模拟查询其状态，这只会在正常速度下超过 60 fps 时发生。每次这样的调用都会让该帧等待正在进行的步进，并运行一次零时间的步进。启用后，模拟只在其步进时被调用，与游戏在 60 fps 以下和更快速度下的做法相同。挖掉的格子、建成的格子以及游戏对模拟提出的其他改动，随之比不启用时晚约 0.3 秒显示（最多 0.4 秒），与 60 fps 以下相同。暂停时，或有其他模组修改这些调用时，仍运行游戏自身的调用。"
+msgid "Above 60 fps at normal speed, the game calls the simulation on every frame between its five steps a second, and each call waits for the step underway. This skips those calls, as the game does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later (up to 0.4 s), as below 60 fps. Off while paused, or while another mod changes these calls."
+msgstr "正常速度下超过 60 fps 时，游戏会在模拟每秒五次步进之间的每一帧调用模拟，每次调用都要等待正在进行的步进。此项跳过这些调用，与游戏在 60 fps 以下和更快速度下的做法相同。挖掉的格子、建成的格子以及游戏要求模拟做的其他改动会晚约 0.3 秒显示（最多 0.4 秒），与 60 fps 以下相同。暂停时，或有其他模组修改这些调用时，此项不生效。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PACE"
 msgid "112 → 220 fps at normal speed on a large modded colony"

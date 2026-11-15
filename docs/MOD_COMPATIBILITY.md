@@ -3139,6 +3139,6 @@ conflict is known: most tweaks turn themselves off when a mod patches the same c
   console. Turn off *Faster worker threads*.
 - **系统性能观察器 (OniPerformanceObserver):** it measures no worker-thread jobs. Turn off
   *Faster worker threads* while profiling.
-- **Cooperative Colonies:** with *Critter and dupe brain updates capped at 30 updates a second*
+- **Cooperative Colonies:** with *Cap critter and dupe brain updates*
   or *Lazy unseen conveyor items* on, its lockstep timing is skipped and a session can fall out
   of step. Leave both off (the default).
