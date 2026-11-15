@@ -40,8 +40,8 @@ RUNQ_LEVEL, RUNQ_OWNER, RUNQ_TIMEOUT and RUNQ_EXPECT in the environment stand in
 --owner, --timeout and --expect (RUNQ_TIMEOUT and RUNQ_EXPECT win over the options: the migrated
 scripts pass their own estimates).
 
-Exit codes: the command's, or 124 timeout, 137 killed (cancel, idle-held, heartbeat), 75 refused
-at submit, 76 lost (a WSL restart), 69 no daemon. Each job's folder is ~/oni-runs/ID (out.log,
+Exit codes: the command's, or 124 timeout, 137 killed (cancel, idle-held, heartbeat, self-deadlock,
+windows-rules, steam-contact; `runq show ID` gives the reason), 75 refused at submit, 76 lost (a WSL restart), 69 no daemon. Each job's folder is ~/oni-runs/ID (out.log,
 result.json, out/ as $RUNQ_OUT). The kill switch: RUNQ=off or `enabled = false` in
 ~/.config/oni-runq/config.toml sends the migrated scripts back to the old locks."""
 
